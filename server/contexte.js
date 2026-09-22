@@ -23,7 +23,10 @@ export const PORT = process.env.PORT || 3001;
 // APP_URL en https = déploiement : cookies Secure (sessions.js), CORS fermé,
 // pas de données de démonstration. Derrière un proxy (Render, etc.), les
 // en-têtes x-forwarded-* font foi.
-export const APP_URL_PROD = (process.env.APP_URL || '').replace(/\/$/, '');
+// Chez Render, l'adresse publique est donnée au serveur (RENDER_EXTERNAL_URL) :
+// elle sert quand APP_URL n'a pas été posée, pour que les liens que Klocka
+// écrit (chat, mails) ne pointent pas sur localhost.
+export const APP_URL_PROD = (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 export const EN_PRODUCTION = APP_URL_PROD.startsWith('https://');
 
 // L'authentification est toujours exigée. AUTH_DESACTIVEE=true rétablit

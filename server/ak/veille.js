@@ -278,8 +278,10 @@ export async function relever() {
     Meta.set(CLE_DEPUIS, plusRecent);
     await reposterEnAttente();
     await annoncerLesTachesFinies();
-    await direLeMatin(suivis);
-    await seProposer(suivis);
+    // Le mot du matin et les propositions spontanées (dossiers incomplets,
+    // mails à traiter) sont désactivés : l'équipe ne veut pas de messages non
+    // demandés dans le groupe. direLeMatin() et seProposer() restent codés,
+    // au cas où on les rebrancherait un jour.
     await ecouterLeBureau(suivis);
     dernier.le = new Date().toISOString();
     dernier.erreur = null;
@@ -292,8 +294,8 @@ export async function relever() {
   }
 }
 
-/** Le mot du matin, dans l'espace de l'équipe, une fois par jour ouvré. */
-async function direLeMatin(suivis) {
+/** Le mot du matin, dans l'espace de l'équipe, une fois par jour ouvré. Non appelé : désactivé par l'équipe (exporté pour /api/ak, tests, et un futur retour en arrière). */
+export async function direLeMatin(suivis) {
   const { estLeMoment, motDuMatin, marquerFait } = await import('./matin.js');
   if (!estLeMoment()) return;
   const groupe = suivis.find((s) => s.type === 'SPACE');
@@ -351,8 +353,8 @@ async function lancerDesign(tache) {
   }
 }
 
-/** AK se propose : un dossier incomplet, dit une fois, aux heures de bureau. */
-async function seProposer(suivis) {
+/** AK se propose : un dossier incomplet, dit une fois, aux heures de bureau. Non appelé : désactivé par l'équipe (exporté pour /api/ak, tests, et un futur retour en arrière). */
+export async function seProposer(suivis) {
   const { estDu, aSignaler, mailsASignaler, marquer } = await import('./proactif.js');
   if (!estDu()) return;
   const groupe = suivis.find((s) => s.type === 'SPACE');

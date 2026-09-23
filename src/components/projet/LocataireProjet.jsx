@@ -82,8 +82,8 @@ function Anneau({ part, texte }) {
 function Case({ valeur, label, info }) {
   return (
     <div>
-      <div className={`text-[26px] max-md:text-[20px] font-light leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</div>
-      <div className="text-[11px] text-ardoise mt-2 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
+      <div className={`text-[32px] max-md:text-[24px] font-light leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</div>
+      <div className="text-[13px] text-ardoise mt-2.5 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
     </div>
   );
 }
@@ -95,6 +95,8 @@ export default function LocataireProjet({ project }) {
   const loyer = Number(project.sim_loyer_initial_ht) || Number(project.loyer_annuel_ht) || 0;
   const parMois = loyer > 0 ? Math.round(loyer / 12) : 0;
 
+  // Deux colonnes, deux lignes : loyer et échéance à gauche, ce qui en
+  // découle (depuis quand, par mois) à droite, comme sur la maquette.
   const bail = [
     visible("loc.loyer") && { valeur: valeurs["loc.loyer"], label: "Loyer annuel HT/HC" },
     visible("loc.depuis") && { valeur: moisAnnee(project.locataire_depuis), label: "En place depuis", info: valeurs["loc.depuis"] ? `Soit ${valeurs["loc.depuis"]}.` : null },
@@ -118,7 +120,7 @@ export default function LocataireProjet({ project }) {
         {bail.length > 0 && (
           <div>
             <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.12]">Le bail en place</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-6 py-6">
+            <div className="grid grid-cols-2 gap-x-16 max-md:gap-x-8 gap-y-8 max-md:gap-y-6 py-8 max-md:py-6">
               {bail.map((c) => <Case key={c.label} {...c} />)}
             </div>
           </div>
@@ -126,21 +128,19 @@ export default function LocataireProjet({ project }) {
         {exploite && (
           <div className={bail.length ? "border-t border-encre/[0.12] pt-6" : ""}>
             <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise mb-3">Qui exploite</div>
-            <div className="flex items-start justify-between gap-6 flex-wrap">
-              {visible("loc.nom") && (
-                <div>
-                  <div className={`text-[22px] max-md:text-[18px] font-light leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}>{valeurs["loc.nom"] || "—"}</div>
-                  <div className="text-[11px] text-ardoise mt-1.5">Nom du locataire</div>
-                </div>
-              )}
-              {visible("loc.profil") && (
-                <div className="flex flex-wrap gap-2 md:justify-end">
-                  {pastilles.length ? pastilles.map((p) => (
-                    <span key={p} className="text-[11.5px] px-3.5 py-1.5 rounded-full border border-bord-doux text-craie">{p}</span>
-                  )) : <span className="text-[11.5px] px-3.5 py-1.5 rounded-full border border-bord-doux text-brume">Profil —</span>}
-                </div>
-              )}
-            </div>
+            {visible("loc.nom") && (
+              <div>
+                <div className={`text-[26px] max-md:text-[20px] font-light leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}>{valeurs["loc.nom"] || "—"}</div>
+                <div className="text-[13px] text-ardoise mt-1.5">Nom du locataire</div>
+              </div>
+            )}
+            {visible("loc.profil") && (
+              <div className={`flex flex-wrap gap-2 justify-end ${visible("loc.nom") ? "mt-6" : ""}`}>
+                {pastilles.length ? pastilles.map((p) => (
+                  <span key={p} className="text-[13px] px-4 py-2 rounded-full border border-bord-doux text-craie">{p}</span>
+                )) : <span className="text-[13px] px-4 py-2 rounded-full border border-bord-doux text-brume">Profil —</span>}
+              </div>
+            )}
           </div>
         )}
       </div>

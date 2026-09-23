@@ -319,7 +319,11 @@ export async function listerFichiers(compteEmail, { dossierId = null, recherche 
   }));
 }
 
-/** Rapatrie un fichier du Drive : son contenu et son nom. */
+/**
+ * Rapatrie un fichier du Drive : son contenu et son nom. Un Google Doc, Sheet
+ * ou Slides n'a pas de contenu binaire : il sort en PDF, comme on l'enverrait
+ * à la main.
+ */
 export async function telechargerFichier(compteEmail, fileId) {
   const account = compteDrive(compteEmail);
   const token = await accessTokenFor(account);
@@ -327,6 +331,14 @@ export async function telechargerFichier(compteEmail, fileId) {
     token,
     `${DRIVE_API}/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,size&supportsAllDrives=true`
   );
+  if (String(meta.mimeType || '').startsWith('application/vnd.google-apps')) {
+    const exp = await fetch(
+      `${DRIVE_API}/files/${encodeURIComponent(fileId)}/export?mimeType=application%2Fpdf&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!exp.ok) throw new Error(`Drive a refusé l'export PDF de « ${meta.name} » (${exp.status})`);
+    return { nom: `${meta.name}.pdf`, mime: 'application/pdf', buffer: Buffer.from(await exp.arrayBuffer()) };
+  }
   const resp = await fetch(
     `${DRIVE_API}/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
     { headers: { Authorization: `Bearer ${token}` } }

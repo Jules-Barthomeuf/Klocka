@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -68,7 +69,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
   return (
     <div className="border border-menthe/40 rounded-xl bg-surface px-5 py-4">
       <div className="flex items-baseline justify-between gap-4 mb-3">
-        <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">Brouillon — {INTENTIONS_LIBELLES[b.intention] || b.intention}</p>
+        <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">Brouillon{b.intention ? ` — ${INTENTIONS_LIBELLES[b.intention] || b.intention}` : ""}</p>
         <button onClick={onFermer} className="text-brume hover:text-encre" aria-label="Fermer"><X className="w-4 h-4" /></button>
       </div>
       {[["destinataire", "À"], ["objet", "Objet"]].map(([cle, libelle]) => (
@@ -87,6 +88,7 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
         rows={Math.min(14, Math.max(6, b.corps.split("\n").length + 1))}
         className="w-full mt-3 bg-transparent border-0 outline-none resize-y text-[13.5px] leading-[1.65] text-encre"
       />
+      <PiecesBrouillon b={b} onChange={onChange} />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <span className="text-[11px] text-brume">Relisez : rien ne part sans vous.</span>
         <button
@@ -393,13 +395,7 @@ export default function ChatDashboard() {
   const lireActions = (r) => {
     const mail = (r.actions || []).find((a) => a.name === "preparer_mail" && a.resultat?.brouillon);
     if (mail) {
-      setBrouillon({
-        deal_id: mail.resultat.deal_id,
-        intention: mail.resultat.intention,
-        destinataire: mail.resultat.destinataire || "",
-        objet: mail.resultat.objet || "",
-        corps: mail.resultat.corps || "",
-      });
+      setBrouillon(brouillonDepuis(mail.resultat));
     }
     const propositions = [];
     for (const a of (r.actions || []).filter((a) => a.name !== "preparer_mail")) {
@@ -472,13 +468,12 @@ export default function ChatDashboard() {
 
   const envoyerMail = useMutation({
     mutationFn: () =>
-      base44.functions.invoke("sendMail", {
-        to: brouillon.destinataire, subject: brouillon.objet, body: brouillon.corps, deal_id: brouillon.deal_id, intention: brouillon.intention,
-      }),
+      base44.functions.invoke("sendMail", envoiDepuis(brouillon)),
     onSuccess: (r) => {
       if (r?.success || r?.simulated) {
         toast.success(r?.simulated ? "Envoi simulé" : "Mail envoyé", { description: brouillon.destinataire });
-        pousser({ role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}.` });
+        const n = r?.pieces_jointes?.length || 0;
+        pousser({ role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}${n ? `, avec ${n} pièce${n > 1 ? "s" : ""} jointe${n > 1 ? "s" : ""}` : ""}.` });
         setBrouillon(null);
         rafraichir();
       } else toast.error(r?.error || "Envoi impossible");

@@ -15,6 +15,24 @@ import { statutDe } from './deal/lifecycle.js';
 import { journaliser } from './assistant-journal.js';
 
 import { nomDossierDrive } from './deal/nom-drive.js';
+import { piecesDeclarees, piecesDuProjet } from './pieces-projet.js';
+
+/**
+ * Les pièces d'un projet, telles que le brouillon les montre : celles qu'on
+ * peut joindre, cochées, et les liens qui ne se joignent pas (un site, une
+ * page) et partent dans le corps.
+ */
+async function piecesPourMail(projetId, user) {
+  const projet = Records.get('Project', projetId);
+  if (!projet) return { erreur: 'Projet introuvable' };
+  const { pieces, avertissement } = await piecesDuProjet(projet, { user });
+  return {
+    titre: projet.titre || null,
+    pieces: pieces.filter((p) => p.joignable).map((p) => ({ id: p.id, nom: p.nom })),
+    liens: pieces.filter((p) => !p.joignable && p.url).map((p) => ({ nom: p.nom, url: p.url })),
+    avertissement: avertissement || (pieces.length ? null : "Ce projet n'a aucun document dans son onglet Documents."),
+  };
+}
 const UPLOAD_DIR = CHEMIN_UPLOADS;
 
 const norm = (s) =>
@@ -107,7 +125,7 @@ export const OUTILS = [
   {
     name: 'preparer_mail',
     description:
-      "Ouvre un brouillon de mail dans la fenêtre de relecture de l'analyste. C'est le SEUL moyen de rendre un mail : n'en recopie jamais un dans ta réponse. Avec un dossier, donne deal_id et intention (demande_documents, relance, refus, abandon, presentation_client) et le texte est tiré du dossier. Sans dossier, écris toi-même destinataire, objet et corps. Le brouillon n'est PAS envoyé : il est proposé à l'analyste.",
+      "Ouvre un brouillon de mail dans la fenêtre de relecture de l'analyste. C'est le SEUL moyen de rendre un mail : n'en recopie jamais un dans ta réponse. Avec un dossier, donne deal_id et intention (demande_documents, relance, refus, abandon, presentation_client) et le texte est tiré du dossier. Sans dossier, écris toi-même destinataire, objet et corps. Pour envoyer les documents d'un projet (son onglet Documents, ses liens Drive, le Drive de son dossier), donne projet_id : les pièces sont jointes au brouillon, l'analyste les voit et peut en retirer. Le brouillon n'est PAS envoyé : il est proposé à l'analyste.",
     input_schema: {
       type: 'object',
       properties: {
@@ -122,6 +140,7 @@ export const OUTILS = [
           type: 'string',
           description: 'le mail entier en texte brut, signature comprise, pour un mail sans dossier',
         },
+        projet_id: { type: 'string', description: 'le projet dont on joint les documents (de chercher_projet)' },
       },
       required: [],
     },
@@ -209,6 +228,7 @@ export const OUTILS = [
         objet: { type: 'string' },
         corps: { type: 'string' },
         intention: { type: 'string' },
+        projet_id: { type: 'string', description: 'pour joindre les documents de ce projet' },
       },
       required: ['destinataire', 'objet', 'corps'],
     },
@@ -364,15 +384,18 @@ export async function executerOutil({ name, input }, user) {
     // devait s'ouvrir dans la fenêtre de relecture.
     if (!input.deal_id) {
       if (!input.corps) return { erreur: "Rappelle preparer_mail avec le corps du mail : il ne s'écrit pas dans la réponse." };
+      const joint = input.projet_id ? await piecesPourMail(input.projet_id, user) : null;
+      if (joint?.erreur) return joint;
       return {
         ok: true,
         brouillon: true,
-        titre: null,
+        titre: joint?.titre || null,
         deal_id: null,
         intention: null,
         destinataire: input.destinataire || '',
         objet: input.objet || '',
         corps: input.corps,
+        ...(joint ? { projet_id: input.projet_id, pieces: joint.pieces, liens: joint.liens, avertissement: joint.avertissement } : {}),
       };
     }
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
@@ -532,6 +555,7 @@ export async function executerOutil({ name, input }, user) {
         body: input.corps,
         ...(input.deal_id ? { deal_id: input.deal_id } : {}),
         ...(input.intention ? { intention: input.intention } : {}),
+        ...(input.projet_id ? { projet_id: input.projet_id, pieces: ((await piecesPourMail(input.projet_id, user))?.pieces || []).map((p) => p.id) } : {}),
       },
       { user }
     );
@@ -542,6 +566,7 @@ export async function executerOutil({ name, input }, user) {
       simule: !!r?.simulated,
       destinataire: input.destinataire,
       objet: input.objet,
+      pieces_jointes: r?.pieces_jointes || [],
     };
   }
 
@@ -699,6 +724,9 @@ export async function executerOutil({ name, input }, user) {
       photos: (projet.photos || []).length,
       dans_monday: !!projet.monday_item_id,
       issu_du_dossier: projet.deal_id || null,
+      // L'onglet Documents : ce qui se joint à un mail avec preparer_mail et
+      // projet_id, même sans dossier de préanalyse ni Drive rattaché.
+      documents: piecesDeclarees(projet).map((p) => p.nom),
     };
   }
 
@@ -898,6 +926,7 @@ RÈGLES :
 6. N'invente jamais un chiffre sur un bien : si tu ne l'as pas reçu d'un outil, dis que tu ne l'as pas. Et n'invente pas non plus d'explication à une donnée absente — dis simplement qu'elle n'est pas au dossier.
 7. Une simulation se rend avec ses hypothèses : dis toujours sur quel apport, quel taux et quelle durée elle repose.
 8. Un brouillon de mail n'est pas un envoi. Annonce-le comme une proposition à relire, jamais comme un message parti. Et un mail se rend TOUJOURS par preparer_mail, qui l'ouvre dans la fenêtre de relecture : ne recopie jamais un mail dans ta réponse. Sans dossier au nom du destinataire, appelle quand même preparer_mail, avec destinataire, objet et corps écrits par toi.
+8 bis. Les documents d'un projet sont dans son onglet Documents (etat_projet les liste), le plus souvent en liens Drive : un projet sans dossier de préanalyse ni Drive rattaché A quand même ses pièces. « Envoie-lui les documents du projet X » : chercher_projet, puis preparer_mail avec projet_id, destinataire, objet et un corps court qui annonce les pièces. Ne dis jamais qu'un projet n'a pas de documents sans avoir regardé etat_projet.
 9. Un mail ne part jamais sans accord explicite : propose le texte, attends « envoie », alors seulement envoie.
 10. « Annule » défait la dernière action réversible. Si elle ne l'est pas, dis-le sans détour au lieu de faire semblant.
 11. Un agent immobilier n'a pas besoin d'un dossier pour entrer au CRM : si on te donne un nom et une adresse mail, inscris-le. Ne réclame un dossier que si l'adresse manque.

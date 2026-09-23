@@ -254,6 +254,8 @@ export async function sendEmail({
   template_titre,
   deal_id,
   intention,
+  attachments = [],
+  projet_id = null,
 } = {}) {
   const toList = normalizeRecipients(to);
   const ccList = normalizeRecipients(cc);
@@ -275,7 +277,10 @@ export async function sendEmail({
     template_id: template_id || null,
     template_titre: template_titre || null,
     deal_id: deal_id || null,
+    projet_id: projet_id || null,
     intention: intention || null,
+    // Les noms seuls : le registre ne garde pas le contenu des pièces.
+    pieces_jointes: (attachments || []).map((a) => a.filename),
     direction: 'sortant',
     sent_at: new Date().toISOString(),
   };
@@ -312,6 +317,7 @@ export async function sendEmail({
     subject: subject || '',
     text,
     html: html || textToHtml(text),
+    ...(attachments?.length ? { attachments } : {}),
   };
 
   try {

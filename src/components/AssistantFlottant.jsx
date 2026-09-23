@@ -2,6 +2,7 @@
    Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
+import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
 import React, { useEffect, useRef, useState } from "react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import { useLocation, useSearchParams } from "react-router-dom";
@@ -120,13 +121,7 @@ export default function AssistantFlottant() {
 
       const mail = (r.actions || []).find((a) => a.name === "preparer_mail" && a.resultat?.brouillon);
       if (mail) {
-        setBrouillon({
-          deal_id: mail.resultat.deal_id,
-          intention: mail.resultat.intention,
-          destinataire: mail.resultat.destinataire || "",
-          objet: mail.resultat.objet || "",
-          corps: mail.resultat.corps || "",
-        });
+        setBrouillon(brouillonDepuis(mail.resultat));
       }
 
       // Les suites proposées sortent de ce qui vient d'être fait — pas d'un
@@ -159,17 +154,12 @@ export default function AssistantFlottant() {
 
   const envoyerMail = useMutation({
     mutationFn: () =>
-      base44.functions.invoke("sendMail", {
-        to: brouillon.destinataire,
-        subject: brouillon.objet,
-        body: brouillon.corps,
-        deal_id: brouillon.deal_id,
-        intention: brouillon.intention,
-      }),
+      base44.functions.invoke("sendMail", envoiDepuis(brouillon)),
     onSuccess: (r) => {
       if (r?.success || r?.simulated) {
         toast.success(r?.simulated ? "Envoi simulé" : "Mail envoyé", { description: brouillon.destinataire });
-        setMessages((m) => [...m, { role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}.` }]);
+        const n = r?.pieces_jointes?.length || 0;
+        setMessages((m) => [...m, { role: "assistant", contenu: `Mail envoyé à ${brouillon.destinataire}${n ? `, avec ${n} pièce${n > 1 ? "s" : ""} jointe${n > 1 ? "s" : ""}` : ""}.` }]);
         setBrouillon(null);
       } else toast.error(r?.error || "Envoi impossible");
     },
@@ -369,6 +359,7 @@ export default function AssistantFlottant() {
                     outline: "none", resize: "vertical",
                   }}
                 />
+                <PiecesBrouillon b={brouillon} onChange={setBrouillon} />
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
                   <button
                     onClick={() => setBrouillon(null)}

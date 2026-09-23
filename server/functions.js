@@ -207,10 +207,26 @@ ${user?.full_name?.split(' ')[0] || 'Klocka'}`,
 
   // Send a (possibly hand-edited) draft and record it in the history.
   async sendMail(params, { user }) {
-    const { from, to, cc, subject, body, template_id, template_titre, replyTo, deal_id, intention } =
+    const { from, to, cc, subject, body, template_id, template_titre, replyTo, deal_id, intention, projet_id, pieces } =
       params || {};
     if (!subject || !subject.trim()) return { success: false, error: 'Objet manquant' };
     if (!body || !body.trim()) return { success: false, error: 'Corps du mail vide' };
+
+    // Les pièces d'un projet : on reçoit leurs identifiants, jamais un chemin,
+    // et on ne charge que celles du projet. Réservé à l'équipe.
+    let attachments = [];
+    let jointes = [];
+    let ratees = [];
+    if (projet_id && Array.isArray(pieces) && pieces.length) {
+      if (user?.role !== 'admin') return { success: false, error: "Seule l'équipe peut joindre les pièces d'un projet." };
+      const projet = Records.get('Project', projet_id);
+      if (!projet) return { success: false, error: 'Projet introuvable' };
+      const { chargerPieces } = await import('./pieces-projet.js');
+      ({ attachments, jointes, ratees } = await chargerPieces(projet, pieces, { user }));
+      // Rien ne part à moitié en silence : une pièce manquante bloque l'envoi,
+      // l'analyste la retire ou réessaie.
+      if (ratees.length) return { success: false, error: `Pièces impossibles à joindre : ${ratees.join(' ; ')}`, ratees };
+    }
 
     // Deal de test : rien ne part jamais, même avec une boîte connectée.
     // Le cycle de vie avance comme pour un envoi simulé.
@@ -235,7 +251,10 @@ ${user?.full_name?.split(' ')[0] || 'Klocka'}`,
       template_titre,
       deal_id,
       intention,
+      attachments,
+      projet_id: projet_id || null,
     });
+    if (jointes.length) resultat.pieces_jointes = jointes;
 
     // Un envoi lié à un deal fait avancer son cycle de vie. Le mode simulé
     // (aucun compte connecté) avance aussi : en local, le flux prime.

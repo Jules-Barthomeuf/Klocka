@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { nf, useSecteurProjet } from "./SecteurChiffres";
@@ -88,12 +88,10 @@ function Ville({ habitants, revenu, agglomeration = false }) {
 
 function Residentiel({ prix, evo1, evo5, nom }) {
   const serie = useMemo(() => serieResidentielle({ prix, evo1, evo5 }), [prix, evo1, evo5]);
-  const [i, setI] = useState(serie.length - 1);
-  useEffect(() => { setI(serie.length - 1); }, [serie.length]);
   if (!(prix > 0)) return null;
-  const choisi = serie[i] || serie[serie.length - 1];
-  const annee = choisi?.annee ?? new Date().getFullYear();
-  const montre = choisi?.prix ?? prix;
+  const dernier = serie[serie.length - 1];
+  const annee = dernier?.annee ?? new Date().getFullYear();
+  const montre = dernier?.prix ?? prix;
   const bas = serie.length ? Math.min(...serie.map((p) => p.prix)) : prix;
   const haut = serie.length ? Math.max(...serie.map((p) => p.prix)) : prix;
   const marge = Math.max(50, Math.round((haut - bas) * 0.15));
@@ -135,7 +133,7 @@ function Residentiel({ prix, evo1, evo5, nom }) {
                 </defs>
                 <CartesianGrid stroke={J.trait} vertical={false} />
                 <XAxis dataKey="annee" tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} dy={6} />
-                <YAxis yAxisId="prix" domain={[bas - marge, haut + marge]} tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} width={56} tickFormatter={(v) => `${nf.format(Math.round(v / 10) * 10)} €`} />
+                <YAxis yAxisId="prix" domain={[bas - marge, haut + marge]} tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} width={56} tickFormatter={(v) => `${nf.format(Math.round(v / 10) * 10)}\u00a0€`} />
                 <YAxis yAxisId="evolution" orientation="right" tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => pourcent(v, amplitude < 5 ? 1 : 0)} />
                 <Tooltip
                   cursor={{ stroke: J.trait }}
@@ -150,18 +148,7 @@ function Residentiel({ prix, evo1, evo5, nom }) {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <input
-            id="marche-residentiel-annee"
-            type="range"
-            min={0}
-            max={serie.length - 1}
-            step={1}
-            value={Math.min(i, serie.length - 1)}
-            onChange={(e) => setI(Number(e.target.value))}
-            aria-label="Année affichée"
-            className="w-full mt-2"
-          />
-          <p className="text-[11px] text-brume mt-2 mb-0">Courbe reconstituée à partir du prix d'aujourd'hui et de ses évolutions sur 1 et 5 ans (Le Figaro Immobilier) ; à droite, l'écart au premier point.</p>
+          <p className="text-[11px] text-brume mt-3 mb-0">Courbe reconstituée à partir du prix d'aujourd'hui et de ses évolutions sur 1 et 5 ans (Le Figaro Immobilier) ; à droite, l'écart au premier point.</p>
         </>
       )}
     </div>
@@ -261,10 +248,12 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
         </section>
       )}
       {(prixResidentiel > 0 || prixAutour > 0 || loyerAutour > 0 || prixM2Revient > 0 || loyerM2 > 0) && (
-        <section className="space-y-8 max-md:space-y-6">
+        <section>
           <Etiquette>Secteur</Etiquette>
-          <Residentiel prix={prixResidentiel} evo1={evo1} evo5={evo5} nom={r?.nom} />
-          <Commercial prixAutour={prixAutour} prixProjet={prixM2Revient} loyerAutour={loyerAutour} loyerProjet={loyerM2} nom={rue?.nom} />
+          <div className="mt-3 grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-8 max-md:gap-6 items-start">
+            <Residentiel prix={prixResidentiel} evo1={evo1} evo5={evo5} nom={r?.nom} />
+            <Commercial prixAutour={prixAutour} prixProjet={prixM2Revient} loyerAutour={loyerAutour} loyerProjet={loyerM2} nom={rue?.nom} />
+          </div>
         </section>
       )}
     </div>

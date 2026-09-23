@@ -31,10 +31,13 @@ export function dureeDepuis(iso) {
 }
 
 /** D'aujourd'hui jusqu'à une date ; null si elle est passée. */
-export function dureeJusque(iso) {
+export function dureeJusque(iso, { court = false } = {}) {
   if (!iso) return null;
   const mois = moisEntre(new Date(), iso);
-  return mois == null || mois < 0 ? null : dureeEnMots(mois);
+  if (mois == null || mois < 0) return null;
+  const mots = dureeEnMots(mois);
+  // Posé seul, en grand, le « et » alourdit : « 8 ans 6 mois ».
+  return court && mots ? mots.replace(" et ", " ") : mots;
 }
 
 /** « 1er janvier 2038 ». */

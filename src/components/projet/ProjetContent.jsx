@@ -527,7 +527,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="bail">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <TabHeader title="Analyse du bail" />
               <VueBail cases={cases} project={project} onSource={setPiece} />
             </motion.div>
           </TabsContent>

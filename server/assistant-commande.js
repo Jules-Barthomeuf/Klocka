@@ -16,6 +16,7 @@ import { journaliser } from './assistant-journal.js';
 
 import { nomDossierDrive } from './deal/nom-drive.js';
 import { piecesDeclarees, piecesDuProjet } from './pieces-projet.js';
+import { titreDossier } from './deal/titre-dossier.js';
 
 /**
  * Les pièces d'un projet, telles que le brouillon les montre : celles qu'on
@@ -259,11 +260,11 @@ export const OUTILS = [
   {
     name: 'creer_dossier',
     description:
-      "Ouvre un dossier après un appel, avant toute fiche : « j'ai eu Marc de l'agence X, un local à Lyon à 400 k€, il m'envoie les documents ». Crée la coquille, rattache l'agent (et l'inscrit au CRM si on a son mail), pose le bien dans Monday, note la promesse de documents avec son échéance. Ne l'utilise pas si un dossier du même bien existe déjà : cherche d'abord.",
+      "Ouvre un dossier après un appel, avant toute fiche : « j'ai eu Marc de l'agence X, un local à Lyon à 400 k€, il m'envoie les documents ». Le titre se calcule tout seul (« Restaurant - Angers », « Murs commerciaux - Angers ») : donne l'activité, l'enseigne et la ville entendues, n'invente pas de nom. Crée la coquille, rattache l'agent (et l'inscrit au CRM si on a son mail), pose le bien dans Monday, note la promesse de documents avec son échéance. Ne l'utilise pas si un dossier du même bien existe déjà : cherche d'abord.",
     input_schema: {
       type: 'object',
       properties: {
-        nom: { type: 'string', description: "nom du dossier, ex: « Local commercial — Lyon 3e »" },
+        enseigne: { type: 'string', description: "l'enseigne ou le nom du locataire, si entendu (Devred, Le Comptoir de Keroman)" },
         ville: { type: 'string' },
         rue: { type: 'string' },
         prix: { type: 'number', description: 'prix FAI en euros, si entendu' },
@@ -277,7 +278,7 @@ export const OUTILS = [
         documents_promis: { type: 'boolean', description: "l'agent a promis d'envoyer les documents" },
         promis_pour: { type: 'string', description: 'date YYYY-MM-DD de la promesse, sinon omise (trois jours par défaut)' },
       },
-      required: ['nom'],
+      required: [],
     },
   },
   {
@@ -767,7 +768,8 @@ export async function executerOutil({ name, input }, user) {
     const { creerCoquille } = await import('./deal/index.js');
     const emailAgent = input.agent_email ? String(input.agent_email).trim().toLowerCase() : null;
     const dossier = creerCoquille({
-      nom: input.nom,
+      // Jamais le nom que le modèle aurait composé : la règle de l'équipe.
+      nom: titreDossier({ enseigne: input.enseigne, activite: input.activite, ville: input.ville }),
       responsables: user?.full_name ? [user.full_name] : [],
       user,
       contact_agent_email: emailAgent,

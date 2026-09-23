@@ -8,6 +8,7 @@
 // Le verdict est arrêté à l'étape 3. Les étapes 2 et 4 ne peuvent ni le
 // produire ni le modifier.
 
+import { titreDuLot } from './titre-dossier.js';
 import { prixFai as prixFaiDuLot } from './prix.js';
 import { randomUUID } from 'crypto';
 import { Records } from '../db.js';
@@ -130,13 +131,15 @@ export async function analyserFiche(entree, ctx = {}) {
   const coquille = ctx.dealId ? Records.findBy('Deal', 'deal_id', ctx.dealId) : null;
   if (coquille) {
     dossier.deal_id = coquille.deal_id;
-    dossier.nom = coquille.nom || null;
+    dossier.nom = coquille.nom || titreDuLot(lots[0]?.lot, lots[0]?.enrichissement);
     dossier.responsables = coquille.responsables || [];
     dossier.cree_le = coquille.cree_le || dossier.cree_le;
     dossier.etape_max = Math.max(Number(coquille.etape_max) || 0, 2);
     dossier.suivi = [...(coquille.suivi || []), ...dossier.suivi];
     Records.update('Deal', coquille.id, dossier);
   } else {
+    // Un dossier neuf porte un titre court, pas la phrase de la synthèse.
+    dossier.nom = titreDuLot(lots[0]?.lot, lots[0]?.enrichissement);
     Records.create('Deal', dossier, ctx.user?.email);
   }
   // Jamais attendu : l'analyse répond tout de suite, le contexte marché

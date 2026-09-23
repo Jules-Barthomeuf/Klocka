@@ -3,6 +3,7 @@
 // brouillon au propriétaire. Chaque outil est du code ordinaire ; le modèle
 // choisit, le code fait. Les fonctions pures sont testées sans réseau.
 
+import { titreDossier } from '../deal/titre-dossier.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -247,10 +248,7 @@ export async function agendaDuJour(jour) {
  * (ou l'activité, ou le nom donné) puis la ville. Pure.
  */
 export function titreCourt({ nom = null, enseigne = null, activite = null, ville = null } = {}) {
-  const quoi = String(enseigne || nom || activite || 'Local').trim().replace(/\s+/g, ' ');
-  const ou = String(ville || '').trim().replace(/\s+/g, ' ');
-  if (!ou || new RegExp(`\\b${ou.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(quoi)) return quoi;
-  return `${quoi} - ${ou}`;
+  return titreDossier({ enseigne: enseigne || nom, activite, ville });
 }
 
 /** Un dossier tout juste né de la pré-analyse reçoit son nom court. */
@@ -260,7 +258,7 @@ export function nommer(dealId) {
   const a = val(l.adresse) || {};
   const ville = (typeof a === 'object' && a.ville) || deal?.lots?.[0]?.enrichissement?.commune?.nom || null;
   const nom = titreCourt({ enseigne: val(l.locataire_nom), activite: val(l.locataire_activite), ville });
-  if (deal && nom && nom !== 'Local') Records.update('Deal', deal.id, { nom });
+  if (deal && nom) Records.update('Deal', deal.id, { nom });
   return nom;
 }
 

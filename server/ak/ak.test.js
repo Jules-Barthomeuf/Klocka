@@ -332,7 +332,7 @@ test("un dossier s'appelle « Enseigne - Ville »", async () => {
   assert.equal(titreCourt({ activite: 'Boulangerie', ville: 'Châtenay-Malabry' }), 'Boulangerie - Châtenay-Malabry');
   assert.equal(titreCourt({ nom: 'Devred - Firminy', ville: 'Firminy' }), 'Devred - Firminy', 'pas deux fois la ville');
   assert.equal(titreCourt({ nom: 'Ben' }), 'Ben');
-  assert.equal(titreCourt({ ville: 'Lyon' }), 'Local - Lyon');
+  assert.equal(titreCourt({ ville: 'Lyon' }), 'Murs commerciaux - Lyon');
 });
 
 test("« fais tout » : l'adresse d'un dossier se lit, et un mail de l'équipe ne fait pas un agent", async () => {

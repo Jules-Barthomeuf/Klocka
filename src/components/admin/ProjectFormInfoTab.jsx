@@ -35,11 +35,6 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
         <div className="mt-1.5 text-[11px] text-brume">un mot ou deux : c&apos;est ce que le client lit en gros</div>
       </div>
       <div className={fieldWrap}>
-        <div className={flabel}>Détail de l&apos;activité</div>
-        <textarea rows={2} value={formData.activite_detail || ""} onChange={texte("activite_detail")} placeholder="Ce qu'il faut savoir de plus" className={`${fieldInput} text-[14px] resize-y`} />
-        <div className="mt-1.5 text-[11px] text-brume">caché derrière l&apos;info au survol</div>
-      </div>
-      <div className={fieldWrap}>
         <div className={flabel}>En place depuis</div>
         <input type="date" value={formData.locataire_depuis || ""} onChange={texte("locataire_depuis")} className={`${fieldInput} text-[15px] [color-scheme:dark]`} />
         <div className="mt-1.5 text-[11px] text-brume">la même date que dans Locataire</div>
@@ -52,7 +47,7 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
       <div className={fieldWrap}>
         <div className={flabel}>Prix de la dernière vente</div>
         <input type="number" value={formData.derniere_vente_prix || ""} onChange={nombre("derniere_vente_prix")} placeholder="480000" className={`${fieldInput} text-[15px]`} />
-        <div className="mt-1.5 text-[11px] text-brume">en euros, affiché à côté de l&apos;année</div>
+        <div className="mt-1.5 text-[11px] text-brume">en euros, affiché sous l&apos;année</div>
       </div>
       <div className={fieldWrap}>
         <div className={flabel}>Détenu depuis</div>

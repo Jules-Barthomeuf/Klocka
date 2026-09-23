@@ -31,7 +31,7 @@ export function valeursLocataire(project) {
   return {
     "loc.loyer": loyer > 0 ? `${nf.format(loyer)} €` : null,
     "loc.depuis": dureeDepuis(project.locataire_depuis),
-    "loc.restant": dureeJusque(project.echeance_bail),
+    "loc.restant": dureeJusque(project.echeance_bail, { court: true }),
     "loc.echeance": dateLongue(project.echeance_bail),
     "loc.nom": project.nom_locataire || null,
     "loc.profil": project.profil_locataire || null,
@@ -73,7 +73,7 @@ function Anneau({ part, texte }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
         <div className={`text-[22px] max-md:text-[18px] font-light leading-tight ${texte ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{texte || "—"}</div>
-        <div className="text-[9.5px] tracking-[0.22em] uppercase text-ardoise mt-1.5">restant<br />à courir</div>
+        <div className="text-[10.5px] tracking-[0.22em] uppercase text-ardoise mt-1.5">restant</div>
       </div>
     </div>
   );
@@ -83,7 +83,7 @@ function Case({ valeur, label, info }) {
   return (
     <div>
       <div className={`text-[32px] max-md:text-[24px] font-light leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</div>
-      <div className="text-[13px] text-ardoise mt-2.5 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
+      <div className="text-[14px] text-ardoise mt-2.5 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
     </div>
   );
 }
@@ -119,7 +119,7 @@ export default function LocataireProjet({ project }) {
       <div className="min-w-0">
         {bail.length > 0 && (
           <div>
-            <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.12]">Le bail en place</div>
+            <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.12]">Le bail en place</div>
             <div className="grid grid-cols-2 gap-x-16 max-md:gap-x-8 gap-y-8 max-md:gap-y-6 py-8 max-md:py-6">
               {bail.map((c) => <Case key={c.label} {...c} />)}
             </div>
@@ -127,11 +127,11 @@ export default function LocataireProjet({ project }) {
         )}
         {exploite && (
           <div className={bail.length ? "border-t border-encre/[0.12] pt-6" : ""}>
-            <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise mb-3">Qui exploite</div>
+            <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise mb-3">Qui exploite</div>
             {visible("loc.nom") && (
               <div>
                 <div className={`text-[26px] max-md:text-[20px] font-light leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}>{valeurs["loc.nom"] || "—"}</div>
-                <div className="text-[13px] text-ardoise mt-1.5">Nom du locataire</div>
+                <div className="text-[14px] text-ardoise mt-1.5">Nom du locataire</div>
               </div>
             )}
             {visible("loc.profil") && (

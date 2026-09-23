@@ -167,8 +167,9 @@ export function jalonsDuBail(frise, { maintenant = new Date(), ferme = false, ma
     for (let n = 1; n <= maxi; n += 1) {
       const t = new Date(debut);
       t.setFullYear(t.getFullYear() + 3 * n);
-      // Une triennale collée à l'échéance n'apprend rien : on s'arrête avant.
-      if (t.getTime() >= fin.getTime() - 180 * 86400000) break;
+      // Une triennale à moins d'un an de l'échéance ne se prend pas (six mois
+      // de préavis) et son étiquette chevaucherait celle de la fin.
+      if (t.getTime() >= fin.getTime() - 365 * 86400000) break;
       jalons.push({ cle: `triennale-${n}`, date: t, label: `${n === 1 ? "1re" : `${n}e`} échéance triennale` });
     }
   }
@@ -176,14 +177,22 @@ export function jalonsDuBail(frise, { maintenant = new Date(), ferme = false, ma
 
   const d = valide(debut) ? debut.getTime() : null;
   const f = valide(fin) ? fin.getTime() : null;
-  const part = d && f && f > d ? Math.min(1, Math.max(0, (maintenant.getTime() - d) / (f - d))) : null;
+  const mesurable = d && f && f > d;
+  const part = mesurable ? Math.min(1, Math.max(0, (maintenant.getTime() - d) / (f - d))) : null;
   return {
     part,
-    jalons: jalons.map((j) => ({
+    // Une seule date connue : la frise ne mesure rien, elle se contente de
+    // poser ce qu'elle sait, à intervalle régulier.
+    mesurable: !!mesurable,
+    jalons: jalons.map((j, i) => ({
       ...j,
       texte: dateFr(j.date.toISOString()),
       // La position sur la ligne, en part de la durée du bail.
-      position: d && f && f > d ? Math.min(1, Math.max(0, (j.date.getTime() - d) / (f - d))) : null,
+      // Faute de durée à mesurer, chaque jalon se pose à sa place logique :
+      // la prise d'effet à gauche, l'échéance à droite.
+      position: mesurable
+        ? Math.min(1, Math.max(0, (j.date.getTime() - d) / (f - d)))
+        : jalons.length > 1 ? i / (jalons.length - 1) : (j.cle === "fin" ? 1 : 0),
       passe: j.date.getTime() <= maintenant.getTime(),
     })),
   };
@@ -196,13 +205,17 @@ export function bailFerme(lignes) {
   return /\bferme\b|renonc\w*[^.]{0,40}(triennal|r[ée]siliation)|sans facult[ée] de r[ée]siliation/i.test(t);
 }
 
-function Jalon({ jalon, dernier, premier }) {
-  const ancrage = premier ? "translateX(0)" : dernier ? "translateX(-100%)" : "translateX(-50%)";
-  const aligne = premier ? "text-left" : dernier ? "text-right" : "text-center";
+// L'ancrage suit la place du jalon sur la ligne, pas son rang : une frise qui
+// n'a qu'une échéance la pose à droite, et son étiquette doit rentrer.
+function Jalon({ jalon }) {
+  const x = jalon.position ?? 0;
+  const bord = x <= 0.02 ? "gauche" : x >= 0.98 ? "droite" : "milieu";
+  const ancrage = bord === "gauche" ? "translateX(0)" : bord === "droite" ? "translateX(-100%)" : "translateX(-50%)";
+  const aligne = bord === "gauche" ? "text-left" : bord === "droite" ? "text-right" : "text-center";
   return (
     <div className="absolute top-[26px] w-max max-w-[190px]" style={{ left: `${(jalon.position ?? 0) * 100}%`, transform: ancrage }}>
       <div className={`text-[16px] max-md:text-[14px] font-light text-encre ${aligne}`} style={{ fontVariantNumeric: "tabular-nums" }}>{jalon.texte}</div>
-      <div className={`text-[12.5px] text-ardoise mt-1 ${aligne}`}>{jalon.label}</div>
+      <div className={`text-[13.5px] text-ardoise mt-1 ${aligne}`}>{jalon.label}</div>
     </div>
   );
 }
@@ -213,14 +226,14 @@ function Jalon({ jalon, dernier, premier }) {
  */
 export function CarteBail({ frise, lignes, onSource }) {
   if (!frise?.debut && !frise?.fin) return null;
-  const { jalons, part } = jalonsDuBail(frise, { ferme: bailFerme(lignes) });
+  const { jalons, part, mesurable } = jalonsDuBail(frise, { ferme: bailFerme(lignes) });
   const restant = frise.fin ? dureeJusque(frise.fin, { court: true }) : null;
 
   return (
     <div className="rounded-2xl border border-bord bg-surface px-8 max-md:px-5 pt-6 pb-7 max-md:pb-6">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise">Restant à courir</div>
+          <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise">Restant à courir</div>
           <div className="text-[34px] max-md:text-[26px] font-light leading-tight text-menthe-clair mt-1.5" style={{ fontVariantNumeric: "tabular-nums" }}>
             {restant || "—"}
           </div>
@@ -239,10 +252,16 @@ export function CarteBail({ frise, lignes, onSource }) {
           <li key={j.cle} className="relative">
             <span className={`absolute -left-[23px] top-1.5 w-2.5 h-2.5 rounded-full border ${j.passe ? "bg-menthe border-menthe" : "border-menthe bg-fond"}`} />
             <div className="text-[15px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{j.texte}</div>
-            <div className="text-[12.5px] text-ardoise">{j.label}</div>
+            <div className="text-[13.5px] text-ardoise">{j.label}</div>
           </li>
         ))}
       </ol>
+
+      {!mesurable && (
+        <p className="text-[12.5px] text-brume mt-5 mb-0">
+          {frise.debut ? "L'échéance manque" : "La prise d'effet manque"} : la frise ne peut pas placer les échéances triennales.
+        </p>
+      )}
 
       <div className="max-md:hidden relative mt-12 mb-[76px] mx-1">
         <div className="relative h-[3px] rounded-full bg-trait">
@@ -258,9 +277,7 @@ export function CarteBail({ frise, lignes, onSource }) {
               <span className="absolute left-0 bottom-[calc(100%+12px)] whitespace-nowrap text-[11px] tracking-[0.2em] uppercase text-ardoise">Aujourd&apos;hui</span>
             </span>
           )}
-          {jalons.map((j, i) => (
-            <Jalon key={j.cle} jalon={j} premier={i === 0} dernier={i === jalons.length - 1} />
-          ))}
+          {jalons.map((j) => <Jalon key={j.cle} jalon={j} />)}
         </div>
       </div>
     </div>
@@ -434,14 +451,14 @@ export function ResumeBail({ cases, project, onSource }) {
   if (!loyer?.valeur && !signature?.valeur && !depot?.valeur && !fiscalite.length) return null;
 
   const Titre = ({ children }) => (
-    <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-trait">{children}</div>
+    <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-trait">{children}</div>
   );
   const Sous = ({ c, complement }) => (
     <div>
       <div className={`text-[22px] max-md:text-[18px] font-light leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
         {c?.valeur || "—"}
       </div>
-      <div className="text-[12.5px] text-ardoise mt-2">{c?.titre}{complement ? ` · ${complement}` : ""}</div>
+      <div className="text-[14px] text-ardoise mt-2">{c?.titre}{complement ? ` · ${complement}` : ""}</div>
     </div>
   );
 
@@ -456,7 +473,7 @@ export function ResumeBail({ cases, project, onSource }) {
             </span>
             {loyer?.valeur && <span className="text-[20px] max-md:text-[16px] text-ardoise">HT/an</span>}
           </div>
-          <div className="text-[12.5px] text-ardoise mt-3 flex items-center gap-1.5">
+          <div className="text-[14px] text-ardoise mt-3 flex items-center gap-1.5">
             {loyer?.titre || "Prix du loyer"}{mois > 0 ? ` · soit ${euros(mois)} HT/mois` : ""}
             <InfoDot texte={loyer?.info || loyer?.detail} />
           </div>
@@ -558,7 +575,7 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
               className={`w-full text-left flex gap-4 px-5 py-3.5 border-l-2 transition-colors
                 ${k === i ? "border-menthe bg-encre/[0.05] text-encre" : "border-transparent text-craie hover:text-encre hover:bg-encre/[0.02]"}`}>
               <span className={`text-[12px] pt-0.5 flex-shrink-0 w-4 ${k === i ? "text-menthe-clair" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{x.numero}</span>
-              <span className="text-[14.5px] leading-[1.45]">{x.titre}</span>
+              <span className="text-[15px] leading-[1.45]">{x.titre}</span>
             </button>
           </li>
         ))}
@@ -566,7 +583,7 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
 
       <div className="rounded-2xl border border-bord bg-surface px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
         <div className="flex items-start justify-between gap-4">
-          <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise pt-1.5">Cadre juridique · Clause {c.numero}</div>
+          <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pt-1.5">Cadre juridique · Clause {c.numero}</div>
           {c.source && (
             <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })}
               className="group flex-shrink-0 px-4 py-1.5 rounded-full border border-bord-doux hover:border-menthe/60 transition-colors">
@@ -597,6 +614,19 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
   );
 }
 
+/**
+ * Pure : les deux dates de la frise. Ce que le projet porte l'emporte sur ce
+ * que le serveur a lu dans le bail, comme dans projet-cases ; ainsi la page
+ * suit la saisie de l'éditeur avant même l'enregistrement.
+ */
+export function friseDuProjet(project, friseLue) {
+  const iso = (v) => (v && /^\d{4}-\d{2}-\d{2}/.test(String(v)) ? String(v).slice(0, 10) : null);
+  const debut = iso(project?.bail_date_debut) || friseLue?.debut || null;
+  const fin = iso(project?.bail_date_echeance) || iso(project?.echeance_bail) || friseLue?.fin || null;
+  if (!debut && !fin) return null;
+  return { debut, fin, source: friseLue?.source || null };
+}
+
 /** L'onglet Analyse du bail : le titre et sa bascule, la carte, puis la vue. */
 export function VueBail({ cases, project, onSource, titre = "Analyse du bail" }) {
   const [vue, setVue] = useState("resume");
@@ -614,7 +644,7 @@ export function VueBail({ cases, project, onSource, titre = "Analyse du bail" })
         </div>
       </div>
 
-      <CarteBail frise={cases?.frise} lignes={cases?.analyse} onSource={onSource} />
+      <CarteBail frise={friseDuProjet(project, cases?.frise)} lignes={cases?.analyse} onSource={onSource} />
 
       <div className="mt-10 max-md:mt-7">
         {vue === "resume"

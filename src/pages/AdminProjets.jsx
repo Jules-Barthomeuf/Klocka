@@ -22,6 +22,7 @@ import ProjectFormLocataireTab from "../components/admin/ProjectFormLocataireTab
 import ProjectFormInfoTab from "../components/admin/ProjectFormInfoTab";
 import CasesPanneau from "../components/admin/CasesPanneau";
 import AnalyseBailPanneau from "../components/admin/AnalyseBailPanneau";
+import DatesBailPanneau from "../components/admin/DatesBailPanneau";
 import GaleriePhotos from "../components/admin/GaleriePhotos";
 import ProjectFormGeneralTab from "../components/admin/ProjectFormGeneralTab";
 import SecteurTextes from "../components/admin/SecteurTextes";
@@ -120,6 +121,8 @@ export default function AdminProjets() {
     locataire_depuis: "",
     loyer_annuel_ht: 0,
     echeance_bail: "",
+    bail_date_debut: "",
+    bail_date_echeance: "",
     statut_bail: "en_cours",
     vente_fonds_commerce: false,
     montant_vente_fonds_commerce: 0,
@@ -351,7 +354,7 @@ export default function AdminProjets() {
       env_data: {},
       bien_champ1: "", bien_champ2: "", bien_champ3: "", description_bien: "",
       nom_locataire: "", activite_locataire: "", locataire_depuis: "",
-      loyer_annuel_ht: 0, echeance_bail: "", loyer_m2_an: 0, analyse_bail: "",
+      loyer_annuel_ht: 0, echeance_bail: "", bail_date_debut: "", bail_date_echeance: "", loyer_m2_an: 0, analyse_bail: "",
       quote_part_lot: 0, charges_copropriete: 0, activites_autorisees: "", activites_interdites: "",
       type_construction: "", taxe_fonciere_an: 0, photos: [], surface_m2: 0,
       synthese_assemblee_generale: "", provision_charges: 0,
@@ -436,6 +439,7 @@ export default function AdminProjets() {
       description_bien: project.description_bien || "", nom_locataire: project.nom_locataire || "",
       activite_locataire: project.activite_locataire || "", locataire_depuis: project.locataire_depuis || "",
       loyer_annuel_ht: project.loyer_annuel_ht || 0, echeance_bail: project.echeance_bail || "",
+      bail_date_debut: project.bail_date_debut || "", bail_date_echeance: project.bail_date_echeance || "",
       statut_bail: project.statut_bail || "en_cours", vente_fonds_commerce: project.vente_fonds_commerce || false,
       montant_vente_fonds_commerce: project.montant_vente_fonds_commerce || 0,
       date_vente_fonds_commerce: project.date_vente_fonds_commerce || "",
@@ -833,6 +837,16 @@ export default function AdminProjets() {
     if (f) setActiveTab(f);
   }, [ongletPage, isDialogOpen]);
 
+  // Ce qu'on tape à droite se voit à gauche dans la foulée : l'aperçu suit le
+  // formulaire, avec un temps de latence court pour ne pas recalculer à chaque
+  // touche. Entrée reste possible mais n'est plus nécessaire. Les champs de
+  // date et les zones de texte n'avaient pas d'autre chemin vers la page.
+  useEffect(() => {
+    if (!isDialogOpen || !modifieDepuis) return undefined;
+    const t = setTimeout(() => rafraichirApercu(formData), 150);
+    return () => clearTimeout(t);
+  }, [formData, isDialogOpen, modifieDepuis]);
+
   // Pendant l'édition, la bulle « Un problème ? » est masquée (voir index.css).
   useEffect(() => {
     if (isDialogOpen) document.body.dataset.editeurProjet = "1";
@@ -1150,7 +1164,7 @@ export default function AdminProjets() {
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-lg:grid-cols-1 max-lg:overflow-y-auto">
-        <div className="min-h-0 overflow-y-auto border-r border-trait max-lg:border-r-0 max-lg:overflow-visible">
+        <div className="min-h-0 overflow-y-auto border-r border-encre/60 max-lg:border-r-0 max-lg:overflow-visible">
           {ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
           ) : ongletPage === "simulateur" ? (
@@ -1322,7 +1336,7 @@ export default function AdminProjets() {
               </TabsContent>
 
               <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /><AnalyseBailPanneau formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
+              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><DatesBailPanneau formData={formData} setFormData={setFormData} /><div className="mt-5"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div><AnalyseBailPanneau formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
               <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="diagnostique"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDiagnosticsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
@@ -1332,7 +1346,7 @@ export default function AdminProjets() {
             </Tabs>
           </div>
           <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
-            <span className="text-[12.5px] text-[#6a6a6a]">Entrée met la page de gauche à jour sans enregistrer.</span>
+            <span className="text-[12.5px] text-[#6a6a6a]">La page de gauche suit ce que vous tapez ; rien n&apos;est enregistré avant Enregistrer.</span>
           </div>
         </aside>
         </div>

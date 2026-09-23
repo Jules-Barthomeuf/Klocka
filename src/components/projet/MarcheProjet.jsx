@@ -50,7 +50,7 @@ export function serieResidentielle({ prix, evo1 = null, evo5 = null, annee = new
   return points.map((p) => ({ annee: p.annee, prix: Math.round(p.prix), evolution: Math.round(((p.prix / base) - 1) * 1000) / 10 }));
 }
 
-const Etiquette = ({ children }) => <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise">{children}</div>;
+const Etiquette = ({ children }) => <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise">{children}</div>;
 
 function Ville({ habitants, revenu, agglomeration = false }) {
   if (!(habitants > 0) && !(revenu > 0)) return null;
@@ -62,7 +62,7 @@ function Ville({ habitants, revenu, agglomeration = false }) {
       {habitants > 0 && (
         <div className="py-5 md:pr-8">
           <div className="text-[26px] font-light text-encre leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>{nf.format(habitants)}</div>
-          <div className="text-[11px] text-ardoise mt-2">Habitants{agglomeration ? " · agglomération" : ""}</div>
+          <div className="text-[13.5px] text-ardoise mt-2">Habitants{agglomeration ? " · agglomération" : ""}</div>
         </div>
       )}
       {revenu > 0 && (
@@ -75,7 +75,7 @@ function Ville({ habitants, revenu, agglomeration = false }) {
               </span>
             )}
           </div>
-          <div className="text-[11px] text-ardoise mt-2">Revenus · moyenne française {nf.format(reference)} €</div>
+          <div className="text-[13.5px] text-ardoise mt-2">Revenus · moyenne française {nf.format(reference)} €</div>
           <div className="relative h-[3px] mt-3 bg-encre/[0.12] rounded-full">
             <div className="absolute inset-y-0 left-0 rounded-full bg-menthe" style={{ width: `${Math.min(100, (revenu / plafond) * 100)}%` }} />
             <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[11px] bg-encre/70" style={{ left: `${(reference / plafond) * 100}%` }} title={`Moyenne française : ${nf.format(reference)} €`} />
@@ -108,13 +108,13 @@ function Residentiel({ prix, evo1, evo5, nom }) {
           {evo1 != null && (
             <div className="text-right">
               <div className={`text-[16px] ${evo1 < 0 ? "text-red-400" : "text-menthe-clair"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{pourcent(evo1)}</div>
-              <div className="text-[9.5px] tracking-[0.18em] uppercase text-ardoise mt-0.5">sur 1 an</div>
+              <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-0.5">sur 1 an</div>
             </div>
           )}
           {evo5 != null && (
             <div className="text-right">
               <div className={`text-[16px] ${evo5 < 0 ? "text-red-400" : "text-menthe-clair"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{pourcent(evo5)}</div>
-              <div className="text-[9.5px] tracking-[0.18em] uppercase text-ardoise mt-0.5">sur 5 ans</div>
+              <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-0.5">sur 5 ans</div>
             </div>
           )}
         </div>
@@ -160,8 +160,8 @@ function CarteCommerciale({ titre, unite, autour, projet }) {
   const ligne = (label, valeur, accent) => (
     <div className="mt-4 first:mt-0">
       <div className="flex justify-between items-baseline gap-4">
-        <span className="text-[12px] text-craie">{label}</span>
-        <span className={`text-[15px] ${accent ? "text-encre" : "text-craie"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur > 0 ? `${nf.format(Math.round(valeur))} ${unite}` : "—"}</span>
+        <span className="text-[14px] text-craie">{label}</span>
+        <span className={`text-[17px] ${accent ? "text-encre" : "text-craie"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur > 0 ? `${nf.format(Math.round(valeur))} ${unite}` : "—"}</span>
       </div>
       <div className="h-[3px] mt-2 bg-encre/[0.12] rounded-full">
         <div className={`h-full rounded-full ${accent ? "bg-menthe" : "bg-ardoise/60"}`} style={{ width: `${valeur > 0 ? Math.min(100, (valeur / plafond) * 100) : 0}%` }} />

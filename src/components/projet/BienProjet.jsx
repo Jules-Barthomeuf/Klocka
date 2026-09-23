@@ -51,16 +51,19 @@ function Photos({ photos }) {
           ))}
         </div>
       )}
-      <div className="text-[11px] text-ardoise mt-2 font-mono" style={{ fontVariantNumeric: "tabular-nums" }}>{i + 1} / {n}</div>
+      <div className="text-[12px] text-ardoise mt-2 font-mono" style={{ fontVariantNumeric: "tabular-nums" }}>{i + 1} / {n}</div>
     </div>
   );
 }
 
-function Ligne({ label, valeur, info }) {
+function Ligne({ label, valeur, sous, info }) {
   return (
     <div className="flex justify-between items-baseline gap-4 py-4 border-b border-encre/[0.12]">
-      <span className="text-[12px] text-ardoise flex items-center gap-1.5">{label}<InfoDot texte={info} /></span>
-      <span className={`text-[20px] max-md:text-[17px] font-light text-right ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</span>
+      <span className="text-[14px] text-ardoise flex items-center gap-1.5">{label}<InfoDot texte={info} /></span>
+      <span className="text-right">
+        <span className={`block text-[22px] max-md:text-[18px] font-light ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</span>
+        {sous && <span className="block text-[15px] max-md:text-[13.5px] text-craie mt-1" style={{ fontVariantNumeric: "tabular-nums" }}>{sous}</span>}
+      </span>
     </div>
   );
 }
@@ -70,15 +73,15 @@ export default function BienProjet({ project }) {
   const enEdition = !!edition?.onChamp;
   const surface = Number(project.sim_surface) || Number(project.surface_m2) || 0;
   const detenu = project.detenu_depuis || project.derniere_vente_annee || null;
-  const vente = project.derniere_vente_annee
-    ? `${project.derniere_vente_annee}${Number(project.derniere_vente_prix) > 0 ? ` · ${nf.format(Number(project.derniere_vente_prix))} €` : ""}`
-    : null;
+  const prixVente = Number(project.derniere_vente_prix) > 0 ? `${nf.format(Number(project.derniere_vente_prix))} €` : null;
 
   const lignes = [
     { valeur: project.activite_locataire && !/non renseign/i.test(project.activite_locataire) ? project.activite_locataire : null, label: "Activité", info: project.activite_detail || null },
     { valeur: detenu ? String(detenu) : null, label: "Détenu depuis", info: "Depuis quand le propriétaire actuel tient les murs, d'après la dernière mutation publiée (DVF) ou l'acte." },
     { valeur: surface > 0 ? `${nf.format(surface)} m²` : null, label: "Surface", info: project.surface_detail || null },
-    { valeur: vente, label: "Dernière vente", info: "L'année et le prix de la dernière mutation des murs, d'après les ventes publiées (DVF) ou l'acte." },
+    // L'année en grand, le prix dessous : deux chiffres sur une ligne se
+    // lisaient comme un seul.
+    { valeur: project.derniere_vente_annee ? String(project.derniere_vente_annee) : null, sous: prixVente, label: "Dernière vente", info: "L'année et le prix de la dernière mutation des murs, d'après les ventes publiées (DVF) ou l'acte." },
   ].filter((l) => enEdition || l.valeur);
 
   const photos = (project.photos || []).filter(Boolean);
@@ -89,7 +92,7 @@ export default function BienProjet({ project }) {
       {photos.length > 0 && <Photos photos={photos} />}
       {lignes.length > 0 && (
         <div>
-          <div className="text-[10.5px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.35]">Le local</div>
+          <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.35]">Le local</div>
           {lignes.map((l) => <Ligne key={l.label} {...l} />)}
         </div>
       )}

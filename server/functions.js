@@ -254,6 +254,33 @@ ${user?.full_name?.split(' ')[0] || 'Klocka'}`,
     return { ...(await mailStatus(user?.email)), llm: llmEnabled, ia: llmStatus(), google: googleStatus() };
   },
 
+  /**
+   * Les mails partis de la plateforme, du plus récent au plus ancien.
+   *
+   * Chacun ne voit que ce qui est sorti de ses propres boîtes ; le registre
+   * (EmailLog) garde aussi les envois simulés et les échecs, et c'est
+   * justement ce qu'on veut lire quand un mail n'arrive pas.
+   */
+  getMailHistory({ limite = 50 } = {}, { user }) {
+    const miennes = new Set(listAccounts(user?.email).map((a) => String(a.id).toLowerCase()));
+    const envois = Records.list('EmailLog', { sort: '-sent_at' })
+      .filter((m) => (m.direction || 'sortant') === 'sortant')
+      .filter((m) => miennes.has(String(m.expediteur || m.from || '').toLowerCase()))
+      .slice(0, Math.min(200, Math.max(1, Number(limite) || 50)))
+      .map((m) => ({
+        id: m.id,
+        le: m.sent_at || m.created_date || null,
+        de: m.expediteur || m.from || null,
+        a: m.destinataire || m.to || '',
+        sujet: m.sujet || m.subject || '(sans objet)',
+        statut: m.statut || 'envoye',
+        erreur: m.error || null,
+        deal_id: m.deal_id || null,
+        intention: m.intention || null,
+      }));
+    return { envois, total: envois.length };
+  },
+
   // Unlink a Google mailbox (revokes nothing on Google's side, just forgets it).
   disconnectMailAccount({ email } = {}, { user }) {
     if (!email) return { success: false, error: 'Adresse manquante' };

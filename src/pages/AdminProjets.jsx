@@ -25,9 +25,7 @@ import AnalyseBailPanneau from "../components/admin/AnalyseBailPanneau";
 import DatesBailPanneau from "../components/admin/DatesBailPanneau";
 import GaleriePhotos from "../components/admin/GaleriePhotos";
 import ProjectFormGeneralTab from "../components/admin/ProjectFormGeneralTab";
-import SecteurTextes from "../components/admin/SecteurTextes";
 import ProjectFormDocumentsTab from "../components/admin/ProjectFormDocumentsTab";
-import ProjectFormDiagnosticsTab from "../components/admin/ProjectFormDiagnosticsTab";
 import ProjectFormSimulateurTab from "../components/admin/ProjectFormSimulateurTab";
 import ProjectFormImagesTab from "../components/admin/ProjectFormImagesTab";
 import ProjectFormCoproTab from "../components/admin/ProjectFormCoproTab";
@@ -822,10 +820,9 @@ export default function AdminProjets() {
     documents_projet: "docs_projet", simulateur: "simulateur", images: "images",
   };
   const PAGE_PAR_FORM = {
-    general: "marche", secteur: "marche", marche: "marche", informations: "bien",
+    general: "marche", marche: "marche", informations: "bien",
     locataire: "locataire", bail: "bail", copropriete: "copropriete",
-    diagnostique: "marche", docs_projet: "documents_projet",
-    images: "images", simulateur: "simulateur",
+    docs_projet: "documents_projet", images: "images", simulateur: "simulateur",
   };
   // Vrai le temps d'un aller : le clic vient du panneau de droite, la page de
   // gauche ne doit pas le lui renvoyer.
@@ -1055,13 +1052,11 @@ export default function AdminProjets() {
   // partie à gauche, on trouve ses champs à la même place à droite.
   const editorTabs = [
     { value: "general", label: "Général" },
-    { value: "secteur", label: "Secteur" },
     { value: "marche", label: "Marché" },
     { value: "informations", label: "Bien" },
     { value: "locataire", label: "Locataire" },
     { value: "bail", label: "Analyse du bail" },
     { value: "copropriete", label: "Copropriété" },
-    { value: "diagnostique", label: "Diagnostique" },
     { value: "docs_projet", label: "Documents" },
     { value: "images", label: "Images" },
     { value: "simulateur", label: "Simulateur" },
@@ -1280,66 +1275,10 @@ export default function AdminProjets() {
 
               <TabsContent value="informations"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormInfoTab formData={formData} setFormData={setFormData} users={users} /></motion.div></TabsContent>
 
-              <TabsContent value="secteur" className="space-y-6 mt-0">
-                {/* Ville & Secteur */}
-                <div className="space-y-4">
-                  <h3 className="text-lg text-encre">Ville & Secteur</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FField label="Commune"><FInput value={formData.ville_secteur_champ1} onChange={(e) => setFormData({...formData, ville_secteur_champ1: e.target.value})} placeholder="Lyon" /></FField>
-                    <FField label="Département"><FInput value={formData.ville_secteur_champ2} onChange={(e) => setFormData({...formData, ville_secteur_champ2: e.target.value})} placeholder="Rhône" /></FField>
-                    <FField label="Région" className="col-span-2"><FInput value={formData.ville_secteur_champ3} onChange={(e) => setFormData({...formData, ville_secteur_champ3: e.target.value})} placeholder="Auvergne-Rhône-Alpes" /></FField>
-                  </div>
-
-                  {/* Les deux chiffres de la bande du haut. Vides, la page prend
-                      l'agglomération Insee et le revenu du jeu de données ;
-                      saisis, ils l'emportent. */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      ["ville_habitants_agglo", "Habitants agglomération", "1 721 000"],
-                      ["ville_revenu_median", "Revenu médian / UC (€)", "24 300"],
-                    ].map(([champ, libelle, exemple]) => (
-                      <FField key={champ} label={libelle}>
-                        <FInput
-                          type="number"
-                          step="any"
-                          value={formData[champ] ?? ""}
-                          onChange={(e) => setFormData({ ...formData, [champ]: e.target.value === "" ? null : parseFloat(e.target.value) })}
-                          placeholder={exemple}
-                        />
-                      </FField>
-                    ))}
-                  </div>
-
-                  <SecteurTextes formData={formData} setFormData={setFormData} />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FField label="Description de la ville"><FTextarea value={formData.description_ville} onChange={(e) => setFormData({...formData, description_ville: e.target.value})} rows={4} placeholder="Description de la ville..." /></FField>
-                    <FField label="Description du secteur"><FTextarea value={formData.description_secteur} onChange={(e) => setFormData({...formData, description_secteur: e.target.value})} rows={4} placeholder="Description du secteur..." /></FField>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-trait">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-encre">Notes secteur</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, notes_secteur: [...(formData.notes_secteur || []), { titre: "", contenu: "" }]})} className="border-trait text-encre/30 hover:text-encre hover:border-bord-vif"><Plus className="w-4 h-4 mr-1" />Ajouter une note</Button>
-                  </div>
-                  {(formData.notes_secteur || []).map((note, idx) => (
-                    <div key={idx} className="p-4 bg-encre/[0.02] rounded-lg space-y-3">
-                      <div className="flex items-center gap-3">
-                        <FField className="flex-1"><FInput value={note.titre} onChange={(e) => { const u = [...formData.notes_secteur]; u[idx].titre = e.target.value; setFormData({...formData, notes_secteur: u}); }} placeholder="Titre..." /></FField>
-                        <Button variant="ghost" size="icon" onClick={() => setFormData({...formData, notes_secteur: formData.notes_secteur.filter((_, i) => i !== idx)})} className="text-red-500 hover:bg-red-500/10"><X className="w-4 h-4" /></Button>
-                      </div>
-                      <FField><FTextarea value={note.contenu} onChange={(e) => { const u = [...formData.notes_secteur]; u[idx].contenu = e.target.value; setFormData({...formData, notes_secteur: u}); }} placeholder="Contenu..." rows={3} /></FField>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
               <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><DatesBailPanneau formData={formData} setFormData={setFormData} /><div className="mt-5"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div><AnalyseBailPanneau formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
               <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
               <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
-              <TabsContent value="diagnostique"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDiagnosticsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="docs_projet"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDocumentsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="images"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormImagesTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
               <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>

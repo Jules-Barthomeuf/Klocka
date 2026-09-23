@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Mail, TriangleAlert } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { BoutonConnecterGmail } from "@/components/mails/ConnexionGmail";
+import { toast } from "@/components/ui/avis";
 
 // La boîte mail, en haut du plan de travail.
 //
@@ -63,18 +64,60 @@ function Historique() {
   );
 }
 
+/** Une boîte rattachée : son adresse, et les gestes qu'elle permet. */
+function Boite({ c, seule, onDefaut, onRetirer, occupe }) {
+  const enPanne = c.needs_reconnect || c.verified === false;
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12.5px] ${c.par_defaut ? "border-menthe/50 bg-menthe/[0.08]" : "border-trait"}`}>
+      {enPanne
+        ? <TriangleAlert className="h-3.5 w-3.5 text-ambre" />
+        : <Check className={`h-3.5 w-3.5 ${c.par_defaut ? "text-menthe-clair" : "text-ardoise"}`} />}
+      <span className="text-encre">{c.email}</span>
+      {c.par_defaut && !seule && <span className="text-[11px] text-menthe-clair">par défaut</span>}
+      {!c.par_defaut && (
+        <button type="button" disabled={occupe} onClick={() => onDefaut(c.email)}
+          className="text-[11px] text-ardoise underline-offset-2 hover:text-encre hover:underline disabled:opacity-50" style={{ background: "transparent" }}>
+          envoyer depuis celle-ci
+        </button>
+      )}
+      <button type="button" disabled={occupe} onClick={() => onRetirer(c.email)} aria-label={`Déconnecter ${c.email}`} title="Déconnecter cette boîte"
+        className="text-[14px] leading-none text-brume hover:text-alerte disabled:opacity-50" style={{ background: "transparent" }}>
+        ×
+      </button>
+    </span>
+  );
+}
+
 export default function BoiteMail() {
   const [ouvert, setOuvert] = useState(false);
+  const queryClient = useQueryClient();
   const { data: statut, isLoading } = useQuery({
     queryKey: ["mail-status"],
     queryFn: () => base44.functions.invoke("getMailStatus", {}),
+  });
+  const rafraichir = () => {
+    queryClient.invalidateQueries({ queryKey: ["mail-status"] });
+    queryClient.invalidateQueries({ queryKey: ["mail-historique"] });
+  };
+  const defaut = useMutation({
+    mutationFn: (email) => base44.functions.invoke("setDefaultMailAccount", { email }),
+    onSuccess: (r) => (r?.success ? rafraichir() : toast.error(r?.error || "Impossible de changer de boîte")),
+  });
+  const retirer = useMutation({
+    mutationFn: (email) => base44.functions.invoke("disconnectMailAccount", { email }),
+    onSuccess: (r) => (r?.success ? rafraichir() : toast.error(r?.error || "Impossible de déconnecter la boîte")),
   });
 
   if (isLoading) return null;
 
   const comptes = (statut?.accounts || []).filter((c) => c.peut_envoyer !== false);
+  const principale = comptes.find((c) => c.par_defaut) || comptes[0];
   const aReconnecter = comptes.filter((c) => c.needs_reconnect || c.verified === false);
   const googleConfigure = statut?.google?.enabled !== false;
+  const occupe = defaut.isPending || retirer.isPending;
+  const confirmerRetrait = (email) => {
+    if (window.confirm(`Déconnecter ${email} ? Les mails ne partiront plus de cette adresse.`)) retirer.mutate(email);
+  };
 
   // Aucune boîte : une bande sobre et un bouton. C'est le seul geste à faire.
   if (!comptes.length) {
@@ -85,20 +128,18 @@ export default function BoiteMail() {
           Aucune boîte mail connectée.{" "}
           <span className="text-ardoise">
             {googleConfigure
-              ? "Tant qu'elle ne l'est pas, les mails de la plateforme sont simulés et n'arrivent à personne."
+              ? "Connectez votre propre adresse : tant qu'aucune ne l'est, les mails de la plateforme sont simulés et n'arrivent à personne."
               : "La connexion Google n'est pas configurée sur ce serveur : prévenez l'équipe technique."}
           </span>
         </p>
-        {googleConfigure && <BoutonConnecterGmail libelle="Connecter ma boîte mail" />}
+        {googleConfigure && <BoutonConnecterGmail libelle="Connecter ma boîte mail" onConnecte={rafraichir} />}
       </div>
     );
   }
 
-  const adresses = comptes.map((c) => c.email).join(", ");
-
   return (
     <div className="mb-6 rounded-[14px] border border-trait bg-surface px-5 py-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         {aReconnecter.length ? (
           <TriangleAlert className="h-4 w-4 flex-shrink-0 text-ambre" />
         ) : (
@@ -107,11 +148,13 @@ export default function BoiteMail() {
           </span>
         )}
         <p className="m-0 min-w-48 flex-1 text-[13px] text-craie">
-          <span className="text-encre">{adresses}</span>{" "}
           {aReconnecter.length ? (
-            <span className="text-ambre">demande une reconnexion : les envois échouent.</span>
+            <span className="text-ambre">{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion : les envois échouent.</span>
           ) : (
-            <span className="text-ardoise">est bien connectée. Les mails partent de cette adresse.</span>
+            <>
+              Boîte mail <span className="text-encre">{principale.email}</span>{" "}
+              <span className="text-ardoise">bien connectée. Vos mails partent de cette adresse.</span>
+            </>
           )}
         </p>
         <button
@@ -123,7 +166,21 @@ export default function BoiteMail() {
           {ouvert ? "Masquer l'historique" : "Voir l'historique"}
           <ChevronDown className={`h-3.5 w-3.5 transition-transform ${ouvert ? "rotate-180" : ""}`} />
         </button>
-        {aReconnecter.length > 0 && <BoutonConnecterGmail libelle="Reconnecter" />}
+      </div>
+
+      {/* Les boîtes de la personne connectée : la sienne, sourcing@, d'autres.
+          On en ajoute une, on choisit celle qui envoie, on en retire une. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2 pl-9 max-md:pl-0">
+        {comptes.map((c) => (
+          <Boite key={c.email} c={c} seule={comptes.length === 1} occupe={occupe} onDefaut={(e) => defaut.mutate(e)} onRetirer={confirmerRetrait} />
+        ))}
+        {googleConfigure && (
+          <BoutonConnecterGmail
+            libelle={aReconnecter.length ? "Reconnecter" : "Ajouter une boîte"}
+            onConnecte={rafraichir}
+            className="!py-1.5 !text-[12.5px]"
+          />
+        )}
       </div>
 
       {ouvert && (

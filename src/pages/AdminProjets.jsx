@@ -1159,7 +1159,7 @@ export default function AdminProjets() {
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-lg:grid-cols-1 max-lg:overflow-y-auto">
-        <div className="min-h-0 overflow-y-auto border-r border-encre/60 max-lg:border-r-0 max-lg:overflow-visible">
+        <div className="min-h-0 overflow-y-auto max-lg:overflow-visible">
           {ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
           ) : ongletPage === "simulateur" ? (
@@ -1197,7 +1197,7 @@ export default function AdminProjets() {
         </div>
 
         <aside
-          className="min-h-0 flex flex-col bg-black max-lg:min-h-[60vh]"
+          className="min-h-0 flex flex-col bg-black border-l-2 border-encre/80 max-lg:border-l-0 max-lg:border-t-2 max-lg:min-h-[60vh]"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >

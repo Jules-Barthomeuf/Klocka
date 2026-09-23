@@ -68,13 +68,34 @@ function loadSmtpAccounts() {
 
 const SMTP_ACCOUNTS = loadSmtpAccounts();
 
+/**
+ * La boîte qui envoie quand on ne précise rien : celle que la personne a
+ * choisie (User.boite_envoi), sinon sa propre adresse si elle l'a rattachée,
+ * sinon la plus ancienne. Chacun peut rattacher plusieurs boîtes (la sienne,
+ * sourcing@) ; sans ce choix, la première venue partait pour tout le monde.
+ */
+export function boiteParDefaut(ownerEmail, comptes) {
+  if (!comptes.length) return null;
+  const owner = String(ownerEmail || '').toLowerCase();
+  const choisie = owner ? String(Records.filter('User', { email: owner })[0]?.boite_envoi || '').toLowerCase() : '';
+  return comptes.find((a) => a.id === choisie)?.id
+    || comptes.find((a) => a.id === owner)?.id
+    || comptes[0].id;
+}
+
 // Google accounts are read live: a mailbox connected from the UI must appear
 // without restarting the server. Passing an owner restricts the list to that
 // user's own mailboxes.
 function allAccounts(ownerEmail) {
   const google = listGoogleAccounts(ownerEmail).map((a) => ({ ...a, provider: 'google' }));
   const taken = new Set(google.map((a) => a.id));
-  return [...google, ...SMTP_ACCOUNTS.filter((a) => !taken.has(a.id))];
+  const tous = [...google, ...SMTP_ACCOUNTS.filter((a) => !taken.has(a.id))];
+  // La boîte par défaut passe devant : findAccount sans expéditeur et les
+  // menus « Envoyer depuis » prennent le premier compte.
+  const defaut = ownerEmail ? boiteParDefaut(ownerEmail, tous) : null;
+  return defaut
+    ? [...tous.filter((a) => a.id === defaut).map((a) => ({ ...a, par_defaut: true })), ...tous.filter((a) => a.id !== defaut)]
+    : tous;
 }
 
 export const smtpEnabled = SMTP_ACCOUNTS.length > 0;
@@ -85,7 +106,7 @@ export function listAccounts(ownerEmail) {
   return allAccounts(ownerEmail).map(
     ({
       id, name, email, provider, picture, needs_reconnect,
-      peut_envoyer, peut_lire, peut_drive, peut_agenda, connected_at,
+      peut_envoyer, peut_lire, peut_drive, peut_agenda, connected_at, par_defaut,
     }) => ({
       id,
       name,
@@ -100,6 +121,7 @@ export function listAccounts(ownerEmail) {
       peut_drive: !!peut_drive,
       peut_agenda: !!peut_agenda,
       connected_at: connected_at || null,
+      par_defaut: !!par_defaut,
       label: `${name} <${email}>`,
     })
   );

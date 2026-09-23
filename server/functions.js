@@ -281,12 +281,30 @@ ${user?.full_name?.split(' ')[0] || 'Klocka'}`,
     return { envois, total: envois.length };
   },
 
+  // La boîte qui envoie par défaut pour la personne connectée. Seule une boîte
+  // qu'elle a elle-même rattachée peut l'être.
+  setDefaultMailAccount({ email } = {}, { user }) {
+    if (!user?.email) return { success: false, error: 'Non connecté' };
+    const cible = String(email || '').toLowerCase();
+    if (!listAccounts(user.email).some((a) => a.id === cible)) return { success: false, error: 'Ce compte ne vous appartient pas.' };
+    const moi = Records.filter('User', { email: String(user.email).toLowerCase() })[0];
+    if (!moi) return { success: false, error: 'Compte introuvable' };
+    Records.update('User', moi.id, { boite_envoi: cible });
+    return { success: true, email: cible };
+  },
+
   // Unlink a Google mailbox (revokes nothing on Google's side, just forgets it).
   disconnectMailAccount({ email } = {}, { user }) {
     if (!email) return { success: false, error: 'Adresse manquante' };
     // Never let someone unlink a colleague's mailbox.
     const mine = listAccounts(user?.email).some((a) => a.id === String(email).toLowerCase());
     if (!mine) return { success: false, error: 'Ce compte ne vous appartient pas.' };
+    // La boîte d'AK porte ses jetons Chat, Gmail et Drive : la retirer ferait
+    // taire l'assistant. On choisit une autre boîte par défaut à la place.
+    const ak = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
+    if (String(email).toLowerCase() === ak) {
+      return { success: false, error: `${ak} est la boîte de l'assistant AK : elle reste connectée. Choisissez une autre boîte pour vos envois.` };
+    }
     return disconnectAccount(email);
   },
 

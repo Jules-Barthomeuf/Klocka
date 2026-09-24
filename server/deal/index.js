@@ -9,6 +9,7 @@
 // produire ni le modifier.
 
 import { titreDuLot } from './titre-dossier.js';
+import { rendementNetMoyen } from '../video/indicateurs.js';
 import { prixFai as prixFaiDuLot } from './prix.js';
 import { randomUUID } from 'crypto';
 import { Records } from '../db.js';
@@ -368,9 +369,19 @@ export function obtenirDossier(dealId) {
         titre: nettoyerTitre(deal.nom || deal.lots?.[0]?.synthese?.titre || deal.source?.nom_fichier || deal.deal_id),
         // La grille de critères se calcule à la lecture, jamais stockée : elle
         // suit rules.json, et un dossier analysé hier la reçoit comme un neuf.
-        lots: (deal.lots || []).map((lot) =>
-          lot?.evaluation ? { ...lot, evaluation: { ...lot.evaluation, grille: grilleCriteres(lot.evaluation) } } : lot
-        ),
+        lots: (deal.lots || []).map((lot) => {
+          if (!lot?.evaluation) return lot;
+          // Un dossier évalué avant le rendement net moyen le reçoit ici : la
+          // grille et le tableau du bien le lisent comme pour un neuf.
+          let contexte = lot.evaluation.contexte;
+          if (contexte && contexte.rendement_net_moyen == null && lot.simulateur) {
+            let net = null;
+            try { net = rendementNetMoyen(lot.simulateur); } catch { net = null; }
+            contexte = { ...contexte, rendement_net_moyen: net };
+          }
+          const evaluation = { ...lot.evaluation, contexte };
+          return { ...lot, evaluation: { ...evaluation, grille: grilleCriteres(evaluation) } };
+        }),
       }
     : null;
 }

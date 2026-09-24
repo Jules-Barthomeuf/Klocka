@@ -380,11 +380,11 @@ export const LEVIERS = [
   },
   {
     cle: 'modele_moins_cher',
-    etat: 'decider',
-    titre: 'Un modèle moins cher sur les gestes mécaniques',
-    effet: 'à mesurer sur vos dossiers',
-    ou: `Variable ANTHROPIC_MODEL · ${process.env.ANTHROPIC_MODEL || 'claude-opus-5'} aujourd'hui`,
-    texte: "Mettre en forme une valeur déjà lue, trier un mail, ranger un texte dicté : ces gestes partent déjà à effort minimal. Descendre d'un modèle est le levier suivant, mais un modèle moins cher au jeton n'est pas toujours moins cher par dossier abouti. Cela demande un jeu de dossiers de référence, pas une intuition.",
+    etat: 'pose',
+    titre: 'Sonnet à la place d\'Opus',
+    effet: 'deux fois et demie moins cher au jeton',
+    ou: `Posé le 24 septembre · variable ANTHROPIC_MODEL · ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'} aujourd'hui`,
+    texte: "Opus consommait trop de crédits : tout part désormais sur Sonnet 5, à 2 $ et 10 $ le million de jetons au lieu de 5 $ et 25 $. Si une lecture de bail ou une préanalyse perd en justesse, c'est ici qu'on le verra, et qu'on remettra Opus sur ce seul geste plutôt que partout.",
   },
 ];
 

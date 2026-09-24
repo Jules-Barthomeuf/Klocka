@@ -17,7 +17,8 @@ import { enregistrerUsage } from './llm-couts.js';
 const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || '';
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5';
+// Sonnet par défaut : Opus coûtait deux fois et demie plus cher au jeton, décidé le 24 septembre.
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 
 function pickProvider() {
   const forced = (process.env.LLM_PROVIDER || '').trim().toLowerCase();
@@ -644,7 +645,7 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
  */
 // Rapidité : une sortie courte et un effort de réflexion bas ; Réflexion :
 // la pleine mesure. L'effort est un réglage du modèle (output_config), vérifié
-// accepté par claude-opus-5 ; le plafond de jetons n'est qu'un filet.
+// accepté par claude-opus-5 et claude-sonnet-5 ; le plafond de jetons n'est qu'un filet.
 const REGLAGES_PROFONDEUR = {
   rapide: { max_tokens: 2500, output_config: { effort: 'low' } },
   reflexion: { max_tokens: 16000, output_config: { effort: 'high' } },

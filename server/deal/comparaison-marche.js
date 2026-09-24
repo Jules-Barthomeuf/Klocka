@@ -116,27 +116,74 @@ async function adresseProche(point) {
   }
 }
 
-const normaliser = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
-/** Le loyer de la rue : Equimmox déjà lu à cette adresse, sinon ALX. */
-async function loyerDeLaRue(adresse) {
-  const cle = normaliser(adresse);
-  const equimmox = Records.list('ValeurLocativeRecherche')
-    .filter((x) => normaliser(x.adresse) === cle && x.resultat?.rue?.moyenne)
-    .sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')))[0];
-  if (equimmox) {
-    const r = equimmox.resultat.rue;
-    return { bas: r.basse, median: r.moyenne, haut: r.haute, source: `Equimmox, loyers constatés à ${r.rayon || '200 m'}`, constate: true };
+/**
+ * Le loyer de marché d'une adresse, par K-Data Valeur locative : Equimmox
+ * (loyers constatés à 200 m, 500 m, 1 km) et DVF en second regard. La lecture
+ * prend plusieurs minutes : si elle n'a pas encore été faite, on la lance une
+ * fois comme analyse K-Data rangée dans le dossier, et l'estimation d'ALX tient
+ * la place en attendant, marquée provisoire.
+ */
+async function loyerDeLaRue(adresse, deal) {
+  const { resoudreAdresse } = await import('../adresse-ban.js');
+  const point = await resoudreAdresse(adresse).catch(() => null);
+  const cle = String(point?.label || adresse).toLowerCase().replace(/\s+/g, ' ').trim();
+  const lue = Records.filter('ValeurLocativeRecherche', { cle })
+    .filter((x) => Date.now() - Date.parse(x.le) < 30 * 86400000)
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+  if (lue?.resultat) {
+    const r = lue.resultat;
+    const niveau = r.rue || r.quartier || r.ville;
+    if (niveau) {
+      const constate = niveau.source === 'Equimmox';
+      return {
+        bas: niveau.basse, median: niveau.moyenne ?? Math.round((niveau.basse + niveau.haute) / 2), haut: niveau.haute,
+        source: constate
+          ? `K-Data Valeur locative · Equimmox, loyers constatés ${niveau === r.rue ? 'dans la rue' : niveau === r.quartier ? 'dans le quartier' : 'dans la ville'} (${niveau.rayon})`
+          : `K-Data Valeur locative · déduit des ventes DVF (${niveau.rayon}) : Equimmox n'a pas répondu`,
+        constate,
+        second_regard: r.dvf
+          ? {
+              bas: r.dvf.basse, median: r.dvf.moyenne, haut: r.dvf.haute,
+              // Le taux arrive en fourchette : { bas, moyen, haut }.
+              source: `DVF à ${r.dvf.rayon}, prix des murs × ${String(r.dvf.taux?.moyen ?? r.dvf.taux ?? '').replace('.', ',')} % de rendement`,
+            }
+          : null,
+        kdata: { id: lue.id, le: lue.le },
+      };
+    }
   }
+
+  // Pas encore lue : K-Data part une fois pour ce dossier, rangée dedans.
+  const deja = deal?.lots?.[0]?.kdata_loyer;
+  const lancee = deja && deja.adresse === cle && Date.now() - Date.parse(deja.le) < 2 * 3600000;
+  if (!lancee && deal?.deal_id) {
+    try {
+      const { lancerAnalyses, ranger } = await import('../kdata.js');
+      const r = lancerAnalyses({ adresse, outils: ['valeur-locative'] });
+      if (r.ok) {
+        ranger(r.ids, deal.deal_id);
+        const frais = Records.get('Deal', deal.id);
+        const lots = [...(frais.lots || [])];
+        lots[0] = { ...lots[0], kdata_loyer: { adresse: cle, ids: r.ids, le: new Date().toISOString() } };
+        Records.update('Deal', deal.id, { lots });
+      }
+    } catch { /* l'estimation d'ALX reste */ }
+  }
+  const provisoire = await estimationAlx(adresse);
+  return provisoire ? { ...provisoire, kdata_en_cours: true } : { kdata_en_cours: true, source: 'K-Data Valeur locative en cours (Equimmox)' };
+}
+
+/** L'estimation d'ALX : le loyer de la rue déduit des ventes DVF et du rang de la rue. */
+async function estimationAlx(adresse) {
   const { emplacementDeLAdresse } = await import('../alx/emplacement.js');
-  const e = await emplacementDeLAdresse(adresse);
+  const e = await emplacementDeLAdresse(adresse).catch(() => null);
   const [bas, haut] = Array.isArray(e?.loyer) ? e.loyer : [null, null];
   if (bas == null || haut == null) return null;
   return {
     bas, haut, median: Math.round((bas + haut) / 2),
-    source: `${e.rue || 'la rue'} selon ALX : déduit des ventes DVF et du rang de la rue`,
+    source: `Estimation provisoire d'ALX pour ${e.rue || 'la rue'} (déduite des ventes DVF), en attendant K-Data`,
     constate: false,
-    lien: null,
   };
 }
 
@@ -152,7 +199,8 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
   const surface = Number(val(entree.lot?.surface_m2)) || null;
   const fai = prixFaiDuLot(entree.lot);
   const loyer = Number(val(entree.lot?.loyer_annuel_ht_hc)) || null;
-  const cle = JSON.stringify([adresse, surface, fai, loyer]);
+  // La version entre dans la clé : une comparaison faite avant K-Data se refait.
+  const cle = JSON.stringify([3, adresse, surface, fai, loyer]);
   const garde = entree.comparaison_marche;
   if (!forcer && garde?.cle === cle && Date.now() - Date.parse(garde.le) < JOURS_GARDE * 86400000) return { ok: true, ...garde };
 
@@ -175,7 +223,7 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
   let rayon = approche ? RAYON_QUARTIER : RAYON;
   const lireVentes = (r) => import('../dvf.js').then(({ ventesAutour }) => ventesAutour(adresse, { rayon: r })).catch(() => null);
 
-  let [ventes, rue] = await Promise.all([lireVentes(rayon), loyerDeLaRue(adresse).catch(() => null)]);
+  let [ventes, rue] = await Promise.all([lireVentes(rayon), loyerDeLaRue(adresse, deal).catch(() => null)]);
   // Dans une petite ville, le quartier compte trop peu de ventes : on élargit.
   if (approche && !(ventes?.ok && ventes.resultat?.prix_m2)) {
     rayon = RAYON_ELARGI;
@@ -204,7 +252,7 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
         jugement: jugement(bien.prix_m2, bande),
       }
     : null;
-  const loyerMarche = rue ? { ...rue, jugement: jugement(bien.loyer_m2, rue) } : null;
+  const loyerMarche = rue ? { ...rue, jugement: rue.median != null || rue.bas != null ? jugement(bien.loyer_m2, rue) : null } : null;
   // Lu sur le quartier : le chiffre donne une idée, pas un verdict.
   const reserve = approche
     ? `Estimé autour de ${approche.mode === 'repere' ? `« ${approche.libelle} »` : approche.libelle}, faute d'adresse dans la fiche : à vérifier.`
@@ -223,8 +271,13 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
     loyer: loyerMarche,
     manque: !surface ? "La surface manque : le prix et le loyer au m² ne se calculent pas." : !prix ? (ventes?.error || 'Pas assez de ventes DVF autour pour un prix de marché.') : null,
   };
-  const lots = [...deal.lots];
-  lots[index] = { ...entree, comparaison_marche: resultat };
-  Records.update('Deal', deal.id, { lots });
+  // Tant que K-Data tourne, rien n'est gardé : la lecture suivante reprend
+  // son résultat dès qu'il existe.
+  if (!loyerMarche?.kdata_en_cours) {
+    const frais = Records.get('Deal', deal.id) || deal;
+    const lots = [...frais.lots];
+    lots[index] = { ...lots[index], comparaison_marche: resultat };
+    Records.update('Deal', deal.id, { lots });
+  }
   return { ok: true, ...resultat };
 }

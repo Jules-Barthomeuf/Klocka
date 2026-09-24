@@ -416,6 +416,23 @@ async function texteDeLaPiece({ buffer, mimetype, nom }) {
   return texte;
 }
 
+/**
+ * Transcrit un enregistrement du micro, mot pour mot. Sert à la dictée dans
+ * les navigateurs qui n'ont pas la reconnaissance vocale (Firefox) : ils
+ * enregistrent, on transcrit ici. Gemini lit l'audio ; Claude non.
+ * @param {{buffer: Buffer, mimetype?: string}} audio
+ * @returns {Promise<string>}
+ */
+export async function transcrireAudio({ buffer, mimetype = 'audio/wav' } = {}) {
+  if (!GEMINI_KEY) throw new Error("La dictée hors Chrome demande une clé Gemini (GEMINI_API_KEY) : elle transcrit l'audio.");
+  if (!buffer?.length) return '';
+  const data = await geminiGenerate({
+    systemInstruction: "Tu transcris un enregistrement en français, mot pour mot. Tu rends le texte seul : pas de guillemets, pas de commentaire, pas d'horodatage. Ponctue normalement. Si l'enregistrement est vide ou inaudible, rends une chaîne vide.",
+    contents: [{ role: 'user', parts: [{ inline_data: { mime_type: mimetype, data: buffer.toString('base64') } }, { text: 'Transcris.' }] }],
+  });
+  return (data?.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('').trim();
+}
+
 export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {}) {
   if (!llmEnabled) throw new Error('Aucune clé IA configurée : impossible de lire un document scanné.');
   if (!buffer?.length) throw new Error('Document vide.');

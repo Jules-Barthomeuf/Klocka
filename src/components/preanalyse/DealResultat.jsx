@@ -67,8 +67,10 @@ const cleLigne = (l) => `${l.groupe}|${l.champ}`;
 // décide, et c'est lui que l'analyste doit lire.
 const LIGNES_BIEN = [
   { id: "prix", element: "Prix FAI", champs: ["prix_fourchette"] },
+  { id: "prix_marche", element: "Prix marché", marche: "prix" },
   { id: "rendement", element: "Rendement annoncé / réel", champs: ["rendement_net_moyen", "rendement_aem", "rendement_fai"] },
   { id: "loyer", element: "Loyer annuel HT HC", champs: ["loyer_annuel_ht_hc"] },
+  { id: "loyer_marche", element: "Loyer marché", marche: "loyer" },
   { id: "occupe", element: "Occupé", champs: ["occupe"] },
   { id: "activite", element: "Activité", champs: ["categorie_activite", "activite_exclue"] },
   { id: "enseigne", element: "Qualité de l'enseigne", champs: ["signature", "locataire_nom"] },
@@ -101,13 +103,16 @@ const TEINTE_JUGEMENT = { haut: "text-alerte", bas: "text-menthe-clair", juste: 
  * Sous le prix ou le loyer : le chiffre au m² du bien face à celui du marché
  * autour, le jugement, et la source qu'on déplie pour se faire son idée.
  */
-function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource }) {
-  if (chargement) return <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[11.5px] text-brume"><Loader2 className="w-3 h-3 animate-spin" /> Lecture du marché autour…</p>;
-  if (!marche) return null;
+function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource, manque = null }) {
+  if (chargement) return <p className="m-0 inline-flex items-center gap-1.5 text-[12px] text-brume"><Loader2 className="w-3 h-3 animate-spin" /> Lecture du marché autour…</p>;
+  if (!marche) return <p className="m-0 text-[12px] text-brume">{manque || "Pas de marché lisible autour."}</p>;
   const j = marche.jugement;
   const repere = marche.median ?? null;
   return (
-    <div className="mt-2 text-[12px] leading-[1.5]">
+    <div className="text-[12.5px] leading-[1.55]">
+      {marche.kdata_en_cours && (
+        <p className="m-0 mb-1 inline-flex items-center gap-1.5 text-[11.5px] text-ardoise"><Loader2 className="w-3 h-3 animate-spin" /> K-Data Valeur locative interroge Equimmox : quelques minutes.</p>
+      )}
       <p className="m-0 text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
         {libelleBien} <span className="text-encre">{eurosM2(bien, suffixe)}</span>
         <span className="text-brume"> vs </span>
@@ -136,6 +141,13 @@ function SourceMarche({ marche }) {
     <div className="px-4 py-3">
       <p className="m-0 text-[12px] text-craie">{marche.source}{marche.periode ? `, du ${new Date(marche.periode.du).toLocaleDateString("fr-FR")} au ${new Date(marche.periode.au).toLocaleDateString("fr-FR")}` : ""}.</p>
       {marche.lien && <a href={marche.lien} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[12px] text-menthe-clair hover:text-encre">Ouvrir la carte des ventes (DVF) ↗</a>}
+      {marche.kdata?.id && <a href={`/valeurlocative?id=${encodeURIComponent(marche.kdata.id)}`} target="_blank" rel="noopener noreferrer" className="mt-1 mr-4 inline-block text-[12px] text-menthe-clair hover:text-encre">Ouvrir l'analyse K-Data Valeur locative ↗</a>}
+      {marche.second_regard?.median != null && (
+        <p className="m-0 mt-1 text-[11.5px] text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
+          Second regard, {marche.second_regard.source} : {Math.round(marche.second_regard.median).toLocaleString("fr-FR")} €/m²/an
+          {marche.second_regard.bas != null ? ` (${Math.round(marche.second_regard.bas).toLocaleString("fr-FR")} à ${Math.round(marche.second_regard.haut).toLocaleString("fr-FR")})` : ""}.
+        </p>
+      )}
       {marche.ventes?.length > 0 && (
         <table className="mt-2 w-full border-collapse text-[12px]" style={{ fontVariantNumeric: "tabular-nums" }}>
           <thead><tr className="text-brume"><th className="text-left font-normal py-1">Date</th><th className="text-left font-normal py-1">Adresse</th><th className="text-right font-normal py-1">Distance</th><th className="text-right font-normal py-1">Surface</th><th className="text-right font-normal py-1">Prix</th><th className="text-right font-normal py-1">€/m²</th></tr></thead>
@@ -153,7 +165,7 @@ function SourceMarche({ marche }) {
           </tbody>
         </table>
       )}
-      {marche.constate === false && <p className="m-0 mt-1 text-[11.5px] text-brume">Pas de loyers constatés à cette adresse : une analyse Valeur locative (K-Data) les apporterait.</p>}
+      {marche.constate === false && !marche.kdata_en_cours && <p className="m-0 mt-1 text-[11.5px] text-brume">Pas de loyers constatés : Equimmox n'a pas répondu à cette adresse.</p>}
     </div>
   );
 }
@@ -181,6 +193,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     enabled: !!dealId && !apercu,
     staleTime: 10 * 60 * 1000,
     retry: false,
+    refetchInterval: (q) => (q.state.data?.loyer?.kdata_en_cours ? 20000 : false),
   });
   const grille = lot.evaluation?.grille || [];
   const ctx = lot.evaluation?.contexte || {};
@@ -212,9 +225,10 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                 <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {euros(valChamp(lot.lot?.montant_honoraires))} d'honoraires</span>
               </>
             ) : champ("prix_fai")}
-            <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche="ventes autour" chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} />
           </div>
         );
+      case "prix_marche":
+        return <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche="ventes autour" chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} />;
       case "rendement":
         return (
           <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -222,14 +236,9 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
             <span className="text-encre" title="Rendement net moyen du simulateur, sur toute la durée du projet">{pourcent(reel) || "—"} <span className="text-[11px] text-brume">réel</span></span>
           </span>
         );
-      case "loyer":
-        return (
-          <div>
-            {champ("loyer_annuel_ht_hc")}
-            <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche="la rue" chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} />
-            {!marcheEnLecture && marche?.manque && !marche?.loyer && <p className="m-0 mt-2 text-[11.5px] text-brume">{marche.manque}</p>}
-          </div>
-        );
+      case "loyer": return champ("loyer_annuel_ht_hc");
+      case "loyer_marche":
+        return <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche="le marché" chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} manque={marche?.manque} />;
       case "occupe": return champ("occupe");
       case "activite": return champ("locataire_activite");
       case "enseigne":
@@ -252,7 +261,17 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     const v = c ? lot?.verifications?.[cleLigne(c)] : null;
     return v ? { ...v, statut: DEPUIS_ANCIEN[v.statut] || v.statut } : null;
   };
+  // Les lignes de marché se jugent sur l'écart : dans le marché ou en
+  // dessous, OK ; au-dessus, ou estimé faute d'adresse, à vérifier.
+  const statutMarche = (m) => {
+    if (!m?.jugement) return "vide";
+    if (m.approche || m.kdata_en_cours) return "a_verifier";
+    return m.jugement.sens === "haut" ? "a_verifier" : "ok";
+  };
   const lignes = LIGNES_BIEN.map((l) => {
+    if (l.marche) {
+      return { ...l, c: null, decision: null, st: marcheEnLecture ? "vide" : statutMarche(marche?.[l.marche]), attenduMarche: "dans le marché, à 15 % près" };
+    }
     const c = critereDe(grille, l.champs);
     const decision = decisionDe(c);
     // Un marché lu sur le quartier, faute d'adresse, met une réserve sur le
@@ -291,7 +310,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         <table className="w-full min-w-[720px] table-fixed border-collapse">
           <thead><tr><Th className="w-1/4">Critère</Th><Th className="w-1/4">Valeur lue</Th><Th className="w-1/4">Statut</Th><Th className="w-1/4">Attendu</Th></tr></thead>
           <tbody>
-            {lignes.map(({ id, element, c, st, decision }, iLigne) => {
+            {lignes.map(({ id, element, c, st, decision, attenduMarche, marche: cleMarche }, iLigne) => {
               const modifiable = !!(c && onVerifier);
               return (
                 <React.Fragment key={id}>
@@ -327,11 +346,20 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                     )}
                   </td>
                   <td className="px-4 py-3 border-b border-trait">
-                    {c?.attendu ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie">{c.attendu}</p> : <span className="text-[12.5px] text-brume">—</span>}
+                    {c?.attendu || attenduMarche ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie">{c?.attendu || attenduMarche}</p> : <span className="text-[12.5px] text-brume">—</span>}
                   </td>
                 </tr>
-                {source === id && (
-                  <tr><td colSpan={4} className="border-b border-trait bg-fond/40"><SourceMarche marche={marche?.[id]} /></td></tr>
+                {cleMarche && marche?.[cleMarche] && (
+                  // La source glisse : la hauteur passe de 0 à son contenu.
+                  <tr aria-hidden={source !== cleMarche}>
+                    <td colSpan={4} className={`p-0 bg-fond/40 transition-[border-color] duration-300 ${source === cleMarche ? "border-b border-trait" : "border-b border-transparent"}`}>
+                      <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: source === cleMarche ? "1fr" : "0fr" }}>
+                        <div className={`min-h-0 overflow-hidden transition-opacity duration-300 ${source === cleMarche ? "opacity-100" : "opacity-0"}`}>
+                          <SourceMarche marche={marche[cleMarche]} />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
                 )}
                 </React.Fragment>
               );

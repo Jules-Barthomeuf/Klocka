@@ -181,6 +181,17 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '25mb' }));
+
+// La dictée hors Chrome : le navigateur enregistre, le serveur transcrit.
+// L'audio arrive en base64 (WAV mono 16 kHz, une minute tient en 2 Mo).
+app.post('/api/dictee', wrap(async (req, res) => {
+  if (!currentUser(req)) return res.status(401).json({ error: 'Connexion requise' });
+  const audio = String(req.body?.audio || '');
+  if (!audio) return res.status(400).json({ error: 'Aucun son reçu.' });
+  const { transcrireAudio } = await import('./llm.js');
+  const texte = await transcrireAudio({ buffer: Buffer.from(audio, 'base64'), mimetype: 'audio/wav' });
+  ok(res, { texte });
+}));
 // Chaque requête à l'API sait ce qu'elle a coûté en modèle, et à qui.
 app.use(mesurerRequetes(currentUser));
 // Qui a fait quoi. Avant le service des fichiers déposés : un bail téléchargé

@@ -11,6 +11,10 @@ import { Records } from '../db.js';
 
 const val = (c) => (c && typeof c === 'object' && 'valeur' in c ? (c.absent === false || c.absent === undefined ? c.valeur : null) : c);
 const RAYON = 300;
+// Sans adresse, on lit le quartier : un cercle plus large, pour avoir assez de ventes.
+const RAYON_QUARTIER = 600;
+const RAYON_ELARGI = 1500;
+const BAN = 'https://api-adresse.data.gouv.fr';
 const JOURS_GARDE = 7;
 // Au-delà de 15 % d'écart, on le dit ; en deçà, c'est le bruit du marché.
 const SEUIL = 15;
@@ -60,6 +64,58 @@ export function quartiles(valeurs) {
   return { bas: q(0.25), median: q(0.5), haut: q(0.75) };
 }
 
+/**
+ * Sans rue dans la fiche, le quartier suffit à se faire une idée : le repère
+ * qu'elle donne s'il a été situé, sinon l'arrondissement ou la commune. On en
+ * tire un point, puis la rue la plus proche, et le marché se lit autour —
+ * approché, et marqué comme tel.
+ * @returns {Promise<{lat, lon, libelle, mode}|null>}
+ */
+async function pointApproche(deal, entree) {
+  if (entree?.lieu?.lat != null && entree?.lieu?.lon != null) {
+    return { lat: entree.lieu.lat, lon: entree.lieu.lon, libelle: entree.lieu.repere, mode: 'repere' };
+  }
+  const a = val(entree?.lot?.adresse) || {};
+  // Le repère de la fiche, même quand la page ne l'a pas encore situé.
+  try {
+    const { repereNet, repereDuTexte, localiserRepere } = await import('./repere.js');
+    const repere = repereNet(a.repere) || repereDuTexte(deal?.source?.texte || '');
+    // Sans ville, le repère se cherche seul : OpenStreetMap trouve la
+    // station Rambuteau à Paris sans qu'on le lui dise.
+    const ville = a.ville || entree?.enrichissement?.commune?.nom || null;
+    if (repere) {
+      const r = await localiserRepere(repere, ville);
+      if (r) return { lat: r.lat, lon: r.lon, libelle: repere, mode: 'repere' };
+    }
+  } catch { /* le quartier prend le relais */ }
+  const q = [a.code_postal, a.ville].filter(Boolean).join(' ') || entree?.enrichissement?.commune?.nom || '';
+  if (q) {
+    try {
+      const r = await fetch(`${BAN}/search/?limit=1&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(6000) });
+      const f = r.ok ? (await r.json()).features?.[0] : null;
+      if (f) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], libelle: f.properties?.label || q, mode: 'quartier' };
+    } catch { /* la commune de l'enrichissement prend le relais */ }
+  }
+  const c = entree?.enrichissement?.commune?.centre;
+  return c?.lat != null ? { lat: c.lat, lon: c.lon, libelle: entree.enrichissement.commune.nom, mode: 'commune' } : null;
+}
+
+/** La rue la plus proche d'un point, en adresse lisible par DVF et ALX. */
+async function adresseProche(point) {
+  try {
+    // Une adresse au numéro : sans ce filtre, le centre d'une commune
+    // renvoyait la commune elle-même, que ni DVF ni ALX ne savent lire.
+    const r = await fetch(`${BAN}/reverse/?lon=${point.lon}&lat=${point.lat}&limit=1&type=housenumber`, { signal: AbortSignal.timeout(6000) });
+    const pr = r.ok ? (await r.json()).features?.[0]?.properties : null;
+    if (!pr) return null;
+    // « 26 Rue Beaubourg, 75003 Paris » : la virgule sépare la rue de la
+    // ville, et c'est d'elle qu'ALX a besoin pour les retrouver.
+    return pr.name && pr.postcode && pr.city ? `${pr.name}, ${pr.postcode} ${pr.city}` : pr.label || null;
+  } catch {
+    return null;
+  }
+}
+
 const normaliser = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
 /** Le loyer de la rue : Equimmox déjà lu à cette adresse, sinon ALX. */
@@ -92,7 +148,7 @@ async function loyerDeLaRue(adresse) {
 export async function comparerAuMarche(deal, index = 0, { forcer = false } = {}) {
   const entree = deal?.lots?.[index];
   if (!entree) return { ok: false, error: 'Lot introuvable' };
-  const adresse = adresseDuLot(entree);
+  let adresse = adresseDuLot(entree);
   const surface = Number(val(entree.lot?.surface_m2)) || null;
   const fai = prixFaiDuLot(entree.lot);
   const loyer = Number(val(entree.lot?.loyer_annuel_ht_hc)) || null;
@@ -107,12 +163,24 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
     loyer,
     loyer_m2: loyer && surface ? Math.round(loyer / surface) : null,
   };
-  if (!adresse) return { ok: true, cle, le: new Date().toISOString(), adresse: null, bien, prix: null, loyer: null, manque: "La fiche ne donne pas d'adresse : pas de marché à comparer." };
+  // Pas d'adresse : on lit le quartier, et on le dit.
+  let approche = null;
+  if (!adresse) {
+    const point = await pointApproche(deal, entree);
+    const proche = point ? await adresseProche(point) : null;
+    if (!proche) return { ok: true, cle, le: new Date().toISOString(), adresse: null, bien, prix: null, loyer: null, manque: "Ni adresse ni quartier situable : pas de marché à comparer." };
+    adresse = proche;
+    approche = { mode: point.mode, libelle: point.libelle };
+  }
+  let rayon = approche ? RAYON_QUARTIER : RAYON;
+  const lireVentes = (r) => import('../dvf.js').then(({ ventesAutour }) => ventesAutour(adresse, { rayon: r })).catch(() => null);
 
-  const [ventes, rue] = await Promise.all([
-    import('../dvf.js').then(({ ventesAutour }) => ventesAutour(adresse, { rayon: RAYON })).catch(() => null),
-    loyerDeLaRue(adresse).catch(() => null),
-  ]);
+  let [ventes, rue] = await Promise.all([lireVentes(rayon), loyerDeLaRue(adresse).catch(() => null)]);
+  // Dans une petite ville, le quartier compte trop peu de ventes : on élargit.
+  if (approche && !(ventes?.ok && ventes.resultat?.prix_m2)) {
+    rayon = RAYON_ELARGI;
+    ventes = await lireVentes(rayon);
+  }
   const d = ventes?.ok ? ventes.resultat : null;
   // Le prix au m² dépend de la surface : un local de 30 m² se vend plus cher
   // au m² qu'un plateau de 500. On compare d'abord aux ventes de surface
@@ -126,22 +194,30 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
     ? {
         ...bande,
         n,
-        rayon: RAYON,
+        rayon,
         periode: d.periode,
         source: parSurface
-          ? `DVF, ${n} ventes de locaux commerciaux de ${Math.round(surface / 2)} à ${Math.round(surface * 2)} m² à ${RAYON} m`
-          : `DVF, ${n} vente${n > 1 ? 's' : ''} de locaux commerciaux à ${RAYON} m, toutes surfaces`,
+          ? `DVF, ${n} ventes de locaux commerciaux de ${Math.round(surface / 2)} à ${Math.round(surface * 2)} m² à ${rayon} m`
+          : `DVF, ${n} vente${n > 1 ? 's' : ''} de locaux commerciaux à ${rayon} m, toutes surfaces`,
         lien: d.lien,
         ventes: retenues.slice(0, 15).map((v) => ({ date: v.date, adresse: v.adresse, surface: v.surface, prix: v.prix, prix_m2: v.prix_m2, distance_m: v.distance_m })),
         jugement: jugement(bien.prix_m2, bande),
       }
     : null;
   const loyerMarche = rue ? { ...rue, jugement: jugement(bien.loyer_m2, rue) } : null;
+  // Lu sur le quartier : le chiffre donne une idée, pas un verdict.
+  const reserve = approche
+    ? `Estimé autour de ${approche.mode === 'repere' ? `« ${approche.libelle} »` : approche.libelle}, faute d'adresse dans la fiche : à vérifier.`
+    : null;
+  for (const m of [prix, loyerMarche]) {
+    if (m && approche) { m.approche = approche; m.reserve = reserve; }
+  }
 
   const resultat = {
     cle,
     le: new Date().toISOString(),
     adresse,
+    approche,
     bien,
     prix,
     loyer: loyerMarche,

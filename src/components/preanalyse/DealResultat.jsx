@@ -115,10 +115,13 @@ function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, 
         {marche.bas != null && marche.haut != null && <span className="text-brume"> ({Math.round(marche.bas).toLocaleString("fr-FR")} à {Math.round(marche.haut).toLocaleString("fr-FR")})</span>}
       </p>
       {j && (
-        <p className={`m-0 font-medium ${TEINTE_JUGEMENT[j.sens] || "text-craie"}`}>
-          {j.ecart != null && j.ecart !== 0 ? `${j.ecart > 0 ? "+" : ""}${j.ecart} % · ` : ""}{j.mot}
+        // Lu sur le quartier, faute d'adresse : une indication à vérifier,
+        // jamais un verdict — en ambre, quel que soit le sens.
+        <p className={`m-0 font-medium ${marche.approche ? "text-ambre" : TEINTE_JUGEMENT[j.sens] || "text-craie"}`}>
+          {marche.approche ? "À vérifier · " : ""}{j.ecart != null && j.ecart !== 0 ? `${j.ecart > 0 ? "+" : ""}${j.ecart} % · ` : ""}{j.mot}
         </p>
       )}
+      {marche.reserve && <p className="m-0 text-[11.5px] text-brume">{marche.reserve}</p>}
       <button type="button" onClick={onSource} className="mt-0.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
         {sourceOuverte ? "Masquer la source" : "Voir la source"}
       </button>
@@ -252,7 +255,11 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   const lignes = LIGNES_BIEN.map((l) => {
     const c = critereDe(grille, l.champs);
     const decision = decisionDe(c);
-    return { ...l, c, decision, st: decision?.statut || statutDe(c) };
+    // Un marché lu sur le quartier, faute d'adresse, met une réserve sur le
+    // prix et le loyer : ils tiennent peut-être, mais ce n'est pas établi.
+    const approche = (l.id === "prix" && marche?.prix?.approche) || (l.id === "loyer" && marche?.loyer?.approche);
+    const calcule = statutDe(c);
+    return { ...l, c, decision, st: decision?.statut || (approche && calcule === "ok" ? "a_verifier" : calcule) };
   });
   const resume = { ok: 0, warning: 0, no_go: 0, vide: 0 };
   for (const l of lignes) {

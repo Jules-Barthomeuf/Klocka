@@ -14,7 +14,7 @@ import { noterEchange, apprendre } from './lecons.js';
 import { assurerPrive } from './chat.js';
 import { compteAk, espacesSuivis, messagesDepuis, estPourAk, estDeAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
 import { APP_URL_PROD } from '../contexte.js';
-import { intention, commandeBanane, GREVE, citation } from './intentions.js';
+import { intention, commandeBanane, repliquesGreve, citation } from './intentions.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 // La flemme : une fois sur AK_FLEMME, AK refuse et ne fait rien. Jamais deux
@@ -326,7 +326,7 @@ async function trancher(message) {
   const banane = commandeBanane(texte);
   if (banane === 'debut' && !enBanane()) {
     Meta.set(CLE_BANANE, new Date().toISOString());
-    await poster(message.espace, `${tete}banana split activé. je ne fais plus rien, adressez vos réclamations à la chantilly. (fin du banana split pour me rendre mon sérieux)`, null, message.auteur);
+    await poster(message.espace, `${tete}banana split. je ne fais plus rien, pour personne. (fin du banana split pour me rendre mon sérieux)`, null, message.auteur);
     return true;
   }
   if (banane === 'fin' && enBanane()) {
@@ -335,7 +335,9 @@ async function trancher(message) {
     return true;
   }
   if (enBanane()) {
-    await poster(message.espace, `${tete}${GREVE[Math.floor(Math.random() * GREVE.length)]}`, null, message.auteur);
+    const [premiere, ...suite] = repliquesGreve();
+    await poster(message.espace, `${mention(message.auteur)} ${premiere}`, null, message.auteur);
+    for (const r of suite) await poster(message.espace, r, null, message.auteur);
     return true;
   }
 

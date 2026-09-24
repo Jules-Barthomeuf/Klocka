@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Loader2, MapPin, Pencil, Quote, Send, X,
+  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Info, Loader2, MapPin, Pencil, Quote, Send, X,
 } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
@@ -201,6 +201,57 @@ function statutDe(c) {
  * se corrige d'un clic, le statut se confirme d'un clic ; le critère, cliqué,
  * dit d'où vient la règle.
  */
+/** Les notes d'une ligne : ce qu'il faut savoir avant de s'y fier. */
+function NotesLigne({ textes }) {
+  if (!textes.length) return <span className="text-[12.5px] text-brume">—</span>;
+  return (
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+      {textes.map((t) => <li key={t} className="text-[12.5px] leading-[1.5] text-craie">{t}</li>)}
+    </ul>
+  );
+}
+
+/** Pure : ce que la lecture du marché réserve sur les lignes Prix marché et Loyer marché. */
+function notesMarche(m, marche) {
+  if (!m) return marche?.manque ? [marche.manque] : [];
+  const notes = [];
+  if (m.kdata_en_cours) notes.push("Le loyer de marché est encore en lecture chez Equimmox.");
+  if (m.reserve) notes.push(m.reserve);
+  return notes;
+}
+
+/**
+ * Le petit i à droite du titre : ce que la grille attend de chaque ligne.
+ * L'attendu a quitté le tableau pour laisser la place aux notes ; il reste
+ * à un survol.
+ */
+function AttendusInfo({ lignes }) {
+  const [ouvert, setOuvert] = useState(false);
+  const ref = useFermerAuClicAilleurs(ouvert, () => setOuvert(false));
+  const attendus = lignes.map((l) => ({ id: l.id, element: l.element, attendu: l.c?.attendu || l.attenduMarche || null })).filter((l) => l.attendu);
+  if (!attendus.length) return null;
+  return (
+    <span ref={ref} className="relative inline-flex" onMouseEnter={() => setOuvert(true)} onMouseLeave={() => setOuvert(false)}>
+      <button type="button" onClick={() => setOuvert((o) => !o)} aria-label="Ce que la grille attend de chaque ligne" aria-expanded={ouvert} className="grid h-5 w-5 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
+        <Info className="h-4 w-4" />
+      </button>
+      <div className={`absolute left-0 top-full z-30 pt-2 transition-[opacity,transform] duration-200 ease-out ${ouvert ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
+        <div className="w-[340px] rounded-lg border border-trait p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)]" style={{ background: "rgb(var(--k-surface-pleine-rgb))" }}>
+          <p className="m-0 mb-2 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Attendu</p>
+          <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+            {attendus.map((a) => (
+              <React.Fragment key={a.id}>
+                <dt className="text-[12.5px] text-ardoise">{a.element}</dt>
+                <dd className="m-0 text-[12.5px] text-encre">{a.attendu}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </span>
+  );
+}
+
 function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
@@ -300,8 +351,11 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     // Un marché lu sur le quartier, faute d'adresse, met une réserve sur le
     // prix et le loyer : ils tiennent peut-être, mais ce n'est pas établi.
     const approche = (l.id === "prix" && marche?.prix?.approche) || (l.id === "loyer" && marche?.loyer?.approche);
+    // Une note qui réserve la ligne (un prix net vendeur sans honoraires, une
+    // valeur lue sans assurance) la fait passer à vérifier, même si la grille passe.
+    const reserve = approche || lot.notes?.[l.id]?.a_verifier;
     const calcule = statutDe(c);
-    return { ...l, c, decision, st: decision?.statut || (approche && calcule === "ok" ? "a_verifier" : calcule) };
+    return { ...l, c, decision, st: decision?.statut || (reserve && calcule === "ok" ? "a_verifier" : calcule) };
   });
   const resume = { ok: 0, warning: 0, no_go: 0, vide: 0 };
   for (const l of lignes) {
@@ -316,7 +370,10 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     <div className="overflow-hidden rounded-[16px] border border-trait bg-surface">
       <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h2 className="m-0 text-[18px] font-semibold text-encre">{titre}</h2>
+          <span className="inline-flex items-center gap-2">
+            <h2 className="m-0 text-[18px] font-semibold text-encre">{titre}</h2>
+            <AttendusInfo lignes={lignes} />
+          </span>
           {sousTitre && <span className="text-[12.5px] text-ardoise">{sousTitre}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-4">
@@ -331,7 +388,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
       </header>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] table-fixed border-collapse">
-          <thead><tr><Th className="w-1/4">Critère</Th><Th className="w-1/4">Valeur lue</Th><Th className="w-1/4">Statut</Th><Th className="w-1/4">Attendu</Th></tr></thead>
+          <thead><tr><Th className="w-[22%]">Critère</Th><Th className="w-[26%]">Valeur lue</Th><Th className="w-[16%]">Statut</Th><Th className="w-[36%]">Notes</Th></tr></thead>
           <tbody>
             {lignes.map(({ id, element, c, st, decision, attenduMarche, marche: cleMarche }, iLigne) => {
               const modifiable = !!(c && onVerifier);
@@ -346,7 +403,6 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                   </td>
                   <td className="px-4 py-3 border-b border-r border-trait break-words [&_*]:whitespace-normal">
                     {valeur(id)}
-                    {c?.ok === false && c.motif && <p className="m-0 mt-1 text-[12.5px] leading-[1.45] text-ardoise">{c.motif}</p>}
                   </td>
                   <td
                     className={`px-4 py-3 border-b border-r border-trait relative ${modifiable ? "cursor-pointer" : ""}`}
@@ -369,7 +425,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                     )}
                   </td>
                   <td className="px-4 py-3 border-b border-trait">
-                    {c?.attendu || attenduMarche ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie">{c?.attendu || attenduMarche}</p> : <span className="text-[12.5px] text-brume">—</span>}
+                    <NotesLigne textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]} />
                   </td>
                 </tr>
                 {cleMarche && marche?.[cleMarche] && (

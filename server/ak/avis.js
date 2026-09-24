@@ -8,6 +8,7 @@
 
 import { calculerAEM } from '../deal/aem.js';
 import { SEUILS } from './outils.js';
+import { netVendeurSansHonoraires } from '../deal/notes-bien.js';
 
 const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
 const nombre = (x) => { const n = Number(val(x)); return Number.isFinite(n) && n > 0 ? n : null; };
@@ -157,6 +158,8 @@ export function avisPreanalyse({ dossier, marche = null, clients = null, lien = 
   const lignes = [`c'est bon, le dossier ${titre} est prêt${lien ? ` : ${lien}` : ''}`];
   const renta = phraseRenta({ prixFai, loyer, vise, n, verdict: ev.verdict, manquants: ev.libelles_manquants || [] });
   if (renta) lignes.push(renta);
+  const nv = netVendeurSansHonoraires(lot);
+  if (nv && !nv.chiffres) lignes.push(`à vérifier : attention, le prix est net vendeur, pas FAI. les honoraires ne sont pas chiffrés, donc le FAI réel est plus haut et la renta${n?.nego ? ' comme la négo' : ''} à revoir : demander le montant à l'agent`);
   if (ev.verdict === 'NO-GO' && ev.motifs?.length) lignes.push(`bloquant : ${String(ev.motifs[0]).replace(/\.$/, '').toLowerCase()}`);
   const m = phraseMarche(marche);
   if (m) lignes.push(m);

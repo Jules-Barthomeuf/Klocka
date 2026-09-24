@@ -440,3 +440,13 @@ test('un geste coûteux refait à l\'identique dans l\'heure ne repart pas', asy
   assert.equal(dejaFait(cle, { [cle]: maintenant - 61 * 60000 }, maintenant), null);
   assert.equal(dejaFait(cle, {}, maintenant), null);
 });
+
+test('banana split : deux ou trois répliques différentes par demande', async () => {
+  const { repliquesGreve, GREVE } = await import('./intentions.js');
+  for (const graine of [0, 0.4, 0.99]) {
+    const r = repliquesGreve(() => graine);
+    assert.ok(r.length >= 2 && r.length <= 3, `${r.length} répliques`);
+    assert.equal(new Set(r).size, r.length);
+    assert.ok(r.every((x) => GREVE.includes(x)));
+  }
+});

@@ -243,3 +243,9 @@ test('« préanalyse le mail du glacier » : déjà fait à l\'arrivée, l\'avis
   assert.equal(r2.en_cours, true);
   assert.deepEqual(fond[0], { genre: 'preanalyse', libelle: 'la préanalyse de « Murs Devred Firminy »', mail_id: neuf.id });
 });
+
+test('l\'avis prévient quand le prix est net vendeur sans honoraires chiffrés', () => {
+  const dossier = { nom: 'Glacier', lots: [{ lot: { prix_fai: { valeur: 520000, citation: 'Prix : 520 000 € Net vendeur' }, honoraires_inclus: { valeur: false }, loyer_annuel_ht_hc: { valeur: 34416 } }, enrichissement: {}, evaluation: { aem: { prix_fai: 520000 }, grille: [{ champ: 'rendement_aem', attendu: '≥ 7 %', ok: false }] } }] };
+  const texte = avis.avisPreanalyse({ dossier });
+  assert.match(texte, /à vérifier : attention, le prix est net vendeur, pas FAI\. les honoraires ne sont pas chiffrés, donc le FAI réel est plus haut et la renta comme la négo à revoir : demander le montant à l'agent/);
+});

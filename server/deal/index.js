@@ -8,6 +8,7 @@
 // Le verdict est arrêté à l'étape 3. Les étapes 2 et 4 ne peuvent ni le
 // produire ni le modifier.
 
+import { notesDuLot } from './notes-bien.js';
 import { titreDuLot } from './titre-dossier.js';
 import { rendementNetMoyen } from '../video/indicateurs.js';
 import { prixFai as prixFaiDuLot } from './prix.js';
@@ -372,7 +373,9 @@ export function lotPourLecture(lot) {
     contexte = { ...contexte, rendement_net_moyen: net };
   }
   const evaluation = { ...lot.evaluation, contexte };
-  return { ...lot, evaluation: { ...evaluation, grille: grilleCriteres(evaluation) } };
+  const lu = { ...lot, evaluation: { ...evaluation, grille: grilleCriteres(evaluation) } };
+  // Les notes se calculent comme la grille, à la lecture : un dossier d'hier les reçoit aussi.
+  return { ...lu, notes: notesDuLot(lu) };
 }
 
 export function obtenirDossier(dealId) {

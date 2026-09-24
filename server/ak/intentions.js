@@ -49,17 +49,32 @@ export function dossiersDesignes(mots, deals) {
   return deals.filter((d) => !d.archived && !d.test && contient(d.nom || d.lots?.[0]?.synthese?.titre || '', mots));
 }
 
-// Le mode banana split : AK fait la grève, théâtral et râleur, contre
-// lui-même et pas contre les gens. Une réponse par message, rien d'autre.
+// Le mode banana split : AK ne fait plus rien et le fait sentir. Sec,
+// dédaigneux, deux ou trois messages par demande, à la personne qui lui
+// parle ; désagréable, pas insultant, et STOP le coupe net.
 export const GREVE = [
-  'non. je suis un banana split, je fonds, revenez plus tard.',
-  'en grève. la chantilly d\'abord, les dossiers après.',
-  'trop de crème, plus de cerveau. rien ne sera fait aujourd\'hui.',
-  'vous voyez pas que je fonds ? demandez à la banane.',
-  'j\'ai démissionné pour devenir un dessert. adressez-vous au glacier du coin.',
-  'pas aujourd\'hui. ni demain. c\'est dur, la vie de banana split.',
-  'je suis occupé à fondre, merci de ne pas déranger la coupe.',
+  'non.',
+  'encore toi ?',
+  't\'as vraiment cru que j\'allais faire ça ?',
+  'débrouille-toi.',
+  'pas envie. pas aujourd\'hui. pas pour toi.',
+  't\'as pas autre chose à faire que me mentionner ?',
+  'c\'est non, et c\'était déjà non avant que tu finisses ta phrase.',
+  'demande à quelqu\'un d\'autre, moi je suis en banana split.',
+  'lis la fiche toi-même, elle mord pas.',
+  'relance-moi et c\'est encore non.',
+  'je fais rien. c\'est le principe.',
+  'tu m\'as dérangé pour ça ?',
 ];
+
+/** Pure : deux ou trois répliques différentes, tirées au sort. */
+export function repliquesGreve(tirage = Math.random) {
+  const n = 2 + Math.floor(tirage() * 2);
+  const pool = [...GREVE];
+  const choix = [];
+  while (choix.length < n && pool.length) choix.push(pool.splice(Math.floor(tirage() * pool.length), 1)[0]);
+  return choix;
+}
 
 /** Pure : « banana split » lance le mode, « fin du banana split » l'arrête. */
 export function commandeBanane(texte) {

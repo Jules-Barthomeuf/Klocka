@@ -180,12 +180,17 @@ const ENTITE_REPONSE = 'AkReponse';
  * appel au modèle et parfois une action : si Google refuse l'envoi (API
  * Chat non configurée, réseau), elle attend au lieu de disparaître.
  */
+// Le type de chaque espace suivi, appris à chaque passage : une réponse ne
+// quitte jamais l'espace où l'on a parlé à AK.
+const TYPES = new Map();
+
 async function poster(espace, texte, fil, auteur = null) {
   try {
     await envoyer(espace, texte, { fil });
   } catch (e) {
-    // Un privé où Google refuse d'écrire : on l'ouvre de notre côté, une fois, et on réessaie.
-    if (auteur?.nom && /a répondu 403/.test(e?.message || '')) {
+    // Un privé où Google refuse d'écrire : on l'ouvre de notre côté, une fois,
+    // et on réessaie. Jamais pour le groupe : sa réponse n'a pas à partir en privé.
+    if (auteur?.nom && TYPES.get(espace) === 'DIRECT_MESSAGE' && /a répondu 403/.test(e?.message || '')) {
       try { const nouveau = await assurerPrive(auteur.nom); await envoyer(nouveau || espace, texte, { fil: null }); return; } catch { /* on garde la réponse pour plus tard */ }
     }
     Records.create(ENTITE_REPONSE, { espace, fil, texte, erreur: e?.message || String(e), cree_le: new Date().toISOString() });
@@ -470,6 +475,7 @@ export async function relever() {
     if (!c.ok) { dernier.erreur = c.error; return { ok: false, error: c.error }; }
     const depuis = depuisBorne(Meta.get(CLE_DEPUIS));
     const suivis = await espacesSuivis();
+    for (const e of suivis) TYPES.set(e.nom, e.type);
     dernier.espaces = suivis.length;
     let plusRecent = depuis;
     let traites = 0;

@@ -387,3 +387,11 @@ test('la consigne se relit dès que le fichier change', async () => {
   fs.utimesSync(chemin, new Date(), new Date(Date.now() + 10000));
   assert.doesNotMatch(consigneActuelle(), /MARQUEUR-DE-TEST/);
 });
+
+test('après un arrêt, AK ne reprend pas le retard : dix minutes au plus', async () => {
+  const { depuisBorne } = await import('./veille.js');
+  const maintenant = Date.parse('2026-09-24T12:00:00Z');
+  assert.equal(depuisBorne('2026-09-21T15:13:02Z', maintenant), '2026-09-24T11:50:00.000Z');
+  assert.equal(depuisBorne('2026-09-24T11:58:00.000Z', maintenant), '2026-09-24T11:58:00.000Z');
+  assert.equal(depuisBorne(null, maintenant), '2026-09-24T11:50:00.000Z');
+});

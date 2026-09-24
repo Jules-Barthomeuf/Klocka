@@ -331,6 +331,17 @@ async function trancher(message) {
   return true;
 }
 
+// Un message plus vieux que ça n'est plus une demande : c'est de l'histoire.
+// Après un arrêt (Chat coupé trois jours), AK reprenait tout le retard et
+// exécutait chaque vieille demande, rappels, K-Data et LOI compris.
+const RETARD_MAX_MS = 10 * 60 * 1000;
+
+/** Pure : d'où relire. Jamais plus loin que dix minutes en arrière. */
+export function depuisBorne(stocke, maintenant = Date.now()) {
+  const plancher = new Date(maintenant - RETARD_MAX_MS).toISOString();
+  return stocke && stocke > plancher ? stocke : plancher;
+}
+
 /** Un passage : relire, répondre, annoncer. */
 export async function relever() {
   if (enCours) return { ok: false, error: 'un passage est déjà en cours' };
@@ -338,7 +349,7 @@ export async function relever() {
   try {
     const c = compteAk();
     if (!c.ok) { dernier.erreur = c.error; return { ok: false, error: c.error }; }
-    const depuis = Meta.get(CLE_DEPUIS) || new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const depuis = depuisBorne(Meta.get(CLE_DEPUIS));
     const suivis = await espacesSuivis();
     dernier.espaces = suivis.length;
     let plusRecent = depuis;

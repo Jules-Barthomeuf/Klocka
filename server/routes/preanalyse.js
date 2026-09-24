@@ -117,6 +117,14 @@ export function monterPreanalyse(app) {
     ok(res, { mode: trouve ? 'repere' : 'commune', ...lieu });
   }));
 
+  // La fiche telle qu'elle est arrivée : PDF, image, pièces du mail ou de la data room.
+  app.get('/api/preanalyse/dossiers/:dealId/fiche-originale', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const { originauxDeLaFiche } = await import('../deal/fiche-originale.js');
+    ok(res, await originauxDeLaFiche(deal, UPLOAD_DIR));
+  }));
+
   // Le prix et le loyer du bien face au marché autour, avec leurs sources.
   app.get('/api/preanalyse/dossiers/:dealId/lots/:index/marche-comparaison', wrap(async (req, res) => {
     const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);

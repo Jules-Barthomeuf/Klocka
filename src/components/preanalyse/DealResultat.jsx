@@ -101,9 +101,9 @@ const eurosM2 = (n, suffixe = "") => (n == null ? "—" : `${Math.round(n).toLoc
 /**
  * Sous le prix ou le loyer : l'écart au marché seul, en blanc — la couleur
  * du jugement est déjà dans la colonne Statut, pas besoin de la répéter ici.
- * « Voir détail » ouvre le chiffre du bien face au marché et d'où vient la
- * zone comparée ; « Voir la source » n'apparaît qu'à ce niveau-là, et ouvre
- * la liste des ventes en dessous.
+ * Toute la ligne se clique pour ouvrir le chiffre du bien face au marché et
+ * d'où vient la zone comparée, la flèche se retourne ; « Voir la source »
+ * n'apparaît qu'à ce niveau-là, et ouvre la liste des ventes en dessous.
  */
 function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource, manque = null, adresseComparaison = null }) {
   const [detail, setDetail] = useState(false);
@@ -117,14 +117,21 @@ function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, 
   // le chiffre, pas seulement quand c'est approché.
   const zone = marche.approche ? marche.reserve : adresseComparaison ? `Comparé autour de ${adresseComparaison}.` : null;
   return (
-    <div className="text-[12.5px] leading-[1.55]">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => setDetail((v) => !v)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetail((v) => !v); } }}
+      aria-expanded={detail}
+      className="text-[13.5px] leading-[1.55] cursor-pointer"
+    >
       {marche.kdata_en_cours && (
         <p className="m-0 mb-1 inline-flex items-center gap-1.5 text-[11.5px] text-ardoise"><Loader2 className="w-3 h-3 animate-spin" /> K-Data Valeur locative interroge Equimmox : quelques minutes.</p>
       )}
-      <p className="m-0 font-medium text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{ecart}</p>
-      <button type="button" onClick={() => setDetail((v) => !v)} className="mt-0.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
-        {detail ? "Masquer le détail" : "Voir détail"}
-      </button>
+      <span className="flex items-center gap-1.5 font-medium text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
+        {ecart}
+        <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform duration-200 ${detail ? "rotate-180" : ""}`} />
+      </span>
       {detail && (
         <div className="mt-1.5">
           <p className="m-0 text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -134,7 +141,7 @@ function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, 
             {marche.bas != null && marche.haut != null && <span className="text-brume"> ({Math.round(marche.bas).toLocaleString("fr-FR")} à {Math.round(marche.haut).toLocaleString("fr-FR")})</span>}
           </p>
           {zone && <p className="m-0 mt-1 text-[11.5px] text-brume">{zone}</p>}
-          <button type="button" onClick={onSource} className="mt-1.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onSource(); }} className="mt-1.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
             {sourceOuverte ? "Masquer la source" : "Voir la source"}
           </button>
         </div>
@@ -220,7 +227,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   const emplacement = EMPLACEMENTS.find((e) => e.code === enr.emplacement)?.libelle || "à qualifier";
   const signature = SIGNATURES[ctx.signature] || (ctx.signature ? String(ctx.signature).replace(/_/g, " ") : null);
 
-  const champ = (c) => <ChampFiche champ={c} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />;
+  const champ = (c) => <ChampFiche champ={c} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche taille="text-[13.5px]" />;
   const valeur = (id) => {
     switch (id) {
       case "prix":
@@ -230,7 +237,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
           <div>
             {hors ? (
               <>
-                <span className="text-[15px] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{euros(fai)}</span>
+                <span className="text-[13.5px] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{euros(fai)}</span>
                 <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {euros(valChamp(lot.lot?.montant_honoraires))} d'honoraires</span>
               </>
             ) : champ("prix_fai")}
@@ -279,7 +286,14 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   };
   const lignes = LIGNES_BIEN.map((l) => {
     if (l.marche) {
-      return { ...l, c: null, decision: null, st: marcheEnLecture ? "vide" : statutMarche(marche?.[l.marche]), attenduMarche: "dans le marché, à 15 % près" };
+      // Une clé stable (pas de vrai critère de grille derrière) pour que le
+      // statut se pose à la main comme les autres lignes : cliquer sur la
+      // case Statut doit pouvoir passer Prix marché ou Loyer marché en OK,
+      // à vérifier ou no go.
+      const c = { groupe: "Marché", champ: l.id };
+      const decision = decisionDe(c);
+      const calcule = marcheEnLecture ? "vide" : statutMarche(marche?.[l.marche]);
+      return { ...l, c, decision, st: decision?.statut || calcule, attenduMarche: "dans le marché, à 15 % près" };
     }
     const c = critereDe(grille, l.champs);
     const decision = decisionDe(c);
@@ -326,7 +340,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                 <tr className="align-top">
                   <td className="px-4 py-3 border-b border-r border-trait">
                     <button onClick={() => bascule(id)} className="text-left text-[13.5px] text-encre hover:text-[#ffffff]">{element}</button>
-                    {ouverts.has(id) && c && (
+                    {ouverts.has(id) && c?.critere && (
                       <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{c.critere}{c.groupe ? ` · ${c.groupe}` : ""}</p>
                     )}
                   </td>
@@ -360,12 +374,13 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                 </tr>
                 {cleMarche && marche?.[cleMarche] && (
                   // La source glisse : la hauteur passe de 0 à son contenu.
+                  // Le fond et le filet ne sont posés que quand c'est ouvert :
+                  // sinon, même une cellule « collapsée » à 0 laissait voir un
+                  // filet de fond derrière Prix marché et Loyer marché.
                   <tr aria-hidden={source !== cleMarche}>
-                    <td colSpan={4} className={`p-0 bg-fond/40 transition-[border-color] duration-300 ${source === cleMarche ? "border-b border-trait" : "border-b border-transparent"}`}>
-                      <div className="grid transition-[grid-template-rows] duration-300 ease-out" style={{ gridTemplateRows: source === cleMarche ? "1fr" : "0fr" }}>
-                        <div className={`min-h-0 overflow-hidden transition-opacity duration-300 ${source === cleMarche ? "opacity-100" : "opacity-0"}`}>
-                          <SourceMarche marche={marche[cleMarche]} />
-                        </div>
+                    <td colSpan={4} className={`p-0 overflow-hidden transition-[background-color,border-color] duration-300 ${source === cleMarche ? "bg-fond/40 border-b border-trait" : "border-b border-transparent"}`}>
+                      <div className="overflow-hidden transition-[max-height,opacity] duration-300 ease-out" style={{ maxHeight: source === cleMarche ? 1200 : 0, opacity: source === cleMarche ? 1 : 0 }}>
+                        <SourceMarche marche={marche[cleMarche]} />
                       </div>
                     </td>
                   </tr>
@@ -926,7 +941,7 @@ const texteBrut = (champ, c) => {
   return v == null ? "" : String(v);
 };
 
-export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sansNote = false, aGauche = false, teinte = null }) {
+export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sansNote = false, aGauche = false, teinte = null, taille = null }) {
   const c = lot?.lot?.[champ];
   const absent = !c || c.absent;
   const [edition, setEdition] = useState(null);
@@ -976,7 +991,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sans
       onClick={() => modifiable && setEdition(texteBrut(champ, c))}
       disabled={!modifiable || enCours}
       aria-label={modifiable ? "Modifier" : c?.citation || undefined} title={modifiable ? "Modifier" : c?.citation || undefined}
-      className={`group inline-flex min-w-0 items-baseline gap-2 tabular-nums disabled:cursor-default ${aGauche ? "text-left text-[15px] font-normal" : "text-right text-[13.5px] font-light"} ${absent ? "text-brume" : teinte || "text-encre"}`}
+      className={`group inline-flex min-w-0 items-baseline gap-2 tabular-nums disabled:cursor-default ${aGauche ? `text-left font-normal ${taille || "text-[15px]"}` : `text-right font-light ${taille || "text-[13.5px]"}`} ${absent ? "text-brume" : teinte || "text-encre"}`}
     >
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
       {!sansNote && !absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}

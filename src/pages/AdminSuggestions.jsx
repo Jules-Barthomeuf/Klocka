@@ -10,7 +10,7 @@ import { Check, ChevronDown, Copy, Image as ImageIcon, Loader2, Mic, Pencil, Squ
 import { useDictee } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
-import AnneauEcoute from "@/components/AnneauEcoute";
+import BordureEcoute from "@/components/BordureEcoute";
 import { J } from "@/design/jetons";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque
@@ -167,6 +167,7 @@ export default function AdminSuggestions() {
       <div className="max-w-[1100px] mx-auto">
         <h1 className="m-0 mb-8 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
 
+        <BordureEcoute actif={ecoute} radius="20px">
         <BoiteSaisie
           conteneur={{
             onPaste: (e) => { const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); choisirCapture(f); } },
@@ -216,13 +217,12 @@ export default function AdminSuggestions() {
             <>
               <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={(e) => { choisirCapture(e.target.files?.[0]); e.target.value = ""; }} />
               <BoutonBarre onClick={() => fichierRef.current?.click()} actif={!!capture} title="Joindre une capture d'écran"><ImageIcon className="w-4 h-4" /></BoutonBarre>
-              <AnneauEcoute actif={ecoute}>
-                <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
-              </AnneauEcoute>
+              <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
               <span className="text-[11px] text-brume ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
             </>
           }
         />
+        </BordureEcoute>
 
         {/* Filtres par état, et le tri à droite */}
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 mt-10 mb-4 border-b border-trait">

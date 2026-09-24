@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowUp, ChevronDown, Mic, Square } from "lucide-react";
 import { J, alpha } from "@/design/jetons";
-import AnneauEcoute from "@/components/AnneauEcoute";
+import BordureEcoute from "@/components/BordureEcoute";
 
 // La barre de chat de Klocka : une pilule, la même partout.
 //
@@ -67,9 +67,10 @@ export default function BarreChat({
 
   return (
     <div className={`relative ${className}`} {...reste}>
+      <BordureEcoute actif={!!voix?.ecoute} radius={multiligne ? "30px" : "9999px"}>
       <div
         className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
-        style={{ ...OPAQUE, border: FILET, boxShadow: voix?.ecoute ? `0 0 0 1px ${alpha("menthe", 0.5)}` : "none" }}
+        style={{ ...OPAQUE, border: FILET }}
       >
         {menu && (
           <div className="relative flex-none">
@@ -103,15 +104,13 @@ export default function BarreChat({
         {actions.map((a) => <RondChat key={a.titre} {...a} icone={a.icone} />)}
 
         {voix && (
-          <AnneauEcoute actif={voix.ecoute}>
-            <RondChat
-              icone={Mic}
-              onClick={voix.onBasculer}
-              disabled={enCours}
-              actif={voix.ecoute}
-              titre={voix.ecoute ? "Arrêter la voix" : "Dicter"}
-            />
-          </AnneauEcoute>
+          <RondChat
+            icone={Mic}
+            onClick={voix.onBasculer}
+            disabled={enCours}
+            actif={voix.ecoute}
+            titre={voix.ecoute ? "Arrêter la voix" : "Dicter"}
+          />
         )}
 
         <button
@@ -126,6 +125,7 @@ export default function BarreChat({
           {enCours && onArreter ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
         </button>
       </div>
+      </BordureEcoute>
     </div>
   );
 }

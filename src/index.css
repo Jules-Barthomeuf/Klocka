@@ -491,6 +491,13 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .alx button.alx-principal.alx-redige { background-image: linear-gradient(110deg, #96c0b8 0%, #96c0b8 35%, #d7ece7 50%, #96c0b8 65%, #96c0b8 100%) !important; background-size: 200% 100%; animation: alx-reflet 1.6s linear infinite; opacity: 1 !important; }
 @media (prefers-reduced-motion: reduce) { .alx button.alx-principal.alx-redige { animation: none; } }
 
+/* Le bord arc-en-ciel de la barre de chat pendant la dictée (BordureEcoute) :
+   un dégradé qui glisse plutôt qu'un halo qui tourne, pour ne pas s'écraser
+   sur une pilule bien plus large que haute. */
+@keyframes anneau-ecoute-defile { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.anneau-ecoute-glisse { background-size: 200% 100%; animation: anneau-ecoute-defile 3s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .anneau-ecoute-glisse { animation: none; } }
+
 /* --- Le focus au clavier -----------------------------------------------
    Les boutons de shadcn portent leur propre anneau ; les quatre cent
    cinquante-cinq boutons écrits à la main n'en avaient aucun, et la

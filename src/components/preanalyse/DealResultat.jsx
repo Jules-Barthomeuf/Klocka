@@ -66,7 +66,7 @@ const cleLigne = (l) => `${l.groupe}|${l.champ}`;
 // Une ligne prend le critère le plus sévère parmi les siens : c'est lui qui
 // décide, et c'est lui que l'analyste doit lire.
 const LIGNES_BIEN = [
-  { id: "prix", element: "Prix", champs: ["prix_fai", "prix_aem"] },
+  { id: "prix", element: "Prix FAI", champs: ["prix_fourchette"] },
   { id: "rendement", element: "Rendement annoncé / réel", champs: ["rendement_net_moyen", "rendement_aem", "rendement_fai"] },
   { id: "loyer", element: "Loyer annuel HT HC", champs: ["loyer_annuel_ht_hc"] },
   { id: "occupe", element: "Occupé", champs: ["occupe"] },
@@ -94,6 +94,67 @@ function critereDe(grille, champs) {
   return miens.sort((a, b) => rang(a) - rang(b) || profil(a) - profil(b))[0] || null;
 }
 
+const eurosM2 = (n, suffixe = "") => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €/m²${suffixe}`);
+const TEINTE_JUGEMENT = { haut: "text-alerte", bas: "text-menthe-clair", juste: "text-craie" };
+
+/**
+ * Sous le prix ou le loyer : le chiffre au m² du bien face à celui du marché
+ * autour, le jugement, et la source qu'on déplie pour se faire son idée.
+ */
+function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource }) {
+  if (chargement) return <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[11.5px] text-brume"><Loader2 className="w-3 h-3 animate-spin" /> Lecture du marché autour…</p>;
+  if (!marche) return null;
+  const j = marche.jugement;
+  const repere = marche.median ?? null;
+  return (
+    <div className="mt-2 text-[12px] leading-[1.5]">
+      <p className="m-0 text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
+        {libelleBien} <span className="text-encre">{eurosM2(bien, suffixe)}</span>
+        <span className="text-brume"> vs </span>
+        {libelleMarche} <span className="text-encre">{eurosM2(repere, suffixe)}</span>
+        {marche.bas != null && marche.haut != null && <span className="text-brume"> ({Math.round(marche.bas).toLocaleString("fr-FR")} à {Math.round(marche.haut).toLocaleString("fr-FR")})</span>}
+      </p>
+      {j && (
+        <p className={`m-0 font-medium ${TEINTE_JUGEMENT[j.sens] || "text-craie"}`}>
+          {j.ecart != null && j.ecart !== 0 ? `${j.ecart > 0 ? "+" : ""}${j.ecart} % · ` : ""}{j.mot}
+        </p>
+      )}
+      <button type="button" onClick={onSource} className="mt-0.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
+        {sourceOuverte ? "Masquer la source" : "Voir la source"}
+      </button>
+    </div>
+  );
+}
+
+/** La source d'un chiffre de marché, dépliée sur toute la largeur du tableau. */
+function SourceMarche({ marche }) {
+  if (!marche) return null;
+  return (
+    <div className="px-4 py-3">
+      <p className="m-0 text-[12px] text-craie">{marche.source}{marche.periode ? `, du ${new Date(marche.periode.du).toLocaleDateString("fr-FR")} au ${new Date(marche.periode.au).toLocaleDateString("fr-FR")}` : ""}.</p>
+      {marche.lien && <a href={marche.lien} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[12px] text-menthe-clair hover:text-encre">Ouvrir la carte des ventes (DVF) ↗</a>}
+      {marche.ventes?.length > 0 && (
+        <table className="mt-2 w-full border-collapse text-[12px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <thead><tr className="text-brume"><th className="text-left font-normal py-1">Date</th><th className="text-left font-normal py-1">Adresse</th><th className="text-right font-normal py-1">Distance</th><th className="text-right font-normal py-1">Surface</th><th className="text-right font-normal py-1">Prix</th><th className="text-right font-normal py-1">€/m²</th></tr></thead>
+          <tbody>
+            {marche.ventes.map((v, i) => (
+              <tr key={i} className="border-t border-trait text-craie">
+                <td className="py-1.5 pr-3 whitespace-nowrap">{v.date ? new Date(v.date).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) : "—"}</td>
+                <td className="py-1.5 pr-3">{v.adresse || "—"}</td>
+                <td className="py-1.5 pl-3 text-right whitespace-nowrap">{v.distance_m} m</td>
+                <td className="py-1.5 pl-3 text-right whitespace-nowrap">{v.surface} m²</td>
+                <td className="py-1.5 pl-3 text-right whitespace-nowrap">{euros(v.prix)}</td>
+                <td className="py-1.5 pl-3 text-right whitespace-nowrap">{Math.round(v.prix_m2).toLocaleString("fr-FR")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {marche.constate === false && <p className="m-0 mt-1 text-[11.5px] text-brume">Pas de loyers constatés à cette adresse : une analyse Valeur locative (K-Data) les apporterait.</p>}
+    </div>
+  );
+}
+
 /** Pure : le statut d'une ligne, dans le vocabulaire des grilles du bail. */
 function statutDe(c) {
   if (!c) return "vide";
@@ -109,12 +170,21 @@ function statutDe(c) {
  * se corrige d'un clic, le statut se confirme d'un clic ; le critère, cliqué,
  * dit d'où vient la règle.
  */
-function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre, sousTitre = null, actions = null }) {
+function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, titre, sousTitre = null, actions = null }) {
+  // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
+  const { data: marche, isLoading: marcheEnLecture } = useQuery({
+    queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2)],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/lots/${lot.index ?? 0}/marche-comparaison`),
+    enabled: !!dealId && !apercu,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
   const grille = lot.evaluation?.grille || [];
   const ctx = lot.evaluation?.contexte || {};
   const enr = lot.enrichissement || {};
   const [ouverts, setOuverts] = useState(() => new Set());
   const [choix, setChoix] = useState(null);
+  const [source, setSource] = useState(null); // "prix" | "loyer"
   const menu = useFermerAuClicAilleurs(choix != null, () => setChoix(null));
   const bascule = (id) => setOuverts((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const loyerFiche = valChamp(lot.lot?.loyer_annuel_ht_hc);
@@ -129,11 +199,18 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
   const valeur = (id) => {
     switch (id) {
       case "prix":
+        // Toujours le prix FAI : quand la fiche donne un net vendeur, les
+        // honoraires s'y ajoutent, et c'est le net qui se corrige.
         return (
-          <span className="inline-flex flex-col items-start gap-0.5">
-            {champ("prix_fai")}
-            {hors && fai != null && <span className="text-[11px] text-brume">net vendeur · FAI {euros(fai)}</span>}
-          </span>
+          <div>
+            {hors ? (
+              <>
+                <span className="text-[15px] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{euros(fai)}</span>
+                <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {euros(valChamp(lot.lot?.montant_honoraires))} d'honoraires</span>
+              </>
+            ) : champ("prix_fai")}
+            <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche="ventes autour" chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} />
+          </div>
         );
       case "rendement":
         return (
@@ -142,7 +219,14 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
             <span className="text-encre" title="Rendement net moyen du simulateur, sur toute la durée du projet">{pourcent(reel) || "—"} <span className="text-[11px] text-brume">réel</span></span>
           </span>
         );
-      case "loyer": return champ("loyer_annuel_ht_hc");
+      case "loyer":
+        return (
+          <div>
+            {champ("loyer_annuel_ht_hc")}
+            <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche="la rue" chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} />
+            {!marcheEnLecture && marche?.manque && !marche?.loyer && <p className="m-0 mt-2 text-[11.5px] text-brume">{marche.manque}</p>}
+          </div>
+        );
       case "occupe": return champ("occupe");
       case "activite": return champ("locataire_activite");
       case "enseigne":
@@ -197,20 +281,21 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
         </div>
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse">
-          <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[240px]">Attendu</Th></tr></thead>
+        <table className="w-full min-w-[720px] table-fixed border-collapse">
+          <thead><tr><Th className="w-1/4">Critère</Th><Th className="w-1/4">Valeur lue</Th><Th className="w-1/4">Statut</Th><Th className="w-1/4">Attendu</Th></tr></thead>
           <tbody>
             {lignes.map(({ id, element, c, st, decision }, iLigne) => {
               const modifiable = !!(c && onVerifier);
               return (
-                <tr key={id} className="align-top">
+                <React.Fragment key={id}>
+                <tr className="align-top">
                   <td className="px-4 py-3 border-b border-r border-trait">
                     <button onClick={() => bascule(id)} className="text-left text-[13.5px] text-encre hover:text-[#ffffff]">{element}</button>
                     {ouverts.has(id) && c && (
                       <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{c.critere}{c.groupe ? ` · ${c.groupe}` : ""}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 border-b border-r border-trait">
+                  <td className="px-4 py-3 border-b border-r border-trait break-words [&_*]:whitespace-normal">
                     {valeur(id)}
                     {c?.ok === false && c.motif && <p className="m-0 mt-1 text-[12.5px] leading-[1.45] text-ardoise">{c.motif}</p>}
                   </td>
@@ -220,7 +305,10 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
                     onClick={() => modifiable && setChoix(choix === id ? null : id)}
                     title={modifiable ? "Confirmer le statut" : undefined}
                   >
-                    <span className="text-[12.5px] font-medium" style={{ color: teinteDe(st) }}>{MOT[st] || st}</span>
+                    <span className="inline-flex items-center gap-2 text-[12.5px] font-medium" style={{ color: teinteDe(st) }}>
+                      {MOT[st] || st}
+                      {c && enVerification === cleLigne(c) && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-label="Changement en cours" />}
+                    </span>
                     {decision && <span className="block text-[11px] text-ardoise">décidé{decision.par ? ` · ${decision.par.split("@")[0]}` : ""}</span>}
                     {choix === id && (
                       <div ref={menu} className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
@@ -235,6 +323,10 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
                     {c?.attendu ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie">{c.attendu}</p> : <span className="text-[12.5px] text-brume">—</span>}
                   </td>
                 </tr>
+                {source === id && (
+                  <tr><td colSpan={4} className="border-b border-trait bg-fond/40"><SourceMarche marche={marche?.[id]} /></td></tr>
+                )}
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -886,11 +978,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   });
   const [mailOuvert, setMailOuvert] = useState(false);
   const enr = lot.enrichissement;
-  const nbCriteres = lot.evaluation.grille?.length || 0;
-  const ratés = (lot.evaluation.grille || []).filter((l) => l.ok === false).length;
-  const tenus = (lot.evaluation.grille || []).filter((l) => l.ok === true).length;
-  // Le profil que la grille compare : celui retenu, sinon le plus proche.
-  const profilGrille = (lot.evaluation.grille || []).find((l) => /^Profil/i.test(l.groupe || ""))?.groupe || null;
 
   return (
     <div className="text-encre">
@@ -906,7 +993,8 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               apercu={apercu}
               onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
               titre="Fiche du bien"
-              sousTitre={profilGrille ? `${profilGrille} · ${nbCriteres} critères · ${tenus} tenu${tenus > 1 ? "s" : ""}${ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""}` : null}
+              dealId={dossier?.deal_id || null}
+              enVerification={verifier.isPending ? verifier.variables?.cle : null}
               actions={(
                 <span className="flex items-center gap-2">
                   <FicheSource dossier={dossier} />

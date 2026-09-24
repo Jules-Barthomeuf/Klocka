@@ -384,6 +384,18 @@ const CONTRAIRE = {
   vrai: 'faux', faux: 'vrai',
 };
 
+/** La fourchette de prix de Klocka, tirée des règles : { min, max } ou null. */
+export function fourchettePrix() {
+  const bornes = (REGLES.profils?.liste || [])
+    .filter((p) => p.actif)
+    .flatMap((p) => (p.criteres || []).filter((c) => c.champ === 'prix_fai' && c.condition === 'entre').map((c) => c.valeur));
+  const plafond = (REGLES.knock_outs || []).find((k) => k.champ === 'prix_fai' && k.condition === 'superieur')?.valeur;
+  if (!bornes.length && !plafond) return null;
+  const min = bornes.length ? Math.min(...bornes.map((b) => b[0])) : 0;
+  const max = plafond || Math.max(...bornes.map((b) => b[1]));
+  return { min, max };
+}
+
 /**
  * La grille d'un lot évalué.
  * @param {{contexte: object, profil?: object, trace?: object}} evaluation
@@ -407,6 +419,23 @@ export function grilleCriteres(evaluation) {
       valeur: formaterValeur(ko.champ, v),
       ok: absent(v) ? null : !declenche,
       motif: declenche ? ko.motif : null,
+    });
+  }
+
+  // 1 bis. La fourchette de prix de Klocka, tous profils confondus : du plus
+  //    petit prix d'entrée d'un profil au plafond d'acquisition. C'est elle
+  //    que la fiche du bien montre ; chaque profil garde sa propre bande.
+  const fourchette = fourchettePrix();
+  if (fourchette) {
+    const v = ctx.prix_fai;
+    lignes.push({
+      groupe: 'Fourchette Klocka',
+      champ: 'prix_fourchette',
+      critere: 'Prix FAI',
+      attendu: formaterAttendu('prix_fai', 'entre', [fourchette.min, fourchette.max]),
+      valeur: formaterValeur('prix_fai', v),
+      ok: absent(v) ? null : v >= fourchette.min && v <= fourchette.max,
+      motif: !absent(v) && (v < fourchette.min || v > fourchette.max) ? 'Hors de la fourchette de prix de Klocka.' : null,
     });
   }
 

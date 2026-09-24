@@ -339,8 +339,7 @@ export default function Analyse() {
                 <button
                   onClick={() => creerDossier.mutate()}
                   disabled={!nomDossier.trim() || creerDossier.isPending}
-                  className="inline-flex items-center gap-2 text-surface rounded-md px-5 py-2.5 text-[13.5px] font-bold disabled:opacity-50 hover:brightness-95 transition-all"
-                  style={{ background: J["encre"] }}
+                  className="inline-flex items-center gap-2 bg-menthe text-sur-menthe rounded-full px-5 py-2.5 text-[13.5px] font-semibold disabled:opacity-50 hover:bg-menthe-survol transition-colors"
                 >
                   {creerDossier.isPending ? <><Loader2 className="w-4 h-4 animate-spin" />Création…</> : "Créer le dossier"}
                 </button>

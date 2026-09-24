@@ -117,6 +117,16 @@ export function monterPreanalyse(app) {
     ok(res, { mode: trouve ? 'repere' : 'commune', ...lieu });
   }));
 
+  // Le prix et le loyer du bien face au marché autour, avec leurs sources.
+  app.get('/api/preanalyse/dossiers/:dealId/lots/:index/marche-comparaison', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const { comparerAuMarche } = await import('../deal/comparaison-marche.js');
+    const r = await comparerAuMarche(deal, Number(req.params.index) || 0, { forcer: req.query.forcer === '1' });
+    if (!r.ok) return res.status(404).json(r);
+    ok(res, r);
+  }));
+
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index', wrap(async (req, res) => {
     const r = await reevaluerLot(req.params.dealId, Number(req.params.index), req.body || {});
     if (r.error) return res.status(404).json(r);

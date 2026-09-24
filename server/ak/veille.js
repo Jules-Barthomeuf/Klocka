@@ -198,7 +198,12 @@ async function poster(espace, texte, fil, auteur = null) {
   }
 }
 
+// Une réponse qui n'a pas pu partir depuis une demi-heure ne sert plus : le
+// jour où l'envoi remarche, AK ne vide pas d'un coup des réponses périmées.
+const REPONSE_PERIMEE_MS = 30 * 60 * 1000;
+
 async function reposterEnAttente() {
+  for (const r of Records.list(ENTITE_REPONSE).filter((x) => Date.now() - Date.parse(x.cree_le || 0) > REPONSE_PERIMEE_MS)) Records.delete(ENTITE_REPONSE, r.id);
   for (const r of Records.list(ENTITE_REPONSE)) {
     try { await envoyer(r.espace, r.texte, { fil: r.fil }); Records.delete(ENTITE_REPONSE, r.id); } catch (e) { dernier.erreur = e?.message || String(e); return; }
   }

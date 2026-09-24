@@ -4,13 +4,13 @@
 //
 // Ce qui décide est écrit ici, sans modèle. Le tri des mails a déjà dit que
 // le mail parle d'un bien ; il reste à distinguer une fiche nouvelle d'un
-// complément envoyé pour un dossier ouvert (le bail, un diagnostic). Une
-// fiche ouvre une conversation (ce n'est pas une réponse) et porte un PDF ou
-// un Word qui n'est pas un document de dossier. Tout le reste suit l'ancien
-// chemin : le rattachement au dossier de l'expéditeur.
+// complément pour un dossier (le bail, un diagnostic). Une fiche porte un PDF
+// ou un Word qui n'est pas un document de dossier, et ne continue la
+// conversation d'aucun dossier. Qui l'envoie ne compte pas : l'agent d'un
+// dossier ouvert qui envoie une autre fiche envoie un autre bien.
 //
-// Cette passe tourne AVANT le rattachement : sans ça, la fiche d'un agent
-// qui a déjà un dossier ouvert y entrait comme une simple pièce jointe.
+// Cette passe tourne AVANT le rattachement, et le rattachement par
+// expéditeur ne prend jamais un mail qui porte une fiche.
 
 import { Records, Meta } from '../db.js';
 import { typeDepuisCategorie } from './grille.js';
@@ -43,18 +43,65 @@ export function piecesFiche(mail) {
   });
 }
 
-/** Pure : le mail répond-il à une conversation déjà suivie ? */
-export function estUneReponse(mail, filsConnus = new Set()) {
-  return REPONSE.test(String(mail?.objet || '')) || (!!mail?.thread_id && filsConnus.has(mail.thread_id));
+const sansPrefixes = (objet) => {
+  let t = String(objet || '').trim();
+  let avant;
+  do { avant = t; t = t.replace(/^\s*(re|ré|tr|fw|fwd|aw|sv|antw)\s*:\s*/i, ''); } while (t !== avant);
+  return t.toLowerCase().replace(/\s+/g, ' ').trim();
+};
+
+/**
+ * Pure : le dossier dont ce mail continue la conversation. Un fil Gmail déjà
+ * lié à un dossier, ou la réponse à un mail envoyé pour un dossier (même fil,
+ * ou « Re: » de son objet, par la personne à qui on l'a écrit). C'est la
+ * seule façon d'entrer dans un dossier existant pour un mail qui porte une
+ * fiche : son expéditeur, lui, ne dit rien.
+ */
+export function dossierDeLaConversation(mail, { mails = [], envois = [], deals = [] } = {}) {
+  if (!mail) return null;
+  const vivants = new Set(deals.filter((d) => !d.archived).map((d) => d.deal_id));
+  if (mail.thread_id) {
+    const m = mails.find((x) => x.id !== mail.id && x.deal_id && x.thread_id === mail.thread_id && vivants.has(x.deal_id));
+    if (m) return m.deal_id;
+    const e = envois.find((x) => x.deal_id && x.thread_id && x.thread_id === mail.thread_id && vivants.has(x.deal_id));
+    if (e) return e.deal_id;
+  }
+  if (REPONSE.test(String(mail.objet || ''))) {
+    const sujet = sansPrefixes(mail.objet);
+    const de = String(mail.de_email || '').toLowerCase();
+    const e = envois
+      .filter((x) => x.deal_id && vivants.has(x.deal_id) && de && sansPrefixes(x.subject || x.sujet) === sujet && String(x.to || x.destinataire || '').toLowerCase().includes(de))
+      .sort((x, y) => String(y.sent_at || '').localeCompare(String(x.sent_at || '')))[0];
+    if (e) return e.deal_id;
+  }
+  return null;
 }
 
-/** Pure : une nouvelle fiche, à préanalyser. */
-export function estUneNouvelleFiche(mail, { filsConnus = new Set() } = {}) {
+/**
+ * Pure : le mail porte-t-il une fiche ? Une pièce qui peut l'être, et rien
+ * qui l'annonce comme un complément. Vrai même pour l'agent d'un dossier
+ * ouvert : une fiche fait un dossier, quel que soit celui qui l'envoie.
+ */
+export function porteUneFiche(mail) {
+  if (COMPLEMENT.test(`${mail?.objet || ''} ${String(mail?.texte || '').slice(0, 400)}`)) return false;
+  return piecesFiche(mail).length > 0;
+}
+
+/** Pure : une nouvelle fiche, à préanalyser : elle ne continue la conversation d'aucun dossier. */
+export function estUneNouvelleFiche(mail, contexte = {}) {
   if (!mail || mail.deal_id) return false;
   if ((mail.preanalyse_auto?.essais || 0) >= ESSAIS_MAX) return false;
-  if (estUneReponse(mail, filsConnus)) return false;
-  if (COMPLEMENT.test(`${mail.objet || ''} ${String(mail.texte || '').slice(0, 400)}`)) return false;
-  return piecesFiche(mail).length > 0;
+  if (dossierDeLaConversation(mail, contexte)) return false;
+  return porteUneFiche(mail);
+}
+
+/** Ce qu'il faut pour lire les conversations : les mails, les envois liés à un dossier, les dossiers. */
+export function contexteDesConversations() {
+  return {
+    mails: Records.list('MailRecu'),
+    envois: Records.list('EmailLog').filter((e) => e.deal_id),
+    deals: Records.list('Deal'),
+  };
 }
 
 /**
@@ -74,11 +121,6 @@ export function doublonDe(mail, { mails, deals, maintenant = Date.now() }) {
   return null;
 }
 
-/** Les fils Gmail déjà liés à un dossier : un mail qui s'y inscrit est une réponse. */
-function filsDesDossiers(mails) {
-  return new Set(mails.filter((m) => m.deal_id && m.thread_id).map((m) => m.thread_id));
-}
-
 /**
  * La passe : chaque nouvelle fiche devient un dossier préanalysé et nommé
  * « Enseigne - Ville ». Le premier passage fixe la date de mise en route :
@@ -91,10 +133,9 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
   let depuis = Meta.get(CLE_DEPUIS);
   if (!depuis) { depuis = maintenant.toISOString(); Meta.set(CLE_DEPUIS, depuis); }
 
-  const mails = Records.list('MailRecu');
-  const filsConnus = filsDesDossiers(mails);
-  const candidats = mails
-    .filter((m) => Date.parse(m.date || 0) >= Date.parse(depuis) && estUneNouvelleFiche(m, { filsConnus }))
+  const contexte = contexteDesConversations();
+  const candidats = contexte.mails
+    .filter((m) => Date.parse(m.date || 0) >= Date.parse(depuis) && estUneNouvelleFiche(m, contexte))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
     .slice(0, PAR_PASSAGE);
   if (!candidats.length) return bilan;

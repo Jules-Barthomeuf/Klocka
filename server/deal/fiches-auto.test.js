@@ -9,7 +9,8 @@ import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-fiches-auto-'));
 const { Records, Meta } = await import('../db.js');
-const { piecesFiche, estUneReponse, estUneNouvelleFiche, doublonDe, preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
+const { piecesFiche, dossierDeLaConversation, porteUneFiche, estUneNouvelleFiche, doublonDe, preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
+const { rattacherMailsOrphelins } = await import('./veille-mails.js');
 
 const piece = (nom) => ({ nom, piece_id: `p-${nom}` });
 
@@ -20,16 +21,22 @@ test('la fiche est un PDF ou un Word qui n\'est pas un document de dossier', () 
   assert.deepEqual(noms({ pieces_jointes: [piece('Teaser murs Lyon.docx'), piece('photo.jpg')] }), ['Teaser murs Lyon.docx']);
 });
 
-test('une réponse ou un complément n\'ouvre pas de dossier', () => {
-  const fiche = { objet: 'Murs occupés par un glacier', pieces_jointes: [piece('fiche.pdf')], deal_id: null };
+test('une fiche fait un dossier, sauf si elle continue la conversation d\'un dossier', () => {
+  const fiche = { id: 'x', objet: 'Murs occupés par un glacier', de_email: 'agent@agence.fr', pieces_jointes: [piece('fiche.pdf')], deal_id: null };
+  const deals = [{ deal_id: 'd1' }];
   assert.equal(estUneNouvelleFiche(fiche), true);
-  assert.equal(estUneNouvelleFiche({ ...fiche, objet: 'Re: Murs occupés par un glacier' }), false);
+  // Un « Re: » ne suffit pas : il faut répondre à un de nos mails.
+  assert.equal(estUneNouvelleFiche({ ...fiche, objet: 'Re: Opportunité murs glacier' }, { deals }), true);
+  const envois = [{ deal_id: 'd1', subject: 'Klocka - Intérêt pour votre local', to: 'agent@agence.fr', thread_id: 't9' }];
+  assert.equal(estUneNouvelleFiche({ ...fiche, objet: 'RE : Klocka - Intérêt pour votre local' }, { envois, deals }), false);
+  assert.equal(estUneNouvelleFiche({ ...fiche, thread_id: 't9' }, { envois, deals }), false);
+  assert.equal(estUneNouvelleFiche({ ...fiche, thread_id: 't1' }, { mails: [{ id: 'y', thread_id: 't1', deal_id: 'd1' }], deals }), false);
   assert.equal(estUneNouvelleFiche({ ...fiche, objet: 'Fwd: doc complémentaire pour mur mirabeau nice' }), false);
-  assert.equal(estUneNouvelleFiche({ ...fiche, thread_id: 't1' }, { filsConnus: new Set(['t1']) }), false);
   assert.equal(estUneNouvelleFiche({ ...fiche, deal_id: 'd1' }), false);
   assert.equal(estUneNouvelleFiche({ ...fiche, preanalyse_auto: { essais: 2 } }), false, 'deux échecs : on laisse au dashboard');
   assert.equal(estUneNouvelleFiche({ ...fiche, pieces_jointes: [] }), false);
-  assert.equal(estUneReponse({ objet: 'RE : votre local' }), true);
+  // Un dossier archivé ne retient plus sa conversation.
+  assert.equal(dossierDeLaConversation({ ...fiche, thread_id: 't9' }, { envois, deals: [{ deal_id: 'd1', archived: true }] }), null);
 });
 
 test('la même fiche arrivée dans une autre boîte rejoint le premier dossier', () => {
@@ -91,4 +98,21 @@ test('une fiche transférée par l\'équipe n\'a pas d\'agent, et un échec est 
 test('éteinte, la passe ne fait rien', async () => {
   const b = await preanalyserLesNouvellesFiches({ actif: false, preanalyser: async () => { throw new Error('pas appelé'); } });
   assert.equal(b.crees, 0);
+});
+
+test('le rattachement par l\'agent ne prend jamais une fiche : elle fait un nouveau dossier', async () => {
+  const agent = 'jules.btmf@gmail.com';
+  Records.create('Deal', { deal_id: 'lyon-aout', contact_agent_email: agent, statut: 'documents_recus', lots: [] });
+  Records.create('EmailLog', { deal_id: 'lyon-aout', subject: 'Klocka - Intérêt pour votre local commercial à Lyon (69009)', to: agent, thread_id: 'fil-lyon', sent_at: '2026-08-16T10:35:34Z' });
+  const fiche = Records.create('MailRecu', { de_email: agent, objet: 'Glacier Reaumur', date: new Date().toISOString(), thread_id: 'fil-glacier', pieces_jointes: [piece('Fiche_produit_358147.pdf')], deal_id: null });
+  const reponse = Records.create('MailRecu', { de_email: agent, objet: 'Re: Klocka - Intérêt pour votre local commercial à Lyon (69009)', date: new Date().toISOString(), thread_id: 'fil-lyon', pieces_jointes: [piece('Dossier complet.pdf')], deal_id: null });
+  const bail = Records.create('MailRecu', { de_email: agent, objet: 'le bail', date: new Date().toISOString(), pieces_jointes: [piece('BAIL_2024.pdf')], deal_id: null });
+  const texte = Records.create('MailRecu', { de_email: agent, objet: 'petite question', texte: 'le locataire est bien en place', date: new Date().toISOString(), pieces_jointes: [], deal_id: null });
+
+  await rattacherMailsOrphelins();
+  assert.equal(Records.get('MailRecu', fiche.id).deal_id, null, 'la fiche reste libre pour un nouveau dossier');
+  assert.equal(Records.get('MailRecu', reponse.id).deal_id, 'lyon-aout', 'la réponse à notre mail entre dans son dossier, même avec un PDF');
+  assert.equal(Records.get('MailRecu', bail.id).deal_id, 'lyon-aout', 'un bail de l\'agent suit l\'agent');
+  assert.equal(Records.get('MailRecu', texte.id).deal_id, 'lyon-aout', 'un mail sans fiche suit l\'agent');
+  assert.equal(porteUneFiche(Records.get('MailRecu', fiche.id)), true);
 });

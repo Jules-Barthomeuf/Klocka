@@ -322,8 +322,9 @@ export async function sendEmail({
 
   try {
     let messageId;
+    let threadId = null;
     if (account.provider === 'google') {
-      ({ messageId } = await sendViaGmail(account.email, message));
+      ({ messageId, threadId } = await sendViaGmail(account.email, message));
     } else {
       const info = await transporterFor(account).sendMail({
         from: `${account.name} <${account.email}>`,
@@ -332,7 +333,9 @@ export async function sendEmail({
       messageId = info.messageId;
     }
     console.log(`[email] ${account.email} → ${base.to} | ${subject} | ${messageId}`);
-    logEmail({ ...base, statut: 'envoye', message_id: messageId || null });
+    // Le fil Gmail : la réponse de l'agent s'y inscrit, et c'est par lui
+    // qu'elle retrouve son dossier plutôt que par son expéditeur.
+    logEmail({ ...base, statut: 'envoye', message_id: messageId || null, thread_id: threadId || null });
     return { success: true, messageId, from: base.from };
   } catch (e) {
     const error = String(e?.message || e);

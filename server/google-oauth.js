@@ -362,7 +362,7 @@ export async function sendViaGmail(email, message) {
   if (!resp.ok) {
     throw new Error(data?.error?.message || `Gmail a refusé l'envoi (${resp.status})`);
   }
-  return { messageId: data.id, from: `${account.name} <${account.email}>` };
+  return { messageId: data.id, threadId: data.threadId || null, from: `${account.name} <${account.email}>` };
 }
 
 export function googleStatus() {

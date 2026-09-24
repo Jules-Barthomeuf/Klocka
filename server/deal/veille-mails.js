@@ -5,8 +5,9 @@
 // à la main et `deal_id` restait nul jusqu'à ce qu'un humain clique :
 // l'assistant ne peut donc rien voir arriver. C'est ce que ce module corrige.
 //
-// Le rattachement est déterministe : l'adresse de l'expéditeur est comparée au
-// contact agent des dossiers ouverts. Aucun modèle n'intervient — un mail mal
+// Le rattachement est déterministe : la conversation d'un dossier d'abord,
+// puis l'adresse de l'expéditeur comparée au contact agent des dossiers
+// ouverts, jamais pour une fiche. Aucun modèle n'intervient : un mail mal
 // rattaché coûterait plus cher que pas de rattachement du tout.
 
 import { Records, CHEMIN_UPLOADS } from '../db.js';
@@ -37,23 +38,32 @@ function comptesLisibles() {
 
 /**
  * Rattache les mails encore orphelins au dossier dont ils sont la réponse.
- * Critère unique : l'expéditeur est le contact agent d'un dossier ouvert. À
- * égalité, le dossier le plus récemment actif l'emporte.
+ *
+ * D'abord la conversation : un mail qui s'inscrit dans le fil d'un dossier,
+ * ou qui répond à un mail envoyé pour lui, y entre. Ensuite l'expéditeur :
+ * le contact agent d'un dossier ouvert (à égalité, le plus récemment actif),
+ * mais jamais pour un mail qui porte une fiche. Une fiche fait un nouveau
+ * dossier, quel que soit l'agent : son dossier ouvert parle d'un autre bien.
  * @returns {number} nombre de mails rattachés
  */
-export function rattacherMailsOrphelins() {
+export async function rattacherMailsOrphelins() {
   const orphelins = Records.list('MailRecu').filter((m) => !m.deal_id && m.de_email);
   if (!orphelins.length) return 0;
+  const { dossierDeLaConversation, porteUneFiche, contexteDesConversations } = await import('./fiches-auto.js');
+  const contexte = contexteDesConversations();
 
   const ouverts = Records.list('Deal')
     .filter((d) => !d.archived && d.contact_agent_email && OUVERTS.includes(statutDe(d)))
     .sort((a, b) => String(b.updated_date || '').localeCompare(String(a.updated_date || '')));
-  if (!ouverts.length) return 0;
 
   let rattaches = 0;
   for (const mail of orphelins) {
-    const expediteur = String(mail.de_email).toLowerCase();
-    const deal = ouverts.find((d) => String(d.contact_agent_email).toLowerCase() === expediteur);
+    const parLaConversation = dossierDeLaConversation(mail, contexte);
+    let deal = parLaConversation ? Records.findBy('Deal', 'deal_id', parLaConversation) : null;
+    if (!deal && !porteUneFiche(mail)) {
+      const expediteur = String(mail.de_email).toLowerCase();
+      deal = ouverts.find((d) => String(d.contact_agent_email).toLowerCase() === expediteur) || null;
+    }
     if (!deal) continue;
 
     Records.update('MailRecu', mail.id, { deal_id: deal.deal_id });
@@ -129,7 +139,7 @@ async function releverVraiment(uploadDir = null) {
     } catch (e) {
       erreurs.push(`Préanalyse des nouvelles fiches : ${e?.message || e}`);
     }
-    const rattaches = rattacherMailsOrphelins();
+    const rattaches = await rattacherMailsOrphelins();
 
     // Les pièces jointes des réponses entrent dans leur dossier et partent au
     // extraction : quand l'analyste ouvre le dossier, les données sont là.

@@ -36,7 +36,25 @@ const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
 // aplat saturé faisait tache au milieu d'un tableau sombre.
 export const TEINTE = { ok: J["menthe"], a_checker: "#8fb3d9", warning: J["ambre"], a_verifier: J["ambre"], no_go: J["alerte"], vide: J["ardoise"], non_lu: J["ardoise"] };
 export const teinteDe = (st) => TEINTE[st] || TEINTE.vide;
-export const FOND = Object.fromEntries(Object.entries(TEINTE).map(([k, v]) => [k, `${v}1f`]));
+// Le fond dilué de la case. Les teintes de la marque sont des variables CSS
+// (« rgb(var(--k-menthe-rgb)) ») : leur ajouter « 1f » comme à un hexadécimal
+// donnait une couleur invalide, et la case restait sans teinte.
+const dilue = (c) => (String(c).startsWith("rgb(var(") ? String(c).replace(/\)\)$/, ") / 0.12)") : `${c}1f`);
+export const FOND = Object.fromEntries(Object.entries(TEINTE).map(([k, v]) => [k, dilue(v)]));
+
+/** Ferme un menu surgissant dès qu'on clique ailleurs dans la page. */
+export function useFermerAuClicAilleurs(ouvert, fermer) {
+  const zone = useRef(null);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const surClic = (e) => { if (zone.current && !zone.current.contains(e.target)) fermer(); };
+    const surTouche = (e) => { if (e.key === "Escape") fermer(); };
+    document.addEventListener("mousedown", surClic);
+    document.addEventListener("keydown", surTouche);
+    return () => { document.removeEventListener("mousedown", surClic); document.removeEventListener("keydown", surTouche); };
+  }, [ouvert, fermer]);
+  return zone;
+}
 export const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 export const Th = ({ children, className = "" }) => <th className={`text-left text-[11px] font-semibold tracking-[.02em] text-ardoise px-4 py-2.5 border-b border-r border-trait last:border-r-0 ${className}`}>{children}</th>;
 
@@ -44,6 +62,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
   const [ouverts, setOuverts] = useState(() => new Set());
   const [details, setDetails] = useState(() => new Set());
   const [choix, setChoix] = useState(null);
+  const menu = useFermerAuClicAilleurs(choix != null, () => setChoix(null));
   const queryClient = useQueryClient();
   const bascule = (id) => setOuverts((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const basculeDetail = (id) => setDetails((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -114,7 +133,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                     haut : posé en dessous, il sortait du tableau et les statuts
                     n'étaient plus cliquables. */}
                 {choix === l.id && (
-                  <div className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
+                  <div ref={menu} className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
                     {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
                       <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[st], color: teinteDe(st) }}>{mot}</button>
                     ))}

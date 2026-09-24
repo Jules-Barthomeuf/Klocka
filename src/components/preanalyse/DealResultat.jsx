@@ -2,7 +2,7 @@
    Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
-import { TEINTE, FOND, MOT, Th, teinteDe } from "@/components/preanalyse/GrilleCriteres";
+import { TEINTE, FOND, MOT, Th, teinteDe, useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -115,6 +115,7 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
   const enr = lot.enrichissement || {};
   const [ouverts, setOuverts] = useState(() => new Set());
   const [choix, setChoix] = useState(null);
+  const menu = useFermerAuClicAilleurs(choix != null, () => setChoix(null));
   const bascule = (id) => setOuverts((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const loyerFiche = valChamp(lot.lot?.loyer_annuel_ht_hc);
   const { hors, fai } = prixDuLot(lot);
@@ -157,10 +158,21 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
     }
   };
 
-  const lignes = LIGNES_BIEN.map((l) => ({ ...l, c: critereDe(grille, l.champs) }));
+  // Un statut posé à la main l'emporte sur le calcul, comme dans le Bail.
+  // « verifie » et « incertain », d'avant, se lisent OK et à vérifier.
+  const DEPUIS_ANCIEN = { verifie: "ok", incertain: "a_verifier" };
+  const decisionDe = (c) => {
+    const v = c ? lot?.verifications?.[cleLigne(c)] : null;
+    return v ? { ...v, statut: DEPUIS_ANCIEN[v.statut] || v.statut } : null;
+  };
+  const lignes = LIGNES_BIEN.map((l) => {
+    const c = critereDe(grille, l.champs);
+    const decision = decisionDe(c);
+    return { ...l, c, decision, st: decision?.statut || statutDe(c) };
+  });
   const resume = { ok: 0, warning: 0, no_go: 0, vide: 0 };
   for (const l of lignes) {
-    const st = statutDe(l.c);
+    const st = l.st;
     if (st === "ok") resume.ok += 1;
     else if (st === "no_go") resume.no_go += 1;
     else if (st === "vide") resume.vide += 1;
@@ -188,9 +200,7 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
         <table className="w-full min-w-[720px] border-collapse">
           <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[240px]">Attendu</Th></tr></thead>
           <tbody>
-            {lignes.map(({ id, element, c }, iLigne) => {
-              const st = statutDe(c);
-              const verif = c ? lot?.verifications?.[cleLigne(c)]?.statut || null : null;
+            {lignes.map(({ id, element, c, st, decision }, iLigne) => {
               const modifiable = !!(c && onVerifier);
               return (
                 <tr key={id} className="align-top">
@@ -211,12 +221,13 @@ function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre,
                     title={modifiable ? "Confirmer le statut" : undefined}
                   >
                     <span className="text-[12.5px] font-medium" style={{ color: teinteDe(st) }}>{MOT[st] || st}</span>
-                    {verif && <span className="block text-[11px] text-ardoise">{VERIF[verif].mot.toLowerCase()}</span>}
+                    {decision && <span className="block text-[11px] text-ardoise">décidé{decision.par ? ` · ${decision.par.split("@")[0]}` : ""}</span>}
                     {choix === id && (
-                      <div className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { onVerifier(cleLigne(c), "verifie"); setChoix(null); }} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND.ok, color: teinteDe("ok") }}>Vérifié</button>
-                        <button onClick={() => { onVerifier(cleLigne(c), "incertain"); setChoix(null); }} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND.a_verifier, color: teinteDe("a_verifier") }}>Pas sûr</button>
-                        {verif && <button onClick={() => { onVerifier(cleLigne(c), null); setChoix(null); }} className="text-left text-[12.5px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
+                      <div ref={menu} className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
+                        {[["ok", "OK"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([statut, mot]) => (
+                          <button key={statut} onClick={() => { onVerifier(cleLigne(c), statut); setChoix(null); }} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[statut], color: teinteDe(statut) }}>{mot}</button>
+                        ))}
+                        {decision && <button onClick={() => { onVerifier(cleLigne(c), null); setChoix(null); }} className="text-left text-[12.5px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
                       </div>
                     )}
                   </td>
@@ -672,7 +683,6 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null }) {
       <div className="space-y-3">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <figure className="m-0">
-            <figcaption className="mb-2 font-mono text-[11px] uppercase tracking-[.18em] text-brume">Depuis la rue</figcaption>
             <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-trait bg-surface">
               {!CLE_MAPS ? (
                 <p className="absolute inset-0 flex items-center justify-center m-0 px-6 text-center text-[12.5px] text-ardoise">Street View indisponible : renseignez <code className="text-craie mx-1">VITE_GOOGLE_MAPS_API_KEY</code>.</p>
@@ -682,7 +692,6 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null }) {
             </div>
           </figure>
           <figure className="m-0">
-            <figcaption className="mb-2 font-mono text-[11px] uppercase tracking-[.18em] text-brume">Sur le plan</figcaption>
             <div className="[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]">
               <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur="h-[300px]" />
             </div>
@@ -924,7 +933,9 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                   <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
                 ))}
               </div>
-              <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? J["ambre"] : J["ambre"] }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
+              {(!enr?.emplacement || enr.emplacement === "a_qualifier") && (
+                <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: J["ambre"] }}>à qualifier</span>
+              )}
             </div>
             <VuesLieu lot={lot} enr={enr} coteACote dealId={dossier?.deal_id} />
           </section>

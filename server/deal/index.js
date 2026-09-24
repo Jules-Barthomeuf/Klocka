@@ -311,7 +311,7 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   };
   Records.update('Deal', dossier.id, { lots });
 
-  return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
+  return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot } };
 }
 
 // Les anciens titres générés embarquaient le verdict (« … : GO SOUS RÉSERVE »).
@@ -357,6 +357,24 @@ export function listerDossiers(limit = 50) {
   }));
 }
 
+/**
+ * Un lot tel que la page le lit : sa grille de critères calculée, et le
+ * rendement net moyen s'il a été évalué avant qu'on le calcule. Toute réponse
+ * qui renvoie un lot passe par ici — sans quoi, après un recalcul, le lot
+ * revenait sans grille et le tableau du bien perdait tous ses statuts.
+ */
+export function lotPourLecture(lot) {
+  if (!lot?.evaluation) return lot;
+  let contexte = lot.evaluation.contexte;
+  if (contexte && contexte.rendement_net_moyen == null && lot.simulateur) {
+    let net = null;
+    try { net = rendementNetMoyen(lot.simulateur); } catch { net = null; }
+    contexte = { ...contexte, rendement_net_moyen: net };
+  }
+  const evaluation = { ...lot.evaluation, contexte };
+  return { ...lot, evaluation: { ...evaluation, grille: grilleCriteres(evaluation) } };
+}
+
 export function obtenirDossier(dealId) {
   const deal = Records.findBy('Deal', 'deal_id', dealId) || null;
   // L'étape atteinte accompagne toujours le dossier : le front ne la recalcule pas.
@@ -369,19 +387,7 @@ export function obtenirDossier(dealId) {
         titre: nettoyerTitre(deal.nom || deal.lots?.[0]?.synthese?.titre || deal.source?.nom_fichier || deal.deal_id),
         // La grille de critères se calcule à la lecture, jamais stockée : elle
         // suit rules.json, et un dossier analysé hier la reçoit comme un neuf.
-        lots: (deal.lots || []).map((lot) => {
-          if (!lot?.evaluation) return lot;
-          // Un dossier évalué avant le rendement net moyen le reçoit ici : la
-          // grille et le tableau du bien le lisent comme pour un neuf.
-          let contexte = lot.evaluation.contexte;
-          if (contexte && contexte.rendement_net_moyen == null && lot.simulateur) {
-            let net = null;
-            try { net = rendementNetMoyen(lot.simulateur); } catch { net = null; }
-            contexte = { ...contexte, rendement_net_moyen: net };
-          }
-          const evaluation = { ...lot.evaluation, contexte };
-          return { ...lot, evaluation: { ...evaluation, grille: grilleCriteres(evaluation) } };
-        }),
+        lots: (deal.lots || []).map(lotPourLecture),
       }
     : null;
 }
@@ -483,7 +489,7 @@ export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, u
   if (chiffre(avant, 'prixBienNegocie') !== chiffre(simulateur, 'prixBienNegocie') || travauxDe(avant) !== travauxDe(simulateur)) {
     return reevaluerLot(dealId, indexLot, {});
   }
-  return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
+  return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot } };
 }
 
 /**
@@ -496,12 +502,14 @@ export function verifierCritere(dealId, indexLot, cle, statut, user) {
   if (!dossier) return { error: 'Dossier introuvable' };
   const entree = dossier.lots?.[indexLot];
   if (!entree) return { error: 'Lot introuvable' };
-  if (statut && !['verifie', 'incertain'].includes(statut)) return { error: 'Statut inconnu' };
+  // Les trois statuts des grilles du bail. « verifie » et « incertain »,
+  // d'avant, se lisent encore comme OK et à vérifier.
+  if (statut && !['ok', 'a_verifier', 'no_go', 'verifie', 'incertain'].includes(statut)) return { error: 'Statut inconnu' };
   const verifications = { ...(entree.verifications || {}) };
   if (statut) verifications[cle] = { statut, par: user?.email || null, le: new Date().toISOString() };
   else delete verifications[cle];
   const lots = [...dossier.lots];
   lots[indexLot] = { ...entree, verifications };
   Records.update('Deal', dossier.id, { lots });
-  return { deal_id: dealId, lot: { ...lots[indexLot], index: indexLot } };
+  return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot } };
 }

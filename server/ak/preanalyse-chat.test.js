@@ -226,3 +226,20 @@ test('mail_agent poste le brouillon tel quel, et « envoie » fait avancer le do
   const apres = Records.get('Deal', deal.id);
   assert.ok((apres.suivi || []).some((s) => s.type === 'mail_envoye' && s.intention === 'refus'));
 });
+
+test('« préanalyse le mail du glacier » : déjà fait à l\'arrivée, l\'avis part tout de suite ; sinon une tâche de fond', async () => {
+  const { executerOutil } = await import('./agent.js');
+  const user = { email: 'jules.b@klocka.immo', role: 'admin' };
+  Records.create('Deal', { deal_id: 'glacier-1', nom: 'Glacier', lots: [{ lot: { prix_fai: { valeur: 520000 }, loyer_annuel_ht_hc: { valeur: 34416 } }, enrichissement: {}, evaluation: { aem: { prix_fai: 520000 }, grille: [] } }], test: true });
+  const deja = Records.create('MailRecu', { objet: 'Glacier Reaumur', deal_id: 'glacier-1', pieces_jointes: [{ nom: 'fiche.pdf' }] });
+  const apres = []; const fond = [];
+  const r1 = await executerOutil({ name: 'preanalyser_mail', input: { id: deja.id } }, user, { apres: (t) => apres.push(t), fond: (t) => fond.push(t) });
+  assert.equal(r1.deja_cree, true);
+  assert.equal(fond.length, 0);
+  assert.match(apres[0], /^c'est bon, le dossier Glacier est prêt : .*deal_id=glacier-1/);
+
+  const neuf = Records.create('MailRecu', { objet: 'Murs Devred Firminy', deal_id: null, pieces_jointes: [{ nom: 'fiche.pdf' }] });
+  const r2 = await executerOutil({ name: 'preanalyser_mail', input: { id: neuf.id } }, user, { apres: (t) => apres.push(t), fond: (t) => fond.push(t) });
+  assert.equal(r2.en_cours, true);
+  assert.deepEqual(fond[0], { genre: 'preanalyse', libelle: 'la préanalyse de « Murs Devred Firminy »', mail_id: neuf.id });
+});

@@ -23,7 +23,7 @@ import { APP_URL_PROD } from '../contexte.js';
 import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
-import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, preanalyserMailRecu, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour, titreCourt, nommer, faireTout, deposerMail } from './outils.js';
+import { verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour, titreCourt, nommer, faireTout, deposerMail } from './outils.js';
 import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs } from './lecons.js';
 
 const AGENT = 'ak';
@@ -116,7 +116,7 @@ const OUTILS_AK = [
   },
   {
     name: 'preanalyser_mail',
-    description: "Crée le dossier de préanalyse à partir d'un mail reçu (sa fiche jointe, son texte), comme le bouton de la plateforme, et lie le mail au dossier. Une minute.",
+    description: "« Préanalyse le mail du glacier », « préanalyse la fiche que je viens de recevoir » : crée le dossier de préanalyse à partir d'un mail reçu (sa fiche jointe, son texte), en tâche de fond. Tu dis que c'est parti ; AK revient tout seul dans le chat avec le dossier créé et son avis. Si le mail a déjà son dossier (préanalysé à l'arrivée), l'avis sur ce dossier est posté tout de suite.",
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'identifiant du mail, de boite_recue' } }, required: ['id'] },
   },
   {
@@ -270,6 +270,11 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
   },
   {
+    name: 'avis_dossier',
+    description: "Ton avis sur un dossier de préanalyse (« t'en penses quoi du dossier glacier ? », « il vaut quoi le Devred ? ») : négo pour atteindre le rendement de la grille, prix et loyer face au marché, emplacement, preneur, clients. Calculé par le code et posté tel quel juste après ta réponse : ne le recopie pas, ne le résume pas.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string', description: 'le dossier, de chercher_dossier' } }, required: ['deal_id'] },
+  },
+  {
     name: 'mail_agent',
     description: "Le mail à l'agent immobilier d'un dossier (« fais un mail de feedback à l'agent », « refuse poliment », « dis-lui que l'emplacement est nul », « demande-lui les docs », « relance-le ») : rédigé, puis posté en entier dans le chat juste après ta réponse. Rien ne part : la personne relit et répond « envoie ». intention : refus (on ne donne pas suite, avant les documents ; raisons = le retour à lui faire, avec les mots de la personne, ex. « l'emplacement ne nous convient pas »), demande_documents, relance, abandon (après étude des documents ; raisons = pourquoi), presentation_client. Pour retoucher un brouillon (« plus court », « enlève la dernière phrase ») : rappelle-le avec objet et corps réécrits, ils sont pris tels quels.",
     input_schema: {
@@ -381,9 +386,23 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, ap
     return r;
   }
   if (name === 'preanalyser_mail') {
-    const r = await preanalyserMailRecu(input.id, user);
-    if (r.ok) r.titre = nommer(r.deal_id) || r.titre;
-    return r;
+    const m = Records.get('MailRecu', input.id);
+    if (!m) return { ok: false, error: 'Mail introuvable.' };
+    if (m.deal_id && Records.findBy('Deal', 'deal_id', m.deal_id)) {
+      const { avisDuDossier } = await import('./avis.js');
+      const texte = await avisDuDossier(m.deal_id, { lien: lien(`/Analyse?deal_id=${m.deal_id}`) });
+      if (texte) apres(texte);
+      return { ok: true, deja_cree: true, deal_id: m.deal_id, avis_poste_dans_le_chat: !!texte };
+    }
+    fond({ genre: 'preanalyse', libelle: `la préanalyse de « ${String(m.objet || 'la fiche').slice(0, 60)} »`, mail_id: m.id });
+    return { ok: true, en_cours: true, retour: 'AK revient dans le chat avec le dossier et son avis dans une à deux minutes' };
+  }
+  if (name === 'avis_dossier') {
+    if (!Records.findBy('Deal', 'deal_id', input.deal_id)) return { ok: false, error: 'Dossier introuvable.' };
+    const { avisDuDossier } = await import('./avis.js');
+    const texte = await avisDuDossier(input.deal_id, { lien: lien(`/Analyse?deal_id=${input.deal_id}`) });
+    if (texte) apres(texte);
+    return { ok: !!texte, avis_poste_dans_le_chat: !!texte };
   }
   if (name === 'chercher_drive') return chercherSurLeDrive(input);
   if (name === 'ranger_drive') {
@@ -576,7 +595,7 @@ RÈGLES :
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
 5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
 5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question. Ne mets ensemble que des mails qui parlent du MÊME bien (même adresse, même enseigne) ; un mail de compléments pour un bien qui a déjà son dossier (« doc complémentaire pour … ») se dépose avec deposer_mail sur ce dossier, il ne crée pas de doublon : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
-5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc » : boite_recue puis preanalyser_mail. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
+5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc », « préanalyse le dossier du glacier que je viens de recevoir » : boite_recue avec tous à vrai (la fiche a pu être préanalysée à son arrivée), le mail qui correspond, puis preanalyser_mail. Réponds en une ligne que c'est parti (ou que le dossier existe déjà) : l'avis est posté par le code, tu ne l'écris pas. « T'en penses quoi du dossier X ? » : chercher_dossier puis avis_dossier, même règle. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.
 7. Une action faite : UNE ligne, comme un collègue qui répond sur son téléphone. « C bon le dossier est créé et tout est dans monday bg ». Pas d'identifiant, pas de numéro d'item Monday, pas de date « par défaut », pas de rappel de ce que tu n'as pas fait, pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves, les manques, les détails : uniquement si on te les demande.

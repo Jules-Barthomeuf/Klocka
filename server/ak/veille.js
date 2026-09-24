@@ -292,6 +292,7 @@ async function traiter(message) {
     if (t.genre === 'prez') lancerPrez(tache).catch(() => {});
     if (t.genre === 'design') lancerDesign(tache).catch(() => {});
     if (t.genre === 'loi') lancerLoi(tache).catch(() => {});
+    if (t.genre === 'preanalyse') lancerPreanalyse(tache).catch(() => {});
   }
   await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
   // Ce qu'un outil veut montrer tel quel (le mail à l'agent) suit la réponse.

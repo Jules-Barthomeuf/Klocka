@@ -5,6 +5,7 @@
 import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
 import React, { useEffect, useRef, useState } from "react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import AnneauEcoute from "@/components/AnneauEcoute";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -420,9 +421,11 @@ export default function AssistantFlottant() {
               <BoutonBarre onClick={(e) => { e.stopPropagation(); oreille.ecoute ? oreille.arreter() : oreille.demarrer(); }} alerte={oreille.ecoute} title={oreille.ecoute ? `AK écoute le bureau (${oreille.envoyes} phrases) : arrêter` : "AK écoute le bureau"}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8.5a6 6 0 0 1 12 0c0 3-2 4.5-3 6.5s-1 4-3 4-2.5-1.5-2.5-3" /><path d="M9 8.5a3 3 0 0 1 6 0" /></svg>
               </BoutonBarre>
-              <BoutonBarre onClick={(e) => { e.stopPropagation(); dictee.ecoute ? dictee.arreter() : dictee.demarrer(); }} alerte={dictee.ecoute} title={dictee.ecoute ? "Arrêter" : "Dicter"}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
-              </BoutonBarre>
+              <AnneauEcoute actif={dictee.ecoute}>
+                <BoutonBarre onClick={(e) => { e.stopPropagation(); dictee.ecoute ? dictee.arreter() : dictee.demarrer(); }} alerte={dictee.ecoute} title={dictee.ecoute ? "Arrêter" : "Dicter"}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>
+                </BoutonBarre>
+              </AnneauEcoute>
               </>
             ) : null
           }

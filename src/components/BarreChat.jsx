@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowUp, ChevronDown, Mic, Square } from "lucide-react";
 import { J, alpha } from "@/design/jetons";
+import AnneauEcoute from "@/components/AnneauEcoute";
 
 // La barre de chat de Klocka : une pilule, la même partout.
 //
@@ -102,13 +103,15 @@ export default function BarreChat({
         {actions.map((a) => <RondChat key={a.titre} {...a} icone={a.icone} />)}
 
         {voix && (
-          <RondChat
-            icone={Mic}
-            onClick={voix.onBasculer}
-            disabled={enCours}
-            actif={voix.ecoute}
-            titre={voix.ecoute ? "Arrêter la voix" : "Dicter"}
-          />
+          <AnneauEcoute actif={voix.ecoute}>
+            <RondChat
+              icone={Mic}
+              onClick={voix.onBasculer}
+              disabled={enCours}
+              actif={voix.ecoute}
+              titre={voix.ecoute ? "Arrêter la voix" : "Dicter"}
+            />
+          </AnneauEcoute>
         )}
 
         <button

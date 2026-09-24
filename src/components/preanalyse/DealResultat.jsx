@@ -97,39 +97,48 @@ function critereDe(grille, champs) {
 }
 
 const eurosM2 = (n, suffixe = "") => (n == null ? "—" : `${Math.round(n).toLocaleString("fr-FR")} €/m²${suffixe}`);
-const TEINTE_JUGEMENT = { haut: "text-alerte", bas: "text-menthe-clair", juste: "text-craie" };
 
 /**
- * Sous le prix ou le loyer : le chiffre au m² du bien face à celui du marché
- * autour, le jugement, et la source qu'on déplie pour se faire son idée.
+ * Sous le prix ou le loyer : l'écart au marché seul, en blanc — la couleur
+ * du jugement est déjà dans la colonne Statut, pas besoin de la répéter ici.
+ * « Voir détail » ouvre le chiffre du bien face au marché et d'où vient la
+ * zone comparée ; « Voir la source » n'apparaît qu'à ce niveau-là, et ouvre
+ * la liste des ventes en dessous.
  */
-function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource, manque = null }) {
+function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource, manque = null, adresseComparaison = null }) {
+  const [detail, setDetail] = useState(false);
   if (chargement) return <p className="m-0 inline-flex items-center gap-1.5 text-[12px] text-brume"><Loader2 className="w-3 h-3 animate-spin" /> Lecture du marché autour…</p>;
   if (!marche) return <p className="m-0 text-[12px] text-brume">{manque || "Pas de marché lisible autour."}</p>;
   const j = marche.jugement;
   const repere = marche.median ?? null;
+  const ecart = j?.ecart != null ? `${j.ecart > 0 ? "+" : ""}${j.ecart} %` : j?.mot || "—";
+  // La zone comparée : le repère de la fiche quand l'adresse manque, sinon
+  // l'adresse elle-même — pour que l'analyste sache toujours sur quoi porte
+  // le chiffre, pas seulement quand c'est approché.
+  const zone = marche.approche ? marche.reserve : adresseComparaison ? `Comparé autour de ${adresseComparaison}.` : null;
   return (
     <div className="text-[12.5px] leading-[1.55]">
       {marche.kdata_en_cours && (
         <p className="m-0 mb-1 inline-flex items-center gap-1.5 text-[11.5px] text-ardoise"><Loader2 className="w-3 h-3 animate-spin" /> K-Data Valeur locative interroge Equimmox : quelques minutes.</p>
       )}
-      <p className="m-0 text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
-        {libelleBien} <span className="text-encre">{eurosM2(bien, suffixe)}</span>
-        <span className="text-brume"> vs </span>
-        {libelleMarche} <span className="text-encre">{eurosM2(repere, suffixe)}</span>
-        {marche.bas != null && marche.haut != null && <span className="text-brume"> ({Math.round(marche.bas).toLocaleString("fr-FR")} à {Math.round(marche.haut).toLocaleString("fr-FR")})</span>}
-      </p>
-      {j && (
-        // Lu sur le quartier, faute d'adresse : une indication à vérifier,
-        // jamais un verdict — en ambre, quel que soit le sens.
-        <p className={`m-0 font-medium ${marche.approche ? "text-ambre" : TEINTE_JUGEMENT[j.sens] || "text-craie"}`}>
-          {marche.approche ? "À vérifier · " : ""}{j.ecart != null && j.ecart !== 0 ? `${j.ecart > 0 ? "+" : ""}${j.ecart} % · ` : ""}{j.mot}
-        </p>
-      )}
-      {marche.reserve && <p className="m-0 text-[11.5px] text-brume">{marche.reserve}</p>}
-      <button type="button" onClick={onSource} className="mt-0.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
-        {sourceOuverte ? "Masquer la source" : "Voir la source"}
+      <p className="m-0 font-medium text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{ecart}</p>
+      <button type="button" onClick={() => setDetail((v) => !v)} className="mt-0.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
+        {detail ? "Masquer le détail" : "Voir détail"}
       </button>
+      {detail && (
+        <div className="mt-1.5">
+          <p className="m-0 text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
+            {libelleBien} <span className="text-encre">{eurosM2(bien, suffixe)}</span>
+            <span className="text-brume"> vs </span>
+            {libelleMarche} <span className="text-encre">{eurosM2(repere, suffixe)}</span>
+            {marche.bas != null && marche.haut != null && <span className="text-brume"> ({Math.round(marche.bas).toLocaleString("fr-FR")} à {Math.round(marche.haut).toLocaleString("fr-FR")})</span>}
+          </p>
+          {zone && <p className="m-0 mt-1 text-[11.5px] text-brume">{zone}</p>}
+          <button type="button" onClick={onSource} className="mt-1.5 text-[11.5px] text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>
+            {sourceOuverte ? "Masquer la source" : "Voir la source"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -228,7 +237,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
           </div>
         );
       case "prix_marche":
-        return <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche="ventes autour" chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} />;
+        return <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche="ventes autour" chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} adresseComparaison={marche?.adresse} />;
       case "rendement":
         return (
           <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -238,7 +247,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         );
       case "loyer": return champ("loyer_annuel_ht_hc");
       case "loyer_marche":
-        return <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche="le marché" chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} manque={marche?.manque} />;
+        return <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche="le marché" chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} manque={marche?.manque} adresseComparaison={marche?.adresse} />;
       case "occupe": return champ("occupe");
       case "activite": return champ("locataire_activite");
       case "enseigne":

@@ -8,6 +8,7 @@ import { demanderNotifications } from "@/lib/notifications";
 import { toast } from "@/components/ui/avis";
 import { ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import AnneauEcoute from "@/components/AnneauEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
@@ -728,18 +729,20 @@ export default function ChatDashboard() {
             <Plus className="h-4 w-4" />
           </button>
 
-          <button
-            type="button"
-            aria-pressed={ecoute}
-            disabled={enCours}
-            onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-            aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-            title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-            className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors disabled:opacity-40"
-            style={{ background: ecoute ? alpha("menthe", 0.2) : J["barre-relief"], color: ecoute ? J["menthe"] : J["ardoise"] }}
-          >
-            <Mic className="h-4 w-4" />
-          </button>
+          <AnneauEcoute actif={ecoute}>
+            <button
+              type="button"
+              aria-pressed={ecoute}
+              disabled={enCours}
+              onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+              aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+              title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+              className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors disabled:opacity-40"
+              style={{ background: ecoute ? alpha("menthe", 0.2) : J["barre-relief"], color: ecoute ? J["menthe"] : J["ardoise"] }}
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+          </AnneauEcoute>
 
           <button
             type="button"

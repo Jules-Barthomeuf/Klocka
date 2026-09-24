@@ -10,6 +10,7 @@ import { Check, ChevronDown, Copy, Image as ImageIcon, Loader2, Mic, Pencil, Squ
 import { useDictee } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
+import AnneauEcoute from "@/components/AnneauEcoute";
 import { J } from "@/design/jetons";
 
 // Le feedback : un chat, une capture d'écran si on veut, rien d'autre. Chaque
@@ -215,7 +216,9 @@ export default function AdminSuggestions() {
             <>
               <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={(e) => { choisirCapture(e.target.files?.[0]); e.target.value = ""; }} />
               <BoutonBarre onClick={() => fichierRef.current?.click()} actif={!!capture} title="Joindre une capture d'écran"><ImageIcon className="w-4 h-4" /></BoutonBarre>
-              <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
+              <AnneauEcoute actif={ecoute}>
+                <BoutonBarre onClick={() => (dicteeOk ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))} alerte={ecoute} title={ecoute ? "Arrêter la dictée" : "Dicter votre remarque"}>{ecoute ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</BoutonBarre>
+              </AnneauEcoute>
               <span className="text-[11px] text-brume ml-1 max-md:hidden">{ecoute ? "Je vous écoute…" : "Ctrl+V colle une capture"}</span>
             </>
           }

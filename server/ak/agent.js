@@ -646,7 +646,7 @@ export async function repondre(message) {
   const autres = (message.mentions || []).filter((m) => m.affiche).map((m) => `${m.affiche} = ${m.nom}`);
   const pieces = (message.pieces || []).map((p) => (p.chemin ? `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})` : `${p.nom} (impossible à télécharger : ${p.erreur})`));
   const aujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
-  const entree = `${prenom} (${message.auteur.nom || '?'}, ${aujourdhui}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}${pieces.length ? `\n(pièces jointes : ${pieces.join(' ; ')})` : ''}${message.insiste ? `\n(tu avais râlé devant ce pavé, ${prenom} insiste : tu t'y mets, ta réponse commence déjà par « ${message.insiste} », enchaîne directement sur le résultat)` : ''}`;
+  const entree = `${prenom} (${message.auteur.nom || '?'}${user?.email ? `, compte ${user.email}` : ''}, ${aujourdhui}) : ${message.texte}${autres.length ? `\n(mentionnés : ${autres.join(', ')})` : ''}${pieces.length ? `\n(pièces jointes : ${pieces.join(' ; ')})` : ''}${message.insiste ? `\n(tu avais râlé devant ce pavé, ${prenom} insiste : tu t'y mets, ta réponse commence déjà par « ${message.insiste} », enchaîne directement sur le résultat)` : ''}`;
   // Les images se montrent au modèle telles quelles (une capture d'écran à
   // commenter) ; le fil, lui, ne garde que le texte : une image de deux mégas
   // par message ferait grossir la base pour rien.

@@ -460,6 +460,17 @@ async function reprendre(message) {
 // exécutait chaque vieille demande, rappels, K-Data et LOI compris.
 const RETARD_MAX_MS = 10 * 60 * 1000;
 
+/**
+ * Pure : les messages répétés à l'identique par la même personne dans un
+ * même passage. Seul le dernier reste : les autres sont rendus ici.
+ */
+export function messagesRepetes(messages) {
+  const cle = (m) => `${m.auteur?.nom || ''}|${String(m.argument ?? m.texte ?? '').toLowerCase().replace(/\s+/g, ' ').trim()}`;
+  const dernier = new Map();
+  for (const m of messages) dernier.set(cle(m), m.nom);
+  return new Set(messages.filter((m) => dernier.get(cle(m)) !== m.nom).map((m) => m.nom));
+}
+
 /** Pure : d'où relire. Jamais plus loin que dix minutes en arrière. */
 export function depuisBorne(stocke, maintenant = Date.now()) {
   const plancher = new Date(maintenant - RETARD_MAX_MS).toISOString();
@@ -491,6 +502,7 @@ export async function relever() {
     if (derniere && commandeArret(sansMention(derniere)) === 'stop' && !enPause()) await arreter(derniere);
     if (derniere && commandeArret(sansMention(derniere)) === 'reprise' && enPause()) await reprendre(derniere);
     for (const { espace, messages } of parEspace) {
+      const repetes = messagesRepetes(messages);
       for (const m of messages) {
         if (m.le > plusRecent) plusRecent = m.le;
         retenirPersonne(m.auteur);
@@ -498,6 +510,8 @@ export async function relever() {
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
         if (enPause() || commandeArret(sansMention(m))) continue;
+        // La même demande renvoyée trois fois faute de réponse : une seule réponse.
+        if (repetes.has(m.nom)) continue;
         // Dans le groupe, AK ne répond qu'à qui s'adresse à lui : une mention,
         // ou un message qui commence par « ak ». Plus de conversation implicite :
         // il répondait à ce que les gens se disaient entre eux. En privé, tout

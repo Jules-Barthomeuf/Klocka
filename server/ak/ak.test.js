@@ -450,3 +450,10 @@ test('banana split : deux ou trois répliques différentes par demande', async (
     assert.ok(r.every((x) => GREVE.includes(x)));
   }
 });
+
+test('la même demande envoyée plusieurs fois dans un passage : une seule réponse, à la dernière', async () => {
+  const { messagesRepetes } = await import('./veille.js');
+  const m = (nom, auteur, texte) => ({ nom, auteur: { nom: auteur }, texte, argument: texte });
+  const r = messagesRepetes([m('1', 'u1', 'Préanalyse le dossier glacier'), m('2', 'u1', 'préanalyse le dossier  glacier'), m('3', 'u2', 'Préanalyse le dossier glacier'), m('4', 'u1', 'autre chose')]);
+  assert.deepEqual([...r], ['1']);
+});

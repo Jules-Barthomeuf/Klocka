@@ -172,6 +172,54 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
 }
 
 // En-tête numéroté d'une étape : « 01 · Titre » + description, comme la maquette.
+/**
+ * Le nom du dossier, modifiable d'un clic : Entrée enregistre, Échap annule,
+ * cliquer ailleurs enregistre aussi. Un nom vide n'est pas accepté.
+ */
+function TitreDossier({ dossier, apercu, onRefresh }) {
+  const affiche = dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom";
+  const [edition, setEdition] = useState(false);
+  const [valeur, setValeur] = useState(affiche);
+  const renommer = useMutation({
+    mutationFn: (nom) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/renommer`, { body: { nom } }),
+    onSuccess: () => { setEdition(false); onRefresh?.(); },
+    onError: (e) => toast.error(e?.message || "Renommage impossible"),
+  });
+  const classe = "m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]";
+  const valider = () => {
+    const nom = valeur.replace(/\s+/g, " ").trim();
+    if (!nom || nom === affiche) { setEdition(false); setValeur(affiche); return; }
+    renommer.mutate(nom);
+  };
+  if (edition) {
+    return (
+      <input
+        autoFocus
+        value={valeur}
+        disabled={renommer.isPending}
+        onChange={(e) => setValeur(e.target.value)}
+        onFocus={(e) => e.target.select()}
+        onBlur={valider}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") { setValeur(affiche); setEdition(false); }
+        }}
+        aria-label="Nom du dossier"
+        className={`${classe} w-[min(900px,80vw)] bg-transparent border-0 border-b border-menthe/60 outline-none p-0`}
+      />
+    );
+  }
+  return (
+    <h1
+      className={`${classe} truncate ${apercu ? "" : "cursor-text rounded-md hover:bg-encre/[0.04] -mx-1.5 px-1.5"}`}
+      title={apercu ? undefined : "Cliquer pour renommer"}
+      onClick={apercu ? undefined : () => { setValeur(affiche); setEdition(true); }}
+    >
+      {affiche}
+    </h1>
+  );
+}
+
 export function TitreEtape({ n, titre, description = undefined }) {
   return (
     <div className="mb-6">
@@ -371,9 +419,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         <div className="flex flex-wrap items-end justify-between gap-6 pb-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="m-0 truncate text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">
-                {dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || dossier.source?.nom_fichier || "Sans nom"}
-              </h1>
+              <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
                   <Clock className="w-3 h-3" /> À relancer
@@ -418,7 +464,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {etape <= 3 && !surMarche && (
       <ChatDossier
         afficherRequetes={etape === 2 || etape === 3}
-        panneauDocuments={dossier ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
+        panneauDocuments={dossier && etape !== 2 ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
         nbDocuments={(dossier?.documents_espace || []).length}
         onOuvrirExtraction={(id) => {
           setOngletAnalyse(id);

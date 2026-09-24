@@ -55,6 +55,7 @@ const SCHEMA_REPONSE = {
                   rue: { type: 'string' },
                   code_postal: { type: 'string' },
                   ville: { type: 'string' },
+                  repere: { type: 'string', description: "Sans numéro ni rue : le repère que la fiche donne pour situer le local, tel qu'écrit (« métro Rambuteau », « place de la République », « face à la gare Saint-Charles »). Vide sinon." },
                 },
               },
               citation: { type: 'string' },

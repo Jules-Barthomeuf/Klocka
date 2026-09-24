@@ -32,3 +32,8 @@ test('le titre se lit dans le lot d\'une fiche analysée', () => {
   assert.equal(titreDuLot(lot), 'Restaurant - Angers');
   assert.equal(titreDuLot({}, { commune: { nom: 'Lorient' } }), 'Murs commerciaux - Lorient');
 });
+
+test('une ville en capitales redevient un nom propre', () => {
+  assert.equal(titreDossier({ activite: 'prêt-à-porter', ville: 'PARIS 4E' }), 'Prêt-à-porter - Paris 4e');
+  assert.equal(titreDossier({ ville: 'SAINT-ÉTIENNE' }), 'Murs commerciaux - Saint-Étienne');
+});

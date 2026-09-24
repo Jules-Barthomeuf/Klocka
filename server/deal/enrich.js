@@ -108,7 +108,12 @@ export async function resoudreCommune(codePostal, nomVille) {
 // Sans code postal, le nom suffit souvent : la commune la plus peuplée de ce
 // nom est celle que désigne l'usage (Saint-Étienne, Lyon, Bordeaux…).
 async function resoudreCommuneParNom(nomVille) {
-  const nom = String(nomVille || '').trim();
+  // « PARIS 4E », « Lyon 3ème » : l'arrondissement n'est pas un nom de
+  // commune. Envoyé tel quel, l'API rapprochait « PARIS 4E » de
+  // Cormeilles-en-Parisis, et Paris devenait une ville moyenne.
+  const nom = String(nomVille || '')
+    .replace(/\s+(?:\d{1,2}|[IVX]{1,5})\s*(?:e|er|ème|eme|è)?(?:\s+arr(?:ondissement|\.)?)?\s*$/iu, '')
+    .trim();
   if (nom.length < 2) return null;
   const cle = `nom|${normaliser(nom)}`;
   if (cache[cle] && cache[cle].departement !== undefined) return cache[cle];

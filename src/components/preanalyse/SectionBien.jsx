@@ -153,7 +153,7 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
                   )}
                   {p.lieu && (
                     <div className="mt-4">
-                      <VuesLieu lot={lot} enr={lot.enrichissement} coteACote />
+                      <VuesLieu lot={lot} enr={lot.enrichissement} coteACote dealId={dossier?.deal_id} />
                     </div>
                   )}
                 </>

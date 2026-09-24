@@ -609,20 +609,37 @@ export function JournalSuivi({ suivi }) {
 
 // Situer le bien de deux façons : le plan et la vue piéton, qui réutilisent les vues de la
 // page projet, alimentées par l'adresse du lot (ou le centre de la commune).
-export function VuesLieu({ lot, enr, coteACote = false }) {
+export function VuesLieu({ lot, enr, coteACote = false, dealId = null }) {
   const [vue, setVue] = useState("carte");
   const a = lot.lot?.adresse?.valeur;
   const adresse = a?.rue ? [a.rue, a.code_postal, a.ville].filter(Boolean).join(", ") : null;
+  // Sans rue, la fiche donne souvent un repère (« à proximité du métro
+  // Rambuteau ») : le serveur le cherche et les vues s'y posent, plutôt qu'au
+  // centre de la commune.
+  const { data: situe } = useQuery({
+    queryKey: ["lieu-lot", dealId, lot.index ?? 0],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/lots/${lot.index ?? 0}/lieu`),
+    enabled: !!dealId && !adresse,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const repere = situe?.mode === "repere" && situe.lat != null ? situe : null;
+  const centre = repere ? { lat: repere.lat, lon: repere.lon } : { lat: enr?.commune?.centre?.lat, lon: enr?.commune?.centre?.lon };
+  const noteSansAdresse = repere
+    ? `Adresse précise absente de la fiche : les vues sont posées sur le repère qu'elle donne, ${repere.repere}.`
+    : "Adresse précise absente de la fiche : les vues sont centrées sur la commune.";
   // Les vues de la page projet attendent un objet « projet » : on le compose.
   // La géolocalisation est mise en cache sur cet identifiant. « lot-0 » était
   // le même d'un dossier à l'autre : la rue affichée restait celle du dossier
   // précédent. L'adresse elle-même fait une clé qui change quand il le faut.
   const adresseComplete = adresse || [a?.code_postal, a?.ville].filter(Boolean).join(" ") || enr?.commune?.nom || null;
   const lieu = {
-    id: `lot-${adresseComplete || `${enr?.commune?.centre?.lat ?? "?"},${enr?.commune?.centre?.lon ?? "?"}`}`,
-    adresse_complete: adresseComplete,
-    latitude: adresse ? null : enr?.commune?.centre?.lat || null,
-    longitude: adresse ? null : enr?.commune?.centre?.lon || null,
+    id: `lot-${repere ? `repere:${repere.repere}` : adresseComplete || `${centre.lat ?? "?"},${centre.lon ?? "?"}`}`,
+    // Un repère trouvé l'emporte sur « Paris » : le géocodage de la commune
+    // renverrait au centre.
+    adresse_complete: repere ? null : adresseComplete,
+    latitude: adresse ? null : centre.lat || null,
+    longitude: adresse ? null : centre.lon || null,
   };
   const localisable = !!(lieu.adresse_complete || (lieu.latitude && lieu.longitude));
 
@@ -650,11 +667,11 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
           <figure className="m-0">
             <figcaption className="mb-2 font-mono text-[11px] uppercase tracking-[.18em] text-brume">Sur le plan</figcaption>
             <div className="[&_iframe]:!h-[300px] [&_iframe]:!rounded-[14px]">
-              <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} hauteur="h-[300px]" />
+              <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} hauteur="h-[300px]" />
             </div>
           </figure>
         </div>
-        {!adresse && <p className="m-0 text-[12.5px] text-brume">Adresse précise absente de la fiche : les vues sont centrées sur la commune.</p>}
+        {!adresse && <p className="m-0 text-[12.5px] text-brume">{noteSansAdresse}</p>}
       </div>
     );
   }
@@ -677,7 +694,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
       </div>
 
       {vue === "carte" && (
-        <CarteGoogle adresse={adresse} lat={enr?.commune?.centre?.lat} lon={enr?.commune?.centre?.lon} />
+        <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} />
       )}
       {vue === "street" && (
         <div className="relative h-[420px] rounded-md overflow-hidden border border-trait">
@@ -686,7 +703,7 @@ export function VuesLieu({ lot, enr, coteACote = false }) {
       )}
       {vue !== "carte" && !adresse && (
         <p className="m-0 text-[11px] text-brume">
-          Adresse précise absente de la fiche : la vue est centrée sur la commune.
+          {noteSansAdresse}
         </p>
       )}
     </div>
@@ -945,7 +962,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               </div>
               <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? J["ambre"] : J["ambre"] }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
             </div>
-            <VuesLieu lot={lot} enr={enr} coteACote />
+            <VuesLieu lot={lot} enr={enr} coteACote dealId={dossier?.deal_id} />
             <dl className="m-0 mt-5 grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3">
               {[["Commune", enr?.commune ? enr.commune.nom : "non résolue"], ["Population", enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"], ["Typologie", enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : "—"], ["Enseigne", enr?.signature?.niveau ?? "—"], ["Activité", enr?.activite?.libelle ?? "—"]].map(([l, v]) => (
                 <div key={l} className="min-w-0"><dt className="text-[11px] tracking-[.14em] uppercase text-brume">{l}</dt><dd className="m-0 mt-1 text-[13.5px] font-light text-encre truncate" title={String(v)}>{v}</dd></div>

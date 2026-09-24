@@ -33,7 +33,11 @@ export function enseigneNette(enseigne) {
 
 /** Pure : la ville sans son code postal ni « Cedex ». */
 export function villeNette(ville) {
-  const v = net(ville).replace(/\b\d{5}\b/g, '').replace(/\bcedex\b.*$/i, '').replace(/\s+/g, ' ').trim();
+  let v = net(ville).replace(/\b\d{5}\b/g, '').replace(/\bcedex\b.*$/i, '').replace(/\s+/g, ' ').trim();
+  // « PARIS 4E » s'écrit « Paris 4e » : un titre en capitales crie.
+  if (v && v === v.toUpperCase() && /\p{L}/u.test(v)) {
+    v = v.toLowerCase().replace(/(^|[\s\-'’])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\b(\d{1,2})(E|Er|Ème|Eme)\b/g, (m, n, s2) => n + s2.toLowerCase());
+  }
   return v || null;
 }
 

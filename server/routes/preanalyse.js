@@ -92,6 +92,31 @@ export function monterPreanalyse(app) {
   }));
 
   // Saisie humaine (emplacement, prix négocié) : rejoue les blocs déterministes.
+  // Où poser la Street View et le plan d'un lot. Avec une rue, le navigateur
+  // géocode lui-même l'adresse ; sans rue, on cherche le repère que la fiche
+  // donne (« à proximité du métro Rambuteau ») et on le garde sur le lot.
+  app.get('/api/preanalyse/dossiers/:dealId/lots/:index/lieu', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    const i = Number(req.params.index) || 0;
+    const lot = deal?.lots?.[i];
+    if (!lot) return res.status(404).json({ error: 'Lot introuvable' });
+    const val = (c) => (c && typeof c === 'object' && 'valeur' in c ? c.valeur : c);
+    const a = val(lot.lot?.adresse) || {};
+    if (a.rue) return ok(res, { mode: 'adresse' });
+    const { repereDuTexte, repereNet, localiserRepere } = await import('../deal/repere.js');
+    const repere = repereNet(a.repere) || repereDuTexte(deal.source?.texte || '');
+    if (!repere) return ok(res, { mode: 'commune' });
+    if (lot.lieu?.repere === repere) return ok(res, { mode: lot.lieu.lat ? 'repere' : 'commune', ...lot.lieu });
+    const ville = a.ville || lot.enrichissement?.commune?.nom || null;
+    const trouve = await localiserRepere(repere, ville);
+    const lieu = { repere, lat: trouve?.lat ?? null, lon: trouve?.lon ?? null, libelle: trouve?.libelle || null };
+    // Mémorisé, même quand rien n'est trouvé : on ne réinterroge pas OSM à
+    // chaque ouverture du dossier.
+    const lots = deal.lots.map((l, k) => (k === i ? { ...l, lieu } : l));
+    Records.update('Deal', deal.id, { lots });
+    ok(res, { mode: trouve ? 'repere' : 'commune', ...lieu });
+  }));
+
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index', wrap(async (req, res) => {
     const r = await reevaluerLot(req.params.dealId, Number(req.params.index), req.body || {});
     if (r.error) return res.status(404).json(r);

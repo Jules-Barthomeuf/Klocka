@@ -10,13 +10,16 @@ const fmtK = (v) => `${Math.round(v / 1000)}`;
 
 export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, metric = "richesse" }) {
   const config = useMemo(() => {
-    const rows = calculs.tableauAnnuel.slice(1, anneeRevente + 1);
+    // Jusqu'à cinq ans après la fin du crédit (25 ans pour un prêt de 20),
+    // comme le tableau annuel ; la revente reste marquée à son année.
+    const horizon = calculs.horizonAffichage || anneeRevente;
+    const rows = calculs.tableauAnnuel.slice(1, horizon + 1);
 
     if (metric === "cashflow") {
       return {
         kind: "area",
         title: "Cash-flow annuel",
-        subtitle: `Projection sur ${anneeRevente} ans`,
+        subtitle: `Projection sur ${horizon} ans`,
         bigValue: formatCurrency(calculs.indicateurs.cashFlowMoyenAn),
         color: J["menthe"],
         data: rows.map((r) => ({ annee: `${r.annee}`, value: Math.round(r.cashFlowAnnuel) })),

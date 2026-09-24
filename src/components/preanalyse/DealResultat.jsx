@@ -927,6 +927,24 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             </dl>
           </section>
 
+          {/* L'emplacement, juste sous la fiche : on regarde la rue avant tout
+              le reste, et la qualification qu'on en tire change le verdict. */}
+          <section className="py-8">
+            <div className="flex items-baseline gap-3 flex-wrap mb-4">
+              <h2 className="m-0 text-[18px] font-semibold">Emplacement</h2>
+              <span className="text-[12.5px] text-brume">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 mb-5">
+              <div className="inline-flex flex-wrap rounded-full border border-bord-doux p-0.5">
+                {EMPLACEMENTS.map((e) => (
+                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
+                ))}
+              </div>
+              <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? J["ambre"] : J["ambre"] }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
+            </div>
+            <VuesLieu lot={lot} enr={enr} coteACote dealId={dossier?.deal_id} />
+          </section>
+
           {/* La grille de critères : coche menthe, croix corail, sous les yeux */}
           {nbCriteres > 0 && (
             <section className="py-8">
@@ -945,29 +963,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               <span className="text-[12.5px] text-brume">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
             </div>
             <SimulateurDossier parametres={lot.simulateur} dealId={dossier?.deal_id || null} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
-          </section>
-
-          {/* L'emplacement : la seule donnée humaine, elle change le verdict.
-              On le juge sur pièces — la rue, puis le plan. */}
-          <section className="py-8">
-            <div className="flex items-baseline gap-3 flex-wrap mb-4">
-              <h2 className="m-0 text-[18px] font-semibold">Emplacement</h2>
-              <span className="text-[12.5px] text-brume">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 mb-5">
-              <div className="inline-flex flex-wrap rounded-full border border-bord-doux p-0.5">
-                {EMPLACEMENTS.map((e) => (
-                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
-                ))}
-              </div>
-              <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: enr?.emplacement === "a_qualifier" ? J["ambre"] : J["ambre"] }}>{enr?.emplacement === "a_qualifier" ? "à qualifier" : "qualifié à la main"}</span>
-            </div>
-            <VuesLieu lot={lot} enr={enr} coteACote dealId={dossier?.deal_id} />
-            <dl className="m-0 mt-5 grid grid-cols-2 sm:grid-cols-5 gap-x-6 gap-y-3">
-              {[["Commune", enr?.commune ? enr.commune.nom : "non résolue"], ["Population", enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"], ["Typologie", enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : "—"], ["Enseigne", enr?.signature?.niveau ?? "—"], ["Activité", enr?.activite?.libelle ?? "—"]].map(([l, v]) => (
-                <div key={l} className="min-w-0"><dt className="text-[11px] tracking-[.14em] uppercase text-brume">{l}</dt><dd className="m-0 mt-1 text-[13.5px] font-light text-encre truncate" title={String(v)}>{v}</dd></div>
-              ))}
-            </dl>
           </section>
 
           {/* Les clients à qui ce bien pourrait correspondre */}

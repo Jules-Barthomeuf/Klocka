@@ -81,7 +81,12 @@ export function calculerTableauAnnuel(params) {
   let capitalRembourseCumule = 0;
   let loyerAnnuelBrutHTPrevious = loyerInitialHTHC;
 
-  for (let annee = 0; annee <= 25; annee++) {
+  // Les graphiques et le tableau se lisent jusqu'à cinq ans après la fin du
+  // crédit : on voit ce que rapporte un bien payé, pas seulement le temps du
+  // prêt. Le calcul court au moins jusque-là, et jamais moins de 25 ans.
+  const horizonAffichage = Math.max(1, (Number(dureeCredit) || 0) + 5);
+  const horizonCalcul = Math.max(25, horizonAffichage, (Number(anneeRevente) || 0) + 1);
+  for (let annee = 0; annee <= horizonCalcul; annee++) {
     let loyerBrutAnnuel = 0;
     if (annee === 0) loyerBrutAnnuel = 0;
     else if (annee === 1) loyerBrutAnnuel = loyerInitialHTHC;
@@ -92,7 +97,7 @@ export function calculerTableauAnnuel(params) {
     }
     loyerAnnuelBrutHTPrevious = loyerBrutAnnuel;
 
-    const nbMoisVacance = annee > 0 && annee <= 25 ? vacancesLocatives[annee - 1] || 0 : 0;
+    const nbMoisVacance = annee > 0 && annee <= horizonCalcul ? vacancesLocatives[annee - 1] || 0 : 0;
     const coutVacance = -(loyerBrutAnnuel / 12) * nbMoisVacance;
     const chargesCoproNonRefact = !chargesCoproRefacturables && annee >= 1 ? -chargesCopropriete : 0;
     const taxeFonciereNonRefact = !taxeFonciereRefacturable && annee >= 1 ? -taxeFonciere : 0;
@@ -162,7 +167,7 @@ export function calculerTableauAnnuel(params) {
     const comptabiliteCost = annee >= 1 ? -comptabilite : 0;
     const assurancePNECost = annee >= 1 ? -assurancePNE : 0;
     const chargesDiversesCost = annee >= 1 ? -chargesDiverses : 0;
-    const travauxBailleurCost = annee > 0 && annee <= 25 ? -(travauxBailleur[annee - 1] || 0) : 0;
+    const travauxBailleurCost = annee > 0 && annee <= horizonCalcul ? -(travauxBailleur[annee - 1] || 0) : 0;
     const totalOperatingChargesCashFlow = gestionLocativeCost + comptabiliteCost + assurancePNECost + chargesDiversesCost + travauxBailleurCost;
     const chargesAcquisitionCashFlow = annee === 0 ? -(droitsEnregistrement + totalFraisKlocka + fraisDivers + travauxAnnee0) : 0;
     const amortissementDeductible = annee >= 1 ? amortissementAnnuel : 0;
@@ -294,6 +299,7 @@ export function calculerTableauAnnuel(params) {
   }
 
   return {
+    horizonAffichage: Math.min(horizonAffichage, tableauAnnuel.length - 1),
     loyerParM2, loyerRevaloriseParM2,
     honorairesChargeAcquereur: Math.round(honorairesChargeAcquereur), prixHorsDroits: Math.round(prixHorsDroits),
     droitsEnregistrement: Math.round(droitsEnregistrement), feesKlocka: Math.round(feesKlocka),

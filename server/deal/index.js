@@ -274,7 +274,7 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     ? ancienNegocie
     : null;
   const travauxAn0 = Array.isArray(sim.travauxBailleur) ? Number(sim.travauxBailleur[0]) || 0 : 0;
-  const evaluation = evaluer(lot, enrichissement, { prixNegocie: negocie, travaux: travauxAn0 });
+  const evaluation = evaluer(lot, enrichissement, { prixNegocie: negocie, travaux: travauxAn0, simulateur: sim });
 
   const dossierLot = { lot, enrichissement, evaluation };
   const [synthese, mailAgent] = await Promise.all([

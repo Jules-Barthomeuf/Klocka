@@ -7,7 +7,8 @@ import { ChevronDown } from "lucide-react";
 import { J } from "@/design/jetons";
 
 export default function SimDataTable({ calculs, anneeRevente, formatCurrency, dureeCredit }) {
-  const rows = calculs.tableauAnnuel.slice(1, 26); // An 1..25
+  // An 1 jusqu'à cinq ans après la fin du crédit : 25 ans pour un prêt de 20.
+  const rows = calculs.tableauAnnuel.slice(1, (calculs.horizonAffichage || 25) + 1);
   const years = rows.map((r) => r.annee);
 
   const fmtCur = (v) => formatCurrency(v || 0);

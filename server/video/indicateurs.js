@@ -124,3 +124,21 @@ export function indicateursCles(lot) {
     hypotheses: `apport ${Math.round(PART_APPORT * 100)} %, ${String(params.tauxInteret).replace('.', ',')} % sur ${params.dureeCredit} ans`,
   };
 }
+
+/**
+ * Le rendement net du simulateur : la moyenne, année après année jusqu'à la
+ * revente, du loyer net sur le prix de revient. C'est le « Rendement net » des
+ * indicateurs clés. L'année 1 seule est toujours la plus faible (frais,
+ * premier loyer non indexé) : c'est la durée du projet qui dit s'il tient.
+ * @param {object} simulateur - les paramètres du simulateur du lot
+ * @returns {number|null} en %, à une décimale
+ */
+export function rendementNetMoyen(simulateur) {
+  const params = { ...DEFAUTS, ...(simulateur || {}) };
+  if (!params.prixBienNegocie || !params.loyerInitialHTHC) return null;
+  const sansApport = calculerTableauAnnuel({ ...params, apport: 0 });
+  const apport = simulateur?.apport != null ? Number(simulateur.apport) : Math.round(sansApport.prixRevient * PART_APPORT);
+  const r = calculerTableauAnnuel({ ...params, apport });
+  const v = Number(r.indicateurs?.rendementLocatifGlobalNet);
+  return Number.isFinite(v) ? Math.round(v * 10) / 10 : null;
+}

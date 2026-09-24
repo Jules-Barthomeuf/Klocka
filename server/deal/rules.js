@@ -11,7 +11,8 @@
 
 import { REGLES } from './enrich.js';
 import { prixFai } from './prix.js';
-import { calculerAEM } from './aem.js';
+import { calculerAEM, parametresSimulateur } from './aem.js';
+import { rendementNetMoyen } from '../video/indicateurs.js';
 
 export const VERDICTS = ['GO', 'GO SOUS RÉSERVE', 'INSUFFISANT', 'NO-GO'];
 
@@ -94,6 +95,7 @@ export function construireContexte(lot, enrichissement, aem) {
     // Calculs
     prix_aem: aem?.prix_aem ?? null,
     rendement_aem: aem?.rendement_aem ?? null,
+    rendement_net_moyen: aem?.rendement_net_moyen ?? null,
     rendement_fai: aem?.rendement_fai ?? null,
     annees_bail_restantes: anneesBailRestantes(val(lot.bail_echeance)),
 
@@ -177,7 +179,7 @@ function evaluerReserves(ctx) {
  * @returns {{verdict: string, profil: object|null, motifs: string[], reserves: object[],
  *            manquants: string[], contexte: object, trace: object}}
  */
-export function evaluer(lot, enrichissement, { prixNegocie = null, travaux = 0 } = {}) {
+export function evaluer(lot, enrichissement, { prixNegocie = null, travaux = 0, simulateur = null } = {}) {
   // Le prix négocié et les travaux à la charge du bailleur, quand l'analyste
   // les a posés dans le simulateur, entrent dans le prix de revient. Sans eux,
   // le rendement AEM du verdict et celui affiché par le simulateur, juste en
@@ -188,7 +190,16 @@ export function evaluer(lot, enrichissement, { prixNegocie = null, travaux = 0 }
     loyerAnnuel: val(lot.loyer_annuel_ht_hc),
     travaux,
   });
-  const ctx = construireContexte(lot, enrichissement, aem);
+  // Le rendement net moyen sur la durée du projet, par le moteur même du
+  // simulateur : les paramètres enregistrés du lot, ou ceux de départ.
+  const sim = {
+    ...parametresSimulateur({ prixFai: prixFai(lot), loyerAnnuel: val(lot.loyer_annuel_ht_hc), surface: val(lot.surface_m2) }),
+    ...(simulateur || {}),
+    ...(prixNegocie ? { prixBienNegocie: prixNegocie } : {}),
+  };
+  let rendementNet = null;
+  try { rendementNet = rendementNetMoyen(sim); } catch { rendementNet = null; }
+  const ctx = construireContexte(lot, enrichissement, { ...(aem || {}), rendement_net_moyen: rendementNet });
 
   const trace = { knock_out: null, donnees: null, profils: null, reserves: [] };
 
@@ -294,6 +305,7 @@ const LIBELLES_CHAMPS = {
   rendement_annonce: 'Rendement annoncé',
   rendement_fai: 'Rendement FAI',
   rendement_aem: 'Rendement AEM',
+  rendement_net_moyen: 'Rendement net moyen',
   surface_m2: 'Surface',
   adresse: 'Adresse',
   locataire_nom: 'Locataire',

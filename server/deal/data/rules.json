@@ -156,7 +156,7 @@
         "_note": "400–800 K€, 6,5 % min AEM, locataire premium exigé (« pas de ville moyenne associée à un locataire moyen »). Ville moyenne : n°1.",
         "criteres": [
           { "champ": "prix_fai", "condition": "entre", "valeur": [400000, 800000] },
-          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "rendement_net_moyen", "condition": "superieur_ou_egal", "valeur": 6.5 },
           { "champ": "typologie_ville", "condition": "egal", "valeur": "ville_moyenne" },
           { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
           { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "a_qualifier"] }
@@ -169,7 +169,7 @@
         "_note": "Variante petite ville « riche ».",
         "criteres": [
           { "champ": "prix_fai", "condition": "entre", "valeur": [400000, 800000] },
-          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "rendement_net_moyen", "condition": "superieur_ou_egal", "valeur": 6.5 },
           { "champ": "typologie_ville", "condition": "egal", "valeur": "petite_ville" },
           { "champ": "ville_riche", "condition": "vrai", "valeur": true },
           { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
@@ -183,7 +183,7 @@
         "_note": "Variante Paris : un emplacement intermédiaire est accepté.",
         "criteres": [
           { "champ": "prix_fai", "condition": "entre", "valeur": [400000, 800000] },
-          { "champ": "rendement_aem", "condition": "superieur_ou_egal", "valeur": 6.5 },
+          { "champ": "rendement_net_moyen", "condition": "superieur_ou_egal", "valeur": 6.5 },
           { "champ": "paris", "condition": "vrai", "valeur": true },
           { "champ": "signature", "condition": "egal", "valeur": "nationale_premium" },
           { "champ": "emplacement", "condition": "dans", "valeur": ["n1", "n1_bis", "intermediaire", "a_qualifier"] }

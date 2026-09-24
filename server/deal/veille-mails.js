@@ -117,6 +117,18 @@ async function releverVraiment(uploadDir = null) {
         });
       }
     }
+    // Une fiche nouvelle devient un dossier AVANT le rattachement : sans ça,
+    // la fiche d'un agent qui a déjà un dossier ouvert y entrait comme une pièce.
+    const dossierUploads = uploadDir || CHEMIN_UPLOADS;
+    let fiches = { crees: 0, rejoints: 0, lignes: [] };
+    try {
+      const { preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
+      fiches = await preanalyserLesNouvellesFiches({ uploadDir: dossierUploads });
+      erreurs.push(...(fiches.erreurs || []));
+      echecs.push(...(fiches.echecs || []));
+    } catch (e) {
+      erreurs.push(`Préanalyse des nouvelles fiches : ${e?.message || e}`);
+    }
     const rattaches = rattacherMailsOrphelins();
 
     // Les pièces jointes des réponses entrent dans leur dossier et partent au
@@ -145,7 +157,7 @@ async function releverVraiment(uploadDir = null) {
     // Les agents entrent au CRM tout seuls : l'information est déjà sur les
     // dossiers, personne n'a à la ressaisir.
     const crm = synchroniserAgents();
-    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, pieces, engagements, crm, erreurs };
+    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, preanalyses: fiches.crees, pieces, engagements, crm, erreurs };
 
     // Ce que la veille a fait sans personne devant l'écran doit pouvoir se
     // relire : sinon un document apparaît dans un dossier sans qu'on sache d'où.
@@ -154,10 +166,11 @@ async function releverVraiment(uploadDir = null) {
       nouveaux,
       ecartes,
       rattaches,
+      preanalyses: fiches.crees || 0,
       documents: pieces.documents || 0,
       classes: pieces.classes || 0,
       fiches: pieces.fiches || 0,
-      lignes: pieces.lignes || [],
+      lignes: [...(fiches.lignes || []), ...(pieces.lignes || [])],
       engagements: engagements.crees || 0,
       erreurs,
       echecs,

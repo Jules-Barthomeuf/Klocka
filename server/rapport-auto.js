@@ -22,6 +22,7 @@ export function consignerPasse(bilan) {
   const utile =
     (bilan.nouveaux || 0) +
     (bilan.rattaches || 0) +
+    (bilan.preanalyses || 0) +
     (bilan.documents || 0) +
     (bilan.engagements || 0) +
     (bilan.erreurs?.length || 0);
@@ -33,6 +34,7 @@ export function consignerPasse(bilan) {
       nouveaux: bilan.nouveaux || 0,
       ecartes: bilan.ecartes || 0,
       rattaches: bilan.rattaches || 0,
+      preanalyses: bilan.preanalyses || 0,
       documents: bilan.documents || 0,
       classes: bilan.classes || 0,
       fiches: bilan.fiches || 0,

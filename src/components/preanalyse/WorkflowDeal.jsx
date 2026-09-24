@@ -460,8 +460,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           Partout ailleurs, le chat du dossier ne bouge pas. */}
       {surMarche && <JournalQuestion dealId={dossier?.deal_id} adresse={adresseDe(dossier?.lots?.[0])} apercu={apercu} />}
 
-      {/* Le chat n'a rien à faire sur Plateforme ni Présentation : là, on génère. */}
-      {etape <= 3 && !surMarche && (
+      {/* Le chat n'a rien à faire sur Plateforme ni Présentation : là, on génère.
+          Ni sur une pré-analyse vide : le dépôt et la boîte à coller suffisent. */}
+      {etape <= 3 && !surMarche && !(etape === 2 && !dossier?.lots?.length && !dossier?.documents_espace?.length) && (
       <ChatDossier
         afficherRequetes={etape === 2 || etape === 3}
         panneauDocuments={dossier && etape !== 2 ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
@@ -506,6 +507,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
             onAnalyserTexte={(texte) => analyserFiche.mutate({ texte })}
             analyseEnCours={analyserFiche.isPending}
+            onArreterAnalyse={() => arretAnalyse.current?.abort()}
             onSaisie={onSaisie}
             enCours={enCours}
             onRefresh={onRefresh}
@@ -806,7 +808,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 // Étape 2 — Pré-analyse : dépôt (nouveau deal) ou résultat, décision Oui/Non
 // ---------------------------------------------------------------------------
 
-function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnalyserFichier, onAnalyserTexte, analyseEnCours = false }) {
+function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnalyserFichier, onAnalyserTexte, onArreterAnalyse = null, analyseEnCours = false }) {
   const titre = (
     <TitreEtape n={2} titre="Pré-analyse" />
   );
@@ -819,7 +821,7 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
         {dossier?.documents_espace?.length > 0 ? (
           <PreanalyseDepuisDocuments dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
         ) : (
-          <DepotFiche onFichier={onAnalyserFichier} onTexte={onAnalyserTexte} enCours={analyseEnCours} apercu={apercu} />
+          <DepotFiche onFichier={onAnalyserFichier} onTexte={onAnalyserTexte} onArreter={onArreterAnalyse} enCours={analyseEnCours} apercu={apercu} />
         )}
       </>
     );
@@ -905,7 +907,7 @@ function AttenteAnalyse() {
 // La fiche entre par ici ou par le chat : la même analyse, le même bouton
 // d'arrêt. Un fichier glissé sur la zone part tout de suite ; un texte collé
 // attend « Analyser ».
-function DepotFiche({ onFichier, onTexte, enCours = false, apercu = false }) {
+function DepotFiche({ onFichier, onTexte, onArreter = null, enCours = false, apercu = false }) {
   const inputFichier = useRef(null);
   const [texte, setTexte] = useState("");
   const [survol, setSurvol] = useState(false);
@@ -913,7 +915,16 @@ function DepotFiche({ onFichier, onTexte, enCours = false, apercu = false }) {
 
   const choisir = (f) => { if (f && !inerte) onFichier(f); };
 
-  if (enCours) return <div className="bg-surface border border-trait rounded-xl p-6"><AttenteAnalyse /></div>;
+  if (enCours) return (
+    <div className="bg-surface border border-trait rounded-xl p-6 animate-in fade-in duration-300">
+      <AttenteAnalyse />
+      {onArreter && (
+        <div className="flex justify-center">
+          <button type="button" onClick={onArreter} className="text-[12.5px] text-ardoise hover:text-encre transition-colors" style={{ background: "transparent" }}>Arrêter l'analyse</button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="grid md:grid-cols-2 gap-5">

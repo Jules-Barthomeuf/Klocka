@@ -59,7 +59,9 @@ test("la consigne est le document de Jules, mot pour mot, puis le cadre de la pl
   assert.match(CONSIGNE, /Non je suis en train de faire autre chose rappelle-moi plus tard/);
   const c = consigne();
   assert.ok(c.startsWith(CONSIGNE));
-  assert.match(c, /Tu n'envoies jamais rien/);
+  // Le modèle n'envoie rien lui-même : c'est le « envoie » de la personne qui a lu le mail.
+  assert.match(c, /Tu ne l'envoies jamais : c'est le « envoie » de la personne qui le fait partir/);
+  assert.ok(OUTILS.some((o) => o.name === 'mail_agent'));
 });
 
 test("les outils d'AK : ceux de l'assistant sans l'envoi de mail, plus les siens", () => {

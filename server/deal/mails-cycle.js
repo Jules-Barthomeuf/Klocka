@@ -49,7 +49,7 @@ function mailDeSecours(intention, vue, { signature, raisons }) {
     case 'refus':
       return {
         objet: `Retour sur votre proposition – ${ref}`,
-        corps: `Bonjour,\n\nMerci pour votre envoi concernant ${ref}.\n\nAprès étude, nous ne donnerons pas suite à cette opportunité pour le moment.\n\nNous restons en recherche active d'autres opportunités en murs commerciaux pour nos clients : n'hésitez pas à nous transmettre vos prochaines fiches.\n\nBien à vous,\n${sig}`,
+        corps: `Bonjour,\n\nMerci pour votre envoi concernant ${ref}.\n\nAprès étude, nous ne donnerons pas suite à cette opportunité pour le moment${raisons ? ` : ${String(raisons).trim().replace(/\.$/, '')}.` : '.'}\n\nNous restons en recherche active d'autres opportunités en murs commerciaux pour nos clients : n'hésitez pas à nous transmettre vos prochaines fiches.\n\nBien à vous,\n${sig}`,
       };
     case 'demande_documents':
       return {
@@ -81,6 +81,7 @@ const CONSIGNES_INTENTION = {
   refus: `Objectif : décliner poliment l'opportunité SANS donner nos critères ni notre analyse.
 - Ne mentionne ni verdict, ni rendement, ni grille d'analyse : l'agent n'a pas à connaître nos critères.
 - Indique clairement que nous ne donnons pas suite pour le moment.
+- Si le JSON contient "retour_a_donner", c'est le retour que l'équipe veut faire à l'agent (par exemple « l'emplacement ne nous convient pas ») : donne-le en une ou deux phrases, reformulé de façon professionnelle et factuelle, pour qu'il sache ce qui a coincé et quoi nous envoyer la prochaine fois. N'y ajoute aucun chiffre interne ni aucune autre raison. Sans ce champ, ne donne aucune raison.
 - Termine en rappelant que nous restons en recherche active d'autres opportunités en murs commerciaux et que l'agent est invité à envoyer ses prochaines fiches.`,
   demande_documents: `Objectif : annoncer que le dossier retient notre attention et demander les documents nécessaires pour pousser l'étude.
 - Demande la liste de documents fournie dans le JSON ("documents_a_demander"), en liste à tirets.
@@ -129,6 +130,7 @@ export async function redigerMailIntention(
         }
       : {}),
     ...(intention === 'abandon' ? { raisons_abandon: raisons || 'non précisées' } : {}),
+    ...(intention === 'refus' && raisons ? { retour_a_donner: String(raisons) } : {}),
     // La relance cite le registre : ce qui a été demandé, ce qui a été promis,
     // pour quand. C'est ce qui la sort du gabarit — chaque relance dit SES faits.
     ...(intention === 'relance' && engagements?.length

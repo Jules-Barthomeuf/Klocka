@@ -7,8 +7,10 @@
 // préz bancaire d'un projet. Et sa personnalité, qui est celle du document
 // écrit par Jules (consigne.md), pris tel quel.
 //
-// Ce qu'AK ne fait pas : envoyer un mail. Il en prépare le texte, quelqu'un
-// l'envoie. C'est une décision de l'équipe, pas une limite technique.
+// Les mails : AK en prépare le texte. Celui de l'agent d'un dossier
+// (mail_agent) part seulement quand la personne qui l'a lu en entier dans le
+// chat répond « envoie » ; c'est la veille qui l'envoie, pas le modèle.
+// L'outil d'envoi de l'assistant reste exclu : rien ne part sans avoir été lu.
 
 import fs from 'fs';
 import path from 'path';
@@ -256,6 +258,22 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
   },
   {
+    name: 'mail_agent',
+    description: "Le mail à l'agent immobilier d'un dossier (« fais un mail de feedback à l'agent », « refuse poliment », « dis-lui que l'emplacement est nul », « demande-lui les docs », « relance-le ») : rédigé, puis posté en entier dans le chat juste après ta réponse. Rien ne part : la personne relit et répond « envoie ». intention : refus (on ne donne pas suite, avant les documents ; raisons = le retour à lui faire, avec les mots de la personne, ex. « l'emplacement ne nous convient pas »), demande_documents, relance, abandon (après étude des documents ; raisons = pourquoi), presentation_client. Pour retoucher un brouillon (« plus court », « enlève la dernière phrase ») : rappelle-le avec objet et corps réécrits, ils sont pris tels quels.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string', description: 'le dossier, de chercher_dossier' },
+        intention: { type: 'string', enum: ['refus', 'demande_documents', 'relance', 'abandon', 'presentation_client'] },
+        raisons: { type: 'string', description: 'le retour à donner (refus, abandon) ou les documents à demander, un par ligne' },
+        objet: { type: 'string', description: 'seulement pour une retouche : le nouvel objet' },
+        corps: { type: 'string', description: 'seulement pour une retouche : le nouveau corps complet' },
+        a: { type: 'string', description: "l'adresse de l'agent, seulement si le dossier n'en a pas" },
+      },
+      required: ['deal_id', 'intention'],
+    },
+  },
+  {
     name: 'taches_en_cours',
     description: "Ce qu'AK est en train de faire en tâche de fond (analyses K-Data, préz), pour répondre « je suis en train de faire autre chose » ou dire où ça en est.",
     input_schema: { type: 'object', properties: {} },
@@ -288,7 +306,15 @@ export function decrireOutilsKdata() {
  * Exécute un outil d'AK, ou passe la main à l'assistant. `fond` reçoit les
  * tâches qui continuent après la réponse : c'est la veille qui les suit.
  */
-export async function executerOutil({ name, input }, user, { fond = () => {}, message = null } = {}) {
+export async function executerOutil({ name, input }, user, { fond = () => {}, apres = () => {}, message = null } = {}) {
+  if (name === 'mail_agent') {
+    const { redigerPourLAgent } = await import('./mail-agent.js');
+    const r = await redigerPourLAgent(input || {}, { user, espace: message?.espace || null, pour: message?.auteur || null });
+    if (!r.ok) return r;
+    // Le brouillon part mot pour mot après la réponse : le modèle ne le recopie pas.
+    apres(r.texte);
+    return { ok: true, a: r.brouillon.a, de: r.brouillon.de, objet: r.brouillon.objet, poste_dans_le_chat: true };
+  }
   if (name === 'analyser_fiche' && (input.texte_du_message || input.texte) && !input.chemin) {
     const texte = String(input.texte || message?.texte || '').trim();
     if (texte.length < 80) return { ok: false, error: 'Le message ne contient pas de fiche à lire.' };
@@ -511,6 +537,7 @@ export function texteDeFin(tache) {
     const piles = Object.entries(r.par_pile || {}).map(([p, n]) => `${n} à ${p === 'ecartee' ? 'écarter' : p}`).join(', ');
     return `c'est bon, ${tache.libelle} est finie : ${r.rues || 0} rues, ${r.cibles || 0} cibles${piles ? ` (${piles})` : ''} ${lien(`/alx/villes/${tache.ville_id}`)}`;
   }
+  if (tache.genre === 'preanalyse') return tache.resultat?.texte || `${tache.libelle} : fini.`;
   if (tache.genre === 'prez') {
     if (tache.resultat?.slides) return `📁 c'est fait, ${tache.libelle} est sur le Drive : ${tache.resultat.slides}`;
     return `${tache.libelle} est prête ici : ${tache.resultat?.pptx}${tache.resultat?.erreur_drive ? ` (le Drive a refusé : ${tache.resultat.erreur_drive})` : ''}`;
@@ -532,7 +559,7 @@ RÈGLES :
 2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
-5. Un mail (« prépare le mail de relance pour l'agent de Dieppe ») : chercher_dossier puis preparer_mail ; tu colles l'objet et le corps rendus dans le chat, tels quels, et c'est quelqu'un de l'équipe qui l'envoie. Tu n'envoies jamais rien. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
+5. Un mail à l'agent d'un dossier (« fais un mail de feedback à l'agent, l'emplacement est nul », « refuse-le », « demande les docs », « prépare la relance pour l'agent de Dieppe ») : chercher_dossier si le dossier n'est pas celui dont on parle, puis mail_agent avec les raisons dans les mots de la personne. Le brouillon est posté en entier juste après ta réponse : ne le recopie pas, dis juste en une ligne que voilà le mail. Tu ne l'envoies jamais : c'est le « envoie » de la personne qui le fait partir. Un autre mail (à un client, sans dossier) : preparer_mail, et tu colles l'objet et le corps tels quels. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash : « ça tourne, 7,2 % AEM et 8 ans de bail » ou « c'est dead, 4,8 % AEM et le bail finit dans 14 mois ». Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
 5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
@@ -560,6 +587,22 @@ export const consigne = () => CONSIGNE + CADRE + leconsPourConsigne() + souvenir
 
 function fil(espace) {
   return Conversations.list(AGENT).find((c) => c.metadata?.espace === espace) || Conversations.create({ agent_name: AGENT, metadata: { espace } });
+}
+
+/**
+ * Ce qu'AK a posté sans passer par le modèle (la question sur une fiche,
+ * l'avis, le brouillon d'un mail) entre dans la mémoire du fil : sans ça,
+ * « lance k-data dessus » ou « plus court » ne sauraient pas de quoi on
+ * parle. Par paire, pour que les rôles alternent toujours. `repere` est ce
+ * que le modèle doit savoir sans que la personne le lise (un identifiant).
+ */
+export function memoriser(espace, texte, repere = null) {
+  const conversation = fil(espace);
+  const pair = [
+    { role: 'user', content: '(message automatique : AK a posté ceci de lui-même dans le chat)' },
+    { role: 'assistant', content: `${texte}${repere ? `\n(${repere})` : ''}` },
+  ];
+  Conversations.setMessages(conversation.id, [...conversation.messages, ...pair].slice(-MAX_MESSAGES));
 }
 
 const sansAccent = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -612,6 +655,7 @@ export async function repondre(message) {
   const historique = [...conversation.messages, { role: 'user', content: courant }].slice(-MAX_MESSAGES);
 
   const fond = [];
+  const apres = [];
   const actions = [];
   const outils = [];
   const { text } = await runAgent({
@@ -622,7 +666,7 @@ export async function repondre(message) {
     cache: true,
     onTool: async (appel) => {
       outils.push(appel.name);
-      const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), message });
+      const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
       const agissant = !['chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
         if (resultat?.ok !== false) actions.push({ ...appel, resultat });
@@ -633,5 +677,5 @@ export async function repondre(message) {
   });
   const texte = String(text || '').trim() || 'rav, je n\'ai rien à répondre là-dessus.';
   Conversations.setMessages(conversation.id, [...conversation.messages, { role: 'user', content: entree }, { role: 'assistant', content: texte }].slice(-MAX_MESSAGES));
-  return { texte, actions, outils, fond };
+  return { texte, actions, outils, fond, apres };
 }

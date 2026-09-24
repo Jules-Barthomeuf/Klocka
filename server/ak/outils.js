@@ -203,7 +203,8 @@ export async function preanalyserMailRecu(id, user) {
   if (m.deal_id) return { ok: false, error: 'Ce mail a déjà été préanalysé.', deal_id: m.deal_id };
   const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
   const { CHEMIN_UPLOADS } = await import('../db.js');
-  const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS });
+  // Une fiche transférée par l'équipe n'a pas d'agent dedans : l'expéditeur n'en devient pas un.
+  const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: m.interne || estInterne(m.de_email) ? null : undefined });
   const lot = d.lots?.[0];
   return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || m.objet, verdict: lot?.synthese?.verdict || null };
 }

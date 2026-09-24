@@ -20,6 +20,10 @@ const DELAI_MS = 20000;
 export const NOM = (process.env.AK_NOM || 'Assistant Klocka').trim();
 export const COMPTE = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
 const ESPACE_VOULU = (process.env.AK_ESPACE || '').trim();
+// Pour les essais : AK ne lit et n'écrit qu'en privé, jamais dans un groupe.
+export const PRIVE_SEUL = /^(1|true|oui|yes)$/i.test(process.env.AK_PRIVE_SEUL || '');
+// Les privés connus : ceux que liste Google et ceux qu'AK a ouverts.
+const PRIVES = new Set();
 const CLE_UTILISATEUR = 'ak.utilisateur';
 
 /** Le compte qui parle, s'il est connecté avec la portée Chat. */
@@ -56,7 +60,9 @@ async function appeler(chemin, { method = 'GET', body = null, params = null } = 
 /** Les espaces où le compte est membre. */
 export async function espaces() {
   const d = await appeler('spaces', { params: { pageSize: '100' } });
-  return (d.spaces || []).map((s) => ({ nom: s.name, titre: s.displayName || null, type: s.spaceType || null }));
+  const liste = (d.spaces || []).map((s) => ({ nom: s.name, titre: s.displayName || null, type: s.spaceType || null }));
+  for (const s of liste) if (s.type === 'DIRECT_MESSAGE') PRIVES.add(s.nom);
+  return liste;
 }
 
 /**
@@ -65,6 +71,7 @@ export async function espaces() {
  */
 export async function espacesSuivis() {
   const tous = await espaces();
+  if (PRIVE_SEUL) return tous.filter((s) => s.type === 'DIRECT_MESSAGE');
   if (!ESPACE_VOULU) return tous;
   const cible = ESPACE_VOULU.toLowerCase();
   return tous.filter((s) => s.type === 'DIRECT_MESSAGE' || s.nom === ESPACE_VOULU || String(s.titre || '').toLowerCase() === cible);
@@ -140,7 +147,13 @@ export function sansMention(message, nom = NOM) {
  * Poste un message dans un espace, dans le fil donné s'il y en a un. Rend le
  * message créé ; la première fois, on y apprend notre propre identité.
  */
+/** En mode privé seul, écrire ailleurs qu'en privé est refusé, quoi qu'on demande. */
+function garderPrive(espace) {
+  if (PRIVE_SEUL && !PRIVES.has(espace)) throw new Error(`AK_PRIVE_SEUL : AK n'écrit qu'en privé, pas dans ${espace}.`);
+}
+
 export async function envoyer(espace, texte, { fil = null } = {}) {
+  garderPrive(espace);
   const body = { text: String(texte || '').slice(0, 4000) };
   if (fil) body.thread = { name: fil };
   const params = fil ? { messageReplyOption: 'REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD' } : null;
@@ -174,6 +187,7 @@ export async function telechargerPiece(piece) {
  */
 export async function assurerPrive(utilisateur) {
   const d = await appeler('spaces:setup', { method: 'POST', body: { space: { spaceType: 'DIRECT_MESSAGE' }, memberships: [{ member: { name: utilisateur, type: 'HUMAN' } }] } });
+  if (d?.name) PRIVES.add(d.name);
   return d?.name || null;
 }
 
@@ -182,6 +196,7 @@ export async function assurerPrive(utilisateur) {
  * (media.upload), puis un message le porte avec un texte.
  */
 export async function envoyerFichier(espace, { chemin, nom = null, texte = '' }) {
+  garderPrive(espace);
   const c = compteAk();
   if (!c.ok) throw new Error(c.error);
   const token = await accessTokenFor(Records.get('MailAccount', c.compte.id) || c.compte);

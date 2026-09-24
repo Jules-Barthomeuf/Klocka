@@ -12,7 +12,8 @@ import { Records, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { chatDemande } from '../google-oauth.js';
 import { noterEchange, apprendre } from './lecons.js';
 import { assurerPrive } from './chat.js';
-import { compteAk, espacesSuivis, messagesDepuis, estPourAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
+import { compteAk, espacesSuivis, messagesDepuis, estPourAk, estDeAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
+import { APP_URL_PROD } from '../contexte.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 // La flemme : une fois sur AK_FLEMME, AK refuse et ne fait rien. Jamais deux
@@ -85,6 +86,53 @@ function suivreAlx(tache) {
   Records.update(ENTITE_TACHE, tache.id, { etat: p.etat === 'fini' ? 'finie' : 'ratee', resultat: { etat: p.etat, cibles: cibles.length, par_pile: parPile, rues: (v.rues || []).length, erreur: p.etat === 'erreur' ? (p.journal || []).slice(-1)[0]?.texte || 'erreur' : null }, fini_le: new Date().toISOString() });
 }
 
+/**
+ * Une fiche acceptée dans le chat : le dossier naît du mail (nommé, fiche
+ * dedans, grille, simulateur), puis la tâche attend le marché autour avant
+ * de rendre l'avis. C'est suivrePreanalyse qui la ferme.
+ */
+async function lancerPreanalyse(tache) {
+  const { preanalyserMailRecu, nommer } = await import('./outils.js');
+  const { utilisateurPour, utilisateurAk } = await import('./agent.js');
+  try {
+    const r = await preanalyserMailRecu(tache.mail_id, utilisateurPour(tache.pour) || utilisateurAk());
+    if (!r.ok) throw new Error(r.error || 'préanalyse impossible');
+    nommer(r.deal_id);
+    Records.update(ENTITE_TACHE, tache.id, { deal_id: r.deal_id, etape: 'marche', preanalyse_le: new Date().toISOString() });
+  } catch (e) {
+    Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() });
+  }
+}
+
+// Le loyer de marché peut attendre K-Data Valeur locative (Equimmox, quelques
+// minutes). On relit une fois par minute, dix minutes au plus : au-delà,
+// l'avis part et dit que le loyer est encore en lecture.
+const MARCHE_PAS_MS = 60 * 1000;
+const MARCHE_MAX_MS = 10 * 60 * 1000;
+
+async function suivrePreanalyse(tache) {
+  // Un redémarrage pendant la lecture de la fiche : la tâche ne finirait jamais.
+  if (tache.etape !== 'marche' && Date.now() - Date.parse(tache.cree_le) > 15 * 60 * 1000) {
+    return Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: 'interrompue (le serveur a redémarré ?) : dis-moi « préanalyse ce mail » ou lance-la depuis le dashboard' }, fini_le: new Date().toISOString() });
+  }
+  if (tache.etape !== 'marche' || !tache.deal_id) return;
+  if (Date.now() - Date.parse(tache.dernier_essai || 0) < MARCHE_PAS_MS) return;
+  Records.update(ENTITE_TACHE, tache.id, { dernier_essai: new Date().toISOString() });
+  const brut = Records.findBy('Deal', 'deal_id', tache.deal_id);
+  if (!brut) return Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: 'dossier disparu' }, fini_le: new Date().toISOString() });
+  let marche = null;
+  try {
+    const { comparerAuMarche } = await import('../deal/comparaison-marche.js');
+    const r = await comparerAuMarche(brut, 0);
+    marche = r?.ok ? r : null;
+  } catch { marche = null; }
+  if (marche?.loyer?.kdata_en_cours && Date.now() - Date.parse(tache.preanalyse_le) < MARCHE_MAX_MS) return;
+  const { avisDuDossier } = await import('./avis.js');
+  const lien = `${APP_URL_PROD || 'http://localhost:5173'}/Analyse?deal_id=${tache.deal_id}`;
+  const texte = await avisDuDossier(tache.deal_id, { lien, marche });
+  Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat: { texte: texte || `le dossier est prêt : ${lien}`, deal_id: tache.deal_id }, fini_le: new Date().toISOString() });
+}
+
 /** Les analyses K-Data d'une tâche : la tâche se ferme quand plus aucune ne tourne. */
 function suivreKdata(tache) {
   const analyses = (tache.ids || []).map((id) => Records.get('AnalyseKData', id)).filter(Boolean);
@@ -95,7 +143,11 @@ function suivreKdata(tache) {
 /** Les tâches finies sont annoncées une fois, là où on les a demandées. */
 async function annoncerLesTachesFinies() {
   const { texteDeFin } = await import('./agent.js');
-  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) { if (t.genre === 'kdata') suivreKdata(t); if (t.genre === 'alx') suivreAlx(t); }
+  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) {
+    if (t.genre === 'kdata') suivreKdata(t);
+    if (t.genre === 'alx') suivreAlx(t);
+    if (t.genre === 'preanalyse') { try { await suivrePreanalyse(t); } catch (e) { dernier.erreur = e?.message || String(e); } }
+  }
   for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
     const texte = t.etat === 'ratee' ? `dsl, ${t.libelle} a planté : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
     try {
@@ -108,6 +160,10 @@ async function annoncerLesTachesFinies() {
         await envoyer(t.espace, `${mention(t.pour)} ${texte}`);
       }
       Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString() });
+      if (t.genre === 'preanalyse' && t.deal_id) {
+        const { memoriser } = await import('./agent.js');
+        memoriser(t.espace, texte, `dossier deal_id ${t.deal_id}`);
+      }
     } catch (e) {
       dernier.erreur = e?.message || String(e);
     }
@@ -238,9 +294,40 @@ async function traiter(message) {
     if (t.genre === 'loi') lancerLoi(tache).catch(() => {});
   }
   await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
+  // Ce qu'un outil veut montrer tel quel (le mail à l'agent) suit la réponse.
+  for (const t of r.apres || []) {
+    await poster(message.espace, t, null, message.auteur);
+    const { memoriser } = await import('./agent.js');
+    memoriser(message.espace, t);
+  }
   ouvrirAttente(message);
   noterEchange({ espace: message.espace, auteur: message.auteur, demande: texte, reponse: r.texte });
   dernier.repondus += 1;
+}
+
+/**
+ * Ce qui se tranche sans le modèle : un « envoie » sur le mail à l'agent qui
+ * attend, un oui ou un non à la question sur une fiche. Rend vrai quand le
+ * message est traité ; sinon il suit le chemin normal.
+ */
+async function trancher(message) {
+  const { estUnEnvoi, brouillonEnAttente, envoyerBrouillon } = await import('./mail-agent.js');
+  const { repondreALaQuestion } = await import('./fiches.js');
+  const { utilisateurPour, utilisateurAk } = await import('./agent.js');
+  const texte = sansMention(message);
+  const user = utilisateurPour(message.auteur) || utilisateurAk();
+  const brouillon = brouillonEnAttente(message.espace);
+  if (brouillon && estUnEnvoi(texte)) {
+    const phrase = await envoyerBrouillon(brouillon, user);
+    await poster(message.espace, `${mention(message.auteur)} ${phrase}`, null, message.auteur);
+    return true;
+  }
+  const r = repondreALaQuestion({ ...message, texte }, { estUnOui, par: user?.email || null });
+  if (!r) return false;
+  if (r.tache) lancerPreanalyse(ouvrirTache(r.tache, message)).catch(() => {});
+  await poster(message.espace, `${mention(message.auteur)} ${r.texte}`, null, message.auteur);
+  ouvrirAttente(message);
+  return true;
 }
 
 /** Un passage : relire, répondre, annoncer. */
@@ -263,6 +350,12 @@ export async function relever() {
         for (const x of m.mentions) retenirPersonne(x);
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
+        // Un oui, un non, un « envoie » : en privé toujours, dans le groupe
+        // seulement s'il parle à AK (« envoie-moi le doc » entre collègues n'envoie rien).
+        const direct = espace.type === 'DIRECT_MESSAGE';
+        if (!estDeAk(m) && (direct || estPourAk(m, { direct: enConversation(m) }))) {
+          try { if (await trancher(m)) { traites += 1; continue; } } catch (e) { dernier.erreur = e?.message || String(e); }
+        }
         // « non c'est pas ça », « nickel » : une leçon, pas une demande.
         if (apprendre({ espace: m.espace, auteur: m.auteur, texte: sansMention(m) })) continue;
         if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' || enConversation(m) })) continue;
@@ -278,6 +371,12 @@ export async function relever() {
     Meta.set(CLE_DEPUIS, plusRecent);
     await reposterEnAttente();
     await annoncerLesTachesFinies();
+    // Une fiche arrivée dans la boîte : la question, en privé.
+    try {
+      const { poserLesQuestions } = await import('./fiches.js');
+      const { memoriser } = await import('./agent.js');
+      await poserLesQuestions({ assurerPrive, envoyer, memoriser });
+    } catch (e) { dernier.erreur = e?.message || String(e); }
     // Le mot du matin et les propositions spontanées (dossiers incomplets,
     // mails à traiter) sont désactivés : l'équipe ne veut pas de messages non
     // demandés dans le groupe. direLeMatin() et seProposer() restent codés,

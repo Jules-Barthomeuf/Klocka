@@ -502,9 +502,10 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {etape === 1 && <EtapeMail dossier={dossier} onSuivant={() => setEtape(2)} apercu={apercu} brouillon={brouillonMail} onBrouillon={setBrouillonMail} />}
         {etape === 2 && (
           <EtapePreanalyse
-            analyseParChat
             dossier={dossier}
-            onAnalyse={onAnalyse}
+            onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
+            onAnalyserTexte={(texte) => analyserFiche.mutate({ texte })}
+            analyseEnCours={analyserFiche.isPending}
             onSaisie={onSaisie}
             enCours={enCours}
             onRefresh={onRefresh}
@@ -805,7 +806,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 // Étape 2 — Pré-analyse : dépôt (nouveau deal) ou résultat, décision Oui/Non
 // ---------------------------------------------------------------------------
 
-function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, apercu, analyseParChat = false }) {
+function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnalyserFichier, onAnalyserTexte, analyseEnCours = false }) {
   const titre = (
     <TitreEtape n={2} titre="Pré-analyse" />
   );
@@ -817,14 +818,8 @@ function EtapePreanalyse({ dossier, onAnalyse, onSaisie, enCours, onRefresh, ape
         {titre}
         {dossier?.documents_espace?.length > 0 ? (
           <PreanalyseDepuisDocuments dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
-        ) : analyseParChat ? (
-          <div className="bg-surface border border-trait rounded-xl px-6 py-10 text-center">
-            <p className="m-0 text-[13.5px] text-ardoise">
-              Importez un fichier ou collez l'email dans le chat pour lancer l'analyse.
-            </p>
-          </div>
         ) : (
-          <DepotFiche onAnalyse={onAnalyse} dealId={dossier?.deal_id || null} />
+          <DepotFiche onFichier={onAnalyserFichier} onTexte={onAnalyserTexte} enCours={analyseEnCours} apercu={apercu} />
         )}
       </>
     );
@@ -907,85 +902,59 @@ function AttenteAnalyse() {
   );
 }
 
-function DepotFiche({ onAnalyse, dealId = null }) {
+// La fiche entre par ici ou par le chat : la même analyse, le même bouton
+// d'arrêt. Un fichier glissé sur la zone part tout de suite ; un texte collé
+// attend « Analyser ».
+function DepotFiche({ onFichier, onTexte, enCours = false, apercu = false }) {
   const inputFichier = useRef(null);
   const [texte, setTexte] = useState("");
+  const [survol, setSurvol] = useState(false);
+  const inerte = enCours || apercu;
 
-  const analyser = useMutation({
-    mutationFn: async ({ fichier, texte: t }) => {
-      const form = new FormData();
-      if (fichier) form.append("fichier", fichier);
-      if (t) form.append("texte", t);
-      // Un dossier nommé existe déjà : l'analyse le remplit au lieu d'en créer un.
-      if (dealId) form.append("deal_id", dealId);
-      return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true });
-    },
-    onSuccess: (d) => {
-      toast.success(d.multi_lots ? `${d.lots.length} lots analysés` : "Fiche analysée");
-      onAnalyse?.(d);
-    },
-    onError: (e) => toast.error(e?.message || "Analyse impossible"),
-  });
+  const choisir = (f) => { if (f && !inerte) onFichier(f); };
 
-  const onFichier = (e) => {
-    const f = e.target.files?.[0];
-    if (f) analyser.mutate({ fichier: f });
-    e.target.value = "";
-  };
+  if (enCours) return <div className="bg-surface border border-trait rounded-xl p-6"><AttenteAnalyse /></div>;
 
   return (
-    <div className="bg-surface border border-trait rounded-md p-6">
-      <p className="text-encre text-sm font-medium mb-1">Pré-analyser la fiche</p>
-      <p className="text-ardoise text-xs mb-4">
-        Déposez la fiche commerciale reçue de l'agent (ou collez le texte du mail) : extraction,
-        vérification des citations, verdict et simulateur. Les mails reçus se préanalysent aussi en un
-        clic depuis le plan de travail du dashboard.
-      </p>
-      <div className="grid md:grid-cols-2 gap-5">
-        <div>
-          <Label className="text-ardoise text-xs mb-2 block">Fiche commerciale</Label>
-          <button
-            onClick={() => inputFichier.current?.click()}
-            disabled={analyser.isPending}
-            className="w-full h-[104px] border border-dashed border-encre/15 rounded-md flex flex-col items-center justify-center gap-2 hover:border-bord-vif hover:bg-encre/[0.02] transition-all disabled:opacity-50"
+    <div className="grid md:grid-cols-2 gap-5">
+      <button
+        type="button"
+        onClick={() => inputFichier.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); if (!inerte) setSurvol(true); }}
+        onDragLeave={() => setSurvol(false)}
+        onDrop={(e) => { e.preventDefault(); setSurvol(false); choisir(e.dataTransfer.files?.[0]); }}
+        disabled={inerte}
+        className={`min-h-[190px] rounded-xl border border-dashed flex flex-col items-center justify-center gap-2 px-6 text-center transition-all duration-300 disabled:opacity-50 ${survol ? "border-menthe bg-menthe/[0.06] scale-[1.01]" : "border-encre/15 bg-surface hover:border-bord-vif hover:bg-encre/[0.02]"}`}
+      >
+        <Upload className={`w-6 h-6 transition-colors duration-300 ${survol ? "text-menthe" : "text-ardoise"}`} />
+        <span className="text-[14px] text-encre">{survol ? "Lâchez la fiche ici" : "Déposez la fiche commerciale"}</span>
+        <span className="text-[12px] text-brume">ou cliquez pour la choisir · PDF, image, Word, .eml</span>
+      </button>
+      <input
+        ref={inputFichier}
+        type="file"
+        accept=".pdf,.doc,.docx,.rtf,.jpg,.jpeg,.png,.webp,.eml,.txt,.md,.csv"
+        onChange={(e) => { choisir(e.target.files?.[0]); e.target.value = ""; }}
+        className="hidden"
+      />
+      <div className="flex flex-col rounded-xl border border-trait bg-surface p-4">
+        <Textarea
+          value={texte}
+          onChange={(e) => setTexte(e.target.value)}
+          disabled={inerte}
+          placeholder="Pas de fichier ? Collez ici le texte du mail ou de l'annonce."
+          className="flex-1 min-h-[110px] bg-transparent border-0 p-0 text-encre resize-none focus-visible:ring-0"
+        />
+        <div className="flex justify-end pt-3">
+          <Button
+            onClick={() => onTexte(texte.trim())}
+            disabled={!texte.trim() || inerte}
+            className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full transition-opacity"
           >
-            <Upload className="w-5 h-5 text-ardoise" />
-            <span className="text-ardoise text-sm">PDF, image, .eml</span>
-            <span className="text-brume text-[11px]">Les PDF scannés sont transcrits automatiquement</span>
-          </button>
-          <input
-            ref={inputFichier}
-            type="file"
-            accept=".pdf,.doc,.docx,.rtf,.jpg,.jpeg,.png,.webp,.eml,.txt,.md,.csv"
-            onChange={onFichier}
-            className="hidden"
-          />
-        </div>
-        <div>
-          <Label className="text-ardoise text-xs mb-2 block">…ou collez le texte du mail</Label>
-          <Textarea
-            value={texte}
-            onChange={(e) => setTexte(e.target.value)}
-            rows={4}
-            placeholder="Bonjour, je vous propose un local commercial situé…"
-            className="bg-fond border-trait text-encre resize-none"
-          />
+            <Microscope className="w-4 h-4 mr-2" /> Analyser
+          </Button>
         </div>
       </div>
-      <div className="flex justify-end mt-4">
-        <Button
-          onClick={() => analyser.mutate({ texte })}
-          disabled={!texte.trim() || analyser.isPending}
-          className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
-        >
-          {analyser.isPending ? (
-            <><PenseeIA etat="searching" taille={20} clair className="mr-2" /> Analyse…</>
-          ) : (
-            <><Microscope className="w-4 h-4 mr-2" /> Analyser</>
-          )}
-        </Button>
-      </div>
-      {analyser.isPending && <AttenteAnalyse />}
     </div>
   );
 }

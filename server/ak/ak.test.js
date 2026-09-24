@@ -372,3 +372,18 @@ test("un mail de l'équipe avec une pièce utile entre dans la boîte, marqué i
   assert.equal(externe.garder, true);
   assert.equal(externe.interne, undefined);
 });
+
+test('la consigne se relit dès que le fichier change', async () => {
+  const { consigneActuelle } = await import('./agent.js');
+  const chemin = new URL('./consigne.md', import.meta.url);
+  const avant = fs.readFileSync(chemin, 'utf8');
+  try {
+    fs.writeFileSync(chemin, `${avant}\nMARQUEUR-DE-TEST`);
+    fs.utimesSync(chemin, new Date(), new Date(Date.now() + 5000));
+    assert.match(consigneActuelle(), /MARQUEUR-DE-TEST/);
+  } finally {
+    fs.writeFileSync(chemin, avant);
+  }
+  fs.utimesSync(chemin, new Date(), new Date(Date.now() + 10000));
+  assert.doesNotMatch(consigneActuelle(), /MARQUEUR-DE-TEST/);
+});

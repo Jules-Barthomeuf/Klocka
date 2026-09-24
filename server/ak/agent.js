@@ -40,6 +40,18 @@ const APP_URL = APP_URL_PROD || 'http://localhost:5173';
 /** Le document de Jules, mot pour mot. */
 export const CONSIGNE = fs.readFileSync(path.join(ici, 'consigne.md'), 'utf8');
 
+// Le document se relit dès qu'il change sur le disque : une retouche
+// enregistrée vaut au message suivant, sans redémarrer le serveur.
+const CHEMIN_CONSIGNE = path.join(ici, 'consigne.md');
+let consigneLue = { texte: CONSIGNE, modifie: 0 };
+export function consigneActuelle() {
+  try {
+    const modifie = fs.statSync(CHEMIN_CONSIGNE).mtimeMs;
+    if (modifie !== consigneLue.modifie) consigneLue = { texte: fs.readFileSync(CHEMIN_CONSIGNE, 'utf8'), modifie };
+  } catch { /* fichier momentanément illisible : on garde la dernière version lue */ }
+  return consigneLue.texte;
+}
+
 // Les outils de l'assistant qu'AK reprend. Pas l'envoi de mail : décidé. Pas
 // non plus son creer_dossier, qui enchaîne CRM, Monday et promesse de
 // documents : dans le chat, « crée un dossier » crée un dossier, rien d'autre.
@@ -399,7 +411,7 @@ export async function executerOutil({ name, input }, user, { fond = () => {}, ap
   }
   if (name === 'version') {
     const { versionQuiTourne } = await import('./veille.js');
-    return { version: versionQuiTourne(), consigne_contient: input.mot ? CONSIGNE.includes(input.mot) : null, modele: MODELE || 'celui de la plateforme' };
+    return { version: versionQuiTourne(), consigne_contient: input.mot ? consigneActuelle().includes(input.mot) : null, modele: MODELE || 'celui de la plateforme' };
   }
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null });
   if (name === 'oublier') return oublier(input.id);
@@ -583,7 +595,7 @@ CE QU'IL FAUT ÉCRIRE À LA PLACE :
  * que l'équipe lui a appris et ce qu'il a retenu. Les deux derniers blocs
  * changent rarement : ils restent en cache avec le reste.
  */
-export const consigne = () => CONSIGNE + CADRE + leconsPourConsigne() + souvenirsPourConsigne();
+export const consigne = () => consigneActuelle() + CADRE + leconsPourConsigne() + souvenirsPourConsigne();
 
 function fil(espace) {
   return Conversations.list(AGENT).find((c) => c.metadata?.espace === espace) || Conversations.create({ agent_name: AGENT, metadata: { espace } });

@@ -15,7 +15,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Records, Conversations, CHEMIN_UPLOADS } from '../db.js';
+import { Records, Conversations, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { runAgent, provider } from '../llm.js';
 import { OUTILS as OUTILS_ASSISTANT, executerOutil as executerOutilAssistant } from '../assistant-commande.js';
 import { journaliser } from '../assistant-journal.js';
@@ -323,7 +323,39 @@ export function decrireOutilsKdata() {
  * Exécute un outil d'AK, ou passe la main à l'assistant. `fond` reçoit les
  * tâches qui continuent après la réponse : c'est la veille qui les suit.
  */
-export async function executerOutil({ name, input }, user, { fond = () => {}, apres = () => {}, message = null } = {}) {
+// Les gestes qui coûtent ou qui créent : refaits à l'identique dans l'heure,
+// ils ne repartent pas. Cinq LOI Devred pour une seule demande, c'était ça.
+export const GESTES_COUTEUX = new Set(['rediger_loi', 'lancer_kdata', 'preanalyser_mail', 'analyser_fiche', 'faire_tout', 'creer_dossier', 'creer_projet_depuis_dossier', 'generer_prez_bancaire', 'lancer_alx']);
+const CLE_GESTES = 'ak.gestes';
+const DOUBLON_MS = 60 * 60 * 1000;
+
+/** Pure : la clé d'un geste, arguments triés, pour reconnaître le même geste. */
+export function cleGeste(name, input = {}) {
+  const trie = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, trie(v[k])])) : v);
+  return `${name}:${JSON.stringify(trie(input || {}))}`;
+}
+
+/** Pure : ce geste a-t-il déjà été fait dans l'heure ? Rend depuis combien de minutes, ou null. */
+export function dejaFait(cle, gestes, maintenant = Date.now()) {
+  const le = gestes[cle];
+  return le && maintenant - le < DOUBLON_MS ? Math.max(1, Math.round((maintenant - le) / 60000)) : null;
+}
+
+export async function executerOutil(appel, user, options = {}) {
+  if (!GESTES_COUTEUX.has(appel.name)) return executerOutilBrut(appel, user, options);
+  const cle = cleGeste(appel.name, appel.input);
+  const gestes = (() => { try { return JSON.parse(Meta.get(CLE_GESTES) || '{}'); } catch { return {}; } })();
+  const minutes = dejaFait(cle, gestes);
+  if (minutes != null) return { ok: false, deja_fait: true, error: `Déjà fait il y a ${minutes} min, pas relancé : dis-le en une ligne, sans le refaire.` };
+  const r = await executerOutilBrut(appel, user, options);
+  if (r?.ok !== false) {
+    const frais = Object.fromEntries(Object.entries({ ...gestes, [cle]: Date.now() }).filter(([, le]) => Date.now() - le < DOUBLON_MS));
+    Meta.set(CLE_GESTES, JSON.stringify(frais));
+  }
+  return r;
+}
+
+async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres = () => {}, message = null } = {}) {
   if (name === 'mail_agent') {
     const { redigerPourLAgent } = await import('./mail-agent.js');
     const r = await redigerPourLAgent(input || {}, { user, espace: message?.espace || null, pour: message?.auteur || null });
@@ -597,6 +629,8 @@ RÈGLES :
 5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question. Ne mets ensemble que des mails qui parlent du MÊME bien (même adresse, même enseigne) ; un mail de compléments pour un bien qui a déjà son dossier (« doc complémentaire pour … ») se dépose avec deposer_mail sur ce dossier, il ne crée pas de doublon : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc », « préanalyse le dossier du glacier que je viens de recevoir » : boite_recue avec tous à vrai (la fiche a pu être préanalysée à son arrivée), le mail qui correspond, puis preanalyser_mail. Réponds en une ligne que c'est parti (ou que le dossier existe déjà) : l'avis est posté par le code, tu ne l'écris pas. « T'en penses quoi du dossier X ? » : chercher_dossier puis avis_dossier, même règle. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
+6bis. Une demande floue (« envoie-lui un mess », « fais le truc ») : tu demandes ce qu'on veut en une ligne, tu ne crées rien, tu ne lances rien. Un outil qui répond « déjà fait » : tu le dis en une ligne, sans le relancer.
+6ter. « STOP » (le mot seul, avec ou sans mention) te fait taire partout, « START » te relance : c'est le frein de l'équipe, il existe. Tu lis toutes les boîtes mail de l'équipe connectées à Klocka, pas seulement sourcing@.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas. Ne dis jamais qu'une chose est faite (dossier créé, préanalyse lancée, mail prêt) si aucun outil ne l'a faite dans CETTE réponse : l'historique du chat ne compte pas, une demande refaite se refait avec l'outil.
 7. Une action faite : UNE ligne, comme un collègue qui répond sur son téléphone. « C bon le dossier est créé et tout est dans monday bg ». Pas d'identifiant, pas de numéro d'item Monday, pas de date « par défaut », pas de rappel de ce que tu n'as pas fait, pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves, les manques, les détails : uniquement si on te les demande.
 8. Si quelqu'un d'autre est mentionné dans la demande (« @Nora tu as fini ? »), tu peux le mentionner en écrivant son identifiant entre chevrons tel qu'il t'est donné : <users/123>. Ne mentionne pas la personne qui te parle : c'est déjà fait devant ta réponse.
@@ -616,8 +650,12 @@ CE QU'IL FAUT ÉCRIRE À LA PLACE :
  */
 export const consigne = () => consigneActuelle() + CADRE + leconsPourConsigne() + souvenirsPourConsigne();
 
-function fil(espace) {
-  return Conversations.list(AGENT).find((c) => c.metadata?.espace === espace) || Conversations.create({ agent_name: AGENT, metadata: { espace } });
+// Dans un groupe, une mémoire par personne : les demandes de l'une ne se
+// mélangent pas à celles de l'autre (« envoie-lui un mess » ne se raccroche
+// plus à la demande d'un collègue). En privé, l'espace suffit.
+function fil(espace, auteur = null) {
+  return Conversations.list(AGENT).find((c) => c.metadata?.espace === espace && (c.metadata?.auteur || null) === auteur)
+    || Conversations.create({ agent_name: AGENT, metadata: { espace, auteur } });
 }
 
 /**
@@ -627,8 +665,8 @@ function fil(espace) {
  * parle. Par paire, pour que les rôles alternent toujours. `repere` est ce
  * que le modèle doit savoir sans que la personne le lise (un identifiant).
  */
-export function memoriser(espace, texte, repere = null) {
-  const conversation = fil(espace);
+export function memoriser(espace, texte, repere = null, auteur = null) {
+  const conversation = fil(espace, auteur);
   const pair = [
     { role: 'user', content: '(message automatique : AK a posté ceci de lui-même dans le chat)' },
     { role: 'assistant', content: `${texte}${repere ? `\n(${repere})` : ''}` },
@@ -672,7 +710,7 @@ export function utilisateurAk() {
  */
 export async function repondre(message) {
   const user = utilisateurPour(message.auteur) || utilisateurAk();
-  const conversation = fil(message.espace);
+  const conversation = fil(message.espace, message.groupe ? message.auteur?.nom || null : null);
   const prenom = (message.auteur.affiche || 'Quelqu\'un').split(' ')[0];
   const autres = (message.mentions || []).filter((m) => m.affiche).map((m) => `${m.affiche} = ${m.nom}`);
   const pieces = (message.pieces || []).map((p) => (p.chemin ? `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})` : `${p.nom} (impossible à télécharger : ${p.erreur})`));

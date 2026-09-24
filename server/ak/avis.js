@@ -55,7 +55,8 @@ export function negoPourViser({ prixFai, loyer, vise, calculer = calculerAEM }) 
 export function phraseRenta({ prixFai, loyer, vise, n, verdict, manquants = [] }) {
   if (!prixFai || !loyer) {
     const quoi = !prixFai ? 'le prix' : 'le loyer';
-    return `je peux pas chiffrer la renta, il manque ${quoi}${manquants.length ? ` (manque aussi : ${manquants.filter((m) => !/loyer|prix/i.test(m)).slice(0, 2).join(', ') || 'rien d\'autre'})` : ''}`;
+    const autres = manquants.filter((m) => !/loyer|prix/i.test(m)).slice(0, 2);
+    return `je peux pas chiffrer la renta, il manque ${quoi}${autres.length ? ` (et ${autres.join(', ')})` : ''}`;
   }
   if (!n) return null;
   const debut = verdict === 'NO-GO' ? 'no go sur la grille' : 'dossier pas mal';
@@ -117,7 +118,7 @@ export function phraseInconnues(lot) {
  * au-dessus disent déjà (rendement, emplacement, preneur, loyer, prix).
  */
 export function autresPoints(grille = [], limite = 2) {
-  const dits = new Set(['rendement_aem', 'emplacement', 'locataire_nom', 'loyer_annuel_ht_hc', 'prix_fai', 'rendement_fai']);
+  const dits = new Set(['rendement_aem', 'adresse', 'emplacement', 'locataire_nom', 'loyer_annuel_ht_hc', 'prix_fai', 'rendement_fai']);
   return grille
     .filter((c) => c.ok === false && !dits.has(c.champ))
     .slice(0, limite)
@@ -133,7 +134,7 @@ export function autresPoints(grille = [], limite = 2) {
 export function phraseClients(clients) {
   if (!clients?.configure) return null;
   const liste = clients.clients || [];
-  if (!liste.length) return 'aucun client ne colle pour l\'instant';
+  if (!liste.length) return null;
   const noms = liste.slice(0, 3).map((c) => c.nom).filter(Boolean);
   return `${liste.length} client${liste.length > 1 ? 's' : ''} pourrai${liste.length > 1 ? 'ent' : 't'} coller${noms.length ? ` : ${noms.join(', ')}${liste.length > 3 ? '…' : ''}` : ''}`;
 }
@@ -161,7 +162,7 @@ export function avisPreanalyse({ dossier, marche = null, clients = null, lien = 
   if (m) lignes.push(m);
   const inconnues = phraseInconnues(lot);
   if (inconnues) lignes.push(inconnues);
-  const autres = autresPoints(grille);
+  const autres = autresPoints(grille, 1);
   if (autres.length) lignes.push(`à noter aussi : ${autres.join(', ')}`);
   const c = phraseClients(clients);
   if (c) lignes.push(c);

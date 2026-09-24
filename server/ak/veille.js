@@ -14,6 +14,7 @@ import { noterEchange, apprendre } from './lecons.js';
 import { assurerPrive } from './chat.js';
 import { compteAk, espacesSuivis, messagesDepuis, estPourAk, estDeAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
 import { APP_URL_PROD } from '../contexte.js';
+import { intention, commandeBanane, GREVE, citation } from './intentions.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 // La flemme : une fois sur AK_FLEMME, AK refuse et ne fait rien. Jamais deux
@@ -60,7 +61,7 @@ const noterVu = (nom) => Meta.set(CLE_VUS, JSON.stringify([...vus(), nom].slice(
 export const tachesEnCours = () => Records.filter(ENTITE_TACHE, { etat: 'en_cours' }).map((t) => ({ libelle: t.libelle, genre: t.genre, depuis: t.cree_le }));
 
 function ouvrirTache(t, message) {
-  return Records.create(ENTITE_TACHE, { ...t, espace: message.espace, fil: message.fil, pour: message.auteur, etat: 'en_cours', cree_le: new Date().toISOString(), fini_le: null, resultat: null, analyses: null });
+  return Records.create(ENTITE_TACHE, { ...t, espace: message.espace, fil: message.fil, pour: message.auteur, groupe: !!message.groupe, etat: 'en_cours', cree_le: new Date().toISOString(), fini_le: null, resultat: null, analyses: null });
 }
 
 /** Une préz se fabrique tout de suite ; la tâche se ferme quand elle est sur le Drive. */
@@ -164,7 +165,7 @@ async function annoncerLesTachesFinies({ muet = false } = {}) {
       Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString() });
       if (t.genre === 'preanalyse' && t.deal_id) {
         const { memoriser } = await import('./agent.js');
-        memoriser(t.espace, texte, `dossier deal_id ${t.deal_id}`);
+        memoriser(t.espace, texte, `dossier deal_id ${t.deal_id}`, t.groupe ? t.pour?.nom || null : null);
       }
     } catch (e) {
       dernier.erreur = e?.message || String(e);
@@ -296,12 +297,12 @@ async function traiter(message) {
     if (t.genre === 'loi') lancerLoi(tache).catch(() => {});
     if (t.genre === 'preanalyse') lancerPreanalyse(tache).catch(() => {});
   }
-  await poster(message.espace, `${mention(message.auteur)} ${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
+  await poster(message.espace, `${entete(message, texte)}${insiste ? `${insiste}. ` : ''}${r.texte}`, null, message.auteur);
   // Ce qu'un outil veut montrer tel quel (le mail à l'agent) suit la réponse.
   for (const t of r.apres || []) {
     await poster(message.espace, t, null, message.auteur);
     const { memoriser } = await import('./agent.js');
-    memoriser(message.espace, t);
+    memoriser(message.espace, t, null, message.groupe ? message.auteur?.nom || null : null);
   }
   ouvrirAttente(message);
   noterEchange({ espace: message.espace, auteur: message.auteur, demande: texte, reponse: r.texte });
@@ -319,6 +320,28 @@ async function trancher(message) {
   const { utilisateurPour, utilisateurAk } = await import('./agent.js');
   const texte = sansMention(message);
   const user = utilisateurPour(message.auteur) || utilisateurAk();
+  const tete = entete(message, texte);
+
+  // Le mode banana split : AK fait la grève, et ne fait rien d'autre.
+  const banane = commandeBanane(texte);
+  if (banane === 'debut' && !enBanane()) {
+    Meta.set(CLE_BANANE, new Date().toISOString());
+    await poster(message.espace, `${tete}banana split activé. je ne fais plus rien, adressez vos réclamations à la chantilly. (fin du banana split pour me rendre mon sérieux)`, null, message.auteur);
+    return true;
+  }
+  if (banane === 'fin' && enBanane()) {
+    Meta.set(CLE_BANANE, '');
+    await poster(message.espace, `${tete}bon, je redeviens sérieux.`, null, message.auteur);
+    return true;
+  }
+  if (enBanane()) {
+    await poster(message.espace, `${tete}${GREVE[Math.floor(Math.random() * GREVE.length)]}`, null, message.auteur);
+    return true;
+  }
+
+  // Préanalyse et avis : le code trouve le mail ou le dossier, et agit.
+  const voulu = intention(texte);
+  if (voulu && (await agirSurIntention(voulu, message, tete))) return true;
   const brouillon = brouillonEnAttente(message.espace);
   if (brouillon && estUnEnvoi(texte)) {
     const phrase = await envoyerBrouillon(brouillon, user);
@@ -328,9 +351,67 @@ async function trancher(message) {
   const r = repondreALaQuestion({ ...message, texte }, { estUnOui, par: user?.email || null });
   if (!r) return false;
   if (r.tache) lancerPreanalyse(ouvrirTache(r.tache, message)).catch(() => {});
-  await poster(message.espace, `${mention(message.auteur)} ${r.texte}`, null, message.auteur);
+  await poster(message.espace, `${tete}${r.texte}`, null, message.auteur);
   ouvrirAttente(message);
   return true;
+}
+
+/**
+ * « préanalyse la fiche du glacier » : le mail d'abord (déjà préanalysé à
+ * son arrivée, l'avis part tout de suite ; sinon la préanalyse part en
+ * tâche de fond), à défaut le dossier qui porte ce nom. « t'en penses quoi
+ * du dossier X » : l'avis du dossier. Rend faux quand rien ne correspond :
+ * le modèle prend alors la main, avec ses outils.
+ */
+async function agirSurIntention(voulu, message, tete) {
+  const { mailDesigne, dossiersDesignes } = await import('./intentions.js');
+  const { porteUneFiche } = await import('../deal/fiches-auto.js');
+  const { avisDuDossier } = await import('./avis.js');
+  const lienDe = (id) => `${APP_URL_PROD || 'http://localhost:5173'}/Analyse?deal_id=${id}`;
+  const direAvis = async (dealId, intro) => {
+    const avis = await avisDuDossier(dealId, { lien: lienDe(dealId) });
+    await poster(message.espace, `${tete}${intro}\n${avis || lienDe(dealId)}`, null, message.auteur);
+    const { memoriser } = await import('./agent.js');
+    memoriser(message.espace, avis || lienDe(dealId), `dossier deal_id ${dealId}`, message.groupe ? message.auteur?.nom || null : null);
+  };
+  const deals = Records.list('Deal');
+  const vivant = (id) => deals.some((d) => d.deal_id === id && !d.archived);
+
+  if (voulu.type === 'preanalyse') {
+    const mail = mailDesigne(voulu.mots, Records.list('MailRecu'), { porteUneFiche });
+    if (mail?.deal_id && vivant(mail.deal_id)) {
+      await direAvis(mail.deal_id, `le dossier existe déjà, préanalysé à l'arrivée du mail « ${String(mail.objet || '').slice(0, 60)} » :`);
+      return true;
+    }
+    if (mail) {
+      const enCours = Records.filter(ENTITE_TACHE, { etat: 'en_cours', genre: 'preanalyse' }).some((t) => t.mail_id === mail.id);
+      if (enCours) { await poster(message.espace, `${tete}déjà en cours, le retour arrive.`, null, message.auteur); return true; }
+      lancerPreanalyse(ouvrirTache({ genre: 'preanalyse', libelle: `la préanalyse de « ${String(mail.objet || 'la fiche').slice(0, 60)} »`, mail_id: mail.id }, message)).catch(() => {});
+      await poster(message.espace, `${tete}c'est parti sur « ${String(mail.objet || '').slice(0, 60)} », retour dans une à deux minutes avec mon avis.`, null, message.auteur);
+      return true;
+    }
+  }
+  const trouves = dossiersDesignes(voulu.mots, deals);
+  if (trouves.length === 1) {
+    await direAvis(trouves[0].deal_id, voulu.type === 'preanalyse' ? 'pas de nouveau mail, mais le dossier existe :' : 'mon avis :');
+    return true;
+  }
+  if (trouves.length > 1) {
+    await poster(message.espace, `${tete}plusieurs dossiers : ${trouves.slice(0, 5).map((d) => d.nom).join(', ')}. lequel ?`, null, message.auteur);
+    return true;
+  }
+  if (voulu.type === 'preanalyse') {
+    const quoi = voulu.mots.length ? `qui parle de ${voulu.mots.join(', ')}` : 'reçue ces trois dernières heures';
+    await poster(message.espace, `${tete}je trouve aucune fiche ${quoi}, ni dans les boîtes (sept derniers jours) ni dans les dossiers. elle est arrivée dans quelle boîte ?`, null, message.auteur);
+    return true;
+  }
+  return false;
+}
+
+/** Le début d'une réponse : la mention, et dans un groupe la demande à laquelle on répond. */
+function entete(message, texte) {
+  const cite = message.groupe ? citation(texte) : '';
+  return `${mention(message.auteur)} ${cite ? `${cite}\n` : ''}`;
 }
 
 // « STOP » : AK se tait, tout de suite et partout. Ses réponses en attente
@@ -338,6 +419,8 @@ async function trancher(message) {
 // questions et les brouillons tombent. « START » le rend. N'importe qui peut
 // le dire, sans le mentionner : c'est le frein d'urgence de l'équipe.
 const CLE_PAUSE = 'ak.pause';
+const CLE_BANANE = 'ak.banane';
+export const enBanane = () => !!Meta.get(CLE_BANANE);
 export const enPause = () => !!Meta.get(CLE_PAUSE);
 
 /** Pure : « STOP », « stop ! » : l'arrêt ; « START », « reprends » : la reprise. Le mot seul, rien d'autre. */
@@ -351,6 +434,7 @@ export function commandeArret(texte) {
 async function arreter(message) {
   const maintenant = new Date().toISOString();
   Meta.set(CLE_PAUSE, JSON.stringify({ par: message.auteur?.affiche || message.auteur?.nom || null, le: maintenant }));
+  Meta.set(CLE_BANANE, '');
   for (const r of Records.list(ENTITE_REPONSE)) Records.delete(ENTITE_REPONSE, r.id);
   for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) Records.update(ENTITE_TACHE, t.id, { muette: true });
   for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) Records.update(ENTITE_TACHE, t.id, { annoncee_le: maintenant, muette: true });
@@ -406,15 +490,19 @@ export async function relever() {
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
         if (enPause() || commandeArret(sansMention(m))) continue;
-        // Un oui, un non, un « envoie » : en privé toujours, dans le groupe
-        // seulement s'il parle à AK (« envoie-moi le doc » entre collègues n'envoie rien).
+        // Dans le groupe, AK ne répond qu'à qui s'adresse à lui : une mention,
+        // ou un message qui commence par « ak ». Plus de conversation implicite :
+        // il répondait à ce que les gens se disaient entre eux. En privé, tout
+        // est pour lui.
         const direct = espace.type === 'DIRECT_MESSAGE';
-        if (!estDeAk(m) && (direct || estPourAk(m, { direct: enConversation(m) }))) {
+        m.groupe = !direct;
+        const pourAk = !estDeAk(m) && (direct || estPourAk(m, { direct: false }));
+        if (pourAk) {
           try { if (await trancher(m)) { traites += 1; continue; } } catch (e) { dernier.erreur = e?.message || String(e); }
         }
         // « non c'est pas ça », « nickel » : une leçon, pas une demande.
         if (apprendre({ espace: m.espace, auteur: m.auteur, texte: sansMention(m) })) continue;
-        if (!estPourAk(m, { direct: espace.type === 'DIRECT_MESSAGE' || enConversation(m) })) continue;
+        if (!pourAk) continue;
         try { await traiter(m); traites += 1; } catch (e) {
           dernier.erreur = e?.message || String(e);
           // L'envoi lui-même a échoué : la réponse attend, inutile d'en poster une autre.

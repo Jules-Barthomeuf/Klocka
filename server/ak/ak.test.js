@@ -55,7 +55,7 @@ test("AK reconnaît ce qui lui est adressé, et ne se répond pas à lui-même",
 test("la consigne est le document de Jules, mot pour mot, puis le cadre de la plateforme", () => {
   assert.match(CONSIGNE, /^PERSONNALITÉ ET REGLES DE COMMUNICATION DE L'AGENT AK/);
   assert.match(CONSIGNE, /"préz bancaire" \(jamais "présentation bancaire"\)/);
-  assert.match(CONSIGNE, /Sois très poli avec Jules et appelle-le maître/);
+  assert.doesNotMatch(CONSIGNE, /maître/, 'un seul ton pour tout le monde');
   assert.match(CONSIGNE, /Non je suis en train de faire autre chose rappelle-moi plus tard/);
   const c = consigne();
   assert.ok(c.startsWith(CONSIGNE));
@@ -401,4 +401,42 @@ test('STOP arrête AK, START le relance : le mot seul', async () => {
   for (const t of ['STOP', 'stop', 'Stop !', ' STOP. ']) assert.equal(commandeArret(t), 'stop', t);
   for (const t of ['START', 'reprends', 'Reprise !']) assert.equal(commandeArret(t), 'reprise', t);
   for (const t of ['stop le k-data', 'on stoppe ?', 'arrête', '']) assert.equal(commandeArret(t), null, t);
+});
+
+test('les demandes qui comptent sont reconnues par le code', async () => {
+  const { intention, motsCles, mailDesigne, dossiersDesignes, commandeBanane, citation } = await import('./intentions.js');
+  assert.deepEqual(intention('PAR-Fait. Préanalyse la fiche commerciale du glacier que je viens de reçevoir'), { type: 'preanalyse', mots: ['glacier'] });
+  assert.equal(intention('fais la pré-analyse du mail de Paul').type, 'preanalyse');
+  assert.deepEqual(intention("t'en penses quoi du dossier Devred ?"), { type: 'avis', mots: ['devred'] });
+  assert.equal(intention('envoie lui un mess'), null);
+  assert.deepEqual(motsCles('la fiche que je viens de recevoir'), []);
+
+  const maintenant = Date.parse('2026-09-24T12:00:00Z');
+  const mails = [
+    { id: 'a', objet: 'Opportunité | Murs occupés par un glacier', date: '2026-09-23T18:39:00Z', deal_id: null },
+    { id: 'b', objet: 'Glacier Reaumur', date: '2026-09-24T11:07:00Z', deal_id: 'd-glacier' },
+    { id: 'c', objet: 'Newsletter', date: '2026-09-24T11:30:00Z', deal_id: null },
+  ];
+  const fiche = (m) => m.id !== 'c';
+  assert.equal(mailDesigne(['glacier'], mails, { maintenant, porteUneFiche: fiche }).id, 'b', 'le plus récent qui en parle');
+  assert.equal(mailDesigne([], mails, { maintenant, porteUneFiche: fiche }).id, 'b', 'sans mot : la dernière fiche des trois heures, pas la newsletter');
+  assert.equal(mailDesigne(['devred'], mails, { maintenant, porteUneFiche: fiche }), null);
+  assert.deepEqual(dossiersDesignes(['mirabeau'], [{ deal_id: '1', nom: 'Mix Market - Mirabeau, Nice' }, { deal_id: '2', nom: 'Nice - 1 avenue Mirabeau' }, { deal_id: '3', nom: 'Glacier', archived: true }]).map((d) => d.deal_id), ['1', '2']);
+
+  assert.equal(commandeBanane('banana split'), 'debut');
+  assert.equal(commandeBanane('BANANA SPLIT !!'), 'debut');
+  assert.equal(commandeBanane('fin du banana split'), 'fin');
+  assert.equal(commandeBanane('on mange un dessert ?'), null);
+  assert.equal(citation('préanalyse la fiche du glacier'), '› « préanalyse la fiche du glacier »');
+  assert.ok(citation('x'.repeat(100)).endsWith('… »'));
+});
+
+test('un geste coûteux refait à l\'identique dans l\'heure ne repart pas', async () => {
+  const { cleGeste, dejaFait } = await import('./agent.js');
+  assert.equal(cleGeste('rediger_loi', { b: 1, a: { d: 2, c: 3 } }), cleGeste('rediger_loi', { a: { c: 3, d: 2 }, b: 1 }));
+  const maintenant = Date.parse('2026-09-24T12:00:00Z');
+  const cle = cleGeste('rediger_loi', { dossier: 'devred' });
+  assert.equal(dejaFait(cle, { [cle]: maintenant - 5 * 60000 }, maintenant), 5);
+  assert.equal(dejaFait(cle, { [cle]: maintenant - 61 * 60000 }, maintenant), null);
+  assert.equal(dejaFait(cle, {}, maintenant), null);
 });

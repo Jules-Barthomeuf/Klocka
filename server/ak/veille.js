@@ -141,7 +141,7 @@ function suivreKdata(tache) {
 }
 
 /** Les tâches finies sont annoncées une fois, là où on les a demandées. */
-async function annoncerLesTachesFinies() {
+async function annoncerLesTachesFinies({ muet = false } = {}) {
   const { texteDeFin } = await import('./agent.js');
   for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) {
     if (t.genre === 'kdata') suivreKdata(t);
@@ -149,6 +149,8 @@ async function annoncerLesTachesFinies() {
     if (t.genre === 'preanalyse') { try { await suivrePreanalyse(t); } catch (e) { dernier.erreur = e?.message || String(e); } }
   }
   for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
+    // Arrêtée par un STOP, ou finie pendant la pause : elle ne dit rien.
+    if (muet || t.muette) { Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString(), muette: true }); continue; }
     const texte = t.etat === 'ratee' ? `dsl, ${t.libelle} a planté : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
     try {
       // La préz part en fichier dans le chat, en plus du lien : on l'ouvre
@@ -331,6 +333,37 @@ async function trancher(message) {
   return true;
 }
 
+// « STOP » : AK se tait, tout de suite et partout. Ses réponses en attente
+// sont jetées, les tâches en cours finissent sans rien annoncer, les
+// questions et les brouillons tombent. « START » le rend. N'importe qui peut
+// le dire, sans le mentionner : c'est le frein d'urgence de l'équipe.
+const CLE_PAUSE = 'ak.pause';
+export const enPause = () => !!Meta.get(CLE_PAUSE);
+
+/** Pure : « STOP », « stop ! » : l'arrêt ; « START », « reprends » : la reprise. Le mot seul, rien d'autre. */
+export function commandeArret(texte) {
+  const t = String(texte || '').trim();
+  if (/^stop\s*[!.]*$/i.test(t)) return 'stop';
+  if (/^(start|reprends|reprise)\s*[!.]*$/i.test(t)) return 'reprise';
+  return null;
+}
+
+async function arreter(message) {
+  const maintenant = new Date().toISOString();
+  Meta.set(CLE_PAUSE, JSON.stringify({ par: message.auteur?.affiche || message.auteur?.nom || null, le: maintenant }));
+  for (const r of Records.list(ENTITE_REPONSE)) Records.delete(ENTITE_REPONSE, r.id);
+  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) Records.update(ENTITE_TACHE, t.id, { muette: true });
+  for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) Records.update(ENTITE_TACHE, t.id, { annoncee_le: maintenant, muette: true });
+  for (const q of Records.filter('AkQuestion', { etat: 'posee' })) Records.update('AkQuestion', q.id, { etat: 'annulee', ferme_le: maintenant });
+  for (const b of Records.filter('AkBrouillon', { etat: 'attente' })) Records.update('AkBrouillon', b.id, { etat: 'annule', ferme_le: maintenant });
+  try { await envoyer(message.espace, "ok, je me tais. plus aucun message de ma part, écrivez START pour me relancer."); } catch { /* le silence est acquis quand même */ }
+}
+
+async function reprendre(message) {
+  Meta.set(CLE_PAUSE, '');
+  try { await envoyer(message.espace, 'je suis de retour.'); } catch { /* rien */ }
+}
+
 // Un message plus vieux que ça n'est plus une demande : c'est de l'histoire.
 // Après un arrêt (Chat coupé trois jours), AK reprenait tout le retard et
 // exécutait chaque vieille demande, rappels, K-Data et LOI compris.
@@ -354,14 +387,25 @@ export async function relever() {
     dernier.espaces = suivis.length;
     let plusRecent = depuis;
     let traites = 0;
-    for (const espace of suivis) {
-      const messages = await messagesDepuis(espace.nom, depuis);
+    const parEspace = [];
+    for (const espace of suivis) parEspace.push({ espace, messages: await messagesDepuis(espace.nom, depuis) });
+    // Le frein d'abord : un STOP arrivé dans ce passage coupe aussi les
+    // messages qui le précèdent et n'ont pas encore reçu de réponse.
+    const deja = new Set(vus());
+    const commandes = parEspace.flatMap(({ messages }) => messages)
+      .filter((m) => !deja.has(m.nom) && !estDeAk(m) && commandeArret(sansMention(m)))
+      .sort((a, b) => a.le.localeCompare(b.le));
+    const derniere = commandes.at(-1);
+    if (derniere && commandeArret(sansMention(derniere)) === 'stop' && !enPause()) await arreter(derniere);
+    if (derniere && commandeArret(sansMention(derniere)) === 'reprise' && enPause()) await reprendre(derniere);
+    for (const { espace, messages } of parEspace) {
       for (const m of messages) {
         if (m.le > plusRecent) plusRecent = m.le;
         retenirPersonne(m.auteur);
         for (const x of m.mentions) retenirPersonne(x);
         if (vus().includes(m.nom)) continue;
         noterVu(m.nom);
+        if (enPause() || commandeArret(sansMention(m))) continue;
         // Un oui, un non, un « envoie » : en privé toujours, dans le groupe
         // seulement s'il parle à AK (« envoie-moi le doc » entre collègues n'envoie rien).
         const direct = espace.type === 'DIRECT_MESSAGE';
@@ -381,6 +425,12 @@ export async function relever() {
       }
     }
     Meta.set(CLE_DEPUIS, plusRecent);
+    if (enPause()) {
+      // En pause, les tâches avancent mais ne parlent pas.
+      await annoncerLesTachesFinies({ muet: true });
+      dernier.le = new Date().toISOString();
+      return { ok: true, espaces: suivis.length, traites, pause: true };
+    }
     await reposterEnAttente();
     await annoncerLesTachesFinies();
     // Une fiche arrivée dans la boîte : la question, en privé.

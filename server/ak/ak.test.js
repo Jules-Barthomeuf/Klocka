@@ -395,3 +395,10 @@ test('après un arrêt, AK ne reprend pas le retard : dix minutes au plus', asyn
   assert.equal(depuisBorne('2026-09-24T11:58:00.000Z', maintenant), '2026-09-24T11:58:00.000Z');
   assert.equal(depuisBorne(null, maintenant), '2026-09-24T11:50:00.000Z');
 });
+
+test('STOP arrête AK, START le relance : le mot seul', async () => {
+  const { commandeArret } = await import('./veille.js');
+  for (const t of ['STOP', 'stop', 'Stop !', ' STOP. ']) assert.equal(commandeArret(t), 'stop', t);
+  for (const t of ['START', 'reprends', 'Reprise !']) assert.equal(commandeArret(t), 'reprise', t);
+  for (const t of ['stop le k-data', 'on stoppe ?', 'arrête', '']) assert.equal(commandeArret(t), null, t);
+});

@@ -34,11 +34,11 @@ const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
 // Les statuts prennent les teintes de l'application : menthe, ambre, rouge,
 // gris. La case est un fond très dilué, le mot porte la couleur pleine — un
 // aplat saturé faisait tache au milieu d'un tableau sombre.
-const TEINTE = { ok: J["menthe"], a_checker: "#8fb3d9", warning: J["ambre"], a_verifier: J["ambre"], no_go: J["alerte"], vide: J["ardoise"], non_lu: J["ardoise"] };
-const teinteDe = (st) => TEINTE[st] || TEINTE.vide;
-const FOND = Object.fromEntries(Object.entries(TEINTE).map(([k, v]) => [k, `${v}1f`]));
-const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
-const Th = ({ children, className = "" }) => <th className={`text-left text-[11px] font-semibold tracking-[.02em] text-ardoise px-4 py-2.5 border-b border-r border-trait last:border-r-0 ${className}`}>{children}</th>;
+export const TEINTE = { ok: J["menthe"], a_checker: "#8fb3d9", warning: J["ambre"], a_verifier: J["ambre"], no_go: J["alerte"], vide: J["ardoise"], non_lu: J["ardoise"] };
+export const teinteDe = (st) => TEINTE[st] || TEINTE.vide;
+export const FOND = Object.fromEntries(Object.entries(TEINTE).map(([k, v]) => [k, `${v}1f`]));
+export const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
+export const Th = ({ children, className = "" }) => <th className={`text-left text-[11px] font-semibold tracking-[.02em] text-ardoise px-4 py-2.5 border-b border-r border-trait last:border-r-0 ${className}`}>{children}</th>;
 
 export function TableCriteres({ g, onPreuve = undefined, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
   const [ouverts, setOuverts] = useState(() => new Set());

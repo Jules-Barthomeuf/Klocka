@@ -2,6 +2,7 @@
    Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
+import { TEINTE, FOND, MOT, Th, teinteDe } from "@/components/preanalyse/GrilleCriteres";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -93,112 +94,141 @@ function critereDe(grille, champs) {
   return miens.sort((a, b) => rang(a) - rang(b) || profil(a) - profil(b))[0] || null;
 }
 
+/** Pure : le statut d'une ligne, dans le vocabulaire des grilles du bail. */
+function statutDe(c) {
+  if (!c) return "vide";
+  if (c.ok === true) return "ok";
+  if (c.ok == null) return "vide";
+  // Une réserve ratée se lève ; un critère d'exclusion ou de profil raté tranche.
+  return /r[ée]serve/i.test(c.groupe || "") ? "a_verifier" : "no_go";
+}
+
 /**
- * Le bien en un tableau : ce que la fiche donne, ce que le profil attend, et
- * si ça tient. Fiche du bien et grille de critères ne font plus qu'un ; le
- * détail de chaque valeur lue reste en bas, avec ses citations.
+ * Le bien en un tableau, au dessin exact des grilles du bail : un cadre, son
+ * en-tête et son résumé, puis Critère, Valeur lue, Statut, Attendu. La valeur
+ * se corrige d'un clic, le statut se confirme d'un clic ; le critère, cliqué,
+ * dit d'où vient la règle.
  */
-function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null }) {
+function TableauBien({ lot, onSaisie, enCours, apercu, onVerifier = null, titre, sousTitre = null, actions = null }) {
   const grille = lot.evaluation?.grille || [];
   const ctx = lot.evaluation?.contexte || {};
   const enr = lot.enrichissement || {};
+  const [ouverts, setOuverts] = useState(() => new Set());
+  const [choix, setChoix] = useState(null);
+  const bascule = (id) => setOuverts((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const loyerFiche = valChamp(lot.lot?.loyer_annuel_ht_hc);
+  const { hors, fai } = prixDuLot(lot);
   // La fiche ne l'écrit pas toujours : le loyer sur le prix FAI en tient lieu.
-  const annonce = valChamp(lot.lot?.rendement_annonce) ?? (prixDuLot(lot).fai && loyerFiche ? (loyerFiche / prixDuLot(lot).fai) * 100 : null);
+  const annonce = valChamp(lot.lot?.rendement_annonce) ?? (fai && loyerFiche ? (loyerFiche / fai) * 100 : null);
   const reel = ctx.rendement_net_moyen ?? lot.evaluation?.aem?.rendement_aem ?? null;
   const emplacement = EMPLACEMENTS.find((e) => e.code === enr.emplacement)?.libelle || "à qualifier";
   const signature = SIGNATURES[ctx.signature] || (ctx.signature ? String(ctx.signature).replace(/_/g, " ") : null);
-  const { hors, fai } = prixDuLot(lot);
 
+  const champ = (c) => <ChampFiche champ={c} lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />;
   const valeur = (id) => {
     switch (id) {
       case "prix":
         return (
           <span className="inline-flex flex-col items-start gap-0.5">
-            <ChampFiche champ="prix_fai" lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />
-            {hors && fai != null && <span className="text-[11.5px] text-brume">net vendeur · FAI {euros(fai)}</span>}
+            {champ("prix_fai")}
+            {hors && fai != null && <span className="text-[11px] text-brume">net vendeur · FAI {euros(fai)}</span>}
           </span>
         );
       case "rendement":
         return (
-          <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1" style={{ fontVariantNumeric: "tabular-nums" }}>
-            <span className="text-[13.5px] text-craie">{pourcent(annonce) || "—"} <span className="text-[11.5px] text-brume">annoncé</span></span>
-            <span className="text-brume">·</span>
-            <span className="text-[13.5px] text-encre" title="Rendement net moyen du simulateur, sur toute la durée du projet">{pourcent(reel) || "—"} <span className="text-[11.5px] text-brume">réel</span></span>
+          <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span className="text-craie">{pourcent(annonce) || "—"} <span className="text-[11px] text-brume">annoncé</span></span>
+            <span className="text-encre" title="Rendement net moyen du simulateur, sur toute la durée du projet">{pourcent(reel) || "—"} <span className="text-[11px] text-brume">réel</span></span>
           </span>
         );
-      case "loyer":
-        return <ChampFiche champ="loyer_annuel_ht_hc" lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />;
-      case "occupe":
-        return <ChampFiche champ="occupe" lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />;
-      case "activite":
-        return <ChampFiche champ="locataire_activite" lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />;
+      case "loyer": return champ("loyer_annuel_ht_hc");
+      case "occupe": return champ("occupe");
+      case "activite": return champ("locataire_activite");
       case "enseigne":
         return (
           <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <ChampFiche champ="locataire_nom" lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} sansNote aGauche />
-            {signature && <span className="text-[12px] text-ardoise">{signature}</span>}
+            {champ("locataire_nom")}
+            {signature && <span className="text-[12.5px] text-ardoise">{signature}</span>}
           </span>
         );
       case "emplacement":
-        return <span className={`text-[13.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-encre" : "text-ambre"}`}>{emplacement}</span>;
-      default:
-        return null;
+        return <span className={`text-[13.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-encre" : "text-brume"}`}>{emplacement}</span>;
+      default: return null;
     }
   };
 
+  const lignes = LIGNES_BIEN.map((l) => ({ ...l, c: critereDe(grille, l.champs) }));
+  const resume = { ok: 0, warning: 0, no_go: 0, vide: 0 };
+  for (const l of lignes) {
+    const st = statutDe(l.c);
+    if (st === "ok") resume.ok += 1;
+    else if (st === "no_go") resume.no_go += 1;
+    else if (st === "vide") resume.vide += 1;
+    else resume.warning += 1;
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table
-        className="w-full min-w-[720px] border-collapse
-          [&_th]:border-r [&_td]:border-r [&_th]:border-bord [&_td]:border-bord
-          [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0 [&_th]:pl-3 [&_td]:pl-3"
-      >
-        <thead>
-          <tr className="border-y border-bord-doux">
-            {[["Élément", "w-[22%]"], ["Valeur", "w-[38%]"], ["Attendu", "w-[24%]"], ["Statut", "w-[16%]"]].map(([h, cls]) => (
-              <th key={h} className={`py-2.5 text-[11px] tracking-[0.16em] uppercase text-encre font-normal text-left ${cls}`}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {LIGNES_BIEN.map((ligne) => {
-            const c = critereDe(grille, ligne.champs);
-            const teinte = c?.ok === true ? J["menthe"] : c?.ok === false ? J["alerte"] : J["bord-vif"];
-            const verif = c ? lot?.verifications?.[cleLigne(c)]?.statut || null : null;
-            const suivant = verif === null ? "verifie" : verif === "verifie" ? "incertain" : null;
-            const mot = c == null ? "—" : c.ok === true ? "tenu" : c.ok === false ? "raté" : "non renseigné";
-            return (
-              <tr key={ligne.id} className={`border-b border-bord align-top ${c?.ok === false ? "bg-alerte/[0.04]" : ""}`}>
-                <td className="py-3 pr-4 text-[12.5px] text-encre">
-                  <span className="inline-block w-2 h-2 rounded-full mr-2 align-middle" style={{ background: teinte }} />
-                  {ligne.element}
-                </td>
-                <td className="py-3 pr-4">{valeur(ligne.id)}</td>
-                <td className="py-3 pr-4 text-[12.5px] text-craie">
-                  {c?.attendu || <span className="text-brume">—</span>}
-                  {c?.groupe && <span className="block mt-0.5 text-[11px] text-brume">{c.groupe}</span>}
-                </td>
-                <td className="py-3 pr-4 text-[12.5px]">
-                  {c && onVerifier ? (
-                    <button
-                      type="button"
-                      onClick={() => onVerifier(cleLigne(c), suivant)}
-                      title={verif === null ? "Marquer comme vérifié" : verif === "verifie" ? "Marquer comme pas sûr" : "Revenir au calcul"}
-                      className="text-left"
-                      style={{ color: teinte, background: "transparent" }}
-                    >
-                      {mot}
-                    </button>
-                  ) : <span style={{ color: teinte }}>{mot}</span>}
-                  {verif && <span className="ml-2 text-[11px] font-semibold text-white px-1.5 py-px rounded" style={{ background: VERIF[verif].fond }}>{VERIF[verif].mot}</span>}
-                  {c?.ok === false && c.motif && <span className="block mt-1 text-[11px] leading-snug text-alerte/80">{c.motif}</span>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="overflow-hidden rounded-[16px] border border-trait bg-surface">
+      <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h2 className="m-0 text-[18px] font-semibold text-encre">{titre}</h2>
+          {sousTitre && <span className="text-[12.5px] text-ardoise">{sousTitre}</span>}
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="flex items-center gap-3 text-[12.5px] text-craie">
+            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
+            {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} no go</span>}
+            {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} sans valeur</span>}
+          </span>
+          {actions}
+        </div>
+      </header>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse">
+          <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[240px]">Attendu</Th></tr></thead>
+          <tbody>
+            {lignes.map(({ id, element, c }, iLigne) => {
+              const st = statutDe(c);
+              const verif = c ? lot?.verifications?.[cleLigne(c)]?.statut || null : null;
+              const modifiable = !!(c && onVerifier);
+              return (
+                <tr key={id} className="align-top">
+                  <td className="px-4 py-3 border-b border-r border-trait">
+                    <button onClick={() => bascule(id)} className="text-left text-[13.5px] text-encre hover:text-[#ffffff]">{element}</button>
+                    {ouverts.has(id) && c && (
+                      <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{c.critere}{c.groupe ? ` · ${c.groupe}` : ""}</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 border-b border-r border-trait">
+                    {valeur(id)}
+                    {c?.ok === false && c.motif && <p className="m-0 mt-1 text-[12.5px] leading-[1.45] text-ardoise">{c.motif}</p>}
+                  </td>
+                  <td
+                    className={`px-4 py-3 border-b border-r border-trait relative ${modifiable ? "cursor-pointer" : ""}`}
+                    style={{ background: FOND[st] || FOND.vide }}
+                    onClick={() => modifiable && setChoix(choix === id ? null : id)}
+                    title={modifiable ? "Confirmer le statut" : undefined}
+                  >
+                    <span className="text-[12.5px] font-medium" style={{ color: teinteDe(st) }}>{MOT[st] || st}</span>
+                    {verif && <span className="block text-[11px] text-ardoise">{VERIF[verif].mot.toLowerCase()}</span>}
+                    {choix === id && (
+                      <div className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => { onVerifier(cleLigne(c), "verifie"); setChoix(null); }} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND.ok, color: teinteDe("ok") }}>Vérifié</button>
+                        <button onClick={() => { onVerifier(cleLigne(c), "incertain"); setChoix(null); }} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND.a_verifier, color: teinteDe("a_verifier") }}>Pas sûr</button>
+                        {verif && <button onClick={() => { onVerifier(cleLigne(c), null); setChoix(null); }} className="text-left text-[12.5px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 border-b border-trait">
+                    {c?.attendu ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie">{c.attendu}</p> : <span className="text-[12.5px] text-brume">—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -857,24 +887,28 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
     <div className="text-encre">
       <div className="pt-2">
         <main className="min-w-0">
-          {/* La fiche du bien : ce que la fiche commerciale dit, champ par champ */}
+          {/* La fiche du bien : un tableau au dessin des grilles du bail. */}
           <section className="pb-8">
-            <div className="flex items-center gap-3 flex-wrap mb-4">
-              <h2 className="m-0 text-[18px] font-semibold">Fiche du bien</h2>
-              <span className="text-[12.5px] text-brume">
-                {profilGrille ? `${profilGrille} · ` : ""}{nbCriteres} critères · {tenus} tenu{tenus > 1 ? "s" : ""}{ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""}
-              </span>
-              <div className="ml-auto flex items-center gap-2">
-                <FicheSource dossier={dossier} />
-                {lot.mail_agent && (
-                  <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
-                    <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
-                  </button>
-                )}
-              </div>
-            </div>
             <BandeauRecalcul actif={enCours} />
-            <TableauBien lot={lot} onSaisie={onSaisie} enCours={enCours} apercu={apercu} onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })} />
+            <TableauBien
+              lot={lot}
+              onSaisie={onSaisie}
+              enCours={enCours}
+              apercu={apercu}
+              onVerifier={apercu || !dossier?.deal_id ? null : (cle, statut) => verifier.mutate({ cle, statut })}
+              titre="Fiche du bien"
+              sousTitre={profilGrille ? `${profilGrille} · ${nbCriteres} critères · ${tenus} tenu${tenus > 1 ? "s" : ""}${ratés ? ` · ${ratés} raté${ratés > 1 ? "s" : ""}` : ""}` : null}
+              actions={(
+                <span className="flex items-center gap-2">
+                  <FicheSource dossier={dossier} />
+                  {lot.mail_agent && (
+                    <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
+                      <Send className="w-3.5 h-3.5" /> Mail de relance à l'agent
+                    </button>
+                  )}
+                </span>
+              )}
+            />
           </section>
 
           {/* L'emplacement, juste sous la fiche : on regarde la rue avant tout

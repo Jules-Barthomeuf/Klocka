@@ -51,6 +51,7 @@ import { monterCourriel } from './routes/courriel.js';
 import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
+import { monterFiches } from './routes/fiches.js';
 import { monterAlx } from './routes/alx.js';
 import { monterKZoning } from './routes/kzoning.js';
 import { monterKExpertise } from './routes/kexpertise.js';
@@ -1034,6 +1035,7 @@ monterIntegrations(app);
 
 monterMonday(app);
 monterAk(app);
+monterFiches(app);
 monterAlx(app);
 monterKZoning(app);
 monterKExpertise(app);

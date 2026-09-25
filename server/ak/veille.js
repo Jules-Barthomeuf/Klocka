@@ -389,6 +389,37 @@ async function agirSurIntention(voulu, message, tete) {
   const deals = Records.list('Deal');
   const vivant = (id) => deals.some((d) => d.deal_id === id && !d.archived);
 
+  if (voulu.type === 'manques') {
+    const { projetsDesignes, phraseManques } = await import('./intentions.js');
+    const { verifierProjet, verifierDossier } = await import('../deal/verifications.js');
+    const projets = projetsDesignes(voulu.mots, Records.list('Project'));
+    const choisir = async (verif, repere) => {
+      const texte = phraseManques(verif);
+      await poster(message.espace, `${tete}${texte}`, null, message.auteur);
+      const { memoriser } = await import('./agent.js');
+      memoriser(message.espace, texte, repere, message.groupe ? message.auteur?.nom || null : null);
+    };
+    if (projets.length === 1) {
+      const v = verifierProjet(projets[0]);
+      await choisir(v, `projet_id ${projets[0].id}${v.deal_id ? `, dossier deal_id ${v.deal_id}` : ''}`);
+      return true;
+    }
+    if (projets.length > 1) {
+      await poster(message.espace, `${tete}plusieurs projets : ${projets.slice(0, 5).map((p) => p.titre).join(', ')}. lequel ?`, null, message.auteur);
+      return true;
+    }
+    const dossiers = dossiersDesignes(voulu.mots, deals);
+    if (dossiers.length === 1) {
+      await choisir(verifierDossier(dossiers[0]), `dossier deal_id ${dossiers[0].deal_id}`);
+      return true;
+    }
+    if (dossiers.length > 1) {
+      await poster(message.espace, `${tete}plusieurs dossiers : ${dossiers.slice(0, 5).map((d) => d.nom).join(', ')}. lequel ?`, null, message.auteur);
+      return true;
+    }
+    return false;
+  }
+
   if (voulu.type === 'preanalyse') {
     const mail = mailDesigne(voulu.mots, Records.list('MailRecu'), { porteUneFiche });
     if (mail?.deal_id && vivant(mail.deal_id)) {

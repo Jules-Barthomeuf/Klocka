@@ -541,7 +541,16 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
       return { ok: ajoutees > 0, error: r.error, photos_ajoutees: ajoutees, lien: r.project_id ? lien(`/projet/${r.project_id}`) : null };
     }
     const ajoutees = images.length ? ajouterPhotos(r.project.id, images) : 0;
-    return { ok: true, projet_id: r.project.id, titre: r.project.titre, lien: lien(`/projet/${r.project.id}`), champs_remplis: r.champs_remplis, photos_ajoutees: ajoutees };
+    // Ce qui manque au projet tout juste né, posté tel quel après la réponse :
+    // les documents à demander, les infos du bail que la fiche ne donnait pas.
+    try {
+      const { verifierProjet } = await import('../deal/verifications.js');
+      const { phraseManques } = await import('./intentions.js');
+      const v = verifierProjet(Records.get('Project', r.project.id));
+      const utiles = { ...v, constats: v.constats.filter((c) => ['documents', 'informations', 'prix'].includes(c.genre)) };
+      if (utiles.constats.length) apres(phraseManques(utiles));
+    } catch { /* le projet est créé, la liste attendra une question */ }
+    return { ok: true, projet_id: r.project.id, titre: r.project.titre, lien: lien(`/projet/${r.project.id}`), champs_remplis: r.champs_remplis, photos_ajoutees: ajoutees, manques_postes: true };
   }
   if (name === 'ajouter_photos_projet') {
     if (!Records.get('Project', input.projet_id)) return { ok: false, error: 'Projet introuvable.' };

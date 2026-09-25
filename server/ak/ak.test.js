@@ -457,3 +457,23 @@ test('la même demande envoyée plusieurs fois dans un passage : une seule répo
   const r = messagesRepetes([m('1', 'u1', 'Préanalyse le dossier glacier'), m('2', 'u1', 'préanalyse le dossier  glacier'), m('3', 'u2', 'Préanalyse le dossier glacier'), m('4', 'u1', 'autre chose')]);
   assert.deepEqual([...r], ['1']);
 });
+
+test('« dis-moi ce qu\'il manque » : reconnu, projet choisi, manques listés', async () => {
+  const { intention, projetsDesignes, phraseManques } = await import('./intentions.js');
+  assert.deepEqual(intention("Regarde le projet et dis-moi ce qu'il manque comme document etc"), { type: 'manques', mots: [] });
+  assert.deepEqual(intention('il manque quoi au projet glacier ?'), { type: 'manques', mots: ['glacier'] });
+  const maintenant = Date.parse('2026-09-25T10:00:00Z');
+  const projets = [
+    { id: 'a', titre: 'Devred - Firminy', updated_date: '2026-09-20T10:00:00Z' },
+    { id: 'b', titre: 'Glacier - Paris', updated_date: '2026-09-25T09:30:00Z' },
+    { id: 'c', titre: 'Vieux', updated_date: '2026-09-25T09:50:00Z', archived: true },
+  ];
+  assert.deepEqual(projetsDesignes([], projets, { maintenant }).map((p) => p.id), ['b'], 'sans nom : le dernier modifié, pas un archivé');
+  assert.deepEqual(projetsDesignes(['devred'], projets, { maintenant }).map((p) => p.id), ['a']);
+  const texte = phraseManques({ type: 'projet', titre: 'Glacier - Paris', constats: [
+    { genre: 'informations', manque: "on ne connaît pas l'échéance du bail", action: 'à lire dans le bail' },
+    { genre: 'documents', manque: 'il manque le bail commercial', action: "les demander à l'agent", outil: 'mail_agent' },
+  ] });
+  assert.match(texte, /^ce qui manque au projet Glacier - Paris :\n- il manque le bail commercial → les demander à l'agent\n- on ne connaît pas l'échéance du bail → à lire dans le bail\nje prépare la demande de docs à l'agent \?$/);
+  assert.match(phraseManques({ type: 'projet', titre: 'X', constats: [] }), /^rien ne manque au projet X/);
+});

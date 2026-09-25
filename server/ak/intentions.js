@@ -12,6 +12,8 @@ const VIDES = new Set([
   'pour', 'avec', 'dans', 'cette', 'celle', 'celui', 'fait', 'faire', 'fais', 'peux', 'merci', 'parfait', 'avis',
   'penses', 'pense', 'quoi', 'tout', 'toute', 'nouvelle', 'nouveau', 'derniere', 'dernier', 'boite', 'envoye',
   'envoyee', 'assistant', 'klocka', 'stp', 'svp', 'aussi', 'encore', 'bien', 'alors', 'donc', 'moi', 'nous',
+  'projet', 'projets', 'regarde', 'regarder', 'manque', 'manquent', 'document', 'documents', 'docs', 'dire', 'dis',
+  'comme', 'quoi', 'quel', 'quels', 'quelle', 'quelles', 'lui', 'etc',
 ]);
 
 /** Pure : les mots qui désignent le bien (« glacier », « devred », « mirabeau »). */
@@ -22,6 +24,7 @@ export function motsCles(texte) {
 /** Pure : ce que la phrase demande, s'il s'agit d'une préanalyse ou d'un avis. */
 export function intention(texte) {
   const t = norm(texte);
+  if (/(qu'?est[- ]ce qu'?il (lui )?manque|ce qu'?il (lui )?manque|il (lui )?manque quoi|manque[- ]t[- ]il|qu'?est[- ]ce qui manque|quels? (docs?|documents?) (il )?manque)/.test(t)) return { type: 'manques', mots: motsCles(texte) };
   if (/pre\s*-?\s*analys/.test(t)) return { type: 'preanalyse', mots: motsCles(texte) };
   if (/\b(ton avis|t'?en penses quoi|tu en penses quoi|avis sur|il vaut quoi)\b/.test(t)) return { type: 'avis', mots: motsCles(texte) };
   return null;
@@ -41,6 +44,33 @@ export function mailDesigne(mots, mails, { maintenant = Date.now(), porteUneFich
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   if (!mots.length) return recents.find((m) => maintenant - Date.parse(m.date || 0) < 3 * 3600000 && (m.deal_id || porteUneFiche(m))) || null;
   return recents.find((m) => contient(`${m.objet || ''} ${(m.pieces_jointes || []).map((p) => (typeof p === 'string' ? p : p?.nom)).join(' ')} ${m.de || ''}`, mots) && (m.deal_id || porteUneFiche(m))) || null;
+}
+
+/**
+ * Pure : le projet que la demande désigne. Avec des mots, celui dont le
+ * titre ou l'adresse les porte ; sans mot (« regarde le projet »), le dernier
+ * modifié ces vingt-quatre heures.
+ */
+export function projetsDesignes(mots, projets, { maintenant = Date.now() } = {}) {
+  const vivants = projets.filter((p) => !p.archived);
+  if (mots.length) return vivants.filter((p) => contient(`${p.titre || ''} ${p.adresse_complete || ''} ${p.nom_locataire || ''}`, mots));
+  const recent = vivants
+    .filter((p) => maintenant - Date.parse(p.updated_date || p.created_date || 0) < 86400000)
+    .sort((a, b) => String(b.updated_date || b.created_date || '').localeCompare(String(a.updated_date || a.created_date || '')))[0];
+  return recent ? [recent] : [];
+}
+
+/** Pure : les constats d'une vérification, en quelques lignes lisibles. */
+export function phraseManques(verif) {
+  const constats = verif?.constats || [];
+  const quoi = verif?.type === 'projet' ? 'au projet' : 'au dossier';
+  if (!constats.length) return `rien ne manque ${quoi} ${verif?.titre || ''} : documents, bail et chiffres sont là`.trim();
+  const ordre = { documents: 0, informations: 1, prix: 2 };
+  const lignes = [...constats]
+    .sort((a, b) => (ordre[a.genre] ?? 9) - (ordre[b.genre] ?? 9))
+    .map((c) => `- ${c.manque}${c.action ? ` → ${c.action}` : ''}`);
+  const docs = constats.some((c) => c.genre === 'documents' && c.outil === 'mail_agent');
+  return [`ce qui manque ${quoi} ${verif.titre} :`, ...lignes, docs ? "je prépare la demande de docs à l'agent ?" : null].filter(Boolean).join('\n');
 }
 
 /** Pure : les dossiers vivants dont le nom porte un des mots. */

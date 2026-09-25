@@ -50,3 +50,15 @@ test('le motif de la grille, le champ absent et la lecture peu sûre deviennent 
   assert.match(n.occupe.textes[0], /confiance basse \(« semble loué »\)/);
   assert.equal(n.occupe.a_verifier, true);
 });
+
+test('un projet avec la seule fiche : cinq documents et les infos du bail manquent', async () => {
+  const { documentsManquantsProjet, informationsManquantesProjet } = await import('./verifications.js');
+  const projet = { nom_locataire: 'Locataire non identifié', activite_locataire: 'Activité à qualifier', echeance_bail: '', locataire_depuis: '', activites_autorisees: '', taxe_fonciere_an: 0, charges_copropriete: 0, docs_checklist: {} };
+  assert.deepEqual(documentsManquantsProjet(projet).map((d) => d.key), ['bail', 'pv_ag', 'diagnostics', 'quittances', 'rcp']);
+  assert.deepEqual(documentsManquantsProjet({ docs_checklist: { bail: true, rcp: true } }).map((d) => d.key), ['pv_ag', 'diagnostics', 'quittances']);
+  assert.deepEqual(informationsManquantesProjet(projet), [
+    "l'enseigne exacte du locataire", "l'activité précise du locataire", 'depuis quand le locataire est en place',
+    "l'échéance du bail", 'la destination du bail (activités autorisées)', 'la taxe foncière', 'les charges',
+  ]);
+  assert.deepEqual(informationsManquantesProjet({ nom_locataire: 'Amorino', activite_locataire: 'glacier', locataire_depuis: '2019', echeance_bail: '2031-04-21', activites_autorisees: 'glacier, salon de thé', taxe_fonciere_an: 2400, provision_charges: 1200 }), []);
+});

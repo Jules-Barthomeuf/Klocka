@@ -201,13 +201,59 @@ function statutDe(c) {
  * se corrige d'un clic, le statut se confirme d'un clic ; le critère, cliqué,
  * dit d'où vient la règle.
  */
-/** Les notes d'une ligne : ce qu'il faut savoir avant de s'y fier. */
-function NotesLigne({ textes }) {
-  if (!textes.length) return <span className="text-[12.5px] text-brume">—</span>;
+/**
+ * Les notes d'une ligne : ce qu'il faut savoir avant de s'y fier. Un clic
+ * pour la réécrire ; la version à la main remplace la note calculée, et se
+ * vide pour y revenir.
+ */
+function NotesLigne({ textes, manuelle = null, onNoter = null, enCours = false }) {
+  const [edition, setEdition] = useState(null);
+  const affiches = manuelle ? [manuelle.texte] : textes;
+  const valider = () => { onNoter?.(edition.trim()); setEdition(null); };
+
+  if (edition !== null) {
+    return (
+      <div className="flex flex-col gap-2">
+        <textarea
+          autoFocus
+          value={edition}
+          onChange={(e) => setEdition(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) valider(); }}
+          rows={Math.min(8, Math.max(3, edition.split("\n").length + 1))}
+          className="w-full resize-y rounded-md border border-menthe/40 bg-fond px-2.5 py-2 text-[12.5px] leading-[1.5] text-encre outline-none focus:border-menthe/70"
+        />
+        <span className="flex items-center gap-3">
+          <button type="button" onClick={valider} disabled={enCours} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12px] font-semibold text-sur-menthe disabled:opacity-40"><Check className="h-3 w-3" /> Enregistrer</button>
+          <button type="button" onClick={() => setEdition(null)} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-      {textes.map((t) => <li key={t} className="text-[12.5px] leading-[1.5] text-craie">{t}</li>)}
-    </ul>
+    <div className="group">
+      <button
+        type="button"
+        onClick={() => onNoter && setEdition(affiches.join("\n"))}
+        disabled={!onNoter}
+        title={onNoter ? "Modifier la note" : undefined}
+        className="block w-full text-left disabled:cursor-default"
+        style={{ background: "transparent" }}
+      >
+        {affiches.length ? (
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+            {affiches.map((t) => <li key={t} className="whitespace-pre-line text-[12.5px] leading-[1.5] text-craie">{t}</li>)}
+          </ul>
+        ) : <span className="text-[12.5px] text-brume">{onNoter ? "— ajouter une note" : "—"}</span>}
+        {onNoter && <Pencil className="mt-1 h-3 w-3 text-brume opacity-0 transition-opacity group-hover:opacity-100" />}
+      </button>
+      {manuelle && (
+        <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-ambre">
+          écrite à la main{manuelle.par ? ` · ${manuelle.par.split("@")[0]}` : ""}
+          {onNoter && <button type="button" onClick={() => onNoter("")} disabled={enCours} className="text-ardoise underline-offset-2 hover:text-encre hover:underline" style={{ background: "transparent" }}>revenir à la note calculée</button>}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -252,7 +298,7 @@ function AttendusInfo({ lignes }) {
   );
 }
 
-function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, titre, sousTitre = null, actions = null }) {
+function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, onNoter = null, enNote = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
     queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
@@ -425,7 +471,12 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                     )}
                   </td>
                   <td className="px-4 py-3 border-b border-trait">
-                    <NotesLigne textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]} />
+                    <NotesLigne
+                      textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}
+                      manuelle={lot.notes_manuelles?.[id] || null}
+                      onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
+                      enCours={enNote === id}
+                    />
                   </td>
                 </tr>
                 {cleMarche && marche?.[cleMarche] && (
@@ -1163,6 +1214,12 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
     onSuccess: () => onRefresh?.(),
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  // Réécrire la note d'une ligne, ou la vider pour revenir à la note calculée.
+  const noter = useMutation({
+    mutationFn: ({ ligne, texte }) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}/note`, { body: { ligne, texte } }),
+    onSuccess: (_, v) => { toast.success(v.texte ? "Note enregistrée" : "Note calculée remise"); onRefresh?.(); },
+    onError: (e) => toast.error(e?.message || "Note non enregistrée"),
+  });
   // Le détail (critères, données extraites, enrichissement, lieu, marché) se
   // déplie en bas : on y descend pour vérifier, pas pour lire.
   const [detailOuvert, setDetailOuvert] = useState(false);
@@ -1198,6 +1255,8 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               titre="Fiche du bien"
               dealId={dossier?.deal_id || null}
               enVerification={verifier.isPending ? verifier.variables?.cle : null}
+              onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
+              enNote={noter.isPending ? noter.variables?.ligne : null}
               actions={(
                 <span className="flex items-center gap-2">
                   {!apercu && onSaisie && (

@@ -91,6 +91,14 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
+  // La note d'une ligne de la fiche du bien, réécrite à la main (vide : retour à la note calculée).
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/note', wrap(async (req, res) => {
+    const { noterLigne } = await import('../deal/index.js');
+    const r = noterLigne(req.params.dealId, Number(req.params.index), String(req.body?.ligne || ''), req.body?.texte || '', currentUser(req));
+    if (r.error) return res.status(400).json(r);
+    ok(res, r);
+  }));
+
   // Saisie humaine (emplacement, prix négocié) : rejoue les blocs déterministes.
   // Où poser la Street View et le plan d'un lot. Avec une rue, le navigateur
   // géocode lui-même l'adresse ; sans rue, on cherche le repère que la fiche

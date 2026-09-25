@@ -505,6 +505,29 @@ export async function enregistrerSimulateur(dealId, indexLot, parametres = {}, u
  * « incertain » quand on doute, rien pour revenir au calcul. Elle ne change pas
  * le verdict, elle dit où en est la relecture humaine.
  */
+// Les lignes de la fiche du bien qui portent une note.
+export const LIGNES_NOTEES = ['prix', 'prix_marche', 'rendement', 'loyer', 'loyer_marche', 'occupe', 'activite', 'enseigne', 'emplacement'];
+
+/**
+ * La note d'une ligne, réécrite à la main : elle remplace la note calculée
+ * jusqu'à ce qu'on la vide. Qui l'a écrite et quand restent dessus.
+ */
+export function noterLigne(dealId, indexLot, ligne, texte, user) {
+  const dossier = Records.findBy('Deal', 'deal_id', dealId);
+  if (!dossier) return { error: 'Dossier introuvable' };
+  const entree = dossier.lots?.[indexLot];
+  if (!entree) return { error: 'Lot introuvable' };
+  if (!LIGNES_NOTEES.includes(ligne)) return { error: 'Ligne inconnue' };
+  const propre = String(texte || '').trim().slice(0, 2000);
+  const notes = { ...(entree.notes_manuelles || {}) };
+  if (propre) notes[ligne] = { texte: propre, par: user?.email || null, le: new Date().toISOString() };
+  else delete notes[ligne];
+  const lots = [...dossier.lots];
+  lots[indexLot] = { ...entree, notes_manuelles: notes };
+  Records.update('Deal', dossier.id, { lots });
+  return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot } };
+}
+
 export function verifierCritere(dealId, indexLot, cle, statut, user) {
   const dossier = Records.findBy('Deal', 'deal_id', dealId);
   if (!dossier) return { error: 'Dossier introuvable' };

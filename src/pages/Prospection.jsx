@@ -129,13 +129,15 @@ function OngletAppels({ data, isLoading }) {
           </div>
           <div>
             <p className={etiquette}>Toute l'équipe</p>
-            <p className="m-0 mt-1 text-[15px] tabular-nums text-craie">{data.faits?.equipe || 0} appel{(data.faits?.equipe || 0) > 1 ? "s faits" : " fait"} · {Object.values(data.equipe || {}).reduce((t, n) => t + n, 0)} à faire</p>
+            <p className="m-0 mt-1 text-[15px] tabular-nums text-craie">{data.faits?.equipe || 0} appel{(data.faits?.equipe || 0) > 1 ? "s faits" : " fait"}{data.partage ? ` · ${Object.values(data.equipe || {}).reduce((t, n) => t + n, 0)} à faire` : ""}</p>
           </div>
         </div>
         <button type="button" onClick={() => synchro.mutate()} disabled={synchro.isPending} className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1.5 text-[12.5px] text-craie hover:text-encre">
           <RefreshCw className={`h-3.5 w-3.5 ${synchro.isPending ? "animate-spin" : ""}`} /> Relire Monday
         </button>
       </div>
+      {data.hors_equipe && <p className="m-0 mb-4 rounded-[12px] border border-ambre/40 px-4 py-3 text-[13px] text-craie">Tu n'es pas parmi les prospecteurs cochés dans Réglages : la liste du jour se partage entre eux.</p>}
+      {!data.partage && <p className="m-0 mb-4 text-[12.5px] text-brume">Liste commune : personne n'est coché dans Réglages. Un agent que tu appelles devient le tien et sort des listes des autres.</p>}
       {data.reportes > 0 && <p className="m-0 mb-4 text-[12.5px] text-brume">{data.reportes} autre{data.reportes > 1 ? "s" : ""} attendent demain : au-delà de {data.reglages?.max} appels par personne, la liste s'arrête.</p>}
       {liste.length ? (
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -431,7 +433,7 @@ function OngletReglages({ reglages }) {
 
       <section className="rounded-[16px] border border-trait bg-surface p-6">
         <p className={etiquette}>Qui prospecte</p>
-        <p className="m-0 mt-1 text-[13px] text-craie">La liste du jour se partage entre ces personnes, sans qu'un agent soit appelé deux fois. Sans personne cochée, chacun voit une part de la liste sur la page, et personne ne reçoit de message.</p>
+        <p className="m-0 mt-1 text-[13px] text-craie">La liste du jour se partage entre ces personnes, sans qu'un agent soit appelé deux fois. Sans personne cochée, la liste est commune à qui ouvre la page, et personne ne reçoit de message à 8 h.</p>
         <ul className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">
           {(reglages?.equipe || []).map((u) => (
             <li key={u.email}>

@@ -65,13 +65,6 @@ export function enregistrerReglages(r, par = null) {
   return suite;
 }
 
-/** Ceux qui prospectent : les réglages, sinon toute l'équipe. */
-export function prospecteurs() {
-  const r = reglages();
-  if (r.prospecteurs.length) return r.prospecteurs;
-  return Records.filter('User', { role: 'admin' }).map((u) => String(u.email || '').toLowerCase()).filter((e) => e.endsWith('@klocka.immo'));
-}
-
 // ---------------------------------------------------------------------------
 // Le suivi que Monday ne garde pas
 // ---------------------------------------------------------------------------
@@ -424,30 +417,44 @@ async function retoursAuxGrosAgents(aujourdhui, faits) {
     });
 }
 
-/** Les appels faits aujourd'hui, par clé d'élément. */
-function faitsDuJour(aujourdhui) {
-  return new Set(Records.list(APPEL).filter((a) => R.jourDe(a.le) === aujourdhui).map((a) => a.item_id));
+/**
+ * Ce qui est déjà fait : une relance de dossier appelée ne revient pas avant
+ * trois jours, un retour sur un Non ne revient jamais, un prospect appelé
+ * aujourd'hui sort de la liste par sa nouvelle date de relance.
+ */
+function dejaFaits(maintenant) {
+  const troisJours = Date.parse(maintenant) - 3 * 86400000;
+  return new Set(Records.list(APPEL)
+    .filter((a) => String(a.item_id).startsWith('retour:') || Date.parse(a.le) >= troisJours)
+    .map((a) => a.item_id));
 }
 
 /**
- * La liste d'appels du jour d'une personne, et celle de toute l'équipe.
- * La répartition est figée à la première lecture de la journée.
+ * La liste d'appels du jour d'une personne, et le compte de l'équipe.
+ *
+ * Avec des prospecteurs dans les réglages, la liste se partage entre eux,
+ * figée à la première lecture de la journée : un agent donné à Paul à 8 h ne
+ * passe pas chez Nora à 11 h. Sans réglage, la liste est commune : chacun
+ * voit les agents qui sont à lui et ceux qui ne sont à personne, et l'agent
+ * appelé devient à celui qui l'a appelé, ce qui le sort des autres listes.
  */
 export async function appelsDuJour({ pour = null, maintenant = new Date() } = {}) {
   const r = reglages();
+  const moi = pour ? String(pour).toLowerCase() : null;
   const aujourdhui = R.jourDe(maintenant);
-  const faits = faitsDuJour(aujourdhui);
-  const liste = M.mondayConfigure() ? await prospects() : [];
-  // Sans réglage, l'équipe, plus ceux à qui des agents sont déjà attribués
-  // dans Monday (un collègue sans compte Klocka garde les siens).
-  const attitres = r.prospecteurs.length ? [] : liste.flatMap((p) => p.collaborateurs || []);
-  const equipe = [...new Set([...prospecteurs(), ...attitres, ...(pour ? [String(pour).toLowerCase()] : [])])];
-  const extras = [...relancesDeDossiers(aujourdhui, faits), ...(await retoursAuxGrosAgents(aujourdhui, faits).catch(() => []))];
+  const faits = dejaFaits(maintenant);
+  const tous = M.mondayConfigure() ? await prospects() : [];
+  const partage = r.prospecteurs.length > 0;
+  const horsEquipe = partage && moi && !r.prospecteurs.includes(moi);
+  const liste = partage ? tous : tous.filter((p) => !(p.collaborateurs || []).length || (moi && p.collaborateurs.includes(moi)));
+  const equipe = partage ? r.prospecteurs : moi ? [moi] : [];
+  const extras = [...relancesDeDossiers(aujourdhui, faits), ...(await retoursAuxGrosAgents(aujourdhui, faits).catch(() => []))]
+    .filter((x) => partage || !x.collaborateurs?.length || (moi && x.collaborateurs.includes(moi)));
   const jour = lireJson(CLE_JOUR, {});
-  const fige = jour.jour === aujourdhui ? jour.attribution || {} : {};
+  const fige = partage && jour.jour === aujourdhui ? jour.attribution || {} : {};
   const s = suivis();
   const { parPersonne, reportes, attribution } = R.listeDuJour(liste, { prospecteurs: equipe, suivis: s, max: r.max, maintenant, extras, fige });
-  Meta.set(CLE_JOUR, JSON.stringify({ jour: aujourdhui, attribution: { ...fige, ...attribution } }));
+  if (partage) Meta.set(CLE_JOUR, JSON.stringify({ jour: aujourdhui, attribution: { ...fige, ...attribution } }));
   const enrichir = (p) => {
     const x = s[p.id] || {};
     return { ...p, telephone_affiche: R.telAffiche(p.telephone) || p.telephone || null, source: x.source || null, annonces: x.annonces || 0, sites: x.sites || [], tentatives: x.tentatives || 0, appels: x.appels || 0, dernier_appel_le: x.dernier_appel_le || null };
@@ -456,11 +463,13 @@ export async function appelsDuJour({ pour = null, maintenant = new Date() } = {}
   return {
     jour: aujourdhui,
     pour,
-    liste: pour ? (parPersonne[String(pour).toLowerCase()] || []).map(enrichir) : [],
+    partage,
+    hors_equipe: !!horsEquipe,
+    liste: moi && !horsEquipe ? (parPersonne[moi] || []).map(enrichir) : [],
     equipe: Object.fromEntries(Object.entries(parPersonne).map(([e, l]) => [e, l.length])),
     reportes: reportes.length,
-    faits: { moi: pour ? appelsAujourdhui.filter((a) => a.par === String(pour).toLowerCase()).length : 0, equipe: appelsAujourdhui.length },
-    total_prospects: liste.length,
+    faits: { moi: moi ? appelsAujourdhui.filter((a) => a.par === moi).length : 0, equipe: appelsAujourdhui.length },
+    total_prospects: tous.length,
   };
 }
 

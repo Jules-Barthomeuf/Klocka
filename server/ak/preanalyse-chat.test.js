@@ -249,3 +249,21 @@ test('l\'avis prévient quand le prix est net vendeur sans honoraires chiffrés'
   const texte = avis.avisPreanalyse({ dossier });
   assert.match(texte, /à vérifier : attention, le prix est net vendeur, pas FAI\. les honoraires ne sont pas chiffrés, donc le FAI réel est plus haut et la renta comme la négo à revoir : demander le montant à l'agent/);
 });
+
+test('les photos jointes au message vont dans les images du projet, sans doublon', async () => {
+  const { photosDuMessage, ajouterPhotos, executerOutil } = await import('./agent.js');
+  const message = { espace: 'spaces/DMP', auteur: { nom: 'users/1' }, pieces: [
+    { nom: 'facade.jpg', type: 'image/jpeg', chemin: '/tmp/ak-1-facade.jpg', url: '/uploads/ak-1-facade.jpg' },
+    { nom: 'fiche.pdf', type: 'application/pdf', chemin: '/tmp/ak-1-fiche.pdf', url: '/uploads/ak-1-fiche.pdf' },
+    { nom: 'vitrine.png', type: null, chemin: '/tmp/ak-1-vitrine.png', url: '/uploads/ak-1-vitrine.png' },
+    { nom: 'ratee.jpg', type: 'image/jpeg', erreur: 'téléchargement impossible' },
+  ] };
+  assert.deepEqual(photosDuMessage(message), ['/uploads/ak-1-facade.jpg', '/uploads/ak-1-vitrine.png']);
+  const p = Records.create('Project', { titre: 'Glacier - Paris', photos: ['/uploads/ancienne.jpg'] });
+  assert.equal(ajouterPhotos(p.id, photosDuMessage(message)), 2);
+  assert.equal(ajouterPhotos(p.id, photosDuMessage(message)), 0, 'déjà là');
+  assert.deepEqual(Records.get('Project', p.id).photos, ['/uploads/ancienne.jpg', '/uploads/ak-1-facade.jpg', '/uploads/ak-1-vitrine.png']);
+  const r = await executerOutil({ name: 'ajouter_photos_projet', input: { projet_id: p.id } }, { email: 'jules.b@klocka.immo' }, { message: { ...message, pieces: [{ nom: 'rue.webp', type: 'image/webp', chemin: '/tmp/x', url: '/uploads/ak-2-rue.webp' }] } });
+  assert.equal(r.photos_ajoutees, 1);
+  assert.equal((await executerOutil({ name: 'ajouter_photos_projet', input: { projet_id: p.id } }, {}, { message: { pieces: [] } })).ok, false);
+});

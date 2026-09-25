@@ -242,8 +242,13 @@ const OUTILS_AK = [
   },
   {
     name: 'creer_projet_depuis_dossier',
-    description: "Crée la fiche projet d'un dossier de préanalyse déjà là (« crée le projet pour Devred de Firminy »). Chercher le dossier d'abord avec chercher_dossier ; s'il n'existe pas, le dire, ne rien créer de vide.",
-    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, lot_index: { type: 'number', description: 'index du lot, 0 sauf dossier multi-lots' } }, required: ['deal_id'] },
+    description: "Crée la fiche projet d'un dossier de préanalyse déjà là (« crée le projet pour Devred de Firminy », « rentre le projet dans la plateforme »). Chercher le dossier d'abord avec chercher_dossier ; s'il n'existe pas, le dire, ne rien créer de vide. Les photos jointes au message vont dans les images du projet ; si le projet existe déjà, elles s'y ajoutent. photos à faux seulement quand l'image jointe est une capture de la fiche ou d'un mail, pas une photo du bien.",
+    input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, lot_index: { type: 'number', description: 'index du lot, 0 sauf dossier multi-lots' }, photos: { type: 'boolean', description: 'vrai par défaut : les images du message sont des photos du bien' } }, required: ['deal_id'] },
+  },
+  {
+    name: 'ajouter_photos_projet',
+    description: "« Mets cette photo sur le projet X », « ajoute ces photos au Devred » : les images jointes au message vont dans les images du projet (chercher_projet d'abord pour l'identifiant).",
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
   },
   {
     name: 'outils_kdata',
@@ -325,6 +330,24 @@ export function decrireOutilsKdata() {
  */
 // Les gestes qui coûtent ou qui créent : refaits à l'identique dans l'heure,
 // ils ne repartent pas. Cinq LOI Devred pour une seule demande, c'était ça.
+// Les photos du bien jointes au message : les images téléchargées par la
+// veille, rangées dans les uploads avec leur adresse. Pure.
+export function photosDuMessage(message) {
+  return (message?.pieces || [])
+    .filter((p) => p.url && p.chemin && (/^image\//i.test(p.type || '') || /\.(jpe?g|png|webp|heic|gif)$/i.test(p.nom || '')))
+    .map((p) => p.url);
+}
+
+/** Ajoute des photos à la galerie d'un projet, sans doublon. Rend combien sont entrées. */
+export function ajouterPhotos(projetId, urls) {
+  const projet = Records.get('Project', projetId);
+  if (!projet) return 0;
+  const avant = (projet.photos || []).filter((u) => typeof u === 'string');
+  const nouvelles = urls.filter((u) => !avant.includes(u));
+  if (nouvelles.length) Records.update('Project', projetId, { photos: [...avant, ...nouvelles] });
+  return nouvelles.length;
+}
+
 export const GESTES_COUTEUX = new Set(['rediger_loi', 'lancer_kdata', 'preanalyser_mail', 'analyser_fiche', 'faire_tout', 'creer_dossier', 'creer_projet_depuis_dossier', 'generer_prez_bancaire', 'lancer_alx']);
 const CLE_GESTES = 'ak.gestes';
 const DOUBLON_MS = 60 * 60 * 1000;
@@ -343,7 +366,8 @@ export function dejaFait(cle, gestes, maintenant = Date.now()) {
 
 export async function executerOutil(appel, user, options = {}) {
   if (!GESTES_COUTEUX.has(appel.name)) return executerOutilBrut(appel, user, options);
-  const cle = cleGeste(appel.name, appel.input);
+  // Des photos différentes font un autre geste : les ajouter n'est pas refaire le projet.
+  const cle = cleGeste(appel.name, { ...(appel.input || {}), photos_jointes: photosDuMessage(options.message) });
   const gestes = (() => { try { return JSON.parse(Meta.get(CLE_GESTES) || '{}'); } catch { return {}; } })();
   const minutes = dejaFait(cle, gestes);
   if (minutes != null) return { ok: false, deja_fait: true, error: `Déjà fait il y a ${minutes} min, pas relancé : dis-le en une ligne, sans le refaire.` };
@@ -510,8 +534,20 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const { creerProjetDepuisDeal, completerAvantProjet } = await import('../deal/projet.js');
     try { await completerAvantProjet(input.deal_id, Number(input.lot_index) || 0); } catch { /* la fiche naît de ce qu'on a */ }
     const r = creerProjetDepuisDeal(input.deal_id, Number(input.lot_index) || 0, user);
-    if (!r.ok) return { ok: false, error: r.error, lien: r.project_id ? lien(`/projet/${r.project_id}`) : null };
-    return { ok: true, projet_id: r.project.id, titre: r.project.titre, lien: lien(`/projet/${r.project.id}`), champs_remplis: r.champs_remplis };
+    const images = input.photos === false ? [] : photosDuMessage(message);
+    if (!r.ok) {
+      // Le projet existe déjà : les photos s'y ajoutent quand même.
+      const ajoutees = r.project_id && images.length ? ajouterPhotos(r.project_id, images) : 0;
+      return { ok: ajoutees > 0, error: r.error, photos_ajoutees: ajoutees, lien: r.project_id ? lien(`/projet/${r.project_id}`) : null };
+    }
+    const ajoutees = images.length ? ajouterPhotos(r.project.id, images) : 0;
+    return { ok: true, projet_id: r.project.id, titre: r.project.titre, lien: lien(`/projet/${r.project.id}`), champs_remplis: r.champs_remplis, photos_ajoutees: ajoutees };
+  }
+  if (name === 'ajouter_photos_projet') {
+    if (!Records.get('Project', input.projet_id)) return { ok: false, error: 'Projet introuvable.' };
+    const images = photosDuMessage(message);
+    if (!images.length) return { ok: false, error: "Aucune photo dans le message : joins-la au même message que la demande." };
+    return { ok: true, photos_ajoutees: ajouterPhotos(input.projet_id, images), lien: lien(`/projet/${input.projet_id}`) };
   }
   if (name === 'outils_kdata') return { outils: decrireOutilsKdata() };
   if (name === 'lancer_kdata') {
@@ -619,7 +655,7 @@ Tu as des outils. Le modèle ne décide de rien sur le fond : il traduit une phr
 RÈGLES :
 1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien. Une recherche, puis l'action : n'appelle pas verifier, etat_dossier ou etat_projet si on ne t'a rien demandé dessus, chaque appel coûte.
 2bis. Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une fiche COLLÉE dans le message (un mémorandum, une annonce, des lignes de description du bien) avec la même demande : analyser_fiche avec texte_du_message, jamais creer_dossier. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
-2. « Crée le projet pour X » : chercher_dossier puis creer_projet_depuis_dossier. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
+2. « Crée le projet pour X », « rentre le projet dans la plateforme » : chercher_dossier puis creer_projet_depuis_dossier ; les photos jointes au message vont d'elles-mêmes dans les images du projet (dis combien en une demi-phrase). « Mets cette photo sur le projet X » : chercher_projet puis ajouter_photos_projet. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
 5. Un mail à l'agent d'un dossier (« fais un mail de feedback à l'agent, l'emplacement est nul », « refuse-le », « demande les docs », « prépare la relance pour l'agent de Dieppe ») : chercher_dossier si le dossier n'est pas celui dont on parle, puis mail_agent avec les raisons dans les mots de la personne. Le brouillon est posté en entier juste après ta réponse : ne le recopie pas, dis juste en une ligne que voilà le mail. Tu ne l'envoies jamais : c'est le « envoie » de la personne qui le fait partir. Un autre mail (à un client, sans dossier) : preparer_mail, et tu colles l'objet et le corps tels quels. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.

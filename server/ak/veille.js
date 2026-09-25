@@ -14,7 +14,7 @@ import { noterEchange, apprendre } from './lecons.js';
 import { assurerPrive } from './chat.js';
 import { compteAk, espacesSuivis, messagesDepuis, estPourAk, estDeAk, sansMention, envoyer, envoyerFichier, mention, mentionDe, telechargerPiece, retenirPersonne, NOM } from './chat.js';
 import { APP_URL_PROD } from '../contexte.js';
-import { intention, commandeBanane, repliquesGreve, citation } from './intentions.js';
+import { intention, commandeBanane, repliquesGreve, citation, commandeDeploiement } from './intentions.js';
 
 const INTERVALLE_S = Math.max(5, Number(process.env.AK_INTERVALLE_S || 15));
 // La flemme : une fois sur AK_FLEMME, AK refuse et ne fait rien. Jamais deux
@@ -332,6 +332,12 @@ async function trancher(message) {
   const user = utilisateurPour(message.auteur) || utilisateurAk();
   const tete = entete(message, texte);
 
+  // « déploie » : Render met en ligne la dernière version de main.
+  if (commandeDeploiement(texte)) {
+    await poster(message.espace, `${tete}${await deployer(message, user)}`, null, message.auteur);
+    return true;
+  }
+
   // Le mode banana split : AK fait la grève, et ne fait rien d'autre.
   const banane = commandeBanane(texte);
   if (banane === 'debut' && !enBanane()) {
@@ -522,6 +528,44 @@ export function depuisBorne(stocke, maintenant = Date.now()) {
   return stocke && stocke > plancher ? stocke : plancher;
 }
 
+// Le déploiement depuis le chat : le Deploy Hook de Render (une adresse
+// secrète, RENDER_DEPLOY_HOOK) met en ligne la dernière version de main.
+// Seuls les comptes d'AK_DEPLOIEURS peuvent le demander. Le serveur redémarre
+// pendant le déploiement : la demande est gardée, et au premier passage où
+// la version a changé, AK revient le dire là où on le lui a demandé.
+const CLE_DEPLOIEMENT = 'ak.deploiement';
+const DEPLOIEMENT_MAX_MS = 20 * 60 * 1000;
+export const deploieurs = (brut = process.env.AK_DEPLOIEURS || 'jules.b@klocka.immo') => String(brut).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+
+async function deployer(message, user) {
+  const hook = (process.env.RENDER_DEPLOY_HOOK || '').trim();
+  if (!deploieurs().includes(String(user?.email || '').toLowerCase())) return "le déploiement est réservé, pas pour toi. demande à Jules.";
+  if (!hook) return "je ne peux pas déployer : RENDER_DEPLOY_HOOK n'est pas réglé sur Render (Settings, Deploy Hook, à copier dans Environment).";
+  try {
+    const r = await fetch(hook, { method: 'POST', signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return `Render a refusé le déploiement (${r.status}).`;
+  } catch (e) {
+    return `Render ne répond pas : ${e?.message || e}`;
+  }
+  Meta.set(CLE_DEPLOIEMENT, JSON.stringify({ espace: message.espace, auteur: message.auteur, version: versionQuiTourne(), le: new Date().toISOString() }));
+  return `c'est parti, Render déploie la dernière version de main (là je tourne en ${versionQuiTourne()}). je redémarre pendant ce temps, je reviens ici quand la nouvelle tourne.`;
+}
+
+/** Au passage suivant un déploiement : la nouvelle version tourne, ou elle n'a pas pris. */
+async function suivreDeploiement() {
+  let d = null;
+  try { d = JSON.parse(Meta.get(CLE_DEPLOIEMENT) || 'null'); } catch { d = null; }
+  if (!d?.espace) return;
+  const version = versionQuiTourne();
+  if (version !== d.version) {
+    Meta.set(CLE_DEPLOIEMENT, '');
+    await envoyer(d.espace, `${mention(d.auteur)} déployé : je tourne maintenant en ${version} (avant ${d.version}).`);
+  } else if (Date.now() - Date.parse(d.le) > DEPLOIEMENT_MAX_MS) {
+    Meta.set(CLE_DEPLOIEMENT, '');
+    await envoyer(d.espace, `${mention(d.auteur)} le déploiement n'a pas pris : je tourne toujours en ${version} après vingt minutes. regarde les logs de Render.`);
+  }
+}
+
 /** Un passage : relire, répondre, annoncer. */
 export async function relever() {
   if (enCours) return { ok: false, error: 'un passage est déjà en cours' };
@@ -587,6 +631,7 @@ export async function relever() {
       return { ok: true, espaces: suivis.length, traites, pause: true };
     }
     await reposterEnAttente();
+    try { await suivreDeploiement(); } catch (e) { dernier.erreur = e?.message || String(e); }
     await annoncerLesTachesFinies();
     // Une fiche arrivée dans la boîte : la question, en privé.
     try {
@@ -684,8 +729,10 @@ export async function seProposer(suivis) {
 // La version qui tourne : pour savoir, depuis le chat ou /api/ak/etat, si le
 // serveur a bien le dernier code. Sans git (un déploiement sans historique),
 // c'est la date du fichier.
-let version = null;
-try { const { execFileSync } = await import('child_process'); version = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim(); } catch { version = null; }
+// Render donne le commit déployé (RENDER_GIT_COMMIT), comme /api/health ;
+// ailleurs, git.
+let version = (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || null;
+if (!version) { try { const { execFileSync } = await import('child_process'); version = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim(); } catch { version = null; } }
 export const versionQuiTourne = () => version || 'sans git';
 
 export const etatVeille = () => ({ version: versionQuiTourne(), ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });

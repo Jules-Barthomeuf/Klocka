@@ -24,7 +24,7 @@ import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
 import { COMPTE } from './chat.js';
 import { chercherAgents, verifierRenta, chercherBiens, lirePiece, chercherCibles, lancerAlx, boiteRecue, lireMail, mailsDuDossier, chercherSurLeDrive, rangerSurLeDrive, bloquerRendezVous, agendaDuJour, titreCourt, nommer, faireTout, deposerMail } from './outils.js';
-import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs } from './lecons.js';
+import { leconsPourConsigne, souvenirsPourConsigne, retenir, oublier, souvenirs, preferencesDe } from './lecons.js';
 
 const AGENT = 'ak';
 // Seize messages de mémoire : au-delà, chaque demande relit un roman qu'elle
@@ -168,8 +168,8 @@ const OUTILS_AK = [
   },
   {
     name: 'retenir',
-    description: "Retient un fait durable ou une préférence pour les prochaines fois (« le Devred c'est Firminy », « Max veut pas de Monday sans demander », « le client Dupont a 300 k »). Pas les demandes du moment, pas ce qui est déjà dans la plateforme.",
-    input_schema: { type: 'object', properties: { sujet: { type: 'string', description: 'de qui ou de quoi : une personne, un dossier, un client, l\'équipe' }, fait: { type: 'string' } }, required: ['fait'] },
+    description: "Retient un fait durable ou une préférence pour les prochaines fois (« le Devred c'est Firminy », « le client Dupont a 300 k »). Une préférence que la personne dit pour elle-même (« je veux des mails plus courts », « tutoie-moi », « donne-moi toujours le rendement global ») : personnelle à vrai, elle ne s'appliquera qu'à elle. Pas les demandes du moment, pas ce qui est déjà dans la plateforme.",
+    input_schema: { type: 'object', properties: { sujet: { type: 'string', description: 'de qui ou de quoi : une personne, un dossier, un client, l\'équipe' }, fait: { type: 'string' }, personnelle: { type: 'boolean', description: 'vrai : la préférence ne vaut que pour la personne qui parle' } }, required: ['fait'] },
   },
   {
     name: 'oublier',
@@ -497,9 +497,9 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const { versionQuiTourne } = await import('./veille.js');
     return { version: versionQuiTourne(), consigne_contient: input.mot ? consigneActuelle().includes(input.mot) : null, modele: MODELE || 'celui de la plateforme' };
   }
-  if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null });
+  if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null, pour: input.personnelle ? user?.email || null : null });
   if (name === 'oublier') return oublier(input.id);
-  if (name === 'souvenirs') return { souvenirs: souvenirs().map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait })) };
+  if (name === 'souvenirs') return { souvenirs: souvenirs(200).filter((s) => !s.pour || s.pour === String(user?.email || '').toLowerCase()).map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait, personnelle: !!s.pour })) };
   if (name === 'verifier_renta') return verifierRenta(input);
   if (name === 'chercher_biens') { const biens = chercherBiens(input); return { biens, nombre: biens.length }; }
   if (name === 'lire_piece') {
@@ -774,7 +774,11 @@ export async function repondre(message) {
   // commenter) ; le fil, lui, ne garde que le texte : une image de deux mégas
   // par message ferait grossir la base pour rien.
   const images = imagesDe(message.pieces);
-  const courant = images.length ? [{ type: 'text', text: entree }, ...images] : entree;
+  // Ses préférences à elle, pour ce message seulement : ni dans la consigne
+  // commune, ni dans la mémoire du fil.
+  const prefs = preferencesDe(user?.email);
+  const texteModele = prefs ? `${entree}\n${prefs}` : entree;
+  const courant = images.length ? [{ type: 'text', text: texteModele }, ...images] : texteModele;
   const historique = [...conversation.messages, { role: 'user', content: courant }].slice(-MAX_MESSAGES);
 
   const fond = [];

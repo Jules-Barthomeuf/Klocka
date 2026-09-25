@@ -498,3 +498,24 @@ test('les agents : par ville, par genre déduit du prénom, par agence', async (
   assert.deepEqual(chercherAgents({ genre: 'homme' }, sources).map((a) => a.nom), ['Paul Durand']);
   assert.deepEqual(chercherAgents({ recherche: 'pointdevente' }, sources).map((a) => a.dossiers), [1]);
 });
+
+test('« déploie » : le mot seul, et seulement pour les comptes autorisés', async () => {
+  const { commandeDeploiement } = await import('./intentions.js');
+  const { deploieurs } = await import('./veille.js');
+  for (const t of ['déploie', 'Déploie !', 'deploy', 'mets en ligne', 'déploie sur render']) assert.equal(commandeDeploiement(t), true, t);
+  for (const t of ['déploie le dossier', 'on déploie quand ?', 'le déploiement a marché ?', '']) assert.equal(commandeDeploiement(t), false, t);
+  assert.deepEqual(deploieurs(''), []);
+  assert.deepEqual(deploieurs('Jules.B@klocka.immo, nora.l@klocka.immo'), ['jules.b@klocka.immo', 'nora.l@klocka.immo']);
+});
+
+test('une préférence personnelle ne s\'applique qu\'à celle ou celui qui l\'a dite', async () => {
+  const { retenir, souvenirsPourConsigne, preferencesDe, souvenirs } = await import('./lecons.js');
+  retenir({ sujet: 'Nora', fait: 'veut des mails de trois lignes', par: 'Nora', pour: 'nora.l@klocka.immo' });
+  retenir({ sujet: 'équipe', fait: 'le Devred c\'est Firminy', par: 'Jules' });
+  const liste = souvenirs(200);
+  assert.match(preferencesDe('Nora.L@klocka.immo', liste), /veut des mails de trois lignes/);
+  assert.equal(preferencesDe('max.p@klocka.immo', liste), '', 'Max ne reçoit pas les préférences de Nora');
+  const commun = souvenirsPourConsigne(liste);
+  assert.match(commun, /le Devred c'est Firminy/);
+  assert.doesNotMatch(commun, /trois lignes/);
+});

@@ -73,14 +73,20 @@ export function leconsPourConsigne(liste = lecons()) {
 
 // --- La mémoire de faits ------------------------------------------------------
 
-export function retenir({ sujet, fait, par = null }) {
+/**
+ * Retient un fait ou une préférence. `pour` : l'adresse de la personne à qui
+ * la préférence s'applique (« je veux des mails plus courts ») ; vide, le
+ * souvenir vaut pour toute l'équipe.
+ */
+export function retenir({ sujet, fait, par = null, pour = null }) {
   const s = String(sujet || '').trim().slice(0, 80);
   const f = String(fait || '').trim().slice(0, 300);
   if (!f) return { ok: false, error: 'Rien à retenir.' };
-  const existant = Records.filter(ENTITE_SOUVENIR, { sujet: s }).find((x) => bas(x.fait) === bas(f));
+  const cible = pour ? String(pour).toLowerCase() : null;
+  const existant = Records.filter(ENTITE_SOUVENIR, { sujet: s || 'général' }).find((x) => bas(x.fait) === bas(f) && (x.pour || null) === cible);
   if (existant) return { ok: true, deja: true, id: existant.id };
-  const r = Records.create(ENTITE_SOUVENIR, { sujet: s || 'général', fait: f, par, le: new Date().toISOString() });
-  return { ok: true, id: r.id };
+  const r = Records.create(ENTITE_SOUVENIR, { sujet: s || 'général', fait: f, par, pour: cible, le: new Date().toISOString() });
+  return { ok: true, id: r.id, pour: cible };
 }
 
 export function oublier(id) {
@@ -91,8 +97,21 @@ export function oublier(id) {
 
 export const souvenirs = (limite = MAX_SOUVENIRS) => Records.list(ENTITE_SOUVENIR).sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, limite);
 
-/** Le bloc de mémoire, pour la consigne. Pure sur `liste`. */
+/** Le bloc de mémoire commune, pour la consigne. Les préférences personnelles n'y sont pas. Pure sur `liste`. */
 export function souvenirsPourConsigne(liste = souvenirs()) {
-  if (!liste.length) return '';
-  return ['', '---', '', 'CE QUE TU SAIS (retenu au fil des échanges ; si une personne te dit une préférence ou un fait durable, retiens-le avec l\'outil retenir)', ...liste.map((s) => `- [${s.sujet}] ${s.fait}${s.par ? ` (${s.par})` : ''}`)].join('\n');
+  const communs = liste.filter((s) => !s.pour);
+  if (!communs.length) return '';
+  return ['', '---', '', 'CE QUE TU SAIS (retenu au fil des échanges ; si une personne te dit une préférence ou un fait durable, retiens-le avec l\'outil retenir)', ...communs.map((s) => `- [${s.sujet}] ${s.fait}${s.par ? ` (${s.par})` : ''}`)].join('\n');
+}
+
+/**
+ * Pure : les préférences de la personne qui parle, à suivre dans cette
+ * réponse seulement. Celles des autres ne la regardent pas.
+ */
+export function preferencesDe(email, liste = souvenirs(200)) {
+  const e = String(email || '').toLowerCase();
+  if (!e) return '';
+  const siennes = liste.filter((s) => s.pour === e);
+  if (!siennes.length) return '';
+  return ['(ses préférences, à suivre pour elle ou lui seulement :', ...siennes.slice(0, 15).map((s) => `- ${s.fait}`), ')'].join('\n');
 }

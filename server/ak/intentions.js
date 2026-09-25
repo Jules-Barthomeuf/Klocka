@@ -120,3 +120,9 @@ export function citation(texte, max = 60) {
   if (!t) return '';
   return `› « ${t.length > max ? `${t.slice(0, max - 1)}…` : t} »`;
 }
+
+/** Pure : « déploie », « déploie ! », « mets en ligne » : le mot seul. */
+export function commandeDeploiement(texte) {
+  const t = norm(texte).replace(/\s+/g, ' ').trim();
+  return /^(deploie|deploies|deployer|deploy|mets en ligne|met en ligne)( stp| svp| sur render)?\s*[!.]*$/.test(t);
+}

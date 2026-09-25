@@ -477,3 +477,24 @@ test('« dis-moi ce qu\'il manque » : reconnu, projet choisi, manques listés',
   assert.match(texte, /^ce qui manque au projet Glacier - Paris :\n- il manque le bail commercial → les demander à l'agent\n- on ne connaît pas l'échéance du bail → à lire dans le bail\nje prépare la demande de docs à l'agent \?$/);
   assert.match(phraseManques({ type: 'projet', titre: 'X', constats: [] }), /^rien ne manque au projet X/);
 });
+
+test('les agents : par ville, par genre déduit du prénom, par agence', async () => {
+  const { chercherAgents, genreDuPrenom } = await import('./outils.js');
+  assert.equal(genreDuPrenom('Sophie Martin'), 'femme');
+  assert.equal(genreDuPrenom('Laurent Sebban'), 'homme');
+  assert.equal(genreDuPrenom('Dominique Roy'), null, 'prénom mixte');
+  assert.equal(genreDuPrenom('Zlatanette'), null, 'prénom inconnu');
+  const contacts = [
+    { nom: 'Sophie Martin', email: 'sophie@barnes.fr', entreprise: 'Barnes', fonction: 'Agent immobilier', localisation: 'Paris' },
+    { nom: 'Paul Durand', email: 'paul@cbre.fr', entreprise: 'CBRE', fonction: 'Agent immobilier', localisation: 'Lyon' },
+    { nom: 'Julie Comptable', email: 'julie@cabinet.fr', entreprise: 'Cabinet', fonction: 'Expert-comptable', localisation: 'Paris' },
+  ];
+  const deals = [{ deal_id: 'd1', nom: 'Glacier - Paris', contact_agent_email: 'claire@pointdevente.fr', lots: [{ lot: { adresse: { valeur: { ville: 'Paris' } } } }] }];
+  const mails = [{ de: '"Claire Dubois" <claire@pointdevente.fr>', de_email: 'claire@pointdevente.fr', deal_id: 'd1' }];
+  const sources = { contacts, deals, mails };
+  const paris = chercherAgents({ ville: 'paris' }, sources);
+  assert.deepEqual(paris.map((a) => a.nom), ['Claire Dubois', 'Sophie Martin'], 'le carnet et les dossiers, pas la comptable');
+  assert.deepEqual(chercherAgents({ ville: 'Paris', genre: 'femme' }, sources).map((a) => a.email), ['claire@pointdevente.fr', 'sophie@barnes.fr']);
+  assert.deepEqual(chercherAgents({ genre: 'homme' }, sources).map((a) => a.nom), ['Paul Durand']);
+  assert.deepEqual(chercherAgents({ recherche: 'pointdevente' }, sources).map((a) => a.dossiers), [1]);
+});

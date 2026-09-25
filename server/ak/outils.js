@@ -222,6 +222,80 @@ export async function preanalyserMailRecu(id, user) {
   return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || m.objet, verdict: lot?.synthese?.verdict || null };
 }
 
+// --- Les agents immobiliers --------------------------------------------------
+
+const PRENOMS = JSON.parse(fs.readFileSync(path.join(ici, 'prenoms.json'), 'utf8'));
+const FEMININS = new Set(PRENOMS.feminins);
+const MASCULINS = new Set(PRENOMS.masculins);
+
+/** Pure : « femme », « homme » ou null, d'après le prénom. Un prénom inconnu ou mixte ne tranche pas. */
+export function genreDuPrenom(nom) {
+  const prenom = norme(String(nom || '').trim().split(/[\s<,]+/)[0]).replace(/[^a-z-]/g, '');
+  if (!prenom) return null;
+  if (FEMININS.has(prenom)) return 'femme';
+  if (MASCULINS.has(prenom)) return 'homme';
+  return null;
+}
+
+/** Pure : le nom affiché d'un en-tête « Laurent Sebban <laurent@…> », sans les guillemets. */
+const nomDeLEntete = (de) => String(de || '').replace(/<[^>]*>/, '').replace(/["']/g, '').trim() || null;
+
+/**
+ * Les agents immobiliers que la plateforme connaît : le carnet de contacts,
+ * complété par les agents des dossiers et le nom qu'ils signent dans leurs
+ * mails. Filtres : ville (celle du contact ou de ses dossiers), genre
+ * (déduit du prénom), et une recherche libre (nom, agence, adresse). Pure
+ * sur ses listes.
+ */
+export function chercherAgents({ ville = null, genre = null, recherche = null, limite = 30 } = {}, { contacts = Records.list('Contact'), deals = Records.list('Deal'), mails = Records.list('MailRecu') } = {}) {
+  const parEmail = new Map();
+  const prendre = (email) => {
+    const e = String(email || '').toLowerCase().trim();
+    if (!e.includes('@')) return null;
+    if (!parEmail.has(e)) parEmail.set(e, { email: e, nom: null, agence: null, villes: new Set(), dossiers: [] });
+    return parEmail.get(e);
+  };
+  for (const c of contacts) {
+    if (c.fonction && !/agent|n[ée]gociat|commercial|conseill|mandataire/i.test(c.fonction)) continue;
+    const a = prendre(c.email);
+    if (!a) continue;
+    a.nom = a.nom || c.nom || null;
+    a.agence = a.agence || c.entreprise || null;
+    if (c.localisation) a.villes.add(c.localisation);
+  }
+  for (const d of deals) {
+    if (d.archived || d.test || !d.contact_agent_email) continue;
+    const a = prendre(d.contact_agent_email);
+    const l = d.lots?.[0];
+    const v = val(l?.lot?.adresse)?.ville || l?.enrichissement?.commune?.nom;
+    if (v) a.villes.add(v);
+    a.dossiers.push(titreDeal(d));
+  }
+  // Ceux qui nous envoient des fiches sont des agents, même sans fiche contact :
+  // les mails gardés par le tri, hors équipe.
+  for (const m of mails) {
+    if (m.interne || estInterne(m.de_email)) continue;
+    const a = prendre(m.de_email);
+    if (!a) continue;
+    const nom = nomDeLEntete(m.de);
+    if (nom && (!a.nom || a.nom.split(' ').length < nom.split(' ').length)) a.nom = nom;
+    const deal = m.deal_id ? deals.find((d) => d.deal_id === m.deal_id) : null;
+    const v = deal ? val(deal.lots?.[0]?.lot?.adresse)?.ville || deal.lots?.[0]?.enrichissement?.commune?.nom : null;
+    if (v) a.villes.add(v);
+    if (!a.domaine) a.domaine = String(m.de_email).split('@')[1] || null;
+  }
+  const cherche = recherche ? norme(recherche) : null;
+  const villeCherchee = ville ? norme(ville) : null;
+  return [...parEmail.values()]
+    .map((a) => ({ ...a, villes: [...a.villes], genre: genreDuPrenom(a.nom) }))
+    .filter((a) => !villeCherchee || a.villes.some((v) => norme(v).includes(villeCherchee)))
+    .filter((a) => !genre || a.genre === genre)
+    .filter((a) => !cherche || norme(`${a.nom || ''} ${a.agence || ''} ${a.domaine || ''} ${a.email}`).includes(cherche))
+    .sort((x, y) => y.dossiers.length - x.dossiers.length || String(x.nom || x.email).localeCompare(String(y.nom || y.email)))
+    .slice(0, limite)
+    .map((a) => ({ nom: a.nom, email: a.email, agence: a.agence || a.domaine || null, villes: a.villes, genre: a.genre || 'inconnu', dossiers: a.dossiers.length, exemples: a.dossiers.slice(0, 3) }));
+}
+
 /** Cherche un fichier sur le Drive partagé, dans le dossier d'un deal si on en a un. */
 export async function chercherSurLeDrive({ recherche = '', deal_id = null }) {
   const { listerFichiers } = await import('../google-drive.js');

@@ -187,6 +187,31 @@ async function completerContexteMarche(dossier) {
  * citations restent ceux du dépôt initial, seule la décision est recalculée.
  */
 // Les champs de la fiche qu'on peut corriger à la main, et comment les lire.
+// Ce qui se lit à l'adresse du bien et se garde sur le lot.
+export const LECTURES_A_L_ADRESSE = ['valeur_locative', 'analyse_loyer', 'transactions_fonds', 'prix_residentiel', 'ventes_dvf', 'vitalite_rue', 'implantation', 'contexte_marche', 'comparaison_marche', 'lieu'];
+
+const ligneAdresse = (l) => {
+  const v = l?.adresse?.valeur;
+  return v && typeof v === 'object' ? [v.rue, v.code_postal, v.ville].filter(Boolean).join(' ').toLowerCase().replace(/\s+/g, ' ').trim() : '';
+};
+
+/**
+ * Pure : ce qu'une saisie périme sur le lot. Une adresse qui change retire
+ * toutes les lectures faites à l'ancienne ; la recherche de marché se relance
+ * si le dossier avait une vraie lecture de marché (pas seulement le cache de
+ * comparaison ou le lieu) et que la nouvelle adresse existe.
+ */
+export function lecturesPerimees(entree, lotApres, saisie = {}) {
+  const change = Object.prototype.hasOwnProperty.call(saisie, 'adresse') && ligneAdresse(lotApres) !== ligneAdresse(entree?.lot);
+  if (!change) return { adresse_changee: false, retirer: [], relancer: false };
+  const presentes = LECTURES_A_L_ADRESSE.filter((k) => entree?.[k] != null);
+  return {
+    adresse_changee: true,
+    retirer: presentes,
+    relancer: presentes.some((k) => k !== 'comparaison_marche' && k !== 'lieu') && !!ligneAdresse(lotApres),
+  };
+}
+
 const CHAMPS_SAISISSABLES = {
   prix_fai: { libelle: 'Prix', type: 'nombre' },
   loyer_annuel_ht_hc: { libelle: 'Loyer', type: 'nombre' },
@@ -256,6 +281,10 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
     };
   }
 
+  // Une adresse corrigée périme tout ce qui a été lu à l'ancienne : on le
+  // retire, et la recherche de marché se relance si le dossier en avait une.
+  const perime = lecturesPerimees(entree, lot, saisie);
+
   const enrichissement = await enrichir(lot, { emplacement: saisie.emplacement });
   // Ce que l'analyste a posé dans le simulateur compte dans le prix de revient :
   // le prix négocié et les travaux bailleur de la première année. Le verdict,
@@ -285,8 +314,12 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   ]);
 
   const lots = [...dossier.lots];
+  const sansAnciennes = { ...entree };
+  for (const k of perime.retirer) delete sansAnciennes[k];
+  const { relancer } = perime;
   lots[indexLot] = {
-    ...entree,
+    ...sansAnciennes,
+    ...(relancer ? { marche_relance: { le: new Date().toISOString(), raison: 'adresse corrigée', cle: `${dealId}|${indexLot}` } } : {}),
     lot,
     enrichissement,
     evaluation,
@@ -316,6 +349,10 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const nomAuto = indexLot === 0 && dossier.nom && dossier.nom === titreDuLot(entree.lot, entree.enrichissement);
   const nouveauNom = nomAuto ? titreDuLot(lot, enrichissement) : null;
   Records.update('Deal', dossier.id, { lots, ...(nouveauNom && nouveauNom !== dossier.nom ? { nom: nouveauNom } : {}) });
+  if (relancer) {
+    const { lancerRechercheMarche } = await import('../alex.js');
+    lancerRechercheMarche(dealId, indexLot, { forcer: true, automatique: true });
+  }
 
   return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot }, ...(nouveauNom ? { nom: nouveauNom } : {}) };
 }

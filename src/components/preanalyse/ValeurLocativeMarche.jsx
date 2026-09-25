@@ -30,7 +30,9 @@ export default function ValeurLocativeMarche({ lot, premiere = false }) {
   return (
     <Section premiere={premiere} titre={`Valeur locative du secteur · ${resultat?.constate ? "Equimmox" : resultat?.dvf ? "déduite des ventes" : "Equimmox"}`} aside={resultat?.dvf?.lien ? <LienSource href={resultat.dvf.lien}>Les ventes sur DVF</LienSource> : null}>
       {!resultat ? (
-        <Vide>Aucune lecture. Relancez l'analyse de marché avec la valeur locative du secteur cochée.</Vide>
+        <Vide>{lot?.marche_relance && Date.now() - Date.parse(lot.marche_relance.le) < 15 * 60000
+          ? "L'adresse a changé : la valeur locative se relit à la nouvelle adresse, quelques minutes. L'ancienne estimation a été retirée."
+          : "Aucune lecture. Relancez l'analyse de marché avec la valeur locative du secteur cochée."}</Vide>
       ) : (
         <>
           <Chiffres

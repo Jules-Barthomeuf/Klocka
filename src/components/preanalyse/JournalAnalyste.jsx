@@ -169,6 +169,24 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
     }
   }, [apercu, dealId, lot, analyse, suivre, finir]);
 
+  // Une adresse corrigée relance la lecture côté serveur, sans clic : si elle
+  // tourne encore quand on ouvre l'onglet, on la suit comme une mise à jour.
+  const relance = lot?.marche_relance;
+  useEffect(() => {
+    if (apercu || !relance?.cle || phase !== "repos" || Date.now() - Date.parse(relance.le) > 15 * 60000) return undefined;
+    let annule = false;
+    base44.request("GET", `/api/marche/alex/etat?cle=${encodeURIComponent(relance.cle)}`)
+      .then((t) => {
+        if (annule || t?.etat !== "en_cours") return;
+        setEtat(t);
+        setTemps(0);
+        setPhase("joue");
+        suivre(relance.cle);
+      })
+      .catch(() => {});
+    return () => { annule = true; };
+  }, [apercu, relance?.cle, relance?.le, phase, suivre]);
+
   /** La croix, en haut : on quitte l'écran ; la recherche continue côté serveur. */
   const fermer = useCallback(() => {
     arreterSuivi();

@@ -120,7 +120,8 @@ export default function Analyse() {
         lots[idx] = { ...lots[idx], ...r.lot, index: idx };
         return { ...d, lots, ...(r?.nom ? { nom: r.nom, titre: r.nom } : {}) };
       });
-      toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`, { id: "recalcul", description: undefined });
+      const relance = r?.lot?.marche_relance && Date.now() - Date.parse(r.lot.marche_relance.le) < 60000;
+      toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`, { id: "recalcul", description: relance ? "Nouvelle adresse : la lecture de marché (valeur locative, loyers, ventes…) se refait, quelques minutes." : undefined });
     },
     onError: (e) => toast.error(e?.message || "Recalcul impossible", { id: "recalcul", description: undefined }),
   });

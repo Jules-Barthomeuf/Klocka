@@ -30,6 +30,23 @@ export function monterAk(app) {
     const { bilanAk } = await import('../ak/bilan.js');
     ok(res, bilanAk(Number(req.query.jours) || 30));
   }));
+  // Le questionnaire de l'assistant : les questions, et les réponses de la personne connectée.
+  app.get('/api/ak/questionnaire', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { questionsPubliques, profilDe, consignesDuProfil } = await import('../ak/questionnaire.js');
+    const profil = profilDe(user.email);
+    ok(res, { questions: questionsPubliques(), reponses: profil?.reponses || {}, maj_le: profil?.maj_le || null, consignes: consignesDuProfil(profil?.reponses || {}) });
+  }));
+  app.post('/api/ak/questionnaire', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { enregistrerProfil } = await import('../ak/questionnaire.js');
+    const r = enregistrerProfil(user.email, req.body?.reponses || {});
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
+  }));
+
   app.get('/api/ak/lecons', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const { lecons, souvenirs } = await import('../ak/lecons.js');

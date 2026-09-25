@@ -70,6 +70,7 @@ const Famille = lazy(() => import('./pages/Famille'));
 const Familles = lazy(() => import('./pages/Familles'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const Home = lazy(() => import('./pages/Home'));
+const MonAssistant = lazy(() => import('./pages/MonAssistant'));
 const KData = lazy(() => import('./pages/KData'));
 const KZoning = lazy(() => import('./pages/KZoning'));
 const KExpertise = lazy(() => import('./pages/KExpertise'));
@@ -109,6 +110,7 @@ export const PAGES = {
     "Familles": Familles,
     "Feedback": Feedback,
     "Home": Home,
+    "MonAssistant": MonAssistant,
     "KData": KData,
     "KZoning": KZoning,
     "KExpertise": KExpertise,

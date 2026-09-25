@@ -519,3 +519,19 @@ test('une préférence personnelle ne s\'applique qu\'à celle ou celui qui l\'a
   assert.match(commun, /le Devred c'est Firminy/);
   assert.doesNotMatch(commun, /trois lignes/);
 });
+
+test('le questionnaire : des réponses propres, des consignes pour la personne seule', async () => {
+  const { nettoyer, consignesDuProfil, enregistrerProfil, QUESTIONS } = await import('./questionnaire.js');
+  const { preferencesDe } = await import('./lecons.js');
+  assert.ok(QUESTIONS.length >= 10);
+  assert.deepEqual(nettoyer({ longueur: 'court', role: ['analyse', 'pirate'], rendement_mini: '6,5', inconnue: 'x', appel: '  ' }), { longueur: 'court', role: ['analyse'], rendement_mini: 6.5 });
+  const consignes = consignesDuProfil({ longueur: 'court', avis: ['renta', 'emplacement'], rendement_mini: 6.5 });
+  assert.ok(consignes.includes('réponds-lui en une ligne, sans rien autour'));
+  assert.ok(consignes.some((c) => /commence par la renta et la négo, puis l'emplacement/.test(c)));
+  assert.ok(consignes.some((c) => /sous 6,5 % de rendement global/.test(c)));
+  assert.deepEqual(consignesDuProfil({ longueur: 'normal', ton: 'equipe' }), [], 'les réponses par défaut ne changent rien');
+  const r = enregistrerProfil('Max.P@klocka.immo', { signature: 'Max, Klocka', mails: 'courts' });
+  assert.equal(r.ok, true);
+  assert.match(preferencesDe('max.p@klocka.immo', []), /signe ses mails « Max, Klocka »/);
+  assert.equal(preferencesDe('nora.l@klocka.immo', []), '', 'le profil de Max ne vaut que pour Max');
+});

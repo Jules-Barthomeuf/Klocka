@@ -11,6 +11,7 @@
 // Firminy », « Max veut pas de Monday sans demander »), relu de la même
 // façon. Quelques centaines de jetons, en cache : ça ne coûte presque rien.
 
+import { profilDe, consignesDuProfil } from './questionnaire.js';
 import { Records, Meta } from '../db.js';
 
 const ENTITE_LECON = 'AkLecon';
@@ -108,10 +109,14 @@ export function souvenirsPourConsigne(liste = souvenirs()) {
  * Pure : les préférences de la personne qui parle, à suivre dans cette
  * réponse seulement. Celles des autres ne la regardent pas.
  */
-export function preferencesDe(email, liste = souvenirs(200)) {
+export function preferencesDe(email, liste = souvenirs(200), profil = profilDe(email)) {
   const e = String(email || '').toLowerCase();
   if (!e) return '';
-  const siennes = liste.filter((s) => s.pour === e);
-  if (!siennes.length) return '';
-  return ['(ses préférences, à suivre pour elle ou lui seulement :', ...siennes.slice(0, 15).map((s) => `- ${s.fait}`), ')'].join('\n');
+  // Le questionnaire d'abord (ce qu'elle ou il a posé à froid), puis ce
+  // qu'elle ou il a dit en passant dans le chat.
+  const questionnaire = consignesDuProfil(profil?.reponses || {});
+  const siennes = liste.filter((s) => s.pour === e).slice(0, 15).map((s) => s.fait);
+  const toutes = [...questionnaire, ...siennes];
+  if (!toutes.length) return '';
+  return ['(ses préférences, à suivre pour elle ou lui seulement :', ...toutes.map((t) => `- ${t}`), ')'].join('\n');
 }

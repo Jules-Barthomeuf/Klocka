@@ -18,18 +18,19 @@ const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { da
 const lundiDe = (iso) => { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7))).toISOString().slice(0, 10); };
 const semaineCourte = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "UTC" });
 
+// Ce qu'on sait mesurer : la fiche reçue, et le Oui ou le Non de la
+// préanalyse. La suite (présentée, signée) viendra quand elle sera tracée.
 const ETAPES = [
   { cle: "fiches", libelle: "Fiches reçues" },
   { cle: "oui", libelle: "Oui à la préanalyse" },
-  { cle: "presente", libelle: "Présentées au client" },
-  { cle: "abouti", libelle: "Abouties" },
 ];
+// Au-delà du Oui, une fiche reste un Oui ici.
 const PILULE = {
-  recue: { mot: "Reçue", classe: "border-bord-doux text-craie" },
+  recue: { mot: "En attente", classe: "border-bord-doux text-craie" },
   non: { mot: "Non", classe: "border-alerte/40 text-alerte" },
   oui: { mot: "Oui", classe: "border-menthe/50 text-menthe" },
-  presente: { mot: "Présentée", classe: "border-menthe bg-menthe/15 text-encre" },
-  abouti: { mot: "Aboutie", classe: "border-menthe bg-menthe text-sur-menthe" },
+  presente: { mot: "Oui", classe: "border-menthe/50 text-menthe" },
+  abouti: { mot: "Oui", classe: "border-menthe/50 text-menthe" },
 };
 
 function Semaines({ semaines, record }) {
@@ -101,7 +102,10 @@ export default function FichesCommerciales() {
   const courante = semaines[semaines.length - 1] || { fiches: 0 };
   const record = data?.record || { fiches: 0 };
   const total = useMemo(() => semaines.reduce((t, s) => { for (const e of ETAPES) t[e.cle] = (t[e.cle] || 0) + (s[e.cle] || 0); return t; }, {}), [semaines]);
-  const fiches = (data?.fiches || []).filter((f) => filtre === "tout" || (filtre === "a_preanalyser" ? f.a_preanalyser : f.etape === filtre));
+  const estOui = (f) => ["oui", "presente", "abouti"].includes(f.etape);
+  const fiches = (data?.fiches || []).filter((f) => filtre === "tout" || (filtre === "a_preanalyser" ? f.a_preanalyser : filtre === "oui" ? estOui(f) : f.etape === filtre));
+  const non = (data?.fiches || []).filter((f) => f.etape === "non").length;
+  const attente = (data?.fiches || []).filter((f) => f.etape === "recue").length;
 
   if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
   if (isError) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
@@ -145,16 +149,13 @@ export default function FichesCommerciales() {
                     <span className="text-[13.5px] text-craie">{e.libelle}</span>
                     <span className="text-[15px] tabular-nums text-encre">{nf.format(n)}</span>
                   </div>
-                  {k > 0 && (
-                    <p className="m-0 mt-0.5 text-right text-[11.5px] tabular-nums text-brume">
-                      {k > 1 && <>{pctDe(n, total.oui)} des Oui · </>}{pctDe(n, total.fiches)} des fiches reçues
-                    </p>
-                  )}
+                  {k > 0 && <p className="m-0 mt-0.5 text-right text-[11.5px] tabular-nums text-brume">{pctDe(n, total.fiches)} des fiches reçues</p>}
                   <div className="mt-1 h-1 overflow-hidden rounded-full bg-encre/[0.06]"><div className="h-full rounded-full bg-menthe/70 transition-[width] duration-500" style={{ width: `${total.fiches ? (n / total.fiches) * 100 : 0}%` }} /></div>
                 </li>
               );
             })}
           </ul>
+          <p className="m-0 mt-4 border-t border-trait pt-3 text-[12.5px] text-craie">{nf.format(non)} Non · {nf.format(attente)} en attente de décision</p>
         </div>
       </section>
 
@@ -167,7 +168,7 @@ export default function FichesCommerciales() {
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="m-0 text-[18px] font-semibold text-encre">Les fiches <span className="text-[13px] font-normal text-brume">{data?.total || 0}</span></h2>
           <div className="flex flex-wrap gap-1.5">
-            {[["tout", "Toutes"], ["a_preanalyser", "À préanalyser"], ["oui", "Oui"], ["non", "Non"], ["presente", "Présentées"], ["abouti", "Abouties"]].map(([v, mot]) => (
+            {[["tout", "Toutes"], ["a_preanalyser", "À préanalyser"], ["recue", "En attente de décision"], ["oui", "Oui"], ["non", "Non"]].map(([v, mot]) => (
               <button key={v} type="button" onClick={() => setFiltre(v)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${filtre === v ? "border-menthe bg-menthe text-sur-menthe font-semibold" : "border-bord-doux text-craie hover:text-encre"}`}>{mot}</button>
             ))}
           </div>

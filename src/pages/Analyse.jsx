@@ -118,7 +118,7 @@ export default function Analyse() {
         if (!d) return d;
         const lots = [...d.lots];
         lots[idx] = { ...lots[idx], ...r.lot, index: idx };
-        return { ...d, lots };
+        return { ...d, lots, ...(r?.nom ? { nom: r.nom, titre: r.nom } : {}) };
       });
       toast.success(`Verdict recalculé : ${r?.lot?.evaluation?.verdict || "—"}`, { id: "recalcul", description: undefined });
     },

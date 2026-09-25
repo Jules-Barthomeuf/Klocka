@@ -255,7 +255,7 @@ function AttendusInfo({ lignes }) {
 function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier = null, enVerification = null, titre, sousTitre = null, actions = null }) {
   // Le marché autour : lu une fois par état du bien (prix, loyer, surface).
   const { data: marche, isLoading: marcheEnLecture } = useQuery({
-    queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2)],
+    queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/lots/${lot.index ?? 0}/marche-comparaison`),
     enabled: !!dealId && !apercu,
     staleTime: 10 * 60 * 1000,
@@ -1069,6 +1069,93 @@ export function BandeauRecalcul({ actif }) {
   );
 }
 
+// Ce que la préanalyse a lu, corrigeable d'un coup. Une fiche qui dit
+// « Réaumur » a pu être lue en Vendée ; on corrige l'adresse (et tout ce qui
+// a été mal lu), puis on relance : lieu, marché, grille, verdict et
+// simulateur se recalculent sur les valeurs corrigées, en un seul passage.
+const CHAMPS_CORRIGEABLES = [
+  { champ: "adresse", libelle: "Adresse", large: true, exemple: "12 rue Réaumur, 75003 Paris" },
+  { champ: "prix_fai", libelle: "Prix (FAI ou net vendeur)", exemple: "520000" },
+  { champ: "honoraires_inclus", libelle: "Honoraires inclus dans le prix", booleen: true },
+  { champ: "montant_honoraires", libelle: "Montant des honoraires", exemple: "26000" },
+  { champ: "loyer_annuel_ht_hc", libelle: "Loyer annuel HT HC", exemple: "34416" },
+  { champ: "surface_m2", libelle: "Surface (m²)", exemple: "76" },
+  { champ: "rendement_annonce", libelle: "Rendement annoncé (%)", exemple: "6.6" },
+  { champ: "occupe", libelle: "Occupé", booleen: true },
+  { champ: "locataire_nom", libelle: "Locataire (enseigne)", exemple: "Amorino" },
+  { champ: "locataire_activite", libelle: "Activité", exemple: "glacier" },
+  { champ: "type_actif", libelle: "Type d'actif", exemple: "murs commerciaux" },
+  { champ: "bail_type", libelle: "Type de bail", exemple: "3/6/9" },
+  { champ: "bail_echeance", libelle: "Échéance du bail", exemple: "21/04/2031" },
+];
+
+const valeursDe = (lot) => Object.fromEntries(CHAMPS_CORRIGEABLES.map(({ champ, booleen }) => {
+  const c = lot?.lot?.[champ];
+  if (booleen) return [champ, !c || c.absent ? null : c.valeur === true];
+  return [champ, texteBrut(champ, c)];
+}));
+
+function CorrectionFiche({ ouverte, lot, onSaisie, enCours, onFermer }) {
+  const depart = valeursDe(lot);
+  const cleDepart = JSON.stringify(depart);
+  const [brouillon, setBrouillon] = useState(depart);
+  // Après un recalcul, le formulaire repart des valeurs enregistrées.
+  useEffect(() => { setBrouillon(JSON.parse(cleDepart)); }, [cleDepart]);
+  const changes = Object.fromEntries(Object.entries(brouillon).filter(([k, v]) => v !== depart[k]));
+  const nb = Object.keys(changes).length;
+  const relancer = () => {
+    if (!nb || enCours) return;
+    onSaisie(Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v])));
+    onFermer?.();
+  };
+
+  return (
+    <div className="grid transition-[grid-template-rows,opacity] duration-300 ease-out" style={{ gridTemplateRows: ouverte ? "1fr" : "0fr", opacity: ouverte ? 1 : 0 }} aria-hidden={!ouverte}>
+      <div className="overflow-hidden">
+        <div className="mt-4 rounded-[16px] border border-trait bg-surface p-5">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+            <h3 className="m-0 text-[15px] font-semibold text-encre">Corriger la fiche</h3>
+            <span className="text-[12.5px] text-ardoise">Corrigez ce qui a été mal lu, puis relancez : lieu, marché, grille et simulateur se recalculent. Un champ vidé redevient « non renseigné ».</span>
+          </div>
+          <div className="grid gap-x-5 gap-y-3 md:grid-cols-2">
+            {CHAMPS_CORRIGEABLES.map(({ champ, libelle, large, booleen, exemple }) => {
+              const modifie = champ in changes;
+              return (
+                <label key={champ} className={`flex flex-col gap-1.5 ${large ? "md:col-span-2" : ""}`}>
+                  <span className={`text-[12px] ${modifie ? "text-menthe-clair" : "text-ardoise"}`}>{libelle}{modifie ? " · modifié" : ""}</span>
+                  {booleen ? (
+                    <span className="inline-flex items-center gap-1">
+                      {[["Oui", true], ["Non", false]].map(([mot, v]) => (
+                        <button key={mot} type="button" tabIndex={ouverte ? 0 : -1} onClick={() => setBrouillon((b) => ({ ...b, [champ]: b[champ] === v ? null : v }))} className={`px-3 py-1 rounded-full text-[12.5px] border transition-all duration-200 ${brouillon[champ] === v ? "bg-menthe border-menthe text-sur-menthe font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
+                      ))}
+                    </span>
+                  ) : (
+                    <input
+                      value={brouillon[champ] ?? ""}
+                      tabIndex={ouverte ? 0 : -1}
+                      onChange={(e) => setBrouillon((b) => ({ ...b, [champ]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") relancer(); }}
+                      placeholder={champ === "adresse" ? `non renseignée, par exemple ${exemple}` : "non renseigné"}
+                      className={`rounded-md border bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 ${modifie ? "border-menthe/40" : "border-trait"}`}
+                    />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+          <div className="mt-5 flex items-center justify-end gap-3">
+            {nb > 0 && <button type="button" tabIndex={ouverte ? 0 : -1} onClick={() => setBrouillon(depart)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler les modifications</button>}
+            <button type="button" tabIndex={ouverte ? 0 : -1} onClick={relancer} disabled={!nb || enCours} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[12.5px] font-semibold text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
+              {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Relancer la préanalyse{nb ? ` (${nb} modification${nb > 1 ? "s" : ""})` : ""}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
   const verifier = useMutation({
@@ -1092,6 +1179,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
     staleTime: 5 * 60 * 1000,
   });
   const [mailOuvert, setMailOuvert] = useState(false);
+  const [correction, setCorrection] = useState(false);
   const enr = lot.enrichissement;
 
   return (
@@ -1112,6 +1200,11 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               enVerification={verifier.isPending ? verifier.variables?.cle : null}
               actions={(
                 <span className="flex items-center gap-2">
+                  {!apercu && onSaisie && (
+                    <button type="button" onClick={() => setCorrection((v) => !v)} aria-expanded={correction} className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] transition-colors ${correction ? "border-menthe/50 text-encre" : "border-bord-doux text-craie hover:text-encre hover:border-bord-vif"}`} style={{ background: "transparent" }}>
+                      <Pencil className="w-3.5 h-3.5" /> Corriger la fiche
+                    </button>
+                  )}
                   <FicheSource dossier={dossier} />
                   {lot.mail_agent && (
                     <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
@@ -1121,6 +1214,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                 </span>
               )}
             />
+            {!apercu && onSaisie && <CorrectionFiche ouverte={correction} lot={lot} onSaisie={onSaisie} enCours={enCours} onFermer={() => setCorrection(false)} />}
           </section>
 
           {/* L'emplacement, juste sous la fiche : on regarde la rue avant tout

@@ -310,9 +310,14 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
       return refait;
     })(),
   };
-  Records.update('Deal', dossier.id, { lots });
+  // Le nom qu'on n'a pas choisi suit la fiche : une adresse corrigée donne
+  // « Glacier - Paris 3e » au lieu de « Glacier ». Un nom donné à la main reste.
+  const { titreDuLot } = await import('./titre-dossier.js');
+  const nomAuto = indexLot === 0 && dossier.nom && dossier.nom === titreDuLot(entree.lot, entree.enrichissement);
+  const nouveauNom = nomAuto ? titreDuLot(lot, enrichissement) : null;
+  Records.update('Deal', dossier.id, { lots, ...(nouveauNom && nouveauNom !== dossier.nom ? { nom: nouveauNom } : {}) });
 
-  return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot } };
+  return { deal_id: dealId, lot: { ...lotPourLecture(lots[indexLot]), index: indexLot }, ...(nouveauNom ? { nom: nouveauNom } : {}) };
 }
 
 // Les anciens titres générés embarquaient le verdict (« … : GO SOUS RÉSERVE »).

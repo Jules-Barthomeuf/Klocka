@@ -14,12 +14,38 @@ export const INTENTIONS_AGENT = ['refus', 'demande_documents', 'relance', 'aband
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 
-/** Pure : « envoie », « ok envoie », « vas-y envoie-le », « balance ». Pas « n'envoie pas encore ». */
+// Un mail envoyé ne se rattrape pas. « envoie le à jules@… plutôt » a fait
+// partir un brouillon chez l'agent parce que le mot « envoie » y était. Seul
+// un ordre d'envoi nu fait partir le mail ; tout ce qui dit autre chose en
+// plus (une adresse, « plutôt », « mais », une retouche) ne l'envoie pas.
+const POLITESSE = "(?:ok|oui|ouais|vas[- ]?y|go|c'?est bon|parfait|nickel|top|bon|allez|super)";
+const ORDRE = "(?:envoie|envoies|envoi|envoyer|balance|balances)";
+const ENVOI_NU = new RegExp(`^(?:${POLITESSE}[ ,!.]*)*${ORDRE}(?:[- ](?:le|la|les|lui|leur))?(?:[ ,]+(?:stp|svp|merci|maintenant|direct|go))*[ !.]*$`);
+
+/** Pure : un ordre d'envoi, et rien d'autre : « envoie », « ok envoie », « vas-y envoie-le stp ». */
 export function estUnEnvoi(texte) {
-  const t = norm(texte);
-  if (!t || t.length > 80) return false;
-  if (/\b(n'?envoie pas|envoie pas|attends?|pas encore|pas tout de suite)\b/.test(t)) return false;
-  return /\b(envoie|envoies|envoi|envoyer|envoye|balance|balances)\b/.test(t);
+  const t = norm(texte).replace(/[’]/g, "'");
+  if (!t || t.length > 40) return false;
+  return ENVOI_NU.test(t);
+}
+
+/**
+ * Pure : un changement de destinataire demandé pour le brouillon qui attend.
+ * Une adresse dans le message, ou « envoie-le moi » (l'adresse de la
+ * personne qui parle). Rend l'adresse, ou null.
+ */
+export function nouveauDestinataire(texte, { moi = null } = {}) {
+  const t = String(texte || '');
+  const adresse = t.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+  if (adresse) return adresse[0].toLowerCase();
+  if (moi && /\b(envoie|envoies|envoyer|mets?|adresse)[- ](le|la|les)?[- ]?(moi|à moi|a moi)\b|\bà moi plutôt\b|\ba moi plutot\b/i.test(norm(t))) return String(moi).toLowerCase();
+  return null;
+}
+
+/** Change le destinataire du brouillon qui attend, sans rien envoyer. Rend le brouillon à reposter. */
+export function changerDestinataire(b, adresse) {
+  Records.update(ENTITE, b.id, { a: adresse });
+  return { ...b, a: adresse };
 }
 
 /** Pure : le brouillon tel qu'il s'affiche dans le chat. */
@@ -96,20 +122,24 @@ export function brouillonEnAttente(espace, maintenant = Date.now()) {
 /** Envoie le brouillon, tel qu'il a été montré. Rend la phrase à poster. */
 export async function envoyerBrouillon(b, user) {
   const { functions } = await import('../functions.js');
+  // Envoyé à quelqu'un d'autre que l'agent du dossier (à soi, pour relire) :
+  // un simple mail, le dossier ne bouge pas, aucune relance ne se cale.
+  const deal = b.deal_id ? Records.findBy('Deal', 'deal_id', b.deal_id) : null;
+  const versAgent = !!deal?.contact_agent_email && String(deal.contact_agent_email).toLowerCase() === String(b.a).toLowerCase();
   let r;
   try {
-    r = await functions.sendMail({ from: b.de || undefined, to: b.a, subject: b.objet, body: b.corps, deal_id: b.deal_id, intention: b.intention }, { user });
+    r = await functions.sendMail({ from: b.de || undefined, to: b.a, subject: b.objet, body: b.corps, ...(versAgent ? { deal_id: b.deal_id, intention: b.intention } : {}) }, { user });
   } catch (e) {
     r = { success: false, error: e?.message || String(e) };
   }
   const maintenant = new Date().toISOString();
   if (r?.success) {
     Records.update(ENTITE, b.id, { etat: 'envoye', ferme_le: maintenant });
-    return `c'est parti, mail envoyé à ${b.a}${b.de ? ` depuis ${b.de}` : ''}${suiteDeLEnvoi(b.intention)}`;
+    return `c'est parti, mail envoyé à ${b.a}${b.de ? ` depuis ${b.de}` : ''}${versAgent ? suiteDeLEnvoi(b.intention) : ", ce n'est pas l'agent du dossier donc le dossier ne bouge pas"}`;
   }
   if (r?.simulated) {
     Records.update(ENTITE, b.id, { etat: 'simule', ferme_le: maintenant });
-    return `rien n'est parti (${r.test ? 'dossier de test' : 'aucune boîte connectée pour toi'}), mais le dossier avance comme si${suiteDeLEnvoi(b.intention)}`;
+    return `rien n'est parti (${r.test ? 'dossier de test' : 'aucune boîte connectée pour toi'})${versAgent ? `, mais le dossier avance comme si${suiteDeLEnvoi(b.intention)}` : ''}`;
   }
   return `dsl, l'envoi a raté : ${r?.error || 'sans détail'}. le brouillon attend toujours, redis « envoie » quand c'est réglé`;
 }

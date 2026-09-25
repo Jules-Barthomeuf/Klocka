@@ -174,9 +174,16 @@ test('sans destinataire, personne n\'est prévenu', async () => {
 
 // --- Le mail à l'agent ---------------------------------------------------------
 
-test('« envoie » envoie, « n\'envoie pas encore » non', () => {
-  for (const t of ['envoie', 'ok envoie', 'vas-y envoie-le', 'balance', 'oui envoie stp']) assert.equal(estUnEnvoi(t), true, t);
-  for (const t of ['n\'envoie pas encore', 'attends', 'oui', 'plus court stp', '']) assert.equal(estUnEnvoi(t), false, t);
+test('seul un ordre d\'envoi nu envoie : une adresse, « plutôt », une retouche n\'envoient jamais', async () => {
+  const { nouveauDestinataire } = await import('./mail-agent.js');
+  for (const t of ['envoie', 'Envoie !', 'ok envoie', 'vas-y envoie-le', 'balance', 'oui envoie stp', "c'est bon envoie", 'nickel, envoie-le merci']) assert.equal(estUnEnvoi(t), true, t);
+  for (const t of [
+    'envoie le à jules.btmf@gmail.com plutôt', 'envoie-le moi', 'envoie mais change l\'objet', 'envoie-le à Nora', 'envoie demain',
+    "n'envoie pas encore", 'attends', 'oui', 'plus court stp', '', 'envoie le mail au propriétaire plutôt',
+  ]) assert.equal(estUnEnvoi(t), false, t);
+  assert.equal(nouveauDestinataire('envoie le à Jules.Btmf@gmail.com plutôt'), 'jules.btmf@gmail.com');
+  assert.equal(nouveauDestinataire('envoie-le moi', { moi: 'jules.b@klocka.immo' }), 'jules.b@klocka.immo');
+  assert.equal(nouveauDestinataire('plus court stp', { moi: 'jules.b@klocka.immo' }), null);
 });
 
 test('le brouillon s\'affiche en entier, avec qui, depuis où, et comment le faire partir', () => {
@@ -281,4 +288,14 @@ test('la renta se juge sur le rendement global de la fiche, pas sur l\'AEM de la
   assert.equal(avis.rendementVise([], { rendement_net_moyen: { tourne: 6.5 }, rendement_aem: { tourne: 7 } }, { global: false }), 7);
   const phrase = avis.phraseRenta({ prixFai: 520000, loyer: 34416, vise: 7, n: { nego: 20000, prix: 500000, actuel: 6.6 }, nature: 'global', aemAn1: 5.7 });
   assert.match(phrase, /^dossier pas mal, 6,6 % de rendement global \(5,7 % AEM la première année\) : il faut une petite négo d'environ 20 k pour que ça devienne intéressant \(7 % de rendement global à 500 k au lieu de 520 k\)$/);
+});
+
+test('envoyé à un autre que l\'agent, le mail part sans faire bouger le dossier', async () => {
+  const { envoyerBrouillon } = await import('./mail-agent.js');
+  Records.create('Deal', { deal_id: 'deal-mail-2', nom: 'Glacier', test: true, contact_agent_email: 'laurent@agence.fr', statut: 'analyse', lots: [], suivi: [] });
+  const b = Records.create('AkBrouillon', { espace: 'spaces/DMZ', deal_id: 'deal-mail-2', intention: 'demande_documents', a: 'jules.btmf@gmail.com', objet: 'o', corps: 'c', etat: 'attente', cree_le: new Date().toISOString() });
+  const phrase = await envoyerBrouillon(b, { email: 'jules.b@klocka.immo' });
+  assert.doesNotMatch(phrase, /attend les docs/);
+  const d = Records.findBy('Deal', 'deal_id', 'deal-mail-2');
+  assert.ok(!(d.suivi || []).some((s) => s.type === 'mail_envoye'), 'aucun suivi ni relance sur le dossier');
 });

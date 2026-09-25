@@ -325,7 +325,7 @@ async function traiter(message) {
  * message est traité ; sinon il suit le chemin normal.
  */
 async function trancher(message) {
-  const { estUnEnvoi, brouillonEnAttente, envoyerBrouillon } = await import('./mail-agent.js');
+  const { estUnEnvoi, brouillonEnAttente, envoyerBrouillon, nouveauDestinataire, changerDestinataire, afficher } = await import('./mail-agent.js');
   const { repondreALaQuestion } = await import('./fiches.js');
   const { utilisateurPour, utilisateurAk } = await import('./agent.js');
   const texte = sansMention(message);
@@ -358,6 +358,15 @@ async function trancher(message) {
   if (brouillon && estUnEnvoi(texte)) {
     const phrase = await envoyerBrouillon(brouillon, user);
     await poster(message.espace, `${mention(message.auteur)} ${phrase}`, null, message.auteur);
+    return true;
+  }
+  // « envoie-le à jules@… plutôt », « envoie-le moi » : le destinataire change,
+  // le brouillon se remontre, et rien ne part avant un nouvel « envoie ».
+  const autre = brouillon ? nouveauDestinataire(texte, { moi: user?.email }) : null;
+  if (brouillon && autre) {
+    const b = changerDestinataire(brouillon, autre);
+    const deal = Records.findBy('Deal', 'deal_id', b.deal_id);
+    await poster(message.espace, `${tete}destinataire changé, rien n'est parti :\n${afficher(b, deal?.nom)}`, null, message.auteur);
     return true;
   }
   const r = repondreALaQuestion({ ...message, texte }, { estUnOui, par: user?.email || null });

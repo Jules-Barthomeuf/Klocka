@@ -1,15 +1,13 @@
 import React from "react";
 import { Plus, X } from "lucide-react";
 import MarcheCases from "./MarcheCases";
-import SecteurTextes from "./SecteurTextes";
 import { FField, FInput, FTextarea } from "./FormField";
 
-// Le panneau du marché : la même structure que l'onglet Marché de la page.
-//
-// La ville d'abord (où l'on est, combien de gens, quel revenu), le secteur
-// ensuite (ce qu'il faut en savoir, puis les chiffres du résidentiel et du
-// commercial), les notes pour finir. Secteur et Marché étaient deux onglets
-// quand la page en avait deux ; elle n'en a plus qu'un, le panneau non plus.
+// Le panneau du marché : exactement ce que l'onglet Marché de la page montre,
+// dans le même ordre. La ville (son nom, ses habitants, son revenu), le
+// secteur (les chiffres du résidentiel et du commercial), les notes. Ce que
+// la page n'affiche pas (département, région, descriptions, « ce qu'il faut
+// savoir » sur la commune et le secteur) n'a rien à faire ici.
 
 const Titre = ({ children }) => (
   <div className="text-[11px] uppercase tracking-[.16em] text-ardoise">{children}</div>
@@ -78,11 +76,7 @@ export default function ProjectFormMarcheTab({ formData, setFormData, projetId =
     <div className="mt-6 space-y-6">
       <div className="space-y-3">
         <Titre>La ville</Titre>
-        <div className="grid grid-cols-2 gap-3">
-          <FField label="Commune"><FInput value={formData.ville_secteur_champ1 || ""} onChange={texte("ville_secteur_champ1")} placeholder="Lyon" /></FField>
-          <FField label="Département"><FInput value={formData.ville_secteur_champ2 || ""} onChange={texte("ville_secteur_champ2")} placeholder="Rhône" /></FField>
-          <FField label="Région" className="col-span-2"><FInput value={formData.ville_secteur_champ3 || ""} onChange={texte("ville_secteur_champ3")} placeholder="Auvergne-Rhône-Alpes" /></FField>
-        </div>
+        <FField label="Commune"><FInput value={formData.ville_secteur_champ1 || ""} onChange={texte("ville_secteur_champ1")} placeholder="Lyon" /></FField>
         {/* Les deux chiffres de la bande du haut. Vides, la page prend
             l'agglomération Insee et le revenu du jeu de données ; saisis, ils
             l'emportent. */}
@@ -94,17 +88,10 @@ export default function ProjectFormMarcheTab({ formData, setFormData, projetId =
             <FInput type="number" step="any" value={formData.ville_revenu_median ?? ""} onChange={nombre("ville_revenu_median")} placeholder="24 300" />
           </FField>
         </div>
-        <FField label="Description de la ville">
-          <FTextarea rows={4} value={formData.description_ville || ""} onChange={texte("description_ville")} placeholder="Description de la ville…" />
-        </FField>
       </div>
 
       <div className="space-y-4 pt-5 border-t border-trait">
         <Titre>Le secteur</Titre>
-        <SecteurTextes formData={formData} setFormData={setFormData} />
-        <FField label="Description du secteur">
-          <FTextarea rows={4} value={formData.description_secteur || ""} onChange={texte("description_secteur")} placeholder="Description du secteur…" />
-        </FField>
         <MarcheCases formData={formData} setFormData={setFormData} projetId={projetId} />
       </div>
 

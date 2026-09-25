@@ -520,18 +520,19 @@ test('une préférence personnelle ne s\'applique qu\'à celle ou celui qui l\'a
   assert.doesNotMatch(commun, /trois lignes/);
 });
 
-test('le questionnaire : des réponses propres, des consignes pour la personne seule', async () => {
-  const { nettoyer, consignesDuProfil, enregistrerProfil, QUESTIONS } = await import('./questionnaire.js');
+test('le questionnaire en propositions : j\'aime ou j\'aime pas, des consignes pour la personne seule', async () => {
+  const { nettoyer, consignesDuProfil, enregistrerProfil, PROPOSITIONS, questionsPubliques } = await import('./questionnaire.js');
   const { preferencesDe } = await import('./lecons.js');
-  assert.ok(QUESTIONS.length >= 10);
-  assert.deepEqual(nettoyer({ longueur: 'court', role: ['analyse', 'pirate'], rendement_mini: '6,5', inconnue: 'x', appel: '  ' }), { longueur: 'court', role: ['analyse'], rendement_mini: 6.5 });
-  const consignes = consignesDuProfil({ longueur: 'court', avis: ['renta', 'emplacement'], rendement_mini: 6.5 });
-  assert.ok(consignes.includes('réponds-lui en une ligne, sans rien autour'));
-  assert.ok(consignes.some((c) => /commence par la renta et la négo, puis l'emplacement/.test(c)));
-  assert.ok(consignes.some((c) => /sous 6,5 % de rendement global/.test(c)));
-  assert.deepEqual(consignesDuProfil({ longueur: 'normal', ton: 'equipe' }), [], 'les réponses par défaut ne changent rien');
-  const r = enregistrerProfil('Max.P@klocka.immo', { signature: 'Max, Klocka', mails: 'courts' });
-  assert.equal(r.ok, true);
-  assert.match(preferencesDe('max.p@klocka.immo', []), /signe ses mails « Max, Klocka »/);
+  assert.ok(PROPOSITIONS.length >= 12);
+  assert.ok(PROPOSITIONS.every((p) => p.exemple && p.titre && (p.oui || p.non)), 'chaque proposition montre un exemple et change quelque chose');
+  assert.ok(questionsPubliques().every((p) => !('oui' in p) && !('non' in p)), 'la page ne reçoit pas les consignes');
+  assert.deepEqual(nettoyer({ emojis: 'non', une_ligne: 'oui', inconnue: 'oui', argot: 'peut-être' }), { emojis: 'non', une_ligne: 'oui' });
+  const consignes = consignesDuProfil({ emojis: 'non', une_ligne: 'oui', argot: 'oui', kdata_seul: 'oui' });
+  assert.ok(consignes.includes("jamais d'emoji avec lui ou elle"));
+  assert.ok(consignes.includes('une action faite : une ligne, rien autour'));
+  assert.ok(consignes.some((c) => /lancer K-Data .* sans demander/.test(c)));
+  assert.equal(consignes.length, 3, "« j'aime » l'argot de l'équipe ne change rien : c'est déjà le ton");
+  enregistrerProfil('Max.P@klocka.immo', { mails_courts: 'oui', prenom: 'oui' });
+  assert.match(preferencesDe('max.p@klocka.immo', []), /ses mails aux agents : courts/);
   assert.equal(preferencesDe('nora.l@klocka.immo', []), '', 'le profil de Max ne vaut que pour Max');
 });

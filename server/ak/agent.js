@@ -275,11 +275,6 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
   },
   {
-    name: 'noter_appel',
-    description: "Note un appel de prospection à un agent, pour l'onglet Fiches commerciales (« AK, appel Rosario Aiello, fiche promise », « j'ai eu l'agent de Cannes, à rappeler lundi »). resultat : pas_de_reponse, a_rappeler, interesse, fiche_promise, pas_interesse.",
-    input_schema: { type: 'object', properties: { agent: { type: 'string', description: 'nom, agence ou ville de l\'agent' }, resultat: { type: 'string', enum: ['pas_de_reponse', 'a_rappeler', 'interesse', 'fiche_promise', 'pas_interesse'] }, note: { type: 'string' } }, required: ['resultat'] },
-  },
-  {
     name: 'chercher_agents',
     description: "Les agents immobiliers que la plateforme connaît (carnet de contacts et agents des dossiers) : « liste les agents à Paris », « les agentes à Lyon », « l'agent de chez Point de Vente ». Filtres : ville, genre (femme ou homme, déduit du prénom : un prénom inconnu ou mixte reste « inconnu », dis-le), recherche (nom, agence, adresse). Rend nom, mail, agence, villes, nombre de dossiers apportés.",
     input_schema: { type: 'object', properties: { ville: { type: 'string' }, genre: { type: 'string', enum: ['femme', 'homme'] }, recherche: { type: 'string' }, limite: { type: 'number' } } },
@@ -462,12 +457,6 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     }
     fond({ genre: 'preanalyse', libelle: `la préanalyse de « ${String(m.objet || 'la fiche').slice(0, 60)} »`, mail_id: m.id });
     return { ok: true, en_cours: true, retour: 'AK revient dans le chat avec le dossier et son avis dans une à deux minutes' };
-  }
-  if (name === 'noter_appel') {
-    const { RESULTATS_APPEL } = await import('../deal/fiches-stats.js');
-    if (!RESULTATS_APPEL.includes(input?.resultat)) return { ok: false, error: 'Résultat inconnu.' };
-    const a = Records.create('Appel', { le: new Date().toISOString(), par: user?.email || null, par_nom: user?.full_name || user?.email || null, agent: String(input.agent || '').trim().slice(0, 120) || null, resultat: input.resultat, note: String(input.note || '').trim().slice(0, 500) || null, source: 'chat' });
-    return { ok: true, appel_id: a.id };
   }
   if (name === 'chercher_agents') {
     const agents = chercherAgents(input || {});

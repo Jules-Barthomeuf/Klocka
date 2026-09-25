@@ -9,6 +9,7 @@
 import { calculerAEM } from '../deal/aem.js';
 import { SEUILS } from './outils.js';
 import { netVendeurSansHonoraires } from '../deal/notes-bien.js';
+import { rendementNetMoyen } from '../video/indicateurs.js';
 
 const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
 const nombre = (x) => { const n = Number(val(x)); return Number.isFinite(n) && n > 0 ? n : null; };
@@ -20,11 +21,27 @@ const signe = (n) => `${n > 0 ? '+' : ''}${n} %`;
 const NEGO_MAX = 0.15;
 const NEGO_PETITE = 0.07;
 
-/** Pure : le rendement visé, celui de la grille du dossier (« ≥ 6.5 % »), sinon le seuil « ça tourne » d'AK. */
-export function rendementVise(grille = [], seuils = SEUILS) {
-  const c = grille.find((x) => x.champ === 'rendement_aem' && /\d/.test(String(x.attendu || '')));
+const seuilDe = (grille, champ) => {
+  const c = grille.find((x) => x.champ === champ && /\d/.test(String(x.attendu || '')));
   const n = c ? Number(String(c.attendu).replace(',', '.').match(/(\d+(?:\.\d+)?)/)?.[1]) : null;
-  return n && n > 0 && n < 30 ? n : seuils.rendement_aem.tourne;
+  return n && n > 0 && n < 30 ? n : null;
+};
+
+/**
+ * Pure : le rendement visé et sa nature. Le rendement global (net moyen sur
+ * la durée du projet) d'abord, comme la fiche et la grille : le seuil de la
+ * grille, sinon celui d'AK. L'acte en main de la première année seulement
+ * quand le simulateur ne sait pas calculer le global.
+ */
+export function rendementVise(grille = [], seuils = SEUILS, { global = true } = {}) {
+  if (global) return seuilDe(grille, 'rendement_net_moyen') ?? seuils.rendement_net_moyen?.tourne ?? 6.5;
+  return seuilDe(grille, 'rendement_aem') ?? seuils.rendement_aem.tourne;
+}
+
+/** Le rendement global d'un lot à un prix négocié donné, par le simulateur de la fiche. */
+export function rendementGlobalA(lot, prixNegocie = null) {
+  if (!lot?.simulateur) return null;
+  return rendementNetMoyen({ ...lot.simulateur, ...(prixNegocie ? { prixBienNegocie: prixNegocie } : {}) });
 }
 
 /**
@@ -34,9 +51,9 @@ export function rendementVise(grille = [], seuils = SEUILS) {
  * 5 000 € au-dessus. `nego` vaut 0 quand le prix passe déjà ; null quand on
  * ne peut pas chiffrer.
  */
-export function negoPourViser({ prixFai, loyer, vise, calculer = calculerAEM }) {
+export function negoPourViser({ prixFai, loyer, vise, calculer = calculerAEM, rendementA = null }) {
   if (!prixFai || !loyer || !vise) return null;
-  const rendement = (p) => calculer({ prixFai, prixNegocie: p, loyerAnnuel: loyer })?.rendement_aem ?? null;
+  const rendement = rendementA || ((p) => calculer({ prixFai, prixNegocie: p, loyerAnnuel: loyer })?.rendement_aem ?? null);
   const actuel = rendement(prixFai);
   if (actuel == null) return null;
   if (actuel >= vise) return { nego: 0, prix: prixFai, rendement: actuel, actuel };
@@ -52,8 +69,8 @@ export function negoPourViser({ prixFai, loyer, vise, calculer = calculerAEM }) 
   return { nego, prix, rendement: rendement(prix), actuel };
 }
 
-/** Pure : la phrase sur la renta et la négo, sur le ton de l'équipe. */
-export function phraseRenta({ prixFai, loyer, vise, n, verdict, manquants = [] }) {
+/** Pure : la phrase sur la renta et la négo, sur le ton de l'équipe. `nature` : « global » ou « AEM ». */
+export function phraseRenta({ prixFai, loyer, vise, n, verdict, manquants = [], nature = 'AEM', aemAn1 = null }) {
   if (!prixFai || !loyer) {
     const quoi = !prixFai ? 'le prix' : 'le loyer';
     const autres = manquants.filter((m) => !/loyer|prix/i.test(m)).slice(0, 2);
@@ -61,13 +78,15 @@ export function phraseRenta({ prixFai, loyer, vise, n, verdict, manquants = [] }
   }
   if (!n) return null;
   const debut = verdict === 'NO-GO' ? 'no go sur la grille' : 'dossier pas mal';
-  if (n.nego === 0) return `${debut}, la renta passe en l'état : ${pct(n.actuel)} AEM pour ${pct(vise)} visés`;
+  const mot = nature === 'global' ? 'de rendement global' : 'AEM';
+  const an1 = nature === 'global' && aemAn1 != null ? ` (${pct(aemAn1)} AEM la première année)` : '';
+  if (n.nego === 0) return `${debut}, la renta passe en l'état : ${pct(n.actuel)} ${mot} pour ${pct(vise)} visés${an1}`;
   if (n.hors_de_portee || n.nego / prixFai > NEGO_MAX) {
     const combien = n.nego ? ` : il faudrait ${k(n.nego)} de négo (${Math.round((n.nego / prixFai) * 100)} %) pour atteindre ${pct(vise)}` : '';
-    return `la renta est horrible, ${pct(n.actuel)} AEM${combien}, ça tourne pas`;
+    return `la renta est horrible, ${pct(n.actuel)} ${mot}${an1}${combien}, ça tourne pas`;
   }
   const taille = n.nego / prixFai <= NEGO_PETITE ? 'une petite négo' : 'une négo';
-  return `${debut}, il faut ${taille} d'environ ${k(n.nego)} pour que ça devienne intéressant (${pct(vise)} AEM à ${k(n.prix)} au lieu de ${k(prixFai)})`;
+  return `${debut}, ${pct(n.actuel)} ${mot}${an1} : il faut ${taille} d'environ ${k(n.nego)} pour que ça devienne intéressant (${pct(vise)} ${mot} à ${k(n.prix)} au lieu de ${k(prixFai)})`;
 }
 
 const cotes = (m, quoi) => {
@@ -152,11 +171,15 @@ export function avisPreanalyse({ dossier, marche = null, clients = null, lien = 
   const titre = dossier?.nom || dossier?.titre || 'sans nom';
   const prixFai = nombre(ev.aem?.prix_fai) || nombre(lot.lot?.prix_fai);
   const loyer = nombre(lot.lot?.loyer_annuel_ht_hc);
-  const vise = rendementVise(grille, seuils);
-  const n = prixFai && loyer ? negoPourViser({ prixFai, loyer, vise, calculer }) : null;
+  // Le rendement global quand le simulateur sait le calculer ; sinon l'AEM de la première année.
+  const global = rendementGlobalA(lot) != null;
+  const vise = rendementVise(grille, seuils, { global });
+  const rendementA = global ? (p) => rendementGlobalA(lot, p) : null;
+  const n = prixFai && loyer ? negoPourViser({ prixFai, loyer, vise, calculer, rendementA }) : null;
+  const aemAn1 = Number(ev.aem?.rendement_aem) || null;
 
   const lignes = [`c'est bon, le dossier ${titre} est prêt${lien ? ` : ${lien}` : ''}`];
-  const renta = phraseRenta({ prixFai, loyer, vise, n, verdict: ev.verdict, manquants: ev.libelles_manquants || [] });
+  const renta = phraseRenta({ prixFai, loyer, vise, n, verdict: ev.verdict, manquants: ev.libelles_manquants || [], nature: global ? 'global' : 'AEM', aemAn1 });
   if (renta) lignes.push(renta);
   const nv = netVendeurSansHonoraires(lot);
   if (nv && !nv.chiffres) lignes.push(`à vérifier : attention, le prix est net vendeur, pas FAI. les honoraires ne sont pas chiffrés, donc le FAI réel est plus haut et la renta${n?.nego ? ' comme la négo' : ''} à revoir : demander le montant à l'agent`);

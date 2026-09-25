@@ -1,7 +1,20 @@
 {
-  "_commentaire": "Les seuils du couperet « ça tourne / c'est dead » d'AK. Le rendement acte en main est le loyer annuel HT HC sur le prix FAI majoré des frais d'acquisition (frais_acquisition_pct). Entre « tourne » et « dead », c'est « limite ». Le taux d'effort ne se juge que si le chiffre d'affaires du locataire est connu.",
+  "_commentaire": "Les seuils du couperet « ça tourne / c'est dead » d'AK. Le rendement acte en main est le loyer annuel HT HC sur le prix FAI majoré des frais d'acquisition (frais_acquisition_pct). Entre « tourne » et « dead », c'est « limite ». Le taux d'effort ne se juge que si le chiffre d'affaires du locataire est connu. Le rendement global (rendement_net_moyen) est le rendement net moyen du simulateur sur toute la durée du projet, indexation comprise : c'est lui qui tranche, comme sur la fiche et dans la grille. Quand la grille du dossier fixe son seuil, c'est le sien qui compte.",
   "frais_acquisition_pct": 7.5,
-  "rendement_aem": { "tourne": 7, "dead": 5.5 },
-  "bail_restant_ans": { "tourne": 3, "dead": 1 },
-  "taux_effort_pct": { "tourne": 10, "dead": 15 }
+  "rendement_aem": {
+    "tourne": 7,
+    "dead": 5.5
+  },
+  "bail_restant_ans": {
+    "tourne": 3,
+    "dead": 1
+  },
+  "taux_effort_pct": {
+    "tourne": 10,
+    "dead": 15
+  },
+  "rendement_net_moyen": {
+    "tourne": 6.5,
+    "dead": 5
+  }
 }

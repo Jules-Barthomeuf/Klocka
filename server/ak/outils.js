@@ -4,6 +4,7 @@
 // choisit, le code fait. Les fonctions pures sont testées sans réseau.
 
 import { titreDossier } from '../deal/titre-dossier.js';
+import { lotPourLecture } from '../deal/index.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -49,22 +50,30 @@ export function couperet(b, aujourdhui = new Date(), seuils = SEUILS) {
   if (!prix || !loyer) return { verdict: null, motif: !prix ? 'prix inconnu' : 'loyer inconnu' };
   const honoraires = b.honoraires_inclus === false && nombre(b.honoraires) ? nombre(b.honoraires) : 0;
   const aem = Math.round((prix + honoraires) * (1 + seuils.frais_acquisition_pct / 100));
-  const rendement = Math.round((loyer / aem) * 10000) / 100;
+  // L'acte en main de la fiche quand on l'a (droits, fees, honoraires réels) ; sinon le forfait des seuils.
+  const rendement = Number(b.rendement_aem_fiche) > 0 ? Number(b.rendement_aem_fiche) : Math.round((loyer / aem) * 10000) / 100;
   const rendementFai = Math.round((loyer / prix) * 10000) / 100;
   const bailAns = b.bail_fin ? Math.round(((b.bail_fin - aujourdhui) / (365.25 * 86400000)) * 10) / 10 : null;
   const effort = nombre(b.ca) ? Math.round((loyer / nombre(b.ca)) * 1000) / 10 : null;
+  // Le rendement global (net moyen sur la durée, indexation comprise) tranche
+  // quand on l'a, contre le seuil de la grille du dossier : c'est celui de la
+  // fiche. L'acte en main de la première année reste cité, il ne décide plus.
+  const global = Number(b.rendement_global) > 0 ? Math.round(Number(b.rendement_global) * 10) / 10 : null;
+  const seuilGlobal = { tourne: Number(b.vise_global) > 0 ? Number(b.vise_global) : seuils.rendement_net_moyen?.tourne ?? 6.5, dead: seuils.rendement_net_moyen?.dead ?? 5 };
   const crans = {
-    rendement: cran(rendement, seuils.rendement_aem),
+    rendement: global != null ? cran(global, seuilGlobal) : cran(rendement, seuils.rendement_aem),
     bail: cran(bailAns, seuils.bail_restant_ans),
     effort: cran(effort, seuils.taux_effort_pct, false),
   };
   const notes = Object.values(crans).filter(Boolean);
   const verdict = notes.includes('dead') ? 'dead' : notes.includes('limite') ? 'limite' : 'tourne';
   const raisons = [];
-  raisons.push(`rendement AEM ${String(rendement).replace('.', ',')} % (${String(rendementFai).replace('.', ',')} % FAI)${crans.rendement === 'tourne' ? '' : crans.rendement === 'dead' ? ', trop bas' : ', juste'}`);
+  const juge = crans.rendement === 'tourne' ? '' : crans.rendement === 'dead' ? ', trop bas' : ', juste';
+  if (global != null) raisons.push(`rendement global ${String(global).replace('.', ',')} % sur la durée pour ${String(seuilGlobal.tourne).replace('.', ',')} % visés${juge} (${String(rendement).replace('.', ',')} % AEM la première année)`);
+  else raisons.push(`rendement AEM ${String(rendement).replace('.', ',')} % (${String(rendementFai).replace('.', ',')} % FAI)${juge}`);
   if (bailAns != null) raisons.push(`bail restant ${String(bailAns).replace('.', ',')} an${bailAns > 1 ? 's' : ''}${crans.bail === 'dead' ? ', trop court' : crans.bail === 'limite' ? ', court' : ''}`);
   if (effort != null) raisons.push(`taux d'effort ${String(effort).replace('.', ',')} %${crans.effort === 'dead' ? ', le locataire tient pas' : crans.effort === 'limite' ? ', tendu' : ''}`);
-  return { verdict, aem, rendement_aem: rendement, rendement_fai: rendementFai, bail_restant_ans: bailAns, taux_effort: effort, crans, raisons, seuils: { rendement_aem: seuils.rendement_aem, bail_restant_ans: seuils.bail_restant_ans, taux_effort_pct: seuils.taux_effort_pct } };
+  return { verdict, aem, rendement_global: global, rendement_aem: rendement, rendement_fai: rendementFai, bail_restant_ans: bailAns, taux_effort: effort, crans, raisons, seuils: { rendement_aem: seuils.rendement_aem, bail_restant_ans: seuils.bail_restant_ans, taux_effort_pct: seuils.taux_effort_pct } };
 }
 
 /** Le couperet d'un dossier ou d'un projet de la plateforme. */
@@ -73,13 +82,17 @@ export function verifierRenta({ deal_id = null, projet_id = null }) {
     const deal = Records.findBy('Deal', 'deal_id', deal_id);
     if (!deal) return { ok: false, error: 'Dossier introuvable.' };
     const l = deal.lots?.[0]?.lot || {};
-    const r = couperet({ prix_fai: val(l.prix_fai), loyer: val(l.loyer_annuel_ht_hc), bail_fin: finDeBail(l.bail_echeance), honoraires_inclus: val(l.honoraires_inclus), honoraires: val(l.montant_honoraires), ca: val(l.chiffre_affaires) ?? val(l.ca_ht) });
+    // Le rendement global et son seuil, tels que la fiche du bien les montre.
+    const lu = lotPourLecture(deal.lots?.[0]);
+    const seuil = (lu?.evaluation?.grille || []).find((c) => c.champ === 'rendement_net_moyen' && /\d/.test(String(c.attendu || '')));
+    const vise = seuil ? Number(String(seuil.attendu).replace(',', '.').match(/(\d+(?:\.\d+)?)/)?.[1]) : null;
+    const r = couperet({ prix_fai: val(l.prix_fai), loyer: val(l.loyer_annuel_ht_hc), bail_fin: finDeBail(l.bail_echeance), honoraires_inclus: val(l.honoraires_inclus), honoraires: val(l.montant_honoraires), ca: val(l.chiffre_affaires) ?? val(l.ca_ht), rendement_global: lu?.evaluation?.contexte?.rendement_net_moyen, vise_global: vise, rendement_aem_fiche: lu?.evaluation?.aem?.rendement_aem });
     return { ok: true, titre: titreDeal(deal), ...r };
   }
   if (projet_id) {
     const p = Records.get('Project', projet_id);
     if (!p) return { ok: false, error: 'Projet introuvable.' };
-    const r = couperet({ prix_fai: p.prix_acquisition, loyer: p.loyer_annuel_ht, bail_fin: finDeBail(p.echeance_bail) });
+    const r = couperet({ prix_fai: p.prix_acquisition, loyer: p.loyer_annuel_ht, bail_fin: finDeBail(p.echeance_bail), rendement_global: Number(p.sim_rendement_locatif_global_net) || null });
     return { ok: true, titre: p.titre, ...r };
   }
   return { ok: false, error: 'Il faut un dossier ou un projet.' };

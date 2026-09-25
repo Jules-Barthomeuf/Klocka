@@ -19,9 +19,10 @@ const { redigerMailIntention } = await import('../deal/mails-cycle.js');
 // --- L'avis ------------------------------------------------------------------
 
 test('le rendement visé est celui de la grille, sinon le seuil d\'AK', () => {
-  assert.equal(avis.rendementVise([{ champ: 'rendement_aem', attendu: '≥ 6.5 %' }]), 6.5);
-  assert.equal(avis.rendementVise([{ champ: 'rendement_aem', attendu: '≥ 7,2 %' }]), 7.2);
-  assert.equal(avis.rendementVise([], { rendement_aem: { tourne: 7 } }), 7);
+  assert.equal(avis.rendementVise([{ champ: 'rendement_aem', attendu: '≥ 6.5 %' }], undefined, { global: false }), 6.5);
+  assert.equal(avis.rendementVise([{ champ: 'rendement_aem', attendu: '≥ 7,2 %' }], undefined, { global: false }), 7.2);
+  assert.equal(avis.rendementVise([], { rendement_aem: { tourne: 7 } }, { global: false }), 7);
+  assert.equal(avis.rendementVise([{ champ: 'rendement_net_moyen', attendu: '≥ 6,8 %' }]), 6.8);
 });
 
 test('la négo amène le rendement acte en main au rendement visé, arrondie aux 5 k au-dessus', async () => {
@@ -42,7 +43,7 @@ test('pas de négo quand le prix passe déjà, et hors de portée quand rien ne 
 
 test('la phrase de renta dit la négo comme l\'équipe', () => {
   const petite = avis.phraseRenta({ prixFai: 300000, loyer: 20000, vise: 6.5, n: { nego: 20000, prix: 280000, actuel: 6.1 } });
-  assert.match(petite, /^dossier pas mal, il faut une petite négo d'environ 20 k pour que ça devienne intéressant \(6,5 % AEM à 280 k au lieu de 300 k\)$/);
+  assert.match(petite, /^dossier pas mal, 6,1 % AEM : il faut une petite négo d'environ 20 k pour que ça devienne intéressant \(6,5 % AEM à 280 k au lieu de 300 k\)$/);
   const grosse = avis.phraseRenta({ prixFai: 300000, loyer: 10000, vise: 6.5, n: { nego: 90000, prix: 210000, actuel: 3.1 } });
   assert.match(grosse, /^la renta est horrible, 3,1 % AEM : il faudrait 90 k de négo \(30 %\)/);
   assert.match(avis.phraseRenta({ prixFai: 300000, loyer: 30000, vise: 6.5, n: { nego: 0, actuel: 8.4 } }), /passe en l'état : 8,4 % AEM pour 6,5 % visés/);
@@ -86,7 +87,7 @@ test('l\'avis complet se lit de haut en bas et finit par la main tendue', () => 
   });
   const lignes = texte.split('\n');
   assert.equal(lignes[0], "c'est bon, le dossier Devred - Firminy est prêt : https://klocka.immo/Analyse?deal_id=d1");
-  assert.match(lignes[1], /^dossier pas mal, il faut une (petite )?négo d'environ \d+ k/);
+  assert.match(lignes[1], /^dossier pas mal, [\d,]+ % AEM : il faut une (petite )?négo d'environ \d+ k/);
   assert.match(texte, /le loyer est un peu surévalué quand même \(\+12 % vs marché\), mais pas le prix/);
   assert.match(texte, /emplacement à vérifier, et on sait pas qui est le preneur/);
   assert.match(texte, /à noter aussi : durée ferme : 1 an, attendu ≥ 3 ans/);
@@ -266,4 +267,18 @@ test('les photos jointes au message vont dans les images du projet, sans doublon
   const r = await executerOutil({ name: 'ajouter_photos_projet', input: { projet_id: p.id } }, { email: 'jules.b@klocka.immo' }, { message: { ...message, pieces: [{ nom: 'rue.webp', type: 'image/webp', chemin: '/tmp/x', url: '/uploads/ak-2-rue.webp' }] } });
   assert.equal(r.photos_ajoutees, 1);
   assert.equal((await executerOutil({ name: 'ajouter_photos_projet', input: { projet_id: p.id } }, {}, { message: { pieces: [] } })).ok, false);
+});
+
+test('la renta se juge sur le rendement global de la fiche, pas sur l\'AEM de la première année', async () => {
+  const { couperet } = await import('./outils.js');
+  const le = new Date('2026-09-25');
+  const r = couperet({ prix_fai: 520000, loyer: 34416, rendement_global: 6.9, vise_global: 6.5, rendement_aem_fiche: 5.71 }, le);
+  assert.equal(r.verdict, 'tourne', '5,71 % AEM ne fait plus dire « limite » quand le global passe');
+  assert.match(r.raisons[0], /^rendement global 6,9 % sur la durée pour 6,5 % visés \(5,71 % AEM la première année\)$/);
+  assert.equal(couperet({ prix_fai: 520000, loyer: 34416, rendement_global: 5.8, vise_global: 6.5 }, le).verdict, 'limite');
+  assert.equal(couperet({ prix_fai: 520000, loyer: 34416, rendement_global: 4.2 }, le).verdict, 'dead');
+  assert.equal(avis.rendementVise([{ champ: 'rendement_net_moyen', attendu: '≥ 6.5 %' }, { champ: 'rendement_aem', attendu: '≥ 7 %' }]), 6.5);
+  assert.equal(avis.rendementVise([], { rendement_net_moyen: { tourne: 6.5 }, rendement_aem: { tourne: 7 } }, { global: false }), 7);
+  const phrase = avis.phraseRenta({ prixFai: 520000, loyer: 34416, vise: 7, n: { nego: 20000, prix: 500000, actuel: 6.6 }, nature: 'global', aemAn1: 5.7 });
+  assert.match(phrase, /^dossier pas mal, 6,6 % de rendement global \(5,7 % AEM la première année\) : il faut une petite négo d'environ 20 k pour que ça devienne intéressant \(7 % de rendement global à 500 k au lieu de 520 k\)$/);
 });

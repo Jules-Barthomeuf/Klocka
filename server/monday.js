@@ -11,7 +11,10 @@
 //     dans la mémoire, avec ses chiffres et le motif du refus.
 //
 //   Monday → Klocka : les investisseurs et les agents restent tenus dans Monday.
-//     Klocka les lit, ne les écrit pas.
+//     Klocka les lit. Seule exception, la prospection (server/prospection/) :
+//     elle écrit dans « Prospection Agent Immo » les agents à appeler, leur
+//     statut après un appel et leur prochaine relance, et fait passer dans
+//     « Agent immobilier » celui qui nous envoie sa première fiche.
 //
 // L'API Monday est un unique point GraphQL. Une intégration absente n'est jamais
 // bloquante : sans jeton, chaque fonction le dit et rend la main.
@@ -144,24 +147,28 @@ async function chercherElement(boardId, colonne, valeur) {
   return d?.items_page_by_column_values?.items?.[0] || null;
 }
 
-/** Crée un élément avec ses valeurs de colonnes. */
-async function creerElement(boardId, nom, colonnes = {}) {
+/**
+ * Crée un élément avec ses valeurs de colonnes. `labels` : un statut ou une
+ * liste déroulante dont le libellé n'existe pas encore le crée (Monday demande
+ * alors le droit de modifier la structure du tableau).
+ */
+export async function creerElement(boardId, nom, colonnes = {}, { labels = false } = {}) {
   const d = await graphql(
-    `mutation ($board: ID!, $nom: String!, $valeurs: JSON) {
-      create_item(board_id: $board, item_name: $nom, column_values: $valeurs) { id name }
+    `mutation ($board: ID!, $nom: String!, $valeurs: JSON, $labels: Boolean) {
+      create_item(board_id: $board, item_name: $nom, column_values: $valeurs, create_labels_if_missing: $labels) { id name }
     }`,
-    { board: String(boardId), nom, valeurs: JSON.stringify(colonnes) }
+    { board: String(boardId), nom, valeurs: JSON.stringify(colonnes), labels: !!labels }
   );
   return d?.create_item || null;
 }
 
-/** Met à jour les colonnes d'un élément existant. */
-async function majElement(boardId, itemId, colonnes = {}) {
+/** Met à jour les colonnes d'un élément existant. `labels` : comme creerElement. */
+export async function majElement(boardId, itemId, colonnes = {}, { labels = false } = {}) {
   const d = await graphql(
-    `mutation ($board: ID!, $item: ID!, $valeurs: JSON!) {
-      change_multiple_column_values(board_id: $board, item_id: $item, column_values: $valeurs) { id }
+    `mutation ($board: ID!, $item: ID!, $valeurs: JSON!, $labels: Boolean) {
+      change_multiple_column_values(board_id: $board, item_id: $item, column_values: $valeurs, create_labels_if_missing: $labels) { id }
     }`,
-    { board: String(boardId), item: String(itemId), valeurs: JSON.stringify(colonnes) }
+    { board: String(boardId), item: String(itemId), valeurs: JSON.stringify(colonnes), labels: !!labels }
   );
   return d?.change_multiple_column_values || null;
 }

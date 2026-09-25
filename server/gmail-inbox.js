@@ -143,6 +143,15 @@ export async function releverBoite(compteEmail, { max = 25, repecher = false } =
         deal_id: null,
       };
 
+      // Une alerte d'un site d'annonces (SeLoger, Leboncoin…) n'est pas une
+      // fiche : elle part à la prospection, qui en tire les agences à appeler.
+      const { garderAlerte } = await import('./prospection/alertes.js');
+      if (garderAlerte(mail)) {
+        Records.create('MailEcarte', { compte: account.email, gmail_message_id: msg.id, de_email: mail.de_email, objet: String(mail.objet || '').slice(0, 200), raison: 'alerte d\'annonces, gardée pour la prospection', juge_par_ia: false, le: new Date().toISOString() });
+        ecartes++;
+        continue;
+      }
+
       // Un mail sans rapport avec un dossier n'entre pas : la boîte de
       // l'application reste le reflet des dossiers, pas une copie de Gmail.
       let { garder, raison, incertain, interne: interneTri } = trierMail(mail, ref);

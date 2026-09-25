@@ -639,6 +639,15 @@ export async function relever() {
       const { memoriser } = await import('./agent.js');
       await poserLesQuestions({ assurerPrive, envoyer, memoriser });
     } catch (e) { dernier.erreur = e?.message || String(e); }
+    // La prospection : à 8 h la liste d'appels de chacun, en privé ; le lundi
+    // à 9 h le point de la semaine. Ce sont, avec la question des fiches, les
+    // seuls messages qu'AK envoie sans qu'on lui parle.
+    try {
+      const { envoyerLesListes, pointDuLundi } = await import('../prospection/matin.js');
+      const { memoriser } = await import('./agent.js');
+      await envoyerLesListes({ assurerPrive, envoyer, memoriser });
+      await pointDuLundi({ envoyer, suivis, assurerPrive });
+    } catch (e) { dernier.erreur = e?.message || String(e); }
     // Le mot du matin et les propositions spontanées (dossiers incomplets,
     // mails à traiter) sont désactivés : l'équipe ne veut pas de messages non
     // demandés dans le groupe. direLeMatin() et seProposer() restent codés,

@@ -52,6 +52,7 @@ import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
 import { monterFiches } from './routes/fiches.js';
+import { monterProspection } from './routes/prospection.js';
 import { monterAlx } from './routes/alx.js';
 import { monterKZoning } from './routes/kzoning.js';
 import { monterKExpertise } from './routes/kexpertise.js';
@@ -1036,6 +1037,7 @@ monterIntegrations(app);
 monterMonday(app);
 monterAk(app);
 monterFiches(app);
+monterProspection(app);
 monterAlx(app);
 monterKZoning(app);
 monterKExpertise(app);
@@ -1136,6 +1138,14 @@ import('./ak/veille.js').then(({ demarrerVeille }) => {
   const active = demarrerVeille();
   console.log(active ? `  ▸ AK suit Google Chat (toutes les ${process.env.AK_INTERVALLE_S || 15} s)` : '  ▸ AK inactif (GOOGLE_CHAT absent)');
 }).catch((e) => console.warn(`[démarrage] AK : ${e?.message || e}`));
+
+// La prospection : les appels faits dans Monday comptés, les relances calées,
+// les nouveaux agents ajoutés la nuit. Sur Render seulement, sauf
+// PROSPECTION_AUTO=true : deux serveurs écriraient deux fois dans Monday.
+import('./prospection/index.js').then(({ demarrerProspection }) => {
+  const active = demarrerProspection();
+  console.log(active ? `  ▸ Prospection suivie (toutes les ${process.env.PROSPECTION_MINUTES || 10} min)` : '  ▸ Prospection : suivi automatique inactif ici');
+}).catch((e) => console.warn(`[démarrage] prospection : ${e?.message || e}`));
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un
 // redémarrage n'annule pas la promesse.

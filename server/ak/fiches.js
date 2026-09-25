@@ -82,7 +82,7 @@ export function questionOuverte(espace) {
 }
 
 /** Le privé avec une personne, ouvert une fois de notre côté puis gardé. */
-async function priveDe(email, { assurerPrive }) {
+export async function priveDe(email, { assurerPrive }) {
   const prives = (() => { try { return JSON.parse(Meta.get(CLE_PRIVES) || '{}'); } catch { return {}; } })();
   if (prives[email]) return prives[email];
   // spaces.setup accepte l'adresse comme identifiant : users/nom@domaine.

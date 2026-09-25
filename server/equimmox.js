@@ -137,7 +137,21 @@ async function seConnecter(p) {
  * @param {{surface?: number, forcer?: boolean, user?: object}} opts - la surface
  *   du local en m² (la recherche porte sur ±30 % autour) ; `forcer` ignore le cache
  */
-export async function analyseLoyer(adresse, { surface = null, rayon = RAYON_METRES, forcer = false, user = null } = {}) {
+export function analyseLoyer(adresse, opts = {}) {
+  return enFile(() => analyseLoyerSeule(adresse, opts));
+}
+
+// Un seul navigateur à la fois : chaque recherche le ferme en finissant, et
+// deux recherches en même temps (une analyse de loyer pendant l'export des
+// annonces de la nuit) se le fermaient l'une à l'autre.
+let file = Promise.resolve();
+function enFile(travail) {
+  const suite = file.then(travail, travail);
+  file = suite.catch(() => {});
+  return suite;
+}
+
+async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES, forcer = false, user = null } = {}) {
   if (!equimmoxConfigure()) return { ok: false, error: 'Equimmox n\'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env.' };
   const texteAdresse = String(adresse || '').trim();
   if (texteAdresse.length < 4) return { ok: false, error: 'Adresse trop courte.' };
@@ -366,4 +380,93 @@ async function reglerRayon(p, curseur, metres) {
   await poser(proche.v);
   await p.waitForTimeout(400);
   return proche.libelle;
+}
+
+// ---------------------------------------------------------------------------
+// Les annonces d'une ville, pour la prospection
+// ---------------------------------------------------------------------------
+//
+// Recherche → Vente → la ville → Lancer la recherche → Exporter → Extraire les
+// annonces : Equimmox rend un fichier Excel avec, pour chaque annonce, l'agence,
+// le mail et le téléphone de l'agent, et les sites où elle paraît. C'est de là
+// que la prospection tire les agents qui publient du commerce dans nos villes.
+// Le fichier est lu tel quel (server/xlsx.js), une fois par ville et par nuit.
+
+const sansAccent = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+/**
+ * L'export Excel des annonces en vente d'une ville.
+ * @returns {Promise<{ok: true, buffer: Buffer, offres: number|null, ville: string}|{ok: false, error: string}>}
+ */
+export function exporterAnnoncesVente(ville) {
+  return enFile(() => exporterSeul(ville));
+}
+
+async function exporterSeul(ville) {
+  if (!equimmoxConfigure()) return { ok: false, error: 'Equimmox n\'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env.' };
+  const nom = String(ville || '').trim();
+  if (nom.length < 2) return { ok: false, error: 'Ville manquante.' };
+  let ctx = null;
+  try {
+    const b = await lancerNavigateur();
+    ctx = await b.newContext({
+      viewport: { width: 1400, height: 950 },
+      locale: 'fr-FR',
+      acceptDownloads: true,
+      ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}),
+    });
+    const p = await ctx.newPage();
+    p.on('dialog', (d) => d.accept().catch(() => {}));
+    await aller(p, 'https://app.equimmox.com');
+    await p.waitForTimeout(4000);
+    if (/connexion/.test(p.url())) {
+      await seConnecter(p);
+      await aller(p, 'https://app.equimmox.com');
+      await p.waitForTimeout(4000);
+    }
+    await cliquerTexte(p, 'Continuer quand même', 1200);
+    await cliquerTexte(p, 'Je comprends', 1200);
+
+    const champ = p.locator('input[placeholder^="Région"]').first();
+    await champ.waitFor({ state: 'visible', timeout: 15000 });
+    await champ.click();
+    await champ.type(nom, { delay: 70 });
+    await p.locator('.result-name').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    await p.waitForTimeout(800);
+    // La ville exacte d'abord : « Cannes » plutôt que « Cannes-Écluse ».
+    const noms = await p.locator('.result-name').allTextContents();
+    const exacte = noms.findIndex((n) => sansAccent(n) === sansAccent(nom));
+    const commence = noms.findIndex((n) => sansAccent(n).startsWith(sansAccent(nom)));
+    const rang = exacte >= 0 ? exacte : commence >= 0 ? commence : 0;
+    if (!noms.length) throw new Error(`Equimmox ne connaît pas la ville « ${nom} ».`);
+    await p.locator('.result-name').nth(rang).click({ force: true, timeout: 10000 });
+    await p.waitForTimeout(2500);
+
+    await p.locator('.clickable-element', { hasText: 'Lancer la recherche' }).last().click({ timeout: 10000 });
+    await p.locator('text=/\\d+\\s*offres?/').first().waitFor({ state: 'visible', timeout: 45000 }).catch(() => {});
+    await p.waitForTimeout(1500);
+    const compte = (await texteDe(p)).find((l) => /^\d[\d\s]*offres?$/.test(l));
+    const offres = compte ? nombre(compte) : null;
+    if (offres === 0) return { ok: true, buffer: null, offres: 0, ville: noms[rang] || nom };
+
+    await p.locator('text=Exporter').first().click({ timeout: 10000 });
+    await p.locator('text=Extraire les annonces').first().waitFor({ state: 'visible', timeout: 15000 });
+    const telechargement = p.waitForEvent('download', { timeout: 240000 });
+    await p.locator('text=Extraire les annonces').first().click({ timeout: 10000 });
+    const d = await telechargement;
+    const morceaux = [];
+    for await (const m of await d.createReadStream()) morceaux.push(m);
+    await ctx.storageState({ path: SESSION }).catch(() => {});
+    console.log(`[equimmox] ${offres ?? '?'} annonces exportées pour ${noms[rang] || nom}`);
+    return { ok: true, buffer: Buffer.concat(morceaux), offres, ville: noms[rang] || nom };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'Equimmox n\'a pas répondu.' };
+  } finally {
+    if (ctx) await ctx.close().catch(() => {});
+    if (!CDP && navigateur) {
+      const n = navigateur;
+      navigateur = null;
+      await n.close().catch(() => {});
+    }
+  }
 }

@@ -28,7 +28,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Bot, Inbox } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home, Bot, Inbox, PhoneCall } from "lucide-react";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { useTheme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
@@ -494,6 +494,7 @@ function LayoutContent({ children, currentPageName }) {
             <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("FichesCommerciales")} icon={Inbox} label="Fiches" isActive={isActivePage("FichesCommerciales")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+            <NavItem to={createPageUrl("Prospection")} icon={PhoneCall} label="Prospection" isActive={isActivePage("Prospection")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to="/ALX" icon={Compass} label="ALX" isActive={isActivePage("ALX") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={alxAFaire || null} badgeColor="bg-alerte/20 text-alerte" />
             {/* Suivi : l'usage de la plateforme et ce que coûte chaque geste,
                 deux onglets d'une même page. */}

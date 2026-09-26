@@ -106,6 +106,17 @@ const etapeLabels = [
 "Signature"];
 
 
+// La recherche : sans accents, mots dans n'importe quel ordre, sur le nom,
+// l'adresse mail et le téléphone. « helene dupont » trouve « Hélène Dupont »,
+// « pierre antoine » trouve « pierreantoine.rouveroux@gmail.com ».
+const sansAccents = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+function correspond(user, recherche) {
+  const mots = sansAccents(recherche).split(/[\s,]+/).filter(Boolean);
+  if (!mots.length) return true;
+  const texte = sansAccents(`${user.full_name || ""} ${user.email || ""} ${user.telephone || ""} ${user.phone || ""}`);
+  return mots.every((m) => texte.includes(m));
+}
+
 export default function AdminClients() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -175,7 +186,10 @@ export default function AdminClients() {
     }
   });
 
-  const pendingUsers = users.filter((u) => (u.etape_actuelle ?? 0) === 0 && u.role !== 'admin');
+  // Les comptes en attente (souvent importés) se cherchent aussi : la
+  // recherche filtre les deux listes.
+  const tousEnAttente = users.filter((u) => (u.etape_actuelle ?? 0) === 0 && u.role !== 'admin');
+  const pendingUsers = tousEnAttente.filter((u) => correspond(u, searchTerm));
   // Les comptes qui n'ont pas encore de mot de passe (importés, ou invités
   // sans avoir cliqué) : ils entrent par leur lien.
   const sansMotDePasse = users.filter((u) => u.role !== 'admin' && !u.mot_de_passe_defini).length;
@@ -208,8 +222,7 @@ export default function AdminClients() {
   (etapeFilter === "all"
     || (etapeFilter === "admin" && user.role === "admin")
     || (user.role !== "admin" && (user.etape_actuelle ?? 0) === Number(etapeFilter))) &&
-  (user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  user.email?.toLowerCase().includes(searchTerm.toLowerCase()))
+  correspond(user, searchTerm)
   );
 
   // Compteurs du bandeau et des filtres (hors recherche, pour rester stables)
@@ -573,7 +586,7 @@ export default function AdminClients() {
       <div className="flex flex-wrap border-t border-encre/[0.35] mb-8 max-md:mb-6">
         {[
           { valeur: clientsActifs.length, label: "Clients actifs" },
-          { valeur: pendingUsers.length, label: "En attente d'activation", accent: "text-menthe" },
+          { valeur: tousEnAttente.length, label: "En attente d'activation", accent: "text-menthe" },
           { valeur: nbParEtape(3), label: "En recherche", accent: "text-menthe-clair" },
           { valeur: nbParEtape(4), label: "En financement" },
           { valeur: nbParEtape(5), label: "Signés", accent: "text-menthe-clair" },
@@ -664,9 +677,9 @@ export default function AdminClients() {
           >
             <span className="w-1.5 h-1.5 rounded-full bg-menthe animate-pulse" />
             <span className="text-[11px] tracking-[0.2em] uppercase text-menthe flex-1">En attente d'activation · {pendingUsers.length}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-menthe/60 group-hover:text-menthe transition-transform ${pendingCollapsed ? "-rotate-90" : ""}`} />
+            <ChevronDown className={`w-3.5 h-3.5 text-menthe/60 group-hover:text-menthe transition-transform ${pendingCollapsed && !searchTerm.trim() ? "-rotate-90" : ""}`} />
           </button>
-          {!pendingCollapsed && (
+          {(!pendingCollapsed || searchTerm.trim()) && (
             <div className="mt-4">
               {pendingUsers.map((user) => (
                 <div key={user.id} className="flex items-center gap-4 py-3.5 border-t border-encre/[0.12]">
@@ -889,7 +902,9 @@ export default function AdminClients() {
           <div className="border-t border-encre/[0.35] pt-10 pb-16 text-center">
             <Users className="w-8 h-8 text-encre/15 mx-auto mb-5" />
             <p className="text-ardoise text-sm mb-0">
-              {searchTerm || etapeFilter !== "all" ? "Aucun utilisateur ne correspond" : "Aucun utilisateur"}
+              {searchTerm.trim() && pendingUsers.length
+                ? `Aucun client actif ne correspond : ${pendingUsers.length === 1 ? "le compte trouvé est" : `les ${pendingUsers.length} comptes trouvés sont`} en attente d'activation, plus haut.`
+                : searchTerm || etapeFilter !== "all" ? "Aucun utilisateur ne correspond" : "Aucun utilisateur"}
             </p>
           </div>
         )}

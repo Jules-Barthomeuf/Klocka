@@ -14,6 +14,7 @@
 
 import { norm, normEmail, normTel, telAffiche } from './regles.js';
 
+
 const valeurs = (v) => String(v || '').split(/\s*,\s*/).map((x) => x.trim()).filter((x) => x && x.toLowerCase() !== 'hidden');
 const uniques = (liste) => [...new Set(liste)];
 const plusFrequent = (liste) => {
@@ -63,6 +64,7 @@ export function agentsDesAnnonces(lignes, { classes = ['Commercial'], ville = nu
       prix: Number(l.price) || null,
       surface: Number(l.surface) || null,
       exploitation: l.exploitation || null,
+      libre: String(l.occupation).toLowerCase() === 'false',
       lien: l.url || null,
     };
     for (const [k, cle] of (liste.length ? liste : [null]).entries()) {
@@ -73,9 +75,12 @@ export function agentsDesAnnonces(lignes, { classes = ['Commercial'], ville = nu
       const email = parTel ? null : cle;
       const tel = parTel ? cle : normTel(tels[rang] ?? (seul ? tels[0] : null));
       const id = email ? `e:${email}` : tel ? `t:${tel}` : `a:${norm(agence)}`;
-      const a = parAgent.get(id) || { agence, reseau, email, telephone: tel ? telAffiche(tel) : null, annonces: 0, villes: new Set(), sites: new Set(), exemples: [] };
+      const a = parAgent.get(id) || { agence, reseau, email, telephone: tel ? telAffiche(tel) : null, annonces: 0, vides: 0, villes: new Set(), parVille: {}, videsParVille: {}, sites: new Set(), exemples: [] };
       a.annonces += 1;
-      if (annonce.ville) a.villes.add(casse(String(annonce.ville).toLowerCase()));
+      const v = casse(String(annonce.ville || ville || '').toLowerCase());
+      if (v) { a.villes.add(v); a.parVille[v] = (a.parVille[v] || 0) + 1; }
+      // « occupation » à false : le local est libre, des murs vides à vendre.
+      if (String(l.occupation).toLowerCase() === 'false') { a.vides += 1; if (v) a.videsParVille[v] = (a.videsParVille[v] || 0) + 1; }
       for (const s of sites) a.sites.add(s);
       a.exemples.push(annonce);
       if (!a.telephone && tel) a.telephone = telAffiche(tel);
@@ -96,9 +101,12 @@ export function agentsDesAnnonces(lignes, { classes = ['Commercial'], ville = nu
         adresse: derniere?.adresse || null,
         source: 'Equimmox',
         annonces: a.annonces,
+        vides: a.vides,
+        annonces_par_ville: a.parVille,
+        vides_par_ville: a.videsParVille,
         sites: [...a.sites],
         exemples: exemples.slice(0, 3),
-        remarque: `Equimmox : ${a.annonces} annonce${a.annonces > 1 ? 's' : ''} de commerce en vente à ${villes.join(', ') || ville}${derniere?.date ? `, la dernière du ${derniere.date.split('-').reverse().join('/')}` : ''}${a.sites.size ? ` (${[...a.sites].slice(0, 4).join(', ')})` : ''}.`,
+        remarque: `Equimmox : ${a.annonces} annonce${a.annonces > 1 ? 's' : ''} de commerce en vente à ${villes.join(', ') || ville}${a.vides ? `, dont ${a.vides} libre${a.vides > 1 ? 's' : ''}` : ''}${derniere?.date ? `, la dernière du ${derniere.date.split('-').reverse().join('/')}` : ''}${a.sites.size ? ` (${[...a.sites].slice(0, 4).join(', ')})` : ''}.`,
       };
     })
     .sort((x, y) => y.annonces - x.annonces || String(x.nom).localeCompare(String(y.nom)));

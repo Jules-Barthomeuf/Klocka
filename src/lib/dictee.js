@@ -16,12 +16,14 @@ const Reconnaissance =
 const Enregistreur =
   typeof window !== "undefined" && window.MediaRecorder && navigator?.mediaDevices?.getUserMedia ? window.MediaRecorder : null;
 
-/** Un enregistrement du navigateur, décodé puis réécrit en WAV mono 16 kHz. */
-async function versWav(blob) {
+/**
+ * Un enregistrement du navigateur, décodé puis réécrit en WAV mono (16 kHz
+ * par défaut ; 8 kHz, la qualité du téléphone, pour un appel entier).
+ */
+export async function versWav(blob, freq = 16000) {
   const Ctx = window.AudioContext || window.webkitAudioContext;
   const ctx = new Ctx();
   const son = await ctx.decodeAudioData(await blob.arrayBuffer());
-  const freq = 16000;
   const hors = new OfflineAudioContext(1, Math.ceil(son.duration * freq), freq);
   const src = hors.createBufferSource();
   src.buffer = son;

@@ -1,180 +1,220 @@
-// Les deux tableaux Monday de la prospection, lus et écrits par le nom de
-// leurs colonnes : l'équipe peut les réordonner, Klocka les retrouve.
+// La prospection et Monday. La plateforme fait foi ; Monday reçoit ce
+// qu'elle écrit, pour piloter, et personne n'y modifie un agent à la main.
 //
-//   « Prospection Agent Immo » (MONDAY_BOARD_PROSPECTION) : les agents à
-//     démarcher. Klocka y ajoute les nouveaux, y lit les statuts posés après
-//     un appel, y écrit la prochaine relance.
-//   « Agent immobilier » (MONDAY_BOARD_AGENTS) : les agents qui nous
-//     envoient des fiches. Klocka le lit pour ne pas redémarcher un agent
-//     qu'on connaît, et y fait entrer celui qui nous envoie sa première fiche.
+//   Lecture, une fois : les agents des deux anciens tableaux (« Prospection
+//     Agent Immo » et « Agent immobilier ») entrent dans le carnet.
+//   Écriture, à chaque tour : deux tableaux créés par la plateforme,
+//     « Agents (plateforme) » et « Dossiers (pipeline) », tenus à jour.
+//     Chaque dossier est relié à son agent.
 
-import { TABLEAUX, colonnesDuTableau, lireTableau, creerElement, majElement, commenter, utilisateursMonday, mondayConfigure } from '../monday.js';
-import { STATUTS, norm, normEmail, telAffiche, normTel } from './regles.js';
+import { Meta, Records } from '../db.js';
+import { TABLEAUX, colonnesDuTableau, lireTableau, creerElement, majElement, utilisateursMonday, mondayConfigure } from '../monday.js';
+import * as R from './regles.js';
 
-export const TABLEAU_PROSPECTION = (process.env.MONDAY_BOARD_PROSPECTION || '5104678050').trim();
-export const TABLEAU_AGENTS = () => TABLEAUX.agents;
 export { mondayConfigure };
+export const TABLEAU_PROSPECTION = (process.env.MONDAY_BOARD_PROSPECTION || '5104678050').trim();
 
-// Les colonnes de chaque tableau, par titre, lues une fois par quart d'heure.
-const colonnesCache = new Map();
-async function colonnes(boardId) {
-  const c = colonnesCache.get(boardId);
-  if (c && Date.now() - c.le < 15 * 60000) return c.liste;
-  const liste = await colonnesDuTableau(boardId);
-  colonnesCache.set(boardId, { le: Date.now(), liste });
-  return liste;
+const TOKEN = (process.env.MONDAY_TOKEN || '').trim();
+async function gql(query, variables = {}) {
+  const r = await fetch('https://api.monday.com/v2', {
+    method: 'POST',
+    headers: { Authorization: TOKEN, 'Content-Type': 'application/json', 'API-Version': process.env.MONDAY_API_VERSION || '2024-10' },
+    body: JSON.stringify({ query, variables }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.errors?.length) throw new Error(d.errors?.[0]?.message || `Monday a répondu ${r.status}`);
+  return d.data;
 }
 
 /** Pure : l'identifiant de la colonne dont le titre correspond, parmi des titres possibles. */
 export function colonneParTitre(liste, titres, type = null) {
-  const voulus = titres.map(norm);
+  const voulus = titres.map(R.norm);
   for (const t of voulus) {
-    const c = liste.find((x) => norm(x.title) === t && (!type || x.type === type));
+    const c = liste.find((x) => R.norm(x.title) === t && (!type || x.type === type));
     if (c) return c.id;
   }
   for (const t of voulus) {
-    const c = liste.find((x) => norm(x.title).startsWith(t) && (!type || x.type === type));
+    const c = liste.find((x) => R.norm(x.title).startsWith(t) && (!type || x.type === type));
     if (c) return c.id;
   }
   return null;
 }
 
-async function carteProspection() {
-  const l = await colonnes(TABLEAU_PROSPECTION);
-  return {
-    collaborateurs: colonneParTitre(l, ['Collaborateurs', 'Responsable', 'SPOC'], 'people'),
-    email: colonneParTitre(l, ['Email', 'E-mail', 'Mail']),
-    telephone: colonneParTitre(l, ['Téléphone', 'Telephone', 'Tel']),
-    agence: colonneParTitre(l, ['Agence', 'Entreprise']),
-    ville: colonneParTitre(l, ['Ville']),
-    adresse: colonneParTitre(l, ['Adresse du bien', 'Adresse']),
-    remarques: colonneParTitre(l, ['Remarques', 'Notes']),
-    statut: colonneParTitre(l, ['Priorité Status', 'Priorité', 'Statut', 'Status'], 'status'),
-    date: colonneParTitre(l, ['Date', 'Premier contact'], 'date'),
-    prochaine_relance: colonneParTitre(l, ['Prochaine relance', 'Relance'], 'date'),
-  };
-}
-
-async function carteAgents() {
-  const l = await colonnes(TABLEAU_AGENTS());
-  return {
-    spoc: colonneParTitre(l, ['SPOC', 'Collaborateurs', 'Responsable'], 'people'),
-    prenom: colonneParTitre(l, ['Prénom', 'Prenom']),
-    date: colonneParTitre(l, ['Date'], 'date'),
-    email: colonneParTitre(l, ['E-mail', 'Email', 'Mail']),
-    telephone: colonneParTitre(l, ['Téléphone', 'Telephone']),
-    ville: colonneParTitre(l, ['Ville']),
-    entreprise: colonneParTitre(l, ['Entreprise', 'Agence']),
-    remarques: colonneParTitre(l, ['Remarques', 'Notes']),
-    priorite: colonneParTitre(l, ['Priorité', 'Statut'], 'status'),
-    relance: colonneParTitre(l, ['Prochaine relance'], 'date'),
-    types: Object.fromEntries(l.map((c) => [c.id, c.type])),
-  };
-}
-
-// Les collègues, nom Monday → adresse, pour savoir à qui est un agent.
 async function equipe() {
   const u = await utilisateursMonday();
-  return { parNom: new Map(u.map((x) => [norm(x.name), x])), parEmail: new Map(u.map((x) => [String(x.email).toLowerCase(), x])) };
+  return { parNom: new Map(u.map((x) => [R.norm(x.name), x])), parEmail: new Map(u.map((x) => [String(x.email).toLowerCase(), x])) };
 }
 
-/** Les prospects du tableau, en objets lisibles. Les lignes vides (« Item 2 ») sont laissées de côté. */
+// ---------------------------------------------------------------------------
+// Lecture des anciens tableaux, pour l'import
+// ---------------------------------------------------------------------------
+
 export async function lireProspects() {
-  const [carte, items, qui] = await Promise.all([carteProspection(), lireTableau(TABLEAU_PROSPECTION, 5000), equipe()]);
-  const lire = (it, k) => (carte[k] ? String(it.colonnes[carte[k]] || '').trim() : '');
+  const [l, items, qui] = await Promise.all([colonnesDuTableau(TABLEAU_PROSPECTION), lireTableau(TABLEAU_PROSPECTION, 5000), equipe()]);
+  const c = {
+    collaborateurs: colonneParTitre(l, ['Collaborateurs', 'Responsable'], 'people'),
+    email: colonneParTitre(l, ['Email', 'E-mail']), telephone: colonneParTitre(l, ['Téléphone']),
+    agence: colonneParTitre(l, ['Agence']), ville: colonneParTitre(l, ['Ville']), remarques: colonneParTitre(l, ['Remarques']),
+    statut: colonneParTitre(l, ['Priorité Status', 'Priorité', 'Statut'], 'status'), date: colonneParTitre(l, ['Date'], 'date'),
+    prochaine_relance: colonneParTitre(l, ['Prochaine relance'], 'date'),
+  };
+  const lire = (it, k) => (c[k] ? String(it.colonnes[c[k]] || '').trim() : '');
   return items.map((it) => ({
-    id: String(it.id),
-    nom: it.nom,
-    collaborateurs: lire(it, 'collaborateurs').split(',').map((n) => qui.parNom.get(norm(n))?.email?.toLowerCase()).filter(Boolean),
-    collaborateurs_noms: lire(it, 'collaborateurs'),
-    email: lire(it, 'email') || null,
-    telephone: lire(it, 'telephone') || null,
-    agence: lire(it, 'agence') || null,
-    ville: lire(it, 'ville') || null,
-    adresse: lire(it, 'adresse') || null,
-    remarques: lire(it, 'remarques') || '',
-    statut: lire(it, 'statut') || '',
-    date: lire(it, 'date') || '',
-    prochaine_relance: lire(it, 'prochaine_relance') || '',
-  })).filter((p) => p.email || p.telephone || p.agence || !/^item \d+$/i.test(p.nom || ''));
+    id: String(it.id), nom: it.nom,
+    collaborateurs: lire(it, 'collaborateurs').split(',').map((n) => qui.parNom.get(R.norm(n))?.email?.toLowerCase()).filter(Boolean),
+    email: lire(it, 'email') || null, telephone: lire(it, 'telephone') || null, agence: lire(it, 'agence') || null, ville: lire(it, 'ville') || null,
+    remarques: lire(it, 'remarques') || '', statut: lire(it, 'statut') || '', date: lire(it, 'date') || '', prochaine_relance: lire(it, 'prochaine_relance') || '',
+  })).filter((p) => p.email || p.telephone);
 }
 
-/** Les agents du tableau « Agent immobilier », pour le dédoublonnage et le passage. */
 export async function lireAgentsImmo() {
-  if (!TABLEAU_AGENTS()) return [];
-  const [carte, items] = await Promise.all([carteAgents(), lireTableau(TABLEAU_AGENTS(), 5000)]);
-  const lire = (it, k) => (carte[k] ? String(it.colonnes[carte[k]] || '').trim() : '');
-  return items.map((it) => ({ id: String(it.id), nom: it.nom, email: lire(it, 'email') || null, telephone: lire(it, 'telephone') || null, agence: lire(it, 'entreprise') || null, ville: lire(it, 'ville') || null, tableau: 'agents' }));
+  if (!TABLEAUX.agents) return [];
+  const [l, items, qui] = await Promise.all([colonnesDuTableau(TABLEAUX.agents), lireTableau(TABLEAUX.agents, 5000), equipe()]);
+  const c = {
+    spoc: colonneParTitre(l, ['SPOC', 'Collaborateurs'], 'people'), date: colonneParTitre(l, ['Date'], 'date'),
+    email: colonneParTitre(l, ['E-mail', 'Email']), telephone: colonneParTitre(l, ['Téléphone']), ville: colonneParTitre(l, ['Ville']),
+    entreprise: colonneParTitre(l, ['Entreprise', 'Agence']), remarques: colonneParTitre(l, ['Remarques']),
+    priorite: colonneParTitre(l, ['Priorité'], 'status'), relance: colonneParTitre(l, ['Prochaine relance'], 'date'),
+  };
+  const lire = (it, k) => (c[k] ? String(it.colonnes[c[k]] || '').trim() : '');
+  return items.map((it) => ({
+    id: String(it.id), nom: it.nom, email: lire(it, 'email') || null, telephone: lire(it, 'telephone') || null,
+    agence: lire(it, 'entreprise') || null, ville: lire(it, 'ville') || null, remarques: lire(it, 'remarques') || '',
+    priorite: lire(it, 'priorite'), date: lire(it, 'date') || null, relance: lire(it, 'relance') || null,
+    referent: lire(it, 'spoc').split(',').map((n) => qui.parNom.get(R.norm(n))?.email?.toLowerCase()).filter(Boolean)[0] || null,
+  })).filter((a) => a.email || a.telephone);
+}
+
+// ---------------------------------------------------------------------------
+// Les deux tableaux tenus par la plateforme
+// ---------------------------------------------------------------------------
+
+const CLE_TABLEAUX = 'prospection.monday.tableaux';
+const CLE_DOSSIERS = 'prospection.monday.dossiers';
+
+export const ETAPES_DOSSIER = ['Reçu', 'Préanalysé', 'Oui', 'Non', 'Visite', 'Présenté au client', 'Offre', 'Signé', 'Abandonné'];
+
+const COLONNES_AGENTS = [
+  ['agence', 'Agence', 'text'], ['ville', 'Ville', 'text'], ['statut', 'Statut', 'status'], ['referent', 'Référent', 'people'],
+  ['dernier_contact', 'Dernier contact', 'date'], ['prochaine', 'Prochaine action', 'text'], ['prochaine_le', 'Date prochaine action', 'date'],
+  ['secteurs', 'Secteurs', 'text'], ['score', 'Score', 'numbers'], ['resume', 'Résumé du dernier appel', 'long_text'],
+  ['telephone', 'Téléphone', 'text'], ['email', 'Email', 'text'],
+];
+const COLONNES_DOSSIERS = [
+  ['etape', 'Étape', 'status'], ['agent', 'Agent', 'board_relation'], ['referent', 'Référent', 'people'],
+  ['ville', 'Ville', 'text'], ['recu_le', 'Reçu le', 'date'], ['lien', 'Lien Klocka', 'link'],
+];
+
+const lireJson = (cle, d) => { try { return JSON.parse(Meta.get(cle) || 'null') ?? d; } catch { return d; } };
+export const tableaux = () => lireJson(CLE_TABLEAUX, null);
+
+/**
+ * Crée les deux tableaux la première fois, dans l'espace de travail du
+ * tableau de prospection, avec leurs colonnes ; les retrouve ensuite.
+ */
+export async function assurerTableaux() {
+  const t = tableaux();
+  if (t?.agents?.id && t?.dossiers?.id) return t;
+  const d = await gql('query ($b: [ID!]) { boards(ids: $b) { workspace_id } }', { b: [TABLEAU_PROSPECTION] });
+  const workspace = d?.boards?.[0]?.workspace_id || null;
+  const creer = async (nom, colonnes, apres = {}) => {
+    const b = await gql('mutation ($n: String!, $w: ID) { create_board(board_name: $n, board_kind: public, workspace_id: $w, empty: true) { id } }', { n: nom, w: workspace });
+    const id = String(b.create_board.id);
+    const cols = {};
+    for (const [cle, titre, type] of colonnes) {
+      const defaults = apres[cle] ? JSON.stringify(apres[cle]) : null;
+      const c = await gql('mutation ($b: ID!, $t: String!, $ty: ColumnType!, $d: JSON) { create_column(board_id: $b, title: $t, column_type: $ty, defaults: $d) { id } }', { b: id, t: titre, ty: type, d: defaults });
+      cols[cle] = c.create_column.id;
+    }
+    return { id, colonnes: cols };
+  };
+  const agents = t?.agents?.id ? t.agents : await creer('Agents (plateforme)', COLONNES_AGENTS);
+  Meta.set(CLE_TABLEAUX, JSON.stringify({ agents }));
+  const dossiers = await creer('Dossiers (pipeline)', COLONNES_DOSSIERS, { agent: { boardIds: [Number(agents.id)] } });
+  const suite = { agents, dossiers, cree_le: new Date().toISOString() };
+  Meta.set(CLE_TABLEAUX, JSON.stringify(suite));
+  console.log(`[prospection] tableaux Monday créés : Agents ${agents.id}, Dossiers ${dossiers.id}`);
+  return suite;
 }
 
 async function personnes(emails = []) {
   const qui = await equipe();
-  return emails.map((e) => qui.parEmail.get(String(e).toLowerCase())).filter(Boolean).map((u) => ({ id: Number(u.id), kind: 'person' }));
+  return emails.map((e) => qui.parEmail.get(String(e || '').toLowerCase())).filter(Boolean).map((u) => ({ id: Number(u.id), kind: 'person' }));
 }
 
-/** Pure : les valeurs Monday d'un prospect, colonne par colonne. */
-export function valeursProspect(carte, champs) {
+/** Pure : les valeurs Monday d'un agent. */
+export function valeursAgent(c, a, referent = []) {
   const v = {};
-  const texte = (k, x) => { if (carte[k] && x != null) v[carte[k]] = String(x).slice(0, 2000); };
-  texte('email', champs.email);
-  texte('telephone', champs.telephone);
-  texte('agence', champs.agence);
-  texte('ville', champs.ville);
-  texte('adresse', champs.adresse);
-  texte('remarques', champs.remarques);
-  if (carte.statut && champs.statut) v[carte.statut] = { label: STATUTS[champs.statut] || champs.statut };
-  if (carte.date && champs.date !== undefined) v[carte.date] = champs.date ? { date: champs.date } : null;
-  if (carte.prochaine_relance && champs.prochaine_relance !== undefined) v[carte.prochaine_relance] = champs.prochaine_relance ? { date: champs.prochaine_relance } : null;
+  const texte = (k, x) => { if (c[k]) v[c[k]] = x == null ? '' : String(x).slice(0, 2000); };
+  texte('agence', a.agence);
+  texte('ville', a.ville);
+  if (c.statut) v[c.statut] = { label: R.STATUTS[a.statut] || R.STATUTS.nouveau };
+  if (c.referent) v[c.referent] = referent.length ? { personsAndTeams: referent } : null;
+  if (c.dernier_contact) v[c.dernier_contact] = a.dernier_contact_le ? { date: String(a.dernier_contact_le).slice(0, 10) } : null;
+  texte('prochaine', a.prochaine?.quoi || '');
+  if (c.prochaine_le) v[c.prochaine_le] = a.prochaine?.le ? { date: a.prochaine.le } : null;
+  texte('secteurs', (a.secteurs || []).join(', '));
+  if (c.score) v[c.score] = String(a.score || 0);
+  if (c.resume) v[c.resume] = { text: String(a.resume_dernier_appel || '').slice(0, 2000) };
+  texte('telephone', (a.telephones || []).join(', '));
+  texte('email', (a.emails || []).join(', '));
   return v;
 }
 
-/** Ajoute un agent au tableau de prospection. Rend l'identifiant Monday. */
-export async function creerProspect(c, { prochaine_relance = null } = {}) {
-  const carte = await carteProspection();
-  const valeurs = valeursProspect(carte, {
-    email: c.email || null, telephone: c.telephone || null, agence: c.agence || null, ville: c.ville || null,
-    adresse: c.adresse || null, remarques: c.remarque || null, statut: 'nouveau', prochaine_relance,
-  });
-  const it = await creerElement(TABLEAU_PROSPECTION, String(c.nom || c.agence || c.email || 'Agent').slice(0, 250), valeurs, { labels: true });
-  return it?.id ? String(it.id) : null;
-}
-
-/** Écrit sur un prospect ce que l'appel a changé. `collaborateurs` : des adresses. */
-export async function ecrireProspect(itemId, champs) {
-  const carte = await carteProspection();
-  const valeurs = valeursProspect(carte, champs);
-  if (champs.collaborateurs?.length && carte.collaborateurs) {
-    const p = await personnes(champs.collaborateurs);
-    if (p.length) valeurs[carte.collaborateurs] = { personsAndTeams: p };
+/** Envoie à Monday les agents qui ont changé depuis leur dernier envoi (au plus `max` par tour). */
+export async function pousserAgents({ max = 60 } = {}) {
+  const t = await assurerTableaux();
+  const { agents } = await import('./carnet.js');
+  const aEnvoyer = agents().filter((a) => !a.monday_le || String(a.maj_le || '') > String(a.monday_le)).slice(0, max);
+  let n = 0;
+  for (const a of aEnvoyer) {
+    const v = valeursAgent(t.agents.colonnes, a, await personnes([a.referent]));
+    const le = new Date().toISOString();
+    if (a.monday_id) await majElement(t.agents.id, a.monday_id, v, { labels: true });
+    else {
+      const it = await creerElement(t.agents.id, String(a.nom).slice(0, 250), v, { labels: true });
+      a.monday_id = it?.id ? String(it.id) : null;
+    }
+    // monday_le un peu après maj_le : l'écriture de monday_le elle-même ne compte pas comme un changement.
+    Records.update('AgentImmo', a.id, { monday_id: a.monday_id, monday_le: new Date(Date.parse(le) + 1000).toISOString() });
+    n += 1;
   }
-  if (!Object.keys(valeurs).length) return null;
-  return majElement(TABLEAU_PROSPECTION, itemId, valeurs, { labels: true });
+  return n;
 }
 
-export { commenter };
+/** Pure : l'étape Monday d'une fiche. */
+export function etapeMonday(f) {
+  if (f.etape === 'abouti') return 'Signé';
+  if (f.etape === 'presente') return 'Présenté au client';
+  if (f.etape === 'oui') return f.abandonne ? 'Abandonné' : 'Oui';
+  if (f.etape === 'non') return 'Non';
+  return f.verdict ? 'Préanalysé' : 'Reçu';
+}
 
-/**
- * Fait entrer un prospect dans « Agent immobilier », au format de l'équipe :
- * le nom complet, le prénom, la date d'entrée, le mail, le téléphone, la ville,
- * l'agence, la priorité Élevée (il envoie des fiches), et d'où il vient.
- */
-export async function creerAgentImmo({ nom, email, telephone, ville, agence, remarque, spoc = [], maintenant = new Date() }) {
-  if (!TABLEAU_AGENTS()) throw new Error('Tableau « Agent immobilier » non configuré : MONDAY_BOARD_AGENTS.');
-  const carte = await carteAgents();
-  const v = {};
-  const prenom = String(nom || '').trim().split(/\s+/)[0];
-  const aUnPrenom = /^[A-ZÀ-Ý][a-zà-ÿ'-]+$/.test(prenom || '');
-  if (carte.prenom && aUnPrenom) v[carte.prenom] = prenom;
-  if (carte.date) v[carte.date] = { date: new Date(maintenant).toISOString().slice(0, 10) };
-  const e = normEmail(email);
-  if (carte.email && e) v[carte.email] = carte.types[carte.email] === 'email' ? { email: e, text: e } : e;
-  const t = normTel(telephone);
-  if (carte.telephone && t) v[carte.telephone] = carte.types[carte.telephone] === 'phone' ? { phone: `0${t}`, countryShortName: 'FR' } : telAffiche(t);
-  if (carte.ville && ville) v[carte.ville] = String(ville);
-  if (carte.entreprise && agence) v[carte.entreprise] = carte.types[carte.entreprise] === 'dropdown' ? { labels: [String(agence).slice(0, 60)] } : String(agence);
-  if (carte.remarques && remarque) v[carte.remarques] = String(remarque).slice(0, 2000);
-  if (carte.priorite) v[carte.priorite] = { label: 'Élevée' };
-  if (carte.spoc && spoc.length) { const p = await personnes(spoc); if (p.length) v[carte.spoc] = { personsAndTeams: p }; }
-  const it = await creerElement(TABLEAU_AGENTS(), String(nom || agence || email).slice(0, 250), v, { labels: true });
-  return it?.id ? String(it.id) : null;
+/** Envoie à Monday les dossiers nés d'une fiche, reliés à leur agent, et leur étape quand elle change. */
+export async function pousserDossiers(fiches, { appUrl = (process.env.APP_URL || '').replace(/\/$/, '') } = {}) {
+  const t = await assurerTableaux();
+  const { agentParEmail } = await import('./carnet.js');
+  const faits = lireJson(CLE_DOSSIERS, {});
+  const c = t.dossiers.colonnes;
+  let n = 0;
+  for (const f of fiches.filter((x) => x.deal_id)) {
+    const etape = etapeMonday({ ...f, abandonne: Records.findBy('Deal', 'deal_id', f.deal_id)?.statut === 'abandonne' });
+    const agent = f.agent_email ? agentParEmail(f.agent_email) : null;
+    const signature = `${etape}|${agent?.monday_id || ''}|${agent?.referent || ''}`;
+    if (faits[f.deal_id]?.signature === signature) continue;
+    const v = { [c.etape]: { label: etape } };
+    if (c.agent && agent?.monday_id) v[c.agent] = { item_ids: [Number(agent.monday_id)] };
+    if (c.referent && agent?.referent) { const p = await personnes([agent.referent]); if (p.length) v[c.referent] = { personsAndTeams: p }; }
+    if (c.ville && f.ville) v[c.ville] = String(f.ville);
+    if (c.recu_le && f.le) v[c.recu_le] = { date: String(f.le).slice(0, 10) };
+    if (c.lien && appUrl) v[c.lien] = { url: `${appUrl}/Analyse?deal_id=${f.deal_id}`, text: 'Ouvrir' };
+    let id = faits[f.deal_id]?.id;
+    if (id) await majElement(t.dossiers.id, id, v, { labels: true });
+    else id = String((await creerElement(t.dossiers.id, String(f.titre || 'Dossier').slice(0, 250), v, { labels: true }))?.id || '');
+    faits[f.deal_id] = { id, signature };
+    n += 1;
+  }
+  Meta.set(CLE_DOSSIERS, JSON.stringify(faits));
+  return n;
 }

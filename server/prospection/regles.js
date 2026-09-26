@@ -1,61 +1,52 @@
-// Les règles de la prospection, pures et testées sans réseau : qui est déjà
-// connu, quand rappeler, qui appeler aujourd'hui et qui s'en charge.
+// Les règles de la prospection, pures et testées sans réseau.
 //
-// Le carnet vit dans Monday, tableau « Prospection Agent Immo » : un agent à
-// démarcher par ligne, avec son statut (colonne Priorité Status), sa date de
-// premier contact et sa prochaine relance. Klocka ne tient pas de second
-// carnet ; il garde seulement ce que Monday ne sait pas dire (combien
-// d'appels sans réponse d'affilée, d'où vient l'agent), dans ProspectSuivi.
+// Le carnet des agents vit dans la plateforme (AgentImmo) : c'est lui qui
+// fait foi. Monday reçoit ce que la plateforme écrit, pour piloter.
 //
-// Après un appel, le statut dit la suite :
-//   Pas de réponse    on rappelle dans deux jours ouvrés ; au troisième essai
-//                     sans réponse, l'agent dort trois mois.
-//   À recontacter     à la date dite, sinon dans une semaine.
-//   Intéressé         on lui envoie nos critères, puis on le relance dans deux semaines.
-//   Moyenne           dans deux semaines.
-//   Contact régulier  dans un mois.
-//   Mort              jamais.
-//   Passé en Agent immo : il nous a envoyé une fiche, il vit désormais dans le
-//                     tableau « Agent immobilier ». Plus rien ici.
+// Après un appel, AK propose la suite et la personne choisit. Les règles
+// ci-dessous disent ce que chaque issue appelle :
+//   pas de réponse   rappel dans deux jours ouvrés, à l'autre moment de la
+//                    journée ; au troisième échec, un mail ou un SMS préparé,
+//                    puis un mois de pause ;
+//   pas de murs      mail de présentation avec nos critères, relance à un
+//                    mois ou à la date du mandat annoncé, et il remonte en
+//                    tête s'il publie sur Equimmox ;
+//   a des murs       mail de demande de fiche, relance préparée à J+3, appel
+//                    à J+7 si rien n'arrive ;
+//   veut un mail     même chose ;
+//   pas intéressé    six mois de pause ;
+//   invalide         archivé, et un autre contact de l'agence proposé.
+// Rien ne part tout seul : un mail ou une relance attend toujours un clic.
 
 export const STATUTS = {
-  nouveau: 'Nouveau contact',
-  pas_de_reponse: 'Pas de réponse',
-  a_recontacter: 'À recontacter',
-  interesse: 'Intéressé',
-  moyenne: 'Moyenne',
-  regulier: 'Contact régulier',
-  mort: 'Mort',
-  converti: 'Passé en Agent immo',
+  nouveau: 'À appeler',
+  a_rappeler: 'À rappeler',
+  en_discussion: 'En discussion',
+  pas_de_murs: 'Pas de murs',
+  envoie_des_fiches: 'Envoie des fiches',
+  pause: 'En pause',
+  archive: 'Archivé',
 };
-// Les jours avant de rappeler, par statut. Pas de réponse compte en jours ouvrés.
-export const DELAIS = { pas_de_reponse: 2, a_recontacter: 7, interesse: 14, moyenne: 14, regulier: 30 };
+
+export const ISSUES = {
+  pas_de_reponse: 'Pas de réponse',
+  pas_de_murs: 'Pas de murs en ce moment',
+  a_des_murs: 'A des murs intéressants',
+  veut_mail: 'Veut d\'abord un mail',
+  pas_interesse: 'Pas intéressé',
+  invalide: 'Mauvais numéro',
+  autre: 'Autre',
+};
+
 export const ESSAIS_MAX = 3;
-export const DORMANT_JOURS = 90;
-export const MAX_PAR_PERSONNE = 25;
 
-export const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9@.+ -]/g, ' ').replace(/\s+/g, ' ').trim();
-
-/** Pure : le statut lu dans Monday, en clé (« À recontacter » → a_recontacter). Null si vide ou inconnu. */
-export function cleStatut(texte) {
-  const t = norm(texte);
-  if (!t) return null;
-  for (const [cle, libelle] of Object.entries(STATUTS)) if (norm(libelle) === t) return cle;
-  if (/pas de rep|no rep|repondeur/.test(t)) return 'pas_de_reponse';
-  if (/rappel|recontact/.test(t)) return 'a_recontacter';
-  if (/interess/.test(t)) return 'interesse';
-  if (/regulier/.test(t)) return 'regulier';
-  if (/mort|pas interess|stop/.test(t)) return 'mort';
-  if (/nouveau/.test(t)) return 'nouveau';
-  if (/agent immo/.test(t)) return 'converti';
-  return null;
-}
+export const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9@.+ -]/g, ' ').replace(/\s+/g, ' ').trim();
 
 const ADRESSE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 // Les adresses des sites d'annonces : jamais celles d'un agent.
 const PORTAILS = /@(?:[a-z0-9-]+\.)*(?:seloger|leboncoin|bureauxlocaux|geolocaux|logic-immo|bienici|equimmox|apollo|cessionpme|properstar|greenacres)\.[a-z]+$/;
 
-/** Pure : l'adresse mail utile d'un champ (« Jean <j@x.fr>, j@x.fr » → j@x.fr), ou null. */
+/** Pure : l'adresse mail utile d'un champ (« Jean <j@x.fr> » → j@x.fr), ou null. */
 export function normEmail(v) {
   const m = String(v || '').toLowerCase().match(ADRESSE);
   if (!m || PORTAILS.test(m[0])) return null;
@@ -75,20 +66,18 @@ export function telAffiche(v) {
 }
 
 /** Pure : les clés qui disent « c'est le même agent » : mail, téléphone, nom et agence ensemble. */
-export function clesDe({ email = null, telephone = null, nom = null, agence = null } = {}) {
+export function clesDe({ email = null, emails = [], telephone = null, telephones = [], nom = null, agence = null } = {}) {
   const cles = [];
-  const e = normEmail(email);
-  if (e) cles.push(`e:${e}`);
-  const t = normTel(telephone);
-  if (t) cles.push(`t:${t}`);
+  for (const e of [email, ...(emails || [])].map(normEmail).filter(Boolean)) cles.push(`e:${e}`);
+  for (const t of [telephone, ...(telephones || [])].map(normTel).filter(Boolean)) cles.push(`t:${t}`);
   const n = norm(nom);
   const a = norm(agence);
   if (n && a && n !== a) cles.push(`n:${n}|${a}`);
-  else if (a && !e && !t) cles.push(`a:${a}`);
-  return cles;
+  else if (a && cles.length === 0) cles.push(`a:${a}`);
+  return [...new Set(cles)];
 }
 
-/** Pure : un index des agents déjà connus, clé → agent. */
+/** Pure : un index des agents connus, clé → agent. */
 export function indexer(agents) {
   const index = new Map();
   for (const a of agents || []) for (const c of clesDe(a)) if (!index.has(c)) index.set(c, a);
@@ -101,152 +90,89 @@ export function dejaConnu(index, candidat) {
   return null;
 }
 
-/**
- * Pure : les candidats qui ne sont connus nulle part, une fois chacun (deux
- * sources qui apportent le même agent n'en font qu'un).
- */
-export function nouveauxAgents(candidats, connus) {
-  const index = indexer(connus);
-  const neufs = [];
-  for (const c of candidats || []) {
-    if (!clesDe(c).length || dejaConnu(index, c)) continue;
-    neufs.push(c);
-    for (const k of clesDe(c)) index.set(k, c);
-  }
-  return neufs;
-}
-
 // Les dates : des jours civils, à Paris, en AAAA-MM-JJ.
 export const jourDe = (d = new Date()) => new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d));
-const plusJours = (jour, n) => { const d = new Date(`${jour}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+export const heureDe = (d = new Date()) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).formatToParts(new Date(d)).find((p) => p.type === 'hour')?.value) % 24;
+export const plusJours = (jour, n) => { const d = new Date(`${jour}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const jourSemaine = (jour) => new Date(`${jour}T12:00:00Z`).getUTCDay();
 /** Pure : un samedi ou un dimanche glisse au lundi. */
 export const ouvre = (jour) => (jourSemaine(jour) === 6 ? plusJours(jour, 2) : jourSemaine(jour) === 0 ? plusJours(jour, 1) : jour);
-function plusJoursOuvres(jour, n) {
+export function plusJoursOuvres(jour, n) {
   let j = jour;
   for (let i = 0; i < n; i++) j = ouvre(plusJours(j, 1));
   return j;
 }
+export const dateCourte = (jour) => (jour ? `${String(jour).slice(8, 10)}/${String(jour).slice(5, 7)}` : '');
 
 /**
- * Pure : la prochaine relance après un appel, en AAAA-MM-JJ, et ce qu'il faut
- * en dire. `tentatives` compte les « Pas de réponse » d'affilée, celui-ci compris.
- * @returns {{ date: string|null, dormant?: boolean }}
+ * Pure : ce que l'issue d'un appel change à la fiche de l'agent : statut,
+ * essais, prochaine action et sa date, et les mails à proposer.
+ * @param {string} issue - une clé d'ISSUES
+ * @param {{tentatives?: number, maintenant?: Date, date_dite?: string|null}} ctx
+ * @returns {{statut, tentatives, prochaine: {quoi, le, moment?}|null, mails: string[], sms?: boolean, autre_contact?: boolean}}
  */
-export function prochaineRelance(statut, { tentatives = 0, dite = null, maintenant = new Date() } = {}) {
-  const aujourdhui = jourDe(maintenant);
-  if (!statut || statut === 'mort' || statut === 'converti') return { date: null };
-  if (statut === 'nouveau') return { date: ouvre(aujourdhui) };
-  if (statut === 'pas_de_reponse') {
-    if (tentatives >= ESSAIS_MAX) return { date: ouvre(plusJours(aujourdhui, DORMANT_JOURS)), dormant: true };
-    return { date: plusJoursOuvres(aujourdhui, DELAIS.pas_de_reponse) };
+export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), date_dite = null } = {}) {
+  const auj = jourDe(maintenant);
+  const dite = date_dite && /^\d{4}-\d{2}-\d{2}$/.test(date_dite) && date_dite > auj ? ouvre(date_dite) : null;
+  if (issue === 'pas_de_reponse') {
+    const n = tentatives + 1;
+    if (n >= ESSAIS_MAX) return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'rappeler après la pause (3 appels sans réponse)', le: ouvre(plusJours(auj, 30)) }, mails: ['sans_reponse'], sms: true };
+    // L'autre moment de la journée : on l'a raté le matin, on l'appelle l'après-midi.
+    const moment = heureDe(maintenant) < 13 ? "l'après-midi" : 'le matin';
+    return { statut: 'a_rappeler', tentatives: n, prochaine: { quoi: `rappeler (essai ${n + 1} sur ${ESSAIS_MAX}), plutôt ${moment}`, le: plusJoursOuvres(auj, 2), moment }, mails: [] };
   }
-  if (dite && /^\d{4}-\d{2}-\d{2}$/.test(dite) && dite >= aujourdhui) return { date: ouvre(dite) };
-  return { date: ouvre(plusJours(aujourdhui, DELAIS[statut] ?? 7)) };
+  if (issue === 'pas_de_murs') return { statut: 'pas_de_murs', tentatives: 0, prochaine: { quoi: dite ? 'rappeler pour le mandat annoncé' : 'point du mois : a-t-il rentré des murs ?', le: dite || ouvre(plusJours(auj, 30)) }, mails: ['presentation'] };
+  if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: ouvre(plusJours(auj, 7)) }, mails: ['demande_fiche'], relance_mail_jours: 3 };
+  if (issue === 'veut_mail') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : a-t-il lu notre mail, a-t-il des murs ?', le: ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3 };
+  if (issue === 'pas_interesse') return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'retenter dans six mois', le: ouvre(plusJours(auj, 182)) }, mails: [] };
+  if (issue === 'invalide') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], autre_contact: true };
+  return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler', le: dite || ouvre(plusJours(auj, 7)) }, mails: [] };
 }
 
-/** Pure : ce prospect est-il à appeler ce jour-là ? */
-export function estDu(p, aujourdhui) {
-  const statut = cleStatut(p.statut);
-  if (statut === 'mort' || statut === 'converti') return false;
-  if (!p.telephone && !p.email) return false;
-  if (p.prochaine_relance) return p.prochaine_relance <= aujourdhui;
-  return true;
+/** Pure : le score d'un agent, d'après ce qu'il nous a apporté. Une fiche vaut 10, un Oui 15 de plus, un Non en retire 2. */
+export function scoreDe({ fiches = 0, oui = 0, non = 0 } = {}) {
+  return Math.max(0, fiches * 10 + oui * 15 - non * 2);
 }
 
-const RANGS = { a_recontacter: 0, interesse: 1, moyenne: 1, regulier: 2, nouveau: 3, pas_de_reponse: 4 };
-const dateCourte = (jour) => (jour ? `${jour.slice(8, 10)}/${jour.slice(5, 7)}` : '');
-
-/** Pure : pourquoi on l'appelle aujourd'hui, en une ligne. */
-export function raisonDe(p, suivi = {}, aujourdhui) {
-  const statut = cleStatut(p.statut);
-  const retard = p.prochaine_relance && p.prochaine_relance < aujourdhui ? ` (prévu le ${dateCourte(p.prochaine_relance)})` : '';
-  if (statut === 'a_recontacter') return `rappel promis${p.prochaine_relance ? ` pour le ${dateCourte(p.prochaine_relance)}` : ''}`;
-  if (statut === 'interesse') return suivi.criteres_le ? `intéressé, critères envoyés le ${dateCourte(suivi.criteres_le.slice(0, 10))} : a-t-il un bien ?${retard}` : `intéressé : a-t-il un bien ?${retard}`;
-  if (statut === 'moyenne') return `à relancer${retard}`;
-  if (statut === 'regulier') return `contact régulier, point du mois${retard}`;
-  if (statut === 'pas_de_reponse') return `pas de réponse, essai ${Math.min(ESSAIS_MAX, (suivi.tentatives || 0) + 1)} sur ${ESSAIS_MAX}${retard}`;
-  const annonces = suivi.annonces ? `, ${suivi.annonces} annonce${suivi.annonces > 1 ? 's' : ''} commerciale${suivi.annonces > 1 ? 's' : ''}${p.ville ? ` à ${p.ville}` : ''}` : '';
-  if (statut === 'nouveau' || !statut) return `premier appel${suivi.source ? ` (${suivi.source})` : ''}${annonces}`;
-  return `à rappeler${retard}`;
-}
-
-/** Pure : l'ordre de la liste : les rappels promis, les chauds, les réguliers, les nouveaux (les plus gros d'abord), les sans-réponse. */
-export function ordonner(liste, suivis = {}, aujourdhui) {
-  const rang = (p) => RANGS[cleStatut(p.statut)] ?? 3;
-  return [...liste].sort((a, b) =>
-    rang(a) - rang(b)
-    || (rang(a) === 3 ? (suivis[b.id]?.annonces || 0) - (suivis[a.id]?.annonces || 0) : 0)
-    || (rang(a) === 4 ? (suivis[a.id]?.tentatives || 0) - (suivis[b.id]?.tentatives || 0) : 0)
-    || String(a.prochaine_relance || aujourdhui).localeCompare(String(b.prochaine_relance || aujourdhui))
-    || String(a.nom).localeCompare(String(b.nom)));
-}
+const joursDepuis = (iso, auj) => (iso ? Math.round((Date.parse(`${auj}T12:00:00Z`) - Date.parse(`${String(iso).slice(0, 10)}T12:00:00Z`)) / 86400000) : Infinity);
 
 /**
- * Pure : la liste d'appels du jour, répartie entre les prospecteurs sans
- * qu'un agent soit appelé deux fois. Un agent qui a déjà quelqu'un
- * (colonne Collaborateurs) reste à cette personne ; les autres vont à celui
- * qui en a le moins. Au-delà de `max` par personne, le reste attend demain.
- * @param {object[]} prospects - lus dans Monday ({id, nom, collaborateurs: [emails], statut, prochaine_relance, …})
- * @param {{prospecteurs: string[], suivis?: object, max?: number, maintenant?: Date}} opts
- * @returns {{ parPersonne: Object<string, object[]>, reportes: object[] }}
+ * Pure : la liste du jour. Dans l'ordre :
+ *   1. les relances qui tombent aujourd'hui (ou en retard) ;
+ *   2. dans les villes ciblées aujourd'hui, les agents qui publient
+ *      régulièrement sur Equimmox (deux annonces ou plus), ceux qui ont des
+ *      murs vides d'abord, puis les plus gros publieurs ;
+ *   3. les nouveaux agents importés (Apollo, fichier) de ces villes.
+ * Un agent appelé depuis moins de 30 jours ne revient que par sa relance.
+ * @returns {object[]} chaque agent avec `raison` et `rang`
  */
-export function listeDuJour(prospects, { prospecteurs = [], suivis = {}, max = MAX_PAR_PERSONNE, maintenant = new Date(), extras = [], fige = {} } = {}) {
-  const aujourdhui = jourDe(maintenant);
-  const equipe = prospecteurs.map((e) => String(e).toLowerCase());
-  const parPersonne = Object.fromEntries(equipe.map((e) => [e, []]));
-  const reportes = [];
-  const dus = ordonner((prospects || []).filter((p) => estDu(p, aujourdhui)), suivis, aujourdhui)
-    .map((p) => ({ ...p, genre: 'prospect', raison: raisonDe(p, suivis[p.id] || {}, aujourdhui) }));
-  // Les relances de dossiers et les retours aux gros agents passent devant :
-  // un dossier en cours rapporte plus qu'un premier appel.
-  const tout = [...(extras || []), ...dus];
-  const moinsCharge = () => equipe.reduce((a, b) => (parPersonne[b].length < parPersonne[a].length ? b : a), equipe[0]);
-  const attribution = {};
-  // D'abord ceux qui ont déjà quelqu'un (la colonne Collaborateurs, ou la
-  // répartition de ce matin) ; les autres ensuite, à qui en a le moins : un
-  // agent donné à Paul à 8 h ne passe pas chez Nora à 11 h.
-  const attitreDe = (p) => (p.collaborateurs || []).map((e) => String(e).toLowerCase()).find((e) => parPersonne[e])
-    || (parPersonne[fige[p.id]] ? fige[p.id] : null);
-  const ordre = [...tout.filter((p) => attitreDe(p)), ...tout.filter((p) => !attitreDe(p))];
-  for (const p of ordre) {
-    if (!equipe.length) { reportes.push(p); continue; }
-    const qui = attitreDe(p) || moinsCharge();
-    if (parPersonne[qui].length >= max) { reportes.push(p); continue; }
-    parPersonne[qui].push(p);
-    attribution[p.id] = qui;
-  }
-  // L'ordre de chaque liste reste celui des priorités, pas celui de la répartition.
-  const rangs = new Map(tout.map((p, i) => [p.id, i]));
-  for (const e of equipe) parPersonne[e].sort((a, b) => rangs.get(a.id) - rangs.get(b.id));
-  return { parPersonne, reportes, attribution };
-}
-
-/**
- * Pure : ce qui a changé dans le tableau depuis le dernier regard. Un statut,
- * une remarque ou une date qui bouge, c'est quelqu'un qui vient d'appeler.
- * @returns {{ id, avant, apres, relance_touchee: boolean }[]}
- */
-export function changements(avant = {}, prospects = []) {
+export function listeDuJour(agents, { villes = [], maintenant = new Date(), regulier = 2 } = {}) {
+  const auj = jourDe(maintenant);
+  const cibles = new Set(villes.map(norm));
+  const dansLaVille = (a) => [a.ville, ...(a.villes || []), ...Object.keys(a.annonces_par_ville || {})].some((v) => cibles.has(norm(v)));
+  const annoncesIci = (a) => Object.entries(a.annonces_par_ville || {}).filter(([v]) => cibles.has(norm(v))).reduce((t, [, n]) => t + (n || 0), 0);
+  const videsIci = (a) => Object.entries(a.vides_par_ville || {}).filter(([v]) => cibles.has(norm(v))).reduce((t, [, n]) => t + (n || 0), 0);
   const out = [];
-  for (const p of prospects) {
-    const a = avant[p.id];
-    if (!a) continue;
-    const bouge = (a.statut || '') !== (p.statut || '') || (a.remarques || '') !== (p.remarques || '') || (a.date || '') !== (p.date || '');
-    if (!bouge) continue;
-    out.push({ id: p.id, avant: a, apres: p, relance_touchee: (a.prochaine_relance || '') !== (p.prochaine_relance || '') });
+  for (const a of agents || []) {
+    if (a.statut === 'archive' || (!a.telephones?.length && !a.emails?.length)) continue;
+    const du = a.prochaine?.le && a.prochaine.le <= auj;
+    if (du) {
+      const retard = a.prochaine.le < auj ? ` (prévu le ${dateCourte(a.prochaine.le)})` : '';
+      out.push({ ...a, rang: 0, raison: `${a.prochaine.quoi}${retard}` });
+      continue;
+    }
+    if (a.statut === 'pause' || a.statut === 'envoie_des_fiches' || !cibles.size || !dansLaVille(a)) continue;
+    if (joursDepuis(a.dernier_contact_le, auj) < 30 || (a.prochaine?.le && a.prochaine.le > auj)) continue;
+    const n = annoncesIci(a);
+    const vides = videsIci(a);
+    if (n >= regulier) {
+      out.push({ ...a, rang: vides ? 1 : 2, tri: vides * 100 + n, raison: `${n} annonces de commerce sur Equimmox dans la ville${vides ? `, dont ${vides} murs vides` : ''} : ${a.dernier_contact_le ? 'on ne lui a pas parlé depuis un mois' : 'jamais appelé'}` });
+    } else if (!a.dernier_contact_le && a.source && a.source !== 'Equimmox') {
+      out.push({ ...a, rang: 3, tri: 0, raison: `nouveau (${a.source}), jamais appelé` });
+    }
   }
-  return out;
+  return out.sort((x, y) => x.rang - y.rang || (y.tri || 0) - (x.tri || 0) || String(x.prochaine?.le || '').localeCompare(String(y.prochaine?.le || '')) || String(x.nom).localeCompare(String(y.nom)));
 }
 
-/** Pure : l'instantané gardé pour la comparaison suivante. */
-export const instantaneDe = (prospects) => Object.fromEntries((prospects || []).map((p) => [p.id, { statut: p.statut || '', remarques: p.remarques || '', date: p.date || '', prochaine_relance: p.prochaine_relance || '' }]));
-
-/** Pure : une remarque datée ajoutée devant les précédentes, sans dépasser ce que Monday garde bien. */
-export function ajouterRemarque(existantes, texte, { maintenant = new Date(), par = null, plafond = 1500 } = {}) {
-  const t = String(texte || '').replace(/\s+/g, ' ').trim();
-  if (!t) return existantes || '';
-  const jour = jourDe(maintenant);
-  const ligne = `${dateCourte(jour)}${par ? ` ${par}` : ''} : ${t}`;
-  return [ligne, String(existantes || '').trim()].filter(Boolean).join(' / ').slice(0, plafond);
-}
+/** Pure : un verrou encore tenu (30 minutes au plus, le temps d'un appel et de sa suite). */
+export const verrouTenu = (verrou, maintenant = Date.now()) => !!verrou?.par && maintenant - Date.parse(verrou.le) < 30 * 60000;

@@ -302,27 +302,25 @@ const OUTILS_AK = [
   },
   {
     name: 'appels_du_jour',
-    description: "La liste d'appels de prospection du jour de la personne qui parle (« mes appels », « qui j'appelle aujourd'hui ? ») : les agents à appeler, dans l'ordre, avec la raison, le numéro, l'agence, la ville et le dernier mot noté. Elle vient du tableau Monday « Prospection Agent Immo » et des dossiers à relancer.",
+    description: "La liste d'appels de prospection du jour (« qui j'appelle aujourd'hui ? ») : les relances qui tombent, puis les agents qui publient régulièrement sur Equimmox dans les villes ciblées aujourd'hui, avec la raison et le numéro.",
     input_schema: { type: 'object', properties: {} },
   },
   {
     name: 'noter_appel',
-    description: "Note un appel de prospection dicté après coup (« Rosario, à recontacter lundi, deux murs à Cannes », « pas de réponse chez Century 21 Cannes », « Sophie de Barnes intéressée, envoie-lui les critères ») : retrouve l'agent dans le tableau « Prospection Agent Immo » par son nom, son agence ou son numéro, écrit le statut, la remarque et la prochaine relance dans Monday. Statuts : pas_de_reponse, a_recontacter (relance = la date dite, en AAAA-MM-JJ, calculée depuis la date du jour), interesse (le mail de critères se prépare pour la page Prospection, il ne part pas), moyenne, regulier (contact régulier), mort (plus jamais). Plusieurs agents correspondent : l'outil rend les candidats, demande lequel en une ligne.",
+    description: "Un appel de prospection raconté après coup (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre », « Century 21 Cannes a pas décroché ») : retrouve l'agent au carnet, lit le récit comme AK lit un appel enregistré, et prépare les propositions (mail, relance, fiche) que la personne choisit sur la page Prospection. Rien n'est envoyé. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel.",
     input_schema: {
       type: 'object',
       properties: {
         agent: { type: 'string', description: "le nom, l'agence ou le numéro, tel que dit" },
-        item_id: { type: 'string', description: "l'identifiant rendu par un appel précédent, quand on a précisé lequel" },
-        statut: { type: 'string', enum: ['pas_de_reponse', 'a_recontacter', 'interesse', 'moyenne', 'regulier', 'mort'] },
-        remarque: { type: 'string', description: 'ce qui a été dit, avec les mots de la personne' },
-        relance: { type: 'string', description: 'AAAA-MM-JJ, seulement si une date a été dite' },
+        agent_id: { type: 'string', description: "l'identifiant rendu par un appel précédent, quand on a précisé lequel" },
+        recit: { type: 'string', description: "ce qui s'est passé pendant l'appel, avec les mots de la personne" },
       },
-      required: ['statut'],
+      required: ['recit'],
     },
   },
   {
     name: 'ajouter_prospect',
-    description: "Ajoute un agent à démarcher au tableau « Prospection Agent Immo » (« ajoute Sophie Martin de chez Barnes, 06 12 34 56 78, Cannes ») : refusé s'il est déjà connu dans un des deux tableaux Monday ou dans nos dossiers.",
+    description: "Ajoute un agent au carnet de prospection (« ajoute Sophie Martin de chez Barnes, 06 12 34 56 78, Cannes ») ; un agent déjà connu est complété, pas doublé.",
     input_schema: { type: 'object', properties: { nom: { type: 'string' }, agence: { type: 'string' }, email: { type: 'string' }, telephone: { type: 'string' }, ville: { type: 'string' }, remarque: { type: 'string' } }, required: ['nom'] },
   },
   {
@@ -484,38 +482,34 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     return { ok: true, en_cours: true, retour: 'AK revient dans le chat avec le dossier et son avis dans une à deux minutes' };
   }
   if (name === 'appels_du_jour') {
-    const { appelsDuJour } = await import('../prospection/index.js');
-    const r = await appelsDuJour({ pour: user?.email });
+    const P = await import('../prospection/index.js');
+    const r = P.listeDuJour({ pour: user?.email });
     return {
-      ok: true, jour: r.jour, nombre: r.liste.length, faits_aujourdhui: r.faits.moi,
-      appels: r.liste.slice(0, 25).map((a) => ({ item_id: a.id, nom: a.nom, agence: a.agence, telephone: a.telephone_affiche || a.telephone, email: a.email, ville: a.ville, raison: a.raison, dernier_mot: a.remarques ? String(a.remarques).split(' / ')[0] : null })),
+      ok: true, jour: r.jour, villes_du_jour: r.villes, nombre: r.liste.length,
+      appels: r.liste.slice(0, 25).map((a) => ({ agent_id: a.id, nom: a.nom, agence: a.agence, telephone: a.telephones[0] || null, ville: a.ville, raison: a.raison, pris_par: a.verrou?.nom || null })),
       page: lien('/Prospection'),
     };
   }
   if (name === 'noter_appel') {
     const P = await import('../prospection/index.js');
-    let id = input.item_id || null;
+    let id = input.agent_id || null;
     if (!id) {
-      const trouves = P.trouverProspects(await P.prospects(), input.agent || '');
-      if (!trouves.length) return { ok: false, error: `Personne ne correspond à « ${input.agent || ''} » dans « Prospection Agent Immo ».` };
-      const { norm, normTel } = await import('../prospection/regles.js');
-      const exact = norm(trouves[0].nom) === norm(input.agent) || (normTel(input.agent) && normTel(trouves[0].telephone) === normTel(input.agent));
-      if (trouves.length > 1 && !exact) {
-        return { ok: false, plusieurs: true, candidats: trouves.slice(0, 5).map((p) => ({ item_id: p.id, nom: p.nom, agence: p.agence, ville: p.ville, telephone: p.telephone })) };
-      }
+      const trouves = P.trouver(P.agents(), input.agent || '');
+      if (!trouves.length) return { ok: false, error: `Personne ne correspond à « ${input.agent || ''} » dans le carnet. ajouter_prospect d'abord ?` };
+      if (trouves.length > 1) return { ok: false, plusieurs: true, candidats: trouves.slice(0, 5).map((a) => ({ agent_id: a.id, nom: a.nom, agence: a.agence, ville: a.ville, telephone: a.telephones?.[0] || null })) };
       id = trouves[0].id;
     }
-    const r = await P.noterAppel({ item_id: id, statut: input.statut, remarque: input.remarque || null, relance: input.relance || null, par: user?.email });
-    return r.ok ? { ...r, mail_de_criteres: input.statut === 'interesse' ? 'préparé sur la page Prospection, à valider là' : null } : r;
+    const r = await P.analyserAppel({ agent_id: id, recit: input.recit, par: user?.email });
+    if (!r.ok) return r;
+    apres(`${r.appel.message}
+choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
+    return { ok: true, propositions_postees_dans_le_chat: true };
   }
   if (name === 'ajouter_prospect') {
     const P = await import('../prospection/index.js');
-    const R = await import('../prospection/regles.js');
-    const c = { nom: input.nom, agence: input.agence || null, email: R.normEmail(input.email), telephone: R.normTel(input.telephone) ? R.telAffiche(input.telephone) : null, ville: input.ville || null, source: 'Ajouté par AK', annonces: 0, remarque: input.remarque || null };
-    if (!c.email && !c.telephone) return { ok: false, error: 'Il me faut un mail ou un numéro pour pouvoir l\'appeler.' };
-    const r = await P.importerCandidats([c], { max: 1 });
-    if (!r.ok) return r;
-    return r.crees.length ? { ok: true, ajoute: true, nom: c.nom } : { ok: true, ajoute: false, deja_connu: true };
+    if (!input.email && !input.telephone) return { ok: false, error: 'Il me faut un mail ou un numéro pour pouvoir l\'appeler.' };
+    const r = P.integrer([{ nom: input.nom, agence: input.agence || null, email: input.email, telephone: input.telephone, ville: input.ville || null, source: 'Ajouté par AK', remarque: input.remarque || null }]);
+    return r.crees.length ? { ok: true, ajoute: true, nom: input.nom } : { ok: true, ajoute: false, deja_connu_et_complete: true };
   }
   if (name === 'chercher_agents') {
     const agents = chercherAgents(input || {});
@@ -742,7 +736,7 @@ RÈGLES :
 5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question. Ne mets ensemble que des mails qui parlent du MÊME bien (même adresse, même enseigne) ; un mail de compléments pour un bien qui a déjà son dossier (« doc complémentaire pour … ») se dépose avec deposer_mail sur ce dossier, il ne crée pas de doublon : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc », « préanalyse le dossier du glacier que je viens de recevoir » : boite_recue avec tous à vrai (la fiche a pu être préanalysée à son arrivée), le mail qui correspond, puis preanalyser_mail. Réponds en une ligne que c'est parti (ou que le dossier existe déjà) : l'avis est posté par le code, tu ne l'écris pas. « T'en penses quoi du dossier X ? » : chercher_dossier puis avis_dossier, même règle. Une question sur les agents (« les agents à Paris », « les agentes », « l'agent de chez X ») : chercher_agents, puis une ligne par agent (nom, agence, mail, nombre de dossiers) ; le genre est déduit du prénom, dis-le en une demi-phrase. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
-5octies. La prospection : « mes appels », « qui j'appelle ? » : appels_du_jour, puis une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page pour le reste. Un appel raconté après coup (« Rosario, à recontacter lundi, deux murs à Cannes », « pas de réponse chez Century 21 ») : noter_appel avec le statut, la remarque dans ses mots et la date dite en AAAA-MM-JJ ; réponds en une ligne avec la prochaine relance. « Ajoute tel agent » : ajouter_prospect. Un mail de critères ne part jamais d'ici : il se prépare pour la page Prospection, où on les envoie en lot.
+5octies. La prospection : « mes appels », « qui j'appelle ? » : appels_du_jour, puis une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Un appel raconté après coup (« j'ai eu Rosario, pas de murs, mandat fin octobre ») : noter_appel avec le récit dans ses mots ; tes propositions sont postées par le code, ne les recopie pas. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 6bis. Une demande floue (« envoie-lui un mess », « fais le truc ») : tu demandes ce qu'on veut en une ligne, tu ne crées rien, tu ne lances rien. Un outil qui répond « déjà fait » : tu le dis en une ligne, sans le relancer.
 6ter. « STOP » (le mot seul, avec ou sans mention) te fait taire partout, « START » te relance : c'est le frein de l'équipe, il existe. Tu lis toutes les boîtes mail de l'équipe connectées à Klocka, pas seulement sourcing@.
 6. N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas. Ne dis jamais qu'une chose est faite (dossier créé, préanalyse lancée, mail prêt) si aucun outil ne l'a faite dans CETTE réponse : l'historique du chat ne compte pas, une demande refaite se refait avec l'outil.

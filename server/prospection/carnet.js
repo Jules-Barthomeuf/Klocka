@@ -179,8 +179,14 @@ export async function importerDepuisMonday() {
   const { lireProspects, lireAgentsImmo } = await import('./monday.js');
   const [prospects, agentsImmo] = await Promise.all([lireProspects(), lireAgentsImmo()]);
   const candidats = [
-    ...agentsImmo.map((a) => ({ nom: a.nom, agence: a.agence, email: a.email, telephone: a.telephone, ville: a.ville, source: 'Monday · Agent immobilier', statut: /mort/i.test(a.priorite || '') ? 'pause' : 'envoie_des_fiches', referent: a.referent || null, remarque: a.remarques ? `Monday : ${a.remarques}` : null, dernier_contact_le: a.date || null, prochaine: a.relance ? { quoi: 'relance notée dans Monday', le: a.relance } : null })),
-    ...prospects.map((p) => ({ nom: p.nom, agence: p.agence, email: p.email, telephone: p.telephone, ville: p.ville, source: 'Monday · Prospection', statut: STATUT_DE_MONDAY(p.statut), referent: p.collaborateurs?.[0] || null, remarque: p.remarques ? `Monday : ${p.remarques}` : null, dernier_contact_le: p.date || null, prochaine: p.prochaine_relance ? { quoi: 'relance notée dans Monday', le: p.prochaine_relance } : null })),
+    ...agentsImmo.map((a) => ({ nom: a.nom, agence: a.agence, email: a.email, telephone: a.telephone, ville: a.ville, source: 'Monday · Agent immobilier', statut: /mort/i.test(a.priorite || '') ? 'pause' : 'envoie_des_fiches', referent: a.referent || null, remarque: a.remarques ? `Monday : ${a.remarques}` : null, dernier_contact_le: a.date || null, prochaine: a.relance ? { quoi: 'relance prévue dans Monday', le: a.relance } : null })),
+    // Un « Nouveau contact » n'a jamais été appelé : sa date de relance (souvent
+    // posée d'office à l'import d'un fichier) n'est pas une relance promise.
+    ...prospects.map((p) => {
+      const statut = STATUT_DE_MONDAY(p.statut);
+      const appele = statut !== 'nouveau';
+      return { nom: p.nom, agence: p.agence, email: p.email, telephone: p.telephone, ville: p.ville, source: /^apollo/i.test(p.remarques || '') ? 'Apollo' : 'Monday · Prospection', statut, referent: appele ? p.collaborateurs?.[0] || null : null, remarque: p.remarques ? `Monday : ${p.remarques}` : null, dernier_contact_le: appele ? p.date || null : null, prochaine: appele && p.prochaine_relance ? { quoi: `relance prévue dans Monday (${p.statut || 'sans statut'})`, le: p.prochaine_relance } : null };
+    }),
   ];
   return { ...integrer(candidats), lus: candidats.length };
 }

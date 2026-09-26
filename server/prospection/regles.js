@@ -142,11 +142,12 @@ const joursDepuis = (iso, auj) => (iso ? Math.round((Date.parse(`${auj}T12:00:00
  *   2. dans les villes ciblées aujourd'hui, les agents qui publient
  *      régulièrement sur Equimmox (deux annonces ou plus), ceux qui ont des
  *      murs vides d'abord, puis les plus gros publieurs ;
- *   3. les nouveaux agents importés (Apollo, fichier) de ces villes.
+ *   3. les nouveaux agents importés (Apollo, fichier) de ces villes, puis
+ *      dix autres par jour, pour que l'import avance.
  * Un agent appelé depuis moins de 30 jours ne revient que par sa relance.
  * @returns {object[]} chaque agent avec `raison` et `rang`
  */
-export function listeDuJour(agents, { villes = [], maintenant = new Date(), regulier = 2 } = {}) {
+export function listeDuJour(agents, { villes = [], maintenant = new Date(), regulier = 2, nouveauxParJour = 10 } = {}) {
   const auj = jourDe(maintenant);
   const cibles = new Set(villes.map(norm));
   const dansLaVille = (a) => [a.ville, ...(a.villes || []), ...Object.keys(a.annonces_par_ville || {})].some((v) => cibles.has(norm(v)));
@@ -167,10 +168,19 @@ export function listeDuJour(agents, { villes = [], maintenant = new Date(), regu
     const vides = videsIci(a);
     if (n >= regulier) {
       out.push({ ...a, rang: vides ? 1 : 2, tri: vides * 100 + n, raison: `${n} annonces de commerce sur Equimmox dans la ville${vides ? `, dont ${vides} murs vides` : ''} : ${a.dernier_contact_le ? 'on ne lui a pas parlé depuis un mois' : 'jamais appelé'}` });
-    } else if (!a.dernier_contact_le && a.source && a.source !== 'Equimmox') {
+    } else if (!a.dernier_contact_le && a.statut === 'nouveau' && a.source && !/equimmox|monday|fiche/i.test(a.source)) {
       out.push({ ...a, rang: 3, tri: 0, raison: `nouveau (${a.source}), jamais appelé` });
     }
   }
+  // Les nouveaux agents importés (Apollo, un fichier) hors des villes du
+  // jour : dix par jour, les plus récents d'abord, pour que l'import avance.
+  const dedans = new Set(out.map((a) => a.id));
+  const nouveaux = (agents || [])
+    .filter((a) => !dedans.has(a.id) && a.statut === 'nouveau' && !a.dernier_contact_le && !a.prochaine && a.source && !/equimmox|monday|fiche/i.test(a.source) && (a.telephones?.length || a.emails?.length))
+    .sort((x, y) => String(y.cree_le || '').localeCompare(String(x.cree_le || '')))
+    .slice(0, nouveauxParJour)
+    .map((a, i) => ({ ...a, rang: 3, tri: -1 - i / 100, raison: `nouveau (${a.source}), jamais appelé` }));
+  out.push(...nouveaux);
   return out.sort((x, y) => x.rang - y.rang || (y.tri || 0) - (x.tri || 0) || String(x.prochaine?.le || '').localeCompare(String(y.prochaine?.le || '')) || String(x.nom).localeCompare(String(y.nom)));
 }
 

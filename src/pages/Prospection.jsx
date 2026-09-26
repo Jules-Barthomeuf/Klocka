@@ -103,6 +103,22 @@ function Propositions({ appel, onFini }) {
   );
 }
 
+// La suite d'un appel arrive dans Google Chat : on y répond « 1 2 3 ». La
+// page le dit, et garde le choix ici pour qui n'a pas le chat sous la main.
+function SuiteDansLeChat({ appel, onFini }) {
+  const [ici, setIci] = useState(false);
+  return (
+    <div className="mt-4 flex flex-col gap-3">
+      <Bulle>{`${appel.message.split("\n")[0]}\n\nJe t'ai envoyé mes propositions dans Google Chat, en privé : réponds-moi là-bas « 1 2 3 », « tout » ou « tout sauf 2 ».`}</Bulle>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button type="button" onClick={() => setIci((x) => !x)} className="text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{ici ? "Replier" : "Choisir ici plutôt"}</button>
+        <button type="button" onClick={onFini} className="rounded-full border border-menthe/60 px-4 py-1.5 text-[12.5px] text-encre">Appel suivant</button>
+      </div>
+      {ici && <Propositions appel={appel} onFini={onFini} />}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // L'appel
 // ---------------------------------------------------------------------------
@@ -221,7 +237,7 @@ function PanneauAppel({ agent, onFermer }) {
           </div>
         </>
       )}
-      {etat === "propose" && appel && <div className="mt-4"><Propositions appel={appel} onFini={onFermer} /></div>}
+      {etat === "propose" && appel && <SuiteDansLeChat appel={appel} onFini={onFermer} />}
     </section>
   );
 }
@@ -282,7 +298,7 @@ function OngletJour({ data, isLoading, allerA }) {
 
       {data?.appel_a_valider && !choisi && (
         <section className={`${carte} p-5 md:p-6`}>
-          <p className={etiquette}>Ton dernier appel attend ta validation</p>
+          <p className={etiquette}>Ton dernier appel attend ta réponse dans Google Chat (ou ici)</p>
           <div className="mt-3"><Propositions appel={data.appel_a_valider} /></div>
         </section>
       )}

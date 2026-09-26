@@ -165,7 +165,7 @@ export function messageDAK(a, lu, props) {
     `Appel avec ${a.nom}${a.agence && a.agence !== a.nom ? ` (${a.agence})` : ''} : ${lu.resume || R.ISSUES[lu.issue] || 'noté'}`,
     lignes.length ? 'Voici ce que je te propose :' : null,
     ...lignes,
-    lignes.some((l) => /envoyer|SMS/.test(l)) ? 'Rien ne part sans toi : tu choisis, tu relis, tu envoies.' : null,
+    lignes.length ? 'Réponds-moi « 1 2 3 », « tout », « tout sauf 2 » ou « rien ». Un mail, je te le montre en entier avant qu\'il parte.' : null,
   ].filter(Boolean).join('\n');
 }
 
@@ -197,7 +197,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   // Le message part aussi dans le chat privé de la personne : c'est un message
   // interne, AK l'y dépose au prochain passage.
   const { direEnPrive } = await import('./messages.js');
-  direEnPrive(par, `${message}\n${(process.env.APP_URL || '').replace(/\/$/, '')}/Prospection`);
+  direEnPrive(par, message, { appel_id: appel.id });
   return { ok: true, appel };
 }
 
@@ -247,9 +247,12 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
   const { mettreEnAttente, envoyerMails } = await import('./mails.js');
   const pm = props.find((p) => p.type === 'mail');
   let envoi = null;
+  let mailId = null;
+  let smsId = null;
   if (pm) {
     const m = { ...pm, ...(mail || {}) };
     const cree = mettreEnAttente({ genre: 'agent', sous_genre: pm.genre, agent_id: a.id, nom: a.nom, agence: a.agence, a: R.normEmail(m.a), objet: m.objet, corps: m.corps, avec_relance: pris.has('relance_mail') ? pm.avec_relance || true : false, appel_id });
+    mailId = cree.id;
     if (envoyer && cree.a) {
       envoi = await envoyerMails([cree.id], user);
       faits.push(envoi.envoyes ? 'mail envoyé' : envoi.simules ? 'mail simulé (aucune boîte connectée)' : `mail non parti : ${envoi.resultats?.[0]?.error || 'erreur'}`);
@@ -257,12 +260,12 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
   }
   const ps = props.find((p) => p.type === 'sms');
   if (ps) {
-    mettreEnAttente({ genre: 'sms', agent_id: a.id, nom: a.nom, a: ps.a, objet: 'SMS', corps: sms?.corps || ps.corps, appel_id });
+    smsId = mettreEnAttente({ genre: 'sms', agent_id: a.id, nom: a.nom, a: ps.a, objet: 'SMS', corps: sms?.corps || ps.corps, appel_id }).id;
     faits.push('SMS prêt dans « À envoyer »');
   }
   Records.update(ENTITE, appel.id, { etat: 'valide', choix: [...pris], valide_le: iso, valide_par: par });
   liberer(a.id);
-  return { ok: true, faits, envoi, agent: agentDe(a.id) };
+  return { ok: true, faits, envoi, mail_id: mailId, sms_id: smsId, agent: agentDe(a.id) };
 }
 
 export const appels = () => Records.list(ENTITE);

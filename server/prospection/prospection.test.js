@@ -57,7 +57,11 @@ test('la liste du jour : les relances d\'abord, puis ceux qui publient réguliè
   const l = R.listeDuJour(agents, { villes: ['cannes'], maintenant: vendrediMatin });
   assert.deepEqual(l.map((a) => a.id), ['1', '3', '2', '7']);
   assert.match(l[1].raison, /3 annonces de commerce sur Equimmox dans la ville, dont 2 murs vides/);
-  assert.deepEqual(R.listeDuJour(agents, { villes: [], maintenant: vendrediMatin }).map((a) => a.id), ['1'], 'sans ville du jour, les relances seules');
+  assert.deepEqual(R.listeDuJour(agents, { villes: [], maintenant: vendrediMatin }).map((a) => a.id), ['1', '7'], 'sans ville du jour : les relances, et les nouveaux importés');
+  const apollo = Array.from({ length: 14 }, (_, i) => ({ id: `n${i}`, nom: `Apollo ${i}`, telephones: ['0600000000'], ville: 'Lille', source: 'Apollo', statut: 'nouveau', cree_le: `2026-09-${String(10 + i).padStart(2, '0')}` }));
+  const l2 = R.listeDuJour(apollo, { villes: ['Cannes'], maintenant: vendrediMatin });
+  assert.equal(l2.length, 10, 'dix nouveaux hors ville par jour');
+  assert.equal(l2[0].id, 'n13', 'les plus récents d\'abord');
 });
 
 test('le verrou, le score, l\'heure de Paris', () => {
@@ -94,7 +98,7 @@ test('ce qu\'AK propose après un appel', () => {
   assert.deepEqual(p[3].infos.secteurs, ['Antibes']);
   const msg = messageDAK(a, { resume: 'Rien pour l\'instant.' }, p);
   assert.match(msg, /^Appel avec Sophie Martin \(Barnes\) : Rien pour l'instant\.\nVoici ce que je te propose :\n1\. Lui envoyer/);
-  assert.match(msg, /Rien ne part sans toi/);
+  assert.match(msg, /Réponds-moi « 1 2 3 », « tout », « tout sauf 2 » ou « rien »/);
   const murs = propositions(a, { resume: 'Deux murs à Cannes.', issue: 'a_des_murs', mail_objet: 'Les murs de la rue d\'Antibes', mail_corps: 'Merci pour l\'appel. Pouvez-vous nous envoyer la fiche ?' }, { maintenant: vendrediMatin });
   assert.deepEqual(murs.propositions.map((x) => x.id), ['statut', 'mail', 'relance_mail', 'relance']);
   assert.match(murs.propositions[1].corps, /^Bonjour Sophie,\n\nMerci pour l'appel\..*\n\nBien à vous,\n\{signature\}$/s);
@@ -102,6 +106,18 @@ test('ce qu\'AK propose après un appel', () => {
   assert.deepEqual(rien.propositions.map((x) => x.id), ['statut', 'mail', 'sms', 'relance'], 'au troisième échec : mail, SMS, pause');
   const invalide = propositions(a, { issue: 'invalide' }, { autres_de_l_agence: [{ id: 'b2', nom: 'Paul Barnes', telephones: ['0600000000'] }] });
   assert.deepEqual(invalide.propositions.map((x) => x.id), ['statut', 'autre_b2']);
+});
+
+test('le choix répondu dans le chat', async () => {
+  const { choixDansLeTexte } = await import('./chat.js');
+  assert.deepEqual(choixDansLeTexte('ok fais 1, 2 et 3', 4), [1, 2, 3]);
+  assert.deepEqual(choixDansLeTexte('tout', 3), [1, 2, 3]);
+  assert.deepEqual(choixDansLeTexte('vas-y tout sauf 2', 3), [1, 3]);
+  assert.deepEqual(choixDansLeTexte('rien', 3), []);
+  assert.deepEqual(choixDansLeTexte('juste le 2 stp', 3), [2]);
+  assert.equal(choixDansLeTexte('5', 3), null, 'un numéro qui n\'existe pas');
+  assert.equal(choixDansLeTexte('fais 1 mais change l\'objet', 3), null, 'une retouche n\'est pas un choix');
+  assert.equal(choixDansLeTexte('préanalyse le glacier', 3), null);
 });
 
 test('un enregistrement découpé en morceaux de quatre minutes', () => {

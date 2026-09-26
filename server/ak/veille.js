@@ -357,10 +357,25 @@ async function trancher(message) {
     return true;
   }
 
+  // La suite d'un appel de prospection : « 1 2 3 », « tout sauf 2 », et
+  // « envoie » pour le mail montré juste après.
+  const prospection = await import('../prospection/chat.js');
+  const choisi = await prospection.repondreAuChoix({ ...message, texte }, user);
+  if (choisi) {
+    await poster(message.espace, `${mention(message.auteur)} ${choisi}`, null, message.auteur);
+    return true;
+  }
+  const envoiProspection = prospection.envoiEnAttente(message.espace);
+  const brouillonDossier = brouillonEnAttente(message.espace);
+  if (envoiProspection && estUnEnvoi(texte) && (!brouillonDossier || envoiProspection.le > brouillonDossier.cree_le)) {
+    await poster(message.espace, `${mention(message.auteur)} ${await prospection.envoyerDepuisLeChat(message.espace, user)}`, null, message.auteur);
+    return true;
+  }
+
   // Préanalyse et avis : le code trouve le mail ou le dossier, et agit.
   const voulu = intention(texte);
   if (voulu && (await agirSurIntention(voulu, message, tete))) return true;
-  const brouillon = brouillonEnAttente(message.espace);
+  const brouillon = brouillonDossier;
   if (brouillon && estUnEnvoi(texte)) {
     const phrase = await envoyerBrouillon(brouillon, user);
     await poster(message.espace, `${mention(message.auteur)} ${phrase}`, null, message.auteur);

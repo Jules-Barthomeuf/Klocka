@@ -54,7 +54,7 @@ export const euros = (n) => (n == null || !isFinite(n) ? "—" : `${Math.round(n
 export const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
 const ONGLETS = [
-  { to: "/ALX", mot: "Villes" },
+  { to: "/ALXAtelier", mot: "Villes" },
   { to: "/ALXBilan", mot: "Bilan" },
   { to: "/ALXEntrainement", mot: "Entraînement" },
 ];
@@ -75,7 +75,7 @@ export function EnTeteAlx({ titre = "ALX", sous, droite = null }) {
       {sous && <p className="mt-3 mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-ardoise">{sous}</p>}
       <nav className="mt-6 flex gap-1 border-b border-trait">
         {ONGLETS.map((o) => {
-          const actif = pathname.toLowerCase() === o.to.toLowerCase() || (o.to === "/ALX" && /^\/alx(cible|villes)/i.test(pathname));
+          const actif = pathname.toLowerCase() === o.to.toLowerCase() || (o.to === "/ALXAtelier" && /^\/alx(cible|villes)/i.test(pathname));
           return (
             <Link
               key={o.to}

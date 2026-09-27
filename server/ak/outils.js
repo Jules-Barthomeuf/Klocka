@@ -166,7 +166,8 @@ export async function lancerAlx({ ville, code_postal = null, classes = null, use
     if (!r.ok) return r;
     id = r.ville.id;
   }
-  const r = lancer(id, { user, tout: true, classes: Array.isArray(classes) && classes.length ? classes : null });
+  // Toutes les rues commerçantes, pas seulement les mieux classées : on veut tous les murs de commerce de la ville.
+  const r = lancer(id, { user, tout: true, toutes_les_rues: !classes?.length, classes: Array.isArray(classes) && classes.length ? classes : null });
   if (!r.ok) return r;
   return { ok: true, ville_id: id, nom: r.ville.nom };
 }

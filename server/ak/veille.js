@@ -76,15 +76,50 @@ async function lancerPrez(tache) {
 }
 
 /** Une prospection ALX : la tâche se ferme quand la ville n'est plus en cours. */
-function suivreAlx(tache) {
+async function suivreAlx(tache) {
   const v = Records.get('Ville', tache.ville_id);
   if (!v) return Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: 'ville disparue' }, fini_le: new Date().toISOString() });
   const p = v.parcours || {};
-  if (!p.etat || p.etat === 'en_cours') return;
   const cibles = Records.filter('Cible', { ville_id: v.id });
-  const parPile = {};
-  for (const c of cibles) parPile[c.pile || 'autre'] = (parPile[c.pile || 'autre'] || 0) + 1;
-  Records.update(ENTITE_TACHE, tache.id, { etat: p.etat === 'fini' ? 'finie' : 'ratee', resultat: { etat: p.etat, cibles: cibles.length, par_pile: parPile, rues: (v.rues || []).length, erreur: p.etat === 'erreur' ? (p.journal || []).slice(-1)[0]?.texte || 'erreur' : null }, fini_le: new Date().toISOString() });
+  // Pendant le parcours : un point toutes les dix minutes, là où on l'a demandé.
+  if (!p.etat || p.etat === 'en_cours') {
+    const dernier = Date.parse(tache.point_le || tache.cree_le || 0);
+    if (Date.now() - dernier > 10 * 60000 && tache.espace && !tache.muette) {
+      const proprietaires = cibles.filter((c) => c.societe?.siren || c.proprietaire?.siren).length;
+      const texte = p.phase === 'rues'
+        ? `${v.nom} : je lis les rues commerçantes, j'en suis au classement.`
+        : `${v.nom} : ${(p.rues_faites_noms || []).length} rues sur ${p.rues_total || '?'}${p.rue_en_cours ? ` (je suis ${p.rue_en_cours})` : ''}, ${cibles.length} commerces lus, ${proprietaires} propriétaires trouvés.`;
+      try { await envoyer(tache.espace, texte); } catch { /* le point suivant passera */ }
+      Records.update(ENTITE_TACHE, tache.id, { point_le: new Date().toISOString() });
+    }
+    return;
+  }
+  if (p.etat !== 'fini') {
+    return Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { etat: p.etat, erreur: p.etat === 'erreur' ? (p.journal || []).slice(-1)[0]?.texte || 'erreur' : `parcours ${p.etat}` }, fini_le: new Date().toISOString() });
+  }
+  // Le parcours est fini : les gérants dans Apollo, puis les messages. Une fois.
+  if (tache.etape === 'demarchage') return;
+  Records.update(ENTITE_TACHE, tache.id, { etape: 'demarchage' });
+  (async () => {
+    const D = await import('../alx/demarchage.js');
+    const { utilisateurPour, utilisateurAk } = await import('./agent.js');
+    const user = utilisateurPour(tache.pour) || utilisateurAk();
+    const contacts = D.apolloConfigure() ? await D.chercherContacts(v.id, { max: 150 }) : { ok: false, error: 'Apollo pas branché' };
+    const messages = await D.preparerMessages(v.id, user, { max: 80 });
+    const societes = D.societesDeLaVille(v.id);
+    const parPile = {};
+    for (const c of Records.filter('Cible', { ville_id: v.id })) parPile[c.pile || 'autre'] = (parPile[c.pile || 'autre'] || 0) + 1;
+    Records.update(ENTITE_TACHE, tache.id, {
+      etat: 'finie', fini_le: new Date().toISOString(),
+      resultat: {
+        etat: 'fini', cibles: Records.filter('Cible', { ville_id: v.id }).length, rues: (v.rues || []).length, par_pile: parPile,
+        societes: societes.length, demarchables: societes.filter((x) => x.demarchable).length,
+        joignables: societes.filter((x) => x.contacts.some((c) => c.email)).length, messages,
+        apollo: contacts.ok ? contacts.recherches : null, apollo_erreur: contacts.ok ? null : contacts.error,
+        en_tete: societes.filter((x) => x.demarchable && x.pile !== 'ecartee').slice(0, 3).map((x) => ({ nom: x.nom, murs: x.murs.length, adresse: x.murs[0]?.adresse })),
+      },
+    });
+  })().catch((e) => Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() }));
 }
 
 /**
@@ -146,7 +181,7 @@ async function annoncerLesTachesFinies({ muet = false } = {}) {
   const { texteDeFin } = await import('./agent.js');
   for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) {
     if (t.genre === 'kdata') suivreKdata(t);
-    if (t.genre === 'alx') suivreAlx(t);
+    if (t.genre === 'alx') { try { await suivreAlx(t); } catch (e) { dernier.erreur = e?.message || String(e); } }
     if (t.genre === 'preanalyse') { try { await suivrePreanalyse(t); } catch (e) { dernier.erreur = e?.message || String(e); } }
   }
   for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
@@ -365,7 +400,14 @@ async function trancher(message) {
     await poster(message.espace, `${mention(message.auteur)} ${choisi}`, null, message.auteur);
     return true;
   }
+  // Le message à une société propriétaire (ALX), montré juste avant.
+  const alxChat = await import('../alx/chat.js');
+  const envoiAlx = alxChat.envoiEnAttente(message.espace);
   const envoiProspection = prospection.envoiEnAttente(message.espace);
+  if (envoiAlx && estUnEnvoi(texte) && (!envoiProspection || envoiAlx.le > envoiProspection.le) && (!brouillonEnAttente(message.espace) || envoiAlx.le > brouillonEnAttente(message.espace).cree_le)) {
+    await poster(message.espace, `${mention(message.auteur)} ${await alxChat.envoyerDepuisLeChat(message.espace, user)}`, null, message.auteur);
+    return true;
+  }
   const brouillonDossier = brouillonEnAttente(message.espace);
   if (envoiProspection && estUnEnvoi(texte) && (!brouillonDossier || envoiProspection.le > brouillonDossier.cree_le)) {
     await poster(message.espace, `${mention(message.auteur)} ${await prospection.envoyerDepuisLeChat(message.espace, user)}`, null, message.auteur);

@@ -604,4 +604,58 @@ export function monterAlx(app) {
       .catch((e) => console.error('[mesure-dvf]', e.message));
     ok(res, { ok: true, villes: villes.map((v) => v.nom) });
   }));
+
+  // --- Le démarchage : ce que l'assistant a trouvé, en tableau --------------
+  //
+  // La page ALX ne lance rien : l'assistant fait la prospection quand on le
+  // lui demande dans le chat. Elle montre le résultat, par commerce ou par
+  // société, et le message à envoyer.
+
+  app.get('/api/alx/demarchage', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (u?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const { listerVillesLeger } = await import('../alx/index.js');
+    const villes = listerVillesLeger().map((v) => {
+      const cibles = Records.filter('Cible', { ville_id: v.id });
+      const suivis = Records.filter('SocieteAlx', { ville_id: v.id });
+      return { id: v.id, nom: v.nom, commerces: cibles.length, proprietaires: new Set(cibles.map((c) => c.societe?.siren || c.proprietaire?.siren).filter(Boolean)).size, envoyes: suivis.filter((x) => x.envoye_le).length, reponses: suivis.filter((x) => x.etat === 'repondu').length, parcours: v.parcours ? { etat: v.parcours.etat, phase: v.parcours.phase, rues_total: v.parcours.rues_total || 0, rues_faites: (v.parcours.rues_faites_noms || []).length, rue_en_cours: v.parcours.rue_en_cours || null } : null };
+    }).filter((v) => v.commerces || v.parcours?.etat === 'en_cours').sort((a, b) => b.commerces - a.commerces);
+    ok(res, { villes });
+  }));
+
+  app.get('/api/alx/demarchage/:ville', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (u?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const v = Records.get('Ville', req.params.ville);
+    if (!v) return res.status(404).json({ error: 'Ville inconnue.' });
+    const D = await import('../alx/demarchage.js');
+    const societes = D.societesDeLaVille(v.id);
+    const parCible = new Map();
+    for (const s of societes) for (const m of s.murs) parCible.set(m.cible_id, s);
+    const commerces = Records.filter('Cible', { ville_id: v.id }).map((c) => {
+      const s = parCible.get(c.id);
+      return { id: c.id, enseigne: c.enseigne, activite: c.activite, adresse: c.adresse, rue: c.rue, emplacement: c.emplacement ?? null, pile: c.pile || null, exclue: !!c.activite_exclue, proprietaire: s ? { cle: s.cle, nom: s.nom, forme: s.forme, demarchable: s.demarchable } : null, depuis: D.depuisDe(c), mutation: c.mutation?.date ? { date: c.mutation.date, prix: c.mutation.prix ?? null, du_local: !!c.mutation.du_local } : null, gerants: s?.gerants || [], contact: s?.contacts?.find((x) => x.email) || s?.contacts?.[0] || null, etat: s?.etat || null };
+    }).sort((a, b) => String(a.rue || '').localeCompare(String(b.rue || '')) || String(a.adresse).localeCompare(String(b.adresse), 'fr', { numeric: true }));
+    const p = v.parcours || {};
+    ok(res, {
+      ville: { id: v.id, nom: v.nom },
+      parcours: { etat: p.etat || null, phase: p.phase || null, rues_total: p.rues_total || 0, rues_faites: (p.rues_faites_noms || []).length, rue_en_cours: p.rue_en_cours || null, journal: (p.journal || []).slice(-6) },
+      apollo: D.apolloConfigure(),
+      commerces, societes,
+    });
+  }));
+
+  const demarchage = (fn) => wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (u?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const D = await import('../alx/demarchage.js');
+    const r = await fn(D, req, u);
+    if (r?.ok === false) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  });
+  app.post('/api/alx/demarchage/:ville/societes/:cle/rediger', demarchage((D, req, u) => D.redigerPourSociete(req.params.ville, req.params.cle, u)));
+  app.post('/api/alx/demarchage/:ville/societes/:cle/message', demarchage((D, req) => D.modifierMessage(req.params.ville, req.params.cle, req.body || {})));
+  app.post('/api/alx/demarchage/:ville/societes/:cle/envoyer', demarchage((D, req, u) => D.envoyer(req.params.ville, req.params.cle, u)));
+  app.post('/api/alx/demarchage/:ville/societes/:cle/relance', demarchage((D, req, u) => D.envoyerRelance(req.params.ville, req.params.cle, u)));
+  app.post('/api/alx/demarchage/:ville/societes/:cle/appel', demarchage((D, req, u) => D.noterAppel(req.params.ville, req.params.cle, { issue: req.body?.issue || 'sans_reponse', note: req.body?.note || null, user: u })));
 }

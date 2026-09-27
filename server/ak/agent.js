@@ -207,6 +207,21 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { cible_id: { type: 'string' }, canal: { type: 'string', enum: ['mail', 'courrier'] } }, required: ['cible_id'] },
   },
   {
+    name: 'alx_societes',
+    description: "Les sociétés propriétaires de murs de commerce dans une ville déjà prospectée par ALX (« qui détient le plus de murs à Cannes ? », « les SCI de la rue d'Antibes », « où en est le démarchage à Nice ? ») : nom, murs, gérants, contact trouvé, message prêt ou envoyé, réponse.",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, recherche: { type: 'string', description: 'un nom de société, une rue, vide pour les premières' } }, required: ['ville'] },
+  },
+  {
+    name: 'alx_message',
+    description: "Montre dans le chat le message préparé pour une société propriétaire (« montre-moi le mail pour la SCI Paolo Siegl », « le suivant »), le rédige s'il n'existe pas, ou le retouche (objet et corps réécrits, « plus court », « tutoie »). Il part sur le « envoie » de la personne, jamais avant.",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, societe: { type: 'string', description: 'le nom ou le SIREN ; « suivant » pour la prochaine société joignable sans message envoyé' }, objet: { type: 'string' }, corps: { type: 'string' } }, required: ['ville', 'societe'] },
+  },
+  {
+    name: 'alx_appel',
+    description: "Note un appel au gérant d'une société propriétaire (« j'ai eu la SCI Kinneret, pas vendeur pour l'instant ») : l'approche est enregistrée et la relance calée.",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, societe: { type: 'string' }, issue: { type: 'string', enum: ['sans_reponse', 'interesse', 'pas_interesse', 'autre'] }, note: { type: 'string' } }, required: ['ville', 'societe', 'issue'] },
+  },
+  {
     name: 'lancer_alx',
     description: "Lance la prospection ALX d'une ville (« prospecte Antibes, emplacements n°2 ») : rues, commerces, propriétaires, en tâche de fond ; AK préviendra quand c'est fini. classes : les emplacements voulus, 1, 1.5 (1 bis) ou 2 ; vide : tous.",
     input_schema: { type: 'object', properties: { ville: { type: 'string' }, code_postal: { type: 'string' }, classes: { type: 'array', items: { type: 'number' } }, budget: { type: 'number', description: 'budget du client en euros, pour mémoire' } }, required: ['ville'] },
@@ -566,11 +581,45 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     const r = await redigerBrouillon(input.cible_id, { canal: input.canal || null, user });
     return { ok: true, brouillon: r.brouillon, enseigne: r.cible?.enseigne || null, proprietaire: r.cible?.foncier?.choix?.nom || null };
   }
+  if (name === 'alx_societes') {
+    const { trouverSociete } = await import('../alx/chat.js');
+    const r = await trouverSociete(input.ville, input.recherche || '');
+    if (r.erreur) return { ok: false, error: r.erreur };
+    const q = String(input.recherche || '').toLowerCase();
+    const liste = (q ? r.toutes.filter((x) => `${x.nom} ${x.murs.map((m) => `${m.adresse} ${m.rue || ''} ${m.enseigne || ''}`).join(' ')}`.toLowerCase().includes(q)) : r.toutes.filter((x) => x.demarchable)).slice(0, 15);
+    return {
+      ok: true, total: r.toutes.length, demarchables: r.toutes.filter((x) => x.demarchable).length,
+      envoyes: r.toutes.filter((x) => ['envoye', 'relance_prete', 'relance_envoyee'].includes(x.etat)).length, reponses: r.toutes.filter((x) => x.etat === 'repondu').length,
+      societes: liste.map((x) => ({ nom: x.nom, forme: x.forme, murs: x.murs.map((m) => `${m.adresse}${m.enseigne ? ` (${m.enseigne})` : ''}`), gerants: x.gerants.map((g) => `${g.prenom} ${g.nom}${g.tranche_age ? ` ${g.tranche_age}` : ''}`), mail: x.contacts.find((c) => c.email)?.email || null, etat: x.etat })),
+      tableau: lien(`/ALX?ville=${r.ville.id}`),
+    };
+  }
+  if (name === 'alx_message') {
+    const C = await import('../alx/chat.js');
+    const D = await import('../alx/demarchage.js');
+    let r = await C.trouverSociete(input.ville, input.societe);
+    if (r.erreur) return { ok: false, error: r.erreur };
+    let s = /^suivant/i.test(String(input.societe)) ? r.toutes.find((x) => x.demarchable && x.pile !== 'ecartee' && x.contacts.some((c) => c.email) && !['envoye', 'relance_prete', 'relance_envoyee', 'repondu', 'refus'].includes(x.etat)) : r.societe;
+    if (!s) return { ok: false, error: 'Aucune société ne correspond.' };
+    if (input.objet && input.corps && s.message) D.modifierMessage(r.ville.id, s.cle, { objet: input.objet, corps: input.corps });
+    else if (!s.message) await D.redigerPourSociete(r.ville.id, s.cle, user);
+    s = D.societesDeLaVille(r.ville.id).find((x) => x.cle === s.cle);
+    C.mettreEnAttente(message?.espace, r.ville.id, s.cle);
+    apres(C.afficher(s));
+    return { ok: true, poste_dans_le_chat: true, societe: s.nom };
+  }
+  if (name === 'alx_appel') {
+    const C = await import('../alx/chat.js');
+    const D = await import('../alx/demarchage.js');
+    const r = await C.trouverSociete(input.ville, input.societe);
+    if (r.erreur || !r.societe) return { ok: false, error: r.erreur || 'Société introuvable.' };
+    return D.noterAppel(r.ville.id, r.societe.cle, { issue: input.issue, note: input.note || null, user });
+  }
   if (name === 'lancer_alx') {
     const r = await lancerAlx({ ville: input.ville, code_postal: input.code_postal || null, classes: input.classes || null, user });
     if (!r.ok) return r;
     fond({ genre: 'alx', libelle: `la prospection ALX de ${r.nom}${input.classes?.length ? ` (emplacements ${input.classes.map((c) => (c === 1.5 ? '1 bis' : c)).join(', ')})` : ''}${input.budget ? `, budget ${Math.round(input.budget / 1000)} k` : ''}`, ville_id: r.ville_id });
-    return { ok: true, note: 'La prospection tourne ; AK préviendra dans le chat quand elle sera finie.', lien: lien(`/alx/villes/${r.ville_id}`) };
+    return { ok: true, note: 'La prospection tourne ; AK préviendra dans le chat quand elle sera finie.', lien: lien(`/ALX?ville=${r.ville_id}`) };
   }
   if (name === 'creer_client_monday') {
     const { creerClientMonday } = await import('../deal/monday-sync.js');
@@ -704,8 +753,13 @@ export function texteDeFin(tache) {
   if (tache.genre === 'alx') {
     const r = tache.resultat || {};
     if (tache.etat === 'ratee' || r.etat === 'erreur') return `dsl, ${tache.libelle} s'est arrêtée : ${r.erreur || 'sans détail'}`;
-    const piles = Object.entries(r.par_pile || {}).map(([p, n]) => `${n} à ${p === 'ecartee' ? 'écarter' : p}`).join(', ');
-    return `c'est bon, ${tache.libelle} est finie : ${r.rues || 0} rues, ${r.cibles || 0} cibles${piles ? ` (${piles})` : ''} ${lien(`/alx/villes/${tache.ville_id}`)}`;
+    const tete = (r.en_tete || []).map((x) => `${x.nom} (${x.murs} mur${x.murs > 1 ? 's' : ''}${x.adresse ? `, ${x.adresse}` : ''})`).join(', ');
+    return [
+      `${tache.libelle.replace(/^la prospection ALX de /, '')}, c'est fini : ${r.rues || 0} rues, ${r.cibles || 0} commerces. J'ai trouvé ${r.societes ?? '?'} propriétaires, dont ${r.demarchables ?? '?'} sociétés qu'on peut démarcher (les murs des particuliers ne sont pas publiés).`,
+      r.apollo_erreur ? `Je n'ai pas pu chercher les gérants dans Apollo : ${r.apollo_erreur}.` : `Apollo m'a donné le mail de ${r.joignables ?? 0} d'entre elles, et j'ai préparé leurs ${r.messages ?? 0} messages.`,
+      tete ? `En tête : ${tete}.` : null,
+      `Tout est dans le tableau : ${lien(`/ALX?ville=${tache.ville_id}`)}. Tu veux que je te montre les messages ici, un par un ?`,
+    ].filter(Boolean).join('\n');
   }
   if (tache.genre === 'preanalyse') return tache.resultat?.texte || `${tache.libelle} : fini.`;
   if (tache.genre === 'prez') {
@@ -736,6 +790,7 @@ RÈGLES :
 5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question. Ne mets ensemble que des mails qui parlent du MÊME bien (même adresse, même enseigne) ; un mail de compléments pour un bien qui a déjà son dossier (« doc complémentaire pour … ») se dépose avec deposer_mail sur ce dossier, il ne crée pas de doublon : dossier, Drive, K-Data, tout part. Une ligne pour dire ce qui est fait et ce qui tourne ; tu préviendras quand K-Data sera fini. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc », « préanalyse le dossier du glacier que je viens de recevoir » : boite_recue avec tous à vrai (la fiche a pu être préanalysée à son arrivée), le mail qui correspond, puis preanalyser_mail. Réponds en une ligne que c'est parti (ou que le dossier existe déjà) : l'avis est posté par le code, tu ne l'écris pas. « T'en penses quoi du dossier X ? » : chercher_dossier puis avis_dossier, même règle. Une question sur les agents (« les agents à Paris », « les agentes », « l'agent de chez X ») : chercher_agents, puis une ligne par agent (nom, agence, mail, nombre de dossiers) ; le genre est déduit du prénom, dis-le en une demi-phrase. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 5quater. Une question sur une rue ou un secteur (« ça se vend combien un fonds rue d'Antibes ? », « y'a de la vacance avenue X ? ») : lancer_kdata avec ktransactions ou kvacance sur cette adresse, sans dossier, et tu préviendras quand le chiffre est là.
+5nonies. La prospection off-market (ALX) : « prospecte Cannes » : lancer_alx, puis une ligne pour dire que c'est parti et que tu donneras des nouvelles ; le code poste les points d'étape et le bilan. Ensuite, « qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code, tu ne le recopies pas ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 5octies. La prospection : « mes appels », « qui j'appelle ? » : appels_du_jour, puis une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Un appel raconté après coup (« j'ai eu Rosario, pas de murs, mandat fin octobre ») : noter_appel avec le récit dans ses mots ; tes propositions sont postées par le code, ne les recopie pas. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 6bis. Une demande floue (« envoie-lui un mess », « fais le truc ») : tu demandes ce qu'on veut en une ligne, tu ne crées rien, tu ne lances rien. Un outil qui répond « déjà fait » : tu le dis en une ligne, sans le relancer.
 6ter. « STOP » (le mot seul, avec ou sans mention) te fait taire partout, « START » te relance : c'est le frein de l'équipe, il existe. Tu lis toutes les boîtes mail de l'équipe connectées à Klocka, pas seulement sourcing@.

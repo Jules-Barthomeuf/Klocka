@@ -495,7 +495,7 @@ function LayoutContent({ children, currentPageName }) {
             <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("FichesCommerciales")} icon={Inbox} label="Fiches" isActive={isActivePage("FichesCommerciales")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("Prospection")} icon={PhoneCall} label="Prospection" isActive={isActivePage("Prospection")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to="/ALX" icon={Compass} label="ALX" isActive={isActivePage("ALX") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={alxAFaire || null} badgeColor="bg-alerte/20 text-alerte" />
+            <NavItem to="/ALX" icon={Compass} label="ALX" isActive={isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={alxAFaire || null} badgeColor="bg-alerte/20 text-alerte" />
             {/* Suivi : l'usage de la plateforme et ce que coûte chaque geste,
                 deux onglets d'une même page. */}
             <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring") || isActivePage("CoutsIA")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />

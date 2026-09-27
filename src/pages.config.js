@@ -53,7 +53,8 @@
 // télécharger en entier pour voir son tableau de bord.
 import { lazy } from 'react';
 
-const ALX = lazy(() => import('./pages/ALX'));
+const ALX = lazy(() => import('./pages/ALXDemarchage'));
+const ALXAtelier = lazy(() => import('./pages/ALX'));
 const ALXVilles = lazy(() => import('./pages/ALXVilles'));
 const ALXCible = lazy(() => import('./pages/ALXCible'));
 const ALXBilan = lazy(() => import('./pages/ALXBilan'));
@@ -96,6 +97,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "ALX": ALX,
+    "ALXAtelier": ALXAtelier,
     "ALXVilles": ALXVilles,
     "ALXCible": ALXCible,
     "ALXBilan": ALXBilan,

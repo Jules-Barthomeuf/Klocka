@@ -259,6 +259,14 @@ export async function tour({ maintenant = new Date() } = {}) {
     const reponses = await suivreReponses({ maintenant });
     recalculerScores(liste);
     await passerLaNuit({ maintenant });
+    // Le démarchage ALX : une réponse d'un gérant prévient qui a écrit ; les
+    // relances du jour se préparent et attendent un clic.
+    try {
+      const D = await import('../alx/demarchage.js');
+      const alx = await D.suivre({ maintenant });
+      for (const r of alx.reponses) if (r.par) direEnPrive(r.par, `Un gérant a répondu à ton message ALX : « ${String(r.objet || '').slice(0, 80)} ». Ses relances sont arrêtées. ${APP_URL()}/ALX?ville=${r.ville_id}`);
+      if (alx.relances) Meta.set('alx.relances_pretes', String(alx.relances));
+    } catch (e) { etat.erreur = e?.message || String(e); }
     await direLeVendredi({ maintenant });
     let monday = null;
     if (M.mondayConfigure()) {

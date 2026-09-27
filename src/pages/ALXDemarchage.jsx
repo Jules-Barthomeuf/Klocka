@@ -204,9 +204,10 @@ function DetailCommerce({ m, onRetour, retour }) {
 }
 
 // Les murs d'une société : sur la carte de la ville, ou en vue réduite.
-function MursDeLaSociete({ s, onOuvrir }) {
-  const avecPosition = s.murs.some((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon));
-  const [vue, setVue] = useState(avecPosition ? "carte" : "liste");
+function MursDeLaSociete({ s, villeId, onOuvrir }) {
+  const [vue, setVue] = useState("carte");
+  // Ses murs dans les autres villes parcourues, pour la carte de France.
+  const enFrance = useQuery({ queryKey: ["alx-murs-france", s.cle], queryFn: () => base44.request("GET", `/api/alx/demarchage/societe/${encodeURIComponent(s.cle)}/murs`), enabled: !!s.siren, staleTime: 300000 });
   return (
     <section className="mt-6">
       <div className="flex items-center justify-between gap-3">
@@ -218,7 +219,7 @@ function MursDeLaSociete({ s, onOuvrir }) {
         </div>
       </div>
       {vue === "carte"
-        ? <CarteMurs murs={s.murs} onOuvrir={onOuvrir} className="mt-3 h-72" />
+        ? <CarteMurs murs={s.murs} ailleurs={enFrance.data?.murs || []} villeId={villeId} onOuvrir={onOuvrir} className="mt-3" />
         : <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{s.murs.map((m) => <CarteCommerce key={m.cible_id} m={m} onOuvrir={() => onOuvrir(m)} />)}</div>}
     </section>
   );
@@ -265,7 +266,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
           <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
         </div>
 
-        <MursDeLaSociete s={s} onOuvrir={ouvrirCommerce} />
+        <MursDeLaSociete s={s} villeId={villeId} onOuvrir={ouvrirCommerce} />
 
         <p className={`${etiq} mt-6`}>Gérants</p>
         <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0 text-[13px] text-encre">

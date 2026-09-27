@@ -668,6 +668,12 @@ export function monterAlx(app) {
   app.post('/api/alx/demarchage/:ville/societes/:cle/envoyer', demarchage((D, req, u) => D.envoyer(req.params.ville, req.params.cle, u)));
   app.post('/api/alx/demarchage/:ville/societes/:cle/relance', demarchage((D, req, u) => D.envoyerRelance(req.params.ville, req.params.cle, u)));
   app.post('/api/alx/demarchage/:ville/enrichir', demarchage((D, req, u) => D.lancerEnrichissement(req.params.ville, Array.isArray(req.body?.cles) ? req.body.cles.map(String) : [], u)));
+  app.get('/api/alx/demarchage/societe/:cle/murs', wrap(async (req, res) => {
+    const u = currentUser(req);
+    if (u?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const D = await import('../alx/demarchage.js');
+    ok(res, { murs: D.mursEnFrance(req.params.cle) });
+  }));
   app.get('/api/alx/demarchage/enrichir/:id', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
     const D = await import('../alx/demarchage.js');

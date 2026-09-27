@@ -97,6 +97,24 @@ function poserSuivi(villeId, cle, champs) {
   return s ? Records.update(ENTITE, s.id, { ...champs, maj_le: new Date().toISOString() }) : Records.create(ENTITE, { ville_id: villeId, cle, ...champs, maj_le: new Date().toISOString() });
 }
 
+/**
+ * Tous les murs d'une société, dans toutes les villes parcourues : la carte
+ * de son panneau les montre en France, pas seulement dans la ville ouverte.
+ * Seule une société à SIREN se retrouve d'une ville à l'autre ; une clé par
+ * nom reste dans sa ville.
+ */
+export function mursEnFrance(cle) {
+  if (!/^\d{9}$/.test(String(cle))) return [];
+  const ids = Records.champs('Cible', ['societe.siren', 'proprietaire.siren', 'foncier.choix.siren'])
+    .filter((c) => (c['societe.siren'] || c['proprietaire.siren'] || c['foncier.choix.siren']) === cle)
+    .map((c) => c.id);
+  const villes = new Map();
+  return ids.map((id) => Records.get('Cible', id)).filter((c) => c && proprietaireDe(c)?.siren === cle).map((c) => {
+    if (!villes.has(c.ville_id)) villes.set(c.ville_id, Records.get('Ville', c.ville_id)?.nom || null);
+    return { cible_id: c.id, ville_id: c.ville_id, ville: villes.get(c.ville_id), enseigne: c.enseigne || null, activite: c.activite || null, categorie_activite: c.categorie_activite || null, adresse: c.adresse, lat: c.lat ?? null, lon: c.lon ?? null, emplacement: c.emplacement ?? null, pile: c.pile || null, depuis: depuisDe(c) };
+  });
+}
+
 export const societesDeLaVille = (villeId, cibles = Records.filter('Cible', { ville_id: villeId })) => societesDe(cibles, suivisDe(villeId));
 
 // ---------------------------------------------------------------------------

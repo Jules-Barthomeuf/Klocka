@@ -206,13 +206,13 @@ export const Records = {
    * (les commerces d'ALX) quand on n'a besoin que de deux ou trois valeurs.
    *
    * @param {string[]} chemins  chemins pointés, « societe.siren »
-   * @returns {object[]}  une ligne par enregistrement, clés = chemins
+   * @returns {object[]}  une ligne par enregistrement : id, puis une clé par chemin
    */
   champs(entity, chemins) {
     const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
     const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}`).join(', ');
-    return db.prepare(`SELECT ${cols || 'id'} FROM records WHERE entity = ?`).all(entity)
-      .map((r) => Object.fromEntries(valides.map((c, i) => [c, r[`c${i}`]])));
+    return db.prepare(`SELECT id${cols ? `, ${cols}` : ''} FROM records WHERE entity = ?`).all(entity)
+      .map((r) => ({ id: r.id, ...Object.fromEntries(valides.map((c, i) => [c, r[`c${i}`]])) }));
   },
 
   get(entity, id) {

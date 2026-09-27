@@ -116,11 +116,12 @@ function PopupEnrichissement({ travail, onFini }) {
 function CarteCommerce({ m, onOuvrir }) {
   const Icone = iconeDe(m.categorie_activite);
   return (
-    <button type="button" onClick={onOuvrir} className="group flex flex-col items-start gap-2.5 rounded-[16px] border border-trait bg-surface p-4 text-left transition-colors hover:border-menthe/50">
+    <button type="button" onClick={onOuvrir} className="group flex min-w-0 flex-col items-start gap-2.5 rounded-[16px] border border-trait bg-surface p-4 text-left transition-colors hover:border-menthe/50">
       <span className="grid h-10 w-10 place-items-center rounded-full border border-trait text-ardoise group-hover:border-menthe/50 group-hover:text-menthe"><Icone className="h-[18px] w-[18px]" /></span>
-      <div className="min-w-0">
+      <div className="w-full min-w-0">
         <p className="m-0 truncate text-[13.5px] font-medium text-encre">{joliNom(m.enseigne) || "Local commercial"}</p>
         <p className="m-0 mt-0.5 truncate text-[12px] text-ardoise">{m.activite || "Activité à qualifier"}</p>
+        <p className="m-0 mt-1.5 flex items-start gap-1 text-[12px] leading-[1.4] text-craie"><MapPin className="mt-[2px] h-3 w-3 shrink-0 text-brume" />{m.adresse}</p>
       </div>
     </button>
   );

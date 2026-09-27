@@ -103,18 +103,33 @@ function Propositions({ appel, onFini }) {
   );
 }
 
-// La suite d'un appel arrive dans Google Chat : on y répond « 1 2 3 ». La
-// page le dit, et garde le choix ici pour qui n'a pas le chat sous la main.
+// La suite d'un appel part dans Google Chat, en privé : c'est là qu'on
+// répond à l'assistant. La page suit l'envoi ; si le chat ne l'a pas reçu
+// au bout de quarante secondes, elle propose de choisir ici.
 function SuiteDansLeChat({ appel, onFini }) {
+  const [attente, setAttente] = useState(0);
   const [ici, setIci] = useState(false);
+  const { data } = useQuery({
+    queryKey: ["prospection-appel", appel.id],
+    queryFn: () => base44.request("GET", `/api/prospection/appels/${appel.id}`),
+    refetchInterval: (q) => (q.state.data?.appel?.dit_le || q.state.data?.appel?.etat !== "a_valider" ? false : 4000),
+  });
+  useEffect(() => { const t = setInterval(() => setAttente((x) => x + 1), 1000); return () => clearInterval(t); }, []);
+  const a = data?.appel || appel;
+  const dit = !!a.dit_le;
+  const tranche = a.etat !== "a_valider";
   return (
     <div className="mt-4 flex flex-col gap-3">
-      <Bulle>{`${appel.message.split("\n")[0]}\n\nJe t'ai envoyé mes propositions dans Google Chat, en privé : réponds-moi là-bas « 1 2 3 », « tout » ou « tout sauf 2 ».`}</Bulle>
+      <p className="m-0 flex items-center gap-2 text-[13.5px] text-encre">
+        {tranche ? <><Check className="h-4 w-4 text-menthe" />C'est réglé dans le chat.</>
+          : dit ? <><Check className="h-4 w-4 text-menthe" />L'assistant t'a écrit dans Google Chat : réponds-lui là-bas.</>
+            : <><Loader2 className="h-4 w-4 animate-spin" />L'assistant t'écrit dans Google Chat…</>}
+      </p>
       <div className="flex flex-wrap justify-end gap-2">
-        <button type="button" onClick={() => setIci((x) => !x)} className="text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{ici ? "Replier" : "Choisir ici plutôt"}</button>
+        {!tranche && (dit || attente > 40) && <button type="button" onClick={() => setIci((x) => !x)} className="text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{ici ? "Replier" : dit ? "Voir ses propositions ici" : "Le chat ne répond pas : choisir ici"}</button>}
         <button type="button" onClick={onFini} className="rounded-full border border-menthe/60 px-4 py-1.5 text-[12.5px] text-encre">Appel suivant</button>
       </div>
-      {ici && <Propositions appel={appel} onFini={onFini} />}
+      {ici && !tranche && <><Bulle>{a.message}</Bulle><Propositions appel={a} onFini={onFini} /></>}
     </div>
   );
 }
@@ -239,104 +254,6 @@ function PanneauAppel({ agent, onFermer }) {
       )}
       {etat === "propose" && appel && <SuiteDansLeChat appel={appel} onFini={onFermer} />}
     </section>
-  );
-}
-
-function OngletJour({ data, isLoading, allerA }) {
-  const queryClient = useQueryClient();
-  const [choisi, setChoisi] = useState(null);
-  const [ville, setVille] = useState("");
-  const villes = data?.villes || [];
-  const poserVilles = useMutation({
-    mutationFn: (v) => base44.request("POST", "/api/prospection/villes-du-jour", { body: { villes: v } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["prospection-jour"] }),
-  });
-  const equimmox = useMutation({
-    mutationFn: () => base44.request("POST", "/api/prospection/equimmox", { body: { villes } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["prospection-jour"] }),
-    onError: (e) => toast.error(e?.message || "Equimmox indisponible"),
-  });
-  const prendre = useMutation({
-    mutationFn: (a) => base44.request("POST", `/api/prospection/agents/${a.id}/prendre`).then(() => a),
-    onSuccess: (a) => { setChoisi(a); queryClient.invalidateQueries({ queryKey: ["prospection-jour"] }); },
-    onError: (e) => toast.error(e?.message || "Déjà pris"),
-  });
-  const recherche = data?.recherche;
-  const avant = useRef(recherche?.etat);
-  useEffect(() => {
-    if (avant.current === "en_cours" && recherche?.etat === "fini") toast.success(`Equimmox : ${(recherche.resultat?.parVille || []).map((v) => (v.erreur ? `${v.ville} en erreur` : `${v.ville}, ${v.reguliers} agents réguliers`)).join(" ; ")}`);
-    if (avant.current === "en_cours" && recherche?.etat === "erreur") toast.error(recherche.erreur || "Equimmox n'a pas répondu");
-    avant.current = recherche?.etat;
-  });
-
-  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
-  const cibles = [...new Set([...(data?.villes_cibles || []), ...villes])];
-  const liste = data?.liste || [];
-  const enCours = choisi || (data?.appel_a_valider ? null : liste.find((a) => a.a_moi));
-
-  return (
-    <div className="flex flex-col gap-4">
-      <section className={`${carte} p-5`}>
-        <p className={etiquette}>Les villes ciblées aujourd'hui</p>
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          {cibles.map((v) => {
-            const on = villes.includes(v);
-            return <button key={v} type="button" onClick={() => poserVilles.mutate(on ? villes.filter((x) => x !== v) : [...villes, v])} className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${on ? "border-menthe bg-menthe font-semibold text-sur-menthe" : "border-bord-doux text-craie hover:text-encre"}`}>{v}</button>;
-          })}
-          <form onSubmit={(e) => { e.preventDefault(); if (ville.trim()) poserVilles.mutate([...villes, ville.trim()]); setVille(""); }}>
-            <input id="ville-du-jour" value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Une autre ville" className="w-[140px] rounded-full border border-bord-doux bg-fond px-3 py-1 text-[12.5px] text-encre outline-none focus:border-menthe/60" />
-          </form>
-          {villes.length > 0 && (
-            <button type="button" onClick={() => equimmox.mutate()} disabled={recherche?.etat === "en_cours"} className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1 text-[12.5px] text-craie hover:text-encre">
-              {recherche?.etat === "en_cours" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {recherche?.etat === "en_cours" ? "Equimmox en cours…" : "Relire Equimmox pour ces villes"}
-            </button>
-          )}
-        </div>
-        {!villes.length && <p className="m-0 mt-3 text-[12.5px] text-brume">Choisis une ville : la liste prend les agents qui y publient régulièrement sur Equimmox. Sans ville, seulement les relances du jour.</p>}
-      </section>
-
-      {data?.appel_a_valider && !choisi && (
-        <section className={`${carte} p-5 md:p-6`}>
-          <p className={etiquette}>Ton dernier appel attend ta réponse dans Google Chat (ou ici)</p>
-          <div className="mt-3"><Propositions appel={data.appel_a_valider} /></div>
-        </section>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        <section>
-          <div className="mb-2 flex items-baseline justify-between">
-            <p className={etiquette}>À appeler · {liste.length}</p>
-            {!data?.criteres && <button type="button" onClick={() => allerA("reglages")} className="text-[12px] text-ambre" style={{ background: "transparent" }}>Écris tes critères pour les mails</button>}
-          </div>
-          {liste.length ? (
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">
-              {liste.map((a) => {
-                const pris = a.verrou && !a.a_moi;
-                const actif = enCours?.id === a.id;
-                return (
-                  <li key={a.id}>
-                    <button type="button" disabled={pris} onClick={() => prendre.mutate(a)}
-                      className={`w-full rounded-[14px] border p-3.5 text-left transition-colors ${actif ? "border-menthe bg-menthe/[0.06]" : pris ? "border-trait opacity-50" : "border-trait hover:border-menthe/50"}`} style={actif ? undefined : { background: "transparent" }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-[14.5px] font-semibold text-encre">{a.nom}</span>
-                        {pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille> : a.rang === 0 ? <Pastille ton="ambre">Relance</Pastille> : a.rang === 1 ? <Pastille ton="menthe">Murs vides</Pastille> : null}
-                      </div>
-                      <p className="m-0 mt-0.5 truncate text-[12.5px] text-craie">{[a.agence && a.agence !== a.nom ? a.agence : null, a.ville, a.telephones?.[0]].filter(Boolean).join(" · ")}</p>
-                      <p className="m-0 mt-1.5 text-[12.5px] text-encre">{a.raison}</p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : <p className="rounded-[14px] border border-trait p-6 text-center text-[13px] text-craie">{villes.length ? "Personne à appeler pour ces villes : relis Equimmox, ou ajoute une ville." : "Aucune relance aujourd'hui."}</p>}
-        </section>
-        <div className="lg:sticky lg:top-4 lg:self-start">
-          {enCours ? <PanneauAppel key={enCours.id} agent={liste.find((x) => x.id === enCours.id) || enCours} onFermer={() => { setChoisi(null); queryClient.invalidateQueries({ queryKey: ["prospection-jour"] }); }} />
-            : <div className="rounded-[16px] border border-dashed border-bord-doux p-8 text-center text-[13px] text-brume">Choisis un agent dans la liste : il se verrouille à ton nom, personne d'autre ne l'appelle.</div>}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -536,39 +453,184 @@ function FicheAgent({ id, onFermer }) {
   );
 }
 
-function OngletAgents() {
-  const [q, setQ] = useState("");
-  const [ouvert, setOuvert] = useState(null);
-  const { data, isLoading } = useQuery({ queryKey: ["prospection-agents", q], queryFn: () => base44.request("GET", `/api/prospection/agents?q=${encodeURIComponent(q)}`) });
-  const agents = data?.agents || [];
+// ---------------------------------------------------------------------------
+// La grille : l'ancienne Google Sheet, dans la plateforme
+// ---------------------------------------------------------------------------
+
+const STATUTS_GRILLE = { nouveau: ["À appeler", "neutre"], a_rappeler: ["À rappeler", "ambre"], en_discussion: ["En discussion", "menthe"], pas_de_murs: ["Pas de murs", "neutre"], envoie_des_fiches: ["Envoie des fiches", "menthe"], pause: ["En pause", "neutre"], archive: ["Archivé", "alerte"] };
+
+// Les colonnes de la grille : celles de la Sheet de l'équipe, puis ce que la plateforme sait.
+const COLONNES = [
+  { cle: "a_appeler", titre: "Pourquoi l'appeler", bloc: "Aujourd'hui", largeur: 260, lire: (a) => a.a_appeler?.raison || "" },
+  { cle: "statut", titre: "Statut", bloc: "Suivi", largeur: 150, statut: true },
+  { cle: "referent", titre: "Attribué à", bloc: "Suivi", largeur: 130, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
+  { cle: "telephones", titre: "Numéro", bloc: "Contact", largeur: 150, lire: (a) => (a.telephones || []).join(", "), liste: true },
+  { cle: "emails", titre: "Email", bloc: "Contact", largeur: 220, lire: (a) => (a.emails || []).join(", "), liste: true },
+  { cle: "agence", titre: "Entreprise", bloc: "Contact", largeur: 180 },
+  { cle: "poste", titre: "Poste", bloc: "Contact", largeur: 170 },
+  { cle: "immo_commercial", titre: "Immobilier commercial", bloc: "Qualification", largeur: 150 },
+  { cle: "specialite", titre: "Spécialité", bloc: "Qualification", largeur: 150 },
+  { cle: "reponse", titre: "Réponse", bloc: "Qualification", largeur: 180 },
+  { cle: "remarques", titre: "Remarque", bloc: "Qualification", largeur: 260 },
+  { cle: "bien_similaire", titre: "Bien à vendre similaire", bloc: "Qualification", largeur: 200 },
+  { cle: "secteurs", titre: "Secteurs", bloc: "Qualification", largeur: 160, lire: (a) => (a.secteurs || []).join(", "), liste: true },
+  { cle: "dernier_contact_le", titre: "Dernier contact", bloc: "Suivi", largeur: 120, lire: (a) => dateCourte(a.dernier_contact_le), fixe: true },
+  { cle: "prochaine", titre: "Prochaine action", bloc: "Suivi", largeur: 240, lire: (a) => (a.prochaine ? `${dateCourte(a.prochaine.le)} · ${a.prochaine.quoi}` : ""), fixe: true },
+  { cle: "resume_dernier_appel", titre: "Dernier appel", bloc: "Suivi", largeur: 260, fixe: true },
+  { cle: "annonces", titre: "Annonces Equimmox", bloc: "Plateforme", largeur: 120, lire: (a) => (a.annonces ? String(a.annonces) : ""), fixe: true },
+  { cle: "score", titre: "Score", bloc: "Plateforme", largeur: 80, lire: (a) => (a.score ? String(a.score) : ""), fixe: true },
+  { cle: "source", titre: "Source", bloc: "Plateforme", largeur: 150, fixe: true },
+  { cle: "linkedin", titre: "LinkedIn", bloc: "Contact", largeur: 180 },
+];
+
+function Cellule({ agent, col, onEnregistrer }) {
+  const valeur = col.lire ? col.lire(agent) : agent[col.cle] || "";
+  const [edition, setEdition] = useState(false);
+  const [texte, setTexte] = useState(valeur);
+  useEffect(() => { if (!edition) setTexte(valeur); }, [valeur, edition]);
+  if (col.statut) {
+    const [mot, ton] = STATUTS_GRILLE[agent.statut] || [agent.statut, "neutre"];
+    return (
+      <select aria-label={`Statut de ${agent.nom}`} value={agent.statut || "nouveau"} onChange={(e) => onEnregistrer({ statut: e.target.value })}
+        className={`w-full cursor-pointer rounded-full border bg-transparent px-2 py-0.5 text-[11.5px] outline-none ${{ neutre: "border-bord-doux text-craie", menthe: "border-menthe/50 text-menthe", ambre: "border-ambre/50 text-ambre", alerte: "border-alerte/40 text-alerte" }[ton]}`} title={mot}>
+        {Object.entries(STATUTS_GRILLE).map(([k, [m]]) => <option key={k} value={k}>{m}</option>)}
+      </select>
+    );
+  }
+  if (col.fixe || col.cle === "a_appeler" || col.cle === "referent") return <span className="line-clamp-3 text-[12.5px] leading-[1.5] text-craie" title={valeur}>{valeur || <span className="text-bord-vif">—</span>}</span>;
+  if (edition) {
+    const valider = () => {
+      setEdition(false);
+      if (texte === valeur) return;
+      onEnregistrer({ [col.cle]: col.liste ? texte.split(/[,;]/).map((x) => x.trim()).filter(Boolean) : texte });
+    };
+    return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }} rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[12.5px] text-encre outline-none" />;
+  }
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <section className="min-w-0">
-        <div className="mb-3 flex items-center gap-3 border-b border-encre/[0.18] pb-2 focus-within:border-bord-vif">
-          <Search className="h-4 w-4 text-brume" />
-          <input id="recherche-agent" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Chercher parmi ${data?.total ?? "les"} agents : nom, agence, ville, numéro`} className="w-full border-none bg-transparent py-1 text-[14px] text-encre outline-none placeholder:text-brume" />
+    <button type="button" onClick={() => setEdition(true)} className="block w-full text-left text-[12.5px] leading-[1.5] text-craie hover:text-encre" style={{ background: "transparent" }} title={valeur ? `${valeur} (clic pour modifier)` : "Clic pour remplir"}>
+      <span className="line-clamp-3">{valeur || <span className="text-bord-vif">—</span>}</span>
+    </button>
+  );
+}
+
+function OngletGrille({ onAppeler }) {
+  const queryClient = useQueryClient();
+  const [onglet, setOnglet] = useState(() => { try { return localStorage.getItem("prospection.onglet") || ""; } catch { return ""; } });
+  const [jour, setJour] = useState(true);
+  const [q, setQ] = useState("");
+  const [fiche, setFiche] = useState(null);
+  const [ajout, setAjout] = useState(false);
+  const [nouvelle, setNouvelle] = useState({ nom: "", agence: "", telephone: "", email: "" });
+  useEffect(() => { try { localStorage.setItem("prospection.onglet", onglet); } catch { /* le choix se perd, sans gravité */ } }, [onglet]);
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["prospection-grille", onglet, jour],
+    queryFn: () => base44.request("GET", `/api/prospection/grille?onglet=${encodeURIComponent(onglet)}&jour=${jour ? 1 : 0}`),
+    refetchInterval: 60000,
+    // L'onglet précédent reste affiché pendant que le suivant arrive.
+    placeholderData: (avant) => avant,
+  });
+  const maj = () => ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+  const enregistrer = useMutation({
+    mutationFn: ({ id, champs }) => base44.request("POST", `/api/prospection/agents/${id}`, { body: champs }),
+    onSuccess: maj,
+    onError: (e) => toast.error(e?.message || "Modification perdue"),
+  });
+  const ajouter = useMutation({
+    mutationFn: () => base44.request("POST", "/api/prospection/agents", { body: { ...nouvelle, ville: onglet || null, onglet: onglet || null } }),
+    onSuccess: (r) => { toast[r.deja_connu ? "error" : "success"](r.deja_connu ? "Déjà dans la grille : complété" : "Agent ajouté"); setAjout(false); setNouvelle({ nom: "", agence: "", telephone: "", email: "" }); maj(); },
+    onError: (e) => toast.error(e?.message || "Ajout raté"),
+  });
+  const equimmox = useMutation({
+    mutationFn: () => base44.request("POST", "/api/prospection/equimmox", { body: { villes: [onglet] } }),
+    onSuccess: () => toast.success(`Equimmox relu pour ${onglet} : les agents qui publient arrivent dans la grille d'ici une minute`),
+    onError: (e) => toast.error(e?.message || "Equimmox indisponible"),
+  });
+  const lignes = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return (data?.lignes || []).filter((a) => !t || `${a.nom} ${a.agence || ""} ${(a.telephones || []).join(" ")} ${(a.emails || []).join(" ")} ${a.remarques || ""}`.toLowerCase().includes(t));
+  }, [data, q]);
+  const onglets = data?.onglets || [];
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-1 overflow-x-auto border-b border-relief pb-px">
+        {[{ nom: "", n: data?.total }, ...onglets].map((o) => (
+          <button key={o.nom || "tous"} type="button" onClick={() => setOnglet(o.nom)}
+            className={`flex-none rounded-t-lg border border-b-0 px-3.5 py-2 text-[12.5px] transition-colors ${onglet === o.nom ? "border-relief bg-surface font-semibold text-encre" : "border-transparent text-ardoise hover:text-encre"}`}>
+            {o.nom || "Toutes les villes"} <span className="tabular-nums text-brume">{o.n ?? ""}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-full border border-bord-doux p-0.5">
+          {[[true, `À appeler aujourd'hui${data?.a_appeler != null ? ` · ${data.a_appeler}` : ""}`], [false, "Tous les agents"]].map(([v, mot]) => (
+            <button key={String(v)} type="button" onClick={() => setJour(v)} className={`rounded-full px-3 py-1 text-[12.5px] ${jour === v ? "bg-menthe font-semibold text-sur-menthe" : "text-craie hover:text-encre"}`}>{mot}</button>
+          ))}
         </div>
-        {isLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : (
-          <div className="overflow-x-auto rounded-[14px] border border-trait">
-            <table className="w-full min-w-[620px] border-collapse text-[13px]">
-              <thead><tr className="text-left text-[11px] uppercase tracking-[.12em] text-ardoise">{["Agent", "Ville", "Statut", "Prochaine action", "Score"].map((t) => <th key={t} className="border-b border-trait px-3 py-2.5 font-medium">{t}</th>)}</tr></thead>
-              <tbody>
-                {agents.map((a) => (
-                  <tr key={a.id} onClick={() => setOuvert(a.id)} className={`cursor-pointer align-top hover:bg-encre/[0.03] ${ouvert === a.id ? "bg-menthe/[0.05]" : ""}`}>
-                    <td className="border-b border-trait px-3 py-2"><span className="text-encre">{a.nom}</span>{a.agence && a.agence !== a.nom && <span className="block text-[12px] text-brume">{a.agence}</span>}</td>
-                    <td className="border-b border-trait px-3 py-2 text-craie">{a.ville}</td>
-                    <td className="border-b border-trait px-3 py-2 text-craie">{STATUTS[a.statut] || a.statut}</td>
-                    <td className="border-b border-trait px-3 py-2 text-craie">{a.prochaine ? `${dateCourte(a.prochaine.le)} · ${a.prochaine.quoi}` : ""}</td>
-                    <td className="border-b border-trait px-3 py-2 tabular-nums text-encre">{a.score || 0}</td>
-                  </tr>
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 border-b border-encre/[0.18] pb-1 focus-within:border-bord-vif">
+          <Search className="h-4 w-4 text-brume" />
+          <input id="recherche-grille" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un nom, une agence, un numéro" className="w-full border-none bg-transparent py-1 text-[13.5px] text-encre outline-none placeholder:text-brume" />
+        </div>
+        {isFetching && !isLoading && <Loader2 className="h-4 w-4 animate-spin text-ardoise" />}
+        {onglet && <button type="button" onClick={() => equimmox.mutate()} disabled={equimmox.isPending} className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1.5 text-[12.5px] text-craie hover:text-encre"><RefreshCw className="h-3.5 w-3.5" />Relire Equimmox à {onglet}</button>}
+        <button type="button" onClick={() => setAjout((x) => !x)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1.5 text-[12.5px] font-semibold text-sur-menthe">+ Ajouter une ligne</button>
+      </div>
+
+      {ajout && (
+        <form onSubmit={(e) => { e.preventDefault(); ajouter.mutate(); }} className={`${carte} grid gap-2 p-4 sm:grid-cols-5`}>
+          {[["nom", "Prénom Nom"], ["agence", "Entreprise"], ["telephone", "Numéro"], ["email", "Email"]].map(([k, ex]) => <input key={k} id={`nouvelle-${k}`} value={nouvelle[k]} onChange={(e) => setNouvelle((x) => ({ ...x, [k]: e.target.value }))} placeholder={ex} aria-label={ex} className={champ} />)}
+          <button type="submit" disabled={!(nouvelle.nom || nouvelle.agence) || !(nouvelle.telephone || nouvelle.email)} className="rounded-full bg-menthe px-4 py-2 text-[13px] font-semibold text-sur-menthe disabled:opacity-40">Ajouter{onglet ? ` à ${onglet}` : ""}</button>
+        </form>
+      )}
+
+      {isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
+        <div className="overflow-auto rounded-xl border border-relief" style={{ maxHeight: "calc(100vh - 290px)" }}>
+          <table className="min-w-full border-collapse text-[12.5px]">
+            <thead className="sticky top-0 z-20">
+              <tr className="bg-fond">
+                <th className="sticky left-0 z-30 min-w-[240px] border-b border-r border-relief bg-fond px-4 py-3 text-left text-[11px] font-normal uppercase tracking-[.16em] text-brume">Agent</th>
+                <th className="border-b border-r border-relief bg-fond px-3 py-3 text-left text-[11px] font-normal uppercase tracking-[.16em] text-brume">Appel</th>
+                {COLONNES.map((c) => (
+                  <th key={c.cle} className="border-b border-r border-relief bg-fond px-3 py-3 text-left align-top font-normal" style={{ minWidth: c.largeur }}>
+                    <span className="block text-[10.5px] uppercase tracking-[.14em] text-brume">{c.bloc}</span>
+                    <span className="mt-0.5 block text-[12.5px] font-semibold text-encre">{c.titre}</span>
+                  </th>
                 ))}
-                {!agents.length && <tr><td colSpan={5} className="px-3 py-8 text-center text-brume">Aucun agent.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      <div className="lg:sticky lg:top-4 lg:self-start">{ouvert ? <FicheAgent key={ouvert} id={ouvert} onFermer={() => setOuvert(null)} /> : <p className="rounded-[16px] border border-dashed border-bord-doux p-8 text-center text-[13px] text-brume">Clique sur un agent pour voir sa fiche et son historique.</p>}</div>
+              </tr>
+            </thead>
+            <tbody>
+              {lignes.map((a) => {
+                const pris = a.verrou && a.verrou.par !== undefined;
+                return (
+                  <tr key={a.id} className={`hover:bg-encre/[0.02] ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
+                    <td className="sticky left-0 z-10 border-b border-r border-relief bg-fond px-4 py-2.5 align-top">
+                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[240px] truncate text-left text-[13px] font-semibold text-encre hover:text-menthe" style={{ background: "transparent" }}>{a.nom}</button>
+                      <span className="block max-w-[240px] truncate text-[11.5px] text-brume">{[a.agence && a.agence !== a.nom ? a.agence : null, onglet ? null : a.onglet].filter(Boolean).join(" · ")}</span>
+                    </td>
+                    <td className="border-b border-r border-relief px-3 py-2.5 align-top">
+                      {pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille>
+                        : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[11.5px] text-bord-vif">pas de contact</span>}
+                    </td>
+                    {COLONNES.map((c) => (
+                      <td key={c.cle} className="border-b border-r border-relief px-3 py-2.5 align-top" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
+                        <Cellule agent={a} col={c} onEnregistrer={(champs) => enregistrer.mutate({ id: a.id, champs })} />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+              {!lignes.length && <tr><td colSpan={COLONNES.length + 2} className="px-4 py-10 text-center text-[13px] text-brume">{jour ? `Personne à appeler aujourd'hui${onglet ? ` à ${onglet}` : ""}. Passe sur « Tous les agents », ou relis Equimmox.` : "Aucun agent dans cet onglet."}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="m-0 text-[11px] text-brume">{lignes.length} ligne{lignes.length > 1 ? "s" : ""} · clic sur une cellule pour la modifier, sur un nom pour sa fiche et son historique · « Appeler » le prend à ton nom.</p>
+      {fiche && (
+        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[460px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
+          <FicheAgent id={fiche} onFermer={() => setFiche(null)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -626,6 +688,12 @@ function OngletReglages() {
     onSuccess: (x) => { toast.success(`${x.lignes} lignes : ${x.crees} agents ajoutés, ${x.completes} déjà connus complétés${x.sans_contact ? `, ${x.sans_contact} sans contact` : ""}`); maj(); },
     onError: (e) => toast.error(e?.message || "Import raté"),
   });
+  const [lienSheet, setLienSheet] = useState("https://docs.google.com/spreadsheets/d/1uAUNTI1giePGf-CP-pnfOCSlkS7pf6y9RzI-4bhz2O0");
+  const sheet = useMutation({
+    mutationFn: () => base44.request("POST", "/api/prospection/import-sheet", { body: { lien: lienSheet } }),
+    onSuccess: (x) => { toast.success(`${x.lus} agents lus (${Object.entries(x.onglets).map(([o, n]) => `${o} ${n}`).join(", ")}) : ${x.crees} ajoutés, ${x.completes} déjà connus complétés`); maj(); },
+    onError: (e) => toast.error(e?.message || "Import raté"),
+  });
   const monday = useMutation({ mutationFn: () => base44.request("POST", "/api/prospection/import-monday"), onSuccess: (x) => { toast.success(`Monday : ${x.lus} lus, ${x.crees} ajoutés, ${x.completes} complétés`); maj(); }, onError: (e) => toast.error(e?.message || "Monday injoignable") });
   if (!r) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
   const ajouterVille = (v) => { const t = String(v || "").trim(); if (t && !r.villes.includes(t)) setR((x) => ({ ...x, villes: [...x.villes, t] })); };
@@ -654,6 +722,13 @@ function OngletReglages() {
           <button type="button" onClick={() => fichier.current?.click()} disabled={importer.isPending} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre">{importer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}Importer un fichier (CSV, Excel)</button>
           <button type="button" onClick={() => monday.mutate()} disabled={monday.isPending} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre">{monday.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Reprendre les agents de Monday</button>
         </div>
+        <div className="mt-4 border-t border-trait pt-4">
+          <label htmlFor="lien-sheet" className="text-[12.5px] text-craie">Ta Google Sheet d'agents (un onglet par ville) :</label>
+          <div className="mt-1.5 flex gap-2">
+            <input id="lien-sheet" value={lienSheet} onChange={(e) => setLienSheet(e.target.value)} className={champ} />
+            <button type="button" onClick={() => sheet.mutate()} disabled={sheet.isPending || !lienSheet.trim()} className="inline-flex flex-none items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] font-semibold text-sur-menthe">{sheet.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}Importer</button>
+          </div>
+        </div>
         <p className="m-0 mt-3 text-[12px] text-brume">Alertes des sites : crée une alerte « commerce en vente » sur SeLoger, Leboncoin, BureauxLocaux et Geolocaux vers sourcing@klocka.immo ; les agences qu'elles citent entrent au carnet la nuit.{data?.alertes?.sites?.length ? ` Reçues : ${data.alertes.sites.map((s) => `${s.site} ${s.recues}`).join(", ")}.` : ""}</p>
       </section>
       <section className={`${carte} p-5 lg:col-span-2`}>
@@ -672,36 +747,48 @@ function OngletReglages() {
 // ---------------------------------------------------------------------------
 
 export default function Prospection() {
-  const [onglet, setOnglet] = useState(() => new URLSearchParams(window.location.search).get("onglet") || "jour");
-  const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: (q) => (q.state.data?.recherche?.etat === "en_cours" ? 5000 : 60000) });
+  const queryClient = useQueryClient();
+  const [onglet, setOnglet] = useState(() => new URLSearchParams(window.location.search).get("onglet") || "grille");
+  const [appel, setAppel] = useState(null);
+  const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: 60000 });
+  const prendre = useMutation({
+    mutationFn: (a) => base44.request("POST", `/api/prospection/agents/${a.id}/prendre`).then(() => a),
+    onSuccess: (a) => { setAppel({ ...a, raison: a.a_appeler?.raison || "" }); queryClient.invalidateQueries({ queryKey: ["prospection-grille"] }); },
+    onError: (e) => toast.error(e?.message || "Déjà pris"),
+  });
   const onglets = useMemo(() => [
-    ["jour", "Aujourd'hui", jour.data?.liste?.length],
+    ["grille", "Les agents"],
     ["envois", "À envoyer", jour.data?.a_envoyer],
     ["decisions", "Décisions", jour.data?.decisions],
-    ["agents", "Agents"],
     ["tableau", "Tableau de bord"],
     ["reglages", "Réglages"],
   ], [jour.data]);
   if (jour.isError && /403|réservé/i.test(jour.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
+  const enAttente = jour.data?.appel_a_valider;
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-4 py-8 md:px-6">
-      <header className="mb-6">
+    <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6">
+      <header className="mb-5">
         <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
-        <p className="m-0 mt-2 max-w-[70ch] text-[14px] text-craie">{jour.data?.jour ? `${jourFr(jour.data.jour).replace(/^./, (c) => c.toUpperCase())}. ` : ""}Tu choisis qui appeler, tu parles, tu valides. AK a préparé avant, note pendant, propose après ; rien ne part sans toi.</p>
+        <p className="m-0 mt-2 max-w-[74ch] text-[14px] text-craie">{jour.data?.jour ? `${jourFr(jour.data.jour).replace(/^./, (c) => c.toUpperCase())}. ` : ""}Tu choisis qui appeler, tu parles. L'assistant écoute, puis t'écrit dans Google Chat ce qu'il ferait ; tu lui réponds, il s'en occupe. Rien ne part sans toi.</p>
       </header>
-      <nav className="mb-6 flex flex-wrap gap-1.5" aria-label="Onglets de la prospection">
+      <nav className="mb-5 flex flex-wrap gap-1.5" aria-label="Onglets de la prospection">
         {onglets.map(([cle, mot, n]) => (
           <button key={cle} type="button" onClick={() => setOnglet(cle)} className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${onglet === cle ? "border-menthe bg-menthe font-semibold text-sur-menthe" : "border-bord-doux text-craie hover:text-encre"}`}>
             {mot}{n ? <span className={`tabular-nums ${onglet === cle ? "" : "text-brume"}`}>{n}</span> : null}
           </button>
         ))}
       </nav>
-      {onglet === "jour" && <OngletJour data={jour.data} isLoading={jour.isLoading} allerA={setOnglet} />}
+      {enAttente && !appel && <p className="m-0 mb-4 rounded-[12px] border border-ambre/40 px-4 py-2.5 text-[13px] text-craie">Ton appel avec {enAttente.agent} attend ta réponse dans Google Chat.</p>}
+      {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}
       {onglet === "envois" && <OngletEnvois />}
       {onglet === "decisions" && <OngletDecisions />}
-      {onglet === "agents" && <OngletAgents />}
       {onglet === "tableau" && <OngletTableau />}
       {onglet === "reglages" && <OngletReglages />}
+      {appel && (
+        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
+          <PanneauAppel key={appel.id} agent={appel} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
+        </div>
+      )}
     </div>
   );
 }

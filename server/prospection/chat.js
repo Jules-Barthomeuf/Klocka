@@ -63,22 +63,88 @@ export function afficherMail(m, signature) {
   return [`le mail pour ${m.nom} :`, `à : ${m.a || '(adresse manquante : donne-la moi)'}`, `objet : ${m.objet}`, '', String(m.corps).replace(/\{signature\}/g, signature), '', 'dis « envoie » et il part'].join('\n');
 }
 
+const SCHEMA_REPONSE = {
+  type: 'object',
+  properties: {
+    concerne_l_appel: { type: 'boolean', description: "true si le message répond aux propositions sur cet appel, false s'il parle d'autre chose" },
+    choix: { type: 'array', items: { type: 'integer' }, description: 'les numéros des propositions retenues' },
+    retouche_mail: { type: 'string', description: 'ce qu\'il veut changer au mail (plus court, tutoyer, ajouter X), vide sinon' },
+    relance_le: { type: 'string', description: 'AAAA-MM-JJ si une autre date de rappel est demandée, vide sinon' },
+    note: { type: 'string', description: 'une information en plus à noter sur la fiche de l\'agent, vide sinon' },
+  },
+  required: ['concerne_l_appel', 'choix'],
+};
+
+/** Ce que la personne répond, en langage courant, lu par le modèle. */
+async function lireLaReponse(texte, appel, numerotees) {
+  const { invokeLLM, llmEnabled } = await import('../llm.js');
+  if (!llmEnabled || String(texte).length > 600) return null;
+  const aujourdhui = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+  try {
+    return await invokeLLM({
+      prompt: `Tu as proposé à un collègue, après son appel avec ${appel.agent} :
+${numerotees.map((p, i) => `${i + 1}. ${p.titre}`).join('\n')}
+
+Il te répond : « ${texte} »
+
+Quelles propositions garde-t-il ? « ok », « vas-y », « fais tout » : toutes. « pas la relance » : toutes sauf celle-là. Une demande de retouche du mail garde le mail. Une autre date de rappel (« rappelle-le lundi ») garde le rappel avec cette date (aujourd'hui : ${aujourdhui}). S'il parle d'autre chose que cet appel, concerne_l_appel = false.`,
+      response_json_schema: SCHEMA_REPONSE,
+      effort: 'low',
+    });
+  } catch (e) {
+    console.warn(`[prospection] réponse illisible : ${e?.message || e}`);
+    return null;
+  }
+}
+
+/** Le mail retouché comme demandé, sans rien inventer. */
+async function retoucher(mail, consigne) {
+  const { invokeLLM } = await import('../llm.js');
+  const r = await invokeLLM({
+    prompt: `Réécris ce mail à un agent immobilier selon la consigne, sans rien inventer et sans en changer le fond : ce qu'il présente ou demande (nos critères, la fiche d'un bien) reste dedans. Garde {signature} à la fin.\n\nConsigne : ${consigne}\n\nObjet : ${mail.objet}\n\n${mail.corps}`,
+    response_json_schema: { type: 'object', properties: { objet: { type: 'string' }, corps: { type: 'string' } }, required: ['objet', 'corps'] },
+    effort: 'low',
+  });
+  return r?.corps ? { objet: r.objet || mail.objet, corps: /\{signature\}/.test(r.corps) ? r.corps : `${r.corps}\n\n{signature}` } : null;
+}
+
 /**
- * Une réponse aux propositions d'un appel. Rend le texte à poster, ou null
- * si le message n'est pas un choix.
+ * Une réponse aux propositions d'un appel : des numéros (« 1 3 »), ou une
+ * phrase (« ok mais pas la relance », « envoie le mail en plus court »).
+ * Rend le texte à poster, ou null si le message parle d'autre chose.
  */
 export async function repondreAuChoix(message, user) {
   const appel = appelEnAttente(message.espace);
   if (!appel) return null;
   const numerotees = appel.propositions.filter((p) => p.type !== 'statut');
-  const choix = choixDansLeTexte(message.texte, numerotees.length);
-  if (choix === null) return null;
+  let choix = choixDansLeTexte(message.texte, numerotees.length);
+  let lu = null;
+  if (choix === null) {
+    lu = await lireLaReponse(message.texte, appel, numerotees);
+    if (process.env.PROSPECTION_TRACE) console.log('[prospection] réponse lue', JSON.stringify(lu));
+    if (!lu?.concerne_l_appel) return null;
+    choix = [...new Set((lu.choix || []).filter((k) => k >= 1 && k <= numerotees.length))];
+  }
+  // Une autre date de rappel, une retouche du mail : posées avant de valider.
+  const relance = numerotees.find((p) => p.type === 'relance');
+  if (relance && /^\d{4}-\d{2}-\d{2}$/.test(lu?.relance_le || '')) {
+    relance.prochaine = { ...relance.prochaine, le: lu.relance_le, quoi: relance.prochaine.quoi };
+    const k = numerotees.indexOf(relance) + 1;
+    if (!choix.includes(k)) choix.push(k);
+    Records.update('AppelAgent', appel.id, { propositions: appel.propositions });
+  }
+  let mail = null;
+  const pm = numerotees.find((p) => p.type === 'mail');
+  if (pm && lu?.retouche_mail && choix.includes(numerotees.indexOf(pm) + 1)) mail = await retoucher(pm, lu.retouche_mail).catch(() => null);
   const { validerAppel } = await import('./appel.js');
+  const { journal } = await import('./carnet.js');
   const ids = ['statut', ...choix.map((k) => numerotees[k - 1].id)];
-  const r = await validerAppel({ appel_id: appel.id, choix: ids, user });
+  const r = await validerAppel({ appel_id: appel.id, choix: ids, mail, user });
+  if (r.ok && lu?.note) journal(appel.agent_id, { type: 'note', texte: lu.note, par: user?.email });
   if (!r.ok) return `dsl, ça a raté : ${r.error}`;
   const signature = user?.full_name || String(user?.email || '').split('@')[0];
-  const lignes = [`c'est fait pour ${appel.agent} : ${r.faits.filter((f) => !/À envoyer/.test(f)).join(', ') || 'appel noté'}.`];
+  const faits = r.faits.filter((f) => !/À envoyer/.test(f));
+  const lignes = [faits.length ? `c'est noté pour ${appel.agent} : ${faits.join(', ')}.` : `ok, j'ai juste noté l'appel avec ${appel.agent}.`];
   if (r.mail_id) {
     const m = Records.get('ProspectionMail', r.mail_id);
     Meta.set(CLE_ENVOI, JSON.stringify({ ...lireEnvois(), [message.espace]: { mail_id: m.id, le: new Date().toISOString() } }));

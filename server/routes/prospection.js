@@ -91,6 +91,52 @@ export function monterProspection(app) {
     ok(res, r);
   }));
 
+  // --- La grille -------------------------------------------------------------
+  //
+  // Le carnet en tableau, comme l'ancienne Google Sheet : un onglet par
+  // ville, les colonnes de l'équipe, et « à appeler aujourd'hui » qui
+  // réduit l'onglet à la liste du jour de cette ville.
+
+  app.get('/api/prospection/grille', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const p = await P();
+    const { ongletDe } = await import('../prospection/carnet.js');
+    const R = await import('../prospection/regles.js');
+    const tous = p.agents();
+    const compte = {};
+    for (const a of tous) { const o = ongletDe(a); compte[o] = (compte[o] || 0) + 1; }
+    const onglets = Object.entries(compte).sort((a, b) => b[1] - a[1]).map(([nom, n]) => ({ nom, n }));
+    const onglet = String(req.query.onglet || '');
+    const dansOnglet = onglet ? tous.filter((a) => ongletDe(a) === onglet) : tous;
+    // La liste du jour de l'onglet : ses relances, ses publieurs réguliers, ses nouveaux.
+    const villes = onglet ? [onglet, ...new Set(dansOnglet.map((a) => a.ville).filter(Boolean))] : p.villesDuJour();
+    const jour = R.listeDuJour(dansOnglet, { villes, nouveauxParJour: onglet ? 0 : 10 });
+    const raisons = new Map(jour.map((a) => [a.id, { raison: a.raison, rang: a.rang }]));
+    const seulementJour = req.query.jour === '1';
+    const lignes = (seulementJour ? jour.map((a) => tous.find((x) => x.id === a.id)) : dansOnglet)
+      .filter(Boolean)
+      .map(({ journal, ...a }) => ({ ...a, onglet: ongletDe(a), a_appeler: raisons.get(a.id) || null, verrou: R.verrouTenu(a.verrou) ? a.verrou : null, journal: (journal || []).slice(0, 5) }));
+    if (!seulementJour) lignes.sort((x, y) => (x.a_appeler ? 0 : 1) - (y.a_appeler ? 0 : 1) || String(x.nom).localeCompare(String(y.nom)));
+    ok(res, { onglets, total: tous.length, onglet, a_appeler: jour.length, lignes: lignes.slice(0, 1500) });
+  }));
+
+  app.post('/api/prospection/import-sheet', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { importerSheet } = await import('../prospection/carnet.js');
+    const r = await importerSheet(req.body?.lien, user.email);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+
+  app.get('/api/prospection/appels/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const a = Records.get('AppelAgent', req.params.id);
+    if (!a) return res.status(404).json({ error: 'Appel introuvable.' });
+    ok(res, { appel: a });
+  }));
+
   // --- Le carnet --------------------------------------------------------------
 
   app.get('/api/prospection/agents', wrap(async (req, res) => {
@@ -118,7 +164,7 @@ export function monterProspection(app) {
     if (!String(b.nom || b.agence || '').trim()) return res.status(400).json({ error: 'Un nom ou une agence.' });
     if (!b.email && !b.telephone) return res.status(400).json({ error: 'Un mail ou un téléphone, pour pouvoir l\'appeler.' });
     const p = await P();
-    const r = p.integrer([{ nom: b.nom, agence: b.agence, email: b.email, telephone: b.telephone, ville: b.ville, source: 'Ajouté à la main', remarque: b.remarque || null }]);
+    const r = p.integrer([{ nom: b.nom, agence: b.agence, email: b.email, telephone: b.telephone, ville: b.ville, onglet: b.onglet || null, source: 'Ajouté à la main', remarque: b.remarque || null }]);
     ok(res, { cree: r.crees[0] || null, deja_connu: !r.crees.length });
   }));
 
@@ -131,7 +177,8 @@ export function monterProspection(app) {
     const b = req.body || {};
     const R = await import('../prospection/regles.js');
     const champs = {};
-    for (const k of ['nom', 'agence', 'ville', 'remarques']) if (b[k] !== undefined) champs[k] = String(b[k] || '').slice(0, 2000) || null;
+    const { CHAMPS_LIBRES } = await import('../prospection/carnet.js');
+    for (const k of ['nom', 'agence', 'ville', 'remarques', ...CHAMPS_LIBRES]) if (b[k] !== undefined) champs[k] = String(b[k] || '').slice(0, 2000) || null;
     if (b.telephones !== undefined) champs.telephones = [...new Set([].concat(b.telephones).map(R.telAffiche).filter(Boolean))];
     if (b.emails !== undefined) champs.emails = [...new Set([].concat(b.emails).map(R.normEmail).filter(Boolean))];
     if (b.secteurs !== undefined) champs.secteurs = [...new Set([].concat(b.secteurs).map((s) => String(s).trim()).filter(Boolean))];

@@ -96,3 +96,28 @@ export function lireXlsx(buffer) {
     .filter((l) => l.some((v) => String(v).trim()))
     .map((l) => Object.fromEntries(entete.map((h, k) => [h || `colonne ${k + 1}`, String(l[k] ?? '').trim()])));
 }
+
+/**
+ * Pure : toutes les feuilles d'un .xlsx, par leur nom (un onglet par ville
+ * dans une Google Sheet), chacune en lignes d'objets indexés par son en-tête.
+ * @returns {Object<string, object[]>}
+ */
+export function lireClasseur(buffer) {
+  const f = lireZip(buffer, (n) => n === 'xl/sharedStrings.xml' || n === 'xl/workbook.xml' || n === 'xl/_rels/workbook.xml.rels' || /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  const partagees = chainesPartagees(f['xl/sharedStrings.xml']?.toString('utf8'));
+  const cibles = Object.fromEntries([...String(f['xl/_rels/workbook.xml.rels'] || '').matchAll(/<Relationship\b[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g)].map(([, id, t]) => [id, `xl/${t.replace(/^\/?xl\//, '')}`]));
+  const out = {};
+  for (const [, attrs] of String(f['xl/workbook.xml'] || '').matchAll(/<sheet\b([^>]*)\/?>/g)) {
+    const nom = entites((attrs.match(/\bname="([^"]*)"/) || [])[1] || '');
+    const rid = (attrs.match(/\br:id="([^"]+)"/) || [])[1];
+    const chemin = cibles[rid];
+    if (!chemin || !f[chemin]) continue;
+    const lignes = lignesDeFeuille(f[chemin].toString('utf8'), partagees);
+    const i = lignes.findIndex((l) => l.some((v) => String(v).trim()));
+    if (i < 0) { out[nom] = []; continue; }
+    const entete = lignes[i].map((v) => String(v).trim());
+    out[nom] = lignes.slice(i + 1).filter((l) => l.some((v) => String(v).trim()))
+      .map((l) => Object.fromEntries(entete.map((h, k) => [h || `colonne ${k + 1}`, String(l[k] ?? '').trim()])));
+  }
+  return out;
+}

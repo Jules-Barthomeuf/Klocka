@@ -170,6 +170,52 @@ export function messageDAK(a, lu, props) {
 }
 
 /**
+ * Le message de l'alternant, écrit par le modèle : il raconte ce qu'il a
+ * retenu de l'appel et ce qu'il ferait, comme un collègue assis à côté, en
+ * numérotant ses propositions dans l'ordre donné. À défaut de modèle, le
+ * message calculé (messageDAK).
+ */
+async function messageVivant(a, lu, props, par) {
+  const numerotees = props.filter((p) => p.type !== 'statut');
+  const secours = messageDAK(a, lu, props);
+  if (!numerotees.length) return secours;
+  const { invokeLLM, llmEnabled } = await import('../llm.js');
+  if (!llmEnabled) return secours;
+  const u = Records.filter('User', { email: par })[0];
+  const prenom = (u?.full_name || '').split(' ')[0] || '';
+  try {
+    const r = await invokeLLM({
+      prompt: `Tu es l'alternant de Klocka, assis à côté de ${prenom || "l'analyste"} pendant ses appels aux agents immobiliers. C'est lui qui vient d'appeler ${a.nom}${a.agence && a.agence !== a.nom ? ` (${a.agence})` : ''} ; toi, tu as écouté et pris des notes. Écris-lui en privé sur Google Chat, comme un collègue qui parle : tutoiement, naturel, sans jargon ni formule, quatre à sept lignes. Ne dis pas « je viens de raccrocher » : c'est lui qui a appelé. Adresse-toi à lui directement (« ton appel avec Sophie »), jamais à la troisième personne.
+
+D'abord en une ou deux phrases ce que tu as retenu (ce qu'il a, ce qu'il cherche, ce qu'il promet, les dates). Puis ce que tu ferais, en reprenant EXACTEMENT ces actions, dans cet ordre, numérotées 1., 2., 3. (une par ligne, reformulées à ta façon mais sans en changer le sens, sans en ajouter, sans en retirer) :
+${numerotees.map((p, i) => `${i + 1}. ${p.titre}`).join('\n')}
+
+Termine par une question courte qui l'invite à te répondre (par exemple « je fais tout ? » ou « tu veux que je change quelque chose au mail ? »). Pas de markdown, pas d'astérisques, pas d'emoji.
+
+Ce que tu as retenu de l'appel : ${lu.resume || ''}
+${lu.mandats?.length ? `Mandats à venir : ${lu.mandats.join(' ; ')}\n` : ''}${lu.biens?.length ? `Biens cités : ${lu.biens.join(' ; ')}\n` : ''}`,
+      response_json_schema: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] },
+      effort: 'low',
+    });
+    const m = String(r?.message || '').trim();
+    // Le message doit porter les numéros : sinon la réponse « 1 3 » ne voudrait rien dire.
+    return numerotees.every((_, i) => new RegExp(`(^|\\n)\\s*${i + 1}[.)]`).test(m)) ? m : secours;
+  } catch {
+    return secours;
+  }
+}
+
+/** Pure : le message sans le modèle, quand personne n'a décroché. */
+export function messagePasDeReponse(a, props) {
+  const relance = props.find((p) => p.type === 'relance')?.prochaine;
+  const numerotees = props.filter((p) => p.type !== 'statut');
+  if (numerotees.some((p) => p.type === 'mail')) {
+    return [`Troisième appel sans réponse chez ${a.nom}. Je te propose :`, ...numerotees.map((p, i) => `${i + 1}. ${p.titre}`), 'Je fais tout ?'].join('\n');
+  }
+  return `Pas de réponse chez ${a.nom}. Je te le remets ${relance ? `le ${R.dateCourte(relance.le)}, ${relance.moment ? `plutôt ${relance.moment}` : ''}`.trim() : 'plus tard'}. Ça te va ? (dis-moi « 1 » et je le note, ou une autre date)`;
+}
+
+/**
  * L'appel terminé : transcription (ou récit), lecture par AK, propositions.
  * @param {{agent_id, audio?: Buffer, recit?: string, sans_reponse?: boolean, duree_s?: number, par: string}} x
  */
@@ -188,7 +234,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   const r = reglages();
   const autres = tousLesAgents().filter((x) => x.id !== a.id && a.agence && R.norm(x.agence) === R.norm(a.agence) && x.statut !== 'archive' && x.telephones?.length);
   const { issue, propositions: props } = propositions(a, lu, { maintenant, criteres: r.criteres, objet_criteres: r.objet_criteres, autres_de_l_agence: autres });
-  const message = messageDAK(a, { ...lu, issue }, props);
+  const message = issue === 'pas_de_reponse' ? messagePasDeReponse(a, props) : await messageVivant(a, { ...lu, issue }, props, par);
   const appel = Records.create(ENTITE, {
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
     transcription, recit, resume: lu.resume || null, issue, date_dite: lu.date_dite || null,

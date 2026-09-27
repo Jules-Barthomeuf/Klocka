@@ -79,7 +79,7 @@ export function societesDe(cibles, suivis = {}) {
     const cle = p.siren || `nom:${norm(p.nom)}`;
     const s = par.get(cle) || { cle, siren: p.siren, nom: p.nom, forme: p.forme, demarchable: estDemarchable(p), gerants: gerantsPersonnes(c.societe), siege: c.societe?.siege?.adresse || null, creation: c.societe?.creation || null, murs: [] };
     if (!s.gerants.length) s.gerants = gerantsPersonnes(c.societe);
-    s.murs.push({ cible_id: c.id, enseigne: c.enseigne || null, activite: c.activite || null, adresse: c.adresse, rue: c.rue || null, emplacement: c.emplacement ?? null, pile: c.pile || null, depuis: depuisDe(c), mutation: c.mutation?.date ? { date: c.mutation.date, prix: c.mutation.prix ?? null, du_local: !!c.mutation.du_local } : null, fourchette: c.valorisation?.fourchette_estimee || null });
+    s.murs.push({ cible_id: c.id, enseigne: c.enseigne || null, activite: c.activite || null, categorie_activite: c.categorie_activite || null, adresse: c.adresse, lat: c.lat ?? null, lon: c.lon ?? null, rue: c.rue || null, emplacement: c.emplacement ?? null, pile: c.pile || null, depuis: depuisDe(c), mutation: c.mutation?.date ? { date: c.mutation.date, prix: c.mutation.prix ?? null, du_local: !!c.mutation.du_local } : null, fourchette: c.valorisation?.fourchette_estimee || null });
     par.set(cle, s);
   }
   return [...par.values()]
@@ -97,7 +97,7 @@ function poserSuivi(villeId, cle, champs) {
   return s ? Records.update(ENTITE, s.id, { ...champs, maj_le: new Date().toISOString() }) : Records.create(ENTITE, { ville_id: villeId, cle, ...champs, maj_le: new Date().toISOString() });
 }
 
-export const societesDeLaVille = (villeId) => societesDe(Records.filter('Cible', { ville_id: villeId }), suivisDe(villeId));
+export const societesDeLaVille = (villeId, cibles = Records.filter('Cible', { ville_id: villeId })) => societesDe(cibles, suivisDe(villeId));
 
 // ---------------------------------------------------------------------------
 // Apollo : le mail des gérants

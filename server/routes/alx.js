@@ -614,11 +614,22 @@ export function monterAlx(app) {
   app.get('/api/alx/demarchage', wrap(async (req, res) => {
     const u = currentUser(req);
     if (u?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
-    const { listerVillesLeger } = await import('../alx/index.js');
-    const villes = listerVillesLeger().map((v) => {
-      const cibles = Records.filter('Cible', { ville_id: v.id });
+    // Pas de listerVillesLeger ici : il compte les piles ville par ville, une
+    // lecture des commerces de plus pour un chiffre que la page n'affiche pas.
+    // Les commerces sont comptés par la base, trois champs chacun : les
+    // désérialiser tous prenait des secondes, ville après ville.
+    const parVille = new Map();
+    for (const c of Records.champs('Cible', ['ville_id', 'societe.siren', 'proprietaire.siren'])) {
+      const x = parVille.get(c.ville_id) || { n: 0, sirens: new Set() };
+      x.n += 1;
+      const siren = c['societe.siren'] || c['proprietaire.siren'];
+      if (siren) x.sirens.add(siren);
+      parVille.set(c.ville_id, x);
+    }
+    const villes = Records.list('Ville').filter((v) => !v.cachee).map((v) => {
+      const cibles = parVille.get(v.id) || { n: 0, sirens: new Set() };
       const suivis = Records.filter('SocieteAlx', { ville_id: v.id });
-      return { id: v.id, nom: v.nom, commerces: cibles.length, proprietaires: new Set(cibles.map((c) => c.societe?.siren || c.proprietaire?.siren).filter(Boolean)).size, envoyes: suivis.filter((x) => x.envoye_le).length, reponses: suivis.filter((x) => x.etat === 'repondu').length, parcours: v.parcours ? { etat: v.parcours.etat, phase: v.parcours.phase, rues_total: v.parcours.rues_total || 0, rues_faites: (v.parcours.rues_faites_noms || []).length, rue_en_cours: v.parcours.rue_en_cours || null } : null };
+      return { id: v.id, nom: v.nom, commerces: cibles.n, proprietaires: cibles.sirens.size, envoyes: suivis.filter((x) => x.envoye_le).length, reponses: suivis.filter((x) => x.etat === 'repondu').length, parcours: v.parcours ? { etat: v.parcours.etat, phase: v.parcours.phase, rues_total: v.parcours.rues_total || 0, rues_faites: (v.parcours.rues_faites_noms || []).length, rue_en_cours: v.parcours.rue_en_cours || null } : null };
     }).filter((v) => v.commerces || v.parcours?.etat === 'en_cours').sort((a, b) => b.commerces - a.commerces);
     ok(res, { villes });
   }));
@@ -629,19 +640,18 @@ export function monterAlx(app) {
     const v = Records.get('Ville', req.params.ville);
     if (!v) return res.status(404).json({ error: 'Ville inconnue.' });
     const D = await import('../alx/demarchage.js');
-    const societes = D.societesDeLaVille(v.id);
-    const parCible = new Map();
-    for (const s of societes) for (const m of s.murs) parCible.set(m.cible_id, s);
-    const commerces = Records.filter('Cible', { ville_id: v.id }).map((c) => {
-      const s = parCible.get(c.id);
-      return { id: c.id, enseigne: c.enseigne, activite: c.activite, categorie_activite: c.categorie_activite || null, adresse: c.adresse, lat: c.lat ?? null, lon: c.lon ?? null, rue: c.rue, emplacement: c.emplacement ?? null, pile: c.pile || null, exclue: !!c.activite_exclue, proprietaire: s ? { cle: s.cle, nom: s.nom, forme: s.forme, demarchable: s.demarchable } : null, depuis: D.depuisDe(c), mutation: c.mutation?.date ? { date: c.mutation.date, prix: c.mutation.prix ?? null, du_local: !!c.mutation.du_local } : null, gerants: s?.gerants || [], contact: s?.contacts?.find((x) => x.email) || s?.contacts?.[0] || null, etat: s?.etat || null };
-    }).sort((a, b) => String(a.rue || '').localeCompare(String(b.rue || '')) || String(a.adresse).localeCompare(String(b.adresse), 'fr', { numeric: true }));
+    const cibles = Records.filter('Cible', { ville_id: v.id });
+    const societes = D.societesDeLaVille(v.id, cibles);
+    // La page n'affiche des commerces que leurs deux comptes : la liste
+    // entière pesait près d'un mégaoctet par ville, pour deux chiffres.
+    const detenus = new Set(societes.flatMap((s) => s.murs.map((m) => m.cible_id)));
     const p = v.parcours || {};
     ok(res, {
       ville: { id: v.id, nom: v.nom },
       parcours: { etat: p.etat || null, phase: p.phase || null, rues_total: p.rues_total || 0, rues_faites: (p.rues_faites_noms || []).length, rue_en_cours: p.rue_en_cours || null, journal: (p.journal || []).slice(-6) },
       apollo: D.apolloConfigure(),
-      commerces, societes,
+      compte: { commerces: cibles.length, detenus: cibles.filter((c) => detenus.has(c.id)).length },
+      societes,
     });
   }));
 

@@ -8,8 +8,9 @@ import {
   UtensilsCrossed, X,
 } from "lucide-react";
 import { toast } from "@/components/ui/avis";
-import { Bouton, joliNom, Nombre } from "@/components/alx/alx-commun";
-import CarteGoogle from "@/components/CarteGoogle";
+import { Bouton, euros, joliNom, Nombre, TEINTES, Urgence } from "@/components/alx/alx-commun";
+import CarteMurs from "@/components/alx/CarteMurs";
+import { ceQueFait, urlStreetView } from "@/components/alx/fiche-commerce";
 
 // ALX, côté résultat, dans le registre visuel de l'atelier (Figtree + capitales
 // Montserrat, halo posé par le Layout, surfaces de verre). On ne lance rien
@@ -125,51 +126,101 @@ function CarteCommerce({ m, onOuvrir }) {
   );
 }
 
-function FicheCommerce({ m, onFermer }) {
+const VERDICTS = {
+  appeler: ["Va vendre", TEINTES.ecrire],
+  ecrire: ["Vendra un jour", TEINTES.ecrire],
+  surveiller: ["Peu de chances pour l'instant", TEINTES.appeler],
+  ecartee: ["Écartée", TEINTES.muet],
+};
+const pourcent = (x) => (x == null ? "—" : `${String(Math.round(x * 1000) / 10).replace(".", ",")} %`);
+const CLE_EMBED = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+// La fiche d'un commerce, dans le panneau de sa société : la façade dans
+// Street View, puis ce que dit la fiche complète (le commerce, va vendre ou
+// pas, loyer, prix, la dernière vente). Pas d'autre fenêtre à ouvrir.
+function DetailCommerce({ m, onRetour, retour }) {
+  const { data: c, refetch } = useQuery({ queryKey: ["alx-cible", m.cible_id], queryFn: () => base44.request("GET", `/api/alx/cibles/${m.cible_id}`) });
+  // Le point de vue face à la vitrine, calculé une fois puis gardé : sans
+  // lui, Street View s'ouvre au hasard dans la rue.
+  const sansVue = !!c && !c.vue?.pano && !c.photo?.pano && c.lat != null && c.lon != null;
+  useEffect(() => {
+    if (!sansVue) return;
+    base44.request("POST", `/api/alx/cibles/${m.cible_id}/vue`, { body: {} }).then(() => refetch()).catch(() => {});
+  }, [m.cible_id, sansVue, refetch]);
+  const x = c || { ...m, id: m.cible_id };
+  const v = x.valorisation || {};
+  const ml = x.score_ml?.tranche ? x.score_ml : null;
+  const [verdict, teinte] = VERDICTS[x.pile] || VERDICTS.surveiller;
+  const raisons = ml?.raisons?.length ? ml.raisons.filter((r) => r.sens > 0).map((r) => r.phrase)
+    : [...(x.signaux?.forts || []), ...(x.signaux?.patients || [])].map((r) => r.libelle + (r.valeur ? ` (${r.valeur})` : ""));
+  const loyer = v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—";
+  const prix = v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : v.fourchette_estimee ? `~ ${euros(v.fourchette_estimee[0])} – ${euros(v.fourchette_estimee[1])}` : "—";
+  const surface = v.surface ? `${v.surface} m²` : v.surface_estimee ? `${v.surface_estimee[0]}–${v.surface_estimee[1]} m², estimée` : null;
   return (
-    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-fond/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" onClick={onFermer}>
-      <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[520px] overflow-hidden rounded-[20px] border border-trait bg-surface shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-        <div className="p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className={etiq}>{m.activite || "Activité à qualifier"}</p>
-              <h3 className="m-0 mt-1 text-[20px] font-semibold text-encre">{joliNom(m.enseigne) || "Local commercial"}</h3>
-              <p className="m-0 mt-1 flex items-center gap-1.5 text-[13px] text-ardoise"><MapPin className="h-3.5 w-3.5" />{m.adresse}</p>
-            </div>
-            <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
-          </div>
-          <p className="m-0 mt-3 text-[12.5px] text-ardoise">{m.depuis?.date ? `Détenu depuis ${m.depuis.source?.startsWith("création") ? "au plus tard " : ""}${annee(m.depuis.date)}` : "Date de détention inconnue"}{m.emplacement ? ` · Emplacement n°${m.emplacement === 1.5 ? "1 bis" : m.emplacement}` : ""}</p>
-        </div>
-        <div className="px-6 pb-6">
-          <CarteGoogle adresse={m.lat == null ? m.adresse : undefined} lat={m.lat} lon={m.lon} hauteur="h-64" />
-        </div>
-        <div className="flex justify-end border-t border-trait px-6 py-3">
-          <Link to={`/ALXCible?id=${m.cible_id}`} className="inline-flex items-center gap-1 text-[12.5px] text-menthe hover:text-menthe-clair">Ouvrir la fiche du commerce <ChevronRight className="h-3.5 w-3.5" /></Link>
-        </div>
+    <div className="alx-entree">
+      <button type="button" onClick={onRetour} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>← {retour}</button>
+      <p className={`${etiq} mt-4`}>{x.activite || "Activité à qualifier"}</p>
+      <h3 className="m-0 mt-1 text-[21px] font-semibold tracking-[-.01em] text-encre">{joliNom(x.enseigne) || "Local commercial"}</h3>
+      <p className="m-0 mt-1 flex items-center gap-1.5 text-[13px] text-ardoise"><MapPin className="h-3.5 w-3.5" />{x.adresse}</p>
+
+      <div className="mt-4 isolate h-60 overflow-hidden rounded-[16px] border border-trait">
+        {CLE_EMBED ? <iframe key={c?.vue?.pano || c?.photo?.pano || "position"} title={`Façade ${x.adresse}`} src={urlStreetView(x, CLE_EMBED, 90)} className="h-full w-full border-0" allowFullScreen loading="lazy" />
+          : <div className="grid h-full place-items-center px-6 text-center text-[12.5px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY.</div>}
       </div>
+
+      {!c ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : (
+        <div className="mt-5 flex flex-col gap-5">
+          <div>
+            <p className={etiq}>Le commerce</p>
+            <p className="m-0 mt-1.5 text-[13.5px] leading-[1.6] text-craie">{ceQueFait(c).join(" ")}</p>
+          </div>
+          <div className="rounded-[14px] border px-4 py-3.5" style={{ borderColor: `${teinte}47` }}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className={etiq}>Va vendre ou pas</p>
+              <span className="text-[12.5px]" style={{ color: teinte }}>{verdict}</span>
+            </div>
+            <div className="mt-2"><Urgence c={c} compact /></div>
+            {ml && <p className="m-0 mt-2.5 text-[13px] leading-[1.55] text-encre"><span style={{ color: teinte }}>{pourcent(ml.tranche.taux)}</span> des adresses de ce niveau ont vu un local se vendre dans l'année, contre {pourcent(ml.tranche.prevalence)} en moyenne.</p>}
+            {(raisons.length ? raisons : [c.motif]).filter(Boolean).length > 0 && (
+              <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0 text-[13px] text-craie">
+                {(raisons.length ? raisons : [c.motif]).filter(Boolean).slice(0, 5).map((r) => <li key={r}><span style={{ color: teinte }}>—</span> {r}</li>)}
+              </ul>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><p className={etiq}>Loyer estimé</p><p className="m-0 mt-1"><Nombre taille={15}>{loyer}</Nombre></p>{v.loyer_source && <p className="m-0 mt-0.5 text-[11.5px] text-brume">{v.loyer_source}</p>}</div>
+            <div><p className={etiq}>Prix estimé</p><p className="m-0 mt-1"><Nombre taille={15}>{prix}</Nombre></p>{surface && <p className="m-0 mt-0.5 text-[11.5px] text-brume">{surface}</p>}</div>
+          </div>
+          <p className="m-0 text-[12.5px] text-ardoise">
+            {m.depuis?.date ? `Détenu depuis ${m.depuis.source?.startsWith("création") ? "au plus tard " : ""}${annee(m.depuis.date)}` : "Date de détention inconnue"}
+            {c.mutation?.date ? ` · dernière vente autour en ${annee(c.mutation.date)}${c.mutation.prix ? ` : ${euros(c.mutation.prix)}` : ""}` : ""}
+            {c.emplacement ? ` · emplacement n°${c.emplacement === 1.5 ? "1 bis" : c.emplacement}` : ""}
+          </p>
+          <Link to={`/ALXCible?id=${m.cible_id}`} className="inline-flex items-center gap-1 text-[12.5px] text-menthe hover:text-menthe-clair">Ouvrir la fiche complète <ChevronRight className="h-3.5 w-3.5" /></Link>
+        </div>
+      )}
     </div>
   );
 }
 
-// La grille de cartes des murs d'une société.
-function GrilleMurs({ s, onFermer }) {
-  const [ouvert, setOuvert] = useState(null);
+// Les murs d'une société : sur la carte de la ville, ou en vue réduite.
+function MursDeLaSociete({ s, onOuvrir }) {
+  const avecPosition = s.murs.some((m) => Number.isFinite(m.lat) && Number.isFinite(m.lon));
+  const [vue, setVue] = useState(avecPosition ? "carte" : "liste");
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fond/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true" onClick={onFermer}>
-      <div onClick={(e) => e.stopPropagation()} className="alx-entree flex max-h-[80vh] w-full max-w-[720px] flex-col overflow-hidden rounded-[20px] border border-trait bg-surface shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-        <div className="flex items-start justify-between gap-3 p-6 pb-4">
-          <div>
-            <p className={etiq}>{joliNom(s.nom)}</p>
-            <h3 className="m-0 mt-1 text-[18px] font-semibold text-encre">Ses murs dans la ville · {s.murs.length}</h3>
-          </div>
-          <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 overflow-y-auto px-6 pb-6 sm:grid-cols-3">
-          {s.murs.map((m) => <CarteCommerce key={m.cible_id} m={m} onOuvrir={() => setOuvert(m)} />)}
+    <section className="mt-6">
+      <div className="flex items-center justify-between gap-3">
+        <p className={etiq}>Ses murs dans la ville · {s.murs.length}</p>
+        <div className="inline-flex gap-1">
+          {[["carte", "Carte"], ["liste", "Vue réduite"]].map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setVue(k)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-bord text-brume hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
+          ))}
         </div>
       </div>
-      {ouvert && <FicheCommerce m={ouvert} onFermer={() => setOuvert(null)} />}
-    </div>
+      {vue === "carte"
+        ? <CarteMurs murs={s.murs} onOuvrir={onOuvrir} className="mt-3 h-72" />
+        : <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{s.murs.map((m) => <CarteCommerce key={m.cible_id} m={m} onOuvrir={() => onOuvrir(m)} />)}</div>}
+    </section>
   );
 }
 
@@ -179,7 +230,10 @@ function GrilleMurs({ s, onFermer }) {
 
 function PanneauSociete({ villeId, s, onFermer }) {
   const queryClient = useQueryClient();
-  const [murs, setMurs] = useState(false);
+  const [commerce, setCommerce] = useState(null);
+  const panneau = useRef(null);
+  useEffect(() => { setCommerce(null); }, [s.cle]);
+  const ouvrirCommerce = (m) => { setCommerce(m); panneau.current?.scrollTo({ top: 0 }); };
   const [objet, setObjet] = useState(s.message?.objet || "");
   const [corps, setCorps] = useState(s.message?.corps || "");
   const [a, setA] = useState(s.message?.a || s.contacts.find((c) => c.email)?.email || "");
@@ -200,7 +254,8 @@ function PanneauSociete({ villeId, s, onFermer }) {
 
   return (
     <>
-      <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[560px] overflow-y-auto border-l border-trait bg-surface p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)]">
+      <div ref={panneau} className="fixed inset-y-0 right-0 z-40 w-full max-w-[600px] overflow-y-auto border-l border-trait bg-surface p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+        {commerce ? <DetailCommerce m={commerce} retour={joliNom(s.nom)} onRetour={() => setCommerce(null)} /> : (<>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className={etiq}>{s.forme || "Société"} {s.siren ? `· ${s.siren}` : ""}</p>
@@ -210,10 +265,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
           <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
         </div>
 
-        <button type="button" onClick={() => setMurs(true)} className="mt-6 flex w-full items-center justify-between rounded-[14px] border border-trait px-4 py-3.5 text-left transition-colors hover:border-menthe/50">
-          <span className="text-[13.5px] text-encre">Ses murs dans la ville</span>
-          <span className="flex items-center gap-1.5 text-[13.5px] text-menthe"><Nombre>{s.murs.length}</Nombre><ChevronRight className="h-4 w-4" /></span>
-        </button>
+        <MursDeLaSociete s={s} onOuvrir={ouvrirCommerce} />
 
         <p className={`${etiq} mt-6`}>Gérants</p>
         <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0 text-[13px] text-encre">
@@ -263,8 +315,8 @@ function PanneauSociete({ villeId, s, onFermer }) {
             </div>
           </section>
         ) : <p className="mt-7 border-t border-trait pt-6 text-[12.5px] text-brume">Propriétaire public ou non démarchable : pas de message.</p>}
+        </>)}
       </div>
-      {murs && <GrilleMurs s={s} onFermer={() => setMurs(false)} />}
     </>
   );
 }
@@ -324,7 +376,8 @@ export default function ALXDemarchage() {
   const travailFini = useRef(false);
 
   const villes = useQuery({ queryKey: ["alx-demarchage-villes"], queryFn: () => base44.request("GET", "/api/alx/demarchage"), refetchInterval: 30000 });
-  const villeId = villeParam || villes.data?.villes?.[0]?.id || null;
+  // Aucune ville n'est ouverte d'office : on la choisit, et seule celle-là se charge.
+  const villeId = villeParam || null;
   const d = useQuery({
     queryKey: ["alx-demarchage", villeId],
     queryFn: () => base44.request("GET", `/api/alx/demarchage/${villeId}`),
@@ -361,8 +414,8 @@ export default function ALXDemarchage() {
   const p = data?.parcours;
   const tous = data?.societes || [];
   const compteurs = data ? [
-    ["Commerces", data.commerces.length],
-    ["Détenus par une société", data.commerces.filter((c) => c.proprietaire).length],
+    ["Commerces", data.compte.commerces],
+    ["Détenus par une société", data.compte.detenus],
     ["Sociétés à démarcher", tous.filter((s) => s.demarchable).length],
     ["Joignables par mail", tous.filter((s) => s.contacts.some((c) => c.email)).length],
     ["Messages envoyés", tous.filter((s) => s.envoye_le).length],
@@ -398,6 +451,7 @@ export default function ALXDemarchage() {
           ))}
           {!villes.isLoading && !(villes.data?.villes || []).length && <p className="m-0 text-[13.5px] text-ardoise">Aucune ville encore : demande à l'assistant « prospecte Cannes ».</p>}
         </div>
+        {!villeId && (villes.data?.villes || []).length > 0 && <p className="m-0 py-10 text-center text-[13.5px] text-ardoise">Choisis une ville pour voir ses sociétés.</p>}
 
         {p?.etat === "en_cours" && (
           <section className="alx-entree mb-5 rounded-[18px] border border-trait bg-surface p-6">

@@ -91,6 +91,10 @@ db.exec(`
     ON records(json_extract(data, '$.email')) WHERE entity = 'User';
   CREATE INDEX IF NOT EXISTS idx_records_deal_id
     ON records(json_extract(data, '$.deal_id')) WHERE entity = 'Deal';
+  -- Les commerces d'ALX se lisent ville par ville : des milliers de fiches
+  -- lourdes, qu'on ne désérialise plus toutes pour en garder une ville.
+  CREATE INDEX IF NOT EXISTS idx_records_ville_id
+    ON records(entity, json_extract(data, '$.ville_id'));
 
   CREATE TABLE IF NOT EXISTS conversations (
     id            TEXT PRIMARY KEY,
@@ -179,11 +183,36 @@ export const Records = {
   },
 
   filter(entity, query, { sort, limit } = {}) {
-    const rows = db.prepare('SELECT * FROM records WHERE entity = ?').all(entity);
+    // Les égalités sur une chaîne descendent dans la base : SQLite écarte les
+    // lignes avant qu'on les désérialise. Le filtre JavaScript reste derrière,
+    // seul juge (null, booléens, tableaux ne se comparent pas pareil en SQL).
+    const sql = ['SELECT * FROM records WHERE entity = ?'];
+    const params = [entity];
+    for (const [k, v] of Object.entries(query || {})) {
+      if (typeof v !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) continue;
+      sql.push(`AND json_extract(data, '$.${k}') = ?`);
+      params.push(v);
+    }
+    const rows = db.prepare(sql.join(' ')).all(...params);
     let records = rows.map(rowToRecord).filter((r) => matchesQuery(r, query));
     records = applySort(records, sort || '-created_date');
     if (limit != null) records = records.slice(0, limit);
     return records;
+  },
+
+  /**
+   * Quelques champs de chaque enregistrement, lus par la base sans
+   * désérialiser le reste. Pour compter sur des milliers de fiches lourdes
+   * (les commerces d'ALX) quand on n'a besoin que de deux ou trois valeurs.
+   *
+   * @param {string[]} chemins  chemins pointés, « societe.siren »
+   * @returns {object[]}  une ligne par enregistrement, clés = chemins
+   */
+  champs(entity, chemins) {
+    const valides = chemins.filter((c) => /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(c));
+    const cols = valides.map((c, i) => `json_extract(data, '$.${c}') AS c${i}`).join(', ');
+    return db.prepare(`SELECT ${cols || 'id'} FROM records WHERE entity = ?`).all(entity)
+      .map((r) => Object.fromEntries(valides.map((c, i) => [c, r[`c${i}`]])));
   },
 
   get(entity, id) {

@@ -274,6 +274,69 @@ export async function suivre({ maintenant = new Date() } = {}) {
 }
 
 /** Envoie la relance préparée, après relecture. */
+// ---------------------------------------------------------------------------
+// L'enrichissement en lot, choisi à la main, avec suivi de progression
+// ---------------------------------------------------------------------------
+//
+// Deux phases visibles : Apollo cherche les gérants des sociétés choisies,
+// puis les messages s'écrivent pour celles qui ont un mail. En mémoire, un
+// travail à la fois par ville ; la page interroge son avancement.
+
+const travaux = new Map();
+const PLAFOND_LOT = 150;
+
+export function travailEnCours(villeId) {
+  for (const t of travaux.values()) if (t.ville_id === villeId && t.etat !== 'fini' && t.etat !== 'erreur') return t;
+  return null;
+}
+export const etatEnrichissement = (id) => travaux.get(id) || null;
+
+/**
+ * Lance l'enrichissement Apollo puis la rédaction pour les sociétés choisies.
+ * Rend l'identifiant du travail tout de suite ; la page l'interroge.
+ */
+export function lancerEnrichissement(villeId, cles, user) {
+  if (!apolloConfigure()) return { ok: false, error: 'Apollo n\'est pas branché : APOLLO_API_KEY manque.' };
+  const dejaEnCours = travailEnCours(villeId);
+  if (dejaEnCours) return { ok: true, id: dejaEnCours.id };
+  const id = `${villeId}-${Date.now()}`;
+  const liste = [...new Set(cles)].slice(0, PLAFOND_LOT);
+  const travail = { id, ville_id: villeId, etat: 'apollo', avance: 0, total: liste.length, recherches: 0, trouves: 0, messages: 0, erreur: null, tronque: cles.length > liste.length };
+  travaux.set(id, travail);
+  (async () => {
+    try {
+      for (const cle of liste) {
+        const s = societesDeLaVille(villeId).find((x) => x.cle === cle);
+        travail.avance += 1;
+        if (!s?.demarchable || s.contacts.length || !s.gerants.length) continue;
+        const contacts = [];
+        for (const g of s.gerants.slice(0, 3)) {
+          travail.recherches += 1;
+          const c = await chercherGerant(g, s).catch((e) => { travail.erreur = e.message; return null; });
+          if (c) contacts.push(c);
+        }
+        poserSuivi(villeId, cle, { contacts, contacts_le: new Date().toISOString() });
+        if (contacts.some((c) => c.email)) travail.trouves += 1;
+      }
+      travail.etat = 'messages';
+      travail.avance = 0;
+      for (const cle of liste) {
+        const s = societesDeLaVille(villeId).find((x) => x.cle === cle);
+        travail.avance += 1;
+        if (s?.demarchable && !s.message && s.contacts.some((c) => c.email)) {
+          await redigerPourSociete(villeId, cle, user);
+          travail.messages += 1;
+        }
+      }
+      travail.etat = 'fini';
+    } catch (e) {
+      travail.etat = 'erreur';
+      travail.erreur = e?.message || String(e);
+    }
+  })();
+  return { ok: true, id };
+}
+
 export async function envoyerRelance(villeId, cle, user) {
   const s = Records.filter(ENTITE, { ville_id: villeId, cle })[0];
   if (s?.relance?.etat !== 'prete') return { ok: false, error: 'Pas de relance prête.' };

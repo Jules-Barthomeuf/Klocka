@@ -634,7 +634,7 @@ export function monterAlx(app) {
     for (const s of societes) for (const m of s.murs) parCible.set(m.cible_id, s);
     const commerces = Records.filter('Cible', { ville_id: v.id }).map((c) => {
       const s = parCible.get(c.id);
-      return { id: c.id, enseigne: c.enseigne, activite: c.activite, adresse: c.adresse, rue: c.rue, emplacement: c.emplacement ?? null, pile: c.pile || null, exclue: !!c.activite_exclue, proprietaire: s ? { cle: s.cle, nom: s.nom, forme: s.forme, demarchable: s.demarchable } : null, depuis: D.depuisDe(c), mutation: c.mutation?.date ? { date: c.mutation.date, prix: c.mutation.prix ?? null, du_local: !!c.mutation.du_local } : null, gerants: s?.gerants || [], contact: s?.contacts?.find((x) => x.email) || s?.contacts?.[0] || null, etat: s?.etat || null };
+      return { id: c.id, enseigne: c.enseigne, activite: c.activite, categorie_activite: c.categorie_activite || null, adresse: c.adresse, lat: c.lat ?? null, lon: c.lon ?? null, rue: c.rue, emplacement: c.emplacement ?? null, pile: c.pile || null, exclue: !!c.activite_exclue, proprietaire: s ? { cle: s.cle, nom: s.nom, forme: s.forme, demarchable: s.demarchable } : null, depuis: D.depuisDe(c), mutation: c.mutation?.date ? { date: c.mutation.date, prix: c.mutation.prix ?? null, du_local: !!c.mutation.du_local } : null, gerants: s?.gerants || [], contact: s?.contacts?.find((x) => x.email) || s?.contacts?.[0] || null, etat: s?.etat || null };
     }).sort((a, b) => String(a.rue || '').localeCompare(String(b.rue || '')) || String(a.adresse).localeCompare(String(b.adresse), 'fr', { numeric: true }));
     const p = v.parcours || {};
     ok(res, {
@@ -657,5 +657,13 @@ export function monterAlx(app) {
   app.post('/api/alx/demarchage/:ville/societes/:cle/message', demarchage((D, req) => D.modifierMessage(req.params.ville, req.params.cle, req.body || {})));
   app.post('/api/alx/demarchage/:ville/societes/:cle/envoyer', demarchage((D, req, u) => D.envoyer(req.params.ville, req.params.cle, u)));
   app.post('/api/alx/demarchage/:ville/societes/:cle/relance', demarchage((D, req, u) => D.envoyerRelance(req.params.ville, req.params.cle, u)));
+  app.post('/api/alx/demarchage/:ville/enrichir', demarchage((D, req, u) => D.lancerEnrichissement(req.params.ville, Array.isArray(req.body?.cles) ? req.body.cles.map(String) : [], u)));
+  app.get('/api/alx/demarchage/enrichir/:id', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const D = await import('../alx/demarchage.js');
+    const t = D.etatEnrichissement(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Travail introuvable.' });
+    ok(res, t);
+  }));
   app.post('/api/alx/demarchage/:ville/societes/:cle/appel', demarchage((D, req, u) => D.noterAppel(req.params.ville, req.params.cle, { issue: req.body?.issue || 'sans_reponse', note: req.body?.note || null, user: u })));
 }

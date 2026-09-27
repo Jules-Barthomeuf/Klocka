@@ -388,14 +388,15 @@ function LayoutContent({ children, currentPageName }) {
   // les pages, dont les surfaces sont du verre. La nav s'efface pour le
   // laisser passer, floutant ce qui défile derrière elle.
   //
-  // Deux exceptions. ALX garde son noir sur son accueil, qui fait tenir ses
-  // cartes ; la carte d'un investisseur et la page d'une ville sont des pages
-  // de travail comme les autres, et reçoivent le halo. Le dashboard admin
+  // Deux exceptions. L'atelier ALX garde son noir sur son accueil, qui fait
+  // tenir ses cartes ; la carte d'un investisseur et la page d'une ville sont
+  // des pages de travail comme les autres, et reçoivent le halo. La page ALX
+  // de la prospection off-market a le même fond que Prospection. Le dashboard admin
   // garde les nappes menthe du plan de travail : deux halos l'un sur l'autre
   // ne font pas un fond.
   const fondHalo = !hideNavbar
     && !(currentPageName === "Dashboard" && !showClientView)
-    && !(currentPageName === "ALX" && !["carte", "ville"].some((c) => new URLSearchParams(location.search).has(c)));
+    && !(currentPageName === "ALXAtelier" && !["carte", "ville"].some((c) => new URLSearchParams(location.search).has(c)));
 
   // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »
   // sont la même page, et le lien Dossiers pointe sur le premier.

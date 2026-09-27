@@ -461,26 +461,27 @@ const STATUTS_GRILLE = { nouveau: ["À appeler", "neutre"], a_rappeler: ["À rap
 
 // Les colonnes de la grille : celles de la Sheet de l'équipe, puis ce que la plateforme sait.
 const COLONNES = [
-  { cle: "a_appeler", titre: "Pourquoi l'appeler", bloc: "Aujourd'hui", largeur: 260, lire: (a) => a.a_appeler?.raison || "" },
-  { cle: "statut", titre: "Statut", bloc: "Suivi", largeur: 150, statut: true },
-  { cle: "referent", titre: "Attribué à", bloc: "Suivi", largeur: 130, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
-  { cle: "telephones", titre: "Numéro", bloc: "Contact", largeur: 150, lire: (a) => (a.telephones || []).join(", "), liste: true },
-  { cle: "emails", titre: "Email", bloc: "Contact", largeur: 220, lire: (a) => (a.emails || []).join(", "), liste: true },
-  { cle: "agence", titre: "Entreprise", bloc: "Contact", largeur: 180 },
-  { cle: "poste", titre: "Poste", bloc: "Contact", largeur: 170 },
-  { cle: "immo_commercial", titre: "Immobilier commercial", bloc: "Qualification", largeur: 150 },
-  { cle: "specialite", titre: "Spécialité", bloc: "Qualification", largeur: 150 },
-  { cle: "reponse", titre: "Réponse", bloc: "Qualification", largeur: 180 },
-  { cle: "remarques", titre: "Remarque", bloc: "Qualification", largeur: 260 },
-  { cle: "bien_similaire", titre: "Bien à vendre similaire", bloc: "Qualification", largeur: 200 },
-  { cle: "secteurs", titre: "Secteurs", bloc: "Qualification", largeur: 160, lire: (a) => (a.secteurs || []).join(", "), liste: true },
-  { cle: "dernier_contact_le", titre: "Dernier contact", bloc: "Suivi", largeur: 120, lire: (a) => dateCourte(a.dernier_contact_le), fixe: true },
-  { cle: "prochaine", titre: "Prochaine action", bloc: "Suivi", largeur: 240, lire: (a) => (a.prochaine ? `${dateCourte(a.prochaine.le)} · ${a.prochaine.quoi}` : ""), fixe: true },
-  { cle: "resume_dernier_appel", titre: "Dernier appel", bloc: "Suivi", largeur: 260, fixe: true },
-  { cle: "annonces", titre: "Annonces Equimmox", bloc: "Plateforme", largeur: 120, lire: (a) => (a.annonces ? String(a.annonces) : ""), fixe: true },
-  { cle: "score", titre: "Score", bloc: "Plateforme", largeur: 80, lire: (a) => (a.score ? String(a.score) : ""), fixe: true },
-  { cle: "source", titre: "Source", bloc: "Plateforme", largeur: 150, fixe: true },
-  { cle: "linkedin", titre: "LinkedIn", bloc: "Contact", largeur: 180 },
+  { cle: "referent", titre: "Attribué à", largeur: 130, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
+  { cle: "appel", titre: "Appel", largeur: 130, appel: true },
+  { cle: "statut", titre: "Statut", largeur: 150, statut: true },
+  { cle: "agence", titre: "Entreprise", largeur: 180 },
+  { cle: "poste", titre: "Poste", largeur: 170 },
+  { cle: "emails", titre: "Email", largeur: 220, lire: (a) => (a.emails || []).join(", "), liste: true },
+  { cle: "telephones", titre: "Numéro", largeur: 150, lire: (a) => (a.telephones || []).join(", "), liste: true },
+  { cle: "immo_commercial", titre: "Immobilier commercial", largeur: 150 },
+  { cle: "specialite", titre: "Spécialité", largeur: 150 },
+  { cle: "reponse", titre: "Réponse", largeur: 180 },
+  { cle: "remarques", titre: "Remarque", largeur: 260 },
+  { cle: "bien_similaire", titre: "Bien à vendre similaire", largeur: 200 },
+  { cle: "linkedin", titre: "LinkedIn", largeur: 180 },
+  { cle: "a_appeler", titre: "Relance", largeur: 260, lire: (a) => a.a_appeler?.raison || "" },
+  { cle: "prochaine", titre: "Prochaine action", largeur: 240, lire: (a) => (a.prochaine ? `${dateCourte(a.prochaine.le)} · ${a.prochaine.quoi}` : ""), fixe: true },
+  { cle: "dernier_contact_le", titre: "Dernier contact", largeur: 120, lire: (a) => dateCourte(a.dernier_contact_le), fixe: true },
+  { cle: "resume_dernier_appel", titre: "Dernier appel", largeur: 260, fixe: true },
+  { cle: "secteurs", titre: "Secteurs", largeur: 160, lire: (a) => (a.secteurs || []).join(", "), liste: true },
+  { cle: "annonces", titre: "Annonces", largeur: 110, lire: (a) => (a.annonces ? String(a.annonces) : ""), fixe: true },
+  { cle: "score", titre: "Score", largeur: 80, lire: (a) => (a.score ? String(a.score) : ""), fixe: true },
+  { cle: "source", titre: "Source", largeur: 150, fixe: true },
 ];
 
 function Cellule({ agent, col, onEnregistrer }) {
@@ -588,14 +589,10 @@ function OngletGrille({ onAppeler }) {
         <div className="overflow-auto rounded-xl border border-relief" style={{ maxHeight: "calc(100vh - 290px)" }}>
           <table className="min-w-full border-collapse text-[12.5px]">
             <thead className="sticky top-0 z-20">
-              <tr className="bg-fond">
-                <th className="sticky left-0 z-30 min-w-[240px] border-b border-r border-relief bg-fond px-4 py-3 text-left text-[11px] font-normal uppercase tracking-[.16em] text-brume">Agent</th>
-                <th className="border-b border-r border-relief bg-fond px-3 py-3 text-left text-[11px] font-normal uppercase tracking-[.16em] text-brume">Appel</th>
+              <tr>
+                <th className="sticky left-0 z-30 min-w-[240px] border-b border-r border-relief px-4 py-3 text-left text-[12.5px] font-semibold text-encre backdrop-blur-xl">Agent</th>
                 {COLONNES.map((c) => (
-                  <th key={c.cle} className="border-b border-r border-relief bg-fond px-3 py-3 text-left align-top font-normal" style={{ minWidth: c.largeur }}>
-                    <span className="block text-[10.5px] uppercase tracking-[.14em] text-brume">{c.bloc}</span>
-                    <span className="mt-0.5 block text-[12.5px] font-semibold text-encre">{c.titre}</span>
-                  </th>
+                  <th key={c.cle} className="border-b border-r border-relief px-3 py-3 text-left text-[12.5px] font-semibold text-encre backdrop-blur-xl" style={{ minWidth: c.largeur }}>{c.titre}</th>
                 ))}
               </tr>
             </thead>
@@ -604,23 +601,21 @@ function OngletGrille({ onAppeler }) {
                 const pris = a.verrou && a.verrou.par !== undefined;
                 return (
                   <tr key={a.id} className={`hover:bg-encre/[0.02] ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
-                    <td className="sticky left-0 z-10 border-b border-r border-relief bg-fond px-4 py-2.5 align-top">
+                    <td className="sticky left-0 z-10 border-b border-r border-relief px-4 py-2.5 align-top backdrop-blur-xl">
                       <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[240px] truncate text-left text-[13px] font-semibold text-encre hover:text-menthe" style={{ background: "transparent" }}>{a.nom}</button>
                       <span className="block max-w-[240px] truncate text-[11.5px] text-brume">{[a.agence && a.agence !== a.nom ? a.agence : null, onglet ? null : a.onglet].filter(Boolean).join(" · ")}</span>
                     </td>
-                    <td className="border-b border-r border-relief px-3 py-2.5 align-top">
-                      {pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille>
-                        : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[11.5px] text-bord-vif">pas de contact</span>}
-                    </td>
                     {COLONNES.map((c) => (
                       <td key={c.cle} className="border-b border-r border-relief px-3 py-2.5 align-top" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
-                        <Cellule agent={a} col={c} onEnregistrer={(champs) => enregistrer.mutate({ id: a.id, champs })} />
+                        {c.appel ? (pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille>
+                          : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[11.5px] text-bord-vif">pas de contact</span>)
+                          : <Cellule agent={a} col={c} onEnregistrer={(champs) => enregistrer.mutate({ id: a.id, champs })} />}
                       </td>
                     ))}
                   </tr>
                 );
               })}
-              {!lignes.length && <tr><td colSpan={COLONNES.length + 2} className="px-4 py-10 text-center text-[13px] text-brume">{jour ? `Personne à appeler aujourd'hui${onglet ? ` à ${onglet}` : ""}. Passe sur « Tous les agents », ou relis Equimmox.` : "Aucun agent dans cet onglet."}</td></tr>}
+              {!lignes.length && <tr><td colSpan={COLONNES.length + 1} className="px-4 py-10 text-center text-[13px] text-brume">{jour ? `Personne à appeler aujourd'hui${onglet ? ` à ${onglet}` : ""}. Passe sur « Tous les agents », ou relis Equimmox.` : "Aucun agent dans cet onglet."}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -767,11 +762,10 @@ export default function Prospection() {
   const enAttente = jour.data?.appel_a_valider;
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6">
-      <header className="mb-5">
+      <header className="mb-6 text-center">
         <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
-        <p className="m-0 mt-2 max-w-[74ch] text-[14px] text-craie">{jour.data?.jour ? `${jourFr(jour.data.jour).replace(/^./, (c) => c.toUpperCase())}. ` : ""}Tu choisis qui appeler, tu parles. L'assistant écoute, puis t'écrit dans Google Chat ce qu'il ferait ; tu lui réponds, il s'en occupe. Rien ne part sans toi.</p>
       </header>
-      <nav className="mb-5 flex flex-wrap gap-1.5" aria-label="Onglets de la prospection">
+      <nav className="mb-5 flex flex-wrap justify-center gap-1.5" aria-label="Onglets de la prospection">
         {onglets.map(([cle, mot, n]) => (
           <button key={cle} type="button" onClick={() => setOnglet(cle)} className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${onglet === cle ? "border-menthe bg-menthe font-semibold text-sur-menthe" : "border-bord-doux text-craie hover:text-encre"}`}>
             {mot}{n ? <span className={`tabular-nums ${onglet === cle ? "" : "text-brume"}`}>{n}</span> : null}

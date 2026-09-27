@@ -296,7 +296,18 @@ function AlerteDoublons({ deja, nouvelles, onChoisir, onAnnuler }) {
 
 // ---------------------------------------------------------------------------
 
-const TH = "border-b border-trait px-3 py-3 text-left text-[11px] font-normal uppercase tracking-[.14em] text-ardoise";
+// Case à cocher maison : la native prend la teinte du système (violet sous
+// macOS) et un fond plein ; celle-ci reste transparente, menthe une fois cochée.
+function Case({ id, coche, onChange, label }) {
+  return (
+    <label htmlFor={id} className="relative inline-flex h-4 w-4 cursor-pointer items-center justify-center">
+      <input id={id} type="checkbox" checked={coche} onChange={(e) => onChange(e.target.checked)} aria-label={label} className="peer absolute inset-0 m-0 cursor-pointer appearance-none rounded-[5px] border border-bord-vif bg-transparent transition-colors checked:border-menthe focus-visible:outline focus-visible:outline-2 focus-visible:outline-menthe/60" />
+      {coche && <Check className="pointer-events-none relative h-3 w-3 text-menthe" strokeWidth={3} />}
+    </label>
+  );
+}
+
+const TH = "border-b border-trait px-3 py-3 text-left text-[12.5px] font-semibold text-encre";
 const TD = "border-b border-trait px-3 py-3 align-middle text-[13px]";
 
 export default function ALXDemarchage() {
@@ -372,17 +383,12 @@ export default function ALXDemarchage() {
   return (
     <div className="alx sur-halo min-h-screen">
       <div className="mx-auto w-full max-w-[1400px] px-4 py-10 md:px-8">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div className="flex flex-col gap-2.5">
-            <div className="h-0.5 w-10 rounded-full bg-menthe" />
-            <div className={etiq}>Prospection off-market</div>
-            <h1 className="m-0 text-[34px] font-semibold leading-[1.05] tracking-[-.025em] text-encre max-md:text-[26px]">Ce qu'ALX a trouvé</h1>
-            <p className="m-0 mt-1 max-w-[68ch] text-[13.5px] leading-[1.65] text-ardoise">Dis à l'assistant dans Google Chat « prospecte Cannes » : il lit les rues commerçantes, chaque commerce, qui détient les murs, et prépare un message par société. Rien ne part sans ton clic.</p>
-          </div>
-          <Link to="/ALXAtelier" className="text-[12.5px] text-ardoise hover:text-encre">L'atelier (rues, cartes, bilan) →</Link>
+        <header className="relative mb-8 text-center">
+          <h1 className="m-0 text-[38px] font-normal leading-[1.1] tracking-[-.02em] text-encre max-md:text-[28px]">Prospecter facilement en <span className="alx-serif italic text-menthe">off market</span></h1>
+          <Link to="/ALXAtelier" className="mt-3 inline-block text-[12.5px] text-brume hover:text-encre">L'atelier (rues, cartes, bilan) →</Link>
         </header>
 
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-wrap justify-center gap-2">
           {(villes.data?.villes || []).map((v) => (
             <button key={v.id} type="button" onClick={() => navigate(`/ALX?ville=${v.id}`)}
               className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] transition-colors ${villeId === v.id ? "border-menthe bg-menthe/10 text-encre" : "border-bord text-ardoise hover:border-bord-vif hover:text-encre"}`}>
@@ -403,11 +409,11 @@ export default function ALXDemarchage() {
 
         {data && (
           <>
-            <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-[16px] border border-trait bg-white/[0.07] sm:grid-cols-3 lg:grid-cols-6">
-              {compteurs.map(([l, n]) => (
-                <div key={l} className="bg-surface px-5 py-4">
-                  <p className={etiq}>{l}</p>
-                  <p className="m-0 mt-1.5"><Nombre taille={26}>{nf.format(n)}</Nombre></p>
+            <div className="mb-6 flex flex-wrap justify-center gap-y-4">
+              {compteurs.map(([l, n], k) => (
+                <div key={l} className={`px-6 text-center ${k ? "md:border-l md:border-trait" : ""}`}>
+                  <p className="m-0"><Nombre taille={26}>{nf.format(n)}</Nombre></p>
+                  <p className={`${etiq} mt-1`}>{l}</p>
                 </div>
               ))}
             </div>
@@ -428,10 +434,10 @@ export default function ALXDemarchage() {
 
             <div className="overflow-auto rounded-[16px] border border-trait" style={{ maxHeight: "calc(100vh - 380px)" }}>
               <table className="min-w-full border-collapse">
-                <thead className="sticky top-0 z-20 bg-fond">
+                <thead className="sticky top-0 z-20 backdrop-blur-xl">
                   <tr>
                     <th className={`${TH} w-10`}>
-                      <input id="tout-cocher" type="checkbox" checked={toutesCochees} onChange={(e) => setChoisies(e.target.checked ? new Set(societes.map((s) => s.cle)) : new Set())} className="h-4 w-4 accent-menthe" aria-label="Tout cocher" />
+                      <Case id="tout-cocher" coche={toutesCochees} onChange={(v) => setChoisies(v ? new Set(societes.map((s) => s.cle)) : new Set())} label="Tout cocher" />
                     </th>
                     {["Société", "Murs", "Gérants", "Contact", "Depuis", "Démarchage"].map((h) => <th key={h} className={TH}>{h}</th>)}
                   </tr>
@@ -443,7 +449,7 @@ export default function ALXDemarchage() {
                     return (
                       <tr key={s.cle} className={`transition-colors hover:bg-white/[0.02] ${ouverte === s.cle ? "bg-menthe/[0.05]" : ""}`}>
                         <td className={TD} onClick={(e) => e.stopPropagation()}>
-                          <input id={`cocher-${s.cle}`} type="checkbox" checked={choisies.has(s.cle)} onChange={() => basculer(s.cle)} className="h-4 w-4 accent-menthe" aria-label={`Choisir ${s.nom}`} />
+                          <Case id={`cocher-${s.cle}`} coche={choisies.has(s.cle)} onChange={() => basculer(s.cle)} label={`Choisir ${s.nom}`} />
                         </td>
                         <td className={`${TD} min-w-[220px] cursor-pointer font-medium text-encre`} onClick={() => setOuverte(s.cle)}>{joliNom(s.nom)}</td>
                         <td className={TD}><button type="button" onClick={() => setOuverte(s.cle)} className="inline-flex items-center gap-1 text-menthe" style={{ background: "transparent" }}><Nombre taille={13}>{s.murs.length}</Nombre> mur{s.murs.length > 1 ? "s" : ""}</button></td>

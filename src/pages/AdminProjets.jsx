@@ -12,8 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
-import AdminProjectCard from "../components/admin/AdminProjectCard";
-import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
+import LigneProjet, { TEINTE_ETAPE } from "../components/admin/LigneProjet";
 import { DialogueAssignerClient } from "../components/admin/AssignationProjets";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -1331,8 +1330,8 @@ export default function AdminProjets() {
     <div className="relative min-h-screen px-5 py-7 text-encre md:px-10 md:py-9">
       <div className="relative max-w-[1400px] mx-auto">
         {/* En-tête */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 max-md:mb-4">
-          <h1 className="m-0 text-[26px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[22px]">Gestion des projets</h1>
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-4 max-md:mb-5">
+          <h1 className="m-0 text-[30px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
             className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
@@ -1340,62 +1339,79 @@ export default function AdminProjets() {
           </button>
         </div>
 
-        {/* Les chiffres : une carte, cinq colonnes séparées d'un filet. */}
-        <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-[14px] border border-trait bg-surface-pleine sm:grid-cols-3 lg:grid-cols-5 max-md:mb-4">
-          {CHIFFRES.map((c, i) => (
-            <div key={i} className={`px-5 py-4 max-md:px-4 max-md:py-3.5 ${i > 0 ? "border-l border-trait max-md:border-l-0" : ""} ${i >= 2 ? "max-lg:border-t max-lg:border-trait" : ""}`}>
-              <div className={`text-[24px] font-normal leading-none tabular-nums max-md:text-[20px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
-              <div className="mt-1.5 text-[12.5px] text-ardoise">{c.label}</div>
+        {/* La synthèse : le total, trois chiffres, la barre des étapes et les filtres, dans une carte. */}
+        <div className="mb-8 rounded-[20px] border border-trait bg-surface-pleine px-7 py-6 max-md:mb-6 max-md:px-5">
+          <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+            <div className="flex items-baseline gap-3">
+              <span className="text-[44px] font-normal leading-none tracking-[-0.02em] tabular-nums text-encre max-md:text-[34px]">{actifs.length}</span>
+              <span className="text-[15px] text-ardoise">projets actifs</span>
             </div>
-          ))}
-        </div>
-
-        {/* Recherche + filtres, sur une ligne : le champ en pilule, les filtres en pilules. */}
-        <div className="mb-6 max-md:mb-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex min-w-[260px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2 transition-colors focus-within:border-bord-doux max-md:min-w-0 max-md:basis-full">
-              <Search className="w-4 h-4 text-ardoise flex-shrink-0" />
-              <input
-                placeholder="Rechercher un projet, une adresse, un client…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[14px]"
-              />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer" style={{ background: "transparent" }}>
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            <div className="flex flex-wrap gap-x-10 gap-y-3">
+              {CHIFFRES.slice(1, 4).map((c, i) => (
+                <div key={i}>
+                  <div className={`text-[22px] leading-none tabular-nums ${c.accent || "text-encre"}`}>{c.valeur}</div>
+                  <div className="mt-1.5 text-[12.5px] text-ardoise">{c.label}</div>
+                </div>
+              ))}
             </div>
-            {FILTRES.map(({ v, l, n }) => (
-              <button key={v} onClick={() => setStatusFilter(v)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-[14px] transition-colors ${statusFilter === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
-                {l} <span className={statusFilter === v ? "text-fond/60" : "text-brume"}>{n}</span>
-              </button>
+          </div>
+          {/* La barre : chaque étape à sa part des projets actifs. */}
+          <div className="mt-6 flex h-[7px] gap-[3px] overflow-hidden rounded-full" aria-hidden>
+            {FILTRES.slice(1).filter((f) => f.n > 0).map((f) => (
+              <span key={f.v} className="h-full" style={{ flexGrow: f.n, flexBasis: 0, minWidth: 6, background: TEINTE_ETAPE[f.v] }} />
             ))}
           </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {FILTRES.map(({ v, l, n }) => {
+              const actif = statusFilter === v;
+              return (
+                <button key={v} onClick={() => setStatusFilter(v)}
+                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors ${actif ? "bg-encre text-fond" : "border border-trait text-craie hover:border-bord-doux hover:text-encre"}`}
+                  style={actif ? undefined : { background: "transparent" }}>
+                  <span className="h-2 w-2 rounded-[2px]" style={{ background: v === "all" ? (actif ? "rgb(var(--k-fond-rgb))" : "rgb(var(--k-encre-rgb))") : TEINTE_ETAPE[v] }} />
+                  {l} <span className={actif ? "text-fond/60" : "text-brume"}>{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* La recherche, et les archivés à droite. */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-[260px] max-w-[520px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 transition-colors focus-within:border-bord-doux max-md:max-w-none">
+            <Search className="w-4 h-4 text-ardoise flex-shrink-0" />
+            <input
+              placeholder="Rechercher un projet, une adresse, un client…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[14px]"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer" style={{ background: "transparent" }}>
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button onClick={() => setShowArchived(!showArchived)}
-            className={`mt-3 inline-flex items-center gap-1.5 text-[14px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-            <Archive className="w-3.5 h-3.5" />
+            className={`inline-flex items-center gap-1.5 text-[14px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
+            <Archive className="w-4 h-4" />
             {showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-brume">{nbArchives}</span>
           </button>
         </div>
 
         {/* Grille */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 max-md:gap-4 items-start">
+        <div className="flex flex-col gap-3">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.035, 0.35) }}
+              transition={{ duration: 0.3, ease: "easeOut", delay: Math.min(idx * 0.02, 0.25) }}
             >
-              <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} complement={<ClientsCorrespondants
-                clients={correspondances?.par_projet?.[project.id]}
+              <LigneProjet project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} clients={correspondances?.par_projet?.[project.id]}
                 chargement={chargementCorrespondances}
                 configure={correspondances?.configure}
-                erreur={erreurCorrespondances}
-              />} />
+                erreur={erreurCorrespondances} />
             </motion.div>
           ))}
 

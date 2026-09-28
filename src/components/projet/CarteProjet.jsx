@@ -81,7 +81,7 @@ export function TramePhoto({ mot = "photo du local" }) {
       className="flex h-full w-full items-center justify-center"
       style={{ background: "repeating-linear-gradient(135deg, rgb(var(--k-encre-rgb) / 0.075) 0 14px, rgb(var(--k-encre-rgb) / 0.035) 14px 28px)" }}
     >
-      <span className="font-mono text-[12px] tracking-[.06em] text-ardoise">{mot}</span>
+      {mot && <span className="font-mono text-[12px] tracking-[.06em] text-ardoise">{mot}</span>}
     </div>
   );
 }

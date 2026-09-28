@@ -180,6 +180,17 @@ export function monterPreanalyse(app) {
     ok(res, { nom });
   }));
 
+  // Changer qui s'occupe du dossier : la liste des responsables, remplacée.
+  app.post('/api/preanalyse/dossiers/:dealId/responsables', wrap((req, res) => {
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+    const responsables = [...new Set((Array.isArray(req.body?.responsables) ? req.body.responsables : []).map((r) => String(r).trim()).filter(Boolean))].slice(0, 8);
+    if (!responsables.length) return res.status(400).json({ error: 'Il faut au moins un responsable.' });
+    Records.update('Deal', brut.id, { responsables });
+    ajouterSuiviDeal(Records.get('Deal', brut.id), { type: 'responsables', detail: `Responsables : ${responsables.join(', ')}` }, currentUser(req));
+    ok(res, { responsables });
+  }));
+
   // Abandonner un dossier directement depuis la liste (sans mail).
   app.post('/api/preanalyse/dossiers/:dealId/abandonner', wrap((req, res) => {
     const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);

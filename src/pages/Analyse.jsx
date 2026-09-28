@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, X, Folder, Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { J } from "@/design/jetons";
@@ -57,6 +57,8 @@ export default function Analyse() {
   const [nomDossier, setNomDossier] = useState("");
   const [adminsChoisis, setAdminsChoisis] = useState([]);
   const [menuCarte, setMenuCarte] = useState(null); // deal_id du menu ⋯ ouvert
+  // Changer les responsables d'un dossier : le dossier visé et la sélection en cours.
+  const [proprio, setProprio] = useState(null); // { deal_id, titre, choix: [] }
 
   const [dossier, setDossier] = useState(null);
 
@@ -99,6 +101,12 @@ export default function Analyse() {
     mutationFn: (id) => base44.request("POST", `/api/preanalyse/dossiers/${id}/revenir`, { body: { etape: 1 } }),
     onSuccess: () => { rafraichirListes(); toast.success("Dossier ramené à l'étape 1"); },
     onError: (e) => toast.error(e?.message || "Retour impossible"),
+  });
+
+  const changerResponsables = useMutation({
+    mutationFn: ({ id, responsables }) => base44.request("POST", `/api/preanalyse/dossiers/${id}/responsables`, { body: { responsables } }),
+    onSuccess: (r) => { rafraichirListes(); setProprio(null); toast.success(`Responsable${r.responsables.length > 1 ? "s" : ""} : ${r.responsables.join(", ")}`); },
+    onError: (e) => toast.error(e?.message || "Changement impossible"),
   });
 
   const abandonner = useMutation({
@@ -195,6 +203,16 @@ export default function Analyse() {
           className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
         >
           <Pencil className="w-3.5 h-3.5" /> Renommer
+        </button>
+        <button
+          onClick={() => {
+            setMenuCarte(null);
+            const actuels = (d.responsables?.length ? d.responsables : [String(d.responsable || "").split("@")[0]]).map((x) => ADMINS.find((a) => a.toLowerCase() === String(x).split(/[.\s]/)[0].toLowerCase()) || x).filter(Boolean);
+            setProprio({ deal_id: d.deal_id, titre: d.titre, choix: actuels });
+          }}
+          className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
+        >
+          <UserRound className="w-3.5 h-3.5" /> Changer le responsable
         </button>
         {(d.etape_max || 1) > 1 && (
           <button
@@ -360,6 +378,39 @@ export default function Analyse() {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {/* Changer les responsables d'un dossier */}
+        {proprio && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm" onClick={() => setProprio(null)}>
+            <div className="w-full max-w-md rounded-[18px] border border-trait bg-surface-pleine p-6 shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
+              <div className="mb-1 flex items-center justify-between">
+                <h3 className="m-0 text-[17px] font-medium text-encre">Qui s'occupe du dossier ?</h3>
+                <button onClick={() => setProprio(null)} className="text-ardoise hover:text-encre" aria-label="Fermer" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
+              </div>
+              <p className="m-0 mb-4 truncate text-[13px] text-ardoise">{proprio.titre}</p>
+              <div className="mb-5 flex flex-wrap gap-2">
+                {[...new Set([...ADMINS, ...proprio.choix])].map((a) => {
+                  const actif = proprio.choix.includes(a);
+                  return (
+                    <button key={a} type="button"
+                      onClick={() => setProprio((p) => ({ ...p, choix: actif ? p.choix.filter((x) => x !== a) : [...p.choix, a] }))}
+                      className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${actif ? "border-menthe bg-menthe/[0.12] text-encre" : "border-bord text-ardoise hover:border-bord-vif hover:text-encre"}`}
+                      style={actif ? undefined : { background: "transparent" }}>
+                      {a}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end gap-2.5">
+                <button onClick={() => setProprio(null)} className="rounded-full border border-bord px-4 py-2 text-[13.5px] text-craie hover:border-bord-vif" style={{ background: "transparent" }}>Annuler</button>
+                <button onClick={() => changerResponsables.mutate({ id: proprio.deal_id, responsables: proprio.choix })} disabled={!proprio.choix.length || changerResponsables.isPending}
+                  className="inline-flex items-center gap-2 rounded-full bg-menthe px-5 py-2 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+                  {changerResponsables.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Enregistrer
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

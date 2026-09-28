@@ -204,6 +204,17 @@ body::after {
     --k-sur-menthe-rgb: 8 19 13;
 }
 
+/* Le verre des maquettes, posé sur une photo : la surface du thème à 90 %,
+   floutée, avec l'encre du thème. Hors de .k-sur-photo, pour qu'en clair le
+   texte reste sombre sur le verre blanc. */
+.k-verre {
+    background: rgb(var(--k-surface-pleine-rgb) / .9);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: rgb(var(--k-encre-rgb));
+}
+button.k-verre:hover { background: rgb(var(--k-surface-pleine-rgb)); }
+
 /* En clair, pas de dégradé de fond : ni les halos décoratifs (classe k-halo,
    et ceux de l'accueil), ni les fonds en dégradé Tailwind. Ce qui reste,
    c'est le blanc. */

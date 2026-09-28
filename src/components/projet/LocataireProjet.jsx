@@ -1,6 +1,7 @@
 import React from "react";
 import { nf, InfoDot } from "./SecteurChiffres";
 import { useEdition, estMasque } from "./EditionEnPlace";
+import { Carte, TitreCarte } from "./Cartes";
 import { dureeDepuis, dureeJusque, dateLongue, moisEntre } from "./durees";
 
 // Le locataire : à gauche l'anneau du bail restant à courir, à droite le bail
@@ -67,13 +68,13 @@ function Anneau({ part, texte }) {
   return (
     <div className="relative w-[220px] h-[220px] max-md:w-[180px] max-md:h-[180px] mx-auto">
       <svg viewBox="0 0 110 110" className="w-full h-full -rotate-90">
-        <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" className="stroke-encre/[0.14]" />
+        <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" className="stroke-relief" />
         <circle cx="55" cy="55" r={r} fill="none" strokeWidth="5" strokeLinecap="round" className="stroke-menthe transition-[stroke-dashoffset] duration-700"
           strokeDasharray={c} strokeDashoffset={c * (1 - visible)} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-        <div className={`text-[22px] max-md:text-[18px] font-light leading-tight ${texte ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{texte || "—"}</div>
-        <div className="text-[10.5px] tracking-[0.22em] uppercase text-ardoise mt-1.5">restant</div>
+        <div className={`text-[22px] max-md:text-[18px] font-medium leading-tight ${texte ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{texte || "—"}</div>
+        <div className="text-[13px] text-ardoise mt-1.5">restant</div>
       </div>
     </div>
   );
@@ -82,8 +83,8 @@ function Anneau({ part, texte }) {
 function Case({ valeur, label, info }) {
   return (
     <div>
-      <div className={`text-[32px] max-md:text-[24px] font-light leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</div>
-      <div className="text-[14px] text-ardoise mt-2.5 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
+      <div className={`text-[32px] max-md:text-[24px] font-medium tracking-[-0.02em] leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</div>
+      <div className="text-[13px] text-ardoise mt-2.5 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>
     </div>
   );
 }
@@ -110,38 +111,39 @@ export default function LocataireProjet({ project }) {
   const pastilles = pastillesProfil(project.profil_locataire);
 
   return (
-    <div className={`grid gap-10 max-md:gap-6 ${anneau ? "md:grid-cols-[240px_minmax(0,1fr)]" : ""}`}>
+    <div className={`grid gap-5 ${anneau ? "md:grid-cols-[300px_minmax(0,1fr)]" : ""}`}>
       {anneau && (
-        <div className="flex items-center">
-          <Anneau part={partRestante(project)} texte={valeurs["loc.restant"]} />
-        </div>
+        <Carte className="flex flex-col gap-4 p-7 max-md:p-5">
+          <TitreCarte titre="Durée du bail" sous="La part qui reste à courir" />
+          <div className="flex flex-1 items-center"><Anneau part={partRestante(project)} texte={valeurs["loc.restant"]} /></div>
+        </Carte>
       )}
-      <div className="min-w-0">
+      <div className="min-w-0 flex flex-col gap-5">
         {bail.length > 0 && (
-          <div>
-            <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.12]">Le bail en place</div>
-            <div className="grid grid-cols-2 gap-x-16 max-md:gap-x-8 gap-y-8 max-md:gap-y-6 py-8 max-md:py-6">
+          <Carte className="p-7 max-md:p-5">
+            <TitreCarte titre="Le bail en place" />
+            <div className="grid grid-cols-2 gap-x-10 max-md:gap-x-6 gap-y-8 max-md:gap-y-6 pt-6">
               {bail.map((c) => <Case key={c.label} {...c} />)}
             </div>
-          </div>
+          </Carte>
         )}
         {exploite && (
-          <div className={bail.length ? "border-t border-encre/[0.12] pt-6" : ""}>
-            <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise mb-3">Qui exploite</div>
+          <Carte className="p-7 max-md:p-5">
+            <div className="mb-4"><TitreCarte titre="Qui exploite" /></div>
             {visible("loc.nom") && (
               <div>
-                <div className={`text-[26px] max-md:text-[20px] font-light leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}>{valeurs["loc.nom"] || "—"}</div>
+                <div className={`text-[26px] max-md:text-[20px] font-medium tracking-[-0.01em] leading-tight ${valeurs["loc.nom"] ? "text-encre" : "text-brume"}`}>{valeurs["loc.nom"] || "—"}</div>
                 <div className="text-[14px] text-ardoise mt-1.5">Nom du locataire</div>
               </div>
             )}
             {visible("loc.profil") && (
-              <div className={`flex flex-wrap gap-2 justify-end ${visible("loc.nom") ? "mt-6" : ""}`}>
+              <div className={`flex flex-wrap gap-2 ${visible("loc.nom") ? "mt-5" : ""}`}>
                 {pastilles.length ? pastilles.map((p) => (
-                  <span key={p} className="text-[13px] px-4 py-2 rounded-full border border-bord-doux text-craie">{p}</span>
-                )) : <span className="text-[13px] px-4 py-2 rounded-full border border-bord-doux text-brume">Profil —</span>}
+                  <span key={p} className="text-[13px] px-3.5 py-1.5 rounded-full bg-relief text-craie">{p}</span>
+                )) : <span className="text-[13px] px-3.5 py-1.5 rounded-full bg-relief text-brume">Profil —</span>}
               </div>
             )}
-          </div>
+          </Carte>
         )}
       </div>
     </div>

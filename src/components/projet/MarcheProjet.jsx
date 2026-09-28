@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { nf, useSecteurProjet } from "./SecteurChiffres";
 import { trouverVille, REFERENCES_FR } from "@/data/villes";
-import { J } from "@/design/jetons";
+import { EnTeteOnglet, Carte, TitreCarte, Chiffre, Pastille, RangeeCarte } from "./Cartes";
 
-// L'onglet Marché, en deux temps : la ville (habitants, revenus), puis le
-// secteur (le résidentiel en courbe, le commercial en deux cartes qu'on fait
-// défiler : le prix des murs, puis le loyer).
+// L'onglet Marché (maquette du 28 septembre) : une carte à trois chiffres
+// (habitants, revenus, prix résidentiel), puis deux cartes : la courbe du
+// résidentiel, et le commercial en barres (le prix des murs, puis le loyer,
+// qu'on fait défiler).
 //
 // Chaque chiffre a une valeur de référence, lue chez Le Figaro pour le
 // résidentiel et déduite des ventes pour la rue. Le dossier peut la
@@ -50,132 +50,80 @@ export function serieResidentielle({ prix, evo1 = null, evo5 = null, annee = new
   return points.map((p) => ({ annee: p.annee, prix: Math.round(p.prix), evolution: Math.round(((p.prix / base) - 1) * 1000) / 10 }));
 }
 
-const Etiquette = ({ children }) => <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise">{children}</div>;
-
-function Ville({ habitants, revenu, agglomeration = false }) {
-  if (!(habitants > 0) && !(revenu > 0)) return null;
+function Revenus({ revenu, nomVille }) {
   const reference = REFERENCES_FR.revenuMedian;
-  const ecart = revenu > 0 ? ((revenu / reference) - 1) * 100 : null;
-  const plafond = Math.max(revenu, reference) * 1.2;
+  const ecart = ((revenu / reference) - 1) * 100;
+  const plafond = Math.max(revenu, reference);
   return (
-    <div className="grid md:grid-cols-2 border-y border-encre/[0.12]">
-      {habitants > 0 && (
-        <div className="py-5 md:pr-8">
-          <div className="text-[26px] font-light text-encre leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>{nf.format(habitants)}</div>
-          <div className="text-[13.5px] text-ardoise mt-2">Habitants{agglomeration ? " · agglomération" : ""}</div>
-        </div>
-      )}
-      {revenu > 0 && (
-        <div className={`py-5 ${habitants > 0 ? "md:pl-8 md:border-l md:border-encre/[0.12] max-md:border-t max-md:border-encre/[0.12]" : ""}`}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-[26px] font-light text-encre leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>≈{nf.format(Math.round(revenu / 100) * 100)} €</div>
-            {ecart != null && (
-              <span className={`text-[10.5px] px-2.5 py-1 rounded-full ${ecart < 0 ? "bg-red-400/[0.12] text-red-300" : "bg-menthe/[0.14] text-menthe-clair"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-                {pourcent(ecart)} vs. France
-              </span>
-            )}
-          </div>
-          <div className="text-[13.5px] text-ardoise mt-2">Revenus · moyenne française {nf.format(reference)} €</div>
-          <div className="relative h-[3px] mt-3 bg-encre/[0.12] rounded-full">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-menthe" style={{ width: `${Math.min(100, (revenu / plafond) * 100)}%` }} />
-            <div className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[11px] bg-encre/70" style={{ left: `${(reference / plafond) * 100}%` }} title={`Moyenne française : ${nf.format(reference)} €`} />
-          </div>
-        </div>
-      )}
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[13px] text-ardoise">Revenus</span>
+        <Pastille ton={ecart < 0 ? "alerte" : "menthe"}>{pourcent(ecart)} vs. France</Pastille>
+      </div>
+      <span className="text-[32px] max-md:text-[26px] font-medium tracking-[-0.02em] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>≈{nf.format(Math.round(revenu / 100) * 100)} €</span>
+      <div className="mt-1 grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-1.5 text-[12px]" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <span className="truncate text-craie">{nomVille || "Ville"}</span>
+        <div className="h-1 rounded-sm bg-relief"><div className="h-1 rounded-sm bg-menthe" style={{ width: `${(revenu / plafond) * 100}%` }} /></div>
+        <span className="text-craie">{nf.format(Math.round(revenu / 100) * 100)} €</span>
+        <span className="text-ardoise">France</span>
+        <div className="h-1 rounded-sm bg-relief"><div className="h-1 rounded-sm bg-ardoise" style={{ width: `${(reference / plafond) * 100}%` }} /></div>
+        <span className="text-ardoise">{nf.format(reference)} €</span>
+      </div>
     </div>
   );
 }
 
-function Residentiel({ prix, evo1, evo5, nom }) {
-  const serie = useMemo(() => serieResidentielle({ prix, evo1, evo5 }), [prix, evo1, evo5]);
-  if (!(prix > 0)) return null;
+function PrixResidentiel({ prix, evo1, evo5 }) {
+  return (
+    <Chiffre label="Prix résidentiel · secteur" valeur={nf.format(prix)} unite="€/m²">
+      {(evo1 != null || evo5 != null) && (
+        <div className="mt-1 flex flex-wrap gap-2">
+          {evo1 != null && <Pastille ton={evo1 < 0 ? "alerte" : "menthe"}>{pourcent(evo1)} sur 1 an</Pastille>}
+          {evo5 != null && <Pastille ton={evo5 < 0 ? "alerte" : "menthe"}>{pourcent(evo5)} sur 5 ans</Pastille>}
+        </div>
+      )}
+    </Chiffre>
+  );
+}
+
+// La courbe du résidentiel, dessinée à la main comme la maquette : une aire,
+// trois lignes de grille, le dernier point marqué avec son prix.
+function Evolution({ serie, nom }) {
+  if (serie.length < 2) return null;
+  const valeurs = serie.map((p) => p.prix);
+  const brut = { bas: Math.min(...valeurs), haut: Math.max(...valeurs) };
+  const marge = Math.max(50, Math.round((brut.haut - brut.bas) * 0.12));
+  const haut = brut.haut + marge;
+  const bas = brut.bas - marge;
+  const pas = 640 / (serie.length - 1);
+  const pts = serie.map((p, k) => [k * pas, ((haut - p.prix) / (haut - bas)) * 200]);
+  const ligne = pts.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const fin = pts[pts.length - 1][1] / 2;
   const dernier = serie[serie.length - 1];
-  const annee = dernier?.annee ?? new Date().getFullYear();
-  const montre = dernier?.prix ?? prix;
-  const bas = serie.length ? Math.min(...serie.map((p) => p.prix)) : prix;
-  const haut = serie.length ? Math.max(...serie.map((p) => p.prix)) : prix;
-  const marge = Math.max(50, Math.round((haut - bas) * 0.15));
-  const amplitude = serie.length ? Math.max(...serie.map((p) => Math.abs(p.evolution))) : 0;
-
   return (
-    <div>
-      <Etiquette>Résidentiel{nom ? ` · ${nom}` : ""} — {annee}</Etiquette>
-      <div className="flex items-end justify-between gap-6 flex-wrap mt-3">
-        <div className="text-[34px] max-md:text-[28px] font-light text-encre leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {nf.format(montre)} <span className="text-[16px] text-ardoise">€/m²</span>
+    <Carte className="flex-[2_1_520px] min-w-0 p-7 max-md:p-5 flex flex-col gap-6">
+      <TitreCarte titre="Évolution du prix résidentiel" sous={`${nom ? `${nom} · ` : ""}${serie[0].annee} – ${dernier.annee}`} />
+      <div className="grid grid-cols-[64px_minmax(0,1fr)] gap-3">
+        <div className="flex h-[220px] flex-col justify-between text-right text-[11px] text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <span className="-translate-y-1.5">{nf.format(Math.round(haut / 10) * 10)} €</span>
+          <span>{nf.format(Math.round((haut + bas) / 20) * 10)} €</span>
+          <span className="translate-y-1.5">{nf.format(Math.round(bas / 10) * 10)} €</span>
         </div>
-        <div className="flex gap-6">
-          {evo1 != null && (
-            <div className="text-right">
-              <div className={`text-[16px] ${evo1 < 0 ? "text-red-400" : "text-menthe-clair"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{pourcent(evo1)}</div>
-              <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-0.5">sur 1 an</div>
-            </div>
-          )}
-          {evo5 != null && (
-            <div className="text-right">
-              <div className={`text-[16px] ${evo5 < 0 ? "text-red-400" : "text-menthe-clair"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{pourcent(evo5)}</div>
-              <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-0.5">sur 5 ans</div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {serie.length > 1 && (
-        <>
-          <div className="h-[230px] max-md:h-[190px] w-full mt-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={serie} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="marche-res-fond" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={J.menthe} stopOpacity={0.22} />
-                    <stop offset="100%" stopColor={J.menthe} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke={J.trait} vertical={false} />
-                <XAxis dataKey="annee" tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} dy={6} />
-                <YAxis yAxisId="prix" domain={[bas - marge, haut + marge]} tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} width={56} tickFormatter={(v) => `${nf.format(Math.round(v / 10) * 10)}\u00a0€`} />
-                <YAxis yAxisId="evolution" orientation="right" tick={{ fill: J.ardoise, fontSize: 10 }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => pourcent(v, amplitude < 5 ? 1 : 0)} />
-                <Tooltip
-                  cursor={{ stroke: J.trait }}
-                  contentStyle={{ background: J["surface-pleine"], border: `1px solid ${J.bord}`, borderRadius: 10, fontSize: 12 }}
-                  labelStyle={{ color: J.encre }}
-                  formatter={(v, cle) => (cle === "prix" ? [`${nf.format(v)} €/m²`, "Prix moyen"] : [pourcent(v), `Depuis ${serie[0].annee}`])}
-                />
-                <ReferenceLine yAxisId="prix" x={annee} stroke={J.ardoise} strokeDasharray="3 4" />
-                <Area yAxisId="prix" type="monotone" dataKey="prix" stroke={J.menthe} strokeWidth={1.6} fill="url(#marche-res-fond)" dot={false}
-                  activeDot={{ r: 4, fill: J["surface-pleine"], stroke: J.menthe, strokeWidth: 1.5 }} />
-                <Line yAxisId="evolution" type="monotone" dataKey="evolution" stroke={J.ardoise} strokeWidth={1} strokeDasharray="2 4" dot={false} activeDot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
+        <div className="flex min-w-0 flex-col gap-2.5">
+          <div className="relative h-[220px]">
+            <svg viewBox="0 0 640 200" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+              <path d="M0 0H640M0 100H640M0 200H640" className="stroke-trait" strokeWidth="1" vectorEffect="non-scaling-stroke" fill="none" />
+              <path d={`${ligne} L640 200 L0 200 Z`} className="fill-menthe/[0.14]" />
+              <path d={ligne} className="stroke-menthe" fill="none" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+            </svg>
+            <span className="absolute -right-[5px] -mt-[5px] h-2.5 w-2.5 rounded-full bg-menthe ring-4 ring-[rgb(var(--k-surface-pleine-rgb))]" style={{ top: `${fin}%` }} />
+            <span className="absolute right-3 -mt-[34px] whitespace-nowrap rounded-lg bg-relief px-2 py-1 text-[12px] font-medium text-encre" style={{ top: `${fin}%`, fontVariantNumeric: "tabular-nums" }}>{nf.format(dernier.prix)} €/m²</span>
           </div>
-          <p className="text-[11px] text-brume mt-3 mb-0">Courbe reconstituée à partir du prix d'aujourd'hui et de ses évolutions sur 1 et 5 ans (Le Figaro Immobilier) ; à droite, l'écart au premier point.</p>
-        </>
-      )}
-    </div>
-  );
-}
-
-function CarteCommerciale({ titre, unite, autour, projet }) {
-  const plafond = Math.max(autour, projet) * 1.1 || 1;
-  const ligne = (label, valeur, accent) => (
-    <div className="mt-4 first:mt-0">
-      <div className="flex justify-between items-baseline gap-4">
-        <span className="text-[14px] text-craie">{label}</span>
-        <span className={`text-[17px] ${accent ? "text-encre" : "text-craie"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur > 0 ? `${nf.format(Math.round(valeur))} ${unite}` : "—"}</span>
+          <div className="flex justify-between text-[11px] text-ardoise">{serie.map((p) => <span key={p.annee}>{p.annee}</span>)}</div>
+        </div>
       </div>
-      <div className="h-[3px] mt-2 bg-encre/[0.12] rounded-full">
-        <div className={`h-full rounded-full ${accent ? "bg-menthe" : "bg-ardoise/60"}`} style={{ width: `${valeur > 0 ? Math.min(100, (valeur / plafond) * 100) : 0}%` }} />
-      </div>
-    </div>
-  );
-  return (
-    <div className="border border-encre/[0.12] rounded-xl px-5 py-5 bg-surface">
-      <Etiquette>{titre}</Etiquette>
-      <div className="mt-4">
-        {ligne("Autour", autour, false)}
-        {ligne("Le projet", projet, true)}
-      </div>
-    </div>
+      <span className="text-[12px] leading-[1.5] text-ardoise">Courbe reconstituée à partir du prix d'aujourd'hui et de ses évolutions sur 1 et 5 ans (Le Figaro Immobilier).</span>
+    </Carte>
   );
 }
 
@@ -186,31 +134,42 @@ function Commercial({ prixAutour, prixProjet, loyerAutour, loyerProjet, nom }) {
   ].filter(Boolean);
   const [i, setI] = useState(0);
   if (!cartes.length) return null;
-  const carte = cartes[Math.min(i, cartes.length - 1)];
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-4">
-        <Etiquette>Commercial{nom ? ` · ${nom}` : ""}</Etiquette>
-        {cartes.length > 1 && (
-          <div className="flex items-center gap-2">
-            <button type="button" aria-label="Carte précédente" onClick={() => setI((v) => (v - 1 + cartes.length) % cartes.length)}
-              className="w-7 h-7 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif flex items-center justify-center transition-colors">
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="flex gap-1.5" aria-hidden="true">
-              {cartes.map((c, k) => <span key={c.cle} className={`w-1.5 h-1.5 rounded-full ${k === i ? "bg-menthe" : "bg-encre/25"}`} />)}
-            </span>
-            <button type="button" aria-label="Carte suivante" onClick={() => setI((v) => (v + 1) % cartes.length)}
-              className="w-7 h-7 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif flex items-center justify-center transition-colors">
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
-      <div className="mt-3">
-        <CarteCommerciale key={carte.cle} {...carte} />
-      </div>
+  const c = cartes[Math.min(i, cartes.length - 1)];
+  const plafond = Math.max(c.autour, c.projet) / 0.78 || 1;
+  const ecart = c.autour > 0 && c.projet > 0 ? ((c.projet / c.autour) - 1) * 100 : null;
+  const fleches = cartes.length > 1 && (
+    <div className="flex items-center gap-2">
+      <button type="button" aria-label="Carte précédente" onClick={() => setI((v) => (v - 1 + cartes.length) % cartes.length)}
+        className="grid h-7 w-7 place-items-center rounded-full border border-trait text-craie transition-colors hover:border-bord-vif hover:text-encre">
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      <button type="button" aria-label="Carte suivante" onClick={() => setI((v) => (v + 1) % cartes.length)}
+        className="grid h-7 w-7 place-items-center rounded-full border border-trait text-craie transition-colors hover:border-bord-vif hover:text-encre">
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
     </div>
+  );
+  const barre = (valeur, accent) => (
+    <div className="flex h-full flex-1 flex-col justify-end gap-2.5">
+      <span className={`text-[15px] font-medium ${accent ? "text-menthe" : "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur > 0 ? `${nf.format(Math.round(valeur))} ${c.unite}` : "—"}</span>
+      <div className={accent ? "rounded-t-[10px] bg-menthe" : "rounded-t-[10px] border border-b-0 border-trait bg-relief"} style={{ height: `${valeur > 0 ? Math.max(4, (valeur / plafond) * 100) : 0}%` }} />
+    </div>
+  );
+  return (
+    <Carte className="flex-[1_1_300px] min-w-0 p-7 max-md:p-5 flex flex-col gap-6">
+      <TitreCarte titre={`Commercial${nom ? ` · ${nom}` : ""}`} sous={c.titre} droite={fleches} />
+      <div className="flex h-[200px] items-end gap-5 border-b border-trait px-2">
+        {barre(c.autour, false)}
+        {barre(c.projet, true)}
+      </div>
+      <div className="-mt-3 flex gap-5 px-2 text-[13px] text-craie"><span className="flex-1">Autour</span><span className="flex-1">Le projet</span></div>
+      {ecart != null && (
+        <div className="mt-auto flex items-center justify-between gap-3 rounded-xl bg-menthe/[0.14] px-4 py-3.5">
+          <span className="text-[13px] text-craie">Écart avec le marché</span>
+          <span className="text-[18px] font-medium text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{pourcent(ecart, 0)}</span>
+        </div>
+      )}
+    </Carte>
   );
 }
 
@@ -232,29 +191,30 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
   const prixResidentiel = Number(project.marche_rue_prix_m2) || r?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
   const evo1 = duDossier(project.marche_evolution_1an, r?.evolution_1_an?.valeur);
   const evo5 = duDossier(project.marche_evolution_5ans, r?.evolution_5_ans?.valeur);
+  const serie = useMemo(() => serieResidentielle({ prix: prixResidentiel, evo1, evo5 }), [prixResidentiel, evo1, evo5]);
 
   const prixAutour = rue?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
   const loyerAutour = Number(project.marche_offre_moyenne) || rue?.loyer_m2_an || Number(project.marche_baux_moyenne) || 0;
 
+  const contexte = nomVille ? `Ville · ${nomVille}` : agglomeration && donnees?.agglomeration?.nom ? `Agglomération · ${donnees.agglomeration.nom}` : null;
+  const entete = <EnTeteOnglet titre="Marché" contexte={contexte} source={prixResidentiel > 0 ? "Source : Le Figaro Immobilier" : null} className="" />;
+
   const rienDuTout = !habitants && !revenu && !prixResidentiel && !prixAutour && !loyerAutour && !prixM2Revient && !loyerM2;
-  if (rienDuTout) return null;
+  if (rienDuTout) return <div className="mb-5">{entete}</div>;
 
   return (
-    <div className="space-y-10 max-md:space-y-7">
-      {(habitants > 0 || revenu > 0) && (
-        <section>
-          <Etiquette>{nomVille ? `Ville · ${nomVille}` : agglomeration && donnees?.agglomeration?.nom ? `Agglomération · ${donnees.agglomeration.nom}` : "Ville"}</Etiquette>
-          <div className="mt-3"><Ville habitants={habitants} revenu={revenu} agglomeration={agglomeration} /></div>
-        </section>
-      )}
-      {(prixResidentiel > 0 || prixAutour > 0 || loyerAutour > 0 || prixM2Revient > 0 || loyerM2 > 0) && (
-        <section>
-          <Etiquette>Secteur</Etiquette>
-          <div className="mt-3 grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-8 max-md:gap-6 items-start">
-            <Residentiel prix={prixResidentiel} evo1={evo1} evo5={evo5} nom={r?.nom} />
-            <Commercial prixAutour={prixAutour} prixProjet={prixM2Revient} loyerAutour={loyerAutour} loyerProjet={loyerM2} nom={rue?.nom} />
-          </div>
-        </section>
+    <div className="flex flex-col gap-5">
+      {entete}
+      <RangeeCarte cellules={[
+        habitants > 0 && <Chiffre label={`Habitants${agglomeration ? " · agglomération" : ""}`} valeur={nf.format(habitants)} />,
+        revenu > 0 && <Revenus revenu={revenu} nomVille={nomVille} />,
+        prixResidentiel > 0 && <PrixResidentiel prix={serie.length ? serie[serie.length - 1].prix : prixResidentiel} evo1={evo1} evo5={evo5} />,
+      ]} />
+      {(serie.length > 1 || prixAutour > 0 || loyerAutour > 0 || prixM2Revient > 0 || loyerM2 > 0) && (
+        <div className="flex flex-wrap gap-5">
+          <Evolution serie={serie} nom={r?.nom} />
+          <Commercial prixAutour={prixAutour} prixProjet={prixM2Revient} loyerAutour={loyerAutour} loyerProjet={loyerM2} nom={rue?.nom} />
+        </div>
       )}
     </div>
   );

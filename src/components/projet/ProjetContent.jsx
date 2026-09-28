@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { EditionContext, ValeurEditable, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer } from "./EditionEnPlace";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -15,65 +15,66 @@ import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
+import { statutLabels } from "./CarteProjet";
+import { EnTeteOnglet, Carte } from "./Cartes";
 import BienProjet from "./BienProjet";
 import LocataireProjet from "./LocataireProjet";
 
-// Primitives éditoriales partagées par les onglets (maquette "Page Projet Klocka")
-function SectionLabel({ children, tone = "muted", className = "" }) {
-  const color = tone === "teal" ? "text-menthe-clair" : tone === "gold" ? "text-menthe" : tone === "red" ? "text-red-400" : "text-ardoise";
-  return <div className={`text-[11px] tracking-[0.2em] uppercase ${color} mb-3 ${className}`}>{children}</div>;
+// Primitives partagées par les onglets, au registre de la maquette du 28
+// septembre (voir Cartes.jsx) : des cartes bordées, des titres à 16 px.
+function SectionLabel({ children, className = "" }) {
+  return <div className={`text-[16px] font-medium text-encre mb-3 ${className}`}>{children}</div>;
 }
 
 // Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
-function TabHeader({ title, subtitle, left = undefined, right = undefined }) {
+function TabHeader({ title, subtitle = null, right = undefined }) {
   return (
-    <div className="mb-6 max-md:mb-4">
-      <h2 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">{title}</h2>
-      {subtitle && <p className="text-[13.5px] leading-[1.7] text-ardoise mb-0 max-w-[560px]">{subtitle}</p>}
-      {left}
-      {right && <div className="mt-5 max-md:mt-4 max-w-[880px] order-last">{right}</div>}
+    <div className="mb-5">
+      <EnTeteOnglet titre={title} contexte={subtitle} className="" />
+      {right && <div className="mt-5 max-md:mt-4 max-w-[880px]">{right}</div>}
     </div>
   );
 }
-
 
 function KpiStrip({ items, className = "" }) {
   const edition = useEdition();
   const list = (items || []).filter(Boolean).filter((it) => !estMasque(edition, it.champ));
   if (!list.length) return null;
   return (
-    <div className={`flex flex-wrap rounded-xl border border-bord bg-surface px-6 max-md:px-4 mb-10 max-md:mb-6 ${className}`}>
-      {list.map((it, i) => (
-        <div key={i} className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-6 max-md:py-4 pr-5 ${i > 0 ? "md:border-l md:border-trait md:pl-6" : ""}`}>
-          <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></div>
-          <div className={`text-[28px] max-md:text-[22px] font-light leading-tight whitespace-nowrap ${it.accent || "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-            <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
+    <div className={`mb-5 ${className}`}>
+      <Carte className="flex flex-wrap overflow-hidden">
+        {list.map((it, i) => (
+          <div key={i} className={`flex-[1_1_200px] flex flex-col gap-2.5 p-7 max-md:p-5 ${i > 0 ? "border-l border-trait max-md:border-l-0 max-md:border-t" : ""}`}>
+            <span className="text-[13px] text-ardoise flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></span>
+            <span className={`text-[32px] max-md:text-[26px] font-medium tracking-[-0.02em] leading-tight whitespace-nowrap ${it.accent ? "text-menthe" : "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+              <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
+            </span>
           </div>
-        </div>
-      ))}
+        ))}
+      </Carte>
     </div>
   );
 }
 
-// Tableau éditorial : en-têtes lettrés, filets fins, chiffres alignés à droite
+// Tableau dans une carte : en-têtes gris, filets fins, chiffres alignés à droite.
 function DataTable({ label, head, rows, align = undefined }) {
   if (!rows || rows.length === 0) return null;
   const cellAlign = (i) => (align?.[i] === "left" || (!align && i === 0) ? "text-left" : "text-right");
   return (
-    <div className="mt-10 max-md:mt-6">
+    <Carte className="mt-5 p-7 max-md:p-5">
       {label && <SectionLabel>{label}</SectionLabel>}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <table className="w-full text-[14px]" style={{ fontVariantNumeric: "tabular-nums" }}>
           <thead>
             <tr>
               {head.map((h, i) => (
-                <th key={i} className={`text-[11px] tracking-[0.16em] uppercase text-ardoise font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
+                <th key={i} className={`text-[13px] text-ardoise font-normal pb-3 whitespace-nowrap ${cellAlign(i)}`}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((r, ri) => (
-              <tr key={ri} className="border-t border-encre/[0.12]">
+              <tr key={ri} className="border-t border-trait">
                 {r.map((c, ci) => {
                   const isObj = c !== null && typeof c === "object" && !React.isValidElement(c);
                   return (
@@ -87,28 +88,28 @@ function DataTable({ label, head, rows, align = undefined }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </Carte>
   );
 }
 
 function EmptyTab({ text = "Aucune information dans cette partie" }) {
-  return <p className="text-ardoise text-sm border-t border-encre/[0.12] pt-6 mb-0">{text}</p>;
+  return <Carte className="p-7 max-md:p-5"><p className="text-ardoise text-[14px] mb-0">{text}</p></Carte>;
 }
 
 function NotesBlock({ notes }) {
   if (!notes || notes.length === 0) return null;
   return (
-    <div className="mt-10 max-md:mt-6">
+    <Carte className="mt-5 p-7 max-md:p-5">
       <SectionLabel>Notes</SectionLabel>
-      <div className="space-y-5">
+      <div className="flex flex-col">
         {notes.map((note, idx) => (
-          <div key={idx} className="border-t border-encre/[0.12] pt-4">
+          <div key={idx} className={`py-4 ${idx > 0 ? "border-t border-trait" : "pt-1"}`}>
             {note.titre && <h4 className="text-encre text-[15px] font-medium mb-1.5">{note.titre}</h4>}
-            <p className="text-sm text-craie leading-[1.8] whitespace-pre-wrap mb-0">{note.contenu}</p>
+            <p className="text-[14px] text-craie leading-[1.75] whitespace-pre-wrap mb-0">{note.contenu}</p>
           </div>
         ))}
       </div>
-    </div>
+    </Carte>
   );
 }
 
@@ -141,8 +142,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // Le panneau d'édition choisit la section : la page la suit.
   useEffect(() => { if (ongletDemande) setOngletActif(ongletDemande); }, [ongletDemande]);
   const ongletActif = apercuOnglet || ongletChoisi;
-  const [currentSlide] = useState(1);
-  const photosContainerRef = useRef(null);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -302,10 +301,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         </DialogContent>
       </Dialog>
 
-      {/* Hero pleine largeur (masqué en aperçu d'onglet et en édition).
-          k-sur-photo : sous le voile, le titre reste blanc en mode clair. */}
-      {!apercuOnglet && !modeEdition && (
-      <div className="k-sur-photo relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
+      {/* Le hero (maquette du 28 septembre) : la photo dans une carte arrondie,
+          des pilules en verre en haut, l'étape et le titre en bas à gauche, et
+          une carte en verre pour les deux chiffres et le simulateur. Masqué en
+          aperçu d'onglet seulement : l'éditeur montre la page entière. */}
+      {!apercuOnglet && (
+      <div className="px-4 pt-4 max-md:px-3 max-md:pt-3">
+      <div className="relative flex min-h-[440px] flex-col gap-8 overflow-hidden rounded-[18px] bg-relief pt-5 pb-6 pl-10 pr-6 max-md:px-4 max-md:pb-4">
         {streetView ? (
           <StreetViewRue project={project} />
         ) : photoMontree ? (
@@ -320,137 +322,79 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         ) : mapUrl ? (
           <iframe src={mapUrl} className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte du projet" />
         ) : (
-          <div className="absolute inset-0 bg-surface" />
+          <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(135deg, rgb(var(--k-encre-rgb) / .05) 0 12px, rgb(var(--k-encre-rgb) / .02) 12px 24px)" }} />
         )}
         {/* En Street View, ni voile ni habillage : le panorama se manipule. */}
         {!streetView && (
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(10,12,12,0.96) 8%, rgba(10,12,12,0.45) 55%, rgba(10,12,12,0.7) 100%)' }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%)" }} />
         )}
 
-        {/* Le carrousel : une photo, les suivantes d'un clic, et la rue au
-            bout. Les flèches ne s'affichent que s'il y a quelque part où
-            aller. */}
-        {!streetView && photoMontree && (photosVivantes.length > 1 || rueDisponible) && (
-          <>
-            {photosVivantes.length > 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setIPhoto((i) => (i - 1 + photosVivantes.length) % photosVivantes.length); }}
-                aria-label="Photo précédente" title="Photo précédente"
-                className="absolute left-5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-encre/[0.28] bg-fond/50 text-encre backdrop-blur-sm transition-colors hover:border-encre max-md:left-3"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            )}
+        <div className="pointer-events-none relative -ml-4 flex items-center justify-between gap-3 max-md:ml-0 [&_button]:pointer-events-auto">
+          {!modeEdition && !isPublic ? (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (iPhoto < photosVivantes.length - 1) setIPhoto(iPhoto + 1);
-                else if (rueDisponible) setStreetView(true);
-                else setIPhoto(0);
-              }}
-              aria-label={iPhoto < photosVivantes.length - 1 ? "Photo suivante" : "Voir la rue"}
-              title={iPhoto < photosVivantes.length - 1 ? "Photo suivante" : "Voir la rue"}
-              className="absolute right-5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-encre/[0.28] bg-fond/50 text-encre backdrop-blur-sm transition-colors hover:border-encre max-md:right-3"
+              onClick={() => navigate(createPageUrl(isAdmin && !showAsClient ? "AdminProjets" : "MesProjets"))}
+              className="k-verre inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px]"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronLeft className="h-3.5 w-3.5" /> Projets
             </button>
-          </>
-        )}
-
-        {/* Les pastilles : où l'on en est, et la dernière mène à la rue. */}
-        {!streetView && photosVivantes.length > 1 && (
-          <div className="absolute bottom-[104px] left-1/2 flex -translate-x-1/2 items-center gap-2 max-md:bottom-[92px]">
-            {photosVivantes.map((u, i) => (
-              <button
-                key={u}
-                onClick={(e) => { e.stopPropagation(); setIPhoto(i); }}
-                aria-label={`Aller à la photo ${i + 1}`}
-                className="h-1.5 rounded-full transition-all"
-                style={{ width: i === iPhoto ? 22 : 6, background: i === iPhoto ? J["menthe"] : "rgba(242,243,245,0.35)" }}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="absolute top-7 left-5 right-5 md:left-14 md:right-14 flex justify-end items-center gap-3">
-          <div className="flex gap-2 flex-wrap justify-end items-center">
-            {/* Street View : se déplacer dans la rue autour du local. */}
-            {mapsKey && (project.adresse_complete || (project.latitude && project.longitude)) && (
-              <button
-                onClick={() => setStreetView((v) => !v)}
-                className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors"
-              >
+          ) : <span />}
+          <div className="flex gap-2 items-center">
+            {mapsKey && rueDisponible && (
+              <button onClick={() => setStreetView((v) => !v)} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
             )}
-            {project.documents && project.documents.length > 0 && (
-              <button onClick={() => window.open(project.documents[0], '_blank')}
-                className="text-[12.5px] px-4 py-2 rounded-full bg-fond/50 backdrop-blur-sm border border-encre/[0.28] text-encre hover:border-encre transition-colors max-md:hidden">
-                Documents ({project.documents.length})
+            {!streetView && photosVivantes.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIPhoto((i) => (i + 1) % photosVivantes.length); }}
+                aria-label="Photo suivante" title="Photo suivante"
+                className="k-verre inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-[13px]"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {Math.min(iPhoto, photosVivantes.length - 1) + 1} / {photosVivantes.length} <ChevronRight className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
         </div>
 
         {/* Habillage masqué en Street View pour laisser le panorama réactif. */}
-        <div className={`absolute bottom-9 md:bottom-11 left-5 right-5 md:left-14 md:right-14 grid md:grid-cols-[minmax(0,1fr)_300px] gap-6 md:gap-12 items-end ${streetView ? "hidden" : ""}`}>
-          <div>
-            <h1 className="text-[28px] md:text-[40px] font-light tracking-[-0.02em] leading-[1.08] text-encre mb-0">{project.titre}</h1>
-            <div className="md:hidden mt-5">
-              <div className="flex gap-8" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                <div>
-                  <div className="text-[24px] font-light text-encre leading-tight">{formatCurrency(prixRevientCalcule)}</div>
-                  <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mt-1">Prix de revient</div>
-                </div>
-                {rendementLocatifNetCalcule > 0 && (
-                  <div>
-                    <div className="text-[24px] font-light text-menthe-clair leading-tight">{rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %</div>
-                    <div className="text-[11px] tracking-[0.16em] uppercase text-ardoise mt-1">Rendement net</div>
-                  </div>
-                )}
-              </div>
-              <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
-                Simulateur complet <span aria-hidden="true">→</span>
-              </button>
-            </div>
+        <div className={`pointer-events-none relative mt-auto flex flex-wrap items-end justify-between gap-6 [&_button]:pointer-events-auto ${streetView ? "hidden" : ""}`}>
+          <div className="k-sur-photo flex-[1_1_360px] min-w-0 max-w-[640px] flex flex-col gap-3 pb-3 max-md:pb-0">
+            <span className="self-start inline-flex h-7 items-center gap-2 rounded-full px-3 text-[12.5px] font-medium backdrop-blur-md" style={{ background: "rgba(12,13,12,0.45)", color: "white" }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-menthe" />{statutLabels[project.statut] || "Prospect"}
+            </span>
+            <h1 className="m-0 text-[44px] max-md:text-[28px] font-medium leading-[1.08] tracking-[-0.02em]" style={{ textWrap: "pretty", color: "white" }}>{project.titre}</h1>
           </div>
-          <div className="max-md:hidden text-right">
-            <div className="flex justify-end gap-10" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              <div>
-                <div className="text-[30px] font-light text-encre leading-tight whitespace-nowrap">{formatCurrency(prixRevientCalcule)}</div>
-                <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Prix de revient</div>
+          <div className="k-verre flex-[0_0_340px] max-md:flex-[1_1_100%] flex flex-col gap-5 rounded-[16px] p-6 max-md:p-5 shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
+            <div className="grid grid-cols-2 gap-4" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <div className="flex flex-col gap-1">
+                <span className="text-[26px] max-md:text-[22px] font-medium tracking-[-0.01em] whitespace-nowrap">{formatCurrency(prixRevientCalcule)}</span>
+                <span className="text-[12px] text-ardoise">Prix de revient</span>
               </div>
-              <div>
-                <div className="text-[30px] font-light text-menthe-clair leading-tight whitespace-nowrap">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : '—'}</div>
-                <div className="text-[11px] tracking-[0.18em] uppercase text-ardoise mt-1.5">Rendement net</div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[26px] max-md:text-[22px] font-medium tracking-[-0.01em] text-menthe whitespace-nowrap">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : "—"}</span>
+                <span className="text-[12px] text-ardoise">Rendement net</span>
               </div>
             </div>
-            <button onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
-              Simulateur complet <span aria-hidden="true">→</span>
+            <button
+              onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+              className="h-11 rounded-full bg-menthe text-sur-menthe text-[14px] font-medium hover:bg-menthe-survol transition-colors"
+            >
+              Simulateur complet →
             </button>
           </div>
         </div>
       </div>
-      )}
-
-      {!apercuOnglet && project.photos && project.photos.length > 1 && (
-        <div ref={photosContainerRef} className="flex gap-2 overflow-x-auto px-5 md:px-14 py-3 bg-fond border-b border-encre/[0.08]" style={{ scrollbarWidth: 'none' }}>
-          {project.photos.slice(1).map((photo, idx) => (
-            <img key={idx} src={photo} alt={`Photo ${idx + 2}`} onClick={() => setSelectedImage(photo)}
-              className="h-20 w-32 object-cover flex-shrink-0 cursor-pointer opacity-80 hover:opacity-100 transition-opacity" />
-          ))}
-        </div>
+      </div>
       )}
 
       <div className={apercuOnglet
         ? "px-3 py-3"
-        : "max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8"}>
+        : "px-[clamp(20px,4vw,56px)] pt-7 pb-[72px] max-md:px-4"}>
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (
-          <TabsList className="w-full min-w-0 h-auto flex justify-start flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden gap-2 bg-transparent border-0 border-b-0 p-0 mb-10 max-md:mb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <TabsList className="h-auto max-w-full inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine p-[5px] mb-12 max-md:mb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "marche", l: "Marché" },
               { v: "bien", l: "Bien" },
@@ -462,7 +406,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="h-auto rounded-full border border-trait bg-surface-pleine px-4 py-2 text-[13.5px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors hover:border-bord-vif hover:text-encre data-[state=active]:border-encre data-[state=active]:bg-encre data-[state=active]:text-fond data-[state=active]:shadow-none after:hidden">
+              <TabsTrigger key={v} value={v} className="h-9 rounded-full border-0 bg-transparent px-4 py-0 text-[14px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors hover:text-encre data-[state=active]:bg-encre data-[state=active]:text-fond data-[state=active]:shadow-none after:hidden">
                 {l}
               </TabsTrigger>
             ))}
@@ -471,8 +415,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
           <TabsContent value="marche">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-              <TabHeader title="Marché" />
-
               <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
 
               <NotesBlock notes={[...(project.notes_secteur || []), ...(project.notes_marche || [])]} />
@@ -501,7 +443,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <LocataireProjet project={project} />
 
-              <div className="mt-8 max-md:mt-5">
+              <div className="mt-5">
                 <LocataireLiensSociaux liens={project.liens_locataire} />
               </div>
 
@@ -538,14 +480,16 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Copropriété"
               />
 
-              <div className="mb-10 max-md:mb-6">
-                <SectionLabel tone="teal">PV d'assemblée générale</SectionLabel>
+              {(modeEdition || (cases?.copropriete || []).some((c) => c.valeur || project?.cases_forcees?.[`copropriete.${c.id}`]?.valeur)) && (
+              <Carte className="mb-5 p-7 max-md:p-5">
+                <SectionLabel>PV d'assemblée générale</SectionLabel>
                 <TableauAG cases={cases?.copropriete} project={project} />
                 {/* Les impayés ne sont pas une résolution : ils restent une case. */}
                 <div className="mt-5">
                   <BandesCases zone="copropriete" cases={(cases?.copropriete || []).filter((c) => c.id === "impayes_copro")} project={project} />
                 </div>
-              </div>
+              </Carte>
+              )}
 
               <KpiStrip items={[
                 project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot', champ: 'quote_part_lot' },
@@ -556,10 +500,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               ]} />
 
               {(project.activites_autorisees || project.activites_interdites) && (
-                <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mb-10 max-md:mb-6">
+                <div className="grid md:grid-cols-2 gap-5 mb-5">
                   {project.activites_autorisees && (
-                    <div className="border-l border-menthe pl-5">
-                      <SectionLabel tone="teal">Activités autorisées</SectionLabel>
+                    <Carte className="p-7 max-md:p-5">
+                      <SectionLabel>Activités autorisées</SectionLabel>
                       <TexteEditable champ="activites_autorisees">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_autorisees.split(',').map((a, idx) => (
@@ -567,11 +511,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                         ))}
                       </ul>
                       </TexteEditable>
-                    </div>
+                    </Carte>
                   )}
                   {project.activites_interdites && (
-                    <div className="border-l border-menthe pl-5">
-                      <SectionLabel tone="gold">Activités interdites</SectionLabel>
+                    <Carte className="p-7 max-md:p-5">
+                      <SectionLabel>Activités interdites</SectionLabel>
                       <TexteEditable champ="activites_interdites">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
                         {project.activites_interdites.split(',').map((a, idx) => (
@@ -579,31 +523,31 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                         ))}
                       </ul>
                       </TexteEditable>
-                    </div>
+                    </Carte>
                   )}
                 </div>
               )}
 
               {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
-                <div className="mb-10 max-md:mb-6">
+                <Carte className="mb-5 p-7 max-md:p-5">
                   <SectionLabel>Synthèse de l'assemblée générale</SectionLabel>
-                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[15px] leading-[1.8] text-craie text-justify whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
-                </div>
+                  <TexteEditable champ="synthese_assemblee_generale"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
+                </Carte>
               )}
 
               {(project.resolutions_votees || project.resolutions_refusees) && (
-                <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mb-10 max-md:mb-6">
+                <div className="grid md:grid-cols-2 gap-5 mb-5">
                   {project.resolutions_votees && (
-                    <div className="border-l border-menthe pl-5">
-                      <SectionLabel tone="teal">Résolutions votées</SectionLabel>
+                    <Carte className="p-7 max-md:p-5">
+                      <SectionLabel>Résolutions votées</SectionLabel>
                       <TexteEditable champ="resolutions_votees"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
-                    </div>
+                    </Carte>
                   )}
                   {project.resolutions_refusees && (
-                    <div className="border-l border-menthe pl-5">
-                      <SectionLabel tone="gold">Résolutions non acceptées</SectionLabel>
+                    <Carte className="p-7 max-md:p-5">
+                      <SectionLabel>Résolutions non acceptées</SectionLabel>
                       <TexteEditable champ="resolutions_refusees"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
-                    </div>
+                    </Carte>
                   )}
                 </div>
               )}
@@ -626,10 +570,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               />
 
               {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
-                <div className="border-t border-encre/[0.35]">
+                <Carte className="overflow-hidden">
                   {project.fichiers_projet.map((fichier, idx) => (
                     <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-between gap-4 py-4 border-b border-encre/[0.12] group">
+                      className={`flex items-center justify-between gap-4 px-7 py-4 max-md:px-5 group hover:bg-relief transition-colors ${idx > 0 ? "border-t border-trait" : ""}`}>
                       <div className="flex items-center gap-4 min-w-0">
                         <FileText className="w-4 h-4 text-menthe flex-shrink-0" />
                         <span className="text-[15px] text-encre truncate group-hover:text-menthe-clair transition-colors">{fichier.nom}</span>
@@ -639,7 +583,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       </span>
                     </a>
                   ))}
-                </div>
+                </Carte>
               ) : (
                 <EmptyTab text="Aucun document disponible pour ce projet." />
               )}

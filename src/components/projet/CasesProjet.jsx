@@ -46,7 +46,7 @@ const nomPiece = (source) => source.categorie || source.document_nom.replace(/\.
 
 function RenvoiPiece({ source }) {
   return (
-    <span className="flex items-center gap-1 min-w-0 max-w-full text-[11px] text-brume group-hover:text-menthe-clair transition-colors">
+    <span className="flex items-center gap-1 min-w-0 max-w-full text-[11px] text-brume group-hover:text-menthe transition-colors">
       <FileText className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{nomPiece(source)}{source.page ? ` · p. ${source.page}` : ""}</span>
     </span>
   );
@@ -66,16 +66,16 @@ function Case({ titre, valeur, detail, info, source, onSource, champ, edition })
     <Corps
       type={cliquable ? "button" : undefined}
       onClick={cliquable ? () => onSource({ ...source, titre }) : undefined}
-      className={`group relative text-left rounded-xl border border-bord bg-surface px-5 py-4 min-h-[112px] flex flex-col transition-colors
+      className={`group relative text-left rounded-[14px] border border-trait bg-surface-pleine px-5 py-4 min-h-[112px] flex flex-col transition-colors
         ${cliquable ? "hover:border-menthe/60 cursor-pointer" : ""}`}
     >
-      <span className="flex items-center gap-1.5 text-[11px] tracking-[0.16em] uppercase text-ardoise">
+      <span className="flex items-center gap-1.5 text-[13px] text-ardoise">
         {champ ? <ValeurEditable champ={`${champ}.titre`} type="text">{titre}</ValeurEditable> : titre}
         {info && !edition?.onChamp && (
           <span onClick={(e) => e.stopPropagation()} className="normal-case tracking-normal"><InfoDot texte={info} /></span>
         )}
       </span>
-      <span className="mt-2 text-[22px] max-md:text-[18px] font-light leading-tight text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <span className="mt-2 text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-tight text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
         {champ ? <ValeurEditable champ={`${champ}.valeur`} type="text">{valeur || "—"}</ValeurEditable> : (valeur || "—")}
       </span>
       {(detail || edition?.onChamp) && (
@@ -214,7 +214,7 @@ function Jalon({ jalon }) {
   const aligne = bord === "gauche" ? "text-left" : bord === "droite" ? "text-right" : "text-center";
   return (
     <div className="absolute top-[26px] w-max max-w-[190px]" style={{ left: `${(jalon.position ?? 0) * 100}%`, transform: ancrage }}>
-      <div className={`text-[16px] max-md:text-[14px] font-light text-encre ${aligne}`} style={{ fontVariantNumeric: "tabular-nums" }}>{jalon.texte}</div>
+      <div className={`text-[16px] max-md:text-[14px] font-medium tracking-[-0.01em] text-encre ${aligne}`} style={{ fontVariantNumeric: "tabular-nums" }}>{jalon.texte}</div>
       <div className={`text-[13.5px] text-ardoise mt-1 ${aligne}`}>{jalon.label}</div>
     </div>
   );
@@ -230,11 +230,11 @@ export function CarteBail({ frise, lignes, onSource }) {
   const restant = frise.fin ? dureeJusque(frise.fin, { court: true }) : null;
 
   return (
-    <div className="rounded-2xl border border-bord bg-surface px-8 max-md:px-5 pt-6 pb-7 max-md:pb-6">
+    <div className="rounded-[18px] border border-trait bg-surface-pleine px-8 max-md:px-5 pt-6 pb-7 max-md:pb-6">
       <div className="flex items-start justify-between gap-6">
         <div>
-          <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise">Restant à courir</div>
-          <div className="text-[34px] max-md:text-[26px] font-light leading-tight text-menthe-clair mt-1.5" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="text-[13px] text-ardoise">Restant à courir</div>
+          <div className="text-[34px] max-md:text-[26px] font-medium tracking-[-0.01em] leading-tight text-menthe mt-1.5" style={{ fontVariantNumeric: "tabular-nums" }}>
             {restant || "—"}
           </div>
         </div>
@@ -250,8 +250,8 @@ export function CarteBail({ frise, lignes, onSource }) {
       <ol className="md:hidden list-none m-0 p-0 mt-6 border-l border-trait pl-5 space-y-4">
         {jalons.map((j) => (
           <li key={j.cle} className="relative">
-            <span className={`absolute -left-[23px] top-1.5 w-2.5 h-2.5 rounded-full border ${j.passe ? "bg-menthe border-menthe" : "border-menthe bg-fond"}`} />
-            <div className="text-[15px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{j.texte}</div>
+            <span className={`absolute -left-[23px] top-1.5 w-2.5 h-2.5 rounded-full border ${j.passe ? "bg-menthe border-menthe" : "border-menthe bg-surface-pleine"}`} />
+            <div className="text-[15px] font-medium tracking-[-0.01em] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{j.texte}</div>
             <div className="text-[13.5px] text-ardoise">{j.label}</div>
           </li>
         ))}
@@ -268,13 +268,13 @@ export function CarteBail({ frise, lignes, onSource }) {
           {part != null && <div className="absolute inset-y-0 left-0 rounded-full bg-menthe" style={{ width: `${part * 100}%` }} />}
           {jalons.map((j, i) => (
             <span key={j.cle}
-              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-[1.5px] border-menthe ${i === 0 || j.passe ? "bg-menthe" : "bg-fond"}`}
+              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-[1.5px] border-menthe ${i === 0 || j.passe ? "bg-menthe" : "bg-surface-pleine"}`}
               style={{ left: `${(j.position ?? 0) * 100}%` }} />
           ))}
           {part != null && (
             <span className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: `${part * 100}%` }}>
               <span className="block w-4 h-4 rounded-full bg-encre ring-4 ring-menthe/25" />
-              <span className="absolute left-0 bottom-[calc(100%+12px)] whitespace-nowrap text-[11px] tracking-[0.2em] uppercase text-ardoise">Aujourd&apos;hui</span>
+              <span className="absolute left-0 bottom-[calc(100%+12px)] whitespace-nowrap text-[12px] text-ardoise">Aujourd&apos;hui</span>
             </span>
           )}
           {jalons.map((j) => <Jalon key={j.cle} jalon={j} />)}
@@ -327,7 +327,7 @@ export function BandesCases({ zone, cases, project, titre = null }) {
   if (!liste.length) return null;
   return (
     <div>
-      {titre && <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ardoise">{titre}</div>}
+      {titre && <div className="mb-3 text-[16px] font-medium text-encre">{titre}</div>}
       <ChiffresStrip chiffres={liste} />
     </div>
   );
@@ -358,13 +358,13 @@ export function TableauAG({ cases, project }) {
   if (!enEdition && !colonnes.some((x) => x.c?.valeur)) return null;
 
   return (
-    <div className="overflow-x-auto rounded-[16px] border border-trait">
+    <div className="overflow-x-auto rounded-[14px] border border-trait bg-surface-pleine">
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
           <tr>
             {colonnes.map(({ id, titre, teinte }) => (
               <th key={id} className="border-b border-trait px-5 py-3.5 align-bottom font-normal" style={{ width: "33.33%" }}>
-                <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.16em]" style={{ color: teinte }}>
+                <span className="inline-flex items-center gap-2 text-[13px]" style={{ color: teinte }}>
                   <span className="h-[3px] w-5 rounded-full" style={{ background: teinte }} />
                   {titre}
                 </span>
@@ -419,11 +419,11 @@ function LigneFiscalite({ c, onSource }) {
       </span>
       {cliquable ? (
         <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })}
-          className="flex-shrink-0 text-[13px] px-4 py-1.5 rounded-full bg-encre/[0.06] text-craie hover:text-encre hover:bg-encre/[0.1] transition-colors">
+          className="flex-shrink-0 text-[13px] px-3.5 py-1.5 rounded-full bg-relief text-encre hover:bg-menthe/[0.14] hover:text-menthe transition-colors">
           {c.valeur || "—"}
         </button>
       ) : (
-        <span className={`flex-shrink-0 text-[13px] px-4 py-1.5 rounded-full bg-encre/[0.06] ${c.valeur ? "text-craie" : "text-brume"}`}>{c.valeur || "—"}</span>
+        <span className={`flex-shrink-0 text-[13px] px-3.5 py-1.5 rounded-full bg-relief ${c.valeur ? "text-craie" : "text-brume"}`}>{c.valeur || "—"}</span>
       )}
     </div>
   );
@@ -451,11 +451,11 @@ export function ResumeBail({ cases, project, onSource }) {
   if (!loyer?.valeur && !signature?.valeur && !depot?.valeur && !fiscalite.length) return null;
 
   const Titre = ({ children }) => (
-    <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-trait">{children}</div>
+    <div className="text-[16px] font-medium text-encre">{children}</div>
   );
   const Sous = ({ c, complement }) => (
     <div>
-      <div className={`text-[22px] max-md:text-[18px] font-light leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
         {c?.valeur || "—"}
       </div>
       <div className="text-[14px] text-ardoise mt-2">{c?.titre}{complement ? ` · ${complement}` : ""}</div>
@@ -463,12 +463,12 @@ export function ResumeBail({ cases, project, onSource }) {
   );
 
   return (
-    <div className="grid lg:grid-cols-2 gap-10 max-md:gap-7 items-start">
-      <div>
+    <div className="grid lg:grid-cols-2 gap-5 items-start">
+      <div className="rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5">
         <Titre>Le loyer</Titre>
         <div className="py-7 max-md:py-5">
           <div className="flex items-baseline gap-3 flex-wrap">
-            <span className={`text-[44px] max-md:text-[30px] font-light leading-none ${loyer?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span className={`text-[44px] max-md:text-[30px] font-medium tracking-[-0.01em] leading-none ${loyer?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
               {loyer?.valeur ? loyer.valeur.replace(/\s*HT\/an$/, "") : "—"}
             </span>
             {loyer?.valeur && <span className="text-[20px] max-md:text-[16px] text-ardoise">HT/an</span>}
@@ -487,7 +487,7 @@ export function ResumeBail({ cases, project, onSource }) {
       </div>
 
       {fiscalite.length > 0 && (
-        <div>
+        <div className="rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5">
           <Titre>Charges &amp; fiscalité</Titre>
           <div className="mt-2">
             {fiscalite.map((c) => <LigneFiscalite key={c.id} c={c} onSource={onSource} />)}
@@ -568,22 +568,22 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
 
   return (
     <div className="grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] gap-6 max-md:gap-4 items-start">
-      <ol className="list-none m-0 p-0 lg:max-h-[620px] lg:overflow-y-auto">
+      <ol className="list-none m-0 p-2 rounded-[18px] border border-trait bg-surface-pleine lg:max-h-[620px] lg:overflow-y-auto">
         {clauses.map((x, k) => (
           <li key={x.id}>
             <button type="button" onClick={() => setOuverte(k)}
-              className={`w-full text-left flex gap-4 px-5 py-3.5 border-l-2 transition-colors
-                ${k === i ? "border-menthe bg-encre/[0.05] text-encre" : "border-transparent text-craie hover:text-encre hover:bg-encre/[0.02]"}`}>
-              <span className={`text-[12px] pt-0.5 flex-shrink-0 w-4 ${k === i ? "text-menthe-clair" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{x.numero}</span>
-              <span className="text-[15px] leading-[1.45]">{x.titre}</span>
+              className={`w-full text-left flex gap-4 px-4 py-3 rounded-[12px] transition-colors
+                ${k === i ? "bg-relief text-encre" : "text-craie hover:text-encre hover:bg-relief/60"}`}>
+              <span className={`text-[12px] pt-0.5 flex-shrink-0 w-4 ${k === i ? "text-menthe" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{x.numero}</span>
+              <span className="text-[14px] leading-[1.45]">{x.titre}</span>
             </button>
           </li>
         ))}
       </ol>
 
-      <div className="rounded-2xl border border-bord bg-surface px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
+      <div className="rounded-[18px] border border-trait bg-surface-pleine px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
         <div className="flex items-start justify-between gap-4">
-          <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pt-1.5">Cadre juridique · Clause {c.numero}</div>
+          <div className="text-[13px] text-ardoise pt-1.5">Cadre juridique · Clause {c.numero}</div>
           {c.source && (
             <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })}
               className="group flex-shrink-0 px-4 py-1.5 rounded-full border border-bord-doux hover:border-menthe/60 transition-colors">
@@ -592,8 +592,8 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
           )}
         </div>
 
-        <h3 className="text-[30px] max-md:text-[22px] font-light leading-tight text-encre mt-5 mb-0">{c.titre}</h3>
-        {chapeau && <div className="text-[24px] max-md:text-[18px] font-light text-menthe-clair mt-2.5">{chapeau}</div>}
+        <h3 className="text-[30px] max-md:text-[22px] font-medium tracking-[-0.01em] leading-tight text-encre mt-5 mb-0">{c.titre}</h3>
+        {chapeau && <div className="text-[24px] max-md:text-[18px] font-medium tracking-[-0.01em] text-menthe mt-2.5">{chapeau}</div>}
 
         <div className="border-t border-trait mt-6 pt-6">
           <p className={`m-0 text-[15px] max-md:text-[14px] leading-[1.8] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || "Ce point n'a pas encore été lu dans les pièces."}</p>
@@ -632,12 +632,12 @@ export function VueBail({ cases, project, onSource, titre = "Analyse du bail" })
   const [vue, setVue] = useState("resume");
   return (
     <>
-      <div className="flex items-start justify-between gap-6 flex-wrap mb-6 max-md:mb-4">
-        <h2 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-0">{titre}</h2>
-        <div className="inline-flex rounded-full border border-bord-doux p-0.5">
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
+        <h2 className="m-0 text-[28px] max-md:text-[24px] font-medium tracking-[-0.01em] text-encre">{titre}</h2>
+        <div className="inline-flex gap-1 rounded-full border border-trait bg-surface-pleine p-[5px]">
           {[["resume", "Résumé"], ["analyse", "Analyse du bail"]].map(([id, mot]) => (
             <button key={id} type="button" onClick={() => setVue(id)}
-              className={`px-5 py-1.5 rounded-full text-[13px] transition-colors ${vue === id ? "bg-menthe text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>
+              className={`h-9 px-4 rounded-full text-[14px] transition-colors ${vue === id ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}>
               {mot}
             </button>
           ))}
@@ -646,7 +646,7 @@ export function VueBail({ cases, project, onSource, titre = "Analyse du bail" })
 
       <CarteBail frise={friseDuProjet(project, cases?.frise)} lignes={cases?.analyse} onSource={onSource} />
 
-      <div className="mt-10 max-md:mt-7">
+      <div className="mt-5">
         {vue === "resume"
           ? <ResumeBail cases={cases} project={project} onSource={onSource} />
           : <AnalyseBail lignes={cases?.analyse} cases={cases} project={project} onSource={onSource} />}

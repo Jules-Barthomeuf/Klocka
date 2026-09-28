@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { nf } from "./SecteurChiffres";
 import { useEdition } from "./EditionEnPlace";
 import { InfoDot } from "./SecteurChiffres";
+import { Carte, TitreCarte } from "./Cartes";
 
 // Le bien : à gauche les photos, qui défilent toutes seules ; à droite le
 // local en quatre lignes (activité, détenu depuis, surface, dernière vente).
@@ -25,17 +26,18 @@ function Photos({ photos }) {
   if (!n) return null;
   const courante = photos[Math.min(i, n - 1)];
   return (
-    <div onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-surface">
+    <Carte className="p-5" >
+      <div onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
+      <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] bg-relief">
         <img key={courante} src={courante} alt={`Photo ${i + 1} sur ${n}`} className="w-full h-full object-cover" />
         {n > 1 && (
           <>
             <button type="button" aria-label="Photo précédente" onClick={() => setI((v) => (v - 1 + n) % n)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-fond/70 backdrop-blur-sm border border-bord-doux text-encre flex items-center justify-center hover:bg-fond transition-colors">
+              className="k-verre absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center">
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button type="button" aria-label="Photo suivante" onClick={() => setI((v) => (v + 1) % n)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-fond/70 backdrop-blur-sm border border-bord-doux text-encre flex items-center justify-center hover:bg-fond transition-colors">
+              className="k-verre absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center">
               <ChevronRight className="w-4 h-4" />
             </button>
           </>
@@ -45,23 +47,24 @@ function Photos({ photos }) {
         <div className="grid grid-cols-4 gap-3 mt-3">
           {photos.slice(0, 8).map((p, k) => (
             <button key={p + k} type="button" onClick={() => setI(k)} aria-label={`Photo ${k + 1}`}
-              className={`aspect-[4/3] overflow-hidden rounded-lg border transition-colors ${k === i ? "border-menthe" : "border-transparent hover:border-bord-vif"}`}>
+              className={`aspect-[4/3] overflow-hidden rounded-[10px] outline outline-2 outline-offset-2 transition-colors ${k === i ? "outline-menthe" : "outline-transparent hover:outline-bord-vif"}`}>
               <img src={p} alt="" className="w-full h-full object-cover" loading="lazy" />
             </button>
           ))}
         </div>
       )}
-      <div className="text-[12px] text-ardoise mt-2 font-mono" style={{ fontVariantNumeric: "tabular-nums" }}>{i + 1} / {n}</div>
-    </div>
+      <div className="text-[12px] text-ardoise mt-3" style={{ fontVariantNumeric: "tabular-nums" }}>{i + 1} / {n}</div>
+      </div>
+    </Carte>
   );
 }
 
 function Ligne({ label, valeur, sous, info }) {
   return (
-    <div className="flex justify-between items-baseline gap-4 py-4 border-b border-encre/[0.12]">
+    <div className="flex justify-between items-baseline gap-4 py-4 border-t border-trait first:border-t-0">
       <span className="text-[14px] text-ardoise flex items-center gap-1.5">{label}<InfoDot texte={info} /></span>
       <span className="text-right">
-        <span className={`block text-[22px] max-md:text-[18px] font-light ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</span>
+        <span className={`block text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{valeur || "—"}</span>
         {sous && <span className="block text-[15px] max-md:text-[13.5px] text-craie mt-1" style={{ fontVariantNumeric: "tabular-nums" }}>{sous}</span>}
       </span>
     </div>
@@ -88,13 +91,13 @@ export default function BienProjet({ project }) {
   if (!lignes.length && !photos.length) return null;
 
   return (
-    <div className={`grid gap-10 max-md:gap-6 ${photos.length ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
+    <div className={`grid gap-5 items-start ${photos.length ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
       {photos.length > 0 && <Photos photos={photos} />}
       {lignes.length > 0 && (
-        <div>
-          <div className="text-[12px] tracking-[0.2em] uppercase text-ardoise pb-3 border-b border-encre/[0.35]">Le local</div>
-          {lignes.map((l) => <Ligne key={l.label} {...l} />)}
-        </div>
+        <Carte className="p-7 max-md:p-5">
+          <TitreCarte titre="Le local" sous="Ce que les actes et les ventes publiées disent des murs" />
+          <div className="mt-3">{lignes.map((l) => <Ligne key={l.label} {...l} />)}</div>
+        </Carte>
       )}
     </div>
   );

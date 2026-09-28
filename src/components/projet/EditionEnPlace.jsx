@@ -189,22 +189,22 @@ export function ChampsPersonnalises({ zone, project }) {
   });
 
   return (
-    <div className="mt-8 max-md:mt-5">
-      <div className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-3">Informations complémentaires</div>
+    <div className="mt-5">
+      <div className="text-[16px] font-medium text-encre mb-3">Informations complémentaires</div>
 
       {chiffres.length > 0 && (
-        <div className="flex flex-wrap border-t border-encre/[0.35] mb-6">
+        <div className="flex flex-wrap rounded-[18px] border border-trait bg-surface-pleine overflow-hidden mb-5">
           {chiffres.map((i) => {
             const champ = tous[i];
             return (
               <div
                 key={champ.id || i}
                 {...proprietesGlisser(i)}
-                className={`flex-1 min-w-[150px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 border-l first:border-l-0 md:pl-6 transition-colors
-                  ${survole === i ? "border-menthe bg-menthe/[0.06]" : "border-encre/[0.12]"}
+                className={`flex-1 min-w-[150px] max-md:min-w-[46%] p-6 max-md:p-4 border-l first:border-l-0 transition-colors
+                  ${survole === i ? "border-menthe bg-menthe/[0.06]" : "border-trait"}
                   ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
               >
-                <div className="font-display text-[24px] max-md:text-[18px] font-light text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <div className="text-[24px] max-md:text-[18px] font-medium tracking-[-0.01em] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
                   <ValeurEditable champ={`champs_personnalises.${i}.valeur`} type="text">{champ.valeur || "—"}</ValeurEditable>
                 </div>
                 <div className="text-[12.5px] text-ardoise mt-1 flex items-center gap-1.5">
@@ -233,7 +233,7 @@ export function ChampsPersonnalises({ zone, project }) {
               onDragLeave={() => setSurvole((v) => (v === i ? null : v))}
               onDrop={(e) => { e.preventDefault(); setSurvole(null); deplacer(source.current, i); }}
               className={`flex justify-between items-start gap-4 py-2.5 text-sm border-t transition-colors
-                ${survole === i ? "border-menthe bg-menthe/[0.06]" : "border-encre/[0.12]"}
+                ${survole === i ? "border-menthe bg-menthe/[0.06]" : "border-trait"}
                 ${edition?.onChamp ? "cursor-grab active:cursor-grabbing" : ""}`}
             >
               <span className="text-ardoise flex-shrink-0 flex items-center gap-2">

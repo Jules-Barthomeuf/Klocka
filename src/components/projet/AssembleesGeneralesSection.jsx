@@ -53,16 +53,16 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
   };
 
   return (
-    <div className="mt-10 max-md:mt-6">
+    <div className="mt-5 rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-0">
+        <h3 className="text-[16px] font-medium text-encre mb-0">
           Synthèse des assemblées générales
         </h3>
         {isAdmin && (
           <Button
             size="sm"
             onClick={() => setShowForm(!showForm)}
-            className="bg-menthe hover:bg-menthe/80 text-encre gap-1.5 rounded-full"
+            className="bg-menthe hover:bg-menthe-survol text-sur-menthe gap-1.5 rounded-full"
           >
             <Plus className="w-4 h-4" />
             Ajouter une AG
@@ -120,7 +120,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                 <Button
                   onClick={handleAdd}
                   disabled={saving}
-                  className="bg-menthe hover:bg-menthe/80 text-encre gap-1.5 rounded-full"
+                  className="bg-menthe hover:bg-menthe-survol text-sur-menthe gap-1.5 rounded-full"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? "Enregistrement..." : "Enregistrer"}
@@ -140,13 +140,13 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
 
       {/* Liste des AG */}
       {assemblees.length > 0 ? (
-        <div className="border-t border-encre/[0.35]">
+        <div>
           {assemblees.map((ag, idx) => {
             const isExpanded = expandedAG === idx;
             return (
               <div
                 key={idx}
-                className="border-b border-encre/[0.12]"
+                className="border-t border-trait"
               >
                 <button
                   onClick={() => setExpandedAG(isExpanded ? null : idx)}
@@ -179,20 +179,20 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
                   <div className="pb-5 space-y-5">
                     {ag.synthese && (
                       <div>
-                        <p className="text-[11px] tracking-[0.2em] uppercase text-ardoise mb-2">Synthèse</p>
+                        <p className="text-[13px] text-ardoise mb-2">Synthèse</p>
                         <p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.synthese}</p>
                       </div>
                     )}
                     <div className="grid md:grid-cols-2 gap-x-12 gap-y-5">
                       {ag.resolutions_votees && (
                         <div className="border-l border-menthe pl-5">
-                          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Résolutions votées</p>
+                          <p className="text-[13px] text-menthe mb-2">Résolutions votées</p>
                           <p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.resolutions_votees}</p>
                         </div>
                       )}
                       {ag.resolutions_refusees && (
                         <div className="border-l border-menthe pl-5">
-                          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe mb-2">Résolutions non votées</p>
+                          <p className="text-[13px] text-alerte mb-2">Résolutions non votées</p>
                           <p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{ag.resolutions_refusees}</p>
                         </div>
                       )}

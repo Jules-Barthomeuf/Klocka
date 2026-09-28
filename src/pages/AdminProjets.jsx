@@ -12,7 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
-import { TEINTE_ETAPE } from "../components/admin/LigneProjet";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
 import { DialogueAssignerClient } from "../components/admin/AssignationProjets";
@@ -1005,7 +1004,6 @@ export default function AdminProjets() {
     try {
       const data = construireDonnees(currentFormData);
 
-
       const isNewAssignment = !editingProject || editingProject.client_email !== currentFormData.client_email;
       const previousClientEmails = editingProject?.client_emails || [];
       const newClientEmails = currentFormData.client_emails.filter(email => !previousClientEmails.includes(email));
@@ -1042,7 +1040,6 @@ export default function AdminProjets() {
       rafraichirApercu(currentFormData);
       setEnregistreLe(new Date());
       setModifieDepuis(false);
-
 
     } catch (error) {
       toast.error("Erreur lors de l'enregistrement", { description: error.message || "Une erreur est survenue" });
@@ -1308,25 +1305,7 @@ export default function AdminProjets() {
   });
 
   const actifs = projects.filter((p) => !p.archived);
-  const compteur = (statut) => actifs.filter((p) => p.statut === statut).length;
   const nbArchives = projects.filter((p) => p.archived).length;
-
-  const FILTRES = [
-    { v: "all", l: "Tous", n: actifs.length },
-    { v: "prospect", l: "Prospect", n: compteur("prospect") },
-    { v: "analyse", l: "Analyse", n: compteur("analyse") },
-    { v: "negociation", l: "Négociation", n: compteur("negociation") },
-    { v: "financement", l: "Financement", n: compteur("financement") },
-    { v: "signe", l: "Signé", n: compteur("signe") },
-  ];
-
-  const CHIFFRES = [
-    { valeur: actifs.length, label: "Projets actifs" },
-    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-menthe" },
-    { valeur: compteur("financement"), label: "En financement" },
-    { valeur: compteur("signe"), label: "Signés" },
-    { valeur: nbArchives, label: "Archivés", accent: "text-ardoise" },
-  ];
 
   return (
     <div className="relative min-h-screen px-5 py-7 text-encre md:px-10 md:py-9">
@@ -1339,43 +1318,6 @@ export default function AdminProjets() {
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
-        </div>
-
-        {/* La synthèse : le total, trois chiffres, la barre des étapes et les filtres, dans une carte. */}
-        <div className="mb-8 rounded-[20px] border border-trait bg-surface-pleine px-7 py-6 max-md:mb-6 max-md:px-5">
-          <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
-            <div className="flex items-baseline gap-3">
-              <span className="text-[44px] font-normal leading-none tracking-[-0.02em] tabular-nums text-encre max-md:text-[34px]">{actifs.length}</span>
-              <span className="text-[15px] text-ardoise">projets actifs</span>
-            </div>
-            <div className="flex flex-wrap gap-x-10 gap-y-3">
-              {CHIFFRES.slice(1, 4).map((c, i) => (
-                <div key={i}>
-                  <div className={`text-[22px] leading-none tabular-nums ${c.accent || "text-encre"}`}>{c.valeur}</div>
-                  <div className="mt-1.5 text-[12.5px] text-ardoise">{c.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* La barre : chaque étape à sa part des projets actifs. */}
-          <div className="mt-6 flex h-[7px] gap-[3px] overflow-hidden rounded-full" aria-hidden>
-            {FILTRES.slice(1).filter((f) => f.n > 0).map((f) => (
-              <span key={f.v} className="h-full" style={{ flexGrow: f.n, flexBasis: 0, minWidth: 6, background: TEINTE_ETAPE[f.v] }} />
-            ))}
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {FILTRES.map(({ v, l, n }) => {
-              const actif = statusFilter === v;
-              return (
-                <button key={v} onClick={() => setStatusFilter(v)}
-                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-[7px] text-[13.5px] transition-colors ${actif ? "bg-encre text-fond" : "border border-trait text-craie hover:border-bord-doux hover:text-encre"}`}
-                  style={actif ? undefined : { background: "transparent" }}>
-                  <span className="h-2 w-2 rounded-[2px]" style={{ background: v === "all" ? (actif ? "rgb(var(--k-fond-rgb))" : "rgb(var(--k-encre-rgb))") : TEINTE_ETAPE[v] }} />
-                  {l} <span className={actif ? "text-fond/60" : "text-brume"}>{n}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* La recherche, et les archivés à droite. */}

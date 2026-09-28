@@ -281,7 +281,11 @@ export async function importerSheet(lienOuId, email) {
   if (!r.ok) return { ok: false, error: r.status === 404 ? 'Google Sheet introuvable depuis ton compte.' : `Google a refusé l'export (${r.status}).` };
   const { lireClasseur } = await import('../xlsx.js');
   const classeur = lireClasseur(Buffer.from(await r.arrayBuffer()));
-  const equipe = Records.filter('User', { role: 'admin' }).map((u) => ({ email: String(u.email || '').toLowerCase(), nom: u.full_name || '' })).filter((u) => u.email.endsWith('@klocka.immo'));
+  const { EQUIPE } = await import('./equipe.js');
+  const equipe = [
+    ...EQUIPE.map((m) => ({ email: m.email, nom: m.prenom })),
+    ...Records.filter('User', { role: 'admin' }).map((u) => ({ email: String(u.email || '').toLowerCase(), nom: u.full_name || '' })).filter((u) => u.email.endsWith('@klocka.immo')),
+  ];
   const candidats = candidatsDeLaSheet(classeur, { equipe });
   const res = integrer(candidats);
   const parOnglet = {};

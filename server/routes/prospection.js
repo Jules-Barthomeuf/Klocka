@@ -118,7 +118,8 @@ export function monterProspection(app) {
       .filter(Boolean)
       .map(({ journal, ...a }) => ({ ...a, onglet: ongletDe(a), a_appeler: raisons.get(a.id) || null, verrou: R.verrouTenu(a.verrou) ? a.verrou : null, journal: (journal || []).slice(0, 5) }));
     if (!seulementJour) lignes.sort((x, y) => (x.a_appeler ? 0 : 1) - (y.a_appeler ? 0 : 1) || String(x.nom).localeCompare(String(y.nom)));
-    ok(res, { onglets, total: tous.length, onglet, a_appeler: jour.length, lignes: lignes.slice(0, 1500) });
+    const { EQUIPE } = await import('../prospection/equipe.js');
+    ok(res, { onglets, total: tous.length, onglet, a_appeler: jour.length, equipe: EQUIPE, lignes: lignes.slice(0, 1500) });
   }));
 
   app.post('/api/prospection/import-sheet', wrap(async (req, res) => {

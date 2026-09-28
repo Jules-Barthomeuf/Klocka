@@ -28,7 +28,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Bot, Inbox, PhoneCall } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall } from "lucide-react";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { useTheme } from "@/lib/theme";
 import { Badge } from "@/components/ui/badge";
@@ -507,16 +507,15 @@ function LayoutContent({ children, currentPageName }) {
             <FeedbackSurvol>
               <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             </FeedbackSurvol>
-            <NavItem to={createPageUrl("MonAssistant")} icon={Bot} label="Mon assistant" isActive={isActivePage("MonAssistant")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
             <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("AdminLeadMagnets")} icon={Magnet} label="Lead magnets" isActive={isActivePage("AdminLeadMagnets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
 
             <div className="pt-3">
               <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
               {autreOpen && (
                 <div className="space-y-px">
                   <NavItem to="/AdminPresentations" icon={Presentation} label="Présentations" isActive={isActivePage("AdminPresentations")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                  <NavItem to={createPageUrl("AdminLeadMagnets")} icon={Magnet} label="Lead magnets" isActive={isActivePage("AdminLeadMagnets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   {AFFICHER_DOUBLE_CHECK && (
                     <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
                   )}

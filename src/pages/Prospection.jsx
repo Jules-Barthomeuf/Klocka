@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, RefreshCw, Search, Send, Square, X } from "lucide-react";
+import { Check, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 
@@ -461,7 +461,7 @@ const STATUTS_GRILLE = { nouveau: ["À appeler", "neutre"], a_rappeler: ["À rap
 
 // Les colonnes de la grille : celles de la Sheet de l'équipe, puis ce que la plateforme sait.
 const COLONNES = [
-  { cle: "referent", titre: "Attribué à", largeur: 130, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
+  { cle: "referent", titre: "Attribué à", largeur: 130, referent: true, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
   { cle: "appel", titre: "Appel", largeur: 130, appel: true },
   { cle: "statut", titre: "Statut", largeur: 150, statut: true },
   { cle: "agence", titre: "Entreprise", largeur: 180 },
@@ -484,7 +484,7 @@ const COLONNES = [
   { cle: "source", titre: "Source", largeur: 150, fixe: true },
 ];
 
-function Cellule({ agent, col, onEnregistrer }) {
+function Cellule({ agent, col, onEnregistrer, equipe = [] }) {
   const valeur = col.lire ? col.lire(agent) : agent[col.cle] || "";
   const [edition, setEdition] = useState(false);
   const [texte, setTexte] = useState(valeur);
@@ -493,22 +493,36 @@ function Cellule({ agent, col, onEnregistrer }) {
     const [mot, ton] = STATUTS_GRILLE[agent.statut] || [agent.statut, "neutre"];
     return (
       <select aria-label={`Statut de ${agent.nom}`} value={agent.statut || "nouveau"} onChange={(e) => onEnregistrer({ statut: e.target.value })}
-        className={`w-full cursor-pointer rounded-full border bg-transparent px-2 py-0.5 text-[11.5px] outline-none ${{ neutre: "border-bord-doux text-craie", menthe: "border-menthe/50 text-menthe", ambre: "border-ambre/50 text-ambre", alerte: "border-alerte/40 text-alerte" }[ton]}`} title={mot}>
+        className={`w-full cursor-pointer rounded-full border bg-transparent px-2 py-0.5 text-[12.5px] outline-none ${{ neutre: "border-bord-doux text-craie", menthe: "border-menthe/50 text-menthe", ambre: "border-ambre/50 text-ambre", alerte: "border-alerte/40 text-alerte" }[ton]}`} title={mot}>
         {Object.entries(STATUTS_GRILLE).map(([k, [m]]) => <option key={k} value={k}>{m}</option>)}
       </select>
     );
   }
-  if (col.fixe || col.cle === "a_appeler" || col.cle === "referent") return <span className="line-clamp-3 text-[12.5px] leading-[1.5] text-craie" title={valeur}>{valeur || <span className="text-bord-vif">—</span>}</span>;
+  // Attribué à : un choix dans l'équipe. On affiche le prénom, on enregistre
+  // l'adresse (c'est elle que lisent Monday et AK). Un référent hors équipe
+  // reste proposé, pour ne pas l'effacer en ouvrant la liste.
+  if (col.referent) {
+    const horsEquipe = agent.referent && !equipe.some((m) => m.email === agent.referent);
+    return (
+      <select aria-label={`Attribué à, pour ${agent.nom}`} value={agent.referent || ""} onChange={(e) => onEnregistrer({ referent: e.target.value })}
+        className={`w-full cursor-pointer rounded-full border bg-transparent px-2 py-0.5 text-[12.5px] outline-none ${agent.referent ? "border-bord-doux text-encre" : "border-transparent text-bord-vif hover:border-bord-doux"}`}>
+        <option value="">—</option>
+        {equipe.map((m) => <option key={m.email} value={m.email}>{m.prenom}</option>)}
+        {horsEquipe && <option value={agent.referent}>{valeur}</option>}
+      </select>
+    );
+  }
+  if (col.fixe || col.cle === "a_appeler") return <span className="line-clamp-3 text-[13.5px] leading-[1.5] text-craie" title={valeur}>{valeur || <span className="text-bord-vif">—</span>}</span>;
   if (edition) {
     const valider = () => {
       setEdition(false);
       if (texte === valeur) return;
       onEnregistrer({ [col.cle]: col.liste ? texte.split(/[,;]/).map((x) => x.trim()).filter(Boolean) : texte });
     };
-    return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }} rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[12.5px] text-encre outline-none" />;
+    return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }} rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none" />;
   }
   return (
-    <button type="button" onClick={() => setEdition(true)} className="block w-full text-left text-[12.5px] leading-[1.5] text-craie hover:text-encre" style={{ background: "transparent" }} title={valeur ? `${valeur} (clic pour modifier)` : "Clic pour remplir"}>
+    <button type="button" onClick={() => setEdition(true)} className="block w-full text-left text-[13.5px] leading-[1.5] text-craie hover:text-encre" style={{ background: "transparent" }} title={valeur ? `${valeur} (clic pour modifier)` : "Clic pour remplir"}>
       <span className="line-clamp-3">{valeur || <span className="text-bord-vif">—</span>}</span>
     </button>
   );
@@ -536,6 +550,48 @@ function OngletGrille({ onAppeler }) {
     onSuccess: maj,
     onError: (e) => toast.error(e?.message || "Modification perdue"),
   });
+  // Annuler, rétablir : deux piles de modifications de cellules. Chaque entrée
+  // garde l'agent, les valeurs d'avant et d'après ; annuler renvoie celles
+  // d'avant au serveur, rétablir celles d'après. Dans une référence, pas dans
+  // un état : le clavier (⌘Z) doit lire la pile du moment sans se réabonner.
+  const historique = useRef({ passe: [], futur: [] });
+  const [, rafraichir] = useState(0);
+  const modifier = (a, champs) => {
+    const avant = Object.fromEntries(Object.keys(champs).map((k) => [k, k === "statut" ? a.statut || "nouveau" : a[k] ?? (Array.isArray(champs[k]) ? [] : "")]));
+    historique.current = { passe: [...historique.current.passe, { id: a.id, nom: a.nom, avant, apres: champs }].slice(-50), futur: [] };
+    rafraichir((x) => x + 1);
+    enregistrer.mutate({ id: a.id, champs });
+  };
+  const annuler = () => {
+    const { passe, futur } = historique.current;
+    const e = passe[passe.length - 1];
+    if (!e) return;
+    historique.current = { passe: passe.slice(0, -1), futur: [...futur, e] };
+    rafraichir((x) => x + 1);
+    enregistrer.mutate({ id: e.id, champs: e.avant });
+    toast.success(`Annulé pour ${e.nom}`);
+  };
+  const retablir = () => {
+    const { passe, futur } = historique.current;
+    const e = futur[futur.length - 1];
+    if (!e) return;
+    historique.current = { passe: [...passe, e], futur: futur.slice(0, -1) };
+    rafraichir((x) => x + 1);
+    enregistrer.mutate({ id: e.id, champs: e.apres });
+    toast.success(`Rétabli pour ${e.nom}`);
+  };
+  useEffect(() => {
+    const clavier = (e) => {
+      const k = e.key.toLowerCase();
+      if (!(e.metaKey || e.ctrlKey) || (k !== "z" && k !== "y")) return;
+      const t = e.target;
+      if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+      e.preventDefault();
+      if (k === "y" || e.shiftKey) retablir(); else annuler();
+    };
+    window.addEventListener("keydown", clavier);
+    return () => window.removeEventListener("keydown", clavier);
+  }, []);
   const ajouter = useMutation({
     mutationFn: () => base44.request("POST", "/api/prospection/agents", { body: { ...nouvelle, ville: onglet || null, onglet: onglet || null } }),
     onSuccess: (r) => { toast[r.deja_connu ? "error" : "success"](r.deja_connu ? "Déjà dans la grille : complété" : "Agent ajouté"); setAjout(false); setNouvelle({ nom: "", agence: "", telephone: "", email: "" }); maj(); },
@@ -573,6 +629,10 @@ function OngletGrille({ onAppeler }) {
           <Search className="h-4 w-4 text-brume" />
           <input id="recherche-grille" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un nom, une agence, un numéro" className="w-full border-none bg-transparent py-1 text-[13.5px] text-encre outline-none placeholder:text-brume" />
         </div>
+        <div className="inline-flex items-center gap-0.5">
+          <button type="button" onClick={annuler} disabled={!historique.current.passe.length} title="Annuler la dernière modification (⌘Z)" aria-label="Annuler" className="grid h-8 w-8 place-items-center rounded-full text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
+          <button type="button" onClick={retablir} disabled={!historique.current.futur.length} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" className="grid h-8 w-8 place-items-center rounded-full text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
+        </div>
         {isFetching && !isLoading && <Loader2 className="h-4 w-4 animate-spin text-ardoise" />}
         {onglet && <button type="button" onClick={() => equimmox.mutate()} disabled={equimmox.isPending} className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1.5 text-[12.5px] text-craie hover:text-encre"><RefreshCw className="h-3.5 w-3.5" />Relire Equimmox à {onglet}</button>}
         <button type="button" onClick={() => setAjout((x) => !x)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1.5 text-[12.5px] font-semibold text-sur-menthe">+ Ajouter une ligne</button>
@@ -586,13 +646,13 @@ function OngletGrille({ onAppeler }) {
       )}
 
       {isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
-        <div className="overflow-auto rounded-xl border border-relief" style={{ maxHeight: "calc(100vh - 290px)" }}>
-          <table className="min-w-full border-collapse text-[12.5px]">
+        <div className="overflow-auto rounded-xl border border-relief bg-surface" style={{ maxHeight: "calc(100vh - 290px)" }}>
+          <table className="min-w-full border-collapse text-[13.5px]">
             <thead className="sticky top-0 z-20">
               <tr>
-                <th className="sticky left-0 z-30 min-w-[240px] border-b border-r border-relief px-4 py-3 text-left text-[12.5px] font-semibold text-encre backdrop-blur-xl">Agent</th>
+                <th className="sticky left-0 z-30 min-w-[220px] border-b border-r border-relief px-4 py-3 text-left text-[13.5px] font-semibold text-encre backdrop-blur-xl">Agent</th>
                 {COLONNES.map((c) => (
-                  <th key={c.cle} className="border-b border-r border-relief px-3 py-3 text-left text-[12.5px] font-semibold text-encre backdrop-blur-xl" style={{ minWidth: c.largeur }}>{c.titre}</th>
+                  <th key={c.cle} className="border-b border-r border-relief px-3 py-3 text-left text-[13.5px] font-semibold text-encre backdrop-blur-xl" style={{ minWidth: c.largeur }}>{c.titre}</th>
                 ))}
               </tr>
             </thead>
@@ -602,14 +662,13 @@ function OngletGrille({ onAppeler }) {
                 return (
                   <tr key={a.id} className={`hover:bg-encre/[0.02] ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
                     <td className="sticky left-0 z-10 border-b border-r border-relief px-4 py-2.5 align-top backdrop-blur-xl">
-                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[240px] truncate text-left text-[13px] font-semibold text-encre hover:text-menthe" style={{ background: "transparent" }}>{a.nom}</button>
-                      <span className="block max-w-[240px] truncate text-[11.5px] text-brume">{[a.agence && a.agence !== a.nom ? a.agence : null, onglet ? null : a.onglet].filter(Boolean).join(" · ")}</span>
+                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate text-left text-[14px] font-semibold text-encre hover:text-menthe" style={{ background: "transparent" }} title={[a.agence && a.agence !== a.nom ? a.agence : null, a.onglet].filter(Boolean).join(" · ") || undefined}>{a.nom}</button>
                     </td>
                     {COLONNES.map((c) => (
                       <td key={c.cle} className="border-b border-r border-relief px-3 py-2.5 align-top" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
                         {c.appel ? (pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille>
-                          : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[11.5px] text-bord-vif">pas de contact</span>)
-                          : <Cellule agent={a} col={c} onEnregistrer={(champs) => enregistrer.mutate({ id: a.id, champs })} />}
+                          : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[12.5px] text-bord-vif">pas de contact</span>)
+                          : <Cellule agent={a} col={c} equipe={data?.equipe || []} onEnregistrer={(champs) => modifier(a, champs)} />}
                       </td>
                     ))}
                   </tr>

@@ -22,16 +22,16 @@ export const CLAIR = "clair";
 export const DEFAUT = Object.freeze({
   mode: "sombre", // sombre | clair | appareil
   accent: "menthe",
-  fond_sombre: "noir", // noir | anthracite
-  fond_clair: "blanc", // blanc | perle
-  halo: true,
+  fond_sombre: "noir", // noir (chaud, maquette) | profond (noir pur) | anthracite
+  fond_clair: "perle", // perle (gris chaud, maquette) | blanc
+  halo: false,
   surfaces: "verre", // verre | plein
   police: "instrument", // instrument | figtree | montserrat | systeme
   boutons: "pilule", // pilule | arrondi | carre
   taille: 100, // 90 | 100 | 110 | 120
   animations: "normales", // normales | reduites
   accueil: "Dashboard",
-  barre: "depliee", // depliee | repliee
+  barre: "depliee", // depliee | repliee (un rail d'icônes)
   menu_masques: [],
   menu_ordre: [],
   assistant: "droite", // droite | gauche | masquee
@@ -41,8 +41,8 @@ export const DEFAUT = Object.freeze({
 export const OPTIONS = {
   mode: [[SOMBRE, "Sombre"], [CLAIR, "Clair"], ["appareil", "Comme l'appareil"]],
   accent: Object.entries(jetons.accents).map(([cle, a]) => [cle, a.nom]),
-  fond_sombre: [["noir", "Noir pur"], ["anthracite", "Anthracite"]],
-  fond_clair: [["blanc", "Blanc"], ["perle", "Gris perle"]],
+  fond_sombre: [["noir", "Noir chaud"], ["profond", "Noir pur"], ["anthracite", "Anthracite"]],
+  fond_clair: [["perle", "Gris perle"], ["blanc", "Blanc"]],
   halo: [[true, "Avec"], [false, "Sans"]],
   surfaces: [["verre", "Verre translucide"], ["plein", "Aplats opaques"]],
   police: [["instrument", "Instrument Sans"], ["figtree", "Figtree"], ["montserrat", "Montserrat"], ["systeme", "Celle du système"]],
@@ -200,7 +200,7 @@ export function appliquerPrefs(brut) {
   // Le fond, et le halo qui en découle.
   const choixFond = clair ? p.fond_clair : p.fond_sombre;
   const fond = jetons.fonds[clair ? "clair" : "sombre"][choixFond];
-  const fondDefaut = clair ? choixFond === "blanc" : choixFond === "noir";
+  const fondDefaut = clair ? choixFond === "perle" : choixFond === "noir";
   poser("--k-fond-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.fond)));
   poser("--k-fond-halo-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.halo)));
 

@@ -103,8 +103,11 @@ export default function AssistantFlottant() {
 
   useEffect(() => {
     const surTouche = (e) => { if (e.key === "Escape") setOuvert(false); };
+    // Le rail demande l'assistant : la bulle s'ouvre.
+    const surDemande = () => setOuvert(true);
+    window.addEventListener("klocka:assistant", surDemande);
     window.addEventListener("keydown", surTouche);
-    return () => window.removeEventListener("keydown", surTouche);
+    return () => { window.removeEventListener("klocka:assistant", surDemande); window.removeEventListener("keydown", surTouche); };
   }, []);
 
   const envoyer = useMutation({

@@ -1,13 +1,11 @@
 import React from "react";
-import CarteDuProjet from "@/components/dashboard/CarteDuProjet";
 import { ArrowUpRight } from "lucide-react";
 
-// La carte d'un projet, la même en admin et chez le client.
-//
-// Elle était écrite deux fois, avec deux calculs du prix de revient qui ne
-// donnaient pas toujours le même chiffre, deux bordures et deux graisses. Une
-// seule maintenant : l'admin lui ajoute ses actions au survol et son pied de
-// rapport, le client ouvre le projet. Rien d'autre ne les sépare.
+// La carte d'un projet, la même en admin et chez le client (maquette du 28
+// septembre 2026) : la photo du local en haut, sinon une trame « photo du
+// local » ; l'état en pastille ; puis le titre, l'adresse, trois chiffres
+// séparés par des filets, et ce qui se pose dessous (clients possibles,
+// rapport). L'admin lui ajoute ses gestes au survol de la photo.
 
 export const statutLabels = {
   prospect: "Prospect",
@@ -17,12 +15,13 @@ export const statutLabels = {
   signe: "Signé",
 };
 
-const statutColors = {
-  prospect: "text-ardoise border-encre/[0.18]",
-  analyse: "text-menthe-clair border-menthe-clair/40",
-  negociation: "text-menthe border-menthe/40",
-  financement: "text-menthe border-menthe/40",
-  signe: "text-menthe-clair border-menthe bg-menthe/[0.16]",
+// Le point de la pastille d'état : la teinte dit où en est le projet.
+const statutTeintes = {
+  prospect: "bg-brume",
+  analyse: "bg-menthe",
+  negociation: "bg-menthe",
+  financement: "bg-bleu",
+  signe: "bg-vert",
 };
 
 export const formatPrix = (val) => {
@@ -74,12 +73,24 @@ export function chiffresDuProjet(project) {
   return { prixRevient, rendement, surface: project.sim_surface || project.surface_m2 || 0 };
 }
 
-/** Un chiffre de la barre du bas : la valeur, son libellé. */
-function Chiffre({ valeur, label, teinte = "text-encre", premier = false }) {
+/** Un chiffre de la carte : la valeur, son libellé. */
+function Chiffre({ valeur, label, teinte = "text-encre" }) {
   return (
-    <div className={`min-w-0 flex-1 py-4 ${premier ? "pr-4 max-md:pr-3" : "border-l border-encre/[0.12] px-4 max-md:px-3"}`}>
-      <p className={`m-0 text-[18px] font-medium tabular-nums max-md:text-[15px] ${teinte}`}>{valeur}</p>
-      <p className="alx-mont m-0 mt-1 whitespace-nowrap text-[11px] font-medium uppercase tracking-[.14em] text-ardoise max-md:tracking-[.08em]">{label}</p>
+    <div className="min-w-0">
+      <p className={`m-0 text-[20px] font-medium tabular-nums max-md:text-[17px] ${teinte}`}>{valeur}</p>
+      <p className="m-0 mt-0.5 text-[13px] text-ardoise">{label}</p>
+    </div>
+  );
+}
+
+/** La trame « photo du local », quand le projet n'a pas de photo. */
+export function TramePhoto({ mot = "photo du local" }) {
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center"
+      style={{ background: "repeating-linear-gradient(135deg, rgb(var(--k-encre-rgb) / 0.075) 0 14px, rgb(var(--k-encre-rgb) / 0.035) 14px 28px)" }}
+    >
+      <span className="font-mono text-[13px] tracking-[.06em] text-ardoise">{mot}</span>
     </div>
   );
 }
@@ -90,69 +101,64 @@ function Chiffre({ valeur, label, teinte = "text-encre", premier = false }) {
  * @param {string|null} avatar       la photo du conseiller, en haut à droite
  * @param {React.ReactNode} sousLigne une ligne de plus sous l'adresse
  * @param {React.ReactNode} actions   les boutons qui apparaissent au survol
- * @param {React.ReactNode} pied      ce qui se pose sous la carte
+ * @param {React.ReactNode} pied      ce qui se pose sous les chiffres, dans la carte
  * @param {boolean} fleche            la flèche d'ouverture, au bout des chiffres
  */
 export default function CarteProjet({ project, onOuvrir, avatar = null, sousLigne = null, actions = null, pied = null, fleche = false }) {
   const { prixRevient, rendement, surface } = chiffresDuProjet(project);
   // Une photo dont l'hébergeur a disparu affichait son texte de remplacement
-  // en travers de la carte : on retombe alors sur le plan de la rue.
+  // en travers de la carte : on retombe alors sur la trame.
   const [photoKo, setPhotoKo] = React.useState(false);
   const photo = photoKo ? null : project.photos?.[0];
 
   return (
-    <div>
-      <div
-        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-trait bg-surface transition-colors duration-300 hover:border-menthe/30"
-        onClick={onOuvrir}
-      >
-        {/* k-sur-photo : sous le voile, le titre reste blanc en mode clair. */}
-        <div className="k-sur-photo relative h-48 overflow-hidden md:h-56">
-          {photo
-            ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
-            : <CarteDuProjet project={project} />}
-          {/* Le voile qui rend le titre lisible. Il descend plus bas qu'avant :
-              un projet sans photo montre sa rue sur une carte claire, où un
-              titre blanc se perdait. */}
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(14,16,15,0.98) 14%, rgba(14,16,15,0.45) 58%, rgba(14,16,15,0.55) 100%)" }} />
+    <div className="group overflow-hidden rounded-[20px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux">
+      <div className="relative h-[220px] cursor-pointer overflow-hidden max-md:h-[180px]" onClick={onOuvrir}>
+        {photo
+          ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+          : <TramePhoto />}
 
-          <div className="absolute left-4 top-4">
-            <span className={`alx-mont rounded-full border bg-fond/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[.14em] backdrop-blur-sm ${statutColors[project.statut] || statutColors.prospect}`}>
-              {statutLabels[project.statut] || project.statut}
-            </span>
-          </div>
-
-          {avatar && (
-            <div className="absolute right-3 top-3">
-              <img src={avatar} alt="Conseiller" className="h-9 w-9 rounded-full border border-encre/25 object-cover" />
-            </div>
-          )}
-
-          <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="truncate text-[18px] font-light leading-tight tracking-[-0.02em] text-encre md:text-[24px]">{project.titre}</h2>
-            {project.adresse_complete && <p className="mt-1 truncate text-[12.5px] text-craie/70">{project.adresse_complete}</p>}
-            {sousLigne}
-          </div>
-
-          {actions && (
-            <div className="absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              {actions}
-            </div>
-          )}
+        <div className="absolute left-4 top-4">
+          <span className="inline-flex items-center gap-2 rounded-full bg-surface-pleine px-3 py-1.5 text-[13px] text-encre shadow-[0_2px_10px_rgb(0_0_0/0.08)]">
+            <span className={`h-2 w-2 rounded-full ${statutTeintes[project.statut] || statutTeintes.prospect}`} />
+            {statutLabels[project.statut] || project.statut}
+          </span>
         </div>
 
-        <div className="flex items-center border-t border-encre/[0.12] px-5 max-md:px-4" style={{ fontVariantNumeric: "tabular-nums" }}>
-          <Chiffre premier valeur={formatPrix(prixRevient)} label="Prix de revient" />
-          <Chiffre valeur={`${rendement.toFixed(2).replace(".", ",")} %`} label="Rendement" teinte="text-menthe-clair" />
-          {surface > 0 && <Chiffre valeur={`${Math.round(surface)} m²`} label="Surface" />}
-          {fleche && (
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-encre/[0.14] transition-colors group-hover:border-menthe">
-              <ArrowUpRight className="h-4 w-4 text-ardoise transition-colors group-hover:text-menthe-clair" />
-            </div>
-          )}
-        </div>
+        {avatar && (
+          <div className="absolute right-4 top-4">
+            <img src={avatar} alt="Conseiller" className="h-9 w-9 rounded-full border-2 border-surface-pleine object-cover" />
+          </div>
+        )}
+
+        {actions && (
+          <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            {actions}
+          </div>
+        )}
       </div>
-      {pied}
+
+      <div className="px-6 pb-5 pt-5 max-md:px-5">
+        <button type="button" onClick={onOuvrir} className="block w-full text-left" style={{ background: "transparent" }}>
+          <h2 className="m-0 truncate text-[22px] font-medium leading-[1.25] tracking-[-0.01em] text-encre max-md:text-[19px]">{project.titre}</h2>
+          {project.adresse_complete && <p className="m-0 mt-1 truncate text-[15px] text-ardoise">{project.adresse_complete}</p>}
+          {sousLigne}
+        </button>
+
+        <div className="mt-4 flex items-center border-t border-trait pt-4" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <div className="grid flex-1 grid-cols-3 gap-3">
+            <Chiffre valeur={formatPrix(prixRevient)} label="Prix de revient" />
+            <Chiffre valeur={`${rendement.toFixed(2).replace(".", ",")} %`} label="Rendement" teinte="text-menthe" />
+            {surface > 0 ? <Chiffre valeur={`${Math.round(surface)} m²`} label="Surface" /> : <div />}
+          </div>
+          {fleche && (
+            <button type="button" onClick={onOuvrir} aria-label="Ouvrir" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord transition-colors hover:border-menthe" style={{ background: "transparent" }}>
+              <ArrowUpRight className="h-4 w-4 text-ardoise transition-colors group-hover:text-menthe" />
+            </button>
+          )}
+        </div>
+        {pied}
+      </div>
     </div>
   );
 }

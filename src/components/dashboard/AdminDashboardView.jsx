@@ -12,14 +12,14 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 
 export default function AdminDashboardView() {
   return (
-    <div className="min-h-screen bg-fond">
-      {/* Une colonne large et beaucoup d'air : le plan de travail se parcourt
-          d'un regard, il ne se déchiffre pas. */}
-      <div className="mx-auto max-w-[1400px] px-5 pb-10 pt-6 md:px-12 md:pb-16 md:pt-8">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          {/* La boîte d'envoi passe avant le plan de travail : sans elle, la
-              moitié de ce qui s'y décide ne part nulle part. */}
-          <BoiteMail />
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-[1240px] px-5 pb-16 pt-5 md:px-10">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          {/* Les boîtes d'envoi, en haut à droite : sans elles, la moitié de
+              ce qui se décide ici ne part nulle part. */}
+          <div className="flex justify-end">
+            <BoiteMail />
+          </div>
           <PlanDeTravail chat={<ChatDashboard />} />
         </motion.div>
       </div>

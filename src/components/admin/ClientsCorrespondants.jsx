@@ -1,37 +1,16 @@
 import React, { useState } from "react";
-import { ChevronDown, Loader2, Users } from "lucide-react";
+import { ChevronUp, Loader2, Users } from "lucide-react";
 
-// À qui ce projet pourrait correspondre, d'après les investisseurs tenus dans
-// Monday : budget, apport et zone de recherche face au prix du bien.
-//
-// C'est une piste, pas une attribution — d'où la justification affichée à côté
-// de chaque nom. Un rapprochement qu'on ne peut pas discuter ne sert à rien.
-//
-// Le bloc dit toujours quelque chose. Il se taisait quand il n'avait rien à
-// montrer, si bien qu'une panne, un Monday non configuré et une absence de
-// candidat se ressemblaient tous : un écran vide, sans recours.
+// Les clients Monday qui correspondent à un projet, sous ses chiffres : le
+// nombre en vert, puis chaque nom avec son budget et son statut, et pourquoi
+// il correspond. Deux se voient, les autres s'ouvrent d'un clic.
 
-// Milliers jusqu'au million, puis millions : « 2000 k€ » ne se lit pas, « 2 M€ » si.
-const somme = (n) => {
-  if (typeof n !== "number" || !isFinite(n) || !n) return null;
-  if (n < 1_000_000) return `${Math.round(n / 1000)} k€`;
-  return `${String(Math.round((n / 1_000_000) * 10) / 10).replace(".", ",")} M€`;
-};
+const somme = (n) => (typeof n === "number" ? `${Math.round(n / 1000)} k€` : null);
 
 function Mention({ children }) {
-  return (
-    <p className="m-0 mt-2 px-3 py-2 text-[11px] text-brume border border-relief rounded-md">
-      {children}
-    </p>
-  );
+  return <p className="m-0 mt-4 text-[13px] leading-[1.5] text-brume">{children}</p>;
 }
 
-/**
- * @param {object[]} [clients] - candidats rendus par Monday
- * @param {boolean} [chargement] - le rapprochement est en cours
- * @param {boolean} [configure] - Monday est relié
- * @param {boolean} [erreur] - la lecture Monday a échoué
- */
 export default function ClientsCorrespondants({ clients, chargement, configure, erreur }) {
   const [ouvert, setOuvert] = useState(false);
 
@@ -39,47 +18,39 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
   if (chargement)
     return (
       <Mention>
-        <Loader2 className="w-3 h-3 animate-spin inline-block mr-1.5 align-[-2px]" />
+        <Loader2 className="mr-1.5 inline-block h-3 w-3 animate-spin align-[-2px]" />
         Rapprochement des clients Monday…
       </Mention>
     );
   if (configure === false) return <Mention>Monday n'est pas relié : aucun rapprochement possible.</Mention>;
-  if (!clients?.length)
-    return <Mention>Aucun client Monday ne correspond au prix et à la zone de ce projet.</Mention>;
+  if (!clients?.length) return <Mention>Aucun client Monday ne correspond au prix et à la zone de ce projet.</Mention>;
 
   const visibles = ouvert ? clients : clients.slice(0, 2);
 
   return (
-    <div className="mt-2 border border-menthe/25 rounded-md bg-menthe/[0.03] px-3 py-2.5">
-      <button onClick={() => setOuvert((o) => !o)} className="w-full flex items-center gap-2 text-left">
-        <Users className="w-3 h-3 text-menthe flex-shrink-0" />
-        <span className="text-[11px] tracking-[.14em] uppercase text-menthe flex-1">
+    <div className="mt-4 border-t border-trait pt-4">
+      <button type="button" onClick={() => setOuvert((o) => !o)} className="flex w-full items-center gap-2 text-left" style={{ background: "transparent" }}>
+        <Users className="h-4 w-4 flex-shrink-0 text-menthe" />
+        <span className="flex-1 text-[15px] text-menthe">
           {clients.length} client{clients.length > 1 ? "s" : ""} possible{clients.length > 1 ? "s" : ""}
         </span>
-        {clients.length > 2 && (
-          <ChevronDown className={`w-3 h-3 text-brume transition-transform ${ouvert ? "" : "-rotate-90"}`} />
-        )}
+        {clients.length > 2 && <ChevronUp className={`h-4 w-4 text-ardoise transition-transform ${ouvert ? "" : "rotate-180"}`} />}
       </button>
 
-      <div className="mt-2 space-y-2">
+      <div className="mt-3 flex flex-col gap-3">
         {visibles.map((c) => (
           <div key={c.nom}>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[12.5px] text-encre truncate">{c.nom}</span>
-              <span className="text-[11px] text-brume flex-shrink-0 whitespace-nowrap">
-                {[somme(c.budget), c.statut].filter(Boolean).join(" · ")}
-              </span>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="truncate text-[15px] text-encre">{c.nom}</span>
+              <span className="flex-shrink-0 whitespace-nowrap text-[14px] text-ardoise">{[somme(c.budget), c.statut].filter(Boolean).join(" · ")}</span>
             </div>
-            <p className="m-0 text-[11px] text-ardoise leading-[1.45]">{c.raisons.join(" · ")}</p>
+            <p className="m-0 mt-0.5 text-[13.5px] leading-[1.45] text-ardoise">{c.raisons.join(" · ")}</p>
           </div>
         ))}
       </div>
 
       {!ouvert && clients.length > 2 && (
-        <button
-          onClick={() => setOuvert(true)}
-          className="mt-2 text-[11px] text-brume hover:text-menthe transition-colors"
-        >
+        <button type="button" onClick={() => setOuvert(true)} className="mt-2 text-[13px] text-brume transition-colors hover:text-menthe" style={{ background: "transparent" }}>
           et {clients.length - 2} autre{clients.length - 2 > 1 ? "s" : ""}
         </button>
       )}

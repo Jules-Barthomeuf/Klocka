@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import { toast } from "@/components/ui/avis";
-import { ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, User, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, History, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
@@ -64,6 +64,93 @@ const euros = (n) => (typeof n === "number" ? `${Math.round(n).toLocaleString("f
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 const INTENTIONS_LIBELLES = { demande_documents: "la demande de documents", relance: "la relance", presentation_client: "la présentation client", refus: "le refus", abandon: "l'abandon" };
+
+// La boîte qui envoie, en pilule sous le champ : l'adresse par défaut, et
+// les autres d'un clic quand il y en a plusieurs. Rien de plus ici : les
+// boîtes s'ajoutent et se retirent dans la pilule en haut à droite.
+function BoiteEnvoi() {
+  const queryClient = useQueryClient();
+  const [ouvert, setOuvert] = useState(false);
+  const { data: statut } = useQuery({ queryKey: ["mail-status"], queryFn: () => base44.functions.invoke("getMailStatus", {}) });
+  const comptes = (statut?.accounts || []).filter((c) => c.peut_envoyer !== false);
+  const principale = comptes.find((c) => c.par_defaut) || comptes[0];
+  const defaut = useMutation({
+    mutationFn: (email) => base44.functions.invoke("setDefaultMailAccount", { email }),
+    onSuccess: (r) => { if (r?.success) { queryClient.invalidateQueries({ queryKey: ["mail-status"] }); setOuvert(false); } else toast.error(r?.error || "Impossible de changer de boîte"); },
+  });
+  if (!principale) return null;
+  return (
+    <div className="relative min-w-0">
+      <button type="button" onClick={() => comptes.length > 1 && setOuvert((v) => !v)} aria-haspopup={comptes.length > 1 ? "menu" : undefined} aria-expanded={ouvert} title={`Les mails partent de ${principale.email}`}
+        className="inline-flex max-w-[280px] items-center gap-2 rounded-full px-3.5 py-2 text-[15px] text-craie max-md:max-w-[200px]" style={{ background: J["barre-relief"] }}>
+        <Mail className="h-4 w-4 flex-none text-ardoise" />
+        <span className="truncate">{principale.email}</span>
+        {comptes.length > 1 && <ChevronDown className="h-3.5 w-3.5 flex-none text-ardoise" />}
+      </button>
+      {ouvert && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOuvert(false)} />
+          <div role="menu" className="absolute left-0 top-full z-20 mt-2 min-w-[280px] rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]" style={{ background: J["barre"] }}>
+            {comptes.map((c) => (
+              <button key={c.email} role="menuitem" type="button" onClick={() => defaut.mutate(c.email)} disabled={defaut.isPending}
+                className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre" style={{ background: "transparent" }}>
+                {c.par_defaut ? <Check className="h-4 w-4 flex-none text-menthe" /> : <span className="h-4 w-4 flex-none" />}
+                <span className="truncate">{c.email}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Les suggestions sous le composeur (maquette) : ce qui est dû aujourd'hui
+// ou en retard d'abord, puis trois gestes courants. Un clic remplit le champ,
+// ou ouvre le dossier quand la ligne en a un.
+function Suggestions({ onChoisir }) {
+  const navigate = useNavigate();
+  const { data } = useQuery({ queryKey: ["ce-qui-attend"], queryFn: () => base44.request("GET", "/api/assistant/attend"), staleTime: 30 * 1000 });
+  const dues = (data?.lignes || []).filter((l) => l.dans != null && l.dans <= 0).slice(0, 2);
+  const chips = [
+    ...dues.map((l) => ({ cle: `${l.source}-${l.id}`, mot: l.titre, teinte: l.dans < 0 ? J["alerte"] : J["ambre"], faire: () => (l.lien ? navigate(l.lien) : onChoisir(l.titre, null)) })),
+    { cle: "cr", mot: "Rédiger un compte rendu de visite", teinte: J["menthe"], faire: () => onChoisir("Compte rendu de visite : ", "note") },
+    { cle: "local", mot: "Chercher un local", teinte: J["ambre"], faire: () => onChoisir("Cherche un local ", "question") },
+    { cle: "sourcing", mot: "Préparer un mail de sourcing", teinte: J["bleu"], faire: () => onChoisir("Prépare un mail de sourcing à [email de l'agent] pour [type de bien, zone, budget]", "mail") },
+  ];
+  return (
+    <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+      {chips.map((c) => (
+        <button key={c.cle} type="button" onClick={c.faire} className="inline-flex items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[15px] text-encre shadow-[0_2px_8px_rgb(0_0_0/0.04)] transition-colors hover:border-bord-doux">
+          <span className="h-2 w-2 flex-none rounded-full" style={{ background: c.teinte }} />
+          {c.mot}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// L'historique : le fil qu'on a laissé à l'assistant, tel qu'il vit en base.
+function HistoriqueFil() {
+  const { data, isLoading } = useQuery({ queryKey: ["assistant-fil"], queryFn: () => base44.request("GET", "/api/assistant/fil") });
+  const messages = (data?.messages || []).slice(-30);
+  return (
+    <div className="mt-4 rounded-[20px] border border-trait bg-surface-pleine p-5">
+      <p className="m-0 mb-3 text-[12px] uppercase tracking-[.14em] text-brume">Historique</p>
+      {isLoading ? <p className="m-0 text-[14px] text-ardoise">Lecture…</p>
+        : !messages.length ? <p className="m-0 text-[14px] text-ardoise">Rien encore : ce que vous dites à l'assistant s'écrit ici.</p>
+        : (
+          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+            {messages.map((m, i) => (
+              <li key={i} className={`max-w-[85%] whitespace-pre-line rounded-[16px] px-4 py-2.5 text-[14px] leading-[1.55] ${m.role === "user" ? "self-end bg-relief text-encre" : "self-start text-craie"}`}>
+                {m.contenu ?? m.texte ?? m.content ?? ""}
+              </li>
+            ))}
+          </ul>
+        )}
+    </div>
+  );
+}
 
 // Un brouillon de mail à relire : rien ne part sans un clic humain.
 function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
@@ -383,6 +470,14 @@ export default function ChatDashboard() {
   const [enCoursTexte, setEnCoursTexte] = useState("");
   const finRef = useRef(null);
   const fichierRef = useRef(null);
+  const champRef = useRef(null);
+  const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
+  // Le rail demande l'assistant : ici, c'est le champ qui prend la main.
+  useEffect(() => {
+    const focaliser = () => champRef.current?.focus();
+    window.addEventListener("klocka:assistant", focaliser);
+    return () => window.removeEventListener("klocka:assistant", focaliser);
+  }, []);
 
   const historique = () => fil.filter((m) => m.role === "user" || m.role === "assistant").slice(-12);
   const pousser = (m) => setFil((f) => [...f, m]);
@@ -624,136 +719,144 @@ export default function ChatDashboard() {
         </div>
       )}
 
-      {/* Le composeur : une seule barre en pilule. À gauche le mode, au
-          milieu ce qu'on tape, à droite la pièce jointe, la voix et l'envoi.
-          Une note collée sur plusieurs lignes arrondit la barre au lieu de la
-          faire déborder. */}
+      {/* Le composeur (maquette) : une carte blanche. Ce qu'on tape en haut ;
+          en bas, à gauche la pièce jointe et la boîte qui envoie, à droite le
+          mode, la voix et l'envoi. Une note collée sur plusieurs lignes fait
+          grandir la carte. */}
       <div
         className="relative"
         onDragOver={(e) => { e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
         onDrop={deposer}
       >
-        <BordureEcoute actif={ecoute} radius={multiligne ? "30px" : "9999px"}>
+        <div className="mb-2 flex justify-end">
+          <button type="button" onClick={() => setHistoriqueOuvert((v) => !v)} aria-expanded={historiqueOuvert} className="inline-flex items-center gap-1.5 text-[15px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
+            <History className="h-4 w-4" /> Historique
+          </button>
+        </div>
+        <BordureEcoute actif={ecoute} radius="24px">
         <div
-          className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
-          // Le même filet que les autres chats : assez pour dire où la pilule
-          // commence sur un fond noir, pas assez pour qu'on le remarque.
-          style={{ background: J["barre"], border: `1px solid ${alpha("craie", 0.11)}`, boxShadow: glisse ? `0 0 0 1px ${J["menthe"]}` : "none" }}
+          className="rounded-[24px] border border-trait bg-barre px-6 pb-4 pt-6 shadow-[0_14px_40px_rgb(0_0_0/0.07)] max-md:px-4 max-md:pt-4"
+          style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
-          {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
-          <div className="relative flex-none">
-            <button
-              type="button"
-              onClick={() => setCommandes((o) => !o)}
-              aria-expanded={commandes}
-              aria-haspopup="menu"
-              aria-label={modeCourant ? `Mode ${modeCourant.label}` : "Choisir un mode"}
-              title={modeCourant ? modeCourant.label : "Choisir ce que vous apportez : une note, une fiche, un mail, un rappel"}
-              className="flex items-center gap-1.5 rounded-full px-3 py-2 transition-colors"
-              style={{ background: modeCourant ? alpha("menthe", 0.16) : J["barre-relief"] }}
-            >
-              <IconeMode className="h-4 w-4" style={{ color: modeCourant ? J["menthe"] : J["ardoise"] }} />
-              <ChevronDown className={`h-2.5 w-2.5 text-ardoise transition-transform ${commandes ? "rotate-180" : ""}`} />
-            </button>
-            {commandes && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
-                <div
-                  role="menu"
-                  className="absolute left-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]"
-                  style={{ background: J["barre"] }}
-                >
-                  <div className="border-b border-bord px-4 pb-2.5 pt-3.5">
-                    <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Ce que vous apportez</span>
-                  </div>
-                  <div className="p-1.5">
-                    {MODES.map((m) => {
-                      const Icone = m.icone;
-                      const actif = mode === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          role="menuitem"
-                          onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); setCommandes(false); }}
-                          className="flex w-full items-center gap-3 rounded-champ px-3 py-2.5 text-left transition-colors hover:bg-encre/[0.05]"
-                          style={{ background: actif ? alpha("menthe", 0.1) : "transparent" }}
-                          title={m.placeholder}
-                        >
-                          <Icone className="h-4 w-4 flex-none" style={{ color: actif ? J["menthe"] : J["ardoise"] }} />
-                          <span className="text-[13.5px]" style={{ color: actif ? J["menthe"] : J["craie"] }}>{m.label}</span>
-                          {actif && <Check className="ml-auto h-3.5 w-3.5 flex-none" style={{ color: J["menthe"] }} />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="border-t border-bord px-4 pb-2.5 pt-3.5">
-                    <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Commandes types</span>
-                  </div>
-                  <div className="p-1.5 pb-2">
-                    {COMMANDES.map((c) => (
-                      <button
-                        key={c.texte}
-                        role="menuitem"
-                        onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }}
-                        className="w-full rounded-champ px-3 py-2 text-left text-[12.5px] leading-[1.5] text-brume transition-colors hover:bg-encre/[0.05] hover:text-craie"
-                        style={{ background: "transparent" }}
-                      >
-                        {c.texte}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
           <textarea
-            rows={multiligne ? Math.min(6, Math.max(2, texte.split("\n").length)) : 1}
+            ref={champRef}
+            rows={Math.min(8, Math.max(2, texte.split("\n").length))}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
             placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : modeCourant?.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
-            className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50"
+            className="block w-full resize-none border-0 bg-transparent text-[17px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[15px]"
           />
-
           <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
-          <button
-            type="button"
-            onClick={() => fichierRef.current?.click()}
-            aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
-            title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
-            className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre"
-            style={{ background: J["barre-relief"] }}
-          >
-            <Plus className="h-4 w-4" />
-          </button>
 
-          <button
-            type="button"
-            aria-pressed={ecoute}
-            disabled={enCours}
-            onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-            aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-            title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-            className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors disabled:opacity-40"
-            style={{ background: ecoute ? alpha("menthe", 0.2) : J["barre-relief"], color: ecoute ? J["menthe"] : J["ardoise"] }}
-          >
-            <Mic className="h-4 w-4" />
-          </button>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fichierRef.current?.click()}
+              aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
+              title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
+              className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre"
+              style={{ background: "transparent" }}
+            >
+              <Plus className="h-5 w-5" strokeWidth={1.7} />
+            </button>
+            <BoiteEnvoi />
 
-          <button
-            type="button"
-            onClick={() => (enCours ? controleur.current?.abort() : lancer())}
-            disabled={!enCours && !texte.trim() && !fichier}
-            aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
-            title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
-            className="grid h-11 w-11 flex-none place-items-center rounded-full transition-opacity disabled:opacity-90"
-            style={{ background: J["menthe"], color: J["sur-menthe"] }}
-          >
-            {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
-          </button>
+            <div className="ml-auto flex items-center gap-1.5">
+              {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCommandes((o) => !o)}
+                  aria-expanded={commandes}
+                  aria-haspopup="menu"
+                  aria-label={modeCourant ? `Mode ${modeCourant.label}` : "Choisir un mode"}
+                  title={modeCourant ? modeCourant.label : "Choisir ce que vous apportez : une note, une fiche, un mail, un rappel"}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[15px] transition-colors hover:bg-barre-relief"
+                  style={{ background: modeCourant ? alpha("menthe", 0.12) : "transparent", color: modeCourant ? J["menthe"] : J["craie"] }}
+                >
+                  {modeCourant ? <IconeMode className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
+                  <span className="max-md:hidden">{modeCourant ? modeCourant.label : "Mode auto"}</span>
+                </button>
+                {commandes && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)]"
+                      style={{ background: J["barre"] }}
+                    >
+                      <div className="border-b border-trait px-4 pb-2.5 pt-3.5">
+                        <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Ce que vous apportez</span>
+                      </div>
+                      <div className="p-1.5">
+                        {MODES.map((m) => {
+                          const Icone = m.icone;
+                          const actif = mode === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              role="menuitem"
+                              onClick={() => { const suivant = actif ? null : m.id; setMode(suivant); if (suivant && m.gabarit && !texte.trim()) setTexte(m.gabarit); setCommandes(false); }}
+                              className="flex w-full items-center gap-3 rounded-champ px-3 py-2.5 text-left transition-colors hover:bg-encre/[0.05]"
+                              style={{ background: actif ? alpha("menthe", 0.1) : "transparent" }}
+                              title={m.placeholder}
+                            >
+                              <Icone className="h-4 w-4 flex-none" style={{ color: actif ? J["menthe"] : J["ardoise"] }} />
+                              <span className="text-[13.5px]" style={{ color: actif ? J["menthe"] : J["craie"] }}>{m.label}</span>
+                              {actif && <Check className="ml-auto h-3.5 w-3.5 flex-none" style={{ color: J["menthe"] }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="border-t border-trait px-4 pb-2.5 pt-3.5">
+                        <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Commandes types</span>
+                      </div>
+                      <div className="p-1.5 pb-2">
+                        {COMMANDES.map((c) => (
+                          <button
+                            key={c.texte}
+                            role="menuitem"
+                            onClick={() => { setTexte(c.texte); setMode(c.mode || null); setCommandes(false); }}
+                            className="w-full rounded-champ px-3 py-2 text-left text-[12.5px] leading-[1.5] text-brume transition-colors hover:bg-encre/[0.05] hover:text-craie"
+                            style={{ background: "transparent" }}
+                          >
+                            {c.texte}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <button
+                type="button"
+                aria-pressed={ecoute}
+                disabled={enCours}
+                onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+                aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+                title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+                className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief disabled:opacity-40"
+                style={{ background: ecoute ? alpha("menthe", 0.2) : "transparent", color: ecoute ? J["menthe"] : J["craie"] }}
+              >
+                <Mic className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => (enCours ? controleur.current?.abort() : lancer())}
+                disabled={!enCours && !texte.trim() && !fichier}
+                aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
+                title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
+                className="grid h-11 w-11 flex-none place-items-center rounded-full bg-menthe-pale text-sur-menthe-pale transition-opacity disabled:opacity-70"
+              >
+                {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
+              </button>
+            </div>
+          </div>
         </div>
         </BordureEcoute>
 
@@ -770,6 +873,8 @@ export default function ChatDashboard() {
             {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
           </div>
         )}
+        <Suggestions onChoisir={(t, m) => { setTexte(t); setMode(m); setTimeout(() => champRef.current?.focus(), 30); }} />
+        {historiqueOuvert && <HistoriqueFil />}
       </div>
     </div>
   );

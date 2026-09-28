@@ -18,7 +18,7 @@ const ADMIN_AVATARS = {
 
 const avatarDe = (email) => (email ? ADMIN_AVATARS[email.toLowerCase()] || null : null);
 
-export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelete, onArchive, onShadowWithNav, shadowRecord }) {
+export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelete, onArchive, onShadowWithNav, shadowRecord, complement = null }) {
   const [reportOpen, setReportOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
@@ -37,7 +37,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
   };
 
   const hasShadow = !!shadowRecord?.shadow_data;
-  const actionBtn = "w-8 h-8 rounded-full bg-fond/70 backdrop-blur-sm border border-encre/[0.18] flex items-center justify-center text-craie transition-colors";
+  const actionBtn = "w-8 h-8 rounded-full bg-surface-pleine/95 backdrop-blur-sm border border-trait shadow-[0_2px_10px_rgb(0_0_0/0.10)] flex items-center justify-center text-craie transition-colors";
   const geste = (e, quoi) => { e.stopPropagation(); quoi(); };
 
   const actions = (
@@ -68,6 +68,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
 
   const pied = (
     <>
+      {complement}
       {hasShadow && (
         <button
           onClick={() => setReportOpen(true)}

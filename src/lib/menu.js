@@ -1,7 +1,7 @@
 // Les entrées du menu, par nom : ce que la barre latérale dessine et ce que la
 // page Personnalisation laisse masquer et réordonner. Le lien, l'icône et la
 // pastille de chaque entrée restent dans Layout ; ici seulement la liste et
-// son ordre d'origine.
+// son ordre d'origine (celui de la maquette).
 
 export const ENTREES_ADMIN = [
   { cle: "Dashboard", label: "Dashboard" },

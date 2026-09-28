@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, X, Folder, Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { J } from "@/design/jetons";
@@ -29,6 +29,9 @@ export default function Analyse() {
   const dealId = params.get("deal_id");
   const nouveau = params.get("nouveau") === "1";
   const [tri, setTri] = useState("maj");
+  // La recherche et le filtre par étape, au-dessus des cartes.
+  const [recherche, setRecherche] = useState("");
+  const [etapeFiltre, setEtapeFiltre] = useState(0); // 0 : toutes
   // Création d'un dossier nommé : nom + responsables, avant toute analyse.
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [nomDossier, setNomDossier] = useState("");
@@ -132,7 +135,10 @@ export default function Analyse() {
   // Cartes triées : par modification (récent d'abord), par étape (avancé
   // d'abord), ou groupées par admin (alphabétique puis récent).
   const dossiers = useMemo(() => {
-    const liste = (pipeline?.dossiers || []).filter((d) => !d.archived);
+    const t = recherche.trim().toLowerCase();
+    const liste = (pipeline?.dossiers || []).filter((d) => !d.archived)
+      .filter((d) => !etapeFiltre || (d.etape_max || 1) === etapeFiltre)
+      .filter((d) => !t || `${d.titre || ""} ${d.nom_fichier || ""} ${d.ville || ""} ${d.responsable || ""}`.toLowerCase().includes(t));
     const parMaj = (a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || ""));
     if (tri === "etape") return [...liste].sort((a, b) => (a.etape_max || 0) - (b.etape_max || 0) || parMaj(a, b));
     if (tri === "admin") {
@@ -140,7 +146,8 @@ export default function Analyse() {
         String(a.responsable || "zzz").localeCompare(String(b.responsable || "zzz")) || parMaj(a, b));
     }
     return [...liste].sort(parMaj);
-  }, [pipeline, tri]);
+  }, [pipeline, tri, recherche, etapeFiltre]);
+  const nbDossiers = (pipeline?.dossiers || []).filter((d) => !d.archived).length;
 
   return (
     <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
@@ -182,32 +189,46 @@ export default function Analyse() {
             )}
           </div>
         ) : (
-          <div className="max-w-[1120px] mx-auto">
-            {/* Bandeau : titre, tri, relances, nouveau dossier. */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-5">
-              <div>
-                <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Dossiers</h1>
+          <div className="max-w-[1400px] mx-auto">
+            {/* Bandeau : titre, relances, tri, nouveau dossier. */}
+            <div className="flex flex-wrap items-center justify-between gap-5 pb-6">
+              <div className="flex items-baseline gap-3">
+                <h1 className="m-0 text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[28px]">Dossiers</h1>
+                <span className="text-[16px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
               </div>
-              <div className="flex items-center gap-3 flex-none flex-wrap">
-                <span className={`text-xs ${aRelancer ? "text-alerte" : "text-brume"}`}>
-                  {aRelancer} relance(s) en attente
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`text-[15px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
+                  {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
                 </span>
-                <select
-                  value={tri}
-                  onChange={(e) => setTri(e.target.value)}
-                  className="rounded-full border border-encre/[0.10] bg-encre/[0.05] px-4 py-[8px] text-[12.5px] text-craie outline-none backdrop-blur-xl transition-colors hover:border-menthe/40"
-                >
-                  {TRIS.map((t) => (
-                    <option key={t.id} value={t.id}>Trier : {t.label}</option>
-                  ))}
-                </select>
+                <label className="relative inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[15px] text-craie">
+                  <SlidersHorizontal className="h-4 w-4 text-ardoise" />
+                  <span>{TRIS.find((t) => t.id === tri)?.label}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-ardoise" />
+                  <select aria-label="Trier" value={tri} onChange={(e) => setTri(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
+                    {TRIS.map((t) => <option key={t.id} value={t.id}>Trier : {t.label}</option>)}
+                  </select>
+                </label>
                 <button
                   onClick={() => setCreationOuverte(true)}
-                  className="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[18px] py-[9px] text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe transition-colors hover:bg-menthe-clair"
+                  className="inline-flex items-center gap-2 rounded-full bg-menthe px-5 py-2.5 text-[15px] text-sur-menthe transition-colors hover:bg-menthe-survol"
                 >
                   <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
               </div>
+            </div>
+
+            {/* Recherche et étapes, sur une ligne. */}
+            <div className="flex flex-wrap items-center gap-3 pb-2">
+              <div className="flex min-w-[260px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface-pleine px-5 py-3 focus-within:border-bord-doux max-md:basis-full">
+                <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
+                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume" />
+              </div>
+              {[[0, "Toutes"], [2, "Pré-analyse"], [3, "Analyse"], [4, "Vidéo"], [5, "Plateforme"]].map(([v, mot]) => (
+                <button key={v} type="button" onClick={() => setEtapeFiltre(v)}
+                  className={`rounded-full px-4 py-2.5 text-[15px] transition-colors ${etapeFiltre === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
+                  {mot}
+                </button>
+              ))}
             </div>
 
             {/* Les cartes */}
@@ -220,26 +241,32 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-6">
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
-                    className="relative rounded-[16px] border border-encre/[0.10] bg-encre/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl text-left transition-colors hover:border-menthe/40 hover:bg-encre/[0.06]"
+                    className="relative rounded-[20px] border border-trait bg-surface-pleine text-left transition-colors hover:border-bord-doux"
                   >
-                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-5 py-5 text-left" style={{ background: "transparent" }}>
-                      <div className="flex items-start justify-between gap-2 pr-6">
-                        <p className="m-0 line-clamp-2 text-[15px] font-medium leading-snug text-encre">
+                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-6 py-5 text-left" style={{ background: "transparent" }}>
+                      <div className="flex items-start gap-3 pr-8">
+                        <Folder className="mt-[5px] h-[18px] w-[18px] flex-shrink-0 text-menthe" strokeWidth={1.7} />
+                        <p className="m-0 line-clamp-2 text-[22px] font-medium leading-[1.25] tracking-[-0.01em] text-encre max-md:text-[19px]">
                           {d.titre || d.nom_fichier || d.deal_id}
                         </p>
                         {d.a_relancer && (
-                          <span title="À relancer" className="flex-shrink-0 mt-0.5 text-red-400"><Clock className="w-3.5 h-3.5" /></span>
+                          <span title="À relancer" className="mt-2 flex-shrink-0 text-alerte"><Clock className="w-4 h-4" /></span>
                         )}
                       </div>
-                      <p className="alx-mont m-0 mt-2.5 text-[11px] font-medium uppercase tracking-[.14em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
-                        Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
-                        {d.statut === "abandonne" ? " · Abandonné" : ""}
-                      </p>
-                      <p className="m-0 mt-2 truncate text-[12.5px] text-ardoise">
+                      <div className="mt-6 flex items-center gap-3">
+                        <span className="flex items-center gap-1" aria-hidden>
+                          {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[3px] w-4 rounded-full ${n <= (d.etape_max || 1) ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
+                        </span>
+                        <span className="text-[15px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                          Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
+                          {d.statut === "abandonne" ? " · Abandonné" : ""}
+                        </span>
+                      </div>
+                      <p className="m-0 mt-2.5 truncate text-[15px] text-ardoise">
                         {(d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0])}
                         {d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}
                       </p>
@@ -248,13 +275,13 @@ export default function Analyse() {
                     {/* Renommer / abandonner */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
-                      className="absolute top-3 right-2.5 text-brume hover:text-encre transition-colors"
-                      aria-label="Actions" title="Actions"
+                      className="absolute top-5 right-5 text-ardoise hover:text-encre transition-colors"
+                      aria-label="Actions" title="Actions" style={{ background: "transparent" }}
                     >
-                      <MoreHorizontal className="w-4 h-4" />
+                      <MoreHorizontal className="w-5 h-5" />
                     </button>
                     {menuCarte === d.deal_id && (
-                      <div className="absolute top-9 right-2.5 z-20 rounded-[12px] border border-encre/[0.12] bg-surface-pleine/90 py-1 min-w-[170px] shadow-[0_18px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+                      <div className="absolute top-12 right-5 z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
                         <button
                           onClick={() => {
                             setMenuCarte(null);
@@ -282,7 +309,7 @@ export default function Analyse() {
                               setMenuCarte(null);
                               if (window.confirm(`Abandonner « ${d.titre} » ? Le dossier restera consultable.`)) abandonner.mutate(d.deal_id);
                             }}
-                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-red-300 hover:bg-red-500/[0.08] transition-colors"
+                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08] transition-colors"
                           >
                             <Archive className="w-3.5 h-3.5" /> Abandonner
                           </button>

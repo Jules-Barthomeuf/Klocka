@@ -2,7 +2,7 @@ import React from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowUpRight, Building2, FolderSearch } from "lucide-react";
+import { ArrowUpRight, Building2, Folder } from "lucide-react";
 
 // Reprenez là où vous en étiez : les derniers dossiers et projets ouverts, du
 // plus récemment touché au plus ancien. On repart d'un clic, sans chercher.
@@ -20,7 +20,7 @@ const quand = (iso) => {
 };
 const dateDe = (x) => x?.maj_le || x?.updated_date || x?.modifie_le || x?.cree_le || x?.created_date || null;
 
-export default function ReprisePlace({ limite = 6 }) {
+export default function ReprisePlace({ limite = 5 }) {
   const navigate = useNavigate();
   const [dossiers, projets] = useQueries({
     queries: [
@@ -35,22 +35,20 @@ export default function ReprisePlace({ limite = 6 }) {
       .map((d) => ({
         cle: `d-${d.deal_id}`,
         titre: d.titre || d.nom || d.nom_fichier || "Dossier sans nom",
-        detail: [ETAPES[Math.max(0, (Number(d.etape_max) || 1) - 1)], d.ville].filter(Boolean).join(" · "),
+        detail: ["Dossier", ETAPES[Math.max(0, (Number(d.etape_max) || 1) - 1)], d.ville].filter(Boolean).join(" · "),
         date: dateDe(d),
-        icone: FolderSearch,
+        icone: Folder,
         vers: `/Analyse?deal_id=${d.deal_id}`,
-        genre: "Dossier",
       })),
     ...(projets.data || [])
       .filter((p) => !p.archived)
       .map((p) => ({
         cle: `p-${p.id}`,
         titre: p.titre || "Projet sans nom",
-        detail: [p.ville_secteur_champ1, p.nom_locataire].filter(Boolean).join(" · "),
+        detail: ["Projet", p.ville_secteur_champ1, p.nom_locataire].filter(Boolean).join(" · "),
         date: dateDe(p),
         icone: Building2,
         vers: `/AdminProjets?id=${p.id}`,
-        genre: "Projet",
       })),
   ]
     .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
@@ -60,30 +58,27 @@ export default function ReprisePlace({ limite = 6 }) {
 
   return (
     <section>
-      <p className="font-pill m-0 mb-4 text-[11px] font-medium uppercase tracking-[.14em] text-brume">Reprenez là où vous en étiez</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <p className="m-0 border-b border-bord pb-3 text-[15px] text-craie">Reprenez là où vous en étiez</p>
+      <ul className="m-0 list-none p-0">
         {liste.map((x) => {
           const Icone = x.icone;
           return (
-            <button
-              key={x.cle}
-              onClick={() => navigate(x.vers)}
-              className="group rounded-bloc border border-trait bg-surface px-5 py-4 text-left transition-colors hover:border-menthe/30"
-            >
-              <div className="flex items-start gap-3">
-                <Icone className="w-4 h-4 text-menthe flex-none mt-0.5" />
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 text-[13.5px] leading-[1.45] text-encre truncate">{x.titre}</p>
-                  <p className="m-0 mt-1 text-[12.5px] text-brume truncate">
-                    {x.genre}{x.detail ? ` · ${x.detail}` : ""}{x.date ? ` · ${quand(x.date)}` : ""}
-                  </p>
-                </div>
-                <ArrowUpRight className="w-3.5 h-3.5 text-bord-vif group-hover:text-menthe flex-none transition-colors" />
-              </div>
-            </button>
+            <li key={x.cle}>
+              <button
+                type="button"
+                onClick={() => navigate(x.vers)}
+                title={[x.detail, x.date ? quand(x.date) : ""].filter(Boolean).join(" · ")}
+                className="group flex w-full items-center gap-3 py-3 text-left"
+                style={{ background: "transparent" }}
+              >
+                <Icone className="h-4 w-4 flex-none text-menthe" />
+                <span className="min-w-0 flex-1 truncate text-[16px] text-encre">{x.titre}</span>
+                <ArrowUpRight className="h-4 w-4 flex-none text-ardoise transition-colors group-hover:text-menthe" />
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </section>
   );
 }

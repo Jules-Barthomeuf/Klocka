@@ -105,23 +105,20 @@ export default function CeQuiVousAttend({ limite = 12 }) {
 
   return (
     <section>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mb-4">
-        <p className="m-0 text-[13.5px] text-brume">
+      <div className="mb-1 border-b border-bord pb-3">
+        <p className="m-0 text-[15px] text-craie">
           Ce qui vous attend
           {data.en_retard > 0 && <span className="text-alerte"> · {data.en_retard} en retard</span>}
           {data.aujourdhui > 0 && <span className="text-ambre"> · {data.aujourdhui} aujourd'hui</span>}
         </p>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col">
         {GROUPES.map((g) => {
           const dedans = visibles.filter(g.garde);
           if (!dedans.length) return null;
           return (
             <div key={g.cle}>
-              <p className="m-0 mb-2 text-[11px] tracking-[.18em] uppercase" style={{ color: g.teinte }}>
-                {g.mot} <span className="text-bord-vif">· {dedans.length}</span>
-              </p>
               <div className="flex flex-col">
                 {dedans.map((l) => {
                   const n = NATURES[l.source] || NATURES.rappel;
@@ -133,17 +130,17 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                     <Ligne
                       key={`${l.source}-${l.id}`}
                       {...(l.lien && !l.cloturable ? { to: l.lien } : {})}
-                      className={`group flex items-baseline gap-3 border-t border-trait py-2.5 ${
+                      className={`group flex items-baseline gap-3 border-t border-trait py-3 first:border-t-0 ${
                         l.lien && !l.cloturable ? "cursor-pointer" : ""
                       }`}
                     >
                       <span
-                        className="mt-[6px] h-[5px] w-[5px] rounded-full flex-none"
+                        className="mt-[7px] h-2 w-2 rounded-full flex-none"
                         style={{ background: g.teinte }}
                       />
 
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[13.5px] leading-[1.45] text-craie group-hover:text-encre transition-colors">
+                        <p className="m-0 text-[16px] leading-[1.45] text-encre">
                           {l.titre}
                           {l.telephone && (
                             <a
@@ -155,7 +152,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                             </a>
                           )}
                         </p>
-                        <p className="m-0 mt-0.5 text-[12.5px] text-brume truncate">
+                        <p className="m-0 mt-0.5 text-[14px] text-ardoise truncate">
                           <span style={{ color: n.teinte }}>{n.mot}</span>
                           <span className="text-bord-vif"> · </span>
                           {quand(l.dans, l.echeance)}

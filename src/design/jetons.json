@@ -24,23 +24,23 @@
     "on écrit la classe nue."
   ],
   "couleurs": {
-    "fond": "#000000",
-    "fond-halo": "#08090a",
+    "fond": "#121312",
+    "fond-halo": "#121312",
     "surface": "rgba(242, 243, 245, 0.045)",
-    "surface-pleine": "#0f1114",
+    "surface-pleine": "#1c1e1d",
     "relief": "rgba(242, 243, 245, 0.07)",
-    "encre": "#f2f3f5",
-    "craie": "#c7cdc9",
-    "ardoise": "#949a97",
-    "brume": "#7c827f",
+    "encre": "#f2f2f0",
+    "craie": "#c9cbc7",
+    "ardoise": "#9a9c99",
+    "brume": "#808280",
     "menthe": "#96c0b8",
     "menthe-clair": "#c3ddd6",
     "menthe-survol": "#abd0c8",
     "menthe-fonce": "#7fada4",
     "menthe-texte": "#96c0b8",
     "sur-menthe": "#08130d",
-    "barre": "#121413",
-    "barre-relief": "#1b1e1d",
+    "barre": "#1c1e1d",
+    "barre-relief": "#2a2c2b",
     "trait": "rgba(242, 243, 245, 0.08)",
     "bord": "rgba(242, 243, 245, 0.11)",
     "bord-doux": "rgba(242, 243, 245, 0.16)",
@@ -55,7 +55,11 @@
     "surveiller": "#8B938F",
     "emplacement-1": "#6f8fe8",
     "emplacement-1bis": "#b8863e",
-    "emplacement-2": "#c2695c"
+    "emplacement-2": "#c2695c",
+    "menthe-pale": "#9cc3bc",
+    "sur-menthe-pale": "#0b1211",
+    "rail": "#191a19",
+    "rail-actif": "rgba(242, 243, 245, 0.08)"
   },
   "_texte": [
     "Sept pas, et rien entre les deux. 11 pour une étiquette en capitales,",
@@ -76,7 +80,7 @@
   ],
   "rayons": {
     "champ": "10px",
-    "bloc": "16px",
+    "bloc": "20px",
     "pastille": "9999px"
   },
   "_clair": [
@@ -93,35 +97,39 @@
     "ne lisent pas une variable, et un point de carte se lit sur les deux fonds."
   ],
   "couleurs_clair": {
-    "fond": "#ffffff",
-    "fond-halo": "#ffffff",
-    "surface": "rgba(16, 20, 24, 0.03)",
-    "surface-pleine": "#ffffff",
-    "relief": "rgba(16, 20, 24, 0.05)",
-    "encre": "#14181c",
-    "craie": "#3a413f",
-    "ardoise": "#5e6663",
-    "brume": "#707673",
-    "menthe": "#3f7a6d",
-    "menthe-clair": "#2f6d5f",
-    "menthe-survol": "#366c60",
-    "menthe-fonce": "#285a50",
-    "menthe-texte": "#2f6d5f",
+    "fond": "#f0f0ee",
+    "fond-halo": "#f0f0ee",
+    "surface": "rgba(255, 255, 255, 0.72)",
+    "surface-pleine": "#fbfbfa",
+    "relief": "rgba(28, 29, 28, 0.06)",
+    "encre": "#1c1d1c",
+    "craie": "#3e403d",
+    "ardoise": "#6f716e",
+    "brume": "#7a7c79",
+    "menthe": "#3f7466",
+    "menthe-clair": "#2f6357",
+    "menthe-survol": "#366a5c",
+    "menthe-fonce": "#2b5449",
+    "menthe-texte": "#3f7466",
     "sur-menthe": "#ffffff",
-    "barre": "#f4f5f6",
-    "barre-relief": "#e8eaeb",
-    "trait": "rgba(16, 20, 24, 0.08)",
-    "bord": "rgba(16, 20, 24, 0.12)",
-    "bord-doux": "rgba(16, 20, 24, 0.16)",
-    "bord-vif": "rgba(16, 20, 24, 0.26)",
-    "alerte": "#c43e34",
-    "ambre": "#b06a14",
-    "vert": "#1f7a4d",
+    "menthe-pale": "#b9cfc8",
+    "sur-menthe-pale": "#ffffff",
+    "barre": "#fdfdfd",
+    "barre-relief": "#e7e7e5",
+    "rail": "#f4f4f2",
+    "rail-actif": "rgba(28, 29, 28, 0.08)",
+    "trait": "rgba(28, 29, 28, 0.08)",
+    "bord": "rgba(28, 29, 28, 0.12)",
+    "bord-doux": "rgba(28, 29, 28, 0.17)",
+    "bord-vif": "rgba(28, 29, 28, 0.27)",
+    "alerte": "#b8453a",
+    "ambre": "#a9641c",
+    "vert": "#2f7a55",
     "jaune": "#96780a",
-    "bleu": "#2d60b2",
-    "appel": "#8c643c",
-    "ecrire": "#3f7a6d",
-    "surveiller": "#5e6663",
+    "bleu": "#5b6fa8",
+    "appel": "#a8794a",
+    "ecrire": "#3f7466",
+    "surveiller": "#6f716e",
     "emplacement-1": "#3c5ac8",
     "emplacement-1bis": "#8f6420",
     "emplacement-2": "#a8483b"
@@ -137,7 +145,7 @@
     "menthe": {
       "nom": "Menthe",
       "sombre": "#96c0b8",
-      "clair": "#3f7a6d"
+      "clair": "#3f7466"
     },
     "sauge": {
       "nom": "Sauge",
@@ -173,38 +181,55 @@
       "nom": "Graphite",
       "sombre": "#c7cdc9",
       "clair": "#3a413f"
+    },
+    "rose": {
+      "nom": "Rose",
+      "sombre": "#e85c8a",
+      "clair": "#e85c8a"
     }
   },
   "fonds": {
     "sombre": {
       "noir": {
+        "fond": "#121312",
+        "halo": "#121312"
+      },
+      "profond": {
         "fond": "#000000",
         "halo": "#08090a"
       },
       "anthracite": {
-        "fond": "#141618",
-        "halo": "#1a1d20"
+        "fond": "#1b1d1c",
+        "halo": "#1b1d1c"
       }
     },
     "clair": {
+      "perle": {
+        "fond": "#f0f0ee",
+        "halo": "#f0f0ee"
+      },
       "blanc": {
         "fond": "#ffffff",
         "halo": "#ffffff"
-      },
-      "perle": {
-        "fond": "#f4f5f6",
-        "halo": "#eceef0"
       }
     }
   },
   "surfaces_pleines": {
     "sombre": {
-      "surface": "#15181b",
-      "relief": "#1d2124"
+      "surface": "#1c1e1d",
+      "relief": "#262827"
     },
     "clair": {
-      "surface": "#f3f4f5",
-      "relief": "#e8eaeb"
+      "surface": "#fbfbfa",
+      "relief": "#e9e9e7"
     }
-  }
+  },
+  "_maquette": [
+    "Le registre visuel vient des maquettes de Jules (28 septembre 2026) : un fond",
+    "gris chaud, des cartes blanches à peine bordées, des pilules, un rail",
+    "d'icônes à gauche, le vert profond pour agir et une menthe pâle pour envoyer.",
+    "Le sombre est la même page en négatif : noir chaud, cartes anthracite.",
+    "« rail » et « rail-actif » sont le fond du rail et la case de la page ouverte ;",
+    "« menthe-pale » le bouton d'envoi du chat, « sur-menthe-pale » ce qu'on écrit dessus."
+  ]
 }

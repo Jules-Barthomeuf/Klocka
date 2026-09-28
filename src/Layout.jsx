@@ -28,7 +28,8 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft } from "lucide-react";
+import RechercheRapide from "@/components/RechercheRapide";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
@@ -120,110 +121,6 @@ function Wordmark({ collapsed = false }) {
   );
 }
 
-// La pilule de verre : une seule, posée sous le lien de la page où l'on est,
-// qui glisse jusqu'au suivant quand on change de page. Elle se mesure sur le
-// lien marqué data-actif, dans la piste qui contient les liens.
-function PiluleNav({ piste, cles }) {
-  const [pos, setPos] = useState(null);
-  const premier = useRef(true);
-  // Le tableau de clés change à chaque rendu ; sa version texte, non.
-  const cle = cles.join("|");
-  // Un effet passif, pas de mise en page : la pilule est l'enfant de la piste,
-  // et son effet de mise en page partirait avant que la ref de la piste soit
-  // posée.
-  useEffect(() => {
-    const cont = piste.current;
-    if (!cont) return;
-    const mesurer = () => {
-      const el = cont.querySelector('[data-actif="1"]');
-      if (!el) { setPos(null); return; }
-      const a = el.getBoundingClientRect();
-      const c = cont.getBoundingClientRect();
-      const suite = { top: a.top - c.top + cont.scrollTop, left: a.left - c.left + cont.scrollLeft, width: a.width, height: a.height };
-      setPos((p) => (p && p.top === suite.top && p.left === suite.left && p.width === suite.width && p.height === suite.height ? p : suite));
-    };
-    mesurer();
-    // La pilule doit suivre le lien même quand la piste, elle, ne change pas
-    // de taille : la police d'écriture arrive après le premier rendu et
-    // décale les liens de quelques pixels, une pastille apparaît, un groupe
-    // s'ouvre. Sans ces trois guets, la pilule reste où elle a été mesurée et
-    // le mot ne tombe plus en son milieu.
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(mesurer) : null;
-    ro?.observe(cont);
-    const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(mesurer) : null;
-    mo?.observe(cont, { childList: true, subtree: true, attributes: true });
-    window.addEventListener("resize", mesurer);
-    document.fonts?.ready?.then(mesurer);
-    return () => { ro?.disconnect(); mo?.disconnect(); window.removeEventListener("resize", mesurer); };
-  }, [piste, cle]);
-  useEffect(() => { if (pos) premier.current = false; }, [pos]);
-  if (!pos) return null;
-  return (
-    <span
-      aria-hidden
-      className="pointer-events-none absolute z-0 !mt-0 rounded-full border border-encre/[0.10] bg-encre/[0.07] shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-md"
-      style={{
-        top: pos.top, left: pos.left, width: pos.width, height: pos.height,
-        transition: premier.current ? "none" : "top 380ms cubic-bezier(.22,1,.36,1), height 380ms cubic-bezier(.22,1,.36,1), left 300ms ease, width 300ms ease",
-      }}
-    />
-  );
-}
-
-function NavItem({ to, icon: Icon, label, badge, badgeColor, isActive, onClick, collapsed }) {
-  return (
-    <Link to={to} onClick={onClick} title={collapsed ? label : undefined} data-actif={isActive ? "1" : undefined} className="relative z-[1] block rounded-full">
-      <div className={`relative flex items-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group
-        ${isActive ? "text-encre" : "text-ardoise hover:text-encre"}
-        ${collapsed ? "justify-center px-0 py-2" : ""}
-      `}>
-        {collapsed ? (
-          <Icon className={`w-[17px] h-[17px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
-        ) : (
-          <>
-            <Icon className={`w-[15px] h-[15px] flex-shrink-0 transition-colors ${isActive ? "text-menthe" : "text-brume group-hover:text-craie"}`} />
-            <span className="truncate">{label}</span>
-            {badge && (
-              <Badge className={`${badgeColor || "bg-transparent text-menthe-clair"} absolute right-2 top-1/2 -translate-y-1/2 text-[11px] tracking-[0.12em] px-1.5 py-0 border-0`}>
-                {badge}
-              </Badge>
-            )}
-          </>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-// Bascule du groupe secondaire « Autre » : même typographie qu'un lien.
-function AutreToggle({ open, onClick, collapsed }) {
-  return (
-    <button onClick={onClick} aria-label="Autre" title="Autre"
-      className={`w-full relative flex items-center gap-2 px-3 py-[7px] text-[11px] uppercase tracking-[0.14em] transition-colors duration-200 group text-brume hover:text-encre ${collapsed ? "justify-center px-0 py-2" : ""}`}>
-      {collapsed ? (
-        <ChevronDown className={`w-[17px] h-[17px] flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
-      ) : (
-        <>
-          <span>Autre</span>
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-        </>
-      )}
-    </button>
-  );
-}
-
-// Les intitulés de section ne sont plus affichés et les groupes ne créent plus
-// d'espacement propre : le composant ne sert qu'à garder la structure lisible
-// dans le code. L'écart entre deux liens est identique partout, donné par le
-// `space-y` du conteneur de navigation.
-function NavSection({ children }) {
-  return <>{children}</>;
-}
-
-// Le menu des applications. Un seul intitulé dans la barre, « Apps », et tout
-// s'ouvre au survol : à six modules la barre était déjà pleine, et elle ne
-// grandira pas avec le septième. Un délai de grâce laisse la souris traverser
-// le vide entre l'intitulé et le panneau, comme pour le survol du Feedback.
 function MenuApps({ isActivePage }) {
   const [ouvert, setOuvert] = useState(false);
   const minuterie = useRef(null);
@@ -355,13 +252,20 @@ function LayoutContent({ children, currentPageName }) {
   // latérale, entrées du menu.
   const { prefs, changer } = usePersonnalisation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // La barre latérale s'ouvre comme Personnalisation le dit ; le chevron la
-  // replie ou la déplie ensuite, le temps de la session.
+  // La barre latérale s'ouvre comme Personnalisation le dit ; le bouton du
+  // haut la replie en rail d'icônes, le temps de la session.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => prefs.barre === "repliee");
   useEffect(() => { setSidebarCollapsed(prefs.barre === "repliee"); }, [prefs.barre]);
+  // La recherche (⌘K) : projets et dossiers, de n'importe quelle page.
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  useEffect(() => {
+    const clavier = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setRechercheOuverte((v) => !v); } };
+    window.addEventListener("keydown", clavier);
+    return () => window.removeEventListener("keydown", clavier);
+  }, []);
   // La largeur de la barre, dite à la page : la bulle de l'assistant posée à
   // gauche (Personnalisation) se place à côté de la barre, pas dessus.
-  const largeurBarre = sidebarCollapsed ? "52px" : "172px";
+  const largeurBarre = sidebarCollapsed ? "72px" : "240px";
   useEffect(() => {
     document.documentElement.style.setProperty("--k-barre-largeur", largeurBarre);
     return () => document.documentElement.style.removeProperty("--k-barre-largeur");
@@ -429,8 +333,6 @@ function LayoutContent({ children, currentPageName }) {
   };
 
   const closeMobile = () => setIsMobileMenuOpen(false);
-  const pisteBureau = useRef(null);
-  const pisteMobile = useRef(null);
 
   // On est dans K-Data dès que la page ouverte est son tableau de bord ou
   // l'un de ses modules. Ce n'est pas un lien de plus dans le menu : c'est un
@@ -449,12 +351,12 @@ function LayoutContent({ children, currentPageName }) {
   // La liste et son ordre d'origine vivent dans src/lib/menu.js ; l'ordre
   // et les masques choisis dans Personnalisation s'appliquent au rendu.
   const DETAILS = {
-    Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte/20 text-alerte" },
+    Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
-    Analyse: { to: "/Analyse", icon: Search, actif: isActivePage("Analyse") },
+    Analyse: { to: "/Analyse", icon: Folder, actif: isActivePage("Analyse") },
     FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
-    Prospection: { to: createPageUrl("Prospection"), icon: PhoneCall, actif: isActivePage("Prospection") },
-    ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-alerte/20 text-alerte" },
+    Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
+    ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     Monitoring: { to: "/Monitoring", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
@@ -468,46 +370,97 @@ function LayoutContent({ children, currentPageName }) {
     Ressources: { to: createPageUrl("Ressources"), icon: BookOpen, actif: isActivePage("Ressources") },
   };
 
-  const sidebarContent = (isMobile = false) => (
-    <div className="flex flex-col h-full">
-      {/* Marque */}
-      <div className={`flex items-center h-[60px] flex-shrink-0 ${sidebarCollapsed && !isMobile ? "justify-center" : "px-3.5"}`}>
-        <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center">
-          <Wordmark collapsed={sidebarCollapsed && !isMobile} />
+  // La barre latérale (maquette du 28 septembre 2026) : la marque et le
+  // repli ; Klocka | K-Data ; la vue ; les pages avec leur nom ; « Autre » ;
+  // en bas le compte, l'autre compte, le thème, la déconnexion. Repliée,
+  // elle devient un rail d'icônes. Sur mobile, la même chose dans un tiroir.
+  const sidebarContent = (isMobile = false) => {
+    const replie = sidebarCollapsed && !isMobile;
+    const entrees = ordonner(showClientView ? ENTREES_CLIENT : ENTREES_ADMIN, prefs.menu_ordre, prefs.menu_masques);
+    const autres = showClientView ? [] : ordonner(ENTREES_AUTRE, prefs.menu_ordre, prefs.menu_masques);
+    const initiale = (user?.full_name || user?.email || "U").charAt(0).toUpperCase();
+    const nomCourt = (() => {
+      const mots = String(user?.full_name || "").trim().split(/\s+/).filter(Boolean);
+      if (mots.length >= 2) return `${mots[0]} ${mots[mots.length - 1].charAt(0).toUpperCase()}.`;
+      return mots[0] || user?.email?.split("@")[0] || "";
+    })();
+    const bouton = "grid h-8 w-8 place-items-center rounded-[8px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre";
+    const Lien = ({ e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor }) => {
+      const d = DETAILS[cle] || {};
+      const Icone = icon || d.icon;
+      const ici = actif ?? d.actif;
+      const pastille = badge ?? d.badge;
+      if (!Icone) return null;
+      return (
+        <Link
+          to={to || d.to}
+          onClick={isMobile ? closeMobile : undefined}
+          data-actif={ici ? "1" : undefined}
+          title={replie ? label : undefined}
+          aria-label={label}
+          className={`relative flex items-center rounded-[12px] transition-colors ${replie ? "mx-auto h-10 w-10 justify-center" : "gap-3 px-3.5 py-[9px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
+        >
+          <Icone className="h-[18px] w-[18px] flex-none" strokeWidth={1.7} />
+          {!replie && <span className="flex-1 truncate text-[16px]">{label}</span>}
+          {pastille ? (
+            replie
+              ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
+              : <span className={`ml-auto rounded-full px-2 py-0.5 text-[12px] font-medium tabular-nums ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
+          ) : null}
         </Link>
-        {isMobile && (
-          <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-ardoise hover:text-encre">
-            <X className="w-5 h-5" />
-          </Button>
-        )}
-      </div>
-      <div className={`h-px bg-gradient-to-r from-transparent via-menthe/25 to-transparent ${sidebarCollapsed && !isMobile ? "mx-2" : "mx-3.5"}`} />
-
-      {/* Bascule Klocka / K-Data : deux espaces, un compte. Choisir K-Data
-          quitte cette barre latérale pour la barre du haut de K-Data — ce
-          n'est pas un lien de plus, c'est un autre côté de l'application. */}
-      {isAdmin && !(sidebarCollapsed && !isMobile) && (
-        // Pas d'icône ici : « Klocka » et « K-Data » se nomment déjà, et la
-        // sidebar (172px) n'a pas la place d'en ajouter une sans faire courir
-        // « K-Data » sur deux lignes.
-        <div className="px-3.5 pt-3 pb-2">
-          <div className="border-b border-encre/[0.06] pb-2.5">
-            <BasculeKData
-              enKData={enKData}
-              onChanger={(kdata) => {
-                if (isMobile) closeMobile();
-                navigate(kdata ? createPageUrl("KData") : createPageUrl("Dashboard"));
-              }}
-            />
-          </div>
+      );
+    };
+    return (
+      <div className="flex h-full flex-col">
+        {/* La marque, et le repli. */}
+        <div className={`flex h-[64px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
+          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka">
+            <img src="/logo-klocka.svg" alt="Klocka" className="h-7 w-7 rounded-[7px]" draggable={false} />
+            {!replie && <span className="text-[20px] font-semibold tracking-[-0.01em] text-encre">Klocka</span>}
+          </Link>
+          {!isMobile && !replie && (
+            <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Replier le menu" title="Replier le menu" className={`ml-auto ${bouton}`} style={{ background: "transparent" }}>
+              <PanelLeft className="h-[18px] w-[18px]" strokeWidth={1.7} />
+            </button>
+          )}
+          {isMobile && (
+            <Button variant="ghost" size="icon" onClick={closeMobile} className="ml-auto text-ardoise hover:text-encre">
+              <X className="w-5 h-5" />
+            </Button>
+          )}
         </div>
-      )}
+        {replie && (
+          <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Déplier le menu" title="Déplier le menu" className={`mx-auto ${bouton}`} style={{ background: "transparent" }}>
+            <PanelLeft className="h-[18px] w-[18px]" strokeWidth={1.7} />
+          </button>
+        )}
 
-      {/* Admin view switcher */}
-      {isAdmin && !(sidebarCollapsed && !isMobile) && (
-        <div className="px-3.5 pt-3 pb-1">
-          <div className="flex items-center gap-2 border-b border-encre/[0.06] pb-1">
-            <Eye className="w-3.5 h-3.5 text-brume" />
+        {/* Klocka | K-Data : deux espaces, un compte. Choisir K-Data quitte
+            cette barre pour la barre du haut de K-Data. */}
+        {isAdmin && !replie && (
+          <div className="mx-3 mt-1 grid grid-cols-2 rounded-[12px] bg-rail-actif p-1">
+            {[["klocka", "Klocka"], ["kdata", "K-Data"]].map(([k, mot]) => {
+              const actif = k === "kdata" ? enKData : !enKData;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => { if (isMobile) closeMobile(); navigate(k === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard")); }}
+                  aria-pressed={actif}
+                  className={`rounded-[9px] py-1.5 text-[15px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
+                  style={actif ? undefined : { background: "transparent" }}
+                >
+                  {mot}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* La vue : admin, ou comme un client. */}
+        {isAdmin && !replie && (
+          <div className="mx-3 mt-3 flex items-center gap-2.5 px-2">
+            <Eye className="h-[18px] w-[18px] flex-none text-ardoise" strokeWidth={1.7} />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
               onChange={(v) => setPreviewClientMode(v === 'client')}
@@ -516,104 +469,68 @@ function LayoutContent({ children, currentPageName }) {
                 { value: 'client', label: 'Vue Client' },
               ]}
               className="flex-1"
-              triggerClassName="bg-transparent border-none text-encre h-7 px-0 hover:bg-transparent hover:text-encre"
+              triggerClassName="bg-transparent border-none text-encre text-[16px] h-8 px-0 hover:bg-transparent hover:text-encre"
             />
           </div>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <div ref={isMobile ? pisteMobile : pisteBureau} className="relative flex-1 overflow-y-auto px-2 pt-4 pb-4 space-y-1">
-        {(() => {
-          const nav = (e, d) => (
-            <NavItem key={e.cle} to={d.to} icon={d.icon} label={e.label} isActive={d.actif} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={d.badge || null} badgeColor={d.badgeColor} />
-          );
-          const rendre = (e) => {
-            const d = DETAILS[e.cle];
-            if (!d) return null;
-            return e.cle === "AdminSuggestions" ? <FeedbackSurvol key={e.cle}>{nav(e, d)}</FeedbackSurvol> : nav(e, d);
-          };
-          const perso = <NavItem to={createPageUrl("Personnalisation")} icon={Palette} label="Personnalisation" isActive={isActivePage("Personnalisation")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />;
-          if (showClientView) {
-            return (
-              <>
-                {ordonner(ENTREES_CLIENT, prefs.menu_ordre, prefs.menu_masques).map(rendre)}
-                {perso}
-              </>
-            );
-          }
-          if (!isAdmin || previewClientMode) return null;
-          return (
-            <>
-              {ordonner(ENTREES_ADMIN, prefs.menu_ordre, prefs.menu_masques).map(rendre)}
-              <div className="pt-3">
-                <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
-                {autreOpen && (
-                  <div className="space-y-px">
-                    {ordonner(ENTREES_AUTRE, prefs.menu_ordre, prefs.menu_masques).map(rendre)}
-                    {AFFICHER_DOUBLE_CHECK && (
-                      <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                    )}
-                    {perso}
-                  </div>
-                )}
-              </div>
-            </>
-          );
-        })()}
-        <PiluleNav piste={isMobile ? pisteMobile : pisteBureau} cles={[location.pathname, autreOpen, sidebarCollapsed, showClientView, isMobile]} />
-      </div>
-
-      {/* User & Logout */}
-      <div className="px-3.5 py-3.5 border-t border-encre/[0.06]">
-        {!(sidebarCollapsed && !isMobile) ? (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full border border-menthe/40 flex items-center justify-center flex-shrink-0">
-              <span className="text-[11px] text-menthe tracking-[0.06em]">
-                {(user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[12.5px] text-encre truncate">{user?.full_name || user?.email?.split('@')[0]}</p>
-              <p className="text-[11px] text-brume truncate">{user?.email}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => base44.auth.fenetre.ouvrir()}
-              className="text-brume hover:text-encre hover:bg-transparent h-8 w-8 flex-shrink-0"
-              title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres"
-            >
-              <Users className="w-4 h-4" />
-            </Button>
-            <BasculeTheme clair={clair} onBasculer={basculer} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-              className="text-brume hover:text-encre hover:bg-transparent h-8 w-8 flex-shrink-0"
-              title="Déconnexion"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1">
-            <BasculeTheme clair={clair} onBasculer={basculer} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-              className="text-ardoise hover:text-encre hover:bg-encre/5 h-8 w-8 mx-auto block"
-              title="Déconnexion"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
         )}
+
+        {/* Les pages. */}
+        <div className="mt-4 flex-1 overflow-y-auto px-3 pb-4">
+          <div className="flex flex-col gap-0.5">
+            {entrees.map((e) => <Lien key={e.cle} e={e} />)}
+          </div>
+          {isAdmin && !showClientView && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setAutreOpen((v) => !v)}
+                aria-expanded={autreOpen}
+                aria-label="Autre" title="Autre"
+                className={`flex items-center rounded-[12px] text-ardoise transition-colors hover:text-encre ${replie ? "mx-auto h-10 w-10 justify-center" : "gap-2 px-3.5 py-[7px] text-[16px]"}`}
+                style={{ background: "transparent" }}
+              >
+                {!replie && <span>Autre</span>}
+                <ChevronDown className={`h-4 w-4 transition-transform ${autreOpen ? "rotate-180" : ""}`} />
+              </button>
+              {autreOpen && (
+                <div className="mt-0.5 flex flex-col gap-0.5">
+                  {autres.map((e) => <Lien key={e.cle} e={e} />)}
+                  {AFFICHER_DOUBLE_CHECK && <Lien e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
+                  <Lien e={{ cle: "Personnalisation", label: "Personnalisation" }} to={createPageUrl("Personnalisation")} icon={Palette} actif={isActivePage("Personnalisation")} />
+                </div>
+              )}
+            </div>
+          )}
+          {showClientView && (
+            <div className="mt-4 flex flex-col gap-0.5">
+              <Lien e={{ cle: "Personnalisation", label: "Personnalisation" }} to={createPageUrl("Personnalisation")} icon={Palette} actif={isActivePage("Personnalisation")} />
+            </div>
+          )}
+        </div>
+
+        {/* Le compte. */}
+        <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2.5 px-3 py-3.5"}`}>
+          <Link to={createPageUrl("MonCompte")} onClick={isMobile ? closeMobile : undefined} title={user?.full_name || user?.email} className="grid h-10 w-10 flex-none place-items-center rounded-full bg-menthe text-[15px] font-medium text-sur-menthe">
+            {initiale}
+          </Link>
+          {!replie && <span className="min-w-0 flex-1 truncate text-[15px] text-encre">{nomCourt}</span>}
+          <div className={`flex items-center ${replie ? "flex-col gap-1" : "gap-0"}`}>
+            {!replie && (
+              <button type="button" onClick={() => base44.auth.fenetre.ouvrir()} aria-label="Ouvrir un autre compte dans cette fenêtre" title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres" className={bouton} style={{ background: "transparent" }}>
+                <Users className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              </button>
+            )}
+            <button type="button" onClick={basculer} aria-label={clair ? "Passer en mode sombre" : "Passer en mode clair"} title={clair ? "Passer en mode sombre" : "Passer en mode clair"} className={bouton} style={{ background: "transparent" }}>
+              {clair ? <Moon className="h-[18px] w-[18px]" strokeWidth={1.7} /> : <Sun className="h-[18px] w-[18px]" strokeWidth={1.7} />}
+            </button>
+            <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Home')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
+              <LogOut className="h-[18px] w-[18px]" strokeWidth={1.7} />
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     // `overflow-x-clip` plutôt que `hidden` : `hidden` créerait un conteneur de
@@ -629,26 +546,13 @@ function LayoutContent({ children, currentPageName }) {
         !enCadre && <BarreKData user={user} isActivePage={isActivePage} clair={clair} onBasculerTheme={basculer} />
       ) : (
         <>
-          {/* Desktop Sidebar */}
+          {/* La barre latérale de bureau ; repliée, un rail d'icônes. */}
           {!hideNavbar && (
             <aside
-              className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 backdrop-blur-xl transition-all duration-300 ${sidebarCollapsed ? "w-[52px]" : "w-[172px]"}`}
-              style={{
-                paddingTop: "env(safe-area-inset-top)",
-                background: "rgb(var(--k-fond-halo-rgb) / 0.42)",
-                backdropFilter: "blur(16px) saturate(1.15)",
-                WebkitBackdropFilter: "blur(16px) saturate(1.15)",
-                boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)",
-              }}
+              className={`hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-trait bg-rail transition-[width] duration-200 ${sidebarCollapsed ? "w-[72px]" : "w-[240px]"}`}
+              style={{ paddingTop: "env(safe-area-inset-top)" }}
             >
               {sidebarContent(false)}
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="hidden md:flex absolute -right-3 top-[60px] z-50 w-6 h-6 rounded-full bg-fond border border-encre/10 items-center justify-center text-ardoise hover:text-encre hover:border-menthe/50 transition-colors"
-                aria-label={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"} title={sidebarCollapsed ? "Ouvrir le menu" : "Fermer le menu"}
-              >
-                <ChevronLeft className={`w-3.5 h-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
-              </button>
             </aside>
           )}
 
@@ -674,7 +578,7 @@ function LayoutContent({ children, currentPageName }) {
           {isMobileMenuOpen && !hideNavbar && (
             <>
               <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
-              <aside className="md:hidden fixed top-0 left-0 h-screen w-[220px] z-50 bg-fond/80 backdrop-blur-xl" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
+              <aside className="md:hidden fixed top-0 left-0 h-screen w-[248px] z-50 bg-rail" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
                 {sidebarContent(true)}
               </aside>
             </>
@@ -685,7 +589,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* Main Content */}
       <main
         className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
-          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[52px]" : "md:ml-[172px]") : ""
+          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]") : ""
         } ${
           modoKData
             ? (enCadre ? "" : "pt-14")
@@ -712,6 +616,9 @@ function LayoutContent({ children, currentPageName }) {
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
       {isAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
+
+      {/* La recherche du rail, et ⌘K. */}
+      {isAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs />}

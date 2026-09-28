@@ -78,23 +78,27 @@ button:focus-visible {
    (bg-fond/70, bg-encre/[0.07]) continuent de fonctionner. Un jeton
    translucide est donné entier : son alpha lui appartient. */
 :root {
-    --k-fond-rgb: 0 0 0;
-    --k-fond-halo-rgb: 8 9 10;
+    --k-fond-rgb: 18 19 18;
+    --k-fond-halo-rgb: 18 19 18;
     --k-surface: rgba(242, 243, 245, 0.045);
-    --k-surface-pleine-rgb: 15 17 20;
+    --k-surface-pleine-rgb: 28 30 29;
     --k-relief: rgba(242, 243, 245, 0.07);
-    --k-encre-rgb: 242 243 245;
-    --k-craie-rgb: 199 205 201;
-    --k-ardoise-rgb: 148 154 151;
-    --k-brume-rgb: 124 130 127;
+    --k-encre-rgb: 242 242 240;
+    --k-craie-rgb: 201 203 199;
+    --k-ardoise-rgb: 154 156 153;
+    --k-brume-rgb: 128 130 128;
     --k-menthe-rgb: 150 192 184;
     --k-menthe-clair-rgb: 195 221 214;
     --k-menthe-survol-rgb: 171 208 200;
     --k-menthe-fonce-rgb: 127 173 164;
     --k-menthe-texte-rgb: 150 192 184;
     --k-sur-menthe-rgb: 8 19 13;
-    --k-barre-rgb: 18 20 19;
-    --k-barre-relief-rgb: 27 30 29;
+    --k-menthe-pale-rgb: 156 195 188;
+    --k-sur-menthe-pale-rgb: 11 18 17;
+    --k-barre-rgb: 28 30 29;
+    --k-barre-relief-rgb: 42 44 43;
+    --k-rail-rgb: 25 26 25;
+    --k-rail-actif: rgba(242, 243, 245, 0.08);
     --k-trait: rgba(242, 243, 245, 0.08);
     --k-bord: rgba(242, 243, 245, 0.11);
     --k-bord-doux: rgba(242, 243, 245, 0.16);
@@ -119,35 +123,39 @@ button:focus-visible {
    Chaque accent clair passe le plancher de 4,5 pour 1 sur blanc. Les boutons
    pleins suivent : « sur-menthe » devient blanc, posé sur la menthe foncée. */
 :root[data-theme="clair"] {
-    --k-fond-rgb: 255 255 255;
-    --k-fond-halo-rgb: 255 255 255;
-    --k-surface: rgba(16, 20, 24, 0.03);
-    --k-surface-pleine-rgb: 255 255 255;
-    --k-relief: rgba(16, 20, 24, 0.05);
-    --k-encre-rgb: 20 24 28;
-    --k-craie-rgb: 58 65 63;
-    --k-ardoise-rgb: 94 102 99;
-    --k-brume-rgb: 112 118 115;
-    --k-menthe-rgb: 63 122 109;
-    --k-menthe-clair-rgb: 47 109 95;
-    --k-menthe-survol-rgb: 54 108 96;
-    --k-menthe-fonce-rgb: 40 90 80;
-    --k-menthe-texte-rgb: 47 109 95;
+    --k-fond-rgb: 240 240 238;
+    --k-fond-halo-rgb: 240 240 238;
+    --k-surface: rgba(255, 255, 255, 0.72);
+    --k-surface-pleine-rgb: 251 251 250;
+    --k-relief: rgba(28, 29, 28, 0.06);
+    --k-encre-rgb: 28 29 28;
+    --k-craie-rgb: 62 64 61;
+    --k-ardoise-rgb: 111 113 110;
+    --k-brume-rgb: 122 124 121;
+    --k-menthe-rgb: 63 116 102;
+    --k-menthe-clair-rgb: 47 99 87;
+    --k-menthe-survol-rgb: 54 106 92;
+    --k-menthe-fonce-rgb: 43 84 73;
+    --k-menthe-texte-rgb: 63 116 102;
     --k-sur-menthe-rgb: 255 255 255;
-    --k-barre-rgb: 244 245 246;
-    --k-barre-relief-rgb: 232 234 235;
-    --k-trait: rgba(16, 20, 24, 0.08);
-    --k-bord: rgba(16, 20, 24, 0.12);
-    --k-bord-doux: rgba(16, 20, 24, 0.16);
-    --k-bord-vif: rgba(16, 20, 24, 0.26);
-    --k-alerte-rgb: 196 62 52;
-    --k-ambre-rgb: 176 106 20;
-    --k-vert-rgb: 31 122 77;
+    --k-menthe-pale-rgb: 185 207 200;
+    --k-sur-menthe-pale-rgb: 255 255 255;
+    --k-barre-rgb: 253 253 253;
+    --k-barre-relief-rgb: 231 231 229;
+    --k-rail-rgb: 244 244 242;
+    --k-rail-actif: rgba(28, 29, 28, 0.08);
+    --k-trait: rgba(28, 29, 28, 0.08);
+    --k-bord: rgba(28, 29, 28, 0.12);
+    --k-bord-doux: rgba(28, 29, 28, 0.17);
+    --k-bord-vif: rgba(28, 29, 28, 0.27);
+    --k-alerte-rgb: 184 69 58;
+    --k-ambre-rgb: 169 100 28;
+    --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
-    --k-bleu-rgb: 45 96 178;
-    --k-appel-rgb: 140 100 60;
-    --k-ecrire-rgb: 63 122 109;
-    --k-surveiller-rgb: 94 102 99;
+    --k-bleu-rgb: 91 111 168;
+    --k-appel-rgb: 168 121 74;
+    --k-ecrire-rgb: 63 116 102;
+    --k-surveiller-rgb: 111 113 110;
     --k-emplacement-1-rgb: 60 90 200;
     --k-emplacement-1bis-rgb: 143 100 32;
     --k-emplacement-2-rgb: 168 72 59;
@@ -168,6 +176,19 @@ button:focus-visible {
 :root[data-halo="0"] .k-halo,
 :root[data-halo="0"] .accueil-halo-a,
 :root[data-halo="0"] .accueil-halo-b { display: none; }
+
+/* Le grain du fond (maquette) : une trame fine, posée sur le fond de page et
+   sous tout ce qui s'y pose (main est au-dessus de z-index 0). */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media print { body::after { display: none; } }
+/* Le rail : la case de la page ouverte, une pastille sur une icône. */
+.k-rail-lien { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: rgb(var(--k-ardoise-rgb)); transition: background-color .15s, color .15s; background: transparent; }
+.k-rail-lien:hover { color: rgb(var(--k-encre-rgb)); background: var(--k-rail-actif); }
+.k-rail-lien[data-actif="1"] { color: rgb(var(--k-encre-rgb)); background: var(--k-rail-actif); }
+.k-rail-pastille { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; font-size: 10px; line-height: 16px; font-weight: 600; text-align: center; }
 
 /* Une île sombre dans le clair : un titre posé sur une photo, sous un voile
    noir, reste blanc quel que soit le thème. La classe redonne aux enfants la
@@ -592,29 +613,42 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    qu'une section se coupe en deux entre deux pages. */
 @media print {
   :root {
-    --k-fond-rgb: 255 255 255;
-    --k-fond-halo-rgb: 255 255 255;
-    --k-surface: rgba(16, 20, 24, 0.03);
-    --k-surface-pleine-rgb: 255 255 255;
-    --k-relief: rgba(16, 20, 24, 0.05);
-    --k-encre-rgb: 20 24 28;
-    --k-craie-rgb: 58 65 63;
-    --k-ardoise-rgb: 94 102 99;
-    --k-brume-rgb: 112 118 115;
-    --k-menthe-rgb: 63 122 109;
-    --k-menthe-clair-rgb: 47 109 95;
-    --k-menthe-texte-rgb: 47 109 95;
+    --k-fond-rgb: 240 240 238;
+    --k-fond-halo-rgb: 240 240 238;
+    --k-surface: rgba(255, 255, 255, 0.72);
+    --k-surface-pleine-rgb: 251 251 250;
+    --k-relief: rgba(28, 29, 28, 0.06);
+    --k-encre-rgb: 28 29 28;
+    --k-craie-rgb: 62 64 61;
+    --k-ardoise-rgb: 111 113 110;
+    --k-brume-rgb: 122 124 121;
+    --k-menthe-rgb: 63 116 102;
+    --k-menthe-clair-rgb: 47 99 87;
+    --k-menthe-survol-rgb: 54 106 92;
+    --k-menthe-fonce-rgb: 43 84 73;
+    --k-menthe-texte-rgb: 63 116 102;
     --k-sur-menthe-rgb: 255 255 255;
-    --k-barre-rgb: 244 245 246;
-    --k-barre-relief-rgb: 232 234 235;
-    --k-trait: rgba(16, 20, 24, 0.08);
-    --k-bord: rgba(16, 20, 24, 0.12);
-    --k-bord-doux: rgba(16, 20, 24, 0.16);
-    --k-bord-vif: rgba(16, 20, 24, 0.26);
-    --k-alerte-rgb: 196 62 52;
-    --k-ambre-rgb: 176 106 20;
-    --k-vert-rgb: 31 122 77;
-    --k-bleu-rgb: 45 96 178;
+    --k-menthe-pale-rgb: 185 207 200;
+    --k-sur-menthe-pale-rgb: 255 255 255;
+    --k-barre-rgb: 253 253 253;
+    --k-barre-relief-rgb: 231 231 229;
+    --k-rail-rgb: 244 244 242;
+    --k-rail-actif: rgba(28, 29, 28, 0.08);
+    --k-trait: rgba(28, 29, 28, 0.08);
+    --k-bord: rgba(28, 29, 28, 0.12);
+    --k-bord-doux: rgba(28, 29, 28, 0.17);
+    --k-bord-vif: rgba(28, 29, 28, 0.27);
+    --k-alerte-rgb: 184 69 58;
+    --k-ambre-rgb: 169 100 28;
+    --k-vert-rgb: 47 122 85;
+    --k-jaune-rgb: 150 120 10;
+    --k-bleu-rgb: 91 111 168;
+    --k-appel-rgb: 168 121 74;
+    --k-ecrire-rgb: 63 116 102;
+    --k-surveiller-rgb: 111 113 110;
+    --k-emplacement-1-rgb: 60 90 200;
+    --k-emplacement-1bis-rgb: 143 100 32;
+    --k-emplacement-2-rgb: 168 72 59;
   }
   /* Tout se cache, le rapport se remontre : le tour classique, et le seul
      qui marche quel que soit l'arbre au-dessus (barre latérale, panneaux). */

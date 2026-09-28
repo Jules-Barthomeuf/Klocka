@@ -1,83 +1,30 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import ReprisePlace from "./ReprisePlace";
 import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { toast } from "@/components/ui/avis";
 import { useUser } from "@/components/providers/UserProvider";
 import { J, alpha } from "@/design/jetons";
 
-// Le plan de travail : ce que l'assistant propose de faire, maintenant.
-//
-// La pile vient du serveur, calculée depuis l'état des dossiers et des mails —
-// aucune décision n'est prise par un modèle. Ici on exécute l'action choisie, et
-// rien ne part vers l'extérieur sans que le texte ait été relu : une action
+// Le plan de travail (maquette du 28 septembre 2026) : le salut, le chat au
+// centre, puis deux colonnes, ce qui est dû et ce qu'on avait laissé en plan.
+// Rien ne part vers l'extérieur sans que le texte ait été relu : une action
 // « mail » ouvre un brouillon éditable, jamais un envoi.
-
-
-// L'urgence se lit au filet de gauche, pas à une pastille de couleur : la même
-// grammaire que « Ce qui a échoué », pour que la page se parcoure d'un regard.
-
-// Une phrase d'accueil, tirée au sort à chaque venue, avec le prénom — et à
-// l'heure : « Bonjour » jusqu'à 18 h, « Bonsoir » ensuite, jamais l'inverse.
-const SALUTS = (p, heure) => [
-  heure >= 18 || heure < 5 ? `Bonsoir ${p}` : `Bonjour ${p}`,
-  "Je vous écoute", `À vous, ${p}`, "Je suis prêt", `On y va, ${p}`, "Dites-moi tout", `De retour, ${p}`, "Prêt quand vous voulez", "On reprend\u202f?",
-];
 
 export default function PlanDeTravail({ chat = null }) {
   const utilisateur = useUser();
-  const prenom = (utilisateur?.full_name || utilisateur?.email || "").split(/[ @]/)[0] || "";
-  const [salut] = useState(() => { const l = SALUTS(prenom ? prenom.charAt(0).toUpperCase() + prenom.slice(1) : "Jules", new Date().getHours()); return l[Math.floor(Math.random() * l.length)]; });
-
-  const queryClient = useQueryClient();
-
-  // Une proposition traitée se déclare : c'est ce qui permet de savoir, plus
-  // tard, lesquelles servent à quelque chose et lesquelles personne ne touche.
+  const brut = (utilisateur?.full_name || utilisateur?.email || "").split(/[ @]/)[0] || "";
+  const prenom = brut ? brut.charAt(0).toUpperCase() + brut.slice(1) : "";
 
   const { data: sante } = useQuery({ queryKey: ["sante"], queryFn: () => base44.request("GET", "/api/health"), staleTime: 60000 });
 
-  const maintenant = new Date().toLocaleString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return (
     <div>
-      {/* --- En-tête ---------------------------------------------------------
-          On arrive sur une question, pas sur un tableau : le salut, le chat au
-          centre, les gestes courants juste en dessous. L'ensemble est posé sur
-          son propre fond, délimité par un filet : ce qui est au-dessus se fait,
-          ce qui est en dessous se reprend. */}
-      <header className="accueil relative flex min-h-[42vh] flex-col items-center justify-center pt-4 text-center max-md:min-h-0 max-md:py-10">
-        {/* Le fond : de la couleur derrière la barre. Une nappe menthe au
-            centre, une pointe d'ambre et un vert plus sombre sur les côtés.
-            Rien ne les écrête : un halo coupé net dessine une ligne en
-            travers de la page, et c'est précisément ce qu'on ne veut pas. */}
-        <div
-          aria-hidden="true"
-          className="k-halo pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[1200px] max-w-full -translate-x-1/2 -translate-y-[34%]"
-          style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.3)}, ${alpha("menthe", 0.1)} 55%, transparent)` }}
-        />
-        <div
-          aria-hidden="true"
-          className="k-halo pointer-events-none absolute left-[26%] top-1/2 h-[420px] w-[720px] max-w-full -translate-x-1/2 -translate-y-[12%]"
-          style={{ background: `radial-gradient(closest-side, ${alpha("ambre", 0.11)}, transparent)` }}
-        />
-        <div
-          aria-hidden="true"
-          className="k-halo pointer-events-none absolute left-[76%] top-1/2 h-[460px] w-[760px] max-w-full -translate-x-1/2 -translate-y-[46%]"
-          style={{ background: `radial-gradient(closest-side, ${alpha("menthe-fonce", 0.2)}, transparent)` }}
-        />
-        <h1 className="relative m-0 font-display font-normal italic leading-[1.05] tracking-[.01em] text-encre" style={{ fontSize: "clamp(32px, 3.9vw, 52px)" }}>
-          {salut}
+      <header className="flex flex-col items-center pt-10 text-center max-md:pt-6">
+        <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(26px, 2.8vw, 40px)" }}>
+          Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?
         </h1>
-
-        {/* Le chat, centré et pas plus large qu'une page : on le lit d'un regard. */}
-        {chat && <div className="relative mt-14 w-full max-w-[960px] px-5 max-md:mt-9">{chat}</div>}
+        {chat && <div className="mt-8 w-full max-w-[860px] max-md:mt-6">{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
@@ -91,10 +38,9 @@ export default function PlanDeTravail({ chat = null }) {
         </div>
       )}
 
-      {/* Ce qui est dû passe avant ce qu'on avait laissé en plan. Les deux
-          blocs se cachent quand ils sont vides : une barre au-dessus du néant
-          ne sépare rien. */}
-      <div className="mt-14 flex flex-col gap-12 max-md:mt-9 max-md:gap-9">
+      {/* Ce qui est dû à gauche, ce qu'on avait laissé en plan à droite. Un
+          bloc vide se cache : une barre au-dessus du néant ne sépare rien. */}
+      <div className="mx-auto mt-16 grid max-w-[1080px] gap-x-14 gap-y-10 md:grid-cols-2 max-md:mt-10">
         <CeQuiVousAttend />
         <ReprisePlace />
       </div>

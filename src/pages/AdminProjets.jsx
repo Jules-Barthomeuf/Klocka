@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
@@ -1321,71 +1321,68 @@ export default function AdminProjets() {
 
   const CHIFFRES = [
     { valeur: actifs.length, label: "Projets actifs" },
-    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-menthe-clair" },
+    { valeur: compteur("analyse") + compteur("negociation"), label: "En analyse ou négociation", accent: "text-menthe" },
     { valeur: compteur("financement"), label: "En financement" },
-    { valeur: compteur("signe"), label: "Signés", accent: "text-menthe" },
+    { valeur: compteur("signe"), label: "Signés" },
     { valeur: nbArchives, label: "Archivés", accent: "text-ardoise" },
   ];
 
   return (
-    <div className="projet-editorial relative min-h-screen px-5 py-8 text-encre md:px-10 md:py-12">
+    <div className="relative min-h-screen px-5 py-8 text-encre md:px-10 md:py-10">
       <div className="relative max-w-[1400px] mx-auto">
         {/* En-tête */}
-        <div className="flex items-end justify-between gap-6 flex-wrap mb-8 max-md:mb-6">
-          <div>
-            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
-          </div>
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-5 max-md:mb-5">
+          <h1 className="m-0 text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[28px]">Gestion des projets</h1>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="alx-mont inline-flex items-center gap-2 rounded-full bg-menthe px-[18px] py-2.5 text-[11px] font-semibold uppercase tracking-[.12em] text-sur-menthe transition-colors hover:bg-menthe-clair">
+            className="inline-flex items-center gap-2 rounded-full bg-menthe px-5 py-2.5 text-[15px] text-sur-menthe transition-colors hover:bg-menthe-survol">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
-        {/* Bandeau de chiffres */}
-        <div className="mb-8 flex flex-wrap max-md:mb-6">
+        {/* Les chiffres : une carte, cinq colonnes séparées d'un filet. */}
+        <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-[20px] border border-trait bg-surface-pleine sm:grid-cols-3 lg:grid-cols-5 max-md:mb-5">
           {CHIFFRES.map((c, i) => (
-            <div key={i} className={`flex-1 min-w-[130px] max-md:min-w-[46%] py-5 max-md:py-3.5 pr-5 ${i > 0 ? "md:border-l md:border-encre/[0.12] md:pl-6" : ""}`}>
-              <div className={`text-[24px] font-medium tabular-nums max-md:text-[18px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
-              <div className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{c.label}</div>
+            <div key={i} className={`px-7 py-6 max-md:px-5 max-md:py-4 ${i > 0 ? "border-l border-trait max-md:border-l-0" : ""} ${i >= 2 ? "max-lg:border-t max-lg:border-trait" : ""}`}>
+              <div className={`text-[40px] font-normal leading-none tabular-nums max-md:text-[28px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
+              <div className="mt-2.5 text-[15px] text-ardoise">{c.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Recherche + filtres */}
+        {/* Recherche + filtres, sur une ligne : le champ en pilule, les filtres en pilules. */}
         <div className="mb-8 max-md:mb-6">
-          <div className="mb-5 flex max-w-[640px] items-center gap-3 rounded-full border border-encre/[0.10] bg-encre/[0.05] px-5 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl transition-colors focus-within:border-menthe/50 focus-within:bg-encre/[0.07]">
-            <FolderSearch className="w-4 h-4 text-brume flex-shrink-0" />
-            <input
-              placeholder="Rechercher un projet, une adresse, un client…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[15px] py-1"
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer">
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-x-7 gap-y-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface-pleine px-5 py-3 transition-colors focus-within:border-bord-doux max-md:min-w-0 max-md:basis-full">
+              <Search className="w-4 h-4 text-ardoise flex-shrink-0" />
+              <input
+                placeholder="Rechercher un projet, une adresse, un client…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[15px]"
+              />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer" style={{ background: "transparent" }}>
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`alx-mont border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${statusFilter === v ? "text-encre border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
-                {l} <span className="text-brume">{n}</span>
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[15px] transition-colors ${statusFilter === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
+                {l} <span className={statusFilter === v ? "text-fond/60" : "text-brume"}>{n}</span>
               </button>
             ))}
-            <button onClick={() => setShowArchived(!showArchived)}
-              className={`alx-mont ml-auto inline-flex items-center gap-2 border-b pb-1 text-[11px] font-medium uppercase tracking-[.14em] transition-colors ${showArchived ? "text-menthe border-menthe" : "text-ardoise border-transparent hover:text-encre"}`}>
-              <Archive className="w-3.5 h-3.5" />
-              {showArchived ? "Masquer les archivés" : `Archivés ${nbArchives}`}
-            </button>
           </div>
+          <button onClick={() => setShowArchived(!showArchived)}
+            className={`mt-4 inline-flex items-center gap-2 text-[15px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
+            <Archive className="w-4 h-4" />
+            {showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-brume">{nbArchives}</span>
+          </button>
         </div>
 
         {/* Grille */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4 items-start">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}
@@ -1393,13 +1390,12 @@ export default function AdminProjets() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, ease: "easeOut", delay: Math.min(idx * 0.035, 0.35) }}
             >
-              <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} />
-              <ClientsCorrespondants
+              <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} complement={<ClientsCorrespondants
                 clients={correspondances?.par_projet?.[project.id]}
                 chargement={chargementCorrespondances}
                 configure={correspondances?.configure}
                 erreur={erreurCorrespondances}
-              />
+              />} />
             </motion.div>
           ))}
 

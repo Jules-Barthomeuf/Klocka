@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, Mail, TriangleAlert } from "lucide-react";
+import { Check, ChevronDown, TriangleAlert } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { BoutonConnecterGmail } from "@/components/mails/ConnexionGmail";
 import { toast } from "@/components/ui/avis";
@@ -90,6 +90,7 @@ function Boite({ c, seule, onDefaut, onRetirer, occupe }) {
 
 export default function BoiteMail() {
   const [ouvert, setOuvert] = useState(false);
+  const [historique, setHistorique] = useState(false);
   const queryClient = useQueryClient();
   const { data: statut, isLoading } = useQuery({
     queryKey: ["mail-status"],
@@ -111,82 +112,73 @@ export default function BoiteMail() {
   if (isLoading) return null;
 
   const comptes = (statut?.accounts || []).filter((c) => c.peut_envoyer !== false);
-  const principale = comptes.find((c) => c.par_defaut) || comptes[0];
   const aReconnecter = comptes.filter((c) => c.needs_reconnect || c.verified === false);
   const googleConfigure = statut?.google?.enabled !== false;
   const occupe = defaut.isPending || retirer.isPending;
   const confirmerRetrait = (email) => {
     if (window.confirm(`Déconnecter ${email} ? Les mails ne partiront plus de cette adresse.`)) retirer.mutate(email);
   };
+  const n = comptes.length;
+  // Le point de la pilule : vert quand tout envoie, ambre s'il faut reconnecter, rouge sans boîte.
+  const teinte = !n ? "bg-alerte" : aReconnecter.length ? "bg-ambre" : "bg-vert";
+  const mot = !n ? "Aucune boîte connectée" : `${n} boîte${n > 1 ? "s" : ""} connectée${n > 1 ? "s" : ""}`;
 
-  // Aucune boîte : une bande sobre et un bouton. C'est le seul geste à faire.
-  if (!comptes.length) {
-    return (
-      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[14px] border border-trait bg-surface px-5 py-4">
-        <Mail className="h-4 w-4 flex-shrink-0 text-ardoise" />
-        <p className="m-0 min-w-48 flex-1 text-[13px] leading-relaxed text-craie">
-          Aucune boîte mail connectée.{" "}
-          <span className="text-ardoise">
-            {googleConfigure
-              ? "Connectez votre propre adresse : tant qu'aucune ne l'est, les mails de la plateforme sont simulés et n'arrivent à personne."
-              : "La connexion Google n'est pas configurée sur ce serveur : prévenez l'équipe technique."}
-          </span>
-        </p>
-        {googleConfigure && <BoutonConnecterGmail libelle="Connecter ma boîte mail" onConnecte={rafraichir} />}
-      </div>
-    );
-  }
-
+  // Une pilule en haut à droite (maquette) : le panneau des boîtes et
+  // l'historique des envois s'ouvrent dessous. Sans boîte, rien ne part :
+  // le panneau le dit, et propose de la connecter.
   return (
-    <div className="mb-6 rounded-[14px] border border-trait bg-surface px-5 py-4">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        {aReconnecter.length ? (
-          <TriangleAlert className="h-4 w-4 flex-shrink-0 text-ambre" />
-        ) : (
-          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-menthe/20">
-            <Check className="h-3 w-3 text-menthe-clair" />
-          </span>
-        )}
-        <p className="m-0 min-w-48 flex-1 text-[13px] text-craie">
-          {aReconnecter.length ? (
-            <span className="text-ambre">{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion : les envois échouent.</span>
-          ) : (
-            <>
-              Boîte mail <span className="text-encre">{principale.email}</span>{" "}
-              <span className="text-ardoise">bien connectée. Vos mails partent de cette adresse.</span>
-            </>
-          )}
-        </p>
-        <button
-          type="button"
-          onClick={() => setOuvert((v) => !v)}
-          aria-expanded={ouvert}
-          className="inline-flex items-center gap-1.5 rounded-full border border-trait px-3.5 py-1.5 text-[12.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre"
-        >
-          {ouvert ? "Masquer l'historique" : "Voir l'historique"}
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${ouvert ? "rotate-180" : ""}`} />
-        </button>
-      </div>
-
-      {/* Les boîtes de la personne connectée : la sienne, sourcing@, d'autres.
-          On en ajoute une, on choisit celle qui envoie, on en retire une. */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 pl-9 max-md:pl-0">
-        {comptes.map((c) => (
-          <Boite key={c.email} c={c} seule={comptes.length === 1} occupe={occupe} onDefaut={(e) => defaut.mutate(e)} onRetirer={confirmerRetrait} />
-        ))}
-        {googleConfigure && (
-          <BoutonConnecterGmail
-            libelle={aReconnecter.length ? "Reconnecter" : "Ajouter une boîte"}
-            onConnecte={rafraichir}
-            className="!py-1.5 !text-[12.5px]"
-          />
-        )}
-      </div>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOuvert((v) => !v)}
+        aria-expanded={ouvert}
+        className="inline-flex items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[15px] text-encre transition-colors hover:border-bord-doux"
+      >
+        <span className={`h-2 w-2 rounded-full ${teinte}`} />
+        {mot}
+        <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
 
       {ouvert && (
-        <div className="mt-4 border-t border-trait pt-2">
-          <Historique />
-        </div>
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOuvert(false)} />
+          <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[min(560px,calc(100vw-40px))] rounded-[20px] border border-trait bg-surface-pleine p-5 shadow-[0_24px_60px_rgb(0_0_0/0.14)]">
+            {!n ? (
+              <p className="m-0 text-[14px] leading-relaxed text-craie">
+                <span className="text-ardoise">
+                  {googleConfigure
+                    ? "Tant qu'aucune boîte n'est connectée, les mails de la plateforme sont simulés et n'arrivent à personne."
+                    : "La connexion Google n'est pas configurée sur ce serveur : prévenez l'équipe technique."}
+                </span>
+              </p>
+            ) : aReconnecter.length ? (
+              <p className="m-0 flex items-start gap-2 text-[14px] text-ambre"><TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion : les envois échouent.</p>
+            ) : (
+              <p className="m-0 text-[14px] text-ardoise">Vos mails partent de la boîte par défaut. Choisissez-en une autre d'un clic.</p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {comptes.map((c) => (
+                <Boite key={c.email} c={c} seule={comptes.length === 1} occupe={occupe} onDefaut={(e) => defaut.mutate(e)} onRetirer={confirmerRetrait} />
+              ))}
+              {googleConfigure && (
+                <BoutonConnecterGmail
+                  libelle={!n ? "Connecter ma boîte mail" : aReconnecter.length ? "Reconnecter" : "Ajouter une boîte"}
+                  onConnecte={rafraichir}
+                  className="!py-1.5 !text-[12.5px]"
+                />
+              )}
+            </div>
+            {n > 0 && (
+              <div className="mt-4 border-t border-trait pt-3">
+                <button type="button" onClick={() => setHistorique((v) => !v)} aria-expanded={historique} className="inline-flex items-center gap-1.5 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+                  {historique ? "Masquer l'historique des envois" : "Voir l'historique des envois"}
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${historique ? "rotate-180" : ""}`} />
+                </button>
+                {historique && <div className="mt-2 max-h-[40vh] overflow-y-auto"><Historique /></div>}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

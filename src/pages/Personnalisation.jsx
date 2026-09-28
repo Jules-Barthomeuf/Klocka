@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Eye, EyeOff, GripVertical, RotateCcw } from "lucide-react";
+import { Check, Eye, EyeOff, Grip, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, POLICES, accentHex, themeEffectif } from "@/lib/personnalisation";
@@ -115,7 +115,9 @@ function EditeurMenu({ principales, autres, prefs, changer }) {
             onDrop={(ev) => { ev.preventDefault(); ev.stopPropagation(); poser(groupe, e.cle); }}
             className={`flex cursor-grab items-center gap-2 rounded-[10px] border bg-surface-pleine px-2.5 py-1.5 active:cursor-grabbing ${tenue === e.cle ? "opacity-40" : ""} ${cible?.avant === e.cle && tenue !== e.cle ? "border-menthe" : "border-trait"} ${masquee ? "opacity-60" : ""}`}
           >
-            <GripVertical className="h-4 w-4 flex-none text-brume" />
+            <span className="grid h-7 w-7 flex-none cursor-grab place-items-center rounded-[8px] text-ardoise hover:bg-relief hover:text-encre active:cursor-grabbing" title="Attraper pour déplacer" aria-label={`Déplacer ${e.label}`}>
+              <Grip className="h-4 w-4" />
+            </span>
             <span className={`flex-1 text-[13.5px] ${masquee ? "text-brume line-through" : "text-encre"}`}>{e.label}</span>
             {!fixe && (
               <button type="button" onClick={() => basculer(e.cle)} aria-label={masquee ? `Montrer ${e.label}` : `Masquer ${e.label}`} title={masquee ? "Masquée : cliquer pour la montrer" : "Visible : cliquer pour la masquer"} className="grid h-7 w-7 place-items-center rounded-full text-craie hover:text-encre" style={{ background: "transparent" }}>

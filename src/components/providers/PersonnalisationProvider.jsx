@@ -20,6 +20,9 @@ export function PersonnalisationProvider({ children }) {
   const compteLu = useRef(null);
   const [etat, setEtat] = useState("ok"); // ok | enregistrement | erreur
   const minuterie = useRef(null);
+  // Ce qui attend encore de partir au serveur : envoyé tout de suite si la
+  // page se ferme ou passe en arrière-plan, pour qu'aucun réglage ne se perde.
+  const enAttente = useRef(null);
 
   // Les réglages du compte, une fois l'utilisateur connu, et une fois par compte.
   useEffect(() => {
@@ -50,7 +53,9 @@ export function PersonnalisationProvider({ children }) {
     if (!utilisateur?.id) return;
     clearTimeout(minuterie.current);
     setEtat("enregistrement");
+    enAttente.current = p;
     minuterie.current = setTimeout(async () => {
+      enAttente.current = null;
       try {
         await base44.request("POST", "/api/moi/preferences", { body: p });
         setEtat("ok");
@@ -59,6 +64,20 @@ export function PersonnalisationProvider({ children }) {
       }
     }, 600);
   }, [utilisateur?.id]);
+
+  useEffect(() => {
+    const partir = () => {
+      if (!enAttente.current) return;
+      clearTimeout(minuterie.current);
+      const p = enAttente.current;
+      enAttente.current = null;
+      base44.request("POST", "/api/moi/preferences", { body: p, keepalive: true }).catch(() => {});
+    };
+    const cache = () => { if (document.visibilityState === "hidden") partir(); };
+    window.addEventListener("pagehide", partir);
+    document.addEventListener("visibilitychange", cache);
+    return () => { window.removeEventListener("pagehide", partir); document.removeEventListener("visibilitychange", cache); };
+  }, []);
 
   const changer = useCallback((patch) => {
     const suivantes = normaliser({ ...courantes.current, ...patch });

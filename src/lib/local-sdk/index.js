@@ -104,7 +104,7 @@ class ErreurHttp extends Error {
     return `Le serveur a répondu ${statut}${statut >= 500 ? ' (erreur interne — voir ses journaux)' : ''}`;
   };
 
-  async function request(method, url, { body, isForm, signal } = {}) {
+  async function request(method, url, { body, isForm, signal, keepalive = false } = {}) {
     /** @type {Record<string, string>} */
     const headers = {};
     // Seul le jeton de fenêtre part en Authorization : le jeton hérité de
@@ -124,8 +124,9 @@ class ErreurHttp extends Error {
     // dit explicitement — un hébergeur qui sert le front sous un autre nom
     // que l'API ne doit pas perdre la session en silence.
     // `signal` : l'appelant peut interrompre la requête — une analyse longue
-    // qu'on ne veut plus attendre.
-    const resp = await fetch(`${base}${url}`, { method, headers, body: payload, credentials: 'include', signal });
+    // qu'on ne veut plus attendre. `keepalive` : la requête survit à la
+    // fermeture de la page (des réglages envoyés en partant).
+    const resp = await fetch(`${base}${url}`, { method, headers, body: payload, credentials: 'include', signal, keepalive });
     if (!resp.ok) {
       let data = null;
       try {

@@ -14,7 +14,6 @@ export const ENTREES_ADMIN = [
   { cle: "AdminSuggestions", label: "Feedback" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "AdminClients", label: "Clients" },
-  { cle: "Personnalisation", label: "Personnalisation" },
 ];
 
 export const ENTREES_AUTRE = [
@@ -23,6 +22,8 @@ export const ENTREES_AUTRE = [
   { cle: "AdminRessources", label: "Ressources" },
   { cle: "AdminPortail", label: "Portails" },
   { cle: "ImportProjets", label: "Import de projets" },
+  // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
+  { cle: "Personnalisation", label: "Personnalisation" },
 ];
 
 export const ENTREES_CLIENT = [

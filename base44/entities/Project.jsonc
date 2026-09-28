@@ -976,6 +976,10 @@
         "type": "string"
       }
     },
+    "bien_capture": {
+      "type": "string",
+      "description": "Capture choisie à la main pour l'onglet Bien (URL de l'image envoyée)"
+    },
     "surface_m2": {
       "type": "number"
     },

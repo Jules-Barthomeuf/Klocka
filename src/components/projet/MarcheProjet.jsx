@@ -185,7 +185,7 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
   const duDossier = (valeur, source) => (Number(valeur) ? Number(valeur) : source ?? null);
   const habitants = Number(project.ville_habitants_agglo) || donnees?.agglomeration?.population || ville?.pop || 0;
   const agglomeration = !Number(project.ville_habitants_agglo) && !!donnees?.agglomeration?.population;
-  const nomVille = project.ville_secteur_champ1 || ville?.nom || null;
+  const nomVille = ville?.nom || project.ville_secteur_champ1 || null;
   const revenu = Number(project.ville_revenu_median) || ville?.revenu || 0;
 
   const prixResidentiel = Number(project.marche_rue_prix_m2) || r?.prix_m2 || Number(project.marche_prix_m2_median) || 0;

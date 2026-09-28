@@ -36,10 +36,10 @@ function StepProgressBar({ etapes, userEtape }) {
 
   return (
     <div>
-      <div className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-6">Votre parcours</div>
+      <div className="text-[16px] font-medium text-encre mb-6">Votre parcours</div>
       <div className="relative">
         {/* Filet de fond + progression */}
-        <div className="absolute top-[5px] h-px bg-encre/[0.14]" style={{ left: `${debut}%`, right: `${debut}%` }} />
+        <div className="absolute top-[5px] h-px bg-relief" style={{ left: `${debut}%`, right: `${debut}%` }} />
         <motion.div
           className="absolute top-[4.5px] h-[2px] bg-menthe rounded-full"
           style={{ left: `${debut}%` }}
@@ -60,13 +60,13 @@ function StepProgressBar({ etapes, userEtape }) {
                   transition={{ delay: i * 0.07, duration: 0.3 }}
                   className={`w-[11px] h-[11px] rounded-full border-2 ${
                     isCurrent
-                      ? "border-menthe bg-fond"
+                      ? "border-menthe bg-surface-pleine"
                       : isCompleted
                         ? "border-menthe bg-menthe"
-                        : "border-encre/[0.2] bg-fond"
+                        : "border-bord-doux bg-surface-pleine"
                   }`}
                 />
-                <span className={`mt-3 text-[11px] tracking-[0.14em] uppercase ${isCurrent ? "text-menthe-clair" : isCompleted ? "text-craie" : "text-brume"} max-md:hidden`}>
+                <span className={`mt-3 text-[13px] ${isCurrent ? "text-menthe" : isCompleted ? "text-craie" : "text-brume"} max-md:hidden`}>
                   {step.titre}
                 </span>
                 {isCurrent && (
@@ -78,7 +78,7 @@ function StepProgressBar({ etapes, userEtape }) {
         </div>
         {/* Mobile : étape courante seule */}
         <div className="md:hidden mt-4">
-          <span className="text-[11px] tracking-[0.14em] uppercase text-menthe-clair">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
+          <span className="text-[12px] text-menthe">{steps.find(s2 => s2.numero === userEtape)?.titre}</span>
           <p className="text-[12.5px] text-ardoise mt-0.5 mb-0">{etapeDescriptions[userEtape]}</p>
         </div>
       </div>
@@ -93,16 +93,16 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className={`group cursor-pointer rounded-xl px-6 py-6 flex flex-col transition-colors ${
+      className={`group cursor-pointer rounded-[18px] px-6 py-6 flex flex-col transition-colors ${
         principal
           ? "bg-menthe/[0.07] border border-menthe/40 hover:border-menthe"
-          : "bg-surface border border-bord hover:border-bord-vif"
+          : "bg-surface-pleine border border-trait hover:border-bord-vif"
       }`}
     >
       <div className="flex items-center gap-2.5 mb-3">
         {numero && (
           <span className={`w-6 h-6 rounded-full flex-none flex items-center justify-center text-[11px] font-semibold ${
-            principal ? "bg-menthe text-fond" : "border border-bord-vif text-ardoise"
+            principal ? "bg-menthe text-sur-menthe" : "border border-bord-vif text-ardoise"
           }`}>{numero}</span>
         )}
         <Icon className="w-4 h-4 text-menthe" />
@@ -112,7 +112,7 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       <span
         className={`inline-flex items-center gap-2 self-start rounded-full transition-colors ${
           principal
-            ? "px-6 py-3 bg-menthe text-fond text-[12.5px] font-semibold group-hover:bg-menthe-survol"
+            ? "px-6 py-3 bg-menthe text-sur-menthe text-[12.5px] font-semibold group-hover:bg-menthe-survol"
             : "px-4 py-2 border border-bord-doux text-craie text-[12.5px] group-hover:border-menthe group-hover:text-menthe"
         }`}
       >
@@ -135,7 +135,7 @@ export function FenetreRendezVous({ user, onFermer }) {
   }, [onFermer]);
   return (
     <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={onFermer}>
-      <div className="w-full max-w-[900px] h-[86vh] bg-surface border border-bord rounded-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[900px] h-[86vh] bg-surface-pleine border border-trait rounded-[18px] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait">
           <LogoKlocka className="h-10" />
           <div className="flex items-center gap-5">
@@ -166,7 +166,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-surface border border-bord rounded-xl p-8 min-h-[240px] flex flex-col"
+      className="bg-surface-pleine border border-trait rounded-[18px] p-8 min-h-[240px] flex flex-col"
     >
       <div className="flex items-center gap-2.5 mb-3">
         <Search className="w-4 h-4 text-menthe" />
@@ -199,7 +199,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
           </p>
           <button
             onClick={onRendezVous}
-            className="mt-6 self-start inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors"
+            className="mt-6 self-start inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-sur-menthe text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors"
           >
             Prendre rendez-vous <ArrowRight className="w-4 h-4" />
           </button>
@@ -219,7 +219,7 @@ export default function ClientDashboardView({
   return (
     <div className="min-h-screen">
       {rdvOuvert && <FenetreRendezVous user={user} onFermer={() => { setRdvOuvert(false); base44.auth.updateMe({ rdv_strategique_le: new Date().toISOString() }).catch(() => {}); }} />}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
 
         {/* Header row: greeting + search */}
         <motion.div
@@ -230,7 +230,7 @@ export default function ClientDashboardView({
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">
+              <h1 className="text-[30px] max-md:text-[24px] font-medium tracking-[-0.02em] leading-[1.1] text-encre m-0">
                 Bonjour, {firstName}
               </h1>
             </div>
@@ -242,7 +242,7 @@ export default function ClientDashboardView({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.4 }}
-          className="mb-10 max-md:mb-8"
+          className="mb-5 rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5"
         >
           <StepProgressBar etapes={etapes} userEtape={userEtape} />
         </motion.div>

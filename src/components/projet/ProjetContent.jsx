@@ -15,6 +15,7 @@ import AssembleesGeneralesSection from "./AssembleesGeneralesSection";
 import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
+import StreetViewRue from "./StreetViewRue";
 import { statutLabels } from "./CarteProjet";
 import { EnTeteOnglet, Carte } from "./Cartes";
 import BienProjet from "./BienProjet";
@@ -124,14 +125,14 @@ function NotesBlock({ notes }) {
 export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
-  // Le carrousel du hero : le rang de la photo montrée, et les adresses qui ne
-  // répondent plus (un hébergeur disparu ne doit pas condamner les suivantes).
-  const [iPhoto, setIPhoto] = useState(0);
+  // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
+  // doit pas condamner les suivantes.
   const [urlsMortes, setUrlsMortes] = useState(() => new Set());
-  // Ce que le carrousel montre : les photos qui répondent encore, celle du
-  // rang courant, et la rue s'il y a de quoi la situer.
+  // Les photos qui répondent encore ; la première tient le hero.
   const photosVivantes = (project.photos || []).filter((u) => u && !urlsMortes.has(u));
-  const photoMontree = photosVivantes[Math.min(iPhoto, photosVivantes.length - 1)] || null;
+  const photoMontree = photosVivantes[0] || null;
+  // Les vignettes à côté des onglets : toutes les photos sauf celle du hero.
+  const vignettes = photosVivantes.filter((u) => u !== photoMontree);
   const rueDisponible = !!(project.adresse_complete || (project.latitude && project.longitude));
   const [streetView, setStreetView] = useState(false);
   // La pièce ouverte à droite quand on clique une case.
@@ -271,32 +272,42 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       // défilement qui neutralise le `sticky` du rail d'analyse.
       className="projet-editorial k-sobre font-projet min-h-screen text-encre overflow-x-clip">
 
-      {/* Image Lightbox */}
+      {/* Le carrousel en grand : toutes les photos, on avance à la main
+          (flèches à l'écran ou du clavier), jamais tout seul. */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-fond border-none [&>button]:hidden">
+        <DialogContent
+          className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black/90 border-none [&>button]:hidden"
+          onKeyDown={(e) => {
+            const liste = photosVivantes;
+            const n = liste.indexOf(selectedImage);
+            if (liste.length < 2 || n < 0) return;
+            if (e.key === "ArrowRight") setSelectedImage(liste[(n + 1) % liste.length]);
+            if (e.key === "ArrowLeft") setSelectedImage(liste[(n - 1 + liste.length) % liste.length]);
+          }}
+        >
           <div className="relative w-full h-full flex items-center justify-center">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-encre hover:bg-encre/20 z-10 w-14 h-14">
-              <X className="w-8 h-8" />
-            </Button>
-            {project?.photos && project.photos.length > 1 && (
+            <button type="button" onClick={() => setSelectedImage(null)} aria-label="Fermer"
+              className="absolute top-6 right-6 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+            {photosVivantes.length > 1 && (
               <>
-                <Button variant="ghost" size="icon" onClick={() => {
-                  const currentIndex = project.photos.indexOf(selectedImage);
-                  const prevIndex = (currentIndex - 1 + project.photos.length) % project.photos.length;
-                  setSelectedImage(project.photos[prevIndex]);
-                }} className="absolute left-6 top-1/2 -translate-y-1/2 bg-fond/50 hover:bg-fond/70 text-encre rounded-full w-16 h-16 z-10">
-                  <ChevronLeft className="w-10 h-10" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => {
-                  const currentIndex = project.photos.indexOf(selectedImage);
-                  const nextIndex = (currentIndex + 1) % project.photos.length;
-                  setSelectedImage(project.photos[nextIndex]);
-                }} className="absolute right-6 top-1/2 -translate-y-1/2 bg-fond/50 hover:bg-fond/70 text-encre rounded-full w-16 h-16 z-10">
-                  <ChevronRight className="w-10 h-10" />
-                </Button>
+                <button type="button" aria-label="Photo précédente"
+                  onClick={() => { const n = photosVivantes.indexOf(selectedImage); setSelectedImage(photosVivantes[(n - 1 + photosVivantes.length) % photosVivantes.length]); }}
+                  className="absolute left-6 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button type="button" aria-label="Photo suivante"
+                  onClick={() => { const n = photosVivantes.indexOf(selectedImage); setSelectedImage(photosVivantes[(n + 1) % photosVivantes.length]); }}
+                  className="absolute right-6 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+                <span className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[13px] text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {photosVivantes.indexOf(selectedImage) + 1} / {photosVivantes.length}
+                </span>
               </>
             )}
-            {selectedImage && <img src={selectedImage} alt="Photo agrandie" className="max-w-[95vw] max-h-[95vh] object-contain" />}
+            {selectedImage && <img src={selectedImage} alt="Photo agrandie" className="max-w-[90vw] max-h-[86vh] object-contain rounded-[12px]" />}
           </div>
         </DialogContent>
       </Dialog>
@@ -344,16 +355,6 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
             )}
-            {!streetView && photosVivantes.length > 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setIPhoto((i) => (i + 1) % photosVivantes.length); }}
-                aria-label="Photo suivante" title="Photo suivante"
-                className="k-verre inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-[13px]"
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {Math.min(iPhoto, photosVivantes.length - 1) + 1} / {photosVivantes.length} <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            )}
           </div>
         </div>
 
@@ -394,7 +395,8 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (
-          <TabsList className="h-auto max-w-full inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine p-[5px] mb-12 max-md:mb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="mb-12 max-md:mb-8 flex flex-wrap items-center justify-between gap-4">
+          <TabsList className="h-auto max-w-full inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "marche", l: "Marché" },
               { v: "bien", l: "Bien" },
@@ -411,6 +413,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               </TabsTrigger>
             ))}
           </TabsList>
+          {/* Les autres photos, en petit sous la carte du simulateur : un
+              clic les ouvre en grand. */}
+          {vignettes.length > 0 && (
+            <div className="flex items-center gap-2 max-md:w-full">
+              {vignettes.slice(0, 5).map((u, k) => (
+                <button key={u} type="button" onClick={() => setSelectedImage(u)} aria-label={`Voir la photo ${k + 2}`}
+                  className="relative h-12 w-16 flex-none overflow-hidden rounded-[10px] border border-trait transition-opacity hover:opacity-80">
+                  <img src={u} alt="" loading="lazy" onError={() => setUrlsMortes((m) => new Set(m).add(u))} className="h-full w-full object-cover" />
+                  {k === 4 && vignettes.length > 5 && (
+                    <span className="absolute inset-0 grid place-items-center bg-black/55 text-[13px] font-medium" style={{ color: "white" }}>+{vignettes.length - 5}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          </div>
           )}
 
           <TabsContent value="marche">

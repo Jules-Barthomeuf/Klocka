@@ -1,60 +1,90 @@
-import React, { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ImagePlus, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { nf } from "./SecteurChiffres";
 import { useEdition } from "./EditionEnPlace";
 import { InfoDot } from "./SecteurChiffres";
 import { Carte, TitreCarte } from "./Cartes";
 
-// Le bien : à gauche les photos, qui défilent toutes seules ; à droite le
+// Le bien : à gauche une capture choisie à la main ; à droite le
 // local en quatre lignes (activité, détenu depuis, surface, dernière vente).
 //
 // L'activité tient en un mot ou deux ; le détail, s'il y en a un, reste
 // derrière l'info au survol. En édition, les quatre lignes sont là même
 // vides : on voit ce qu'il reste à trouver.
 
-const DELAI_MS = 4500;
+// La capture du bien : une image choisie à la main (capture d'écran d'une
+// annonce, d'un plan, d'une fiche cadastrale...). Dans l'éditeur, on la dépose,
+// on la colle (⌘V) ou on la choisit ; le client la voit telle quelle.
+function Capture({ url }) {
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  const champ = useRef(null);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState(null);
+  const [grand, setGrand] = useState(false);
 
-function Photos({ photos }) {
-  const [i, setI] = useState(0);
-  const [pause, setPause] = useState(false);
-  const n = photos.length;
+  const envoyer = async (fichier) => {
+    if (!fichier || !/^image\//.test(fichier.type)) { setErreur("Il faut une image (PNG, JPG…)."); return; }
+    setEnvoi(true); setErreur(null);
+    try {
+      const { file_url: lien } = await base44.integrations.Core.UploadFile({ file: fichier });
+      edition.onChamp("bien_capture", lien, true);
+    } catch (e) {
+      setErreur(e?.message || "Envoi impossible.");
+    } finally {
+      setEnvoi(false);
+      if (champ.current) champ.current.value = "";
+    }
+  };
+
   useEffect(() => {
-    if (n < 2 || pause) return undefined;
-    const t = setInterval(() => setI((v) => (v + 1) % n), DELAI_MS);
-    return () => clearInterval(t);
-  }, [n, pause]);
-  if (!n) return null;
-  const courante = photos[Math.min(i, n - 1)];
+    if (!enEdition) return undefined;
+    const coller = (e) => {
+      const image = [...(e.clipboardData?.items || [])].find((it) => it.type.startsWith("image/"));
+      if (image) { e.preventDefault(); envoyer(image.getAsFile()); }
+    };
+    window.addEventListener("paste", coller);
+    return () => window.removeEventListener("paste", coller);
+  });
+
+  if (!url && !enEdition) return null;
   return (
-    <Carte className="p-5" >
-      <div onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] bg-relief">
-        <img key={courante} src={courante} alt={`Photo ${i + 1} sur ${n}`} className="w-full h-full object-cover" />
-        {n > 1 && (
-          <>
-            <button type="button" aria-label="Photo précédente" onClick={() => setI((v) => (v - 1 + n) % n)}
-              className="k-verre absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button type="button" aria-label="Photo suivante" onClick={() => setI((v) => (v + 1) % n)}
-              className="k-verre absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </>
-        )}
-      </div>
-      {n > 1 && (
-        <div className="grid grid-cols-4 gap-3 mt-3">
-          {photos.slice(0, 8).map((p, k) => (
-            <button key={p + k} type="button" onClick={() => setI(k)} aria-label={`Photo ${k + 1}`}
-              className={`aspect-[4/3] overflow-hidden rounded-[10px] outline outline-2 outline-offset-2 transition-colors ${k === i ? "outline-menthe" : "outline-transparent hover:outline-bord-vif"}`}>
-              <img src={p} alt="" className="w-full h-full object-cover" loading="lazy" />
-            </button>
-          ))}
+    <Carte className="p-5">
+      {url ? (
+        <div className="relative">
+          <button type="button" onClick={() => setGrand(true)} className="block w-full overflow-hidden rounded-[14px] bg-relief" aria-label="Voir la capture en grand">
+            <img src={url} alt="Capture du bien" className="w-full h-auto object-contain" />
+          </button>
+          {enEdition && (
+            <div className="absolute right-3 top-3 flex gap-2">
+              <button type="button" onClick={() => champ.current?.click()} className="k-verre rounded-full px-3 py-1.5 text-[12.5px]">Remplacer</button>
+              <button type="button" onClick={() => edition.onChamp("bien_capture", "", true)} className="k-verre rounded-full px-3 py-1.5 text-[12.5px] text-alerte">Retirer</button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => champ.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); envoyer(e.dataTransfer?.files?.[0]); }}
+          className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 rounded-[14px] border border-dashed border-bord-doux text-center transition-colors hover:border-bord-vif"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-menthe/[0.12] text-menthe">
+            {envoi ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+          </span>
+          <span className="text-[14px] text-encre">{envoi ? "Envoi…" : "Ajouter une capture"}</span>
+          <span className="max-w-[32ch] text-[12.5px] text-ardoise">Collez-la (⌘V), déposez-la ici ou choisissez un fichier.</span>
+        </button>
+      )}
+      <input ref={champ} type="file" accept="image/*" className="hidden" onChange={(e) => envoyer(e.target.files?.[0])} />
+      {erreur && <p className="m-0 mt-3 text-[12.5px] text-alerte">{erreur}</p>}
+      {grand && url && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-6" onClick={() => setGrand(false)}>
+          <img src={url} alt="Capture du bien" className="max-h-[90vh] max-w-[92vw] rounded-[12px] object-contain" />
         </div>
       )}
-      <div className="text-[12px] text-ardoise mt-3" style={{ fontVariantNumeric: "tabular-nums" }}>{i + 1} / {n}</div>
-      </div>
     </Carte>
   );
 }
@@ -87,12 +117,13 @@ export default function BienProjet({ project }) {
     { valeur: project.derniere_vente_annee ? String(project.derniere_vente_annee) : null, sous: prixVente, label: "Dernière vente", info: "L'année et le prix de la dernière mutation des murs, d'après les ventes publiées (DVF) ou l'acte." },
   ].filter((l) => enEdition || l.valeur);
 
-  const photos = (project.photos || []).filter(Boolean);
-  if (!lignes.length && !photos.length) return null;
+  const capture = project.bien_capture || "";
+  const avecCapture = !!capture || enEdition;
+  if (!lignes.length && !avecCapture) return null;
 
   return (
-    <div className={`grid gap-5 items-start ${photos.length ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
-      {photos.length > 0 && <Photos photos={photos} />}
+    <div className={`grid gap-5 items-start ${avecCapture ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : ""}`}>
+      {avecCapture && <Capture url={capture} />}
       {lignes.length > 0 && (
         <Carte className="p-7 max-md:p-5">
           <TitreCarte titre="Le local" sous="Ce que les actes et les ventes publiées disent des murs" />

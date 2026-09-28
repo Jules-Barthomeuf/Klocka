@@ -88,16 +88,16 @@ export default function DashboardSuggestedResources({ user }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="bg-surface border border-encre/[0.12] p-4"
+      className="rounded-[18px] bg-surface-pleine border border-trait p-6 max-md:p-5"
     >
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-menthe" />
-          <p className="text-[11px] tracking-[0.2em] uppercase text-menthe m-0">Ressource suggérée</p>
+          <p className="text-[16px] font-medium text-encre m-0">Ressource suggérée</p>
         </div>
         <button
           onClick={() => navigate(createPageUrl("Ressources"))}
-          className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.16em] uppercase text-menthe-clair hover:text-encre transition-colors"
+          className="inline-flex items-center gap-1.5 text-[13px] text-menthe hover:text-encre transition-colors"
         >
           Toutes les ressources
           <ArrowRight className="w-3 h-3" />
@@ -142,7 +142,7 @@ export default function DashboardSuggestedResources({ user }) {
 
         {/* Info */}
         <div className="flex-1 py-3 pr-4 flex flex-col justify-center">
-          <h3 className="text-encre text-sm md:text-base font-medium mb-1.5 group-hover:text-menthe-clair transition-colors leading-snug">
+          <h3 className="text-encre text-sm md:text-base font-medium mb-1.5 group-hover:text-menthe transition-colors leading-snug">
             {resource.titre}
           </h3>
           <p className="text-encre/50 text-[11px] md:text-xs leading-relaxed">

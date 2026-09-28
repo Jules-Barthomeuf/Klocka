@@ -103,10 +103,11 @@ export default function CarteProjet({ project, onOuvrir, avatar = null, sousLign
   return (
     <div>
       <div
-        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-trait bg-surface transition-colors duration-300 hover:border-[rgba(150,192,184,0.3)]"
+        className="group relative cursor-pointer overflow-hidden rounded-[16px] border border-trait bg-surface transition-colors duration-300 hover:border-menthe/30"
         onClick={onOuvrir}
       >
-        <div className="relative h-48 overflow-hidden md:h-56">
+        {/* k-sur-photo : sous le voile, le titre reste blanc en mode clair. */}
+        <div className="k-sur-photo relative h-48 overflow-hidden md:h-56">
           {photo
             ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
             : <CarteDuProjet project={project} />}

@@ -100,7 +100,7 @@ function Champ({ champ, dealId, ouvert, onOuvrir, onPreuve }) {
                     {retenue ? "Valeur retenue" : "Retenir celle-ci"}
                   </button>
                 </div>
-                <p className="m-0 mt-1.5 text-[13.5px] leading-[1.55] text-[#e6e7ea]">{p.reponse}</p>
+                <p className="m-0 mt-1.5 text-[13.5px] leading-[1.55] text-encre">{p.reponse}</p>
                 {p.citation && <p className="m-0 mt-1 text-[12.5px] italic text-brume">« {p.citation} »</p>}
               </div>
             );

@@ -258,7 +258,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
         <button
           onClick={() => reessayer.mutate()}
           disabled={reessayer.isPending}
-          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-menthe rounded-full text-sur-menthe text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-[#ffffff] disabled:opacity-50"
+          className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-menthe rounded-full text-sur-menthe text-[11px] tracking-[.14em] uppercase font-semibold rounded-[10px] hover:bg-menthe-survol disabled:opacity-50"
         >
           {reessayer.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
           Relancer l'analyse
@@ -488,7 +488,7 @@ function Colonne({ titre, teinte, lignes, onOuvrir }) {
           title={l.page ? `Ouvrir le document page ${l.page}` : undefined}
           className="text-left flex flex-col gap-2 group"
         >
-          <span className="text-[15px] font-semibold text-encre group-hover:text-[#ffffff] transition-colors">{l.element}</span>
+          <span className="text-[15px] font-semibold text-encre group-hover:text-menthe transition-colors">{l.element}</span>
           {l.constat && <span className="text-[13.5px] leading-[1.65] text-craie">{l.constat}</span>}
           {l.commentaire && !memeTexte(l.commentaire, l.constat) && (
             <span className="text-[13.5px] leading-[1.6]" style={{ color: teinte === J["alerte"] ? J["ambre"] : teinte }}>→ {l.commentaire}</span>

@@ -124,7 +124,7 @@ export function CarteClients({ formData, setFormData, users }) {
                 <span className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-semibold text-encre" style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}>{initials(nameOf(email))}</span>
                 {nameOf(email)}
                 {principal && <span className="text-[11px] bg-menthe text-encre px-1.5 py-0.5 rounded font-semibold">Principal</span>}
-                <span onClick={() => removeClient(email, principal)} className="cursor-pointer text-ardoise hover:text-[#FF7C7C] flex ml-0.5"><X className="w-3.5 h-3.5" strokeWidth={2.2} /></span>
+                <span onClick={() => removeClient(email, principal)} className="cursor-pointer text-ardoise hover:text-alerte flex ml-0.5"><X className="w-3.5 h-3.5" strokeWidth={2.2} /></span>
               </div>
             ))}
             <div className="relative">
@@ -175,7 +175,7 @@ export function CarteDocuments({ formData, setFormData }) {
               {formData.documents.map((url, idx) => (
                 <div key={idx} className="flex items-center gap-1.5 bg-encre/[0.04] px-2.5 py-1.5 rounded-lg text-[12.5px] text-encre">
                   <span>Document {idx + 1}</span>
-                  <button onClick={() => setFormData({ ...formData, documents: formData.documents.filter((_, i) => i !== idx) })} className="text-ardoise hover:text-[#FF7C7C]"><X className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setFormData({ ...formData, documents: formData.documents.filter((_, i) => i !== idx) })} className="text-ardoise hover:text-alerte"><X className="w-3.5 h-3.5" /></button>
                 </div>
               ))}
             </div>

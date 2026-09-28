@@ -59,10 +59,10 @@ export default class BarriereErreur extends React.Component {
           {/* Le détail technique reste à portée de main sans encombrer l'écran :
               c'est ce qu'on demandera de copier en cas de signalement. */}
           <details className="mt-8 text-left">
-            <summary className="cursor-pointer text-[11px] tracking-[.16em] uppercase text-[#5b616e] hover:text-ardoise">
+            <summary className="cursor-pointer text-[11px] tracking-[.16em] uppercase text-brume hover:text-ardoise">
               Détail technique
             </summary>
-            <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-[1.6] text-[#5b616e]">
+            <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-[1.6] text-brume">
               {String(this.state.erreur?.stack || this.state.erreur)}
             </pre>
           </details>

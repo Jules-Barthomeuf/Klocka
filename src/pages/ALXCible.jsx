@@ -152,8 +152,8 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
   const v = c?.valorisation || {};
   const raisons = c ? (c.score_ml?.raisons?.length ? c.score_ml.raisons.filter((r) => r.sens > 0).map((r) => r.phrase) : [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : ""))) : [];
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(4,5,5,0.74)] p-6" onClick={onFermer}>
-      <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-[#0B0D0C]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fond/75 p-6" onClick={onFermer}>
+      <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine">
         {!c ? <div className="p-10 text-ardoise">Lecture…</div> : (
           <div className="grid grid-cols-1 lg:grid-cols-2">
             <div className="flex flex-col gap-5 p-7">
@@ -348,7 +348,7 @@ export default function ALXCible() {
         </div>
 
         <div className="mt-7 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-          <div className="relative flex flex-col gap-[26px] rounded-[20px] border border-trait bg-[#0B0D0C] p-7">
+          <div className="relative flex flex-col gap-[26px] rounded-[20px] border border-trait bg-surface-pleine p-7">
             <button
               onClick={() => setAnalyseOuverte((x) => !x)}
               aria-label={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"} title={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"}

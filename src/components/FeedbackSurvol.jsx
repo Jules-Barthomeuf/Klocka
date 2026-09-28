@@ -55,7 +55,7 @@ export default function FeedbackSurvol({ children }) {
         <div
           onMouseEnter={ouvrir}
           onMouseLeave={fermer}
-          className="fixed z-[70] w-[330px] rounded-[16px] border border-bord bg-[#0a0a0bf5] p-3.5 shadow-[0_24px_60px_rgba(0,0,0,.6)] backdrop-blur-xl animate-in fade-in slide-in-from-left-2 duration-150"
+          className="fixed z-[70] w-[330px] rounded-[16px] border border-bord bg-surface-pleine/95 p-3.5 shadow-[0_24px_60px_rgba(0,0,0,.6)] backdrop-blur-xl animate-in fade-in slide-in-from-left-2 duration-150"
           style={{ top: place.top, left: place.left }}
         >
           <p className="m-0 mb-2 text-[12.5px] text-ardoise">Une remarque, un bug, une idée.</p>

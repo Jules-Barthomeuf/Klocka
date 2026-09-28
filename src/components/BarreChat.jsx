@@ -147,7 +147,7 @@ export function ZoneChat({ children, largeur = 880, className = "", espacement =
     <div className={`relative flex justify-center ${className}`} style={{ padding: espacement }}>
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-6 -right-6 top-1/2 h-[150px] -translate-y-1/2"
+        className="k-halo pointer-events-none absolute -left-6 -right-6 top-1/2 h-[150px] -translate-y-1/2"
         style={{
           background: `linear-gradient(90deg, ${alpha("menthe-clair", 0)} 0%, ${alpha("menthe-clair", 0.08)} 28%, ${alpha("menthe-clair", 0.13)} 50%, ${alpha("menthe-clair", 0.08)} 72%, ${alpha("menthe-clair", 0)} 100%)`,
           filter: "blur(34px)",

@@ -394,7 +394,13 @@ function LayoutContent({ children, currentPageName }) {
   // de la prospection off-market a le même fond que Prospection. Le dashboard admin
   // garde les nappes menthe du plan de travail : deux halos l'un sur l'autre
   // ne font pas un fond.
+  //
+  // En clair, pas de halo du tout : le fond est blanc, sans dégradé. Le thème
+  // vaut pour toute l'application ; la bascule est dans la barre latérale, et
+  // dans la barre du haut de K-Data.
+  const { clair, basculer } = useTheme();
   const fondHalo = !hideNavbar
+    && !clair
     && !(currentPageName === "Dashboard" && !showClientView)
     && !(currentPageName === "ALXAtelier" && !["carte", "ville"].some((c) => new URLSearchParams(location.search).has(c)));
 
@@ -422,8 +428,6 @@ function LayoutContent({ children, currentPageName }) {
   const enCadre = typeof window !== "undefined" && window.self !== window.top;
   const modoKData = enKData && isAdmin && !hideNavbar;
 
-  // Le mode clair n'existe que dans K-Data : ailleurs Klocka reste sombre.
-  const { clair, basculer } = useTheme(enKData);
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
@@ -548,6 +552,7 @@ function LayoutContent({ children, currentPageName }) {
             >
               <Users className="w-4 h-4" />
             </Button>
+            <BasculeTheme clair={clair} onBasculer={basculer} />
             <Button
               variant="ghost"
               size="icon"
@@ -559,15 +564,18 @@ function LayoutContent({ children, currentPageName }) {
             </Button>
           </div>
         ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => base44.auth.logout(window.location.origin + '/Home')}
-            className="text-ardoise hover:text-encre hover:bg-encre/5 h-8 w-8 mx-auto block"
-            title="Déconnexion"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
+          <div className="flex flex-col items-center gap-1">
+            <BasculeTheme clair={clair} onBasculer={basculer} />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => base44.auth.logout(window.location.origin + '/Home')}
+              className="text-ardoise hover:text-encre hover:bg-encre/5 h-8 w-8 mx-auto block"
+              title="Déconnexion"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         )}
       </div>
     </div>

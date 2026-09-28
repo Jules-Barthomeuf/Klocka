@@ -59,17 +59,17 @@ export default function PlanDeTravail({ chat = null }) {
             travers de la page, et c'est précisément ce qu'on ne veut pas. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[1200px] max-w-full -translate-x-1/2 -translate-y-[34%]"
+          className="k-halo pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[1200px] max-w-full -translate-x-1/2 -translate-y-[34%]"
           style={{ background: `radial-gradient(closest-side, ${alpha("menthe", 0.3)}, ${alpha("menthe", 0.1)} 55%, transparent)` }}
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-[26%] top-1/2 h-[420px] w-[720px] max-w-full -translate-x-1/2 -translate-y-[12%]"
+          className="k-halo pointer-events-none absolute left-[26%] top-1/2 h-[420px] w-[720px] max-w-full -translate-x-1/2 -translate-y-[12%]"
           style={{ background: `radial-gradient(closest-side, ${alpha("ambre", 0.11)}, transparent)` }}
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-[76%] top-1/2 h-[460px] w-[760px] max-w-full -translate-x-1/2 -translate-y-[46%]"
+          className="k-halo pointer-events-none absolute left-[76%] top-1/2 h-[460px] w-[760px] max-w-full -translate-x-1/2 -translate-y-[46%]"
           style={{ background: `radial-gradient(closest-side, ${alpha("menthe-fonce", 0.2)}, transparent)` }}
         />
         <h1 className="relative m-0 font-display font-normal italic leading-[1.05] tracking-[.01em] text-encre" style={{ fontSize: "clamp(32px, 3.9vw, 52px)" }}>

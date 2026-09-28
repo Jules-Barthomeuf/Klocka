@@ -1005,7 +1005,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
         <button
           onClick={() => ouvrir(intentionNon)}
            aria-label={`${titreNon} — ${descNon}`} title={`${titreNon} — ${descNon}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[#9b3b32]/60 bg-[#0a0a0bee] backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-alerte text-[13.5px] font-semibold hover:bg-[#9b3b32]/20 hover:border-[#9b3b32] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-alerte/60 bg-surface-pleine/95 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-alerte text-[13.5px] font-semibold hover:bg-alerte/20 hover:border-alerte/60 transition-colors"
         >
           <ThumbsDown className="w-4 h-4" /> Abandonner
         </button>
@@ -1289,7 +1289,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
       </div>
 
       {enCours && (
-        <div className="h-1 rounded bg-[#1a1d1c] overflow-hidden">
+        <div className="h-1 rounded bg-relief overflow-hidden">
           <div
             className="h-full bg-menthe transition-all duration-500 rounded-full"
             style={{ width: `${Math.max(progression, 3)}%` }}
@@ -1518,7 +1518,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
             {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
           </span>
         ) : (
-          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">
+          <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-menthe-survol disabled:opacity-40">
             Pré-analyser à partir des {nb} pièce{nb > 1 ? "s" : ""}
           </button>
         )}

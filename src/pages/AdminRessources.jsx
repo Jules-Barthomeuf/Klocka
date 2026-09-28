@@ -400,7 +400,7 @@ export default function AdminRessources() {
 
         {/* Dialog d'édition */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="bg-[#0a0a0a] border-trait max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="bg-surface-pleine border-trait max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-encre font-light text-lg">
                 {editingResource ? "Modifier la ressource" : "Nouvelle ressource"}

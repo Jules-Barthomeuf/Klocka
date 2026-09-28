@@ -30,7 +30,7 @@ export default function NotesEtSuite({ dealId, etape, apercu = false }) {
   const faites = taches.filter((t) => t.fait);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5 px-6 max-md:px-4 py-5 border-b border-trait bg-[#050506]">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5 px-6 max-md:px-4 py-5 border-b border-trait bg-surface">
       <div>
         <div className="flex items-baseline justify-between gap-3 mb-2"><Mono>Notes</Mono>{data?.maj_le && <Mono className="normal-case tracking-[.04em]">{enregistrer.isPending ? "enregistrement…" : `enregistré · ${new Date(data.maj_le).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${data.maj_par ? ` · ${data.maj_par}` : ""}`}</Mono>}</div>
         <textarea value={notes} onChange={(e) => changerNotes(e.target.value)} disabled={apercu} rows={6} placeholder="Ce que vous retenez, ce qui vous gêne, ce que l'agent a dit au téléphone…" className="w-full bg-transparent border border-trait focus:border-bord-vif outline-none px-3 py-2.5 text-[13.5px] leading-[1.65] text-encre placeholder:text-brume resize-y" />

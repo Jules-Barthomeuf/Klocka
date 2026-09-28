@@ -93,7 +93,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
           {g.lignes.map((l, iLigne) => (
             <tr key={l.id} className="align-top">
               <td className="px-4 py-3 border-b border-r border-trait">
-                <button onClick={() => bascule(l.id)} className="text-left text-[13.5px] text-encre hover:text-[#ffffff]">{l.libelle}</button>
+                <button onClick={() => bascule(l.id)} className="text-left text-[13.5px] text-encre hover:text-menthe">{l.libelle}</button>
                 {ouverts.has(l.id) && <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{l.regle}</p>}
               </td>
               <td className={`px-4 py-3 border-b border-r border-trait group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>

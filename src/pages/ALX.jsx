@@ -91,7 +91,7 @@ function CarteVille({ v, onOuvrir }) {
   return (
     <button
       onClick={() => onOuvrir(v.id)}
-      className="relative flex flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+      className="relative flex flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-menthe/30"
       style={{ background: J["fond"] }}
     >
       <div className="flex h-[3px]">
@@ -150,7 +150,7 @@ function AccueilVille({ villes, onOuvrir }) {
             <span className="block text-encre">Donnez une ville.</span>
             <span className="block text-menthe">ALX <span className="alx-serif italic tracking-[-.01em]">s'occupe du reste.</span></span>
           </h1>
-          <p className="mx-auto mb-0 mt-[22px] max-w-[56ch] text-[15px] leading-[1.6] text-[#8E9793]">
+          <p className="mx-auto mb-0 mt-[22px] max-w-[56ch] text-[15px] leading-[1.6] text-ardoise">
             Il dessine les rues du centre, les classe par leur loyer, lit chaque vitrine des rues que vous cochez, retrouve le propriétaire, et vous rend trois piles avec les messages déjà écrits. Rien ne part sans votre relecture.
           </p>
           <form

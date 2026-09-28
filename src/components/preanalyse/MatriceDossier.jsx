@@ -87,7 +87,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
           <button onClick={() => setTri((t) => (t ? null : "statut"))} className={`text-[12.5px] px-3 py-1.5 rounded-full border transition-colors ${tri ? "border-alerte text-alerte" : "border-bord-doux text-ardoise hover:text-encre"}`}>
             {tri ? "Ordre du gabarit" : "Trier par statut"}
           </button>
-          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-menthe rounded-full text-sur-menthe font-semibold hover:bg-[#ffffff]">
+          <button onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-full bg-menthe rounded-full text-sur-menthe font-semibold hover:bg-menthe-survol">
             <Plus className="w-3.5 h-3.5" /> Ajouter une colonne
           </button>
         </div>
@@ -108,7 +108,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
                     className="text-left w-full group"
                   >
                     <span className="block text-[11px] tracking-[.14em] uppercase text-brume">{c.bloc}</span>
-                    <span className="block text-[12.5px] font-semibold text-encre group-hover:text-[#ffffff] mt-0.5">{c.libelle}</span>
+                    <span className="block text-[12.5px] font-semibold text-encre group-hover:text-encre mt-0.5">{c.libelle}</span>
                   </button>
                   {edition === c.id && (
                     <p className="m-0 mt-2 text-[11px] leading-[1.5] text-ardoise font-normal normal-case tracking-normal">
@@ -133,7 +133,7 @@ export function Grille({ m, dealId, onCellule, celluleOuverte }) {
                   return (
                     <td key={c.id} className={`px-3 py-3 border-b border-r border-relief align-top ${ouverte ? "bg-menthe/[0.08]" : ""}`}>
                       {cel?.reponse ? (
-                        <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-craie hover:text-[#ffffff] line-clamp-3" aria-label={cel.citation || cel.reponse} title={cel.citation || cel.reponse}>
+                        <button onClick={() => onCellule({ ligne: l, colonne: c.id, cellule: cel })} className="text-left text-[12.5px] leading-[1.5] text-craie hover:text-encre line-clamp-3" aria-label={cel.citation || cel.reponse} title={cel.citation || cel.reponse}>
                           {cel.reponse}
                           {cel.page ? <span className="text-brume"> · p.{cel.page}</span> : null}
                         </button>
@@ -249,7 +249,7 @@ function Anomalies({ m, dealId, onCellule }) {
                 {sources.length > 0 ? (
                   <div className="space-y-1.5">
                     {sources.map((l) => (
-                      <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[12.5px] text-craie hover:text-[#ffffff]">
+                      <button key={l.document_id} onClick={() => onCellule({ ligne: l, colonne: a.colonne.id, cellule: l.cellules[a.colonne.id] })} className="block text-left text-[12.5px] text-craie hover:text-encre">
                         <span className="text-brume">{l.document_nom}{l.cellules[a.colonne.id].page ? ` · p.${l.cellules[a.colonne.id].page}` : ""} — </span>{l.cellules[a.colonne.id].reponse}
                       </button>
                     ))}
@@ -357,7 +357,7 @@ export default function MatriceDossier({ dossier, coches, onCocher, onRefresh, a
           {enCours ? (
             <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-3.5 h-3.5 animate-spin" /> {m.remplissage.fait}/{m.remplissage.total ?? "…"} — {m.remplissage.document || "lecture"}</span>
           ) : (
-            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} aria-label={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-menthe rounded-full text-sur-menthe hover:bg-[#ffffff] disabled:opacity-40">
+            <button onClick={() => remplir.mutate()} disabled={apercu || remplir.isPending || !nbDocs} aria-label={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} title={nbDocs ? "Lire tous les documents contre toutes les questions du gabarit" : "Importez des documents d'abord"} className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[12.5px] font-semibold bg-menthe rounded-full text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
               <RefreshCw className="w-3.5 h-3.5" /> {m?.lignes?.length ? "Relire les documents" : "Remplir la grille"}
             </button>
           )}

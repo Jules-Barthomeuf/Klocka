@@ -66,7 +66,7 @@ function ProjectCard({ project }) {
     >
       <div className="relative bg-surface border border-encre/[0.12] overflow-hidden hover:border-menthe/60 transition-colors duration-300">
         {/* Image */}
-        <div className="relative h-44 md:h-52 overflow-hidden">
+        <div className="k-sur-photo relative h-44 md:h-52 overflow-hidden">
           {project.photos && project.photos.length > 0 && !photoKo ? (
             <img
               src={project.photos[0]}

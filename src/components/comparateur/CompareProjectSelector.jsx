@@ -67,8 +67,8 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
                 ? `${BORDER_COLORS[colorIdx]} ring-2 ${RING_COLORS[colorIdx]}`
                 : "border-trait hover:border-bord"
             }`}>
-              {/* Image */}
-              <div className="relative h-48 md:h-52 overflow-hidden">
+              {/* Image. k-sur-photo : sous le voile, le titre reste blanc en mode clair. */}
+              <div className="k-sur-photo relative h-48 md:h-52 overflow-hidden">
                 {project.photos && project.photos.length > 0 ? (
                   <img
                     src={project.photos[0]}

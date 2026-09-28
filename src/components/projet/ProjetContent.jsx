@@ -302,9 +302,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         </DialogContent>
       </Dialog>
 
-      {/* Hero pleine largeur (masqué en aperçu d'onglet et en édition) */}
+      {/* Hero pleine largeur (masqué en aperçu d'onglet et en édition).
+          k-sur-photo : sous le voile, le titre reste blanc en mode clair. */}
       {!apercuOnglet && !modeEdition && (
-      <div className="relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
+      <div className="k-sur-photo relative w-full h-[560px] max-md:h-[440px] overflow-hidden">
         {streetView ? (
           <StreetViewRue project={project} />
         ) : photoMontree ? (

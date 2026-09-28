@@ -132,7 +132,7 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
         </div>
 
         <div>
-          <div className="text-[12.5px] tracking-[.14em] text-[#6d716f]">ÉTAPE {i + 1} / {etapes.length}</div>
+          <div className="text-[12.5px] tracking-[.14em] text-brume">ÉTAPE {i + 1} / {etapes.length}</div>
           <div
             className="mt-[18px] text-white leading-[1.1] tracking-[-.01em] min-h-[2.2em]"
             style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: "clamp(30px, 3.2vw, 40px)", textWrap: "pretty" }}
@@ -168,11 +168,10 @@ export default function ConnexionExterne({ service, etapes, attendA, pret, duree
       {/* Droite : l'orbe */}
       <div
         className="flex items-center justify-center p-10 max-md:hidden"
-        style={{ background: "radial-gradient(120% 90% at 70% 10%, rgba(151,192,184,.05), transparent 60%)" }}
       >
         {/* L'orbe est dessinée sur un canvas de 64 px : l'étirer la rendrait
             floue. On la laisse à sa taille, posée au centre d'un halo. */}
-        <div className="w-[140px] h-[140px] rounded-full flex items-center justify-center" style={{ background: "radial-gradient(circle, rgba(151,192,184,.07), transparent 70%)" }}>
+        <div className="k-halo w-[140px] h-[140px] rounded-full flex items-center justify-center" style={{ background: "radial-gradient(circle, rgba(151,192,184,.07), transparent 70%)" }}>
           <ThinkingOrb state="solving" size={64} theme="dark" />
         </div>
       </div>

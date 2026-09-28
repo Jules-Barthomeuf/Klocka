@@ -35,9 +35,9 @@ export default function SyntheseReventeDisplay({ calculs, apport, anneeRevente, 
           <p className={`text-xs md:text-sm ${mutedClass} mb-1 flex items-center gap-1`}>Cash-flow cumulé <TooltipInfo field="cashFlowCumule" /></p>
           <p className={`text-sm md:text-lg font-medium tabular-nums ${calculs.indicateurs.cashFlowCumule >= 0 ? 'text-menthe' : 'text-red-500'}`}>{formatCurrency(calculs.indicateurs.cashFlowCumule)}</p>
         </div>
-        <div className="p-2 md:p-4 rounded-md bg-gradient-to-r from-[#D4AF37]/20 to-[#F5D76E]/20 border border-[#D4AF37]/50 flex flex-col items-center justify-center text-center">
-          <p className={`text-xs md:text-sm text-[#F5D76E] mb-1 flex items-center gap-1`}>Création richesse <TooltipInfo field="creationRichesse" /></p>
-          <p className={`text-base md:text-xl font-medium text-[#D4AF37] tabular-nums`}>{formatCurrency(calculs.indicateurs.creationRichesseBrute)}</p>
+        <div className="p-2 md:p-4 rounded-md bg-jaune/10 border border-jaune/50 flex flex-col items-center justify-center text-center">
+          <p className={`text-xs md:text-sm text-jaune mb-1 flex items-center gap-1`}>Création richesse <TooltipInfo field="creationRichesse" /></p>
+          <p className={`text-base md:text-xl font-medium text-jaune tabular-nums`}>{formatCurrency(calculs.indicateurs.creationRichesseBrute)}</p>
           <p className="text-xs text-encre/50 mt-1">x{calculs.indicateurs.multipleNetFondsPropres}</p>
         </div>
       </div>

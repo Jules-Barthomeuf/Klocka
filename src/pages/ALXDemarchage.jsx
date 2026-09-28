@@ -30,7 +30,7 @@ const ETATS = {
   pret: ["Message prêt", "border-menthe/50 text-menthe"],
   envoye: ["Envoyé", "border-menthe/50 text-menthe"],
   simule: ["Simulé", "border-bord text-brume"],
-  relance_prete: ["Relance à valider", "border-[#E8B278]/50 text-[#E8B278]"],
+  relance_prete: ["Relance à valider", "border-ambre/50 text-ambre"],
   relance_envoyee: ["Relancé", "border-menthe/50 text-menthe"],
   repondu: ["A répondu", "border-menthe bg-menthe/15 text-encre"],
   appele: ["Appelé", "border-menthe/50 text-menthe"],
@@ -305,7 +305,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
               <Bouton className="mt-3" onClick={() => rediger.mutate()} disabled={rediger.isPending}>{rediger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}Rédiger le message</Bouton>
             )}
             {s.relance?.etat === "prete" && (
-              <div className="mt-4 rounded-[14px] border border-[#E8B278]/40 p-4">
+              <div className="mt-4 rounded-[14px] border border-ambre/40 p-4">
                 <p className="m-0 text-[12.5px] text-encre">La relance est prête :</p>
                 <p className="m-0 mt-1.5 whitespace-pre-line text-[12.5px] text-ardoise">{s.relance.corps}</p>
                 <Bouton principal className="mt-3" onClick={() => relance.mutate()} disabled={relance.isPending}><Send className="h-3.5 w-3.5" />Envoyer la relance</Bouton>
@@ -330,7 +330,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
 function AlerteDoublons({ deja, nouvelles, onChoisir, onAnnuler }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-fond/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true">
-      <div className="alx-entree w-full max-w-[480px] rounded-[20px] border border-[#E8B278]/40 bg-surface p-7 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <div className="alx-entree w-full max-w-[480px] rounded-[20px] border border-ambre/40 bg-surface p-7 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
         <p className={etiq}>Déjà démarchées</p>
         <h3 className="m-0 mt-2 text-[18px] font-semibold text-encre">{deja.length} société{deja.length > 1 ? "s" : ""} dans ta sélection {deja.length > 1 ? "ont" : "a"} déjà été contactée{deja.length > 1 ? "s" : ""}</h3>
         <ul className="m-0 mt-4 flex list-none flex-col gap-1.5 p-0 text-[13px] text-encre">
@@ -473,7 +473,7 @@ export default function ALXDemarchage() {
                 </div>
               ))}
             </div>
-            {!data.apollo && <p className="m-0 mb-5 rounded-[14px] border border-[#E8B278]/40 px-4 py-3 text-[13px] text-ardoise">Apollo n'est pas branché (clé APOLLO_API_KEY) : les gérants sont connus, pas leurs mails.</p>}
+            {!data.apollo && <p className="m-0 mb-5 rounded-[14px] border border-ambre/40 px-4 py-3 text-[13px] text-ardoise">Apollo n'est pas branché (clé APOLLO_API_KEY) : les gérants sont connus, pas leurs mails.</p>}
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <div className="inline-flex flex-wrap gap-1">

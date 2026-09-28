@@ -201,7 +201,7 @@ export default function CarteCessions({ resultat: t, titre, adresse, lat, lon, h
               key={v}
               type="button"
               onClick={() => setFiltre(v)}
-              className={`px-3 py-1 rounded-full text-[12.5px] border transition-colors ${filtre === v ? "bg-menthe text-sur-menthe border-menthe" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif"}`}
+              className={`px-3 py-1 rounded-full text-[12.5px] border transition-colors ${filtre === v ? "bg-menthe text-sur-menthe border-menthe" : "bg-transparent text-[#b8b8b8] border-bord hover:border-bord-vif"}`}
             >
               {l}
             </button>

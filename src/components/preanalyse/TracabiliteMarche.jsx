@@ -40,15 +40,15 @@ function Manquantes({ passage }) {
   const sansDonnee = (passage.sources_en_echec || []).filter((s) => s.classe === "sans_donnee");
 
   return (
-    <div className="rounded-[12px] border border-[#4a3a22] bg-[#1a1409] px-4 py-3">
+    <div className="rounded-[12px] border border-ambre/40 bg-ambre/10 px-4 py-3">
       <div className="flex items-start gap-2.5">
         <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-ambre" />
         <div className="min-w-0">
-          <p className="m-0 text-[13.5px] font-semibold text-[#e6d3a8]">Données de marché incomplètes</p>
+          <p className="m-0 text-[13.5px] font-semibold text-encre">Données de marché incomplètes</p>
           <ul className="mt-2 mb-0 space-y-1 list-none p-0">
             {[...enPanne, ...sansDonnee].map((s) => (
-              <li key={s.source} className="text-[12.5px] text-[#a89878]">
-                <span className="text-[#c9b892]">{s.service}</span> — {s.erreur}
+              <li key={s.source} className="text-[12.5px] text-craie">
+                <span className="text-ambre">{s.service}</span> — {s.erreur}
                 <span className="text-brume"> · {MOTIFS[s.classe]?.mot} · {s.essais} essai{s.essais > 1 ? "s" : ""}</span>
               </li>
             ))}

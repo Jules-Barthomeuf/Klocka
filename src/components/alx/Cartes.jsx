@@ -79,7 +79,7 @@ function CarteDeProspection({ c, onOuvrir }) {
       tabIndex={0}
       onClick={() => { if (!edition) onOuvrir(c.id); }}
       onKeyDown={(e) => { if (!edition && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onOuvrir(c.id); } }}
-      className="relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+      className="relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait text-left transition-colors hover:border-menthe/30"
       style={{ background: J["fond"] }}
     >
       <Barres cibles={c.cibles} />
@@ -144,14 +144,14 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
 
   return (
     <div className="flex flex-col gap-11">
-      <section className="relative overflow-hidden rounded-[20px] border border-trait px-12 pb-[46px] pt-[52px] max-md:px-6 max-md:py-8" style={{ background: "linear-gradient(155deg, rgb(var(--k-surface-pleine-rgb)) 0%, rgb(var(--k-fond-halo-rgb)) 48%, rgb(var(--k-fond-rgb)) 100%)" }}>
-        <div aria-hidden className="pointer-events-none absolute -left-[120px] -top-[220px] h-[520px] w-[700px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.055),transparent)" }} />
+      <section className="alx-hero relative overflow-hidden rounded-[20px] border border-trait px-12 pb-[46px] pt-[52px] max-md:px-6 max-md:py-8">
+        <div aria-hidden className="k-halo pointer-events-none absolute -left-[120px] -top-[220px] h-[520px] w-[700px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.055),transparent)" }} />
         <div className="relative flex flex-col items-center text-center">
           <h1 className="m-0 font-light leading-[1.06] tracking-[-.03em]" style={{ fontSize: "clamp(34px,3.6vw,52px)" }}>
             <span className="block text-encre">Dites pour qui vous cherchez.</span>
             <span className="block text-menthe">ALX <span className="alx-serif italic tracking-[-.01em]">trouve où chercher.</span></span>
           </h1>
-          <p className="mx-auto mb-0 mt-[22px] max-w-[58ch] text-[15px] leading-[1.6] text-[#8E9793]">
+          <p className="mx-auto mb-0 mt-[22px] max-w-[58ch] text-[15px] leading-[1.6] text-ardoise">
             Une carte par investisseur : son budget, son rendement visé. ALX rend les villes qui se traitent à ce taux-là, le loyer et la surface à chercher, et ouvre la prospection rue par rue.
           </p>
           <form
@@ -402,7 +402,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
                 <button
                   key={v.id}
                   onClick={() => onOuvrirVille(v.id)}
-                  className="overflow-hidden rounded-[14px] border border-trait bg-surface text-left transition-colors hover:border-[rgba(150,192,184,0.3)]"
+                  className="overflow-hidden rounded-[14px] border border-trait bg-surface text-left transition-colors hover:border-menthe/30"
                 >
                   <Barres cibles={v.cibles} />
                   <div className="flex items-baseline justify-between gap-2 px-4 pb-1 pt-3.5">

@@ -145,7 +145,7 @@ export default function Analyse() {
   return (
     <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
       {/* Une lumière dans le coin, en haut à gauche, sur le dossier ouvert. */}
-      {enWorkflow && <div aria-hidden className="pointer-events-none absolute -left-[260px] -top-[260px] h-[680px] w-[900px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.13),transparent)" }} />}
+      {enWorkflow && <div aria-hidden className="k-halo pointer-events-none absolute -left-[260px] -top-[260px] h-[680px] w-[900px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.13),transparent)" }} />}
       <div
         key={dealId || (nouveau ? "nouveau" : "accueil")}
         className="p-4 md:p-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
@@ -254,7 +254,7 @@ export default function Analyse() {
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                     {menuCarte === d.deal_id && (
-                      <div className="absolute top-9 right-2.5 z-20 rounded-[12px] border border-encre/[0.12] bg-[rgba(10,10,11,0.72)] py-1 min-w-[170px] shadow-[0_18px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+                      <div className="absolute top-9 right-2.5 z-20 rounded-[12px] border border-encre/[0.12] bg-surface-pleine/90 py-1 min-w-[170px] shadow-[0_18px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl">
                         <button
                           onClick={() => {
                             setMenuCarte(null);

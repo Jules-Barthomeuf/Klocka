@@ -113,7 +113,7 @@ function Source({ s }) {
   return (
     <li className="py-2">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <span className="flex-shrink-0 font-pill text-[11px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-[rgba(150,192,184,.35)] text-menthe">
+        <span className="flex-shrink-0 font-pill text-[11px] font-semibold uppercase tracking-[.08em] px-1.5 py-[2px] rounded-[3px] border border-menthe/35 text-menthe">
           {s.service}
         </span>
         <span className="text-[12.5px] text-craie">{s.titre}</span>

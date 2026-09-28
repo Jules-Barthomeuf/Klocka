@@ -1092,7 +1092,7 @@ export default function AdminProjets() {
               <button
                 onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")}
                 aria-label="Ouvrir la page telle que le client la verra" title="Ouvrir la page telle que le client la verra"
-                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-encre hover:border-[#4d4d4d] transition-colors inline-flex items-center justify-center"
+                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-encre hover:border-bord-vif transition-colors inline-flex items-center justify-center"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -1204,14 +1204,14 @@ export default function AdminProjets() {
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => { clicDroite.current = true; setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-[#262626] hover:border-bord-vif hover:text-encre"}`}>
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-bord hover:border-bord-vif hover:text-encre"}`}>
                 {t.label}
               </button>
             ))}
           </div>
 
           <div className="flex-shrink-0 px-[18px] pb-3 flex flex-col gap-3">
-            <p className="m-0 mt-1 text-[11px] tracking-[.18em] uppercase text-[#7d7d7d]">
+            <p className="m-0 mt-1 text-[11px] tracking-[.18em] uppercase text-brume">
               {editorTabs.find((t) => t.value === activeTab)?.label || "Modifier"}
             </p>
           </div>
@@ -1285,7 +1285,7 @@ export default function AdminProjets() {
             </Tabs>
           </div>
           <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
-            <span className="text-[12.5px] text-[#6a6a6a]">La page de gauche suit ce que vous tapez ; rien n&apos;est enregistré avant Enregistrer.</span>
+            <span className="text-[12.5px] text-brume">La page de gauche suit ce que vous tapez ; rien n&apos;est enregistré avant Enregistrer.</span>
           </div>
         </aside>
         </div>

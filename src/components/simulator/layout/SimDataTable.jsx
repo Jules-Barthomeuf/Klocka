@@ -164,7 +164,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                 </tr>
                 {openSections[sec.title] && sec.rows.map((row, ri) => (
                   <tr key={row.label} className={`border-b border-encre/[0.03] last:border-0 hover:bg-encre/[0.04] transition-colors ${ri % 2 === 0 ? "bg-encre/[0.02]" : "bg-transparent"}`}>
-                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-ardoise whitespace-nowrap ${ri % 2 === 0 ? "bg-[#121212]" : "bg-surface"}`}>{row.label}</td>
+                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-ardoise whitespace-nowrap ${ri % 2 === 0 ? "bg-relief" : "bg-surface"}`}>{row.label}</td>
                     {rows.map((r) => {
                       const val = row.get(r);
                       const isNeg = typeof val === "string" && val.trim().startsWith("-");

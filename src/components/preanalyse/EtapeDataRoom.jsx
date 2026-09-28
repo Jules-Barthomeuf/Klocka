@@ -44,7 +44,7 @@ export default function EtapeDataRoom({ dossier, e, onPreuve, onRefresh, apercu 
         <p className="m-0 text-[15px] leading-[1.65] text-craie max-w-[720px]">{nbDocs ? `${nbDocs} pièce${nbDocs > 1 ? "s" : ""} importée${nbDocs > 1 ? "s" : ""}. Le bail, ses avenants, les quittances et le Kbis sont lus en premier (${e.progression.presents_etape}). Les autres attendent l'étape 2.` : "Importez les pièces de la data room en bas de page : elles sont classées automatiquement."}</p>
         <div className="mt-5 flex items-center gap-4">
           {enCours ? <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="w-4 h-4 animate-spin" /> {e.remplissage.fait}/{e.remplissage.total ?? "…"} — {e.remplissage.document || "lecture"}</span>
-            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-[#ffffff] disabled:opacity-40">Lire le bail et le locataire</button>}
+            : <button onClick={() => lancer.mutate(1)} disabled={apercu || !e.progression.presents_etape || lancer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-menthe-survol disabled:opacity-40">Lire le bail et le locataire</button>}
           {!e.progression.presents_etape && nbDocs > 0 && <span className="text-[12.5px] text-ambre">Aucune pièce classée Bail, Avenants, Quittances ou Kbis : vérifiez les catégories.</span>}
         </div>
       </div>

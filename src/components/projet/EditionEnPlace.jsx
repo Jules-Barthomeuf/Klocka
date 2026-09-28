@@ -76,7 +76,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
           if (e.key === "Enter") { e.preventDefault(); valider(); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className="bg-[#0f1413] border border-menthe text-encre rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
+        className="bg-surface-pleine border border-menthe text-encre rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
         style={{ fontVariantNumeric: "tabular-nums" }}
       />
     );
@@ -120,7 +120,7 @@ export function TexteEditable({ champ, children, className = "" }) {
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setOuvert(false); edition.onChamp(champ, brouillon, true); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className={`w-full bg-[#0f1413] border border-menthe text-encre rounded px-3 py-2 outline-none text-[13.5px] leading-[1.7] ${className}`}
+        className={`w-full bg-surface-pleine border border-menthe text-encre rounded px-3 py-2 outline-none text-[13.5px] leading-[1.7] ${className}`}
       />
     );
   }

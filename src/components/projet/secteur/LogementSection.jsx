@@ -121,14 +121,14 @@ export default function LogementSection({ data }) {
                   </div>
                 )}
                 {data.pct_locataires > 0 && (
-                  <div className="bg-[#1f6b62] flex items-center justify-center text-encre text-xs font-medium" style={{ width: `${data.pct_locataires}%` }}>
+                  <div className="bg-menthe-fonce flex items-center justify-center text-encre text-xs font-medium" style={{ width: `${data.pct_locataires}%` }}>
                     {data.pct_locataires}%
                   </div>
                 )}
               </div>
               <div className="flex gap-4 mt-2">
                 <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-menthe" /><span className="text-xs text-ardoise">Propriétaires</span></div>
-                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#1f6b62]" /><span className="text-xs text-ardoise">Locataires</span></div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-menthe-fonce" /><span className="text-xs text-ardoise">Locataires</span></div>
               </div>
             </div>
           )}

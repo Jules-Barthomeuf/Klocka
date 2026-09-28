@@ -27,8 +27,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-input[type=range] { accent-color: #96c0b8; }
-::selection { background: rgba(150, 192, 184, .3); }
+input[type=range] { accent-color: rgb(var(--k-menthe-rgb)); }
+::selection { background: rgb(var(--k-menthe-rgb) / .3); }
 
 h1 {
   font-size: 3.2em;
@@ -112,26 +112,73 @@ button:focus-visible {
     --k-emplacement-2-rgb: 194 105 92;
 }
 
-/* Le clair ne reprend que les neutres. Les accents ne bougent pas. */
+/* Le clair : un fond blanc, pas de halo, et des accents assombris.
+   Les neutres s'inversent ; les accents gardent leur teinte mais descendent
+   d'un cran, parce qu'ils servent de texte (text-menthe, text-ambre, un lien,
+   une alerte) et qu'une menthe pâle sur du blanc ne se lit pas (1,9 pour 1).
+   Chaque accent clair passe le plancher de 4,5 pour 1 sur blanc. Les boutons
+   pleins suivent : « sur-menthe » devient blanc, posé sur la menthe foncée. */
 :root[data-theme="clair"] {
-    --k-fond-rgb: 246 247 248;
-    --k-fond-halo-rgb: 236 238 240;
-    --k-surface: rgba(16, 20, 24, 0.035);
+    --k-fond-rgb: 255 255 255;
+    --k-fond-halo-rgb: 255 255 255;
+    --k-surface: rgba(16, 20, 24, 0.03);
     --k-surface-pleine-rgb: 255 255 255;
-    --k-relief: rgba(16, 20, 24, 0.06);
+    --k-relief: rgba(16, 20, 24, 0.05);
     --k-encre-rgb: 20 24 28;
     --k-craie-rgb: 58 65 63;
     --k-ardoise-rgb: 94 102 99;
-    --k-brume-rgb: 115 121 118;
-    --k-menthe-clair-rgb: 63 122 109;
-    --k-barre-rgb: 235 237 236;
-    --k-barre-relief-rgb: 223 226 225;
-    --k-trait: rgba(16, 20, 24, 0.09);
-    --k-bord: rgba(16, 20, 24, 0.13);
-    --k-bord-doux: rgba(16, 20, 24, 0.18);
-    --k-bord-vif: rgba(16, 20, 24, 0.28);
+    --k-brume-rgb: 112 118 115;
+    --k-menthe-rgb: 63 122 109;
+    --k-menthe-clair-rgb: 47 109 95;
+    --k-menthe-survol-rgb: 54 108 96;
+    --k-menthe-fonce-rgb: 40 90 80;
     --k-menthe-texte-rgb: 47 109 95;
+    --k-sur-menthe-rgb: 255 255 255;
+    --k-barre-rgb: 244 245 246;
+    --k-barre-relief-rgb: 232 234 235;
+    --k-trait: rgba(16, 20, 24, 0.08);
+    --k-bord: rgba(16, 20, 24, 0.12);
+    --k-bord-doux: rgba(16, 20, 24, 0.16);
+    --k-bord-vif: rgba(16, 20, 24, 0.26);
+    --k-alerte-rgb: 196 62 52;
+    --k-ambre-rgb: 176 106 20;
+    --k-vert-rgb: 31 122 77;
+    --k-jaune-rgb: 150 120 10;
+    --k-bleu-rgb: 45 96 178;
+    --k-appel-rgb: 140 100 60;
+    --k-ecrire-rgb: 63 122 109;
+    --k-surveiller-rgb: 94 102 99;
+    --k-emplacement-1-rgb: 60 90 200;
+    --k-emplacement-1bis-rgb: 143 100 32;
+    --k-emplacement-2-rgb: 168 72 59;
 }
+
+/* Une île sombre dans le clair : un titre posé sur une photo, sous un voile
+   noir, reste blanc quel que soit le thème. La classe redonne aux enfants la
+   palette sombre ; Tailwind lisant les variables, rien d'autre n'est à faire. */
+.k-sur-photo {
+    --k-fond-rgb: 0 0 0;
+    --k-encre-rgb: 242 243 245;
+    --k-craie-rgb: 199 205 201;
+    --k-ardoise-rgb: 148 154 151;
+    --k-brume-rgb: 124 130 127;
+    --k-menthe-rgb: 150 192 184;
+    --k-menthe-clair-rgb: 195 221 214;
+    --k-sur-menthe-rgb: 8 19 13;
+}
+
+/* En clair, pas de dégradé de fond : ni les halos décoratifs (classe k-halo,
+   et ceux de l'accueil), ni les fonds en dégradé Tailwind. Ce qui reste,
+   c'est le blanc. */
+:root[data-theme="clair"] .k-halo,
+:root[data-theme="clair"] .accueil-halo-a,
+:root[data-theme="clair"] .accueil-halo-b { display: none; }
+:root[data-theme="clair"] [class*="bg-gradient-to"]:not(.k-sur-photo *) { background-image: none; }
+/* Les ombres ont été réglées pour le noir (rgba(0,0,0,.45) et plus) : sur du
+   blanc elles font des taches. Une seule ombre douce pour tout ce qui flotte. */
+:root[data-theme="clair"] :is([class*="shadow-["], .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 8px 24px rgb(16 20 24 / .07); }
+:root[data-theme="clair"] .accueil-ring-sage { box-shadow: 0 0 0 1px var(--k-bord); }
+:root[data-theme="clair"] .accueil-composer { box-shadow: 0 10px 30px rgb(var(--k-encre-rgb) / .06); }
 
 body {
   margin: 0;
@@ -144,8 +191,8 @@ body {
   letter-spacing: -0.005em;
 }
 h1, h2, h3 { letter-spacing: -0.02em; }
-input[type=range] { accent-color: #96c0b8; }
-::selection { background: rgba(150, 192, 184, .3); }
+input[type=range] { accent-color: rgb(var(--k-menthe-rgb)); }
+::selection { background: rgb(var(--k-menthe-rgb) / .3); }
 
 /* Un bouton d'action est une pilule, comme « Commencer gratuitement ». Les
    remplissages clairs d'hier (ivoire) deviennent la menthe du site ; les
@@ -165,10 +212,10 @@ input[type=range] { accent-color: #96c0b8; }
    (seul moyen de battre la règle `button { background-color }` ci-dessus,
    qui n'est dans aucune @layer et prime donc sur toute classe Tailwind) ;
    seul le survol de la case décochée reste à poser ici, au même niveau. */
-button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
+button.k-case:not([aria-checked="true"]):hover { border-color: var(--k-bord-vif); }
 
 /* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
-.projet-editorial ::selection { background: rgba(150, 192, 184, .3); }
+.projet-editorial ::selection { background: rgb(var(--k-menthe-rgb) / .3); }
 
 /* Montserrat porte moins de graisse qu'Instrument Sans à poids égal : le 300
    s'efface sur fond sombre. Sur la page projet, chaque poids monte d'un cran,
@@ -188,11 +235,11 @@ button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
 .article-lu ul { list-style: disc; }
 .article-lu ol { list-style: decimal; }
 .article-lu li { margin-top: .45em; }
-.article-lu li::marker { color: #96c0b8; }
+.article-lu li::marker { color: rgb(var(--k-menthe-rgb)); }
 .article-lu a { color: rgb(var(--k-menthe-clair-rgb)); text-decoration: underline; text-underline-offset: 2px; }
 .article-lu a:hover { color: rgb(var(--k-encre-rgb)); }
 .article-lu strong, .article-lu b { color: rgb(var(--k-encre-rgb)); font-weight: 500; }
-.article-lu blockquote { border-left: 2px solid rgba(150, 192, 184, .6); padding-left: 1em; color: rgb(var(--k-brume-rgb)); }
+.article-lu blockquote { border-left: 2px solid rgb(var(--k-menthe-rgb) / .6); padding-left: 1em; color: rgb(var(--k-brume-rgb)); }
 .article-lu table { width: 100%; border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; }
 .article-lu th, .article-lu td { border-top: 1px solid var(--k-trait); padding: .55em .7em; text-align: left; vertical-align: top; }
 .article-lu th { color: rgb(var(--k-brume-rgb)); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
@@ -305,7 +352,7 @@ button.k-case:not([aria-checked="true"]):hover { border-color: #3a3f4a; }
 main .min-h-screen.bg-fond { background-color: transparent; }
 .bg-surface:is(.sticky, .absolute, .fixed),
 :is(.absolute, .fixed) > .bg-surface {
-  background-color: rgba(12, 13, 15, 0.86);
+  background-color: rgb(var(--k-surface-pleine-rgb) / 0.86);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
@@ -324,7 +371,7 @@ aside .overflow-y-auto::-webkit-scrollbar {
 /* Scrollbar sombre pour la zone de contenu principale et le reste de l'app */
 html {
   scrollbar-width: thin;
-  scrollbar-color: #2a2a2a transparent;
+  scrollbar-color: var(--k-bord-doux) transparent;
 }
 ::-webkit-scrollbar {
   width: 10px;
@@ -334,13 +381,13 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #2a2a2a;
+  background-color: var(--k-bord-doux);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #3a3a3a;
+  background-color: var(--k-bord-vif);
   background-clip: content-box;
 }
 
@@ -398,27 +445,27 @@ body[data-editeur-projet] .assistant-flottant {
 
 .accueil-composer { position: relative; border: 1px solid var(--k-bord); border-radius: 16px; background: rgb(var(--k-surface-pleine-rgb)); box-shadow: 0 26px 70px rgb(var(--k-fond-rgb) / .35); }
 .accueil-composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent;
-  padding: 20px 26px 22px; font: 300 16px/1.5 Figtree, "Instrument Sans", sans-serif; color: #eaeaea; max-height: 9em; overflow-y: auto; }
+  padding: 20px 26px 22px; font: 300 16px/1.5 Figtree, "Instrument Sans", sans-serif; color: rgb(var(--k-encre-rgb)); max-height: 9em; overflow-y: auto; }
 .accueil-composer textarea::placeholder { font-size: 15px; }
-.accueil-composer textarea::placeholder { color: #6f6f6f; }
+.accueil-composer textarea::placeholder { color: rgb(var(--k-brume-rgb)); }
 .accueil-composer textarea:disabled { opacity: .6; }
 .accueil-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-top: 1px solid var(--k-trait); }
 .accueil-tools { display: flex; align-items: center; gap: 10px; }
 .accueil-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; border: 1px solid var(--k-trait); background: transparent; color: rgb(var(--k-brume-rgb)); font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
 .accueil-icon.mono { font: 11px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .04em; }
-.accueil-icon:hover { border-color: rgba(156,195,188,.5); color: #9CC3BC; }
+.accueil-icon:hover { border-color: rgb(var(--k-menthe-rgb) / .5); color: rgb(var(--k-menthe-rgb)); }
 #accueil-voix { display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--k-trait); background: transparent; color: rgb(var(--k-brume-rgb)); font: 14px Figtree, sans-serif; cursor: pointer; transition: all .24s; }
 #accueil-voix:disabled { opacity: .5; cursor: default; }
-#accueil-voix .dot { width: 8px; height: 8px; border-radius: 50%; background: #6a6a6a; }
-#accueil-voix[aria-pressed="true"] { border-color: rgba(156,195,188,.65); background: rgba(156,195,188,.16); color: #C4DED9; }
-#accueil-voix[aria-pressed="true"] .dot { background: #9CC3BC; box-shadow: 0 0 12px rgba(156,195,188,.9); animation: accueil-pulse 1.4s ease-in-out infinite; }
-.accueil-send { display: flex; align-items: center; gap: 9px; padding: 10px 20px; border: 0; border-radius: 9px; background: #9CC3BC; color: #0b1211; font: 500 15px Figtree, sans-serif; cursor: pointer; transition: background .2s; }
-.accueil-send:hover { background: #B4D3CE; }
+#accueil-voix .dot { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--k-brume-rgb)); }
+#accueil-voix[aria-pressed="true"] { border-color: rgb(var(--k-menthe-rgb) / .65); background: rgb(var(--k-menthe-rgb) / .16); color: rgb(var(--k-menthe-clair-rgb)); }
+#accueil-voix[aria-pressed="true"] .dot { background: rgb(var(--k-menthe-rgb)); box-shadow: 0 0 12px rgb(var(--k-menthe-rgb) / .9); animation: accueil-pulse 1.4s ease-in-out infinite; }
+.accueil-send { display: flex; align-items: center; gap: 9px; padding: 10px 20px; border: 0; border-radius: 9px; background: rgb(var(--k-menthe-rgb)); color: rgb(var(--k-sur-menthe-rgb)); font: 500 15px Figtree, sans-serif; cursor: pointer; transition: background .2s; }
+.accueil-send:hover { background: rgb(var(--k-menthe-survol-rgb)); }
 .accueil-send:disabled { opacity: .45; cursor: default; }
 .accueil-chips { margin-top: 44px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 .accueil-chips button { padding: 11px 20px; border-radius: 9px; border: 1px solid var(--k-bord); background: var(--k-surface); color: rgb(var(--k-craie-rgb)); font: 15px Figtree, sans-serif; cursor: pointer; transition: all .2s; }
 .accueil-chips button:hover, .accueil-chips button[aria-pressed="true"] { border-color: rgb(var(--k-menthe-rgb) / .45); color: rgb(var(--k-encre-rgb)); }
-.accueil-chips button[aria-pressed="true"] { background: rgba(156,195,188,.12); }
+.accueil-chips button[aria-pressed="true"] { background: rgb(var(--k-menthe-rgb) / .12); }
 
 /* Les avis (src/components/ui/avis.jsx) : le filet du bas s'écoule pendant la
    durée d'affichage, et se fige quand la souris passe sur la pile, comme le
@@ -467,9 +514,9 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 /* Les boutons d'ALX gardent leur fond transparent malgré la règle globale `button`. */
 .alx button { background-color: transparent; }
 /* Le composer du dossier, repris sur ALX : ses boutons gardent leurs couleurs. */
-.alx button.accueil-send { background-color: #9CC3BC; }
-.alx button.accueil-send:hover:not(:disabled) { background-color: #B4D3CE; }
-.alx button.alx-principal:hover:not(:disabled) { background-color: #c3ddd6 !important; }
+.alx button.accueil-send { background-color: rgb(var(--k-menthe-rgb)); }
+.alx button.accueil-send:hover:not(:disabled) { background-color: rgb(var(--k-menthe-survol-rgb)); }
+.alx button.alx-principal:hover:not(:disabled) { background-color: rgb(var(--k-menthe-survol-rgb)) !important; }
 @keyframes alx-vague { 0%, 100% { transform: translateY(0); opacity: .45; } 50% { transform: translateY(-5px); opacity: 1; } }
 @keyframes alx-entree { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @keyframes alx-pouls { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
@@ -478,17 +525,21 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .alx-pouls { animation: alx-pouls 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .alx-vague, .alx-entree, .alx-pouls { animation: none; } }
 
+/* L'accueil de l'atelier ALX : un dégradé de surface en sombre, du blanc en clair. */
+.alx-hero { background: linear-gradient(155deg, rgb(var(--k-surface-pleine-rgb)) 0%, rgb(var(--k-fond-halo-rgb)) 48%, rgb(var(--k-surface-pleine-rgb)) 100%); }
+:root[data-theme="clair"] .alx-hero { background: rgb(var(--k-surface-pleine-rgb)); }
+
 /* Une info-bulle d'ALX : le texte est dans data-bulle, elle s'ouvre au survol. */
 .alx-bulle { position: relative; }
 .alx-bulle::after { content: attr(data-bulle); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
   width: max-content; max-width: 300px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--k-bord); background: rgb(var(--k-surface-pleine-rgb));
-  color: #C3CBC7; font: 12.5px/1.5 Figtree, "Instrument Sans", sans-serif; text-align: left; white-space: normal; text-transform: none; letter-spacing: 0;
+  color: rgb(var(--k-craie-rgb)); font: 12.5px/1.5 Figtree, "Instrument Sans", sans-serif; text-align: left; white-space: normal; text-transform: none; letter-spacing: 0;
   box-shadow: 0 14px 34px rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 30; }
 .alx-bulle:hover::after { opacity: 1; }
 
 /* Le bouton qui rédige : un reflet qui glisse pendant qu'ALX écrit. */
 @keyframes alx-reflet { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-.alx button.alx-principal.alx-redige { background-image: linear-gradient(110deg, #96c0b8 0%, #96c0b8 35%, #d7ece7 50%, #96c0b8 65%, #96c0b8 100%) !important; background-size: 200% 100%; animation: alx-reflet 1.6s linear infinite; opacity: 1 !important; }
+.alx button.alx-principal.alx-redige { background-image: linear-gradient(110deg, rgb(var(--k-menthe-rgb)) 0%, rgb(var(--k-menthe-rgb)) 35%, rgb(var(--k-menthe-clair-rgb)) 50%, rgb(var(--k-menthe-rgb)) 65%, rgb(var(--k-menthe-rgb)) 100%) !important; background-size: 200% 100%; animation: alx-reflet 1.6s linear infinite; opacity: 1 !important; }
 @media (prefers-reduced-motion: reduce) { .alx button.alx-principal.alx-redige { animation: none; } }
 
 /* Le bord arc-en-ciel de la barre de chat pendant la dictée (BordureEcoute) :
@@ -506,7 +557,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    l'on écrit, et un anneau autour d'une barre de saisie est laid. */
 :where(button, a, [role="button"], [role="tab"], summary):focus-visible,
 :where(select, [tabindex]):focus-visible {
-  outline: 2px solid #96c0b8;
+  outline: 2px solid rgb(var(--k-menthe-rgb));
   outline-offset: 2px;
   border-radius: inherit;
 }
@@ -525,23 +576,29 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    qu'une section se coupe en deux entre deux pages. */
 @media print {
   :root {
-    --k-fond-rgb: 246 247 248;
-    --k-fond-halo-rgb: 236 238 240;
-    --k-surface: rgba(16, 20, 24, 0.035);
+    --k-fond-rgb: 255 255 255;
+    --k-fond-halo-rgb: 255 255 255;
+    --k-surface: rgba(16, 20, 24, 0.03);
     --k-surface-pleine-rgb: 255 255 255;
-    --k-relief: rgba(16, 20, 24, 0.06);
+    --k-relief: rgba(16, 20, 24, 0.05);
     --k-encre-rgb: 20 24 28;
     --k-craie-rgb: 58 65 63;
     --k-ardoise-rgb: 94 102 99;
-    --k-brume-rgb: 115 121 118;
-    --k-menthe-clair-rgb: 63 122 109;
-    --k-barre-rgb: 235 237 236;
-    --k-barre-relief-rgb: 223 226 225;
-    --k-trait: rgba(16, 20, 24, 0.09);
-    --k-bord: rgba(16, 20, 24, 0.13);
-    --k-bord-doux: rgba(16, 20, 24, 0.18);
-    --k-bord-vif: rgba(16, 20, 24, 0.28);
+    --k-brume-rgb: 112 118 115;
+    --k-menthe-rgb: 63 122 109;
+    --k-menthe-clair-rgb: 47 109 95;
     --k-menthe-texte-rgb: 47 109 95;
+    --k-sur-menthe-rgb: 255 255 255;
+    --k-barre-rgb: 244 245 246;
+    --k-barre-relief-rgb: 232 234 235;
+    --k-trait: rgba(16, 20, 24, 0.08);
+    --k-bord: rgba(16, 20, 24, 0.12);
+    --k-bord-doux: rgba(16, 20, 24, 0.16);
+    --k-bord-vif: rgba(16, 20, 24, 0.26);
+    --k-alerte-rgb: 196 62 52;
+    --k-ambre-rgb: 176 106 20;
+    --k-vert-rgb: 31 122 77;
+    --k-bleu-rgb: 45 96 178;
   }
   /* Tout se cache, le rapport se remontre : le tour classique, et le seul
      qui marche quel que soit l'arbre au-dessus (barre latérale, panneaux). */

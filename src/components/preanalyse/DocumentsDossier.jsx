@@ -177,7 +177,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
       {documents.length === 0 ? (
         <div className="mt-1 border-[1.5px] border-dashed border-bord-doux rounded-2xl px-6 py-11 flex flex-col items-center gap-2.5 text-center">
           <Upload className="w-6 h-6 text-brume" strokeWidth={1.5} />
-          <p className="m-0 text-[15px] font-medium text-[#b7bdc5]">Aucun document pour l'instant</p>
+          <p className="m-0 text-[15px] font-medium text-craie">Aucun document pour l'instant</p>
           <p className="m-0 text-[13.5px] text-brume max-w-[480px]">
             Bail, PV d'assemblée, diagnostics, comptes du locataire : importez ce que vous avez.
           </p>

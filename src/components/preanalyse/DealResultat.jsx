@@ -442,7 +442,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                 <React.Fragment key={id}>
                 <tr className="align-top">
                   <td className="px-4 py-3 border-b border-r border-trait">
-                    <button onClick={() => bascule(id)} className="text-left text-[13.5px] text-encre hover:text-[#ffffff]">{element}</button>
+                    <button onClick={() => bascule(id)} className="text-left text-[13.5px] text-encre hover:text-menthe">{element}</button>
                     {ouverts.has(id) && c?.critere && (
                       <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{c.critere}{c.groupe ? ` · ${c.groupe}` : ""}</p>
                     )}
@@ -563,7 +563,7 @@ export function afficherValeur(champ, valeur) {
 export function Bandeau({ type, items }) {
   const styles =
     type === "alerte"
-      ? "border-menthe/25 bg-menthe/10 text-amber-200/90"
+      ? "border-ambre/30 bg-ambre/10 text-ambre"
       : "border-encre/10 bg-encre/[0.03] text-ardoise";
   return (
     <div className={`rounded-md border px-4 py-3 text-sm ${styles}`}>

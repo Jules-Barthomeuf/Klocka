@@ -202,7 +202,7 @@ export function Halo({ className = "", teinte = "150,192,184" }) {
   return (
     <div
       aria-hidden
-      className={`pointer-events-none absolute inset-0 ${className}`}
+      className={`k-halo pointer-events-none absolute inset-0 ${className}`}
       style={{ background: `radial-gradient(60% 55% at 20% 0%, rgba(${teinte},0.14) 0%, rgba(${teinte},0.04) 40%, transparent 70%)` }}
     />
   );

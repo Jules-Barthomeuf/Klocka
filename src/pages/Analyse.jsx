@@ -245,35 +245,35 @@ export default function Analyse() {
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
-                    className="relative rounded-[18px] border border-trait bg-surface-pleine text-left shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux"
+                    className="relative overflow-hidden rounded-[20px] border border-trait bg-surface-pleine text-left shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux"
                   >
-                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full overflow-hidden rounded-[18px] text-left" style={{ background: "transparent" }}>
+                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full text-left" style={{ background: "transparent" }}>
                       {/* La progression : cinq segments en haut de la carte. */}
                       <span className="flex gap-[3px]" aria-hidden>
-                        {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[5px] flex-1 ${n <= (d.etape_max || 1) ? (d.statut === "abandonne" ? "bg-ardoise" : "bg-menthe") : "bg-encre/[0.13]"}`} />)}
+                        {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[5px] flex-1 ${n <= (d.etape_max || 1) ? (d.statut === "abandonne" ? "bg-ardoise" : "bg-menthe") : "bg-encre/[0.09]"}`} />)}
                       </span>
-                      <span className="block px-6 pb-4 pt-5">
-                        <span className="flex items-center gap-2 pr-8 text-[11.5px] font-semibold uppercase tracking-[.08em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                      <span className="block px-[26px] pb-5 pt-6">
+                        <span className="flex items-center gap-2 pr-8 text-[12.5px] font-semibold uppercase tracking-[.06em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
                           Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                           {d.statut === "abandonne" ? " · Abandonné" : ""}
                           {d.a_relancer && <Clock className="h-3.5 w-3.5 text-alerte" aria-label="À relancer" />}
                         </span>
-                        <span className="mt-3 line-clamp-2 block min-h-[2.6em] text-[17px] font-normal leading-[1.3] tracking-[-0.01em] text-encre">
+                        <span className="mt-5 line-clamp-2 block text-[17px] font-normal leading-[1.3] tracking-[-0.01em] text-encre">
                           {d.titre || d.nom_fichier || d.deal_id}
                         </span>
-                        <span className="mt-3 flex items-center gap-3 border-t border-trait pt-3.5">
+                        <span className="mt-5 flex items-center gap-3 border-t border-trait pt-4">
                           {(() => {
                             const qui = d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0];
                             const premier = String(d.responsables?.[0] || d.responsable || "").split("@")[0];
                             const initiales = premier.split(/[.\s_-]+/).filter(Boolean).slice(0, 2).map((m) => m[0]).join("").toUpperCase() || "?";
                             return (
                               <>
-                                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-menthe/[0.14] text-[10.5px] font-semibold text-menthe">{initiales}</span>
-                                <span className="min-w-0 flex-1 truncate text-[14px] text-craie">{qui}</span>
+                                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-menthe/[0.12] text-[10.5px] font-semibold text-menthe">{initiales}</span>
+                                <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">{qui}</span>
                               </>
                             );
                           })()}
-                          {d.maj_le && <span className="flex-none text-[13px] text-ardoise tabular-nums">{new Date(d.maj_le).toLocaleDateString("fr-FR")}</span>}
+                          {d.maj_le && <span className="flex-none text-[13.5px] text-ardoise tabular-nums">{new Date(d.maj_le).toLocaleDateString("fr-FR")}</span>}
                         </span>
                       </span>
                     </button>
@@ -281,13 +281,13 @@ export default function Analyse() {
                     {/* Renommer / abandonner */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
-                      className="absolute top-[26px] right-5 text-ardoise hover:text-encre transition-colors"
+                      className="absolute top-[30px] right-6 text-ardoise hover:text-encre transition-colors"
                       aria-label="Actions" title="Actions" style={{ background: "transparent" }}
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
                     {menuCarte === d.deal_id && (
-                      <div className="absolute top-12 right-5 z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+                      <div className="absolute top-14 right-5 z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
                         <button
                           onClick={() => {
                             setMenuCarte(null);

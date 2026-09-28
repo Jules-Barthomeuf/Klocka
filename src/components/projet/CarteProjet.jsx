@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowUpRight } from "lucide-react";
 
 // La carte d'un projet, la même en admin et chez le client (maquette du 28
 // septembre 2026) : la photo du local en haut, sinon une trame « photo du
@@ -15,14 +14,6 @@ export const statutLabels = {
   signe: "Signé",
 };
 
-// Le point de la pastille d'état : la teinte dit où en est le projet.
-const statutTeintes = {
-  prospect: "bg-brume",
-  analyse: "bg-menthe",
-  negociation: "bg-menthe",
-  financement: "bg-bleu",
-  signe: "bg-vert",
-};
 
 export const formatPrix = (val) => {
   if (val >= 1000000) return `${(val / 1000000).toFixed(2)}M €`;
@@ -95,42 +86,38 @@ export function TramePhoto({ mot = "photo du local" }) {
   );
 }
 
+// Les étapes d'un projet, dans l'ordre : la barre de la carte les montre.
+export const ETAPES_PROJET = ["prospect", "analyse", "negociation", "financement", "signe"];
+
 /**
  * @param {object} project
- * @param {() => void} onOuvrir      ce que fait un clic sur la carte
- * @param {string|null} avatar       la photo du conseiller, en haut à droite
- * @param {React.ReactNode} sousLigne une ligne de plus sous l'adresse
- * @param {React.ReactNode} actions   les boutons qui apparaissent au survol
- * @param {React.ReactNode} pied      ce qui se pose sous les chiffres, dans la carte
- * @param {boolean} fleche            la flèche d'ouverture, au bout des chiffres
+ * @param {() => void} onOuvrir        « Ouvrir le projet », et un clic sur la photo ou le titre
+ * @param {() => void} onEtapeSuivante « Étape suivante » (admin) ; absent, le bouton ne s'affiche pas
+ * @param {string|null} avatar         la photo du conseiller, en haut à droite
+ * @param {React.ReactNode} sousLigne  une ligne de plus sous l'adresse
+ * @param {React.ReactNode} actions    les boutons qui apparaissent au survol de la photo
+ * @param {React.ReactNode} pied       ce qui se pose sous les chiffres (clients possibles, rapport)
  */
-export default function CarteProjet({ project, onOuvrir, avatar = null, sousLigne = null, actions = null, pied = null, fleche = false }) {
+export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null, avatar = null, sousLigne = null, actions = null, pied = null }) {
   const { prixRevient, rendement, surface } = chiffresDuProjet(project);
   // Une photo dont l'hébergeur a disparu affichait son texte de remplacement
   // en travers de la carte : on retombe alors sur la trame.
   const [photoKo, setPhotoKo] = React.useState(false);
   const photo = photoKo ? null : project.photos?.[0];
+  const rang = Math.max(0, ETAPES_PROJET.indexOf(project.statut || "prospect"));
+  const derniere = rang >= ETAPES_PROJET.length - 1;
 
   return (
-    <div className="group overflow-hidden rounded-[16px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux">
-      <div className="relative h-[132px] cursor-pointer overflow-hidden max-md:h-[120px]" onClick={onOuvrir}>
+    <div className="group flex flex-col overflow-hidden rounded-[18px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux">
+      <div className="relative h-[175px] cursor-pointer overflow-hidden max-md:h-[150px]" onClick={onOuvrir}>
         {photo
           ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
           : <TramePhoto />}
-
-        <div className="absolute left-3 top-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-pleine px-2 py-0.5 text-[11px] text-encre shadow-[0_2px_10px_rgb(0_0_0/0.08)]">
-            <span className={`h-[7px] w-[7px] rounded-full ${statutTeintes[project.statut] || statutTeintes.prospect}`} />
-            {statutLabels[project.statut] || project.statut}
-          </span>
-        </div>
-
         {avatar && (
           <div className="absolute right-3 top-3">
             <img src={avatar} alt="Conseiller" className="h-7 w-7 rounded-full border-2 border-surface-pleine object-cover" />
           </div>
         )}
-
         {actions && (
           <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             {actions}
@@ -138,27 +125,41 @@ export default function CarteProjet({ project, onOuvrir, avatar = null, sousLign
         )}
       </div>
 
-      <div className="px-4 pb-3.5 pt-3.5">
+      <div className="flex-1 px-6 pb-5 pt-6">
         <button type="button" onClick={onOuvrir} className="block w-full text-left" style={{ background: "transparent" }}>
-          <h2 className="m-0 truncate text-[14.5px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{project.titre}</h2>
-          {project.adresse_complete && <p className="m-0 mt-0.5 truncate text-[12px] text-ardoise">{project.adresse_complete}</p>}
+          <h2 className="m-0 line-clamp-2 text-[17px] font-normal leading-[1.3] tracking-[-0.01em] text-encre">{project.titre}</h2>
+          {project.adresse_complete && <p className="m-0 mt-1 truncate text-[13px] text-ardoise">{project.adresse_complete}</p>}
           {sousLigne}
         </button>
 
-        <div className="mt-3 flex items-center border-t border-trait pt-3" style={{ fontVariantNumeric: "tabular-nums" }}>
-          <div className="grid flex-1 grid-cols-3 gap-2.5">
-            <Chiffre valeur={formatPrix(prixRevient)} label="Prix de revient" />
-            <Chiffre valeur={`${rendement.toFixed(2).replace(".", ",")} %`} label="Rendement" teinte="text-menthe" />
-            {surface > 0 ? <Chiffre valeur={`${Math.round(surface)} m²`} label="Surface" /> : <div />}
+        {/* Où en est le projet : cinq segments, le premier, l'étape en cours et le dernier nommés. */}
+        <div className="mt-5">
+          <div className="flex gap-1.5" aria-hidden>
+            {ETAPES_PROJET.map((e, i) => <span key={e} className={`h-[3px] flex-1 rounded-full ${i <= rang ? "bg-menthe" : "bg-encre/[0.10]"}`} />)}
           </div>
-          {fleche && (
-            <button type="button" onClick={onOuvrir} aria-label="Ouvrir" className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-bord transition-colors hover:border-menthe" style={{ background: "transparent" }}>
-              <ArrowUpRight className="h-4 w-4 text-ardoise transition-colors group-hover:text-menthe" />
-            </button>
-          )}
+          <div className="mt-2 flex items-baseline justify-between gap-2 text-[12px]">
+            <span className={rang === 0 ? "text-menthe" : "text-ardoise"}>{statutLabels.prospect}</span>
+            {rang > 0 && !derniere && <span className="text-menthe">{statutLabels[ETAPES_PROJET[rang]]}</span>}
+            <span className={derniere ? "text-menthe" : "text-ardoise"}>{statutLabels.signe}</span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2.5 border-t border-trait pt-4" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <Chiffre valeur={formatPrix(prixRevient)} label="Prix de revient" />
+          <Chiffre valeur={`${rendement.toFixed(2).replace(".", ",")} %`} label="Rendement" teinte="text-menthe" />
+          {surface > 0 ? <Chiffre valeur={`${Math.round(surface)} m²`} label="Surface" /> : <div />}
         </div>
         {pied}
       </div>
+
+      {onOuvrir && (
+        <div className="flex items-center gap-2.5 border-t border-trait px-6 py-4">
+          <button type="button" onClick={onOuvrir} className="flex-1 rounded-full bg-encre px-4 py-2 text-[13.5px] text-fond transition-opacity hover:opacity-90">Ouvrir le projet</button>
+          {onEtapeSuivante && !derniere && (
+            <button type="button" onClick={onEtapeSuivante} title={`Passer en « ${statutLabels[ETAPES_PROJET[rang + 1]]} »`} className="rounded-full border border-bord px-4 py-2 text-[13.5px] text-encre transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>Étape suivante</button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

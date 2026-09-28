@@ -16,7 +16,6 @@ export default function ClientProjectCard2({ project }) {
       project={project}
       onOuvrir={() => navigate(`/ProjetDetail?id=${project.id}`)}
       avatar={CONSEILLER}
-      fleche
     />
   );
 }

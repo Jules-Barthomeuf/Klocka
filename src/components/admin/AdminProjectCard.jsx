@@ -2,7 +2,9 @@ import React from "react";
 import { Pencil, Copy, Trash2, Eye, Archive, ArchiveRestore, FileSearch, Calculator, Share2, Check } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { toast } from "@/components/ui/avis";
-import CarteProjet from "@/components/projet/CarteProjet";
+import CarteProjet, { ETAPES_PROJET, statutLabels } from "@/components/projet/CarteProjet";
+import { useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 import ShadowReportDialog from "./ShadowReport";
 
 // La carte d'un projet côté admin : la carte commune, plus les gestes du
@@ -20,6 +22,20 @@ const avatarDe = (email) => (email ? ADMIN_AVATARS[email.toLowerCase()] || null 
 
 export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelete, onArchive, onShadowWithNav, shadowRecord, complement = null }) {
   const [reportOpen, setReportOpen] = React.useState(false);
+  const queryClient = useQueryClient();
+  // « Étape suivante » : le projet passe au statut d'après, tout de suite.
+  const etapeSuivante = async () => {
+    const i = ETAPES_PROJET.indexOf(project.statut || "prospect");
+    const suivant = ETAPES_PROJET[i + 1];
+    if (!suivant) return;
+    try {
+      await base44.entities.Project.update(project.id, { statut: suivant });
+      queryClient.invalidateQueries({ queryKey: ["all-projects"] });
+      toast.success(`${project.titre} passe en « ${statutLabels[suivant]} »`);
+    } catch (e) {
+      toast.error(e?.message || "Changement d'étape impossible");
+    }
+  };
   const [copied, setCopied] = React.useState(false);
 
   const publicUrl = `${window.location.origin}/ProjetPublic?id=${project.id}`;
@@ -95,6 +111,7 @@ export default function AdminProjectCard({ project, onEdit, onDuplicate, onDelet
     <CarteProjet
       project={project}
       onOuvrir={() => onEdit(project)}
+      onEtapeSuivante={etapeSuivante}
       avatar={avatarDe(project.admin_principal)}
       sousLigne={project.client_email ? <p className="alx-mont mt-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">{project.client_email.split("@")[0]}</p> : null}
       actions={actions}

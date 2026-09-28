@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronUp, Loader2, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // Les clients Monday qui correspondent à un projet, sous ses chiffres : le
 // nombre en vert, puis chaque nom avec son budget et son statut, et pourquoi
@@ -26,32 +26,31 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
   if (!clients?.length) return <Mention>Aucun client Monday ne correspond au prix et à la zone de ce projet.</Mention>;
 
   const visibles = ouvert ? clients : clients.slice(0, 2);
+  const initiales = (nom) => String(nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]).join("").toUpperCase();
 
   return (
-    <div className="mt-3 border-t border-trait pt-3">
-      <button type="button" onClick={() => setOuvert((o) => !o)} className="flex w-full items-center gap-2 text-left" style={{ background: "transparent" }}>
-        <Users className="h-[15px] w-[15px] flex-shrink-0 text-menthe" />
-        <span className="flex-1 text-[12.5px] text-menthe">
-          {clients.length} client{clients.length > 1 ? "s" : ""} possible{clients.length > 1 ? "s" : ""}
-        </span>
-        {clients.length > 2 && <ChevronUp className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "" : "rotate-180"}`} />}
-      </button>
-
-      <div className="mt-2 flex flex-col gap-2">
+    <div className="mt-4 border-t border-trait pt-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13.5px] text-encre">Clients possibles</span>
+        <span className="text-[12.5px] text-ardoise">{clients.length} client{clients.length > 1 ? "s" : ""}</span>
+      </div>
+      <div className="mt-3 flex flex-col gap-3.5">
         {visibles.map((c) => (
-          <div key={c.nom}>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-[12.5px] text-encre">{c.nom}</span>
-              <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] text-ardoise">{[somme(c.budget), c.statut].filter(Boolean).join(" · ")}</span>
+          <div key={c.nom} className="flex gap-3">
+            <span className="mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-full bg-menthe/[0.12] text-[11px] font-semibold text-menthe">{initiales(c.nom)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="truncate text-[13.5px] text-encre">{c.nom}</span>
+                <span className="flex-shrink-0 whitespace-nowrap text-[12.5px] text-ardoise">{[somme(c.budget), c.statut].filter(Boolean).join(" · ")}</span>
+              </div>
+              {c.raisons?.length > 0 && <p className="m-0 mt-0.5 text-[12px] leading-[1.45] text-brume">{c.raisons.join(" · ")}</p>}
             </div>
-            <p className="m-0 mt-0.5 text-[11.5px] leading-[1.45] text-ardoise">{c.raisons.join(" · ")}</p>
           </div>
         ))}
       </div>
-
-      {!ouvert && clients.length > 2 && (
-        <button type="button" onClick={() => setOuvert(true)} className="mt-2 text-[12.5px] text-brume transition-colors hover:text-menthe" style={{ background: "transparent" }}>
-          et {clients.length - 2} autre{clients.length - 2 > 1 ? "s" : ""}
+      {clients.length > 2 && (
+        <button type="button" onClick={() => setOuvert((o) => !o)} className="mt-3 text-[12.5px] text-ardoise transition-colors hover:text-menthe" style={{ background: "transparent" }}>
+          {ouvert ? "Moins" : `et ${clients.length - 2} autre${clients.length - 2 > 1 ? "s" : ""}`}
         </button>
       )}
     </div>

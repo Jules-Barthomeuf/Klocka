@@ -661,11 +661,11 @@ function OngletGrille({ onAppeler }) {
                 const pris = a.verrou && a.verrou.par !== undefined;
                 return (
                   <tr key={a.id} className={`hover:bg-encre/[0.02] ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
-                    <td className="sticky left-0 z-10 border-b border-r border-relief px-4 py-2.5 align-top backdrop-blur-xl">
+                    <td className="sticky left-0 z-10 border-b border-r border-relief px-4 py-2.5 align-middle backdrop-blur-xl">
                       <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate text-left text-[14px] font-semibold text-encre hover:text-menthe" style={{ background: "transparent" }} title={[a.agence && a.agence !== a.nom ? a.agence : null, a.onglet].filter(Boolean).join(" · ") || undefined}>{a.nom}</button>
                     </td>
                     {COLONNES.map((c) => (
-                      <td key={c.cle} className="border-b border-r border-relief px-3 py-2.5 align-top" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
+                      <td key={c.cle} className="border-b border-r border-relief px-3 py-2.5 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
                         {c.appel ? (pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille>
                           : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[12.5px] text-bord-vif">pas de contact</span>)
                           : <Cellule agent={a} col={c} equipe={data?.equipe || []} onEnregistrer={(champs) => modifier(a, champs)} />}

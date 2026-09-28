@@ -33,7 +33,7 @@ import RechercheRapide from "@/components/RechercheRapide";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ordonner } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, repartir } from "@/lib/menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
@@ -366,6 +366,7 @@ function LayoutContent({ children, currentPageName }) {
     AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
     AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
     AdminPortail: { to: createPageUrl("AdminPortail"), icon: UserPlus, actif: isActivePage("AdminPortail") },
+    Personnalisation: { to: createPageUrl("Personnalisation"), icon: Palette, actif: isActivePage("Personnalisation") },
     ImportProjets: { to: createPageUrl("ImportProjets"), icon: Upload, actif: isActivePage("ImportProjets") },
     MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
     Ressources: { to: createPageUrl("Ressources"), icon: BookOpen, actif: isActivePage("Ressources") },
@@ -377,8 +378,13 @@ function LayoutContent({ children, currentPageName }) {
   // elle devient un rail d'icônes. Sur mobile, la même chose dans un tiroir.
   const sidebarContent = (isMobile = false) => {
     const replie = sidebarCollapsed && !isMobile;
-    const entrees = ordonner(showClientView ? ENTREES_CLIENT : ENTREES_ADMIN, prefs.menu_ordre, prefs.menu_masques);
-    const autres = showClientView ? [] : ordonner(ENTREES_AUTRE, prefs.menu_ordre, prefs.menu_masques);
+    // Le menu principal et « Autre », tels que la personne les a rangés dans
+    // Personnalisation (glisser-déposer d'un groupe à l'autre).
+    const { principal: entrees, autre: autres } = repartir(
+      showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
+      showClientView ? [] : ENTREES_AUTRE,
+      { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },
+    );
     const initiale = (user?.full_name || user?.email || "U").charAt(0).toUpperCase();
     const nomCourt = (() => {
       const mots = String(user?.full_name || "").trim().split(/\s+/).filter(Boolean);
@@ -480,7 +486,7 @@ function LayoutContent({ children, currentPageName }) {
           <div className="flex flex-col gap-0.5">
             {entrees.map((e) => <Lien key={e.cle} e={e} />)}
           </div>
-          {isAdmin && !showClientView && (
+          {(autres.length > 0 || (isAdmin && !showClientView && AFFICHER_DOUBLE_CHECK)) && (
             <div className="mt-4">
               <button
                 type="button"
@@ -496,15 +502,9 @@ function LayoutContent({ children, currentPageName }) {
               {autreOpen && (
                 <div className="mt-0.5 flex flex-col gap-0.5">
                   {autres.map((e) => <Lien key={e.cle} e={e} />)}
-                  {AFFICHER_DOUBLE_CHECK && <Lien e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
-                  <Lien e={{ cle: "Personnalisation", label: "Personnalisation" }} to={createPageUrl("Personnalisation")} icon={Palette} actif={isActivePage("Personnalisation")} />
+                  {AFFICHER_DOUBLE_CHECK && isAdmin && !showClientView && <Lien e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
                 </div>
               )}
-            </div>
-          )}
-          {showClientView && (
-            <div className="mt-4 flex flex-col gap-0.5">
-              <Lien e={{ cle: "Personnalisation", label: "Personnalisation" }} to={createPageUrl("Personnalisation")} icon={Palette} actif={isActivePage("Personnalisation")} />
             </div>
           )}
         </div>

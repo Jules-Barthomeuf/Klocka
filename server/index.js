@@ -248,7 +248,7 @@ app.post('/api/auth/updateMe', wrap((req, res) => {
 // Les préférences d'affichage d'un compte : ce que règle la page
 // Personnalisation (thème, accent, police, menu...). Rien de secret, rien de
 // protégé : on ne garde que les clés connues, à plat, bornées en taille.
-const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'assistant']);
+const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'menu_autre', 'assistant']);
 app.post('/api/moi/preferences', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });

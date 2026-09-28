@@ -14,6 +14,7 @@ export const ENTREES_ADMIN = [
   { cle: "AdminSuggestions", label: "Feedback" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "AdminClients", label: "Clients" },
+  { cle: "Personnalisation", label: "Personnalisation" },
 ];
 
 export const ENTREES_AUTRE = [
@@ -29,6 +30,7 @@ export const ENTREES_CLIENT = [
   { cle: "MesProjets", label: "Mes projets" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "Ressources", label: "Ressources" },
+  { cle: "Personnalisation", label: "Personnalisation" },
 ];
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
@@ -49,3 +51,27 @@ export function ordonner(entrees, ordre = [], masques = []) {
   const place = (e) => (rang.has(e.cle) ? rang.get(e.cle) : 1000 + entrees.indexOf(e));
   return entrees.filter((e) => !masques.includes(e.cle)).sort((a, b) => place(a) - place(b));
 }
+
+/**
+ * Pure : le menu en deux groupes, le principal et « Autre ». Chaque entrée
+ * part de son groupe d'origine ; `menuAutre` (les clés rangées dans Autre par
+ * la personne) l'emporte dès qu'il existe. Une entrée apparue depuis (absente
+ * de l'ordre enregistré) garde son groupe d'origine.
+ *
+ * @returns {{principal: Array, autre: Array}}
+ */
+export function repartir(principales, autres, { ordre = [], masques = [], menuAutre = null } = {}) {
+  const connues = new Set(ordre);
+  const toutes = [
+    ...principales.map((e) => ({ ...e, origine: "principal" })),
+    ...autres.map((e) => ({ ...e, origine: "autre" })),
+  ];
+  const dansAutre = (e) => (Array.isArray(menuAutre) && connues.has(e.cle) ? menuAutre.includes(e.cle) : e.origine === "autre");
+  return {
+    principal: ordonner(toutes.filter((e) => !dansAutre(e)), ordre, masques),
+    autre: ordonner(toutes.filter(dansAutre), ordre, masques),
+  };
+}
+
+/** La page qu'on ne peut pas masquer : sans elle, plus moyen de revenir en arrière. */
+export const TOUJOURS_VISIBLE = "Personnalisation";

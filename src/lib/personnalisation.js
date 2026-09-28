@@ -34,6 +34,7 @@ export const DEFAUT = Object.freeze({
   barre: "depliee", // depliee | repliee (un rail d'icônes)
   menu_masques: [],
   menu_ordre: [],
+  menu_autre: null, // les clés rangées dans « Autre » ; null : les groupes d'origine
   assistant: "droite", // droite | gauche | masquee
 });
 
@@ -72,6 +73,8 @@ export function normaliser(brut) {
   p.accueil = typeof p.accueil === "string" && /^[A-Za-z]{2,40}$/.test(p.accueil) ? p.accueil : DEFAUT.accueil;
   p.menu_masques = Array.isArray(p.menu_masques) ? p.menu_masques.map(String).slice(0, 40) : [];
   p.menu_ordre = Array.isArray(p.menu_ordre) ? p.menu_ordre.map(String).slice(0, 40) : [];
+  p.menu_autre = Array.isArray(p.menu_autre) ? p.menu_autre.map(String).slice(0, 40) : null;
+  p.menu_masques = p.menu_masques.filter((c) => c !== "Personnalisation");
   return p;
 }
 

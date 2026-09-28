@@ -1,9 +1,9 @@
 import React from "react";
-import { ArrowDown, ArrowUp, Check, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Check, Eye, EyeOff, GripVertical, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, POLICES, accentHex, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, ordonner } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -67,41 +67,72 @@ function Accents({ valeur, theme, onChoisir }) {
   });
 }
 
-/** Les entrées d'un groupe du menu : visibles ou non, et dans quel ordre. */
-function Entrees({ groupe, titre, prefs, changer, toutes }) {
-  const ordre = ordonner(groupe, prefs.menu_ordre, []);
-  const bouger = (i, sens) => {
-    const j = i + sens;
-    if (j < 0 || j >= ordre.length) return;
-    const suite = [...ordre];
-    [suite[i], suite[j]] = [suite[j], suite[i]];
-    // L'ordre enregistré porte toutes les entrées, groupe par groupe : celui
-    // qu'on bouge remplace le sien, les autres groupes gardent le leur.
-    const autres = toutes.filter((g) => g !== groupe).flatMap((g) => ordonner(g, prefs.menu_ordre, []).map((e) => e.cle));
-    changer({ menu_ordre: [...autres.filter((c) => toutes.indexOf(groupe) > toutes.findIndex((g) => g.some((e) => e.cle === c))), ...suite.map((e) => e.cle), ...autres.filter((c) => toutes.indexOf(groupe) < toutes.findIndex((g) => g.some((e) => e.cle === c)))] });
+/**
+ * Le menu en deux listes, le principal et « Autre ». On attrape une entrée
+ * et on la pose où l'on veut, dans la même liste ou dans l'autre ; toutes
+ * peuvent aller d'un côté comme de l'autre. L'œil la masque (sauf
+ * Personnalisation, sans quoi plus moyen de revenir ici).
+ */
+function EditeurMenu({ principales, autres, prefs, changer }) {
+  const { principal, autre } = repartir(principales, autres, { ordre: prefs.menu_ordre, masques: [], menuAutre: prefs.menu_autre });
+  const [tenue, setTenue] = React.useState(null); // la clé qu'on déplace
+  const [cible, setCible] = React.useState(null); // { groupe, avant } : où elle tomberait
+
+  const poser = (groupe, avant) => {
+    if (!tenue) return;
+    const listes = { principal: principal.map((e) => e.cle), autre: autre.map((e) => e.cle) };
+    for (const g of Object.keys(listes)) listes[g] = listes[g].filter((c) => c !== tenue);
+    const dest = listes[groupe];
+    const at = avant ? dest.indexOf(avant) : -1;
+    if (at < 0) dest.push(tenue); else dest.splice(at, 0, tenue);
+    changer({ menu_ordre: [...listes.principal, ...listes.autre], menu_autre: listes.autre });
+    setTenue(null); setCible(null);
   };
   const basculer = (cle) => {
     const masques = prefs.menu_masques.includes(cle) ? prefs.menu_masques.filter((c) => c !== cle) : [...prefs.menu_masques, cle];
     changer({ menu_masques: masques });
   };
-  return (
-    <div className="w-full">
-      {titre && <p className={`${etiq} mb-2`}>{titre}</p>}
-      <ul className="m-0 flex list-none flex-col gap-1 p-0">
-        {ordre.map((e, i) => {
-          const masquee = prefs.menu_masques.includes(e.cle);
-          return (
-            <li key={e.cle} className={`flex items-center gap-2 rounded-[10px] border border-trait px-3 py-1.5 ${masquee ? "opacity-60" : ""}`}>
+
+  // Une fonction et non un composant : un composant défini ici serait remonté
+  // à chaque survol, et l'entrée qu'on tient disparaîtrait en plein glisser.
+  const liste = (groupe, titre, entrees) => (
+    <div
+      className={`flex min-h-[120px] flex-col gap-1.5 rounded-[14px] border p-2 transition-colors ${cible?.groupe === groupe ? "border-menthe/60 bg-menthe/[0.05]" : "border-trait"}`}
+      onDragOver={(ev) => { ev.preventDefault(); if (cible?.groupe !== groupe || cible?.avant) setCible({ groupe, avant: null }); }}
+      onDrop={(ev) => { ev.preventDefault(); poser(groupe, null); }}
+    >
+      <p className="m-0 px-2 pt-1 pb-1 text-[13px] text-ardoise">{titre}</p>
+      {entrees.map((e) => {
+        const masquee = prefs.menu_masques.includes(e.cle);
+        const fixe = e.cle === TOUJOURS_VISIBLE;
+        return (
+          <div
+            key={e.cle}
+            draggable
+            onDragStart={(ev) => { setTenue(e.cle); ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/plain", e.cle); }}
+            onDragEnd={() => { setTenue(null); setCible(null); }}
+            onDragOver={(ev) => { ev.preventDefault(); ev.stopPropagation(); if (cible?.avant !== e.cle) setCible({ groupe, avant: e.cle }); }}
+            onDrop={(ev) => { ev.preventDefault(); ev.stopPropagation(); poser(groupe, e.cle); }}
+            className={`flex cursor-grab items-center gap-2 rounded-[10px] border bg-surface-pleine px-2.5 py-1.5 active:cursor-grabbing ${tenue === e.cle ? "opacity-40" : ""} ${cible?.avant === e.cle && tenue !== e.cle ? "border-menthe" : "border-trait"} ${masquee ? "opacity-60" : ""}`}
+          >
+            <GripVertical className="h-4 w-4 flex-none text-brume" />
+            <span className={`flex-1 text-[13.5px] ${masquee ? "text-brume line-through" : "text-encre"}`}>{e.label}</span>
+            {!fixe && (
               <button type="button" onClick={() => basculer(e.cle)} aria-label={masquee ? `Montrer ${e.label}` : `Masquer ${e.label}`} title={masquee ? "Masquée : cliquer pour la montrer" : "Visible : cliquer pour la masquer"} className="grid h-7 w-7 place-items-center rounded-full text-craie hover:text-encre" style={{ background: "transparent" }}>
                 {masquee ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
-              <span className={`flex-1 text-[13.5px] ${masquee ? "text-brume line-through" : "text-encre"}`}>{e.label}</span>
-              <button type="button" onClick={() => bouger(i, -1)} disabled={i === 0} aria-label={`Monter ${e.label}`} className="grid h-7 w-7 place-items-center rounded-full text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><ArrowUp className="h-4 w-4" /></button>
-              <button type="button" onClick={() => bouger(i, 1)} disabled={i === ordre.length - 1} aria-label={`Descendre ${e.label}`} className="grid h-7 w-7 place-items-center rounded-full text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><ArrowDown className="h-4 w-4" /></button>
-            </li>
-          );
-        })}
-      </ul>
+            )}
+          </div>
+        );
+      })}
+      {!entrees.length && <p className="m-0 px-2 py-3 text-[12.5px] text-brume">Déposez une entrée ici.</p>}
+    </div>
+  );
+
+  return (
+    <div className="grid w-full gap-3 sm:grid-cols-2">
+      {liste("principal", "Menu principal", principal)}
+      {liste("autre", "Autre", autre)}
     </div>
   );
 }
@@ -111,7 +142,6 @@ export default function Personnalisation() {
   const { prefs, changer, reinitialiser, etat, connecte } = usePersonnalisation();
   const admin = user?.role === "admin";
   const theme = themeEffectif(prefs);
-  const groupes = admin ? [ENTREES_ADMIN, ENTREES_AUTRE] : [ENTREES_CLIENT];
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
   return (
@@ -173,10 +203,8 @@ export default function Personnalisation() {
         <Reglage titre="Barre latérale" note="Au démarrage. Le chevron la replie ou la déplie ensuite, comme avant.">
           <Pilules valeur={prefs.barre} options={OPTIONS.barre} onChoisir={(v) => changer({ barre: v })} />
         </Reglage>
-        <Reglage titre="Entrées du menu" note="L'œil masque une entrée, les flèches la déplacent. Personnalisation reste toujours dans « Autre ».">
-          <div className="flex w-full flex-col gap-4">
-            {groupes.map((g, i) => <Entrees key={i} groupe={g} titre={admin ? (i === 0 ? "Principal" : "Autre") : null} prefs={prefs} changer={changer} toutes={groupes} />)}
-          </div>
+        <Reglage titre="Entrées du menu" note="Glissez une entrée pour la déplacer, dans sa liste ou dans l'autre : tout peut aller dans le menu principal ou dans « Autre ». L'œil masque une entrée.">
+          <EditeurMenu principales={admin ? ENTREES_ADMIN : ENTREES_CLIENT} autres={admin ? ENTREES_AUTRE : []} prefs={prefs} changer={changer} />
         </Reglage>
         <Reglage titre="Bulle de l'assistant" note="La pilule qui ouvre AK sur les pages de travail.">
           <Pilules valeur={prefs.assistant} options={OPTIONS.assistant} onChoisir={(v) => changer({ assistant: v })} />

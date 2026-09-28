@@ -188,7 +188,7 @@ test('seul un ordre d\'envoi nu envoie : une adresse, « plutôt », une retouch
 
 test('le brouillon s\'affiche en entier, avec qui, depuis où, et comment le faire partir', () => {
   const t = afficher({ a: 'paul@agence.fr', de: 'sourcing@klocka.immo', objet: 'Retour sur votre proposition', corps: 'Bonjour,\n\nMerci.' }, 'Devred - Firminy');
-  assert.match(t, /^le mail pour Devred - Firminy :\nà : paul@agence\.fr\nde : sourcing@klocka\.immo\nobjet : Retour sur votre proposition\n\nBonjour,\n\nMerci\.\n\ndis-moi « envoie » et il part$/);
+  assert.match(t, /^le mail pour Devred - Firminy :\nà : paul@agence\.fr\nde : sourcing@klocka\.immo\nobjet : Retour sur votre proposition\n\nBonjour,\n\nMerci\.\n\ndis-moi « envoie » et il part, ou ce qu’il faut changer$/);
   assert.equal(suiteDeLEnvoi('refus'), ', le dossier passe en abandonné');
   assert.equal(suiteDeLEnvoi('relance'), '');
 });
@@ -224,7 +224,7 @@ test('mail_agent poste le brouillon tel quel, et « envoie » fait avancer le do
   assert.equal(postes.length, 1);
   assert.match(postes[0], /à : paul@agence\.fr/);
   assert.match(postes[0], /l'emplacement ne nous convient pas/);
-  assert.match(postes[0], /dis-moi « envoie » et il part$/);
+  assert.match(postes[0], /dis-moi « envoie » et il part, ou ce qu’il faut changer$/);
 
   const b = brouillonEnAttente('spaces/DM9');
   assert.ok(postes[0].includes(b.corps), 'ce qui partira est ce qui a été montré');

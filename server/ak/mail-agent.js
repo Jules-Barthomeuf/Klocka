@@ -258,7 +258,7 @@ Retouche demandée : ${consigne}`,
     response_json_schema: { type: 'object', properties: { objet: { type: 'string' }, corps: { type: 'string' }, fait: { type: 'string', description: 'ce qui a changé, en quelques mots' } }, required: ['objet', 'corps'] },
   });
   if (!r?.objet || !r?.corps) return { ok: false, error: 'Retouche impossible.' };
-  const { id, cree_le, ferme_le, etat, created_date, updated_date, created_by, ...garde } = b; // eslint-disable-line no-unused-vars
+  const garde = Object.fromEntries(Object.entries(b).filter(([k]) => !['id', 'cree_le', 'ferme_le', 'etat', 'created_date', 'updated_date', 'created_by'].includes(k)));
   const nouveau = garder(espace, pour, { ...garde, objet: r.objet, corps: r.corps });
   const deal = nouveau.deal_id ? Records.findBy('Deal', 'deal_id', nouveau.deal_id) : null;
   return { ok: true, brouillon: nouveau, fait: r.fait || null, texte: afficher(nouveau, deal?.nom || nouveau.destinataire_nom || nouveau.a) };

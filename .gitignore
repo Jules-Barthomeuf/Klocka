@@ -49,3 +49,6 @@ server/Klocka/
 ml/.venv/
 ml/data/
 ml/sortie/
+
+# Les reglages Claude Code propres a cette machine ; settings.json, lui, se partage.
+.claude/settings.local.json

@@ -109,31 +109,37 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-[18px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux">
-      <div className="relative h-[175px] cursor-pointer overflow-hidden max-md:h-[150px]" onClick={onOuvrir}>
+      {/* La photo porte le titre (maquette) : l'étape en pastille en haut, le
+          titre, l'adresse et le client en bas, en blanc sous un voile sombre.
+          k-sur-photo garde ces textes clairs en mode clair. */}
+      <div className="k-sur-photo relative h-[230px] cursor-pointer overflow-hidden max-md:h-[200px]" onClick={onOuvrir}>
         {photo
           ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
-          : <TramePhoto />}
+          : <TramePhoto mot="" />}
+        <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(to top, rgba(10,11,11,0.92) 0%, rgba(10,11,11,0.55) 38%, rgba(10,11,11,0.08) 70%, rgba(10,11,11,0.25) 100%)" }} />
+        <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/45 px-3.5 py-1 text-[11px] font-medium uppercase tracking-[.12em] text-white backdrop-blur-sm">
+          {statutLabels[project.statut] || "Prospect"}
+        </span>
         {avatar && (
           <div className="absolute right-3 top-3">
-            <img src={avatar} alt="Conseiller" className="h-7 w-7 rounded-full border-2 border-surface-pleine object-cover" />
+            <img src={avatar} alt="Conseiller" className="h-8 w-8 rounded-full border-2 border-white/80 object-cover" />
           </div>
         )}
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-4">
+          <h2 className="m-0 truncate text-[21px] font-normal leading-[1.2] tracking-[-0.01em] text-white">{project.titre}</h2>
+          {project.adresse_complete && <p className="m-0 mt-1 truncate text-[13.5px] text-white/60">{project.adresse_complete}</p>}
+          {sousLigne}
+        </div>
         {actions && (
-          <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="absolute inset-x-0 top-14 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             {actions}
           </div>
         )}
       </div>
 
-      <div className="flex-1 px-6 pb-5 pt-6">
-        <button type="button" onClick={onOuvrir} className="block w-full text-left" style={{ background: "transparent" }}>
-          <h2 className="m-0 line-clamp-2 text-[17px] font-normal leading-[1.3] tracking-[-0.01em] text-encre">{project.titre}</h2>
-          {project.adresse_complete && <p className="m-0 mt-1 truncate text-[13px] text-ardoise">{project.adresse_complete}</p>}
-          {sousLigne}
-        </button>
-
+      <div className="flex-1 px-6 pb-5 pt-5">
         {/* Où en est le projet : cinq segments, le premier, l'étape en cours et le dernier nommés. */}
-        <div className="mt-5">
+        <div>
           <div className="flex gap-1.5" aria-hidden>
             {ETAPES_PROJET.map((e, i) => <span key={e} className={`h-[3px] flex-1 rounded-full ${i <= rang ? "bg-menthe" : "bg-encre/[0.10]"}`} />)}
           </div>

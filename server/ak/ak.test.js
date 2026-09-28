@@ -536,3 +536,33 @@ test('le questionnaire en propositions : j\'aime ou j\'aime pas, des consignes p
   assert.match(preferencesDe('max.p@klocka.immo', []), /ses mails aux agents : courts/);
   assert.equal(preferencesDe('nora.l@klocka.immo', []), '', 'le profil de Max ne vaut que pour Max');
 });
+
+test('mail libre : la présentation Klocka dans la forme fixée par Jules', async () => {
+  const { mailPresentation, formuleDAppel } = await import('./mail-agent.js');
+  const m = mailPresentation({ nom: 'Jérôme Seviathan', genre: 'homme', bien: 'murs commerciaux occupés', signature: 'Jules Barthomeuf' });
+  assert.equal(m.objet, 'Klocka');
+  assert.match(m.corps, /^Bonjour Monsieur Seviathan,/);
+  assert.match(m.corps, /klocka\.immo/);
+  assert.match(m.corps, /mandat de recherche/);
+  assert.match(m.corps, /les murs commerciaux occupés/);
+  assert.match(m.corps, /fiche commerciale/);
+  assert.match(m.corps, /Jules Barthomeuf\nKlocka\nklocka\.immo$/);
+  assert.doesNotMatch(m.corps, /Klocka Immo/);
+  assert.equal(formuleDAppel('Sergic', null), 'Bonjour,');
+  assert.equal(formuleDAppel('Claire DUPONT-MARTIN', 'femme'), 'Bonjour Madame Dupont-Martin,');
+  assert.match(mailPresentation({}).corps, /recherchons activement des murs commerciaux/);
+});
+
+test('mail libre : « montre-le moi » et « tu l\'as mis où ? » redemandent le brouillon', async () => {
+  const { veutLeVoir } = await import('./mail-agent.js');
+  for (const t of ['Montre le moi ici', "tu l'as mis où ?", 'mais où ??? je ne le vois nulle part', 'je le vois pas', 'affiche-le']) assert.ok(veutLeVoir(t), t);
+  for (const t of ['objet Klocka pas klocka Immo mets le site', 'où en est le dossier glacier ?', 'envoie', 'Tu as pas modifié ce que je t\'ai dit']) assert.ok(!veutLeVoir(t), t);
+});
+
+test('mail libre : les deux outils existent et la consigne interdit le mail écrit à la main', () => {
+  const noms = OUTILS.map((o) => o.name);
+  assert.ok(noms.includes('mail_libre'));
+  assert.ok(noms.includes('retoucher_brouillon'));
+  assert.match(consigne(), /mail_libre, jamais un texte que tu écrirais toi-même/);
+  assert.match(consigne(), /tu ne parles jamais d'« aperçu »/);
+});

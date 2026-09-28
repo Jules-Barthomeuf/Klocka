@@ -360,7 +360,7 @@ async function traiter(message) {
  * message est traité ; sinon il suit le chemin normal.
  */
 async function trancher(message) {
-  const { estUnEnvoi, brouillonEnAttente, envoyerBrouillon, nouveauDestinataire, changerDestinataire, afficher } = await import('./mail-agent.js');
+  const { estUnEnvoi, brouillonEnAttente, envoyerBrouillon, nouveauDestinataire, changerDestinataire, afficher, montrerBrouillon, veutLeVoir } = await import('./mail-agent.js');
   const { repondreALaQuestion } = await import('./fiches.js');
   const { utilisateurPour, utilisateurAk } = await import('./agent.js');
   const texte = sansMention(message);
@@ -423,13 +423,18 @@ async function trancher(message) {
     await poster(message.espace, `${mention(message.auteur)} ${phrase}`, null, message.auteur);
     return true;
   }
+  // « montre-le moi », « tu l'as mis où ? » : le brouillon qui attend, en entier.
+  if (brouillon && veutLeVoir(texte)) {
+    await poster(message.espace, `${tete}le voilà, rien n'est parti :\n${montrerBrouillon(message.espace)}`, null, message.auteur);
+    return true;
+  }
   // « envoie-le à jules@… plutôt », « envoie-le moi » : le destinataire change,
   // le brouillon se remontre, et rien ne part avant un nouvel « envoie ».
   const autre = brouillon ? nouveauDestinataire(texte, { moi: user?.email }) : null;
   if (brouillon && autre) {
     const b = changerDestinataire(brouillon, autre);
-    const deal = Records.findBy('Deal', 'deal_id', b.deal_id);
-    await poster(message.espace, `${tete}destinataire changé, rien n'est parti :\n${afficher(b, deal?.nom)}`, null, message.auteur);
+    const deal = b.deal_id ? Records.findBy('Deal', 'deal_id', b.deal_id) : null;
+    await poster(message.espace, `${tete}destinataire changé, rien n'est parti :\n${afficher(b, deal?.nom || b.destinataire_nom)}`, null, message.auteur);
     return true;
   }
   const r = repondreALaQuestion({ ...message, texte }, { estUnOui, par: user?.email || null });

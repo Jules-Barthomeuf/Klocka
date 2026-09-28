@@ -316,6 +316,26 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'mail_libre',
+    description: "Un mail à quelqu'un qui n'a pas de dossier (« fais un mail à Jérôme Seviathan pour lui dire qui on est et demander la fiche », « écris à l'agent de Sergic »). objectif presentation : le mail de présentation de Klocka (klocka.immo, mandat de recherche, demande de la fiche commerciale), écrit par le code dans la forme fixée par l'équipe ; bien : ce qu'on cherche ou ce dont il a parlé (« murs commerciaux occupés »). objectif autre : consigne dit ce que le mail doit dire. Le brouillon est posté en entier juste après ta réponse. Rien ne part : la personne relit et répond « envoie ».",
+    input_schema: {
+      type: 'object',
+      properties: {
+        a: { type: 'string', description: "l'adresse mail du destinataire" },
+        nom: { type: 'string', description: 'prénom et nom du destinataire, si connus' },
+        objectif: { type: 'string', enum: ['presentation', 'autre'] },
+        bien: { type: 'string', description: "presentation : ce qu'on cherche ou ce qu'il propose, dans les mots de la personne" },
+        consigne: { type: 'string', description: 'autre : ce que le mail doit dire, dans les mots de la personne' },
+      },
+      required: ['a', 'objectif'],
+    },
+  },
+  {
+    name: 'retoucher_brouillon',
+    description: "Modifie le brouillon de mail qui attend dans le chat (mail libre, mail à l'agent d'un dossier) : « objet Klocka pas Klocka Immo », « mets le site », « dis qu'on a un mandat de recherche », « plus court », « vouvoie-le ». consigne : la retouche dans les mots de la personne, toutes les demandes du message ensemble. Le mail retouché est posté en entier juste après ta réponse. Rien ne part.",
+    input_schema: { type: 'object', properties: { consigne: { type: 'string' } }, required: ['consigne'] },
+  },
+  {
     name: 'appels_du_jour',
     description: "La liste d'appels de prospection du jour (« qui j'appelle aujourd'hui ? ») : les relances qui tombent, puis les agents qui publient régulièrement sur Equimmox dans les villes ciblées aujourd'hui, avec la raison et le numéro.",
     input_schema: { type: 'object', properties: {} },
@@ -430,6 +450,20 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     // Le brouillon part mot pour mot après la réponse : le modèle ne le recopie pas.
     apres(r.texte);
     return { ok: true, a: r.brouillon.a, de: r.brouillon.de, objet: r.brouillon.objet, poste_dans_le_chat: true };
+  }
+  if (name === 'mail_libre') {
+    const { redigerMailLibre } = await import('./mail-agent.js');
+    const r = await redigerMailLibre(input || {}, { user, espace: message?.espace || null, pour: message?.auteur || null });
+    if (!r.ok) return r;
+    apres(r.texte);
+    return { ok: true, a: r.brouillon.a, objet: r.brouillon.objet, poste_dans_le_chat: true };
+  }
+  if (name === 'retoucher_brouillon') {
+    const { retoucherBrouillon } = await import('./mail-agent.js');
+    const r = await retoucherBrouillon(message?.espace || null, input?.consigne, { pour: message?.auteur || null });
+    if (!r.ok) return r;
+    apres(r.texte);
+    return { ok: true, fait: r.fait, objet: r.brouillon.objet, poste_dans_le_chat: true };
   }
   if (name === 'analyser_fiche' && (input.texte_du_message || input.texte) && !input.chemin) {
     const texte = String(input.texte || message?.texte || '').trim();
@@ -784,6 +818,7 @@ RÈGLES :
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer K-Data sans demander : alors K-Zoning, K-Expertise et Estimation. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 4. Une tâche de fond (K-Data, préz) : dis que c'est parti, sans annoncer de résultat. Tu préviendras toi-même dans le chat quand ce sera fini.
 5. Un mail à l'agent d'un dossier (« fais un mail de feedback à l'agent, l'emplacement est nul », « refuse-le », « demande les docs », « prépare la relance pour l'agent de Dieppe ») : chercher_dossier si le dossier n'est pas celui dont on parle, puis mail_agent avec les raisons dans les mots de la personne. Le brouillon est posté en entier juste après ta réponse : ne le recopie pas, dis juste en une ligne que voilà le mail. Tu ne l'envoies jamais : c'est le « envoie » de la personne qui le fait partir. Un autre mail (à un client, sans dossier) : preparer_mail, et tu colles l'objet et le corps tels quels. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
+5ter-mail. Un mail à quelqu'un sans dossier (présentation, demande de fiche, un mot à un agent) : mail_libre, jamais un texte que tu écrirais toi-même dans ta réponse. Il te faut l'adresse : sans elle, demande-la. Une retouche demandée sur un mail qui attend (« objet Klocka », « mets le site », « dis qu'on a un mandat ») : retoucher_brouillon avec toute la retouche, dans ses mots. Dans les deux cas le mail est posté en entier par le code juste après ta réponse : tu dis en une ligne « voilà le mail » ou ce qui a changé, tu ne le recopies pas, tu ne parles jamais d'« aperçu » ni de « fenêtre de relecture », et tu ne dis jamais qu'un mail est prêt ou modifié si l'outil ne l'a pas fait dans CETTE réponse.
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash, sur le rendement GLOBAL (net moyen sur la durée du projet, celui de la fiche) contre le seuil de la grille : « ça tourne, 6,9 % de rendement global pour 6,5 % visés » ou « c'est dead, 4,8 % global et le bail finit dans 14 mois ». L'AEM de la première année se cite entre parenthèses, il ne tranche pas. Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
 5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.

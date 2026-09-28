@@ -153,6 +153,22 @@ button:focus-visible {
     --k-emplacement-2-rgb: 168 72 59;
 }
 
+/* --- La personnalisation (src/lib/personnalisation.js) -------------------
+   Ce que la page Personnalisation pose sur <html> : la forme des boutons, les
+   animations réduites, le halo éteint, la police (variable --k-police, lue par
+   body, Tailwind et ALX). L'accent, le fond et les surfaces passent par les
+   variables de couleur ci-dessus, posées en ligne sur <html>. */
+:root[data-boutons="arrondi"] { --k-rayon-bouton: 10px; }
+:root[data-boutons="carre"] { --k-rayon-bouton: 3px; }
+:root[data-boutons="arrondi"] :is(button, a).rounded-full,
+:root[data-boutons="carre"] :is(button, a).rounded-full { border-radius: var(--k-rayon-bouton); }
+:root[data-animations="reduites"] *,
+:root[data-animations="reduites"] *::before,
+:root[data-animations="reduites"] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+:root[data-halo="0"] .k-halo,
+:root[data-halo="0"] .accueil-halo-a,
+:root[data-halo="0"] .accueil-halo-b { display: none; }
+
 /* Une île sombre dans le clair : un titre posé sur une photo, sous un voile
    noir, reste blanc quel que soit le thème. La classe redonne aux enfants la
    palette sombre ; Tailwind lisant les variables, rien d'autre n'est à faire. */
@@ -183,7 +199,7 @@ button:focus-visible {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'Instrument Sans', Inter, system-ui, -apple-system, sans-serif;
+  font-family: var(--k-police, 'Instrument Sans'), Inter, system-ui, -apple-system, sans-serif;
   background: rgb(var(--k-fond-rgb));
   color: rgb(var(--k-encre-rgb));
   -webkit-font-smoothing: antialiased;
@@ -207,7 +223,7 @@ input[type=range] { accent-color: rgb(var(--k-menthe-rgb)); }
    boutons concernés disent maintenant menthe. */
 :where(button, a).rounded-md:not([class*="border-b"]):not([role="tab"]),
 :where(button, a).rounded-lg:not([class*="border-b"]):not([role="tab"]),
-:where(button, a)[class~="bg-menthe"]:not([class*="border-b"]):not([role="tab"]) { border-radius: 9999px; }
+:where(button, a)[class~="bg-menthe"]:not([class*="border-b"]):not([role="tab"]) { border-radius: var(--k-rayon-bouton, 9999px); }
 /* Les cases à cocher d'ALX (server/alx) : la couleur vient d'un style inline
    (seul moyen de battre la règle `button { background-color }` ci-dessus,
    qui n'est dans aucune @layer et prime donc sur toute classe Tailwind) ;
@@ -503,7 +519,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    entoure le chat. */
 /* ALX avait son noir à elle. Elle suit maintenant le thème comme le reste :
    ses accents menthe, eux, ne bougent pas — un accent se lit sur les deux fonds. */
-.alx { font-family: Figtree, "Instrument Sans", system-ui, sans-serif; color: rgb(var(--k-encre-rgb)); background: rgb(var(--k-fond-halo-rgb)); position: relative; }
+.alx { font-family: var(--k-police-alx, Figtree), "Instrument Sans", system-ui, sans-serif; color: rgb(var(--k-encre-rgb)); background: rgb(var(--k-fond-halo-rgb)); position: relative; }
 /* Sur les pages posées sur le halo, le fond vient de lui, pas de la classe. */
 .alx.sur-halo { background: transparent; }
 .alx > * { position: relative; z-index: 1; }

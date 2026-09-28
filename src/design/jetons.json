@@ -125,5 +125,86 @@
     "emplacement-1": "#3c5ac8",
     "emplacement-1bis": "#8f6420",
     "emplacement-2": "#a8483b"
+  },
+  "_personnalisation": [
+    "La page Personnalisation laisse choisir l'accent, le fond et des surfaces",
+    "opaques. Les teintes vivent ici, lues par src/lib/personnalisation.js qui",
+    "dérive la famille d'un accent (clair, survol, foncé, texte posé dessus)",
+    "pour le thème en cours. « sombre » est la teinte sur fond noir, « clair »",
+    "la même descendue d'un cran pour se lire sur du blanc."
+  ],
+  "accents": {
+    "menthe": {
+      "nom": "Menthe",
+      "sombre": "#96c0b8",
+      "clair": "#3f7a6d"
+    },
+    "sauge": {
+      "nom": "Sauge",
+      "sombre": "#a9c5a0",
+      "clair": "#4f7a45"
+    },
+    "bleu": {
+      "nom": "Bleu",
+      "sombre": "#8fb6e8",
+      "clair": "#2d60b2"
+    },
+    "pervenche": {
+      "nom": "Pervenche",
+      "sombre": "#a6abf2",
+      "clair": "#4b52c4"
+    },
+    "ambre": {
+      "nom": "Ambre",
+      "sombre": "#e0a45e",
+      "clair": "#a6641a"
+    },
+    "corail": {
+      "nom": "Corail",
+      "sombre": "#e8877a",
+      "clair": "#b8412f"
+    },
+    "violet": {
+      "nom": "Violet",
+      "sombre": "#c39be0",
+      "clair": "#7a3fb0"
+    },
+    "graphite": {
+      "nom": "Graphite",
+      "sombre": "#c7cdc9",
+      "clair": "#3a413f"
+    }
+  },
+  "fonds": {
+    "sombre": {
+      "noir": {
+        "fond": "#000000",
+        "halo": "#08090a"
+      },
+      "anthracite": {
+        "fond": "#141618",
+        "halo": "#1a1d20"
+      }
+    },
+    "clair": {
+      "blanc": {
+        "fond": "#ffffff",
+        "halo": "#ffffff"
+      },
+      "perle": {
+        "fond": "#f4f5f6",
+        "halo": "#eceef0"
+      }
+    }
+  },
+  "surfaces_pleines": {
+    "sombre": {
+      "surface": "#15181b",
+      "relief": "#1d2124"
+    },
+    "clair": {
+      "surface": "#f3f4f5",
+      "relief": "#e8eaeb"
+    }
   }
 }

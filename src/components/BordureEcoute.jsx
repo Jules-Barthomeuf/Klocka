@@ -17,18 +17,20 @@ const ARC_EN_CIEL =
   "linear-gradient(90deg, #ff5f6d, #ffae42, #ffe66d, #6ee7b7, #38bdf8, #a78bfa, #f472b6, #ff5f6d)";
 
 export default function BordureEcoute({ actif = false, epaisseur = 1.5, radius = "9999px", className = "", children }) {
-  // Le dégradé vit sur sa propre couche, sous le contenu, et n'apparaît qu'en
-  // écoute : le contenu (une barre de chat) est du verre, pas un aplat, et le
-  // laisserait voir en permanence s'il était peint sur le cadre lui-même.
+  // Le dégradé vit sur sa propre couche, sous le contenu, arrondie comme le
+  // cadre, et n'apparaît qu'en écoute. Pas d'overflow caché sur le cadre :
+  // les menus qui descendent des vignettes de la barre (les modes du
+  // dashboard, le répertoire du marché) en sortent, et un cadre qui les
+  // coupait les rendait invisibles, le clic tombant sur le voile derrière.
   return (
     <div
-      className={`relative overflow-hidden transition-[padding] duration-500 ease-out ${className}`}
+      className={`relative transition-[padding] duration-500 ease-out ${className}`}
       style={{ borderRadius: radius, padding: actif ? epaisseur : 0 }}
     >
       <div
         aria-hidden
-        className={`absolute inset-0 transition-opacity duration-500 motion-reduce:!animate-none ${actif ? "anneau-ecoute-glisse" : ""}`}
-        style={{ backgroundImage: ARC_EN_CIEL, opacity: actif ? 1 : 0 }}
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-500 motion-reduce:!animate-none ${actif ? "anneau-ecoute-glisse" : ""}`}
+        style={{ borderRadius: radius, backgroundImage: ARC_EN_CIEL, opacity: actif ? 1 : 0 }}
       />
       <div className="relative" style={{ borderRadius: radius }}>{children}</div>
     </div>

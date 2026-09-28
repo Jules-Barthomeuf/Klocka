@@ -28,9 +28,11 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette } from "lucide-react";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
-import { useTheme } from "@/lib/theme";
+import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
+import { CLAIR, themeEffectif } from "@/lib/personnalisation";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ordonner } from "@/lib/menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
@@ -349,10 +351,21 @@ function LayoutContent({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useUser();
+  // Ce que la personne a réglé dans Personnalisation : thème, halo, barre
+  // latérale, entrées du menu.
+  const { prefs, changer } = usePersonnalisation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // La barre latérale est ouverte à chaque chargement ; le chevron la replie
-  // le temps de la session, et rien ne s'en souvient.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // La barre latérale s'ouvre comme Personnalisation le dit ; le chevron la
+  // replie ou la déplie ensuite, le temps de la session.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => prefs.barre === "repliee");
+  useEffect(() => { setSidebarCollapsed(prefs.barre === "repliee"); }, [prefs.barre]);
+  // La largeur de la barre, dite à la page : la bulle de l'assistant posée à
+  // gauche (Personnalisation) se place à côté de la barre, pas dessus.
+  const largeurBarre = sidebarCollapsed ? "52px" : "172px";
+  useEffect(() => {
+    document.documentElement.style.setProperty("--k-barre-largeur", largeurBarre);
+    return () => document.documentElement.style.removeProperty("--k-barre-largeur");
+  }, [largeurBarre]);
   const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
@@ -395,12 +408,15 @@ function LayoutContent({ children, currentPageName }) {
   // garde les nappes menthe du plan de travail : deux halos l'un sur l'autre
   // ne font pas un fond.
   //
-  // En clair, pas de halo du tout : le fond est blanc, sans dégradé. Le thème
-  // vaut pour toute l'application ; la bascule est dans la barre latérale, et
-  // dans la barre du haut de K-Data.
-  const { clair, basculer } = useTheme();
+  // En clair, pas de halo du tout : le fond est blanc, sans dégradé. En
+  // sombre, Personnalisation peut l'éteindre. La bascule du thème est dans la
+  // barre latérale et dans la barre du haut de K-Data ; elle écrit la
+  // préférence, qui suit le compte.
+  const clair = themeEffectif(prefs) === CLAIR;
+  const basculer = () => changer({ mode: clair ? "sombre" : "clair" });
   const fondHalo = !hideNavbar
     && !clair
+    && prefs.halo
     && !(currentPageName === "Dashboard" && !showClientView)
     && !(currentPageName === "ALXAtelier" && !["carte", "ville"].some((c) => new URLSearchParams(location.search).has(c)));
 
@@ -428,6 +444,29 @@ function LayoutContent({ children, currentPageName }) {
   const enCadre = typeof window !== "undefined" && window.self !== window.top;
   const modoKData = enKData && isAdmin && !hideNavbar;
 
+
+  // Ce que chaque entrée du menu dessine : son lien, son icône, sa pastille.
+  // La liste et son ordre d'origine vivent dans src/lib/menu.js ; l'ordre
+  // et les masques choisis dans Personnalisation s'appliquent au rendu.
+  const DETAILS = {
+    Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte/20 text-alerte" },
+    AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
+    Analyse: { to: "/Analyse", icon: Search, actif: isActivePage("Analyse") },
+    FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
+    Prospection: { to: createPageUrl("Prospection"), icon: PhoneCall, actif: isActivePage("Prospection") },
+    ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-alerte/20 text-alerte" },
+    // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
+    Monitoring: { to: "/Monitoring", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
+    AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
+    SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
+    AdminClients: { to: createPageUrl("AdminClients"), icon: Users, actif: isActivePage("AdminClients") },
+    AdminPresentations: { to: "/AdminPresentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
+    AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
+    AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
+    AdminPortail: { to: createPageUrl("AdminPortail"), icon: UserPlus, actif: isActivePage("AdminPortail") },
+    MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
+    Ressources: { to: createPageUrl("Ressources"), icon: BookOpen, actif: isActivePage("Ressources") },
+  };
 
   const sidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full">
@@ -485,47 +524,43 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Navigation */}
       <div ref={isMobile ? pisteMobile : pisteBureau} className="relative flex-1 overflow-y-auto px-2 pt-4 pb-4 space-y-1">
-        {showClientView ? (
-          <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />
-            <NavItem to={createPageUrl("MesProjets")} icon={Building2} label="Mes projets" isActive={isActivePage("MesProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("Ressources")} icon={BookOpen} label="Ressources" isActive={isActivePage("Ressources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-
-          </>
-        ) : isAdmin && !previewClientMode ? (
-          <>
-            <NavItem to={createPageUrl("Dashboard")} icon={LayoutDashboard} label="Dashboard" isActive={isActivePage("Dashboard")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={enRetard || null} badgeColor="bg-alerte/20 text-alerte" />
-            <NavItem to={createPageUrl("AdminProjets")} icon={Building2} label="Projets" isActive={isActivePage("AdminProjets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to="/Analyse" icon={Search} label="Dossiers" isActive={isActivePage("Analyse")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("FichesCommerciales")} icon={Inbox} label="Fiches" isActive={isActivePage("FichesCommerciales")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("Prospection")} icon={PhoneCall} label="Prospection" isActive={isActivePage("Prospection")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to="/ALX" icon={Compass} label="ALX" isActive={isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={alxAFaire || null} badgeColor="bg-alerte/20 text-alerte" />
-            {/* Suivi : l'usage de la plateforme et ce que coûte chaque geste,
-                deux onglets d'une même page. */}
-            <NavItem to="/Monitoring" icon={Activity} label="Suivi" isActive={isActivePage("Monitoring") || isActivePage("CoutsIA")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <FeedbackSurvol>
-              <NavItem to={createPageUrl("AdminSuggestions")} icon={Lightbulb} label="Feedback" isActive={isActivePage("AdminSuggestions")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            </FeedbackSurvol>
-            <NavItem to={createPageUrl("SimulateurRentabilite")} icon={Calculator} label="Simulateur" isActive={isActivePage("SimulateurRentabilite")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-            <NavItem to={createPageUrl("AdminClients")} icon={Users} label="Clients" isActive={isActivePage("AdminClients")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-
-            <div className="pt-3">
-              <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
-              {autreOpen && (
-                <div className="space-y-px">
-                  <NavItem to="/AdminPresentations" icon={Presentation} label="Présentations" isActive={isActivePage("AdminPresentations")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                  <NavItem to={createPageUrl("AdminLeadMagnets")} icon={Magnet} label="Lead magnets" isActive={isActivePage("AdminLeadMagnets")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                  {AFFICHER_DOUBLE_CHECK && (
-                    <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                  )}
-                  <NavItem to={createPageUrl("AdminRessources")} icon={BookOpen} label="Ressources" isActive={isActivePage("AdminRessources")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                  <NavItem to={createPageUrl("AdminPortail")} icon={UserPlus} label="Portails" isActive={isActivePage("AdminPortail")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
-                </div>
-              )}
-            </div>
-          </>
-        ) : null}
+        {(() => {
+          const nav = (e, d) => (
+            <NavItem key={e.cle} to={d.to} icon={d.icon} label={e.label} isActive={d.actif} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} badge={d.badge || null} badgeColor={d.badgeColor} />
+          );
+          const rendre = (e) => {
+            const d = DETAILS[e.cle];
+            if (!d) return null;
+            return e.cle === "AdminSuggestions" ? <FeedbackSurvol key={e.cle}>{nav(e, d)}</FeedbackSurvol> : nav(e, d);
+          };
+          const perso = <NavItem to={createPageUrl("Personnalisation")} icon={Palette} label="Personnalisation" isActive={isActivePage("Personnalisation")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />;
+          if (showClientView) {
+            return (
+              <>
+                {ordonner(ENTREES_CLIENT, prefs.menu_ordre, prefs.menu_masques).map(rendre)}
+                {perso}
+              </>
+            );
+          }
+          if (!isAdmin || previewClientMode) return null;
+          return (
+            <>
+              {ordonner(ENTREES_ADMIN, prefs.menu_ordre, prefs.menu_masques).map(rendre)}
+              <div className="pt-3">
+                <AutreToggle open={autreOpen} onClick={() => setAutreOpen(v => !v)} collapsed={sidebarCollapsed && !isMobile} />
+                {autreOpen && (
+                  <div className="space-y-px">
+                    {ordonner(ENTREES_AUTRE, prefs.menu_ordre, prefs.menu_masques).map(rendre)}
+                    {AFFICHER_DOUBLE_CHECK && (
+                      <NavItem to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} label="Double Check" isActive={isActivePage("AdminBrouillons")} onClick={isMobile ? closeMobile : undefined} collapsed={sidebarCollapsed && !isMobile} />
+                    )}
+                    {perso}
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
         <PiluleNav piste={isMobile ? pisteMobile : pisteBureau} cles={[location.pathname, autreOpen, sidebarCollapsed, showClientView, isMobile]} />
       </div>
 

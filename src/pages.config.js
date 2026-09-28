@@ -72,6 +72,7 @@ const Familles = lazy(() => import('./pages/Familles'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const Home = lazy(() => import('./pages/Home'));
 const MonAssistant = lazy(() => import('./pages/MonAssistant'));
+const Personnalisation = lazy(() => import('./pages/Personnalisation'));
 const FichesCommerciales = lazy(() => import('./pages/FichesCommerciales'));
 const Prospection = lazy(() => import('./pages/Prospection'));
 const KData = lazy(() => import('./pages/KData'));
@@ -115,6 +116,7 @@ export const PAGES = {
     "Feedback": Feedback,
     "Home": Home,
     "MonAssistant": MonAssistant,
+    "Personnalisation": Personnalisation,
     "FichesCommerciales": FichesCommerciales,
     "Prospection": Prospection,
     "KData": KData,

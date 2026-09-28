@@ -27,7 +27,7 @@ const Alexis = lazy(() => import('@/pages/Alexis'));
 const PAGES_CLIENT = new Set([
   'Home', 'Dashboard', 'Questionnaire', 'MesProjets', 'ProjetDetail',
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
-  'MonCompte', 'Feedback', 'Famille', 'Familles',
+  'MonCompte', 'Feedback', 'Famille', 'Familles', 'Personnalisation',
 ]);
 const PAGES_CLIENT_MIN = new Set([...PAGES_CLIENT].map((p) => p.toLowerCase()));
 const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
@@ -39,6 +39,7 @@ const Monitoring = lazy(() => import('@/pages/Monitoring'));
 const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
+import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -55,6 +56,15 @@ const EnChargement = () => (
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+// La page d'ouverture : celle que la personne a choisie dans Personnalisation,
+// sinon la page principale. Elle ne vaut que pour la racine : un lien direct
+// vers une page reste un lien direct.
+const PageDOuverture = () => {
+  const { prefs } = usePersonnalisation();
+  if (prefs.accueil && prefs.accueil !== mainPageKey) return <Navigate to={`/${prefs.accueil}`} replace />;
+  return <LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>;
+};
 
 // /Preanalyse → /Analyse en conservant la query (?deal_id=, ?tab=).
 const RedirectionAnalyse = () => {
@@ -145,11 +155,7 @@ const AuthenticatedApp = () => {
   return (
     <Suspense fallback={<EnChargement />}>
     <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
+      <Route path="/" element={<PageDOuverture />} />
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}
@@ -195,7 +201,9 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
-          <AuthenticatedApp />
+          <PersonnalisationProvider>
+            <AuthenticatedApp />
+          </PersonnalisationProvider>
         </Router>
         <AvisToaster />
         <VisualEditAgent />

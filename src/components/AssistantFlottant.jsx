@@ -15,6 +15,7 @@ import { useOreille } from "@/lib/oreille";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 import { AvisReponse } from "@/components/MessageIA";
 import { J } from "@/design/jetons";
+import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 
 // L'assistant : une pilule au repos, un cadre qui s'étire une fois ouvert.
 //
@@ -38,7 +39,7 @@ const SEPARATEUR = "var(--k-bord)";
 // pièce de Klocka, il n'a pas à s'annoncer par sa typographie. Instrument Sans
 // tient mieux les petites tailles qu'Instrument Sans, dont les chasses serrées
 // brouillaient les 12,5 px de la barre de saisie.
-const SANS = "'Instrument Sans', Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
+const SANS = "var(--k-police, 'Instrument Sans'), Inter, system-ui, -apple-system, Helvetica, Arial, sans-serif";
 // Le libellé en capitales espacées tombait jusqu'ici sur la mono du système —
 // donc sur une police différente selon la machine.
 const MONO = "'Instrument Sans', ui-monospace, SFMono-Regular, Menlo, monospace";
@@ -197,19 +198,25 @@ export default function AssistantFlottant() {
   // Un bouton, un point rouge tant que ça tourne, et rien de gardé ici.
   const oreille = useOreille();
   useEffect(() => { if (oreille.erreur) toast.error(oreille.erreur); }, [oreille.erreur]);
+  // Où la bulle se pose, et si elle se pose : réglé dans Personnalisation.
+  const { prefs } = usePersonnalisation();
+  const gauche = prefs.assistant === "gauche";
+  if (prefs.assistant === "masquee") return null;
 
   return (
     <div
       className="assistant-flottant"
       style={{
         position: "fixed",
-        right: mobile ? 12 : 20,
+        right: gauche ? undefined : mobile ? 12 : 20,
+        // À gauche : à côté de la barre latérale, dont Layout dit la largeur ; sur téléphone elle n'est pas là.
+        left: gauche ? (mobile ? 12 : "calc(var(--k-barre-largeur, 0px) + 20px)") : undefined,
         // Sur téléphone, la barre de navigation occupe le bas : la pilule se
         // pose juste au-dessus, elle ne la recouvre pas.
         bottom: mobile ? "calc(3.5rem + env(safe-area-inset-bottom) + 10px)" : 20,
         // Au repos : une petite bulle. Ouvert : le cadre de conversation.
         width: ouvert ? 420 : "auto",
-        alignItems: ouvert ? "stretch" : "flex-end",
+        alignItems: ouvert ? "stretch" : gauche ? "flex-start" : "flex-end",
         maxWidth: mobile ? "calc(100vw - 24px)" : "calc(100vw - 40px)",
         // Sous les fenêtres modales (z-50) : une pilule qui flotte par-dessus
         // une boîte de dialogue n'a rien à y faire.

@@ -245,6 +245,25 @@ app.post('/api/auth/updateMe', wrap((req, res) => {
   ok(res, sansSecret(Records.update('User', user.id, retirerChampsProteges(req.body))));
 }));
 
+// Les préférences d'affichage d'un compte : ce que règle la page
+// Personnalisation (thème, accent, police, menu...). Rien de secret, rien de
+// protégé : on ne garde que les clés connues, à plat, bornées en taille.
+const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'assistant']);
+app.post('/api/moi/preferences', wrap((req, res) => {
+  const user = currentUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  const b = req.body && typeof req.body === 'object' ? req.body : {};
+  const preferences = {};
+  for (const [k, v] of Object.entries(b)) {
+    if (!CLES_PREFERENCES.has(k)) continue;
+    if (Array.isArray(v)) preferences[k] = v.slice(0, 40).map((x) => String(x).slice(0, 60));
+    else if (typeof v === 'string') preferences[k] = v.slice(0, 60);
+    else if (typeof v === 'number' || typeof v === 'boolean') preferences[k] = v;
+  }
+  Records.update('User', user.id, { preferences });
+  ok(res, { preferences });
+}));
+
 // Changer son mot de passe une fois connecté.
 app.post('/api/auth/changer-mot-de-passe', wrap(async (req, res) => {
   const user = currentUser(req);

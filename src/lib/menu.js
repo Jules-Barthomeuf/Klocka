@@ -21,6 +21,7 @@ export const ENTREES_AUTRE = [
   { cle: "AdminLeadMagnets", label: "Lead magnets" },
   { cle: "AdminRessources", label: "Ressources" },
   { cle: "AdminPortail", label: "Portails" },
+  { cle: "ImportProjets", label: "Import de projets" },
 ];
 
 export const ENTREES_CLIENT = [

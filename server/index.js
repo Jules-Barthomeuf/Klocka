@@ -743,6 +743,23 @@ app.get('/api/monitoring/audit', wrap((req, res) => {
 
 
 
+// Import de projets depuis un export JSON (page Import de projets) : un
+// export Base44 de l'entité Project, { projects: [...] } ou un tableau brut.
+// Idempotent : les projets dont l'id existe déjà sont mis à jour.
+app.post('/api/admin/import-projets', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+  const { importerProjets } = await import('./projets-import.js');
+  const corps = req.body || {};
+  const liste = Array.isArray(corps.projets) ? corps.projets
+    : Array.isArray(corps.projets?.projects) ? corps.projets.projects
+    : corps.projets;
+  const r = importerProjets(liste, { par: user.email });
+  if (r.error) return res.status(400).json(r);
+  console.log(`[admin] import projets par ${user.email} : ${r.crees} créés, ${r.maj} mis à jour, ${r.invalides} invalides`);
+  ok(res, r);
+}));
+
 // Présentation de financement d'un projet (page Présentations) : PPTX généré
 // depuis les données du projet, converti en Google Slides quand un compte
 // Drive est fourni. Le PPTX reste téléchargeable dans tous les cas.

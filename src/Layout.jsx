@@ -265,7 +265,7 @@ function LayoutContent({ children, currentPageName }) {
   }, []);
   // La largeur de la barre, dite à la page : la bulle de l'assistant posée à
   // gauche (Personnalisation) se place à côté de la barre, pas dessus.
-  const largeurBarre = sidebarCollapsed ? "72px" : "240px";
+  const largeurBarre = sidebarCollapsed ? "64px" : "228px";
   useEffect(() => {
     document.documentElement.style.setProperty("--k-barre-largeur", largeurBarre);
     return () => document.documentElement.style.removeProperty("--k-barre-largeur");
@@ -398,14 +398,14 @@ function LayoutContent({ children, currentPageName }) {
           data-actif={ici ? "1" : undefined}
           title={replie ? label : undefined}
           aria-label={label}
-          className={`relative flex items-center rounded-[12px] transition-colors ${replie ? "mx-auto h-10 w-10 justify-center" : "gap-3 px-3.5 py-[9px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
+          className={`relative flex items-center rounded-[10px] transition-colors ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
         >
-          <Icone className="h-[18px] w-[18px] flex-none" strokeWidth={1.7} />
-          {!replie && <span className="flex-1 truncate text-[16px]">{label}</span>}
+          <Icone className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
+          {!replie && <span className="flex-1 truncate text-[15px]">{label}</span>}
           {pastille ? (
             replie
               ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
-              : <span className={`ml-auto rounded-full px-2 py-0.5 text-[12px] font-medium tabular-nums ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
+              : <span className={`ml-auto rounded-full px-1.5 py-px text-[11px] font-medium tabular-nums ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
           ) : null}
         </Link>
       );
@@ -413,14 +413,14 @@ function LayoutContent({ children, currentPageName }) {
     return (
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
-        <div className={`flex h-[64px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
+        <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka">
-            <img src="/logo-klocka.svg" alt="Klocka" className="h-7 w-7 rounded-[7px]" draggable={false} />
-            {!replie && <span className="text-[20px] font-semibold tracking-[-0.01em] text-encre">Klocka</span>}
+            <img src="/logo-klocka.svg" alt="Klocka" className="h-6 w-6 rounded-[6px]" draggable={false} />
+            {!replie && <span className="text-[17px] font-semibold tracking-[-0.01em] text-encre">Klocka</span>}
           </Link>
           {!isMobile && !replie && (
             <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Replier le menu" title="Replier le menu" className={`ml-auto ${bouton}`} style={{ background: "transparent" }}>
-              <PanelLeft className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
             </button>
           )}
           {isMobile && (
@@ -431,7 +431,7 @@ function LayoutContent({ children, currentPageName }) {
         </div>
         {replie && (
           <button type="button" onClick={() => setSidebarCollapsed(false)} aria-label="Déplier le menu" title="Déplier le menu" className={`mx-auto ${bouton}`} style={{ background: "transparent" }}>
-            <PanelLeft className="h-[18px] w-[18px]" strokeWidth={1.7} />
+            <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
           </button>
         )}
 
@@ -447,7 +447,7 @@ function LayoutContent({ children, currentPageName }) {
                   type="button"
                   onClick={() => { if (isMobile) closeMobile(); navigate(k === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard")); }}
                   aria-pressed={actif}
-                  className={`rounded-[9px] py-1.5 text-[15px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
+                  className={`rounded-[9px] py-1 text-[14px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
                   style={actif ? undefined : { background: "transparent" }}
                 >
                   {mot}
@@ -459,8 +459,8 @@ function LayoutContent({ children, currentPageName }) {
 
         {/* La vue : admin, ou comme un client. */}
         {isAdmin && !replie && (
-          <div className="mx-3 mt-3 flex items-center gap-2.5 px-2">
-            <Eye className="h-[18px] w-[18px] flex-none text-ardoise" strokeWidth={1.7} />
+          <div className="mx-3 mt-2.5 flex items-center gap-2.5 px-2">
+            <Eye className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
             <AnimatedDropdown
               value={previewClientMode ? 'client' : 'admin'}
               onChange={(v) => setPreviewClientMode(v === 'client')}
@@ -469,13 +469,13 @@ function LayoutContent({ children, currentPageName }) {
                 { value: 'client', label: 'Vue Client' },
               ]}
               className="flex-1"
-              triggerClassName="bg-transparent border-none text-encre text-[16px] h-8 px-0 hover:bg-transparent hover:text-encre"
+              triggerClassName="bg-transparent border-none text-encre text-[14.5px] h-7 px-0 hover:bg-transparent hover:text-encre"
             />
           </div>
         )}
 
         {/* Les pages. */}
-        <div className="mt-4 flex-1 overflow-y-auto px-3 pb-4">
+        <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
             {entrees.map((e) => <Lien key={e.cle} e={e} />)}
           </div>
@@ -486,7 +486,7 @@ function LayoutContent({ children, currentPageName }) {
                 onClick={() => setAutreOpen((v) => !v)}
                 aria-expanded={autreOpen}
                 aria-label="Autre" title="Autre"
-                className={`flex items-center rounded-[12px] text-ardoise transition-colors hover:text-encre ${replie ? "mx-auto h-10 w-10 justify-center" : "gap-2 px-3.5 py-[7px] text-[16px]"}`}
+                className={`flex items-center rounded-[10px] text-ardoise transition-colors hover:text-encre ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-1.5 px-3 py-[6px] text-[15px]"}`}
                 style={{ background: "transparent" }}
               >
                 {!replie && <span>Autre</span>}
@@ -509,22 +509,22 @@ function LayoutContent({ children, currentPageName }) {
         </div>
 
         {/* Le compte. */}
-        <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2.5 px-3 py-3.5"}`}>
-          <Link to={createPageUrl("MonCompte")} onClick={isMobile ? closeMobile : undefined} title={user?.full_name || user?.email} className="grid h-10 w-10 flex-none place-items-center rounded-full bg-menthe text-[15px] font-medium text-sur-menthe">
+        <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2 px-3 py-3"}`}>
+          <Link to={createPageUrl("MonCompte")} onClick={isMobile ? closeMobile : undefined} title={user?.full_name || user?.email} className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-[14px] font-medium text-sur-menthe">
             {initiale}
           </Link>
-          {!replie && <span className="min-w-0 flex-1 truncate text-[15px] text-encre">{nomCourt}</span>}
+          {!replie && <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{nomCourt}</span>}
           <div className={`flex items-center ${replie ? "flex-col gap-1" : "gap-0"}`}>
             {!replie && (
               <button type="button" onClick={() => base44.auth.fenetre.ouvrir()} aria-label="Ouvrir un autre compte dans cette fenêtre" title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres" className={bouton} style={{ background: "transparent" }}>
-                <Users className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                <Users className="h-4 w-4" strokeWidth={1.7} />
               </button>
             )}
             <button type="button" onClick={basculer} aria-label={clair ? "Passer en mode sombre" : "Passer en mode clair"} title={clair ? "Passer en mode sombre" : "Passer en mode clair"} className={bouton} style={{ background: "transparent" }}>
-              {clair ? <Moon className="h-[18px] w-[18px]" strokeWidth={1.7} /> : <Sun className="h-[18px] w-[18px]" strokeWidth={1.7} />}
+              {clair ? <Moon className="h-4 w-4" strokeWidth={1.7} /> : <Sun className="h-4 w-4" strokeWidth={1.7} />}
             </button>
             <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Home')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
-              <LogOut className="h-[18px] w-[18px]" strokeWidth={1.7} />
+              <LogOut className="h-4 w-4" strokeWidth={1.7} />
             </button>
           </div>
         </div>
@@ -549,7 +549,7 @@ function LayoutContent({ children, currentPageName }) {
           {/* La barre latérale de bureau ; repliée, un rail d'icônes. */}
           {!hideNavbar && (
             <aside
-              className={`hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-trait bg-rail transition-[width] duration-200 ${sidebarCollapsed ? "w-[72px]" : "w-[240px]"}`}
+              className={`hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-trait bg-rail transition-[width] duration-200 ${sidebarCollapsed ? "w-[64px]" : "w-[228px]"}`}
               style={{ paddingTop: "env(safe-area-inset-top)" }}
             >
               {sidebarContent(false)}
@@ -589,7 +589,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* Main Content */}
       <main
         className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
-          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[72px]" : "md:ml-[240px]") : ""
+          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[64px]" : "md:ml-[228px]") : ""
         } ${
           modoKData
             ? (enCadre ? "" : "pt-14")

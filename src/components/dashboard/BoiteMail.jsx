@@ -132,9 +132,9 @@ export default function BoiteMail() {
         type="button"
         onClick={() => setOuvert((v) => !v)}
         aria-expanded={ouvert}
-        className="inline-flex items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[15px] text-encre transition-colors hover:border-bord-doux"
+        className="inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-2 text-[13.5px] text-encre transition-colors hover:border-bord-doux"
       >
-        <span className={`h-2 w-2 rounded-full ${teinte}`} />
+        <span className={`h-[7px] w-[7px] rounded-full ${teinte}`} />
         {mot}
         <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
       </button>

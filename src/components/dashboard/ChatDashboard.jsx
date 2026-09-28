@@ -82,8 +82,8 @@ function BoiteEnvoi() {
   return (
     <div className="relative min-w-0">
       <button type="button" onClick={() => comptes.length > 1 && setOuvert((v) => !v)} aria-haspopup={comptes.length > 1 ? "menu" : undefined} aria-expanded={ouvert} title={`Les mails partent de ${principale.email}`}
-        className="inline-flex max-w-[280px] items-center gap-2 rounded-full px-3.5 py-2 text-[15px] text-craie max-md:max-w-[200px]" style={{ background: J["barre-relief"] }}>
-        <Mail className="h-4 w-4 flex-none text-ardoise" />
+        className="inline-flex max-w-[260px] items-center gap-1.5 rounded-full px-3 py-1.5 text-[13.5px] text-craie max-md:max-w-[180px]" style={{ background: J["barre-relief"] }}>
+        <Mail className="h-3.5 w-3.5 flex-none text-ardoise" />
         <span className="truncate">{principale.email}</span>
         {comptes.length > 1 && <ChevronDown className="h-3.5 w-3.5 flex-none text-ardoise" />}
       </button>
@@ -119,10 +119,10 @@ function Suggestions({ onChoisir }) {
     { cle: "sourcing", mot: "Préparer un mail de sourcing", teinte: J["bleu"], faire: () => onChoisir("Prépare un mail de sourcing à [email de l'agent] pour [type de bien, zone, budget]", "mail") },
   ];
   return (
-    <div className="mt-5 flex flex-wrap justify-center gap-2.5">
+    <div className="mt-4 flex flex-wrap justify-center gap-2">
       {chips.map((c) => (
-        <button key={c.cle} type="button" onClick={c.faire} className="inline-flex items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[15px] text-encre shadow-[0_2px_8px_rgb(0_0_0/0.04)] transition-colors hover:border-bord-doux">
-          <span className="h-2 w-2 flex-none rounded-full" style={{ background: c.teinte }} />
+        <button key={c.cle} type="button" onClick={c.faire} className="inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-1.5 text-[13.5px] text-encre shadow-[0_2px_8px_rgb(0_0_0/0.04)] transition-colors hover:border-bord-doux">
+          <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: c.teinte }} />
           {c.mot}
         </button>
       ))}
@@ -135,8 +135,8 @@ function HistoriqueFil() {
   const { data, isLoading } = useQuery({ queryKey: ["assistant-fil"], queryFn: () => base44.request("GET", "/api/assistant/fil") });
   const messages = (data?.messages || []).slice(-30);
   return (
-    <div className="mt-4 rounded-[20px] border border-trait bg-surface-pleine p-5">
-      <p className="m-0 mb-3 text-[12px] uppercase tracking-[.14em] text-brume">Historique</p>
+    <div className="mt-4 rounded-[16px] border border-trait bg-surface-pleine p-4">
+      <p className="m-0 mb-3 text-[11px] uppercase tracking-[.14em] text-brume">Historique</p>
       {isLoading ? <p className="m-0 text-[14px] text-ardoise">Lecture…</p>
         : !messages.length ? <p className="m-0 text-[14px] text-ardoise">Rien encore : ce que vous dites à l'assistant s'écrit ici.</p>
         : (
@@ -730,13 +730,13 @@ export default function ChatDashboard() {
         onDrop={deposer}
       >
         <div className="mb-2 flex justify-end">
-          <button type="button" onClick={() => setHistoriqueOuvert((v) => !v)} aria-expanded={historiqueOuvert} className="inline-flex items-center gap-1.5 text-[15px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
-            <History className="h-4 w-4" /> Historique
+          <button type="button" onClick={() => setHistoriqueOuvert((v) => !v)} aria-expanded={historiqueOuvert} className="inline-flex items-center gap-1.5 text-[13.5px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
+            <History className="h-3.5 w-3.5" /> Historique
           </button>
         </div>
         <BordureEcoute actif={ecoute} radius="24px">
         <div
-          className="rounded-[24px] border border-trait bg-barre px-6 pb-4 pt-6 shadow-[0_14px_40px_rgb(0_0_0/0.07)] max-md:px-4 max-md:pt-4"
+          className="rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 shadow-[0_12px_32px_rgb(0_0_0/0.07)] max-md:px-4 max-md:pt-4"
           style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
           <textarea
@@ -747,20 +747,20 @@ export default function ChatDashboard() {
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
             placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : modeCourant?.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
-            className="block w-full resize-none border-0 bg-transparent text-[17px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[15px]"
+            className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[14px]"
           />
           <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => fichierRef.current?.click()}
               aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
               title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
-              className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre"
+              className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre"
               style={{ background: "transparent" }}
             >
-              <Plus className="h-5 w-5" strokeWidth={1.7} />
+              <Plus className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </button>
             <BoiteEnvoi />
 
@@ -774,10 +774,10 @@ export default function ChatDashboard() {
                   aria-haspopup="menu"
                   aria-label={modeCourant ? `Mode ${modeCourant.label}` : "Choisir un mode"}
                   title={modeCourant ? modeCourant.label : "Choisir ce que vous apportez : une note, une fiche, un mail, un rappel"}
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[15px] transition-colors hover:bg-barre-relief"
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[13.5px] transition-colors hover:bg-barre-relief"
                   style={{ background: modeCourant ? alpha("menthe", 0.12) : "transparent", color: modeCourant ? J["menthe"] : J["craie"] }}
                 >
-                  {modeCourant ? <IconeMode className="h-4 w-4" /> : <ArrowLeftRight className="h-4 w-4" />}
+                  {modeCourant ? <IconeMode className="h-3.5 w-3.5" /> : <ArrowLeftRight className="h-3.5 w-3.5" />}
                   <span className="max-md:hidden">{modeCourant ? modeCourant.label : "Mode auto"}</span>
                 </button>
                 {commandes && (
@@ -839,10 +839,10 @@ export default function ChatDashboard() {
                 onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
                 aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
                 title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-                className="grid h-9 w-9 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief disabled:opacity-40"
+                className="grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief disabled:opacity-40"
                 style={{ background: ecoute ? alpha("menthe", 0.2) : "transparent", color: ecoute ? J["menthe"] : J["craie"] }}
               >
-                <Mic className="h-[18px] w-[18px]" strokeWidth={1.7} />
+                <Mic className="h-4 w-4" strokeWidth={1.7} />
               </button>
 
               <button
@@ -851,9 +851,9 @@ export default function ChatDashboard() {
                 disabled={!enCours && !texte.trim() && !fichier}
                 aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
-                className="grid h-11 w-11 flex-none place-items-center rounded-full bg-menthe-pale text-sur-menthe-pale transition-opacity disabled:opacity-70"
+                className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe-pale text-sur-menthe-pale transition-opacity disabled:opacity-70"
               >
-                {enCours ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2} />}
+                {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
               </button>
             </div>
           </div>

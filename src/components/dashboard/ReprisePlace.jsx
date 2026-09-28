@@ -58,7 +58,7 @@ export default function ReprisePlace({ limite = 5 }) {
 
   return (
     <section>
-      <p className="m-0 border-b border-bord pb-3 text-[15px] text-craie">Reprenez là où vous en étiez</p>
+      <p className="m-0 border-b border-bord pb-2.5 text-[13.5px] text-craie">Reprenez là où vous en étiez</p>
       <ul className="m-0 list-none p-0">
         {liste.map((x) => {
           const Icone = x.icone;
@@ -68,12 +68,12 @@ export default function ReprisePlace({ limite = 5 }) {
                 type="button"
                 onClick={() => navigate(x.vers)}
                 title={[x.detail, x.date ? quand(x.date) : ""].filter(Boolean).join(" · ")}
-                className="group flex w-full items-center gap-3 py-3 text-left"
+                className="group flex w-full items-center gap-2.5 py-2.5 text-left"
                 style={{ background: "transparent" }}
               >
-                <Icone className="h-4 w-4 flex-none text-menthe" />
-                <span className="min-w-0 flex-1 truncate text-[16px] text-encre">{x.titre}</span>
-                <ArrowUpRight className="h-4 w-4 flex-none text-ardoise transition-colors group-hover:text-menthe" />
+                <Icone className="h-[15px] w-[15px] flex-none text-menthe" />
+                <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">{x.titre}</span>
+                <ArrowUpRight className="h-3.5 w-3.5 flex-none text-ardoise transition-colors group-hover:text-menthe" />
               </button>
             </li>
           );

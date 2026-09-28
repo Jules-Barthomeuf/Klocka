@@ -1328,38 +1328,38 @@ export default function AdminProjets() {
   ];
 
   return (
-    <div className="relative min-h-screen px-5 py-8 text-encre md:px-10 md:py-10">
+    <div className="relative min-h-screen px-5 py-7 text-encre md:px-9 md:py-8">
       <div className="relative max-w-[1400px] mx-auto">
         {/* En-tête */}
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-5 max-md:mb-5">
-          <h1 className="m-0 text-[40px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[28px]">Gestion des projets</h1>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 max-md:mb-4">
+          <h1 className="m-0 text-[31px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
-            className="inline-flex items-center gap-2 rounded-full bg-menthe px-5 py-2.5 text-[15px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+            className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
             Nouveau projet
           </button>
         </div>
 
         {/* Les chiffres : une carte, cinq colonnes séparées d'un filet. */}
-        <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-[20px] border border-trait bg-surface-pleine sm:grid-cols-3 lg:grid-cols-5 max-md:mb-5">
+        <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-[16px] border border-trait bg-surface-pleine sm:grid-cols-3 lg:grid-cols-5 max-md:mb-4">
           {CHIFFRES.map((c, i) => (
-            <div key={i} className={`px-7 py-6 max-md:px-5 max-md:py-4 ${i > 0 ? "border-l border-trait max-md:border-l-0" : ""} ${i >= 2 ? "max-lg:border-t max-lg:border-trait" : ""}`}>
-              <div className={`text-[40px] font-normal leading-none tabular-nums max-md:text-[28px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
-              <div className="mt-2.5 text-[15px] text-ardoise">{c.label}</div>
+            <div key={i} className={`px-6 py-5 max-md:px-4 max-md:py-3.5 ${i > 0 ? "border-l border-trait max-md:border-l-0" : ""} ${i >= 2 ? "max-lg:border-t max-lg:border-trait" : ""}`}>
+              <div className={`text-[30px] font-normal leading-none tabular-nums max-md:text-[24px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
+              <div className="mt-2 text-[13.5px] text-ardoise">{c.label}</div>
             </div>
           ))}
         </div>
 
         {/* Recherche + filtres, sur une ligne : le champ en pilule, les filtres en pilules. */}
-        <div className="mb-8 max-md:mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex min-w-[280px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface-pleine px-5 py-3 transition-colors focus-within:border-bord-doux max-md:min-w-0 max-md:basis-full">
+        <div className="mb-6 max-md:mb-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-[260px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-surface-pleine px-4 py-2 transition-colors focus-within:border-bord-doux max-md:min-w-0 max-md:basis-full">
               <Search className="w-4 h-4 text-ardoise flex-shrink-0" />
               <input
                 placeholder="Rechercher un projet, une adresse, un client…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[15px]"
+                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[14px]"
               />
               {searchTerm && (
                 <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer" style={{ background: "transparent" }}>
@@ -1369,20 +1369,20 @@ export default function AdminProjets() {
             </div>
             {FILTRES.map(({ v, l, n }) => (
               <button key={v} onClick={() => setStatusFilter(v)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[15px] transition-colors ${statusFilter === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-[14px] transition-colors ${statusFilter === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
                 {l} <span className={statusFilter === v ? "text-fond/60" : "text-brume"}>{n}</span>
               </button>
             ))}
           </div>
           <button onClick={() => setShowArchived(!showArchived)}
-            className={`mt-4 inline-flex items-center gap-2 text-[15px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
-            <Archive className="w-4 h-4" />
+            className={`mt-3 inline-flex items-center gap-1.5 text-[14px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
+            <Archive className="w-3.5 h-3.5" />
             {showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-brume">{nbArchives}</span>
           </button>
         </div>
 
         {/* Grille */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4 items-start">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5 max-md:gap-4 items-start">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}

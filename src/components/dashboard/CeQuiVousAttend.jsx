@@ -105,8 +105,8 @@ export default function CeQuiVousAttend({ limite = 12 }) {
 
   return (
     <section>
-      <div className="mb-1 border-b border-bord pb-3">
-        <p className="m-0 text-[15px] text-craie">
+      <div className="mb-1 border-b border-bord pb-2.5">
+        <p className="m-0 text-[13.5px] text-craie">
           Ce qui vous attend
           {data.en_retard > 0 && <span className="text-alerte"> · {data.en_retard} en retard</span>}
           {data.aujourdhui > 0 && <span className="text-ambre"> · {data.aujourdhui} aujourd'hui</span>}
@@ -130,17 +130,17 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                     <Ligne
                       key={`${l.source}-${l.id}`}
                       {...(l.lien && !l.cloturable ? { to: l.lien } : {})}
-                      className={`group flex items-baseline gap-3 border-t border-trait py-3 first:border-t-0 ${
+                      className={`group flex items-baseline gap-2.5 border-t border-trait py-2.5 first:border-t-0 ${
                         l.lien && !l.cloturable ? "cursor-pointer" : ""
                       }`}
                     >
                       <span
-                        className="mt-[7px] h-2 w-2 rounded-full flex-none"
+                        className="mt-[6px] h-[7px] w-[7px] rounded-full flex-none"
                         style={{ background: g.teinte }}
                       />
 
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-[16px] leading-[1.45] text-encre">
+                        <p className="m-0 text-[14.5px] leading-[1.45] text-encre">
                           {l.titre}
                           {l.telephone && (
                             <a
@@ -152,7 +152,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                             </a>
                           )}
                         </p>
-                        <p className="m-0 mt-0.5 text-[14px] text-ardoise truncate">
+                        <p className="m-0 mt-0.5 text-[13px] text-ardoise truncate">
                           <span style={{ color: n.teinte }}>{n.mot}</span>
                           <span className="text-bord-vif"> · </span>
                           {quand(l.dans, l.echeance)}

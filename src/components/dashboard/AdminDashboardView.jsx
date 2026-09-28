@@ -13,7 +13,7 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 export default function AdminDashboardView() {
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-[1240px] px-5 pb-16 pt-5 md:px-10">
+      <div className="mx-auto max-w-[1100px] px-5 pb-14 pt-4 md:px-8">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           {/* Les boîtes d'envoi, en haut à droite : sans elles, la moitié de
               ce qui se décide ici ne part nulle part. */}

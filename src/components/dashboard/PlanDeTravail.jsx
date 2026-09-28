@@ -20,11 +20,11 @@ export default function PlanDeTravail({ chat = null }) {
 
   return (
     <div>
-      <header className="flex flex-col items-center pt-10 text-center max-md:pt-6">
-        <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(26px, 2.8vw, 40px)" }}>
+      <header className="flex flex-col items-center pt-8 text-center max-md:pt-5">
+        <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>
           Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?
         </h1>
-        {chat && <div className="mt-8 w-full max-w-[860px] max-md:mt-6">{chat}</div>}
+        {chat && <div className="mt-6 w-full max-w-[660px] max-md:mt-5">{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
@@ -40,7 +40,7 @@ export default function PlanDeTravail({ chat = null }) {
 
       {/* Ce qui est dû à gauche, ce qu'on avait laissé en plan à droite. Un
           bloc vide se cache : une barre au-dessus du néant ne sépare rien. */}
-      <div className="mx-auto mt-16 grid max-w-[1080px] gap-x-14 gap-y-10 md:grid-cols-2 max-md:mt-10">
+      <div className="mx-auto mt-12 grid max-w-[880px] gap-x-12 gap-y-8 md:grid-cols-2 max-md:mt-8">
         <CeQuiVousAttend />
         <ReprisePlace />
       </div>

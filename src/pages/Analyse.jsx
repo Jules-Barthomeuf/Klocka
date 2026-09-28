@@ -23,6 +23,26 @@ const TRIS = [
   { id: "admin", label: "Admin" },
 ];
 
+/** L'anneau d'avancement : l'étape sur cinq, au centre. */
+function Anneau({ etape, abandonne = false, petit = false }) {
+  const t = petit ? 30 : 56;
+  const e = petit ? 3 : 5;
+  const r = (t - e) / 2;
+  const c = 2 * Math.PI * r;
+  const part = Math.min(5, Math.max(0, etape)) / 5;
+  return (
+    <span className="relative grid flex-none place-items-center" style={{ width: t, height: t }}>
+      <svg width={t} height={t} className="-rotate-90" aria-hidden>
+        <circle cx={t / 2} cy={t / 2} r={r} fill="none" stroke="rgb(var(--k-encre-rgb) / 0.09)" strokeWidth={e} />
+        <circle cx={t / 2} cy={t / 2} r={r} fill="none" stroke={abandonne ? J["ardoise"] : J["menthe"]} strokeWidth={e} strokeDasharray={`${c * part} ${c}`} />
+      </svg>
+      <span className={`absolute font-medium tabular-nums ${petit ? "text-[10px] text-craie" : "text-[15px]"}`} style={petit ? undefined : { color: abandonne ? J["ardoise"] : J["menthe"] }}>
+        {petit ? etape : `${etape}/5`}
+      </span>
+    </span>
+  );
+}
+
 export default function Analyse() {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
@@ -148,6 +168,60 @@ export default function Analyse() {
     return [...liste].sort(parMaj);
   }, [pipeline, tri, recherche, etapeFiltre]);
   const nbDossiers = (pipeline?.dossiers || []).filter((d) => !d.archived).length;
+  // Les trois derniers ouverts (modifiés) en cartes, les autres en lignes dans l'ordre choisi.
+  const recents = useMemo(() => [...dossiers].sort((a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || ""))).slice(0, 3), [dossiers]);
+  const autres = useMemo(() => { const ici = new Set(recents.map((d) => d.deal_id)); return dossiers.filter((d) => !ici.has(d.deal_id)); }, [dossiers, recents]);
+  const qui = (d) => (d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0]);
+  const quiEtQuand = (d) => `${qui(d)}${d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}`;
+  // Le menu ⋯ d'un dossier : renommer, revenir à l'étape 1, abandonner.
+  const MenuDossier = ({ d, bouton, place }) => (
+    <>
+    {/* Renommer / abandonner */}
+    <button
+      onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
+      className={`absolute ${bouton} text-ardoise hover:text-encre transition-colors`}
+      aria-label="Actions" title="Actions" style={{ background: "transparent" }}
+    >
+      <MoreHorizontal className="w-4 h-4" />
+    </button>
+    {menuCarte === d.deal_id && (
+      <div className={`absolute ${place} z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]`}>
+        <button
+          onClick={() => {
+            setMenuCarte(null);
+            const nom = window.prompt("Nouveau nom du dossier :", d.titre || "");
+            if (nom?.trim()) renommer.mutate({ id: d.deal_id, nom: nom.trim() });
+          }}
+          className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" /> Renommer
+        </button>
+        {(d.etape_max || 1) > 1 && (
+          <button
+            onClick={() => {
+              setMenuCarte(null);
+              if (window.confirm(`Ramener « ${d.titre} » à l'étape 1 ? Les documents et analyses sont conservés.`)) revenirEtape1.mutate(d.deal_id);
+            }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Revenir à l'étape 1
+          </button>
+        )}
+        {d.statut !== "abandonne" && d.statut !== "projet_cree" && (
+          <button
+            onClick={() => {
+              setMenuCarte(null);
+              if (window.confirm(`Abandonner « ${d.titre} » ? Le dossier restera consultable.`)) abandonner.mutate(d.deal_id);
+            }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08] transition-colors"
+          >
+            <Archive className="w-3.5 h-3.5" /> Abandonner
+          </button>
+        )}
+      </div>
+    )}
+    </>
+  );
 
   return (
     <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
@@ -241,90 +315,50 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-7">
-                {dossiers.map((d) => (
-                  <div
-                    key={d.deal_id}
-                    className="relative overflow-hidden rounded-[20px] border border-trait bg-surface-pleine text-left shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux"
-                  >
-                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full text-left" style={{ background: "transparent" }}>
-                      {/* La progression : cinq segments en haut de la carte. */}
-                      <span className="flex gap-[3px]" aria-hidden>
-                        {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[5px] flex-1 ${n <= (d.etape_max || 1) ? (d.statut === "abandonne" ? "bg-ardoise" : "bg-menthe") : "bg-encre/[0.09]"}`} />)}
-                      </span>
-                      <span className="block px-[26px] pb-5 pt-6">
-                        <span className="flex items-center gap-2 pr-8 text-[12.5px] font-semibold uppercase tracking-[.06em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
-                          Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
-                          {d.statut === "abandonne" ? " · Abandonné" : ""}
-                          {d.a_relancer && <Clock className="h-3.5 w-3.5 text-alerte" aria-label="À relancer" />}
+              <>
+                {/* Les trois derniers ouverts, en cartes ; les autres en lignes. */}
+                <div className="grid grid-cols-1 gap-5 pt-7 sm:grid-cols-2 lg:grid-cols-3">
+                  {recents.map((d) => (
+                    <div key={d.deal_id} className="relative rounded-[20px] border border-trait bg-surface-pleine shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux">
+                      <button onClick={() => montrerDeal(d.deal_id)} className="flex w-full items-center gap-5 px-6 py-6 pr-12 text-left" style={{ background: "transparent" }}>
+                        <Anneau etape={d.etape_max || 1} abandonne={d.statut === "abandonne"} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[17px] leading-[1.3] text-encre">{d.titre || d.nom_fichier || d.deal_id}</span>
+                          <span className="mt-1 flex items-center gap-1.5 text-[14.5px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                            {d.statut === "abandonne" ? "Abandonné" : ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
+                            {d.a_relancer && <Clock className="h-3.5 w-3.5 text-alerte" aria-label="À relancer" />}
+                          </span>
+                          <span className="mt-1 block truncate text-[13.5px] text-ardoise">{quiEtQuand(d)}</span>
                         </span>
-                        <span className="mt-5 line-clamp-2 block text-[17px] font-normal leading-[1.3] tracking-[-0.01em] text-encre">
-                          {d.titre || d.nom_fichier || d.deal_id}
-                        </span>
-                        <span className="mt-5 flex items-center gap-3 border-t border-trait pt-4">
-                          {(() => {
-                            const qui = d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0];
-                            const premier = String(d.responsables?.[0] || d.responsable || "").split("@")[0];
-                            const initiales = premier.split(/[.\s_-]+/).filter(Boolean).slice(0, 2).map((m) => m[0]).join("").toUpperCase() || "?";
-                            return (
-                              <>
-                                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-menthe/[0.12] text-[10.5px] font-semibold text-menthe">{initiales}</span>
-                                <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">{qui}</span>
-                              </>
-                            );
-                          })()}
-                          {d.maj_le && <span className="flex-none text-[13.5px] text-ardoise tabular-nums">{new Date(d.maj_le).toLocaleDateString("fr-FR")}</span>}
-                        </span>
-                      </span>
-                    </button>
+                      </button>
+                      <MenuDossier d={d} bouton="top-1/2 -translate-y-1/2 right-6" place="top-[calc(50%+16px)] right-4" />
+                    </div>
+                  ))}
+                </div>
 
-                    {/* Renommer / abandonner */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
-                      className="absolute top-[30px] right-6 text-ardoise hover:text-encre transition-colors"
-                      aria-label="Actions" title="Actions" style={{ background: "transparent" }}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    {menuCarte === d.deal_id && (
-                      <div className="absolute top-14 right-5 z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
-                        <button
-                          onClick={() => {
-                            setMenuCarte(null);
-                            const nom = window.prompt("Nouveau nom du dossier :", d.titre || "");
-                            if (nom?.trim()) renommer.mutate({ id: d.deal_id, nom: nom.trim() });
-                          }}
-                          className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Renommer
-                        </button>
-                        {(d.etape_max || 1) > 1 && (
-                          <button
-                            onClick={() => {
-                              setMenuCarte(null);
-                              if (window.confirm(`Ramener « ${d.titre} » à l'étape 1 ? Les documents et analyses sont conservés.`)) revenirEtape1.mutate(d.deal_id);
-                            }}
-                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" /> Revenir à l'étape 1
+                {autres.length > 0 && (
+                  <div className="mt-8">
+                    <p className="m-0 mb-2 text-[13px] text-ardoise">Les autres dossiers</p>
+                    <ul className="m-0 list-none overflow-visible rounded-[16px] border border-trait bg-surface-pleine p-0">
+                      {autres.map((d) => (
+                        <li key={d.deal_id} className="relative border-t border-trait first:border-t-0">
+                          <button onClick={() => montrerDeal(d.deal_id)} className="flex w-full items-center gap-4 px-5 py-3 pr-12 text-left transition-colors hover:bg-relief" style={{ background: "transparent" }}>
+                            <Anneau etape={d.etape_max || 1} abandonne={d.statut === "abandonne"} petit />
+                            <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">{d.titre || d.nom_fichier || d.deal_id}</span>
+                            <span className="hidden w-[130px] flex-none items-center gap-1.5 text-[13px] sm:flex" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                              {d.statut === "abandonne" ? "Abandonné" : ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
+                              {d.a_relancer && <Clock className="h-3 w-3 text-alerte" aria-label="À relancer" />}
+                            </span>
+                            <span className="hidden w-[180px] flex-none truncate text-[13px] text-ardoise md:block">{qui(d)}</span>
+                            <span className="w-[84px] flex-none text-right text-[13px] tabular-nums text-ardoise">{d.maj_le ? new Date(d.maj_le).toLocaleDateString("fr-FR") : ""}</span>
                           </button>
-                        )}
-                        {d.statut !== "abandonne" && d.statut !== "projet_cree" && (
-                          <button
-                            onClick={() => {
-                              setMenuCarte(null);
-                              if (window.confirm(`Abandonner « ${d.titre} » ? Le dossier restera consultable.`)) abandonner.mutate(d.deal_id);
-                            }}
-                            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08] transition-colors"
-                          >
-                            <Archive className="w-3.5 h-3.5" /> Abandonner
-                          </button>
-                        )}
-                      </div>
-                    )}
+                          <MenuDossier d={d} bouton="top-1/2 -translate-y-1/2 right-4" place="top-[calc(50%+14px)] right-3" />
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         )}

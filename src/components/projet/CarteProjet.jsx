@@ -77,8 +77,8 @@ export function chiffresDuProjet(project) {
 function Chiffre({ valeur, label, teinte = "text-encre" }) {
   return (
     <div className="min-w-0">
-      <p className={`m-0 text-[17px] font-medium tabular-nums max-md:text-[15px] ${teinte}`}>{valeur}</p>
-      <p className="m-0 mt-0.5 text-[12px] text-ardoise">{label}</p>
+      <p className={`m-0 text-[14.5px] font-medium tabular-nums max-md:text-[14px] ${teinte}`}>{valeur}</p>
+      <p className="m-0 mt-0.5 text-[11px] text-ardoise">{label}</p>
     </div>
   );
 }
@@ -113,13 +113,13 @@ export default function CarteProjet({ project, onOuvrir, avatar = null, sousLign
 
   return (
     <div className="group overflow-hidden rounded-[16px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux">
-      <div className="relative h-[168px] cursor-pointer overflow-hidden max-md:h-[150px]" onClick={onOuvrir}>
+      <div className="relative h-[132px] cursor-pointer overflow-hidden max-md:h-[120px]" onClick={onOuvrir}>
         {photo
           ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
           : <TramePhoto />}
 
         <div className="absolute left-3 top-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-pleine px-2.5 py-1 text-[12px] text-encre shadow-[0_2px_10px_rgb(0_0_0/0.08)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-pleine px-2 py-0.5 text-[11px] text-encre shadow-[0_2px_10px_rgb(0_0_0/0.08)]">
             <span className={`h-[7px] w-[7px] rounded-full ${statutTeintes[project.statut] || statutTeintes.prospect}`} />
             {statutLabels[project.statut] || project.statut}
           </span>
@@ -127,7 +127,7 @@ export default function CarteProjet({ project, onOuvrir, avatar = null, sousLign
 
         {avatar && (
           <div className="absolute right-3 top-3">
-            <img src={avatar} alt="Conseiller" className="h-8 w-8 rounded-full border-2 border-surface-pleine object-cover" />
+            <img src={avatar} alt="Conseiller" className="h-7 w-7 rounded-full border-2 border-surface-pleine object-cover" />
           </div>
         )}
 
@@ -138,14 +138,14 @@ export default function CarteProjet({ project, onOuvrir, avatar = null, sousLign
         )}
       </div>
 
-      <div className="px-5 pb-4 pt-4 max-md:px-4">
+      <div className="px-4 pb-3.5 pt-3.5">
         <button type="button" onClick={onOuvrir} className="block w-full text-left" style={{ background: "transparent" }}>
-          <h2 className="m-0 truncate text-[18px] font-medium leading-[1.25] tracking-[-0.01em] text-encre max-md:text-[16px]">{project.titre}</h2>
-          {project.adresse_complete && <p className="m-0 mt-0.5 truncate text-[13.5px] text-ardoise">{project.adresse_complete}</p>}
+          <h2 className="m-0 truncate text-[14.5px] font-medium leading-[1.3] tracking-[-0.01em] text-encre">{project.titre}</h2>
+          {project.adresse_complete && <p className="m-0 mt-0.5 truncate text-[12px] text-ardoise">{project.adresse_complete}</p>}
           {sousLigne}
         </button>
 
-        <div className="mt-3.5 flex items-center border-t border-trait pt-3.5" style={{ fontVariantNumeric: "tabular-nums" }}>
+        <div className="mt-3 flex items-center border-t border-trait pt-3" style={{ fontVariantNumeric: "tabular-nums" }}>
           <div className="grid flex-1 grid-cols-3 gap-2.5">
             <Chiffre valeur={formatPrix(prixRevient)} label="Prix de revient" />
             <Chiffre valeur={`${rendement.toFixed(2).replace(".", ",")} %`} label="Rendement" teinte="text-menthe" />

@@ -155,7 +155,7 @@ export default function Analyse() {
       {enWorkflow && <div aria-hidden className="k-halo pointer-events-none absolute -left-[260px] -top-[260px] h-[680px] w-[900px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.13),transparent)" }} />}
       <div
         key={dealId || (nouveau ? "nouveau" : "accueil")}
-        className="p-4 md:p-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
+        className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
       >
         {enWorkflow ? (
           <div className="max-w-6xl mx-auto">
@@ -191,7 +191,7 @@ export default function Analyse() {
         ) : (
           <div className="max-w-[1400px] mx-auto">
             {/* Bandeau : titre, relances, tri, nouveau dossier. */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-6">
               <div className="flex items-baseline gap-3">
                 <h1 className="m-0 text-[26px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[22px]">Dossiers</h1>
                 <span className="text-[13px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
@@ -241,32 +241,32 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 pt-6">
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
                     className="relative rounded-[14px] border border-trait bg-surface-pleine text-left transition-colors hover:border-bord-doux"
                   >
-                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-4 py-3.5 text-left" style={{ background: "transparent" }}>
+                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-4 py-3 text-left" style={{ background: "transparent" }}>
                       <div className="flex items-start gap-2 pr-6">
-                        <Folder className="mt-[3px] h-[15px] w-[15px] flex-shrink-0 text-menthe" strokeWidth={1.7} />
-                        <p className="m-0 line-clamp-2 text-[15.5px] font-medium leading-[1.3] tracking-[-0.01em] text-encre max-md:text-[15px]">
+                        <Folder className="mt-[2px] h-[14px] w-[14px] flex-shrink-0 text-menthe" strokeWidth={1.7} />
+                        <p className="m-0 line-clamp-2 text-[14px] font-medium leading-[1.3] tracking-[-0.01em] text-encre max-md:text-[15px]">
                           {d.titre || d.nom_fichier || d.deal_id}
                         </p>
                         {d.a_relancer && (
                           <span title="À relancer" className="mt-2 flex-shrink-0 text-alerte"><Clock className="w-4 h-4" /></span>
                         )}
                       </div>
-                      <div className="mt-4 flex items-center gap-2">
+                      <div className="mt-3 flex items-center gap-2">
                         <span className="flex items-center gap-1" aria-hidden>
-                          {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[3px] w-3 rounded-full ${n <= (d.etape_max || 1) ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
+                          {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[3px] w-2.5 rounded-full ${n <= (d.etape_max || 1) ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
                         </span>
-                        <span className="text-[12.5px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                        <span className="text-[12px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
                           Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                           {d.statut === "abandonne" ? " · Abandonné" : ""}
                         </span>
                       </div>
-                      <p className="m-0 mt-1.5 truncate text-[12.5px] text-ardoise">
+                      <p className="m-0 mt-1 truncate text-[12px] text-ardoise">
                         {(d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0])}
                         {d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}
                       </p>

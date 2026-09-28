@@ -28,23 +28,23 @@ export default function ClientsCorrespondants({ clients, chargement, configure, 
   const visibles = ouvert ? clients : clients.slice(0, 2);
 
   return (
-    <div className="mt-3.5 border-t border-trait pt-3.5">
+    <div className="mt-3 border-t border-trait pt-3">
       <button type="button" onClick={() => setOuvert((o) => !o)} className="flex w-full items-center gap-2 text-left" style={{ background: "transparent" }}>
         <Users className="h-[15px] w-[15px] flex-shrink-0 text-menthe" />
-        <span className="flex-1 text-[13.5px] text-menthe">
+        <span className="flex-1 text-[12.5px] text-menthe">
           {clients.length} client{clients.length > 1 ? "s" : ""} possible{clients.length > 1 ? "s" : ""}
         </span>
         {clients.length > 2 && <ChevronUp className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "" : "rotate-180"}`} />}
       </button>
 
-      <div className="mt-2.5 flex flex-col gap-2.5">
+      <div className="mt-2 flex flex-col gap-2">
         {visibles.map((c) => (
           <div key={c.nom}>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-[13.5px] text-encre">{c.nom}</span>
-              <span className="flex-shrink-0 whitespace-nowrap text-[12.5px] text-ardoise">{[somme(c.budget), c.statut].filter(Boolean).join(" · ")}</span>
+              <span className="truncate text-[12.5px] text-encre">{c.nom}</span>
+              <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] text-ardoise">{[somme(c.budget), c.statut].filter(Boolean).join(" · ")}</span>
             </div>
-            <p className="m-0 mt-0.5 text-[12.5px] leading-[1.45] text-ardoise">{c.raisons.join(" · ")}</p>
+            <p className="m-0 mt-0.5 text-[11.5px] leading-[1.45] text-ardoise">{c.raisons.join(" · ")}</p>
           </div>
         ))}
       </div>

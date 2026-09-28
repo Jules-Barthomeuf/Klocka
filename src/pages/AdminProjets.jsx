@@ -1328,11 +1328,11 @@ export default function AdminProjets() {
   ];
 
   return (
-    <div className="relative min-h-screen px-5 py-7 text-encre md:px-9 md:py-8">
+    <div className="relative min-h-screen px-5 py-7 text-encre md:px-10 md:py-9">
       <div className="relative max-w-[1400px] mx-auto">
         {/* En-tête */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-4 max-md:mb-4">
-          <h1 className="m-0 text-[31px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
+          <h1 className="m-0 text-[26px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[22px]">Gestion des projets</h1>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
             className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
             <Plus className="w-4 h-4" strokeWidth={1.8} />
@@ -1341,11 +1341,11 @@ export default function AdminProjets() {
         </div>
 
         {/* Les chiffres : une carte, cinq colonnes séparées d'un filet. */}
-        <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-[16px] border border-trait bg-surface-pleine sm:grid-cols-3 lg:grid-cols-5 max-md:mb-4">
+        <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-[14px] border border-trait bg-surface-pleine sm:grid-cols-3 lg:grid-cols-5 max-md:mb-4">
           {CHIFFRES.map((c, i) => (
-            <div key={i} className={`px-6 py-5 max-md:px-4 max-md:py-3.5 ${i > 0 ? "border-l border-trait max-md:border-l-0" : ""} ${i >= 2 ? "max-lg:border-t max-lg:border-trait" : ""}`}>
-              <div className={`text-[30px] font-normal leading-none tabular-nums max-md:text-[24px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
-              <div className="mt-2 text-[13.5px] text-ardoise">{c.label}</div>
+            <div key={i} className={`px-5 py-4 max-md:px-4 max-md:py-3.5 ${i > 0 ? "border-l border-trait max-md:border-l-0" : ""} ${i >= 2 ? "max-lg:border-t max-lg:border-trait" : ""}`}>
+              <div className={`text-[24px] font-normal leading-none tabular-nums max-md:text-[20px] ${c.accent || "text-encre"}`}>{c.valeur}</div>
+              <div className="mt-1.5 text-[12.5px] text-ardoise">{c.label}</div>
             </div>
           ))}
         </div>
@@ -1382,7 +1382,7 @@ export default function AdminProjets() {
         </div>
 
         {/* Grille */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5 max-md:gap-4 items-start">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 max-md:gap-4 items-start">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}

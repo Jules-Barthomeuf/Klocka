@@ -252,6 +252,11 @@ input[type=range] { accent-color: rgb(var(--k-menthe-rgb)); }
 button.k-case:not([aria-checked="true"]):hover { border-color: var(--k-bord-vif); }
 
 /* Page projet — identité éditoriale (maquette "Page Projet Klocka") */
+/* Le registre des maquettes (28 septembre 2026), sur la page projet et son
+   panneau d'édition : les intitulés ne sont plus en petites capitales
+   espacées, ils se lisent en minuscules grises, un cran plus grands. */
+.k-sobre .uppercase { text-transform: none; letter-spacing: -0.005em; }
+.k-sobre .uppercase:is([class*="text-[10"], [class*="text-[11px]"], [class*="text-[11.5px]"], .text-xs) { font-size: 12.5px; }
 .projet-editorial ::selection { background: rgb(var(--k-menthe-rgb) / .3); }
 
 /* Montserrat porte moins de graisse qu'Instrument Sans à poids égal : le 300

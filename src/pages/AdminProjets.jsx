@@ -1073,15 +1073,15 @@ export default function AdminProjets() {
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
     // Le dossier de pré-analyse dont ce projet est issu, s'il y en a un.
     const dossierLie = editingProject?.deal_id || formData.deal_id || null;
-    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif transition-colors";
+    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2 text-[13.5px] text-encre hover:border-bord-vif transition-colors";
     const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
     return (
-      <div className="h-screen flex flex-col bg-fond text-encre overflow-hidden">
+      <div className="h-screen flex flex-col text-encre overflow-hidden">
         {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
-        <div className="flex-shrink-0 px-6 max-md:px-4 pt-4 pb-3.5 border-b border-trait">
+        <div className="flex-shrink-0 px-8 max-md:px-4 pt-6 pb-4 border-b border-trait">
           <div className="flex items-start gap-5">
             <h1
-              className="alx-mont flex-1 min-w-0 m-0 text-[clamp(22px,2.4vw,34px)] font-medium tracking-[-.02em] leading-[1.06] text-white"
+              className="flex-1 min-w-0 m-0 text-[26px] max-md:text-[22px] font-normal tracking-[-.02em] leading-[1.15] text-encre"
               style={{ textWrap: "pretty" }}
             >
               {formData.titre || "Nouveau projet"}
@@ -1090,7 +1090,7 @@ export default function AdminProjets() {
               <button
                 onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")}
                 aria-label="Ouvrir la page telle que le client la verra" title="Ouvrir la page telle que le client la verra"
-                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-[#2a2a2a] text-[#8a8a8a] hover:text-encre hover:border-bord-vif transition-colors inline-flex items-center justify-center"
+                className="flex-shrink-0 w-[34px] h-[34px] rounded-full border border-trait bg-surface-pleine text-ardoise hover:text-encre hover:border-bord-vif transition-colors inline-flex items-center justify-center"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -1108,7 +1108,7 @@ export default function AdminProjets() {
             <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[12.5px] font-semibold text-fond bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13.5px] text-sur-menthe bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
             </button>
@@ -1163,11 +1163,11 @@ export default function AdminProjets() {
           ) : ongletPage === "simulateur" ? (
             <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
               {/* La barre d'onglets de la page reste accessible au-dessus des chiffres. */}
-              <div className="flex flex-wrap gap-x-7 gap-y-2 pt-6 pb-6 overflow-x-auto">
+              <div className="flex flex-wrap gap-2 pt-6 pb-6 overflow-x-auto">
                 {[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => (
                   <button key={o.value} onClick={() => { setOngletPage(o.value); const f = FORM_PAR_ONGLET[o.value]; if (f) setActiveTab(f); }}
-                    className={`text-[11px] tracking-[0.16em] uppercase py-1 border-b whitespace-nowrap transition-colors
-                      ${ongletPage === o.value ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`}>
+                    className={`rounded-full border px-4 py-2 text-[13.5px] whitespace-nowrap transition-colors
+                      ${ongletPage === o.value ? "border-encre bg-encre text-fond" : "border-trait bg-surface-pleine text-craie hover:border-bord-vif hover:text-encre"}`}>
                     {o.label}
                   </button>
                 ))}
@@ -1195,21 +1195,21 @@ export default function AdminProjets() {
         </div>
 
         <aside
-          className="min-h-0 flex flex-col bg-black border-l-2 border-encre/80 max-lg:border-l-0 max-lg:border-t-2 max-lg:min-h-[60vh]"
+          className="k-sobre min-h-0 flex flex-col bg-rail border-l border-trait max-lg:border-l-0 max-lg:border-t max-lg:min-h-[60vh]"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >
           <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => { clicDroite.current = true; setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-menthe text-sur-menthe border-menthe font-medium" : "bg-transparent text-[#b8b8b8] border-bord hover:border-bord-vif hover:text-encre"}`}>
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-encre text-fond border-encre" : "bg-surface-pleine text-craie border-trait hover:text-encre hover:border-bord-vif"}`}>
                 {t.label}
               </button>
             ))}
           </div>
 
           <div className="flex-shrink-0 px-[18px] pb-3 flex flex-col gap-3">
-            <p className="m-0 mt-1 text-[11px] tracking-[.18em] uppercase text-brume">
+            <p className="m-0 mt-1 text-[15px] text-encre">
               {editorTabs.find((t) => t.value === activeTab)?.label || "Modifier"}
             </p>
           </div>

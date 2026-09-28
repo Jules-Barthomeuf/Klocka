@@ -270,7 +270,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       transition={{ duration: 0.4 }}
       // `overflow-x-clip` et non `hidden` : `hidden` crée un conteneur de
       // défilement qui neutralise le `sticky` du rail d'analyse.
-      className="projet-editorial font-projet min-h-screen text-encre overflow-x-clip">
+      className="projet-editorial k-sobre font-projet min-h-screen text-encre overflow-x-clip">
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
@@ -450,7 +450,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (
-          <TabsList className="w-full min-w-0 flex justify-start flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden gap-x-7 gap-y-2 max-md:gap-x-5 bg-transparent border-0 mb-10 max-md:mb-6 rounded-none px-0 h-auto pt-1 pb-6 max-md:pb-4 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <TabsList className="w-full min-w-0 h-auto flex justify-start flex-wrap max-md:flex-nowrap max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden gap-2 bg-transparent border-0 border-b-0 p-0 mb-10 max-md:mb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "marche", l: "Marché" },
               { v: "bien", l: "Bien" },
@@ -462,7 +462,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               // affiche, leur contenu est rendu par le parent.
               ...ongletsSupplementaires.map((o) => ({ v: o.value, l: o.label })),
             ].map(({ v, l }) => (
-              <TabsTrigger key={v} value={v} className="text-[11px] max-md:text-[11px] tracking-[0.16em] uppercase px-0 py-1 h-auto rounded-none whitespace-nowrap bg-transparent text-ardoise hover:text-encre data-[state=active]:text-encre transition-colors duration-200">
+              <TabsTrigger key={v} value={v} className="h-auto rounded-full border border-trait bg-surface-pleine px-4 py-2 text-[13.5px] normal-case tracking-normal whitespace-nowrap text-craie shadow-none transition-colors hover:border-bord-vif hover:text-encre data-[state=active]:border-encre data-[state=active]:bg-encre data-[state=active]:text-fond data-[state=active]:shadow-none after:hidden">
                 {l}
               </TabsTrigger>
             ))}

@@ -13,7 +13,8 @@ export default {
   			// d'analyse : Montserrat, toujours en capitales.
   			pill: ['Montserrat', 'Instrument Sans', 'system-ui', 'sans-serif'],
   			// La page projet, titres et onglets compris.
-  			projet: ['Montserrat', 'Instrument Sans', 'system-ui', 'sans-serif'],
+  			// La page projet suit la police de l'application (maquettes du 28 septembre).
+  			projet: ['var(--k-police, "Instrument Sans")', 'Inter', 'system-ui', 'sans-serif'],
   			// Le titre d'apparat : la page Projet et l'accueil d'ALX.
   			// `font-cormorant` demandait une famille qui n'était nulle part ;
   			// onze titres retombaient en silence sur la police par défaut.

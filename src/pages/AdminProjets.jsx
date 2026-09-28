@@ -12,7 +12,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
-import LigneProjet, { TEINTE_ETAPE } from "../components/admin/LigneProjet";
+import { TEINTE_ETAPE } from "../components/admin/LigneProjet";
+import AdminProjectCard from "../components/admin/AdminProjectCard";
+import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
 import { DialogueAssignerClient } from "../components/admin/AssignationProjets";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -1400,7 +1402,7 @@ export default function AdminProjets() {
         </div>
 
         {/* Grille */}
-        <div className="flex flex-col gap-3">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4 items-start">
           {projetsVisibles.map((project, idx) => (
             <motion.div
               key={project.id}
@@ -1408,10 +1410,12 @@ export default function AdminProjets() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: "easeOut", delay: Math.min(idx * 0.02, 0.25) }}
             >
-              <LigneProjet project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} clients={correspondances?.par_projet?.[project.id]}
+              <AdminProjectCard project={project} onEdit={handleEdit} onDuplicate={handleDuplicate} onDelete={handleDelete} onArchive={handleArchive} onShadow={handleShadow} onShadowWithNav={handleShadowWithNav} shadowRecord={getShadowForProject(project.id)} complement={<ClientsCorrespondants
+                clients={correspondances?.par_projet?.[project.id]}
                 chargement={chargementCorrespondances}
                 configure={correspondances?.configure}
-                erreur={erreurCorrespondances} />
+                erreur={erreurCorrespondances}
+              />} />
             </motion.div>
           ))}
 

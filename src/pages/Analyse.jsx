@@ -191,16 +191,16 @@ export default function Analyse() {
         ) : (
           <div className="max-w-[1400px] mx-auto">
             {/* Bandeau : titre, relances, tri, nouveau dossier. */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-7">
               <div className="flex items-baseline gap-3">
-                <h1 className="m-0 text-[26px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[22px]">Dossiers</h1>
-                <span className="text-[13px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
+                <h1 className="m-0 text-[30px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Dossiers</h1>
+                <span className="text-[13.5px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className={`text-[12.5px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
+                <span className={`mr-2 text-[14px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
                   {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
                 </span>
-                <label className="relative inline-flex items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-3 py-1.5 text-[12.5px] text-craie">
+                <label className="relative inline-flex items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[14px] text-encre">
                   <SlidersHorizontal className="h-3.5 w-3.5 text-ardoise" />
                   <span>{TRIS.find((t) => t.id === tri)?.label}</span>
                   <ChevronDown className="h-3.5 w-3.5 text-ardoise" />
@@ -210,22 +210,22 @@ export default function Analyse() {
                 </label>
                 <button
                   onClick={() => setCreationOuverte(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-5 py-2.5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Nouveau dossier
+                  <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
               </div>
             </div>
 
             {/* Recherche et étapes, sur une ligne. */}
-            <div className="flex flex-wrap items-center gap-2 pb-1">
-              <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-1.5 focus-within:border-bord-doux max-md:basis-full">
+            <div className="flex flex-wrap items-center gap-2.5 pb-2">
+              <div className="flex min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 focus-within:border-bord-doux max-md:basis-full">
                 <Search className="h-3.5 w-3.5 flex-shrink-0 text-ardoise" />
-                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[13px] text-encre outline-none placeholder:text-brume" />
+                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
               </div>
               {[[0, "Toutes"], [2, "Pré-analyse"], [3, "Analyse"], [4, "Vidéo"], [5, "Plateforme"]].map(([v, mot]) => (
                 <button key={v} type="button" onClick={() => setEtapeFiltre(v)}
-                  className={`rounded-full px-3 py-[5px] text-[13px] transition-colors ${etapeFiltre === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
+                  className={`rounded-full px-4 py-2.5 text-[14px] transition-colors ${etapeFiltre === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
                   {mot}
                 </button>
               ))}
@@ -241,32 +241,32 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 pt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-7">
                 {dossiers.map((d) => (
                   <div
                     key={d.deal_id}
-                    className="relative rounded-[14px] border border-trait bg-surface-pleine text-left transition-colors hover:border-bord-doux"
+                    className="relative rounded-[18px] border border-trait bg-surface-pleine text-left shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux"
                   >
-                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full px-4 py-3 text-left" style={{ background: "transparent" }}>
-                      <div className="flex items-start gap-2 pr-6">
-                        <Folder className="mt-[2px] h-[14px] w-[14px] flex-shrink-0 text-menthe" strokeWidth={1.7} />
-                        <p className="m-0 line-clamp-2 text-[14px] font-medium leading-[1.3] tracking-[-0.01em] text-encre max-md:text-[15px]">
+                    <button onClick={() => montrerDeal(d.deal_id)} className="flex min-h-[150px] w-full flex-col px-5 py-5 text-left" style={{ background: "transparent" }}>
+                      <div className="flex items-start gap-3 pr-7">
+                        <Folder className="mt-[3px] h-4 w-4 flex-shrink-0 text-menthe" strokeWidth={1.7} />
+                        <p className="m-0 line-clamp-2 text-[16px] font-medium leading-[1.3] tracking-[-0.01em] text-encre max-md:text-[15px]">
                           {d.titre || d.nom_fichier || d.deal_id}
                         </p>
                         {d.a_relancer && (
                           <span title="À relancer" className="mt-2 flex-shrink-0 text-alerte"><Clock className="w-4 h-4" /></span>
                         )}
                       </div>
-                      <div className="mt-3 flex items-center gap-2">
+                      <div className="mt-auto flex items-center gap-2.5 pt-6">
                         <span className="flex items-center gap-1" aria-hidden>
-                          {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[3px] w-2.5 rounded-full ${n <= (d.etape_max || 1) ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
+                          {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[3px] w-3.5 rounded-full ${n <= (d.etape_max || 1) ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
                         </span>
-                        <span className="text-[12px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                        <span className="text-[13.5px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
                           Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                           {d.statut === "abandonne" ? " · Abandonné" : ""}
                         </span>
                       </div>
-                      <p className="m-0 mt-1 truncate text-[12px] text-ardoise">
+                      <p className="m-0 mt-2.5 truncate text-[13.5px] text-ardoise">
                         {(d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0])}
                         {d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}
                       </p>
@@ -275,7 +275,7 @@ export default function Analyse() {
                     {/* Renommer / abandonner */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
-                      className="absolute top-3.5 right-3.5 text-ardoise hover:text-encre transition-colors"
+                      className="absolute top-5 right-5 text-ardoise hover:text-encre transition-colors"
                       aria-label="Actions" title="Actions" style={{ background: "transparent" }}
                     >
                       <MoreHorizontal className="w-4 h-4" />

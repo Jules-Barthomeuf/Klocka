@@ -247,35 +247,41 @@ export default function Analyse() {
                     key={d.deal_id}
                     className="relative rounded-[18px] border border-trait bg-surface-pleine text-left shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux"
                   >
-                    <button onClick={() => montrerDeal(d.deal_id)} className="flex min-h-[150px] w-full flex-col px-5 py-5 text-left" style={{ background: "transparent" }}>
-                      <div className="flex items-start gap-3 pr-7">
-                        <Folder className="mt-[3px] h-4 w-4 flex-shrink-0 text-menthe" strokeWidth={1.7} />
-                        <p className="m-0 line-clamp-2 text-[16px] font-medium leading-[1.3] tracking-[-0.01em] text-encre max-md:text-[15px]">
-                          {d.titre || d.nom_fichier || d.deal_id}
-                        </p>
-                        {d.a_relancer && (
-                          <span title="À relancer" className="mt-2 flex-shrink-0 text-alerte"><Clock className="w-4 h-4" /></span>
-                        )}
-                      </div>
-                      <div className="mt-auto flex items-center gap-2.5 pt-6">
-                        <span className="flex items-center gap-1" aria-hidden>
-                          {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[3px] w-3.5 rounded-full ${n <= (d.etape_max || 1) ? "bg-menthe" : "bg-encre/[0.12]"}`} />)}
-                        </span>
-                        <span className="text-[13.5px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
+                    <button onClick={() => montrerDeal(d.deal_id)} className="block w-full overflow-hidden rounded-[18px] text-left" style={{ background: "transparent" }}>
+                      {/* La progression : cinq segments en haut de la carte. */}
+                      <span className="flex gap-[3px]" aria-hidden>
+                        {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-[5px] flex-1 ${n <= (d.etape_max || 1) ? (d.statut === "abandonne" ? "bg-ardoise" : "bg-menthe") : "bg-encre/[0.13]"}`} />)}
+                      </span>
+                      <span className="block px-6 pb-4 pt-5">
+                        <span className="flex items-center gap-2 pr-8 text-[11.5px] font-semibold uppercase tracking-[.08em]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
                           Étape {d.etape_max || 1} · {ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
                           {d.statut === "abandonne" ? " · Abandonné" : ""}
+                          {d.a_relancer && <Clock className="h-3.5 w-3.5 text-alerte" aria-label="À relancer" />}
                         </span>
-                      </div>
-                      <p className="m-0 mt-2.5 truncate text-[13.5px] text-ardoise">
-                        {(d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0])}
-                        {d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}
-                      </p>
+                        <span className="mt-3 line-clamp-2 block min-h-[2.6em] text-[17px] font-normal leading-[1.3] tracking-[-0.01em] text-encre">
+                          {d.titre || d.nom_fichier || d.deal_id}
+                        </span>
+                        <span className="mt-3 flex items-center gap-3 border-t border-trait pt-3.5">
+                          {(() => {
+                            const qui = d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0];
+                            const premier = String(d.responsables?.[0] || d.responsable || "").split("@")[0];
+                            const initiales = premier.split(/[.\s_-]+/).filter(Boolean).slice(0, 2).map((m) => m[0]).join("").toUpperCase() || "?";
+                            return (
+                              <>
+                                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-menthe/[0.14] text-[10.5px] font-semibold text-menthe">{initiales}</span>
+                                <span className="min-w-0 flex-1 truncate text-[14px] text-craie">{qui}</span>
+                              </>
+                            );
+                          })()}
+                          {d.maj_le && <span className="flex-none text-[13px] text-ardoise tabular-nums">{new Date(d.maj_le).toLocaleDateString("fr-FR")}</span>}
+                        </span>
+                      </span>
                     </button>
 
                     {/* Renommer / abandonner */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
-                      className="absolute top-5 right-5 text-ardoise hover:text-encre transition-colors"
+                      className="absolute top-[26px] right-5 text-ardoise hover:text-encre transition-colors"
                       aria-label="Actions" title="Actions" style={{ background: "transparent" }}
                     >
                       <MoreHorizontal className="w-4 h-4" />

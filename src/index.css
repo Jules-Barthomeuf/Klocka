@@ -239,6 +239,16 @@ body {
   letter-spacing: -0.005em;
 }
 h1, h2, h3 { letter-spacing: -0.02em; }
+/* Les chiffres parlent comme le salut du plan de travail : même police, graisse
+   normale. Un chiffre se reconnaît à ses chasses fixes (classe `tabular-nums`
+   ou style `font-variant-numeric`) ; le mono, Montserrat et Figtree d'ALX leur
+   donnaient cinq voix, le medium et le semibold les épaississaient. */
+.tabular-nums,
+[style*="tabular-nums"],
+[style*="tabular-nums"] * { font-family: var(--k-police, 'Instrument Sans'), Inter, system-ui, -apple-system, sans-serif; }
+.tabular-nums:is(.font-medium, .font-semibold, .font-bold),
+[style*="tabular-nums"]:is(.font-medium, .font-semibold, .font-bold),
+[style*="tabular-nums"] :is(.font-medium, .font-semibold, .font-bold) { font-weight: 400; }
 input[type=range] { accent-color: rgb(var(--k-menthe-rgb)); }
 ::selection { background: rgb(var(--k-menthe-rgb) / .3); }
 

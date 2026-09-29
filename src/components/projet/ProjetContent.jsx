@@ -16,7 +16,6 @@ import LocataireLiensSociaux from "./LocataireLiensSociaux";
 import { J } from "@/design/jetons";
 import MarcheProjet from "./MarcheProjet";
 import StreetViewRue from "./StreetViewRue";
-import { statutLabels } from "./CarteProjet";
 import { EnTeteOnglet, Carte } from "./Cartes";
 import BienProjet from "./BienProjet";
 import LocataireProjet from "./LocataireProjet";
@@ -128,11 +127,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
   // doit pas condamner les suivantes.
   const [urlsMortes, setUrlsMortes] = useState(() => new Set());
-  // Les photos qui répondent encore ; la première tient le hero.
+  // Les photos qui répondent encore ; le compteur du hero les fait défiler.
   const photosVivantes = (project.photos || []).filter((u) => u && !urlsMortes.has(u));
-  const photoMontree = photosVivantes[0] || null;
-  // Les vignettes à côté des onglets : toutes les photos sauf celle du hero.
-  const vignettes = photosVivantes.filter((u) => u !== photoMontree);
+  const [indexPhoto, setIndexPhoto] = useState(0);
+  const photoMontree = photosVivantes.length ? photosVivantes[indexPhoto % photosVivantes.length] : null;
   const rueDisponible = !!(project.adresse_complete || (project.latitude && project.longitude));
   const [streetView, setStreetView] = useState(false);
   // La pièce ouverte à droite quand on clique une case.
@@ -355,34 +353,34 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
             )}
+            {/* Le compteur fait avancer la photo du hero, à la main. */}
+            {!streetView && photosVivantes.length > 1 && (
+              <button
+                onClick={() => setIndexPhoto((i) => (i + 1) % photosVivantes.length)}
+                aria-label="Photo suivante"
+                className="k-verre inline-flex h-8 items-center gap-1 rounded-full px-3.5 text-[13px]"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {(indexPhoto % photosVivantes.length) + 1} / {photosVivantes.length}
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Habillage masqué en Street View pour laisser le panorama réactif. */}
-        <div className={`pointer-events-none relative mt-auto flex flex-wrap items-end justify-between gap-6 [&_button]:pointer-events-auto ${streetView ? "hidden" : ""}`}>
-          <div className="k-sur-photo flex-[1_1_360px] min-w-0 max-w-[640px] flex flex-col gap-3 pb-3 max-md:pb-0">
-            <span className="self-start inline-flex h-7 items-center gap-2 rounded-full px-3 text-[12.5px] font-medium backdrop-blur-md" style={{ background: "rgba(12,13,12,0.45)", color: "white" }}>
-              <span className="h-1.5 w-1.5 rounded-full bg-menthe" />{statutLabels[project.statut] || "Prospect"}
-            </span>
-            <h1 className="m-0 text-[44px] max-md:text-[28px] font-medium leading-[1.08] tracking-[-0.02em]" style={{ textWrap: "pretty", color: "white" }}>{project.titre}</h1>
-          </div>
-          <div className="k-verre flex-[0_0_340px] max-md:flex-[1_1_100%] flex flex-col gap-5 rounded-[16px] p-6 max-md:p-5 shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
-            <div className="grid grid-cols-2 gap-4" style={{ fontVariantNumeric: "tabular-nums" }}>
-              <div className="flex flex-col gap-1">
-                <span className="text-[26px] max-md:text-[22px] font-medium tracking-[-0.01em] whitespace-nowrap">{formatCurrency(prixRevientCalcule)}</span>
-                <span className="text-[12px] text-ardoise">Prix de revient</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[26px] max-md:text-[22px] font-medium tracking-[-0.01em] text-menthe whitespace-nowrap">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : "—"}</span>
-                <span className="text-[12px] text-ardoise">Rendement net</span>
-              </div>
+        {/* Habillage masqué en Street View pour laisser le panorama réactif :
+            le titre à gauche, les deux chiffres à droite, à même la photo. */}
+        <div className={`k-sur-photo pointer-events-none relative mt-auto flex flex-wrap items-end justify-between gap-x-10 gap-y-5 pb-2 pr-4 max-md:pr-0 ${streetView ? "hidden" : ""}`} style={{ color: "white" }}>
+          <h1 className="m-0 flex-[1_1_360px] min-w-0 max-w-[760px] text-[40px] max-md:text-[28px] font-medium leading-[1.1] tracking-[-0.02em]" style={{ textWrap: "pretty", color: "white" }}>{project.titre}</h1>
+          <div className="flex gap-12 max-md:gap-8" style={{ fontVariantNumeric: "tabular-nums" }}>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] whitespace-nowrap">{formatCurrency(prixRevientCalcule)}</span>
+              <span className="text-[13px] text-white/75">Prix de revient</span>
             </div>
-            <button
-              onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="h-11 rounded-full bg-menthe text-sur-menthe text-[14px] font-medium hover:bg-menthe-survol transition-colors"
-            >
-              Simulateur complet →
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] text-menthe whitespace-nowrap">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : "—"}</span>
+              <span className="text-[13px] text-white/75">Rendement net</span>
+            </div>
           </div>
         </div>
       </div>
@@ -395,8 +393,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
           {!apercuOnglet && (
-          <div className="mb-12 max-md:mb-8 flex flex-wrap items-center justify-between gap-4">
-          <TabsList className="h-auto max-w-full inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+          // La barre reste en haut au défilement, sans bande de fond : seules
+          // les deux pilules, en verre, passent au-dessus du contenu.
+          <div className="sticky top-0 max-md:top-14 z-30 -mx-2 mb-10 max-md:mb-7 flex flex-wrap items-center justify-between gap-4 px-2 py-3">
+          <TabsList className="h-auto max-w-full inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "marche", l: "Marché" },
               { v: "bien", l: "Bien" },
@@ -413,21 +413,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               </TabsTrigger>
             ))}
           </TabsList>
-          {/* Les autres photos, en petit sous la carte du simulateur : un
-              clic les ouvre en grand. */}
-          {vignettes.length > 0 && (
-            <div className="flex items-center gap-2 max-md:w-full">
-              {vignettes.slice(0, 5).map((u, k) => (
-                <button key={u} type="button" onClick={() => setSelectedImage(u)} aria-label={`Voir la photo ${k + 2}`}
-                  className="relative h-12 w-16 flex-none overflow-hidden rounded-[10px] border border-trait transition-opacity hover:opacity-80">
-                  <img src={u} alt="" loading="lazy" onError={() => setUrlsMortes((m) => new Set(m).add(u))} className="h-full w-full object-cover" />
-                  {k === 4 && vignettes.length > 5 && (
-                    <span className="absolute inset-0 grid place-items-center bg-black/55 text-[13px] font-medium" style={{ color: "white" }}>+{vignettes.length - 5}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px]">
+            <button
+              onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+              className="h-9 rounded-full bg-menthe px-4 text-[14px] text-sur-menthe hover:bg-menthe-survol transition-colors"
+            >
+              Simulateur complet →
+            </button>
+          </div>
           </div>
           )}
 

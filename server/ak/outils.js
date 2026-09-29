@@ -220,7 +220,9 @@ export async function preanalyserMailRecu(id, user) {
   // Une fiche transférée par l'équipe n'a pas d'agent dedans : l'expéditeur n'en devient pas un.
   const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: m.interne || estInterne(m.de_email) ? null : undefined });
   const lot = d.lots?.[0];
-  return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || m.objet, verdict: lot?.synthese?.verdict || null };
+  // Un mail à plusieurs fiches a donné plusieurs dossiers : les suivants aussi.
+  const autres = (d.dossiers || []).slice(1).map((x) => ({ deal_id: x.deal_id, titre: nommer(x.deal_id) || x.lots?.[0]?.synthese?.titre || null }));
+  return { ok: true, cree: true, deal_id: d.deal_id, titre: lot?.synthese?.titre || m.objet, verdict: lot?.synthese?.verdict || null, autres };
 }
 
 // --- Les agents immobiliers --------------------------------------------------
@@ -402,6 +404,9 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
   const fichiers = [];
   let dealId = null;
   let agent = null;
+  // Un mail à plusieurs fiches donne un dossier par fiche : chacune garde sa
+  // pièce (son nom de fichier) pour son Drive.
+  let parFiche = null;
 
   const ids = [...new Set([mail_id, ...(mail_ids || [])].filter(Boolean))];
   const mails = ids.map((id) => Records.get('MailRecu', id));
@@ -415,11 +420,27 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
     if (premier.deal_id && Records.findBy('Deal', 'deal_id', premier.deal_id)) {
       dealId = premier.deal_id;
       etapes.push('dossier déjà créé depuis ce mail, repris');
+      // Un mail à plusieurs fiches préanalysé d'un bloc (avant la lecture fiche
+      // par fiche) : les fiches restantes reçoivent leur dossier.
+      const { piecesFiche } = await import('../deal/fiches-auto.js');
+      if (piecesFiche(premier).length > 1 && !(premier.deal_ids?.length > 1)) {
+        const { completerFichesDuMail } = await import('../deal/preanalyser-mail.js');
+        const c = await completerFichesDuMail(premier, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: agent });
+        if (c.ok) {
+          parFiche = c.dossiers.map((x) => ({ deal_id: x.deal_id, piece: Records.findBy('Deal', 'deal_id', x.deal_id)?.source_mail?.piece || null }));
+          etapes.push(`${c.dossiers.length} autre${c.dossiers.length > 1 ? 's' : ''} fiche${c.dossiers.length > 1 ? 's' : ''} du mail : un dossier chacune (${c.ecartee} avait déjà le sien)`);
+        } else etapes.push(`autres fiches du mail non traitées : ${c.error}`);
+      }
     } else {
       const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
       const d = await preanalyserMail(premier, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: agent });
       dealId = d.deal_id;
-      etapes.push(`dossier créé depuis le mail de ${premier.de || premier.de_email}${interne ? ' (interne : pas d\'agent rattaché)' : ''}`);
+      if (d.dossiers?.length > 1) {
+        parFiche = d.dossiers.map((x) => ({ deal_id: x.deal_id, piece: Records.findBy('Deal', 'deal_id', x.deal_id)?.source_mail?.piece || null }));
+        etapes.push(`${d.dossiers.length} fiches dans le mail de ${premier.de || premier.de_email} : un dossier par fiche${interne ? ' (interne : pas d\'agent rattaché)' : ''}`);
+      } else {
+        etapes.push(`dossier créé depuis le mail de ${premier.de || premier.de_email}${interne ? ' (interne : pas d\'agent rattaché)' : ''}`);
+      }
     }
     // Les pièces de tous les mails, pour le Drive ; celles des autres mails
     // sont aussi déposées sur le dossier (bail, PV, diagnostics…).
@@ -458,47 +479,61 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
       catch (e) { etapes.push(`${nomDe(c)} non déposé : ${e?.message || e}`); }
     }
   }
-  const titre = nommer(dealId);
-  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  // 2 et 3, pour chaque dossier : son Drive, puis son marché.
+  const suite = async (idDossier, fichiersDossier, prefixe = '') => {
+    const titre = nommer(idDossier);
+    const deal = Records.findBy('Deal', 'deal_id', idDossier);
 
-  // 2. Le Drive : le dossier du deal, avec les pièces d'origine dedans.
-  let drive = null;
-  try {
-    const { classerDansDrive } = await import('../google-drive.js');
-    const { nomDossierDrive } = await import('../deal/nom-drive.js');
-    const r = await classerDansDrive(COMPTE, nomDossierDrive(deal), fichiers, CHEMIN_UPLOADS);
-    if (!deal.drive_folder_id) Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-    drive = r.folder_url;
-    etapes.push(`Drive : ${r.envoyes.length} fichier${r.envoyes.length > 1 ? 's' : ''} rangé${r.envoyes.length > 1 ? 's' : ''}${r.erreurs.length ? `, ${r.erreurs.length} raté(s)` : ''}`);
-  } catch (e) {
-    etapes.push(`Drive raté : ${e?.message || e}`);
-  }
-
-  // 3. Le marché du bien sur Data-B, rangé dans le lot : la valeur locative
-  // de la rue, du quartier et de la ville, et les cessions de fonds autour.
-  // K-Data n'est pas au point (29 septembre 2026) : il ne part que si la
-  // personne nomme ses outils.
-  const adresse = adresseDuDeal(deal);
-  let kdata = null;
-  if (adresse && Array.isArray(outils) && outils.length) {
-    const { lancerAnalyses, ranger } = await import('../kdata.js');
-    const r = lancerAnalyses({ adresse, outils, reglages: {} }, user);
-    if (r.ok) {
-      ranger(r.ids, dealId);
-      kdata = outils;
-      fond({ genre: 'kdata', libelle: `K-Data sur ${titre || adresse} : ${outils.join(', ')}`, ids: r.ids, deal_id: dealId });
-      etapes.push(`K-Data lancé : ${outils.join(', ')}`);
-    } else etapes.push(`K-Data non lancé : ${r.error}`);
-  } else if (adresse) {
-    const { lectureDataB } = await import('../data-b-assistant.js');
-    for (const [quoi, mot] of [['valeur_locative', 'valeur locative'], ['cessions_fonds', 'cessions de fonds']]) {
-      try {
-        const r = await lectureDataB({ quoi, deal_id: dealId }, user);
-        etapes.push(r.ok ? `Data-B : ${mot} rangée dans le dossier` : `Data-B, ${mot} non lue : ${r.message}`);
-      } catch (e) { etapes.push(`Data-B, ${mot} non lue : ${e?.message || e}`); }
+    // 2. Le Drive : le dossier du deal, avec les pièces d'origine dedans.
+    let drive = null;
+    try {
+      const { classerDansDrive } = await import('../google-drive.js');
+      const { nomDossierDrive } = await import('../deal/nom-drive.js');
+      const r = await classerDansDrive(COMPTE, nomDossierDrive(deal), fichiersDossier, CHEMIN_UPLOADS);
+      if (!deal.drive_folder_id) Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+      drive = r.folder_url;
+      etapes.push(`${prefixe}Drive : ${r.envoyes.length} fichier${r.envoyes.length > 1 ? 's' : ''} rangé${r.envoyes.length > 1 ? 's' : ''}${r.erreurs.length ? `, ${r.erreurs.length} raté(s)` : ''}`);
+    } catch (e) {
+      etapes.push(`${prefixe}Drive raté : ${e?.message || e}`);
     }
-  } else etapes.push("Marché non lu : le dossier n'a pas d'adresse lisible");
 
+    // 3. Le marché du bien sur Data-B, rangé dans le lot : la valeur locative
+    // de la rue, du quartier et de la ville, et les cessions de fonds autour.
+    // K-Data n'est pas au point (29 septembre 2026) : il ne part que si la
+    // personne nomme ses outils.
+    const adresse = adresseDuDeal(deal);
+    let kdata = null;
+    if (adresse && Array.isArray(outils) && outils.length) {
+      const { lancerAnalyses, ranger } = await import('../kdata.js');
+      const r = lancerAnalyses({ adresse, outils, reglages: {} }, user);
+      if (r.ok) {
+        ranger(r.ids, idDossier);
+        kdata = outils;
+        fond({ genre: 'kdata', libelle: `K-Data sur ${titre || adresse} : ${outils.join(', ')}`, ids: r.ids, deal_id: idDossier });
+        etapes.push(`${prefixe}K-Data lancé : ${outils.join(', ')}`);
+      } else etapes.push(`${prefixe}K-Data non lancé : ${r.error}`);
+    } else if (adresse) {
+      const { lectureDataB } = await import('../data-b-assistant.js');
+      for (const [quoi, mot] of [['valeur_locative', 'valeur locative'], ['cessions_fonds', 'cessions de fonds']]) {
+        try {
+          const r = await lectureDataB({ quoi, deal_id: idDossier }, user);
+          etapes.push(prefixe + (r.ok ? `Data-B : ${mot} rangée dans le dossier` : `Data-B, ${mot} non lue : ${r.message}`));
+        } catch (e) { etapes.push(`${prefixe}Data-B, ${mot} non lue : ${e?.message || e}`); }
+      }
+    } else etapes.push(prefixe + "Marché non lu : le dossier n'a pas d'adresse lisible");
+    return { titre, drive, kdata };
+  };
+
+  if (parFiche) {
+    const dossiers = [];
+    for (const f of parFiche) {
+      const fichiersDossier = fichiers.filter((x) => x.nom === f.piece);
+      const r = await suite(f.deal_id, fichiersDossier.length ? fichiersDossier : fichiers, `${f.piece || f.deal_id} · `);
+      dossiers.push({ deal_id: f.deal_id, titre: r.titre, drive: r.drive });
+    }
+    return { ok: true, cree: true, deal_id: dossiers[0].deal_id, titre: dossiers[0].titre, dossiers, agent, etapes };
+  }
+  const { titre, drive, kdata } = await suite(dealId, fichiers);
   return { ok: true, cree: true, deal_id: dealId, titre, agent, drive, kdata, etapes };
 }
 

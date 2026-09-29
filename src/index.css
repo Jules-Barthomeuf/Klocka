@@ -225,6 +225,31 @@ button.k-verre:hover { background: rgb(var(--k-surface-pleine-rgb)); }
    bleuté en clair ; le thème clair passe par data-theme, pas par .dark. */
 :root[data-theme="clair"] .bg-grid-pattern { background-image: theme("backgroundImage.grid-pattern-light"); }
 
+/* Les cartes de la page projet, au registre de l'onglet Marché : le fond d'un
+   onglet au repos, 16 px d'arrondi, une ombre douce, et le même motif de
+   grille, posé à 12 px du bord sous le contenu et estompé vers le bas à
+   gauche. En classe, pour que les blocs écrits à la main l'aient aussi. */
+@layer components {
+.k-carte {
+    position: relative;
+    isolation: isolate;
+    border-radius: 16px;
+    border: 1px solid var(--k-trait);
+    background-color: rgb(var(--k-carte-grille-rgb));
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 28px rgba(0,0,0,.06);
+}
+.k-carte::before,
+.k-carte::after { content: ""; position: absolute; inset: 12px; z-index: -1; pointer-events: none; }
+}
+.k-carte::before { background-image: theme("backgroundImage.grid-pattern"); background-size: 30px 30px; background-repeat: repeat; }
+:root[data-theme="clair"] .k-carte::before { background-image: theme("backgroundImage.grid-pattern-light"); }
+/* Une carte sans le motif, quand il gênerait la lecture (la chronologie). */
+.k-carte.sans-grille::before,
+.k-carte.sans-grille::after { display: none; }
+.k-carte::after {
+    background-image: linear-gradient(to top right, rgb(var(--k-carte-grille-rgb) / .9), rgb(var(--k-carte-grille-rgb) / .4), rgb(var(--k-carte-grille-rgb) / .1));
+}
+
 /* En clair, pas de dégradé de fond : ni les halos décoratifs (classe k-halo,
    et ceux de l'accueil), ni les fonds en dégradé Tailwind. Ce qui reste,
    c'est le blanc. */

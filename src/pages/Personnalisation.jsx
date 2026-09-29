@@ -1,5 +1,9 @@
-import React from "react";
-import { Check, Eye, EyeOff, Grip, RotateCcw } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { createPageUrl } from "@/utils";
+import { Check, Eye, EyeOff, Grip, Loader2, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, POLICES, accentHex, themeEffectif } from "@/lib/personnalisation";
@@ -139,15 +143,112 @@ function EditeurMenu({ principales, autres, prefs, changer }) {
   );
 }
 
+// L'assistant Klocka (AK), réglé par chacun pour lui : s'il le prévient en
+// privé quand une fiche arrive, et sa façon de lui répondre (le questionnaire
+// de la page Mon assistant, en entier ici). Réservé à l'équipe : un client n'a
+// pas AK.
+const AVIS = [["oui", "Oui"], ["non", "Non"], ["", "Sans avis"]];
+
+function ReglagesAssistant() {
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError } = useQuery({ queryKey: ["ak-questionnaire"], queryFn: () => base44.request("GET", "/api/ak/questionnaire") });
+  const [reponses, setReponses] = useState(null);
+  const [prevenir, setPrevenir] = useState(null);
+  const [etat, setEtat] = useState("ok");
+  const dernier = useRef(null);
+  const minuteur = useRef(null);
+  useEffect(() => {
+    if (!data || reponses) return;
+    setReponses(data.reponses || {});
+    setPrevenir(!!data.prevenir_fiches);
+  }, [data, reponses]);
+
+  // Chaque choix part après une courte pause, avec l'état complet : le serveur
+  // remplace les réponses d'un bloc.
+  const sauver = (suiteReponses, suitePrevenir) => {
+    dernier.current = { reponses: suiteReponses, prevenir_fiches: suitePrevenir };
+    setEtat("enregistrement");
+    clearTimeout(minuteur.current);
+    minuteur.current = setTimeout(async () => {
+      try {
+        const r = await base44.request("POST", "/api/ak/questionnaire", { body: dernier.current });
+        queryClient.setQueryData(["ak-questionnaire"], (d) => ({ ...d, reponses: r.reponses, consignes: r.consignes, prevenir_fiches: r.prevenir_fiches }));
+        setEtat("ok");
+      } catch {
+        setEtat("erreur");
+      }
+    }, 500);
+  };
+  const choisir = (id, v) => {
+    const suite = { ...reponses };
+    if (v) suite[id] = v; else delete suite[id];
+    setReponses(suite);
+    sauver(suite, prevenir);
+  };
+
+  const themes = [];
+  for (const q of data?.questions || []) {
+    let t = themes.find((x) => x.nom === q.theme);
+    if (!t) themes.push((t = { nom: q.theme, questions: [] }));
+    t.questions.push(q);
+  }
+
+  return (
+    <section className="rounded-[16px] border border-trait bg-surface px-5 py-2 md:px-6 lg:sticky lg:top-6">
+      <div className="flex items-baseline justify-between gap-3 pt-4">
+        <p className={etiq}>Assistant Klocka</p>
+        <span className={`text-[11.5px] ${etat === "erreur" ? "text-alerte" : "text-brume"}`}>{etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré" : ""}</span>
+      </div>
+      {isLoading || (!reponses && !isError) ? (
+        <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+      ) : isError ? (
+        <p className="m-0 py-5 text-[13px] text-ardoise">Réglages de l'assistant indisponibles.</p>
+      ) : (
+        <>
+          <div className="border-b border-trait py-5">
+            <p className="m-0 text-[14px] font-medium text-encre">Me prévenir quand une fiche arrive</p>
+            <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-ardoise">AK t'écrit en privé dans Google Chat : qui l'envoie, les pièces, et s'il la préanalyse. Tu réponds oui ou non.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Pilules valeur={prevenir} options={[[true, "Oui"], [false, "Non"]]} onChoisir={(v) => { setPrevenir(v); sauver(reponses, v); }} />
+            </div>
+          </div>
+          {themes.map((t) => (
+            <div key={t.nom} className="border-b border-trait py-4 last:border-b-0">
+              <p className="m-0 mb-3 text-[12.5px] text-brume">{t.nom}</p>
+              <div className="flex flex-col gap-4">
+                {t.questions.map((q) => (
+                  <div key={q.id}>
+                    <p className="m-0 text-[13.5px] text-encre" title={q.exemple || undefined}>{q.titre}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Pilules valeur={reponses[q.id] || ""} options={AVIS} onChoisir={(v) => choisir(q.id, v)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p className="m-0 pb-4 pt-3 text-[12px] text-brume">
+            Des exemples pour chaque réglage dans <Link to={createPageUrl("MonAssistant")} className="text-craie underline underline-offset-2 hover:text-encre">Mon assistant</Link>.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function Personnalisation() {
   const user = useUser();
   const { prefs, changer, reinitialiser, etat, connecte } = usePersonnalisation();
   const admin = user?.role === "admin";
+  // La vue client (un client, ou un admin qui regarde comme lui) : pas de page
+  // d'ouverture, d'entrées de menu ni de bulle d'assistant, et tout dans une
+  // seule carte.
+  const vueClient = !admin || localStorage.getItem("previewClientMode") === "true";
   const theme = themeEffectif(prefs);
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
   return (
-    <div className="mx-auto w-full max-w-[980px] px-4 py-8 md:px-6 md:py-10">
+    <div className={`mx-auto w-full px-4 py-8 md:px-6 md:py-10 ${vueClient ? "max-w-[980px]" : "max-w-[1400px]"}`}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Personnalisation</h1>
@@ -161,8 +262,11 @@ export default function Personnalisation() {
         </div>
       </header>
 
+      {/* L'équipe a deux colonnes : l'application à gauche, l'assistant à droite. */}
+      <div className={vueClient ? "" : "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]"}>
+      <div className="min-w-0">
       <section className="rounded-[16px] border border-trait bg-surface px-5 py-2 md:px-6">
-        <p className={`${etiq} pt-4`}>Apparence</p>
+        {!vueClient && <p className={`${etiq} pt-4`}>Apparence</p>}
         <Reglage titre="Mode" note="Sombre, clair, ou celui de l'appareil, qui change avec lui.">
           <Pilules valeur={prefs.mode} options={OPTIONS.mode} onChoisir={(v) => changer({ mode: v })} />
         </Reglage>
@@ -195,8 +299,14 @@ export default function Personnalisation() {
         <Reglage titre="Animations" note="Réduites : les transitions et les mouvements s'effacent.">
           <Pilules valeur={prefs.animations} options={OPTIONS.animations} onChoisir={(v) => changer({ animations: v })} />
         </Reglage>
+        {vueClient && (
+          <Reglage titre="Barre latérale" note="Au démarrage. Le chevron la replie ou la déplie ensuite, comme avant.">
+            <Pilules valeur={prefs.barre} options={OPTIONS.barre} onChoisir={(v) => changer({ barre: v })} />
+          </Reglage>
+        )}
       </section>
 
+      {!vueClient && (
       <section className="mt-5 rounded-[16px] border border-trait bg-surface px-5 py-2 md:px-6">
         <p className={`${etiq} pt-4`}>Navigation</p>
         <Reglage titre="Page d'ouverture" note="La page qui s'ouvre quand vous arrivez sur Klocka.">
@@ -212,6 +322,10 @@ export default function Personnalisation() {
           <Pilules valeur={prefs.assistant} options={OPTIONS.assistant} onChoisir={(v) => changer({ assistant: v })} />
         </Reglage>
       </section>
+      )}
+      </div>
+      {!vueClient && <ReglagesAssistant />}
+      </div>
     </div>
   );
 }

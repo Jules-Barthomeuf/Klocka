@@ -43,76 +43,121 @@ export async function versWav(blob, freq = 16000) {
   return new Blob([tampon], { type: "audio/wav" });
 }
 
+// La dictée s'écrit dans le champ pendant qu'on parle, et ne s'arrête que sur
+// le clic de la personne :
+//  - avec la reconnaissance du navigateur, elle est relancée à chaque fois
+//    que le navigateur la coupe (Chrome l'arrête après un silence) ;
+//  - sans elle, ou quand le navigateur la refuse (Safari sans Siri, réseau),
+//    le micro est enregistré par tranches de quelques secondes, et chaque
+//    tranche transcrite s'ajoute au texte dès qu'elle revient.
+const TRANCHE_MS = 4000;
+const REFUS_DU_SERVICE = new Set(["service-not-allowed", "network", "language-not-supported"]);
+
+/** Un morceau d'audio du navigateur, transcrit par le serveur. */
+async function transcrire(blob, type) {
+  const wav = await versWav(new Blob([blob], { type: type || "audio/ogg" }));
+  const octets = new Uint8Array(await wav.arrayBuffer());
+  let binaire = "";
+  for (let i = 0; i < octets.length; i += 0x8000) binaire += String.fromCharCode(...octets.subarray(i, i + 0x8000));
+  const j = await base44.request("POST", "/api/dictee", { body: { audio: btoa(binaire) } });
+  return String(j?.texte || "").trim();
+}
+
+const joindre = (...morceaux) => morceaux.filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+
 /**
  * @param {{ onTexte?: (texte: string, final: boolean) => void, onFin?: (texte: string) => void }} options
- * @returns {{ supporte: boolean, ecoute: boolean, demarrer: () => void, arreter: () => void, erreur: string|null }}
+ *   `onTexte` reçoit tout le texte dicté depuis le clic, à chaque nouveauté.
+ * @returns {{ supporte: boolean, ecoute: boolean, demarrer: () => void, arreter: () => void, erreur: string|null, transcription: boolean }}
  */
 export function useDictee({ onTexte, onFin } = {}) {
   const [ecoute, setEcoute] = useState(false);
   const [erreur, setErreur] = useState(null);
-  const rec = useRef(null);
-  const cumul = useRef("");
+  const [transcription, setTranscription] = useState(false);
   const rappels = useRef({ onTexte, onFin });
   rappels.current = { onTexte, onFin };
 
-  const [transcription, setTranscription] = useState(false);
-  const enregistreur = useRef(null);
-  useEffect(() => () => { rec.current?.abort?.(); enregistreur.current?.stream?.getTracks?.().forEach((t) => t.stop()); }, []);
+  // L'état d'une dictée : voulue tant que la personne n'a pas cliqué pour
+  // arrêter ; le texte acquis (sessions finies, tranches transcrites).
+  const voulue = useRef(false);
+  const acquis = useRef("");
+  const rec = useRef(null);
+  const micro = useRef(null); // { flux, enregistreur, file: Promise }
 
-  // Le repli : enregistrer, puis transcrire au serveur à l'arrêt.
-  const demarrerEnregistrement = useCallback(async () => {
+  const finir = useCallback(() => {
+    voulue.current = false;
+    rec.current = null;
+    setEcoute(false);
+    const texte = acquis.current.trim();
+    if (texte) rappels.current.onFin?.(texte);
+  }, []);
+
+  useEffect(() => () => {
+    voulue.current = false;
+    rec.current?.abort?.();
+    micro.current?.flux?.getTracks?.().forEach((t) => t.stop());
+  }, []);
+
+  // --- Par tranches : enregistrer, transcrire, ajouter -----------------------
+  const demarrerTranches = useCallback(async () => {
     setErreur(null);
     let flux;
     try {
       flux = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       setErreur("Le micro est refusé : autorisez-le dans le navigateur.");
+      finir();
       return;
     }
-    const morceaux = [];
-    const m = new Enregistreur(flux);
-    m.ondataavailable = (e) => { if (e.data?.size) morceaux.push(e.data); };
-    m.onstop = async () => {
-      flux.getTracks().forEach((t) => t.stop());
-      enregistreur.current = null;
-      setEcoute(false);
-      if (!morceaux.length) return;
-      setTranscription(true);
-      try {
-        const wav = await versWav(new Blob(morceaux, { type: m.mimeType || "audio/ogg" }));
-        const octets = new Uint8Array(await wav.arrayBuffer());
-        let binaire = "";
-        for (let i = 0; i < octets.length; i += 0x8000) binaire += String.fromCharCode(...octets.subarray(i, i + 0x8000));
-        const j = await base44.request("POST", "/api/dictee", { body: { audio: btoa(binaire) } });
-        const texte = String(j?.texte || "").trim();
-        if (texte) {
-          rappels.current.onTexte?.(texte, true);
-          rappels.current.onFin?.(texte);
+    // Les tranches se transcrivent l'une après l'autre, dans l'ordre.
+    const etat = { flux, enregistreur: null, file: Promise.resolve() };
+    micro.current = etat;
+    const tranche = () => {
+      const morceaux = [];
+      const m = new Enregistreur(flux);
+      etat.enregistreur = m;
+      m.ondataavailable = (e) => { if (e.data?.size) morceaux.push(e.data); };
+      m.onstop = () => {
+        const encore = voulue.current;
+        if (encore) tranche();
+        if (morceaux.length) {
+          etat.file = etat.file.then(async () => {
+            setTranscription(true);
+            try {
+              const texte = await transcrire(new Blob(morceaux, { type: m.mimeType }), m.mimeType);
+              if (texte) {
+                acquis.current = joindre(acquis.current, texte);
+                rappels.current.onTexte?.(acquis.current, true);
+              }
+            } catch (e) {
+              setErreur(e?.message || "Transcription impossible.");
+            } finally {
+              setTranscription(false);
+            }
+          });
         }
-      } catch (e) {
-        setErreur(e?.message || "Transcription impossible.");
-      } finally {
-        setTranscription(false);
-      }
+        if (!encore) {
+          etat.file.then(() => {
+            flux.getTracks().forEach((t) => t.stop());
+            micro.current = null;
+            finir();
+          });
+        }
+      };
+      m.start();
+      setTimeout(() => { if (m.state === "recording") m.stop(); }, TRANCHE_MS);
     };
-    enregistreur.current = { m, stream: flux };
-    m.start();
-    setEcoute(true);
-  }, []);
+    tranche();
+  }, [finir]);
 
-  const demarrer = useCallback(() => {
-    if (ecoute) return;
-    if (!Reconnaissance) {
-      if (Enregistreur) demarrerEnregistrement();
-      return;
-    }
+  // --- La reconnaissance du navigateur, relancée tant qu'on la veut ---------
+  const ecouterNavigateur = useCallback(() => {
     const r = new Reconnaissance();
     r.lang = "fr-FR";
     r.continuous = true;
     r.interimResults = true;
     r.maxAlternatives = 1;
-    cumul.current = "";
-    setErreur(null);
+    let session = "";
 
     r.onresult = (e) => {
       let final = "";
@@ -122,38 +167,55 @@ export function useDictee({ onTexte, onFin } = {}) {
         if (e.results[i].isFinal) final += t;
         else interimaire += t;
       }
-      cumul.current = final;
-      rappels.current.onTexte?.((final + " " + interimaire).replace(/\s+/g, " ").trim(), !interimaire);
+      session = final;
+      rappels.current.onTexte?.(joindre(acquis.current, final, interimaire), !interimaire);
     };
     r.onerror = (e) => {
-      // « no-speech » et « aborted » ne sont pas des erreurs pour l'utilisateur.
-      if (e.error !== "no-speech" && e.error !== "aborted") {
-        setErreur(
-          e.error === "not-allowed"
-            ? "Le micro est refusé : autorisez-le dans le navigateur."
-            : `Dictée interrompue (${e.error}).`
-        );
+      if (REFUS_DU_SERVICE.has(e.error) && Enregistreur) {
+        // Le navigateur a la reconnaissance mais ne la rend pas : on passe aux tranches.
+        rec.current = null;
+        r.onend = null;
+        acquis.current = joindre(acquis.current, session);
+        demarrerTranches();
+        return;
+      }
+      if (e.error === "not-allowed") {
+        setErreur("Le micro est refusé : autorisez-le dans le navigateur.");
+        voulue.current = false;
+      } else if (e.error !== "no-speech" && e.error !== "aborted") {
+        setErreur(`Dictée interrompue (${e.error}).`);
       }
     };
     r.onend = () => {
-      setEcoute(false);
-      rec.current = null;
-      const texte = cumul.current.trim();
-      if (texte) rappels.current.onFin?.(texte);
+      acquis.current = joindre(acquis.current, session);
+      if (voulue.current) {
+        // Coupée par le navigateur, pas par la personne : on reprend.
+        try { ecouterNavigateur(); return; } catch { /* on s'arrête */ }
+      }
+      finir();
     };
     rec.current = r;
+    r.start();
+  }, [demarrerTranches, finir]);
+
+  const demarrer = useCallback(() => {
+    if (voulue.current) return;
+    voulue.current = true;
+    acquis.current = "";
+    setErreur(null);
     setEcoute(true);
-    try {
-      r.start();
-    } catch {
-      setEcoute(false);
-      rec.current = null;
+    if (Reconnaissance) {
+      try { ecouterNavigateur(); return; } catch { /* repli ci-dessous */ }
     }
-  }, [ecoute, demarrerEnregistrement]);
+    if (Enregistreur) demarrerTranches();
+    else finir();
+  }, [ecouterNavigateur, demarrerTranches, finir]);
 
   const arreter = useCallback(() => {
+    voulue.current = false;
     rec.current?.stop?.();
-    if (enregistreur.current?.m?.state === "recording") enregistreur.current.m.stop();
+    const m = micro.current?.enregistreur;
+    if (m?.state === "recording") m.stop();
   }, []);
 
   return { supporte: !!(Reconnaissance || Enregistreur), ecoute, demarrer, arreter, erreur, transcription };

@@ -98,7 +98,7 @@ const OUTILS_AK = [
   },
   {
     name: 'faire_tout',
-    description: "« Prends ce mail, fais tout », « prends ces deux mails et fais tout » : d'un ou plusieurs mails reçus (leurs identifiants, de boite_recue) ou des pièces jointes du message, AK crée le dossier de préanalyse (fiche lue, dossier nommé « Enseigne - Ville »), ouvre son dossier Drive avec les pièces d'origine, et lit le marché du bien sur Data-B (valeur locative, cessions de fonds) rangé dans le dossier. Sans rien demander. K-Data ne part que si la personne nomme ses outils. Un mail envoyé par quelqu'un de l'équipe ne fait pas de lui l'agent du dossier.",
+    description: "« Prends ce mail, fais tout », « prends ces deux mails et fais tout » : d'un ou plusieurs mails reçus (leurs identifiants, de boite_recue) ou des pièces jointes du message, AK crée le dossier de préanalyse (fiche lue, dossier nommé « Enseigne - Ville » ; un mail qui porte plusieurs fiches donne un dossier par fiche, à annoncer tous avec leur lien), ouvre son dossier Drive avec les pièces d'origine, et lit le marché du bien sur Data-B (valeur locative, cessions de fonds) rangé dans le dossier. Sans rien demander. K-Data ne part que si la personne nomme ses outils. Un mail envoyé par quelqu'un de l'équipe ne fait pas de lui l'agent du dossier.",
     input_schema: {
       type: 'object',
       properties: {
@@ -511,6 +511,8 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     if (!input.mail_id && !chemins.length) return { ok: false, error: 'Il faut un mail (boite_recue) ou une pièce jointe dans le message.' };
     const r = await faireTout({ mail_id: input.mail_id || null, mail_ids: input.mail_ids || [], chemins, outils: input.outils || null, user, fond });
     if (r.ok) r.lien = lien(`/Analyse?deal_id=${r.deal_id}`);
+    // Plusieurs fiches dans le mail : un dossier chacune, chacun avec son lien.
+    for (const d of r.dossiers || []) d.lien = lien(`/Analyse?deal_id=${d.deal_id}`);
     return r;
   }
   if (name === 'deposer_mail') {

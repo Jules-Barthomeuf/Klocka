@@ -648,8 +648,10 @@ export default function ChatDashboard() {
   // Vrai le temps d'un envoi déclenché à la main : la fin de dictée qui suit
   // ne doit pas renvoyer le même texte une seconde fois.
   const envoiFait = useRef(false);
-  const { supporte, ecoute, demarrer, arreter, erreur } = useDictee({
-    onTexte: (t) => setTexte(t),
+  // Ce qui était déjà tapé au moment du clic reste en tête : la dictée s'y ajoute.
+  const avantDictee = useRef("");
+  const { supporte, ecoute, demarrer, arreter, erreur, transcription } = useDictee({
+    onTexte: (t) => setTexte([avantDictee.current, t].filter(Boolean).join(" ")),
     onFin: (t) => {
       if (envoiFait.current) { envoiFait.current = false; return; }
       if (/^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer(t, "note");
@@ -836,9 +838,9 @@ export default function ChatDashboard() {
                 type="button"
                 aria-pressed={ecoute}
                 disabled={enCours}
-                onClick={() => (supporte ? (ecoute ? arreter() : demarrer()) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                aria-label={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
-                title={ecoute ? "Arrêter la voix" : "Parler — une note d'appel part quand vous vous taisez"}
+                onClick={() => (supporte ? (ecoute ? arreter() : (avantDictee.current = texte.trim(), demarrer())) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+                aria-label={ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
+                title={ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
                 className="grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief disabled:opacity-40"
                 style={{ background: ecoute ? alpha("menthe", 0.2) : "transparent", color: ecoute ? J["menthe"] : J["craie"] }}
               >
@@ -869,6 +871,7 @@ export default function ChatDashboard() {
                 <button onClick={() => setFichier(null)} className="text-brume hover:text-alerte" aria-label="Retirer" title="Retirer"><X className="h-3.5 w-3.5" /></button>
               </span>
             )}
+            {transcription && !erreur && <span className="text-[12.5px] text-ardoise">Transcription…</span>}
             {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
             {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
           </div>

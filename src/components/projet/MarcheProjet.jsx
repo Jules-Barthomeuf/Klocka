@@ -66,9 +66,9 @@ function CarteMarche({ grille = true, className = "", children }) {
 /** L'en-tête d'une carte : le libellé à gauche, la précision à droite, un filet dessous. */
 function EnTeteCarte({ libelle, precision = null }) {
   return (
-    <div className="mb-5 flex items-center justify-between gap-3 border-b border-trait pb-3 text-[12px] text-ardoise">
-      <span className="min-w-0 truncate">{libelle}</span>
-      {precision && <span className="flex-none">{precision}</span>}
+    <div className="mb-5 flex items-center justify-between gap-3 border-b border-trait pb-3">
+      <span className="min-w-0 truncate text-[16px] font-medium text-encre">{libelle}</span>
+      {precision && <span className="flex-none text-[12.5px] text-ardoise">{precision}</span>}
     </div>
   );
 }

@@ -53,7 +53,7 @@ export default function AssembleesGeneralesSection({ project, isAdmin }) {
   };
 
   return (
-    <div className="mt-5 rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5">
+    <div className="mt-5 k-carte p-7 max-md:p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[16px] font-medium text-encre mb-0">
           Synthèse des assemblées générales

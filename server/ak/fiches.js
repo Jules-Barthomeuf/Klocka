@@ -5,8 +5,8 @@
 //
 // C'est, avec l'annonce d'une tâche finie, le seul message qu'AK envoie sans
 // qu'on lui parle : l'équipe ne veut pas de « le dossier X est incomplet ».
-// Il écrit en privé aux adresses d'AK_FICHES_POUR ; vide, personne n'est
-// prévenu. Une question à la fois par personne : la suivante attend la
+// Il écrit en privé aux adresses d'AK_FICHES_POUR et à qui l'a demandé dans
+// Personnalisation ; sinon personne. Une question à la fois par personne : la suivante attend la
 // réponse, sinon un « oui » ne dirait pas à quelle fiche il répond.
 
 import { Records, Meta } from '../db.js';
@@ -23,6 +23,22 @@ const TEXTE_FICHE = 400;
 
 export const destinataires = (brut = process.env.AK_FICHES_POUR) =>
   String(brut || '').split(',').map((x) => x.trim().toLowerCase()).filter((x) => x.includes('@'));
+
+/**
+ * Qui prévenir : les adresses d'AK_FICHES_POUR, plus chaque personne qui l'a
+ * demandé dans Personnalisation (« Me prévenir en privé quand une fiche
+ * arrive », profil AK), moins celles qui l'ont refusé.
+ */
+export function destinatairesDuMoment({ brut = process.env.AK_FICHES_POUR, profils = Records.list('AkProfil') } = {}) {
+  const liste = new Set(destinataires(brut));
+  for (const p of profils || []) {
+    const e = String(p?.email || '').toLowerCase();
+    if (!e.includes('@')) continue;
+    if (p.prevenir_fiches === true) liste.add(e);
+    if (p.prevenir_fiches === false) liste.delete(e);
+  }
+  return [...liste];
+}
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const nomPiece = (p) => (typeof p === 'string' ? p : p?.nom || '');
@@ -98,7 +114,7 @@ export async function priveDe(email, { assurerPrive }) {
  * au dashboard, AK ne déterre pas la boîte.
  * @returns {Promise<number>} questions posées
  */
-export async function poserLesQuestions({ assurerPrive, envoyer, memoriser = () => {}, pour = destinataires(), maintenant = new Date() }) {
+export async function poserLesQuestions({ assurerPrive, envoyer, memoriser = () => {}, pour = destinatairesDuMoment(), maintenant = new Date() }) {
   if (!pour.length) return 0;
   let depuis = Meta.get(CLE_DEPUIS);
   if (!depuis) { depuis = maintenant.toISOString(); Meta.set(CLE_DEPUIS, depuis); }

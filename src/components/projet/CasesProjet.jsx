@@ -8,6 +8,8 @@ import { InfoDot, nf } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 import { ChiffresStrip } from "./SecteurChiffres";
 import { dureeJusque } from "./durees";
+import { friseDuProjet } from "@/lib/frise-bail";
+export { friseDuProjet };
 
 // Les cases de la page projet : un titre, une valeur courte, un détail, un
 // « i » pour le texte du bail, et au clic la pièce ouverte à la bonne page.
@@ -66,7 +68,7 @@ function Case({ titre, valeur, detail, info, source, onSource, champ, edition })
     <Corps
       type={cliquable ? "button" : undefined}
       onClick={cliquable ? () => onSource({ ...source, titre }) : undefined}
-      className={`group relative text-left rounded-[14px] border border-trait bg-surface-pleine px-5 py-4 min-h-[112px] flex flex-col transition-colors
+      className={`group relative text-left rounded-[14px] border border-trait bg-carte-grille px-5 py-4 min-h-[112px] flex flex-col transition-colors
         ${cliquable ? "hover:border-menthe/60 cursor-pointer" : ""}`}
     >
       <span className="flex items-center gap-1.5 text-[13px] text-ardoise">
@@ -230,7 +232,7 @@ export function CarteBail({ frise, lignes, onSource }) {
   const restant = frise.fin ? dureeJusque(frise.fin, { court: true }) : null;
 
   return (
-    <div className="rounded-[18px] border border-trait bg-surface-pleine px-8 max-md:px-5 pt-6 pb-7 max-md:pb-6">
+    <div className="k-carte px-8 max-md:px-5 pt-6 pb-7 max-md:pb-6">
       <div className="flex items-start justify-between gap-6">
         <div>
           <div className="text-[13px] text-ardoise">Restant à courir</div>
@@ -358,7 +360,7 @@ export function TableauAG({ cases, project }) {
   if (!enEdition && !colonnes.some((x) => x.c?.valeur)) return null;
 
   return (
-    <div className="overflow-x-auto rounded-[14px] border border-trait bg-surface-pleine">
+    <div className="overflow-x-auto rounded-[14px] border border-trait bg-carte-grille">
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
           <tr>
@@ -409,8 +411,16 @@ const nombreDe = (valeur) => {
   return m ? Number(m[0].replace(",", ".")) : 0;
 };
 
+// Une ligne de la carte « Charges & fiscalité » : l'intitulé à gauche, le
+// chiffre à droite en grand, au registre des chiffres de la carte du loyer.
+// Quand il vient d'une pièce, un clic l'ouvre.
 function LigneFiscalite({ c, onSource }) {
   const cliquable = !!c.source;
+  const valeur = (
+    <span className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-tight ${c.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+      {c.valeur || "—"}
+    </span>
+  );
   return (
     <div className="flex items-center justify-between gap-4 py-4 border-t border-trait first:border-t-0">
       <span className="flex items-center gap-2 text-[14.5px] max-md:text-[13.5px] text-craie">
@@ -418,12 +428,13 @@ function LigneFiscalite({ c, onSource }) {
         <InfoDot texte={c.info || c.detail} />
       </span>
       {cliquable ? (
-        <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })}
-          className="flex-shrink-0 text-[13px] px-3.5 py-1.5 rounded-full bg-relief text-encre hover:bg-menthe/[0.14] hover:text-menthe transition-colors">
-          {c.valeur || "—"}
+        <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })} title="Voir la pièce"
+          className="flex-shrink-0 rounded-lg border-0 bg-transparent p-0 text-right decoration-trait underline-offset-4 transition-colors hover:underline [&>span]:hover:text-menthe"
+          style={{ background: "transparent" }}>
+          {valeur}
         </button>
       ) : (
-        <span className={`flex-shrink-0 text-[13px] px-3.5 py-1.5 rounded-full bg-relief ${c.valeur ? "text-craie" : "text-brume"}`}>{c.valeur || "—"}</span>
+        <span className="flex-shrink-0 text-right">{valeur}</span>
       )}
     </div>
   );
@@ -464,7 +475,7 @@ export function ResumeBail({ cases, project, onSource }) {
 
   return (
     <div className="grid lg:grid-cols-2 gap-5 items-start">
-      <div className="rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5">
+      <div className="k-carte p-7 max-md:p-5">
         <Titre>Le loyer</Titre>
         <div className="py-7 max-md:py-5">
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -487,7 +498,7 @@ export function ResumeBail({ cases, project, onSource }) {
       </div>
 
       {fiscalite.length > 0 && (
-        <div className="rounded-[18px] border border-trait bg-surface-pleine p-7 max-md:p-5">
+        <div className="k-carte p-7 max-md:p-5">
           <Titre>Charges &amp; fiscalité</Titre>
           <div className="mt-2">
             {fiscalite.map((c) => <LigneFiscalite key={c.id} c={c} onSource={onSource} />)}
@@ -568,7 +579,7 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
 
   return (
     <div className="grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] gap-6 max-md:gap-4 items-start">
-      <ol className="list-none m-0 p-2 rounded-[18px] border border-trait bg-surface-pleine lg:max-h-[620px] lg:overflow-y-auto">
+      <ol className="list-none m-0 p-2 k-carte lg:max-h-[620px] lg:overflow-y-auto">
         {clauses.map((x, k) => (
           <li key={x.id}>
             <button type="button" onClick={() => setOuverte(k)}
@@ -581,7 +592,7 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
         ))}
       </ol>
 
-      <div className="rounded-[18px] border border-trait bg-surface-pleine px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
+      <div className="k-carte px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
         <div className="flex items-start justify-between gap-4">
           <div className="text-[13px] text-ardoise pt-1.5">Cadre juridique · Clause {c.numero}</div>
           {c.source && (
@@ -614,18 +625,6 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
   );
 }
 
-/**
- * Pure : les deux dates de la frise. Ce que le projet porte l'emporte sur ce
- * que le serveur a lu dans le bail, comme dans projet-cases ; ainsi la page
- * suit la saisie de l'éditeur avant même l'enregistrement.
- */
-export function friseDuProjet(project, friseLue) {
-  const iso = (v) => (v && /^\d{4}-\d{2}-\d{2}/.test(String(v)) ? String(v).slice(0, 10) : null);
-  const debut = iso(project?.bail_date_debut) || friseLue?.debut || null;
-  const fin = iso(project?.bail_date_echeance) || iso(project?.echeance_bail) || friseLue?.fin || null;
-  if (!debut && !fin) return null;
-  return { debut, fin, source: friseLue?.source || null };
-}
 
 /** L'onglet Analyse du bail : le titre et sa bascule, la carte, puis la vue. */
 export function VueBail({ cases, project, onSource, titre = "Analyse du bail" }) {

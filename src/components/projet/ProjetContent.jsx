@@ -23,7 +23,7 @@ import LocataireProjet from "./LocataireProjet";
 // Primitives partagées par les onglets, au registre de la maquette du 28
 // septembre (voir Cartes.jsx) : des cartes bordées, des titres à 16 px.
 function SectionLabel({ children, className = "" }) {
-  return <div className={`text-[16px] font-medium text-encre mb-3 ${className}`}>{children}</div>;
+  return <div className={`text-[16px] font-medium text-encre mb-4 border-b border-trait pb-3 ${className}`}>{children}</div>;
 }
 
 // Le chapô (`right`) passe sous le titre : titre → sous-titre → chapô → chiffres.
@@ -442,7 +442,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <TabsContent value="bien">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <TabHeader title="Bien" />
-              <BienProjet project={project} />
+              <BienProjet project={project} friseLue={cases?.frise} />
             </motion.div>
           </TabsContent>
 

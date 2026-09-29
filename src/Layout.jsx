@@ -443,8 +443,9 @@ function LayoutContent({ children, currentPageName }) {
         )}
 
         {/* Klocka | K-Data : deux espaces, un compte. Choisir K-Data quitte
-            cette barre pour la barre du haut de K-Data. */}
-        {isAdmin && !replie && (
+            cette barre pour la barre du haut de K-Data. Un client n'a pas
+            K-Data : la vue client ne le propose pas. */}
+        {isAdmin && !showClientView && !replie && (
           <div className="mx-3 mt-1 grid grid-cols-2 rounded-[12px] bg-rail-actif p-1">
             {[["klocka", "Klocka"], ["kdata", "K-Data"]].map(([k, mot]) => {
               const actif = k === "kdata" ? enKData : !enKData;
@@ -604,7 +605,7 @@ function LayoutContent({ children, currentPageName }) {
         {/* `main` porte 56px de padding en haut sous la barre de K-Data : une
             hauteur minimale d'un écran plein y ajoutait 56px de vide en bas,
             sous les cartes qui, elles, tombent juste. */}
-        <div key={location.pathname} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
+        <div key={`${location.pathname}|${previewClientMode ? "client" : "admin"}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
           {children}
         </div>
       </main>

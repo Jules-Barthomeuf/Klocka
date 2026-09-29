@@ -18,15 +18,15 @@ export function EnTeteOnglet({ titre, contexte = null, source = null, className 
   );
 }
 
-/** Une carte : fond de surface, filet fin, 18 px d'arrondi. */
-export function Carte({ children, className = "" }) {
-  return <div className={`rounded-[18px] border border-trait bg-surface-pleine ${className}`}>{children}</div>;
+/** Une carte, au registre de l'onglet Marché : voir .k-carte dans index.css. */
+export function Carte({ children, className = "", grille = true }) {
+  return <div className={`k-carte ${grille ? "" : "sans-grille "}${className}`}>{children}</div>;
 }
 
 /** Le titre d'une carte, et sa ligne d'explication en dessous. */
 export function TitreCarte({ titre, sous = null, droite = null }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start justify-between gap-3 border-b border-trait pb-3">
       <div className="flex min-w-0 flex-col gap-1">
         <span className="text-[16px] font-medium text-encre">{titre}</span>
         {sous && <span className="text-[13px] text-ardoise">{sous}</span>}

@@ -149,13 +149,21 @@ export function profilDe(email) {
   return e ? Records.filter(ENTITE, { email: e })[0] || null : null;
 }
 
-export function enregistrerProfil(email, reponses) {
+/**
+ * @param {object} [options]
+ * @param {boolean} [options.prevenir_fiches] - AK prévient en privé quand une
+ *   fiche arrive (fiches.js). Ce n'est pas une consigne de ton : il vit à côté
+ *   des réponses, et reste tel quel quand on ne le donne pas.
+ */
+export function enregistrerProfil(email, reponses, { prevenir_fiches = undefined } = {}) {
   const e = String(email || '').toLowerCase();
   if (!e) return { ok: false, error: 'Compte inconnu.' };
   const propre = nettoyer(reponses);
   const existant = profilDe(e);
   const maintenant = new Date().toISOString();
-  if (existant) Records.update(ENTITE, existant.id, { reponses: propre, maj_le: maintenant });
-  else Records.create(ENTITE, { email: e, reponses: propre, maj_le: maintenant });
-  return { ok: true, reponses: propre, maj_le: maintenant, consignes: consignesDuProfil(propre) };
+  const prevenir = typeof prevenir_fiches === 'boolean' ? { prevenir_fiches } : {};
+  if (existant) Records.update(ENTITE, existant.id, { reponses: propre, maj_le: maintenant, ...prevenir });
+  else Records.create(ENTITE, { email: e, reponses: propre, maj_le: maintenant, ...prevenir });
+  const apres = profilDe(e);
+  return { ok: true, reponses: propre, maj_le: maintenant, consignes: consignesDuProfil(propre), prevenir_fiches: apres?.prevenir_fiches ?? null };
 }

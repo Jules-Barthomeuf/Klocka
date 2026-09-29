@@ -36,13 +36,16 @@ export function monterAk(app) {
     if (!user) return;
     const { questionsPubliques, profilDe, consignesDuProfil } = await import('../ak/questionnaire.js');
     const profil = profilDe(user.email);
-    ok(res, { questions: questionsPubliques(), reponses: profil?.reponses || {}, maj_le: profil?.maj_le || null, consignes: consignesDuProfil(profil?.reponses || {}) });
+    const { destinataires } = await import('../ak/fiches.js');
+    // Prévenu par défaut si l'adresse est dans AK_FICHES_POUR, tant que la personne n'a rien choisi.
+    const prevenir = typeof profil?.prevenir_fiches === 'boolean' ? profil.prevenir_fiches : destinataires().includes(String(user.email || '').toLowerCase());
+    ok(res, { questions: questionsPubliques(), reponses: profil?.reponses || {}, maj_le: profil?.maj_le || null, consignes: consignesDuProfil(profil?.reponses || {}), prevenir_fiches: prevenir });
   }));
   app.post('/api/ak/questionnaire', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
     const { enregistrerProfil } = await import('../ak/questionnaire.js');
-    const r = enregistrerProfil(user.email, req.body?.reponses || {});
+    const r = enregistrerProfil(user.email, req.body?.reponses || {}, { prevenir_fiches: typeof req.body?.prevenir_fiches === 'boolean' ? req.body.prevenir_fiches : undefined });
     if (!r.ok) return res.status(400).json(r);
     ok(res, r);
   }));

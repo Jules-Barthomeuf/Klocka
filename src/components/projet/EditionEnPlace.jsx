@@ -193,7 +193,7 @@ export function ChampsPersonnalises({ zone, project }) {
       <div className="text-[16px] font-medium text-encre mb-3">Informations complémentaires</div>
 
       {chiffres.length > 0 && (
-        <div className="flex flex-wrap rounded-[18px] border border-trait bg-surface-pleine overflow-hidden mb-5">
+        <div className="flex flex-wrap k-carte overflow-hidden mb-5">
           {chiffres.map((i) => {
             const champ = tous[i];
             return (

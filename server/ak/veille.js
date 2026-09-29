@@ -134,7 +134,7 @@ async function lancerPreanalyse(tache) {
     const r = await preanalyserMailRecu(tache.mail_id, utilisateurPour(tache.pour) || utilisateurAk());
     if (!r.ok) throw new Error(r.error || 'préanalyse impossible');
     nommer(r.deal_id);
-    Records.update(ENTITE_TACHE, tache.id, { deal_id: r.deal_id, etape: 'marche', preanalyse_le: new Date().toISOString() });
+    Records.update(ENTITE_TACHE, tache.id, { deal_id: r.deal_id, autres_dossiers: r.autres || [], etape: 'marche', preanalyse_le: new Date().toISOString() });
   } catch (e) {
     Records.update(ENTITE_TACHE, tache.id, { etat: 'ratee', resultat: { erreur: e?.message || String(e) }, fini_le: new Date().toISOString() });
   }
@@ -166,7 +166,10 @@ async function suivrePreanalyse(tache) {
   const { avisDuDossier } = await import('./avis.js');
   const lien = `${APP_URL_PROD || 'http://localhost:5173'}/Analyse?deal_id=${tache.deal_id}`;
   const texte = await avisDuDossier(tache.deal_id, { lien, marche });
-  Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat: { texte: texte || `le dossier est prêt : ${lien}`, deal_id: tache.deal_id }, fini_le: new Date().toISOString() });
+  // Le même mail portait d'autres fiches : un dossier chacune, annoncés ensemble.
+  const autres = (tache.autres_dossiers || []).map((x) => `${x.titre || 'dossier'} : ${APP_URL_PROD || 'http://localhost:5173'}/Analyse?deal_id=${x.deal_id}`);
+  const suite = autres.length ? `\n\nLe mail portait ${autres.length + 1} fiches : j'ai aussi créé ${autres.length > 1 ? 'ces dossiers' : 'ce dossier'}, un par fiche :\n${autres.map((l) => `• ${l}`).join('\n')}` : '';
+  Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', resultat: { texte: `${texte || `le dossier est prêt : ${lien}`}${suite}`, deal_id: tache.deal_id }, fini_le: new Date().toISOString() });
 }
 
 /** Les analyses K-Data d'une tâche : la tâche se ferme quand plus aucune ne tourne. */

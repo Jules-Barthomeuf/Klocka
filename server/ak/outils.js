@@ -474,20 +474,30 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
     etapes.push(`Drive raté : ${e?.message || e}`);
   }
 
-  // 3. K-Data, rangé dans le dossier ; la veille dira quand c'est fini.
+  // 3. Le marché du bien sur Data-B, rangé dans le lot : la valeur locative
+  // de la rue, du quartier et de la ville, et les cessions de fonds autour.
+  // K-Data n'est pas au point (29 septembre 2026) : il ne part que si la
+  // personne nomme ses outils.
   const adresse = adresseDuDeal(deal);
   let kdata = null;
-  if (adresse) {
+  if (adresse && Array.isArray(outils) && outils.length) {
     const { lancerAnalyses, ranger } = await import('../kdata.js');
-    const choisis = Array.isArray(outils) && outils.length ? outils : OUTILS_TOUT;
-    const r = lancerAnalyses({ adresse, outils: choisis, reglages: {} }, user);
+    const r = lancerAnalyses({ adresse, outils, reglages: {} }, user);
     if (r.ok) {
       ranger(r.ids, dealId);
-      kdata = choisis;
-      fond({ genre: 'kdata', libelle: `K-Data sur ${titre || adresse} : ${choisis.join(', ')}`, ids: r.ids, deal_id: dealId });
-      etapes.push(`K-Data lancé : ${choisis.join(', ')}`);
+      kdata = outils;
+      fond({ genre: 'kdata', libelle: `K-Data sur ${titre || adresse} : ${outils.join(', ')}`, ids: r.ids, deal_id: dealId });
+      etapes.push(`K-Data lancé : ${outils.join(', ')}`);
     } else etapes.push(`K-Data non lancé : ${r.error}`);
-  } else etapes.push("K-Data non lancé : le dossier n'a pas d'adresse lisible");
+  } else if (adresse) {
+    const { lectureDataB } = await import('../data-b-assistant.js');
+    for (const [quoi, mot] of [['valeur_locative', 'valeur locative'], ['cessions_fonds', 'cessions de fonds']]) {
+      try {
+        const r = await lectureDataB({ quoi, deal_id: dealId }, user);
+        etapes.push(r.ok ? `Data-B : ${mot} rangée dans le dossier` : `Data-B, ${mot} non lue : ${r.message}`);
+      } catch (e) { etapes.push(`Data-B, ${mot} non lue : ${e?.message || e}`); }
+    }
+  } else etapes.push("Marché non lu : le dossier n'a pas d'adresse lisible");
 
   return { ok: true, cree: true, deal_id: dealId, titre, agent, drive, kdata, etapes };
 }

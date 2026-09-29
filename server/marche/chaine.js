@@ -27,8 +27,10 @@ export const BESOINS_DEFAUT = [
     cle: 'loyer_commercial',
     titre: 'les loyers commerciaux',
     indicateurs: ['loyer_commercial_m2_an'],
-    chaine: ['equimmox', 'valeur-locative'],
-    // Les deux lectures sont faites, pas l'une puis l'autre en secours.
+    chaine: ['equimmox', 'data-b-valeur-locative', 'valeur-locative'],
+    // Les trois lectures sont faites, pas l'une puis l'autre en secours :
+    // Equimmox constate des baux signés, Data-B estime la rue, le quartier et
+    // la ville, et le loyer déduit des ventes sert d'étalon.
     // Le bien à surface comparable, puis la rue, le quartier et la ville, et le
     // loyer déduit des ventes : quand ils s'écartent, ce n'est pas un détail,
     // c'est le signal qu'il faut aller voir. Un repli silencieux le masquait.
@@ -38,7 +40,8 @@ export const BESOINS_DEFAUT = [
     cle: 'cessions_fonds',
     titre: 'les cessions de fonds',
     indicateurs: ['prix_fonds_commerce'],
-    chaine: ['bodacc-cessions'],
+    // Data-B d'abord ; le BODACC, gratuit, répond quand Data-B est à terre.
+    chaine: ['data-b-transactions', 'bodacc-cessions'],
   },
   {
     cle: 'residentiel',
@@ -62,13 +65,13 @@ export const BESOINS_DEFAUT = [
     indicateurs: ['fermetures_rue', 'creations_rue'],
     chaine: ['bodacc'],
   },
-  // L'emplacement lui-même : le flux, le tronçon, le secteur. L'étude interne
-  // le lit en dernier : c'est la plus longue la première fois.
+  // L'emplacement lui-même : le flux, le tronçon, le secteur. L'étude Data-B
+  // d'abord (un crédit, gardée trente jours) ; l'étude interne en secours.
   {
     cle: 'emplacement',
     titre: 'l’emplacement',
     indicateurs: ['flux_pieton_note', 'flux_voiture_note', 'commercialite_troncon_note', 'revenu_moyen_annuel', 'csp_plus', 'proprietaires_zone'],
-    chaine: ['implantation'],
+    chaine: ['data-b-implantation', 'implantation'],
   },
 ];
 
@@ -91,6 +94,9 @@ export async function registreParDefaut() {
   if (cacheRegistre) return cacheRegistre;
   const modules = await Promise.all([
     import('./connecteurs/equimmox.js'),
+    import('./connecteurs/data-b-valeur-locative.js'),
+    import('./connecteurs/data-b-transactions.js'),
+    import('./connecteurs/data-b-implantation.js'),
     import('./connecteurs/valeur-locative.js'),
     import('./connecteurs/bodacc-cessions.js'),
     import('./connecteurs/figaro.js'),

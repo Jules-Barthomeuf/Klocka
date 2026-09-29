@@ -344,7 +344,8 @@ export function creerProjetDepuisDeal(dealId, lotIndex, user) {
     // La valeur locative du secteur, si elle a été cherchée : la fourchette
     // de la rue entre dans « Offre actuelle », le quartier nomme le secteur.
     // Elle passe après la base marché et le point de marché, sans les écraser.
-    ...mapperValeurLocative(lot.valeur_locative, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),
+    // La rue lue chez Equimmox, sinon l'estimation Data-B de la même rue.
+    ...mapperValeurLocative(lot.valeur_locative?.rue ? lot.valeur_locative : lot.valeur_locative_data_b, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),
     // Les loyers observés par Equimmox — des baux en place autour du bien, à
     // surface comparable — remplissent « Baux existants » si elle est vide.
     ...mapperAnalyseLoyer(lot.analyse_loyer, mapperMarche(ville, adresse.code_postal, lot.contexte_marche?.chiffres)),

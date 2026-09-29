@@ -27,7 +27,7 @@ export default function SimBudgetDonut({ calculs, prixBienNegocie, formatCurrenc
     const brut = percent * 100;
     const pct = brut < 10 ? brut.toFixed(1) : brut.toFixed(0);
     return (
-      <text x={x} y={y} fill={items[index]?.color || "#888"} textAnchor="middle" dominantBaseline="middle" fontSize="12" fontWeight="600">
+      <text x={x} y={y} fill={items[index]?.color || "#888"} textAnchor="middle" dominantBaseline="middle" fontSize="12" style={{ fontVariantNumeric: "tabular-nums" }}>
         {pct}%
       </text>);
 

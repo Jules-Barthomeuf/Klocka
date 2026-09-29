@@ -82,6 +82,10 @@ button:focus-visible {
     --k-fond-halo-rgb: 18 19 18;
     --k-surface: rgba(242, 243, 245, 0.045);
     --k-surface-pleine-rgb: 28 30 29;
+    /* Le fond des cartes, des tableaux et des recherches : la teinte d'un
+       onglet au repos (la surface à 60 % sur le fond), rendue opaque. Valeur
+       du fond par défaut ; personnalisation.js la recalcule pour les autres. */
+    --k-carte-grille-rgb: 24 26 25;
     --k-relief: rgba(242, 243, 245, 0.07);
     --k-encre-rgb: 242 242 240;
     --k-craie-rgb: 201 203 199;
@@ -127,6 +131,7 @@ button:focus-visible {
     --k-fond-halo-rgb: 240 240 238;
     --k-surface: rgba(255, 255, 255, 0.72);
     --k-surface-pleine-rgb: 251 251 250;
+    --k-carte-grille-rgb: 247 247 246;
     --k-relief: rgba(28, 29, 28, 0.06);
     --k-encre-rgb: 28 29 28;
     --k-craie-rgb: 62 64 61;
@@ -215,13 +220,18 @@ body::after {
 }
 button.k-verre:hover { background: rgb(var(--k-surface-pleine-rgb)); }
 
+/* Le motif des cartes à grille (GridPatternCard) : un carré de 30 px, ses
+   traits à 15 %, un point à chaque intersection. Blanc en sombre, gris
+   bleuté en clair ; le thème clair passe par data-theme, pas par .dark. */
+:root[data-theme="clair"] .bg-grid-pattern { background-image: theme("backgroundImage.grid-pattern-light"); }
+
 /* En clair, pas de dégradé de fond : ni les halos décoratifs (classe k-halo,
    et ceux de l'accueil), ni les fonds en dégradé Tailwind. Ce qui reste,
    c'est le blanc. */
 :root[data-theme="clair"] .k-halo,
 :root[data-theme="clair"] .accueil-halo-a,
 :root[data-theme="clair"] .accueil-halo-b { display: none; }
-:root[data-theme="clair"] [class*="bg-gradient-to"]:not(.k-sur-photo *) { background-image: none; }
+:root[data-theme="clair"] [class*="bg-gradient-to"]:not(.k-sur-photo *):not([class*="from-carte-grille"]) { background-image: none; }
 /* Les ombres ont été réglées pour le noir (rgba(0,0,0,.45) et plus) : sur du
    blanc elles font des taches. Une seule ombre douce pour tout ce qui flotte. */
 :root[data-theme="clair"] :is([class*="shadow-["], .shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) { box-shadow: 0 1px 2px rgb(16 20 24 / .05), 0 8px 24px rgb(16 20 24 / .07); }
@@ -643,6 +653,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-fond-halo-rgb: 240 240 238;
     --k-surface: rgba(255, 255, 255, 0.72);
     --k-surface-pleine-rgb: 251 251 250;
+    --k-carte-grille-rgb: 247 247 246;
     --k-relief: rgba(28, 29, 28, 0.06);
     --k-encre-rgb: 28 29 28;
     --k-craie-rgb: 62 64 61;

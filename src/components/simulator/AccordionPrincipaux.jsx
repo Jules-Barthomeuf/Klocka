@@ -26,7 +26,7 @@ export default function AccordionPrincipaux({
                   <CalculatorInput
                     value={surface}
                     onChange={(val) => setSurface(val)}
-                    className="bg-transparent border-none text-right text-encre font-medium w-20 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-20 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 ) : (
                   <Input
@@ -34,7 +34,7 @@ export default function AccordionPrincipaux({
                     value={surface}
                     onChange={(e) => setSurface(Number(e.target.value))}
                     disabled={selectedProjectId && selectedProjectId !== "default"}
-                    className="bg-transparent border-none text-right text-encre font-medium w-20 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-20 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
                 <span className="text-ardoise text-sm">m²</span>
@@ -59,7 +59,7 @@ export default function AccordionPrincipaux({
                   <CalculatorInput
                     value={loyerInitialHTHC}
                     onChange={(val) => setLoyerInitialHTHC(val)}
-                    className="bg-transparent border-none text-right text-encre font-medium w-24 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-24 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 ) : (
                   <Input
@@ -67,7 +67,7 @@ export default function AccordionPrincipaux({
                     value={loyerInitialHTHC}
                     onChange={(e) => setLoyerInitialHTHC(Number(e.target.value))}
                     disabled={selectedProjectId && selectedProjectId !== "default"}
-                    className="bg-transparent border-none text-right text-encre font-medium w-24 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-24 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
                 <span className="text-ardoise text-sm">€</span>
@@ -92,7 +92,7 @@ export default function AccordionPrincipaux({
                   <CalculatorInput
                     value={prixBienFAI}
                     onChange={(val) => setPrixBienFAI(val)}
-                    className="bg-transparent border-none text-right text-encre font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 ) : (
                   <Input
@@ -100,7 +100,7 @@ export default function AccordionPrincipaux({
                     value={prixBienFAI}
                     onChange={(e) => setPrixBienFAI(Number(e.target.value))}
                     disabled={selectedProjectId && selectedProjectId !== "default"}
-                    className="bg-transparent border-none text-right text-encre font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
                 <span className="text-ardoise text-sm">€</span>
@@ -125,10 +125,10 @@ export default function AccordionPrincipaux({
                   <CalculatorInput
                     value={prixBienNegocie}
                     onChange={(val) => setPrixBienNegocie(val)}
-                    className="bg-transparent border-none text-right text-encre font-medium w-28 p-0 h-auto focus-visible:ring-0"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-28 p-0 h-auto focus-visible:ring-0"
                   />
                 ) : (
-                  <Input type="number" value={prixBienNegocie} onChange={(e) => setPrixBienNegocie(Number(e.target.value))} className="bg-transparent border-none text-right text-encre font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                  <Input type="number" value={prixBienNegocie} onChange={(e) => setPrixBienNegocie(Number(e.target.value))} className="bg-transparent border-none text-right text-encre tabular-nums w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                 )}
                 <span className="text-ardoise text-sm">€</span>
               </div>
@@ -143,10 +143,10 @@ export default function AccordionPrincipaux({
                   <CalculatorInput
                     value={dureeCredit}
                     onChange={(val) => setDureeCredit(val)}
-                    className="bg-transparent border-none text-right text-encre font-medium w-12 p-0 h-auto focus-visible:ring-0"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-12 p-0 h-auto focus-visible:ring-0"
                   />
                 ) : (
-                  <Input type="number" value={dureeCredit} onChange={(e) => setDureeCredit(Number(e.target.value))} className="bg-transparent border-none text-right text-encre font-medium w-12 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                  <Input type="number" value={dureeCredit} onChange={(e) => setDureeCredit(Number(e.target.value))} className="bg-transparent border-none text-right text-encre tabular-nums w-12 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                 )}
                 <span className="text-ardoise text-sm">ans</span>
               </div>
@@ -161,10 +161,10 @@ export default function AccordionPrincipaux({
                   <CalculatorInput
                     value={apport}
                     onChange={(val) => setApport(val)}
-                    className="bg-transparent border-none text-right text-encre font-medium w-28 p-0 h-auto focus-visible:ring-0"
+                    className="bg-transparent border-none text-right text-encre tabular-nums w-28 p-0 h-auto focus-visible:ring-0"
                   />
                 ) : (
-                  <Input type="number" value={apport} onChange={(e) => setApport(Number(e.target.value))} className="bg-transparent border-none text-right text-encre font-medium w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                  <Input type="number" value={apport} onChange={(e) => setApport(Number(e.target.value))} className="bg-transparent border-none text-right text-encre tabular-nums w-28 p-0 h-auto focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                 )}
                 <span className="text-ardoise text-sm">€</span>
               </div>

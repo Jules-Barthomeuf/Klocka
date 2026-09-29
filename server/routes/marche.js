@@ -140,15 +140,16 @@ export function monterMarche(app) {
     ok(res, lireSecteur(projet, { forcer: user.role === 'admin' && req.query.forcer === '1' }));
   }));
 
-  // Les flux et la commercialité : l'étude d'implantation interne. Longue la
-  // première fois : jamais lancée sans qu'un membre de l'équipe l'ait demandé.
+  // Les flux et la commercialité : l'étude d'implantation Data-B (un crédit),
+  // l'étude interne en secours. Longue la première fois : jamais lancée sans
+  // qu'un membre de l'équipe l'ait demandé.
   app.post('/api/projects/:id/implantation', wrap(async (req, res) => {
     const user = currentUser(req);
     if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
     const projet = Records.get('Project', req.params.id);
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     if (!projet.adresse_complete) return res.status(400).json({ error: 'Aucune adresse : renseignez-la dans la fiche.' });
-    const { etudeImplantation } = await import('../implantation/etude.js');
+    const { etudeImplantation } = await import('../sources-marche.js');
     const r = await etudeImplantation(projet.adresse_complete, { activite: projet.activite_locataire || null });
     if (!r.ok) return res.status(400).json({ error: r.error });
     const { lireSecteur, attendreSecteur } = await import('../projet-secteur.js');
@@ -161,7 +162,7 @@ export function monterMarche(app) {
   // les relève peut les chercher depuis son éditeur.
   app.post('/api/projects/:id/transactions', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe Klocka.' });
-    const { cessionsAutour: transactionsFonds } = await import('../cessions-fonds.js');
+    const { cessionsAutour: transactionsFonds } = await import('../sources-marche.js');
     const projet = Records.get('Project', req.params.id);
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
     const adresse = String(req.body?.adresse || projet.adresse_complete || '').trim();

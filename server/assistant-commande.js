@@ -167,6 +167,25 @@ export const OUTILS = [
     },
   },
   {
+    name: 'data_b',
+    description:
+      "Lance une lecture sur Data-B et range le résultat dans le projet ou le dossier, là où les analyses et la page client le lisent. À utiliser dès qu'on demande quelque chose « sur Data-B », ou une valeur locative, des cessions de fonds, une étude d'implantation (flux piéton et voiture, commercialité, revenus de la zone) ou le propriétaire des murs d'une adresse. Lectures : valeur_locative (fourchette de loyer au m² de la rue, du quartier et de la ville ; remplit l'offre de marché du projet), cessions_fonds (ventes de fonds de commerce autour), etude_implantation (un crédit Data-B ; alimente le secteur du projet), proprietaire (Data Foncier). Donne projet_id (via chercher_projet) ou deal_id (via chercher_dossier) pour ranger le résultat ; sinon une adresse seule. Une lecture de moins de trente jours est reprise sans crédit ; forcer relit Data-B.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        quoi: { type: 'string', enum: ['valeur_locative', 'cessions_fonds', 'etude_implantation', 'proprietaire'] },
+        projet_id: { type: 'string', description: 'Le projet où ranger le résultat' },
+        deal_id: { type: 'string', description: 'Le dossier de préanalyse où ranger le résultat' },
+        lot: { type: 'number', description: 'Le lot du dossier, 0 pour le premier' },
+        adresse: { type: 'string', description: "L'adresse, si ni projet ni dossier, ou pour en lire une autre" },
+        activite: { type: 'string', description: "Pour l'étude d'implantation : le métier du locataire" },
+        rayon: { type: 'number', description: 'Pour les cessions : le rayon en mètres (500 par défaut)' },
+        forcer: { type: 'boolean', description: 'Relire Data-B même si une lecture récente existe (consomme un crédit)' },
+      },
+      required: ['quoi'],
+    },
+  },
+  {
     name: 'etat_projet',
     description:
       "Les données d'un projet de la plateforme : adresse, prix, loyer, surface, rendement, locataire, clients rattachés, présence dans Monday. Nécessite l'identifiant obtenu par chercher_projet.",
@@ -438,6 +457,11 @@ export async function executerOutil({ name, input }, user) {
       // L'extraction est séquentielle : mieux vaut annoncer l'attente.
       note: "Le traitement se poursuit en arrière-plan, un document à la fois.",
     };
+  }
+
+  if (name === 'data_b') {
+    const { lectureDataB } = await import('./data-b-assistant.js');
+    return lectureDataB(input, user);
   }
 
   if (name === 'marche_ville') {

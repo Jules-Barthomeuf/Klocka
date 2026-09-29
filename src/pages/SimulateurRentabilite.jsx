@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { RENDEZ_VOUS_URL, PARCOURS_RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import { Button } from "@/components/ui/button";
-import { Check, Link2, Download, RefreshCw, ArrowRight } from "lucide-react";
+import { Check, Link2, Download, RefreshCw, ArrowRight, ChevronLeft } from "lucide-react";
 import ExportExcelFullButton from "../components/simulator/ExportExcelFullButton";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/components/providers/UserProvider";
 import { NeonButton } from "@/components/ui/neon-button";
 import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 import SimControlRail from "../components/simulator/layout/SimControlRail";
 import SimKpiRow from "../components/simulator/layout/SimKpiRow";
@@ -450,6 +451,9 @@ export default function SimulateurRentabilite() {
   const onChange = (key, val) => setters[key]?.(val);
   const advanced = { loyerSoumisTVA, setLoyerSoumisTVA, chargesCoproRefacturables, setChargesCoproRefacturables, taxeFonciereRefacturable, setTaxeFonciereRefacturable, sansCredit, setSansCredit, pretInFine, setPretInFine, revalorisationActive, setRevalorisationActive, anneeRevalorisation, setAnneeRevalorisation, loyerRevalorise, setLoyerRevalorise, renegociationActive, setRenegociationActive, anneeRenegociation, setAnneeRenegociation, nouveauTauxRenegociation, setNouveauTauxRenegociation, iraRenegociation, setIraRenegociation, vacancesLocatives, setVacancesLocatives, travauxBailleur, setTravauxBailleur };
 
+  // Le projet d'où l'on vient, s'il y en a un : la flèche de retour y mène.
+  const projetDOrigine = new URLSearchParams(window.location.search).get("projectId");
+
   const tabs = [
     { id: "graphiques", label: "Graphiques" },
     { id: "revente", label: "Revente" },
@@ -496,6 +500,19 @@ export default function SimulateurRentabilite() {
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
             <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center gap-2 min-w-0">
+              {/* Venu d'un projet (« Simulateur complet ») : la flèche y ramène.
+                  L'historique d'abord, pour retrouver la page telle qu'on l'a
+                  quittée ; l'adresse du projet si on est arrivé ici directement. */}
+              {projetDOrigine && (
+                <button
+                  onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate(`${createPageUrl("ProjetDetail")}?id=${projetDOrigine}`))}
+                  aria-label="Revenir au projet"
+                  className="flex flex-shrink-0 items-center gap-1 px-3 h-8 rounded-full border border-trait text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" /> Projet
+                </button>
+              )}
               <div className="flex items-center gap-0.5 p-0.5 rounded-full border border-trait min-w-0 overflow-x-auto flex-shrink-0 max-md:flex-shrink">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;
@@ -512,6 +529,7 @@ export default function SimulateurRentabilite() {
                     </button>
                   );
                 })}
+              </div>
               </div>
               <div className="flex items-center gap-2">
                 <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />

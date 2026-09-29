@@ -21,7 +21,7 @@ const adresseComplete = (c) => [c.adresse, c.ville].filter(Boolean).join(', ');
 /** Le propriétaire par les fichiers DGFiP, puis la société par l'annuaire, puis le classement. */
 export async function trouverProprietaire(id, { siren = null, user = null } = {}) {
   const c = cibleOu(id);
-  const { proprietairesDe } = await import('./foncier-ouvert.js');
+  const { proprietairesDe } = await import('./proprietaires.js');
   const ville = Records.get('Ville', c.ville_id);
   const point = c.source === 'Google Maps' && c.lat != null && c.lon != null ? { lat: c.lat, lon: c.lon } : null;
   if (!point && !/^\d/.test(String(c.adresse || '').trim())) throw new Error("L'adresse n'a pas de numéro : impossible de désigner le bâtiment.");

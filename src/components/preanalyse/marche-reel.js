@@ -35,6 +35,9 @@ const ETIQUETTES = {
   "valeur-locative": "EQUIMMOX · SECTEUR",
   "bodacc-cessions": "BODACC",
   implantation: "KLOCKA · IMPLANTATION",
+  "data-b-valeur-locative": "DATA-B · VALEUR LOCATIVE",
+  "data-b-transactions": "DATA-B · CESSIONS",
+  "data-b-implantation": "DATA-B · IMPLANTATION",
   figaro: "LE FIGARO IMMOBILIER",
 };
 const etiquette = (source) => ETIQUETTES[source] || String(source || "AGENT").toUpperCase();
@@ -153,9 +156,12 @@ export function filDe(etat, adresse = null) {
 
   // Les résultats posés : la phrase et l'encart. Leur instant est celui de la
   // tentative réussie de la même source.
+  // Un champ peut venir de deux sources (Data-B, puis son secours) : c'est
+  // celle qui a répondu qui signe.
+  const sourcesDu = { analyse_loyer: ["equimmox"], valeur_locative: ["valeur-locative"], valeur_locative_data_b: ["data-b-valeur-locative"], transactions_fonds: ["data-b-transactions", "bodacc-cessions"], prix_residentiel: ["figaro"], implantation: ["data-b-implantation", "implantation"] };
+  const tentativeDe = (champ) => (etat.tentatives || []).find((x) => (sourcesDu[champ] || []).includes(x.source) && x.ok);
   const finDe = (champ) => {
-    const cle = { analyse_loyer: "equimmox", valeur_locative: "valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "implantation" }[champ];
-    const t = (etat.tentatives || []).find((x) => x.source === cle && x.ok);
+    const t = tentativeDe(champ);
     return t ? depuis(t.debut, t0) + (t.ms || 0) / 1000 + 0.5 : null;
   };
   for (const [champ, r] of Object.entries(etat.resultats || {})) {
@@ -163,7 +169,7 @@ export function filDe(etat, adresse = null) {
     if (!texte) continue;
     const t = finDe(champ) ?? (entrees.at(-1)?.t ?? 0) + 0.5;
     const encart = encartResultat(champ, r);
-    entrees.push({ t, source: etiquette({ analyse_loyer: "equimmox", valeur_locative: "valeur-locative", transactions_fonds: "bodacc-cessions", prix_residentiel: "figaro", implantation: "implantation" }[champ]), ton: "menthe", texte, encart: encart || undefined });
+    entrees.push({ t, source: etiquette(tentativeDe(champ)?.source || (sourcesDu[champ] || [])[0]), ton: "menthe", texte, encart: encart || undefined });
   }
 
   // La fin : ce qui est couvert, ce qui manque.
@@ -246,6 +252,8 @@ export function analyseDe(lot, passage) {
   const equimmox = lot.analyse_loyer || null;
   const secteur = lot.valeur_locative || null;
   const transactions = lot.transactions_fonds || null;
+  const secteurDataB = lot.valeur_locative_data_b || null;
+  const niveauDataB = secteurDataB ? secteurDataB.rue || secteurDataB.quartier || secteurDataB.ville : null;
   const figaro = lot.prix_residentiel || null;
   const dvf = lot.ventes_dvf || null;
   const vitalite = lot.vitalite_rue || null;
@@ -367,10 +375,13 @@ export function analyseDe(lot, passage) {
     // L'échelle avec le chiffre : « estimation 640–960 » ne veut rien dire si
     // l'on ne sait pas que c'est la rue, quand la comparaison porte sur le quartier.
     ligneSource("valeur-locative", "Valeur locative du secteur", secteur ? `${niveauSecteur?.derive ? "déduite" : "constatée"} ${fmt(niveauSecteur?.basse)} – ${fmt(niveauSecteur?.haute)} €/m²/an à l'échelle ${echelleSecteur === "ville" ? "de la ville" : `${echelleSecteur === "rue" ? "de la" : "du"} ${echelleSecteur}`}${niveauSecteur?.nom ? ` (${niveauSecteur.nom})` : ""}` : "a répondu"),
+    ligneSource("data-b-valeur-locative", "Data-B · Valeurs locatives", niveauDataB ? `estimée ${fmt(niveauDataB.basse)} – ${fmt(niveauDataB.haute)} €/m²/an${niveauDataB.nom ? ` (${niveauDataB.nom})` : ""}` : "a répondu"),
+    ligneSource("data-b-transactions", "Data-B · Cessions de fonds", transactions ? `${fmt(transactions.total ?? transactions.transactions?.length)} cessions · rayon ${transactions.rayon}${transactions.marche?.prix_median ? ` · médiane ${fmt(transactions.marche.prix_median)} €` : ""}` : "a répondu"),
     ligneSource("bodacc-cessions", "BODACC · Cessions de fonds", transactions ? `${fmt(transactions.total ?? transactions.transactions?.length)} cessions · rayon ${transactions.rayon}${transactions.marche?.prix_median ? ` · médiane ${fmt(transactions.marche.prix_median)} €` : ""}` : "a répondu"),
     ligneSource("figaro", "Le Figaro Immobilier", figaro ? `${fmt((figaro.quartier || figaro.commune)?.prix?.median)} €/m² médian${(figaro.quartier || figaro.commune)?.prix?.sur_1_an != null ? ` · ${pct((figaro.quartier || figaro.commune).prix.sur_1_an)} / 1 an` : ""}` : "a répondu"),
     ligneSource("dvf", "DVF · Valeurs foncières", dvf ? (dvf.prix_m2 ? `${fmt(dvf.prix_m2.median)} €/m² médian · ${fmt(dvf.n)} vente(s) dans ${fmt(dvf.rayon)} m` : `${fmt(dvf.n)} vente(s) : trop peu pour une médiane`) : "a répondu"),
     ligneSource("bodacc", "BODACC · Annonces commerciales", vitalite ? `${fmt(vitalite.sur_la_rue?.creations)} création(s) · ${fmt(vitalite.sur_la_rue?.fermetures)} fermeture(s) sur ${vitalite.mois} mois` : "a répondu"),
+    ligneSource("data-b-implantation", "Data-B · Étude d'implantation", implantation ? `flux piéton ${implantation.flux_pieton?.note ? `${implantation.flux_pieton.note.note}/${implantation.flux_pieton.note.sur}` : "—"} · flux voiture ${implantation.flux_voiture?.note ? `${implantation.flux_voiture.note.note}/${implantation.flux_voiture.note.sur}` : "—"}${implantation.troncon?.libelle ? ` · ${implantation.troncon.libelle}` : ""}` : "a répondu"),
     ligneSource("implantation", "Klocka · Étude d'implantation", implantation ? `${implantation.estime ? "estimé · " : ""}flux piéton ${implantation.flux_pieton?.note ? `${implantation.flux_pieton.note.note}/${implantation.flux_pieton.note.sur}` : "—"} · flux voiture ${implantation.flux_voiture?.note ? `${implantation.flux_voiture.note.note}/${implantation.flux_voiture.note.sur}` : "—"}${implantation.troncon?.libelle ? ` · ${implantation.troncon.libelle}` : ""}` : "a répondu"),
   ].filter(Boolean);
 
@@ -382,6 +393,9 @@ export function analyseDe(lot, passage) {
     equimmox: "Analyse de loyer · baux comparables à 500 m",
     "valeur-locative": "Valeur locative · rue, quartier, ville chez Equimmox, et le loyer déduit des ventes DVF",
     "bodacc-cessions": "Cessions de fonds · rayon 250 m, adresses géocodées par la Base Adresse",
+    "data-b-valeur-locative": "Valeurs locatives · estimation de la rue, du quartier et de la ville",
+    "data-b-transactions": "Transactions de fonds de commerce · autour de l'adresse",
+    "data-b-implantation": "Expertise · étude d'implantation, flux piéton et voiture",
     figaro: "Prix de l'immobilier · quartier et commune",
     implantation: "Étude d'implantation · Sirene, OpenStreetMap, IGN, INSEE",
   };
@@ -504,7 +518,7 @@ export function analyseDe(lot, passage) {
       if (db && db.bas != null && db.haut != null) l.push({ service: db.service || "Secteur", sous: `${db.echelle}${db.precision ? ` ${db.precision}` : ""}`, bas: db.bas, haut: db.haut, median: null, principale: !l.length });
       return l;
     })(),
-    details: detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, secteur, transactions, figaro, passage }),
+    details: detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, secteur, secteurDataB, transactions, implantation, figaro, passage }),
     journal: null,
     passage,
   };
@@ -518,7 +532,7 @@ function anciennete(date) {
 }
 
 /** Le détail des verdicts, calculé — chaque ligne dit son opération. */
-function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, secteur, transactions, figaro, passage }) {
+function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, decoupe, reversion, parComparaison, ecartComparaison, loyerEnPlace, loyerMarche, ecartLoyer, prixFai, rendementAnnonce, valeur, ecartPrix, equimmox, secteur, secteurDataB, transactions, implantation, figaro, passage }) {
   const pertinentes = transactions?.pertinentes || transactions?.transactions?.slice(0, 10) || [];
   const comparables = pertinentes.map((t) => ({
     adresse: t.adresse || t.enseigne || "—",
@@ -530,7 +544,7 @@ function detailsDe({ loyerM2, reference, surface, surfaceRetenue, baseSurface, d
   const sources = (passage.tentatives || []).filter((t) => t.ok).map((t) => ({
     nom: `${t.service} · ${t.source}`,
     quand: new Date(t.debut).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-    url: { equimmox: null, "valeur-locative": secteur?.lien, "bodacc-cessions": transactions?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, implantation: null }[t.source] || null,
+    url: { equimmox: null, "valeur-locative": secteur?.lien, "bodacc-cessions": transactions?.lien, "data-b-valeur-locative": secteurDataB?.lien, "data-b-transactions": transactions?.lien, "data-b-implantation": implantation?.lien, figaro: (figaro?.quartier || figaro?.commune)?.lien || figaro?.lien, implantation: null }[t.source] || null,
     capture: null,
   }));
   const reserves = [];

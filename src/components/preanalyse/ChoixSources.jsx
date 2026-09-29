@@ -13,12 +13,15 @@ import { J } from "@/design/jetons";
 
 export const SOURCES = [
   { cle: "equimmox", nom: "Equimmox", note: "baux comparables · environ une minute" },
+  { cle: "data-b-valeur-locative", nom: "Data-B · Valeurs locatives", note: "rue, quartier, ville estimés · quelques secondes" },
   { cle: "valeur-locative", nom: "Equimmox · Valeur locative du secteur", note: "rue, quartier, ville · quatre minutes" },
-  { cle: "bodacc-cessions", nom: "BODACC · Cessions de fonds", note: "rayon 250 m · gratuit" },
+  { cle: "data-b-transactions", nom: "Data-B · Cessions de fonds", note: "prix et activité autour du bien" },
+  { cle: "bodacc-cessions", nom: "BODACC · Cessions de fonds", note: "en secours de Data-B · gratuit" },
   { cle: "figaro", nom: "Le Figaro", note: "résidentiel du quartier et de la commune" },
   { cle: "dvf", nom: "DVF", note: "ventes réelles · gratuit" },
   { cle: "bodacc", nom: "BODACC", note: "vie de la rue · gratuit" },
-  { cle: "implantation", nom: "Klocka · Étude d’implantation", note: "flux estimé, tronçon, démographie · gratuit" },
+  { cle: "data-b-implantation", nom: "Data-B · Étude d’implantation", note: "flux, tronçon, démographie · un crédit, gardée 30 jours" },
+  { cle: "implantation", nom: "Klocka · Étude d’implantation", note: "en secours de Data-B · gratuit" },
 ];
 
 export default function ChoixSources({ onLancer, apercu = false, libelle = "Mettre à jour", classeBouton = null }) {

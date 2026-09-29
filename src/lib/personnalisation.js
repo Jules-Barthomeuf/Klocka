@@ -207,6 +207,13 @@ export function appliquerPrefs(brut) {
   poser("--k-fond-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.fond)));
   poser("--k-fond-halo-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.halo)));
 
+  // Le fond des cartes à grille, des tableaux et des champs de recherche : la
+  // teinte d'un onglet au repos, la surface à 60 % sur le fond choisi. Calculé
+  // ici pour que le noir pur, l'anthracite ou le blanc aient chacun la leur.
+  const surfacePleine = hexVersRgb((clair ? jetons.couleurs_clair : jetons.couleurs)["surface-pleine"]);
+  const fondRgb = hexVersRgb(fond?.fond || (clair ? jetons.couleurs_clair : jetons.couleurs).fond);
+  poser("--k-carte-grille-rgb", triplet(surfacePleine.map((c, i) => Math.round(c * 0.6 + fondRgb[i] * 0.4))));
+
   // Les surfaces : du verre, ou des aplats.
   const aplats = p.surfaces === "plein" ? jetons.surfaces_pleines[clair ? "clair" : "sombre"] : null;
   poser("--k-surface", aplats ? aplats.surface : null);

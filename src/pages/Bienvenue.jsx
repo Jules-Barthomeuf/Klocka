@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ConnexionPanel } from "@/components/auth/ConnexionDialog";
+import { CarteConnexion, ConnexionPanel } from "@/components/auth/ConnexionDialog";
 import { Loader2 } from "lucide-react";
 
 // La porte d'entrée d'un client.
@@ -54,11 +54,13 @@ export default function Bienvenue() {
                   ? "Saisissez l'adresse à laquelle Klocka vous a écrit, puis choisissez votre mot de passe."
                   : "Votre espace est prêt. Il ne manque que votre mot de passe."}
               </p>
-              {etat.commun ? (
-                <ConnexionPanel />
-              ) : (
-                <ConnexionPanel invitation={{ email: etat.email, prenom: etat.prenom, jeton }} />
-              )}
+              <CarteConnexion>
+                {etat.commun ? (
+                  <ConnexionPanel />
+                ) : (
+                  <ConnexionPanel invitation={{ email: etat.email, prenom: etat.prenom, jeton }} />
+                )}
+              </CarteConnexion>
             </>
           ) : (
             <>

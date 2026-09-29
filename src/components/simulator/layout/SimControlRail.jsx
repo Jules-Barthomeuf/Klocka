@@ -136,14 +136,14 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
           </SelectContent>
         </Select>
         {calculs && (
-          <p className="text-[11px] text-brume mt-1.5">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
+          <p className="text-[11px] text-brume mt-1.5 tabular-nums">Prix de revient {formatCurrency(calculs.prixRevient)}</p>
         )}
       </div>
       ) : (
         calculs && (
           <div className="px-3 pt-3 pb-2 border-b border-trait">
             <p className="text-[11px] uppercase tracking-[0.18em] text-brume font-medium mb-1.5">Prix de revient</p>
-            <p className="text-encre text-sm">{formatCurrency(calculs.prixRevient)}</p>
+            <p className="text-encre text-sm tabular-nums">{formatCurrency(calculs.prixRevient)}</p>
           </div>
         )
       )}

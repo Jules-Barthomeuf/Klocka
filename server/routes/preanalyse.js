@@ -844,7 +844,7 @@ export function monterPreanalyse(app) {
   // BODACC, cessions de fonds : ce qui s'est vendu autour du bien, à quel
   // prix, pour quelles activités. La rue est comptée à part.
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index/transactions', wrap(async (req, res) => {
-    const { cessionsAutour: transactionsFonds } = await import('../cessions-fonds.js');
+    const { cessionsAutour: transactionsFonds } = await import('../sources-marche.js');
     const dossier = Records.findBy('Deal', 'deal_id', req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
     const index = Number(req.params.index) || 0;

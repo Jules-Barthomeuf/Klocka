@@ -111,7 +111,7 @@ export async function vendeurDe({ adresse, locataire = null, activite = null, ba
   const ville = ban.ville || (texte.split(',').pop() || '').replace(/^\s*\d{5}\s*/, '').trim();
 
   // 1. Le propriétaire des murs, par les fichiers DGFiP.
-  const { proprietairesDe } = await import('./foncier-ouvert.js');
+  const { proprietairesDe } = await import('./proprietaires.js');
   const occupant = locataire ? { nom: locataire, enseigne: locataire } : null;
   const f = await proprietairesDe(texte, { occupant, point: { lat: ban.lat, lon: ban.lon } });
   if (!f) throw new Error(`Aucune parcelle cadastrale sous « ${texte} ».`);

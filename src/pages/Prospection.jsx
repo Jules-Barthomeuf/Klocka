@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 
@@ -459,15 +459,16 @@ function FicheAgent({ id, onFermer }) {
 
 const STATUTS_GRILLE = { nouveau: ["À appeler", "neutre"], a_rappeler: ["À rappeler", "ambre"], en_discussion: ["En discussion", "menthe"], pas_de_murs: ["Pas de murs", "neutre"], envoie_des_fiches: ["Envoie des fiches", "menthe"], pause: ["En pause", "neutre"], archive: ["Archivé", "alerte"] };
 
-// Les colonnes de la grille : celles de la Sheet de l'équipe, puis ce que la plateforme sait.
+// Les colonnes de la grille. D'abord celles qu'on lit d'un coup d'œil (la
+// maquette : poste, contact, attribué à, statut), puis l'appel, puis le reste
+// de la Sheet de l'équipe et ce que la plateforme sait, en défilant à droite.
+// L'entreprise se lit sous le nom ; l'email et le numéro dans « Contact ».
 const COLONNES = [
-  { cle: "referent", titre: "Attribué à", largeur: 130, referent: true, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
+  { cle: "poste", titre: "Poste", largeur: 190 },
+  { cle: "contact", titre: "Contact", largeur: 230, contact: true },
+  { cle: "referent", titre: "Attribué à", largeur: 150, referent: true, lire: (a) => (a.referent || "").split("@")[0].split(".")[0] },
+  { cle: "statut", titre: "Statut", largeur: 180, statut: true },
   { cle: "appel", titre: "Appel", largeur: 130, appel: true },
-  { cle: "statut", titre: "Statut", largeur: 150, statut: true },
-  { cle: "agence", titre: "Entreprise", largeur: 180 },
-  { cle: "poste", titre: "Poste", largeur: 170 },
-  { cle: "emails", titre: "Email", largeur: 220, lire: (a) => (a.emails || []).join(", "), liste: true },
-  { cle: "telephones", titre: "Numéro", largeur: 150, lire: (a) => (a.telephones || []).join(", "), liste: true },
   { cle: "immo_commercial", titre: "Immobilier commercial", largeur: 150 },
   { cle: "specialite", titre: "Spécialité", largeur: 150 },
   { cle: "reponse", titre: "Réponse", largeur: 180 },
@@ -483,8 +484,20 @@ const COLONNES = [
   { cle: "score", titre: "Score", largeur: 80, lire: (a) => (a.score ? String(a.score) : ""), fixe: true },
   { cle: "source", titre: "Source", largeur: 150, fixe: true },
 ];
+// Les champs du contact et de l'entreprise, modifiables comme une cellule.
+const COL_EMAILS = { cle: "emails", titre: "Email", lire: (a) => (a.emails || []).join(", "), liste: true };
+const COL_TELEPHONES = { cle: "telephones", titre: "Numéro", lire: (a) => (a.telephones || []).join(", "), liste: true };
+const COL_AGENCE = { cle: "agence", titre: "Entreprise" };
 
-function Cellule({ agent, col, onEnregistrer, equipe = [] }) {
+// Les teintes d'une pastille de statut : le fond, le texte, le point.
+const TEINTES_STATUT = {
+  neutre: "bg-relief text-encre [--point:rgb(var(--k-encre-rgb))]",
+  menthe: "bg-menthe/[0.14] text-menthe [--point:rgb(var(--k-menthe-rgb))]",
+  ambre: "bg-ambre/[0.14] text-ambre [--point:currentColor]",
+  alerte: "bg-alerte/[0.14] text-alerte [--point:currentColor]",
+};
+
+function Cellule({ agent, col, onEnregistrer, equipe = [], teinte = "text-craie" }) {
   const valeur = col.lire ? col.lire(agent) : agent[col.cle] || "";
   const [edition, setEdition] = useState(false);
   const [texte, setTexte] = useState(valeur);
@@ -492,10 +505,15 @@ function Cellule({ agent, col, onEnregistrer, equipe = [] }) {
   if (col.statut) {
     const [mot, ton] = STATUTS_GRILLE[agent.statut] || [agent.statut, "neutre"];
     return (
-      <select aria-label={`Statut de ${agent.nom}`} value={agent.statut || "nouveau"} onChange={(e) => onEnregistrer({ statut: e.target.value })}
-        className={`w-full cursor-pointer rounded-full border bg-transparent px-2 py-0.5 text-[12.5px] outline-none ${{ neutre: "border-bord-doux text-craie", menthe: "border-menthe/50 text-menthe", ambre: "border-ambre/50 text-ambre", alerte: "border-alerte/40 text-alerte" }[ton]}`} title={mot}>
-        {Object.entries(STATUTS_GRILLE).map(([k, [m]]) => <option key={k} value={k}>{m}</option>)}
-      </select>
+      <span className={`relative inline-flex h-8 items-center gap-2 rounded-full pl-3 pr-2 text-[13px] ${TEINTES_STATUT[ton]}`} title={mot}>
+        <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: "var(--point)" }} />
+        <span className="whitespace-nowrap">{mot}</span>
+        <ChevronDown className="h-3.5 w-3.5 flex-none opacity-70" />
+        <select aria-label={`Statut de ${agent.nom}`} value={agent.statut || "nouveau"} onChange={(e) => onEnregistrer({ statut: e.target.value })}
+          className="absolute inset-0 cursor-pointer opacity-0">
+          {Object.entries(STATUTS_GRILLE).map(([k, [m]]) => <option key={k} value={k}>{m}</option>)}
+        </select>
+      </span>
     );
   }
   // Attribué à : un choix dans l'équipe. On affiche le prénom, on enregistre
@@ -504,12 +522,15 @@ function Cellule({ agent, col, onEnregistrer, equipe = [] }) {
   if (col.referent) {
     const horsEquipe = agent.referent && !equipe.some((m) => m.email === agent.referent);
     return (
-      <select aria-label={`Attribué à, pour ${agent.nom}`} value={agent.referent || ""} onChange={(e) => onEnregistrer({ referent: e.target.value })}
-        className={`w-full cursor-pointer rounded-full border bg-transparent px-2 py-0.5 text-[12.5px] outline-none ${agent.referent ? "border-bord-doux text-encre" : "border-transparent text-bord-vif hover:border-bord-doux"}`}>
-        <option value="">—</option>
-        {equipe.map((m) => <option key={m.email} value={m.email}>{m.prenom}</option>)}
-        {horsEquipe && <option value={agent.referent}>{valeur}</option>}
-      </select>
+      <span className="relative block w-[130px]">
+        <select aria-label={`Attribué à, pour ${agent.nom}`} value={agent.referent || ""} onChange={(e) => onEnregistrer({ referent: e.target.value })}
+          className={`h-8 w-full cursor-pointer appearance-none rounded-lg border-0 bg-relief pl-3 pr-8 text-[13px] outline-none ${agent.referent ? "text-encre" : "text-brume"}`}>
+          <option value="">—</option>
+          {equipe.map((m) => <option key={m.email} value={m.email}>{m.prenom}</option>)}
+          {horsEquipe && <option value={agent.referent}>{valeur}</option>}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ardoise" />
+      </span>
     );
   }
   if (col.fixe || col.cle === "a_appeler") return <span className="line-clamp-3 text-[13.5px] leading-[1.5] text-craie" title={valeur}>{valeur || <span className="text-bord-vif">—</span>}</span>;
@@ -522,7 +543,7 @@ function Cellule({ agent, col, onEnregistrer, equipe = [] }) {
     return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }} rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none" />;
   }
   return (
-    <button type="button" onClick={() => setEdition(true)} className="block w-full text-left text-[13.5px] leading-[1.5] text-craie hover:text-encre" style={{ background: "transparent" }} title={valeur ? `${valeur} (clic pour modifier)` : "Clic pour remplir"}>
+    <button type="button" onClick={() => setEdition(true)} className={`block w-full border-0 p-0 text-left text-[13.5px] leading-[1.5] hover:text-encre ${teinte}`} style={{ background: "transparent" }} title={valeur ? `${valeur} (clic pour modifier)` : "Clic pour remplir"}>
       <span className="line-clamp-3">{valeur || <span className="text-bord-vif">—</span>}</span>
     </button>
   );
@@ -610,32 +631,36 @@ function OngletGrille({ onAppeler }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-1 overflow-x-auto border-b border-relief pb-px">
+      {/* Pas de filet sous la rangée : seule la ville choisie est soulignée. */}
+      <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {[{ nom: "", n: data?.total }, ...onglets].map((o) => (
           <button key={o.nom || "tous"} type="button" onClick={() => setOnglet(o.nom)}
-            className={`flex-none rounded-t-lg border border-b-0 px-3.5 py-2 text-[12.5px] transition-colors ${onglet === o.nom ? "border-relief bg-surface font-semibold text-encre" : "border-transparent text-ardoise hover:text-encre"}`}>
-            {o.nom || "Toutes les villes"} <span className="tabular-nums text-brume">{o.n ?? ""}</span>
+            className={`flex-none rounded-none border-0 border-b-2 bg-transparent px-3 pb-3 pt-1 text-[13.5px] transition-colors ${onglet === o.nom ? "border-encre text-encre" : "border-transparent text-ardoise hover:text-encre"}`}
+            style={{ background: "transparent" }}>
+            {o.nom || "Toutes les villes"} <span className="ml-1 text-[11.5px] tabular-nums text-brume">{o.n ?? ""}</span>
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-full border border-bord-doux p-0.5">
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-full border border-trait p-1">
           {[[true, `À appeler aujourd'hui${data?.a_appeler != null ? ` · ${data.a_appeler}` : ""}`], [false, "Tous les agents"]].map(([v, mot]) => (
-            <button key={String(v)} type="button" onClick={() => setJour(v)} className={`rounded-full px-3 py-1 text-[12.5px] ${jour === v ? "bg-menthe font-semibold text-sur-menthe" : "text-craie hover:text-encre"}`}>{mot}</button>
+            <button key={String(v)} type="button" onClick={() => setJour(v)}
+              className={`h-8 rounded-full border-0 px-3 text-[13px] ${jour === v ? "bg-encre/90 text-fond" : "bg-transparent text-craie hover:text-encre"}`}
+              style={jour === v ? undefined : { background: "transparent" }}>{mot}</button>
           ))}
         </div>
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 border-b border-encre/[0.18] pb-1 focus-within:border-bord-vif">
-          <Search className="h-4 w-4 text-brume" />
-          <input id="recherche-grille" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un nom, une agence, un numéro" className="w-full border-none bg-transparent py-1 text-[13.5px] text-encre outline-none placeholder:text-brume" />
-        </div>
+        <label className="flex h-10 min-w-[220px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-rail px-4 focus-within:border-bord-vif">
+          <Search className="h-4 w-4 flex-none text-brume" />
+          <input id="recherche-grille" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un nom, une agence, un numéro" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+        </label>
         <div className="inline-flex items-center gap-0.5">
-          <button type="button" onClick={annuler} disabled={!historique.current.passe.length} title="Annuler la dernière modification (⌘Z)" aria-label="Annuler" className="grid h-8 w-8 place-items-center rounded-full text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
-          <button type="button" onClick={retablir} disabled={!historique.current.futur.length} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" className="grid h-8 w-8 place-items-center rounded-full text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
+          <button type="button" onClick={annuler} disabled={!historique.current.passe.length} title="Annuler la dernière modification (⌘Z)" aria-label="Annuler" className="grid h-9 w-9 place-items-center rounded-full border-0 p-0 text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
+          <button type="button" onClick={retablir} disabled={!historique.current.futur.length} title="Rétablir (⇧⌘Z)" aria-label="Rétablir" className="grid h-9 w-9 place-items-center rounded-full border-0 p-0 text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
         </div>
         {isFetching && !isLoading && <Loader2 className="h-4 w-4 animate-spin text-ardoise" />}
-        {onglet && <button type="button" onClick={() => equimmox.mutate()} disabled={equimmox.isPending} className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1.5 text-[12.5px] text-craie hover:text-encre"><RefreshCw className="h-3.5 w-3.5" />Relire Equimmox à {onglet}</button>}
-        <button type="button" onClick={() => setAjout((x) => !x)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1.5 text-[12.5px] font-semibold text-sur-menthe">+ Ajouter une ligne</button>
+        {onglet && <button type="button" onClick={() => equimmox.mutate()} disabled={equimmox.isPending} className="inline-flex h-10 items-center gap-1.5 rounded-full border border-trait px-4 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}><RefreshCw className="h-3.5 w-3.5" />Relire Equimmox à {onglet}</button>}
+        <button type="button" onClick={() => setAjout((x) => !x)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-menthe px-4 text-[14px] text-sur-menthe hover:bg-menthe-survol"><Plus className="h-4 w-4" />Ajouter une ligne</button>
       </div>
 
       {ajout && (
@@ -646,35 +671,43 @@ function OngletGrille({ onAppeler }) {
       )}
 
       {isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
-        <div className="overflow-auto rounded-xl border border-relief bg-surface" style={{ maxHeight: "calc(100vh - 290px)" }}>
+        <div className="mt-3 overflow-auto rounded-[16px] border border-trait bg-rail" style={{ maxHeight: "calc(100vh - 300px)" }}>
           <table className="min-w-full border-collapse text-[13.5px]">
             <thead className="sticky top-0 z-20">
               <tr>
-                <th className="sticky left-0 z-30 min-w-[220px] border-b border-r border-relief px-4 py-3 text-left text-[13.5px] font-semibold text-encre backdrop-blur-xl">Agent</th>
+                <th className="sticky left-0 z-30 min-w-[220px] border-b border-trait bg-rail py-3.5 pl-6 pr-4 text-left text-[12.5px] font-normal text-ardoise">Agent</th>
                 {COLONNES.map((c) => (
-                  <th key={c.cle} className="border-b border-r border-relief px-3 py-3 text-left text-[13.5px] font-semibold text-encre backdrop-blur-xl" style={{ minWidth: c.largeur }}>{c.titre}</th>
+                  <th key={c.cle} className="border-b border-trait bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-ardoise" style={{ minWidth: c.largeur }}>{c.titre}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {lignes.map((a) => {
                 const pris = a.verrou && a.verrou.par !== undefined;
+                const enregistrerA = (champs) => modifier(a, champs);
                 return (
-                  <tr key={a.id} className={`hover:bg-encre/[0.02] ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
-                    <td className="sticky left-0 z-10 border-b border-r border-relief px-4 py-2.5 align-middle backdrop-blur-xl">
-                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate text-left text-[14px] font-semibold text-encre hover:text-menthe" style={{ background: "transparent" }} title={[a.agence && a.agence !== a.nom ? a.agence : null, a.onglet].filter(Boolean).join(" · ") || undefined}>{a.nom}</button>
+                  <tr key={a.id} className={`group ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
+                    <td className="sticky left-0 z-10 border-b border-trait bg-rail py-4 pl-6 pr-4 align-middle group-hover:bg-rail">
+                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate border-0 p-0 text-left text-[15px] font-medium text-encre hover:text-menthe" style={{ background: "transparent" }} title={a.onglet || undefined}>{a.nom}</button>
+                      <div className="mt-0.5 max-w-[220px]"><Cellule agent={a} col={COL_AGENCE} onEnregistrer={enregistrerA} teinte="text-ardoise text-[13px]" /></div>
                     </td>
                     {COLONNES.map((c) => (
-                      <td key={c.cle} className="border-b border-r border-relief px-3 py-2.5 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
+                      <td key={c.cle} className="border-b border-trait px-4 py-4 align-middle group-hover:bg-encre/[0.02]" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
                         {c.appel ? (pris ? <Pastille><Lock className="h-3 w-3" />{a.verrou.nom}</Pastille>
-                          : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[12.5px] text-bord-vif">pas de contact</span>)
-                          : <Cellule agent={a} col={c} equipe={data?.equipe || []} onEnregistrer={(champs) => modifier(a, champs)} />}
+                          : (a.telephones?.length || a.emails?.length) ? <button type="button" onClick={() => onAppeler(a)} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[12.5px] text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button> : <span className="text-[12.5px] text-bord-vif">pas de contact</span>)
+                          : c.contact ? (
+                            <div className="flex flex-col gap-0.5" style={{ fontVariantNumeric: "tabular-nums" }}>
+                              <Cellule agent={a} col={COL_EMAILS} onEnregistrer={enregistrerA} />
+                              <Cellule agent={a} col={COL_TELEPHONES} onEnregistrer={enregistrerA} teinte="text-encre" />
+                            </div>
+                          )
+                          : <Cellule agent={a} col={c} equipe={data?.equipe || []} onEnregistrer={enregistrerA} />}
                       </td>
                     ))}
                   </tr>
                 );
               })}
-              {!lignes.length && <tr><td colSpan={COLONNES.length + 1} className="px-4 py-10 text-center text-[13px] text-brume">{jour ? `Personne à appeler aujourd'hui${onglet ? ` à ${onglet}` : ""}. Passe sur « Tous les agents », ou relis Equimmox.` : "Aucun agent dans cet onglet."}</td></tr>}
+              {!lignes.length && <tr><td colSpan={COLONNES.length + 1} className="px-6 py-10 text-center text-[13px] text-brume">{jour ? `Personne à appeler aujourd'hui${onglet ? ` à ${onglet}` : ""}. Passe sur « Tous les agents », ou relis Equimmox.` : "Aucun agent dans cet onglet."}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -821,16 +854,19 @@ export default function Prospection() {
   const enAttente = jour.data?.appel_a_valider;
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6">
-      <header className="mb-6 text-center">
-        <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
+      {/* Le titre au centre, les onglets de la page dessous, à gauche. */}
+      <header className="mb-6 flex flex-col gap-5">
+        <h1 className="m-0 text-center text-[26px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[24px]">Prospection</h1>
+        <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
+          {onglets.map(([cle, mot, n]) => (
+            <button key={cle} type="button" onClick={() => setOnglet(cle)}
+              className={`inline-flex h-8 flex-none items-center gap-1.5 rounded-full border-0 px-3.5 text-[13px] transition-colors ${onglet === cle ? "bg-encre/90 text-fond" : "text-craie hover:text-encre"}`}
+              style={onglet === cle ? undefined : { background: "transparent" }}>
+              {mot}{n ? <span className={`tabular-nums ${onglet === cle ? "" : "text-brume"}`}>{n}</span> : null}
+            </button>
+          ))}
+        </nav>
       </header>
-      <nav className="mb-5 flex flex-wrap justify-center gap-1.5" aria-label="Onglets de la prospection">
-        {onglets.map(([cle, mot, n]) => (
-          <button key={cle} type="button" onClick={() => setOnglet(cle)} className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${onglet === cle ? "border-menthe bg-menthe font-semibold text-sur-menthe" : "border-bord-doux text-craie hover:text-encre"}`}>
-            {mot}{n ? <span className={`tabular-nums ${onglet === cle ? "" : "text-brume"}`}>{n}</span> : null}
-          </button>
-        ))}
-      </nav>
       {enAttente && !appel && <p className="m-0 mb-4 rounded-[12px] border border-ambre/40 px-4 py-2.5 text-[13px] text-craie">Ton appel avec {enAttente.agent} attend ta réponse dans Google Chat.</p>}
       {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}
       {onglet === "envois" && <OngletEnvois />}

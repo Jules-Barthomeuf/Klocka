@@ -1,11 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
-import { LogoGoogle } from "@/components/mails/ConnexionGmail";
+import { ChevronLeft, Eye, EyeOff, KeyRound, Loader2, Mail, UserPlus } from "lucide-react";
+import { LogoGoogle, LogoMicrosoft } from "@/components/mails/ConnexionGmail";
 
 // Connexion en deux temps : on saisit son adresse, l'app reconnaît le compte,
 // puis on saisit son mot de passe — ou on le choisit s'il s'agit de la première
@@ -22,8 +19,13 @@ const ETAPES = {
   INCONNU: "inconnu",
 };
 
-const CHAMP = "bg-transparent border-0 border-b border-encre/[0.18] rounded-none px-0 text-[15px] text-encre focus-visible:ring-0 focus-visible:border-menthe placeholder:text-brume";
-const BOUTON = "w-full rounded-none bg-transparent border border-menthe text-menthe-clair hover:bg-menthe/[0.16] hover:text-menthe-clair text-[11px] tracking-[0.16em] uppercase h-11";
+// La maquette « Connexion » : des champs pleins arrondis avec leur icône, des
+// boutons en pilule de 44 px. Les couleurs passent par le thème.
+const CHAMP = "h-11 w-full rounded-[14px] border border-trait bg-fond py-2 pl-9 pr-3 text-[14px] text-encre outline-none placeholder:text-brume";
+const BOUTON = "flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+
+// Pas de compte : la demande passe par le formulaire d'inscription.
+const CREER_COMPTE = "https://dpe3smipjxh.typeform.com/to/GD7sREFs";
 
 // Panneau de connexion nu : porte toute la logique, sans Dialog. La page
 // d'accueil l'affiche en colonne de droite ; ConnexionDialog reste disponible
@@ -42,6 +44,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
   const [enCours, setEnCours] = useState(false);
   // La connexion Google n'est proposée que si le serveur est configuré pour.
   const [googleDispo, setGoogleDispo] = useState(false);
+  const [microsoftDispo, setMicrosoftDispo] = useState(false);
   const champMotDePasse = useRef(null);
   // Cette fenêtre veut son propre compte : la session ira dans la fenêtre,
   // pas dans le cookie commun. L'autre compte reste connecté ailleurs.
@@ -51,7 +54,11 @@ export function ConnexionPanel({ invitation = null } = {}) {
     let vivant = true;
     base44
       .request("GET", "/api/health")
-      .then((r) => vivant && setGoogleDispo(!!r?.google))
+      .then((r) => {
+        if (!vivant) return;
+        setGoogleDispo(!!r?.google);
+        setMicrosoftDispo(!!r?.microsoft);
+      })
       .catch(() => {});
     return () => {
       vivant = false;
@@ -130,83 +137,131 @@ export function ConnexionPanel({ invitation = null } = {}) {
     <div className="text-encre">
         {/* Étape 1 — adresse */}
         {etape === ETAPES.EMAIL && (
-          <form onSubmit={verifierEmail} className="space-y-4">
-            <EnTete icone={Mail} titre="Connexion" sousTitre={enFenetre ? "Cette fenêtre est indépendante : votre autre compte reste connecté dans les autres." : "Saisissez l'adresse de votre invitation."} />
-            <div>
-              <Label className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 block">Adresse email</Label>
-              <Input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" className={CHAMP} />
+          <>
+            <Bascule />
+            <EnTete
+              titre="Se connecter avec son email"
+              sousTitre={enFenetre ? "Cette fenêtre est indépendante : votre autre compte reste connecté dans les autres." : "Saisissez l'adresse de votre invitation."}
+            />
+            <div className="flex flex-col gap-4 p-6">
+              <form onSubmit={verifierEmail} className="m-0 flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="connexion-email" className="text-[14px] font-medium leading-none">Email</label>
+                  <ChampIcone icone={Mail} erreur={!!erreur}>
+                    <input id="connexion-email" type="email" autoFocus autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setErreur(null); }} placeholder="vous@exemple.fr" className={CHAMP} />
+                  </ChampIcone>
+                  {erreur && <Erreur texte={erreur} />}
+                </div>
+                <button type="submit" disabled={!email.trim() || enCours} className={`${BOUTON} border border-trait bg-fond text-encre hover:bg-encre/[0.06]`}>
+                  {enCours && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Continuer
+                </button>
+              </form>
+              {/* Les fournisseurs sous le bouton principal, chacun s'il est configuré. */}
+              {(googleDispo || microsoftDispo) && (
+                <>
+                  <Separateur />
+                  {googleDispo && <BoutonGoogle />}
+                  {microsoftDispo && <BoutonMicrosoft />}
+                </>
+              )}
             </div>
-            {erreur && <Erreur texte={erreur} />}
-            <Button type="submit" disabled={!email.trim() || enCours} className={BOUTON}>
-              {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Continuer <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            {googleDispo && (
-              <>
-                <Separateur />
-                <BoutonGoogle libelle="Continuer avec Google" />
-              </>
-            )}
-            <p className="text-[12.5px] text-brume text-center pt-1 mb-0">Les accès se créent sur invitation.</p>
-          </form>
+          </>
         )}
 
         {/* Étape 2a — mot de passe existant */}
         {etape === ETAPES.MOT_DE_PASSE && (
-          <form onSubmit={seConnecter} className="space-y-4">
+          <>
             <EnTete
-              icone={Lock}
-              titre={compte?.prenom ? `Bonjour ${compte.prenom}` : "Mot de passe"}
-              sousTitre={email}
+              retour={reinitialiser}
+              titre="Saisissez votre mot de passe"
               badge={compte?.role === "admin" ? "Administrateur" : null}
+              sousTitre={
+                <span className="flex items-center gap-2">
+                  <span className="text-encre [overflow-wrap:anywhere]">{email}</span>
+                  <button type="button" onClick={reinitialiser} className="border-0 bg-transparent p-0 text-[14px] text-ardoise underline hover:text-encre" style={{ background: "transparent" }}>Modifier</button>
+                </span>
+              }
             />
-            <ChampMotDePasse libelle="Mot de passe" valeur={motDePasse} onChange={setMotDePasse} champRef={champMotDePasse} />
-            {erreur && <Erreur texte={erreur} />}
-            <Button type="submit" disabled={!motDePasse || enCours} className={BOUTON}>
-              {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Se connecter
-            </Button>
-            {googleDispo && (
-              <>
-                <Separateur />
-                <BoutonGoogle />
-              </>
-            )}
-            <BoutonRetour onClick={reinitialiser} />
-          </form>
+            <form onSubmit={seConnecter} className="m-0 flex flex-col gap-4 p-6">
+              <ChampMotDePasse id="connexion-mdp" libelle="Mot de passe" valeur={motDePasse} onChange={(v) => { setMotDePasse(v); setErreur(null); }} champRef={champMotDePasse} erreur={!!erreur} autoComplete="current-password" />
+              {erreur && <Erreur texte={erreur} />}
+              <button type="submit" disabled={!motDePasse || enCours} className={`${BOUTON} border-0 bg-menthe text-sur-menthe hover:bg-menthe-survol`}>
+                {enCours && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Se connecter
+              </button>
+              {(googleDispo || microsoftDispo) && (
+                <>
+                  <Separateur />
+                  {googleDispo && <BoutonGoogle />}
+                  {microsoftDispo && <BoutonMicrosoft />}
+                </>
+              )}
+            </form>
+          </>
         )}
 
         {/* Étape 2b — première connexion d'un compte invité */}
         {etape === ETAPES.CREATION && (
-          <form onSubmit={definirMotDePasse} className="space-y-4">
+          <>
             <EnTete
-              icone={ShieldCheck}
+              retour={invitation ? null : reinitialiser}
               titre={compte?.prenom ? `Bienvenue ${compte.prenom}` : "Première connexion"}
-              sousTitre={`${email} — choisissez votre mot de passe, il vous servira pour les prochaines fois.`}
+              sousTitre={`${email} : choisissez votre mot de passe, il vous servira pour les prochaines fois.`}
               badge={compte?.role === "admin" ? "Administrateur" : null}
             />
-            <ChampMotDePasse libelle="Mot de passe (8 caractères minimum)" valeur={motDePasse} onChange={setMotDePasse} champRef={champMotDePasse} />
-            <ChampMotDePasse libelle="Confirmation" valeur={confirmation} onChange={setConfirmation} />
-            {erreur && <Erreur texte={erreur} />}
-            <Button type="submit" disabled={!motDePasse || !confirmation || enCours} className={BOUTON}>
-              {enCours ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Enregistrer et entrer
-            </Button>
-            {!invitation && <BoutonRetour onClick={reinitialiser} />}
-          </form>
+            <form onSubmit={definirMotDePasse} className="m-0 flex flex-col gap-4 p-6">
+              <ChampMotDePasse id="connexion-nouveau" libelle="Mot de passe (8 caractères minimum)" valeur={motDePasse} onChange={setMotDePasse} champRef={champMotDePasse} autoComplete="new-password" />
+              <ChampMotDePasse id="connexion-confirmation" libelle="Confirmation" valeur={confirmation} onChange={setConfirmation} autoComplete="new-password" />
+              {erreur && <Erreur texte={erreur} />}
+              <button type="submit" disabled={!motDePasse || !confirmation || enCours} className={`${BOUTON} border-0 bg-menthe text-sur-menthe hover:bg-menthe-survol`}>
+                {enCours && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Enregistrer et entrer
+              </button>
+            </form>
+          </>
         )}
 
         {/* Adresse non reconnue */}
         {etape === ETAPES.INCONNU && (
-          <div className="space-y-4">
-            <EnTete icone={AlertCircle} titre="Adresse non reconnue" sousTitre={email} />
-            <p className="text-ardoise text-sm leading-relaxed">
-              Cette adresse n'a pas d'accès Klocka. Les comptes se créent sur invitation : vérifiez la saisie, ou
-              rapprochez-vous de votre conseiller — il vous enverra votre lien.
-            </p>
-            <BoutonRetour onClick={reinitialiser} libelle="Essayer une autre adresse" />
-          </div>
+          <>
+            <EnTete retour={reinitialiser} titre="Adresse non reconnue" sousTitre={email} />
+            <div className="flex flex-col gap-4 p-6">
+              <p className="m-0 text-[14px] leading-[1.6] text-ardoise">
+                Cette adresse n'a pas d'accès Klocka. Les comptes se créent sur invitation : vérifiez la saisie, ou
+                rapprochez-vous de votre conseiller, il vous enverra votre lien.
+              </p>
+              <a href={CREER_COMPTE} target="_blank" rel="noopener noreferrer" className={`${BOUTON} border border-menthe text-menthe hover:bg-menthe/[0.12]`}>
+                <UserPlus className="h-4 w-4" />
+                Créer votre compte
+              </a>
+              <button type="button" onClick={reinitialiser} className={`${BOUTON} border-0 text-ardoise hover:bg-encre/[0.06] hover:text-encre`} style={{ background: "transparent" }}>
+                Essayer une autre adresse
+              </button>
+            </div>
+          </>
         )}
+    </div>
+  );
+}
+
+/**
+ * La carte de connexion (maquette « Connexion ») : un motif de grille estompé
+ * sous le contenu, à 10 px du bord. Le voile reprend la couleur de la carte.
+ */
+export function CarteConnexion({ children }) {
+  return (
+    <div className="relative isolate w-full max-w-[448px] rounded-[20px] border border-trait bg-surface-pleine shadow-[0_20px_25px_-5px_rgba(0,0,0,0.3),0_8px_10px_-6px_rgba(0,0,0,0.3)]">
+      <div
+        aria-hidden="true"
+        className="bg-grid-pattern pointer-events-none absolute inset-[10px] -z-10 rounded-[12px] bg-[length:30px_30px] bg-repeat"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[10px] -z-10 rounded-[12px]"
+        style={{ backgroundImage: "linear-gradient(to top right, rgb(var(--k-surface-pleine-rgb) / .9), rgb(var(--k-surface-pleine-rgb) / .4), rgb(var(--k-surface-pleine-rgb) / .1))" }}
+      />
+      {children}
     </div>
   );
 }
@@ -215,8 +270,8 @@ export function ConnexionPanel({ invitation = null } = {}) {
 export default function ConnexionDialog({ ouvert, onClose }) {
   return (
     <Dialog open={ouvert} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-fond border-encre/[0.13] text-encre max-w-md">
-        <ConnexionPanel />
+      <DialogContent className="max-w-[448px] border-0 bg-transparent p-0 shadow-none">
+        <CarteConnexion><ConnexionPanel /></CarteConnexion>
       </DialogContent>
     </Dialog>
   );
@@ -224,89 +279,118 @@ export default function ConnexionDialog({ ouvert, onClose }) {
 
 // Redirection pleine page : c'est une connexion, il n'y a pas de saisie à
 // préserver, et la session doit être posée avant que l'app ne s'amorce.
-function BoutonGoogle({ libelle = "Se connecter avec Google" }) {
+function BoutonGoogle() {
   return (
     <a
       href={`/api/auth/google/login?returnTo=%2FDashboard${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
-      className="hover:bg-menthe-survol rounded-full w-full inline-flex items-center justify-center gap-2.5 bg-menthe text-[#3c4043] font-medium text-sm rounded-none px-4 py-2.5 hover:opacity-90 transition-colors"
+      className={`${BOUTON} border border-trait bg-fond text-encre hover:bg-encre/[0.06]`}
     >
       <LogoGoogle />
-      {libelle}
+      Continuer avec Google
     </a>
+  );
+}
+
+function BoutonMicrosoft() {
+  return (
+    <a
+      href={`/api/auth/microsoft/login?returnTo=%2FDashboard${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
+      className={`${BOUTON} border border-trait bg-fond text-encre hover:bg-encre/[0.06]`}
+    >
+      <LogoMicrosoft />
+      Continuer avec Microsoft
+    </a>
+  );
+}
+
+/** En haut de la carte : la connexion, et la demande de compte à côté. */
+function Bascule() {
+  return (
+    <div className="px-6 pt-6">
+      <div className="grid grid-cols-2 gap-1 rounded-full border border-trait bg-fond p-1">
+        <span className="flex h-9 items-center justify-center rounded-full bg-encre/90 text-[14px] text-fond">Connexion</span>
+        <a href={CREER_COMPTE} target="_blank" rel="noopener noreferrer"
+          className="flex h-9 items-center justify-center rounded-full text-[14px] text-craie transition-colors hover:text-encre">
+          Créer un compte
+        </a>
+      </div>
+    </div>
   );
 }
 
 function Separateur() {
   return (
-    <div className="flex items-center gap-3">
-      <span className="h-px flex-1 bg-encre/[0.08]" />
-      <span className="text-brume text-[11px]">ou</span>
-      <span className="h-px flex-1 bg-encre/[0.08]" />
+    <div className="relative flex justify-center">
+      <span className="absolute inset-x-0 top-1/2 border-t border-trait" />
+      <span className="relative bg-surface-pleine px-2.5 text-[12px] text-ardoise">ou</span>
     </div>
   );
 }
 
-function EnTete({ icone: Icone, titre, sousTitre, badge = undefined }) {
+function EnTete({ titre, sousTitre = null, badge = null, retour = null }) {
   return (
-    <div className="pb-2">
-      <div className="flex items-center gap-2.5">
-        <h2 className="text-encre text-[24px] font-light tracking-[-0.02em] m-0">{titre}</h2>
-        {badge && (
-          <span className="text-[11px] tracking-[0.14em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">{badge}</span>
-        )}
+    <div className="flex flex-col gap-1.5 px-6 pt-6">
+      {retour && (
+        <button
+          type="button"
+          onClick={retour}
+          className="-ml-1 mb-2 flex h-7 items-center gap-1.5 self-start rounded-full border-0 pl-1 pr-2 text-[13px] text-ardoise hover:bg-encre/[0.06] hover:text-encre"
+          style={{ background: "transparent" }}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />Retour
+        </button>
+      )}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h1 className="m-0 text-[24px] font-medium leading-[1.2] tracking-[-0.01em] text-encre">{titre}</h1>
+        {badge && <span className="rounded-full border border-menthe/40 px-2 py-px text-[11px] text-menthe">{badge}</span>}
       </div>
-      {sousTitre && <p className="text-ardoise text-[12.5px] mt-1.5 mb-0 break-words">{sousTitre}</p>}
+      {sousTitre && <div className="m-0 text-[14px] leading-[1.5] text-ardoise">{sousTitre}</div>}
     </div>
   );
 }
 
 function Erreur({ texte }) {
+  return <span className="text-[13px] text-alerte">{texte}</span>;
+}
+
+/** Un champ avec son icône à gauche ; le bord passe au rouge sur une erreur. */
+function ChampIcone({ icone: Icone, erreur = false, children }) {
   return (
-    <p className="text-red-400 text-xs flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-      {texte}
-    </p>
+    <div className={`relative rounded-[14px] border ${erreur ? "border-alerte" : "border-transparent"}`}>
+      <Icone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ardoise" />
+      {children}
+    </div>
   );
 }
 
 // Un mot de passe qu'on ne voit pas se tape deux fois de travers : l'œil le
 // montre le temps de le relire.
-function ChampMotDePasse({ valeur, onChange, libelle, autoFocus = undefined, champRef = undefined }) {
+function ChampMotDePasse({ id, valeur, onChange, libelle, champRef = undefined, erreur = false, autoComplete = undefined }) {
   const [visible, setVisible] = useState(false);
   return (
-    <div>
-      <Label className="text-[11px] tracking-[0.16em] uppercase text-ardoise mb-1.5 block">{libelle}</Label>
-      <div className="relative">
-        <Input
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-[14px] font-medium leading-none">{libelle}</label>
+      <ChampIcone icone={KeyRound} erreur={erreur}>
+        <input
+          id={id}
           ref={champRef}
-          autoFocus={autoFocus}
           type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
           value={valeur}
           onChange={(e) => onChange(e.target.value)}
-          className={`${CHAMP} pr-9`}
+          className={`${CHAMP} pr-10`}
         />
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
           title={visible ? "Masquer" : "Afficher"}
-          className="absolute right-0 top-1/2 -translate-y-1/2 text-brume hover:text-craie transition-colors p-1"
+          className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border-0 p-0 text-ardoise hover:bg-encre/[0.06]"
+          style={{ background: "transparent" }}
         >
-          {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
-      </div>
+      </ChampIcone>
     </div>
-  );
-}
-
-function BoutonRetour({ onClick, libelle = "Changer d'adresse" }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full text-ardoise hover:text-craie text-xs flex items-center justify-center gap-1.5 transition-colors"
-    >
-      <ArrowLeft className="w-3 h-3" /> {libelle}
-    </button>
   );
 }

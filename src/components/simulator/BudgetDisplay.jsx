@@ -50,7 +50,7 @@ export default function BudgetDisplay({ prixBienNegocie, calculs, formatCurrency
           </ResponsiveContainer>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center">
-              <p className="text-xl font-medium text-encre">{formatCurrency(calculs.prixRevient)}</p>
+              <p className="text-xl text-encre tabular-nums">{formatCurrency(calculs.prixRevient)}</p>
               <p className="text-xs text-encre/60">Prix de revient</p>
             </div>
           </div>

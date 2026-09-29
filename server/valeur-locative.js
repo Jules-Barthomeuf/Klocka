@@ -13,6 +13,11 @@
 // DÉDUIT des ventes DVF au taux de rendement (loyer-dvf.js). Il est marqué
 // comme tel, jusque sur l'écran : une déduction n'est pas un bail.
 //
+// Data-B revient à côté (29 septembre 2026) : sa fourchette estimée de la
+// rue, du quartier et de la ville, lue en HTTP en quelques secondes. Elle
+// remplit une échelle qu'Equimmox n'a pas pu lire, avant la déduction DVF,
+// et reste toujours visible à part (`data_b`) pour le recoupement.
+//
 // La forme rendue est celle que lisaient déjà les écrans et le projet :
 // { rue, quartier, ville } × { nom, basse, haute }.
 
@@ -20,6 +25,7 @@ import { Records } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
 import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { loyerDvf } from './loyer-dvf.js';
+import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
 
 const ENTITE = 'ValeurLocativeRecherche';
 const CACHE_JOURS = 30;
@@ -40,8 +46,9 @@ const cleDe = (label) => String(label || '').toLowerCase().replace(/\s+/g, ' ').
  * @param {{label, rue, ville}} adresse
  * @param {Object<number, {bas, moyenne, haut, rayon, du_cache}>} equimmox lectures par rayon
  * @param {{basse, moyenne, haute, n, rayon, prix_m2}|null} dvf le loyer déduit des ventes
+ * @param {{rue, quartier, ville, lien}|null} dataB l'estimation Data-B, par échelle
  */
-export function composer(adresse, equimmox = {}, dvf = null) {
+export function composer(adresse, equimmox = {}, dvf = null, dataB = null) {
   const niveaux = {};
   for (const { cle, rayon } of ECHELLES) {
     const eq = equimmox[rayon];
@@ -55,6 +62,12 @@ export function composer(adresse, equimmox = {}, dvf = null) {
         source: 'Equimmox',
         du_cache: !!eq.du_cache,
       };
+    } else if (dataB?.[cle] && (dataB[cle].basse != null || dataB[cle].haute != null)) {
+      // Equimmox n'a rien constaté à ce rayon : l'estimation Data-B de la même
+      // échelle prend la place, et le dit.
+      const d = dataB[cle];
+      const moyenne = d.basse != null && d.haute != null ? Math.round((d.basse + d.haute) / 2) : null;
+      niveaux[cle] = { nom: d.nom || null, basse: d.basse ?? d.haute, moyenne, haute: d.haute ?? d.basse, rayon: null, source: 'Data-B', estime: true, du_cache: !!dataB.du_cache };
     } else {
       niveaux[cle] = null;
     }
@@ -64,8 +77,10 @@ export function composer(adresse, equimmox = {}, dvf = null) {
     niveaux.quartier = { nom: `${dvf.rayon} autour`, basse: dvf.basse, moyenne: dvf.moyenne, haute: dvf.haute, rayon: dvf.rayon, source: 'DVF, déduit', derive: true };
   }
   const constate = ECHELLES.some(({ cle }) => niveaux[cle]?.source === 'Equimmox');
+  const estimeDataB = ECHELLES.some(({ cle }) => niveaux[cle]?.source === 'Data-B');
   return {
-    source: constate ? 'Equimmox · Analyse de loyer' : dvf ? 'DVF · prix des murs × taux de rendement' : 'aucune source',
+    source: [constate && 'Equimmox · Analyse de loyer', estimeDataB && 'Data-B · Valeurs locatives'].filter(Boolean).join(' + ')
+      || (dvf ? 'DVF · prix des murs × taux de rendement' : 'aucune source'),
     unite: UNITE,
     adresse: adresse.label,
     rue: niveaux.rue,
@@ -74,6 +89,8 @@ export function composer(adresse, equimmox = {}, dvf = null) {
     // Le loyer déduit des ventes, toujours à part : c'est le second regard,
     // celui qui dit si le constat et le marché des murs racontent la même chose.
     dvf: dvf ? { basse: dvf.basse, moyenne: dvf.moyenne, haute: dvf.haute, rayon: dvf.rayon, n: dvf.n, prix_m2: dvf.prix_m2, taux: dvf.taux, lien: dvf.lien } : null,
+    // L'estimation Data-B, entière et à part, même quand Equimmox a répondu.
+    data_b: dataB ? { rue: dataB.rue || null, quartier: dataB.quartier || null, ville: dataB.ville || null, lien: dataB.lien || null, le: dataB.le || null } : null,
     constate,
   };
 }
@@ -107,6 +124,16 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
     if (d.ok) dvf = d.resultat; else erreurs.push(`DVF : ${d.error}`);
   } catch (e) { erreurs.push(`DVF : ${e?.message || e}`); }
 
+  // Data-B ensuite : une page HTTP, quelques secondes, gardée trente jours.
+  let dataB = null;
+  if (dataBConfigure()) {
+    surJalon('data-b');
+    try {
+      const d = await valeurLocativeDataB(adresse.label, { forcer, user });
+      if (d.ok) dataB = d.resultat; else erreurs.push(`Data-B : ${d.error}`);
+    } catch (e) { erreurs.push(`Data-B : ${e?.message || e}`); }
+  }
+
   // Puis Equimmox, rayon par rayon : chaque lecture est gardée à part, une
   // panne sur l'un ne perd pas les autres.
   const equimmox = {};
@@ -122,12 +149,12 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
     erreurs.push("Equimmox n'est pas configuré : seule la déduction DVF est disponible.");
   }
 
-  const resultat = { ...composer(adresse, equimmox, dvf), erreurs, le: new Date().toISOString(), par: user?.email || null };
+  const resultat = { ...composer(adresse, equimmox, dvf, dataB), erreurs, le: new Date().toISOString(), par: user?.email || null };
   if (!resultat.rue && !resultat.quartier && !resultat.ville) {
     return { ok: false, error: `Aucune valeur locative lisible ici : ${erreurs.join(' ; ') || 'aucune source n\'a répondu'}.` };
   }
   const record = Records.create(ENTITE, { cle, adresse: adresse.label, point: { lat: adresse.lat, lon: adresse.lon, code_insee: adresse.code_insee, ville: adresse.ville }, resultat, le: resultat.le, par: resultat.par }, user?.email);
-  console.log(`[valeur-locative] ${adresse.label} : ${resultat.constate ? 'Equimmox' : 'DVF seul'}${user?.email ? ` — ${user.email}` : ''}`);
+  console.log(`[valeur-locative] ${adresse.label} : ${resultat.source}${user?.email ? ` — ${user.email}` : ''}`);
   return { ok: true, id: record.id, resultat };
 }
 

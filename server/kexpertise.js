@@ -171,7 +171,7 @@ async function executer(id, { forcer, user }) {
   // 2. L'étude interne : les flux, la rue, le tronçon, les zones à pied.
   etape(id, 'etude', 'en_cours');
   try {
-    const { etudeImplantation } = await import('./implantation/etude.js');
+    const { etudeImplantation } = await import('./sources-marche.js');
     const r = await etudeImplantation(e.adresse, { activite: e.activite === 'Tous les commerces' ? null : e.activite, forcer, journal: (m) => etape(id, 'etude', 'en_cours', m) });
     if (r.ok) {
       resultat.etude = r.resultat;

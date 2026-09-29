@@ -169,7 +169,7 @@ Réponds UNIQUEMENT avec le JSON.`;
       queryClient.invalidateQueries({ queryKey: ["brouillons"] });
       queryClient.invalidateQueries({ queryKey: ["all-projects"] });
       toast.success("Projet créé !", {
-        action: { label: "Voir", onClick: () => navigate("/AdminProjets") }
+        action: { label: "Voir", onClick: () => navigate("/Projets") }
       });
     } catch (error) {
       toast.error("Erreur: " + (error.message || ""));

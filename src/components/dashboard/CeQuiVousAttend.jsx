@@ -92,7 +92,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
       prevenir(
         l.source === "rappel" ? "Rappel" : l.source === "promesse" ? "Promesse attendue" : "Relance à faire",
         [l.titre, l.dossier || l.detail].filter(Boolean).join(" — "),
-        l.lien || "/Dashboard"
+        l.lien || "/TableauDeBord"
       );
     }
   }, [data]);

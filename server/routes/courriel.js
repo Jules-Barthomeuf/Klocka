@@ -31,7 +31,7 @@ function rattachementBoite(req, res, returnTo) {
 
 /** Monte les routes « mail / mails » sur l'application. */
 export function monterCourriel(app) {
-  app.get('/api/mail/google/connect', (req, res) => rattachementBoite(req, res, '/Dashboard'));
+  app.get('/api/mail/google/connect', (req, res) => rattachementBoite(req, res, '/TableauDeBord'));
 
   // Variante en fenêtre surgissante : la page appelante (et son brouillon de
   // mail en cours de rédaction) n'est jamais quittée.

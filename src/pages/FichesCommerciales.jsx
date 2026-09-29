@@ -188,7 +188,7 @@ export default function FichesCommerciales() {
                     <td className="border-b border-trait px-4 py-2.5 tabular-nums text-craie">{jourCourt(f.le)}</td>
                     <td className="border-b border-trait px-4 py-2.5"><Agent fiche={f} onCorriger={(id, agent) => corriger.mutate({ id, agent })} /></td>
                     <td className="border-b border-trait px-4 py-2.5">
-                      {f.deal_id ? <Link to={`/Analyse?deal_id=${f.deal_id}`} className="text-encre hover:text-menthe">{f.titre}</Link> : <span className="text-encre">{f.titre}</span>}
+                      {f.deal_id ? <Link to={`/Dossiers?deal_id=${f.deal_id}`} className="text-encre hover:text-menthe">{f.titre}</Link> : <span className="text-encre">{f.titre}</span>}
                       {f.ville && <span className="ml-2 text-[12px] text-brume">{f.ville}</span>}
                     </td>
                     <td className="border-b border-trait px-4 py-2.5"><span className={`inline-block rounded-full border px-2.5 py-0.5 text-[11.5px] ${p.classe}`}>{f.a_preanalyser ? "À préanalyser" : p.mot}</span></td>

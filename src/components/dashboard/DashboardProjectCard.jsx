@@ -6,7 +6,7 @@ import CarteProjet from "../projet/CarteProjet";
 
 function ProjectCard({ project }) {
   const navigate = useNavigate();
-  return <CarteProjet project={project} onOuvrir={() => navigate(`/ProjetDetail?id=${project.id}`)} />;
+  return <CarteProjet project={project} onOuvrir={() => navigate(`/Projet?id=${project.id}`)} />;
 }
 
 export default function DashboardProjectCard({ projects }) {

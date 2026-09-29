@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronLeft, Eye, EyeOff, KeyRound, Loader2, Mail, UserPlus } from "lucide-react";
-import { LogoGoogle, LogoMicrosoft } from "@/components/mails/ConnexionGmail";
+import { LogoGoogle } from "@/components/mails/ConnexionGmail";
 
 // Connexion en deux temps : on saisit son adresse, l'app reconnaît le compte,
 // puis on saisit son mot de passe — ou on le choisit s'il s'agit de la première
@@ -44,7 +44,6 @@ export function ConnexionPanel({ invitation = null } = {}) {
   const [enCours, setEnCours] = useState(false);
   // La connexion Google n'est proposée que si le serveur est configuré pour.
   const [googleDispo, setGoogleDispo] = useState(false);
-  const [microsoftDispo, setMicrosoftDispo] = useState(false);
   const champMotDePasse = useRef(null);
   // Cette fenêtre veut son propre compte : la session ira dans la fenêtre,
   // pas dans le cookie commun. L'autre compte reste connecté ailleurs.
@@ -54,11 +53,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
     let vivant = true;
     base44
       .request("GET", "/api/health")
-      .then((r) => {
-        if (!vivant) return;
-        setGoogleDispo(!!r?.google);
-        setMicrosoftDispo(!!r?.microsoft);
-      })
+      .then((r) => vivant && setGoogleDispo(!!r?.google))
       .catch(() => {});
     return () => {
       vivant = false;
@@ -105,7 +100,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
       const r = await base44.request("POST", "/api/auth/connexion", { body: { email, mot_de_passe: motDePasse, fenetre: enFenetre } });
       if (r?.jeton_session) base44.auth.fenetre.poserJeton(r.jeton_session);
       // Rechargement complet : l'app rejoue son amorçage avec la session posée.
-      window.location.href = "/Dashboard";
+      window.location.href = "/TableauDeBord";
     } catch (err) {
       setErreur(err?.message || "Connexion impossible.");
       setMotDePasse("");
@@ -126,7 +121,7 @@ export function ConnexionPanel({ invitation = null } = {}) {
         body: { email, mot_de_passe: motDePasse, fenetre: enFenetre, ...(invitation?.jeton ? { jeton: invitation.jeton } : {}) },
       });
       if (r?.jeton_session) base44.auth.fenetre.poserJeton(r.jeton_session);
-      window.location.href = "/Dashboard";
+      window.location.href = "/TableauDeBord";
     } catch (err) {
       setErreur(err?.message || "Enregistrement impossible.");
       setEnCours(false);
@@ -157,12 +152,11 @@ export function ConnexionPanel({ invitation = null } = {}) {
                   Continuer
                 </button>
               </form>
-              {/* Les fournisseurs sous le bouton principal, chacun s'il est configuré. */}
-              {(googleDispo || microsoftDispo) && (
+              {/* Google sous le bouton principal, s'il est configuré. */}
+              {googleDispo && (
                 <>
                   <Separateur />
-                  {googleDispo && <BoutonGoogle />}
-                  {microsoftDispo && <BoutonMicrosoft />}
+                  <BoutonGoogle />
                 </>
               )}
             </div>
@@ -190,11 +184,10 @@ export function ConnexionPanel({ invitation = null } = {}) {
                 {enCours && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Se connecter
               </button>
-              {(googleDispo || microsoftDispo) && (
+              {googleDispo && (
                 <>
                   <Separateur />
-                  {googleDispo && <BoutonGoogle />}
-                  {microsoftDispo && <BoutonMicrosoft />}
+                  <BoutonGoogle />
                 </>
               )}
             </form>
@@ -282,23 +275,11 @@ export default function ConnexionDialog({ ouvert, onClose }) {
 function BoutonGoogle() {
   return (
     <a
-      href={`/api/auth/google/login?returnTo=%2FDashboard${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
+      href={`/api/auth/google/login?returnTo=%2FTableauDeBord${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
       className={`${BOUTON} border border-trait bg-fond text-encre hover:bg-encre/[0.06]`}
     >
       <LogoGoogle />
       Continuer avec Google
-    </a>
-  );
-}
-
-function BoutonMicrosoft() {
-  return (
-    <a
-      href={`/api/auth/microsoft/login?returnTo=%2FDashboard${base44.auth.fenetre.active() ? "&fenetre=1" : ""}`}
-      className={`${BOUTON} border border-trait bg-fond text-encre hover:bg-encre/[0.06]`}
-    >
-      <LogoMicrosoft />
-      Continuer avec Microsoft
     </a>
   );
 }

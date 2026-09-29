@@ -38,7 +38,7 @@ const fenetre = {
     if (!st) return;
     st.setItem(CLE_DRAPEAU, '1');
     st.removeItem(CLE_JETON);
-    window.location.href = '/Home';
+    window.location.href = '/Connexion';
   },
   fermer: () => {
     const st = stockage();
@@ -140,9 +140,10 @@ class ErreurHttp extends Error {
       // connexion, en le disant. Les routes d'authentification s'en occupent
       // elles-mêmes.
       if (resp.status === 401 && typeof window !== 'undefined' && !url.startsWith('/api/auth/')) {
+        // La connexion et l'invitation, sous leur adresse française ou l'ancienne.
         const ici = window.location.pathname;
-        if (ici !== '/Home' && ici !== '/' && !ici.startsWith('/Bienvenue')) {
-          window.location.href = '/Home?session=expiree';
+        if (!/^\/(home|connexion|bienvenue)?(\/|$)/i.test(ici)) {
+          window.location.href = '/Connexion?session=expiree';
         }
       }
       throw new ErreurHttp(
@@ -232,21 +233,21 @@ class ErreurHttp extends Error {
       // Fermer une session de fenêtre rend la fenêtre au cookie commun.
       fenetre.fermer();
       if (typeof window !== 'undefined') {
-        window.location.href = redirectUrl || '/Home';
+        window.location.href = redirectUrl || '/Connexion';
       }
       return { success: true };
     },
     redirectToLogin: (fromUrl) => {
       // Google sign-in: it authenticates the user AND grants mail sending.
       if (typeof window === 'undefined') return;
-      let returnTo = '/Dashboard';
+      let returnTo = '/TableauDeBord';
       try {
-        if (fromUrl) returnTo = new URL(fromUrl, window.location.origin).pathname || '/Dashboard';
+        if (fromUrl) returnTo = new URL(fromUrl, window.location.origin).pathname || '/TableauDeBord';
       } catch {
         /* keep the default */
       }
       // Never bounce back to the landing page — it would look like a no-op.
-      if (returnTo === '/' || returnTo === '/Home') returnTo = '/Dashboard';
+      if (/^\/(home|connexion)?\/?$/i.test(returnTo)) returnTo = '/TableauDeBord';
       window.location.href = `/api/auth/google/login?returnTo=${encodeURIComponent(returnTo)}`;
     },
     isAuthenticated: async () => {

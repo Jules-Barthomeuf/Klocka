@@ -16,7 +16,7 @@ export const MODULES_KDATA = [
     icone: Map,
     image: "/img/kdata/kzoning.jpg",
     phrase: "Délimiter une zone de chalandise et lire le flux commercial d'un emplacement.",
-    chemin: "/kzoning",
+    chemin: "/KZoning",
     etat: "Ouvert",
   },
   {
@@ -26,7 +26,7 @@ export const MODULES_KDATA = [
     icone: Gauge,
     image: "/img/kdata/kexpertise.jpg",
     phrase: "L'étude d'implantation d'une adresse : flux, rue, tronçon, zones de chalandise.",
-    chemin: "/kexpertise",
+    chemin: "/KExpertise",
     etat: "Ouvert",
   },
   {
@@ -36,7 +36,7 @@ export const MODULES_KDATA = [
     icone: Calculator,
     image: "/img/kdata/kestimation.jpg",
     phrase: "Estimer des murs commerciaux par le rendement attendu d'un investisseur.",
-    chemin: "/kestimation",
+    chemin: "/Estimation",
     etat: "Ouvert",
   },
   {
@@ -46,7 +46,7 @@ export const MODULES_KDATA = [
     icone: TrendingUp,
     image: "/img/kdata/kprospective.jpg",
     phrase: "Trouver les commerces d'une zone qui répondent à vos critères, et savoir à qui l'on parle.",
-    chemin: "/kprospective",
+    chemin: "/KProspective",
     etat: "Ouvert",
   },
   {
@@ -56,7 +56,7 @@ export const MODULES_KDATA = [
     icone: DoorClosed,
     image: "/img/kdata/kvacance.jpg",
     phrase: "Les locaux vides d'un quartier, et le rythme auquel ses commerces tournent.",
-    chemin: "/kvacance",
+    chemin: "/KVacance",
     etat: "Ouvert",
   },
   {
@@ -66,7 +66,7 @@ export const MODULES_KDATA = [
     icone: LandPlot,
     image: "/img/kdata/kfoncier.jpg",
     phrase: "Les parcelles autour d'une adresse, leur contenance, et les sociétés qui les possèdent.",
-    chemin: "/kfoncier",
+    chemin: "/KFoncier",
     etat: "Ouvert",
   },
   {
@@ -76,7 +76,7 @@ export const MODULES_KDATA = [
     icone: Banknote,
     image: "/img/kdata/valeur-locative.jpg",
     phrase: "La fourchette de loyer au m² d'une adresse : la rue, le quartier, la ville.",
-    chemin: "/valeurlocative",
+    chemin: "/ValeurLocative",
     etat: "Ouvert",
   },
   {
@@ -86,7 +86,7 @@ export const MODULES_KDATA = [
     icone: Store,
     image: "/img/kdata/ktransactions.jpg",
     phrase: "Ce que les murs et les fonds se sont vraiment vendus, autour d'une adresse.",
-    chemin: "/ktransactions",
+    chemin: "/KTransactions",
     etat: "Ouvert",
   },
 ];

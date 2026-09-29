@@ -58,8 +58,8 @@ const ANIMATIONS = `
 function useContextePage() {
   const { pathname } = useLocation();
   const [params] = useSearchParams();
-  if (pathname.startsWith("/Analyse") && params.get("deal_id")) return { deal_id: params.get("deal_id") };
-  if (pathname.startsWith("/AdminProjets") && params.get("id")) return { projet_id: params.get("id") };
+  if (pathname.startsWith("/Dossiers") && params.get("deal_id")) return { deal_id: params.get("deal_id") };
+  if (pathname.startsWith("/Projets") && params.get("id")) return { projet_id: params.get("id") };
   return null;
 }
 

@@ -28,7 +28,6 @@ import { llmEnabled, llmStatus } from './llm.js';
 import { sendEmail, listAccounts } from './email.js';
 import { ensureMailTemplates } from './mail.js';
 import { googleEnabled, googleStatus, buildAuthUrl, handleCallback, redirectUriPour } from './google-oauth.js';
-import { microsoftEnabled, urlConnexionMicrosoft, callbackMicrosoft, redirectUriMicrosoft } from './microsoft-oauth.js';
 import { createSession, sessionEmail, destroySession, purgeExpiredSessions, prolongerSession } from './sessions.js';
 import {
   hacherMotDePasse,
@@ -557,7 +556,7 @@ app.get('/api/auth/google/login', (req, res) => {
         "GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET sont absents du fichier .env. Consultez la section « Connexion » du README.",
     });
   }
-  const url = buildAuthUrl({ returnTo: req.query.returnTo || '/Dashboard', req, fenetre: req.query.fenetre === '1' });
+  const url = buildAuthUrl({ returnTo: req.query.returnTo || '/TableauDeBord', req, fenetre: req.query.fenetre === '1' });
   // Journalisé à chaque tentative : c'est la seule façon de savoir ce que Google
   // reçoit réellement, et donc de diagnostiquer un redirect_uri_mismatch.
   console.log(`[auth] tentative depuis host=${req.headers.host} proto=${req.headers['x-forwarded-proto'] || req.protocol}`);
@@ -656,64 +655,11 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
     // Session de fenêtre : le jeton voyage dans le fragment (jamais envoyé au
     // serveur), la page le range dans sa fenêtre et efface l'adresse.
     const jeton = createSession(res, profile.email, { sansCookie: true });
-    return res.redirect(`${profile.returnTo || '/Dashboard'}#session=${jeton}`);
+    return res.redirect(`${profile.returnTo || '/TableauDeBord'}#session=${jeton}`);
   }
   createSession(res, profile.email);
   console.log(`[auth] connecté : ${profile.email}`);
-  res.redirect(profile.returnTo || '/Dashboard');
-}));
-
-// --- Connexion Microsoft : identité seule, mêmes règles que Google. Aucune
-// --- boîte ne se rattache par ici.
-
-app.get('/api/auth/microsoft/login', (req, res) => {
-  if (!microsoftEnabled) {
-    return authResultPage(res, {
-      ok: false,
-      title: 'Connexion Microsoft non configurée',
-      detail: 'MICROSOFT_CLIENT_ID et MICROSOFT_CLIENT_SECRET sont absents du fichier .env.',
-    });
-  }
-  const url = urlConnexionMicrosoft({ returnTo: req.query.returnTo || '/Dashboard', req, fenetre: req.query.fenetre === '1' });
-  console.log(`[auth] Microsoft, redirect_uri envoyée : ${new URL(url).searchParams.get('redirect_uri')}`);
-  res.redirect(url);
-});
-
-// Diagnostic : l'URI exacte à déclarer dans Azure pour l'adresse consultée.
-app.get('/api/auth/microsoft/redirect-uri', (req, res) => ok(res, { redirect_uri: redirectUriMicrosoft(req) }));
-
-app.get('/api/auth/microsoft/callback', wrap(async (req, res) => {
-  const { code, state, error, error_description } = req.query;
-  if (error) {
-    return authResultPage(res, { ok: false, title: 'Connexion refusée', detail: `Microsoft a renvoyé : ${error_description || error}. Vous n'avez pas été connecté.` });
-  }
-  let profile;
-  try {
-    profile = await callbackMicrosoft({ code, state });
-  } catch (e) {
-    console.error('[auth] connexion Microsoft échouée:', e?.message || e);
-    return authResultPage(res, { ok: false, title: 'Connexion impossible', detail: String(e?.message || e) });
-  }
-  const email = normEmail(profile.email);
-  let user = Records.filter('User', { email })[0];
-  if (!user) {
-    // Aucun compte ne se crée ici : l'amorçage et l'adresse administrateur
-    // passent par Google ou le mot de passe.
-    console.log(`[auth] Microsoft refusé, adresse sans invitation : ${email}`);
-    return authResultPage(res, {
-      ok: false,
-      title: 'Adresse non reconnue',
-      detail: `${profile.email} n'a pas d'accès Klocka. Les comptes se créent sur invitation : rapprochez-vous de votre conseiller, il vous enverra votre lien.`,
-    });
-  }
-  if (!user.full_name && profile.name) user = Records.update('User', user.id, { full_name: profile.name });
-  if (profile.fenetre) {
-    const jeton = createSession(res, email, { sansCookie: true });
-    return res.redirect(`${profile.returnTo || '/Dashboard'}#session=${jeton}`);
-  }
-  createSession(res, email);
-  console.log(`[auth] connecté par Microsoft : ${email}`);
-  res.redirect(profile.returnTo || '/Dashboard');
+  res.redirect(profile.returnTo || '/TableauDeBord');
 }));
 
 // ---------------------------------------------------------------------------
@@ -1102,7 +1048,6 @@ app.get('/api/health', (req, res) => {
     hebergeur: process.env.RENDER ? 'render' : null,
     ia: llmStatus().label,
     google: googleEnabled,
-    microsoft: microsoftEnabled,
     comptes_google: listAccounts().length,
   });
 });

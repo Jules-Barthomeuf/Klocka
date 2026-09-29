@@ -1,5 +1,8 @@
 import './App.css'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { appliquerPrefs, lirePrefs } from '@/lib/personnalisation'
+import { adresseDe, pageDeChemin } from '@/lib/adresses'
+import { createPageUrl } from '@/utils'
 import BarriereErreur from '@/components/BarriereErreur'
 import { Toaster as AvisToaster } from "@/components/ui/avis"
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -29,7 +32,6 @@ const PAGES_CLIENT = new Set([
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
   'MonCompte', 'Feedback', 'Famille', 'Familles', 'Personnalisation',
 ]);
-const PAGES_CLIENT_MIN = new Set([...PAGES_CLIENT].map((p) => p.toLowerCase()));
 const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
 const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));
 const ProjetPublic = lazy(() => import('@/pages/ProjetPublic'));
@@ -62,36 +64,57 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 // vers une page reste un lien direct.
 const PageDOuverture = () => {
   const { prefs } = usePersonnalisation();
-  if (prefs.accueil && prefs.accueil !== mainPageKey) return <Navigate to={`/${prefs.accueil}`} replace />;
+  if (prefs.accueil && prefs.accueil !== mainPageKey) return <Navigate to={createPageUrl(prefs.accueil)} replace />;
   return <LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>;
 };
 
-// /Preanalyse → /Analyse en conservant la query (?deal_id=, ?tab=).
-const RedirectionAnalyse = () => {
+// Une ancienne adresse (/Dashboard, /Preanalyse…) renvoie à la nouvelle, en
+// gardant la suite (?deal_id=, #session=) : les liens déjà envoyés marchent.
+const VersAdresse = ({ page }) => {
   const location = useLocation();
-  return <Navigate to={`/Analyse${location.search}`} replace />;
+  return <Navigate to={`${createPageUrl(page)}${location.search}${location.hash}`} replace />;
 };
+
+// Les routes d'une page : son adresse française, et son ancien nom qui y
+// renvoie quand les deux diffèrent (voir src/lib/adresses.js).
+const routesDe = (page, element) => {
+  const routes = [<Route key={page} path={`/${adresseDe(page)}`} element={element} />];
+  if (page.toLowerCase() !== adresseDe(page).toLowerCase()) routes.push(<Route key={`${page}-ancienne`} path={`/${page}`} element={<VersAdresse page={page} />} />);
+  return routes;
+};
+
+// Les pages publiques : liens de paiement, projets partagés, invitations.
+const PAGES_PUBLIQUES = {
+  Bienvenue: <Bienvenue />,
+  Installer: <Installer />,
+  Portail: <Portail />,
+  Portail2Fois: <Portail2Fois />,
+  SimulateurPublic: <SimulateurPublic />,
+  ProjetPublic: <ProjetPublic />,
+  FeuilleDeRoute: <FeuilleDeRoute />,
+};
+
+// Les pages déclarées à la main, hors de pages.config.
+const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, Alexis, AdminPresentations };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();
   const { data: currentUser, isLoading: isLoadingUser } = useCurrentUser();
   const location = useLocation();
+  // La connexion garde le style par défaut, les autres pages ceux de la
+  // personne : à chaque page, on réapplique (appliquerPrefs sait laquelle).
+  useEffect(() => { appliquerPrefs(lirePrefs()); }, [location.pathname]);
 
-  const isHomePage = location.pathname === '/' || location.pathname === '/Home';
+  // Le nom interne de la page ouverte, que l'adresse soit la française ou l'ancienne.
+  const pageOuverte = pageDeChemin(location.pathname);
+  const isHomePage = pageOuverte === '' || pageOuverte === 'Home';
 
   // Public pages accessible sans authentification (paiement, liens publics)
-  const publicPaths = ['/Portail', '/Portail2Fois', '/SimulateurPublic', '/ProjetPublic', '/Bienvenue', '/Installer', '/FeuilleDeRoute'];
-  if (publicPaths.includes(location.pathname)) {
+  if (PAGES_PUBLIQUES[pageOuverte]) {
     return (
       <Suspense fallback={<EnChargement />}>
       <Routes>
-        <Route path="/Bienvenue" element={<Bienvenue />} />
-        <Route path="/Installer" element={<Installer />} />
-        <Route path="/Portail" element={<Portail />} />
-        <Route path="/Portail2Fois" element={<Portail2Fois />} />
-        <Route path="/SimulateurPublic" element={<SimulateurPublic />} />
-        <Route path="/ProjetPublic" element={<ProjetPublic />} />
-        <Route path="/FeuilleDeRoute" element={<FeuilleDeRoute />} />
+        {Object.entries(PAGES_PUBLIQUES).flatMap(([page, element]) => routesDe(page, element))}
       </Routes>
       </Suspense>
     );
@@ -112,7 +135,7 @@ const AuthenticatedApp = () => {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
       if (!isHomePage) {
-        return <Navigate to="/Home" replace />;
+        return <Navigate to={createPageUrl('Home')} replace />;
       }
     } else if (authError.type === 'serveur_injoignable') {
       // Le serveur n'a pas répondu : la session est peut-être intacte. On ne
@@ -141,14 +164,12 @@ const AuthenticatedApp = () => {
   // pas en tapant leur adresse : le serveur refuse déjà leurs données, mais
   // une coquille vide en dit encore trop. Seuls les admins ont le choix de vue.
   if (isAuthenticated && !isLoadingUser && currentUser && currentUser.role !== 'admin') {
-    // Les liens de la barre latérale sont en minuscules (createPageUrl), les
-    // routes acceptent les deux : la garde compare sans tenir compte de la casse.
-    const page = location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
+    // La garde lit le nom interne : l'adresse française et l'ancienne mènent au même.
     const autorisee =
-      page === '' ||
-      PAGES_CLIENT_MIN.has(page) ||
-      (currentUser.role === 'mandataire' && page.startsWith('mandataire'));
-    if (!autorisee) return <Navigate to="/Dashboard" replace />;
+      pageOuverte === '' ||
+      PAGES_CLIENT.has(pageOuverte) ||
+      (currentUser.role === 'mandataire' && pageOuverte.toLowerCase().startsWith('mandataire'));
+    if (!autorisee) return <Navigate to={createPageUrl('Dashboard')} replace />;
   }
 
   // Render the main app
@@ -156,35 +177,13 @@ const AuthenticatedApp = () => {
     <Suspense fallback={<EnChargement />}>
     <Routes>
       <Route path="/" element={<PageDOuverture />} />
-      {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
-      ))}
-      <Route path="/AdminPortail" element={<LayoutWrapper currentPageName="AdminPortail"><AdminPortail /></LayoutWrapper>} />
-      <Route path="/AdminBrouillons" element={<LayoutWrapper currentPageName="AdminBrouillons"><AdminBrouillons /></LayoutWrapper>} />
-      <Route path="/AdminBanque" element={<LayoutWrapper currentPageName="AdminBanque"><AdminBanque /></LayoutWrapper>} />
-      <Route path="/Banque" element={<LayoutWrapper currentPageName="Banque"><Banque /></LayoutWrapper>} />
-
-      <Route path="/Portail" element={<Portail />} />
-      <Route path="/Portail2Fois" element={<Portail2Fois />} />
-      <Route path="/SimulateurPublic" element={<SimulateurPublic />} />
-      <Route path="/ProjetPublic" element={<ProjetPublic />} />
-      <Route path="/FeuilleDeRoute" element={<FeuilleDeRoute />} />
-      <Route path="/Analyse" element={<LayoutWrapper currentPageName="Analyse"><Analyse /></LayoutWrapper>} />
-      <Route path="/Monitoring" element={<LayoutWrapper currentPageName="Monitoring"><Monitoring /></LayoutWrapper>} />
-      <Route path="/CoutsIA" element={<LayoutWrapper currentPageName="CoutsIA"><CoutsIA /></LayoutWrapper>} />
-      {/* Anciennes URL : Préanalyse est devenue Analyse ; l'onglet Documents d'Alexis a disparu. */}
-      <Route path="/Preanalyse" element={<RedirectionAnalyse />} />
-      {/* La page secrète. L'ancienne redirection vers Analyse cède la place. */}
-      <Route path="/Alexis" element={<LayoutWrapper currentPageName="Alexis"><Alexis /></LayoutWrapper>} />
-      <Route path="/AdminPresentations" element={<LayoutWrapper currentPageName="AdminPresentations"><AdminPresentations /></LayoutWrapper>} />
+      {Object.entries(Pages).flatMap(([page, Page]) =>
+        routesDe(page, <LayoutWrapper currentPageName={page}><Page /></LayoutWrapper>))}
+      {Object.entries(PAGES_MANUELLES).flatMap(([page, Page]) =>
+        routesDe(page, <LayoutWrapper currentPageName={page}><Page /></LayoutWrapper>))}
+      {Object.entries(PAGES_PUBLIQUES).flatMap(([page, element]) => routesDe(page, element))}
+      {/* Préanalyse est devenue Dossiers. */}
+      <Route path="/Preanalyse" element={<VersAdresse page="Analyse" />} />
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>

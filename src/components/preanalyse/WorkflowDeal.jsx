@@ -565,7 +565,7 @@ function BandeauTest({ dossier }) {
     mutationFn: () => base44.request("DELETE", `/api/preanalyse/dossiers/${dossier.deal_id}`),
     onSuccess: () => {
       toast.success("Deal de test supprimé");
-      navigate("/Analyse");
+      navigate("/Dossiers");
     },
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
@@ -1409,7 +1409,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       (r.photos_raisons || []).forEach((m) => toast.message("Images automatiques", { description: m }));
       toast.success(`Projet créé : ${r.titre}`, details.length ? { description: details.join(" · ") } : undefined);
       onRefresh?.();
-      navigate(`/AdminProjets?id=${r.project_id}`);
+      navigate(`/Projets?id=${r.project_id}`);
     },
     onError: (e) => toast.error(e?.message || "Création du projet impossible"),
   });
@@ -1434,7 +1434,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
           Suivez l'avancement client (message envoyé, retour oui/non) depuis la fiche projet.
         </p>
         <Button
-          onClick={() => navigate(`/AdminProjets?id=${dossier.projet_id}`)}
+          onClick={() => navigate(`/Projets?id=${dossier.projet_id}`)}
           className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
         >
           <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
@@ -1500,7 +1500,7 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
     if (etat?.etat === "pret") {
       onRefresh?.();
       queryClient.invalidateQueries({ queryKey: ["carte", dealId] });
-      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est prêt", `/Analyse?deal_id=${dealId}`);
+      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est prêt", `/Dossiers?deal_id=${dealId}`);
     }
   }, [etat?.etat]);
   const enCours = etat?.etat === "en_cours" || lancer.isPending;
@@ -1548,7 +1548,7 @@ function RelancePreanalyse({ dossier, onRefresh, apercu }) {
     if (etat?.etat === "pret" && etat?.relance) {
       onRefresh?.();
       ["etape1", "etape2", "etape3", "etape4", "carte", "matrice", "fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
-      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est à jour", `/Analyse?deal_id=${dealId}`);
+      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est à jour", `/Dossiers?deal_id=${dealId}`);
     }
   }, [etat?.etat]);
   const enCours = etat?.etat === "en_cours";

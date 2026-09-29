@@ -343,7 +343,7 @@ function ResultatFiche({ r, clients }) {
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-3">
-        <button onClick={() => navigate(`/Analyse?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full">
+        <button onClick={() => navigate(`/Dossiers?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full">
           Ouvrir le dossier <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -410,7 +410,7 @@ function Echeances({ onBrouillon }) {
       </div>
     );
   }
-  const ouvrir = (dealId) => ({ libelle: "Ouvrir", onClick: () => navigate(`/Analyse?deal_id=${dealId}`) });
+  const ouvrir = (dealId) => ({ libelle: "Ouvrir", onClick: () => navigate(`/Dossiers?deal_id=${dealId}`) });
   return (
     <div className="space-y-4">
       <ListeRelances />
@@ -496,7 +496,7 @@ export default function ChatDashboard() {
     const propositions = [];
     for (const a of (r.actions || []).filter((a) => a.name !== "preparer_mail")) {
       if (a.resultat?.url) propositions.push({ libelle: "Ouvrir la fiche", principal: true, href: a.resultat.url });
-      if (a.resultat?.deal_id && a.name === "creer_dossier") propositions.push({ libelle: "Ouvrir le dossier", principal: true, href: `/Analyse?deal_id=${a.resultat.deal_id}` });
+      if (a.resultat?.deal_id && a.name === "creer_dossier") propositions.push({ libelle: "Ouvrir le dossier", principal: true, href: `/Dossiers?deal_id=${a.resultat.deal_id}` });
       if (a.resultat?.cree) propositions.push({ libelle: "Annuler", texte: "annule ça" });
     }
     return propositions.slice(0, 3);

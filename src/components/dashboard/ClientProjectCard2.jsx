@@ -14,7 +14,7 @@ export default function ClientProjectCard2({ project }) {
   return (
     <CarteProjet
       project={project}
-      onOuvrir={() => navigate(`/ProjetDetail?id=${project.id}`)}
+      onOuvrir={() => navigate(`/Projet?id=${project.id}`)}
       avatar={CONSEILLER}
     />
   );

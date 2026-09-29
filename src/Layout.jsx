@@ -230,7 +230,7 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => base44.auth.logout(window.location.origin + '/Home')}
+          onClick={() => base44.auth.logout(window.location.origin + '/Connexion')}
           className="h-8 w-8 text-brume hover:bg-transparent hover:text-encre"
           title="Déconnexion"
         >
@@ -327,7 +327,7 @@ function LayoutContent({ children, currentPageName }) {
   // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »
   // sont la même page, et le lien Dossiers pointe sur le premier.
   const isActivePage = (pageName) => {
-    const pageUrl = createPageUrl(pageName);
+    const pageUrl = createPageUrl(pageName).toLowerCase();
     const ici = location.pathname.toLowerCase();
     return ici === pageUrl || ici === pageUrl + '/';
   };
@@ -353,16 +353,16 @@ function LayoutContent({ children, currentPageName }) {
   const DETAILS = {
     Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
-    Analyse: { to: "/Analyse", icon: Folder, actif: isActivePage("Analyse") },
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") },
     FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
-    Monitoring: { to: "/Monitoring", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
+    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: Users, actif: isActivePage("AdminClients") },
-    AdminPresentations: { to: "/AdminPresentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
+    AdminPresentations: { to: "/Presentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
     AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
     AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
     AdminPortail: { to: createPageUrl("AdminPortail"), icon: UserPlus, actif: isActivePage("AdminPortail") },
@@ -524,7 +524,7 @@ function LayoutContent({ children, currentPageName }) {
             <button type="button" onClick={basculer} aria-label={clair ? "Passer en mode sombre" : "Passer en mode clair"} title={clair ? "Passer en mode sombre" : "Passer en mode clair"} className={bouton} style={{ background: "transparent" }}>
               {clair ? <Moon className="h-4 w-4" strokeWidth={1.7} /> : <Sun className="h-4 w-4" strokeWidth={1.7} />}
             </button>
-            <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Home')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
+            <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
               <LogOut className="h-4 w-4" strokeWidth={1.7} />
             </button>
           </div>

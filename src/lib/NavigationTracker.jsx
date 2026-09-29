@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { pageDeChemin } from './adresses';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { base44 } from '@/api/base44Client';
@@ -50,13 +51,7 @@ export default function NavigationTracker() {
 
     // Set document title based on current page
     useEffect(() => {
-        const pathname = location.pathname;
-        let pageName;
-        if (pathname === '/' || pathname === '') {
-            pageName = mainPageKey;
-        } else {
-            pageName = pathname.replace(/^\//, '').split('/')[0];
-        }
+        const pageName = pageDeChemin(location.pathname) || mainPageKey;
         const title = PAGE_TITLES[pageName];
         document.title = title ? `${title} — Klocka` : 'Klocka';
     }, [location, mainPageKey]);
@@ -70,19 +65,9 @@ export default function NavigationTracker() {
         if (pathname === '/' || pathname === '') {
             pageName = mainPageKey;
         } else {
-            // Remove leading slash and get the first segment
-            const pathSegment = pathname.replace(/^\//, '').split('/')[0];
-            
-            // Correspondance insensible à la casse dans la configuration.
-            const pageKeys = Object.keys(Pages);
-            const matchedKey = pageKeys.find(
-                key => key.toLowerCase() === pathSegment.toLowerCase()
-            );
-
-            // Plusieurs pages sont déclarées en routes manuelles (Dossiers,
-            // Assistant, Suivi…) : s'en tenir à la configuration les rendait
-            // invisibles au suivi. Le segment d'URL fait alors office de nom.
-            pageName = matchedKey || pathSegment || null;
+            // Le nom interne, que l'adresse soit la française ou l'ancienne :
+            // le suivi d'usage garde ainsi ses séries d'avant.
+            pageName = pageDeChemin(pathname) || null;
         }
 
         if (isAuthenticated && pageName) {

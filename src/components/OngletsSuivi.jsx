@@ -9,7 +9,7 @@ import { J } from "@/design/jetons";
 // latérale les séparaient sans raison ; elles se lisent l'une après l'autre.
 
 const PAGES = [
-  { to: "/Monitoring", mot: "Usage" },
+  { to: "/Suivi", mot: "Usage" },
   { to: "/CoutsIA", mot: "Coûts IA" },
 ];
 

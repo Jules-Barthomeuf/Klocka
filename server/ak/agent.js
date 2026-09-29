@@ -683,7 +683,7 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (!r.ok) {
       // Le projet existe déjà : les photos s'y ajoutent quand même.
       const ajoutees = r.project_id && images.length ? ajouterPhotos(r.project_id, images) : 0;
-      return { ok: ajoutees > 0, error: r.error, photos_ajoutees: ajoutees, lien: r.project_id ? lien(`/projet/${r.project_id}`) : null };
+      return { ok: ajoutees > 0, error: r.error, photos_ajoutees: ajoutees, lien: r.project_id ? lien(`/Projet?id=${r.project_id}`) : null };
     }
     const ajoutees = images.length ? ajouterPhotos(r.project.id, images) : 0;
     // Ce qui manque au projet tout juste né, posté tel quel après la réponse :
@@ -695,13 +695,13 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
       const utiles = { ...v, constats: v.constats.filter((c) => ['documents', 'informations', 'prix'].includes(c.genre)) };
       if (utiles.constats.length) apres(phraseManques(utiles));
     } catch { /* le projet est créé, la liste attendra une question */ }
-    return { ok: true, projet_id: r.project.id, titre: r.project.titre, lien: lien(`/projet/${r.project.id}`), champs_remplis: r.champs_remplis, photos_ajoutees: ajoutees, manques_postes: true };
+    return { ok: true, projet_id: r.project.id, titre: r.project.titre, lien: lien(`/Projet?id=${r.project.id}`), champs_remplis: r.champs_remplis, photos_ajoutees: ajoutees, manques_postes: true };
   }
   if (name === 'ajouter_photos_projet') {
     if (!Records.get('Project', input.projet_id)) return { ok: false, error: 'Projet introuvable.' };
     const images = photosDuMessage(message);
     if (!images.length) return { ok: false, error: "Aucune photo dans le message : joins-la au même message que la demande." };
-    return { ok: true, photos_ajoutees: ajouterPhotos(input.projet_id, images), lien: lien(`/projet/${input.projet_id}`) };
+    return { ok: true, photos_ajoutees: ajouterPhotos(input.projet_id, images), lien: lien(`/Projet?id=${input.projet_id}`) };
   }
   if (name === 'outils_kdata') return { outils: decrireOutilsKdata() };
   if (name === 'lancer_kdata') {

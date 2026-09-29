@@ -226,7 +226,7 @@ function PanneauGeneration({ project }) {
           <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={() => {
-                window.location.href = "/api/auth/google/login?returnTo=" + encodeURIComponent("/AdminPresentations");
+                window.location.href = "/api/auth/google/login?returnTo=" + encodeURIComponent("/Presentations");
               }}
               className="inline-flex items-center gap-2 text-xs px-4 py-2.5 border border-bord-doux bg-encre/[0.06] hover:bg-encre/[0.1] text-encre transition-colors"
             >

@@ -12,8 +12,8 @@ import { Volume2, VolumeX } from "lucide-react";
 // l'application, ça joue ; si on tape l'adresse, un bouton prend le relais.
 
 const PHOTOS = [
-  { src: "/alexis/1.jpg", legende: "L'Araignée de Klocka", detail: "Un grand pouvoir implique de grands rendements." },
-  { src: "/alexis/2.jpg", legende: "Los Klockos", detail: "Chop n'a jamais été aussi bien coiffé." },
+  { src: "/Alexis/1.jpg", legende: "L'Araignée de Klocka", detail: "Un grand pouvoir implique de grands rendements." },
+  { src: "/Alexis/2.jpg", legende: "Los Klockos", detail: "Chop n'a jamais été aussi bien coiffé." },
 ];
 
 function Photo({ src, legende, detail }) {
@@ -44,7 +44,7 @@ function Photo({ src, legende, detail }) {
   );
 }
 
-const THEME = "/alexis/theme.mp3";
+const THEME = "/Alexis/theme.mp3";
 
 function Theme() {
   const audio = useRef(null);

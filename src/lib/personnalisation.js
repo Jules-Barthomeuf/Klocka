@@ -12,6 +12,7 @@
 // le seul endroit où une couleur s'écrit : ici on ne fait que les lire, et
 // dériver la famille d'un accent (clair, survol, foncé, texte posé dessus).
 import jetons from "@/design/jetons.json";
+import { pageDeChemin } from "@/lib/adresses";
 
 export const CLE_LOCALE = "klocka-personnalisation";
 // L'ancienne clé du thème seul : reprise une fois, pour qui avait choisi le clair.
@@ -183,9 +184,16 @@ export function appliquerTheme(theme) {
  * premier rendu, puis à chaque changement. Ne retire que ce qu'il a posé :
  * un réglage revenu au défaut rend la main à la feuille de style.
  */
+// Les pages d'avant la connexion (l'accueil, l'arrivée par invitation) ont
+// toujours le même visage : celui par défaut, quels que soient les réglages
+// gardés dans ce navigateur. On y arrive et on en repart par un rechargement
+// complet, qui réapplique les réglages de la personne.
+const PAGES_NEUTRES = new Set(["", "Home", "Bienvenue"]);
+export const pageNeutre = () => typeof window !== "undefined" && PAGES_NEUTRES.has(pageDeChemin(window.location.pathname));
+
 export function appliquerPrefs(brut) {
   if (typeof document === "undefined") return;
-  const p = normaliser(brut);
+  const p = normaliser(pageNeutre() ? DEFAUT : brut);
   const theme = themeEffectif(p);
   const clair = theme === CLAIR;
   appliquerTheme(theme);

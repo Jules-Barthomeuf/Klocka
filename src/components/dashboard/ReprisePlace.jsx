@@ -38,7 +38,7 @@ export default function ReprisePlace({ limite = 5 }) {
         detail: ["Dossier", ETAPES[Math.max(0, (Number(d.etape_max) || 1) - 1)], d.ville].filter(Boolean).join(" · "),
         date: dateDe(d),
         icone: Folder,
-        vers: `/Analyse?deal_id=${d.deal_id}`,
+        vers: `/Dossiers?deal_id=${d.deal_id}`,
       })),
     ...(projets.data || [])
       .filter((p) => !p.archived)
@@ -48,7 +48,7 @@ export default function ReprisePlace({ limite = 5 }) {
         detail: ["Projet", p.ville_secteur_champ1, p.nom_locataire].filter(Boolean).join(" · "),
         date: dateDe(p),
         icone: Building2,
-        vers: `/AdminProjets?id=${p.id}`,
+        vers: `/Projets?id=${p.id}`,
       })),
   ]
     .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))

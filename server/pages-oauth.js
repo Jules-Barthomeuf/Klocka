@@ -21,7 +21,7 @@ function authResultPage(res, { ok, title, detail }) {
     <div style="font-size:40px;margin-bottom:12px">${ok ? '✓' : '!'}</div>
     <h1 style="color:${color};font-size:20px;margin:0 0 12px">${title}</h1>
     <p style="color:#9ca3af;font-size:14px;line-height:1.6;margin:0 0 24px">${detail}</p>
-    <a href="/Dashboard" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour au dashboard</a>
+    <a href="/TableauDeBord" id="retour" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:14px">Retour au dashboard</a>
   </div>
   <script>
     // Ouverte en fenêtre surgissante : prévenir la page appelante et proposer

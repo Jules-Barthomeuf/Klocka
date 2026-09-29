@@ -236,7 +236,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
       else if (enCoursPrecedent.current.has(cle)) {
         enCoursPrecedent.current.delete(cle);
         const titre = voulues[i]?.titre || r.data?.titre || cle;
-        prevenir("Analyse terminée", `${titre} — ${dossier?.titre || dossier?.nom || "dossier"}`, dealId ? `/Analyse?deal_id=${dealId}` : null);
+        prevenir("Analyse terminée", `${titre} — ${dossier?.titre || dossier?.nom || "dossier"}`, dealId ? `/Dossiers?deal_id=${dealId}` : null);
       }
     });
   }, [requetes.map((r) => r.data?.remplissage?.etat || "").join("|")]);

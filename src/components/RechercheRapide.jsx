@@ -24,8 +24,8 @@ export default function RechercheRapide({ ouvert, onFermer }) {
     const t = norm(q.trim());
     const listeDossiers = (Array.isArray(dossiers.data) ? dossiers.data : dossiers.data?.dossiers || []).filter((d) => !d.archived);
     const tous = [
-      ...listeDossiers.map((d) => ({ cle: `d-${d.deal_id}`, genre: "Dossier", icone: Folder, titre: d.titre || d.nom || d.nom_fichier || "Dossier sans nom", detail: d.ville || "", vers: `/Analyse?deal_id=${d.deal_id}` })),
-      ...(projets.data || []).filter((p) => !p.archived).map((p) => ({ cle: `p-${p.id}`, genre: "Projet", icone: Building2, titre: p.titre || "Projet sans nom", detail: p.adresse_complete || p.ville_secteur_champ1 || "", vers: `/AdminProjets?id=${p.id}` })),
+      ...listeDossiers.map((d) => ({ cle: `d-${d.deal_id}`, genre: "Dossier", icone: Folder, titre: d.titre || d.nom || d.nom_fichier || "Dossier sans nom", detail: d.ville || "", vers: `/Dossiers?deal_id=${d.deal_id}` })),
+      ...(projets.data || []).filter((p) => !p.archived).map((p) => ({ cle: `p-${p.id}`, genre: "Projet", icone: Building2, titre: p.titre || "Projet sans nom", detail: p.adresse_complete || p.ville_secteur_champ1 || "", vers: `/Projets?id=${p.id}` })),
     ];
     if (!t) return tous.slice(0, 8);
     return tous.filter((x) => norm(`${x.titre} ${x.detail}`).includes(t)).slice(0, 12);

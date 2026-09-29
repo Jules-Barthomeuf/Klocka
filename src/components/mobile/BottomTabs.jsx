@@ -20,7 +20,8 @@ export default function BottomTabs() {
       <div className="flex items-center justify-around h-14">
         {tabs.map(({ label, icon: Icon, page }) => {
           const url = createPageUrl(page);
-          const isActive = location.pathname === url || location.pathname === url + "/";
+          const ici = location.pathname.toLowerCase();
+          const isActive = ici === url.toLowerCase() || ici === url.toLowerCase() + "/";
           return (
             <Link
               key={page}

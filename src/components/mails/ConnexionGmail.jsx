@@ -75,16 +75,6 @@ export function useConnexionGmail(onConnecte) {
   return { connecter, enCours };
 }
 
-// Les couleurs de Microsoft, comme celles de Google : une marque, pas un jeton.
-export const LogoMicrosoft = ({ className = "w-4 h-4" }) => (
-  <svg className={className} viewBox="0 0 16 16" aria-hidden="true">
-    <rect width="7.5" height="7.5" fill="#F25022" />
-    <rect x="8.5" width="7.5" height="7.5" fill="#7FBA00" />
-    <rect y="8.5" width="7.5" height="7.5" fill="#00A4EF" />
-    <rect x="8.5" y="8.5" width="7.5" height="7.5" fill="#FFB900" />
-  </svg>
-);
-
 export const LogoGoogle = ({ className = "w-4 h-4" }) => (
   <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

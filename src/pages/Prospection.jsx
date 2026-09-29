@@ -379,7 +379,7 @@ function Decision({ d, raisons }) {
     <li className={`${carte} p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <Link to={`/Analyse?deal_id=${d.deal_id}`} className="text-[15px] font-semibold text-encre hover:text-menthe">{d.titre}</Link>
+          <Link to={`/Dossiers?deal_id=${d.deal_id}`} className="text-[15px] font-semibold text-encre hover:text-menthe">{d.titre}</Link>
           <p className="m-0 mt-0.5 text-[12.5px] text-craie">{[d.agent, d.ville].filter(Boolean).join(" · ")} · <span className={retard ? "text-alerte" : ""}>reçu il y a {d.depuis_h < 24 ? `${d.depuis_h} h` : `${Math.round(d.depuis_h / 24)} j`}</span></p>
           {d.verdict && <p className="m-0 mt-1.5 text-[12.5px] text-encre">Préanalyse : {d.verdict}{d.motifs?.length ? ` · ${d.motifs.join(" ; ")}` : ""}</p>}
         </div>
@@ -749,7 +749,7 @@ function OngletTableau() {
       {data.en_attente_de_decision.length > 0 && (
         <section className={`${carte} p-5`}>
           <p className={etiquette}>En attente de décision</p>
-          <ul className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">{data.en_attente_de_decision.map((d) => <li key={d.deal_id} className="text-[13px]"><Link to={`/Analyse?deal_id=${d.deal_id}`} className="text-encre hover:text-menthe">{d.titre}</Link> <span className={d.depuis_h > 48 ? "text-alerte" : "text-brume"}>· {d.agent || "agent inconnu"} · {d.depuis_h} h</span></li>)}</ul>
+          <ul className="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">{data.en_attente_de_decision.map((d) => <li key={d.deal_id} className="text-[13px]"><Link to={`/Dossiers?deal_id=${d.deal_id}`} className="text-encre hover:text-menthe">{d.titre}</Link> <span className={d.depuis_h > 48 ? "text-alerte" : "text-brume"}>· {d.agent || "agent inconnu"} · {d.depuis_h} h</span></li>)}</ul>
         </section>
       )}
     </div>

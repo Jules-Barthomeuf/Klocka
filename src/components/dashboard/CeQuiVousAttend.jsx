@@ -22,6 +22,9 @@ import { J } from "@/design/jetons";
 // C'est la limite assumée de la notification navigateur : l'onglet doit vivre.
 
 const GROUPES = [
+  // Ce que Klocka a fait tout seul et qu'il faut savoir : un agent ajouté dans
+  // Monday, une adresse qui manque. Pas d'échéance, donc en tête.
+  { cle: "nouveau", mot: "Nouveau", teinte: J["menthe"], garde: (l) => l.nouveau },
   { cle: "retard", mot: "En retard", teinte: J["alerte"], garde: (l) => l.dans != null && l.dans < 0 },
   { cle: "aujourdhui", mot: "Aujourd'hui", teinte: J["ambre"], garde: (l) => l.dans === 0 },
   { cle: "semaine", mot: "Cette semaine", teinte: J["menthe"], garde: (l) => l.dans > 0 && l.dans <= 7 },
@@ -33,6 +36,15 @@ const NATURES = {
   rappel: { mot: "rappel", teinte: J["menthe"] },
   promesse: { mot: "promesse", teinte: J["ambre"] },
   dossier: { mot: "relance", teinte: "#5a8db5" },
+  agent: { mot: "agent", teinte: J["menthe"] },
+};
+
+// Ce que « Supprimer » fait vraiment, dit avant de le faire.
+const CONFIRMATIONS = {
+  rappel: "Supprimer ce rappel ?",
+  promesse: "Effacer cette promesse du registre ?",
+  dossier: "Retirer la relance de ce dossier ?",
+  agent: "Masquer cette annonce ?",
 };
 
 const quand = (dans, echeance) => {
@@ -61,12 +73,12 @@ export default function CeQuiVousAttend({ limite = 12 }) {
   });
 
   const fait = useMutation({
-    mutationFn: (id) => base44.request("POST", `/api/assistant/rappels/${id}/fait`),
+    mutationFn: (l) => base44.request("POST", `/api/assistant/attend/${l.source}/${encodeURIComponent(l.id)}/fait`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ce-qui-attend"] }),
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const supprimer = useMutation({
-    mutationFn: (id) => base44.request("DELETE", `/api/assistant/rappels/${id}`),
+    mutationFn: (l) => base44.request("DELETE", `/api/assistant/attend/${l.source}/${encodeURIComponent(l.id)}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ce-qui-attend"] }),
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
@@ -77,7 +89,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
   const premierPassage = useRef(true);
   useEffect(() => {
     const lignes = data?.lignes || [];
-    const dues = lignes.filter((l) => l.dans != null && l.dans <= 0);
+    const dues = lignes.filter((l) => l.nouveau || (l.dans != null && l.dans <= 0));
     // À l'ouverture de la page, on ne rejoue pas ce qui était déjà en retard :
     // la liste est sous les yeux, une volée de notifications n'apprendrait rien.
     if (premierPassage.current) {
@@ -90,7 +102,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
       if (prevenus.current.has(cle)) continue;
       prevenus.current.add(cle);
       prevenir(
-        l.source === "rappel" ? "Rappel" : l.source === "promesse" ? "Promesse attendue" : "Relance à faire",
+        l.source === "rappel" ? "Rappel" : l.source === "promesse" ? "Promesse attendue" : l.source === "agent" ? "Agent" : "Relance à faire",
         [l.titre, l.dossier || l.detail].filter(Boolean).join(" — "),
         l.lien || "/TableauDeBord"
       );
@@ -125,13 +137,13 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                   // Une ligne, pas un encadré. La ligne entière mène au dossier
                   // quand il y en a un : un bouton « Ouvrir » à côté d'un titre
                   // déjà cliquable dit deux fois la même chose.
-                  const Ligne = l.lien && !l.cloturable ? Link : "div";
+                  const Ligne = l.lien ? Link : "div";
                   return (
                     <Ligne
                       key={`${l.source}-${l.id}`}
-                      {...(l.lien && !l.cloturable ? { to: l.lien } : {})}
+                      {...(l.lien ? { to: l.lien } : {})}
                       className={`group flex items-baseline gap-2.5 border-t border-trait py-2.5 first:border-t-0 ${
-                        l.lien && !l.cloturable ? "cursor-pointer" : ""
+                        l.lien ? "cursor-pointer" : ""
                       }`}
                     >
                       <span
@@ -155,7 +167,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                         <p className="m-0 mt-0.5 text-[13px] text-ardoise truncate">
                           <span style={{ color: n.teinte }}>{n.mot}</span>
                           <span className="text-bord-vif"> · </span>
-                          {quand(l.dans, l.echeance)}
+                          {l.nouveau ? l.detail || "à l'instant" : quand(l.dans, l.echeance)}
                           {(l.dossier || l.detail) && (
                             <>
                               <span className="text-bord-vif"> · </span>
@@ -166,16 +178,16 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                       </div>
 
                       {l.cloturable && (
-                        <div className="flex-none flex items-center gap-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="flex-none flex items-center gap-3 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <button
-                            onClick={() => fait.mutate(l.id)}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fait.mutate(l); }}
                             disabled={fait.isPending}
                             className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-menthe transition-colors disabled:opacity-40"
                           >
                             <Check className="w-3.5 h-3.5" /> Fait
                           </button>
                           <button
-                            onClick={() => { if (window.confirm("Supprimer ce rappel ?")) supprimer.mutate(l.id); }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (window.confirm(CONFIRMATIONS[l.source] || "Supprimer cette ligne ?")) supprimer.mutate(l); }}
                             aria-label="Supprimer" title="Supprimer"
                             className="text-brume hover:text-alerte transition-colors"
                           >

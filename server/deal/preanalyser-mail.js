@@ -10,7 +10,8 @@
 import { Records } from '../db.js';
 import { telechargerRaw, telechargerPieceJointe } from '../gmail-inbox.js';
 import { analyserFiche } from './index.js';
-import { piecesFiche } from './fiches-auto.js';
+import { piecesFiche, dossierDeLaConversation, doublonDe, contexteDesConversations } from './fiches-auto.js';
+import { ajouterSuivi } from './lifecycle.js';
 
 /**
  * @returns {Promise<object>} le premier dossier ; avec plusieurs fiches, sa
@@ -18,6 +19,24 @@ import { piecesFiche } from './fiches-auto.js';
  */
 export async function preanalyserMail(mailRecu, { user = null, uploadDir = null, contactEmail = undefined } = {}) {
   if (mailRecu.deal_id) throw new Error('Ce mail a déjà été préanalysé.');
+
+  // Une réponse dans la conversation d'un dossier, ou la même fiche déjà
+  // traitée il y a peu : on ne recrée rien. Le mail est rattaché au dossier
+  // (ses pièces y suivront par la veille), et l'appelant le dit. C'est la
+  // garde de TOUS les chemins de création — le bouton, AK, « fais tout ».
+  const contexte = contexteDesConversations();
+  const conversation = dossierDeLaConversation(mailRecu, contexte);
+  const doublon = conversation ? null : doublonDe(mailRecu, { mails: contexte.mails, deals: contexte.deals });
+  const dealExistant = conversation || doublon;
+  if (dealExistant) {
+    const deal = Records.findBy('Deal', 'deal_id', dealExistant);
+    Records.update('MailRecu', mailRecu.id, { deal_id: dealExistant });
+    ajouterSuivi(deal, {
+      type: 'mail_rattache',
+      detail: `« ${String(mailRecu.objet || '').slice(0, 100)} » de ${mailRecu.de_email || '?'} ${conversation ? 'répond à la conversation de ce dossier' : 'porte une fiche déjà traitée ici'} : rattaché, pas de nouveau dossier`,
+    }, user);
+    return { ...deal, repris_conversation: !!conversation, doublon: !!doublon };
+  }
   // L'expéditeur devient le contact agent, sauf quand on dit le contraire :
   // un mail transféré par quelqu'un de l'équipe n'a pas d'agent dedans.
   const contact = contactEmail === undefined ? mailRecu.de_email || null : contactEmail;

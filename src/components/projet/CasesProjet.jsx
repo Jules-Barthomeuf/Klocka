@@ -31,7 +31,7 @@ export function useCasesProjet(project, isPublic) {
 export function PanneauPiece({ piece, onFermer }) {
   if (!piece) return null;
   return (
-    <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] p-4">
+    <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] p-4">
       <Visionneuse
         extraction={{ document_id: piece.document_id, document_nom: piece.document_nom, document_url: piece.document_url }}
         ligne={{ page: piece.page, citation: piece.citation, element: piece.titre }}

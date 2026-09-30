@@ -116,7 +116,9 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
     });
   }
   for (const m of mails) {
-    if (m.deal_id || !porteUneFiche(m)) continue;
+    // Un mail dont le dossier a été supprimé : comme si la fiche n'avait
+    // jamais été importée — elle ne compte pas, même « à préanalyser ».
+    if (m.deal_id || m.dossier_supprime_le || !porteUneFiche(m)) continue;
     const agent = agentDeLaFiche({ corrige: m.fiche_agent, mail: m }, estInterne);
     // Un mail interne sans expéditeur d'origine n'est pas une fiche reçue : c'est un échange d'équipe.
     if (m.interne && !agent) continue;

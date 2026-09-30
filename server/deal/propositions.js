@@ -67,7 +67,7 @@ export function documentsManquants(deal) {
 // Un mail non rattaché : c'est peut-être une fiche à préanalyser.
 function surMailsOrphelins(mails) {
   return mails
-    .filter((m) => !m.deal_id)
+    .filter((m) => !m.deal_id && !m.dossier_supprime_le)
     .map((m) => {
       const pieces = m.pieces_jointes || [];
       const age = jours(m.date);

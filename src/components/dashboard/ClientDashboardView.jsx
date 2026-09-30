@@ -134,7 +134,7 @@ export function FenetreRendezVous({ user, onFermer }) {
     return () => window.removeEventListener("keydown", echap);
   }, [onFermer]);
   return (
-    <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={onFermer}>
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={onFermer}>
       <div className="w-full max-w-[900px] h-[86vh] bg-surface-pleine border border-trait rounded-[18px] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait">
           <LogoKlocka className="h-10" />

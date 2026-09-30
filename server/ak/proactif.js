@@ -83,7 +83,7 @@ export async function aSignaler({ maintenant = new Date(), mentionner = (x) => x
 export function mailsASignaler({ maintenant = new Date(), mails = Records.list('MailRecu') } = {}) {
   const deja = signales();
   return mails
-    .filter((m) => !m.deal_id && (m.pieces_jointes || []).length && maintenant - new Date(m.date || 0) < 6 * 3600000)
+    .filter((m) => !m.deal_id && !m.dossier_supprime_le && (m.pieces_jointes || []).length && maintenant - new Date(m.date || 0) < 6 * 3600000)
     .map((m) => ({ ...m, pieces_jointes: (m.pieces_jointes || []).map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean) }))
     .filter((m) => !deja[`mail:${m.id}`])
     .slice(0, 3)

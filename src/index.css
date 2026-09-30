@@ -178,6 +178,35 @@ button:focus-visible {
 :root[data-animations="reduites"] *,
 :root[data-animations="reduites"] *::before,
 :root[data-animations="reduites"] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+/* Le réglage du système vaut le nôtre : qui demande moins de mouvement l'a. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* --- Les transitions -----------------------------------------------------
+   Tout ce qui réagit (boutons, liens, champs, onglets, entrées de menu)
+   glisse d'un état à l'autre au lieu de sauter : couleurs, fond, bord,
+   ombre, opacité, transform — jamais les propriétés de mise en page, qui
+   saccadent. :where() garde la spécificité à zéro : la moindre classe d'un
+   composant l'emporte. Les réglages de réduction ci-dessus coupent tout. */
+:where(button, a, [role="button"], [role="tab"], [role="menuitem"], [role="option"], input, select, textarea, summary, label) {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, scale, border-radius;
+  transition-duration: .18s;
+  transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+}
+/* Un bouton pressé s'enfonce d'un souffle. La propriété `scale`, à part de
+   transform, compose avec les utilitaires translate : un bouton centré par
+   -translate-y-1/2 ne saute pas quand on le presse. */
+:where(button, [role="button"]):not(:disabled):active { scale: .98; }
+
+/* Le fondu du changement de thème : posé sur <html> le temps du passage
+   (personnalisation.js), jamais au chargement ni en mouvement réduit. */
+.k-theme-fondu,
+.k-theme-fondu *,
+.k-theme-fondu *::before,
+.k-theme-fondu *::after { transition: background-color .3s ease, color .3s ease, border-color .3s ease, fill .3s ease, stroke .3s ease !important; }
+
+html { scroll-behavior: smooth; }
 :root[data-halo="0"] .k-halo,
 :root[data-halo="0"] .accueil-halo-a,
 :root[data-halo="0"] .accueil-halo-b { display: none; }

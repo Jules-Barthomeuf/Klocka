@@ -246,7 +246,11 @@ export function analyseDe(lot, passage) {
   const loyerM2 = ind.loyer_commercial_m2_an || null;
   const surface = nb(lot.lot?.surface_m2);
   const loyerEnPlace = nb(lot.lot?.loyer_annuel_ht_hc);
-  const prixFai = nb(lot.lot?.prix_fai);
+  // Le prix affiché est parfois net vendeur : les honoraires écrits s'y
+  // ajoutent pour comparer un vrai FAI au marché (même règle que deal/prix.js).
+  const prixAffiche = nb(lot.lot?.prix_fai);
+  const honorairesEnSus = val(lot.lot?.honoraires_inclus) === false ? nb(lot.lot?.montant_honoraires) : null;
+  const prixFai = prixAffiche != null && honorairesEnSus ? prixAffiche + honorairesEnSus : prixAffiche;
   const rendementAnnonce = nb(lot.lot?.rendement_annonce);
   const implantation = lot.implantation || null;
   const equimmox = lot.analyse_loyer || null;

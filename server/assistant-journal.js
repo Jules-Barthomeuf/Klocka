@@ -23,6 +23,15 @@ const REVERSIBLES = {
 };
 
 /**
+ * Une action ratée : un refus déclaré ou une erreur. Un outil de lecture
+ * renvoie ses données sans « ok » ; l'absence du champ n'est pas un échec.
+ * Exportée pour que le bilan relise les actions anciennes avec la même règle.
+ */
+export function estEchec(resultat) {
+  return !resultat || resultat.ok === false || !!(resultat.error || resultat.erreur);
+}
+
+/**
  * Consigne une action exécutée.
  * @returns {object} l'entrée du journal
  */
@@ -33,7 +42,7 @@ export function journaliser({ outil, args, resultat, user }) {
   // Une tentative ratée se consigne aussi : c'est elle qu'on relit quand on
   // demande pourquoi l'assistant a annoncé un refus. Rien à défaire, en
   // revanche — il ne s'est rien produit à l'extérieur.
-  const echec = !resultat?.ok;
+  const echec = estEchec(resultat);
 
   return Records.create('AssistantAction', {
     outil,
@@ -45,7 +54,7 @@ export function journaliser({ outil, args, resultat, user }) {
     projet_id: args?.projet_id || null,
     annulable: annulable && !echec,
     echec,
-    erreur: echec ? resultat?.erreur || null : null,
+    erreur: echec ? resultat?.error || resultat?.erreur || resultat?.message || null : null,
     annulee: false,
     // Ce qu'annuler ferait, pour pouvoir l'annoncer avant de le faire.
     effet_annulation: annulable && !echec ? REVERSIBLES[outil] : null,

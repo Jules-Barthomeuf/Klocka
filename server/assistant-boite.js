@@ -110,7 +110,7 @@ export async function traiterBoite({ texte, historique = [], user, type: force =
     } catch {
       /* sans Monday, pas de correspondance */
     }
-    return { ...base, deal_id: r.deal_id, lot: r.lot, titre: dossier?.titre || null, clients };
+    return { ...base, deal_id: r.deal_id, lot: r.lot, titre: dossier?.titre || null, clients, agent_fiche: r.agent_fiche || null };
   }
 
   if (tri.type === 'client') {

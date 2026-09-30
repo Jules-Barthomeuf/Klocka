@@ -566,3 +566,17 @@ test('mail libre : les deux outils existent et la consigne interdit le mail écr
   assert.match(consigne(), /mail_libre, jamais un texte que tu écrirais toi-même/);
   assert.match(consigne(), /tu ne parles jamais d'« aperçu »/);
 });
+
+test("une lecture sans « ok » n'est pas un échec, un refus ou une erreur l'est", async () => {
+  const { estEchec } = await import('../assistant-journal.js');
+  const { bilanDe } = await import('./bilan.js');
+  assert.equal(estEchec({ mails: [] }), false, 'boite_recue renvoie ses données sans ok');
+  assert.equal(estEchec({ ok: true, cree: true }), false);
+  assert.equal(estEchec({ ok: false, manque: ['le vendeur'] }), true);
+  assert.equal(estEchec({ error: 'Loyer inconnu sur ce dossier.' }), true);
+  assert.equal(estEchec(null), true);
+  // Une action consignée avant la règle, marquée ratée à tort, se relit juste.
+  const le = new Date().toISOString();
+  const b = bilanDe({ actions: [{ outil: 'boite_recue', par: 'jules.b@klocka.immo (AK pour Jules)', le, echec: true, resultat: { mails: [] } }] });
+  assert.equal(b.echecs, 0);
+});

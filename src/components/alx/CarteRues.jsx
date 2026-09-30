@@ -39,7 +39,7 @@ function Cadrage({ points }) {
     cadree.current = signature;
     if (points.length >= 3) map.fitBounds(points, { padding: [40, 40], maxZoom: 15 });
     else if (points.length) map.setView(points[0], 15);
-  }, [map, signature]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [map, signature]);  
   return null;
 }
 

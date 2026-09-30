@@ -310,7 +310,7 @@ export default function AdminSuggestions() {
         )}
 
         {zoom && (
-          <div onClick={() => setZoom(null)} className="fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-8 cursor-zoom-out">
+          <div onClick={() => setZoom(null)} className="animate-in fade-in duration-200 fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-8 cursor-zoom-out">
             <img src={zoom} alt="Capture" className="max-w-full max-h-full rounded-lg border border-bord" />
           </div>
         )}

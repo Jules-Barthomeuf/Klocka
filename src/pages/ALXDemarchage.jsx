@@ -256,7 +256,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
 
   return (
     <>
-      <div ref={panneau} className="fixed inset-y-0 right-0 z-40 w-full max-w-[600px] overflow-y-auto border-l border-trait bg-surface p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+      <div ref={panneau} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[600px] overflow-y-auto border-l border-trait bg-surface p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
         {commerce ? <DetailCommerce m={commerce} retour={joliNom(s.nom)} onRetour={() => setCommerce(null)} /> : (<>
         <div className="flex items-start justify-between gap-3">
           <div>

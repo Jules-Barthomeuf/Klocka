@@ -63,7 +63,7 @@ function FenetreAnalyseKData({ analyse, onFermer }) {
     return () => window.removeEventListener("keydown", k);
   }, [onFermer]);
   return createPortal(
-    <div className="fixed inset-0 z-[600] flex flex-col bg-fond/90 p-3 backdrop-blur-sm sm:p-6" onClick={onFermer}>
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[600] flex flex-col bg-fond/90 p-3 backdrop-blur-sm sm:p-6" onClick={onFermer}>
       <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-[18px] border border-bord bg-fond shadow-[0_30px_80px_rgba(0,0,0,.6)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-trait px-4 py-2.5">
           <p className="m-0 min-w-0 truncate text-[13px] text-encre">
@@ -104,11 +104,32 @@ const ETAPES = [
 ];
 
 /**
+ * Supprimer le dossier pour de bon, après confirmation : il disparaît avec ses
+ * pièces et sa fiche ne compte plus comme importée. Retour à la liste ensuite.
+ */
+function useSupprimerDossier(dossier) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  return () => {
+    if (!dossier?.deal_id) return;
+    if (!window.confirm(`Supprimer définitivement « ${dossier.nom || "ce dossier"} » ? Il disparaît avec ses pièces, et sa fiche ne compte plus comme importée.`)) return;
+    base44
+      .request("DELETE", `/api/preanalyse/dossiers/${dossier.deal_id}`)
+      .then(() => {
+        toast.success("Dossier supprimé");
+        ["preanalyse-pipeline", "dossiers", "fiches-commerciales"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+        navigate("/Dossiers");
+      })
+      .catch((e) => toast.error(e?.message || "Suppression impossible"));
+  };
+}
+
+/**
  * L'étape en cours, en haut à droite, qui s'ouvre au survol sur les autres :
  * on change d'étape depuis là, sans barre d'onglets au-dessus de la page.
  * « Abandonner » ferme la liste, à part.
  */
-function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPasser, onAbandonner, abandonne, apercu }) {
+function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPasser, onAbandonner, onSupprimer, abandonne, apercu }) {
   const [ouvert, setOuvert] = useState(false);
   const courante = ETAPES.find((e) => e.n === etape) || ETAPES[0];
   const fermer = () => setOuvert(false);
@@ -161,6 +182,16 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
                   style={{ background: "transparent" }}
                 >
                   <Archive className="h-3.5 w-3.5" /> Abandonner
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={() => { fermer(); onSupprimer(); }}
+                  disabled={dossier.statut === "projet_cree"}
+                  aria-label="Supprimer définitivement : le dossier disparaît et sa fiche ne compte plus comme importée" title="Supprimer définitivement : le dossier disparaît et sa fiche ne compte plus comme importée"
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[12.5px] text-red-300 transition-colors hover:bg-red-500/[0.08] disabled:opacity-40"
+                  style={{ background: "transparent" }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Supprimer
                 </button>
               </>
             )}
@@ -264,7 +295,10 @@ function etapeDebloquee(dossier) {
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
 export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const abandonne = dossier?.statut === "abandonne";
+  const supprimer = useSupprimerDossier(dossier);
   // En aperçu, tout est déverrouillé pour parcourir les écrans librement.
   const debloquee = apercu ? ETAPES.length : etapeDebloquee(dossier);
   // On revient sur le dossier là où on l'a laissé : l'étape ouverte en dernier
@@ -443,6 +477,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
                 .catch((e) => toast.error(e?.message || "Abandon impossible"));
             }}
+            onSupprimer={supprimer}
           />
         </div>
       )}
@@ -542,7 +577,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             ))}
             {preuveGrille && (
-              <div className="panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
+              <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />
               </div>
             )}
@@ -978,6 +1013,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
   const [dialogIntention, setDialogIntention] = useState(null);
   // En aperçu, les cartes sont visibles mais inertes.
   const ouvrir = (intention) => !apercu && setDialogIntention(intention);
+  const supprimer = useSupprimerDossier(dossier);
 
   const changerStatut = useMutation({
     mutationFn: ({ statut, note }) =>
@@ -1040,6 +1076,7 @@ function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, t
                 }
               : null
           }
+          onSupprimer={dialogIntention === intentionNon && dossier?.statut !== "projet_cree" ? () => { setDialogIntention(null); supprimer(); } : undefined}
         />
       )}
     </>

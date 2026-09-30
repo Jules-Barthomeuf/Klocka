@@ -3,6 +3,7 @@
 // de lui-même. À lire chaque mois avant de lui ajouter quoi que ce soit.
 
 import { Records } from '../db.js';
+import { estEchec } from '../assistant-journal.js';
 
 const depuisJours = (jours) => new Date(Date.now() - jours * 86400000).toISOString();
 
@@ -27,7 +28,9 @@ export function bilanDe({ actions = [], couts = [], taches = [], lecons = [], jo
     cout_total: Math.round(c.reduce((s, x) => s + (x.cout || 0), 0) * 100) / 100,
     cout_par_demande: demandes ? Math.round((c.reduce((s, x) => s + (x.cout || 0), 0) / demandes) * 1000) / 1000 : null,
     actions: parAk.length,
-    echecs: parAk.filter((a) => a.echec).length,
+    // Relu depuis le résultat : les actions consignées avant la règle actuelle
+    // comptaient une lecture sans « ok » comme ratée.
+    echecs: parAk.filter((a) => (a.resultat ? estEchec(a.resultat) : a.echec)).length,
     par_outil: Object.entries(parOutil).sort((a, b) => b[1] - a[1]).map(([outil, n]) => ({ outil, n })),
     par_personne: Object.entries(parPersonne).sort((a, b) => b[1] - a[1]).map(([qui, n]) => ({ qui, n })),
     taches: { lancees: t.length, finies: t.filter((x) => x.etat === 'finie').length, ratees: t.filter((x) => x.etat === 'ratee').length, par_genre: t.reduce((o, x) => ({ ...o, [x.genre]: (o[x.genre] || 0) + 1 }), {}) },

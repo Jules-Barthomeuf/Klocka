@@ -177,11 +177,13 @@ test('la sauvegarde de la base existe et n’est ouverte qu’à l’équipe', a
 });
 
 test('les surfaces supprimées ne répondent plus', async () => {
-  // Agents conversationnels (KlockAI, ProjectAssistant) et import d'un export
-  // Base44 : retirés. Ces routes ne doivent pas revenir par mégarde.
-  for (const chemin of ['/api/agents/conversations', '/api/admin/import-utilisateurs', '/api/admin/import-projets']) {
-    const r = await appel(chemin, 'JETON_ADMIN');
-    assert.notEqual(r.status, 200, `${chemin} ne devrait plus exister`);
+  // Agents conversationnels (KlockAI, ProjectAssistant) et import d'utilisateurs
+  // d'un export Base44 : retirés. Ces routes ne doivent pas revenir par mégarde.
+  // En POST, leur méthode d'origine : un GET répondait 404 même quand elles
+  // existaient. L'import de projets, lui, reste : la page Import de projets s'en sert.
+  for (const chemin of ['/api/agents/conversations', '/api/admin/import-utilisateurs']) {
+    const r = await appel(chemin, 'JETON_ADMIN', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(r.status, 404, `${chemin} ne devrait plus exister`);
   }
 });
 

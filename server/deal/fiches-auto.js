@@ -70,9 +70,23 @@ export function dossierDeLaConversation(mail, { mails = [], envois = [], deals =
     const sujet = sansPrefixes(mail.objet);
     const de = String(mail.de_email || '').toLowerCase();
     const e = envois
-      .filter((x) => x.deal_id && vivants.has(x.deal_id) && de && sansPrefixes(x.subject || x.sujet) === sujet && String(x.to || x.destinataire || '').toLowerCase().includes(de))
+      .filter((x) => x.deal_id && vivants.has(x.deal_id) && de && sujet && sansPrefixes(x.subject || x.sujet) === sujet && String(x.to || x.destinataire || '').toLowerCase().includes(de))
       .sort((x, y) => String(y.sent_at || '').localeCompare(String(x.sent_at || '')))[0];
     if (e) return e.deal_id;
+    // La réponse à un mail REÇU : l'agent répond dans son propre fil. Le
+    // thread Gmail suffit dans la même boîte ; le sujet et l'expéditeur
+    // prennent le relais quand la réponse arrive dans une autre boîte de
+    // l'équipe — c'est ainsi qu'une fiche déjà en dossier se refaisait un
+    // dossier quand l'agente répondait dans sa conversation.
+    const m = de && sujet && mails.find((x) => x.id !== mail.id && x.deal_id && vivants.has(x.deal_id)
+      && sansPrefixes(x.objet) === sujet && String(x.de_email || '').toLowerCase() === de);
+    if (m) return m.deal_id;
+    // Ou le dossier lui-même : son mail d'origine porte ce sujet, et
+    // l'expéditeur est l'agent du dossier.
+    const adresseDe = (t) => (String(t || '').match(/[\w.+-]+@[\w.-]+/) || [''])[0].toLowerCase();
+    const d = de && sujet && deals.find((x) => !x.archived && x.source_mail?.objet && sansPrefixes(x.source_mail.objet) === sujet
+      && (String(x.contact_agent_email || '').toLowerCase() === de || adresseDe(x.source_mail.de) === de));
+    if (d) return d.deal_id;
   }
   return null;
 }
@@ -89,7 +103,7 @@ export function porteUneFiche(mail) {
 
 /** Pure : une nouvelle fiche, à préanalyser : elle ne continue la conversation d'aucun dossier. */
 export function estUneNouvelleFiche(mail, contexte = {}) {
-  if (!mail || mail.deal_id) return false;
+  if (!mail || mail.deal_id || mail.dossier_supprime_le) return false;
   if ((mail.preanalyse_auto?.essais || 0) >= ESSAIS_MAX) return false;
   if (dossierDeLaConversation(mail, contexte)) return false;
   return porteUneFiche(mail);
@@ -106,11 +120,17 @@ export function contexteDesConversations() {
 
 /**
  * Pure : la même fiche déjà préanalysée depuis un autre mail (un transfert à
- * une autre boîte, un renvoi) : même nom de pièce, il y a moins de quatorze
- * jours. Le mail rejoint ce dossier au lieu d'en créer un second.
+ * une autre boîte, un renvoi, y compris par quelqu'un d'autre à l'agence) :
+ * même nom de pièce, il y a moins de quatorze jours. Le mail rejoint ce
+ * dossier au lieu d'en créer un second.
+ *
+ * Un nom sans aucun chiffre (« Fiche commerciale.pdf ») n'identifie rien :
+ * deux agences sans rapport nomment leurs fiches pareil par pur hasard. Seul
+ * un nom qui porte une référence (numéro de lot, date, ville chiffrée…)
+ * compte comme un doublon possible.
  */
 export function doublonDe(mail, { mails, deals, maintenant = Date.now() }) {
-  const noms = new Set(piecesFiche(mail).map((p) => nomPiece(p).toLowerCase()));
+  const noms = new Set(piecesFiche(mail).map((p) => nomPiece(p).toLowerCase()).filter((n) => /\d/.test(n)));
   if (!noms.size) return null;
   const sources = new Map(deals.filter((d) => d.source_mail?.mail_recu_id && !d.archived).map((d) => [d.source_mail.mail_recu_id, d.deal_id]));
   for (const m of mails) {
@@ -162,6 +182,12 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
       // Une fiche transférée par l'équipe n'a pas d'agent dedans.
       const interne = mail.interne || estInterne(mail.de_email);
       const dossier = await faire(mail, { user: auteur, uploadDir, contactEmail: interne ? null : undefined });
+      // preanalyserMail a sa propre garde (conversation, doublon) : le mail
+      // a rejoint un dossier déjà existant, il n'y en a pas de nouveau.
+      if (dossier.repris_conversation || dossier.doublon) {
+        bilan.rejoints += 1;
+        continue;
+      }
       const deal = Records.findBy('Deal', 'deal_id', dossier.deal_id);
       const l = deal?.lots?.[0]?.lot || {};
       const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
@@ -170,7 +196,7 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
       if (deal && nom) Records.update('Deal', deal.id, { nom, cree_par_la_veille: true });
       if (deal) ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Préanalysé tout seul à l'arrivée du mail de ${mail.de_email} dans ${mail.compte} : « ${String(mail.objet || '').slice(0, 120)} »` }, null);
       bilan.crees += 1;
-      bilan.lignes.push({ dossier: nom || dossier.deal_id, deal_id: dossier.deal_id, de: mail.de_email, documents: piecesFiche(mail).map(nomPiece), preanalyse: true });
+      bilan.lignes.push({ dossier: nom || dossier.deal_id, deal_id: dossier.deal_id, de: mail.de_email, documents: piecesFiche(mail).map(nomPiece), preanalyse: true, agent: dossier.agent_fiche?.phrase || null });
     } catch (e) {
       const essais = (mail.preanalyse_auto?.essais || 0) + 1;
       Records.update('MailRecu', mail.id, { preanalyse_auto: { essais, erreur: String(e?.message || e).slice(0, 240), le: new Date().toISOString() } });

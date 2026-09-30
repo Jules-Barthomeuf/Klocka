@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Info, Loader2, MapPin, Pencil, Quote, Send, X,
+  AlertTriangle, Archive, Check, ChevronDown, ChevronUp, Info, Loader2, MapPin, Pencil, Quote, Send, Trash2, X,
 } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
@@ -610,7 +610,7 @@ const EFFETS_INTENTION = {
   presentation_client: "Décision actée. L'étape Plateforme s'ouvre pour créer le projet.",
 };
 
-export function DialogMailIntention({ dossier, intention, mailInitial = undefined, onClose, onDone, onArchiverSansMail = undefined, parametres = null }) {
+export function DialogMailIntention({ dossier, intention, mailInitial = undefined, onClose, onDone, onArchiverSansMail = undefined, onSupprimer = undefined, parametres = null }) {
   const [objet, setObjet] = useState(mailInitial?.objet || "");
   const [corps, setCorps] = useState(mailInitial?.corps || "");
   const [destinataire, setDestinataire] = useState(dossier.contact_agent_email || "");
@@ -735,6 +735,11 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
+              {onSupprimer && (
+                <Button variant="ghost" onClick={onSupprimer} title="Supprimer définitivement : le dossier disparaît et sa fiche ne compte plus comme importée" className={`text-alerte hover:bg-alerte/10 ${onArchiverSansMail ? "" : "mr-auto"}`}>
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Supprimer le dossier
+                </Button>
+              )}
               <Button variant="ghost" onClick={onClose} className="text-ardoise hover:text-encre hover:bg-encre/5">
                 Annuler
               </Button>
@@ -824,6 +829,11 @@ export function DialogMailIntention({ dossier, intention, mailInitial = undefine
                   <Archive className="w-4 h-4 mr-1.5" /> Archiver sans mail
                 </Button>
               )}
+              {onSupprimer && (
+                <Button variant="ghost" onClick={onSupprimer} title="Supprimer définitivement : le dossier disparaît et sa fiche ne compte plus comme importée" className={`text-alerte hover:bg-alerte/10 ${onArchiverSansMail ? "" : "mr-auto"}`}>
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Supprimer le dossier
+                </Button>
+              )}
               <Button variant="ghost" onClick={onClose} className="text-ardoise hover:text-encre hover:bg-encre/5">
                 <X className="w-4 h-4 mr-1.5" /> Fermer
               </Button>
@@ -861,6 +871,8 @@ const LIBELLES_SUIVI = {
   documents_recus: "Documents",
   abandon: "Abandon",
   projet_cree: "Projet",
+  monday_echec: "Monday",
+  agent: "Agent",
 };
 
 export function JournalSuivi({ suivi }) {

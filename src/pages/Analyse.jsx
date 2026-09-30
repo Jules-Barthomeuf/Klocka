@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
+import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { J } from "@/design/jetons";
 
 // Dossiers — chaque dossier suit six étapes : Mail → Pré-analyse → Analyse →
@@ -115,6 +116,17 @@ export default function Analyse() {
     onError: (e) => toast.error(e?.message || "Abandon impossible"),
   });
 
+  const supprimer = useMutation({
+    mutationFn: (id) => base44.request("DELETE", `/api/preanalyse/dossiers/${id}`),
+    onSuccess: () => {
+      rafraichirListes();
+      queryClient.invalidateQueries({ queryKey: ["dossiers"] });
+      queryClient.invalidateQueries({ queryKey: ["fiches-commerciales"] });
+      toast.success("Dossier supprimé");
+    },
+    onError: (e) => toast.error(e?.message || "Suppression impossible"),
+  });
+
   const rafraichirListes = () => {
     queryClient.invalidateQueries({ queryKey: ["preanalyse-pipeline"] });
   };
@@ -181,18 +193,21 @@ export default function Analyse() {
   const autres = useMemo(() => { const ici = new Set(recents.map((d) => d.deal_id)); return dossiers.filter((d) => !ici.has(d.deal_id)); }, [dossiers, recents]);
   const qui = (d) => (d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0]);
   const quiEtQuand = (d) => `${qui(d)}${d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}`;
-  // Le menu ⋯ d'un dossier : renommer, revenir à l'étape 1, abandonner.
-  const MenuDossier = ({ d, bouton, place }) => (
-    <>
-    {/* Renommer / abandonner */}
+  // Le menu ⋯ d'un dossier : renommer, revenir à l'étape 1, abandonner. Un
+  // clic ailleurs (ou Échap) le referme, comme les autres menus de la page.
+  const MenuDossier = ({ d, bouton, place }) => {
+    const ouvert = menuCarte === d.deal_id;
+    const zone = useFermerAuClicAilleurs(ouvert, () => setMenuCarte(null));
+    return (
+    <div ref={zone} className="contents">
     <button
-      onClick={(e) => { e.stopPropagation(); setMenuCarte(menuCarte === d.deal_id ? null : d.deal_id); }}
+      onClick={(e) => { e.stopPropagation(); setMenuCarte(ouvert ? null : d.deal_id); }}
       className={`absolute ${bouton} text-ardoise hover:text-encre transition-colors`}
       aria-label="Actions" title="Actions" style={{ background: "transparent" }}
     >
       <MoreHorizontal className="w-4 h-4" />
     </button>
-    {menuCarte === d.deal_id && (
+    {ouvert && (
       <div className={`absolute ${place} z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]`}>
         <button
           onClick={() => {
@@ -236,10 +251,22 @@ export default function Analyse() {
             <Archive className="w-3.5 h-3.5" /> Abandonner
           </button>
         )}
+        {d.statut !== "projet_cree" && (
+          <button
+            onClick={() => {
+              setMenuCarte(null);
+              if (window.confirm(`Supprimer définitivement « ${d.titre} » ? Il disparaît avec ses pièces, et sa fiche ne compte plus comme importée.`)) supprimer.mutate(d.deal_id);
+            }}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08] transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Supprimer
+          </button>
+        )}
       </div>
     )}
-    </>
-  );
+    </div>
+    );
+  };
 
   return (
     <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
@@ -383,7 +410,7 @@ export default function Analyse() {
 
         {/* Changer les responsables d'un dossier */}
         {proprio && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm" onClick={() => setProprio(null)}>
+          <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm" onClick={() => setProprio(null)}>
             <div className="w-full max-w-md rounded-[18px] border border-trait bg-surface-pleine p-6 shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="m-0 text-[17px] font-medium text-encre">Qui s'occupe du dossier ?</h3>
@@ -416,7 +443,7 @@ export default function Analyse() {
 
         {/* Nouveau dossier : nom + responsables */}
         {creationOuverte && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setCreationOuverte(false)}>
+          <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setCreationOuverte(false)}>
             <div className="w-full max-w-md bg-surface border border-trait rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="m-0 text-[18px] font-medium">Nouveau dossier</h3>

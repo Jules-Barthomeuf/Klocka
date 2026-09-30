@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import { toast } from "@/components/ui/avis";
-import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, History, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, User, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, History, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
@@ -90,7 +90,7 @@ function BoiteEnvoi() {
       {ouvert && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOuvert(false)} />
-          <div role="menu" className="absolute left-0 top-full z-20 mt-2 min-w-[280px] rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]" style={{ background: J["barre"] }}>
+          <div role="menu" className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-0 top-full z-20 mt-2 min-w-[280px] rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]" style={{ background: J["barre"] }}>
             {comptes.map((c) => (
               <button key={c.email} role="menuitem" type="button" onClick={() => defaut.mutate(c.email)} disabled={defaut.isPending}
                 className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre" style={{ background: "transparent" }}>
@@ -130,20 +130,56 @@ function Suggestions({ onChoisir }) {
   );
 }
 
-// L'historique : le fil qu'on a laissé à l'assistant, tel qu'il vit en base.
-function HistoriqueFil() {
-  const { data, isLoading } = useQuery({ queryKey: ["assistant-fil"], queryFn: () => base44.request("GET", "/api/assistant/fil") });
-  const messages = (data?.messages || []).slice(-30);
+// L'historique : les conversations passées, qu'on rouvre et qu'on continue.
+const quandConversation = (iso) => {
+  const s = Math.max(0, (Date.now() - Date.parse(iso || 0)) / 1000);
+  if (!Number.isFinite(s)) return "";
+  if (s < 3600) return `il y a ${Math.max(1, Math.floor(s / 60))} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
+  const j = Math.floor(s / 86400);
+  return j === 1 ? "hier" : j < 30 ? `il y a ${j} j` : new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+};
+
+function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle }) {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["assistant-conversations"], queryFn: () => base44.request("GET", "/api/assistant/conversations") });
+  const conversations = data?.conversations || [];
+  const ouvrir = (id) =>
+    base44.request("GET", `/api/assistant/conversations/${id}`)
+      .then((c) => onOuvrir(c))
+      .catch(() => toast.error("Conversation introuvable"));
+  const supprimer = (id) =>
+    base44.request("DELETE", `/api/assistant/conversations/${id}`)
+      .then(() => { queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] }); if (id === actuelle) onNouvelle(); })
+      .catch((e) => toast.error(e?.message || "Suppression impossible"));
   return (
-    <div className="mt-4 rounded-[16px] border border-trait bg-surface-pleine p-4">
-      <p className="m-0 mb-3 text-[11px] uppercase tracking-[.14em] text-brume">Historique</p>
+    <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-4 rounded-[16px] border border-trait bg-surface-pleine p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="m-0 text-[11px] uppercase tracking-[.14em] text-brume">Conversations</p>
+        <button type="button" onClick={onNouvelle} className="inline-flex items-center gap-1.5 rounded-full border border-trait px-3 py-1 text-[12.5px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
+          <Plus className="h-3.5 w-3.5" /> Nouvelle conversation
+        </button>
+      </div>
       {isLoading ? <p className="m-0 text-[14px] text-ardoise">Lecture…</p>
-        : !messages.length ? <p className="m-0 text-[14px] text-ardoise">Rien encore : ce que vous dites à l'assistant s'écrit ici.</p>
+        : !conversations.length ? <p className="m-0 text-[14px] text-ardoise">Rien encore : chaque échange avec l'assistant se range ici, et se rouvre d'un clic.</p>
         : (
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-            {messages.map((m, i) => (
-              <li key={i} className={`max-w-[85%] whitespace-pre-line rounded-[16px] px-4 py-2.5 text-[14px] leading-[1.55] ${m.role === "user" ? "self-end bg-relief text-encre" : "self-start text-craie"}`}>
-                {m.contenu ?? m.texte ?? m.content ?? ""}
+          <ul className="m-0 flex max-h-[320px] list-none flex-col gap-1 overflow-y-auto p-0">
+            {conversations.map((c) => (
+              <li key={c.id} className="group flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => ouvrir(c.id)}
+                  className={`flex min-w-0 flex-1 items-baseline justify-between gap-3 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-relief ${c.id === actuelle ? "bg-relief" : ""}`}
+                  style={{ background: c.id === actuelle ? undefined : "transparent" }}
+                >
+                  <span className="min-w-0 truncate text-[14px] text-encre">{c.titre}</span>
+                  <span className="flex-none text-[12px] text-brume" style={{ fontVariantNumeric: "tabular-nums" }}>{quandConversation(c.maj_le)}</span>
+                </button>
+                <button type="button" onClick={() => supprimer(c.id)} aria-label={`Supprimer « ${c.titre} »`} title="Supprimer"
+                  className="grid h-7 w-7 flex-none place-items-center rounded-full border-0 p-0 text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100"
+                  style={{ background: "transparent" }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </li>
             ))}
           </ul>
@@ -342,6 +378,11 @@ function ResultatFiche({ r, clients }) {
           {clients.length ? `${pluriel(clients.length, "client")} correspondant${clients.length > 1 ? "s" : ""} : ${clients.slice(0, 3).map((c) => c.nom || c.full_name || c.email).join(", ")}${clients.length > 3 ? "…" : ""}` : "Aucun client ne correspond pour l'instant."}
         </p>
       )}
+      {r.agent_fiche?.phrase && (
+        <p className={`m-0 mt-3 text-[12.5px] ${["sans_email", "introuvable", "erreur"].includes(r.agent_fiche.etat) ? "text-ambre" : "text-craie"}`}>
+          {r.agent_fiche.phrase}
+        </p>
+      )}
       <div className="mt-4 flex flex-wrap gap-3">
         <button onClick={() => navigate(`/Dossiers?deal_id=${r.deal_id}`)} className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full">
           Ouvrir le dossier <ArrowRight className="w-3.5 h-3.5" />
@@ -472,6 +513,36 @@ export default function ChatDashboard() {
   const fichierRef = useRef(null);
   const champRef = useRef(null);
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
+  // La conversation en cours : créée au premier échange, complétée ensuite.
+  const [conversationId, setConversationId] = useState(null);
+  const sauvegarde = useRef(null);
+  useEffect(() => {
+    if (!fil.some((m) => m.role === "user")) return undefined;
+    clearTimeout(sauvegarde.current);
+    sauvegarde.current = setTimeout(() => {
+      base44.request("POST", "/api/assistant/conversations", { body: { id: conversationId, messages: fil } })
+        .then((r) => {
+          if (r?.id && r.id !== conversationId) setConversationId(r.id);
+          queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] });
+        })
+        .catch(() => { /* l'historique attendra le prochain échange */ });
+    }, 800);
+    return () => clearTimeout(sauvegarde.current);
+  }, [fil, conversationId, queryClient]);
+
+  // Rouvrir une conversation, ou en commencer une neuve : le fil change de peau.
+  const ouvrirConversation = (c) => {
+    setFil(c.messages || []);
+    setConversationId(c.id);
+    setSuites([]); setBrouillon(null); setFiche(null);
+    setHistoriqueOuvert(false);
+  };
+  const nouvelleConversation = () => {
+    setFil([]); setConversationId(null);
+    setSuites([]); setBrouillon(null); setFiche(null);
+    setHistoriqueOuvert(false);
+    setTimeout(() => champRef.current?.focus(), 30);
+  };
   // Le rail demande l'assistant : ici, c'est le champ qui prend la main.
   useEffect(() => {
     const focaliser = () => champRef.current?.focus();
@@ -650,7 +721,7 @@ export default function ChatDashboard() {
   const envoiFait = useRef(false);
   // Ce qui était déjà tapé au moment du clic reste en tête : la dictée s'y ajoute.
   const avantDictee = useRef("");
-  const { supporte, ecoute, demarrer, arreter, erreur, transcription } = useDictee({
+  const { supporte, ecoute, demarrer, arreter, erreur, finalisation } = useDictee({
     onTexte: (t) => setTexte([avantDictee.current, t].filter(Boolean).join(" ")),
     onFin: (t) => {
       if (envoiFait.current) { envoiFait.current = false; return; }
@@ -787,7 +858,7 @@ export default function ChatDashboard() {
                     <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
                     <div
                       role="menu"
-                      className="absolute right-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)]"
+                      className="animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)]"
                       style={{ background: J["barre"] }}
                     >
                       <div className="border-b border-trait px-4 pb-2.5 pt-3.5">
@@ -837,14 +908,15 @@ export default function ChatDashboard() {
               <button
                 type="button"
                 aria-pressed={ecoute}
-                disabled={enCours}
+                aria-busy={finalisation}
+                disabled={enCours || finalisation}
                 onClick={() => (supporte ? (ecoute ? arreter() : (avantDictee.current = texte.trim(), demarrer())) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
-                aria-label={ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
-                title={ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
-                className="grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief disabled:opacity-40"
-                style={{ background: ecoute ? alpha("menthe", 0.2) : "transparent", color: ecoute ? J["menthe"] : J["craie"] }}
+                aria-label={finalisation ? "Texte dicté en cours d'écriture" : ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
+                title={finalisation ? "Texte dicté en cours d'écriture" : ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
+                className={`grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief ${finalisation ? "" : "disabled:opacity-40"}`}
+                style={{ background: ecoute || finalisation ? alpha("menthe", 0.2) : "transparent", color: ecoute || finalisation ? J["menthe"] : J["craie"] }}
               >
-                <Mic className="h-4 w-4" strokeWidth={1.7} />
+                {finalisation ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.7} /> : <Mic className="h-4 w-4" strokeWidth={1.7} />}
               </button>
 
               <button
@@ -871,13 +943,12 @@ export default function ChatDashboard() {
                 <button onClick={() => setFichier(null)} className="text-brume hover:text-alerte" aria-label="Retirer" title="Retirer"><X className="h-3.5 w-3.5" /></button>
               </span>
             )}
-            {transcription && !erreur && <span className="text-[12.5px] text-ardoise">Transcription…</span>}
             {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
             {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
           </div>
         )}
         <Suggestions onChoisir={(t, m) => { setTexte(t); setMode(m); setTimeout(() => champRef.current?.focus(), 30); }} />
-        {historiqueOuvert && <HistoriqueFil />}
+        {historiqueOuvert && <HistoriqueConversations actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} />}
       </div>
     </div>
   );

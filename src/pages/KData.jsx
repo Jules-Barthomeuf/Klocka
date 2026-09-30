@@ -244,7 +244,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
           {menu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-              <div role="menu" className="absolute left-0 top-full z-20 mt-3 w-[360px] overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]" style={{ background: J["barre"] }}>
+              <div role="menu" className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-0 top-full z-20 mt-3 w-[360px] overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]" style={{ background: J["barre"] }}>
                 <div className="flex items-center justify-between border-b border-bord px-4 pb-2.5 pt-3.5">
                   <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Les outils à lancer</span>
                   <button type="button" onClick={() => setOutils(tous ? new Set() : new Set(MODULES_KDATA.map((m) => m.cle)))} className="text-[11px] text-menthe-texte hover:text-encre">

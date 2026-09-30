@@ -509,7 +509,17 @@ export function oublierCache(cle) {
 async function lireAvecCache(boardId, cle) {
   const vu = cache.get(cle);
   if (vu && Date.now() - vu.le < DUREE_CACHE) return vu.lignes;
-  const lignes = await lireTableau(boardId);
+  let lignes;
+  try {
+    lignes = await lireTableau(boardId);
+  } catch (e) {
+    // Monday injoignable : une lecture périmée vaut mieux qu'aucune.
+    if (vu) {
+      console.warn(`[monday] ${cle} : lecture impossible (${e?.message || e}), dernière lecture reprise.`);
+      return vu.lignes;
+    }
+    throw e;
+  }
   cache.set(cle, { le: Date.now(), lignes });
   return lignes;
 }

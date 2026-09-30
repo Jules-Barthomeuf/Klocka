@@ -714,7 +714,7 @@ function OngletGrille({ onAppeler }) {
       )}
       <p className="m-0 text-[11px] text-brume">{lignes.length} ligne{lignes.length > 1 ? "s" : ""} · clic sur une cellule pour la modifier, sur un nom pour sa fiche et son historique · « Appeler » le prend à ton nom.</p>
       {fiche && (
-        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[460px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[460px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
           <FicheAgent id={fiche} onFermer={() => setFiche(null)} />
         </div>
       )}
@@ -868,13 +868,16 @@ export default function Prospection() {
         </nav>
       </header>
       {enAttente && !appel && <p className="m-0 mb-4 rounded-[12px] border border-ambre/40 px-4 py-2.5 text-[13px] text-craie">Ton appel avec {enAttente.agent} attend ta réponse dans Google Chat.</p>}
-      {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}
-      {onglet === "envois" && <OngletEnvois />}
-      {onglet === "decisions" && <OngletDecisions />}
-      {onglet === "tableau" && <OngletTableau />}
-      {onglet === "reglages" && <OngletReglages />}
+      {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
+      <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
+        {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}
+        {onglet === "envois" && <OngletEnvois />}
+        {onglet === "decisions" && <OngletDecisions />}
+        {onglet === "tableau" && <OngletTableau />}
+        {onglet === "reglages" && <OngletReglages />}
+      </div>
       {appel && (
-        <div className="fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
           <PanneauAppel key={appel.id} agent={appel} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
         </div>
       )}

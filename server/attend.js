@@ -25,6 +25,13 @@ const sansVerdict = (t) =>
     .replace(/\s*[—:-]\s*(?:Verdict\s+)?(GO SOUS R[ÉE]SERVE|NO-?GO|GO|INSUFFISANT|Non conforme|Conforme(?: sous réserve)?|Dossier incomplet)\s*$/i, '')
     .trim();
 
+// Les relances de dossiers ne s'affichent qu'à qui les mène : une liste
+// d'adresses, Jules par défaut. Les autres voient leurs rappels et les
+// promesses, pas ces relances.
+export const relancesPour = (brut = process.env.RELANCES_POUR || 'jules.b@klocka.immo') =>
+  String(brut).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+const voitLesRelances = (user) => relancesPour().includes(String(user?.email || '').toLowerCase());
+
 const titreDeal = (d) =>
   sansVerdict(d?.nom || d?.lots?.[0]?.synthese?.titre || d?.source?.nom_fichier || d?.deal_id || 'Dossier').slice(0, 90);
 
@@ -52,7 +59,6 @@ export function ceQuiAttend(user) {
       dans: dans(r.echeance),
       deal_id: null,
       lien: null,
-      // Un rappel se clôt et se supprime : c'est le seul dont on est maître.
       cloturable: true,
     });
   }
@@ -73,12 +79,12 @@ export function ceQuiAttend(user) {
       deal_id: e.deal_id || null,
       lien: e.deal_id ? `/Analyse?deal_id=${e.deal_id}` : null,
       dossier: sansVerdict(e.dossier) || null,
-      cloturable: false,
+      cloturable: true,
     });
   }
 
-  // 3. Les dossiers dont la relance est prévue, ou déjà due.
-  for (const d of Records.list('Deal')) {
+  // 3. Les dossiers dont la relance est prévue, ou déjà due. Pour qui les mène seulement.
+  for (const d of voitLesRelances(user) ? Records.list('Deal') : []) {
     if (d.archived || !d.relance_prevue_le) continue;
     if (statutDe(d) !== 'documents_demandes') continue;
     lignes.push({
@@ -96,7 +102,40 @@ export function ceQuiAttend(user) {
       // `aRelancer` dit si la date est franchie ; on garde l'information telle
       // quelle plutôt que de la recalculer côté écran.
       due: aRelancer(d),
-      cloturable: false,
+      cloturable: true,
+    });
+  }
+
+  // 4. L'agent d'une fiche préanalysée : ajouté dans Monday, on l'annonce deux
+  //    jours ; sans adresse ou refusé par Monday, la ligne reste tant que le
+  //    dossier n'a pas d'agent (deux semaines au plus, puis le dossier le dit seul).
+  const maintenant = Date.now();
+  for (const d of Records.list('Deal')) {
+    const a = d.agent_rattache;
+    if (!a?.le || a.vu_le || d.archived || d.test) continue;
+    const age = (maintenant - Date.parse(a.le)) / 86400000;
+    const qui = a.nom || a.email || 'L’agent';
+    let titre = null;
+    if (a.etat === 'cree' && age <= 2) titre = `${qui} ajouté dans Monday (Agent immobilier)`;
+    else if (a.etat === 'erreur' && age <= 14 && d.contact_agent_email) titre = `${qui} pas encore dans Monday : Monday n'a pas répondu`;
+    else if (['sans_email', 'introuvable'].includes(a.etat) && age <= 14 && !d.contact_agent_email) {
+      titre = a.etat === 'sans_email' ? `${qui} : son adresse mail manque sur le dossier` : 'Agent introuvable dans la fiche : ajoutez son adresse';
+    }
+    if (!titre) continue;
+    lignes.push({
+      id: d.deal_id,
+      source: 'agent',
+      nature: 'Agent',
+      titre,
+      detail: [a.email, a.agence].filter(Boolean).join(' · ') || null,
+      telephone: a.telephone ? String(a.telephone).replace(/[^\d+]/g, '') : null,
+      echeance: a.le,
+      dans: null,
+      nouveau: true,
+      deal_id: d.deal_id,
+      lien: `/Analyse?deal_id=${d.deal_id}`,
+      dossier: titreDeal(d),
+      cloturable: true,
     });
   }
 
@@ -107,4 +146,42 @@ export function ceQuiAttend(user) {
     aujourdhui: lignes.filter((l) => l.dans === 0).length,
     total: lignes.length,
   };
+}
+
+/**
+ * « Fait » ou « Supprimer » sur une ligne, quelle que soit sa source : une
+ * ligne qu'on ne peut pas faire partir finit par cacher celles qui comptent.
+ *  - rappel : terminé, ou supprimé ;
+ *  - promesse : tenue, ou effacée du registre ;
+ *  - relance : faite (la suivante est replanifiée), ou retirée du dossier ;
+ *  - agent : l'annonce est lue, elle part (les deux gestes se valent).
+ * @param {'rappel'|'promesse'|'dossier'|'agent'} source
+ * @param {string} id
+ * @param {'fait'|'supprimer'} geste
+ */
+export async function agirSurLigne(source, id, geste, user) {
+  if (!['fait', 'supprimer'].includes(geste)) return { ok: false, error: 'Geste inconnu.' };
+  if (source === 'rappel') {
+    const { terminerRappel, supprimerRappel } = await import('./rappels.js');
+    return geste === 'fait' ? terminerRappel(id, user) : supprimerRappel(id, user);
+  }
+  if (source === 'promesse') {
+    const { clore, effacer } = await import('./deal/engagements.js');
+    return geste === 'fait' ? clore(id, { user, commentaire: 'fait depuis le tableau de bord' }) : effacer(id);
+  }
+  const deal = Records.findBy('Deal', 'deal_id', id);
+  if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+  if (source === 'dossier') {
+    if (!voitLesRelances(user)) return { ok: false, error: 'Relance introuvable.' };
+    const { repousserRelance, ajouterSuivi } = await import('./deal/lifecycle.js');
+    if (geste === 'fait') return { ok: true, deal: repousserRelance(deal, user) };
+    Records.update('Deal', deal.id, { relance_prevue_le: null });
+    ajouterSuivi(Records.get('Deal', deal.id), { type: 'relance', detail: 'Relance retirée depuis le tableau de bord' }, user);
+    return { ok: true };
+  }
+  if (source === 'agent') {
+    Records.update('Deal', deal.id, { agent_rattache: { ...(deal.agent_rattache || {}), vu_le: new Date().toISOString() } });
+    return { ok: true };
+  }
+  return { ok: false, error: 'Ligne inconnue.' };
 }

@@ -47,7 +47,7 @@ function comptesLisibles() {
  * @returns {number} nombre de mails rattachés
  */
 export async function rattacherMailsOrphelins() {
-  const orphelins = Records.list('MailRecu').filter((m) => !m.deal_id && m.de_email);
+  const orphelins = Records.list('MailRecu').filter((m) => !m.deal_id && !m.dossier_supprime_le && m.de_email);
   if (!orphelins.length) return 0;
   const { dossierDeLaConversation, porteUneFiche, contexteDesConversations } = await import('./fiches-auto.js');
   const contexte = contexteDesConversations();

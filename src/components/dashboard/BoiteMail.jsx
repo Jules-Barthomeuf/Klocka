@@ -123,7 +123,7 @@ export default function BoiteMail() {
           {/* Le panneau (maquette) : les boîtes, la coche sur celle qui envoie,
               un clic sur une autre en fait la boîte par défaut ; puis ajouter
               une boîte Google et l'historique des envois. */}
-          <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[340px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)]">
+          <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-[calc(100%+8px)] z-40 w-[340px] max-w-[calc(100vw-32px)] rounded-[16px] border border-trait bg-surface-pleine py-2 shadow-[0_18px_48px_rgb(0_0_0/0.14)]">
             <p className="m-0 px-4 pb-1.5 pt-2 text-[13px] text-craie">Boîtes mail connectées</p>
             {aReconnecter.length > 0 && (
               <p className="m-0 flex items-start gap-2 px-4 pb-1.5 text-[12px] leading-[1.45] text-ambre"><TriangleAlert className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />{aReconnecter.map((c) => c.email).join(", ")} demande une reconnexion.</p>

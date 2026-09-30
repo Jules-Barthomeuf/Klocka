@@ -68,12 +68,17 @@ const joindre = (...morceaux) => morceaux.filter(Boolean).join(" ").replace(/\s+
 /**
  * @param {{ onTexte?: (texte: string, final: boolean) => void, onFin?: (texte: string) => void }} options
  *   `onTexte` reçoit tout le texte dicté depuis le clic, à chaque nouveauté.
- * @returns {{ supporte: boolean, ecoute: boolean, demarrer: () => void, arreter: () => void, erreur: string|null, transcription: boolean }}
+ * @returns {{ supporte: boolean, ecoute: boolean, demarrer: () => void, arreter: () => void, erreur: string|null, transcription: boolean, finalisation: boolean }}
  */
 export function useDictee({ onTexte, onFin } = {}) {
   const [ecoute, setEcoute] = useState(false);
   const [erreur, setErreur] = useState(null);
   const [transcription, setTranscription] = useState(false);
+  // Entre le clic d'arrêt et le texte final : le navigateur rend sa dernière
+  // phrase, ou le serveur transcrit la dernière tranche. Quelques secondes
+  // pendant lesquelles l'écran doit dire que le texte arrive.
+  const [finalisation, setFinalisation] = useState(false);
+  const garde = useRef(null);
   const rappels = useRef({ onTexte, onFin });
   rappels.current = { onTexte, onFin };
 
@@ -88,12 +93,15 @@ export function useDictee({ onTexte, onFin } = {}) {
     voulue.current = false;
     rec.current = null;
     setEcoute(false);
+    setFinalisation(false);
+    clearTimeout(garde.current);
     const texte = acquis.current.trim();
     if (texte) rappels.current.onFin?.(texte);
   }, []);
 
   useEffect(() => () => {
     voulue.current = false;
+    clearTimeout(garde.current);
     rec.current?.abort?.();
     micro.current?.flux?.getTracks?.().forEach((t) => t.stop());
   }, []);
@@ -212,11 +220,18 @@ export function useDictee({ onTexte, onFin } = {}) {
   }, [ecouterNavigateur, demarrerTranches, finir]);
 
   const arreter = useCallback(() => {
+    const enRoute = voulue.current;
     voulue.current = false;
+    if (enRoute) {
+      setFinalisation(true);
+      // Un navigateur qui ne rend jamais la main ne doit pas laisser tourner l'attente.
+      clearTimeout(garde.current);
+      garde.current = setTimeout(() => setFinalisation(false), 30000);
+    }
     rec.current?.stop?.();
     const m = micro.current?.enregistreur;
     if (m?.state === "recording") m.stop();
   }, []);
 
-  return { supporte: !!(Reconnaissance || Enregistreur), ecoute, demarrer, arreter, erreur, transcription };
+  return { supporte: !!(Reconnaissance || Enregistreur), ecoute, demarrer, arreter, erreur, transcription, finalisation };
 }

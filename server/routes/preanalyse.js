@@ -59,13 +59,20 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
-  // Suppression — réservée aux deals de test (nettoyage après le parcours).
+  // Suppression définitive — un doublon, un essai raté. Le dossier, ses
+  // pièces et ses traces partent ; sa fiche ne compte plus comme importée.
   app.delete('/api/preanalyse/dossiers/:dealId', wrap(async (req, res) => {
     const dossier = obtenirDossier(req.params.dealId);
     if (!dossier) return res.status(404).json({ error: 'Dossier introuvable' });
-    const { supprimerDealTest } = await import('../deal/test.js');
-    const r = supprimerDealTest(dossier);
-    if (r.error) return res.status(403).json(r);
+    if (dossier.test) {
+      const { supprimerDealTest } = await import('../deal/test.js');
+      const r = supprimerDealTest(dossier);
+      if (r.error) return res.status(403).json(r);
+      return ok(res, r);
+    }
+    const { supprimerDossier } = await import('../deal/supprimer.js');
+    const r = await supprimerDossier(req.params.dealId, { user: currentUser(req) });
+    if (!r.ok) return res.status(409).json({ error: r.error });
     ok(res, r);
   }));
 

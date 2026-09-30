@@ -152,7 +152,7 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
   const v = c?.valorisation || {};
   const raisons = c ? (c.score_ml?.raisons?.length ? c.score_ml.raisons.filter((r) => r.sens > 0).map((r) => r.phrase) : [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : ""))) : [];
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-fond/75 p-6" onClick={onFermer}>
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/75 p-6" onClick={onFermer}>
       <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine">
         {!c ? <div className="p-10 text-ardoise">Lecture…</div> : (
           <div className="grid grid-cols-1 lg:grid-cols-2">

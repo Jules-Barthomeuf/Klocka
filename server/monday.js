@@ -47,6 +47,8 @@ async function graphql(query, variables = {}) {
       'API-Version': VERSION,
     },
     body: JSON.stringify({ query, variables }),
+    // Sans plafond, une réponse qui ne vient jamais tient la requête ouverte.
+    signal: AbortSignal.timeout(60_000),
   });
   const data = await resp.json().catch(() => ({}));
   // Monday répond 200 avec un tableau d'erreurs : le statut ne suffit pas.

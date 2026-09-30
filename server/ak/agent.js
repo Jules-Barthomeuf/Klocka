@@ -18,7 +18,7 @@ import { fileURLToPath } from 'url';
 import { Records, Conversations, Meta, CHEMIN_UPLOADS } from '../db.js';
 import { runAgent, provider } from '../llm.js';
 import { OUTILS as OUTILS_ASSISTANT, executerOutil as executerOutilAssistant } from '../assistant-commande.js';
-import { journaliser } from '../assistant-journal.js';
+import { journaliser, estEchec } from '../assistant-journal.js';
 import { APP_URL_PROD } from '../contexte.js';
 import { QUESTIONS, valeursParDefaut } from '../kdata-questions.js';
 import { CLES_OUTILS, lancerAnalyses, ranger, lienDe } from '../kdata.js';
@@ -471,7 +471,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const { analyserFiche } = await import('../deal/index.js');
     const d = await analyserFiche({ texte }, { user });
     const lot = d.lots?.[0];
-    return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || 'fiche collée', verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
+    return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || 'fiche collée', verdict: lot?.synthese?.verdict || null, agent: d.agent_fiche?.phrase || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
   }
   if (name === 'creer_dossier') {
     const { creerCoquille } = await import('../deal/index.js');
@@ -496,7 +496,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
       const { analyserFiche } = await import('../deal/index.js');
       const d = await analyserFiche({ buffer: fichier.buffer, filename: fichier.filename, mimetype: fichier.mimetype, sourceUrl: fichier.url }, { user });
       const lot = d.lots?.[0];
-      return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || fichier.filename, verdict: lot?.synthese?.verdict || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
+      return { ok: true, cree: true, deal_id: d.deal_id, titre: nommer(d.deal_id) || lot?.synthese?.titre || fichier.filename, verdict: lot?.synthese?.verdict || null, agent: d.agent_fiche?.phrase || null, lien: lien(`/Analyse?deal_id=${d.deal_id}`) };
     }
     const { deposerDocument } = await import('../deal/deposer-document.js');
     const r = await deposerDocument(input.deal_id, fichier, { user });
@@ -942,7 +942,7 @@ export async function repondre(message) {
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
       const agissant = !['chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
-        if (resultat?.ok !== false) actions.push({ ...appel, resultat });
+        if (!estEchec(resultat)) actions.push({ ...appel, resultat });
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user: { ...user, email: `${user.email} (AK pour ${prenom})` } }); } catch (e) { console.warn('[ak] journalisation impossible :', e?.message || e); }
       }
       return resultat;

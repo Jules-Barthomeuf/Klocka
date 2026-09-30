@@ -219,6 +219,13 @@ export async function preanalyserMailRecu(id, user) {
   const { CHEMIN_UPLOADS } = await import('../db.js');
   // Une fiche transférée par l'équipe n'a pas d'agent dedans : l'expéditeur n'en devient pas un.
   const d = await preanalyserMail(m, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: m.interne || estInterne(m.de_email) ? null : undefined });
+  if (d.repris_conversation || d.doublon) {
+    return {
+      ok: true, cree: false, repris: true, deal_id: d.deal_id,
+      titre: d.nom || d.lots?.[0]?.synthese?.titre || m.objet,
+      motif: d.repris_conversation ? 'ce mail répond à la conversation du dossier' : 'sa fiche a déjà son dossier',
+    };
+  }
   const lot = d.lots?.[0];
   // Un mail à plusieurs fiches a donné plusieurs dossiers : les suivants aussi.
   const autres = (d.dossiers || []).slice(1).map((x) => ({ deal_id: x.deal_id, titre: nommer(x.deal_id) || x.lots?.[0]?.synthese?.titre || null }));
@@ -269,6 +276,10 @@ export function chercherAgents({ ville = null, genre = null, recherche = null, l
   for (const d of deals) {
     if (d.archived || d.test || !d.contact_agent_email) continue;
     const a = prendre(d.contact_agent_email);
+    if (!a) continue;
+    // Le nom et l'agence relevés sur la fiche, quand le carnet ne les a pas.
+    a.nom = a.nom || d.apercu?.agent_nom || null;
+    a.agence = a.agence || d.apercu?.agence || null;
     const l = d.lots?.[0];
     const v = val(l?.lot?.adresse)?.ville || l?.enrichissement?.commune?.nom;
     if (v) a.villes.add(v);
@@ -404,6 +415,7 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
   const fichiers = [];
   let dealId = null;
   let agent = null;
+  let repris = false;
   // Un mail à plusieurs fiches donne un dossier par fiche : chacune garde sa
   // pièce (son nom de fichier) pour son Drive.
   let parFiche = null;
@@ -435,12 +447,17 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
       const { preanalyserMail } = await import('../deal/preanalyser-mail.js');
       const d = await preanalyserMail(premier, { user, uploadDir: CHEMIN_UPLOADS, contactEmail: agent });
       dealId = d.deal_id;
-      if (d.dossiers?.length > 1) {
+      if (d.repris_conversation || d.doublon) {
+        repris = true;
+        etapes.push(`ce mail ${d.repris_conversation ? 'répond à la conversation' : 'porte une fiche déjà traitée'} du dossier « ${d.nom || dealId} » : rattaché, pas de nouveau dossier`);
+      } else if (d.dossiers?.length > 1) {
         parFiche = d.dossiers.map((x) => ({ deal_id: x.deal_id, piece: Records.findBy('Deal', 'deal_id', x.deal_id)?.source_mail?.piece || null }));
-        etapes.push(`${d.dossiers.length} fiches dans le mail de ${premier.de || premier.de_email} : un dossier par fiche${interne ? ' (interne : pas d\'agent rattaché)' : ''}`);
+        etapes.push(`${d.dossiers.length} fiches dans le mail de ${premier.de || premier.de_email} : un dossier par fiche`);
       } else {
-        etapes.push(`dossier créé depuis le mail de ${premier.de || premier.de_email}${interne ? ' (interne : pas d\'agent rattaché)' : ''}`);
+        etapes.push(`dossier créé depuis le mail de ${premier.de || premier.de_email}`);
       }
+      // Un agent par fiche, souvent le même : chaque phrase une seule fois.
+      if (!repris) for (const p of new Set((d.dossiers || [d]).map((x) => x.agent_fiche?.phrase).filter(Boolean))) etapes.push(p);
     }
     // Les pièces de tous les mails, pour le Drive ; celles des autres mails
     // sont aussi déposées sur le dossier (bail, PV, diagnostics…).
@@ -471,6 +488,7 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
     const d = await analyserFiche({ buffer: fs.readFileSync(fiche), filename: nomDe(fiche), mimetype: /\.pdf$/i.test(fiche) ? 'application/pdf' : undefined, sourceUrl: `/uploads/${path.basename(fiche)}` }, { user });
     dealId = d.deal_id;
     etapes.push('dossier créé depuis la pièce jointe');
+    if (d.agent_fiche?.phrase) etapes.push(d.agent_fiche.phrase);
     const { deposerDocument } = await import('../deal/deposer-document.js');
     for (const c of chemins) {
       fichiers.push({ nom: nomDe(c), buffer: fs.readFileSync(c), mime: /\.pdf$/i.test(c) ? 'application/pdf' : undefined });
@@ -479,6 +497,12 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
       catch (e) { etapes.push(`${nomDe(c)} non déposé : ${e?.message || e}`); }
     }
   }
+  // Rattaché à un dossier existant : son Drive et son marché sont déjà là.
+  if (repris) {
+    const deal = Records.findBy('Deal', 'deal_id', dealId);
+    return { ok: true, cree: false, repris: true, deal_id: dealId, titre: deal?.nom || null, agent, etapes };
+  }
+
   // 2 et 3, pour chaque dossier : son Drive, puis son marché.
   const suite = async (idDossier, fichiersDossier, prefixe = '') => {
     const titre = nommer(idDossier);

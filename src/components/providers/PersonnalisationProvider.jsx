@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { MotionConfig } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 import { DEFAUT, appliquerPrefs, ecrirePrefsLocales, lirePrefs, normaliser } from "@/lib/personnalisation";
@@ -90,7 +91,11 @@ export function PersonnalisationProvider({ children }) {
 
   return (
     <Contexte.Provider value={{ prefs, changer, reinitialiser, etat, connecte: !!utilisateur?.id }}>
-      {children}
+      {/* « Réduites » atteint aussi framer-motion, que le CSS ne voit pas ;
+          « user » suit le réglage du système pour tout le monde. */}
+      <MotionConfig reducedMotion={prefs.animations === "reduites" ? "always" : "user"}>
+        {children}
+      </MotionConfig>
     </Contexte.Provider>
   );
 }

@@ -290,6 +290,16 @@ export function monterAssistant(app) {
     ok(res, ceQuiAttend(currentUser(req)));
   }));
 
+  // Fait ou Supprimer sur n'importe quelle ligne de « Ce qui vous attend ».
+  const agir = (geste) => wrap(async (req, res) => {
+    const { agirSurLigne } = await import('../attend.js');
+    const r = await agirSurLigne(req.params.source, req.params.id, geste, currentUser(req));
+    if (!r?.ok) return res.status(404).json({ error: r?.error || 'Introuvable.' });
+    ok(res, { ok: true });
+  });
+  app.post('/api/assistant/attend/:source/:id/fait', agir('fait'));
+  app.delete('/api/assistant/attend/:source/:id', agir('supprimer'));
+
   app.get('/api/assistant/relances', wrap(async (req, res) => {
     const { relancesEnAttente } = await import('../deal/appels.js');
     ok(res, await relancesEnAttente({ pour: currentUser(req) }));
@@ -320,6 +330,31 @@ export function monterAssistant(app) {
   }));
 
   // Le fil de conversation de l'utilisateur, tel qu'il l'a laissé.
+  // L'historique du chat du dashboard : lister, rouvrir, enregistrer,
+  // supprimer ses conversations. Chacun ne voit que les siennes.
+  app.get('/api/assistant/conversations', wrap(async (req, res) => {
+    const { listerConversations } = await import('../assistant-conversations.js');
+    ok(res, { conversations: listerConversations(currentUser(req)) });
+  }));
+  app.get('/api/assistant/conversations/:id', wrap(async (req, res) => {
+    const { lireConversation } = await import('../assistant-conversations.js');
+    const c = lireConversation(currentUser(req), req.params.id);
+    if (!c) return res.status(404).json({ error: 'Conversation introuvable.' });
+    ok(res, c);
+  }));
+  app.post('/api/assistant/conversations', wrap(async (req, res) => {
+    const { enregistrerConversation } = await import('../assistant-conversations.js');
+    const r = enregistrerConversation(currentUser(req), { id: req.body?.id || null, messages: req.body?.messages || [] });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.delete('/api/assistant/conversations/:id', wrap(async (req, res) => {
+    const { supprimerConversation } = await import('../assistant-conversations.js');
+    const r = supprimerConversation(currentUser(req), req.params.id);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
   app.get('/api/assistant/fil', wrap(async (req, res) => {
     const { lireFil } = await import('../assistant-fil.js');
     ok(res, { messages: lireFil(currentUser(req)) });

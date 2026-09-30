@@ -43,8 +43,8 @@ export default function RechercheRapide({ ouvert, onFermer }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center bg-fond/60 px-4 pt-[12vh] backdrop-blur-sm" onClick={onFermer} role="dialog" aria-modal="true" aria-label="Rechercher">
-      <div className="w-full max-w-[640px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] flex items-start justify-center bg-fond/60 px-4 pt-[12vh] backdrop-blur-sm" onClick={onFermer} role="dialog" aria-modal="true" aria-label="Rechercher">
+      <div className="animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 w-full max-w-[640px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-trait px-5 py-4">
           <Search className="h-4 w-4 flex-none text-brume" />
           <input ref={champ} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={clavier} placeholder="Un projet, un dossier, une adresse…" className="w-full border-0 bg-transparent text-[16px] text-encre outline-none placeholder:text-brume" />

@@ -44,7 +44,7 @@ export function AnimatedDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-[99999] top-full left-0 mt-1 w-full rounded-lg border border-bord bg-surface p-1 shadow-2xl">
+        <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute z-[99999] top-full left-0 mt-1 w-full rounded-lg border border-bord bg-surface p-1 shadow-2xl">
           {options.map((option) => (
             <button
               key={option.value}

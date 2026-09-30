@@ -170,9 +170,23 @@ export function famille(cle, theme) {
 }
 
 /** Pose le thème sur <html> : l'attribut, la classe des composants shadcn, les éléments natifs. */
+let finFondu = null;
 export function appliquerTheme(theme) {
   const clair = theme === CLAIR;
   const racine = document.documentElement;
+  // Le passage sombre/clair se fond sur 300 ms : la classe pose une
+  // transition sur tout, le temps du changement. Jamais au premier
+  // affichage, ni quand la personne (ou son système) réduit le mouvement.
+  const avant = racine.getAttribute("data-theme") === CLAIR ? CLAIR : SOMBRE;
+  const apres = clair ? CLAIR : SOMBRE;
+  const reduit = racine.getAttribute("data-animations") === "reduites"
+    || (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  if (racine.dataset.themePret && avant !== apres && !reduit) {
+    racine.classList.add("k-theme-fondu");
+    clearTimeout(finFondu);
+    finFondu = setTimeout(() => racine.classList.remove("k-theme-fondu"), 350);
+  }
+  racine.dataset.themePret = "1";
   if (clair) racine.setAttribute("data-theme", CLAIR);
   else racine.removeAttribute("data-theme");
   racine.classList.toggle("dark", !clair);

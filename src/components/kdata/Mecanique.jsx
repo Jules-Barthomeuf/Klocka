@@ -72,7 +72,7 @@ export function BoutonMecanique({ etapes, note, titre = "D'où viennent ces info
   return (
     <div className={`fixed ${position} z-[500] flex flex-col items-end`}>
       {ouvert && (
-        <div className="mb-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[16px] border border-bord bg-fond/90 p-4 backdrop-blur-xl">
+        <div className="animate-in fade-in slide-in-from-top-1 duration-150 mb-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[16px] border border-bord bg-fond/90 p-4 backdrop-blur-xl">
           <div className="mb-1 flex items-center justify-between gap-2">
             <span className="flex items-center gap-2 text-[12.5px] font-medium text-encre"><Waypoints className="h-4 w-4 text-menthe" />{titre}</span>
             <button onClick={() => setOuvert(false)} className="flex-shrink-0 text-brume hover:text-encre" aria-label="Fermer"><X className="h-3.5 w-3.5" /></button>

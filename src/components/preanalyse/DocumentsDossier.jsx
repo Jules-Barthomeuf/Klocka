@@ -298,7 +298,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
 
       {/* Import terminé : on propose le dossier Drive du projet. */}
       {driveDemande && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setDriveDemande(false)}>
+        <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setDriveDemande(false)}>
           <div className="w-full max-w-md bg-surface border border-trait rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start gap-3 mb-3">
               <FolderPlus className="w-5 h-5 text-menthe-clair flex-shrink-0 mt-0.5" />

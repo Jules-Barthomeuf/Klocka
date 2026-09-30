@@ -79,6 +79,37 @@ const globalTooltipStyles = `
  * s'en souvient. Il ne touche qu'un attribut sur <html> : tout le reste suit
  * par les variables de couleur.
  */
+/**
+ * Un lien du rail. Au niveau du module, pas dans le rendu : un type stable,
+ * React ne remonte plus chaque lien à chaque rendu, et les transitions de
+ * survol et de page active jouent au lieu d'être coupées net.
+ */
+function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor }) {
+  const d = details[cle] || {};
+  const Icone = icon || d.icon;
+  const ici = actif ?? d.actif;
+  const pastille = badge ?? d.badge;
+  if (!Icone) return null;
+  return (
+    <Link
+      to={to || d.to}
+      onClick={onNaviguer}
+      data-actif={ici ? "1" : undefined}
+      title={replie ? label : undefined}
+      aria-label={label}
+      className={`relative flex items-center rounded-[10px] transition-colors ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
+    >
+      <Icone className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
+      {!replie && <span className="flex-1 truncate text-[15px]">{label}</span>}
+      {pastille ? (
+        replie
+          ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
+          : <span className={`ml-auto rounded-full px-1.5 py-px text-[11px] font-medium tabular-nums ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
+      ) : null}
+    </Link>
+  );
+}
+
 function BasculeKData({ enKData, onChanger }) {
   return (
     <div className="flex flex-1 items-center justify-between gap-2">
@@ -146,7 +177,7 @@ function MenuApps({ isActivePage }) {
       </button>
 
       {ouvert && (
-        <div className="absolute left-1/2 top-[calc(100%+8px)] z-50 w-[560px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+        <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-1/2 top-[calc(100%+8px)] z-50 w-[560px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <Link
             to={createPageUrl("KData")}
             onClick={() => setOuvert(false)}
@@ -392,31 +423,6 @@ function LayoutContent({ children, currentPageName }) {
       return mots[0] || user?.email?.split("@")[0] || "";
     })();
     const bouton = "grid h-8 w-8 place-items-center rounded-[8px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre";
-    const Lien = ({ e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor }) => {
-      const d = DETAILS[cle] || {};
-      const Icone = icon || d.icon;
-      const ici = actif ?? d.actif;
-      const pastille = badge ?? d.badge;
-      if (!Icone) return null;
-      return (
-        <Link
-          to={to || d.to}
-          onClick={isMobile ? closeMobile : undefined}
-          data-actif={ici ? "1" : undefined}
-          title={replie ? label : undefined}
-          aria-label={label}
-          className={`relative flex items-center rounded-[10px] transition-colors ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
-        >
-          <Icone className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
-          {!replie && <span className="flex-1 truncate text-[15px]">{label}</span>}
-          {pastille ? (
-            replie
-              ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
-              : <span className={`ml-auto rounded-full px-1.5 py-px text-[11px] font-medium tabular-nums ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
-          ) : null}
-        </Link>
-      );
-    };
     return (
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
@@ -485,7 +491,7 @@ function LayoutContent({ children, currentPageName }) {
         {/* Les pages. */}
         <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
-            {entrees.map((e) => <Lien key={e.cle} e={e} />)}
+            {entrees.map((e) => <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />)}
           </div>
           {(autres.length > 0 || (isAdmin && !showClientView && AFFICHER_DOUBLE_CHECK)) && (
             <div className="mt-4">
@@ -501,9 +507,9 @@ function LayoutContent({ children, currentPageName }) {
                 <ChevronDown className={`h-4 w-4 transition-transform ${autreOpen ? "rotate-180" : ""}`} />
               </button>
               {autreOpen && (
-                <div className="mt-0.5 flex flex-col gap-0.5">
-                  {autres.map((e) => <Lien key={e.cle} e={e} />)}
-                  {AFFICHER_DOUBLE_CHECK && isAdmin && !showClientView && <Lien e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
+                <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-0.5 flex flex-col gap-0.5">
+                  {autres.map((e) => <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />)}
+                  {AFFICHER_DOUBLE_CHECK && isAdmin && !showClientView && <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
                 </div>
               )}
             </div>
@@ -579,8 +585,8 @@ function LayoutContent({ children, currentPageName }) {
           {/* Mobile Sidebar Overlay */}
           {isMobileMenuOpen && !hideNavbar && (
             <>
-              <div className="md:hidden fixed inset-0 bg-fond/60 z-40" onClick={closeMobile} />
-              <aside className="md:hidden fixed top-0 left-0 h-screen w-[248px] z-50 bg-rail" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
+              <div className="md:hidden fixed inset-0 bg-fond/60 z-40 animate-in fade-in duration-200" onClick={closeMobile} />
+              <aside className="md:hidden fixed top-0 left-0 h-screen w-[248px] z-50 bg-rail animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
                 {sidebarContent(true)}
               </aside>
             </>
@@ -591,7 +597,7 @@ function LayoutContent({ children, currentPageName }) {
       {/* Main Content */}
       <main
         className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
-          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[64px]" : "md:ml-[228px]") : ""
+          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[64px] md:transition-[margin-left] md:duration-200" : "md:ml-[228px] md:transition-[margin-left] md:duration-200") : ""
         } ${
           modoKData
             ? (enCadre ? "" : "pt-14")

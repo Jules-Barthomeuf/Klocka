@@ -62,7 +62,13 @@ async function avancerDealApresMail(dealId, intention, sujet, destinataire, user
             motif: intention === 'refus' ? 'Refusé après préanalyse' : 'Abandonné après étude des documents',
           })
         )
-        .catch((e) => console.warn('[monday] mise à jour impossible :', e?.message || e));
+        .catch((e) => {
+          console.warn('[monday] mise à jour impossible :', e?.message || e);
+          // Jamais bloquant, mais jamais muet : le suivi du dossier le dit, et
+          // le bouton Monday du dossier permet de relancer.
+          const d = Records.findBy('Deal', 'deal_id', dealId);
+          if (d) ajouterSuivi(d, { type: 'monday_echec', detail: `Monday non mis à jour : ${e?.message || e}` }, user);
+        });
     }
     changerStatut(deal, 'abandonne', {
       user,

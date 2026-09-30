@@ -42,12 +42,21 @@ const maintenant = () => new Date().toISOString();
 export async function etatDesOutils() {
   const { clientsConfigure, clientsActifs } = await import('./clients.js');
   const monday = clientsConfigure();
+  // Combien de clients actifs on cherche pour, dès l'état : c'est la
+  // première chose qu'on veut voir en ouvrant ALX. Monday injoignable ne doit
+  // pas emporter tout l'état avec lui : le compteur reste vide, le reste s'affiche.
+  let clients_actifs = null;
+  if (monday) {
+    try {
+      clients_actifs = (await clientsActifs()).length;
+    } catch (e) {
+      console.warn(`[alx] clients actifs illisibles (Monday) : ${e?.message || e}`);
+    }
+  }
   return {
     street_view: !!(process.env.GOOGLE_MAPS_SERVEUR || '').trim(),
     monday,
-    // Combien de clients actifs on cherche pour, dès l'état : c'est la
-    // première chose qu'on veut voir en ouvrant ALX.
-    clients_actifs: monday ? (await clientsActifs()).length : null,
+    clients_actifs,
     modele: !!((process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || '').trim()),
   };
 }

@@ -465,7 +465,7 @@ export default function SimulateurRentabilite() {
     <div className="min-h-screen relative w-full max-w-full overflow-x-hidden">
 
       {isEtape2 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-fond/50 backdrop-blur-sm">
+        <div className="animate-in fade-in duration-200 fixed inset-0 z-50 flex items-center justify-center bg-fond/50 backdrop-blur-sm">
           <div className="max-w-md w-full bg-surface rounded-md border border-encre/[0.1] p-8 text-center mx-4">
             <h3 className="text-xl font-light text-encre mb-3">Définissez votre stratégie d'investissement</h3>
             <p className="text-encre/30 text-sm mb-6">Avant d'accéder au simulateur, prenons rendez-vous pour définir ensemble votre stratégie personnalisée.</p>

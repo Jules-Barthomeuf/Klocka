@@ -262,7 +262,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
 
       {phase !== "repos" &&
         createPortal(
-          <div className="ja-plein fixed inset-0 z-[60] bg-fond flex flex-col">
+          <div className="animate-in fade-in duration-200 ja-plein fixed inset-0 z-[60] bg-fond flex flex-col">
             <header className="flex-shrink-0 border-b border-trait">
               <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 py-3.5 flex items-center gap-3">
                 <div className="min-w-0 flex-1 flex items-center gap-2.5">

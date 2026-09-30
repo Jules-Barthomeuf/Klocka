@@ -10,6 +10,7 @@
 // réponse, sinon un « oui » ne dirait pas à quelle fiche il répond.
 
 import { Records, Meta } from '../db.js';
+import { dossierDeLaConversation, doublonDe, contexteDesConversations } from '../deal/fiches-auto.js';
 
 const ENTITE = 'AkQuestion';
 const CLE_DEPUIS = 'ak.fiches.depuis';
@@ -56,12 +57,16 @@ export function ressembleAUneFiche(mail) {
  * Pas encore rattachés à un dossier, reçus depuis l'activation et depuis
  * moins de 48 h, qui ressemblent à une fiche, et jamais proposés à elle.
  */
-export function fichesAProposer({ mails, questions, pour, depuis, maintenant = new Date() }) {
+export function fichesAProposer({ mails, questions, pour, depuis, maintenant = new Date(), contexte = null }) {
   const deja = new Set(questions.filter((q) => q.pour_email === pour).map((q) => q.mail_id));
   const t0 = Date.parse(depuis || 0) || 0;
+  // Une réponse dans la conversation d'un dossier, ou une fiche déjà traitée,
+  // n'est pas une nouvelle fiche : AK ne la propose pas.
+  const ctx = contexte || { mails, envois: [], deals: [] };
   return mails
-    .filter((m) => !m.deal_id && m.date && Date.parse(m.date) >= t0 && maintenant - Date.parse(m.date) < FENETRE_MS)
+    .filter((m) => !m.deal_id && !m.dossier_supprime_le && m.date && Date.parse(m.date) >= t0 && maintenant - Date.parse(m.date) < FENETRE_MS)
     .filter((m) => !deja.has(m.id) && ressembleAUneFiche(m))
+    .filter((m) => !dossierDeLaConversation(m, ctx) && !doublonDe(m, { mails: ctx.mails, deals: ctx.deals }))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 
@@ -119,9 +124,10 @@ export async function poserLesQuestions({ assurerPrive, envoyer, memoriser = () 
   let depuis = Meta.get(CLE_DEPUIS);
   if (!depuis) { depuis = maintenant.toISOString(); Meta.set(CLE_DEPUIS, depuis); }
   const mails = Records.list('MailRecu');
+  const contexte = contexteDesConversations();
   let posees = 0;
   for (const email of pour) {
-    const liste = fichesAProposer({ mails, questions: Records.list(ENTITE), pour: email, depuis, maintenant });
+    const liste = fichesAProposer({ mails, questions: Records.list(ENTITE), pour: email, depuis, maintenant, contexte });
     if (!liste.length) continue;
     const espace = await priveDe(email, { assurerPrive });
     if (!espace || questionOuverte(espace)) continue;

@@ -50,7 +50,7 @@ export async function analyserFiche(entree, ctx = {}) {
   }
 
   // --- [2] Extraction ------------------------------------------------------
-  const { lots: lotsExtraits, incidents, ia: extractionIA } = await extraire(ingestion.texte);
+  const { lots: lotsExtraits, incidents, ia: extractionIA, agent: agentExtrait = null } = await extraire(ingestion.texte);
 
   // --- [3] + [4] par lot, en parallèle -------------------------------------
   // Les lots sont indépendants entre eux, et dans un lot la synthèse et le
@@ -147,6 +147,20 @@ export async function analyserFiche(entree, ctx = {}) {
   // Jamais attendu : l'analyse répond tout de suite, le contexte marché
   // apparaît au prochain rafraîchissement du dossier.
   completerContexteMarche(dossier);
+  // L'agent, lui, est attendu : c'est à lui qu'on écrit ensuite, et celui
+  // qui a déposé la fiche doit savoir s'il est au dossier et dans Monday.
+  try {
+    const { rattacherAgent } = await import('./agent-fiche.js');
+    dossier.agent_fiche = await rattacherAgent(dossier.deal_id, {
+      contact: entree.contactEmail || coquille?.contact_agent_email || null,
+      extrait: agentExtrait,
+      texte: ingestion.texte,
+      user: ctx.user,
+    });
+    dossier.contact_agent_email = dossier.contact_agent_email || dossier.agent_fiche.agent?.email || null;
+  } catch (e) {
+    console.warn(`[preanalyse] agent non rattaché : ${e?.message || e}`);
+  }
   return dossier;
 }
 

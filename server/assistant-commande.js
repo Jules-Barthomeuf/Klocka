@@ -346,7 +346,7 @@ export async function executerOutil({ name, input }, user) {
   if (name === 'chercher_dossier') {
     const trouves = Records.list('Deal')
       .filter((d) => !d.archived && !d.test)
-      .filter((d) => correspond(`${titreDeal(d)} ${villeDeal(d)} ${d.contact_agent_email || ''}`, input.recherche))
+      .filter((d) => correspond(`${titreDeal(d)} ${villeDeal(d)} ${d.contact_agent_email || ''} ${d.apercu?.agent_nom || ''} ${d.apercu?.agence || ''}`, input.recherche))
       .slice(0, 8)
       .map((d) => ({
         deal_id: d.deal_id,

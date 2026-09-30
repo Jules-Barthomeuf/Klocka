@@ -133,6 +133,13 @@ async function lancerPreanalyse(tache) {
   try {
     const r = await preanalyserMailRecu(tache.mail_id, utilisateurPour(tache.pour) || utilisateurAk());
     if (!r.ok) throw new Error(r.error || 'préanalyse impossible');
+    if (r.repris) {
+      // Pas de nouveau dossier : le mail répondait à une conversation déjà
+      // en dossier, ou sa fiche avait le sien. On le dit, et c'est fini.
+      const lien = `${APP_URL_PROD || 'http://localhost:5173'}/Analyse?deal_id=${r.deal_id}`;
+      Records.update(ENTITE_TACHE, tache.id, { etat: 'finie', deal_id: r.deal_id, resultat: { texte: `pas de nouveau dossier : ${r.motif} « ${r.titre} ». J'y ai rattaché le mail : ${lien}`, deal_id: r.deal_id }, fini_le: new Date().toISOString() });
+      return;
+    }
     nommer(r.deal_id);
     Records.update(ENTITE_TACHE, tache.id, { deal_id: r.deal_id, autres_dossiers: r.autres || [], etape: 'marche', preanalyse_le: new Date().toISOString() });
   } catch (e) {

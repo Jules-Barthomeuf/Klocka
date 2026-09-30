@@ -125,7 +125,7 @@ function FicheCommerce({ commerce: c, point, onFermer }) {
   const { icone: Icone, couleur } = familleDe(c.categorie);
 
   return (
-    <div className="fixed inset-0 z-[600] flex flex-col">
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[600] flex flex-col">
       <FondHalo />
       <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-1 flex-col overflow-hidden px-4 pt-6">
         <div className="mb-4 flex flex-shrink-0 items-start justify-between gap-4">

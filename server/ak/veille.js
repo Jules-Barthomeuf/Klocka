@@ -189,12 +189,12 @@ function suivreKdata(tache) {
 /** Les tâches finies sont annoncées une fois, là où on les a demandées. */
 async function annoncerLesTachesFinies({ muet = false } = {}) {
   const { texteDeFin } = await import('./agent.js');
-  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' })) {
+  for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' }).filter((x) => !x.app)) {
     if (t.genre === 'kdata') suivreKdata(t);
     if (t.genre === 'alx') { try { await suivreAlx(t); } catch (e) { dernier.erreur = e?.message || String(e); } }
     if (t.genre === 'preanalyse') { try { await suivrePreanalyse(t); } catch (e) { dernier.erreur = e?.message || String(e); } }
   }
-  for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
+  for (const t of Records.list(ENTITE_TACHE).filter((x) => (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le && !x.app)) {
     // Arrêtée par un STOP, ou finie pendant la pause : elle ne dit rien.
     if (muet || t.muette) { Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString(), muette: true }); continue; }
     const texte = t.etat === 'ratee' ? `dsl, ${t.libelle} a planté : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
@@ -215,6 +215,68 @@ async function annoncerLesTachesFinies({ muet = false } = {}) {
     } catch (e) {
       dernier.erreur = e?.message || String(e);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Les tâches lancées depuis l'application : même travail, mais la fin
+// s'annonce par une notification, pas dans Google Chat. Leur boucle tourne
+// même sans compte Google Chat.
+// ---------------------------------------------------------------------------
+
+/** Lance les tâches de fond demandées dans le chat de l'application. */
+export function lancerTachesApp(fond, user) {
+  for (const t of fond || []) {
+    const tache = ouvrirTache(t, { espace: null, fil: null, auteur: { nom: user?.email || null, affiche: user?.full_name || user?.email || null }, groupe: false });
+    Records.update(ENTITE_TACHE, tache.id, { app: true, pour_email: String(user?.email || '').toLowerCase() || null });
+    const fraiche = Records.get(ENTITE_TACHE, tache.id);
+    if (t.genre === 'prez') lancerPrez(fraiche).catch(() => {});
+    if (t.genre === 'design') lancerDesign(fraiche).catch(() => {});
+    if (t.genre === 'loi') lancerLoi(fraiche).catch(() => {});
+    if (t.genre === 'preanalyse') lancerPreanalyse(fraiche).catch(() => {});
+  }
+}
+
+/** Pure : la page où mène la notification d'une tâche finie. */
+export function lienDeTache(t) {
+  if (t.genre === 'alx' && t.ville_id) return `/ALX?ville=${t.ville_id}`;
+  const deal = t.deal_id || t.resultat?.deal_id;
+  if (deal) return `/Dossiers?deal_id=${deal}`;
+  if (t.projet_id) return `/Projet?id=${t.projet_id}`;
+  return null;
+}
+
+let tachesAppEnCours = false;
+/** Fait avancer les tâches de l'application, et annonce celles qui sont finies. */
+export async function avancerTachesApp() {
+  if (tachesAppEnCours) return;
+  tachesAppEnCours = true;
+  try {
+    for (const t of Records.filter(ENTITE_TACHE, { etat: 'en_cours' }).filter((x) => x.app)) {
+      try {
+        if (t.genre === 'kdata') suivreKdata(t);
+        if (t.genre === 'alx') await suivreAlx({ ...t, muette: true });
+        if (t.genre === 'preanalyse') await suivrePreanalyse(t);
+      } catch (e) { console.warn(`[ak app] ${t.libelle} : ${e?.message || e}`); }
+    }
+    const { texteDeFin } = await import('./agent.js');
+    const { notifier } = await import('../notifications.js');
+    for (const t of Records.list(ENTITE_TACHE).filter((x) => x.app && (x.etat === 'finie' || x.etat === 'ratee') && !x.annoncee_le)) {
+      const rate = t.etat === 'ratee';
+      const texte = rate ? `${t.libelle} n'a pas abouti : ${t.resultat?.erreur || 'sans détail'}` : texteDeFin(t);
+      notifier({
+        pour: t.pour_email,
+        titre: rate ? 'Tâche interrompue' : `C'est prêt : ${String(t.libelle).replace(/^(la |le |l')/, '')}`.slice(0, 120),
+        texte: String(texte).replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 400),
+        lien: lienDeTache(t),
+        action: 'Voir',
+        genre: rate ? 'erreur' : 'tache',
+        cle: `tache:${t.id}`,
+      });
+      Records.update(ENTITE_TACHE, t.id, { annoncee_le: new Date().toISOString() });
+    }
+  } finally {
+    tachesAppEnCours = false;
   }
 }
 

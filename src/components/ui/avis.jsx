@@ -30,69 +30,59 @@ const DUREES = { erreur: 7000, avertissement: 6000, en_cours: Infinity };
 const dureeDe = (ton, d) => (d != null ? d : DUREES[ton] != null ? DUREES[ton] : 4500);
 
 /**
- * La carte d'un avis. Exportée pour les endroits qui veulent le même dessin
- * posé dans la page plutôt qu'en surimpression.
+ * La carte d'un avis (maquette du 1er octobre 2026) : la pastille K de
+ * l'assistante à gauche, un titre, la phrase qui explique, un bouton plein
+ * pour aller voir, la croix en haut à droite. Le ton se lit à un point
+ * coloré sur la pastille (alerte, avertissement) ou à un sablier (en cours) :
+ * la carte, elle, reste la même pour tout.
  *
  * @param {{ton?:string, titre:React.ReactNode, description?:React.ReactNode,
  *   action?:{mot:string, faire:Function}, duree?:number, progression?:number,
  *   onFermer?:Function}} p
+ * `poser` accepte aussi `surFermeture` : appelé quand la personne ferme la
+ * carte à la croix, pour qu'un suivi en cours ne la repose pas aussitôt.
  */
-export function Avis({ ton = "information", titre, description = null, action = null, duree = null, progression = null, onFermer = null }) {
-  const { teinte, Icone } = TONS[ton] || TONS.information;
-  const anime = progression == null && duree != null && isFinite(duree);
+export function Avis({ ton = "information", titre, description = null, action = null, progression = null, onFermer = null }) {
+  const { teinte } = TONS[ton] || TONS.information;
+  const signal = ton === "erreur" || ton === "avertissement";
   return (
     <div
       role="status"
-      className="relative w-[min(420px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-bord bg-surface-pleine px-[18px] py-4 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)]"
+      className="relative w-[min(440px,calc(100vw-32px))] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine py-5 pl-5 pr-12 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)]"
     >
-      {/* Sans description, le titre tient sur une ligne plus basse que la
-          pastille : centrer plutôt qu'aligner en haut évite le vide qui se
-          creusait sous une notification courte comme « 2 analyses rangées ». */}
-      <div className={`flex gap-3 ${description ? "items-start" : "items-center"}`}>
-        <span
-          className={`grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] border ${description ? "mt-px" : ""}`}
-          style={{ background: `${teinte}1f`, borderColor: `${teinte}3d`, color: teinte }}
-        >
-          <Icone className={`h-[15px] w-[15px] ${ton === "en_cours" ? "animate-spin" : ""}`} strokeWidth={2.5} />
+      <div className="flex items-start gap-4">
+        <span className="relative mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[11px] border border-trait text-[15px] text-craie" style={{ background: J["fond"] }}>
+          {ton === "en_cours" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "K"}
+          {signal && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2" style={{ background: teinte, borderColor: J["surface-pleine"] }} />}
         </span>
-
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold leading-tight text-encre">{titre}</div>
-          {description && <div className="mt-1 text-[12.5px] leading-[1.5] text-ardoise">{description}</div>}
+          <div className="text-[16px] font-medium leading-snug text-encre" style={signal ? { color: teinte } : undefined}>{titre}</div>
+          {description && <div className="mt-1 text-[14px] leading-[1.55] text-craie">{description}</div>}
+          {action && (
+            <button
+              type="button"
+              onClick={() => { action.faire?.(); onFermer?.(); }}
+              className="mt-3.5 inline-flex h-10 items-center rounded-full px-5 text-[14px] font-medium transition-opacity hover:opacity-90"
+              style={{ background: J["menthe-pale"], color: J["sur-menthe-pale"] }}
+            >
+              {action.mot}
+            </button>
+          )}
         </div>
-
-        {action && (
-          <button
-            type="button"
-            onClick={() => { action.faire?.(); onFermer?.(); }}
-            className="k-avis-action mt-px shrink-0 rounded-[9px] border border-bord-doux px-3.5 py-2 text-[12.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre"
-          >
-            {action.mot}
-          </button>
-        )}
-
-        {/* La croix ne se montre qu'au survol, et seulement s'il n'y a pas de
-            bouton : sinon elle viendrait se poser dessus. */}
-        {onFermer && !action && (
-          <button
-            type="button"
-            aria-label="Fermer"
-            onClick={() => onFermer()}
-            className="k-avis-fermer absolute right-2 top-2 rounded-md p-1 text-brume opacity-0 transition-opacity hover:text-encre"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
       </div>
-
-      <span
-        className={`absolute bottom-0 left-0 h-[2px] w-full origin-left ${anime ? "k-avis-barre" : progression == null ? "k-avis-va-et-vient" : ""}`}
-        style={{
-          background: `linear-gradient(90deg, ${teinte} 0%, ${teinte}00 100%)`,
-          animationDuration: anime ? `${duree}ms` : undefined,
-          transform: progression != null ? `scaleX(${Math.max(0, Math.min(1, progression))})` : undefined,
-        }}
-      />
+      {onFermer && (
+        <button
+          type="button"
+          aria-label="Fermer"
+          onClick={() => onFermer()}
+          className="k-avis-fermer absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+      {progression != null && (
+        <span className="absolute bottom-0 left-0 h-[2px] w-full origin-left" style={{ background: J["menthe"], transform: `scaleX(${Math.max(0, Math.min(1, progression))})` }} />
+      )}
     </div>
   );
 }
@@ -114,7 +104,7 @@ export function poser(ton, titre, o = {}) {
         action={boutonDe(o.action)}
         duree={duree}
         progression={o.progression}
-        onFermer={() => sonner.dismiss(id)}
+        onFermer={() => { o.surFermeture?.(); sonner.dismiss(id); }}
       />
     ),
     { id: o.id, duration: duree, className: o.className, position: o.position },
@@ -143,7 +133,7 @@ export const toast = Object.assign((titre, o) => poser("information", titre, o),
   dismiss: sonner.dismiss,
 });
 
-/** Le calque qui empile les avis, en haut au centre. */
+/** Le calque qui empile les avis, en haut à droite. */
 export function Toaster(props) {
-  return <SonnerToaster position="top-center" gap={10} offset={18} toastOptions={{ unstyled: true }} {...props} />;
+  return <SonnerToaster position="top-right" gap={12} offset={20} toastOptions={{ unstyled: true }} {...props} />;
 }

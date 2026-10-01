@@ -9,32 +9,92 @@ import { Records } from './db.js';
 import { invokeLLM } from './llm.js';
 
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-const sansAccents = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const aMidi = (d) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
-const dansNJours = (n) => { const d = aMidi(new Date()); d.setDate(d.getDate() + n); return d; };
+const sansAccents = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+// --- L'heure de Paris -------------------------------------------------------
+//
+// Le serveur tourne en UTC (Render) : « demain matin » doit vouloir dire
+// 9 h à Paris, pas 9 h UTC ni midi, et « demain » dit à minuit et demi à
+// Paris doit compter depuis le jour de Paris, pas depuis le jour UTC.
+
+const PARIS = 'Europe/Paris';
+
+/** Pure : la date de ce jour-là à Paris, en clair. */
+function dateAParis(d = new Date()) {
+  const [a, mo, j] = new Intl.DateTimeFormat('en-CA', { timeZone: PARIS, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(d).split('-').map(Number);
+  return { a, mo, j };
+}
+
+/** Pure : l'instant « ce jour-là à h:mi, heure de Paris », été comme hiver. */
+export function instantParis(a, mo, j, h = 12, mi = 0) {
+  const commeUtc = Date.UTC(a, mo - 1, j, h, mi);
+  const vu = new Date(new Date(commeUtc).toLocaleString('en-US', { timeZone: PARIS }));
+  const enUtc = new Date(new Date(commeUtc).toLocaleString('en-US', { timeZone: 'UTC' }));
+  return new Date(commeUtc - (vu.getTime() - enUtc.getTime()));
+}
+
+/** Pure : l'heure de Paris d'un instant donné, pour la garder en reportant. */
+export function heureParis(iso) {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return { h: 9, mi: 0 };
+  const [h, mi] = new Intl.DateTimeFormat('fr-FR', { timeZone: PARIS, hour: '2-digit', minute: '2-digit', hour12: false })
+    .format(d).split(':').map(Number);
+  return { h, mi };
+}
+
+/** Pure : dans n jours du calendrier de Paris, à h heures de Paris. */
+export function dansNJoursParis(n, h = 12, mi = 0) {
+  const { a, mo, j } = dateAParis();
+  const d = new Date(Date.UTC(a, mo - 1, j + n));
+  return instantParis(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), h, mi);
+}
+
+/**
+ * L'heure dite dans la phrase : « à 9h », « 14 h 30 », « matin », « midi »,
+ * « après-midi », « soir ». Null quand rien n'est dit.
+ */
+export function lireHeure(texte) {
+  const t = sansAccents(texte);
+  let m;
+  if ((m = t.match(/\b(\d{1,2})\s*h(?:\s*(\d{2}))?\b/)) && Number(m[1]) <= 23) return { h: Number(m[1]), mi: Number(m[2] || 0) };
+  if (/\bmatin(ee)?\b/.test(t)) return { h: 9, mi: 0 };
+  if (/apres[- ]midi/.test(t)) return { h: 14, mi: 0 };
+  if (/\bmidi\b/.test(t)) return { h: 12, mi: 0 };
+  if (/\bsoir(ee)?\b/.test(t)) return { h: 18, mi: 0 };
+  return null;
+}
 
 /** L'échéance lue dans la phrase, ou null. */
 export function lireEcheance(texte) {
   const t = sansAccents(texte);
+  const { h, mi } = lireHeure(t) || { h: 12, mi: 0 };
+  const dansN = (n) => dansNJoursParis(n, h, mi);
   let m;
-  if ((m = t.match(/dans\s+(\d{1,3})\s*(jour|j\b|jours)/))) return dansNJours(Number(m[1]));
-  if ((m = t.match(/dans\s+(\d{1,2})\s*semaine/))) return dansNJours(7 * Number(m[1]));
-  if ((m = t.match(/dans\s+(\d{1,2})\s*mois/))) { const d = aMidi(new Date()); d.setMonth(d.getMonth() + Number(m[1])); return d; }
-  if (/\bdemain\b/.test(t)) return dansNJours(1);
-  if (/apres[- ]demain/.test(t)) return dansNJours(2);
-  if ((m = t.match(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\b/))) {
-    const annee = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : new Date().getFullYear();
-    const d = aMidi(new Date(annee, Number(m[2]) - 1, Number(m[1])));
-    if (!m[3] && d < new Date()) d.setFullYear(d.getFullYear() + 1);
+  if ((m = t.match(/dans\s+(\d{1,3})\s*(jour|j\b|jours)/))) return dansN(Number(m[1]));
+  if ((m = t.match(/dans\s+(\d{1,2})\s*semaine/))) return dansN(7 * Number(m[1]));
+  if ((m = t.match(/dans\s+(\d{1,2})\s*mois/))) {
+    const { a, mo, j } = dateAParis();
+    const d = new Date(Date.UTC(a, mo - 1 + Number(m[1]), j));
+    return instantParis(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), h, mi);
+  }
+  if (/apres[- ]demain/.test(t)) return dansN(2);
+  if (/\bdemain\b/.test(t)) return dansN(1);
+  if (/aujourd|ce matin|cet apres[- ]midi|ce soir|ce midi/.test(t)) return dansN(0);
+  // Une date chiffrée : jj/mm, pas un téléphone (06.12.34.56.78 n'est pas le 6 décembre 2034).
+  if ((m = t.match(/(?<![\d./])\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?\b(?![./\d])/))) {
+    if (Number(m[1]) > 31 || Number(m[2]) > 12) return null;
+    const annee = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : dateAParis().a;
+    const d = instantParis(annee, Number(m[2]), Number(m[1]), h, mi);
+    if (!m[3] && d < new Date()) return instantParis(annee + 1, Number(m[2]), Number(m[1]), h, mi);
     return d;
   }
   for (let i = 0; i < 7; i++) {
     if (new RegExp(`\\b${JOURS[i]}\\b`).test(t)) {
-      const d = aMidi(new Date());
-      let ecart = (i - d.getDay() + 7) % 7;
+      const { a, mo, j } = dateAParis();
+      let ecart = (i - new Date(Date.UTC(a, mo - 1, j)).getUTCDay() + 7) % 7;
       if (ecart === 0) ecart = 7;
-      d.setDate(d.getDate() + ecart);
-      return d;
+      return dansN(ecart);
     }
   }
   return null;
@@ -124,7 +184,7 @@ export async function creerRappel({ texte, user }) {
     if (lu) {
       if (!nom && lu.nom && !SOI.test(String(lu.nom).trim())) nom = String(lu.nom).trim();
       if (!telephone && lu.telephone) telephone = lireTelephone(lu.telephone) || String(lu.telephone).trim();
-      if (!echeance && isFinite(Number(lu.dans_jours))) echeance = dansNJours(Math.max(0, Math.round(Number(lu.dans_jours))));
+      if (!echeance && isFinite(Number(lu.dans_jours))) { const he = lireHeure(brut) || { h: 12, mi: 0 }; echeance = dansNJoursParis(Math.max(0, Math.round(Number(lu.dans_jours))), he.h, he.mi); }
       if (lu.note) note = String(lu.note).trim();
     }
   }
@@ -150,12 +210,15 @@ export async function creerRappel({ texte, user }) {
   return { ok: true, rappel: { ...rappel, titre: titreDuRappel(rappel) } };
 }
 
-const dans = (iso) => Math.round((aMidi(new Date(iso)) - aMidi(new Date())) / 86400000);
+// La distance en jours, dans le calendrier de Paris.
+const jourParis = (d) => { const { a, mo, j } = dateAParis(d); return Date.UTC(a, mo - 1, j); };
+const dans = (iso) => Math.round((jourParis(new Date(iso)) - jourParis(new Date())) / 86400000);
 
 /** Les rappels de la personne : ceux qui sont dus, puis ceux à venir. */
 export function listerRappels(user) {
   const tous = Records.list('Rappel')
-    .filter((r) => !r.fait_le && (!user?.email || !r.cree_par || r.cree_par === user.email))
+    // Les rappels de l'espace mandataire n'ont rien à faire dans le dashboard admin.
+    .filter((r) => !r.fait_le && !r.espace && (!user?.email || !r.cree_par || r.cree_par === user.email))
     .map((r) => ({ ...r, dans: dans(r.echeance) }))
     .sort((a, b) => String(a.echeance).localeCompare(String(b.echeance)));
   return { dus: tous.filter((r) => r.dans <= 0), a_venir: tous.filter((r) => r.dans > 0), total: tous.length };

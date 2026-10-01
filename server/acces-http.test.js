@@ -42,6 +42,8 @@ function semer(chemin) {
   poser('u-client', 'User', { email: 'client@test.local', role: 'user', full_name: 'Client' });
   poser('s-admin', 'Session', { token: 'JETON_ADMIN', user_email: 'equipe@test.local', expires_at: demain });
   poser('s-client', 'Session', { token: 'JETON_CLIENT', user_email: 'client@test.local', expires_at: demain });
+  poser('u-mandataire', 'User', { email: 'mandataire@test.local', role: 'mandataire', full_name: 'Mandataire' });
+  poser('s-mandataire', 'Session', { token: 'JETON_MANDATAIRE', user_email: 'mandataire@test.local', expires_at: demain });
   // Un dossier d'équipe et sa pièce : ce qu'un client ne doit jamais voir.
   poser('d-1', 'DossierDoc', {
     dossier_id: 'deal-1', titre: 'Local à Lyon — Verdict : INSUFFISANT',
@@ -190,4 +192,18 @@ test('les surfaces supprimées ne répondent plus', async () => {
 test('un client ne voit que son propre compte', async () => {
   const vus = await (await appel('/api/entities/User', 'JETON_CLIENT')).json();
   assert.deepEqual(vus.map((u) => u.email), ['client@test.local']);
+});
+
+test("l'espace mandataire : le mandataire y entre, pas le client ; l'arrière-boutique lui reste fermée", async () => {
+  assert.equal((await appel('/api/mandataire/jour')).status, 401);
+  assert.equal((await appel('/api/mandataire/jour', 'JETON_CLIENT')).status, 403);
+  assert.equal((await appel('/api/mandataire/jour', 'JETON_MANDATAIRE')).status, 200);
+  assert.equal((await appel('/api/mandataire/jour', 'JETON_ADMIN')).status, 200, "l'admin regarde la vue mandataire");
+  for (const chemin of ['/api/assistant/attend', '/api/preanalyse/dossiers', '/api/alx/etat', '/api/monday/clients', '/api/prospection/jour', '/api/entities/Deal']) {
+    const r = await appel(chemin, 'JETON_MANDATAIRE');
+    assert.ok([403, 404].includes(r.status), `${chemin} répond ${r.status} à un mandataire`);
+  }
+  // Les comptes : le sien, pas ceux des clients Klocka.
+  const vus = await (await appel('/api/entities/User', 'JETON_MANDATAIRE')).json();
+  assert.deepEqual(vus.map((u) => u.email), ['mandataire@test.local']);
 });

@@ -976,7 +976,8 @@ function consigneContexte(contexte) {
  * @param {{deal_id?, projet_id?, titre?}} [contexte] - l'écran ouvert
  * @returns {Promise<{ texte: string, actions: Array }>}
  */
-export async function commander(historique, user, contexte = null) {
+export async function commander(historique, user, contexte = null, { surEtape = null } = {}) {
+  const { libelleOutil } = await import('./etapes-libelles.js');
   const actions = [];
   // Tous les outils appelés, y compris ceux qui n'ont fait que lire : le
   // journal doit pouvoir dire ce que l'assistant a consulté.
@@ -987,6 +988,7 @@ export async function commander(historique, user, contexte = null) {
     tools: OUTILS,
     onTool: async (appel) => {
       outils.push(appel.name);
+      surEtape?.(libelleOutil(appel.name, appel.input));
       const resultat = await executerOutil(appel, user);
       // On garde la trace de ce qui a réellement été fait : le texte du modèle
       // n'est pas une preuve d'action.

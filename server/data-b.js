@@ -27,11 +27,17 @@ const CACHE_JOURS = 30;
 // --- La session ---------------------------------------------------------------------------
 let session = { cookie: null, depuis: 0 };
 
-async function appel(url, { method = 'GET', form = null, cookie = null, referer = null } = {}) {
+async function appel(url, { method = 'GET', form = null, cookie = null, referer = null, corps = null } = {}) {
   const headers = { 'user-agent': UA, accept: 'text/html,*/*' };
   if (cookie) headers.cookie = cookie;
   let body;
-  if (form) {
+  if (corps != null) {
+    headers['content-type'] = 'application/x-www-form-urlencoded';
+    const base = referer ? new URL(referer).origin : 'https://data-b.com';
+    headers.origin = base;
+    headers.referer = referer || `${base}/`;
+    body = corps;
+  } else if (form) {
     headers['content-type'] = 'application/x-www-form-urlencoded';
     // Data-B vérifie d'où vient l'appel : la connexion vient de sa page, le
     // chargement des résultats vient du module qui les demande.
@@ -105,6 +111,21 @@ export async function postDataB(url, form) {
   for (let essai = 0; essai < 2; essai++) {
     const cookie = essai === 0 ? await cookieValide() : await connecter();
     const r = await appel(url, { method: 'POST', cookie, form, referer: url });
+    if (r.status === 302 || r.status === 301) continue;
+    if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
+    return r.text();
+  }
+  return null;
+}
+
+/**
+ * Un POST dont le corps est déjà sérialisé (champs répétés : metier[]=7&metier[]=12…),
+ * même session que postDataB.
+ */
+export async function postDataBCorps(url, corps) {
+  for (let essai = 0; essai < 2; essai++) {
+    const cookie = essai === 0 ? await cookieValide() : await connecter();
+    const r = await appel(url, { method: 'POST', cookie, form: null, referer: url, corps: String(corps) });
     if (r.status === 302 || r.status === 301) continue;
     if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
     return r.text();

@@ -42,3 +42,23 @@ test('au-delà du plafond, la plus vieille part', () => {
   for (let i = 0; i < 32; i += 1) enregistrerConversation(jules, { messages: [{ role: 'user', contenu: `conversation ${i}` }] });
   assert.equal(listerConversations(jules).length, 30);
 });
+
+test('le fil garde ses étapes et ses actions, pas le reste', async () => {
+  const { serialisables } = await import('./assistant-conversations.js');
+  const [m] = serialisables([{ role: 'assistant', contenu: 'Noté.', etapes: ['Lecture de la note', 42], cartes: [{ titre: 'Rappel créé', detail: 'jeudi 9 h', etat: 'fait', secret: 'x' }], autre: 'y' }]);
+  assert.deepEqual(m.etapes, ['Lecture de la note']);
+  assert.deepEqual(m.cartes, [{ titre: 'Rappel créé', detail: 'jeudi 9 h', etat: 'fait', lien: null }]);
+  assert.equal(m.autre, undefined);
+});
+
+test('renommer une conversation, la sienne seulement, sans la faire remonter', async () => {
+  const { renommerConversation } = await import('./assistant-conversations.js');
+  const MOI = { email: 'renomme@klocka.immo' };
+  const { id } = enregistrerConversation(MOI, { messages: [{ role: 'user', contenu: 'Où en est Mâcon ?' }] });
+  const avant = lireConversation(MOI, id);
+  assert.equal(renommerConversation({ email: 'autre@klocka.immo' }, id, 'Volé').ok, false);
+  assert.equal(renommerConversation(MOI, id, '   ').ok, false);
+  assert.equal(renommerConversation(MOI, id, 'Dossier Mâcon').titre, 'Dossier Mâcon');
+  assert.equal(listerConversations(MOI).find((c) => c.id === id).titre, 'Dossier Mâcon');
+  assert.deepEqual(lireConversation(MOI, id).messages, avant.messages);
+});

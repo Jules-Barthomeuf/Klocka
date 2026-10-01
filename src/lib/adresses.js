@@ -36,6 +36,14 @@ export const ADRESSES = {
   AdminRessources: "GestionRessources",
   Ressources: "Ressources",
   AdminPortail: "Portails",
+  AdminMandataires: "Mandataires",
+  MandataireProspection: "MandataireProspection",
+  MandataireClients: "MandataireClients",
+  MandataireEstimation: "EstimationMandataire",
+  MandataireMandat: "MandatMandataire",
+  MandataireDossier: "DossierMandataire",
+  MandataireMarche: "MiseEnMarche",
+  AdminValidations: "Validations",
   Portail: "Portail",
   Portail2Fois: "PortailDeuxFois",
   AdminBrouillons: "Verification",
@@ -71,9 +79,14 @@ export const adresseDe = (page) => ADRESSES[page] || String(page || "").replace(
 
 // L'adresse, ou l'ancien nom, en minuscules → le nom interne.
 const PAR_ADRESSE = new Map();
+// Les adresses d'abord, les anciens noms ensuite et seulement s'ils sont
+// libres : « Feedback » est l'adresse de la page admin (AdminSuggestions),
+// l'ancien nom de la page client ne doit pas la recouvrir.
 for (const [page, adresse] of Object.entries(ADRESSES)) {
   PAR_ADRESSE.set(adresse.toLowerCase(), page);
-  PAR_ADRESSE.set(page.toLowerCase(), page);
+}
+for (const page of Object.keys(ADRESSES)) {
+  if (!PAR_ADRESSE.has(page.toLowerCase())) PAR_ADRESSE.set(page.toLowerCase(), page);
 }
 // L'ancienne préanalyse est devenue les dossiers.
 PAR_ADRESSE.set("preanalyse", "Analyse");

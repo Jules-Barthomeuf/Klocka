@@ -1,22 +1,18 @@
-import React, { useState, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from "react-leaflet";
+import React, { useMemo } from "react";
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip } from "react-leaflet";
 import { motion } from "framer-motion";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import { useFondDeCarte } from "@/lib/tuiles";
+import { J, JL } from "@/design/jetons";
 
-// Mapping des types de commerces vers des images
-const commerceImages = {
-  "restaurant": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-  "boulangerie": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&h=300&fit=crop",
-  "pharmacie": "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=400&h=300&fit=crop",
-  "boutique": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop",
-  "coiffeur": "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=400&h=300&fit=crop",
-  "supermarché": "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&h=300&fit=crop",
-  "café": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop",
-  "librairie": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=400&h=300&fit=crop"
-};
+// La carte de la page Vision : où les acquisitions de la stratégie simulée
+// pourraient se situer. Les projets sont fictifs (c'est une projection) mais
+// la carte est celle de l'application : fond IGN avec repli, points aux
+// couleurs de la marque, fiche sobre — plus de tuiles Carto filigranées, de
+// marqueur doré ni de photo de banque d'images.
 
-// Données par taille de projet
+// Des villes plausibles par taille de projet, avec le type de commerce qu'on
+// y trouve à ce budget. Données d'illustration, comme les courbes de la page.
 const projectDataBySize = {
   "200": { cities: ["Lyon", "Nantes", "Strasbourg"], commerceTypes: ["boulangerie", "pharmacie", "coiffeur"] },
   "300": { cities: ["Bordeaux", "Lille", "Toulouse"], commerceTypes: ["restaurant", "boutique", "café"] },
@@ -24,56 +20,15 @@ const projectDataBySize = {
   "500": { cities: ["Paris", "Montpellier", "Dijon"], commerceTypes: ["boutique", "restaurant", "pharmacie"] },
   "700": { cities: ["Grenoble", "Angers", "Nancy"], commerceTypes: ["supermarché", "librairie", "café"] },
   "1000": { cities: ["Paris", "Lyon", "Marseille"], commerceTypes: ["restaurant", "boutique", "supermarché"] },
-  "1200": { cities: ["Paris", "Bordeaux", "Nice"], commerceTypes: ["restaurant", "boutique", "librairie"] }
+  "1200": { cities: ["Paris", "Bordeaux", "Nice"], commerceTypes: ["restaurant", "boutique", "librairie"] },
 };
 
-// Fix pour les icônes Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
-
-// Base de données de coordonnées pour les villes françaises
-const villeCoords = {
-  "paris": [48.8566, 2.3522],
-  "lyon": [45.7640, 4.8357],
-  "marseille": [43.2965, 5.3698],
-  "toulouse": [43.6047, 1.4442],
-  "nice": [43.7102, 7.2620],
-  "nantes": [47.2184, -1.5536],
-  "strasbourg": [48.5734, 7.7521],
-  "montpellier": [43.6108, 3.8767],
-  "bordeaux": [44.8378, -0.5792],
-  "lille": [50.6292, 3.0573],
-  "rennes": [48.1173, -1.6778],
-  "reims": [49.2583, 4.0347],
-  "le havre": [49.4944, 0.1079],
-  "saint-étienne": [45.4398, 4.3890],
-  "toulon": [43.1242, 5.9280],
-  "grenoble": [45.1885, 5.7245],
-  "dijon": [47.3220, 5.0419],
-  "angers": [47.4829, -0.5539],
-  "nîmes": [43.8345, 4.3160],
-  "villeurbanne": [45.7671, 4.8785],
-};
-
-// Icône personnalisée dorée
-const goldIcon = new L.Icon({
-  iconUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cdefs%3E%3CradialGradient id='grad' cx='50%25' cy='50%25'%3E%3Cstop offset='0%25' style='stop-color:%23f4be7e;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23d4a05e;stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='20' cy='20' r='14' fill='url(%23grad)' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='20' cy='20' r='7' fill='%23fff' opacity='0.9'/%3E%3C/svg%3E",
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
-});
-
-// Villes avec leurs coordonnées
 const villesDisponibles = [
   { nom: "Paris", coords: [48.8566, 2.3522] },
-  { nom: "Lyon", coords: [45.7640, 4.8357] },
+  { nom: "Lyon", coords: [45.764, 4.8357] },
   { nom: "Marseille", coords: [43.2965, 5.3698] },
   { nom: "Toulouse", coords: [43.6047, 1.4442] },
-  { nom: "Nice", coords: [43.7102, 7.2620] },
+  { nom: "Nice", coords: [43.7102, 7.262] },
   { nom: "Nantes", coords: [47.2184, -1.5536] },
   { nom: "Strasbourg", coords: [48.5734, 7.7521] },
   { nom: "Montpellier", coords: [43.6108, 3.8767] },
@@ -81,59 +36,46 @@ const villesDisponibles = [
   { nom: "Lille", coords: [50.6292, 3.0573] },
   { nom: "Rennes", coords: [48.1173, -1.6778] },
   { nom: "Grenoble", coords: [45.1885, 5.7245] },
-  { nom: "Dijon", coords: [47.3220, 5.0419] },
-  { nom: "Angers", coords: [47.4829, -0.5539] }
+  { nom: "Dijon", coords: [47.322, 5.0419] },
+  { nom: "Angers", coords: [47.4829, -0.5539] },
+  { nom: "Nancy", coords: [48.6921, 6.1844] },
 ];
 
+const formatValue = (value) => {
+  if (!value) return "N/A";
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)} M€`;
+  return `${Math.round(value / 1000)} k€`;
+};
+
 export default function InteractiveFranceMap({ projets }) {
-  const [selectedProject, setSelectedProject] = useState(null);
+  const { fond, surErreur } = useFondDeCarte();
 
-  // Centre de la France
-  const centerFrance = [46.603354, 1.888334];
-
-  const formatValue = (value) => {
-    if (!value) return "N/A";
-    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M€`;
-    return `${Math.round(value / 1000)}K€`;
-  };
-
-  // Générer des projets avec coordonnées, images et types de commerce
+  // Déterministe : le même plan de projets redonne la même carte, sans
+  // points qui sautent à chaque rendu.
   const projetsAvecCoords = useMemo(() => {
     return projets.map((projet, index) => {
-      const tailleKey = projet.taille.toString();
+      const tailleKey = String(projet.taille);
       const cityOptions = projectDataBySize[tailleKey]?.cities || ["Paris"];
       const commerceOptions = projectDataBySize[tailleKey]?.commerceTypes || ["boutique"];
-      
-      // Sélectionner ville et commerce
-      const cityName = cityOptions[index % cityOptions.length];
-      const commerceType = commerceOptions[index % commerceOptions.length];
-      const ville = villesDisponibles.find(v => v.nom === cityName) || villesDisponibles[0];
-      
-      // Calculer rendement
-      const rendementBase = parseFloat(projet.taille) >= 1000 ? 6.5 : 
-                           parseFloat(projet.taille) >= 500 ? 7.0 :
-                           parseFloat(projet.taille) >= 300 ? 7.5 : 8.0;
-      const variation = (Math.random() - 0.5) * 1.0;
-      const rendement = (rendementBase + variation).toFixed(1);
-      
+      const ville = villesDisponibles.find((v) => v.nom === cityOptions[index % cityOptions.length]) || villesDisponibles[0];
+      const rendementBase = parseFloat(projet.taille) >= 1000 ? 6.5 : parseFloat(projet.taille) >= 500 ? 7.0 : parseFloat(projet.taille) >= 300 ? 7.5 : 8.0;
       return {
         id: index,
-        titre: `Projet #${index + 1}`,
+        titre: `Projet n°${index + 1}`,
         ville: ville.nom,
-        commerceType: commerceType,
-        imageUrl: commerceImages[commerceType] || commerceImages["boutique"],
-        prix_acquisition: parseInt(projet.taille) * 1000,
-        lat: ville.coords[0] + (Math.random() - 0.5) * 0.2,
-        lng: ville.coords[1] + (Math.random() - 0.5) * 0.2,
-        rendement_locatif: parseFloat(rendement)
+        commerceType: commerceOptions[index % commerceOptions.length],
+        prix_acquisition: parseInt(projet.taille, 10) * 1000,
+        lat: ville.coords[0] + ((index % 5) - 2) * 0.04,
+        lng: ville.coords[1] + ((index % 3) - 1) * 0.05,
+        rendement_locatif: (rendementBase + ((index % 5) - 2) * 0.2).toFixed(1),
       };
     });
   }, [projets]);
 
   if (projetsAvecCoords.length === 0) {
     return (
-      <div className="rounded-md bg-fond/50 border border-surface p-8 text-center">
-        <p className="text-ardoise">Aucun projet avec localisation disponible</p>
+      <div className="rounded-bloc border border-trait bg-surface p-8 text-center">
+        <p className="m-0 text-[13.5px] text-ardoise">Aucun projet à situer pour l'instant.</p>
       </div>
     );
   }
@@ -143,90 +85,53 @@ export default function InteractiveFranceMap({ projets }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="rounded-md overflow-hidden border border-surface shadow-2xl w-full h-full"
+      className="relative h-full w-full overflow-hidden rounded-[18px] border border-trait"
     >
-      <div className="relative w-full h-full bg-[#aad3df]">
-        <MapContainer
-          center={centerFrance}
-          zoom={5}
-          style={{ height: "100%", width: "100%" }}
-          className="z-0"
-        >
-          {/* Remplacement par la variante "Voyager" qui affiche l'eau en bleu */}
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            attribution='&copy; OpenStreetMap contributors &copy; CARTO'
-            maxZoom={18}
-          />
-
-          {projetsAvecCoords.map((projet, idx) => (
-            <Marker
-              key={idx}
-              position={[projet.lat, projet.lng]}
-              icon={goldIcon}
-            >
-              <Popup maxWidth={300} className="custom-popup">
-                <div className="p-2">
-                  <img 
-                    src={projet.imageUrl} 
-                    alt={projet.commerceType}
-                    className="w-full h-32 object-cover rounded-lg mb-3"
-                  />
-                  <div className="font-bold text-base mb-1">{projet.ville}</div>
-                  <div className="text-brume mb-3 capitalize text-sm">{projet.commerceType}</div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-xs text-ardoise mb-1">Prix d'acquisition</div>
-                      <div className="font-bold text-sm">{formatValue(projet.prix_acquisition)}</div>
-                    </div>
-                    <div className="bg-menthe/10 rounded-lg p-2">
-                      <div className="text-xs text-ardoise mb-1">Rendement annuel</div>
-                      <div className="font-bold text-sm text-menthe-fonce">{projet.rendement_locatif}%</div>
-                    </div>
+      <MapContainer center={[46.603354, 1.888334]} zoom={5} style={{ height: "100%", width: "100%" }} className="z-0" scrollWheelZoom={false}>
+        <TileLayer url={fond.url} attribution={fond.attribution} maxZoom={18} eventHandlers={{ tileerror: surErreur }} />
+        {projetsAvecCoords.map((projet) => (
+          <CircleMarker
+            key={projet.id}
+            center={[projet.lat, projet.lng]}
+            radius={10}
+            pathOptions={{ color: JL["menthe"], weight: 2, fillColor: JL["menthe"], fillOpacity: 0.5 }}
+          >
+            <Tooltip>{projet.ville}</Tooltip>
+            <Popup maxWidth={280} className="vision-popup">
+              <div className="px-4 py-3">
+                <p className="m-0 text-[11px] uppercase tracking-[.16em]" style={{ color: J["ardoise"] }}>{projet.titre}</p>
+                <p className="m-0 mt-1 text-[16px] font-medium" style={{ color: J["encre"] }}>{projet.ville}</p>
+                <p className="m-0 mt-0.5 text-[13px] capitalize" style={{ color: J["craie"] }}>Murs de {projet.commerceType}</p>
+                <div className="mt-3 flex gap-6 border-t pt-2.5" style={{ borderColor: J["trait"] }}>
+                  <div>
+                    <p className="m-0 text-[11px]" style={{ color: J["ardoise"] }}>Acquisition</p>
+                    <p className="m-0 mt-0.5 text-[14px] font-medium tabular-nums" style={{ color: J["encre"] }}>{formatValue(projet.prix_acquisition)}</p>
+                  </div>
+                  <div>
+                    <p className="m-0 text-[11px]" style={{ color: J["ardoise"] }}>Rendement</p>
+                    <p className="m-0 mt-0.5 text-[14px] font-medium tabular-nums" style={{ color: J["menthe"] }}>{projet.rendement_locatif} %</p>
                   </div>
                 </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </div>
+              </div>
+            </Popup>
+          </CircleMarker>
+        ))}
+      </MapContainer>
 
       {/* styled-jsx n'est pas installé : une balise <style> nue est déjà globale. */}
       <style>{`
-        /* Suppression des filtres qui rendaient la carte grise ou décolorée */
-        .leaflet-container {
-          background-color: #aad3df !important; /* Couleur de l'eau standard */
-        }
-
-        .custom-popup .leaflet-popup-content-wrapper {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-          border: 2px solid #96c0b8;
-          overflow: visible;
-        }
-
-        .custom-popup .leaflet-popup-content {
-          margin: 0;
-          width: auto !important;
-          font-family: 'Geist', sans-serif;
-          min-width: 280px;
-        }
-        
-        .custom-popup .leaflet-popup-content-wrapper {
+        .vision-popup .leaflet-popup-content-wrapper {
+          background: ${J["surface-pleine"]};
+          color: ${J["encre"]};
+          border: 1px solid ${J["trait"]};
+          border-radius: 14px;
+          box-shadow: 0 16px 40px rgb(0 0 0 / 0.18);
           padding: 0;
-          border-radius: 12px;
           overflow: hidden;
         }
-
-        .custom-popup .leaflet-popup-tip {
-          background: white;
-          border: 2px solid #96c0b8;
-        }
-
-        .leaflet-popup-close-button {
-          color: #666;
-        }
+        .vision-popup .leaflet-popup-content { margin: 0; width: auto !important; min-width: 220px; }
+        .vision-popup .leaflet-popup-tip { background: ${J["surface-pleine"]}; border: 1px solid ${J["trait"]}; }
+        .vision-popup .leaflet-popup-close-button { color: ${J["ardoise"]}; }
       `}</style>
     </motion.div>
   );

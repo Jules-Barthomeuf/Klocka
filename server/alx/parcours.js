@@ -294,11 +294,16 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
     const { leconsDe, reglesApprises, appliquerLecons } = await import('./apprentissage.js');
     const regles = reglesApprises(leconsDe(villeId));
     let apprises = 0;
-    const proposees = r.classees.filter((x) => !clesManuelles.has(x.cle) && !clesRetirees.has(x.cle)).map((x) => {
+    const { tenirLesParts } = await import('./rues.js');
+    // Une rue déjà parcourue garde sa date de passage et ses comptes : sans
+    // cela, un nouveau relevé la faisait repasser pour « jamais lue ».
+    const dejaLues = new Map((ville.rues || []).filter((x) => x.parcourue_le).map((x) => [cleRue(x.nom), x]));
+    const proposees = tenirLesParts(r.classees.filter((x) => !clesManuelles.has(x.cle) && !clesRetirees.has(x.cle)).map((x) => {
       const y = appliquerLecons(x, regles);
       if (y.apprise) apprises += 1;
-      return { ...y, par: 'alx', le: maintenant() };
-    });
+      const avant = dejaLues.get(cleRue(x.nom));
+      return { ...y, par: 'alx', le: maintenant(), ...(avant ? { parcourue_le: avant.parcourue_le, cibles: avant.cibles, proprietaires: avant.proprietaires } : {}) };
+    }));
     if (apprises) noter(villeId, `${apprises} rue${apprises > 1 ? 's' : ''} reclassée${apprises > 1 ? 's' : ''} d'après vos corrections passées.`);
     if (clesRetirees.size) noter(villeId, `${clesRetirees.size} rue${clesRetirees.size > 1 ? 's' : ''} retirée${clesRetirees.size > 1 ? 's' : ''} par l'équipe, non reproposée${clesRetirees.size > 1 ? 's' : ''}.`);
     const toutes = [...manuelles, ...proposees].sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));

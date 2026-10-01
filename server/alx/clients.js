@@ -20,6 +20,8 @@ const COL = {
   revenu: 'numeric_mkv24e64',
   lieu_recherche: 'text_mkzm6pdz',
   objectif: 'color_mkzm7em7',
+  remarque: 'long_text_mkv2twrk',
+  information: 'text_mkvngea0',
 };
 
 const nombre = (t) => {
@@ -46,6 +48,9 @@ export function clientsDe(lignes) {
       revenu: nombre(l.colonnes[COL.revenu]),
       lieu_recherche: l.colonnes[COL.lieu_recherche] || null,
       objectif: l.colonnes[COL.objectif] || null,
+      remarque: l.colonnes[COL.remarque] || null,
+      information: l.colonnes[COL.information] || null,
+      entre_le: l.cree_le || null,
     }));
 }
 

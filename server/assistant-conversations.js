@@ -8,14 +8,17 @@
 
 import { Conversations } from './db.js';
 
+// Un espace par chat : celui du dashboard admin, celui du mandataire. Un
+// admin qui regarde la vue mandataire n'y retrouve pas ses conversations d'équipe.
 const AGENT = 'dashboard';
+const agentDe = (espace) => (espace && espace !== 'dashboard' ? `dashboard-${espace}` : AGENT);
 const MAX_MESSAGES = 80;
 const MAX_CONVERSATIONS = 30;
 const ROLES = new Set(['user', 'assistant', 'bloc']);
 
 const proprietaire = (user) => user?.email || 'anonyme';
 // Conversations.list rend les plus récentes d'abord (updated_date DESC).
-const miennes = (user) => Conversations.list(AGENT).filter((c) => c.metadata?.utilisateur === proprietaire(user));
+const miennes = (user, espace) => Conversations.list(agentDe(espace)).filter((c) => c.metadata?.utilisateur === proprietaire(user));
 
 /** Pure : le titre d'une conversation, son premier message. */
 export function titreDe(messages) {
@@ -34,14 +37,23 @@ export function serialisables(messages) {
         propres.push({ role: 'bloc', type: String(m.type || ''), donnees });
       } catch { /* un bloc non sérialisable ne vaut pas de perdre la conversation */ }
     } else if (typeof m.contenu === 'string' && m.contenu.trim()) {
-      propres.push({ role: m.role, contenu: m.contenu });
+      const propre = { role: m.role, contenu: m.contenu };
+      // Le fil de conversation garde ses étapes d'analyse et ce qui a été fait.
+      if (Array.isArray(m.etapes)) propre.etapes = m.etapes.filter((e) => typeof e === 'string').slice(0, 8).map((e) => e.slice(0, 140));
+      if (Array.isArray(m.cartes)) {
+        propre.cartes = m.cartes
+          .filter((c) => c && typeof c.titre === 'string')
+          .slice(0, 8)
+          .map((c) => ({ titre: c.titre.slice(0, 160), detail: typeof c.detail === 'string' ? c.detail.slice(0, 400) : null, etat: ['fait', 'annule', 'rate'].includes(c.etat) ? c.etat : 'fait', lien: typeof c.lien === 'string' ? c.lien.slice(0, 400) : null, ...(typeof c.action === 'string' ? { action: c.action.slice(0, 40) } : {}) }));
+      }
+      propres.push(propre);
     }
   }
   return propres;
 }
 
-export function listerConversations(user) {
-  return miennes(user).map((c) => ({
+export function listerConversations(user, { espace = null } = {}) {
+  return miennes(user, espace).map((c) => ({
     id: c.id,
     titre: c.metadata?.titre || 'Conversation',
     maj_le: c.updated_date,
@@ -49,9 +61,9 @@ export function listerConversations(user) {
   }));
 }
 
-export function lireConversation(user, id) {
+export function lireConversation(user, id, { espace = null } = {}) {
   const c = Conversations.get(id);
-  if (!c || c.agent_name !== AGENT || c.metadata?.utilisateur !== proprietaire(user)) return null;
+  if (!c || c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user)) return null;
   return { id: c.id, titre: c.metadata?.titre || 'Conversation', messages: c.messages || [] };
 }
 
@@ -60,14 +72,14 @@ export function lireConversation(user, id) {
  * Sans identifiant, ou si l'identifiant n'est pas à la personne, une
  * conversation naît — et les plus vieilles au-delà du plafond s'effacent.
  */
-export function enregistrerConversation(user, { id = null, messages = [] } = {}) {
+export function enregistrerConversation(user, { id = null, messages = [], espace = null } = {}) {
   const propres = serialisables(messages).slice(-MAX_MESSAGES);
   if (!propres.some((m) => m.role === 'user')) return { ok: false, error: 'Rien à garder.' };
   let c = id ? Conversations.get(id) : null;
-  if (c && (c.agent_name !== AGENT || c.metadata?.utilisateur !== proprietaire(user))) c = null;
+  if (c && (c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user))) c = null;
   if (!c) {
-    c = Conversations.create({ agent_name: AGENT, metadata: { utilisateur: proprietaire(user), titre: titreDe(propres) } });
-    for (const vieille of miennes(user).filter((x) => x.id !== c.id).slice(MAX_CONVERSATIONS - 1)) {
+    c = Conversations.create({ agent_name: agentDe(espace), metadata: { utilisateur: proprietaire(user), titre: titreDe(propres) } });
+    for (const vieille of miennes(user, espace).filter((x) => x.id !== c.id).slice(MAX_CONVERSATIONS - 1)) {
       Conversations.delete(vieille.id);
     }
   }
@@ -75,9 +87,19 @@ export function enregistrerConversation(user, { id = null, messages = [] } = {})
   return { ok: true, id: c.id, titre: c.metadata?.titre || titreDe(propres) };
 }
 
-export function supprimerConversation(user, id) {
+export function supprimerConversation(user, id, { espace = null } = {}) {
   const c = Conversations.get(id);
-  if (!c || c.agent_name !== AGENT || c.metadata?.utilisateur !== proprietaire(user)) return { ok: false, error: 'Conversation introuvable.' };
+  if (!c || c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user)) return { ok: false, error: 'Conversation introuvable.' };
   Conversations.delete(id);
   return { ok: true };
+}
+
+/** Renommer une conversation : le titre choisi remplace le premier message. */
+export function renommerConversation(user, id, titre, { espace = null } = {}) {
+  const c = Conversations.get(id);
+  if (!c || c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user)) return { ok: false, error: 'Conversation introuvable.' };
+  const propre = String(titre || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (!propre) return { ok: false, error: 'Un titre, même court.' };
+  Conversations.setMetadata(c.id, { ...(c.metadata || {}), titre: propre });
+  return { ok: true, id: c.id, titre: propre };
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
+import NotificationsApp from "@/components/NotificationsApp";
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -28,17 +29,18 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, repartir } from "@/lib/menu";
+import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import { Switch } from "@/components/ui/switch";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import VeilleAlx from "@/components/alx/VeilleAlx";
 import AssistantFlottant from "@/components/AssistantFlottant";
@@ -301,36 +303,52 @@ function LayoutContent({ children, currentPageName }) {
     document.documentElement.style.setProperty("--k-barre-largeur", largeurBarre);
     return () => document.documentElement.style.removeProperty("--k-barre-largeur");
   }, [largeurBarre]);
-  const [previewClientMode, setPreviewClientMode] = useState(() => localStorage.getItem('previewClientMode') === 'true');
+  // La vue choisie par un admin : la sienne, celle d'un client, celle d'un mandataire.
+  const [apercu, setApercu] = useState(apercuAdmin);
   const [autreOpen, setAutreOpen] = useState(false);
   const isChildPage = CHILD_PAGES.includes(currentPageName);
 
   // Alexis : la page secrète se visite sans barre latérale — rien ne doit y mener.
   const pagesWithoutNavbar = ['Questionnaire', 'Home', 'Alexis'];
 
-  useEffect(() => { localStorage.setItem('previewClientMode', previewClientMode); }, [previewClientMode]);
+  useEffect(() => { choisirApercu(apercu); }, [apercu]);
+  // Passer en vue mandataire, c'est aussi le devenir : l'admin cumule les deux
+  // rôles, reçoit un secteur et prospecte pour de vrai. Idempotent.
+  const queryClientVue = useQueryClient();
+  useEffect(() => {
+    if (apercu !== "mandataire" || user?.role !== "admin") return;
+    base44.request("POST", "/api/mandataire/admin/moi", { body: { actif: true } })
+      .then(() => queryClientVue.invalidateQueries({ queryKey: ["admin-mandataires"] }))
+      .catch(() => { /* la vue s'affiche quand même ; l'onglet Mandataires permet de réessayer */ });
+  }, [apercu, user?.role, queryClientVue]);
 
   const isAdmin = user?.role === "admin";
+  const vue = isAdmin ? apercu : user?.role === "mandataire" ? "mandataire" : "client";
+  // Ce qui relève de l'équipe (relances, dossiers, assistant, recherche) ne
+  // suit que la vue admin : un admin qui regarde la vue mandataire ou client
+  // voit exactement ce que voit un mandataire ou un client.
+  const vueAdmin = vue === "admin";
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
   // rappel dû n'existe que si l'on retourne au tableau de bord.
   const { data: attend } = useQuery({
     queryKey: ["ce-qui-attend"],
     queryFn: () => base44.request("GET", "/api/assistant/attend"),
-    enabled: isAdmin,
+    enabled: vueAdmin,
     refetchInterval: 60 * 1000,
     staleTime: 30 * 1000,
   });
-  const enRetard = attend?.en_retard || 0;
+  const enRetard = vueAdmin ? attend?.en_retard || 0 : 0;
   // ALX suit de même : les cibles à appeler cette semaine, en pastille.
   const { data: alx } = useQuery({
     queryKey: ["alx-etat"],
     queryFn: () => base44.request("GET", "/api/alx/etat"),
-    enabled: isAdmin,
+    enabled: vueAdmin,
     refetchInterval: 5 * 60 * 1000,
     staleTime: 60 * 1000,
   });
-  const alxAFaire = alx?.a_faire?.a_appeler || 0;
-  const showClientView = !isAdmin || previewClientMode;
+  const alxAFaire = vueAdmin ? alx?.a_faire?.a_appeler || 0 : 0;
+  // Tout ce qui n'est pas la vue admin cache l'arrière-boutique.
+  const showClientView = vue !== "admin";
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
   // Le halo : le fond de l'application, posé ici une fois derrière toutes
   // les pages, dont les surfaces sont du verre. La nav s'efface pour le
@@ -375,7 +393,7 @@ function LayoutContent({ children, currentPageName }) {
   // ni menu des applications, qui n'ont aucun sens dans une fenêtre qu'on
   // regarde puis qu'on ferme.
   const enCadre = typeof window !== "undefined" && window.self !== window.top;
-  const modoKData = enKData && isAdmin && !hideNavbar;
+  const modoKData = enKData && vueAdmin && !hideNavbar;
 
 
   // Ce que chaque entrée du menu dessine : son lien, son icône, sa pastille.
@@ -391,15 +409,25 @@ function LayoutContent({ children, currentPageName }) {
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
+    Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: Users, actif: isActivePage("AdminClients") },
     AdminPresentations: { to: "/Presentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
     AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
     AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
     AdminPortail: { to: createPageUrl("AdminPortail"), icon: UserPlus, actif: isActivePage("AdminPortail") },
+    AdminMandataires: { to: createPageUrl("AdminMandataires"), icon: MapPin, actif: isActivePage("AdminMandataires") },
+    MandataireProspection: { to: createPageUrl("MandataireProspection"), icon: MapPin, actif: isActivePage("MandataireProspection") },
+    MandataireClients: { to: createPageUrl("MandataireClients"), icon: Users, actif: isActivePage("MandataireClients") },
+    MandataireEstimation: { to: createPageUrl("MandataireEstimation"), icon: Calculator, actif: isActivePage("MandataireEstimation") },
+    MandataireMandat: { to: createPageUrl("MandataireMandat"), icon: FileSignature, actif: isActivePage("MandataireMandat") },
+    MandataireDossier: { to: createPageUrl("MandataireDossier"), icon: Folder, actif: isActivePage("MandataireDossier") },
+    MandataireMarche: { to: createPageUrl("MandataireMarche"), icon: Presentation, actif: isActivePage("MandataireMarche") },
+    AdminValidations: { to: createPageUrl("AdminValidations"), icon: ClipboardCheck, actif: isActivePage("AdminValidations") },
     Personnalisation: { to: createPageUrl("Personnalisation"), icon: Palette, actif: isActivePage("Personnalisation") },
     ImportProjets: { to: createPageUrl("ImportProjets"), icon: Upload, actif: isActivePage("ImportProjets") },
     MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
+    Vision: { to: createPageUrl("Vision"), icon: Eye, actif: isActivePage("Vision") },
     Ressources: { to: createPageUrl("Ressources"), icon: BookOpen, actif: isActivePage("Ressources") },
   };
 
@@ -412,7 +440,7 @@ function LayoutContent({ children, currentPageName }) {
     // Le menu principal et « Autre », tels que la personne les a rangés dans
     // Personnalisation (glisser-déposer d'un groupe à l'autre).
     const { principal: entrees, autre: autres } = repartir(
-      showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
+      vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },
     );
@@ -476,11 +504,12 @@ function LayoutContent({ children, currentPageName }) {
           <div className="mx-3 mt-2.5 flex items-center gap-2.5 px-2">
             <Eye className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
             <AnimatedDropdown
-              value={previewClientMode ? 'client' : 'admin'}
-              onChange={(v) => setPreviewClientMode(v === 'client')}
+              value={apercu}
+              onChange={(v) => { choisirApercu(v); setApercu(v); }}
               options={[
                 { value: 'admin', label: 'Vue Admin' },
                 { value: 'client', label: 'Vue Client' },
+                { value: 'mandataire', label: 'Vue Mandataire' },
               ]}
               className="flex-1"
               triggerClassName="bg-transparent border-none text-encre text-[14.5px] h-7 px-0 hover:bg-transparent hover:text-encre"
@@ -488,10 +517,30 @@ function LayoutContent({ children, currentPageName }) {
           </div>
         )}
 
+        {/* Nouveau chat : retour au tableau de bord de départ (le fil se ferme,
+            la conversation reste dans l'Historique). */}
+        {(vue === "admin" || vue === "mandataire") && (
+          <div className={`mt-3 ${replie ? "flex justify-center" : "px-3"}`}>
+            <button type="button" onClick={() => { if (isMobile) closeMobile(); navigate(createPageUrl("Dashboard")); }}
+              aria-label="Nouveau chat" title="Nouveau chat"
+              className={replie
+                ? "grid h-9 w-9 place-items-center rounded-full border border-trait text-craie hover:text-encre"
+                : "flex w-full items-center gap-2.5 rounded-[10px] border border-trait px-3 py-2 text-[14px] text-encre transition-colors hover:bg-rail-actif"}
+              style={{ background: "transparent" }}>
+              <SquarePen className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
+              {!replie && "Nouveau chat"}
+            </button>
+          </div>
+        )}
+
         {/* Les pages. */}
         <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
-            {entrees.map((e) => <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />)}
+            {entrees.map((e) => {
+              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />;
+              // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
+              return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
+            })}
           </div>
           {(autres.length > 0 || (isAdmin && !showClientView && AFFICHER_DOUBLE_CHECK)) && (
             <div className="mt-4">
@@ -508,7 +557,11 @@ function LayoutContent({ children, currentPageName }) {
               </button>
               {autreOpen && (
                 <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-0.5 flex flex-col gap-0.5">
-                  {autres.map((e) => <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />)}
+                  {autres.map((e) => {
+              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />;
+              // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
+              return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
+            })}
                   {AFFICHER_DOUBLE_CHECK && isAdmin && !showClientView && <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "AdminBrouillons", label: "Double Check" }} to={createPageUrl("AdminBrouillons")} icon={ClipboardCheck} actif={isActivePage("AdminBrouillons")} />}
                 </div>
               )}
@@ -602,7 +655,7 @@ function LayoutContent({ children, currentPageName }) {
           modoKData
             ? (enCadre ? "" : "pt-14")
             : !hideNavbar
-              ? (isAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0")
+              ? (vueAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0")
               : ""
         }`}
       >
@@ -611,7 +664,7 @@ function LayoutContent({ children, currentPageName }) {
         {/* `main` porte 56px de padding en haut sous la barre de K-Data : une
             hauteur minimale d'un écran plein y ajoutait 56px de vide en bas,
             sous les cartes qui, elles, tombent juste. */}
-        <div key={`${location.pathname}|${previewClientMode ? "client" : "admin"}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
+        <div key={`${location.pathname}|${vue}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
           {children}
         </div>
       </main>
@@ -623,13 +676,14 @@ function LayoutContent({ children, currentPageName }) {
           K-Data répond à une question de marché, pas à un dossier client. */}
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
-      {isAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
+      {vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
 
       {/* La recherche du rail, et ⌘K. */}
-      {isAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
+      {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
+      {(vue === "admin" || vue === "mandataire") && <NotificationsApp />}
 
       {/* Barre d'onglets mobile */}
-      {!hideNavbar && showClientView && <BottomTabs />}
+      {!hideNavbar && showClientView && <BottomTabs vue={vue} />}
     </div>
   );
 }

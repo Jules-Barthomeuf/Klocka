@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
-import { toast } from "@/components/ui/avis";
-import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, Copy, FileText, History, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Send, SlidersHorizontal, Square, Trash2, User, X } from "lucide-react";
+import SkillsChat from "@/components/dashboard/SkillsChat";
+import { avis, poser, toast } from "@/components/ui/avis";
+import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
@@ -15,6 +17,7 @@ import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
 import PenseeIA from "@/components/PenseeIA";
 import Message from "@/components/MessageIA";
 import { J, alpha } from "@/design/jetons";
+import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/ProspecterDataB";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -37,6 +40,63 @@ const MODES = [
   { id: "question", label: "Question", icone: MessageCircle, type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Monday, simulation…" },
   { id: "rappel", label: "Rappel", icone: Bell, type: "rappel", placeholder: "Ce que vous voulez, en disant quand : « dans 3 jours, relancer Monsieur Lardeux au 06… »" },
 ];
+
+// Le même chat pour le mandataire K Partners : les mêmes gestes, ses mots
+// à lui. Il parle de propriétaires et de commerces, pas d'agents ni de
+// dossiers ; tout passe par l'agent du mandataire (/api/mandataire/chat).
+// Chaque mode porte son instruction : choisi, elle devient le texte du champ,
+// pour qu'on sache exactement quoi donner.
+const MODES_MANDATAIRE = [
+  { id: "note", label: "Note d'appel", icone: Phone, type: "assistant", placeholder: "Racontez l'appel : « Pas de réponse pour le commerce à Mâcon », « Il est intéressé, RDV jeudi 14 h »…" },
+  { id: "contact", label: "Nouveau contact", icone: User, type: "assistant", placeholder: "Nouveau contact : M. Durand, propriétaire de la pharmacie cours Vitton, 06…" },
+  { id: "estimation", label: "Estimation", icone: FileText, type: "assistant", placeholder: "Déposez le PDF ou la photo du bail (le +), nommez le commerce et son adresse : « Estime la boulangerie Martin, 12 rue Carnot ». Sans bail : donnez le loyer annuel, la surface et l'état." },
+  { id: "mandat", label: "Mandat", icone: FileSignature, type: "assistant", placeholder: "Demandez le mandat : vendeur, bien, prix net vendeur, honoraires — « Mandat exclusif pour la boulangerie Martin, 450 000 €, 5 % acquéreur, 12 mois »." },
+  { id: "mail", label: "Mail", icone: Mail, type: "assistant", placeholder: "Décrivez le mail à écrire au propriétaire : je prépare le brouillon, vous l'envoyez." },
+  { id: "question", label: "Question", icone: MessageCircle, type: "assistant", placeholder: "Posez votre question : ce que cherchent les clients, un avis de marché, vos relances…" },
+  { id: "rappel", label: "Rappel", icone: Bell, type: "assistant", placeholder: "Dites quoi et quand : « dans 3 jours, rappeler le tabac de Mâcon »" },
+];
+const COMMANDES_MANDATAIRE = [
+  { texte: "Pas de réponse pour [commerce ou propriétaire]", mode: "note" },
+  { texte: "Il est intéressé, RDV [jour] [heure] avec [propriétaire]", mode: "note" },
+  { texte: "Pas vendeur, rappelle-le dans 6 mois : [commerce]", mode: "note" },
+  { texte: "Nouveau contact : [nom], propriétaire de [commerce] à [ville], [téléphone]", mode: "contact" },
+  { texte: "Qu'est-ce que cherchent les clients à [ville] ?", mode: "question" },
+  { texte: "Combien vaut le local [adresse] ?", mode: "question" },
+  { texte: "Estime [commerce] : loyer [montant] €/an, [surface] m²", mode: "question" },
+];
+
+// La prospection du mandataire : le même chat, où chaque phrase lance une
+// recherche de commerces dans son secteur. Le résultat part à la page (liste
+// et carte), le fil garde ce qu'on a cherché.
+const MODES_PROSPECTION = [
+  { id: "libre", label: "Recherche libre", icone: Search, type: "assistant", placeholder: "« Les boulangeries en emplacement n°1 à Mâcon »" },
+  { id: "client", label: "Pour un client", icone: User, type: "assistant", placeholder: "« Pour le client B », ou « pour le client A à Mâcon »" },
+];
+const COMMANDES_PROSPECTION = [
+  { texte: "Les boulangeries en emplacement n°1 à [ville]", mode: "libre" },
+  { texte: "Les pharmacies de mon secteur", mode: "libre" },
+  { texte: "Les locaux vides en emplacement n°2", mode: "libre" },
+  { texte: "Pour le client [lettre]", mode: "client" },
+];
+
+// Un espace, c'est une adresse d'API et ce que la barre propose. Le design et
+// les gestes sont les mêmes : un seul composant, pas deux chats à tenir.
+const ESPACES = {
+  admin: { api: "/api/assistant", modes: MODES, commandes: COMMANDES, fichier: true, boiteEnvoi: true, avis: "dashboard", mailsTypes: true },
+  mandataire: { api: "/api/mandataire", modes: MODES_MANDATAIRE, commandes: COMMANDES_MANDATAIRE, fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false },
+  // Le chat du mandataire en bas d'une prospection ouverte : le même agent,
+  // sans modes ni commandes, rangé dans l'historique de la Prospection.
+  // Les suggestions de l'affinage : un clic les pose dans le champ, prêtes à corriger.
+  affinage: { api: "/api/mandataire", qs: "?espace=affinage", modesAGauche: true, modes: [], suggestionsAGauche: true, commandes: [
+    { texte: "Trouve aussi les assurances" },
+    { texte: "Enlève les boulangeries" },
+    { texte: "Seulement en emplacement n°1" },
+    { texte: "Tous les emplacements" },
+    { texte: "Combien de commerces dans la liste ?" },
+    { texte: "Pourquoi la liste est vide ?" },
+  ], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Affinez : « trouve aussi les assurances », « seulement en n°1 »…" },
+  prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
+};
 
 // Le chat du tableau de bord : une seule zone, on y met ce qu'on veut, il
 // fait le tri — et le nécessaire.
@@ -68,7 +128,7 @@ const INTENTIONS_LIBELLES = { demande_documents: "la demande de documents", rela
 // La boîte qui envoie, en pilule sous le champ : l'adresse par défaut, et
 // les autres d'un clic quand il y en a plusieurs. Rien de plus ici : les
 // boîtes s'ajoutent et se retirent dans la pilule en haut à droite.
-function BoiteEnvoi() {
+function BoiteEnvoi({ versLeHaut = false }) {
   const queryClient = useQueryClient();
   const [ouvert, setOuvert] = useState(false);
   const { data: statut } = useQuery({ queryKey: ["mail-status"], queryFn: () => base44.functions.invoke("getMailStatus", {}) });
@@ -90,7 +150,7 @@ function BoiteEnvoi() {
       {ouvert && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOuvert(false)} />
-          <div role="menu" className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-0 top-full z-20 mt-2 min-w-[280px] rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]" style={{ background: J["barre"] }}>
+          <div role="menu" className={`animate-in fade-in duration-150 absolute left-0 z-20 max-h-[60vh] min-w-[280px] overflow-y-auto rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)] ${versLeHaut ? "bottom-full mb-2 slide-in-from-bottom-1" : "top-full mt-2 slide-in-from-top-1"}`} style={{ background: J["barre"] }}>
             {comptes.map((c) => (
               <button key={c.email} role="menuitem" type="button" onClick={() => defaut.mutate(c.email)} disabled={defaut.isPending}
                 className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre" style={{ background: "transparent" }}>
@@ -108,16 +168,41 @@ function BoiteEnvoi() {
 // Les suggestions sous le composeur (maquette) : ce qui est dû aujourd'hui
 // ou en retard d'abord, puis trois gestes courants. Un clic remplit le champ,
 // ou ouvre le dossier quand la ligne en a un.
-function Suggestions({ onChoisir }) {
+function Suggestions({ onChoisir, espace = "admin" }) {
   const navigate = useNavigate();
-  const { data } = useQuery({ queryKey: ["ce-qui-attend"], queryFn: () => base44.request("GET", "/api/assistant/attend"), staleTime: 30 * 1000 });
-  const dues = (data?.lignes || []).filter((l) => l.dans != null && l.dans <= 0).slice(0, 2);
-  const chips = [
-    ...dues.map((l) => ({ cle: `${l.source}-${l.id}`, mot: l.titre, teinte: l.dans < 0 ? J["alerte"] : J["ambre"], faire: () => (l.lien ? navigate(l.lien) : onChoisir(l.titre, null)) })),
-    { cle: "cr", mot: "Rédiger un compte rendu de visite", teinte: J["menthe"], faire: () => onChoisir("Compte rendu de visite : ", "note") },
-    { cle: "local", mot: "Chercher un local", teinte: J["ambre"], faire: () => onChoisir("Cherche un local ", "question") },
-    { cle: "sourcing", mot: "Préparer un mail de sourcing", teinte: J["bleu"], faire: () => onChoisir("Prépare un mail de sourcing à [email de l'agent] pour [type de bien, zone, budget]", "mail") },
-  ];
+  const mandataire = espace === "mandataire";
+  const prospection = espace === "prospection";
+  const { data } = useQuery({
+    queryKey: prospection ? ["mandataire-prospections"] : mandataire ? ["mandataire-jour"] : ["ce-qui-attend"],
+    queryFn: () => base44.request("GET", prospection ? "/api/mandataire/prospections" : mandataire ? "/api/mandataire/jour" : "/api/assistant/attend"),
+    staleTime: 30 * 1000,
+  });
+  const { data: demandes } = useQuery({
+    queryKey: ["mandataire-demandes"],
+    queryFn: () => base44.request("GET", "/api/mandataire/demandes"),
+    enabled: prospection,
+    staleTime: 60 * 1000,
+  });
+  if (prospection) {
+    const chips = [
+      ...(data?.prospections || []).slice(0, 3).map((p) => ({ cle: p.id, mot: p.nom, teinte: J["menthe"], faire: () => onChoisir(p.nom, "libre", true) })),
+      ...(demandes?.demandes || []).filter((d) => d.commerces_du_secteur > 0).slice(0, 2).map((d) => ({
+        cle: d.id, mot: `Pour ${d.reference}`, teinte: J["ambre"], faire: () => onChoisir(`Pour ${d.reference}`, "client", true),
+      })),
+    ];
+    return chips.length ? <Pastilles chips={chips} /> : null;
+  }
+  if (mandataire) {
+    // Les modes, pas des gestes tout faits : on en choisit un, le champ dit
+    // alors exactement quoi donner (le placeholder est l'instruction).
+    return null;
+  }
+  // Tableau de bord admin : pas de pastilles pour l'instant (les gestes
+  // proposés ne collaient pas au métier). À reprendre : rappels et gestes courants.
+  return null;
+}
+
+function Pastilles({ chips }) {
   return (
     <div className="mt-4 flex flex-wrap justify-center gap-2">
       {chips.map((c) => (
@@ -127,6 +212,80 @@ function Suggestions({ onChoisir }) {
         </button>
       ))}
     </div>
+  );
+}
+
+/** « à l'instant », « il y a 50 min », « il y a 3 h », « il y a 1 jour », « il y a 2 jours ». */
+export const ilYa = (iso) => {
+  const s = Math.max(0, (Date.now() - Date.parse(iso || 0)) / 1000);
+  if (!Number.isFinite(s)) return "";
+  if (s < 60) return "à l'instant";
+  if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
+  const j = Math.floor(s / 86400);
+  if (j < 31) return `il y a ${j} jour${j > 1 ? "s" : ""}`;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+};
+
+/**
+ * L'historique en grande colonne, à la place de « Ce qui vous attend » et
+ * « Reprendre » : le titre, le temps écoulé, renommer, supprimer. Un clic
+ * rouvre la conversation dans le chat (par un évènement : le chat est plus haut).
+ */
+export function HistoriqueColonne({ espace = "admin" }) {
+  const E = ESPACES[espace] || ESPACES.admin;
+  const qs = E.qs || "";
+  const queryClient = useQueryClient();
+  const cle = ["assistant-conversations", E.api, qs];
+  const { data, isLoading } = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${E.api}/conversations${qs}`) });
+  const [edition, setEdition] = useState(null);
+  const [titre, setTitre] = useState("");
+  const conversations = data?.conversations || [];
+  const rafraichir = () => queryClient.invalidateQueries({ queryKey: cle });
+  const renommer = (id) => {
+    const t = titre.trim();
+    setEdition(null);
+    if (!t) return;
+    base44.request("PATCH", `${E.api}/conversations/${id}${qs}`, { body: { titre: t } }).then(rafraichir).catch((e) => toast.error(e?.message || "Impossible de renommer"));
+  };
+  const supprimer = (c) => {
+    if (!window.confirm(`Supprimer « ${c.titre} » ?`)) return;
+    base44.request("DELETE", `${E.api}/conversations/${c.id}${qs}`).then(rafraichir).catch((e) => toast.error(e?.message || "Suppression impossible"));
+  };
+  const ouvrir = (c) => window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: c.id, api: E.api, qs } }));
+
+  return (
+    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mx-auto max-w-[880px]">
+      <div className="mb-1 border-b border-bord pb-2.5">
+        <p className="m-0 text-[13.5px] text-craie">Historique{conversations.length ? <span className="text-brume"> · {conversations.length}</span> : null}</p>
+      </div>
+      {isLoading && <p className="m-0 py-3 text-[13.5px] text-brume">Lecture…</p>}
+      {!isLoading && !conversations.length && <p className="m-0 py-3 text-[13.5px] text-brume">Rien encore : chaque échange avec l'assistant se range ici, et se rouvre d'un clic.</p>}
+      {conversations.map((c) => (
+        <div key={c.id} className="group flex items-center gap-4 border-t border-trait py-3 first:border-t-0">
+          {edition === c.id ? (
+            <form className="flex min-w-0 flex-1 items-center gap-2" onSubmit={(e) => { e.preventDefault(); renommer(c.id); }}>
+              <input autoFocus value={titre} onChange={(e) => setTitre(e.target.value)} onBlur={() => renommer(c.id)} onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
+                className="min-w-0 flex-1 rounded-champ border border-menthe bg-surface px-3 py-1.5 text-[14.5px] text-encre outline-none" />
+            </form>
+          ) : (
+            <button type="button" onClick={() => ouvrir(c)} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
+              <span className="block truncate text-[14.5px] leading-[1.45] text-encre">{c.titre}</span>
+              <span className="mt-0.5 block text-[13px] text-ardoise">{c.nb} message{c.nb > 1 ? "s" : ""}</span>
+            </button>
+          )}
+          <span className="flex-none text-[13px] tabular-nums text-brume">{ilYa(c.maj_le)}</span>
+          <button type="button" onClick={() => { setEdition(c.id); setTitre(c.titre); }} aria-label={`Renommer « ${c.titre} »`} title="Renommer"
+            className="inline-flex flex-none items-center gap-1.5 text-[12.5px] text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
+            <Pencil className="h-3.5 w-3.5" /> <span className="max-md:hidden">Renommer</span>
+          </button>
+          <button type="button" onClick={() => supprimer(c)} aria-label={`Supprimer « ${c.titre} »`} title="Supprimer"
+            className="flex-none text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+    </motion.section>
   );
 }
 
@@ -140,17 +299,18 @@ const quandConversation = (iso) => {
   return j === 1 ? "hier" : j < 30 ? `il y a ${j} j` : new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 };
 
-function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle }) {
+function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle, api = "/api/assistant", qs = "" }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["assistant-conversations"], queryFn: () => base44.request("GET", "/api/assistant/conversations") });
+  const cle = ["assistant-conversations", api, qs];
+  const { data, isLoading } = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${api}/conversations${qs}`) });
   const conversations = data?.conversations || [];
   const ouvrir = (id) =>
-    base44.request("GET", `/api/assistant/conversations/${id}`)
+    base44.request("GET", `${api}/conversations/${id}${qs}`)
       .then((c) => onOuvrir(c))
       .catch(() => toast.error("Conversation introuvable"));
   const supprimer = (id) =>
-    base44.request("DELETE", `/api/assistant/conversations/${id}`)
-      .then(() => { queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] }); if (id === actuelle) onNouvelle(); })
+    base44.request("DELETE", `${api}/conversations/${id}${qs}`)
+      .then(() => { queryClient.invalidateQueries({ queryKey: cle }); if (id === actuelle) onNouvelle(); })
       .catch((e) => toast.error(e?.message || "Suppression impossible"));
   return (
     <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-4 rounded-[16px] border border-trait bg-surface-pleine p-4">
@@ -189,7 +349,7 @@ function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle }) {
 }
 
 // Un brouillon de mail à relire : rien ne part sans un clic humain.
-function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
+function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = false }) {
   return (
     <div className="border border-menthe/40 rounded-xl bg-surface px-5 py-4">
       <div className="flex items-baseline justify-between gap-4 mb-3">
@@ -212,17 +372,26 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours }) {
         rows={Math.min(14, Math.max(6, b.corps.split("\n").length + 1))}
         className="w-full mt-3 bg-transparent border-0 outline-none resize-y text-[13.5px] leading-[1.65] text-encre"
       />
-      <PiecesBrouillon b={b} onChange={onChange} />
+      {!messagerie && <PiecesBrouillon b={b} onChange={onChange} />}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[11px] text-brume">Relisez : rien ne part sans vous.</span>
+        <span className="text-[11px] text-brume">{messagerie ? "Relisez, puis envoyez-le de votre messagerie : Klocka n'envoie rien." : "Relisez : rien ne part sans vous."}</span>
+        {messagerie ? (
+          <a
+            href={`mailto:${encodeURIComponent(b.destinataire || "")}?subject=${encodeURIComponent(b.objet || "")}&body=${encodeURIComponent(b.corps || "")}`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol rounded-full"
+          >
+            <Send className="w-3.5 h-3.5" /> Ouvrir dans ma messagerie
+          </a>
+        ) : (
         <button
           onClick={onEnvoyer}
-          disabled={enCours || !b.destinataire.trim()}
+          disabled={enCours || !String(b.destinataire || "").trim()}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40 rounded-full"
         >
           {enCours ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           Envoyer
         </button>
+        )}
       </div>
     </div>
   );
@@ -496,12 +665,277 @@ function Echeances({ onBrouillon }) {
   );
 }
 
-export default function ChatDashboard() {
+// ---------------------------------------------------------------------------
+// Le fil de conversation (prototype 1a) : une fois le message envoyé, le
+// tableau de bord laisse la place à la conversation. Les étapes d'analyse
+// défilent, se replient une fois finies ; ce qui a été fait s'affiche en
+// cartes, avec de quoi l'ouvrir ou l'annuler.
+// ---------------------------------------------------------------------------
+
+// Ce que l'écran annonce pendant que le serveur travaille. Les étapes finales
+// viennent de la réponse (le contact reconnu, les outils consultés).
+const ETAPES_PREVUES = {
+  note: ["Lecture de la note", "Recherche du contact", "Préparation des actions"],
+  fiche: ["Lecture de la fiche", "Extraction du bien", "Passage à la grille"],
+  client: ["Lecture du compte rendu", "Extraction de la fiche client", "Préparation de la fiche"],
+  rappel: ["Lecture du rappel", "Calcul de la date", "Création du rappel"],
+  piece: ["Lecture de la pièce jointe", "Reconnaissance du document et du bien", "Rangement dans le dossier"],
+  defaut: ["Lecture du message", "Recherche dans vos dossiers", "Préparation de la réponse"],
+};
+const OUTILS_LUS = {
+  chercher_dossier: "Recherche du dossier", chercher_projet: "Recherche du projet", etat_dossier: "Lecture du dossier",
+  etat_projet: "Lecture du projet", marche_ville: "Lecture du marché de la ville", data_b: "Lecture Data-B", verifier: "Vérification des chiffres",
+  interroger_documents: "Lecture des documents", simuler_dossier: "Simulation", plan_du_jour: "Lecture du plan du jour",
+  registre_engagements: "Lecture des engagements", historique_actions: "Lecture de l'historique", preparer_mail: "Rédaction du mail",
+  noter_relance: "Création de la relance", noter_rdv: "Création du rendez-vous", nouveau_contact: "Création de la fiche propriétaire",
+  appel_sans_reponse: "Relance suivante de la séquence", resultat_appel: "Mise à jour de la fiche", demandes_clients: "Lecture des demandes clients",
+  avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
+};
+const ACTIONS_FAITES = {
+  pousser_dossier_monday: "Dossier poussé dans Monday", pousser_projet_monday: "Projet poussé dans Monday", creer_drive_dossier: "Dossier Drive créé",
+  extraire_documents: "Documents lus et rangés", creer_agent_monday: "Agent ajouté dans Monday", envoyer_mail: "Mail envoyé",
+  noter_engagement: "Engagement noté", tenir_engagement: "Engagement tenu", creer_dossier: "Dossier créé",
+  analyser_fiche: "Fiche analysée", faire_tout: "Mail traité de bout en bout", deposer_mail: "Mail déposé sur le dossier",
+  preanalyser_mail: "Préanalyse lancée", ranger_drive: "Rangé sur le Drive", bloquer_rdv: "Rendez-vous posé dans l'agenda",
+  rediger_loi: "LOI en préparation", lancer_kdata: "Analyse K-Data lancée", generer_prez_bancaire: "Présentation bancaire en préparation",
+  lancer_alx: "Prospection ALX lancée", ajouter_document: "Document ajouté au dossier", creer_client_monday: "Client créé dans Monday",
+  renommer_dossier: "Dossier renommé", supprimer_dossier: "Dossier supprimé", creer_projet_depuis_dossier: "Projet créé",
+  ajouter_photos_projet: "Photos ajoutées au projet", ajouter_prospect: "Agent ajouté au carnet de prospection",
+  noter_appel: "Appel noté", retenir: "Retenu", oublier: "Oublié", lancer_design: "Chantier de design lancé",
+};
+
+/** Les étapes réellement faites, lues dans la réponse du serveur. */
+function etapesDe(r, prevues) {
+  if (r?.type === "note") {
+    return ["Lecture de la note", r.agent?.nom ? `Contact reconnu : ${r.agent.nom}` : "Contact recherché dans Monday", r.dossier ? `Dossier : ${r.dossier.titre}` : "Préparation des actions"];
+  }
+  const lus = [...new Set((r?.outils || []).map((o) => OUTILS_LUS[o] || ACTIONS_FAITES[o]).filter(Boolean))];
+  return lus.length ? ["Lecture du message", ...lus.slice(0, 5)] : prevues;
+}
+
+/** Ce qui a été fait, en cartes. */
+function cartesDe(r) {
+  if (r?.type === "note") {
+    return [
+      ...(r.fait || []).map((f) => ({ titre: f.charAt(0).toUpperCase() + f.slice(1), etat: "fait", lien: /agent/.test(f) ? r.agent?.url || null : /dossier/.test(f) ? r.dossier?.lien || null : null })),
+      ...(r.rates || []).map((f) => ({ titre: f, etat: "rate" })),
+    ];
+  }
+  const taches = (r?.taches || []).map((t) => ({ titre: `En cours : ${t}`, detail: "Une notification arrivera quand ce sera prêt.", etat: "fait" }));
+  return [...taches, ...(r?.actions || [])
+    .filter((a) => !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
+    .map((a) => ({
+      titre: a.titre || ACTIONS_FAITES[a.name],
+      detail: a.pour || a.resultat?.message || a.resultat?.titre || null,
+      etat: a.etat === "rate" ? "rate" : "fait",
+      lien: a.lien || a.resultat?.url || (a.resultat?.deal_id ? `/Dossiers?deal_id=${a.resultat.deal_id}` : null),
+    }))];
+}
+
+/**
+ * Une suite sous la réponse : la pastille habituelle, ou — quand elle porte un
+ * `detail` — un vrai bouton de choix (« Recherche multicritère » /
+ * « Suggestion intelligente »), plus grand, avec sa ligne d'explication.
+ */
+function BoutonSuite({ x, onClick }) {
+  if (x.detail) {
+    return (
+      <button type="button" onClick={onClick}
+        className={`min-w-[220px] max-w-[300px] flex-1 rounded-[16px] px-5 py-4 text-left transition-colors ${x.principal ? "bg-menthe text-fond hover:bg-menthe-survol" : "border border-trait text-encre hover:border-menthe"}`}
+        style={x.principal ? undefined : { background: "transparent" }}>
+        <span className="block text-[15px] font-medium">{x.libelle}</span>
+        <span className={`mt-1 block text-[12.5px] leading-[1.45] ${x.principal ? "opacity-80" : "text-ardoise"}`}>{x.detail}</span>
+      </button>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick}
+      className={`rounded-full px-3.5 py-1.5 text-[12.5px] transition-colors ${x.principal ? "bg-menthe font-medium text-fond hover:bg-menthe-survol" : "border border-trait text-craie hover:border-menthe hover:text-menthe"}`}
+      style={x.principal ? undefined : { background: "transparent" }}>
+      {x.libelle}
+    </button>
+  );
+}
+
+/** Les étapes : pendant l'analyse, celle en cours porte un point ; ensuite, une ligne qui se déplie. */
+function Etapes({ etapes, courante = null }) {
+  const [ouvert, setOuvert] = useState(false);
+  const enCours = courante != null;
+  if (!etapes?.length) return null;
+  if (!enCours && !ouvert) {
+    return (
+      <button type="button" onClick={() => setOuvert(true)} className="mb-4 inline-flex items-center gap-1.5 text-[14.5px] text-brume transition-colors hover:text-craie" style={{ background: "transparent" }}>
+        Analyse terminée · {etapes.length} étape{etapes.length > 1 ? "s" : ""} <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+  return (
+    <div className="mb-4 space-y-3">
+      {(enCours ? etapes.slice(0, courante + 1) : etapes).map((e, i) => {
+        const faite = !enCours || i < courante;
+        const ici = enCours && i === courante;
+        return (
+          <motion.div key={i} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, delay: enCours ? 0 : i * 0.03 }}
+            className="flex items-center gap-3.5 text-[15px] transition-colors"
+            style={{ color: faite ? J["craie"] : ici ? J["encre"] : J["brume"], opacity: faite || ici ? 1 : 0.55 }}>
+            <span className="grid h-4 w-4 flex-none place-items-center">
+              {faite ? <Check className="h-4 w-4" style={{ color: J["menthe"] }} strokeWidth={2} />
+                : ici ? <span className="h-2.5 w-2.5 animate-pulse rounded-full" style={{ background: J["menthe-pale"] }} />
+                : <span className="h-1.5 w-1.5 rounded-full" style={{ background: J["bord-vif"] }} />}
+            </span>
+            {e}
+          </motion.div>
+        );
+      })}
+      {!enCours && (
+        <button type="button" onClick={() => setOuvert(false)} className="inline-flex items-center gap-1 text-[13px] text-brume hover:text-craie" style={{ background: "transparent" }}>
+          Replier <ChevronDown className="h-3 w-3 rotate-180" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Une action faite : son titre, son détail, de quoi l'ouvrir. */
+function CarteAction({ c, onOuvrir }) {
+  const rate = c.etat === "rate";
+  const annule = c.etat === "annule";
+  const pilule = "inline-flex h-11 items-center rounded-full px-5 text-[15px]";
+  return (
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+      className={`flex items-center gap-4 rounded-[18px] border px-6 py-5 max-md:flex-wrap max-md:px-4 ${annule ? "opacity-50" : ""}`}
+      style={{ borderColor: rate ? alpha("alerte", 0.45) : J["trait"], background: J["surface-pleine"] }}>
+      <div className="min-w-0 flex-1">
+        <p className={`m-0 text-[16px] ${annule ? "text-brume line-through" : "text-encre"}`}>{c.titre}</p>
+        {c.detail && <p className="m-0 mt-1 text-[14.5px] leading-[1.5] text-ardoise">{c.detail}</p>}
+      </div>
+      <div className="flex flex-none items-center gap-2.5">
+        {c.lien && !annule && (
+          <button type="button" onClick={() => onOuvrir(c.lien)} className={`${pilule} ${c.action ? "font-medium" : "border border-trait text-craie hover:text-encre"} transition-colors`}
+            style={c.action ? { background: J["menthe-pale"], color: J["sur-menthe-pale"] } : { background: "transparent" }}>
+            {c.action || "Ouvrir"}
+          </button>
+        )}
+        {!c.action && (
+          <span className={pilule} style={rate ? { border: `1px solid ${alpha("alerte", 0.45)}`, color: J["alerte"] } : annule ? { border: `1px solid ${J["trait"]}`, color: J["brume"] } : { background: J["menthe-pale"], color: J["sur-menthe-pale"] }}>
+            {rate ? "Pas fait" : annule ? "Annulé" : "✓ Fait"}
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+const PastilleK = () => (
+  <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px] border border-trait text-[14px] text-craie" style={{ background: J["surface-pleine"] }}>K</span>
+);
+
+/**
+ * « Pour un client » : les demandes des clients Klocka, anonymes, en tableau.
+ * On coche un ou plusieurs clients, puis on prospecte pour eux d'un coup.
+ */
+function ChoixClient({ onLancer, disabled }) {
+  const { data, isLoading } = useQuery({ queryKey: ["mandataire-demandes"], queryFn: () => base44.request("GET", "/api/mandataire/demandes"), staleTime: 60 * 1000 });
+  const demandes = [...(data?.demandes || [])].sort((a, b) => (b.a_prospecter ?? 0) - (a.a_prospecter ?? 0));
+  const [coches, setCoches] = useState(() => new Set());
+  if (isLoading) return <span className="text-[12.5px] text-brume">Lecture des demandes…</span>;
+  if (!demandes.length) return <span className="text-[12.5px] text-brume">Aucune demande client ouverte pour l'instant.</span>;
+  const k = (n) => (n == null ? null : `${Math.round(n / 1000).toLocaleString("fr-FR")} k€`);
+  const basculer = (id) => setCoches((c) => { const n = new Set(c); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const tous = coches.size === demandes.length;
+  const choisies = demandes.filter((d) => coches.has(d.id));
+  const caseDe = (oui) => (
+    <span className="grid h-[17px] w-[17px] place-items-center rounded-[5px] border" style={{ borderColor: oui ? J["menthe"] : J["bord-vif"], background: oui ? J["menthe"] : "transparent" }}>
+      {oui && <Check className="h-3 w-3" style={{ color: J["sur-menthe"] }} />}
+    </span>
+  );
+  return (
+    <div className="w-full overflow-hidden rounded-[16px] border border-trait text-left" style={{ background: J["surface-pleine"] }}>
+      <div className="max-h-[300px] overflow-auto">
+        <table className="w-full text-[13px]">
+          <thead className="sticky top-0" style={{ background: J["surface-pleine"] }}>
+            <tr className="border-b border-trait text-left text-[11px] uppercase tracking-[.1em] text-ardoise">
+              <th className="w-10 px-3 py-2.5 font-normal">
+                <button type="button" onClick={() => setCoches(tous ? new Set() : new Set(demandes.map((d) => d.id)))} aria-label={tous ? "Tout décocher" : "Tout cocher"} style={{ background: "transparent" }}>{caseDe(tous)}</button>
+              </th>
+              <th className="px-2 py-2.5 font-normal">Client</th>
+              <th className="px-2 py-2.5 font-normal">Recherche</th>
+              <th className="px-2 py-2.5 font-normal max-md:hidden">Zone</th>
+              <th className="px-2 py-2.5 font-normal max-md:hidden">Budget</th>
+              <th className="px-2 py-2.5 font-normal max-md:hidden">Rdt min</th>
+              <th className="px-3 py-2.5 text-right font-normal">À prospecter</th>
+            </tr>
+          </thead>
+          <tbody>
+            {demandes.map((d) => {
+              const oui = coches.has(d.id);
+              return (
+                <tr key={d.id} onClick={() => basculer(d.id)} className="cursor-pointer border-b border-trait last:border-b-0 hover:bg-encre/[0.03]" style={oui ? { background: alpha("menthe", 0.07) } : undefined}>
+                  <td className="px-3 py-2.5">{caseDe(oui)}</td>
+                  <td className="whitespace-nowrap px-2 py-2.5 text-encre">{d.reference}<span className="block text-[11.5px] text-brume">{d.profil}</span></td>
+                  <td className="px-2 py-2.5 text-craie">{d.type_commerce ? `Murs de ${d.type_commerce}` : "Murs commerciaux"}</td>
+                  <td className="px-2 py-2.5 text-craie max-md:hidden">{d.zones?.length ? d.zones.slice(0, 2).join(", ") : "Toute la France"}</td>
+                  <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-craie max-md:hidden">{d.budget_min && d.budget_max ? `${Math.round(d.budget_min / 1000)} – ${k(d.budget_max)}` : k(d.budget_max || d.budget_min) || "—"}</td>
+                  <td className="px-2 py-2.5 tabular-nums text-craie max-md:hidden">{d.rendement_min ? `${d.rendement_min} %` : "—"}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-menthe">{d.a_prospecter ?? d.commerces_du_secteur ?? 0}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-trait px-4 py-3">
+        <span className="text-[12.5px] text-ardoise">{coches.size ? `${coches.size} client${coches.size > 1 ? "s" : ""} choisi${coches.size > 1 ? "s" : ""}` : "Cochez un ou plusieurs clients"}</span>
+        <button type="button" disabled={!coches.size || disabled}
+          onClick={() => { onLancer(choisies.map((d) => d.id), choisies.map((d) => d.reference)); setCoches(new Set()); }}
+          className="inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium disabled:opacity-40" style={{ background: J["menthe-pale"], color: J["sur-menthe-pale"] }}>
+          Prospecter pour {coches.size > 1 ? `ces ${coches.size} clients` : "ce client"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Les étapes de l'agent dans une notification : faites, puis celle en cours. */
+function EtapesNotif({ etapes = [], enCours = false }) {
+  if (!etapes.length) return null;
+  return (
+    <ul className="m-0 mt-1 space-y-1 p-0">
+      {etapes.map((t, i) => {
+        const courante = enCours && i === etapes.length - 1;
+        return (
+          <li key={i} className="flex list-none items-start gap-2 text-[13px] leading-[1.45]" style={{ color: courante ? J["encre"] : J["ardoise"] }}>
+            <span className="mt-[3px] grid h-3.5 w-3.5 flex-none place-items-center">
+              {courante ? <Loader2 className="h-3 w-3 animate-spin" style={{ color: J["menthe"] }} /> : <Check className="h-3 w-3" style={{ color: J["menthe"] }} />}
+            </span>
+            <span>{t}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * `prospectionId` : le chat parle depuis une prospection ouverte, l'agent peut
+ * l'affiner. `embarque` : le chat vit en bas d'une page ; il ne déroule pas
+ * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
+ * en direct), puis sa réponse.
+ */
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false }) {
+  const E = ESPACES[espace] || ESPACES.admin;
+  const qs = E.qs || "";
+  const prospection = espace === "prospection";
+  // Le mandataire, au tableau de bord ou en prospection : ses routes, pas celles de l'équipe.
+  const mandataire = espace === "mandataire" || espace === "affinage" || prospection;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [texte, setTexte] = useState("");
-  const [mode, setMode] = useState(null);
+  // La prospection choisit toujours entre ses deux modes : pas de « mode auto ».
+  const [mode, setMode] = useState((ESPACES[espace] || ESPACES.admin).modeParDefaut || null);
   const [commandes, setCommandes] = useState(false);
+  const [suggestionsOuvertes, setSuggestionsOuvertes] = useState(false);
+  const [skillsOuvert, setSkillsOuvert] = useState(false);
   const [fil, setFil] = useState([]); // { role, contenu } et blocs { role: "bloc", type, donnees }
   const [brouillon, setBrouillon] = useState(null);
   const [suites, setSuites] = useState([]);
@@ -513,34 +947,67 @@ export default function ChatDashboard() {
   const fichierRef = useRef(null);
   const champRef = useRef(null);
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
+  // Les étapes annoncées pendant que le serveur travaille, et celle en cours.
+  const [etapesPrevues, setEtapesPrevues] = useState([]);
+  const [etapeCourante, setEtapeCourante] = useState(0);
+  const etapesRef = useRef([]);
+  // Les clients cochés dans le tableau « Pour un client », envoyés avec la prochaine prospection.
+  const clientsChoisis = useRef([]);
+  const [etapesVives, setEtapesVives] = useState([]);
+  const vivesRef = useRef([]);
+  const [enFlux, setEnFlux] = useState(false);
+  const annoncer = (cle) => {
+    const e = ETAPES_PREVUES[cle] || ETAPES_PREVUES.defaut;
+    etapesRef.current = e; setEtapesPrevues(e); setEtapeCourante(0);
+    vivesRef.current = []; setEtapesVives([]); fileRef.current = [];
+  };
+  // Les étapes arrivent parfois par rafale (le tri est instantané) : une file
+  // les révèle une à une, jamais plus vite qu'une toutes les 0,45 s.
+  const fileRef = useRef([]);
+  const surEtape = (t) => { fileRef.current.push(t); };
+  const vider = () => new Promise((fini) => {
+    const t = setInterval(() => { if (!fileRef.current.length) { clearInterval(t); fini(); } }, 80);
+    setTimeout(() => { clearInterval(t); fini(); }, 5000);
+  });
   // La conversation en cours : créée au premier échange, complétée ensuite.
   const [conversationId, setConversationId] = useState(null);
+  // Le titre enregistré (renommable) ; sans lui, le premier message en tient lieu.
+  const [titreSauve, setTitreSauve] = useState(null);
+  const [titreEdite, setTitreEdite] = useState(null);
   const sauvegarde = useRef(null);
   useEffect(() => {
     if (!fil.some((m) => m.role === "user")) return undefined;
     clearTimeout(sauvegarde.current);
     sauvegarde.current = setTimeout(() => {
-      base44.request("POST", "/api/assistant/conversations", { body: { id: conversationId, messages: fil } })
+      base44.request("POST", `${E.api}/conversations${qs}`, { body: { id: conversationId, messages: fil } })
         .then((r) => {
           if (r?.id && r.id !== conversationId) setConversationId(r.id);
-          queryClient.invalidateQueries({ queryKey: ["assistant-conversations"] });
+          if (r?.titre) setTitreSauve(r.titre);
+          queryClient.invalidateQueries({ queryKey: ["assistant-conversations", E.api, qs] });
         })
         .catch(() => { /* l'historique attendra le prochain échange */ });
     }, 800);
     return () => clearTimeout(sauvegarde.current);
-  }, [fil, conversationId, queryClient]);
+  }, [fil, conversationId, queryClient, E.api, qs]);
 
   // Rouvrir une conversation, ou en commencer une neuve : le fil change de peau.
   const ouvrirConversation = (c) => {
+    // La réponse en cours appartient à l'ancien fil : elle ne doit pas atterrir ici.
+    controleur.current?.abort();
     setFil(c.messages || []);
     setConversationId(c.id);
+    setTitreSauve(c.titre || null); setTitreEdite(null);
     setSuites([]); setBrouillon(null); setFiche(null);
     setHistoriqueOuvert(false);
+    onHistorique?.(false);
   };
   const nouvelleConversation = () => {
+    controleur.current?.abort();
     setFil([]); setConversationId(null);
+    setTitreSauve(null); setTitreEdite(null);
     setSuites([]); setBrouillon(null); setFiche(null);
     setHistoriqueOuvert(false);
+    onHistorique?.(false);
     setTimeout(() => champRef.current?.focus(), 30);
   };
   // Le rail demande l'assistant : ici, c'est le champ qui prend la main.
@@ -554,8 +1021,14 @@ export default function ChatDashboard() {
   const pousser = (m) => setFil((f) => [...f, m]);
 
   const rafraichir = () => {
-    for (const k of ["assistant-propositions", "echeances", "relances-agents", "dossiers", "all-users", "projets-clients"]) {
-      queryClient.invalidateQueries({ queryKey: [k] });
+    for (const k of prospectionId
+      ? [["m-prospection", prospectionId], ["m-listes"], ["mandataire-prospections"]]
+      : prospection
+      ? ["mandataire-prospections"]
+      : mandataire
+      ? ["mandataire-jour", "mandataire-proprietaires", "mandataire-prospections"]
+      : ["assistant-propositions", "echeances", "relances-agents", "dossiers", "all-users", "projets-clients"]) {
+      queryClient.invalidateQueries({ queryKey: Array.isArray(k) ? k : [k] });
     }
   };
 
@@ -573,38 +1046,168 @@ export default function ChatDashboard() {
     return propositions.slice(0, 3);
   };
 
+  // Le mandataire : chaque écriture revient avec de quoi la défaire.
+  const annulerAction = async (a) => {
+    try {
+      if (a.type === "proprietaire") await base44.request("DELETE", `/api/mandataire/proprietaires/${encodeURIComponent(a.id)}`);
+      else await base44.request("POST", `/api/mandataire/rappels/${encodeURIComponent(a.id)}/supprimer`);
+      setFil((f) => f.map((m) => (m.cartes ? { ...m, cartes: m.cartes.map((c) => (c.titre === a.titre ? { ...c, etat: "annule" } : c)) } : m)));
+      pousser({ role: "assistant", contenu: `Annulé : ${a.titre}.` });
+      setSuites((l) => l.filter((x) => x.cle !== a.id));
+      rafraichir();
+    } catch (e) {
+      toast.error(e?.message || "Annulation impossible");
+    }
+  };
+  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece").slice(0, 3).map((a) => ({
+    cle: a.id,
+    libelle: (r.actions || []).length > 1 ? `Annuler · ${a.titre}` : "Annuler",
+    faire: () => annulerAction(a),
+  }));
+
   // La boîte : le serveur classe et fait ; on affiche selon ce qu'il a fait.
   // Une requête qu'on ne veut plus attendre s'interrompt.
+  // La recherche multicritère ouverte en grand : { ville, rue } déjà donnés dans le fil.
+  const [fenetre, setFenetre] = useState(null);
   const controleur = useRef(null);
+  // Quitter la page coupe la requête : la réponse n'a plus où s'afficher.
+  useEffect(() => () => controleur.current?.abort(), []);
+  // Les actions déjà faites, reçues au fil de l'eau : un Stop ne les efface pas.
+  const actionsVives = useRef([]);
   const boite = useMutation({
-    mutationFn: ({ t, type }) => {
+    mutationFn: async ({ t, type, piece = null }) => {
       controleur.current = new AbortController();
-      return base44.request("POST", "/api/assistant/boite", { body: { texte: t, historique: historique(), type }, signal: controleur.current.signal });
+      // Une pièce jointe du mandataire : envoyée avec le message, lue par le serveur.
+      if (mandataire && piece) {
+        const form = new FormData();
+        form.append("fichier", piece);
+        form.append("texte", t || "");
+        form.append("historique", JSON.stringify(historique()));
+        if (prospectionId) form.append("prospection_id", prospectionId);
+        return base44.request("POST", `${E.api}/chat`, { body: form, isForm: true, signal: controleur.current.signal });
+      }
+      if (prospection) {
+        setEnFlux(true);
+        const demande_ids = clientsChoisis.current;
+        clientsChoisis.current = [];
+        // « Pour un client » garde le moteur ALX ; le reste passe par le chat
+        // Data Prospective, même structure que le chat du dashboard.
+        const r = demande_ids.length
+          ? await base44.flux(`${E.api}/prospections/lancer?flux=1`, { body: { phrase: t, demande_ids }, signal: controleur.current.signal, surEtape })
+          : await base44.flux(`${E.api}/chat?flux=1&espace=prospection`, { body: { texte: t, historique: historique() }, signal: controleur.current.signal, surEtape });
+        await vider();
+        return r;
+      }
+      // Le serveur dit ce qu'il fait au moment où il le fait : les étapes arrivent une à une.
+      setEnFlux(true);
+      actionsVives.current = [];
+      const r = mandataire
+        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surAction: (a) => actionsVives.current.push(a) })
+        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type }, signal: controleur.current.signal, surEtape });
+      // La réponse attend que la dernière étape se soit affichée.
+      await vider();
+      return r;
     },
+    onSettled: () => setEnFlux(false),
     onSuccess: (r) => {
       rafraichir();
+      const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r) };
+      if (prospection) {
+        // Le moteur ALX (« pour un client ») rend une prospection ALX.
+        if (r.prospection_id) {
+          const c = r.criteres || {};
+          pousser({
+            role: "assistant",
+            contenu: `C'est parti pour ${c.ville || "votre secteur"}. La prospection s'ouvre sur sa page : la carte d'ALX, les rues qui se tracent, puis les commerces à cocher et à exporter vers une liste.`,
+            etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current,
+            cartes: [{ titre: r.prospection_nom || "Prospection", detail: [c.activites?.length ? c.activites.join(", ") : "tous les commerces", c.ville].filter(Boolean).join(" · "), etat: "fait", lien: `resultats:${r.prospection_id}`, action: "Voir la prospection" }],
+          });
+          setSuites([]);
+          onRecherche?.(r);
+          return;
+        }
+        // Le chat Data Prospective : une réponse, parfois le formulaire, parfois la prospective lancée.
+        const extra2 = { etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current };
+        pousser({
+          role: "assistant",
+          contenu: r.texte || "(sans réponse)",
+          ...extra2,
+          ...(r.prospective ? { cartes: [{ titre: r.prospective.nom, detail: "Data Prospective", etat: "fait", lien: `datab:${r.prospective.jeton}`, action: "Voir les résultats" }] } : {}),
+        });
+        if (r.formulaire) {
+          const zone = { ville: r.formulaire.ville || null, rue: r.formulaire.rue || null };
+          pousser({ role: "bloc", type: "criteres", donnees: zone });
+          setFenetre(zone);
+        }
+        if (r.prospective) onRecherche?.({ datab_jeton: r.prospective.jeton });
+        // La question du mode arrive avec ses deux boutons : un clic envoie le choix.
+        setSuites(Array.isArray(r.boutons) ? r.boutons : []);
+        return;
+      }
+      if (mandataire) {
+        if (embarque) {
+          poser("succes", r.prospection_modifiee ? "Prospection mise à jour" : "Réponse", {
+            id: notif.current || undefined,
+            duration: 12000,
+            description: <><EtapesNotif etapes={vivesRef.current} />{r.texte && <p className="m-0 mt-2 text-[14px] leading-[1.55] text-encre">{r.texte}</p>}</>,
+          });
+          notif.current = null;
+        }
+        if (r.prospection_modifiee && prospectionId) {
+          queryClient.invalidateQueries({ queryKey: ["m-prospection", prospectionId] });
+          queryClient.invalidateQueries({ queryKey: ["mandataire-prospections"] });
+        }
+        pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
+        if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "" });
+        setSuites(suitesMandataire(r));
+        return;
+      }
       if (r.type === "note") {
-        pousser({ role: "assistant", contenu: r.texte || "Noté." });
+        pousser({ role: "assistant", contenu: r.texte || "Noté.", ...extra });
         const p = [];
         if (r.dossier?.lien) p.push({ libelle: "Ouvrir le dossier", principal: true, href: r.dossier.lien });
         if (r.agent?.url) p.push({ libelle: "Fiche Monday de l'agent", externe: r.agent.url });
         setSuites(p);
       } else if (r.type === "fiche") {
+        pousser({ role: "assistant", contenu: "La fiche est lue : le dossier est créé.", ...extra });
         pousser({ role: "bloc", type: "fiche", donnees: r });
         setSuites([]);
       } else if (r.type === "client") {
         setFiche(r.champs);
-        pousser({ role: "assistant", contenu: "J'ai lu un compte rendu d'appel de découverte : voici la fiche. Relisez, corrigez, puis créez le client." });
+        pousser({ role: "assistant", contenu: "J'ai lu un compte rendu d'appel de découverte : voici la fiche. Relisez, corrigez, puis créez le client.", ...extra });
         setSuites([]);
       } else if (r.type === "echeances") {
+        pousser({ role: "assistant", contenu: "Voici ce qui attend.", ...extra });
         pousser({ role: "bloc", type: "echeances", donnees: r });
         setSuites([]);
       } else {
-        pousser({ role: "assistant", contenu: r.texte || "(sans réponse)" });
+        pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
+        if (r.brouillon) setBrouillon(brouillonDepuis(r.brouillon));
         setSuites(lireActions(r));
       }
     },
-    onError: (e) => e?.name === "AbortError" ? null : pousser({ role: "assistant", contenu: `Impossible : ${e?.message || "erreur"}` }),
+    onError: (e) => {
+      if (embarque) {
+        if (e?.name === "AbortError") avis.fermer(notif.current); else poser("erreur", "Je n'ai pas pu le faire", { id: notif.current || undefined, description: e?.message || "erreur" });
+        notif.current = null;
+      }
+      if (e?.name === "AbortError") {
+        // Arrêté en route : ce qui a été fait avant le Stop reste, avec son Annuler.
+        if (actionsVives.current.length) {
+          rafraichir();
+          pousser({
+            role: "assistant",
+            contenu: "Arrêté. Ce qui était déjà fait reste en place :",
+            etapes: vivesRef.current,
+            cartes: actionsVives.current.map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", lien: a.lien || null })),
+          });
+          setSuites(suitesMandataire({ actions: actionsVives.current }));
+          actionsVives.current = [];
+        }
+        return null;
+      }
+      return pousser({ role: "assistant", contenu: prospection ? e?.message || "Recherche impossible" : `Impossible : ${e?.message || "erreur"}` });
+    },
   });
 
   const analyser = useMutation({
@@ -628,6 +1231,7 @@ export default function ChatDashboard() {
     onSuccess: (r) => {
       rafraichir();
       setFichier(null);
+      pousser({ role: "assistant", contenu: "La fiche est lue : le dossier est créé.", etapes: etapesRef.current });
       pousser({ role: "bloc", type: "fiche", donnees: r });
     },
     onError: (e) => e?.name === "AbortError" ? null : pousser({ role: "assistant", contenu: `Analyse impossible : ${e?.message || "erreur"}` }),
@@ -672,11 +1276,83 @@ export default function ChatDashboard() {
     mutationFn: (t) => { demanderNotifications(); return base44.request("POST", "/api/assistant/rappels", { body: { texte: t } }); },
     onSuccess: (r) => {
       const d = new Date(r.rappel.echeance);
-      pousser({ role: "assistant", contenu: `Noté : ${r.rappel.titre || "rappel"}${r.rappel.telephone ? ` au ${telLisible(r.rappel.telephone)}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
+      pousser({ role: "assistant", etapes: etapesRef.current, cartes: [{ titre: `Rappel créé : ${r.rappel.titre || "rappel"}`, detail: d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }), etat: "fait" }], contenu: `Noté : ${r.rappel.titre || "rappel"}${r.rappel.telephone ? ` au ${telLisible(r.rappel.telephone)}` : ""} le ${d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}. Le rappel s'affichera ici ce jour-là.` });
       queryClient.invalidateQueries({ queryKey: ["ce-qui-attend"] });
     },
     onError: (e) => pousser({ role: "assistant", contenu: e?.message || "Je n'ai pas pu noter ce rappel." }),
   });
+
+  const travaille = enCours || rappeler.isPending;
+  // Embarqué : la notification suit le travail de l'agent, étape par étape.
+  // Fermée à la croix, elle ne revient pas ; la réponse finale s'affiche quand même.
+  const notif = useRef(null);
+  const notifFermee = useRef(false);
+  useEffect(() => {
+    if (!embarque || !travaille) return;
+    if (!notif.current) { notif.current = `chat-${Date.now()}`; notifFermee.current = false; }
+    if (notifFermee.current) return;
+    poser("en_cours", "Je m'en occupe", { id: notif.current, surFermeture: () => { notifFermee.current = true; }, description: <EtapesNotif etapes={etapesVives.length ? etapesVives : ["Lecture de la demande"]} enCours /> });
+  }, [embarque, travaille, etapesVives]);
+  useEffect(() => {
+    if (!enFlux) return undefined;
+    const t = setInterval(() => {
+      if (!fileRef.current.length) return;
+      vivesRef.current = [...vivesRef.current, fileRef.current.shift()];
+      setEtapesVives(vivesRef.current);
+    }, 450);
+    return () => clearInterval(t);
+  }, [enFlux]);
+  useEffect(() => {
+    if (!travaille) return undefined;
+    const t = setInterval(() => setEtapeCourante((i) => Math.min(i + 1, Math.max(0, etapesRef.current.length - 1))), 950);
+    return () => clearInterval(t);
+  }, [travaille]);
+
+  // Le fil prend l'écran dès le premier message envoyé (tableau de bord seulement).
+  const conversation = !!onConversation && fil.some((m) => m.role === "user");
+  useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
+  // « Dashboard » ou « Nouveau chat » dans la barre latérale : retour au départ.
+  const location = useLocation();
+  const cleLieu = useRef(location.key);
+  useEffect(() => {
+    if (location.key === cleLieu.current) return;
+    cleLieu.current = location.key;
+    if (onConversation) nouvelleConversation();
+    // Seul le changement de clé compte : la fonction change à chaque rendu.
+     
+  }, [location.key]);
+  const titreConversation = titreSauve || (fil.find((m) => m.role === "user")?.contenu || "Conversation").replace(/\s+/g, " ").slice(0, 70);
+  const renommerConversation = () => {
+    const t = (titreEdite || "").replace(/\s+/g, " ").trim();
+    setTitreEdite(null);
+    if (!t || t === titreConversation || !conversationId) return;
+    const avant = titreSauve;
+    setTitreSauve(t);
+    base44.request("PATCH", `${E.api}/conversations/${conversationId}${qs}`, { body: { titre: t } })
+      .then((r) => { if (r?.titre) setTitreSauve(r.titre); queryClient.invalidateQueries({ queryKey: ["assistant-conversations", E.api, qs] }); })
+      .catch((e) => { setTitreSauve(avant); toast.error(e?.message || "Impossible de renommer"); });
+  };
+  // La page tient la colonne Historique : le bouton la bascule, un clic dans
+  // la liste rouvre la conversation ici.
+  const basculerHistorique = () => setHistoriqueOuvert((v) => { const n = !v; onHistorique?.(n); return n; });
+  useEffect(() => {
+    if (!onHistorique) return undefined;
+    const ouvrirDepuis = (e) => {
+      if (e.detail?.api !== E.api || (e.detail?.qs || "") !== qs) return;
+      base44.request("GET", `${E.api}/conversations/${e.detail.id}${qs}`)
+        .then((c) => { ouvrirConversation(c); onHistorique(false); })
+        .catch(() => toast.error("Conversation introuvable"));
+    };
+    window.addEventListener("klocka:ouvrir-conversation", ouvrirDepuis);
+    return () => window.removeEventListener("klocka:ouvrir-conversation", ouvrirDepuis);
+    // La conversation s'ouvre avec les fonctions du rendu courant.
+     
+  }, [onHistorique, E.api, qs]);
+  const ouvrirLien = (lien) =>
+    String(lien).startsWith("resultats:") ? onOuvrirResultats?.(String(lien).slice(10))
+    : String(lien).startsWith("datab:") ? onRecherche?.({ datab_jeton: String(lien).slice(6) })
+    : ouvrirLienExterne(lien);
+  const ouvrirLienExterne = (lien) => (/^https?:/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
 
   const lancer = (contenu, type = null) => {
     const t = (contenu ?? texte).trim();
@@ -685,17 +1361,30 @@ export default function ChatDashboard() {
     // qu'on dit s'écrit dans la question suivante. On note l'envoi : arrêter la
     // dictée déclenche `onFin`, qui sans cela renverrait le même texte.
     if (ecoute) { envoiFait.current = true; arreter(); }
-    if (mode === "rappel" && !fichier) {
+    if (mode === "rappel" && !fichier && !mandataire) {
       if (!t) return;
+      annoncer("rappel");
       pousser({ role: "user", contenu: t });
       setTexte("");
       rappeler.mutate(t);
+      return;
+    }
+    if (fichier && mandataire && !prospection) {
+      pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
+      setTexte("");
+      setSuites([]);
+      setEnCoursTexte("Je lis la pièce…");
+      annoncer("piece");
+      const piece = fichier;
+      setFichier(null);
+      boite.mutate({ t, type: null, piece });
       return;
     }
     if (fichier) {
       pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
       setTexte("");
       setEnCoursTexte("Je lis la fiche et passe le bien à la grille…");
+      annoncer("fiche");
       analyser.mutate(fichier);
       return;
     }
@@ -703,8 +1392,9 @@ export default function ChatDashboard() {
     pousser({ role: "user", contenu: t });
     setTexte("");
     setSuites([]);
-    const choisi = MODES.find((m) => m.id === mode) || null;
+    const choisi = E.modes.find((m) => m.id === mode) || null;
     setEnCoursTexte(choisi ? "Je m'en occupe…" : "Je fais le tri…");
+    annoncer(type || choisi?.id || (/^(j'ai eu|eu au t|appel avec|note|pas de r[ée]ponse)/i.test(t) ? "note" : "defaut"));
     // En mode Mail, la consigne n'accompagne que le premier message du fil.
     // Ajoutée à chaque tour, elle contredisait la conversation : « Envoie »
     // arrivait au modèle enveloppé de « sans l'envoyer », et il s'abstenait en
@@ -744,69 +1434,12 @@ export default function ChatDashboard() {
   const aDuContenu = fil.length > 0 || fiche || brouillon;
 
   // Le mode choisi, et sa vignette. Sans mode, la barre fait le tri.
-  const modeCourant = MODES.find((m) => m.id === mode) || null;
+  const modeCourant = E.modes.find((m) => m.id === mode) || null;
   const IconeMode = modeCourant?.icone || SlidersHorizontal;
   // Une note collée tient rarement sur une ligne : la pilule s'arrondit.
   const multiligne = texte.includes("\n") || texte.length > 90;
 
-  return (
-    <div>
-      {aDuContenu && (
-        <div className="mb-6 space-y-7">
-          {fil.map((m, i) =>
-            m.role === "bloc" ? (
-              m.type === "fiche" ? <ResultatFiche key={i} r={m.donnees} clients={m.donnees.clients} />
-              : m.type === "client" ? <ResultatClient key={i} r={m.donnees} />
-              : m.type === "echeances" ? <Echeances key={i} onBrouillon={setBrouillon} />
-              : null
-            ) : (
-              <Message
-                key={i}
-                m={m}
-                question={m.role === "assistant" ? [...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null : null}
-                surface={m.role === "assistant" ? "dashboard" : null}
-              />
-            )
-          )}
-          {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
-          {brouillon && (
-            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} />
-          )}
-          {enCours && (
-            <PenseeIA etat={/lis la fiche/i.test(enCoursTexte) ? "searching" : "working"} taille={64} texte={enCoursTexte} />
-          )}
-          {suites.length > 0 && !enCours && (
-            <div className="flex flex-wrap gap-2">
-              {suites.map((s) => (
-                <button
-                  key={s.libelle}
-                  onClick={() => (s.externe ? window.open(s.externe, "_blank", "noopener") : s.href ? navigate(s.href) : lancer(s.texte))}
-                  className={`px-3 py-1.5 text-[11px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"}`}
-                >
-                  {s.libelle}
-                </button>
-              ))}
-            </div>
-          )}
-          <div ref={finRef} />
-        </div>
-      )}
-
-      {/* Le composeur (maquette) : une carte blanche. Ce qu'on tape en haut ;
-          en bas, à gauche la pièce jointe et la boîte qui envoie, à droite le
-          mode, la voix et l'envoi. Une note collée sur plusieurs lignes fait
-          grandir la carte. */}
-      <div
-        className="relative"
-        onDragOver={(e) => { e.preventDefault(); setGlisse(true); }}
-        onDragLeave={() => setGlisse(false)}
-        onDrop={deposer}
-      >
-        <div className="mb-2 flex justify-end">
-          <button type="button" onClick={() => setHistoriqueOuvert((v) => !v)} aria-expanded={historiqueOuvert} className="inline-flex items-center gap-1.5 text-[13.5px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
-            <History className="h-3.5 w-3.5" /> Historique
-          </button>
-        </div>
+  const barre = (
         <BordureEcoute actif={ecoute} radius="24px">
         <div
           className="rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 shadow-[0_12px_32px_rgb(0_0_0/0.07)] max-md:px-4 max-md:pt-4"
@@ -818,27 +1451,79 @@ export default function ChatDashboard() {
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
-            placeholder={ecoute ? "Je vous écoute…" : glisse ? "Déposez la fiche ici." : modeCourant?.placeholder || "Collez votre note, ou posez une question…"}
+            placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation ? "Répondre ou ajouter une précision…" : modeCourant?.placeholder || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[14px]"
           />
-          <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => setFichier(e.target.files?.[0] || null)} />
+          <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => { setFichier(e.target.files?.[0] || null); e.target.value = ""; }} />
 
           <div className="mt-4 flex flex-wrap items-center gap-1.5">
-            <button
+            {E.fichier && <button
               type="button"
               onClick={() => fichierRef.current?.click()}
-              aria-label="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
-              title="Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"
+              aria-label={mandataire ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
+              title={mandataire ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
               className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre"
               style={{ background: "transparent" }}
             >
               <Plus className="h-[18px] w-[18px]" strokeWidth={1.7} />
-            </button>
-            <BoiteEnvoi />
+            </button>}
+            {/* La pièce jointe, dans la barre, à droite du « + ». */}
+            {fichier && (
+              <span className="inline-flex min-w-0 max-w-[260px] items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] text-craie" style={{ background: J["barre-relief"] }}>
+                <Paperclip className="h-3.5 w-3.5 flex-none text-menthe" />
+                <span className="truncate">{fichier.name}</span>
+                <button onClick={() => setFichier(null)} className="flex-none text-brume hover:text-alerte" aria-label="Retirer la pièce jointe" title="Retirer" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+              </span>
+            )}
+            {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation} />}
+            {/* L'ampoule, en bas à gauche : des phrases toutes prêtes, posées
+                dans le champ d'un clic, jamais envoyées toutes seules. */}
+            {E.suggestionsAGauche && E.commandes.length > 0 && (
+              <div className="relative">
+                <button type="button" onClick={() => setSuggestionsOuvertes((o) => !o)} aria-expanded={suggestionsOuvertes} aria-haspopup="menu"
+                  aria-label="Suggestions" title="Suggestions"
+                  className="grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief"
+                  style={{ background: suggestionsOuvertes ? alpha("menthe", 0.12) : "transparent", color: suggestionsOuvertes ? J["menthe"] : J["craie"] }}>
+                  <Lightbulb className="h-4 w-4" strokeWidth={1.7} />
+                </button>
+                {suggestionsOuvertes && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setSuggestionsOuvertes(false)} />
+                    <div role="menu" className="animate-in fade-in slide-in-from-bottom-1 duration-150 absolute bottom-full left-0 z-20 mb-3 w-[300px] max-w-[calc(100vw-2rem)] rounded-bloc border border-trait p-1.5 text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)]" style={{ background: J["barre"] }}>
+                      {E.commandes.map((c) => (
+                        <button key={c.texte} role="menuitem" type="button"
+                          onClick={() => { setTexte(c.texte); setSuggestionsOuvertes(false); setTimeout(() => champRef.current?.focus(), 30); }}
+                          className="w-full rounded-champ px-3 py-2 text-left text-[13px] leading-[1.5] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre"
+                          style={{ background: "transparent" }}>
+                          {c.texte}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {E.modesAGauche && E.modes.length > 0 && (
+              <div className="flex items-center gap-0.5 rounded-full p-0.5" style={{ background: J["barre-relief"] }}>
+                {E.modes.map((m) => {
+                  const Icone = m.icone;
+                  const actif = mode === m.id;
+                  return (
+                    <button key={m.id} type="button" onClick={() => { setMode(m.id); champRef.current?.focus(); }} aria-pressed={actif} title={m.placeholder}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors"
+                      style={{ background: actif ? J["surface-pleine"] : "transparent", color: actif ? J["encre"] : J["ardoise"], boxShadow: actif ? "0 1px 3px rgb(0 0 0 / 0.08)" : "none" }}>
+                      <Icone className="h-3.5 w-3.5" style={{ color: actif ? J["menthe"] : undefined }} />
+                      <span className="max-md:hidden">{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="ml-auto flex items-center gap-1.5">
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
+              {!E.modesAGauche && (
               <div className="relative">
                 <button
                   type="button"
@@ -858,14 +1543,14 @@ export default function ChatDashboard() {
                     <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
                     <div
                       role="menu"
-                      className="animate-in fade-in slide-in-from-top-1 duration-150 absolute right-0 top-full z-20 mt-3 w-[340px] overflow-hidden rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)]"
+                      className={`animate-in fade-in duration-150 absolute right-0 z-20 max-h-[min(70vh,560px)] w-[340px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)] ${conversation ? "bottom-full mb-3 slide-in-from-bottom-1" : "top-full mt-3 slide-in-from-top-1"}`}
                       style={{ background: J["barre"] }}
                     >
                       <div className="border-b border-trait px-4 pb-2.5 pt-3.5">
                         <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Ce que vous apportez</span>
                       </div>
                       <div className="p-1.5">
-                        {MODES.map((m) => {
+                        {E.modes.map((m) => {
                           const Icone = m.icone;
                           const actif = mode === m.id;
                           return (
@@ -888,7 +1573,7 @@ export default function ChatDashboard() {
                         <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Commandes types</span>
                       </div>
                       <div className="p-1.5 pb-2">
-                        {COMMANDES.map((c) => (
+                        {E.commandes.map((c) => (
                           <button
                             key={c.texte}
                             role="menuitem"
@@ -904,6 +1589,7 @@ export default function ChatDashboard() {
                   </>
                 )}
               </div>
+              )}
 
               <button
                 type="button"
@@ -933,22 +1619,233 @@ export default function ChatDashboard() {
           </div>
         </div>
         </BordureEcoute>
+  );
 
-        {/* La pièce jointe, l'erreur, les mails types : sous la barre. */}
-        {(fichier || erreur || mode === "mail") && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
-            {fichier && (
-              <span className="inline-flex items-center gap-2 text-[12.5px] text-craie">
-                <Paperclip className="h-3.5 w-3.5 text-menthe" /> {fichier.name}
-                <button onClick={() => setFichier(null)} className="text-brume hover:text-alerte" aria-label="Retirer" title="Retirer"><X className="h-3.5 w-3.5" /></button>
-              </span>
+  const sousBarre = (erreur || (mode === "mail" && E.mailsTypes) || (prospection && mode === "client")) && (
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+      {prospection && mode === "client" && (
+        <ChoixClient disabled={enCours} onLancer={(ids, refs) => {
+          clientsChoisis.current = ids;
+          // La ville, si elle a été tapée dans le champ, accompagne la demande.
+          lancer(`Pour ${refs.join(", ")}${texte.trim() ? ` · ${texte.trim()}` : ""}`);
+        }} />
+      )}
+      {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
+      {mode === "mail" && E.mailsTypes && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
+    </div>
+  );
+
+  // La recherche multicritère : un portail par-dessus la page, monté dans les
+  // deux mises en page (le fil, et l'accueil).
+  const fenetreEl = fenetre && (
+    <FenetreMulticriteres
+      ville={fenetre.ville}
+      rue={fenetre.rue}
+      onFermer={() => setFenetre(null)}
+      onLance={(p) => {
+        setFenetre(null);
+        pousser({ role: "assistant", contenu: `C'est lancé : ${p.nom}. La page s'ouvre avec les résultats.`, cartes: [{ titre: p.nom, detail: "Data Prospective", etat: "fait", lien: `datab:${p.jeton}`, action: "Voir les résultats" }] });
+        onRecherche?.({ datab_jeton: p.jeton });
+      }}
+    />
+  );
+
+  // Le fil de conversation : le tableau de bord laisse la place à l'échange.
+  if (conversation) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className={`flex h-[100dvh] flex-col ${mandataire ? "max-md:h-[calc(100dvh-7rem-env(safe-area-inset-bottom))]" : "max-md:h-[calc(100dvh-11.5rem-env(safe-area-inset-bottom))]"}`}
+        onDragOver={(e) => { if (!E.fichier) return; e.preventDefault(); setGlisse(true); }}
+        onDragLeave={() => setGlisse(false)}
+        onDrop={(e) => { if (E.fichier) deposer(e); }}
+      >
+        <div className="flex flex-none items-center gap-3 border-b border-trait py-3">
+          <button type="button" onClick={nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+            <ChevronLeft className="h-4 w-4" /> Dashboard
+          </button>
+          {titreEdite != null ? (
+            <form className="flex min-w-0 flex-1 justify-center" onSubmit={(e) => { e.preventDefault(); renommerConversation(); }}>
+              <input autoFocus value={titreEdite} maxLength={80} onChange={(e) => setTitreEdite(e.target.value)} onBlur={renommerConversation}
+                onKeyDown={(e) => { if (e.key === "Escape") setTitreEdite(null); }} aria-label="Nom de la conversation"
+                className="w-full max-w-[420px] rounded-champ border border-menthe bg-surface px-3 py-1 text-center text-[14px] text-encre outline-none max-md:text-[16px]" />
+            </form>
+          ) : conversationId ? (
+            <button type="button" onClick={() => setTitreEdite(titreConversation)} title="Renommer la conversation"
+              className="group inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 text-[14px] text-encre" style={{ background: "transparent" }}>
+              <span className="truncate">{titreConversation}</span>
+              <Pencil className="h-3 w-3 flex-none text-brume opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />
+            </button>
+          ) : (
+            <p className="m-0 min-w-0 flex-1 truncate text-center text-[14px] text-encre">{titreConversation}</p>
+          )}
+          <button type="button" onClick={basculerHistorique} aria-expanded={historiqueOuvert} className="inline-flex flex-none items-center gap-1.5 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+            <History className="h-3.5 w-3.5" /> Historique
+          </button>
+        </div>
+        {historiqueOuvert && <div className="mx-auto w-full max-w-[760px] flex-none"><HistoriqueConversations api={E.api} qs={qs} actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} /></div>}
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="mx-auto w-full max-w-[760px] space-y-8 py-8">
+          {fil.map((m, i) =>
+            m.role === "user" ? (
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-end">
+                <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre-relief"] }}>{m.contenu}</div>
+              </motion.div>
+            ) : m.role === "bloc" ? (
+              <div key={i} className="pl-[3.25rem]">
+                {m.type === "fiche" ? <ResultatFiche r={m.donnees} clients={m.donnees.clients} />
+                  : m.type === "client" ? <ResultatClient r={m.donnees} />
+                  : m.type === "echeances" ? <Echeances onBrouillon={setBrouillon} />
+                  : m.type === "criteres" ? <CarteCriteres donnees={m.donnees} onOuvrir={() => setFenetre(m.donnees || { ville: null, rue: null })} />
+                  : null}
+              </div>
+            ) : (
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex gap-4">
+                <PastilleK />
+                <div className="min-w-0 flex-1 pt-1.5 text-[16px]">
+                  <Etapes etapes={m.etapes} />
+                  <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} />
+                  {m.cartes?.length > 0 && (
+                    <div className="mt-5 space-y-3">{m.cartes.map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>
+                  )}
+                </div>
+              </motion.div>
+            )
+          )}
+          {travaille && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="flex gap-4">
+              <PastilleK />
+              <div className="min-w-0 flex-1 pt-2">
+                {enFlux
+                  ? <Etapes etapes={etapesVives.length ? etapesVives : ["Réflexion…"]} courante={Math.max(0, etapesVives.length - 1)} />
+                  : <Etapes etapes={etapesPrevues} courante={etapeCourante} />}
+              </div>
+            </motion.div>
+          )}
+          {(fiche || brouillon || (suites.length > 0 && !travaille)) && (
+            <div className="space-y-4 pl-[3.25rem]">
+              {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
+              {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />}
+              {suites.length > 0 && !travaille && (
+                <div className="flex flex-wrap gap-2">
+                  {suites.map((x) => <BoutonSuite key={x.cle || x.libelle} x={x} onClick={() => (x.faire ? x.faire() : x.externe ? window.open(x.externe, "_blank", "noopener") : x.href ? navigate(x.href) : lancer(x.texte))} />)}
+                </div>
+              )}
+            </div>
+          )}
+          <div ref={finRef} />
+        </div>
+        </div>
+
+        <div className="mx-auto w-full max-w-[760px] flex-none pb-5 pt-3">
+          {/* En bas de l'écran, ce qui accompagne la barre passe au-dessus d'elle. */}
+          {sousBarre && <div className="mb-3 max-h-[30vh] overflow-y-auto [&>div]:mt-0">{sousBarre}</div>}
+          {barre}
+        </div>
+        {fenetreEl}
+      </motion.div>
+    );
+  }
+
+  return (
+    <div>
+      {aDuContenu && !embarque && (
+        <div className="mb-6 space-y-7">
+          {fil.map((m, i) =>
+            m.role === "bloc" ? (
+              m.type === "fiche" ? <ResultatFiche key={i} r={m.donnees} clients={m.donnees.clients} />
+              : m.type === "client" ? <ResultatClient key={i} r={m.donnees} />
+              : m.type === "echeances" ? <Echeances key={i} onBrouillon={setBrouillon} />
+              : null
+            ) : (
+              <Message
+                key={i}
+                m={m}
+                question={m.role === "assistant" ? [...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null : null}
+                surface={m.role === "assistant" ? E.avis : null}
+              />
+            )
+          )}
+          {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
+          {brouillon && (
+            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />
+          )}
+          {enCours && (
+            <PenseeIA etat={/lis la fiche/i.test(enCoursTexte) ? "searching" : "working"} taille={64} texte={enCoursTexte} />
+          )}
+          {suites.length > 0 && !enCours && (
+            <div className="flex flex-wrap gap-2">
+              {suites.map((s) => (
+                <button
+                  key={s.cle || s.libelle}
+                  onClick={() => (s.faire ? s.faire() : s.externe ? window.open(s.externe, "_blank", "noopener") : s.href ? navigate(s.href) : lancer(s.texte))}
+                  className={`px-3 py-1.5 text-[11px] tracking-[.14em] uppercase transition-colors ${s.principal ? "bg-menthe text-fond hover:bg-menthe-survol font-semibold" : "border border-bord-doux text-craie hover:border-menthe hover:text-menthe"}`}
+                >
+                  {s.libelle}
+                </button>
+              ))}
+            </div>
+          )}
+          <div ref={finRef} />
+        </div>
+      )}
+
+      {/* Le composeur (maquette) : une carte blanche. Ce qu'on tape en haut ;
+          en bas, à gauche la pièce jointe et la boîte qui envoie, à droite le
+          mode, la voix et l'envoi. Une note collée sur plusieurs lignes fait
+          grandir la carte. */}
+      <div
+        className="relative"
+        onDragOver={(e) => { if (!E.fichier) return; e.preventDefault(); setGlisse(true); }}
+        onDragLeave={() => setGlisse(false)}
+        onDrop={(e) => { if (E.fichier) deposer(e); }}
+      >
+        <div className={embarque ? "hidden" : "mb-2 flex justify-end"}>
+          <button type="button" onClick={basculerHistorique} aria-expanded={historiqueOuvert} className="inline-flex items-center gap-1.5 text-[13.5px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
+            <History className="h-3.5 w-3.5" /> Historique
+          </button>
+        </div>
+        {barre}
+
+        {/* Embarqué : le brouillon de mail et les gestes de suite s'affichent
+            sous la barre — la notification ne montre que le texte. */}
+        {embarque && (brouillon || fiche || suites.length > 0) && (
+          <div className="mt-3 space-y-3">
+            {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
+            {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />}
+            {suites.length > 0 && !travaille && (
+              <div className="flex flex-wrap gap-2">
+                {suites.map((x) => <BoutonSuite key={x.cle || x.libelle} x={x} onClick={() => (x.faire ? x.faire() : x.externe ? window.open(x.externe, "_blank", "noopener") : x.href ? navigate(x.href) : lancer(x.texte))} />)}
+              </div>
             )}
-            {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
-            {mode === "mail" && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
           </div>
         )}
-        <Suggestions onChoisir={(t, m) => { setTexte(t); setMode(m); setTimeout(() => champRef.current?.focus(), 30); }} />
-        {historiqueOuvert && <HistoriqueConversations actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} />}
+
+        {fenetreEl}
+        {/* La pièce jointe, l'erreur, les mails types : sous la barre. */}
+        {sousBarre}
+        {!embarque && (espace === "mandataire" || espace === "admin") && (
+          <>
+            <div className="mt-2.5 flex justify-start">
+              <button type="button" onClick={() => setSkillsOuvert(true)}
+                className="inline-flex items-center gap-1.5 text-[13px] text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
+                <Sparkles className="h-3.5 w-3.5" style={{ color: J["menthe"] }} />
+                {modeCourant ? `Skill : ${modeCourant.label}` : "Connecter un skill"}
+              </button>
+            </div>
+            <SkillsChat espace={espace} ouvert={skillsOuvert} onFermer={() => setSkillsOuvert(false)}
+              onChoisir={(m) => { setSkillsOuvert(false); setMode(m); setTimeout(() => champRef.current?.focus(), 60); }} />
+          </>
+        )}
+        {!embarque && <Suggestions espace={espace} onChoisir={(t, m, direct = false) => {
+          // Une recherche déjà faite, ou un client : elle repart d'un toucher.
+          if (direct) { setMode(m); lancer(t); return; }
+          setTexte(t); setMode(m); setTimeout(() => champRef.current?.focus(), 30);
+        }} />}
+        {historiqueOuvert && !onHistorique && <HistoriqueConversations api={E.api} qs={qs} actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} />}
       </div>
     </div>
   );

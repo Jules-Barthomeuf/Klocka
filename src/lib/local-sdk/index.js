@@ -158,6 +158,49 @@ class ErreurHttp extends Error {
   }
 
   /**
+   * Une requête dont la réponse arrive par lignes JSON (les étapes, puis le
+   * résultat) : `surEtape` reçoit chaque étape au moment où le serveur la
+   * franchit. Rend le résultat final, ou lève l'erreur du serveur.
+   * @param {string} url
+   * @param {{body?: any, signal?: AbortSignal, surEtape?: (texte: string) => void}} [options]
+   */
+  async function flux(url, { body, signal, surEtape, surAction } = {}) {
+    /** @type {Record<string, string>} */
+    const headers = { 'Content-Type': 'application/json' };
+    const jetonFenetre = fenetre.jeton();
+    if (jetonFenetre) headers['Authorization'] = `Bearer ${jetonFenetre}`;
+    if (fenetre.active()) headers['X-Klocka-Fenetre'] = '1';
+    if (config.appId) headers['X-App-Id'] = config.appId;
+    const resp = await fetch(`${base}${url}`, { method: 'POST', headers, body: JSON.stringify(body ?? {}), credentials: 'include', signal });
+    if (!resp.ok || !resp.body) {
+      let data = null;
+      try { data = await resp.json(); } catch { /* pas de corps */ }
+      throw new ErreurHttp(data?.error || messageDe(resp.status), resp.status);
+    }
+    const lecteur = resp.body.getReader();
+    const decodeur = new TextDecoder();
+    let reste = '';
+    let resultat;
+    for (;;) {
+      const { value, done } = await lecteur.read();
+      if (value) reste += decodeur.decode(value, { stream: true });
+      const lignes = reste.split('\n');
+      reste = done ? '' : lignes.pop();
+      for (const ligne of lignes) {
+        if (!ligne.trim()) continue;
+        const evt = JSON.parse(ligne);
+        if (evt.etape) surEtape?.(evt.etape);
+        if (evt.action) surAction?.(evt.action);
+        if (evt.erreur) throw new ErreurHttp(evt.erreur, 500);
+        if ('resultat' in evt) resultat = evt.resultat;
+      }
+      if (done) break;
+    }
+    if (resultat === undefined) throw new ErreurHttp('La réponse a été coupée en route.', 502);
+    return resultat;
+  }
+
+  /**
    * Rapporte un fichier servi par l'API (par ex. /uploads/xxx.pdf) sous forme
    * de Blob, avec la session en cours.
    * @param {string} chemin - chemin absolu côté serveur, ancre comprise ou non
@@ -308,6 +351,7 @@ class ErreurHttp extends Error {
     // restait blanc alors que le passage cité s'affichait. Ici la requête
     // passe par le même chemin que les autres, donc avec la session.
     fichier,
+    flux,
   };
 }
 

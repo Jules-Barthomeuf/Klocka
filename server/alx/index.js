@@ -180,7 +180,7 @@ export async function classerRue(villeId, { nom, classe, motif = null, motif_cle
 export async function reclasserRues(villeId) {
   const ville = Records.get('Ville', villeId);
   if (!ville) return { ok: false, error: 'Ville introuvable.' };
-  const { classerParRang } = await import('./rues.js');
+  const { classerParRang, tenirLesParts } = await import('./rues.js');
   const { leconsDe, reglesApprises, appliquerLecons } = await import('./apprentissage.js');
   const toutes = [...(ville.rues || []), ...(ville.rues_ecartees || [])];
   const enObjet = (r) => ({ ...r, loyer: Array.isArray(r.loyer) ? { basse: r.loyer[0], haute: r.loyer[1] } : r.loyer });
@@ -194,9 +194,15 @@ export async function reclasserRues(villeId) {
     const avant = toutes.find((r) => r.nom === x.nom);
     if (avant?.par && avant.par !== 'alx') { rues.push(avant); continue; }
     if (!x.classe) { const { classe: _c, ...reste } = x; ecartees.push(reste); continue; }
-    const y = appliquerLecons(x, regles);
-    if (y.classe !== avant?.classe) changees += 1;
-    rues.push({ ...y, par: 'alx', le: maintenant() });
+    rues.push({ ...appliquerLecons(x, regles), par: 'alx', le: maintenant(), avant: avant?.classe ?? null });
+  }
+  // Les parts de la ville tiennent, corrections comprises (les rues à la main restent).
+  const tenues = tenirLesParts(rues.filter((r) => r.par === 'alx'));
+  for (let k = 0, j = 0; k < rues.length; k++) {
+    if (rues[k].par !== 'alx') continue;
+    const { avant: a, ...r } = tenues[j++];
+    if (r.classe !== a) changees += 1;
+    rues[k] = r;
   }
   rues.sort((a, b) => a.classe - b.classe || (b.commerces || 0) - (a.commerces || 0));
   const compte = (c) => rues.filter((r) => r.classe === c).length;

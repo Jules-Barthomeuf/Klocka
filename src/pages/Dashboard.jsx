@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useUser } from "@/components/providers/UserProvider";
 import ClientDashboardView from "@/components/dashboard/ClientDashboardView";
 import AdminDashboardView from "@/components/dashboard/AdminDashboardView";
+import MandataireDashboardView from "@/components/mandataire/MandataireDashboardView";
+import { vueDe } from "@/lib/vue";
 
 const etapes = [
   { numero: 0, titre: "Compte", description: "Création du compte" },
@@ -84,6 +86,11 @@ export default function Dashboard() {
     return url;
   };
   const videoAccueilUrl = getEmbedUrl(appSettings.find(s => s.setting_key === 'global')?.video_accueil_url);
+
+  // Vue mandataire : le mandataire lui-même, ou un admin qui la regarde.
+  if (vueDe(user) === "mandataire") {
+    return <MandataireDashboardView />;
+  }
 
   // Admin view
   if (isAdmin && !previewClientMode) {

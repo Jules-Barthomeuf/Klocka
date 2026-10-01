@@ -250,21 +250,37 @@ export function genreDuPrenom(nom) {
 /** Pure : le nom affiché d'un en-tête « Laurent Sebban <laurent@…> », sans les guillemets. */
 const nomDeLEntete = (de) => String(de || '').replace(/<[^>]*>/, '').replace(/["']/g, '').trim() || null;
 
+/** Pure : un numéro réduit à ses neuf derniers chiffres — « 07 85… », « +33 7 85… », même clé. */
+export const cleTelephone = (t) => {
+  const chiffres = String(t || '').replace(/\D/g, '');
+  return chiffres.length >= 9 ? chiffres.slice(-9) : null;
+};
+
 /**
  * Les agents immobiliers que la plateforme connaît : le carnet de contacts,
- * complété par les agents des dossiers et le nom qu'ils signent dans leurs
- * mails. Filtres : ville (celle du contact ou de ses dossiers), genre
- * (déduit du prénom), et une recherche libre (nom, agence, adresse). Pure
- * sur ses listes.
+ * la grille de prospection (AgentImmo), les agents des dossiers et le nom
+ * qu'ils signent dans leurs mails. Filtres : ville, genre (déduit du
+ * prénom), un téléphone (sous n'importe quelle écriture), et une recherche
+ * libre (nom, agence, adresse, numéro). Pure sur ses listes.
  */
-export function chercherAgents({ ville = null, genre = null, recherche = null, limite = 30 } = {}, { contacts = Records.list('Contact'), deals = Records.list('Deal'), mails = Records.list('MailRecu') } = {}) {
+export function chercherAgents({ ville = null, genre = null, recherche = null, telephone = null, limite = 30 } = {}, { contacts = Records.list('Contact'), deals = Records.list('Deal'), mails = Records.list('MailRecu'), agentsImmo = Records.list('AgentImmo') } = {}) {
   const parEmail = new Map();
   const prendre = (email) => {
     const e = String(email || '').toLowerCase().trim();
     if (!e.includes('@')) return null;
-    if (!parEmail.has(e)) parEmail.set(e, { email: e, nom: null, agence: null, villes: new Set(), dossiers: [] });
+    if (!parEmail.has(e)) parEmail.set(e, { email: e, nom: null, agence: null, villes: new Set(), dossiers: [], telephones: new Set() });
     return parEmail.get(e);
   };
+  // La grille de prospection : la seule source qui porte les numéros.
+  for (const g of agentsImmo) {
+    const a = prendre((g.emails || [])[0]) || (g.nom ? (parEmail.set(`grille:${g.id}`, { email: (g.emails || [])[0] || null, nom: null, agence: null, villes: new Set(), dossiers: [], telephones: new Set() }), parEmail.get(`grille:${g.id}`)) : null);
+    if (!a) continue;
+    a.nom = a.nom || g.nom || null;
+    a.agence = a.agence || g.agence || null;
+    a.statut_prospection = g.statut || null;
+    for (const v of [g.ville, g.onglet]) if (v) a.villes.add(v);
+    for (const t of g.telephones || []) if (t) a.telephones.add(String(t));
+  }
   for (const c of contacts) {
     if (c.fonction && !/agent|n[ée]gociat|commercial|conseill|mandataire/i.test(c.fonction)) continue;
     const a = prendre(c.email);
@@ -299,15 +315,18 @@ export function chercherAgents({ ville = null, genre = null, recherche = null, l
     if (!a.domaine) a.domaine = String(m.de_email).split('@')[1] || null;
   }
   const cherche = recherche ? norme(recherche) : null;
+  // Un numéro glissé dans la recherche libre vaut filtre téléphone.
+  const telCherche = cleTelephone(telephone) || cleTelephone(recherche);
   const villeCherchee = ville ? norme(ville) : null;
   return [...parEmail.values()]
-    .map((a) => ({ ...a, villes: [...a.villes], genre: genreDuPrenom(a.nom) }))
+    .map((a) => ({ ...a, villes: [...a.villes], telephones: [...(a.telephones || [])], genre: genreDuPrenom(a.nom) }))
     .filter((a) => !villeCherchee || a.villes.some((v) => norme(v).includes(villeCherchee)))
     .filter((a) => !genre || a.genre === genre)
-    .filter((a) => !cherche || norme(`${a.nom || ''} ${a.agence || ''} ${a.domaine || ''} ${a.email}`).includes(cherche))
+    .filter((a) => !telCherche || a.telephones.some((t) => cleTelephone(t) === telCherche))
+    .filter((a) => telCherche || !cherche || norme(`${a.nom || ''} ${a.agence || ''} ${a.domaine || ''} ${a.email || ''}`).includes(cherche))
     .sort((x, y) => y.dossiers.length - x.dossiers.length || String(x.nom || x.email).localeCompare(String(y.nom || y.email)))
     .slice(0, limite)
-    .map((a) => ({ nom: a.nom, email: a.email, agence: a.agence || a.domaine || null, villes: a.villes, genre: a.genre || 'inconnu', dossiers: a.dossiers.length, exemples: a.dossiers.slice(0, 3) }));
+    .map((a) => ({ nom: a.nom, email: a.email, agence: a.agence || a.domaine || null, telephones: a.telephones, villes: a.villes, statut_prospection: a.statut_prospection || null, genre: a.genre || 'inconnu', dossiers: a.dossiers.length, exemples: a.dossiers.slice(0, 3) }));
 }
 
 /** Cherche un fichier sur le Drive partagé, dans le dossier d'un deal si on en a un. */

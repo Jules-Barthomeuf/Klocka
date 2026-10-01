@@ -27,7 +27,7 @@ test('le 1 bis s’écrit 1.5 et se lit « 1 bis »', () => {
   assert.equal(libelleEmplacement(null), null);
 });
 
-test('proposerRues garde le tracé, classe les rues vivantes et écarte les autres, sans réseau', async () => {
+test('proposerRues garde le tracé et classe toutes les rues commerçantes, les plus faibles en n°2, sans réseau', async () => {
   const trace = [[[43.55, 7.02], [43.55, 7.03]]];
   const ruesDe = async () => ({
     rues: [
@@ -45,8 +45,11 @@ test('proposerRues garde le tracé, classe les rues vivantes et écarte les autr
     { nom: 'Cannes', code_insee: '06029', code_postal: '06400', centre: { lat: 43.55, lon: 7.01 } },
     { ruesDe, loyerDe: async (a) => loyers[a.split(',')[0]] || null, prixDe: async () => null, journal: (t) => journal.push(t) },
   );
-  assert.deepEqual(r.classees.map((x) => [x.nom, x.classe]), [["Rue d'Antibes", 1], ['Rue Meynadier', 1.5]]);
-  assert.deepEqual(r.ecartees.map((x) => x.nom), ['Rue Basse'], 'trop bas ; l’allée à une vitrine n’est même pas lue');
+  // Depuis le 1er octobre 2026, la carte est complète : une rue au loyer bas
+  // ou à une seule vitrine est en n°2, plus écartée.
+  const classes = Object.fromEntries(r.classees.map((x) => [x.nom, x.classe]));
+  assert.deepEqual(classes, { "Rue d'Antibes": 1, 'Rue Meynadier': 1.5, 'Rue Basse': 2, 'Allée Vide': 2 });
+  assert.deepEqual(r.ecartees, [], 'plus aucune rue écartée pour son loyer');
   assert.equal(r.classees[0].trace, trace, 'le tracé suit la rue, pour la carte et la balade');
   assert.equal(r.classees[0].commerces, 40);
   assert.equal(r.commerces_total, 67);
@@ -98,4 +101,18 @@ test('le rang mêle loyer, vitrines et prix au m² : un boulevard cher et garni 
   assert.equal(classe['Rue Moyenne'], 1.5);
   assert.equal(classe['Rue Calme'], 2);
   assert.match(c.find((r) => r.nom === 'Boulevard Garni').motif, /1e sur 4 de la ville \(loyer 2e, vitrines 1e, prix au m² 1e\)/);
+});
+
+test('tenirLesParts : 25 % en n°1, 35 % en 1 bis, le reste en n°2, corrections comprises', async () => {
+  const { tenirLesParts } = await import('./rues.js');
+  // Vingt rues rangées ; une correction a monté en n°1 dix-huit d'entre elles.
+  const rues = Array.from({ length: 20 }, (_, i) => ({ nom: `Rue ${i}`, rang_commercial: i, classe: i < 18 ? 1 : 2 }));
+  const tenues = tenirLesParts(rues, { part_emplacement_1: 0.25, part_emplacement_1bis: 0.6 });
+  const compte = (c) => tenues.filter((r) => r.classe === c).length;
+  assert.deepEqual([compte(1), compte(1.5), compte(2)], [5, 7, 8]);
+  // L'ordre suit la classe d'après les corrections, puis le rang : la rue 19, restée en 2, ne passe pas devant.
+  assert.equal(tenues[19].classe, 2);
+  assert.equal(tenues[0].classe, 1);
+  // Une rue écartée ou non rangée ne compte pas.
+  assert.equal(tenirLesParts([{ nom: 'X', classe: null }], {})[0].classe, null);
 });

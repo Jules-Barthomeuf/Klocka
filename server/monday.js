@@ -201,7 +201,7 @@ export async function lireTableau(boardId, limite = 2000) {
           `query ($curseur: String!, $limite: Int!) {
             next_items_page(cursor: $curseur, limit: $limite) {
               cursor
-              items { id name column_values { id text type } }
+              items { id name created_at column_values { id text type } }
             }
           }`,
           { curseur, limite: parPage }
@@ -211,7 +211,7 @@ export async function lireTableau(boardId, limite = 2000) {
             boards(ids: [$board]) {
               items_page(limit: $limite) {
                 cursor
-                items { id name column_values { id text type } }
+                items { id name created_at column_values { id text type } }
               }
             }
           }`,
@@ -225,6 +225,7 @@ export async function lireTableau(boardId, limite = 2000) {
       lignes.push({
         id: it.id,
         nom: it.name,
+        cree_le: it.created_at || null,
         colonnes: Object.fromEntries((it.column_values || []).map((c) => [c.id, c.text])),
       });
     }

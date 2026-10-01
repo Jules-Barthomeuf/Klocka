@@ -53,6 +53,8 @@ import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
 import { monterFiches } from './routes/fiches.js';
 import { monterProspection } from './routes/prospection.js';
+import { monterMandataire } from './routes/mandataire.js';
+import { monterMandatairePortes } from './routes/mandataire-portes.js';
 import { monterAlx } from './routes/alx.js';
 import { monterKZoning } from './routes/kzoning.js';
 import { monterKExpertise } from './routes/kexpertise.js';
@@ -688,7 +690,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata|mandataire|notifications)\b/.test(
       req.path
     )
   ) {
@@ -706,7 +708,7 @@ app.use((req, res, next) => {
 // concernent que l'équipe. Sans ce filtre, un compte client — il y en a
 // soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
 // agents, et déclencher des actions en son nom.
-const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx|marche|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
 
 app.use((req, res, next) => {
   if (AUTH_DESACTIVEE) return next();
@@ -1074,6 +1076,8 @@ monterMonday(app);
 monterAk(app);
 monterFiches(app);
 monterProspection(app);
+monterMandataire(app);
+monterMandatairePortes(app);
 monterAlx(app);
 monterKZoning(app);
 monterKExpertise(app);
@@ -1170,6 +1174,21 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
 
 // AK dans Google Chat : le compte de l'équipe relit le groupe et répond
 // quand on le mentionne. Sans GOOGLE_CHAT=true, il ne démarre pas.
+// Les tâches de fond lancées depuis l'application : leur fin s'annonce par
+// une notification, même sans compte Google Chat.
+setInterval(() => {
+  import('./ak/veille.js').then(({ avancerTachesApp }) => avancerTachesApp()).catch((e) => console.warn('[ak app] tâches :', e?.message || e));
+}, 30_000).unref?.();
+
+// La veille mandataire : ALX parcourt le secteur, les propriétaires et leurs
+// numéros se cherchent à l'avance, la liste du jour se pose chaque matin.
+setInterval(() => {
+  import('./mandataire-veille.js').then(({ tourDeVeille }) => tourDeVeille()).catch((e) => console.warn('[veille mandataire]', e?.message || e));
+}, 15 * 60_000).unref?.();
+setTimeout(() => {
+  import('./mandataire-veille.js').then(({ tourDeVeille }) => tourDeVeille()).catch((e) => console.warn('[veille mandataire]', e?.message || e));
+}, 45_000).unref?.();
+
 import('./ak/veille.js').then(({ demarrerVeille }) => {
   const active = demarrerVeille();
   console.log(active ? `  ▸ AK suit Google Chat (toutes les ${process.env.AK_INTERVALLE_S || 15} s)` : '  ▸ AK inactif (GOOGLE_CHAT absent)');

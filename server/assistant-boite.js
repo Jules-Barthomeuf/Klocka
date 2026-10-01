@@ -84,19 +84,24 @@ export async function classer(texte) {
  * La boîte, d'un bout à l'autre : on classe, on fait. `historique` porte les
  * échanges précédents pour l'assistant, qui a besoin du fil.
  */
-export async function traiterBoite({ texte, historique = [], user, type: force = null }) {
+export async function traiterBoite({ texte, historique = [], user, type: force = null, surEtape = null }) {
+  if (!force) surEtape?.('Lecture du message');
   const tri = force && TYPES.includes(force) ? { type: force, par: 'force' } : await classer(texte);
   const base = { type: tri.type, tri: tri.par };
+  const MOTS_TRI = { note: "C'est une note d'appel", fiche: "C'est une fiche d'agent", client: "C'est un compte rendu de découverte", echeances: 'Vous demandez ce qui attend' };
+  if (!force && MOTS_TRI[tri.type]) surEtape?.(MOTS_TRI[tri.type]);
 
   if (tri.type === 'note') {
     const { traiterNoteAppel } = await import('./deal/appels.js');
-    const r = await traiterNoteAppel(texte, { user });
+    const r = await traiterNoteAppel(texte, { user, surEtape });
     return { ...base, ...r };
   }
 
   if (tri.type === 'fiche') {
     const { analyserFiche, obtenirDossier } = await import('./deal/index.js');
+    surEtape?.('Lecture de la fiche, extraction du bien et passage à la grille');
     const r = await analyserFiche({ texte }, { user, dealId: null });
+    surEtape?.('Recherche des clients qui correspondent');
     const dossier = obtenirDossier(r.deal_id);
     let clients = null;
     try {
@@ -115,6 +120,7 @@ export async function traiterBoite({ texte, historique = [], user, type: force =
 
   if (tri.type === 'client') {
     const { extraireClient } = await import('./clients-decouverte.js');
+    surEtape?.('Extraction de la fiche client');
     const champs = await extraireClient(texte, { par: user });
     return { ...base, champs };
   }
@@ -124,8 +130,9 @@ export async function traiterBoite({ texte, historique = [], user, type: force =
     return { ...base, ...echeances() };
   }
 
-  const { commander } = await import('./assistant-commande.js');
-  const suite = [...(Array.isArray(historique) ? historique : []), { role: 'user', contenu: texte }];
-  const r = await commander(suite, user);
+  // Tout le reste passe par AK : le chat du tableau de bord fait tout ce qu'AK
+  // faisait dans Google Chat, avec les mêmes outils.
+  const { repondreApp } = await import('./ak/app.js');
+  const r = await repondreApp({ texte, historique, user, surEtape });
   return { ...base, ...r };
 }

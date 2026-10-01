@@ -17,7 +17,9 @@ import { invokeLLM, llmEnabled } from '../llm.js';
  * du document source ne doit s'y glisser.
  */
 export function vueRedacteur(dossierLot) {
-  const { evaluation, enrichissement, lot } = dossierLot;
+  // Un deal coquille (dossier mandataire) n'a pas encore de lot analysé :
+  // la vue se dresse sur ce qui existe, sans inventer de verdict.
+  const { evaluation = {}, enrichissement, lot = {} } = dossierLot || {};
   const v = (c) => (c && c.absent === false ? c.valeur : null);
 
   return {

@@ -1,15 +1,22 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Building2, User } from "lucide-react";
+import { LayoutDashboard, Building2, MapPin, User } from "lucide-react";
 
-const tabs = [
+const TABS_CLIENT = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Projets", icon: Building2, page: "MesProjets" },
   { label: "Profil", icon: User, page: "MonCompte" },
 ];
+// Le mandataire n'a pas de projets clients : ses pages s'ajoutent ici avec l'espace mandataire.
+const TABS_MANDATAIRE = [
+  { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
+  { label: "Prospection", icon: MapPin, page: "MandataireProspection" },
+  { label: "Profil", icon: User, page: "MonCompte" },
+];
 
-export default function BottomTabs() {
+export default function BottomTabs({ vue = "client" }) {
+  const tabs = vue === "mandataire" ? TABS_MANDATAIRE : TABS_CLIENT;
   const location = useLocation();
 
   return (

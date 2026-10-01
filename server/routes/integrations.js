@@ -14,7 +14,12 @@ async function resolveFileText(url) {
   if (!url || typeof url !== 'string') return '';
   const m = url.match(/\/uploads\/(.+)$/);
   if (!m) return '';
-  const filePath = path.join(UPLOAD_DIR, m[1]);
+  // Le chemin reste dans le dossier des dépôts : « /uploads/../../x » ne sort pas.
+  const racine = path.resolve(UPLOAD_DIR);
+  let nom;
+  try { nom = decodeURIComponent(m[1]); } catch { return ''; }
+  const filePath = path.resolve(racine, nom);
+  if (!filePath.startsWith(racine + path.sep)) return '';
   if (!fs.existsSync(filePath)) return '';
   const ext = path.extname(filePath).toLowerCase();
   const textExts = ['.txt', '.md', '.csv', '.json', '.html', '.xml'];

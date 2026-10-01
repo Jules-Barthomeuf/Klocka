@@ -64,6 +64,14 @@ const AdminProjets = lazy(() => import('./pages/AdminProjets'));
 const AdminRessources = lazy(() => import('./pages/AdminRessources'));
 const AdminSignup = lazy(() => import('./pages/AdminSignup'));
 const AdminSuggestions = lazy(() => import('./pages/AdminSuggestions'));
+const AdminMandataires = lazy(() => import('./pages/AdminMandataires'));
+const MandataireProspection = lazy(() => import('./pages/MandataireProspection'));
+const MandataireClients = lazy(() => import('./pages/MandataireClients'));
+const MandataireEstimation = lazy(() => import('./pages/MandataireEstimation'));
+const MandataireMandat = lazy(() => import('./pages/MandataireMandat'));
+const MandataireDossier = lazy(() => import('./pages/MandataireDossier'));
+const MandataireMarche = lazy(() => import('./pages/MandataireMarche'));
+const AdminValidations = lazy(() => import('./pages/AdminValidations'));
 const BaseDonneesMarche = lazy(() => import('./pages/BaseDonneesMarche'));
 const Comparateur = lazy(() => import('./pages/Comparateur'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -109,6 +117,14 @@ export const PAGES = {
     "AdminRessources": AdminRessources,
     "AdminSignup": AdminSignup,
     "AdminSuggestions": AdminSuggestions,
+    "AdminMandataires": AdminMandataires,
+    "MandataireProspection": MandataireProspection,
+    "MandataireClients": MandataireClients,
+    "MandataireEstimation": MandataireEstimation,
+    "MandataireMandat": MandataireMandat,
+    "MandataireDossier": MandataireDossier,
+    "MandataireMarche": MandataireMarche,
+    "AdminValidations": AdminValidations,
     "BaseDonneesMarche": BaseDonneesMarche,
     "Comparateur": Comparateur,
     "Dashboard": Dashboard,

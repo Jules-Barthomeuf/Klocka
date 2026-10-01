@@ -291,8 +291,8 @@ const OUTILS_AK = [
   },
   {
     name: 'chercher_agents',
-    description: "Les agents immobiliers que la plateforme connaît (carnet de contacts et agents des dossiers) : « liste les agents à Paris », « les agentes à Lyon », « l'agent de chez Point de Vente ». Filtres : ville, genre (femme ou homme, déduit du prénom : un prénom inconnu ou mixte reste « inconnu », dis-le), recherche (nom, agence, adresse). Rend nom, mail, agence, villes, nombre de dossiers apportés.",
-    input_schema: { type: 'object', properties: { ville: { type: 'string' }, genre: { type: 'string', enum: ['femme', 'homme'] }, recherche: { type: 'string' }, limite: { type: 'number' } } },
+    description: "Les agents immobiliers que la plateforme connaît (carnet de contacts, grille de prospection, agents des dossiers) : « liste les agents à Paris », « les agentes à Lyon », « l'agent de chez Point de Vente », « c'est qui le 07 85 27 19 24 ? ». Filtres : ville, genre (femme ou homme, déduit du prénom : un prénom inconnu ou mixte reste « inconnu », dis-le), telephone (sous n'importe quelle écriture), recherche (nom, agence, adresse, numéro). Rend nom, mail, numéros, agence, villes, statut de prospection, nombre de dossiers apportés.",
+    input_schema: { type: 'object', properties: { ville: { type: 'string' }, genre: { type: 'string', enum: ['femme', 'homme'] }, telephone: { type: 'string', description: 'retrouver un agent par son numéro' }, recherche: { type: 'string' }, limite: { type: 'number' } } },
   },
   {
     name: 'avis_dossier',

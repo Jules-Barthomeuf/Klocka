@@ -7,6 +7,7 @@
 // fois, pour que chaque module les importe au lieu de recevoir un sac de
 // dépendances en paramètre.
 
+import crypto from 'crypto';
 import multer from 'multer';
 import { CHEMIN_UPLOADS, Records } from './db.js';
 import { ADMIN_EMAIL } from './seed.js';
@@ -97,7 +98,9 @@ export const upload = multer({
     destination: UPLOAD_DIR,
     filename: (req, file, cb) => {
       const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-      cb(null, `${Date.now()}-${safe}`);
+      // Une part d'aléa dans le nom : l'horodatage seul se devine, et tout
+      // fichier déposé est servi à toute personne connectée qui a l'adresse.
+      cb(null, `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safe}`);
     },
   }),
   limits: { fileSize: TAILLE_MAX_FICHIER, files: 20 },

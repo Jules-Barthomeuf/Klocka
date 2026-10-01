@@ -322,6 +322,12 @@ export const Conversations = {
     return this.get(id);
   },
 
+  // Sans toucher à la date : renommer ne fait pas remonter une conversation.
+  setMetadata(id, metadata) {
+    db.prepare('UPDATE conversations SET metadata = ? WHERE id = ?').run(JSON.stringify(metadata || {}), id);
+    return this.get(id);
+  },
+
   delete(id) {
     db.prepare('DELETE FROM conversations WHERE id = ?').run(id);
     return { success: true };

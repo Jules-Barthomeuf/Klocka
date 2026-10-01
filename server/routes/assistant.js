@@ -231,6 +231,21 @@ export function monterAssistant(app) {
     const user = currentUser(req);
     const { traiterBoite } = await import('../assistant-boite.js');
     const { mesurer } = await import('../llm-couts.js');
+    // `?flux=1` : chaque étape part au moment où elle se fait (une ligne JSON
+    // par étape), puis la réponse. Le fil de conversation les affiche une à une.
+    if (req.query.flux === '1') {
+      const { ouvrirFlux } = await import('../flux.js');
+      const flux = ouvrirFlux(res);
+      try {
+        const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
+          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape })
+        );
+        flux.fin(resultat);
+      } catch (e) {
+        flux.erreur(e);
+      }
+      return;
+    }
     const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
       traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null })
     );
@@ -285,6 +300,22 @@ export function monterAssistant(app) {
 
   // Ce qui vous attend : rappels, promesses des agents et relances de dossiers,
   // en une seule liste datée.
+  // Les notifications de l'application : la liste, et « vue » / « lue ».
+  app.get('/api/notifications', wrap(async (req, res) => {
+    const { mesNotifications } = await import('../notifications.js');
+    ok(res, mesNotifications(currentUser(req)));
+  }));
+  app.post('/api/notifications/lues', wrap(async (req, res) => {
+    const { toutLire } = await import('../notifications.js');
+    ok(res, toutLire(currentUser(req)));
+  }));
+  app.post('/api/notifications/:id/:quoi', wrap(async (req, res) => {
+    const { marquer } = await import('../notifications.js');
+    const r = marquer(req.params.id, currentUser(req), req.params.quoi === 'vue' ? 'vue' : 'lue');
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
   app.get('/api/assistant/attend', wrap(async (req, res) => {
     const { ceQuiAttend } = await import('../attend.js');
     ok(res, ceQuiAttend(currentUser(req)));
@@ -341,6 +372,12 @@ export function monterAssistant(app) {
     const c = lireConversation(currentUser(req), req.params.id);
     if (!c) return res.status(404).json({ error: 'Conversation introuvable.' });
     ok(res, c);
+  }));
+  app.patch('/api/assistant/conversations/:id', wrap(async (req, res) => {
+    const { renommerConversation } = await import('../assistant-conversations.js');
+    const r = renommerConversation(currentUser(req), req.params.id, req.body?.titre);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
   }));
   app.post('/api/assistant/conversations', wrap(async (req, res) => {
     const { enregistrerConversation } = await import('../assistant-conversations.js');

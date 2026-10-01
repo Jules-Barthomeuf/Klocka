@@ -115,11 +115,12 @@ test('un client ne voit que les projets où il figure, jamais les archivés', ()
   assert.equal(filtrerListe(ADMIN, 'Project', projets).length, 5);
 });
 
-test('les comptes : l’équipe et les mandataires voient la liste, un client lui-même', () => {
-  const comptes = [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }];
+test('les comptes : l’équipe voit la liste, un client ou un mandataire lui-même', () => {
+  const comptes = [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }, { id: 'm1' }];
   assert.deepEqual(filtrerListe(CLIENT, 'User', comptes).map((u) => u.id), ['u1']);
-  assert.equal(filtrerListe(MANDATAIRE, 'User', comptes).length, 3);
-  assert.equal(filtrerListe(ADMIN, 'User', comptes).length, 3);
+  // Le mandataire ne joint jamais un client Klocka : il ne voit pas leurs comptes.
+  assert.deepEqual(filtrerListe(MANDATAIRE, 'User', comptes).map((u) => u.id), ['m1']);
+  assert.equal(filtrerListe(ADMIN, 'User', comptes).length, 4);
 });
 
 test('la lecture unitaire et la lecture en liste disent la même chose', () => {

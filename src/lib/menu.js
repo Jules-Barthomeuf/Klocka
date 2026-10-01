@@ -13,6 +13,7 @@ export const ENTREES_ADMIN = [
   { cle: "Monitoring", label: "Suivi" },
   { cle: "AdminSuggestions", label: "Feedback" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
+  { cle: "Vision", label: "Vision" },
   { cle: "AdminClients", label: "Clients" },
 ];
 
@@ -21,6 +22,8 @@ export const ENTREES_AUTRE = [
   { cle: "AdminLeadMagnets", label: "Lead magnets" },
   { cle: "AdminRessources", label: "Ressources" },
   { cle: "AdminPortail", label: "Portails" },
+  { cle: "AdminMandataires", label: "Mandataires" },
+  { cle: "AdminValidations", label: "Validations" },
   { cle: "ImportProjets", label: "Import de projets" },
   // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
   { cle: "Personnalisation", label: "Personnalisation" },
@@ -30,7 +33,23 @@ export const ENTREES_CLIENT = [
   { cle: "Dashboard", label: "Dashboard" },
   { cle: "MesProjets", label: "Mes projets" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
+  { cle: "Vision", label: "Vision" },
   { cle: "Ressources", label: "Ressources" },
+  { cle: "Personnalisation", label: "Personnalisation" },
+];
+
+// L'espace mandataire K Partners. Les autres pages (Prospection, Clients,
+// Estimation, Mandat, Dossier, Mise en marché) s'y ajoutent au fil de la
+// spécification.
+export const ENTREES_MANDATAIRE = [
+  { cle: "Dashboard", label: "Dashboard" },
+  { cle: "MandataireProspection", label: "Prospection" },
+  { cle: "MandataireClients", label: "Clients" },
+  { cle: "MandataireEstimation", label: "Estimation" },
+  { cle: "MandataireMandat", label: "Mandat" },
+  { cle: "MandataireDossier", label: "Dossier" },
+  { cle: "MandataireMarche", label: "Mise en marché" },
+  { cle: "Feedback", label: "Feedback" },
   { cle: "Personnalisation", label: "Personnalisation" },
 ];
 

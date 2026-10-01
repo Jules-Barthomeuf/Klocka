@@ -102,8 +102,10 @@ export const projetVisiblePar = (user) => (p) =>
  */
 export const VISIBILITE_CLIENT = {
   Project: projetVisiblePar,
-  // L'équipe et les mandataires voient la liste des comptes, un client lui-même.
-  User: (user) => (u) => ['admin', 'mandataire'].includes(user.role) || u.id === user.id,
+  // Un compte non-admin ne voit que lui-même. Les mandataires la voyaient
+  // entière (reste de Base44) : noms et adresses des clients Klocka, alors
+  // que le mandataire ne doit jamais les joindre directement.
+  User: (user) => (u) => u.id === user.id,
   // Une remarque porte un échange de dossier : elle n'appartient qu'à l'équipe
   // et à celui qui l'a écrite.
   Suggestion: sienPar('client_email'),

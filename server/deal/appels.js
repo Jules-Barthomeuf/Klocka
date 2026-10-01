@@ -76,8 +76,13 @@ ${String(texte || '').slice(0, 12000)}
 }
 
 /** La note, d'un bout à l'autre : la fiche de l'agent, le dossier s'il y a un bien. */
-export async function traiterNoteAppel(texte, { user } = {}) {
+export async function traiterNoteAppel(texte, { user, surEtape = null } = {}) {
+  surEtape?.('Lecture de la note');
   const note = await extraireAppel(texte, { par: user });
+  const quiLu = [note.prenom, note.nom].filter(Boolean).join(' ');
+  surEtape?.(quiLu ? `Contact reconnu : ${quiLu}${note.entreprise ? ` (${note.entreprise})` : ''}` : 'Contact non nommé dans la note');
+  if (note.prochaine_relance) surEtape?.(`Relance lue : ${new Date(`${note.prochaine_relance}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`);
+  surEtape?.('Mise à jour de la fiche dans Monday');
   const fait = [];
   const rates = [];
 
@@ -98,6 +103,7 @@ export async function traiterNoteAppel(texte, { user } = {}) {
 
   let dossier = null;
   if (note.bien) {
+    surEtape?.(`Ouverture du dossier${note.bien.nom ? ` « ${note.bien.nom} »` : ''}`);
     try {
       const { executerOutil } = await import('../assistant-commande.js');
       const r = await executerOutil(

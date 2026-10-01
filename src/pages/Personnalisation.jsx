@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
+import { vueDe } from "@/lib/vue";
 import { Check, Eye, EyeOff, Grip, Loader2, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
@@ -243,7 +244,9 @@ export default function Personnalisation() {
   // La vue client (un client, ou un admin qui regarde comme lui) : pas de page
   // d'ouverture, d'entrées de menu ni de bulle d'assistant, et tout dans une
   // seule carte.
-  const vueClient = !admin || localStorage.getItem("previewClientMode") === "true";
+  // Un admin en Vue Client ou en Vue Mandataire règle comme un client : pas
+  // d'éditeur du menu admin ni de réglages de l'assistant dans ces vues.
+  const vueClient = !admin || vueDe(user) !== "admin";
   const theme = themeEffectif(prefs);
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 

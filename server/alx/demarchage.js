@@ -126,7 +126,8 @@ export function contactApollo(reponse, gerant) {
   const p = reponse?.person || null;
   if (!p) return null;
   const emails = [p.email, ...(p.personal_emails || []), ...((p.contact?.contact_emails || []).map((e) => e.email))].filter(Boolean);
-  const tel = (p.phone_numbers || p.contact?.phone_numbers || [])[0]?.sanitized_number || null;
+  const tel = (p.phone_numbers || p.contact?.phone_numbers || [])[0]?.sanitized_number
+    || p.organization?.sanitized_phone || p.organization?.phone || null;
   if (!emails.length && !tel && !p.linkedin_url) return null;
   return {
     gerant: `${gerant.prenom} ${gerant.nom}`, email: emails[0] || null, email_statut: p.email_status || null,
@@ -134,7 +135,7 @@ export function contactApollo(reponse, gerant) {
   };
 }
 
-async function chercherGerant(gerant, societe) {
+export async function chercherGerant(gerant, societe) {
   const cle = `${norm(gerant.prenom)}|${norm(gerant.nom)}|${norm(societe.nom)}`;
   const deja = Records.filter('ApolloRecherche', { cle })[0];
   if (deja && Date.now() - Date.parse(deja.le) < 90 * 86400000) return deja.contact;
@@ -150,6 +151,28 @@ async function chercherGerant(gerant, societe) {
   if (deja) Records.update('ApolloRecherche', deja.id, { contact, le: new Date().toISOString() });
   else Records.create('ApolloRecherche', { cle, contact, le: new Date().toISOString() });
   return contact;
+}
+
+/**
+ * Le contact du propriétaire des murs d'une cible : ses gérants personnes
+ * physiques, cherchés dans Apollo (un crédit par gérant, mémorisé 90 jours).
+ * Rend le meilleur contact — téléphone d'abord, sinon mail — ou null.
+ */
+export async function contactDuProprietaire(cible, { max = 2 } = {}) {
+  if (!apolloConfigure() || !cible?.societe) return null;
+  const nomSociete = cible.societe.nom || cible.proprietaire?.nom || null;
+  if (!nomSociete) return null;
+  const contacts = [];
+  for (const g of gerantsPersonnes(cible.societe).slice(0, max)) {
+    try {
+      const c = await chercherGerant(g, { nom: nomSociete });
+      if (c) contacts.push(c);
+      if (c?.telephone) break;
+    } catch {
+      break; // clé refusée ou quota : on n'insiste pas, on réessaiera plus tard
+    }
+  }
+  return contacts.find((c) => c.telephone) || contacts.find((c) => c.email) || null;
 }
 
 /**

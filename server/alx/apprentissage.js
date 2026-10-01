@@ -21,14 +21,14 @@ import { libelleEmplacement } from './rues.js';
 // propose que ceux du bon sens : « loyer trop haut » n'explique pas une montée.
 export const MOTIFS = [
   { cle: 'loyer_surestime', sens: 'baisse', mot: 'Loyer de marché trop haut pour cette rue', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
-  { cle: 'peu_de_passage', sens: 'baisse', mot: 'Trop peu de passage', portee: 'partout', detail: 'Les rues aussi calmes ne monteront plus au-dessus de cette classe.' },
-  { cle: 'residentielle', sens: 'baisse', mot: 'Rue de quartier, résidentielle', portee: 'partout', detail: 'Les rues de ce type, aussi peu denses, resteront à cette classe.' },
-  { cle: 'trop_courte', sens: 'baisse', mot: 'Trop courte, trop peu de vitrines', portee: 'partout', detail: 'Les rues aussi courtes et aussi peu garnies resteront à cette classe.' },
+  { cle: 'peu_de_passage', sens: 'baisse', mot: 'Trop peu de passage', portee: 'partout', detail: 'Dans cette ville, les rues aussi calmes ne monteront plus au-dessus de cette classe.' },
+  { cle: 'residentielle', sens: 'baisse', mot: 'Rue de quartier, résidentielle', portee: 'partout', detail: 'Dans cette ville, les rues de ce type, aussi peu denses, resteront à cette classe.' },
+  { cle: 'trop_courte', sens: 'baisse', mot: 'Trop courte, trop peu de vitrines', portee: 'partout', detail: 'Dans cette ville, les rues aussi courtes et aussi peu garnies resteront à cette classe.' },
   { cle: 'vacance', sens: 'baisse', mot: 'Beaucoup de locaux vides', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
   { cle: 'loyer_sousestime', sens: 'hausse', mot: 'Loyer de marché trop bas pour cette rue', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
-  { cle: 'artere', sens: 'hausse', mot: 'Artère ou place principale de la ville', portee: 'partout', detail: 'Les rues aussi longues et aussi garnies de la ville monteront à cette classe.' },
-  { cle: 'beaucoup_de_passage', sens: 'hausse', mot: 'Beaucoup de passage', portee: 'partout', detail: 'Les rues aussi passantes et aussi denses monteront à cette classe.' },
-  { cle: 'meilleure', sens: 'hausse', mot: 'Plus commerçante que le loyer ne le dit', portee: 'partout', detail: 'Les rues aussi denses, du même type, monteront à cette classe.' },
+  { cle: 'artere', sens: 'hausse', mot: 'Artère ou place principale de la ville', portee: 'partout', detail: 'Les rues aussi longues et aussi garnies de cette ville monteront à cette classe.' },
+  { cle: 'beaucoup_de_passage', sens: 'hausse', mot: 'Beaucoup de passage', portee: 'partout', detail: 'Dans cette ville, les rues aussi passantes et aussi denses monteront à cette classe.' },
+  { cle: 'meilleure', sens: 'hausse', mot: 'Plus commerçante que le loyer ne le dit', portee: 'partout', detail: 'Dans cette ville, les rues aussi denses, du même type, monteront à cette classe.' },
   { cle: 'autre', sens: 'les_deux', mot: 'Autre raison', portee: 'rue', detail: 'Retenu pour cette rue seulement.' },
 ];
 
@@ -72,7 +72,22 @@ export function enregistrerLecon({ ville, rue, de, vers, motif_cle = 'autre', mo
   }, user?.email);
 }
 
-export const leconsDe = (villeId = null) => Records.list('LeconRue').filter((l) => !villeId || l.ville_id === villeId || motifDe(l.motif_cle).portee === 'partout');
+/**
+ * Les leçons qui valent pour une ville : les siennes seulement. L'emplacement
+ * est un rang dans la ville (25 % en n°1, 35 % en 1 bis, le reste en n°2) ;
+ * une correction faite à Nice porte des seuils absolus (flux, densité) qui,
+ * appliqués à Lyon, y montaient 189 rues sur 214 en n°1. Et pour une même
+ * rue, seule la dernière correction compte : une rue montée puis redescendue
+ * ne laisse pas de plancher derrière elle.
+ */
+export function leconsDe(villeId = null) {
+  const dernieres = new Map();
+  const triees = Records.list('LeconRue')
+    .filter((l) => !villeId || l.ville_id === villeId)
+    .sort((a, b) => String(a.le || '').localeCompare(String(b.le || '')));
+  for (const l of triees) dernieres.set(`${l.ville_id}|${l.cle || l.rue}`, l);
+  return [...dernieres.values()];
+}
 
 /**
  * Les rues de la même ville qui ressemblent à celle qu'on vient de corriger,

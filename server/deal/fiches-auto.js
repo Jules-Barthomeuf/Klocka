@@ -196,6 +196,23 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
       if (deal && nom) Records.update('Deal', deal.id, { nom, cree_par_la_veille: true });
       if (deal) ajouterSuivi(Records.get('Deal', deal.id), { type: 'preanalyse_auto', detail: `Préanalysé tout seul à l'arrivée du mail de ${mail.de_email} dans ${mail.compte} : « ${String(mail.objet || '').slice(0, 120)} »` }, null);
       bilan.crees += 1;
+      // Dans l'application : la fiche est là, préanalysée, à regarder.
+      try {
+        const { notifier } = await import('../notifications.js');
+        const prix = val(l.prix_fai);
+        const verdict = deal?.lots?.[0]?.synthese?.verdict || deal?.lots?.[0]?.evaluation?.verdict || null;
+        const de = String(mail.de || mail.de_email || '').replace(/<[^>]*>/g, '').trim();
+        notifier({
+          titre: 'Nouvelle fiche commerciale',
+          texte: [`Reçue de ${de || 'un agent'}.`, [nom || 'Le bien', typeof prix === 'number' ? `${Math.round(prix).toLocaleString('fr-FR')} €` : null].filter(Boolean).join(', ') + '.', `Pré-analyse faite${verdict ? ` : ${verdict}` : ''}.`].join(' '),
+          lien: `/Dossiers?deal_id=${dossier.deal_id}`,
+          action: 'Voir la pré-analyse',
+          genre: 'fiche',
+          cle: `fiche:${dossier.deal_id}`,
+        });
+      } catch (e) {
+        console.warn(`[veille] notification non posée : ${e?.message || e}`);
+      }
       bilan.lignes.push({ dossier: nom || dossier.deal_id, deal_id: dossier.deal_id, de: mail.de_email, documents: piecesFiche(mail).map(nomPiece), preanalyse: true, agent: dossier.agent_fiche?.phrase || null });
     } catch (e) {
       const essais = (mail.preanalyse_auto?.essais || 0) + 1;

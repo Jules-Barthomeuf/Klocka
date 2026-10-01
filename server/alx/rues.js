@@ -135,9 +135,33 @@ export function classerParRang(rues, seuils = SEUILS) {
       parPrix.has(r) ? `prix au m² ${Math.round(parPrix.get(r) * (parPrix.size - 1)) + 1}e` : null,
     ].filter(Boolean).join(', ');
     const rangTexte = `${place(m, i)} (${detail})`;
-    if (i < n * p1 && m >= (seuils.loyer_plancher_1 ?? 450)) return { ...r, classe: 1, motif: `${densite} · ${fourchette} · ${rangTexte}, dans les ${Math.round(p1 * 100)} % les plus commerçantes` };
-    if (i < n * p15) return { ...r, classe: 1.5, motif: `${densite} · ${fourchette} · ${rangTexte}, dans les ${Math.round(p15 * 100)} % les plus commerçantes` };
-    return { ...r, classe: 2, motif: `${densite} · ${fourchette} · ${rangTexte}` };
+    if (i < n * p1 && m >= (seuils.loyer_plancher_1 ?? 0)) return { ...r, rang_commercial: i, classe: 1, motif: `${densite} · ${fourchette} · ${rangTexte}, dans les ${Math.round(p1 * 100)} % les plus commerçantes` };
+    if (i < n * p15) return { ...r, rang_commercial: i, classe: 1.5, motif: `${densite} · ${fourchette} · ${rangTexte}, dans les ${Math.round(p15 * 100)} % les plus commerçantes` };
+    return { ...r, rang_commercial: i, classe: 2, motif: `${densite} · ${fourchette} · ${rangTexte}` };
+  });
+}
+
+/**
+ * Tient les parts de la ville après les corrections : 25 % des rues en n°1,
+ * jusqu'à 60 % en 1 bis, le reste en n°2 (part_emplacement_1 et _1bis). Les
+ * leçons de l'équipe disent l'ordre (une rue montée passe devant), jamais le
+ * nombre : sans cela, une seule correction montait la moitié d'une ville.
+ * Ne touche qu'aux rues rangées (rang_commercial) ; les autres passent. Pure.
+ */
+export function tenirLesParts(rues, seuils = SEUILS) {
+  const p1 = seuils.part_emplacement_1 ?? 0.25;
+  const p15 = seuils.part_emplacement_1bis ?? 0.60;
+  const rangees = rues.filter((r) => r.classe != null && r.rang_commercial != null)
+    .sort((a, b) => a.classe - b.classe || a.rang_commercial - b.rang_commercial);
+  const n = rangees.length;
+  const place = new Map(rangees.map((r, i) => [r, i]));
+  return rues.map((r) => {
+    if (!place.has(r)) return r;
+    const i = place.get(r);
+    const classe = i < Math.round(n * p1) ? 1 : i < Math.round(n * p15) ? 1.5 : 2;
+    if (classe === r.classe) return r;
+    const mot = classe === 1 ? 'n°1' : classe === 1.5 ? '1 bis' : 'n°2';
+    return { ...r, classe, motif: `${r.motif || ''} · ${mot} pour tenir les parts de la ville (${Math.round(p1 * 100)} % en n°1, ${Math.round((p15 - p1) * 100)} % en 1 bis)`.replace(/^ · /, '') };
   });
 }
 

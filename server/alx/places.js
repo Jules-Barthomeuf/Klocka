@@ -181,6 +181,51 @@ export async function commercesDeLaRue({ nom, ville, points = null, arreter = ()
 const TEXTE = 'https://places.googleapis.com/v1/places:searchText';
 
 /**
+ * Tous les commerces d'une activité dans une ville (« boulangerie, Mâcon »),
+ * comme la recherche de Google Maps : la recherche texte, suivie page à page
+ * (20 lieux par page, 3 pages au plus). Rend les lieux à vitrine, ouverts.
+ * Une à trois requêtes Places par appel.
+ */
+export async function chercherActiviteVille(activite, ville, { centre = null } = {}) {
+  if (!placesConfigure()) throw new ErreurSource('La clé GOOGLE_MAPS_SERVEUR manque.', { service: 'Google Places', classe: 'definitive' });
+  const lieux = [];
+  let pageToken = null;
+  for (let page = 0; page < 3; page += 1) {
+    const corps = {
+      textQuery: `${activite}, ${ville}`,
+      languageCode: 'fr',
+      regionCode: 'FR',
+      maxResultCount: 20,
+      ...(centre?.lat != null ? { locationBias: { circle: { center: { latitude: centre.lat, longitude: centre.lon }, radius: 10000 } } } : {}),
+      ...(pageToken ? { pageToken } : {}),
+    };
+    const r = await fetch(TEXTE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': cle(), 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.primaryType,places.types,places.location,places.businessStatus,places.nationalPhoneNumber,nextPageToken' },
+      body: JSON.stringify(corps),
+      signal: AbortSignal.timeout(20000),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new ErreurSource(`Places a répondu ${r.status}${j.error?.message ? ` : ${j.error.message}` : ''}.`, { service: 'Google Places', statut: r.status });
+    lieux.push(...(j.places || []));
+    pageToken = j.nextPageToken || null;
+    if (!pageToken) break;
+    await pause(300);
+  }
+  return lieux
+    .filter((l) => vitrine(l).oui && (!l.businessStatus || l.businessStatus === 'OPERATIONAL'))
+    .map((l) => ({
+      place_id: l.id,
+      enseigne: l.displayName?.text || null,
+      adresse: String(l.formattedAddress || '').split(',')[0].trim(),
+      activite: motDuType(l.primaryType, l.types || []),
+      telephone: l.nationalPhoneNumber || null,
+      lat: l.location?.latitude ?? null,
+      lon: l.location?.longitude ?? null,
+    }));
+}
+
+/**
  * Un commerce nommé, dans une ville : « Maison Peirano, Cannes ». Pour le
  * chat d'ALX, quand l'équipe désigne une enseigne sans donner l'adresse.
  * Rend le premier lieu de Maps qui a une vitrine, ou null.

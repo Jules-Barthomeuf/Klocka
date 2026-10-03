@@ -25,7 +25,13 @@ test("estimation autonome : brouillon → prête → envoyée, sans validation K
   Records.update('EstimationMandataire', e.id, { rapport: { synthese: 'ok', prix_bas: 400000, prix_haut: 450000 }, statut: 'prete' });
   assert.equal(P.modifierEstimation(e.id, { rapport: { synthese: 'relue' } }, MOI).estimation.rapport.synthese, 'relue', 'le mandataire relit et corrige lui-même');
   assert.equal(P.marquerEstimationEnvoyee(e.id, MOI).estimation.statut, 'envoye');
-  assert.equal(P.modifierEstimation(e.id, { bien: 'x' }, MOI).ok, false, 'un rapport parti ne se modifie plus');
+  assert.equal(P.modifierEstimation(e.id, { adresse: 'ailleurs' }, MOI).ok, false, 'un rapport parti ne se modifie plus');
+  assert.equal(P.modifierEstimation(e.id, { rapport: { synthese: 'après coup' } }, MOI).ok, false, 'son contenu non plus');
+  // Le nom n'est pas le contenu : il se change toujours, et le chat ne le réécrit plus.
+  const renomme = P.modifierEstimation(e.id, { bien: 'Boulangerie Martin, rue Carnot' }, MOI);
+  assert.equal(renomme.ok, true, 'le nom se change même après l\'envoi');
+  assert.equal(renomme.estimation.nom_choisi, true);
+  assert.equal(P.modifierEstimation(e.id, { bien: '   ' }, MOI).ok, false, 'un nom vide est refusé');
   // Un vieux statut du temps de la validation se lit comme « prête ».
   const { estimation: v } = P.creerEstimation({ bien: 'Ancienne' }, MOI);
   Records.update('EstimationMandataire', v.id, { statut: 'valide', rapport: { synthese: 'x' } });

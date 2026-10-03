@@ -253,6 +253,10 @@ export function listerMandataires() {
         analyste_email: f.analyste_email || null,
         telephone: f.telephone || null,
         notes: f.notes || null,
+        // Les mentions de ses avis de valeur.
+        nom_avis: f.nom_avis || null, qualite_avis: f.qualite_avis || null, ville_rsac: f.ville_rsac || null,
+        carte_t: f.carte_t || null, email_avis: f.email_avis || null, ville_signature: f.ville_signature || null,
+        photo_url: f.photo_url || null, signature_url: f.signature_url || null,
         secteur: secteurs.get(email) ? { id: secteurs.get(email).id, nom: secteurs.get(email).nom } : null,
         alertes: alertesDe(f),
       };
@@ -263,7 +267,10 @@ export function poserFicheMandataire(email, patch, user) {
   const propre = String(email || '').toLowerCase();
   if (!propre) return { ok: false, error: 'Adresse du mandataire manquante.' };
   const champs = {};
-  for (const c of ['rsac', 'rc_pro_expire_le', 'attestation_expire_le', 'arrivee_le', 'analyste_email', 'telephone', 'notes']) {
+  // Les mentions de ses avis de valeur aussi : nom, qualité, RSAC, carte T,
+  // ville de signature, photo, signature — saisies une fois par l'admin.
+  for (const c of ['rsac', 'rc_pro_expire_le', 'attestation_expire_le', 'arrivee_le', 'analyste_email', 'telephone', 'notes',
+    'nom_avis', 'qualite_avis', 'ville_rsac', 'carte_t', 'email_avis', 'ville_signature', 'photo_url', 'signature_url']) {
     if (c in patch) champs[c] = patch[c] === '' ? null : patch[c];
   }
   const existante = Records.list('FicheMandataire').find((f) => f.email === propre);
@@ -271,6 +278,47 @@ export function poserFicheMandataire(email, patch, user) {
     ? Records.update('FicheMandataire', existante.id, { ...champs, maj_par: user?.email || null })
     : Records.create('FicheMandataire', { email: propre, ...champs, maj_par: user?.email || null });
   return { ok: true, fiche, alertes: alertesDe(fiche) };
+}
+
+// Ce que le mandataire tient lui-même sur sa page Compte : comment il se
+// présente sur ses documents. Le reste (RSAC, carte, assurances, qualité)
+// engage l'agence : Klocka le saisit, il le lit.
+export const CHAMPS_MANDATAIRE = ['nom_avis', 'telephone', 'email_avis', 'ville_signature'];
+
+/** La fiche d'un mandataire telle qu'il la voit sur sa page Compte. */
+export function compteMandataire(user) {
+  const email = String(user?.email || '').toLowerCase();
+  const f = Records.list('FicheMandataire').find((x) => x.email === email) || {};
+  const secteur = Records.list('SecteurMandataire').find((s) => s.mandataire_email === email) || null;
+  return {
+    ok: true,
+    modifiable: {
+      nom_avis: f.nom_avis || null, telephone: f.telephone || null,
+      email_avis: f.email_avis || null, ville_signature: f.ville_signature || null,
+      photo_url: f.photo_url || null, signature_url: f.signature_url || null,
+    },
+    klocka: {
+      qualite_avis: f.qualite_avis || 'Agent commercial',
+      rsac: f.rsac || null, ville_rsac: f.ville_rsac || null, carte_t: f.carte_t || null,
+      rc_pro_expire_le: f.rc_pro_expire_le || null, attestation_expire_le: f.attestation_expire_le || null,
+      arrivee_le: f.arrivee_le || null,
+      secteur: secteur ? secteur.nom : null,
+    },
+    alertes: alertesDe(f),
+  };
+}
+
+/** Le mandataire modifie SES champs, et seulement eux. */
+export function poserCompteMandataire(user, patch = {}) {
+  const propres = {};
+  for (const c of CHAMPS_MANDATAIRE) {
+    if (!(c in (patch || {}))) continue;
+    const v = patch[c] == null ? '' : String(patch[c]).trim().slice(0, c === 'nom_avis' ? 80 : 120);
+    if (c === 'email_avis' && v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) return { ok: false, error: 'Adresse e-mail illisible.' };
+    propres[c] = v;
+  }
+  const r = poserFicheMandataire(user?.email, propres, user);
+  return r.ok ? compteMandataire(user) : r;
 }
 
 // ---------------------------------------------------------------------------
@@ -603,7 +651,16 @@ function poserRelance(p, etape, user) {
 
 /** Les relances ouvertes d'une fiche s'effacent : la séquence n'en garde qu'une à la fois. */
 function purgerRelances(p) {
-  for (const r of Records.list('Rappel').filter((r) => r.proprietaire_id === p.id && !r.fait_le)) {
+  // Les mots qui désignent cette fiche : le commerce, le nom de famille.
+  const VIDES = new Set(['rue', 'place', 'avenue', 'des', 'les', 'du', 'de', 'la', 'le', 'chez', 'sarl', 'sci', 'sas', 'monsieur', 'madame']);
+  const mots = norm([p.commerce, String(p.nom || '').replace(/^(m|mme|mr|monsieur|madame)\.?\s+/i, '')].filter(Boolean).join(' '))
+    .split(/[^a-z0-9]+/).filter((m) => m.length > 3 && !VIDES.has(m));
+  const nomme = (r) => {
+    if (r.proprietaire_id || r.genre === 'rdv' || r.espace !== 'mandataire' || r.cree_par !== p.mandataire_email) return false;
+    const t = new Set(norm(`${r.quoi || ''} ${r.nom || ''}`).split(/[^a-z0-9]+/));
+    return mots.some((m) => t.has(m));
+  };
+  for (const r of Records.list('Rappel').filter((r) => !r.fait_le && (r.proprietaire_id === p.id || nomme(r)))) {
     Records.delete('Rappel', r.id);
   }
 }
@@ -631,6 +688,7 @@ export function noterSansReponse(id, user) {
     prochaine_action_le: rappel.echeance,
     historique: [...(p.historique || []), { le: new Date().toISOString(), type: 'appel', texte: `Appel sans réponse (tentative ${tentatives})` }],
   });
+  import('./mandataire-monday.js').then((m) => m.synchroniserEnFond(p.id)).catch(() => {});
   return {
     ok: true, cree: true, rappel_id: rappel.id, proprietaire: maj, tentatives,
     titre: rappel.quoi,
@@ -663,6 +721,7 @@ export function noterResultat(id, { statut, texte = null, rappel_dans_jours = nu
     prochaine_action_le: rappel?.echeance || null,
     historique: [...(p.historique || []), { le: new Date().toISOString(), type: 'statut', texte: texte || `Statut : ${LIBELLES_STATUT[statut]}` }],
   });
+  import('./mandataire-monday.js').then((m) => m.synchroniserEnFond(p.id)).catch(() => {});
   return { ok: true, proprietaire: maj, rappel_id: rappel?.id || null };
 }
 

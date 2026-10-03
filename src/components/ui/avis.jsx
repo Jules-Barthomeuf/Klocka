@@ -1,17 +1,12 @@
-/* eslint-disable no-restricted-syntax -- palette de données.
-   Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
-   échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
-   d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
 import React from "react";
 import { toast as sonner, Toaster as SonnerToaster } from "sonner";
-import { Check, CircleAlert, TriangleAlert, Info, LoaderCircle, X } from "lucide-react";
+import { Check, CircleAlert, TriangleAlert, Info, LoaderCircle } from "lucide-react";
 import { J } from "@/design/jetons";
 
-// Les avis de l'application : la carte qui apparaît en haut de l'écran quand
-// quelque chose s'est passé. Une seule forme pour les cinq tons, reprise de la
-// maquette : une pastille d'icône teintée, un titre, une phrase d'explication,
-// parfois un bouton pour aller voir, et un filet coloré qui s'écoule au bas de
-// la carte pendant le temps qu'elle reste affichée.
+// Les avis de l'application : la pilule qui apparaît en haut de l'écran quand
+// quelque chose s'est passé (un dossier transféré, un message reçu, une
+// notification). Une seule forme pour les cinq tons : un point coloré, la
+// phrase, et « Voir » quand il y a quelque chose à ouvrir.
 //
 // Tout passe par sonner pour l'empilement et les minuteurs ; le dessin est à
 // nous. Les pages importent `toast` depuis ce fichier, pas depuis sonner :
@@ -19,10 +14,10 @@ import { J } from "@/design/jetons";
 // celui de Klocka.
 
 const TONS = {
-  succes: { teinte: J["menthe"], Icone: Check, mot: "Succès" },
+  succes: { teinte: J["vert"], Icone: Check, mot: "Succès" },
   erreur: { teinte: J["alerte"], Icone: CircleAlert, mot: "Erreur" },
   avertissement: { teinte: J["ambre"], Icone: TriangleAlert, mot: "Avertissement" },
-  information: { teinte: "#7896eb", Icone: Info, mot: "Information" },
+  information: { teinte: J["menthe"], Icone: Info, mot: "Information" },
   en_cours: { teinte: J["ardoise"], Icone: LoaderCircle, mot: "En cours" },
 };
 
@@ -30,54 +25,40 @@ const DUREES = { erreur: 7000, avertissement: 6000, en_cours: Infinity };
 const dureeDe = (ton, d) => (d != null ? d : DUREES[ton] != null ? DUREES[ton] : 4500);
 
 /**
- * La carte d'un avis (maquette du 1er octobre 2026) : la pastille K de
- * l'assistante à gauche, un titre, la phrase qui explique, un bouton plein
- * pour aller voir, la croix en haut à droite. Le ton se lit à un point
- * coloré sur la pastille (alerte, avertissement) ou à un sablier (en cours) :
- * la carte, elle, reste la même pour tout.
+ * Un avis (maquette du 3 octobre 2026) : une pilule sombre, un point coloré
+ * pour le ton, la phrase, et à droite « Voir » quand il y a quelque chose à
+ * ouvrir. Une précision éventuelle tient sur une ligne, sous la phrase. Un
+ * clic sur la pilule (hors du bouton) la referme.
  *
  * @param {{ton?:string, titre:React.ReactNode, description?:React.ReactNode,
  *   action?:{mot:string, faire:Function}, duree?:number, progression?:number,
  *   onFermer?:Function}} p
- * `poser` accepte aussi `surFermeture` : appelé quand la personne ferme la
- * carte à la croix, pour qu'un suivi en cours ne la repose pas aussitôt.
+ * `poser` accepte aussi `surFermeture` : appelé quand la personne ferme
+ * l'avis, pour qu'un suivi en cours ne le repose pas aussitôt.
  */
 export function Avis({ ton = "information", titre, description = null, action = null, progression = null, onFermer = null }) {
-  const { teinte } = TONS[ton] || TONS.information;
-  const signal = ton === "erreur" || ton === "avertissement";
+  const { teinte, mot } = TONS[ton] || TONS.information;
   return (
     <div
       role="status"
-      className="relative w-[min(440px,calc(100vw-32px))] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine py-5 pl-5 pr-12 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)]"
+      aria-label={typeof titre === "string" ? `${mot} : ${titre}` : mot}
+      onClick={() => onFermer?.()}
+      className={`relative flex w-fit max-w-[min(520px,calc(100vw-32px))] cursor-default items-center gap-3.5 overflow-hidden border border-trait bg-surface-pleine py-2.5 pl-5 shadow-[0_18px_48px_-16px_rgba(0,0,0,0.8)] ${action ? "pr-2.5" : "pr-6"} ${description ? "rounded-[28px]" : "rounded-full"}`}
     >
-      <div className="flex items-start gap-4">
-        <span className="relative mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-[11px] border border-trait text-[15px] text-craie" style={{ background: J["fond"] }}>
-          {ton === "en_cours" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "K"}
-          {signal && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2" style={{ background: teinte, borderColor: J["surface-pleine"] }} />}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-[16px] font-medium leading-snug text-encre" style={signal ? { color: teinte } : undefined}>{titre}</div>
-          {description && <div className="mt-1 text-[14px] leading-[1.55] text-craie">{description}</div>}
-          {action && (
-            <button
-              type="button"
-              onClick={() => { action.faire?.(); onFermer?.(); }}
-              className="mt-3.5 inline-flex h-10 items-center rounded-full px-5 text-[14px] font-medium transition-opacity hover:opacity-90"
-              style={{ background: J["menthe-pale"], color: J["sur-menthe-pale"] }}
-            >
-              {action.mot}
-            </button>
-          )}
-        </div>
+      {ton === "en_cours"
+        ? <LoaderCircle className="h-3.5 w-3.5 flex-none animate-spin text-ardoise" />
+        : <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: teinte, boxShadow: `0 0 10px ${teinte}` }} />}
+      <div className={`min-w-0 flex-1 ${action ? "" : "py-1.5"}`}>
+        <div className="truncate text-[16px] leading-snug text-encre">{titre}</div>
+        {description && <div className="truncate text-[13px] leading-[1.45] text-ardoise">{description}</div>}
       </div>
-      {onFermer && (
+      {action && (
         <button
           type="button"
-          aria-label="Fermer"
-          onClick={() => onFermer()}
-          className="k-avis-fermer absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre"
+          onClick={(e) => { e.stopPropagation(); action.faire?.(); onFermer?.(); }}
+          className="h-11 flex-none rounded-full bg-relief px-5 text-[15px] text-encre transition-colors hover:bg-barre-relief"
         >
-          <X className="h-4 w-4" />
+          {action.mot}
         </button>
       )}
       {progression != null && (

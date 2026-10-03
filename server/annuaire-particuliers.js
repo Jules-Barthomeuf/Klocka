@@ -73,8 +73,11 @@ async function chercher(qui) {
     headers: { 'user-agent': UA, 'accept-language': 'fr-FR,fr;q=0.9' },
     signal: AbortSignal.timeout(20000),
   });
-  if (!r.ok) throw new Error(`L'annuaire a répondu ${r.status}.`);
-  const candidats = lireResultats(await r.text());
+  // 404 : l'annuaire ne connaît personne à ce nom. C'est une réponse (liste
+  // vide, mémorisée comme les autres), pas une panne : la prendre pour une
+  // panne faisait resservir les mêmes noms à chaque tour et bloquait la file.
+  if (!r.ok && r.status !== 404) throw new Error(`L'annuaire a répondu ${r.status}.`);
+  const candidats = r.status === 404 ? [] : lireResultats(await r.text());
   if (deja) Records.update('AnnuaireRecherche', deja.id, { candidats, le: new Date().toISOString() });
   else Records.create('AnnuaireRecherche', { cle, candidats, le: new Date().toISOString() });
   return candidats;

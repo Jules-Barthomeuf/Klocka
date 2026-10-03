@@ -460,6 +460,16 @@ const CHAMPS_FICHE = [
   ["attestation_expire_le", "Attestation expire le", "date"],
   ["analyste_email", "Analyste binôme", "text"],
 ];
+// Ce qui figure sur chacun de ses avis de valeur : saisi une fois ici, le
+// mandataire ne le retape jamais.
+const CHAMPS_AVIS = [
+  ["nom_avis", "Nom sur les avis", "text"],
+  ["qualite_avis", "Qualité (agent commercial…)", "text"],
+  ["ville_rsac", "Ville du RSAC", "text"],
+  ["carte_t", "Carte T : structure et n° CPI", "text"],
+  ["email_avis", "Email sur les avis", "text"],
+  ["ville_signature", "Ville de signature (« Fait à »)", "text"],
+];
 
 function Mandataires() {
   const queryClient = useQueryClient();
@@ -519,6 +529,34 @@ function Mandataires() {
                     <input type={type} value={valeur(c, type)}
                       onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
                       className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none" />
+                  </label>
+                ))}
+              </div>
+              <p className="m-0 mt-4 text-[11.5px] uppercase tracking-[.1em] text-menthe">Sur ses avis de valeur</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {CHAMPS_AVIS.map(([c, mot, type]) => (
+                  <label key={c} className="text-[11.5px] uppercase tracking-[.1em] text-brume">
+                    {mot}
+                    <input type={type} value={valeur(c, type)}
+                      onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
+                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none" />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                {[["photo", "photo_url", "Photo"], ["signature", "signature_url", "Signature"]].map(([type, champ, mot]) => (
+                  <label key={type} className="inline-flex cursor-pointer items-center gap-2.5 text-[12.5px] text-craie hover:text-encre">
+                    {m[champ]
+                      ? <img src={m[champ]} alt="" className={type === "photo" ? "h-10 w-10 rounded-full object-cover" : "h-10 max-w-[120px] rounded bg-white object-contain p-1"} />
+                      : <span className="grid h-10 w-10 place-items-center rounded-full border border-dashed border-bord-vif text-[18px] text-brume">+</span>}
+                    {m[champ] ? `Changer la ${mot.toLowerCase()}` : `Ajouter la ${mot.toLowerCase()}`}
+                    <input type="file" accept="image/*" hidden onChange={async (e) => {
+                      const f = e.target.files?.[0]; e.target.value = "";
+                      if (!f) return;
+                      const form = new FormData(); form.append("fichier", f);
+                      try { await base44.request("POST", `${API}/mandataires/${encodeURIComponent(m.email)}/fichier?type=${type}`, { body: form, isForm: true }); queryClient.invalidateQueries({ queryKey: ["admin-mandataires"] }); toast.success(`${mot} enregistrée`); }
+                      catch (err) { toast.error(err?.message || "Envoi impossible"); }
+                    }} />
                   </label>
                 ))}
               </div>

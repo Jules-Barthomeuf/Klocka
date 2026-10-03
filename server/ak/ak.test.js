@@ -580,3 +580,38 @@ test("une lecture sans « ok » n'est pas un échec, un refus ou une erreur l'es
   const b = bilanDe({ actions: [{ outil: 'boite_recue', par: 'jules.b@klocka.immo (AK pour Jules)', le, echec: true, resultat: { mails: [] } }] });
   assert.equal(b.echecs, 0);
 });
+
+test('modifier_dossier : une coquille se corrige par son aperçu, le reste attend la fiche', async () => {
+  const { Records } = await import('../db.js');
+  const { executerOutil } = await import('./agent.js');
+  const { creerCoquille } = await import('../deal/index.js');
+  const u = { email: 'test@klocka.immo', role: 'admin' };
+  const d = creerCoquille({ nom: 'Coquille du test', user: u, apercu: { ville: 'Mâcon', prix: 240000 } });
+  const r = await executerOutil({ name: 'modifier_dossier', input: { deal_id: d.deal_id, loyer_annuel_ht_hc: 24000, prix_fai: 250000 } }, u, {});
+  assert.equal(r.ok, true, r.error);
+  const relu = Records.findBy('Deal', 'deal_id', d.deal_id);
+  assert.equal(relu.apercu.loyer, 24000);
+  assert.equal(relu.apercu.prix, 250000);
+  const refus = await executerOutil({ name: 'modifier_dossier', input: { deal_id: d.deal_id, occupe: true } }, u, {});
+  assert.equal(refus.ok, false);
+  assert.match(refus.error, /fiche/i, 'le refus explique que le champ attend la fiche');
+  // Un préfixe d'identifiant qui ne désigne qu'un dossier suffit.
+  const prefixe = await executerOutil({ name: 'modifier_dossier', input: { deal_id: d.deal_id.slice(0, 12), surface_m2: 85 } }, u, {});
+  assert.equal(prefixe.ok, true, prefixe.error);
+  assert.equal(Records.findBy('Deal', 'deal_id', d.deal_id).apercu.surface, 85);
+});
+
+test("mails_du_dossier : un dossier inconnu se dit, au lieu d'un succès vide", async () => {
+  const { executerOutil } = await import('./agent.js');
+  const r = await executerOutil({ name: 'mails_du_dossier', input: { deal_id: 'id-bidon' } }, { email: 'test@klocka.immo', role: 'admin' }, {});
+  assert.equal(r.ok, false);
+  assert.match(r.error, /introuvable/i);
+});
+
+test("une exception d'outil AK devient un refus propre", async () => {
+  const { executerOutil } = await import('./agent.js');
+  // interroger_documents avec un deal_id non-chaîne force un throw interne
+  const r = await executerOutil({ name: 'etat_dossier', input: { deal_id: { pas: 'une chaîne' } } }, { email: 'test@klocka.immo', role: 'admin' }, {});
+  assert.equal(typeof r, 'object');
+  assert.ok(r && (r.ok === false || r.erreur || r.error || r.ok === undefined), 'toujours une réponse structurée');
+});

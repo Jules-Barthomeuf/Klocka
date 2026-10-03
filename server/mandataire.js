@@ -92,8 +92,19 @@ export async function tableauDuJour(user) {
   // Les propriétaires à appeler aujourd'hui, avec la raison : ils viennent
   // des fiches (statut « à appeler », date d'action), pas d'une liste à tenir.
   const { mesProprietaires } = await import('./mandataire-espace.js');
+  const { enseigneNationale, bailleurPublic, scoreCible } = await import('./mandataire-veille.js');
+  // On n'affiche que ce qui s'appelle vraiment : un numéro du propriétaire, ou
+  // le commerce d'un propriétaire-occupant. Les fiches sans numéro restent dans
+  // les listes, pas dans la journée. Les enseignes nationales en sont exclues.
+  const cibleDe = (p) => (p.cible_id ? Records.get('Cible', p.cible_id) : null);
+  const telDe = (p, c) => p.telephone || (c?.proprietaire_occupant ? c.telephone : null) || null;
   const appels = mesProprietaires(user)
     .filter((p) => p.statut === 'a_appeler' && p.prochaine_action_le && dans(p.prochaine_action_le) <= 0)
+    .map((p) => ({ p, c: cibleDe(p) }))
+    .filter(({ p, c }) => telDe(p, c))
+    .filter(({ p, c }) => { const proprio = p.nom || c?.proprietaire?.nom || ''; return !enseigneNationale(proprio) && !bailleurPublic(proprio) && !(c?.proprietaire_occupant && enseigneNationale(c?.enseigne || p.commerce || '')); })
+    .sort((a, b) => (b.c ? scoreCible(b.c) : 0) - (a.c ? scoreCible(a.c) : 0) || String(a.p.prochaine_action_le).localeCompare(String(b.p.prochaine_action_le)))
+    .map(({ p, c }) => ({ ...p, telephone: telDe(p, c) }))
     .map((p) => ({
       id: p.id,
       genre: 'appel',
@@ -264,6 +275,19 @@ export const OUTILS_MANDATAIRE = [
     },
   },
   {
+    name: 'corriger_mandat',
+    description:
+      "Une correction sur un mandat demandé ou reçu (« sur le mandat de la boulangerie, le prix c'est 460 000 », « mets les honoraires charge acquéreur »). La demande part telle quelle : à l'agent qui a rédigé le mandat, sinon à l'équipe Klocka, qui corrige et redépose. Un mandat déjà signé ne se corrige plus.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        bien: { type: 'string', description: 'Le bien du mandat visé' },
+        demande: { type: 'string', description: 'La correction, mot pour mot' },
+      },
+      required: ['bien', 'demande'],
+    },
+  },
+  {
     name: 'bail_estimation',
     description: "Dépose la pièce jointe (un bail) sur l'estimation d'un bien, pour rédiger le rapport de valorisation. Crée l'estimation en brouillon si elle n'existe pas. Le rapport se lance ensuite depuis la page Estimation.",
     input_schema: {
@@ -409,7 +433,17 @@ function trouverParBien(entite, bien, user) {
   return tri.length && (tri.length === 1 || tri[0][1] > tri[1][1]) ? tri[0][0] : tri.length ? 'ambigu' : null;
 }
 
-export async function executerOutilMandataire({ name, input = {} }, user, { piece = null } = {}) {
+export async function executerOutilMandataire(appel, user, contexte = {}) {
+  // Meme filet que cote AK : une exception d'outil devient un refus propre.
+  try {
+    return await executerOutilMandataireBrut(appel, user, contexte);
+  } catch (e) {
+    console.warn(`[mandataire] outil ${appel?.name} en erreur :`, e?.stack || e);
+    return { ok: false, error: `L'outil ${appel?.name} a échoué : ${e?.message || e}` };
+  }
+}
+
+async function executerOutilMandataireBrut({ name, input = {} }, user, { piece = null } = {}) {
   if (name === 'annuler_derniere') {
     const genre = input.genre || 'tout';
     const miens = Records.list('Rappel')
@@ -463,18 +497,30 @@ export async function executerOutilMandataire({ name, input = {} }, user, { piec
     if (!frais.bail?.texte && !frais.infos_rdv) {
       return { ok: false, error: "Il manque de quoi estimer : demande la photo du bail (en pièce jointe) ou les infos clés (loyer annuel, surface, état) en une ligne." };
     }
-    const r = await P.genererRapport(e.id, user);
-    if (!r.ok) return r;
-    const rapport = r.estimation.rapport || {};
+    // La rédaction lit le marché (une à deux minutes) : elle part en fond, le
+    // chat répond tout de suite, une notification dit quand le rapport est prêt.
+    const lien = `/EstimationMandataire?estimation=${e.id}`;
+    (async () => {
+      const { notifier } = await import('./notifications.js');
+      try {
+        const r = await P.genererRapport(e.id, user);
+        const rapport = r.estimation?.rapport || {};
+        notifier({
+          pour: user?.email,
+          titre: r.ok ? `Rapport prêt · ${r.estimation.bien}` : `Estimation impossible · ${frais.bien}`,
+          texte: r.ok ? (rapport.prix_bas ? `${rapport.prix_bas.toLocaleString('fr-FR')} – ${rapport.prix_haut.toLocaleString('fr-FR')} €. À relire avant de l'envoyer.` : 'Pas de loyer lu : la valeur ne se calcule pas encore.') : r.error,
+          lien, action: 'Ouvrir le rapport', genre: r.ok ? 'info' : 'erreur', cle: `estimation:${e.id}:${Date.now()}`,
+        });
+      } catch (err) {
+        notifier({ pour: user?.email, titre: `Estimation impossible · ${frais.bien}`, texte: String(err?.message || err), lien, genre: 'erreur' });
+      }
+    })();
     return {
-      ok: true, cree: true, estimation_id: e.id,
-      titre: `Rapport d'estimation « ${r.estimation.bien} »`,
-      pour: rapport.prix_bas ? `${rapport.prix_bas.toLocaleString('fr-FR')} – ${rapport.prix_haut.toLocaleString('fr-FR')} €` : 'sans fourchette : pas de loyer lu',
-      lien: `/EstimationMandataire?estimation=${e.id}`,
-      fourchette: rapport.prix_bas ? { bas: rapport.prix_bas, haut: rapport.prix_haut, taux: rapport.rendement || null } : null,
-      synthese: rapport.synthese || null,
-      vigilance: rapport.vigilance || [],
-      note: 'Le rapport est prêt sur la page Estimation : le mandataire le relit et l\'envoie lui-même.',
+      ok: true, cree: true, en_cours: true, estimation_id: e.id,
+      titre: `Rapport d'estimation « ${frais.bien} »`,
+      pour: 'en rédaction · une notification dira quand il est prêt',
+      lien,
+      note: "La rédaction lit le marché de la rue (une à deux minutes) : dis en une ligne qu'une notification préviendra quand le rapport est prêt. N'invente aucun chiffre.",
     };
   }
 
@@ -496,6 +542,14 @@ export async function executerOutilMandataire({ name, input = {} }, user, { piec
     };
   }
 
+  if (name === 'corriger_mandat') {
+    const m = trouverParBien('MandatMandataire', input.bien, user);
+    if (m === 'ambigu') return { ok: false, error: 'Plusieurs mandats correspondent : demande lequel en une ligne.' };
+    if (!m) return { ok: false, error: `Aucun mandat pour « ${input.bien} ».` };
+    const { corrigerAgentMandat } = await import('./mynotary-agent.js');
+    return corrigerAgentMandat(m.id, input.demande, user);
+  }
+
   if (name === 'ranger_piece' || name === 'bail_estimation') {
     if (!piece?.url) return { ok: false, error: "Il n'y a pas de pièce jointe à ce message." };
     const P = await import('./mandataire-portes.js');
@@ -515,8 +569,7 @@ export async function executerOutilMandataire({ name, input = {} }, user, { piec
     let e = trouverParBien('EstimationMandataire', input.bien, user);
     if (e === 'ambigu') return { ok: false, error: 'Plusieurs estimations correspondent : demande laquelle en une ligne.' };
     if (!e) e = P.creerEstimation({ bien: input.bien, adresse: input.adresse || null }, user).estimation;
-    const fs = await import('fs');
-    const r = await P.deposerBail(e.id, { buffer: fs.readFileSync(piece.chemin), filename: piece.nom, mimetype: piece.mimetype, url: piece.url }, user);
+    const r = await P.deposerBail(e.id, { filename: piece.nom, mimetype: piece.mimetype, url: piece.url, texte: piece.texte ?? null }, user);
     if (!r.ok) return r;
     return { ok: true, cree: true, piece_rangee: true, titre: `Bail déposé sur l'estimation « ${e.bien} »`, pour: "estimation prête à lancer", lien: `/EstimationMandataire?estimation=${e.id}`, note: "Propose en une ligne de rédiger le rapport tout de suite (lancer_estimation), ou le mandataire le fera depuis la page Estimation." };
   }
@@ -525,7 +578,11 @@ export async function executerOutilMandataire({ name, input = {} }, user, { piec
     const { creerRappel } = await rappels();
     const r = await creerRappel({ texte: input.texte, user });
     if (!r.ok) return r;
-    Records.update('Rappel', r.rappel.id, { genre: 'relance', espace: ESPACE });
+    // Liée à la fiche quand elle se reconnaît sans doute : un RDV ou un « pas
+    // vendeur » sur cette personne effacera la relance.
+    const { retrouverProprietaire } = await import('./mandataire-espace.js');
+    const { ambigu, candidats } = retrouverProprietaire(input.texte, user);
+    Records.update('Rappel', r.rappel.id, { genre: 'relance', espace: ESPACE, ...(!ambigu && candidats.length === 1 ? { proprietaire_id: candidats[0].id } : {}) });
     return { ok: true, cree: true, rappel_id: r.rappel.id, titre: r.rappel.titre, pour: jourLisible(r.rappel.echeance) };
   }
 

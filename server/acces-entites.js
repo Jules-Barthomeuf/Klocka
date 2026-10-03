@@ -17,6 +17,7 @@ export const ENTITES_INTERDITES = new Set([
   'CodeInscription',
   'TemplateMatrice',
   'MemoireMatrice',
+  'AgendaAnalyste',
 ]);
 
 /**

@@ -39,7 +39,7 @@ const SITES_SOURCES = [
  * Les sources, en gélules : le favicon et le nom du site dans une pastille
  * grise arrondie, cliquable, comme une citation de source.
  */
-function Sources({ textes, p }) {
+export function Sources({ textes, p }) {
   const sites = new Map();
   for (const t of (textes || []).filter(Boolean)) {
     for (const [motif, liste] of SITES_SOURCES) {
@@ -80,10 +80,24 @@ const TON_STATUT = { a_appeler: "neutre", contacte: "ambre", en_discussion: "men
 const COLONNES = [
   { cle: "activite", titre: "Type d'activité", largeur: 160, lire: (p) => [p.activite || p.cible?.activite, p.ville].filter(Boolean).join(" · ") },
   { cle: "appel", titre: "Appel", largeur: 200 },
+  // Les clients Klocka (anonymisés) que ce commerce pourrait intéresser.
+  { cle: "investisseurs", titre: "Investisseurs possibles", largeur: 200 },
   { cle: "statut", titre: "Statut", largeur: 170 },
   // Deux numéros, jamais mélangés : celui du PROPRIÉTAIRE (Apollo, ou saisi),
   // c'est lui qu'on appelle ; celui du commerce, à part, en dernier recours.
   { cle: "telephone", titre: "Numéro du propriétaire", largeur: 170, editable: true, lire: (p) => p.telephone || "", source: (p) => p.telephone_source || null, sources: (p) => [p.telephone_source] },
+  // Les autres dirigeants de la société propriétaire des murs, chacun son numéro.
+  { cle: "autres_tels", titre: "Autres numéros des murs", largeur: 230, lire: (p) => {
+    const tous = p.telephones_proprietaire?.length ? p.telephones_proprietaire : p.cible?.murs_telephones || [];
+    const principal = String(p.telephone || "").replace(/\D/g, "");
+    return tous.filter((t) => String(t.telephone).replace(/\D/g, "") !== principal).map((t) => `${t.telephone}${t.nom ? ` (${t.nom})` : ""}`).join(" · ");
+  }, sources: (p) => ((p.telephones_proprietaire || p.cible?.murs_telephones || []).length > 1 ? ["Pages Blanches (118000)"] : []) },
+  // Le dirigeant du commerce (l'exploitant) : il connaît son bailleur. Jamais mêlé au propriétaire.
+  { cle: "dirigeant", titre: "Dirigeant du commerce", largeur: 240, lire: (p) => {
+    const tels = p.telephones_dirigeant?.length ? p.telephones_dirigeant : p.cible?.dirigeant?.telephones || [];
+    if (tels.length) return tels.map((t) => `${t.nom ? `${t.nom} · ` : ""}${t.telephone}`).join(" · ");
+    return (p.cible?.dirigeant?.personnes || []).join(", ");
+  }, sources: (p) => ((p.telephones_dirigeant || p.cible?.dirigeant?.telephones || []).length ? ["Pages Blanches (118000)"] : p.cible?.dirigeant ? ["Annuaire des entreprises"] : []) },
   // Le serveur a déjà dédupliqué : le propriétaire porte son âge quand il est
   // son propre gérant, la société n'apparaît que différente de lui, le gérant
   // que différent du propriétaire.
@@ -101,7 +115,7 @@ const COLONNES = [
   { cle: "tentatives", titre: "Tentatives", largeur: 95, lire: (p) => String(p.tentatives || 0) },
   { cle: "prochaine", titre: "Prochaine action", largeur: 220, lire: (p) => [p.prochaine_action_le ? dateCourte(p.prochaine_action_le) : null, p.prochaine_action].filter(Boolean).join(" · ") },
   { cle: "remarque", titre: "Remarque", largeur: 260, editable: true, lire: (p) => p.remarque || "" },
-  { cle: "tel_commerce", titre: "Numéro du commerce", largeur: 160, lire: (p) => p.cible?.telephone || "", sources: (p) => [p.cible?.telephone && p.cible?.source] },
+  { cle: "tel_commerce", titre: "Numéro du commerce", largeur: 160, lire: (p) => p.telephone_commerce || p.cible?.telephone || "", sources: (p) => [p.cible?.telephone ? p.cible?.source : p.telephone_commerce ? "Data-B" : null] },
   { cle: "dernier", titre: "Dernier échange", largeur: 260, lire: (p) => { const h = [...(p.historique || [])].reverse().find((x) => x.type !== "creation"); return h ? `${dateCourte(h.le)} · ${h.texte}` : ""; } },
 ];
 
@@ -293,9 +307,11 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
       )}
       </div>
 
-      <div className="overflow-auto rounded-[16px] border border-trait bg-rail" style={{ maxHeight: "calc(100vh - 280px)" }}>
+      {/* Pas de hauteur fixe : le tableau s'allonge avec ses lignes, la page défile.
+          Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
+      <div className="overflow-x-auto rounded-[16px] border border-trait bg-rail">
         <table className="min-w-full border-collapse text-[13.5px]">
-          <thead className="sticky top-0 z-20">
+          <thead>
             <tr>
               <th className="sticky left-0 z-30 border-b border-trait bg-rail py-3.5 pl-4 pr-1" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                 <button type="button" onClick={() => setCoches(tout ? new Set() : new Set(lignes.map((p) => p.id)))} disabled={!lignes.length}
@@ -337,12 +353,28 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                         <span className="inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
                           {tel ? (
                             <button type="button" onClick={() => setAppelFiche(p.id)} className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full bg-menthe px-3 text-[12.5px] text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button>
+                          ) : (p.telephone_commerce || p.cible?.telephone) ? (
+                            // Pas encore le numéro du propriétaire : le commerce est une porte
+                            // d'entrée (le locataire connaît souvent son bailleur).
+                            <button type="button" onClick={() => setAppelFiche(p.id)} title="Le numéro du propriétaire n'est pas encore trouvé : appeler le commerce pour remonter jusqu'à lui"
+                              className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}><PhoneCall className="h-3.5 w-3.5" />Via le commerce</button>
                           ) : <span className="flex-none text-[12.5px] text-bord-vif">{p.cible?.proprietaire ? "pas de n° du proprio" : "proprio inconnu"}</span>}
                           <button type="button" onClick={() => sansReponse.mutate(p.id)} disabled={sansReponse.isPending} title="Pas de réponse : poser la relance suivante"
                             className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-2.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe disabled:opacity-40" style={{ background: "transparent" }}>
                             Sans rép.
                           </button>
                         </span>
+                      ) : c.cle === "investisseurs" ? (
+                        (p.investisseurs || []).length ? (
+                          <span className="flex flex-wrap gap-1">
+                            {p.investisseurs.map((x) => (
+                              <span key={x.reference} title={[x.pourquoi, x.budget].filter(Boolean).join(" · ")}
+                                className="inline-flex items-center rounded-full bg-menthe/[0.12] px-2.5 py-0.5 text-[12.5px] text-encre">
+                                {x.reference}{x.budget ? <span className="ml-1.5 text-ardoise">{x.budget}</span> : null}
+                              </span>
+                            ))}
+                          </span>
+                        ) : <span className="text-[12.5px] text-bord-vif">aucun pour l'instant</span>
                       ) : c.cle === "statut" ? (
                         <span className={`relative inline-flex h-8 items-center gap-2 rounded-full pl-3 pr-2 text-[13.5px] ${TEINTES_STATUT[TON_STATUT[p.statut] || "neutre"]}`}>
                           <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: "var(--point)" }} />
@@ -353,7 +385,7 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                             {Object.entries(libelles).map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
                           </select>
                         </span>
-                      ) : c.cle === "tel_commerce" && p.cible?.telephone ? (
+                      ) : c.cle === "tel_commerce" && p.cible?.telephone && !p.telephone_commerce ? (
                         <span className="whitespace-nowrap">
                           <a href={`tel:${String(p.cible.telephone).replace(/[^\d+]/g, "")}`} className="text-[13.5px] text-craie hover:text-encre" style={{ fontVariantNumeric: "tabular-nums" }} title="Le commerce, pas le propriétaire">{p.cible.telephone}</a>
                           <Sources textes={[p.cible?.source]} p={p} />

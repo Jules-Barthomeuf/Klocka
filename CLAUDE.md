@@ -11,6 +11,10 @@
 - Il est écrit par le serveur au démarrage puis une fois par jour, et à la main par `npm run etat` (`npm run etat -- 90` pour 90 jours). Écrit, jamais édité : une correction se fait dans `server/etat-plateforme.js` ou dans les leviers de `server/llm-couts.js`.
 - Le Feedback (page Feedback et bulle en haut à droite) enregistre une remarque, rien de plus : Jules la lit et change son état à la main. Rien ne s'y déclenche tout seul, et rien ne doit s'y brancher.
 
+## Design
+- `docs/design-system.md` dit quoi choisir pour tout écran : couleurs par rôle (jetons de `src/design/jetons.json`, jamais d'hexadécimal), les sept tailles de texte, les rayons, les listes en lignes, l'écran scindé chat / aperçu, les documents imprimés, les mots de l'interface. Lisez-le avant tout choix visuel, et reprenez un motif existant plutôt que d'en inventer un.
+- Une décision de design prise avec Jules s'y ajoute, datée, pour ne pas avoir à la reposer.
+
 ## Vérifications
 - `npm run lint`, `npm test` et `npm run build` doivent passer avant un commit.
 - Le serveur ne se recharge pas tout seul : `kill $(pgrep -f "node server/index.js")`, le superviseur le relance en une dizaine de secondes.

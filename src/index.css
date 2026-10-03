@@ -758,3 +758,113 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
   .k-impression tr { break-inside: avoid; }
   @page { margin: 12mm; }
 }
+
+/* L'onglet Agent IA : son liseré multicolore tourne doucement. */
+@property --agent-angle { syntax: "<angle>"; initial-value: 90deg; inherits: false; }
+@keyframes agent-tourne { to { --agent-angle: 450deg; } }
+/* Le liseré seul : un dégradé masqué en anneau, l'intérieur reste transparent. */
+.agent-onglet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(var(--agent-angle, 90deg), rgb(var(--k-bleu-rgb) / 0.75), rgb(var(--k-menthe-rgb) / 0.8), rgb(var(--k-jaune-rgb) / 0.7), rgb(var(--k-ambre-rgb) / 0.75), rgb(var(--k-alerte-rgb) / 0.55), rgb(var(--k-bleu-rgb) / 0.75));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: agent-tourne 7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .agent-onglet::before { animation: none; } }
+
+/* Une page qui veut tout l'écran (l'estimation : le chat et l'avis côte à
+   côte) pose cette classe sur <html> : la barre latérale s'efface, le
+   contenu reprend sa largeur. Elle revient dès que la page retire la classe. */
+html.k-sans-barre .k-barre-laterale { display: none !important; }
+html.k-sans-barre .k-contenu { margin-left: 0 !important; }
+html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
+
+/* La barre du haut des aperçus (avis de valeur, mandat) : noire en sombre ;
+   en clair, la surface claire, sinon le texte gris du thème y serait illisible. */
+.k-barre-apercu { background-color: #000000; }
+:root[data-theme="clair"] .k-barre-apercu { background-color: rgb(var(--k-surface-pleine-rgb)); }
+
+/* La grille de points des panneaux secondaires (fiches, cartes de détail,
+   fenêtres) : des points de 1 px, au pas de 14 px, arrêtés à une marge des
+   bords. Tout est dans le fond de l'élément lui-même : rien ne capte les
+   clics, et la grille ne défile pas avec le contenu (un fond reste attaché à
+   la boîte quand son contenu défile). Les quatre bandes du dessus, de la
+   couleur du fond, effacent la grille dans la marge. Le pas et la marge se
+   règlent par --k-grid-pas et --k-grid-marge (composant GridSurface). Pas de
+   lignes sous les points (décision du 2 oct. 2026). */
+.k-grid {
+  --k-grid-pas: 14px;
+  --k-grid-marge: 14px;
+  --k-grid-fond: #161716;
+  --k-grid-point: rgb(255 255 255 / calc(0.08 * var(--k-grid-force, 1)));
+  background-color: var(--k-grid-fond);
+  background-image:
+    linear-gradient(var(--k-grid-fond), var(--k-grid-fond)),
+    linear-gradient(var(--k-grid-fond), var(--k-grid-fond)),
+    linear-gradient(var(--k-grid-fond), var(--k-grid-fond)),
+    linear-gradient(var(--k-grid-fond), var(--k-grid-fond)),
+    radial-gradient(circle, var(--k-grid-point) 0.6px, transparent 0.75px);
+  background-size:
+    100% var(--k-grid-marge),
+    100% var(--k-grid-marge),
+    var(--k-grid-marge) 100%,
+    var(--k-grid-marge) 100%,
+    var(--k-grid-pas) var(--k-grid-pas);
+  /* Le point, centré dans sa case, recule d'un demi-pas (et d'un demi-pixel,
+     pour tomber sur un pixel entier) : le premier tombe au coin de la marge. */
+  background-position:
+    top left,
+    bottom left,
+    top left,
+    top right,
+    calc(var(--k-grid-marge) - var(--k-grid-pas) / 2 + 0.5px) calc(var(--k-grid-marge) - var(--k-grid-pas) / 2 + 0.5px);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  background-attachment: scroll;
+  background-origin: padding-box;
+  background-clip: padding-box;
+}
+:root[data-theme="clair"] .k-grid {
+  --k-grid-fond: rgb(var(--k-surface-pleine-rgb));
+  --k-grid-point: rgb(0 0 0 / calc(0.1 * var(--k-grid-force, 1)));
+}
+/* Compte > Grille de points : « Panneaux et fenêtres » décoché, le fond reste, sans les points. */
+:root[data-grille]:not([data-grille~="panneaux"]) .k-grid:not(.k-grid-toujours) { background-image: none; }
+
+/* Les mêmes points posés sur une zone qui garde son propre fond (barre
+   latérale, fond des pages, listes de prospection) : un calque derrière le
+   contenu, à la marge près, qui ne capte pas les clics. La zone doit être
+   positionnée (relative, fixed…). `data-zone` la relie au réglage de Compte. */
+.k-points { isolation: isolate; }
+.k-points::before {
+  content: "";
+  display: none;
+  position: absolute;
+  inset: var(--k-grid-marge, 14px);
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--k-grid-point, rgb(255 255 255 / calc(0.08 * var(--k-grid-force, 1)))) 0.6px, transparent 0.75px);
+  background-size: var(--k-grid-pas, 14px) var(--k-grid-pas, 14px);
+  background-position: calc(var(--k-grid-pas, 14px) / -2 + 0.5px) calc(var(--k-grid-pas, 14px) / -2 + 0.5px);
+}
+:root[data-theme="clair"] .k-points::before { --k-grid-point: rgb(0 0 0 / calc(0.1 * var(--k-grid-force, 1))); }
+:root[data-grille~="listes"] .k-points[data-zone="listes"]::before,
+:root[data-grille~="barre"] .k-points[data-zone="barre"]::before,
+:root[data-grille~="fond"] .k-points[data-zone="fond"]::before,
+:root[data-grille~="panneaux"] .k-points[data-zone="panneaux"]::before { display: block; }
+
+/* Là où les points se dessinent, pas de traits gris horizontaux entre les
+   rangées : les points et l'espacement séparent déjà (décision du 2 oct. 2026).
+   Les tableaux gardent leurs lignes, sans elles une rangée ne se suit plus. */
+:root[data-grille~="panneaux"] .k-grid :is(.border-t, .border-b, .border-y):not(th, td),
+:root[data-grille~="listes"] .k-points[data-zone="listes"] :is(.border-t, .border-b, .border-y):not(th, td),
+:root[data-grille~="barre"] .k-points[data-zone="barre"] :is(.border-t, .border-b, .border-y):not(th, td) {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+:root[data-grille~="panneaux"] .k-grid :is(.divide-y) > * { border-color: transparent; }

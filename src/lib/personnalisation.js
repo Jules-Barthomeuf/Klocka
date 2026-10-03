@@ -37,6 +37,8 @@ export const DEFAUT = Object.freeze({
   menu_ordre: [],
   menu_autre: null, // les clés rangées dans « Autre » ; null : les groupes d'origine
   assistant: "droite", // droite | gauche | masquee
+  grille: ["panneaux", "listes"], // où poser la grille de points : panneaux | listes | barre | fond
+  grille_intensite: 50, // la force des points, de 10 (à peine) à 100 (marqués) ; 50 : celle d'origine
 });
 
 /** Les choix offerts, dans l'ordre où la page les montre : [valeur, libellé]. */
@@ -53,6 +55,7 @@ export const OPTIONS = {
   animations: [["normales", "Normales"], ["reduites", "Réduites"]],
   barre: [["depliee", "Dépliée"], ["repliee", "Repliée"]],
   assistant: [["droite", "En bas à droite"], ["gauche", "En bas à gauche"], ["masquee", "Masquée"]],
+  grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes de prospection"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
 };
 
 /** Les polices, telles que le CSS les lit. Toutes sont déjà chargées (index.html). */
@@ -70,7 +73,10 @@ export function normaliser(brut) {
   const p = { ...DEFAUT, ...(brut && typeof brut === "object" ? brut : {}) };
   p.taille = Number(p.taille);
   p.halo = p.halo !== false && p.halo !== "false";
-  for (const [k, valeurs] of Object.entries(CHOIX)) if (k !== "halo" && !valeurs.includes(p[k])) p[k] = DEFAUT[k];
+  for (const [k, valeurs] of Object.entries(CHOIX)) if (k !== "halo" && k !== "grille" && !valeurs.includes(p[k])) p[k] = DEFAUT[k];
+  p.grille = Array.isArray(p.grille) ? [...new Set(p.grille.map(String).filter((z) => CHOIX.grille.includes(z)))] : [...DEFAUT.grille];
+  const force = Math.round(Number(p.grille_intensite));
+  p.grille_intensite = Number.isFinite(force) ? Math.min(100, Math.max(10, force)) : DEFAUT.grille_intensite;
   p.accueil = typeof p.accueil === "string" && /^[A-Za-z]{2,40}$/.test(p.accueil) ? p.accueil : DEFAUT.accueil;
   p.menu_masques = Array.isArray(p.menu_masques) ? p.menu_masques.map(String).slice(0, 40) : [];
   p.menu_ordre = Array.isArray(p.menu_ordre) ? p.menu_ordre.map(String).slice(0, 40) : [];
@@ -228,6 +234,10 @@ export function appliquerPrefs(brut) {
   const fondDefaut = clair ? choixFond === "perle" : choixFond === "noir";
   poser("--k-fond-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.fond)));
   poser("--k-fond-halo-rgb", fondDefaut || !fond ? null : triplet(hexVersRgb(fond.halo)));
+  // En anthracite, la barre de chat (et les bulles envoyées, qui partagent son
+  // jeton) se confondrait avec le fond : elle prend la teinte de la barre de
+  // navigation (décision du 3 oct. 2026).
+  poser("--k-barre-rgb", !clair && choixFond === "anthracite" ? triplet(hexVersRgb(jetons.couleurs.rail)) : null);
 
   // Le fond des cartes à grille, des tableaux et des champs de recherche : la
   // teinte d'un onglet au repos, la surface à 60 % sur le fond choisi. Calculé
@@ -250,6 +260,10 @@ export function appliquerPrefs(brut) {
   racine.dataset.boutons = p.boutons;
   racine.dataset.animations = p.animations;
   racine.dataset.assistant = p.assistant;
+  // Les zones où la grille de points se dessine (index.css, .k-grid et .k-points).
+  racine.dataset.grille = p.grille.join(" ");
+  // Leur force : 50 rend les points d'origine, 100 les double.
+  poser("--k-grid-force", p.grille_intensite === 50 ? null : String(p.grille_intensite / 50));
   // La taille : tout grossit d'un bloc, texte et espacements.
   st.zoom = p.taille === 100 ? "" : String(p.taille / 100);
 }

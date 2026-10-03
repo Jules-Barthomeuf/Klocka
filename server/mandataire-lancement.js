@@ -415,6 +415,10 @@ export function colonnesDeCible(c) {
     occupant_depuis: c.occupant?.depuis || null,
     proprietaire_occupant: !!c.proprietaire_occupant,
     proprietaire_cherche_le: c.proprietaire_cherche_le || null,
+    // Tous les numéros des dirigeants de la société propriétaire, et le
+    // dirigeant du commerce : ce que la veille a trouvé.
+    murs_telephones: (c.murs_telephones || []).map((t) => ({ telephone: t.telephone, nom: t.nom || null })),
+    dirigeant: c.dirigeant ? { societe: c.dirigeant.societe || null, personnes: (c.dirigeant.personnes || []).map((x) => x.nom), telephones: (c.dirigeant.telephones || []).map((t) => ({ telephone: t.telephone, nom: t.nom || null })) } : null,
   };
 }
 
@@ -555,7 +559,7 @@ export function mesListes(user) {
         .filter((p) => p.liste_id === l.id)
         .map((p) => ({ ...p, cible: colonnesDeCible(p.cible_id ? Records.get('Cible', p.cible_id) : null) }));
       const par = (s) => dedans.filter((p) => s.includes(p.statut)).length;
-      return { id: l.id, nom: l.nom, suggeree: !!l.suggeree, cree_le: l.cree_le, total: dedans.length, a_appeler: par(['a_appeler']), contactes: par(['contacte', 'en_discussion']), rdv: par(['rdv_pris', 'mandat_signe']), fiches: dedans };
+      return { id: l.id, nom: l.nom, suggeree: !!l.suggeree, agent: !!l.agent, cree_le: l.cree_le, total: dedans.length, a_appeler: par(['a_appeler']), contactes: par(['contacte', 'en_discussion']), rdv: par(['rdv_pris', 'mandat_signe']), fiches: dedans };
     });
 }
 
@@ -570,14 +574,61 @@ export async function exporter({ liste_id = null, nom = null, prospection_id = n
   }
   let ajoutes = 0;
   const refuses = [];
-  const { pousserProspect } = await import('./mandataire-monday.js');
+  const { synchroniserEnFond } = await import('./mandataire-monday.js');
   for (const id of cible_ids || []) {
     const c = Records.get('Cible', id);
     if (!c) continue;
     const r = creerProprietaire({ cible_id: c.id, prospection_id, nom: c.proprietaire?.nom || null, commerce: c.enseigne || c.activite || null, activite: c.activite || null, ville: c.ville || null, adresse: c.adresse || null, telephone: c.murs_telephone || null }, user);
     if (!r.ok) { refuses.push(`${c.enseigne || c.adresse} : ${r.error}`); continue; }
     Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: liste.id, ...(c.murs_telephone ? { telephone_source: c.murs_telephone_source || null, adresse_proprietaire: c.murs_adresse_proprietaire || null } : {}) });
-    pousserProspect(Records.get('ProprietaireMandataire', r.proprietaire.id)).catch(() => {});
+    synchroniserEnFond(r.proprietaire.id);
+    ajoutes += 1;
+  }
+  if (ajoutes) completerProprietairesListe(liste.id, user);
+  return { ok: true, liste: { id: liste.id, nom: liste.nom }, ajoutes, refuses };
+}
+
+/**
+ * Les établissements cochés d'une prospective Data-B → des fiches dans une
+ * liste. Chacun devient une cible (dédoublonnée par SIRET) : le numéro de
+ * Data-B reste celui du commerce, et la recherche du propriétaire des murs
+ * et de SON numéro part aussitôt en fond, comme pour une prospection ALX.
+ */
+export async function exporterDataB({ jeton = null, liste_id = null, nom = null, lignes = [] }, user) {
+  if (!Array.isArray(lignes) || !lignes.length) return { ok: false, error: 'Cochez au moins un commerce.' };
+  const { creerProprietaire } = await import('./mandataire-espace.js');
+  const { cibleDepuisDataB } = await import('./mandataire-prospective.js');
+  const { synchroniserEnFond } = await import('./mandataire-monday.js');
+  let liste = liste_id ? Records.get('ListeMandataire', liste_id) : null;
+  if (liste_id && (!liste || liste.mandataire_email !== moi(user))) return { ok: false, error: 'Liste introuvable.' };
+  if (!liste) {
+    if (!String(nom || '').trim()) return { ok: false, error: 'Donnez un nom à la liste.' };
+    liste = Records.create('ListeMandataire', { mandataire_email: moi(user), nom: String(nom).trim().slice(0, 80), cree_le: new Date().toISOString() });
+  }
+  const p0 = jeton ? Records.list('ProspectiveDataB').find((x) => x.jeton === jeton && x.mandataire_email === moi(user)) : null;
+  let ajoutes = 0;
+  const refuses = [];
+  for (const l of lignes) {
+    const c = await cibleDepuisDataB(l, { villeNom: p0?.criteres?.ville?.nom || null, user });
+    if (!c.ok) { refuses.push(`${l.enseigne || l.nom} : ${c.error}`); continue; }
+    const r = creerProprietaire({
+      cible_id: c.cible.id,
+      nom: c.cible.proprietaire?.nom || null,
+      commerce: c.cible.enseigne || l.nom || null,
+      activite: c.cible.activite || null,
+      ville: c.cible.ville || null,
+      adresse: c.cible.adresse || null,
+      // Le numéro du propriétaire seulement : celui de Data-B est le commerce.
+      telephone: c.cible.murs_telephone || null,
+      email: null,
+    }, user);
+    if (!r.ok) { refuses.push(`${l.enseigne || l.nom} : ${r.error}`); continue; }
+    Records.update('ProprietaireMandataire', r.proprietaire.id, {
+      liste_id: liste.id,
+      datab_siret: l.siret || null,
+      ...(c.cible.murs_telephone ? { telephone_source: c.cible.murs_telephone_source || null } : {}),
+    });
+    synchroniserEnFond(r.proprietaire.id);
     ajoutes += 1;
   }
   if (ajoutes) completerProprietairesListe(liste.id, user);

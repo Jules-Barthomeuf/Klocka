@@ -14,7 +14,7 @@ export function monterMandataire(app) {
   const M = () => import('../mandataire.js');
   const C = () => import('../assistant-conversations.js');
   // Deux historiques : le chat du tableau de bord, et celui de la prospection.
-  const espaceDe = (req) => ({ espace: req.query?.espace === 'prospection' ? 'mandataire-prospection' : req.query?.espace === 'affinage' ? 'mandataire-affinage' : 'mandataire' });
+  const espaceDe = (req) => ({ espace: req.query?.espace === 'prospection' ? 'mandataire-prospection' : req.query?.espace === 'affinage' ? 'mandataire-affinage' : req.query?.espace === 'estimation' ? 'mandataire-estimation' : req.query?.espace === 'mandat' ? 'mandataire-mandat' : 'mandataire' });
 
   // Le rôle se contrôle avant multer : un compte client n'écrit pas 50 Mo sur
   // le disque pour recevoir un 403 ensuite.
@@ -24,17 +24,63 @@ export function monterMandataire(app) {
     const user = mandataire(req, res);
     if (!user) return;
     const texte = String(req.body?.texte || '').trim();
-    // Une pièce jointe : rangée dans les dépôts, lue (PDF, photo, Word), puis confiée à l'assistant.
-    let piece = null;
-    if (req.file) {
+    if (!texte && !req.file) return res.status(400).json({ error: 'Rien à traiter.' });
+    // Une pièce jointe : rangée dans les dépôts, lue (PDF, photo, Word), puis
+    // confiée à l'assistant. La lecture peut prendre du temps (OCR d'une photo
+    // de bail) : en flux, elle se fait APRÈS l'ouverture du flux, sous sa
+    // propre étape, au lieu de laisser l'écran muet.
+    const chargerPiece = async (etape = null) => {
+      if (!req.file) return null;
+      etape?.(`Lecture de la pièce jointe : ${req.file.originalname}`);
       const fs = await import('fs');
       const { ingerer } = await import('../deal/ingest.js');
       let lu = '';
       try { lu = (await ingerer({ buffer: fs.readFileSync(req.file.path), filename: req.file.originalname, mimetype: req.file.mimetype })).texte || ''; } catch (e) { console.warn(`[mandataire] pièce illisible : ${e?.message || e}`); }
-      piece = { nom: req.file.originalname, url: `/uploads/${req.file.filename}`, chemin: req.file.path, mimetype: req.file.mimetype, texte: lu };
-    }
-    if (!texte && !piece) return res.status(400).json({ error: 'Rien à traiter.' });
+      if (etape && lu) etape(`Document lu (${lu.length >= 2000 ? `${Math.round(lu.length / 1000)} k caractères` : `${lu.length} caractères`})`);
+      return { nom: req.file.originalname, url: `/uploads/${req.file.filename}`, chemin: req.file.path, mimetype: req.file.mimetype, texte: lu };
+    };
     if (typeof req.body?.historique === 'string') { try { req.body.historique = JSON.parse(req.body.historique); } catch { req.body.historique = []; } }
+    if (typeof req.body?.selection === 'string') { try { req.body.selection = JSON.parse(req.body.selection); } catch { req.body.selection = null; } }
+    // Le chat de l'Estimation : le questionnaire de l'avis de valeur.
+    if (req.query.espace === 'estimation') {
+      const { discuterEstimation } = await import('../mandataire-avis.js');
+      const { mesurer } = await import('../llm-couts.js');
+      if (req.query.flux === '1') {
+        const { ouvrirFlux } = await import('../flux.js');
+        const flux = ouvrirFlux(res);
+        try {
+          const piece = await chargerPiece(flux.etape);
+          const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
+            discuterEstimation({ historique: req.body?.historique, texte, user, piece, mode: req.body?.mode, conversation_id: req.body?.conversation_id || null, selection: req.body?.selection || null, surEtape: flux.etape }));
+          flux.fin(resultat);
+        } catch (e) { flux.erreur(e); }
+        return;
+      }
+      const piece = await chargerPiece();
+      const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
+        discuterEstimation({ historique: req.body?.historique, texte, user, piece, mode: req.body?.mode, conversation_id: req.body?.conversation_id || null, selection: req.body?.selection || null }));
+      return ok(res, resultat);
+    }
+    // Le chat du Mandat : les questions du mandat de vente, puis MyNotary.
+    if (req.query.espace === 'mandat') {
+      const { discuterMandat } = await import('../mandataire-mandat-chat.js');
+      const { mesurer } = await import('../llm-couts.js');
+      if (req.query.flux === '1') {
+        const { ouvrirFlux } = await import('../flux.js');
+        const flux = ouvrirFlux(res);
+        try {
+          const piece = await chargerPiece(flux.etape);
+          const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
+            discuterMandat({ historique: req.body?.historique, texte, user, piece, conversation_id: req.body?.conversation_id || null, surEtape: flux.etape }));
+          flux.fin(resultat);
+        } catch (e) { flux.erreur(e); }
+        return;
+      }
+      const piece = await chargerPiece();
+      const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
+        discuterMandat({ historique: req.body?.historique, texte, user, piece, conversation_id: req.body?.conversation_id || null }));
+      return ok(res, resultat);
+    }
     // Le chat de la Prospection : même structure, autre moteur (Data Prospective).
     if (req.query.espace === 'prospection') {
       const { discuterProspection } = await import('../mandataire-prospective.js');
@@ -62,6 +108,7 @@ export function monterMandataire(app) {
       let coupe = false;
       res.on('close', () => { if (!res.writableEnded) coupe = true; });
       try {
+        const piece = await chargerPiece(flux.etape);
         const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
           discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, prospection_id: req.body?.prospection_id || null })
         );
@@ -71,6 +118,7 @@ export function monterMandataire(app) {
       }
       return;
     }
+    const piece = await chargerPiece();
     const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
       discuter({ historique: req.body?.historique, texte, user, piece, prospection_id: req.body?.prospection_id || null })
     );
@@ -240,7 +288,14 @@ export function monterMandataire(app) {
     const user = mandataire(req, res);
     if (!user) return;
     const { LIBELLES_STATUT } = await E();
-    ok(res, { listes: (await L()).mesListes(user), libelles: LIBELLES_STATUT });
+    // Chaque commerce porte les investisseurs Klocka (anonymisés) qu'il pourrait intéresser.
+    const { matcheurInvestisseurs } = await import('../mandataire-agent.js');
+    const investisseurs = await matcheurInvestisseurs();
+    const listes = await Promise.all((await L()).mesListes(user).map(async (l) => ({
+      ...l,
+      fiches: await Promise.all(l.fiches.map(async (f) => ({ ...f, investisseurs: await investisseurs({ ...(f.cible || {}), ...f, ville: f.ville || f.cible?.ville }) }))),
+    })));
+    ok(res, { listes, libelles: LIBELLES_STATUT });
   }));
   app.post('/api/mandataire/listes/exporter', wrap(async (req, res) => {
     const user = mandataire(req, res);
@@ -268,6 +323,48 @@ export function monterMandataire(app) {
     if (!user) return;
     const r = (await L()).supprimerListe(req.params.id, user);
     if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  // --- L'agent IA : il cherche toute la journée sur le secteur ---------------
+  const AG = () => import('../mandataire-agent.js');
+  app.get('/api/mandataire/agent', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    ok(res, await (await AG()).vueAgent(user));
+  }));
+  app.post('/api/mandataire/agent/actif', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    ok(res, (await AG()).basculerAgent(user, !!req.body?.actif));
+  }));
+  // « Chercher maintenant » : un tour tout de suite, sans attendre les cinq minutes.
+  app.post('/api/mandataire/agent/tour', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const { tourDeVeille } = await import('../mandataire-veille.js');
+    tourDeVeille().catch((e) => console.warn('[veille mandataire]', e?.message || e));
+    ok(res, { ok: true, lance: true });
+  }));
+  app.post('/api/mandataire/agent/trouvailles/:id/ajouter', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await AG()).ajouterTrouvaille(req.params.id, req.body || {}, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/agent/trouvailles/:id/ignorer', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = (await AG()).ignorerTrouvaille(req.params.id, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/agent/listes', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await AG()).creerListeProposee(String(req.body?.ville || ''), user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
 
@@ -317,40 +414,10 @@ export function monterMandataire(app) {
   app.post('/api/mandataire/prospective/:jeton/exporter', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    const { Records } = await import('../db.js');
-    const { liste_id = null, nom = null, lignes = [] } = req.body || {};
-    if (!Array.isArray(lignes) || !lignes.length) return res.status(400).json({ error: 'Cochez au moins un commerce.' });
-    const { creerProprietaire } = await E();
-    let liste = liste_id ? Records.get('ListeMandataire', liste_id) : null;
-    if (liste_id && (!liste || liste.mandataire_email !== user.email.toLowerCase())) return res.status(404).json({ error: 'Liste introuvable.' });
-    if (!liste) {
-      if (!String(nom || '').trim()) return res.status(400).json({ error: 'Donnez un nom à la liste.' });
-      liste = Records.create('ListeMandataire', { mandataire_email: user.email.toLowerCase(), nom: String(nom).trim().slice(0, 80), cree_le: new Date().toISOString() });
-    }
-    const miens = Records.list('ProprietaireMandataire').filter((p) => p.mandataire_email === user.email.toLowerCase());
-    let ajoutes = 0;
-    const refuses = [];
-    for (const l of lignes) {
-      if (l.siret && miens.some((p) => p.datab_siret === l.siret && p.statut !== 'pas_vendeur')) { refuses.push(`${l.enseigne || l.nom} : déjà dans vos fiches`); continue; }
-      const r = creerProprietaire({
-        nom: null,
-        commerce: l.enseigne || l.nom || null,
-        activite: l.societe || null,
-        ville: l.ville || null,
-        adresse: l.adresse || null,
-        telephone: l.telephone || null,
-        email: l.emails?.[0] || null,
-      }, user);
-      if (!r.ok) { refuses.push(`${l.enseigne || l.nom} : ${r.error}`); continue; }
-      Records.update('ProprietaireMandataire', r.proprietaire.id, {
-        liste_id: liste.id,
-        datab_siret: l.siret || null,
-        datab: { type_rue: l.type_rue_mot || null, solvabilite: l.solvabilite || null, effectif: l.effectif || null, independant: !!l.independant, creation: l.creation || null, site: l.site || null, lat: l.lat ?? null, lon: l.lon ?? null },
-        ...(l.telephone ? { telephone_source: 'Data-B · Prospective' } : {}),
-      });
-      ajoutes += 1;
-    }
-    ok(res, { liste: { id: liste.id, nom: liste.nom }, ajoutes, refuses });
+    const { exporterDataB } = await import('../mandataire-lancement.js');
+    const r = await exporterDataB({ ...(req.body || {}), jeton: req.params.jeton }, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
   }));
 
   app.get('/api/mandataire/prospections', wrap(async (req, res) => {
@@ -426,8 +493,8 @@ export function monterMandataire(app) {
     }
     const r = creerProprietaire(champs, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
-    const { pousserProspect } = await import('../mandataire-monday.js');
-    ok(res, { ...r, monday: await pousserProspect(r.proprietaire) });
+    const { synchroniserFicheMonday } = await import('../mandataire-monday.js');
+    ok(res, { ...r, monday: await synchroniserFicheMonday(r.proprietaire.id) });
   }));
 
   app.post('/api/mandataire/proprietaires/:id/statut', wrap(async (req, res) => {
@@ -565,6 +632,62 @@ export function monterMandataire(app) {
     ok(res, { mandataires: listerMandataires() });
   }));
 
+  // Les projets de la plateforme, tels que les clients les voient : les siens
+  // (nés de ses dossiers), et les autres projets disponibles, ANONYMES — rien
+  // ne dit qui les a apportés, qui a le mandat, ni pour quel client.
+  app.get('/api/mandataire/projets', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { Records } = await import('../db.js');
+    const moi = String(user.email).toLowerCase();
+    const mesDeals = new Set(Records.list('Deal').filter((d) => String(d.mandataire_email || '').toLowerCase() === moi).map((d) => d.deal_id));
+    const CHAMPS = ['id', 'titre', 'statut', 'adresse_complete', 'ville_secteur_champ1', 'surface_m2', 'prix_acquisition', 'rendement_locatif',
+      'loyer_annuel_ht', 'nom_locataire', 'activite_locataire', 'echeance_bail', 'photos', 'latitude', 'longitude', 'created_date'];
+    const propre = (p, mien) => {
+      const o = { mien };
+      for (const c of CHAMPS) if (p[c] !== undefined) o[c] = p[c];
+      // Les chiffres du simulateur, ceux que la carte client affiche.
+      for (const [c, v] of Object.entries(p)) if (c.startsWith('sim_')) o[c] = v;
+      return o;
+    };
+    const tous = Records.list('Project').filter((p) => !p.archived);
+    const mes = tous.filter((p) => (p.deal_id && mesDeals.has(p.deal_id)) || String(p.origine_mandataire?.mandataire_email || '').toLowerCase() === moi)
+      .map((p) => ({ ...propre(p, true), origine: p.origine_mandataire ? { bien: p.origine_mandataire.bien, mandat_numero: p.origine_mandataire.mandat_numero || null } : null }));
+    const idsMes = new Set(mes.map((p) => p.id));
+    const autres = tous.filter((p) => p.statut === 'disponible' && !idsMes.has(p.id)).map((p) => propre(p, false));
+    ok(res, { mes, autres });
+  }));
+
+  // Le compte du mandataire : ce qu'il tient lui-même (comment il se présente
+  // sur ses documents), et ce que Klocka tient (habilitations), en lecture.
+  app.get('/api/mandataire/compte', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { compteMandataire } = await E();
+    ok(res, compteMandataire(user));
+  }));
+  app.patch('/api/mandataire/compte', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { poserCompteMandataire } = await E();
+    const r = poserCompteMandataire(user, req.body || {});
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Sa signature manuscrite (image) : elle s'appose sur ses avis de valeur.
+  app.post('/api/mandataire/compte/signature', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
+    if (!/^image\//.test(req.file.mimetype || '')) return res.status(400).json({ error: 'Une image : photo ou scan de la signature.' });
+    const { poserFicheMandataire, compteMandataire } = await E();
+    poserFicheMandataire(user.email, { signature_url: `/uploads/${req.file.filename}` }, user);
+    ok(res, compteMandataire(user));
+  }));
+  app.post('/api/mandataire/admin/mandataires/:email/fichier', upload.single('fichier'), wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à Klocka.' });
+    if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
+    const champ = req.query.type === 'signature' ? 'signature_url' : 'photo_url';
+    const { poserFicheMandataire } = await E();
+    ok(res, poserFicheMandataire(req.params.email, { [champ]: `/uploads/${req.file.filename}` }, user));
+  }));
   app.post('/api/mandataire/admin/mandataires/:email', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;

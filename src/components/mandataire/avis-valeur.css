@@ -1,0 +1,186 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap");
+
+/* L'avis de valeur K Partners : des pages A4 qui s'impriment telles quelles.
+   Palette du modèle : bandeau sauge, texte encre, accents vert-de-gris,
+   vigilance en ocre. Ces couleurs sont celles du document imprimé, pas de
+   l'application : elles ne suivent pas le thème. */
+
+.avis {
+  --sauge: #8fb0a9;
+  --sauge-fonce: #5d8a82;
+  --encre: #1b1d1c;
+  --gris: #5f6462;
+  --gris-clair: #8a8f8d;
+  --ligne: #f1f5f4;
+  --trait: #d6e0dd;
+  --ocre: #c47a3a;
+  --kp: #6fc7b5;
+  --blanc: #ffffff;
+  font-family: Montserrat, "Instrument Sans", system-ui, sans-serif;
+  color: var(--encre);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 28px 0 80px;
+}
+
+.avis-page {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+  display: flex;
+}
+
+/* Les pages intérieures : bandeau à gauche, contenu à droite. */
+.avis-bande {
+  width: 18mm;
+  flex: none;
+  background: var(--sauge);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18mm 0 14mm;
+}
+.avis-bande-num { font-weight: 800; font-size: 13pt; color: var(--encre); }
+.avis-bande-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-weight: 700;
+  font-size: 8.5pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--encre);
+}
+.avis-corps { flex: 1; padding: 16mm 15mm 14mm 15mm; display: flex; flex-direction: column; min-width: 0; }
+.avis-entete { display: flex; justify-content: space-between; font-size: 8pt; color: var(--gris); padding-bottom: 4mm; border-bottom: 1px solid #ececec; }
+.avis-entete b { color: var(--encre); }
+.avis-contenu { flex: 1; padding-top: 9mm; min-height: 0; }
+.avis-pied { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 3mm; }
+.avis-pied-trait { width: 100%; display: flex; align-items: center; gap: 4mm; font-weight: 700; font-size: 8pt; }
+.avis-pied-trait::before, .avis-pied-trait::after { content: ""; flex: 1; height: 1px; background: var(--sauge-fonce); opacity: 0.6; }
+.avis-pied-texte { font-size: 7.5pt; color: var(--gris); }
+
+.avis-etiquette { font-size: 8.5pt; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sauge-fonce); }
+.avis-titre { font-size: 20pt; font-weight: 400; margin: 0 0 3mm; letter-spacing: -0.01em; }
+.avis-chapeau { font-size: 10.5pt; color: var(--gris); line-height: 1.55; margin: 0 0 6mm; }
+.avis-texte { font-size: 9pt; color: var(--gris); line-height: 1.6; }
+
+.avis-table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+.avis-table td { padding: 2.8mm 3.5mm; vertical-align: top; }
+.avis-table tr:nth-child(odd) td { background: var(--ligne); }
+.avis-table td:first-child { width: 32%; color: var(--gris); }
+.avis-table td:last-child { font-weight: 600; line-height: 1.5; }
+.avis-table .alerte td:first-child { color: var(--ocre); }
+
+.avis-grille { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+.avis-grille th { text-align: right; font-weight: 400; color: var(--gris); padding: 2mm 2.5mm; border-bottom: 1px solid #e3e3e3; }
+.avis-grille th:first-child, .avis-grille td:first-child { text-align: left; }
+.avis-grille td { text-align: right; padding: 2.6mm 2.5mm; }
+.avis-grille tbody tr:nth-child(odd) td { background: var(--ligne); }
+.avis-grille tfoot td { font-weight: 700; border-top: 1px solid var(--encre); }
+.avis-grille .fort { font-weight: 700; color: var(--sauge-fonce); }
+
+.avis-encadre { border: 1px solid var(--sauge-fonce); border-radius: 4mm; padding: 4.5mm 5.5mm; font-size: 9.5pt; line-height: 1.55; margin-top: 5mm; }
+.avis-formule { border: 1px solid #222; padding: 6mm; display: flex; align-items: center; justify-content: center; gap: 4mm; font-size: 10pt; margin: 4mm 0 2mm; }
+.avis-formule .resultat { font-weight: 800; font-size: 15pt; color: var(--sauge-fonce); }
+.avis-alerte-rond { flex: none; width: 7mm; height: 7mm; border-radius: 50%; background: var(--sauge); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 10pt; }
+.avis-pastille { display: inline-block; background: var(--sauge); color: #fff; font-size: 7pt; font-weight: 700; letter-spacing: 0.08em; padding: 0.6mm 2.2mm; border-radius: 1.2mm; margin-left: 2mm; vertical-align: middle; }
+
+/* La couverture. */
+.avis-couverture { flex-direction: column; }
+.avis-couverture-photo { height: 50%; background: #e9eceb center / cover no-repeat; position: relative; }
+.avis-couverture-texte { flex: 1; padding: 14mm 16mm 0; position: relative; }
+.avis-couverture h1 { font-size: 34pt; font-weight: 800; line-height: 1.08; margin: 6mm 0 3mm; letter-spacing: -0.02em; max-width: 120mm; }
+.avis-couverture .ville { font-size: 13pt; color: var(--gris); font-weight: 300; }
+.avis-logo { position: absolute; right: 16mm; top: 14mm; font-family: Georgia, "Times New Roman", serif; font-size: 34pt; letter-spacing: -0.04em; color: #111; }
+.avis-logo .k { position: relative; display: inline-block; }
+.avis-logo .k::after { content: ""; position: absolute; left: 38%; bottom: 8%; width: 62%; height: 9%; background: var(--kp); transform: rotate(45deg); transform-origin: left; }
+.avis-couverture-bande { background: var(--sauge); padding: 9mm 16mm 10mm; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; font-size: 9pt; }
+.avis-couverture-bande p { margin: 0; }
+.avis-couverture-bande .mot { color: var(--encre); opacity: 0.85; }
+.avis-couverture-bande .val { font-weight: 700; margin-top: 1mm; }
+.avis-portrait { width: 16mm; height: 16mm; border-radius: 50%; object-fit: cover; border: 0.6mm solid #fff; }
+/* Le portrait du mandataire en page de garde : à droite, à cheval sur le haut du bandeau. */
+.avis-portrait-couverture { position: absolute !important; right: 16mm; bottom: 17mm; width: 46mm; height: 46mm; z-index: 2; background: #e9eceb center / cover no-repeat; border-radius: 1mm; }
+
+/* La conclusion. */
+.avis-curseur { position: relative; height: 1.2mm; background: var(--sauge); border-radius: 1mm; margin: 9mm 0 4mm; }
+.avis-curseur span { position: absolute; top: 50%; width: 5mm; height: 5mm; border-radius: 50%; background: #111; transform: translate(-50%, -50%); }
+.avis-cases li { list-style: none; display: flex; gap: 3mm; align-items: flex-start; margin: 2mm 0; }
+.avis-cases li::before { content: ""; flex: none; width: 4mm; height: 4mm; border: 1px solid var(--gris-clair); border-radius: 1mm; margin-top: 0.4mm; }
+.avis-signature { width: 75mm; height: 22mm; border: 1px solid var(--gris-clair); border-radius: 3mm; display: grid; place-items: center; overflow: hidden; }
+.avis-signature img { max-height: 20mm; max-width: 70mm; }
+
+/* L'édition : ce qui se modifie se signale au survol, jamais à l'impression. */
+.avis [data-edit] { outline: none; border-radius: 1mm; transition: background 0.15s; cursor: text; }
+.avis [data-edit]:hover { background: rgb(111 199 181 / 0.12); }
+.avis [data-edit]:focus { background: rgb(111 199 181 / 0.18); box-shadow: 0 0 0 1px rgb(111 199 181 / 0.6); }
+.avis .a-completer { background: rgb(143 176 169 / 0.25); color: var(--sauge-fonce); padding: 0 1mm; }
+.avis-photo-bouton { position: absolute; right: 4mm; bottom: 4mm; background: rgb(0 0 0 / 0.6); color: #fff; font: 600 9pt Montserrat, sans-serif; padding: 2mm 3.5mm; border-radius: 99px; cursor: pointer; border: none; }
+
+.avis-logo-image { height: 15mm; width: auto; letter-spacing: normal; }
+.avis-note { font-style: italic; color: var(--sauge-fonce); margin-top: 3mm; }
+.avis-sous-titre { margin: 0 0 2mm; font-size: 10pt; }
+.avis-gris { color: var(--gris-clair); }
+.avis-encre { margin: 1mm 0 0; color: var(--encre); }
+.avis-mt2 { margin-top: 2mm; }
+.avis-mt4 { margin-top: 4mm; }
+.avis-mt5 { margin-top: 5mm; }
+.avis-mentions { font-size: 6.5pt; line-height: 1.45; color: var(--gris-clair); margin: 4mm 0 0; }
+
+/* L'atelier : la sélection, les poignées, le zoom. */
+.avis [data-edit] { cursor: text; border-radius: 1mm; transition: box-shadow 0.12s, background 0.12s; }
+.avis [data-edit]:hover { background: rgb(111 199 181 / 0.12); }
+.avis [data-edit]:focus { outline: none; background: rgb(111 199 181 / 0.14); box-shadow: 0 0 0 0.5mm var(--kp); }
+.avis .avis-choisi { box-shadow: 0 0 0 0.5mm var(--kp); background: rgb(111 199 181 / 0.14); }
+.avis-bande { cursor: pointer; }
+.avis-page-choisie { outline: 1mm solid var(--kp); outline-offset: 1mm; }
+.avis-table tr { position: relative; }
+.avis-table tr[draggable] td:first-child { padding-left: 4mm; }
+.avis-grip { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3.5mm; height: 4mm; color: #b7c2bf; opacity: 0; cursor: grab; }
+.avis-grip svg { width: 100%; height: 100%; }
+.avis-table tr:hover .avis-grip { opacity: 1; }
+.avis-table tr.avis-glisse { opacity: 0.4; }
+.avis-logo-trace { height: 15mm; width: auto; }
+.logo-kp { --logo-encre: #111111; --logo-menthe: #86cbbe; }
+/* Les blocs : une photo, un tableau, un encadré, le logo… se sélectionnent et se déplacent. */
+.avis-bloc:hover { outline: 0.4mm dashed rgb(111 199 181 / 0.55); outline-offset: 1mm; }
+.avis .avis-bloc.avis-choisi { outline: 0.5mm solid var(--kp); outline-offset: 1mm; background: none; box-shadow: none; }
+.avis-logo-bloc { position: absolute; right: 16mm; top: 14mm; }
+.avis-logo-bloc .avis-logo { position: static; }
+.avis-toile { position: relative; }
+.avis-cadre { position: absolute; z-index: 5; pointer-events: none; border: 1.5px solid #6fc7b5; border-radius: 3px; }
+.avis-poignee { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: #6fc7b5; color: #fff; display: grid; place-items: center; pointer-events: auto; cursor: grab; box-shadow: 0 2px 8px rgb(0 0 0 / 0.28); touch-action: none; }
+.avis-poignee:active { cursor: grabbing; }
+.avis-poignee svg { width: 14px; height: 14px; }
+/* Le menu de mise en forme, hors du document : la même palette, pour ses pastilles. */
+.avis-styles { --sauge: #8fb0a9; --sauge-fonce: #5d8a82; --encre: #1b1d1c; --gris: #5f6462; --ocre: #c47a3a; --kp: #6fc7b5; --blanc: #ffffff; }
+.avis-zoom { transform-origin: top center; }
+
+@media print {
+  .avis-zoom { zoom: 1 !important; }
+  .avis-panneau, .avis-styles, .avis-cadre, .avis-toile > p { display: none !important; }
+  .avis-bloc, .avis .avis-bloc.avis-choisi { outline: none !important; }
+  .avis-grip { display: none !important; }
+  .avis-page-choisie { outline: none !important; }
+  .avis [data-edit], .avis .avis-choisi { background: none !important; box-shadow: none !important; }
+  /* L'avis ouvert en pop-up par-dessus le chat : la pop-up s'efface, les pages s'impriment entières. */
+  .avis-modale { position: static !important; overflow: visible !important; background: none !important; }
+  /* L'éditeur défile dans sa toile : à l'impression, tout se déplie, sinon seule la première vue sort. */
+  .avis-editeur, .avis-atelier { display: block !important; height: auto !important; }
+  .avis-toile { overflow: visible !important; height: auto !important; }
+  @page { size: A4; margin: 0; }
+  body * { visibility: hidden !important; }
+  .avis, .avis * { visibility: visible !important; }
+  .avis { position: absolute; left: 0; top: 0; padding: 0; gap: 0; }
+  .avis-page { box-shadow: none; break-after: page; page-break-after: always; }
+  .avis-photo-bouton, .avis-ecran { display: none !important; }
+  .avis [data-edit]:hover, .avis [data-edit]:focus { background: none; box-shadow: none; }
+  .avis .a-completer { background: none; }
+  html, body { background: #fff !important; }
+}

@@ -189,12 +189,22 @@ app.use(express.json({ limit: '25mb' }));
 // La dictée hors Chrome : le navigateur enregistre, le serveur transcrit.
 // L'audio arrive en base64 (WAV mono 16 kHz, une minute tient en 2 Mo).
 app.post('/api/dictee', wrap(async (req, res) => {
-  if (!currentUser(req)) return res.status(401).json({ error: 'Connexion requise' });
+  const user = currentUser(req);
+  if (!user) return res.status(401).json({ error: 'Connexion requise' });
+  // Les noms propres du secteur (communes, propriétaires, commerces)
+  // reprennent leur orthographe après coup : le modèle ne les connaît pas.
+  const { corrigerDictee, lexiqueDe } = await import('./dictee-lexique.js');
+  const lexique = lexiqueDe(user);
   const audio = String(req.body?.audio || '');
+  // Sans audio, un texte : la dictée du navigateur, à reponctuer tel quel.
+  if (!audio && req.body?.texte) {
+    const { ponctuerDictee } = await import('./llm.js');
+    return ok(res, { texte: corrigerDictee(await ponctuerDictee(String(req.body.texte)), lexique) });
+  }
   if (!audio) return res.status(400).json({ error: 'Aucun son reçu.' });
   const { transcrireAudio } = await import('./llm.js');
-  const texte = await transcrireAudio({ buffer: Buffer.from(audio, 'base64'), mimetype: 'audio/wav' });
-  ok(res, { texte });
+  const texte = await transcrireAudio({ buffer: Buffer.from(audio, 'base64'), mimetype: 'audio/wav', rapide: true });
+  ok(res, { texte: corrigerDictee(texte, lexique) });
 }));
 // Chaque requête à l'API sait ce qu'elle a coûté en modèle, et à qui.
 app.use(mesurerRequetes(currentUser));
@@ -240,17 +250,38 @@ app.get('/api/auth/me', wrap((req, res) => {
   ok(res, sansSecret(user));
 }));
 
+// Le portrait de la personne : son avatar partout dans l'application, et,
+// pour un mandataire, la photo de la première page de ses avis de valeur.
+app.post('/api/auth/photo', (req, res, next) => (currentUser(req) ? next() : res.status(401).json({ error: 'Not authenticated' })), upload.single('fichier'), wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/.test(req.file.mimetype || '')) return res.status(400).json({ error: 'Une photo : JPEG, PNG ou WebP.' });
+  const url = `/uploads/${req.file.filename}`;
+  const maj = Records.update('User', user.id, { picture: url });
+  // Un admin est aussi mandataire en « Vue Mandataire » : sa photo va sur sa fiche, pour ses avis.
+  if (user.role === 'mandataire' || user.role === 'admin' || Records.list('FicheMandataire').some((f) => f.email === String(user.email).toLowerCase())) {
+    const { poserFicheMandataire } = await import('./mandataire-espace.js');
+    poserFicheMandataire(user.email, { photo_url: url }, user);
+  }
+  ok(res, sansSecret(maj));
+}));
+
 app.post('/api/auth/updateMe', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   // Sans ce filtre, n'importe qui pourrait s'attribuer le rôle admin.
-  ok(res, sansSecret(Records.update('User', user.id, retirerChampsProteges(req.body))));
+  const maj = Records.update('User', user.id, retirerChampsProteges(req.body));
+  // Une absence déclarée (ou un retour) : le relais des dossiers part tout de suite.
+  if (req.body && 'absent_jusqu_au' in req.body && user.role === 'admin') {
+    import('./fil-dossier.js').then(({ tourDesRelais }) => tourDesRelais()).catch((e) => console.warn('[fil] relais :', e?.message || e));
+  }
+  ok(res, sansSecret(maj));
 }));
 
 // Les préférences d'affichage d'un compte : ce que règle la page
 // Personnalisation (thème, accent, police, menu...). Rien de secret, rien de
 // protégé : on ne garde que les clés connues, à plat, bornées en taille.
-const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'menu_autre', 'assistant']);
+const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'menu_autre', 'assistant', 'grille', 'grille_intensite']);
 app.post('/api/moi/preferences', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
@@ -567,6 +598,34 @@ app.get('/api/auth/google/login', (req, res) => {
   res.redirect(url);
 });
 
+// Un analyste connecte SON agenda (lecture des événements) : depuis sa page
+// Compte, une fois connecté. Son identité ne change pas au retour.
+app.get('/api/auth/google/agenda', (req, res) => {
+  const user = currentUser(req);
+  if (!user) return res.redirect('/Connexion');
+  if (user.role !== 'admin') return res.status(403).send('Réservé à l\u2019équipe Klocka.');
+  if (!googleEnabled) return authResultPage(res, { ok: false, title: 'Connexion Google non configurée', detail: 'GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET manquent.' });
+  res.redirect(buildAuthUrl({ returnTo: '/Personnalisation?agenda=1', req, agenda: true }));
+});
+app.get('/api/auth/agenda/etat', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  const compte = Records.filter('AgendaAnalyste', { owner_email: String(user.email).toLowerCase() })[0] || null;
+  const { absenceDe, ANALYSTES } = await import('./fil-dossier.js');
+  ok(res, {
+    analyste: ANALYSTES.some((a) => a.email === String(user.email).toLowerCase()),
+    agenda: compte ? { email: compte.email, connecte_le: compte.connecte_le } : null,
+    absent_jusqu_au: user.absent_jusqu_au || null,
+    absence: await absenceDe(user.email),
+  });
+}));
+app.post('/api/auth/agenda/deconnecter', wrap(async (req, res) => {
+  const user = currentUser(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  for (const a of Records.filter('AgendaAnalyste', { owner_email: String(user.email).toLowerCase() })) Records.delete('AgendaAnalyste', a.id);
+  ok(res, { ok: true });
+}));
+
 // Diagnostic : renvoie l'URI exacte à déclarer chez Google pour l'adresse
 // depuis laquelle vous consultez l'app. Sert à régler les redirect_uri_mismatch.
 app.get('/api/auth/google/redirect-uri', (req, res) =>
@@ -593,6 +652,13 @@ app.get('/api/auth/google/callback', wrap(async (req, res) => {
   } catch (e) {
     console.error('[auth] connexion Google échouée:', e?.message || e);
     return authResultPage(res, { ok: false, title: 'Connexion impossible', detail: String(e?.message || e) });
+  }
+
+  // Un agenda d'analyste : rangé, et retour à la page Compte. La session ne
+  // change pas, même si l'adresse Google diffère de celle du compte.
+  if (profile.agenda) {
+    if (!sessionAvant) return authResultPage(res, { ok: false, title: 'Connectez-vous d\u2019abord', detail: 'L\u2019agenda se connecte depuis votre page Compte, une fois connecté à Klocka.' });
+    return res.redirect(`${profile.returnTo || '/Personnalisation'}${profile.agenda_connecte ? '' : '&refus=1'}`);
   }
 
   // Une session déjà ouverte = rattachement d'une boîte d'envoi. L'adresse
@@ -1184,10 +1250,19 @@ setInterval(() => {
 // numéros se cherchent à l'avance, la liste du jour se pose chaque matin.
 setInterval(() => {
   import('./mandataire-veille.js').then(({ tourDeVeille }) => tourDeVeille()).catch((e) => console.warn('[veille mandataire]', e?.message || e));
-}, 15 * 60_000).unref?.();
+}, 5 * 60_000).unref?.();
 setTimeout(() => {
   import('./mandataire-veille.js').then(({ tourDeVeille }) => tourDeVeille()).catch((e) => console.warn('[veille mandataire]', e?.message || e));
 }, 45_000).unref?.();
+
+// Le relais des analystes : chaque heure, un dossier mandataire dont
+// l'analyste est absent (agenda ou absence déclarée) passe à un présent, et
+// revient à son titulaire à son retour. RELAIS_ANALYSTES=0 pour couper.
+if (process.env.RELAIS_ANALYSTES !== '0') {
+  setInterval(() => {
+    import('./fil-dossier.js').then(({ tourDesRelais }) => tourDesRelais()).then((n) => n && console.log(`[fil] ${n} relais`)).catch((e) => console.warn('[fil] relais :', e?.message || e));
+  }, 60 * 60_000).unref?.();
+}
 
 import('./ak/veille.js').then(({ demarrerVeille }) => {
   const active = demarrerVeille();

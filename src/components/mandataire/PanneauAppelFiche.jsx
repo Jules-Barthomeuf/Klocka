@@ -29,7 +29,10 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
   useEffect(() => () => rec.current?.flux?.getTracks().forEach((t) => t.stop()), []);
 
   const c = p.cible || {};
-  const tel = p.telephone || (c.proprietaire_occupant ? c.telephone : null) || null;
+  const telProprio = p.telephone || (c.proprietaire_occupant ? c.telephone : null) || null;
+  // Sans numéro du propriétaire, on appelle le commerce pour remonter jusqu'à lui.
+  const viaCommerce = !telProprio ? (p.telephone_commerce || c.telephone || null) : null;
+  const tel = telProprio || viaCommerce;
 
   const envoyer = async (form) => {
     setEtat("analyse");
@@ -90,7 +93,9 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
                 <a href={`tel:${String(tel).replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[14px] font-semibold tabular-nums text-sur-menthe">
                   <PhoneCall className="h-4 w-4" />{tel}
                 </a>
-                {p.telephone_source && <span className="ml-2.5 text-[12px] text-brume">{p.telephone_source}</span>}
+                {viaCommerce
+                  ? <span className="ml-2.5 text-[12px] text-ambre">Numéro du commerce : demandez qui possède les murs et comment le joindre.</span>
+                  : p.telephone_source && <span className="ml-2.5 text-[12px] text-brume">{p.telephone_source}</span>}
               </div>
             )}
 

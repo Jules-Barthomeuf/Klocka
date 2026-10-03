@@ -9,6 +9,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, POLICES, accentHex, themeEffectif } from "@/lib/personnalisation";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
+import ProfilCompte from "@/components/compte/ProfilCompte";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -30,9 +31,9 @@ function Reglage({ titre, note, children }) {
 }
 
 /** Des pilules à choix unique. `rendre` habille un libellé (une police, une forme). */
-function Pilules({ valeur, options, onChoisir, rendre }) {
+function Pilules({ valeur, valeurs = null, options, onChoisir, rendre }) {
   return options.map(([v, mot]) => {
-    const actif = v === valeur;
+    const actif = valeurs ? valeurs.includes(v) : v === valeur;
     return (
       <button
         key={String(v)}
@@ -195,7 +196,7 @@ function ReglagesAssistant() {
   }
 
   return (
-    <section className="rounded-[16px] border border-trait bg-surface px-5 py-2 md:px-6 lg:sticky lg:top-6">
+    <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
       <div className="flex items-baseline justify-between gap-3 pt-4">
         <p className={etiq}>Assistant Klocka</p>
         <span className={`text-[11.5px] ${etat === "erreur" ? "text-alerte" : "text-brume"}`}>{etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré" : ""}</span>
@@ -247,15 +248,19 @@ export default function Personnalisation() {
   // Un admin en Vue Client ou en Vue Mandataire règle comme un client : pas
   // d'éditeur du menu admin ni de réglages de l'assistant dans ces vues.
   const vueClient = !admin || vueDe(user) !== "admin";
+  // Le mandataire (ou l'admin en Vue Mandataire) a la page large de l'équipe :
+  // ses réglages à gauche, ses habilitations à droite, là où l'admin a l'assistant.
+  const vueMandataire = vueDe(user) === "mandataire";
+  const large = !vueClient || vueMandataire;
   const theme = themeEffectif(prefs);
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
   return (
-    <div className={`mx-auto w-full px-4 py-8 md:px-6 md:py-10 ${vueClient ? "max-w-[980px]" : "max-w-[1400px]"}`}>
+    <div className={`mx-auto w-full px-4 py-8 md:px-6 md:py-10 ${large ? "max-w-[1400px]" : "max-w-[980px]"}`}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Personnalisation</h1>
-          <p className="m-0 mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-craie">Ces réglages sont à vous. Ils s'appliquent tout de suite, et vous suivent d'un appareil à l'autre.</p>
+          <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Compte</h1>
+          <p className="m-0 mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-craie">Votre profil, puis vos réglages. Tout s'applique tout de suite, et vous suit d'un appareil à l'autre.</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`text-[12.5px] ${etat === "erreur" ? "text-alerte" : "text-brume"}`}>{etatMot}</span>
@@ -265,10 +270,13 @@ export default function Personnalisation() {
         </div>
       </header>
 
+      {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents et ses habilitations. */}
+      <div className="mb-8"><ProfilCompte user={user} partie={vueMandataire ? "haut" : "tout"} /></div>
+
       {/* L'équipe a deux colonnes : l'application à gauche, l'assistant à droite. */}
-      <div className={vueClient ? "" : "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]"}>
+      <div className={large ? "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]" : ""}>
       <div className="min-w-0">
-      <section className="rounded-[16px] border border-trait bg-surface px-5 py-2 md:px-6">
+      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         {!vueClient && <p className={`${etiq} pt-4`}>Apparence</p>}
         <Reglage titre="Mode" note="Sombre, clair, ou celui de l'appareil, qui change avec lui.">
           <Pilules valeur={prefs.mode} options={OPTIONS.mode} onChoisir={(v) => changer({ mode: v })} />
@@ -284,6 +292,16 @@ export default function Personnalisation() {
         </Reglage>
         <Reglage titre="Halo" note="Les nappes de couleur derrière les pages, en sombre. Le clair n'en a jamais.">
           <Pilules valeur={prefs.halo} options={OPTIONS.halo} onChoisir={(v) => changer({ halo: v })} />
+        </Reglage>
+        <Reglage titre="Grille de points" note="Des points discrets en fond, là où vous les voulez. Plusieurs choix possibles ; aucun, pas de points.">
+          <Pilules valeurs={prefs.grille} options={OPTIONS.grille}
+            onChoisir={(v) => changer({ grille: prefs.grille.includes(v) ? prefs.grille.filter((z) => z !== v) : [...prefs.grille, v] })} />
+          <label className="mt-2 flex w-full max-w-[420px] items-center gap-3">
+            <span className="flex-none text-[12px] text-brume">Intensité</span>
+            <input type="range" min={10} max={100} step={5} value={prefs.grille_intensite} disabled={!prefs.grille.length}
+              onChange={(e) => changer({ grille_intensite: Number(e.target.value) })} aria-label="Intensité des points" className="min-w-0 flex-1 disabled:opacity-40" />
+            <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.grille_intensite} %</span>
+          </label>
         </Reglage>
         <Reglage titre="Surfaces" note="Les blocs et les cartes : du verre qui laisse voir le fond, ou des aplats.">
           <Pilules valeur={prefs.surfaces} options={OPTIONS.surfaces} onChoisir={(v) => changer({ surfaces: v })} />
@@ -310,7 +328,7 @@ export default function Personnalisation() {
       </section>
 
       {!vueClient && (
-      <section className="mt-5 rounded-[16px] border border-trait bg-surface px-5 py-2 md:px-6">
+      <section className="mt-5 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <p className={`${etiq} pt-4`}>Navigation</p>
         <Reglage titre="Page d'ouverture" note="La page qui s'ouvre quand vous arrivez sur Klocka.">
           <Pilules valeur={prefs.accueil} options={admin ? PAGES_OUVERTURE_ADMIN : PAGES_OUVERTURE_CLIENT} onChoisir={(v) => changer({ accueil: v })} />
@@ -328,6 +346,7 @@ export default function Personnalisation() {
       )}
       </div>
       {!vueClient && <ReglagesAssistant />}
+      {vueMandataire && <ProfilCompte user={user} partie="habilitations" />}
       </div>
     </div>
   );

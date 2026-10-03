@@ -30,6 +30,9 @@ export default [
       "no-unused-vars": "off",
       "react/prop-types": "off",
       "react/react-in-jsx-scope": "off",
+      // Un composant JSX supprimé ou mal nommé ne casse ni le build ni les
+      // tests : seulement l'écran, à l'ouverture. Le lint le voit ici.
+      "react/jsx-no-undef": "error",
       "react/no-unknown-property": ["error", { ignore: ["cmdk-input-wrapper", "toast-close"] }],
       "react-hooks/rules-of-hooks": "error",
       // La couleur ne s'écrit plus à la main : elle a un nom dans
@@ -52,7 +55,7 @@ export default [
     // `page.evaluate()` s'exécute dans la page, pas dans Node. `document` y est
     // légitime. Le déclarer ici plutôt que partout dans le serveur garde
     // l'avertissement utile dans les fichiers qui, eux, n'ont pas de DOM.
-    files: ["server/data-b-implantation.js", "server/equimmox.js", "server/marche/navigateur.js"],
+    files: ["server/data-b-implantation.js", "server/equimmox.js", "server/marche/navigateur.js", "server/mynotary-eclaireur.js"],
     languageOptions: { globals: { ...globals.browser } },
   },
   {

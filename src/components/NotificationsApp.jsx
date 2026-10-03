@@ -47,7 +47,7 @@ export default function NotificationsApp() {
       poser(n.genre === "erreur" ? "erreur" : "information", n.titre, {
         description: n.texte,
         duration: 20000,
-        ...(n.lien ? { action: { mot: n.action || "Ouvrir", faire: ouvrir } } : {}),
+        ...(n.lien ? { action: { mot: "Voir", faire: ouvrir } } : {}),
       });
     }
   }, [data, navigate]);

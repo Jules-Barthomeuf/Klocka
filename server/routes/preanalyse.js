@@ -40,7 +40,18 @@ export function monterPreanalyse(app) {
     ok(res, dossier);
   }));
 
-  app.get('/api/preanalyse/dossiers', wrap((req, res) => ok(res, listerDossiers())));
+  app.get('/api/preanalyse/dossiers', wrap(async (req, res) => {
+    const liste = listerDossiers();
+    if (!liste.some((d) => d.dossier_mandataire_id)) return ok(res, liste);
+    const { nonLus } = await import('../fil-dossier.js');
+    const { Records } = await import('../db.js');
+    const moi = currentUser(req)?.email || '';
+    ok(res, liste.map((d) => {
+      if (!d.dossier_mandataire_id) return d;
+      const u = Records.list('User').find((x) => String(x.email).toLowerCase() === String(d.mandataire_email || '').toLowerCase());
+      return { ...d, mandataire_nom: (u?.full_name || d.mandataire_email || '').split(/[ @]/)[0], fil_non_lus: nonLus(d.dossier_mandataire_id, moi, true) };
+    }));
+  }));
 
   // Mode test : crée un deal fictif réel (statut 'analyse') pour parcourir tout
   // le cycle sans appel API — mails simulés, documents fictifs, marché intact.
@@ -69,6 +80,15 @@ export function monterPreanalyse(app) {
       const r = supprimerDealTest(dossier);
       if (r.error) return res.status(403).json(r);
       return ok(res, r);
+    }
+    // Un dossier venu d'un mandataire part avec son dossier mandataire et sa conversation.
+    const { Records } = await import('../db.js');
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (brut?.dossier_mandataire_id && Records.get('DossierMandataire', brut.dossier_mandataire_id)) {
+      const { supprimerDossierMandataire } = await import('../mandataire-portes.js');
+      const rm = await supprimerDossierMandataire(brut.dossier_mandataire_id, { ...currentUser(req), role: 'admin' });
+      if (!rm.ok) return res.status(409).json({ error: rm.error });
+      return ok(res, rm);
     }
     const { supprimerDossier } = await import('../deal/supprimer.js');
     const r = await supprimerDossier(req.params.dealId, { user: currentUser(req) });
@@ -193,7 +213,17 @@ export function monterPreanalyse(app) {
     if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
     const responsables = [...new Set((Array.isArray(req.body?.responsables) ? req.body.responsables : []).map((r) => String(r).trim()).filter(Boolean))].slice(0, 8);
     if (!responsables.length) return res.status(400).json({ error: 'Il faut au moins un responsable.' });
+    const avant = new Set((brut.responsables || []).map((r) => String(r).toLowerCase()));
     Records.update('Deal', brut.id, { responsables });
+    // L'analyste à qui l'on envoie le dossier en est prévenu.
+    import('../fil-dossier.js').then(async ({ ANALYSTES }) => {
+      const { notifier } = await import('../notifications.js');
+      const moi = String(currentUser(req)?.email || '').toLowerCase();
+      for (const nom of responsables.filter((r) => !avant.has(String(r).toLowerCase()))) {
+        const a = ANALYSTES.find((x) => x.nom.toLowerCase() === String(nom).toLowerCase());
+        if (a && a.email !== moi) notifier({ pour: a.email, titre: `Dossier pour vous · ${brut.nom || 'dossier'}`, texte: `${currentUser(req)?.full_name || 'Klocka'} vous l'a envoyé.`, lien: `/Analyse?deal_id=${brut.deal_id}`, action: 'Voir', cle: `responsable:${brut.deal_id}:${a.email}` });
+      }
+    }).catch(() => {});
     ajouterSuiviDeal(Records.get('Deal', brut.id), { type: 'responsables', detail: `Responsables : ${responsables.join(', ')}` }, currentUser(req));
     ok(res, { responsables });
   }));
@@ -386,8 +416,20 @@ export function monterPreanalyse(app) {
     ok(res, { etape_max: cible });
   }));
 
-  app.get('/api/preanalyse/pipeline', wrap((req, res) => {
-    const dossiers = listerDossiers(200);
+  app.get('/api/preanalyse/pipeline', wrap(async (req, res) => {
+    let dossiers = listerDossiers(200);
+    // Un dossier partagé par un mandataire : son nom, et ses messages non lus.
+    if (dossiers.some((d) => d.dossier_mandataire_id)) {
+      const { nonLus, nomAnalyste } = await import('../fil-dossier.js');
+      const { Records } = await import('../db.js');
+      const moi = currentUser(req)?.email || '';
+      dossiers = dossiers.map((d) => {
+        if (!d.dossier_mandataire_id) return d;
+        const u = Records.list('User').find((x) => String(x.email).toLowerCase() === String(d.mandataire_email || '').toLowerCase());
+        const dm = Records.get('DossierMandataire', d.dossier_mandataire_id);
+        return { ...d, mandataire_nom: (u?.full_name || d.mandataire_email || '').split(/[ @]/)[0], fil_non_lus: nonLus(d.dossier_mandataire_id, moi, true), analyste_nom: dm?.analyste_email ? nomAnalyste(dm.analyste_email) : null };
+      });
+    }
     const compteurs = {};
     for (const s of STATUTS) compteurs[s] = 0;
     let aRelancerTotal = 0;

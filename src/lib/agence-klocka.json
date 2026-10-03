@@ -1,0 +1,21 @@
+{
+  "_commentaire": "L'agence qui porte la carte professionnelle : ses mentions figurent sur les avis de valeur et les mandats de tous les mandataires K Partners, qui ne les saisissent pas. Données transmises par Jules le 2 octobre 2026. Le serveur les lit aussi (server/agence-klocka.js).",
+  "denomination": "KLOCKA",
+  "forme": "Société par actions simplifiée",
+  "forme_courte": "SAS",
+  "capital": "1 000,00 €",
+  "siege": "229 rue Saint-Honoré, 75001 Paris",
+  "rcs": "RCS Paris 932 230 394",
+  "siren": "932230394",
+  "representant": "M. Paul de Zulueta",
+  "telephone": "+33 6 10 93 88 10",
+  "email": "paul.dz@klocka.immo",
+  "carte": {
+    "numero": "CPI 7501 2024 000 000 529",
+    "delivree_le": "5 décembre 2024",
+    "par": "la CCI Paris Île-de-France"
+  },
+  "garantie": { "organisme": "GALIAN-SMABTP", "montant": "120 000,00 €" },
+  "rcp": { "organisme": "GALIAN-SMABTP", "adresse": "89 rue La Boétie, 75008 Paris", "police": "RCP_01_173526Q" },
+  "compte_special": { "banque": "Société Générale", "adresse": "56 rue Monge, 75005 Paris", "numero": "30003 02757 00022096470 15" }
+}

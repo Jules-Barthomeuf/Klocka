@@ -75,6 +75,11 @@ export const chatDemande = /^(1|true|oui|yes)$/i.test(process.env.GOOGLE_CHAT ||
 // veille — et Google exige un audit pour ces portées « restreintes ».
 const SCOPES_IDENTITE = ['openid', 'email', 'profile'];
 
+// L'agenda d'un analyste : la lecture de ses événements, et rien d'autre.
+// C'est ce qui permet de voir ses « Absent du bureau » et de passer ses
+// dossiers à un collègue présent. Chaque analyste le connecte lui-même.
+export const AGENDA_LECTURE_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+
 const SCOPES = [
   'openid',
   'email',
@@ -98,12 +103,12 @@ const GMAIL_SEND_ENDPOINT = 'https://gmail.googleapis.com/gmail/v1/users/me/mess
 const pendingStates = new Map();
 const STATE_TTL_MS = 10 * 60 * 1000;
 
-function rememberState(returnTo, redirectUri, boite = false, fenetre = false) {
+function rememberState(returnTo, redirectUri, boite = false, fenetre = false, agenda = false) {
   const state = randomBytes(16).toString('hex');
   // `boite` voyage dans l'état signé, pas dans l'URL : c'est lui — et non les
   // portées que Google renvoie — qui autorise l'enregistrement d'une boîte.
   // `fenetre` : la session ira dans la fenêtre, pas dans le cookie.
-  pendingStates.set(state, { at: Date.now(), returnTo: returnTo || '/', redirectUri, boite: !!boite, fenetre: !!fenetre });
+  pendingStates.set(state, { at: Date.now(), returnTo: returnTo || '/', redirectUri, boite: !!boite, fenetre: !!fenetre, agenda: !!agenda });
   for (const [s, v] of pendingStates) if (Date.now() - v.at > STATE_TTL_MS) pendingStates.delete(s);
   return state;
 }
@@ -134,19 +139,19 @@ function consumeState(state) {
  * @param {object} [opts]
  * @param {string} [opts.returnTo] - path to land on once the round-trip is done
  */
-export function buildAuthUrl({ returnTo, req, boite = false, fenetre = false } = {}) {
+export function buildAuthUrl({ returnTo, req, boite = false, fenetre = false, agenda = false } = {}) {
   const redirectUri = redirectUriPour(req);
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: (boite ? SCOPES : SCOPES_IDENTITE).join(' '),
+    scope: (agenda ? [...SCOPES_IDENTITE, AGENDA_LECTURE_SCOPE] : boite ? SCOPES : SCOPES_IDENTITE).join(' '),
     // Le refresh token n'a d'intérêt que pour utiliser les API plus tard —
-    // donc seulement quand on rattache une boîte.
-    ...(boite && besoinOffline
+    // donc seulement quand on rattache une boîte ou un agenda.
+    ...((boite && besoinOffline) || agenda
       ? { access_type: 'offline', prompt: 'consent select_account' }
       : { prompt: 'select_account' }),
-    state: rememberState(returnTo, redirectUri, boite, fenetre),
+    state: rememberState(returnTo, redirectUri, boite, fenetre, agenda),
   });
   if (ALLOWED_DOMAIN) params.set('hd', ALLOWED_DOMAIN);
   return `${AUTH_ENDPOINT}?${params}`;
@@ -246,6 +251,26 @@ export async function handleCallback({ code, state, owner }) {
     console.log(`[auth] boîte NON rattachée pour ${email} : aucune portée accordée (${portees.join(' ')})`);
   }
 
+  // L'agenda d'un analyste : rangé au nom de la personne connectée (owner),
+  // jamais comme une boîte d'équipe, et seulement si la lecture est accordée.
+  let agendaConnecte = false;
+  if (stateValue.agenda && owner && portees.includes(AGENDA_LECTURE_SCOPE)) {
+    const proprio = String(owner).toLowerCase();
+    const deja = Records.filter('AgendaAnalyste', { owner_email: proprio })[0] || null;
+    const fiche = {
+      owner_email: proprio,
+      email,
+      access_token: tokens.access_token,
+      expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
+      refresh_token: tokens.refresh_token || deja?.refresh_token || null,
+      connecte_le: new Date().toISOString(),
+    };
+    if (deja) Records.update('AgendaAnalyste', deja.id, fiche);
+    else Records.create('AgendaAnalyste', fiche);
+    agendaConnecte = true;
+    console.log(`[agenda] connecté pour ${proprio} (${email})`);
+  }
+
   return {
     email,
     name: profile.name || email.split('@')[0],
@@ -254,6 +279,8 @@ export async function handleCallback({ code, state, owner }) {
     peut_lire: peutLire,
     returnTo: stateValue.returnTo,
     fenetre: !!stateValue.fenetre,
+    agenda: !!stateValue.agenda,
+    agenda_connecte: agendaConnecte,
   };
 }
 
@@ -312,7 +339,7 @@ export function storedAccount(email) {
 }
 
 // Access tokens last an hour; refresh transparently when needed.
-export async function accessTokenFor(account) {
+export async function accessTokenFor(account, entite = 'MailAccount') {
   const stillValid = account.expires_at && new Date(account.expires_at).getTime() - Date.now() > 60_000;
   if (stillValid && account.access_token) return account.access_token;
 
@@ -327,7 +354,7 @@ export async function accessTokenFor(account) {
     grant_type: 'refresh_token',
   });
 
-  Records.update('MailAccount', account.id, {
+  Records.update(entite, account.id, {
     access_token: tokens.access_token,
     expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
   });

@@ -23,7 +23,8 @@ export async function trouverProprietaire(id, { siren = null, user = null } = {}
   const c = cibleOu(id);
   const { proprietairesDe } = await import('./proprietaires.js');
   const ville = Records.get('Ville', c.ville_id);
-  const point = c.source === 'Google Maps' && c.lat != null && c.lon != null ? { lat: c.lat, lon: c.lon } : null;
+  // La vitrine géolocalisée (Google Maps, Data-B) désigne la parcelle mieux que l'adresse.
+  const point = ['Google Maps', 'Data-B'].includes(c.source) && c.lat != null && c.lon != null ? { lat: c.lat, lon: c.lon } : null;
   if (!point && !/^\d/.test(String(c.adresse || '').trim())) throw new Error("L'adresse n'a pas de numéro : impossible de désigner le bâtiment.");
   const texte = [c.adresse, c.code_postal || ville?.code_postal, c.ville].filter(Boolean).join(' ');
   const f = await proprietairesDe(texte, { occupant: c.occupant || null, point });

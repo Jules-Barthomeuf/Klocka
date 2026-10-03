@@ -103,6 +103,11 @@ const ETAPES = [
   { n: 5, id: "presentation", label: "Présentation", sub: "dossier banque" },
 ];
 
+/** Les étapes d'un dossier : un dossier venu d'un mandataire K Partners commence par lui, pas par un mail. */
+const etapesDu = (dossier) => (dossier?.origine === "mandataire"
+  ? ETAPES.map((e) => (e.n === 1 ? { ...e, id: "mail", label: "Mandataire", sub: "K Partners" } : e))
+  : ETAPES);
+
 /**
  * Supprimer le dossier pour de bon, après confirmation : il disparaît avec ses
  * pièces et sa fiche ne compte plus comme importée. Retour à la liste ensuite.
@@ -131,6 +136,7 @@ function useSupprimerDossier(dossier) {
  */
 function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPasser, onAbandonner, onSupprimer, abandonne, apercu }) {
   const [ouvert, setOuvert] = useState(false);
+  const ETAPES = etapesDu(dossier);
   const courante = ETAPES.find((e) => e.n === etape) || ETAPES[0];
   const fermer = () => setOuvert(false);
   return (

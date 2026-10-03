@@ -26,7 +26,7 @@ export const ENTREES_AUTRE = [
   { cle: "AdminValidations", label: "Validations" },
   { cle: "ImportProjets", label: "Import de projets" },
   // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
-  { cle: "Personnalisation", label: "Personnalisation" },
+  { cle: "Personnalisation", label: "Compte" },
 ];
 
 export const ENTREES_CLIENT = [
@@ -47,10 +47,11 @@ export const ENTREES_MANDATAIRE = [
   { cle: "MandataireClients", label: "Clients" },
   { cle: "MandataireEstimation", label: "Estimation" },
   { cle: "MandataireMandat", label: "Mandat" },
-  { cle: "MandataireDossier", label: "Dossier" },
+  { cle: "MandataireDossier", label: "Dossiers" },
   { cle: "MandataireMarche", label: "Mise en marché" },
+  { cle: "MandataireProjets", label: "Projets" },
   { cle: "Feedback", label: "Feedback" },
-  { cle: "Personnalisation", label: "Personnalisation" },
+  { cle: "Personnalisation", label: "Compte" },
 ];
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */

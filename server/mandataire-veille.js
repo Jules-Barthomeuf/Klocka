@@ -19,8 +19,15 @@ import { Records, Meta } from './db.js';
 
 const TRENTE_JOURS = 30 * 86400000;
 const SEPT_JOURS = 7 * 86400000;
-const PAR_TOUR_PROPRIETAIRES = 3;
-const PAR_TOUR_NUMEROS = 3;
+// Le débit d'un tour (toutes les quinze minutes) : de quoi traiter quelques
+// centaines de commerces par jour. Les Pages Blanches sont espacées de deux à
+// quatre secondes par recherche (annuaire-particuliers.js) : c'est elles qui
+// bornent le tour, pas ces nombres.
+const PAR_TOUR_PROPRIETAIRES = 12;
+const PAR_TOUR_NUMEROS = 8;
+const PAR_TOUR_DIRIGEANTS = 6;
+// Tous les dirigeants de la société propriétaire sont cherchés, jusqu'à six.
+const PERSONNES_PAR_SOCIETE = 6;
 const TAILLE_LISTE_DU_JOUR = 12;
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -38,7 +45,7 @@ const poserEtat = (email, etat) => Meta.set(cleEtat(email), JSON.stringify(etat)
 // (Société Générale propriétaire de son agence, Carrefour de son City), il
 // n'y a pas de vendeur à démarcher. Un indépendant ou une SCI qui loue SES
 // murs à Carrefour reste, lui, un très bon prospect.
-const ENSEIGNES_NATIONALES = /\b(societe generale|bnp|credit agricole|credit mutuel|credit lyonnais|lcl|caisse d.?epargne|banque populaire|banque postale|la poste|cic\b|hsbc|axa|allianz|groupama|maaf|macif|mma\b|matmut|gmf\b|aesio|harmonie mutuelle|malakoff|ag2r|generali|swiss ?life|carrefour|auchan|leclerc|intermarche|lidl|aldi|casino|monoprix|franprix|picard|action\b|netto|spar\b|vival\b|orange\b|sfr\b|bouygues|free mobile|mcdonald|burger king|kfc\b|quick\b|subway|domino.?s|engie|edf\b|totalenergies|total energies|sncf|ratp|norauto|feu vert|midas|decathlon|fnac|darty|boulanger|but\b|conforama|ikea|leroy merlin|castorama|brico depot|mr bricolage|gifi|la halle|kiabi|celio|jules\b|etam|promod|sephora|marionnaud|nocibe|yves rocher|optic 2000|krys|afflelou|generale d.?optique|pharmacie lafayette|basic fit|fitness park|keep cool)\b/;
+const ENSEIGNES_NATIONALES = /\b(societe generale|bnp|credit agricole|credit mutuel|credit lyonnais|lcl|caisse d.?epargne|banque populaire|banque postale|la poste|cic\b|hsbc|axa|allianz|groupama|maaf|macif|mma\b|matmut|gmf\b|aesio|harmonie mutuelle|malakoff|ag2r|generali|swiss ?life|(?<!du )(?<!au )(?<!le )carrefour|auchan|leclerc|intermarche|lidl|aldi|casino|monoprix|franprix|picard|action\b|netto|spar\b|vival\b|orange\b|sfr\b|bouygues|free mobile|mcdonald|burger king|kfc\b|quick\b|subway|domino.?s|engie|edf\b|totalenergies|total energies|sncf|ratp|norauto|feu vert|midas|decathlon|fnac|darty|boulanger|but\b|conforama|ikea|leroy merlin|castorama|brico depot|mr bricolage|gifi|la halle|kiabi|celio|jules\b|etam|promod|sephora|marionnaud|nocibe|yves rocher|optic 2000|krys|afflelou|generale d.?optique|pharmacie lafayette|basic fit|fitness park|keep cool)\b/;
 
 /** Pure : le propriétaire des murs est-il une enseigne nationale ? */
 export const enseigneNationale = (nom) => ENSEIGNES_NATIONALES.test(norm(nom).replace(/[-']/g, ' '));
@@ -46,11 +53,6 @@ export const enseigneNationale = (nom) => ENSEIGNES_NATIONALES.test(norm(nom).re
 /** Pure : un bailleur public s'appelle à son standard, jamais chez son directeur. */
 export const bailleurPublic = (nom) =>
   /\b(commune|office public|ophlm|opac|departement|région|region|communaute|metropole|syndicat|etat|ville de)\b/i.test(norm(nom).replace(/-/g, ' '));
-
-/** Les villes ALX du secteur, et les communes des unités pas encore lues. */
-function communesDuSecteur(secteur) {
-  return (secteur.unites || []).filter((u) => u.niveau === 'commune');
-}
 
 /** Les cibles du secteur : celles des villes ALX dont le centre tombe dedans. */
 async function ciblesDuSecteur(secteur) {
@@ -67,7 +69,9 @@ export function cibleVerifiee(c) {
   // Les murs détenus par l'enseigne nationale elle-même : rien à vendre.
   if (enseigneNationale(proprio)) return false;
   if (c.proprietaire_occupant && enseigneNationale(c.enseigne || '')) return false;
-  return !!(c.murs_telephone || (c.proprietaire_occupant && c.telephone));
+  // Le numéro du propriétaire des murs, ou celui du dirigeant du commerce (qui
+  // connaît son bailleur) ; jamais le seul numéro du commerce.
+  return !!(c.murs_telephone || (c.proprietaire_occupant && c.telephone) || c.dirigeant_telephone);
 }
 
 /** Pure : l'ordre d'appel — n°1 d'abord, puis l'âge du propriétaire, puis la SCI. */
@@ -81,6 +85,8 @@ export function scoreCible(c) {
   else if (age === '50-70') n += 12;
   if (/sci/i.test(c.proprietaire?.forme || c.societe?.forme || '')) n += 8;
   if (c.murs_telephone) n += 5;
+  if ((c.murs_telephones || []).length > 1) n += 3;
+  if (c.dirigeant_telephone) n += 2;
   return n;
 }
 
@@ -93,7 +99,8 @@ async function parcourirUneCommune(secteur, user, etat) {
   if (parcoursEnCours) return false;
   // Un parcours par mandataire et par jour : c'est le geste cher de la veille.
   if (etat.parcours_le === jourDeParis()) return false;
-  const communes = communesDuSecteur(secteur);
+  const { communesAgent } = await import('./mandataire-agent.js');
+  const communes = (await communesAgent(secteur)).map((nom) => ({ nom }));
   if (!communes.length) return false;
   const { creerVille } = await import('./alx/index.js');
   const { lancer } = await import('./alx/parcours.js');
@@ -124,7 +131,7 @@ async function parcourirUneCommune(secteur, user, etat) {
 }
 
 /** Quelques propriétaires de murs identifiés (sources ouvertes, gratuit). */
-async function identifierDesProprietaires(secteur) {
+async function identifierDesProprietaires(secteur, user = null, etat = null) {
   const { trouverProprietaire } = await import('./alx/enrichir.js');
   const aFaire = (await ciblesDuSecteur(secteur))
     .filter((c) => !c.proprietaire?.nom && !c.foncier && !c.activite_exclue && c.pile !== 'ecartee' && !c.ecartee_regle)
@@ -133,6 +140,14 @@ async function identifierDesProprietaires(secteur) {
   for (const c of aFaire) {
     try {
       await trouverProprietaire(c.id, {});
+      const apres = Records.get('Cible', c.id);
+      if (apres?.proprietaire?.nom && user) {
+        const { noter } = await import('./mandataire-agent.js');
+        if (etat?.jour) etat.jour.proprietaires = (etat.jour.proprietaires || 0) + 1;
+        noter(user.email, `Propriétaire des murs trouvé pour ${apres.enseigne || apres.adresse} (${apres.ville}) : ${apres.proprietaire.nom}.`);
+      } else if (!apres?.proprietaire?.nom) {
+        Records.update('Cible', c.id, { proprietaire_cherche_le: new Date().toISOString() });
+      }
     } catch (e) {
       Records.update('Cible', c.id, { proprietaire_cherche_le: new Date().toISOString() });
       console.warn(`[veille mandataire] propriétaire (${c.enseigne || c.adresse}) : ${e?.message || e}`);
@@ -142,47 +157,139 @@ async function identifierDesProprietaires(secteur) {
   return aFaire.length;
 }
 
-/**
- * Quelques numéros de propriétaires (Pages Blanches seulement : gratuit).
- * Le numéro vit sur la CIBLE (`murs_telephone`) : il profite à la liste du
- * jour comme à un export manuel, avant même qu'une fiche existe.
- */
-async function joindreDesProprietaires(secteur) {
-  const { numeroDuParticulier } = await import('./annuaire-particuliers.js');
+/** Pure : « 0385507121 » → « 03 85 50 71 21 », comme partout ailleurs. */
+export const telLisible = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length === 10 ? d.replace(/(\d{2})(?=\d)/g, '$1 ') : t; };
+
+/** Les personnes à chercher pour une société : ses dirigeants personnes physiques, ou le particulier nommé. */
+async function personnesDe(societe, nomProprietaire = '') {
   const { gerantsPersonnes } = await import('./alx/demarchage.js');
+  const personnes = gerantsPersonnes(societe);
+  if (!personnes.length && /^(m|mme|monsieur|madame)\b/i.test(nomProprietaire)) {
+    const mots = nomProprietaire.replace(/^(m|mme|monsieur|madame)\.?\s+/i, '').split(/\s+/);
+    personnes.push({ prenom: mots[0] || '', nom: mots.slice(1).join(' ') || mots[0] });
+  }
+  return personnes.slice(0, PERSONNES_PAR_SOCIETE);
+}
+
+/**
+ * Cherche dans l'annuaire chacune des personnes, à une adresse connue.
+ * Rend tous les numéros trouvés (sans doublon), et si l'annuaire est en panne.
+ */
+async function numerosDe(personnes, adresse) {
+  const { numeroDuParticulier } = await import('./annuaire-particuliers.js');
+  const trouves = [];
+  for (const g of personnes) {
+    let r = null;
+    try {
+      r = await numeroDuParticulier({ prenom: g.prenom, nom: g.nom, adresse });
+    } catch (e) {
+      console.warn(`[veille mandataire] annuaire (${g.prenom} ${g.nom}) : ${e?.message || e}`);
+      return { trouves, enPanne: true };
+    }
+    if (r && !trouves.some((t) => t.telephone.replace(/\D/g, '') === String(r.telephone).replace(/\D/g, ''))) {
+      trouves.push({ telephone: telLisible(r.telephone), nom: [g.prenom, g.nom].filter(Boolean).join(' '), qualite: g.qualite || null, adresse: r.adresse || null, source: r.source });
+    }
+  }
+  return { trouves, enPanne: false };
+}
+
+/**
+ * Les numéros des propriétaires des murs (Pages Blanches : gratuit). Tous les
+ * dirigeants de la société propriétaire sont cherchés, et tous les numéros
+ * gardés (`murs_telephones`) ; le premier fait `murs_telephone`. Le numéro vit
+ * sur la CIBLE : il profite à la liste du jour comme à un export manuel.
+ */
+async function joindreDesProprietaires(secteur, user = null, etat = null) {
   const aFaire = (await ciblesDuSecteur(secteur))
-    .filter((c) => c.proprietaire?.nom && !bailleurPublic(c.proprietaire.nom) && !enseigneNationale(c.proprietaire.nom) && !c.murs_telephone && !c.proprietaire_occupant)
+    .filter((c) => c.proprietaire?.nom && !bailleurPublic(c.proprietaire.nom) && !enseigneNationale(c.proprietaire.nom) && !c.proprietaire_occupant)
+    // Pas encore de numéro, ou un numéro trouvé avant qu'on cherche tous les dirigeants.
+    .filter((c) => !c.murs_telephone || !c.murs_tels_complets)
     .filter((c) => !(c.murs_tel_cherche_le && Date.now() - Date.parse(c.murs_tel_cherche_le) < SEPT_JOURS))
     .filter((c) => !c.activite_exclue && c.pile !== 'ecartee' && !c.ecartee_regle)
+    .sort((a, b) => scoreCible(b) - scoreCible(a))
     .slice(0, PAR_TOUR_NUMEROS);
   for (const c of aFaire) {
-    const personnes = gerantsPersonnes(c.societe);
-    if (!personnes.length && /^(m|mme|monsieur|madame)\b/i.test(c.proprietaire.nom)) {
-      const mots = c.proprietaire.nom.replace(/^(m|mme|monsieur|madame)\.?\s+/i, '').split(/\s+/);
-      personnes.push({ prenom: mots[0] || '', nom: mots.slice(1).join(' ') || mots[0] });
-    }
-    let enPanne = false;
-    let trouve = null;
-    for (const g of personnes.slice(0, 3)) {
-      const adresse = c.societe?.siege?.adresse || [c.adresse, c.ville].filter(Boolean).join(' ');
-      try {
-        trouve = await numeroDuParticulier({ prenom: g.prenom, nom: g.nom, adresse });
-      } catch (e) {
-        enPanne = true;
-        console.warn(`[veille mandataire] annuaire (${g.prenom} ${g.nom}) : ${e?.message || e}`);
-        break;
-      }
-      if (trouve) {
-        Records.update('Cible', c.id, {
-          murs_telephone: trouve.telephone,
-          murs_telephone_source: `${trouve.source} · ${[g.prenom, g.nom].filter(Boolean).join(' ')}`,
-          murs_adresse_proprietaire: trouve.adresse,
-        });
-        break;
-      }
-    }
-    if (!trouve && !enPanne) Records.update('Cible', c.id, { murs_tel_cherche_le: new Date().toISOString() });
+    const personnes = await personnesDe(c.societe, c.proprietaire.nom);
+    const adresse = c.societe?.siege?.adresse || [c.adresse, c.ville].filter(Boolean).join(' ');
+    const { trouves, enPanne } = await numerosDe(personnes, adresse);
     if (enPanne) break;
+    // Les numéros déjà connus restent (une recherche plus ancienne, une saisie).
+    const deja = (c.murs_telephones || (c.murs_telephone ? [{ telephone: c.murs_telephone, nom: null, source: c.murs_telephone_source || null }] : []));
+    const tous = [...deja];
+    for (const t of trouves) if (!tous.some((x) => String(x.telephone).replace(/\D/g, '') === t.telephone.replace(/\D/g, ''))) tous.push(t);
+    const patch = { murs_tel_cherche_le: new Date().toISOString(), murs_tels_complets: true };
+    if (tous.length) {
+      const premier = tous[0];
+      Object.assign(patch, {
+        murs_telephones: tous,
+        murs_telephone: premier.telephone,
+        murs_telephone_source: premier.source ? `${premier.source}${premier.nom ? ` · ${premier.nom}` : ''}` : c.murs_telephone_source || null,
+        ...(premier.adresse ? { murs_adresse_proprietaire: premier.adresse } : {}),
+      });
+    }
+    Records.update('Cible', c.id, patch);
+    if (tous.length) {
+      // Les fiches déjà en liste sur ce commerce reçoivent les numéros aussitôt.
+      for (const f of Records.list('ProprietaireMandataire').filter((x) => x.cible_id === c.id)) {
+        Records.update('ProprietaireMandataire', f.id, {
+          telephones_proprietaire: tous,
+          ...(f.telephone ? {} : { telephone: patch.murs_telephone, telephone_source: patch.murs_telephone_source, adresse_proprietaire: patch.murs_adresse_proprietaire || null }),
+        });
+      }
+    }
+    if (user && trouves.length) {
+      const { noter } = await import('./mandataire-agent.js');
+      if (etat?.jour) etat.jour.numeros = (etat.jour.numeros || 0) + trouves.length;
+      noter(user.email, `${trouves.length > 1 ? `${trouves.length} numéros trouvés` : 'Numéro trouvé'} pour ${c.proprietaire.nom} (${c.enseigne || c.adresse}) : ${trouves.map((t) => `${t.telephone}${t.nom ? ` (${t.nom})` : ''}`).join(', ')}.`, 'succes');
+    }
+    await new Promise((f) => setTimeout(f, 400));
+  }
+  return aFaire.length;
+}
+
+/**
+ * Le dirigeant du COMMERCE (l'exploitant, par le SIRET de la cible) : il
+ * connaît son bailleur et décroche plus volontiers. Ses dirigeants sont
+ * cherchés à l'adresse du siège de son entreprise ; les numéros sont gardés à
+ * part (`dirigeant`), jamais mêlés à ceux du propriétaire des murs. Les
+ * enseignes nationales et les réseaux (plus de vingt établissements) n'ont
+ * pas de dirigeant joignable : on passe.
+ */
+async function joindreDesDirigeants(secteur, user = null, etat = null) {
+  const { societe } = await import('./alx/annuaire.js');
+  const aFaire = (await ciblesDuSecteur(secteur))
+    .filter((c) => /^\d{14}$/.test(String(c.siret || '').replace(/\s/g, '')) && !c.dirigeant_cherche_le)
+    .filter((c) => !c.activite_exclue && c.pile !== 'ecartee' && !c.ecartee_regle)
+    .filter((c) => c.proprietaire?.nom && !bailleurPublic(c.proprietaire.nom) && !enseigneNationale(c.proprietaire.nom))
+    .sort((a, b) => scoreCible(b) - scoreCible(a))
+    .slice(0, PAR_TOUR_DIRIGEANTS);
+  for (const c of aFaire) {
+    const siren = String(c.siret).replace(/\s/g, '').slice(0, 9);
+    let s = null;
+    try { s = await societe({ siren }); } catch (e) { console.warn(`[veille mandataire] annuaire des entreprises (${siren}) : ${e?.message || e}`); }
+    if (!s || enseigneNationale(s.nom || '') || (s.nombre_etablissements || 0) > 20) {
+      Records.update('Cible', c.id, { dirigeant_cherche_le: new Date().toISOString(), ...(s ? { dirigeant: { societe: s.nom, siren: s.siren, personnes: [], ecarte: 'réseau ou enseigne' } } : {}) });
+      continue;
+    }
+    const personnes = await personnesDe(s);
+    const adresse = s.siege?.adresse || [c.adresse, c.ville].filter(Boolean).join(' ');
+    const { trouves, enPanne } = await numerosDe(personnes, adresse);
+    if (enPanne) break;
+    Records.update('Cible', c.id, {
+      dirigeant_cherche_le: new Date().toISOString(),
+      dirigeant: { societe: s.nom, siren: s.siren, personnes: personnes.map((g) => ({ nom: [g.prenom, g.nom].filter(Boolean).join(' '), qualite: g.qualite || null, tranche_age: g.tranche_age || null })), telephones: trouves },
+      ...(trouves.length ? { dirigeant_telephone: trouves[0].telephone } : {}),
+    });
+    if (trouves.length) {
+      for (const f of Records.list('ProprietaireMandataire').filter((x) => x.cible_id === c.id)) {
+        Records.update('ProprietaireMandataire', f.id, { telephones_dirigeant: trouves, dirigeant_nom: trouves[0].nom });
+      }
+      if (user) {
+        const { noter } = await import('./mandataire-agent.js');
+        if (etat?.jour) etat.jour.dirigeants = (etat.jour.dirigeants || 0) + 1;
+        noter(user.email, `Dirigeant joint pour ${c.enseigne || c.adresse} (${c.ville}) : ${trouves.map((t) => `${t.nom} ${t.telephone}`).join(', ')}.`, 'succes');
+      }
+    }
     await new Promise((f) => setTimeout(f, 400));
   }
   return aFaire.length;
@@ -219,8 +326,15 @@ async function poserListeDuJour(secteur, user, etat) {
     if (!r.ok) continue;
     Records.update('ProprietaireMandataire', r.proprietaire.id, {
       liste_id: liste.id,
+      ...(c.murs_telephones?.length ? { telephones_proprietaire: c.murs_telephones } : {}),
+      ...(c.dirigeant?.telephones?.length ? { telephones_dirigeant: c.dirigeant.telephones, dirigeant_nom: c.dirigeant.telephones[0].nom } : {}),
       ...(c.murs_telephone ? { telephone_source: c.murs_telephone_source || null, adresse_proprietaire: c.murs_adresse_proprietaire || null } : c.proprietaire_occupant && c.telephone ? { telephone_source: 'commerce (propriétaire-occupant)' } : {}),
     });
+    for (const t of Records.list('TrouvailleAgent').filter((x) => x.cible_id === c.id && x.statut === 'nouvelle')) {
+      Records.update('TrouvailleAgent', t.id, { statut: 'ajoutee', ajoutee_le: new Date().toISOString(), liste_id: liste.id });
+    }
+    const { synchroniserEnFond } = await import('./mandataire-monday.js');
+    synchroniserEnFond(r.proprietaire.id);
     posees += 1;
   }
   if (!posees) { Records.delete('ListeMandataire', liste.id); etat.liste_du = jour; return null; }
@@ -254,16 +368,26 @@ export async function tourDeVeille() {
     const secteurs = Records.list('SecteurMandataire').filter((s) => s.mandataire_email);
     for (const secteur of secteurs) {
       const user = { email: secteur.mandataire_email, role: 'mandataire' };
+      const A = await import('./mandataire-agent.js');
+      const agent = A.etatAgent(user.email);
+      if (agent.actif === false) continue;
       const etat = lireEtat(user.email);
+      // Les compteurs du jour vivent dans l'état de l'agent.
+      if (agent.jour?.date !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date())) agent.jour = { date: new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date()), lus: 0, proprietaires: 0, numeros: 0, trouvailles: 0 };
       try {
+        await A.sourcer(secteur, user, agent);
         await parcourirUneCommune(secteur, user, etat);
-        await identifierDesProprietaires(secteur);
-        await joindreDesProprietaires(secteur);
+        await identifierDesProprietaires(secteur, user, agent);
+        await joindreDesProprietaires(secteur, user, agent);
+        await joindreDesDirigeants(secteur, user, agent);
+        await A.proposer(secteur, user, agent);
         await poserListeDuJour(secteur, user, etat);
+        await A.rattraperMonday(user);
       } catch (e) {
         console.warn(`[veille mandataire] ${user.email} : ${e?.message || e}`);
       }
       poserEtat(user.email, etat);
+      A.poserEtatAgent(user.email, { ...A.etatAgent(user.email), ...agent, actif: A.etatAgent(user.email).actif });
     }
     return { ok: true, secteurs: secteurs.length };
   } finally {

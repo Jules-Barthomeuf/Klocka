@@ -149,6 +149,9 @@ export async function analyserFiche(entree, ctx = {}) {
   completerContexteMarche(dossier);
   // L'agent, lui, est attendu : c'est à lui qu'on écrit ensuite, et celui
   // qui a déposé la fiche doit savoir s'il est au dossier et dans Monday.
+  // Un dossier venu d'un mandataire K Partners n'a pas d'agent immobilier :
+  // rien à rattacher, et surtout rien à écrire dans Monday.
+  if (ctx.sansAgent) return dossier;
   try {
     const { rattacherAgent } = await import('./agent-fiche.js');
     dossier.agent_fiche = await rattacherAgent(dossier.deal_id, {
@@ -401,7 +404,13 @@ export function listerDossiers(limit = 50) {
     etape_max: etapeMax(d),
     titre: nettoyerTitre(d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || d.deal_id),
     responsables: d.responsables || [],
+    // Un dossier venu d'un mandataire K Partners : sa pastille dans la liste.
+    origine: d.origine || null,
+    mandataire_email: d.mandataire_email || null,
+    dossier_mandataire_id: d.dossier_mandataire_id || null,
     dernier_suivi: (d.suivi || [])[d.suivi?.length - 1] || null,
+    // L'image de la carte : celle du projet né du dossier, sinon une photo du mandataire.
+    photo: photoDe(d),
     lots: (d.lots || []).map((l) => ({
       index: l.index,
       intitule: l.intitule,
@@ -410,8 +419,19 @@ export function listerDossiers(limit = 50) {
       ville: l.enrichissement?.commune?.nom || l.lot?.adresse?.valeur?.ville || null,
       adresse: l.lot?.adresse?.valeur?.rue || null,
       prix_fai: l.lot?.prix_fai?.absent === false ? l.lot.prix_fai.valeur : null,
+      loyer_annuel: l.lot?.loyer_annuel_ht_hc?.absent === false ? l.lot.loyer_annuel_ht_hc.valeur : null,
+      surface_m2: l.lot?.surface_m2?.absent === false ? l.lot.surface_m2.valeur : null,
     })),
   }));
+}
+
+function photoDe(d) {
+  const url = (x) => (typeof x === 'string' ? x : x?.url || null);
+  const projet = d.projet_id ? Records.get('Project', d.projet_id) : null;
+  const depuisProjet = url((projet?.photos || [])[0]);
+  if (depuisProjet) return depuisProjet;
+  const dm = d.dossier_mandataire_id ? Records.get('DossierMandataire', d.dossier_mandataire_id) : null;
+  return url((dm?.photos || [])[0]);
 }
 
 /**

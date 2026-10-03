@@ -29,7 +29,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen } from "lucide-react";
+  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
@@ -347,6 +347,24 @@ function LayoutContent({ children, currentPageName }) {
     staleTime: 60 * 1000,
   });
   const alxAFaire = vueAdmin ? alx?.a_faire?.a_appeler || 0 : 0;
+  // Les messages des mandataires qui attendent une réponse, et de l'autre
+  // côté ceux de Klocka que le mandataire n'a pas lus.
+  const { data: conversations } = useQuery({
+    queryKey: ["k-conversations"],
+    queryFn: () => base44.request("GET", "/api/mandataire/admin/conversations"),
+    enabled: vueAdmin,
+    refetchInterval: 60 * 1000,
+    staleTime: 20 * 1000,
+  });
+  const { data: dossiersMandataire } = useQuery({
+    queryKey: ["m-dossiers"],
+    queryFn: () => base44.request("GET", "/api/mandataire/dossiers"),
+    enabled: vue === "mandataire",
+    refetchInterval: 60 * 1000,
+    staleTime: 20 * 1000,
+  });
+  const nonLusKlocka = vueAdmin ? conversations?.non_lus || 0 : 0;
+  const nonLusMandataire = vue === "mandataire" ? (dossiersMandataire?.dossiers || []).reduce((n, d) => n + (d.fil_non_lus || 0), 0) : 0;
   // Tout ce qui n'est pas la vue admin cache l'arrière-boutique.
   const showClientView = vue !== "admin";
   const hideNavbar = pagesWithoutNavbar.includes(currentPageName);
@@ -402,7 +420,7 @@ function LayoutContent({ children, currentPageName }) {
   const DETAILS = {
     Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
-    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") },
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
@@ -421,10 +439,12 @@ function LayoutContent({ children, currentPageName }) {
     MandataireClients: { to: createPageUrl("MandataireClients"), icon: Users, actif: isActivePage("MandataireClients") },
     MandataireEstimation: { to: createPageUrl("MandataireEstimation"), icon: Calculator, actif: isActivePage("MandataireEstimation") },
     MandataireMandat: { to: createPageUrl("MandataireMandat"), icon: FileSignature, actif: isActivePage("MandataireMandat") },
-    MandataireDossier: { to: createPageUrl("MandataireDossier"), icon: Folder, actif: isActivePage("MandataireDossier") },
+    MandataireDossier: { to: createPageUrl("MandataireDossier"), icon: Folder, actif: isActivePage("MandataireDossier"), badge: nonLusMandataire || null, badgeColor: "bg-menthe text-sur-menthe" },
+    ConversationsMandataires: { to: createPageUrl("ConversationsMandataires"), icon: MessagesSquare, actif: isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     MandataireMarche: { to: createPageUrl("MandataireMarche"), icon: Presentation, actif: isActivePage("MandataireMarche") },
+    MandataireProjets: { to: createPageUrl("MandataireProjets"), icon: Building2, actif: isActivePage("MandataireProjets") },
     AdminValidations: { to: createPageUrl("AdminValidations"), icon: ClipboardCheck, actif: isActivePage("AdminValidations") },
-    Personnalisation: { to: createPageUrl("Personnalisation"), icon: Palette, actif: isActivePage("Personnalisation") },
+    Personnalisation: { to: createPageUrl("Personnalisation"), icon: user?.role === "admin" || user?.role === "mandataire" ? CircleUser : Palette, actif: isActivePage("Personnalisation") },
     ImportProjets: { to: createPageUrl("ImportProjets"), icon: Upload, actif: isActivePage("ImportProjets") },
     MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
     Vision: { to: createPageUrl("Vision"), icon: Eye, actif: isActivePage("Vision") },
@@ -571,8 +591,10 @@ function LayoutContent({ children, currentPageName }) {
 
         {/* Le compte. */}
         <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2 px-3 py-3"}`}>
-          <Link to={createPageUrl("MonCompte")} onClick={isMobile ? closeMobile : undefined} title={user?.full_name || user?.email} className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-[14px] font-medium text-sur-menthe">
-            {initiale}
+          {/* Sa photo (déposée sur la page Compte, ou celle de Google), sinon son initiale.
+              Le clic ouvre la page Compte ; un client garde « Mon compte ». */}
+          <Link to={createPageUrl(user?.role === "admin" || user?.role === "mandataire" ? "Personnalisation" : "MonCompte")} onClick={isMobile ? closeMobile : undefined} title={user?.full_name || user?.email} className="grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-full bg-menthe text-[14px] font-medium text-sur-menthe">
+            {user?.picture ? <img src={user.picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initiale}
           </Link>
           {!replie && <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{nomCourt}</span>}
           <div className={`flex items-center ${replie ? "flex-col gap-1" : "gap-0"}`}>
@@ -610,7 +632,8 @@ function LayoutContent({ children, currentPageName }) {
           {/* La barre latérale de bureau ; repliée, un rail d'icônes. */}
           {!hideNavbar && (
             <aside
-              className={`hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-trait bg-rail transition-[width] duration-200 ${sidebarCollapsed ? "w-[64px]" : "w-[228px]"}`}
+              data-zone="barre"
+              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-trait bg-rail transition-[width] duration-200 ${sidebarCollapsed ? "w-[64px]" : "w-[228px]"}`}
               style={{ paddingTop: "env(safe-area-inset-top)" }}
             >
               {sidebarContent(false)}
@@ -639,7 +662,7 @@ function LayoutContent({ children, currentPageName }) {
           {isMobileMenuOpen && !hideNavbar && (
             <>
               <div className="md:hidden fixed inset-0 bg-fond/60 z-40 animate-in fade-in duration-200" onClick={closeMobile} />
-              <aside className="md:hidden fixed top-0 left-0 h-screen w-[248px] z-50 bg-rail animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
+              <aside data-zone="barre" className="k-points md:hidden fixed top-0 left-0 h-screen w-[248px] z-50 bg-rail animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
                 {sidebarContent(true)}
               </aside>
             </>
@@ -649,7 +672,9 @@ function LayoutContent({ children, currentPageName }) {
 
       {/* Main Content */}
       <main
-        className={`relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
+        data-zone="fond"
+        style={{ "--k-grid-marge": "0px" }}
+        className={`k-points k-contenu relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
           modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[64px] md:transition-[margin-left] md:duration-200" : "md:ml-[228px] md:transition-[margin-left] md:duration-200") : ""
         } ${
           modoKData

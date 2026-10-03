@@ -123,7 +123,7 @@ function delaiRetryDe(data) {
   return null;
 }
 
-async function geminiGenerate({ systemInstruction, contents, tools, json }) {
+async function geminiGenerate({ systemInstruction, contents, tools, json, tentatives = null }) {
   const body = {
     contents,
     ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
@@ -141,7 +141,9 @@ async function geminiGenerate({ systemInstruction, contents, tools, json }) {
   // plusieurs documents les enchaîne et tombe vite en 429. Plutôt que de faire
   // échouer le document, on attend et on réessaie (délai conseillé par Google,
   // sinon backoff progressif). Les 5xx passagers profitent du même filet.
-  const MAX_TENTATIVES = 4;
+  // `tentatives: 1` : les usages interactifs (la dictée) préfèrent échouer
+  // tout de suite et garder le texte brut plutôt qu'attendre un palier 429.
+  const MAX_TENTATIVES = tentatives || 4;
   let derniereErreur = null;
 
   for (let tentative = 1; tentative <= MAX_TENTATIVES; tentative++) {
@@ -424,14 +426,96 @@ async function texteDeLaPiece({ buffer, mimetype, nom }) {
  * @param {{buffer: Buffer, mimetype?: string}} audio
  * @returns {Promise<string>}
  */
-export async function transcrireAudio({ buffer, mimetype = 'audio/wav' } = {}) {
-  if (!GEMINI_KEY) throw new Error("La dictée hors Chrome demande une clé Gemini (GEMINI_API_KEY) : elle transcrit l'audio.");
+const MISTRAL_KEY = (process.env.MISTRAL_API_KEY || '').trim();
+const VOXTRAL_MODEL = (process.env.VOXTRAL_MODEL || 'voxtral-mini-latest').trim();
+
+/** L'audio transcrit par Voxtral (Mistral) : rapide, français, déjà ponctué. */
+async function voxtralTranscrire({ buffer, mimetype }) {
+  const form = new FormData();
+  form.append('file', new Blob([buffer], { type: mimetype }), mimetype.includes('wav') ? 'audio.wav' : 'audio');
+  form.append('model', VOXTRAL_MODEL);
+  form.append('language', 'fr');
+  const r = await fetch('https://api.mistral.ai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${MISTRAL_KEY}` },
+    body: form,
+    signal: AbortSignal.timeout(60000),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data?.message || `Voxtral a répondu ${r.status}.`), { statut: r.status });
+  if (data?.usage?.prompt_audio_seconds) console.log(`[voxtral] ${data.usage.prompt_audio_seconds} s d'audio transcrits (${VOXTRAL_MODEL})`);
+  return String(data?.text || '').trim();
+}
+
+/**
+ * @param {{buffer: Buffer, mimetype?: string, rapide?: boolean}} o - `rapide` :
+ *   la dictée en direct préfère rendre la main tout de suite (un seul essai
+ *   par service) plutôt qu'attendre un palier de quota.
+ */
+export async function transcrireAudio({ buffer, mimetype = 'audio/wav', rapide = false } = {}) {
   if (!buffer?.length) return '';
+  // Voxtral d'abord. Mistral répond parfois 429 « pas assez de capacité »
+  // quelques secondes : on réessaie avant de renoncer.
+  if (MISTRAL_KEY) {
+    for (const attente of [0, 700, 1800]) {
+      if (attente) await new Promise((f) => setTimeout(f, attente));
+      try {
+        return await voxtralTranscrire({ buffer, mimetype });
+      } catch (e) {
+        console.warn(`[voxtral] ${e?.message || e}`);
+        if (!(e?.statut === 429 || e?.statut >= 500 || e?.name === 'TimeoutError')) break;
+      }
+    }
+    // La dictée ne passe jamais par Gemini : son quota gratuit tombe vite.
+    if (rapide) throw new Error('La dictée (Mistral) est saturée pour le moment : réessayez dans quelques secondes.');
+    if (GEMINI_KEY) console.warn('[voxtral] Gemini prend le relais');
+  }
+  if (!GEMINI_KEY) throw new Error('La transcription demande une clé Voxtral (MISTRAL_API_KEY) ou Gemini (GEMINI_API_KEY).');
   const data = await geminiGenerate({
     systemInstruction: "Tu transcris un enregistrement en français, mot pour mot. Tu rends le texte seul : pas de guillemets, pas de commentaire, pas d'horodatage. Ponctue normalement. Si l'enregistrement est vide ou inaudible, rends une chaîne vide.",
     contents: [{ role: 'user', parts: [{ inline_data: { mime_type: mimetype, data: buffer.toString('base64') } }, { text: 'Transcris.' }] }],
+    ...(rapide ? { tentatives: 1 } : {}),
   });
   return (data?.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('').trim();
+}
+
+/**
+ * Reponctue une dictée du navigateur : mêmes mots, majuscules et ponctuation.
+ * Sans clé Gemini, le texte revient tel quel — jamais une erreur pour ça.
+ */
+const CONSIGNE_PONCTUATION = "On te donne une dictée vocale en français, sans ponctuation. Rends EXACTEMENT les mêmes mots, dans le même ordre : ajoute seulement la ponctuation, les majuscules et les apostrophes, et écris les nombres en chiffres. Ne corrige rien d'autre, ne reformule pas, ne commente pas.";
+
+export async function ponctuerDictee(texte) {
+  const brut = String(texte || '').trim();
+  if (brut.length < 20) return brut;
+  // Mistral (la même clé que Voxtral), un seul essai : au pire, le brut revient tout de suite.
+  if (MISTRAL_KEY) {
+    try {
+      const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${MISTRAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'mistral-small-latest', temperature: 0, messages: [{ role: 'system', content: CONSIGNE_PONCTUATION }, { role: 'user', content: brut }] }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await r.json().catch(() => ({}));
+      const propre = String(data?.choices?.[0]?.message?.content || '').trim();
+      if (r.ok && propre) return propre;
+    } catch { /* le brut revient */ }
+    // La dictée ne passe jamais par Gemini : au pire, le texte non ponctué.
+    return brut;
+  }
+  if (!GEMINI_KEY) return brut;
+  try {
+    const data = await geminiGenerate({
+      systemInstruction: CONSIGNE_PONCTUATION,
+      contents: [{ role: 'user', parts: [{ text: brut }] }],
+      tentatives: 1,
+    });
+    const propre = (data?.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('').trim();
+    return propre || brut;
+  } catch {
+    return brut;
+  }
 }
 
 export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {}) {

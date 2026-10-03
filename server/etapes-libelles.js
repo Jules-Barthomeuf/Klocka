@@ -63,6 +63,11 @@ const LIBELLES = {
   lancer_alx: (i) => `Lancement de la prospection ALX${entre(i.ville)}`,
   ajouter_document: () => 'Ajout du document au dossier',
   creer_client_monday: (i) => `Création du client dans Monday${entre(i.nom)}`,
+  modifier_dossier: (i) => {
+    const champs = Object.keys(i || {}).filter((k) => k !== 'deal_id' && k !== 'lot_index');
+    return `Modification du dossier${champs.length ? ` (${champs.join(', ')})` : ''}`;
+  },
+  donnees_commune: (i) => `Lecture des chiffres de la commune${entre(i.commune)}`,
   renommer_dossier: (i) => `Renommage du dossier${entre(i.nom)}`,
   supprimer_dossier: () => 'Suppression du dossier',
   creer_projet_depuis_dossier: () => 'Création du projet depuis le dossier',
@@ -90,6 +95,7 @@ const LIBELLES = {
   annuler_derniere: () => 'Annulation de la dernière relance',
   ranger_piece: (i) => `Rangement ${({ bail: 'du bail', quittances: 'des quittances', kbis: 'du Kbis', copropriete: 'des pièces de copropriété', diagnostics: 'des diagnostics', taxe_fonciere: 'de la taxe foncière' })[i.categorie] || 'de la pièce'} dans le dossier${entre(i.bien)}`,
   demander_mandat: (i) => `Demande de mandat${entre(i.bien)}`,
+  corriger_mandat: (i) => `Correction du mandat${entre(i.bien)}`,
   lancer_estimation: (i) => `Rédaction du rapport d'estimation${entre(i.bien)}`,
   bail_estimation: (i) => `Dépôt du bail sur l'estimation${entre(i.bien)}`,
   mes_rappels: () => 'Lecture de vos rappels',

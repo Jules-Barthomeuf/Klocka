@@ -43,6 +43,8 @@ export const ADRESSES = {
   MandataireMandat: "MandatMandataire",
   MandataireDossier: "DossierMandataire",
   MandataireMarche: "MiseEnMarche",
+  MandataireProjets: "ProjetsMandataire",
+  ConversationsMandataires: "Conversations",
   AdminValidations: "Validations",
   Portail: "Portail",
   Portail2Fois: "PortailDeuxFois",

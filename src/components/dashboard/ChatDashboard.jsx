@@ -68,6 +68,12 @@ const COMMANDES_MANDATAIRE = [
 // La prospection du mandataire : le même chat, où chaque phrase lance une
 // recherche de commerces dans son secteur. Le résultat part à la page (liste
 // et carte), le fil garde ce qu'on a cherché.
+// L'estimation, deux façons : le bail lu puis les seules questions qui
+// manquent, ou rien qu'une dictée et des champs à compléter dans l'éditeur.
+const MODES_ESTIMATION = [
+  { id: "document", label: "Avec le bail", icone: FileText, type: "assistant", placeholder: "Joignez le bail avec +, dites ce que vous savez du bien, puis « fais l'estimation »" },
+  { id: "sans_document", label: "Sans document", icone: Mic, type: "assistant", placeholder: "Dites tout ce que vous savez : le bien, l'adresse, la surface, le loyer, le locataire… le reste se complète à la main" },
+];
 const MODES_PROSPECTION = [
   { id: "libre", label: "Recherche libre", icone: Search, type: "assistant", placeholder: "« Les boulangeries en emplacement n°1 à Mâcon »" },
   { id: "client", label: "Pour un client", icone: User, type: "assistant", placeholder: "« Pour le client B », ou « pour le client A à Mâcon »" },
@@ -95,6 +101,10 @@ const ESPACES = {
     { texte: "Combien de commerces dans la liste ?" },
     { texte: "Pourquoi la liste est vide ?" },
   ], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Affinez : « trouve aussi les assurances », « seulement en n°1 »…" },
+  // L'estimation : le questionnaire de l'avis de valeur, un bail joint en « + ».
+  estimation: { api: "/api/mandataire", qs: "?espace=estimation", modesAGauche: true, modeParDefaut: "document", modes: MODES_ESTIMATION, commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel bien estimez-vous ? « Les murs de la boulangerie, 14 rue du Marché à Annecy, occupés »" },
+  // Le mandat : les questions du mandat de vente, l'aperçu à côté, puis MyNotary.
+  mandat: { api: "/api/mandataire", qs: "?espace=mandat", modesAGauche: false, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel mandat préparez-vous ? « Mandat exclusif pour les murs de la boulangerie Martin, 12 rue Carnot à Mâcon, 450 000 € »" },
   prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
 };
 
@@ -922,17 +932,20 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
-  // Le mandataire, au tableau de bord ou en prospection : ses routes, pas celles de l'équipe.
-  const mandataire = espace === "mandataire" || espace === "affinage" || prospection;
+  const estimation = espace === "estimation";
+  const mandatEspace = espace === "mandat";
+  // Le mandataire, au tableau de bord, en prospection ou en estimation : ses routes, pas celles de l'équipe.
+  const mandataire = espace === "mandataire" || espace === "affinage" || prospection || estimation || mandatEspace;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [texte, setTexte] = useState("");
   // La prospection choisit toujours entre ses deux modes : pas de « mode auto ».
   const [mode, setMode] = useState((ESPACES[espace] || ESPACES.admin).modeParDefaut || null);
+  useEffect(() => { onMode?.(mode); }, [mode, onMode]);
   const [commandes, setCommandes] = useState(false);
   const [suggestionsOuvertes, setSuggestionsOuvertes] = useState(false);
   const [skillsOuvert, setSkillsOuvert] = useState(false);
@@ -1077,14 +1090,38 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const boite = useMutation({
     mutationFn: async ({ t, type, piece = null }) => {
       controleur.current = new AbortController();
-      // Une pièce jointe du mandataire : envoyée avec le message, lue par le serveur.
+      // Une pièce jointe du mandataire : envoyée avec le message, lue par le
+      // serveur — en flux, pour que la lecture et chaque étape s'affichent au
+      // moment où elles se font, au lieu d'un point qui clignote sans rien dire.
       if (mandataire && piece) {
         const form = new FormData();
         form.append("fichier", piece);
         form.append("texte", t || "");
         form.append("historique", JSON.stringify(historique()));
         if (prospectionId) form.append("prospection_id", prospectionId);
-        return base44.request("POST", `${E.api}/chat`, { body: form, isForm: true, signal: controleur.current.signal });
+        if (estimation && mode) form.append("mode", mode);
+        if ((estimation || mandatEspace) && conversationId) form.append("conversation_id", conversationId);
+        if (estimation && selectionAvis?.chemin) form.append("selection", JSON.stringify({ chemin: selectionAvis.chemin, texte: selectionAvis.texte || null }));
+        setEnFlux(true);
+        actionsVives.current = [];
+        const r = await base44.flux(`${E.api}/chat?flux=1${estimation ? "&espace=estimation" : mandatEspace ? "&espace=mandat" : ""}`, {
+          body: form, isForm: true, signal: controleur.current.signal, surEtape,
+          surAction: (a) => actionsVives.current.push(a),
+        });
+        await vider();
+        return r;
+      }
+      if (estimation) {
+        setEnFlux(true);
+        const r = await base44.flux(`${E.api}/chat?flux=1&espace=estimation`, { body: { texte: t, historique: historique(), mode, conversation_id: conversationId, selection: selectionAvis?.chemin ? { chemin: selectionAvis.chemin, texte: selectionAvis.texte || null } : null }, signal: controleur.current.signal, surEtape });
+        await vider();
+        return r;
+      }
+      if (mandatEspace) {
+        setEnFlux(true);
+        const r = await base44.flux(`${E.api}/chat?flux=1&espace=mandat`, { body: { texte: t, historique: historique(), conversation_id: conversationId }, signal: controleur.current.signal, surEtape });
+        await vider();
+        return r;
       }
       if (prospection) {
         setEnFlux(true);
@@ -1112,6 +1149,33 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     onSuccess: (r) => {
       rafraichir();
       const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r) };
+      if (estimation) {
+        pousser({
+          role: "assistant",
+          contenu: r.texte || "(sans réponse)",
+          etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current,
+          ...(r.avis ? { cartes: [{ titre: "Avis de valeur", detail: r.avis.valeur ? `${Number(r.avis.valeur).toLocaleString("fr-FR")} € · fourchette ${Number(r.avis.bas).toLocaleString("fr-FR")} – ${Number(r.avis.haut).toLocaleString("fr-FR")} €` : "Valeur et champs manquants à compléter dans l'éditeur", etat: "fait", lien: `avis:${r.avis.estimation_id}`, action: "Ouvrir l'avis" }] } : {}),
+        });
+        if (r.avis) onRecherche?.({ avis_id: r.avis.estimation_id });
+        onReponse?.(r);
+        setSuites([]);
+        return;
+      }
+      if (mandatEspace) {
+        const m = r.mandat;
+        const pret = m && (m.document || m.mynotary_url);
+        pousser({
+          role: "assistant",
+          contenu: r.texte || "(sans réponse)",
+          etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current,
+          ...(pret ? { cartes: [{ titre: "Mandat MyNotary", detail: "Le PDF téléchargé et le lien pour le compléter sur MyNotary", etat: "fait", lien: `mandat:${m.mandat_id}`, action: "Ouvrir" }] } : {}),
+        });
+        // Le PDF revenu : la fenêtre s'ouvre d'elle-même.
+        if (pret) onRecherche?.({ mandat_id: m.mandat_id });
+        onReponse?.(r);
+        setSuites([]);
+        return;
+      }
       if (prospection) {
         // Le moteur ALX (« pour un client ») rend une prospection ALX.
         if (r.prospection_id) {
@@ -1351,6 +1415,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const ouvrirLien = (lien) =>
     String(lien).startsWith("resultats:") ? onOuvrirResultats?.(String(lien).slice(10))
     : String(lien).startsWith("datab:") ? onRecherche?.({ datab_jeton: String(lien).slice(6) })
+    : String(lien).startsWith("avis:") ? onRecherche?.({ avis_id: String(lien).slice(5) })
+    : String(lien).startsWith("mandat:") ? onRecherche?.({ mandat_id: String(lien).slice(7) })
     : ouvrirLienExterne(lien);
   const ouvrirLienExterne = (lien) => (/^https?:/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
 
@@ -1360,7 +1426,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     // Envoyer clôt la dictée : sinon le micro reste ouvert et la suite de ce
     // qu'on dit s'écrit dans la question suivante. On note l'envoi : arrêter la
     // dictée déclenche `onFin`, qui sans cela renverrait le même texte.
-    if (ecoute) { envoiFait.current = true; arreter(); }
+    // Aussi pendant la relecture finale (« finalisation ») : le texte propre ne
+    // doit pas revenir remplir le champ après l'envoi.
+    if (ecoute || finalisation) { envoiFait.current = true; if (ecoute) arreter(); }
     if (mode === "rappel" && !fichier && !mandataire) {
       if (!t) return;
       annoncer("rappel");
@@ -1412,10 +1480,11 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   // Ce qui était déjà tapé au moment du clic reste en tête : la dictée s'y ajoute.
   const avantDictee = useRef("");
   const { supporte, ecoute, demarrer, arreter, erreur, finalisation } = useDictee({
-    onTexte: (t) => setTexte([avantDictee.current, t].filter(Boolean).join(" ")),
+    onTexte: (t) => { if (!envoiFait.current) setTexte([avantDictee.current, t].filter(Boolean).join(" ")); },
     onFin: (t) => {
       if (envoiFait.current) { envoiFait.current = false; return; }
-      if (/^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer(t, "note");
+      // Une note d'appel dictée part seule (admin) ; le reste attend d'être relu.
+      if (!mandataire && /^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer([avantDictee.current, t].filter(Boolean).join(" "), "note");
     },
   });
 
@@ -1504,7 +1573,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 )}
               </div>
             )}
-            {E.modesAGauche && E.modes.length > 0 && (
+            {/* Une estimation lancée : le mode est choisi, il ne se rechoisit plus. */}
+            {E.modesAGauche && E.modes.length > 0 && !(estimation && conversation) && (
               <div className="flex items-center gap-0.5 rounded-full p-0.5" style={{ background: J["barre-relief"] }}>
                 {E.modes.map((m) => {
                   const Icone = m.icone;
@@ -1624,11 +1694,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const sousBarre = (erreur || (mode === "mail" && E.mailsTypes) || (prospection && mode === "client")) && (
     <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
       {prospection && mode === "client" && (
-        <ChoixClient disabled={enCours} onLancer={(ids, refs) => {
-          clientsChoisis.current = ids;
-          // La ville, si elle a été tapée dans le champ, accompagne la demande.
-          lancer(`Pour ${refs.join(", ")}${texte.trim() ? ` · ${texte.trim()}` : ""}`);
-        }} />
+        // Le tableau des clients sort de la colonne du chat : il prend toute la
+        // largeur de la page (moins la barre latérale), centré sous le chat.
+        <div className={conversation ? "w-full" : "w-full flex-none md:w-[min(1320px,calc(100vw_-_var(--k-barre-largeur,228px)_-_80px))]"}>
+          <ChoixClient disabled={enCours} onLancer={(ids, refs) => {
+            clientsChoisis.current = ids;
+            // La ville, si elle a été tapée dans le champ, accompagne la demande.
+            lancer(`Pour ${refs.join(", ")}${texte.trim() ? ` · ${texte.trim()}` : ""}`);
+          }} />
+        </div>
       )}
       {erreur && <span className="text-[12.5px] text-alerte">{erreur}</span>}
       {mode === "mail" && E.mailsTypes && <SuggestionsMail onChoisir={setTexte} disabled={enCours} />}
@@ -1662,7 +1736,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         onDragLeave={() => setGlisse(false)}
         onDrop={(e) => { if (E.fichier) deposer(e); }}
       >
-        <div className="flex flex-none items-center gap-3 border-b border-trait py-3">
+        {/* À côté d'un aperçu, la barre du haut est la même des deux côtés : fond et hauteur. */}
+        <div className={`flex flex-none items-center gap-3 border-b border-trait ${barreApercu ? "k-barre-apercu -mx-5 h-14 px-5" : "py-3"}`}>
           <button type="button" onClick={nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
             <ChevronLeft className="h-4 w-4" /> Dashboard
           </button>
@@ -1692,7 +1767,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           {fil.map((m, i) =>
             m.role === "user" ? (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-end">
-                <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre-relief"] }}>{m.contenu}</div>
+                <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre"] }}>{m.contenu}</div>
               </motion.div>
             ) : m.role === "bloc" ? (
               <div key={i} className="pl-[3.25rem]">
@@ -1708,8 +1783,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 <div className="min-w-0 flex-1 pt-1.5 text-[16px]">
                   <Etapes etapes={m.etapes} />
                   <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} />
-                  {m.cartes?.length > 0 && (
-                    <div className="mt-5 space-y-3">{m.cartes.map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>
+                  {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
+                  {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
+                    <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>
                   )}
                 </div>
               </motion.div>
@@ -1743,6 +1819,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         <div className="mx-auto w-full max-w-[760px] flex-none pb-5 pt-3">
           {/* En bas de l'écran, ce qui accompagne la barre passe au-dessus d'elle. */}
           {sousBarre && <div className="mb-3 max-h-[30vh] overflow-y-auto [&>div]:mt-0">{sousBarre}</div>}
+          {/* L'élément cliqué dans l'avis, à côté : « ça » le désigne dans le message. */}
+          {estimation && selectionAvis?.chemin && (
+            <div className="mb-2 flex items-center gap-1.5 text-[12.5px] text-menthe">
+              <span className="truncate">Sélection dans l'avis : {selectionAvis.libelle || selectionAvis.chemin}</span>
+              {onEffacerSelection && (
+                <button type="button" onClick={onEffacerSelection} aria-label="Désélectionner" className="grid h-5 w-5 flex-none place-items-center rounded-full text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
+              )}
+            </div>
+          )}
           {barre}
         </div>
         {fenetreEl}
@@ -1840,7 +1925,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               onChoisir={(m) => { setSkillsOuvert(false); setMode(m); setTimeout(() => champRef.current?.focus(), 60); }} />
           </>
         )}
-        {!embarque && <Suggestions espace={espace} onChoisir={(t, m, direct = false) => {
+        {!embarque && !estimation && !mandatEspace && <Suggestions espace={espace} onChoisir={(t, m, direct = false) => {
           // Une recherche déjà faite, ou un client : elle repart d'un toucher.
           if (direct) { setMode(m); lancer(t); return; }
           setTexte(t); setMode(m); setTimeout(() => champRef.current?.focus(), 30);

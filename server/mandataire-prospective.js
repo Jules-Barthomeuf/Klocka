@@ -463,3 +463,50 @@ Raccourcis : s'il dit tout d'un coup (« les boulangeries indépendantes à Mâc
   if (!boutons && !formulaire && !prospective && poseLaQuestionDuMode(reponse)) boutons = BOUTONS_MODE;
   return { texte: reponse, formulaire, prospective, ville: villeChoisie, boutons };
 }
+
+// ---------------------------------------------------------------------------
+// Un établissement Data-B devient une cible ALX : la recherche du propriétaire
+// des murs (cadastre, DGFiP) et de son numéro (Pages Blanches) tourne dessus
+// comme sur un commerce lu par ALX. Le numéro de Data-B est celui du COMMERCE.
+// ---------------------------------------------------------------------------
+
+const EMPLACEMENT_DE_RUE = { 5: 1, 4: 1.5, 3: 2 };
+const libelleMetier = (id) => Object.keys(METIERS).find((k) => String(METIERS[k]) === String(id)) || null;
+
+export async function cibleDepuisDataB(l, { villeNom = null, centre = null, user = null } = {}) {
+  const { creerVille, creerCible } = await import('./alx/index.js');
+  // Data-B écrit les villes en capitales sans accent (« MACON ») : la commune
+  // de la prospective (« Mâcon ») fait foi quand c'est la même, sinon le nom
+  // est remis en casse ordinaire. Sinon, une seconde ville « MACON » naîtrait
+  // à côté de « Mâcon ».
+  const memeVille = l.ville && villeNom && normMetier(l.ville).replace(/[^a-z]/g, '') === normMetier(villeNom).replace(/[^a-z]/g, '');
+  const casse = (t) => String(t).toLowerCase().replace(/(^|[\s-])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
+  const nomVille = memeVille || !l.ville ? villeNom : casse(l.ville);
+  if (!nomVille) return { ok: false, error: 'Ville inconnue.' };
+  const existante = Records.list('Ville').find((v) => normMetier(v.nom).replace(/[^a-z]/g, '') === normMetier(nomVille).replace(/[^a-z]/g, ''));
+  const cv = existante ? { ok: true, ville: existante } : creerVille({ nom: nomVille, code_postal: l.code_postal || null, user });
+  if (!cv.ok) return cv;
+  const v = Records.get('Ville', cv.ville.id);
+  if (!v.centre && (centre || (l.lat != null && l.lon != null))) Records.update('Ville', v.id, { centre: centre || { lat: Number(l.lat), lon: Number(l.lon) } });
+  const r = creerCible({
+    ville_id: v.id,
+    adresse: l.adresse || l.nom,
+    enseigne: l.enseigne || l.nom || null,
+    activite: libelleMetier(l.metier_id) || null,
+    siret: l.siret || null,
+    lat: l.lat != null ? Number(l.lat) : null,
+    lon: l.lon != null ? Number(l.lon) : null,
+    telephone: l.telephone || null,
+    source: 'Data-B',
+    user,
+  });
+  if (!r.ok) return r;
+  if (!r.deja || r.cible.emplacement == null) {
+    Records.update('Cible', r.cible.id, {
+      emplacement: r.cible.emplacement ?? EMPLACEMENT_DE_RUE[l.type_rue] ?? null,
+      datab: { type_rue: l.type_rue_mot || null, solvabilite: l.solvabilite || null, effectif: l.effectif || null, independant: !!l.independant, creation: l.creation || null, site: l.site || null, emails: l.emails || [] },
+      ...(r.cible.telephone ? {} : { telephone: l.telephone || null }),
+    });
+  }
+  return { ok: true, cible: Records.get('Cible', r.cible.id), deja: !!r.deja };
+}

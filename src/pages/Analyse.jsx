@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { J } from "@/design/jetons";
+import { Conversation, Resume } from "@/components/conversations/EspaceConversations";
+import { PointNouveau } from "@/components/conversations/DossiersMandataire";
+import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 
 // Dossiers — chaque dossier suit six étapes : Mail → Pré-analyse → Analyse →
 // Vidéo → Plateforme → Présentation. La liste présente des cartes simples
@@ -24,25 +27,6 @@ const TRIS = [
   { id: "admin", label: "Admin" },
 ];
 
-/** L'anneau d'avancement : l'étape sur cinq, au centre. */
-function Anneau({ etape, abandonne = false, petit = false }) {
-  const t = petit ? 30 : 56;
-  const e = petit ? 3 : 5;
-  const r = (t - e) / 2;
-  const c = 2 * Math.PI * r;
-  const part = Math.min(5, Math.max(0, etape)) / 5;
-  return (
-    <span className="relative grid flex-none place-items-center" style={{ width: t, height: t }}>
-      <svg width={t} height={t} className="-rotate-90" aria-hidden>
-        <circle cx={t / 2} cy={t / 2} r={r} fill="none" stroke="rgb(var(--k-encre-rgb) / 0.09)" strokeWidth={e} />
-        <circle cx={t / 2} cy={t / 2} r={r} fill="none" stroke={abandonne ? J["ardoise"] : J["menthe"]} strokeWidth={e} strokeDasharray={`${c * part} ${c}`} />
-      </svg>
-      <span className={`absolute font-medium tabular-nums ${petit ? "text-[10px] text-craie" : "text-[15px]"}`} style={petit ? undefined : { color: abandonne ? J["ardoise"] : J["menthe"] }}>
-        {petit ? etape : `${etape}/5`}
-      </span>
-    </span>
-  );
-}
 
 export default function Analyse() {
   const queryClient = useQueryClient();
@@ -122,6 +106,7 @@ export default function Analyse() {
       rafraichirListes();
       queryClient.invalidateQueries({ queryKey: ["dossiers"] });
       queryClient.invalidateQueries({ queryKey: ["fiches-commerciales"] });
+      queryClient.invalidateQueries({ queryKey: ["k-conversations"] });
       toast.success("Dossier supprimé");
     },
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
@@ -170,6 +155,12 @@ export default function Analyse() {
   });
 
   const enWorkflow = dealId || nouveau;
+  // Un dossier venu d'un mandataire s'ouvre sur sa conversation ; l'analyse est
+  // une autre page (`vue=analyse`), d'où l'on revient à la conversation.
+  const { data: conversationsK } = useQuery({ queryKey: ["k-conversations"], queryFn: () => base44.request("GET", "/api/mandataire/admin/conversations"), refetchInterval: 20_000 });
+  const conversationDuDeal = dealId ? (conversationsK?.conversations || []).find((x) => x.deal_id === dealId) || null : null;
+  const vueConversation = !!conversationDuDeal && params.get("vue") !== "analyse";
+  const changerVue = (v) => { const suivant = new URLSearchParams(params); if (v === "analyse") suivant.set("vue", "analyse"); else suivant.delete("vue"); setParams(suivant); };
   const aRelancer = pipeline?.a_relancer || 0;
 
   // Cartes triées : par modification (récent d'abord), par étape (avancé
@@ -189,10 +180,11 @@ export default function Analyse() {
   }, [pipeline, tri, recherche, etapeFiltre]);
   const nbDossiers = (pipeline?.dossiers || []).filter((d) => !d.archived).length;
   // Les trois derniers ouverts (modifiés) en cartes, les autres en lignes dans l'ordre choisi.
-  const recents = useMemo(() => [...dossiers].sort((a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || ""))).slice(0, 3), [dossiers]);
-  const autres = useMemo(() => { const ici = new Set(recents.map((d) => d.deal_id)); return dossiers.filter((d) => !ici.has(d.deal_id)); }, [dossiers, recents]);
+  const ouvrirResponsables = (d) => {
+    const actuels = (d.responsables?.length ? d.responsables : [String(d.responsable || "").split("@")[0]]).map((x) => ADMINS.find((a) => a.toLowerCase() === String(x).split(/[.\s]/)[0].toLowerCase()) || x).filter(Boolean);
+    setProprio({ deal_id: d.deal_id, titre: d.titre, choix: actuels });
+  };
   const qui = (d) => (d.responsables?.length ? d.responsables.join(", ") : (d.responsable || "—").split("@")[0]);
-  const quiEtQuand = (d) => `${qui(d)}${d.maj_le ? ` · ${new Date(d.maj_le).toLocaleDateString("fr-FR")}` : ""}`;
   // Le menu ⋯ d'un dossier : renommer, revenir à l'étape 1, abandonner. Un
   // clic ailleurs (ou Échap) le referme, comme les autres menus de la page.
   const MenuDossier = ({ d, bouton, place }) => {
@@ -222,8 +214,7 @@ export default function Analyse() {
         <button
           onClick={() => {
             setMenuCarte(null);
-            const actuels = (d.responsables?.length ? d.responsables : [String(d.responsable || "").split("@")[0]]).map((x) => ADMINS.find((a) => a.toLowerCase() === String(x).split(/[.\s]/)[0].toLowerCase()) || x).filter(Boolean);
-            setProprio({ deal_id: d.deal_id, titre: d.titre, choix: actuels });
+            ouvrirResponsables(d);
           }}
           className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06] transition-colors"
         >
@@ -255,7 +246,7 @@ export default function Analyse() {
           <button
             onClick={() => {
               setMenuCarte(null);
-              if (window.confirm(`Supprimer définitivement « ${d.titre} » ? Il disparaît avec ses pièces, et sa fiche ne compte plus comme importée.`)) supprimer.mutate(d.deal_id);
+              if (window.confirm(d.origine === "mandataire" ? `Supprimer définitivement « ${d.titre} » ? Il disparaît avec ses pièces, le dossier du mandataire et toute sa conversation. Le mandataire ne le verra plus.` : `Supprimer définitivement « ${d.titre} » ? Il disparaît avec ses pièces, et sa fiche ne compte plus comme importée.`)) supprimer.mutate(d.deal_id);
             }}
             className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08] transition-colors"
           >
@@ -277,14 +268,32 @@ export default function Analyse() {
         className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
       >
         {enWorkflow ? (
-          <div className="max-w-6xl mx-auto">
-            <button
-              onClick={() => montrerDeal(null)}
-              className="text-ardoise hover:text-encre text-xs flex items-center gap-1.5 mb-4 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
-            </button>
-            {nouveau && !dealId ? (
+          <div className={`mx-auto ${vueConversation ? "max-w-[1500px]" : "max-w-6xl"}`}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <button
+                onClick={() => montrerDeal(null)}
+                className="text-ardoise hover:text-encre text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
+              </button>
+              {conversationDuDeal && (vueConversation ? (
+                <button type="button" onClick={() => changerVue("analyse")}
+                  className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
+                  Voir l'analyse <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button type="button" onClick={() => changerVue(null)}
+                  className="inline-flex h-9 items-center gap-2.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+                  <MessagesSquare className="h-4 w-4" /> Revenir à la conversation · {conversationDuDeal.mandataire_nom} <PointNouveau n={conversationDuDeal.non_lus} />
+                </button>
+              ))}
+            </div>
+            {vueConversation ? (
+              <div className="flex h-[calc(100dvh-150px)] min-h-[560px] overflow-hidden rounded-[16px] border border-bord-doux bg-rail max-lg:h-auto max-lg:flex-col">
+                <Conversation key={conversationDuDeal.id} c={conversationDuDeal} cote="klocka" />
+                <Resume c={conversationDuDeal} cote="klocka" onAnalyse={() => changerVue("analyse")} />
+              </div>
+            ) : nouveau && !dealId ? (
               <WorkflowDeal
                 dossier={null}
                 onAnalyse={(d) => {
@@ -294,12 +303,14 @@ export default function Analyse() {
                 }}
               />
             ) : dossier?.deal_id === dealId ? (
+              <>
               <WorkflowDeal
                 dossier={dossier}
                 enCours={majLot.isPending}
                 onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
                 onRefresh={recharger}
               />
+              </>
             ) : (
               <div className="bg-surface border border-trait rounded-md p-8 text-center">
                 <Loader2 className="w-6 h-6 text-ardoise animate-spin mx-auto mb-3" />
@@ -312,14 +323,14 @@ export default function Analyse() {
             {/* Bandeau : titre, relances, tri, nouveau dossier. */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-7">
               <div className="flex items-baseline gap-3">
-                <h1 className="m-0 text-[30px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Dossiers</h1>
-                <span className="text-[13.5px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
+                <h1 className="m-0 text-[34px] font-medium leading-[1.05] tracking-[-0.01em] text-encre max-md:text-[26px]">Dossiers</h1>
+                <span className="text-[15px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className={`mr-2 text-[14px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
+                <span className={`mr-1 text-[15px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
                   {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
                 </span>
-                <label className="relative inline-flex items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 text-[14px] text-encre">
+                <label className="relative inline-flex h-[46px] items-center gap-2.5 rounded-full border border-bord-doux bg-surface px-[18px] text-[15px] text-encre hover:border-bord-vif">
                   <SlidersHorizontal className="h-3.5 w-3.5 text-ardoise" />
                   <span>{TRIS.find((t) => t.id === tri)?.label}</span>
                   <ChevronDown className="h-3.5 w-3.5 text-ardoise" />
@@ -329,7 +340,7 @@ export default function Analyse() {
                 </label>
                 <button
                   onClick={() => setCreationOuverte(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-5 py-2.5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol"
+                  className="inline-flex h-[46px] items-center gap-2 rounded-full bg-menthe px-[22px] text-[15px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol"
                 >
                   <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
@@ -337,20 +348,21 @@ export default function Analyse() {
             </div>
 
             {/* Recherche et étapes, sur une ligne. */}
-            <div className="flex flex-wrap items-center gap-2.5 pb-2">
-              <div className="flex min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 focus-within:border-bord-doux max-md:basis-full">
-                <Search className="h-3.5 w-3.5 flex-shrink-0 text-ardoise" />
-                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+            <div className="flex flex-wrap items-center gap-3 pb-2">
+              <div className="flex h-12 min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:basis-full">
+                <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
+                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
               {[[0, "Toutes"], [2, "Pré-analyse"], [3, "Analyse"], [4, "Vidéo"], [5, "Plateforme"]].map(([v, mot]) => (
                 <button key={v} type="button" onClick={() => setEtapeFiltre(v)}
-                  className={`rounded-full px-4 py-2.5 text-[14px] transition-colors ${etapeFiltre === v ? "bg-encre text-fond" : "border border-trait bg-surface-pleine text-craie hover:border-bord-doux hover:text-encre"}`}>
+                  className={`h-12 rounded-full border px-5 text-[15px] transition-colors ${etapeFiltre === v ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
                   {mot}
                 </button>
               ))}
             </div>
 
             {/* Les cartes */}
+            <QuestionsMandataires />
             {isLoading ? (
               <div className="flex justify-center py-16">
                 <Loader2 className="w-6 h-6 text-ardoise animate-spin" />
@@ -361,48 +373,14 @@ export default function Analyse() {
               </p>
             ) : (
               <>
-                {/* Les trois derniers ouverts, en cartes ; les autres en lignes. */}
-                <div className="grid grid-cols-1 gap-5 pt-7 sm:grid-cols-2 lg:grid-cols-3">
-                  {recents.map((d) => (
-                    <div key={d.deal_id} className="relative rounded-[20px] border border-trait bg-surface-pleine shadow-[0_1px_3px_rgb(0_0_0/0.03)] transition-colors hover:border-bord-doux">
-                      <button onClick={() => montrerDeal(d.deal_id)} className="flex w-full items-center gap-5 px-6 py-6 pr-12 text-left" style={{ background: "transparent" }}>
-                        <Anneau etape={d.etape_max || 1} abandonne={d.statut === "abandonne"} />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[17px] leading-[1.3] text-encre">{d.titre || d.nom_fichier || d.deal_id}</span>
-                          <span className="mt-1 flex items-center gap-1.5 text-[14.5px]" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
-                            {d.statut === "abandonne" ? "Abandonné" : ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
-                            {d.a_relancer && <Clock className="h-3.5 w-3.5 text-alerte" aria-label="À relancer" />}
-                          </span>
-                          <span className="mt-1 block truncate text-[13.5px] text-ardoise">{quiEtQuand(d)}</span>
-                        </span>
-                      </button>
-                      <MenuDossier d={d} bouton="top-1/2 -translate-y-1/2 right-6" place="top-[calc(50%+16px)] right-4" />
-                    </div>
+                {/* Tous les dossiers, en cartes. */}
+                <p className="m-0 mb-2.5 pt-6 text-[14px] text-ardoise">Tous les dossiers</p>
+                <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+                  {dossiers.map((d) => (
+                    <CarteDossierAdmin key={d.deal_id} d={d} qui={(d.responsable || "").split("@")[0] || "—"} onOuvrir={() => montrerDeal(d.deal_id)}
+                      menu={<MenuDossier d={d} bouton="top-[74px] right-2.5" place="top-[106px] right-4" />} />
                   ))}
                 </div>
-
-                {autres.length > 0 && (
-                  <div className="mt-8">
-                    <p className="m-0 mb-2 text-[13px] text-ardoise">Les autres dossiers</p>
-                    <ul className="m-0 list-none overflow-visible rounded-[16px] border border-trait bg-surface-pleine p-0">
-                      {autres.map((d) => (
-                        <li key={d.deal_id} className="relative border-t border-trait first:border-t-0">
-                          <button onClick={() => montrerDeal(d.deal_id)} className="flex w-full items-center gap-4 px-5 py-3 pr-12 text-left transition-colors hover:bg-relief" style={{ background: "transparent" }}>
-                            <Anneau etape={d.etape_max || 1} abandonne={d.statut === "abandonne"} petit />
-                            <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">{d.titre || d.nom_fichier || d.deal_id}</span>
-                            <span className="hidden w-[130px] flex-none items-center gap-1.5 text-[13px] sm:flex" style={{ color: d.statut === "abandonne" ? J["ardoise"] : J["menthe"] }}>
-                              {d.statut === "abandonne" ? "Abandonné" : ETAPES_LIBELLES[(d.etape_max || 1) - 1]}
-                              {d.a_relancer && <Clock className="h-3 w-3 text-alerte" aria-label="À relancer" />}
-                            </span>
-                            <span className="hidden w-[180px] flex-none truncate text-[13px] text-ardoise md:block">{qui(d)}</span>
-                            <span className="w-[84px] flex-none text-right text-[13px] tabular-nums text-ardoise">{d.maj_le ? new Date(d.maj_le).toLocaleDateString("fr-FR") : ""}</span>
-                          </button>
-                          <MenuDossier d={d} bouton="top-1/2 -translate-y-1/2 right-4" place="top-[calc(50%+14px)] right-3" />
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -497,3 +475,81 @@ export default function Analyse() {
     </div>
   );
 }
+
+const TEINTES_ETAPE = { 1: "brume", 2: "ambre", 3: "menthe", 4: "bleu", 5: "vert", 6: "vert" };
+
+/** La carte d'un dossier : la grille de points et l'étape en haut, le bien, l'avancement. */
+function CarteDossierAdmin({ d, qui, onOuvrir, menu }) {
+  const etape = Math.min(d.etape_max || 1, 5);
+  const abandonne = d.statut === "abandonne";
+  const teinte = abandonne ? J["brume"] : J[TEINTES_ETAPE[etape]];
+  return (
+    <article className="relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+      <div className="k-grid k-grid-toujours relative h-[112px] flex-none border-b border-trait">
+        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: teinte }} />{abandonne ? "Abandonné" : ETAPES_LIBELLES[etape - 1]}
+          {d.a_relancer && <Clock className="h-3 w-3 text-alerte" aria-label="À relancer" />}
+        </span>
+        <span className="absolute right-4 top-[18px] inline-flex items-center gap-2 text-[12px] tabular-nums text-brume">
+          <PointNouveau n={d.fil_non_lus || 0} />{d.maj_le ? new Date(d.maj_le).toLocaleDateString("fr-FR") : ""}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-3.5 px-5 pb-5 pt-[18px]">
+        <div className="flex min-w-0 flex-col gap-2">
+          <p className="m-0 truncate text-[17px] font-medium text-encre" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</p>
+          <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+            {d.origine === "mandataire" && <span className="flex-none rounded-full border border-menthe/40 px-2.5 py-[3px] text-[12px] text-menthe">K Partners{d.mandataire_nom ? ` · ${d.mandataire_nom}` : ""}</span>}
+            <span className="truncate text-[13px] text-ardoise">{qui}</span>
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex justify-between text-[12px] text-ardoise"><span>Étape</span><span className="tabular-nums">{etape} / 5</span></div>
+          <div className="grid grid-cols-5 gap-1">
+            {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-1 rounded-full ${n <= etape ? "" : "bg-encre/[0.12]"}`} style={n <= etape ? { background: abandonne ? J["brume"] : J["menthe"] } : undefined} />)}
+          </div>
+        </div>
+      </div>
+      <span onClick={(e) => e.stopPropagation()}>{menu}</span>
+    </article>
+  );
+}
+
+
+
+/**
+ * Les mandataires qui écrivent à propos d'un bien pas encore transféré : il
+ * n'a pas d'analyse, seulement sa conversation.
+ */
+function QuestionsMandataires() {
+  const { data } = useQuery({ queryKey: ["k-conversations"], queryFn: () => base44.request("GET", "/api/mandataire/admin/conversations"), refetchInterval: 20_000 });
+  const sansDossier = (data?.conversations || []).filter((c) => !c.deal_id);
+  if (!sansDossier.length) return null;
+  const quand = (iso) => {
+    if (!iso) return "";
+    const t = new Date(iso);
+    const hier = new Date(Date.now() - 86400000);
+    if (t.toDateString() === new Date().toDateString()) return t.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    if (t.toDateString() === hier.toDateString()) return "hier";
+    return t.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
+  const initiales = (n = "") => String(n).split(/[\s.@]+/).filter(Boolean).map((x) => x[0]).join("").slice(0, 2).toUpperCase() || "?";
+  return (
+    <div className="pt-6">
+      <p className="m-0 mb-2.5 text-[14px] text-ardoise">Questions de mandataires, sur des biens pas encore transférés</p>
+      <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+        {sansDossier.map((c) => (
+          <Link key={c.id} to={`/Conversations?dossier=${c.id}`}
+            className="flex items-center gap-3.5 rounded-[16px] border border-trait bg-rail px-4 py-3.5 transition-colors hover:border-bord-doux">
+            <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-relief text-[12px] font-semibold text-craie">{initiales(c.mandataire_nom)}</span>
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="flex justify-between gap-2"><span className="truncate text-[15px] font-medium text-encre">{String(c.bien).replace(/\s*\(.*?\)\s*/g, " ").trim()}</span><span className="flex-none text-[12px] text-brume">{quand(c.activite)}</span></span>
+              <span className="truncate text-[13px] text-ardoise">{c.mandataire_nom}{c.dernier?.texte ? ` · ${c.dernier.texte}` : ""}</span>
+            </span>
+            {c.non_lus > 0 ? <PointNouveau n={c.non_lus} /> : <span className="h-2 w-2 flex-none" />}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+

@@ -1,0 +1,94 @@
+/* Le mandat de vente, au plus près du modèle MyNotary « Mandat de vente » :
+   page de garde, titres vert d'eau soulignés, bandeaux clairs des
+   sous-parties. Ces couleurs sont celles du document
+   imprimé, pas de l'application : il reste clair, même en thème sombre. */
+
+.mn-doc {
+  --vert: #6cc8b4;
+  --vert-texte: #5fb9a5;
+  --bandeau: #eef8f6;
+  --encre: #1f2223;
+  --texte: #2f3335;
+  --gris: #53595b;
+  --blanc: #ffffff;
+  --vide: #fff4d6;
+  color-scheme: light;
+  font-family: Arial, "Liberation Sans", Helvetica, sans-serif;
+  color: var(--texte);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 0 60px;
+}
+
+.mn-page {
+  position: relative;
+  width: 210mm;
+  max-width: 100%;
+  background: var(--blanc);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.18);
+  overflow: hidden;
+  font-size: 10.5pt;
+  line-height: 1.5;
+}
+
+/* --- La page de garde ------------------------------------------------------ */
+.mn-garde { height: 297mm; display: flex; flex-direction: column; }
+.mn-garde-haut { position: relative; flex: 1; padding: 26mm 18mm 0; background: linear-gradient(180deg, #ffffff 0%, #f6f7f7 100%); }
+.mn-garde-k { position: absolute; top: 13mm; right: 13mm; height: 14mm; }
+.mn-garde-titre { margin: 18mm 0 0; color: var(--vert); font-weight: 700; font-size: 34pt; line-height: 1.12; letter-spacing: 0.01em; text-transform: uppercase; }
+.mn-garde-titre .mn-ligne { display: inline-block; width: 82mm; border-bottom: 2px solid var(--vert); margin-left: 4mm; transform: translateY(-3mm); }
+.mn-garde-trait { width: 88mm; border-bottom: 2px solid var(--vert); margin: 14mm 0 9mm; }
+.mn-garde-loi { margin: 0; font-size: 13pt; color: var(--gris); line-height: 1.4; }
+.mn-garde-agence { margin: 13mm 0 0; font-size: 15pt; font-weight: 700; color: var(--encre); }
+.mn-garde-adresse { margin: 2mm 0 0; font-size: 13pt; color: var(--gris); }
+.mn-garde-bas { position: relative; height: 92mm; background: linear-gradient(160deg, #e9eef0 0%, #d9e2e3 100%); clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 100%); }
+.mn-garde-bas::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, var(--vert), #b6e6db); transform-origin: left; transform: rotate(-4.7deg) translateY(17mm); }
+
+/* --- Le corps --------------------------------------------------------------- */
+.mn-corps { padding: 16mm 11mm 18mm; }
+.mn-titre { margin: 0; text-align: center; color: var(--vert); font-weight: 700; font-size: 25pt; line-height: 1.2; text-transform: uppercase; }
+.mn-titre-num { margin: 4mm auto 0; width: 76mm; text-align: center; color: var(--vert); font-weight: 700; font-size: 14pt; border-bottom: 1px solid var(--vert); min-height: 7mm; }
+.mn-loi { margin: 4mm 0 0; text-align: center; font-size: 10pt; color: var(--gris); padding-bottom: 5mm; border-bottom: 2px solid var(--vert); }
+
+.mn-h1 { display: flex; align-items: flex-end; gap: 2mm; margin: 9mm 0 0; color: var(--vert); font-weight: 700; font-size: 14pt; text-transform: uppercase; }
+.mn-h1::after { content: ""; flex: 1; border-bottom: 2px solid var(--vert); transform: translateY(-1.5mm); }
+.mn-h2 { margin: 5mm 0 0; padding: 3.2mm 2.5mm; background: var(--bandeau); color: var(--vert-texte); font-weight: 700; font-size: 10.5pt; }
+.mn-h2.mn-italique { font-style: italic; }
+.mn-h3 { margin: 3mm 0 0; font-weight: 700; color: var(--encre); }
+
+.mn-p { margin: 3mm 0 0; text-align: justify; }
+.mn-p + .mn-p { margin-top: 1.5mm; }
+.mn-p b, .mn-p strong { color: var(--encre); font-weight: 700; }
+.mn-gras { font-weight: 700; color: var(--encre); }
+.mn-it { font-style: italic; }
+.mn-liste { margin: 1mm 0 0; padding-left: 6mm; }
+.mn-liste li { margin: 0.6mm 0; }
+.mn-liste-num { margin: 3mm 0 0; padding-left: 6mm; }
+.mn-liste-num li { margin: 1mm 0; text-align: justify; }
+
+.mn-penale { margin: 5mm 0 0; padding: 3.5mm 2.5mm; background: var(--bandeau); color: var(--vert-texte); font-weight: 700; font-style: italic; text-transform: uppercase; text-align: justify; line-height: 1.55; }
+
+/* Une valeur pas encore dite : le blanc du modèle, à peine teinté. */
+.mn-vide { display: inline-block; min-width: 38mm; border-bottom: 1px solid var(--encre); background: var(--vide); line-height: 1.1; }
+.mn-vide-court { min-width: 22mm; }
+
+.mn-pied { display: flex; justify-content: space-between; align-items: center; margin-top: 12mm; }
+.mn-pied img { height: 5mm; }
+.mn-pied span { font-size: 9pt; color: var(--gris); }
+
+@media print {
+  .mn-doc { padding: 0; gap: 0; }
+  .mn-page { box-shadow: none; width: 210mm; }
+}
+
+/* Le monogramme du modèle, en couleurs du document. */
+.mn-k-noir { fill: var(--encre); }
+.mn-k-vert { fill: var(--vert); }
+.mn-pied .mn-pied-k { height: 6mm; width: auto; }
+
+/* Les puces et numéros du modèle (la remise à zéro de l'application les efface). */
+.mn-doc .mn-liste { list-style: disc outside; }
+.mn-doc .mn-liste-num { list-style: decimal outside; }
+.mn-doc .mn-liste li, .mn-doc .mn-liste-num li { display: list-item; }

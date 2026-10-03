@@ -46,6 +46,19 @@ const villeDeal = (d) =>
   d.lots?.[0]?.enrichissement?.commune?.nom || d.lots?.[0]?.lot?.adresse?.valeur?.ville || '';
 
 /** Recherche tolérante : tous les mots de la requête doivent apparaître. */
+// Le titre exact d'abord, puis ce qui commence par la requete, puis ce qui la
+// contient, puis les correspondances par la ville ou l'agent. Sans ce rang, le
+// dossier nomme exactement comme la demande pouvait tomber hors des huit rendus.
+function rangRecherche(titre, requete) {
+  const t = norm(titre);
+  const q = norm(requete);
+  if (!q) return 3;
+  if (t === q) return 0;
+  if (t.startsWith(q)) return 1;
+  if (t.includes(q)) return 2;
+  return 3;
+}
+
 function correspond(texte, requete) {
   const mots = norm(requete).split(/\s+/).filter((m) => m.length > 1);
   if (!mots.length) return false;
@@ -347,6 +360,8 @@ export async function executerOutil({ name, input }, user) {
     const trouves = Records.list('Deal')
       .filter((d) => !d.archived && !d.test)
       .filter((d) => correspond(`${titreDeal(d)} ${villeDeal(d)} ${d.contact_agent_email || ''} ${d.apercu?.agent_nom || ''} ${d.apercu?.agence || ''}`, input.recherche))
+      .sort((a, b) => rangRecherche(titreDeal(a), input.recherche) - rangRecherche(titreDeal(b), input.recherche)
+        || String(b.cree_le || '').localeCompare(String(a.cree_le || '')))
       .slice(0, 8)
       .map((d) => ({
         deal_id: d.deal_id,
@@ -367,6 +382,8 @@ export async function executerOutil({ name, input }, user) {
           input.recherche
         )
       )
+      .sort((a, b) => rangRecherche(a.titre || '', input.recherche) - rangRecherche(b.titre || '', input.recherche)
+        || String(b.created_date || '').localeCompare(String(a.created_date || '')))
       .slice(0, 8)
       .map((p) => ({
         projet_id: p.id,
@@ -937,7 +954,7 @@ Tu sais : renseigner sur un dossier ou un projet, rejouer leur simulation financ
 
 Tu sais aussi vérifier un dossier ou un projet et dire ce qui manque, lire ses documents pour répondre à une question précise, envoyer un mail une fois qu'on te l'a demandé, inscrire un agent immobilier au CRM — avec ou sans dossier rattaché — et annuler ta dernière action.
 
-Tu ouvres un dossier en sortant d'un appel : « j'ai eu Marc de l'agence Untel, il a un local à Lyon à 400 k€, il m'envoie les documents » → creer_dossier fait tout — la coquille, l'agent au CRM, le bien dans Monday, la promesse de documents au registre — et tu rends compte de ce qui a été fait et de ce qui a manqué. Demande l'adresse mail de l'agent si elle n'est pas donnée : sans elle, la veille ne reconnaîtra pas son mail. Une phrase dictée est souvent imparfaite (« quatre cents k », « Marc de chez Orpi ») : interprète avec bon sens, et récapitule ce que tu as compris.
+Tu ouvres un dossier en sortant d'un appel : « j'ai eu Marc de l'agence Untel, il a un local à Lyon à 400 k€, il m'envoie les documents » → creer_dossier fait tout — la coquille, l'agent au CRM, le bien dans Monday, la promesse de documents au registre — et tu rends compte de ce qui a été fait et de ce qui a manqué. Demande l'adresse mail de l'agent si elle n'est pas donnée : sans elle, la veille ne reconnaîtra pas son mail. Des documents promis n'attendent rien : la coquille se crée pendant l'appel (jamais « je créerai le dossier quand les documents arriveront »), ils viendront s'y poser. Une phrase dictée est souvent imparfaite (« quatre cents k », « Marc de chez Orpi ») : interprète avec bon sens, et récapitule ce que tu as compris.
 
 Tu tiens le registre des engagements : qui doit quoi, pour quand. « Marc envoie le PV jeudi », « rappeler le notaire lundi », « le syndic nous doit le RCP avant fin de mois » s'inscrivent au registre avec noter_engagement ; « c'est reçu », « il l'a fait » les marquent tenus avec tenir_engagement ; registre_engagements dit ce qui est dû. La date du jour est le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} : résous « jeudi », « la semaine prochaine » en date réelle — « jeudi » est le prochain jeudi à venir, demain s'il tombe demain, jamais celui d'après.
 

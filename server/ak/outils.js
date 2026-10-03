@@ -206,6 +206,7 @@ export function lireMail(id) {
 
 /** Les mails d'un dossier : reçus et envoyés, dans l'ordre. */
 export function mailsDuDossier(dealId, { limite = 8 } = {}) {
+  if (!Records.findBy('Deal', 'deal_id', dealId)) return { ok: false, error: 'Dossier introuvable : cherche-le d\u2019abord (chercher_dossier).' };
   const recus = Records.filter('MailRecu', { deal_id: dealId }).map((m) => ({ sens: 'reçu', de: m.de || m.de_email, objet: m.objet, date: m.date, texte: String(m.texte || m.extrait || '').slice(0, 1500) }));
   const envoyes = Records.filter('EmailLog', { deal_id: dealId }).map((m) => ({ sens: 'envoyé', a: m.to || m.a || null, objet: m.subject || m.objet, date: m.sent_at || m.le || m.created_date, texte: String(m.text || m.corps || '').slice(0, 800) }));
   return [...recus, ...envoyes].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, limite);

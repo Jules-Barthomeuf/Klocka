@@ -246,13 +246,44 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'modifier_dossier',
+    description:
+      "Modifie un fait d'un dossier de préanalyse — loyer annuel HT HC, prix FAI, surface, honoraires, occupé, locataire, activité, type et échéance de bail, type d'actif, adresse — par la même voie que l'écran Analyse : le verdict, les rendements et le simulateur se recalculent. Chercher le dossier d'abord (chercher_biens) ; un doute sur lequel : demander.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string' },
+        lot_index: { type: 'number', description: '0 sauf dossier à plusieurs lots' },
+        loyer_annuel_ht_hc: { type: 'number' },
+        prix_fai: { type: 'number' },
+        surface_m2: { type: 'number' },
+        montant_honoraires: { type: 'number' },
+        honoraires_inclus: { type: 'boolean' },
+        occupe: { type: 'boolean' },
+        locataire_nom: { type: 'string' },
+        locataire_activite: { type: 'string' },
+        bail_type: { type: 'string' },
+        bail_echeance: { type: 'string' },
+        type_actif: { type: 'string' },
+        adresse: { type: 'string' },
+      },
+      required: ['deal_id'],
+    },
+  },
+  {
+    name: 'donnees_commune',
+    description:
+      "Les chiffres d'une commune : population et densité (API Géo), et, quand une étude d'implantation Data-B existe déjà pour une adresse de cette commune, sa démographie (habitants, évolution), son revenu moyen et sa zone de chalandise. Pour « la population de Mâcon », « le revenu moyen ». Dis la source de chaque chiffre ; ce qui manque se dit manquant (l'étude d'implantation l'apporterait).",
+    input_schema: { type: 'object', properties: { commune: { type: 'string' } }, required: ['commune'] },
+  },
+  {
     name: 'renommer_dossier',
     description: "Change le nom d'un dossier de préanalyse. Chercher le dossier d'abord.",
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, nom: { type: 'string' } }, required: ['deal_id', 'nom'] },
   },
   {
     name: 'supprimer_dossier',
-    description: "Retire un dossier de préanalyse de la plateforme (il passe « abandonné » et disparaît des listes ; un admin peut le retrouver). Chercher le dossier d'abord ; s'il y a un doute sur lequel, demander.",
+    description: "Retire un dossier de préanalyse de la plateforme (il passe « abandonné » et disparaît des listes ; un admin peut le retrouver). Chercher le dossier d'abord ; s'il y a un doute sur lequel, demander. La dictée déforme les noms : demande d'abord « je supprime bien X ? », et ne supprime qu'au message suivant, une fois confirmé.",
     input_schema: { type: 'object', properties: { deal_id: { type: 'string' }, motif: { type: 'string' } }, required: ['deal_id'] },
   },
   {
@@ -428,6 +459,17 @@ export function dejaFait(cle, gestes, maintenant = Date.now()) {
 }
 
 export async function executerOutil(appel, user, options = {}) {
+  // Aucun outil ne doit faire tomber le tour : une exception devient un refus
+  // propre, dit en clair au modele, et la vraie erreur part dans les logs.
+  try {
+    return await executerOutilSansFilet(appel, user, options);
+  } catch (e) {
+    console.warn(`[ak] outil ${appel?.name} en erreur :`, e?.stack || e);
+    return { ok: false, error: `L'outil ${appel?.name} a échoué : ${e?.message || e}` };
+  }
+}
+
+async function executerOutilSansFilet(appel, user, options = {}) {
   if (!GESTES_COUTEUX.has(appel.name)) return executerOutilBrut(appel, user, options);
   // Des photos différentes font un autre geste : les ajouter n'est pas refaire le projet.
   const cle = cleGeste(appel.name, { ...(appel.input || {}), photos_jointes: photosDuMessage(options.message) });
@@ -505,7 +547,10 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   }
   if (name === 'boite_recue') { const mails = await boiteRecue(null, { limite: input.limite || 10, non_rattaches: !input.tous }); return { mails, nombre: mails.length, boite: COMPTE }; }
   if (name === 'lire_mail') return lireMail(input.id);
-  if (name === 'mails_du_dossier') return { mails: mailsDuDossier(input.deal_id) };
+  if (name === 'mails_du_dossier') {
+    const r = mailsDuDossier(input.deal_id);
+    return Array.isArray(r) ? { mails: r } : r;
+  }
   if (name === 'faire_tout') {
     const chemins = (input.chemins || []).map(String).filter((c) => c.startsWith(CHEMIN_UPLOADS) && fs.existsSync(c));
     if (!input.mail_id && !chemins.length) return { ok: false, error: 'Il faut un mail (boite_recue) ou une pièce jointe dans le message.' };
@@ -663,6 +708,98 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (r.ignore) return { ok: false, error: r.raison };
     if (r.erreur) return { ok: false, error: r.erreur };
     return { ok: true, cree: r.cree, monday_id: r.id, statut_ignore: r.statut_ignore || null };
+  }
+  if (name === 'modifier_dossier') {
+    // Un id recopié à la main arrive souvent tronqué : un préfixe qui ne
+    // désigne qu'un seul dossier suffit, l'ambiguïté se redemande.
+    let deal = Records.findBy('Deal', 'deal_id', input.deal_id);
+    if (!deal && String(input.deal_id || '').length >= 8) {
+      const candidats = Records.list('Deal').filter((d) => String(d.deal_id || '').startsWith(input.deal_id));
+      if (candidats.length === 1) [deal] = candidats;
+      else if (candidats.length > 1) {
+        const noms = candidats.map((d) => d.nom + ' (' + d.deal_id + ')').join(' ; ');
+        return { ok: false, error: `${candidats.length} dossiers commencent par cet id, lequel ? ${noms}` };
+      }
+    }
+    if (!deal) return { ok: false, error: 'Dossier introuvable : cherche-le (chercher_biens) pour avoir son deal_id.' };
+    const { lot_index, ...saisie } = input;
+    delete saisie.deal_id;
+    if (!Object.keys(saisie).length) return { ok: false, error: 'Rien à modifier : donne au moins un champ.' };
+    // Une coquille (dossier créé à la voix, sans fiche analysée) n'a pas de
+    // lot : ses chiffres vivent dans l'aperçu, la fiche fera foi à la
+    // préanalyse. On y pose ce qui s'y pose, on dit ce qui attend la fiche.
+    if (!deal.lots?.length) {
+      const VERS_APERCU = { prix_fai: 'prix', loyer_annuel_ht_hc: 'loyer', surface_m2: 'surface', adresse: 'rue', locataire_activite: 'activite' };
+      const apercu = { ...(deal.apercu || {}) };
+      const poses = [];
+      const attendent = [];
+      for (const [champ, v] of Object.entries(saisie)) {
+        const cible = VERS_APERCU[champ];
+        if (!cible) { attendent.push(champ); continue; }
+        const n = typeof v === 'number' ? v : Number(String(v).replace(/[^\d.,-]/g, '').replace(',', '.'));
+        apercu[cible] = cible === 'rue' || cible === 'activite' ? String(v).trim() : (isFinite(n) && n > 0 ? Math.round(n) : null);
+        poses.push(champ);
+      }
+      if (!poses.length) return { ok: false, error: `Ce dossier n'a pas encore de fiche analysée : ${attendent.join(', ')} se posera à la préanalyse. Sur l'aperçu, je peux déjà poser prix, loyer, surface, adresse, activité.` };
+      Records.update('Deal', deal.id, { apercu });
+      return {
+        ok: true,
+        deal_id: deal.deal_id,
+        dossier: deal.nom || null,
+        modifie: poses.join(', '),
+        note: `Posé sur l'aperçu du dossier (pas encore de fiche analysée${attendent.length ? ` ; ${attendent.join(', ')} attendra la fiche` : ''}).`,
+        lien: lien(`/Analyse?deal_id=${deal.deal_id}`),
+      };
+    }
+    const { reevaluerLot } = await import('../deal/index.js');
+    const r = await reevaluerLot(deal.deal_id, Number(lot_index) || 0, saisie);
+    if (r.error) return { ok: false, error: r.error };
+    return {
+      ok: true,
+      deal_id: deal.deal_id,
+      dossier: deal.nom || null,
+      modifie: Object.keys(saisie).join(', '),
+      verdict: r.lot?.evaluation?.verdict || null,
+      note: 'Le verdict et le simulateur sont recalculés : dis le nouveau verdict en une ligne.',
+      lien: lien(`/Analyse?deal_id=${deal.deal_id}`),
+    };
+  }
+  if (name === 'donnees_commune') {
+    const nom = String(input.commune || '').trim();
+    if (!nom) return { ok: false, error: 'Quelle commune ?' };
+    const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(nom)}&fields=nom,code,population,surface,departement,region&boost=population&limit=1`, { signal: AbortSignal.timeout(10000) });
+    const c = r.ok ? (await r.json())[0] : null;
+    if (!c) return { ok: false, error: `L'API Géo ne connaît pas « ${nom} ».` };
+    const reponse = {
+      ok: true,
+      commune: c.nom,
+      code_insee: c.code,
+      departement: c.departement?.nom || null,
+      region: c.region?.nom || null,
+      population: c.population ?? null,
+      densite_hab_km2: c.population && c.surface ? Math.round(c.population / (c.surface / 100)) : null,
+      source: 'API Géo (population légale INSEE la plus récente)',
+    };
+    // Une étude d'implantation Data-B déjà payée pour cette commune : sa
+    // démographie et ses revenus se resservent, on ne relance rien.
+    try {
+      const norme = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const etude = Records.list('DataBImplantation')
+        .filter((x) => norme(x.adresse).includes(norme(c.nom)))
+        .sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')))[0];
+      if (etude?.resultat) {
+        const e = etude.resultat;
+        reponse.etude_implantation = {
+          adresse: etude.adresse, le: etude.le,
+          demographie: e.demographie ?? null, revenu: e.revenu ?? null,
+          zone_chalandise_5min: e.zone_primaire ?? null, flux_pieton: e.flux_pieton ?? null,
+          source: 'Data-B · Étude d\'implantation (déjà réalisée)',
+        };
+      } else {
+        reponse.note = "Évolution de population, revenu moyen, commerces : pas de source branchée en continu. Une étude d'implantation Data-B sur une adresse de la commune les apporte (un crédit Data-B) : propose-la si la question le mérite.";
+      }
+    } catch { /* l'API Géo suffit */ }
+    return reponse;
   }
   if (name === 'renommer_dossier' || name === 'supprimer_dossier') {
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);

@@ -164,14 +164,15 @@ class ErreurHttp extends Error {
    * @param {string} url
    * @param {{body?: any, signal?: AbortSignal, surEtape?: (texte: string) => void}} [options]
    */
-  async function flux(url, { body, signal, surEtape, surAction } = {}) {
+  async function flux(url, { body, signal, surEtape, surAction, isForm = false } = {}) {
     /** @type {Record<string, string>} */
-    const headers = { 'Content-Type': 'application/json' };
+    // Un FormData porte sa propre frontière multipart : pas de Content-Type à la main.
+    const headers = isForm ? {} : { 'Content-Type': 'application/json' };
     const jetonFenetre = fenetre.jeton();
     if (jetonFenetre) headers['Authorization'] = `Bearer ${jetonFenetre}`;
     if (fenetre.active()) headers['X-Klocka-Fenetre'] = '1';
     if (config.appId) headers['X-App-Id'] = config.appId;
-    const resp = await fetch(`${base}${url}`, { method: 'POST', headers, body: JSON.stringify(body ?? {}), credentials: 'include', signal });
+    const resp = await fetch(`${base}${url}`, { method: 'POST', headers, body: isForm ? body : JSON.stringify(body ?? {}), credentials: 'include', signal });
     if (!resp.ok || !resp.body) {
       let data = null;
       try { data = await resp.json(); } catch { /* pas de corps */ }

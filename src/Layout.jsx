@@ -376,9 +376,9 @@ function LayoutContent({ children, currentPageName }) {
   // Deux exceptions. L'atelier ALX garde son noir sur son accueil, qui fait
   // tenir ses cartes ; la carte d'un investisseur et la page d'une ville sont
   // des pages de travail comme les autres, et reçoivent le halo. La page ALX
-  // de la prospection off-market a le même fond que Prospection. Le dashboard admin
-  // garde les nappes menthe du plan de travail : deux halos l'un sur l'autre
-  // ne font pas un fond.
+  // de la prospection off-market a le même fond que Prospection. Le dashboard
+  // admin le reçoit aussi (5 oct.) : sans lui, il restait sur la couleur de
+  // base, les halos sauge du salut ne couvrant que le haut de la page.
   //
   // En clair, pas de halo du tout : le fond est blanc, sans dégradé. En
   // sombre, Personnalisation peut l'éteindre. La bascule du thème est dans la
@@ -389,7 +389,6 @@ function LayoutContent({ children, currentPageName }) {
   const fondHalo = !hideNavbar
     && !clair
     && prefs.halo
-    && !(currentPageName === "Dashboard" && !showClientView)
     && !(currentPageName === "ALXAtelier" && !["carte", "ville"].some((c) => new URLSearchParams(location.search).has(c)));
 
   // Les chemins se comparent sans la casse : « /Analyse » et « /analyse »

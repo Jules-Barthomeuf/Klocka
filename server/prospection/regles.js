@@ -122,8 +122,9 @@ export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), 
     return { statut: 'a_rappeler', tentatives: n, prochaine: { quoi: `rappeler (essai ${n + 1} sur ${ESSAIS_MAX}), plutôt ${moment}`, le: plusJoursOuvres(auj, 2), moment }, mails: [] };
   }
   if (issue === 'pas_de_murs') return { statut: 'pas_de_murs', tentatives: 0, prochaine: { quoi: dite ? 'rappeler pour le mandat annoncé' : 'point du mois : a-t-il rentré des murs ?', le: dite || ouvre(plusJours(auj, 30)) }, mails: ['presentation'] };
-  if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: ouvre(plusJours(auj, 7)) }, mails: ['demande_fiche'], relance_mail_jours: 3 };
-  if (issue === 'veut_mail') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : a-t-il lu notre mail, a-t-il des murs ?', le: ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3 };
+  // Une date de rappel dite (« à rappeler le 20 ») passe avant le délai par défaut.
+  if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['demande_fiche'], relance_mail_jours: 3 };
+  if (issue === 'veut_mail') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : a-t-il lu notre mail, a-t-il des murs ?', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3 };
   if (issue === 'pas_interesse') return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'retenter dans six mois', le: ouvre(plusJours(auj, 182)) }, mails: [] };
   if (issue === 'invalide') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], autre_contact: true };
   return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler', le: dite || ouvre(plusJours(auj, 7)) }, mails: [] };

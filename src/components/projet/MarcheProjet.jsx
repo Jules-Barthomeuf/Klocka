@@ -4,6 +4,7 @@ import { nf, useSecteurProjet } from "./SecteurChiffres";
 import { trouverVille, REFERENCES_FR } from "@/data/villes";
 import { EnTeteOnglet } from "./Cartes";
 import { GridPatternCard, GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
+import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
 // revenus, prix résidentiel), puis deux : la courbe du résidentiel, et le
@@ -54,12 +55,17 @@ export function serieResidentielle({ prix, evo1 = null, evo5 = null, annee = new
 const CHIFFRES = { fontVariantNumeric: "tabular-nums" };
 const signe = (v) => (v < 0 ? "alerte" : "menthe");
 
-/** Une carte de l'onglet : la carte à grille, au fond d'un onglet au repos. */
-function CarteMarche({ grille = true, className = "", children }) {
+/**
+ * Une carte de l'onglet : la carte à grille, au fond d'un onglet au repos.
+ * `id` et `titre` en font un bloc qu'on masque dans l'éditeur.
+ */
+function CarteMarche({ id, titre, grille = true, className = "", children }) {
   return (
-    <GridPatternCard className={`min-w-0 rounded-[16px] ${className}`} patternClassName={grille ? "" : "!bg-none"}>
-      <GridPatternCardBody>{children}</GridPatternCardBody>
-    </GridPatternCard>
+    <Bloc id={id} titre={titre} className={`min-w-0 ${className}`}>
+      <GridPatternCard className="h-full min-w-0 rounded-[16px]" patternClassName={grille ? "" : "!bg-none"}>
+        <GridPatternCardBody>{children}</GridPatternCardBody>
+      </GridPatternCard>
+    </Bloc>
   );
 }
 
@@ -113,26 +119,25 @@ function Comparaison({ libelle, valeur, part, accent = false }) {
 
 function Habitants({ habitants, agglomeration, contexte }) {
   return (
-    <CarteMarche className="flex-[1_1_260px]">
+    <CarteMarche id="marche-habitants" titre="Habitants" className="flex-[1_1_260px]">
       <EnTeteCarte libelle="Habitants" precision={agglomeration ? "agglomération" : null} />
-      <Grand>{nf.format(habitants)}</Grand>
-      {contexte && <div className="mt-auto pt-8"><Pastille ton="menthe">{contexte}</Pastille></div>}
+      <Grand><ValeurEditable champ="ville_habitants_agglo">{nf.format(habitants)}</ValeurEditable></Grand>
+      {contexte && <div className="mt-auto pt-8"><Pastille ton="menthe"><ValeurForcee cle="marche_contexte" type="text">{contexte}</ValeurForcee></Pastille></div>}
     </CarteMarche>
   );
 }
 
-function Revenus({ revenu, nomVille }) {
-  const reference = REFERENCES_FR.revenuMedian;
+function Revenus({ revenu, nomVille, reference }) {
   const ecart = ((revenu / reference) - 1) * 100;
   const plafond = Math.max(revenu, reference);
   const arrondi = Math.round(revenu / 100) * 100;
   return (
-    <CarteMarche className="flex-[1_1_300px]">
+    <CarteMarche id="marche-revenus" titre="Revenus" className="flex-[1_1_300px]">
       <EnTeteCarte libelle="Revenus" precision={`${pourcent(ecart)} vs. France`} />
-      <Grand>≈{nf.format(arrondi)} €</Grand>
+      <Grand>≈<ValeurEditable champ="ville_revenu_median">{`${nf.format(arrondi)} €`}</ValeurEditable></Grand>
       <div className="mt-6 flex flex-col gap-4">
-        <Comparaison libelle={nomVille || "Ville"} valeur={`${nf.format(arrondi)} €`} part={revenu / plafond} accent />
-        <Comparaison libelle="France" valeur={`${nf.format(reference)} €`} part={reference / plafond} />
+        <Comparaison libelle={<ValeurEditable champ="ville_secteur_champ1" type="text">{nomVille || "Ville"}</ValeurEditable>} valeur={<ValeurEditable champ="ville_revenu_median">{`${nf.format(arrondi)} €`}</ValeurEditable>} part={revenu / plafond} accent />
+        <Comparaison libelle="France" valeur={<ValeurForcee cle="revenu_france">{`${nf.format(reference)} €`}</ValeurForcee>} part={reference / plafond} />
       </div>
     </CarteMarche>
   );
@@ -140,13 +145,13 @@ function Revenus({ revenu, nomVille }) {
 
 function PrixResidentiel({ prix, evo1, evo5 }) {
   return (
-    <CarteMarche className="flex-[1_1_260px]">
+    <CarteMarche id="marche-residentiel" titre="Prix résidentiel" className="flex-[1_1_260px]">
       <EnTeteCarte libelle="Prix résidentiel" precision="secteur" />
-      <Grand unite="€/m²">{nf.format(prix)}</Grand>
+      <Grand unite="€/m²"><ValeurEditable champ="marche_rue_prix_m2">{nf.format(prix)}</ValeurEditable></Grand>
       {(evo1 != null || evo5 != null) && (
         <div className="mt-auto flex flex-wrap gap-2 pt-8">
-          {evo1 != null && <Pastille ton={signe(evo1)}>{pourcent(evo1)} sur 1 an</Pastille>}
-          {evo5 != null && <Pastille ton={signe(evo5)}>{pourcent(evo5)} sur 5 ans</Pastille>}
+          {evo1 != null && <Pastille ton={signe(evo1)}><ValeurEditable champ="marche_evolution_1an">{pourcent(evo1)}</ValeurEditable> sur 1 an</Pastille>}
+          {evo5 != null && <Pastille ton={signe(evo5)}><ValeurEditable champ="marche_evolution_5ans">{pourcent(evo5)}</ValeurEditable> sur 5 ans</Pastille>}
         </div>
       )}
     </CarteMarche>
@@ -170,7 +175,7 @@ function Evolution({ serie, nom }) {
   const dernier = serie[serie.length - 1];
   const variation = ((dernier.prix / premier.prix) - 1) * 100;
   return (
-    <CarteMarche grille={false} className="flex-[2_1_520px]">
+    <CarteMarche id="marche-evolution" titre="Évolution du prix résidentiel" grille={false} className="flex-[2_1_520px]">
       <EnTeteCarte libelle="Évolution du prix résidentiel" precision={`${nom ? `${nom} · ` : ""}${premier.annee} – ${dernier.annee}`} />
       <div className="mb-6 flex flex-wrap items-center gap-2.5">
         <Pastille>{premier.annee} · {nf.format(premier.prix)} €/m²</Pastille>
@@ -213,6 +218,12 @@ function Commercial({ prixAutour, prixProjet, loyerAutour, loyerProjet, nom }) {
     (prixAutour > 0 || prixProjet > 0) && { cle: "prix", precision: "prix au m²", unite: "€/m²", autour: prixAutour, projet: prixProjet },
     (loyerAutour > 0 || loyerProjet > 0) && { cle: "loyer", precision: "loyer au m² / an", unite: "€/m²/an", autour: loyerAutour, projet: loyerProjet },
   ].filter(Boolean);
+  // Chaque chiffre se modifie au clic : « Autour » dans les champs du
+  // panneau Marché, « Le projet » en valeur forcée (il se déduit du Simulateur).
+  const AUTOUR = { prix: "marche_commercial_prix_m2", loyer: "marche_offre_moyenne" };
+  const forcer = (c, qui, texte) => (qui === "autour"
+    ? <ValeurEditable champ={AUTOUR[c.cle]}>{texte}</ValeurEditable>
+    : <ValeurForcee cle={`commercial_${c.cle}_projet`}>{texte}</ValeurForcee>);
   const [i, setI] = useState(0);
   if (!cartes.length) return null;
   const c = cartes[Math.min(i, cartes.length - 1)];
@@ -235,8 +246,8 @@ function Commercial({ prixAutour, prixProjet, loyerAutour, loyerProjet, nom }) {
     </span>
   ) : c.precision;
   return (
-    <CarteMarche className="flex-[1_1_300px]">
-      <EnTeteCarte libelle={`Commercial${nom ? ` · ${nom}` : ""}`} precision={precision} />
+    <CarteMarche id="marche-commercial" titre="Commercial" className="flex-[1_1_300px]">
+      <EnTeteCarte libelle={<>Commercial{nom ? <> · <ValeurForcee cle="commercial_rue" type="text">{nom}</ValeurForcee></> : ""}</>} precision={precision} />
       {ecart != null && (
         <div className="mb-6 flex flex-col gap-1.5">
           <span className="text-[13px] text-ardoise">Écart avec le marché</span>
@@ -244,8 +255,8 @@ function Commercial({ prixAutour, prixProjet, loyerAutour, loyerProjet, nom }) {
         </div>
       )}
       <div className="flex flex-col gap-4">
-        <Comparaison libelle="Autour" valeur={valeur(c.autour)} part={c.autour / plafond} />
-        <Comparaison libelle="Le projet" valeur={valeur(c.projet)} part={c.projet / plafond} accent />
+        <Comparaison libelle="Autour" valeur={forcer(c, "autour", valeur(c.autour))} part={c.autour / plafond} />
+        <Comparaison libelle="Le projet" valeur={forcer(c, "projet", valeur(c.projet))} part={c.projet / plafond} accent />
       </div>
       {difference != null && difference !== 0 && (
         <div className="mt-auto pt-8">
@@ -269,8 +280,10 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
   // affiché à la place d'une évolution connue serait un mensonge.
   const duDossier = (valeur, source) => (Number(valeur) ? Number(valeur) : source ?? null);
   const habitants = Number(project.ville_habitants_agglo) || donnees?.agglomeration?.population || ville?.pop || 0;
+  const revenuFrance = nombreForce(project, "revenu_france") ?? REFERENCES_FR.revenuMedian;
   const agglomeration = !Number(project.ville_habitants_agglo) && !!donnees?.agglomeration?.population;
-  const nomVille = ville?.nom || project.ville_secteur_champ1 || null;
+  // La commune saisie dans le panneau l'emporte sur celle lue dans l'adresse.
+  const nomVille = project.ville_secteur_champ1 || ville?.nom || null;
   const revenu = Number(project.ville_revenu_median) || ville?.revenu || 0;
 
   const prixResidentiel = Number(project.marche_rue_prix_m2) || r?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
@@ -278,13 +291,18 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
   const evo5 = duDossier(project.marche_evolution_5ans, r?.evolution_5_ans?.valeur);
   const serie = useMemo(() => serieResidentielle({ prix: prixResidentiel, evo1, evo5 }), [prixResidentiel, evo1, evo5]);
 
-  const prixAutour = rue?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
+  // Ce que le dossier porte l'emporte sur la rue ; ce qui est forcé dans
+  // l'éditeur l'emporte sur le calcul.
+  const prixAutour = Number(project.marche_commercial_prix_m2) || rue?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
   const loyerAutour = Number(project.marche_offre_moyenne) || rue?.loyer_m2_an || Number(project.marche_baux_moyenne) || 0;
+  const prixProjet = nombreForce(project, "commercial_prix_projet") ?? prixM2Revient;
+  const loyerProjet = nombreForce(project, "commercial_loyer_projet") ?? loyerM2;
+  const nomRue = forcee(project, "commercial_rue") || rue?.nom || null;
 
-  const contexte = nomVille ? `Ville · ${nomVille}` : agglomeration && donnees?.agglomeration?.nom ? `Agglomération · ${donnees.agglomeration.nom}` : null;
+  const contexte = forcee(project, "marche_contexte") || (nomVille ? `Ville · ${nomVille}` : agglomeration && donnees?.agglomeration?.nom ? `Agglomération · ${donnees.agglomeration.nom}` : null);
   const entete = <EnTeteOnglet titre="Marché" source={prixResidentiel > 0 ? "Source : Le Figaro Immobilier" : null} className="" />;
 
-  const rienDuTout = !habitants && !revenu && !prixResidentiel && !prixAutour && !loyerAutour && !prixM2Revient && !loyerM2;
+  const rienDuTout = !habitants && !revenu && !prixResidentiel && !prixAutour && !loyerAutour && !prixProjet && !loyerProjet;
   if (rienDuTout) return <div className="mb-5">{entete}</div>;
 
   return (
@@ -293,14 +311,14 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
       {(habitants > 0 || revenu > 0 || prixResidentiel > 0) && (
         <div className="flex flex-wrap gap-4">
           {habitants > 0 && <Habitants habitants={habitants} agglomeration={agglomeration} contexte={contexte} />}
-          {revenu > 0 && <Revenus revenu={revenu} nomVille={nomVille} />}
+          {revenu > 0 && <Revenus revenu={revenu} nomVille={nomVille} reference={revenuFrance} />}
           {prixResidentiel > 0 && <PrixResidentiel prix={serie.length ? serie[serie.length - 1].prix : prixResidentiel} evo1={evo1} evo5={evo5} />}
         </div>
       )}
-      {(serie.length > 1 || prixAutour > 0 || loyerAutour > 0 || prixM2Revient > 0 || loyerM2 > 0) && (
+      {(serie.length > 1 || prixAutour > 0 || loyerAutour > 0 || prixProjet > 0 || loyerProjet > 0) && (
         <div className="flex flex-wrap gap-4">
           <Evolution serie={serie} nom={r?.nom} />
-          <Commercial prixAutour={prixAutour} prixProjet={prixM2Revient} loyerAutour={loyerAutour} loyerProjet={loyerM2} nom={rue?.nom} />
+          <Commercial prixAutour={prixAutour} prixProjet={prixProjet} loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} />
         </div>
       )}
     </div>

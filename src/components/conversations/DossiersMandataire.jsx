@@ -77,7 +77,6 @@ export default function DossiersMandataire() {
   const [params, setParams] = useSearchParams();
   const { data, isLoading, isError } = useQuery({ queryKey: ["m-dossiers"], queryFn: () => base44.request("GET", "/api/mandataire/dossiers"), refetchInterval: 20_000 });
   const [recherche, setRecherche] = useState("");
-  const [tiroir, setTiroir] = useState(false);
   const tous = useMemo(() => (data?.dossiers || []).map(depuisMandataire), [data]);
   const liste = useMemo(() => {
     const t = recherche.trim().toLowerCase();
@@ -94,7 +93,7 @@ export default function DossiersMandataire() {
   // Un dossier pas encore transféré n'a jamais de point : Klocka ne l'a pas.
   const aLire = (c) => (c.transfere ? c.non_lus || 0 : 0);
   const nonLus = tous.reduce((n, c) => n + aLire(c), 0);
-  const ouvrir = (id, conv = false) => { setTiroir(false); poser({ dossier: id, nouveau: null, conv: conv ? "1" : null }); };
+  const ouvrir = (id, conv = false) => { poser({ dossier: id, nouveau: null, conv: conv ? "1" : null }); };
   // À droite, la conversation si Klocka a écrit (ou si la notification y mène), sinon les pièces.
   const [mode, setMode] = useState("pieces");
   useEffect(() => {
@@ -176,32 +175,6 @@ export default function DossiersMandataire() {
             <NouveauDossier onCree={(id) => poser({ dossier: id, nouveau: null })} onAnnuler={() => poser({ nouveau: null })} />
           ) : (
             <>
-              {tiroir && (
-                <aside className="flex w-[290px] flex-none flex-col border-r border-trait max-lg:w-full">
-                  <div className="flex items-center justify-between px-[18px] pb-2.5 pt-[18px]">
-                    <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">DOSSIERS</p>
-                    <button type="button" onClick={() => setTiroir(false)} aria-label="Fermer la liste" title="Fermer la liste" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
-                    {liste.map((c) => (
-                      <button key={c.id} type="button" onClick={() => ouvrir(c.id)}
-                        className={`flex w-full flex-col gap-1 border-t border-trait px-[18px] py-3.5 text-left ${c.id === ouvert?.id ? "bg-surface" : "hover:bg-surface"}`}
-                        style={c.id === ouvert?.id ? undefined : { background: "transparent" }}>
-                        <span className="flex items-center justify-between gap-2 text-[14px] font-medium text-encre"><span className="truncate">{c.bien}</span><span className="flex flex-none items-center gap-2 text-[12px] font-normal text-brume"><PointNouveau n={aLire(c)} />{quand(c.activite)}</span></span>
-                        <span className="text-[13px] text-ardoise">{STATUTS.mandataire[c.statut] || c.statut}</span>
-                      </button>
-                    ))}
-                  </div>
-                </aside>
-              )}
-              {!tiroir && (
-                <div className="flex w-[52px] flex-none flex-col items-center border-r border-trait pt-4 max-lg:hidden">
-                  <button type="button" onClick={() => setTiroir(true)} aria-label="Tous les dossiers" title="Tous les dossiers"
-                    className="grid h-[34px] w-[34px] place-items-center rounded-[10px] border border-bord-doux text-ardoise hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-                    <List className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
               {ouvert && (
                 <FicheDossier key={ouvert.id} c={ouvert} cote="mandataire" estimations={data?.estimations || []}
                   onSupprime={() => poser({ dossier: null, conv: null })}

@@ -46,6 +46,7 @@ import { monterPreanalyse } from './routes/preanalyse.js';
 import { monterAssistant } from './routes/assistant.js';
 import { monterMarche } from './routes/marche.js';
 import { monterEntites } from './routes/entites.js';
+import { vueDuCompte, ecrireCompte, inviterFamille, listerFamilles, lier, delier, changerTitulaire } from './famille.js';
 import { monterAlexis } from './routes/alexis.js';
 import { monterCourriel } from './routes/courriel.js';
 import { monterIntegrations } from './routes/integrations.js';
@@ -248,7 +249,8 @@ app.get('/api/auth/me', wrap((req, res) => {
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   // Chaque ouverture de l'application repousse l'échéance de la session.
   if (!AUTH_DESACTIVEE) prolongerSession(req, res);
-  ok(res, sansSecret(user));
+  // Dans une famille, chacun voit le dossier du titulaire sous son propre nom.
+  ok(res, sansSecret(vueDuCompte(user)));
 }));
 
 // Le portrait de la personne : son avatar partout dans l'application, et,
@@ -271,7 +273,8 @@ app.post('/api/auth/updateMe', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
   // Sans ce filtre, n'importe qui pourrait s'attribuer le rôle admin.
-  const maj = Records.update('User', user.id, retirerChampsProteges(req.body));
+  // Un membre d'une famille écrit dans le dossier du titulaire.
+  const maj = ecrireCompte(user, retirerChampsProteges(req.body));
   // Une absence déclarée (ou un retour) : le relais des dossiers part tout de suite.
   if (req.body && 'absent_jusqu_au' in req.body && user.role === 'admin') {
     import('./fil-dossier.js').then(({ tourDesRelais }) => tourDesRelais()).catch((e) => console.warn('[fil] relais :', e?.message || e));
@@ -476,6 +479,68 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
     simule: !!envoi?.simulated,
     erreur_envoi: envoi && !envoi.success && !envoi.simulated ? envoi.error || 'Envoi impossible' : null,
   });
+}));
+
+// Les familles : plusieurs comptes, chacun son mot de passe, un seul dossier
+// (celui du titulaire). Voir server/famille.js.
+const reserveAdmin = (req, res) => {
+  const admin = currentUser(req);
+  if (admin?.role !== 'admin') {
+    res.status(403).json({ error: 'Réservé aux administrateurs.' });
+    return null;
+  }
+  return admin;
+};
+
+app.get('/api/admin/familles', wrap((req, res) => {
+  if (!reserveAdmin(req, res)) return;
+  ok(res, listerFamilles());
+}));
+
+// Inviter une famille d'un coup : chaque ligne reçoit son propre lien, la
+// première est le titulaire.
+app.post('/api/admin/familles/inviter', wrap(async (req, res) => {
+  const admin = reserveAdmin(req, res);
+  if (!admin) return;
+  const base = urlPublique(req);
+  const r = inviterFamille({ membres: req.body?.membres, admin, base });
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  for (const m of r.resultats) {
+    if (!m.lien || !req.body?.envoyer) continue;
+    const envoi = await sendEmail({
+      owner: admin.email,
+      to: m.email,
+      subject: OBJET_ACCES,
+      ...mailAcces((m.full_name || '').split(' ')[0], m.lien, admin, base),
+    });
+    m.envoye = !!(envoi?.success && !envoi.simulated);
+    m.simule = !!envoi?.simulated;
+    m.erreur_envoi = envoi && !envoi.success && !envoi.simulated ? envoi.error || 'Envoi impossible' : null;
+  }
+  console.log(`[auth] famille invitée : ${r.resultats.map((m) => m.email).join(', ')} par ${admin.email}`);
+  ok(res, { resultats: r.resultats });
+}));
+
+// Former une famille de comptes existants, ou en ajouter un à une famille.
+app.post('/api/admin/familles/lier', wrap((req, res) => {
+  if (!reserveAdmin(req, res)) return;
+  const r = lier(req.body?.titulaire_id, Array.isArray(req.body?.membre_ids) ? req.body.membre_ids : []);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, { ok: true });
+}));
+
+app.post('/api/admin/familles/delier', wrap((req, res) => {
+  if (!reserveAdmin(req, res)) return;
+  const r = delier(req.body?.user_id);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, { ok: true });
+}));
+
+app.post('/api/admin/familles/titulaire', wrap((req, res) => {
+  if (!reserveAdmin(req, res)) return;
+  const r = changerTitulaire(req.body?.user_id);
+  if (!r.ok) return res.status(400).json({ error: r.error });
+  ok(res, { ok: true });
 }));
 
 // Le lien d'accès, le même pour tous : on le transmet tel quel.
@@ -784,6 +849,9 @@ app.use((req, res, next) => {
   // en naviguant.
   if (req.path.startsWith('/api/journal/')) return next();
   if (currentUser(req)?.role === 'admin') return next();
+  // K-Prospective s'ouvre aux mandataires (onglet de leur Prospection,
+  // 5 oct. 2026) : chacun n'y voit que ses propres prospections.
+  if (/^\/api\/kprospective\b/.test(req.path) && currentUser(req)?.role === 'mandataire') return next();
   res.status(403).json({ error: "Réservé à l'équipe Klocka." });
 });
 

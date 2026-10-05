@@ -4,16 +4,13 @@ import { CASES_LOCATAIRE, valeursLocataire } from "@/components/projet/Locataire
 
 // Les cases du locataire, en face de celles de la page.
 //
-// Les mêmes six, dans le même ordre. Une croix en haut à droite de chacune la
-// retire de la page du client, et un mot la ramène. Deux se calculent et ne se
-// saisissent pas : « en place depuis » et « bail restant » découlent des deux
-// dates, qu'on saisit ici.
+// Une croix en haut à droite de chacune la retire de la page du client, et un
+// mot la ramène. Chaque donnée ne se saisit qu'à un endroit : le loyer dans
+// le Simulateur, l'échéance dans Analyse du bail (avec la prise d'effet) ; le
+// bail restant s'en déduit. Le panneau ne garde que ce qui n'existe qu'ici.
 
 const CHAMPS = {
-  "loc.loyer": { champ: "sim_loyer_initial_ht", type: "number", unite: "€ par an, hors taxes hors charges" },
   "loc.depuis": { champ: "locataire_depuis", type: "date", unite: "date d'entrée : la durée s'en déduit" },
-  "loc.restant": { calcule: true, unite: "se déduit de l'échéance" },
-  "loc.echeance": { champ: "echeance_bail", type: "date", unite: "" },
   "loc.nom": { champ: "nom_locataire", type: "text", unite: "" },
   "loc.profil": { champ: "profil_locataire", type: "text", unite: "ex : couple dans la quarantaine, enseigne nationale" },
 };
@@ -26,7 +23,7 @@ export default function LocataireCases({ formData, setFormData }) {
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      {CASES_LOCATAIRE.map(([cle, label]) => {
+      {CASES_LOCATAIRE.filter(([cle]) => CHAMPS[cle]).map(([cle, label]) => {
         const c = CHAMPS[cle];
         const cache = masques.includes(cle);
         return (
@@ -48,24 +45,23 @@ export default function LocataireCases({ formData, setFormData }) {
               </button>
             )}
             <FField label={label} className="!border-0 !bg-transparent !p-0">
-              {c.calcule ? (
-                <div className="text-[15px] text-encre">{valeurs[cle] || "—"}</div>
-              ) : (
-                <FInput
-                  type={c.type}
-                  value={formData[c.champ] ?? ""}
-                  onChange={(e) => setFormData({ ...formData, [c.champ]: c.type === "number" ? (e.target.value === "" ? "" : parseFloat(e.target.value)) : e.target.value })}
-                  className={c.type === "date" ? "[color-scheme:dark]" : ""}
-                />
-              )}
+              <FInput
+                type={c.type}
+                value={formData[c.champ] ?? ""}
+                onChange={(e) => setFormData({ ...formData, [c.champ]: e.target.value })}
+                className={c.type === "date" ? "[color-scheme:dark]" : ""}
+              />
             </FField>
             <div className="mt-1.5 text-[11px] text-brume">
-              {c.calcule && valeurs[cle] ? c.unite : c.unite}
+              {c.unite}
               {cle === "loc.depuis" && valeurs[cle] ? ` · ${valeurs[cle]}` : ""}
             </div>
           </div>
         );
       })}
+      <p className="col-span-2 m-0 text-[11.5px] leading-[1.5] text-brume">
+        Le loyer se saisit dans Simulateur, l&apos;échéance dans Analyse du bail.
+      </p>
     </div>
   );
 }

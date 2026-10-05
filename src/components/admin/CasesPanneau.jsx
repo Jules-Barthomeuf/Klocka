@@ -40,9 +40,13 @@ function Case({ cle, titre, lu, detailLu, forcee, onChange }) {
   );
 }
 
+// Ce qui se saisit déjà ailleurs : l'échéance avec les dates du bail, le
+// loyer dans le Simulateur. Une donnée, une case.
+const AILLEURS = new Set(["bail.echeance", "bail.loyer_actuel"]);
+
 export default function CasesPanneau({ zone, formData, setFormData, projetId = null }) {
   const cases = useCasesProjet({ id: projetId }, !projetId);
-  const liste = cases?.[zone] || [];
+  const liste = (cases?.[zone] || []).filter((c) => !AILLEURS.has(`${zone}.${c.id}`));
   const forcees = formData.cases_forcees || {};
 
   const changer = (cle, valeur) => {

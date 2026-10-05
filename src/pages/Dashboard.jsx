@@ -7,6 +7,7 @@ import ClientDashboardView from "@/components/dashboard/ClientDashboardView";
 import AdminDashboardView from "@/components/dashboard/AdminDashboardView";
 import MandataireDashboardView from "@/components/mandataire/MandataireDashboardView";
 import { vueDe } from "@/lib/vue";
+import { adresseDuDossier } from "@/lib/famille";
 
 const etapes = [
   { numero: 0, titre: "Compte", description: "Création du compte" },
@@ -59,7 +60,7 @@ export default function Dashboard() {
 
   const { data: strategies = [] } = useQuery({
     queryKey: ['strategy', user?.email],
-    queryFn: () => user ? base44.entities.Strategy.filter({ client_email: user.email }) : [],
+    queryFn: () => user ? base44.entities.Strategy.filter({ client_email: adresseDuDossier(user) }) : [],
     enabled: !!user,
     initialData: []
   });

@@ -150,8 +150,11 @@ export async function calculerSecteur(projet, {
   etudes = () => [...Records.list('EtudeImplantation'), ...Records.list('DataBImplantation')],
   dealDe = (id) => Records.findBy('Deal', 'deal_id', id),
 } = {}) {
-  const texte = String(projet.adresse_complete || '').trim();
-  const adresse = texte ? await resoudre(texte).catch(() => null) : null;
+  // L'adresse avec la ville du projet ; un résultat d'une autre ville ne vaut rien.
+  const { adresseAChercher, memeVille } = await import('../src/lib/adresse-projet.js');
+  const texte = adresseAChercher(projet) || '';
+  const trouvee = texte ? await resoudre(texte).catch(() => null) : null;
+  const adresse = trouvee && memeVille(projet, trouvee.ville) ? trouvee : null;
   const lot = lotDuProjet(projet, projet.deal_id ? dealDe(projet.deal_id) : null);
 
   const [hotel, residentiel, emplacement] = await Promise.all([
@@ -183,6 +186,7 @@ export function dureeDeGarde(donnees) {
   return donnees?.residentiel && donnees?.rue ? JOURS_GARDE * 86400000 : HEURE_INCOMPLET;
 }
 const HEURE_INCOMPLET = 3600000;
+const VERSION = 2;
 
 const dernier = (projetId) => Records.filter(ENTITE, { project_id: projetId })
   .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0] || null;
@@ -193,11 +197,12 @@ const dernier = (projetId) => Records.filter(ENTITE, { project_id: projetId })
  */
 export function lireSecteur(projet, { forcer = false, calculer = calculerSecteur } = {}) {
   const garde = dernier(projet.id);
-  const frais = garde && garde.adresse === projet.adresse_complete && Date.now() - Date.parse(garde.le) < dureeDeGarde(garde.donnees);
+  // Version 2 (5 oct. 2026) : l'adresse est cherchée avec la ville du projet ; les fiches d'avant se recalculent.
+  const frais = garde && garde.version === VERSION && garde.adresse === projet.adresse_complete && Date.now() - Date.parse(garde.le) < dureeDeGarde(garde.donnees);
   if ((forcer || !frais) && projet.adresse_complete && !enCours.has(projet.id)) {
     const tache = calculer(projet)
       .then((donnees) => {
-        const fiche = { project_id: projet.id, adresse: projet.adresse_complete, donnees, le: new Date().toISOString() };
+        const fiche = { project_id: projet.id, adresse: projet.adresse_complete, version: VERSION, donnees, le: new Date().toISOString() };
         const avant = dernier(projet.id);
         if (avant) Records.update(ENTITE, avant.id, fiche);
         else Records.create(ENTITE, fiche);

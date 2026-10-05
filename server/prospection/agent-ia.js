@@ -22,6 +22,14 @@ import { norm, normEmail, normTel, telAffiche } from './regles.js';
 const LISTE = 'ListeAgences';
 const AGENCE = 'AgenceProspect';
 const METIER_IMMOBILIER = '59';
+// Le métier « Immobilier » de Data-B mêle syndics, gestion locative,
+// promoteurs, marchands de biens et SCI : on ne garde que le code NAF des
+// agences immobilières (68.31Z), où sont aussi les agents indépendants.
+export const NAF_AGENCES = '6831Z';
+/** Pure : une ligne Data-B est-elle une agence immobilière (ou un agent indépendant) ? */
+export const estAgence = (d) => String(d?.ape || '').replace(/[.\s]/g, '').toUpperCase() === NAF_AGENCES;
+// Les annonceurs qu'Equimmox ne connaît pas, et les portails qui masquent les mails : pas des agences.
+const PAS_UNE_AGENCE = /^(annonceur inconnu|particulier|locopro|contact[- ]manager|leboncoin|seloger|bureauxlocaux|logic[- ]immo|bien ici|pap)$/i;
 const JOURNAL_MAX = 40;
 const maintenant = () => new Date().toISOString();
 const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
@@ -61,7 +69,8 @@ function noter(liste, texte, ton = 'info') {
   Records.update(LISTE, liste.id, { journal: [{ le: maintenant(), texte, ton }, ...(l?.journal || [])].slice(0, JOURNAL_MAX) });
 }
 
-const agencesDe = (listeId) => Records.list(AGENCE).filter((a) => a.liste_id === listeId);
+// Une ligne écartée (pas une agence) reste en base, cachée de la liste.
+const agencesDe = (listeId, { toutes = false } = {}) => Records.list(AGENCE).filter((a) => a.liste_id === listeId && (toutes || !a.hors_cible));
 
 function resumeListe(l) {
   const a = agencesDe(l.id);
@@ -88,7 +97,7 @@ function retrouver(listeId, a) {
   const tel = normTel(a.telephone);
   const cle = cleAgence(a.nom);
   const dom = domaineDe(a.site) || domaineDe(a.email);
-  return agencesDe(listeId).find((x) => (a.siret && x.siret === a.siret)
+  return agencesDe(listeId, { toutes: true }).find((x) => (a.siret && x.siret === a.siret)
     || (tel && normTel(x.telephone) === tel)
     || (cle && cle.length > 2 && cleAgence(x.nom) === cle)
     || (dom && (domaineDe(x.site) === dom || domaineDe(x.email) === dom))) || null;
@@ -125,21 +134,23 @@ async function parDataB(l, user) {
   }
   if (!r?.ok) { noter(l, `Data-B n'a pas rendu ses résultats : ${r?.error || 'délai dépassé'}.`, 'alerte'); return 0; }
   let nouvelles = 0;
+  let ecartes = 0;
   for (let page = 1; page <= Math.min(r.pages, 40); page += 1) {
     const res = page === 1 ? r : await M.resultats(p.prospective.jeton, { page, user });
     if (!res.ok) { noter(l, `Data-B : page ${page} illisible (${res.error}).`, 'alerte'); break; }
     for (const d of res.resultats) {
+      if (!estAgence(d)) { ecartes += 1; continue; }
       const { nouvelle } = ranger(l.id, {
         nom: casse(d.enseigne || d.nom), raison_sociale: d.nom || null, siret: d.siret || null, siren: d.siren || null,
         adresse: d.adresse ? casse(d.adresse) : null, code_postal: d.code_postal || null,
         telephone: d.telephone ? telAffiche(d.telephone) : null, email: (d.emails || [])[0] || null, site: d.site || null,
-        effectif: d.effectif || null, creation: d.creation || null, lat: d.lat ?? null, lon: d.lon ?? null, sources: ['Data-B'],
+        effectif: d.effectif || null, creation: d.creation || null, lat: d.lat ?? null, lon: d.lon ?? null, ape: d.ape || null, sources: ['Data-B'],
       });
       if (nouvelle) nouvelles += 1;
     }
     Records.update(LISTE, l.id, { etape: `Data-B : page ${page} sur ${r.pages}` });
   }
-  noter(l, `Data-B : ${r.total} établissements « Immobilier » lus, ${nouvelles} nouvelles agences dans la liste.`, 'succes');
+  noter(l, `Data-B : ${r.total} établissements « Immobilier » lus, ${ecartes} écartés (syndics, gestion, promotion, SCI…), ${nouvelles} nouvelles agences dans la liste.`, 'succes');
   return nouvelles;
 }
 
@@ -189,6 +200,7 @@ async function parEquimmox(l) {
     const agent = { nom: nomDuMail(ag.email), email: ag.email || null, telephone: ag.telephone ? telAffiche(ag.telephone) : null, annonces: ag.annonces || 0 };
     ag.agence = String(ag.agence || '').replace(/\s*\([^)]*\)\s*$/, '');
     if (!agent.email && !agent.telephone) continue;
+    if (PAS_UNE_AGENCE.test(String(ag.agence || '').replace(/\s*\([^)]*\)\s*$/, '').trim())) continue;
     const dom = domaineDe(agent.email);
     let a = agencesDe(l.id).find((x) => (ag.agence && cleAgence(x.nom) === cleAgence(ag.agence)) || (dom && (domaineDe(x.site) === dom || domaineDe(x.email) === dom)));
     if (!a) {

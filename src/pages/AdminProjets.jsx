@@ -52,6 +52,9 @@ export default function AdminProjets() {
   // Onglet courant de la page projet, à gauche.
   // Assigner un client sans ouvrir le panneau : le bouton vit dans la barre.
   const [assignerOuvert, setAssignerOuvert] = useState(false);
+  // L'éditeur se fait sur la page elle-même ; le panneau des champs ne s'ouvre qu'à la demande.
+  const [champsOuverts, setChampsOuverts] = useState(false);
+  const [photosOuvertes, setPhotosOuvertes] = useState(false);
   const [ongletPage, setOngletPage] = useState("marche");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
@@ -454,6 +457,20 @@ export default function AdminProjets() {
       notes_locataire: project.notes_locataire || [], notes_marche: project.notes_marche || [],
       notes_diagnostique: project.notes_diagnostique || [], bail_admin_fields: project.bail_admin_fields || [],
       cases_forcees: project.cases_forcees || {},
+      // Ce que la page porte en propre : sans eux, le premier enregistrement
+      // les remettait à zéro.
+      champs_personnalises: project.champs_personnalises || [],
+      champs_masques: project.champs_masques || [],
+      valeurs_forcees: project.valeurs_forcees || {},
+      bail_analyse: project.bail_analyse || {},
+      profil_locataire: project.profil_locataire || "",
+      detenu_depuis: project.detenu_depuis || "",
+      derniere_vente_annee: project.derniere_vente_annee || "",
+      derniere_vente_prix: project.derniere_vente_prix || "",
+      surface_detail: project.surface_detail || "",
+      marche_rue_prix_m2: project.marche_rue_prix_m2 || "",
+      marche_residentiel_loyer_m2_mois: project.marche_residentiel_loyer_m2_mois || "",
+      marche_commercial_prix_m2: project.marche_commercial_prix_m2 || "",
       fichiers_projet: project.fichiers_projet || [],
       docs_checklist: project.docs_checklist || {},
 
@@ -720,6 +737,7 @@ export default function AdminProjets() {
         secteur_transports: (currentFormData.secteur_transports || []).map(t => ({ ligne: t.ligne, type: t.type, distance_metres: t.distance_metres, temps_marche_min: t.temps_marche_min })),
         champs_personnalises: (currentFormData.champs_personnalises || []).map(c => ({ id: c.id, label: c.label, valeur: c.valeur, zone: c.zone, style: c.style || 'ligne', info: c.info || '', detail: c.detail || '' })),
         cases_forcees: JSON.parse(JSON.stringify(currentFormData.cases_forcees || {})),
+        valeurs_forcees: { ...(currentFormData.valeurs_forcees || {}) },
         champs_masques: [...(currentFormData.champs_masques || [])],
       };
       const data = {
@@ -856,7 +874,7 @@ export default function AdminProjets() {
   // Écrit une valeur par chemin pointé (« bail_admin_fields.2.value »), en
   // recopiant chaque niveau traversé pour ne jamais muter l'état en place.
   const ecrireChemin = (racine, chemin, valeur) => {
-    const cles = String(chemin).split(".");
+    const cles = Array.isArray(chemin) ? chemin : String(chemin).split(".");
     const copie = Array.isArray(racine) ? [...racine] : { ...racine };
     let courant = copie;
     for (let i = 0; i < cles.length - 1; i++) {
@@ -872,7 +890,18 @@ export default function AdminProjets() {
     setHistorique((h) => [...h.slice(-29), formData]); // 30 pas conservés
     setRefaits([]);
     setModifieDepuis(true);
-    let suivant = ecrireChemin(formData, champ, valeur);
+    // Un champ que le formulaire ne charge pas (bail_analyse, detenu_depuis…)
+    // part de ce que le projet porte : écrire une clé ne doit pas effacer ses
+    // voisines.
+    const racine = Array.isArray(champ) ? champ[0] : String(champ).split(".")[0];
+    const depart = formData[racine] === undefined && editingProject?.[racine] !== undefined
+      ? { ...formData, [racine]: editingProject[racine] } : formData;
+    let suivant = ecrireChemin(depart, champ, valeur);
+    // L'échéance est une seule date, rangée sous deux noms : la frise lit
+    // l'un, la page Locataire l'autre.
+    if (champ === "echeance_bail" || champ === "bail_date_echeance") {
+      suivant = { ...suivant, echeance_bail: valeur, bail_date_echeance: valeur };
+    }
     // Le loyer au m² est un ratio : le saisir revient à fixer le loyer annuel.
     if (champ === "loyer_m2_an") {
       const surface = parseFloat(suivant.sim_surface) || parseFloat(suivant.surface_m2) || 0;
@@ -985,6 +1014,12 @@ export default function AdminProjets() {
       setApercuProjet({ ...(editingProject || {}), ...construireDonnees(donnees), id: editingProject?.id || "apercu" });
     } catch { /* formulaire incomplet : on garde l'aperçu précédent */ }
   };
+  // Les photos et les pièces ajoutées depuis la page (bouton Photos, onglet
+  // Documents) : la page les montre tout de suite, sans attendre l'enregistrement.
+  useEffect(() => {
+    if (isDialogOpen && editingProject) rafraichirApercu(formData);
+    // Seules ces trois listes déclenchent ; le reste passe par modifierChamp.
+  }, [formData.photos, formData.fichiers_projet, formData.docs_checklist]);
 
   // `source` : instantané complet du formulaire. Les modifications faites sur la
   // page passent le leur, sinon on fusionnerait sur un état déjà périmé et
@@ -1105,6 +1140,7 @@ export default function AdminProjets() {
               </button>
             )}
             <button onClick={() => setAssignerOuvert(true)} className={BOUTON}>Assigner à un client</button>
+            <button onClick={() => setChampsOuverts((x) => !x)} aria-pressed={champsOuverts} className={BOUTON}>{champsOuverts ? "Masquer les champs" : "Tous les champs"}</button>
             <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
@@ -1156,7 +1192,7 @@ export default function AdminProjets() {
 
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
-        <div className="flex-1 min-h-0 grid grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-lg:grid-cols-1 max-lg:overflow-y-auto">
+        <div className={`flex-1 min-h-0 grid ${champsOuverts ? "grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)]" : "grid-cols-1"} max-lg:grid-cols-1 max-lg:overflow-y-auto`}>
         <div className="min-h-0 overflow-y-auto max-lg:overflow-visible">
           {ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
@@ -1172,7 +1208,15 @@ export default function AdminProjets() {
                   </button>
                 ))}
               </div>
-              <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
+              {/* Les paramètres à gauche, le résultat à droite : tout se règle ici. */}
+              <div className="grid items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]" onInput={() => setModifieDepuis(true)}>
+                {!champsOuverts && (
+                  <div className="k-sobre rounded-[16px] border border-trait bg-rail p-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-220px)] xl:overflow-y-auto">
+                    <ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} />
+                  </div>
+                )}
+                <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
+              </div>
             </div>
           ) : projetAffiche ? (
             <ProjetContent
@@ -1184,6 +1228,12 @@ export default function AdminProjets() {
               modeEdition
               onChamp={modifierChamp}
               ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
+              onPhotos={() => setPhotosOuvertes(true)}
+              editeurDocuments={!champsOuverts && (
+                <div className="k-sobre mb-6 rounded-[16px] border border-trait bg-rail p-4" onInput={() => setModifieDepuis(true)}>
+                  <ProjectFormDocumentsTab formData={formData} setFormData={setFormData} />
+                </div>
+              )}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -1194,7 +1244,15 @@ export default function AdminProjets() {
           )}
         </div>
 
-        <aside
+        {/* Les photos, depuis le bouton du hero. */}
+        <Dialog open={photosOuvertes} onOpenChange={setPhotosOuvertes}>
+          <DialogContent className="max-w-[860px] max-h-[86vh] overflow-y-auto border-bord-vif bg-fond">
+            <DialogHeader><DialogTitle>Photos du projet</DialogTitle></DialogHeader>
+            <div className="k-sobre" onInput={() => setModifieDepuis(true)}><ProjectFormImagesTab formData={formData} setFormData={setFormData} /></div>
+          </DialogContent>
+        </Dialog>
+
+        {champsOuverts && <aside
           className="k-sobre min-h-0 flex flex-col bg-rail border-l border-trait max-lg:border-l-0 max-lg:border-t max-lg:min-h-[60vh]"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
@@ -1285,7 +1343,7 @@ export default function AdminProjets() {
           <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
             <span className="text-[12.5px] text-brume">La page de gauche suit ce que vous tapez ; rien n&apos;est enregistré avant Enregistrer.</span>
           </div>
-        </aside>
+        </aside>}
         </div>
       </div>
     );

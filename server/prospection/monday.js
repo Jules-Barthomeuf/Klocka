@@ -161,6 +161,21 @@ export function valeursAgent(c, a, referent = []) {
   return v;
 }
 
+/** Un agent dans Monday : créé, ou mis à jour s'il y est déjà. Rend son identifiant. */
+async function poserAgent(t, a) {
+  const v = valeursAgent(t.agents.colonnes, a, await personnes([a.referent]));
+  const le = new Date().toISOString();
+  let id = a.monday_id || null;
+  if (id) await majElement(t.agents.id, id, v, { labels: true });
+  else {
+    const it = await creerElement(t.agents.id, String(a.nom).slice(0, 250), v, { labels: true });
+    id = it?.id ? String(it.id) : null;
+  }
+  // monday_le un peu après maj_le : l'écriture de monday_le elle-même ne compte pas comme un changement.
+  Records.update('AgentImmo', a.id, { monday_id: id, monday_le: new Date(Date.parse(le) + 1000).toISOString() });
+  return id;
+}
+
 /** Envoie à Monday les agents qui ont changé depuis leur dernier envoi (au plus `max` par tour). */
 export async function pousserAgents({ max = 60 } = {}) {
   const t = await assurerTableaux();
@@ -168,18 +183,24 @@ export async function pousserAgents({ max = 60 } = {}) {
   const aEnvoyer = agents().filter((a) => !a.monday_le || String(a.maj_le || '') > String(a.monday_le)).slice(0, max);
   let n = 0;
   for (const a of aEnvoyer) {
-    const v = valeursAgent(t.agents.colonnes, a, await personnes([a.referent]));
-    const le = new Date().toISOString();
-    if (a.monday_id) await majElement(t.agents.id, a.monday_id, v, { labels: true });
-    else {
-      const it = await creerElement(t.agents.id, String(a.nom).slice(0, 250), v, { labels: true });
-      a.monday_id = it?.id ? String(it.id) : null;
-    }
-    // monday_le un peu après maj_le : l'écriture de monday_le elle-même ne compte pas comme un changement.
-    Records.update('AgentImmo', a.id, { monday_id: a.monday_id, monday_le: new Date(Date.parse(le) + 1000).toISOString() });
+    await poserAgent(t, a);
     n += 1;
   }
   return n;
+}
+
+/**
+ * Un seul agent, tout de suite : après un appel raconté, Monday est à jour
+ * avant que la carte de confirmation ne s'affiche. Rend le lien de sa ligne.
+ */
+export async function pousserUnAgent(agentId) {
+  const { agentDe } = await import('./carnet.js');
+  const a = agentDe(agentId);
+  if (!a) return { ok: false, error: 'Agent introuvable.' };
+  const t = await assurerTableaux();
+  const id = await poserAgent(t, a);
+  if (!id) return { ok: false, error: "Monday n'a pas rendu d'identifiant." };
+  return { ok: true, id, lien: `https://klocka-company.monday.com/boards/${t.agents.id}/pulses/${id}` };
 }
 
 /** Pure : l'étape Monday d'une fiche. */

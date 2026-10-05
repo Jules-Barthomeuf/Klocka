@@ -35,11 +35,6 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
         <div className="mt-1.5 text-[11px] text-brume">un mot ou deux : c&apos;est ce que le client lit en gros</div>
       </div>
       <div className={fieldWrap}>
-        <div className={flabel}>En place depuis</div>
-        <input type="date" value={formData.locataire_depuis || ""} onChange={texte("locataire_depuis")} className={`${fieldInput} text-[15px] [color-scheme:dark]`} />
-        <div className="mt-1.5 text-[11px] text-brume">la même date que dans Locataire</div>
-      </div>
-      <div className={fieldWrap}>
         <div className={flabel}>Année de la dernière vente</div>
         <input type="number" value={formData.derniere_vente_annee || ""} onChange={nombre("derniere_vente_annee")} placeholder="2019" className={`${fieldInput} text-[15px]`} />
         <div className="mt-1.5 text-[11px] text-brume">d&apos;après les ventes publiées ou l&apos;acte</div>

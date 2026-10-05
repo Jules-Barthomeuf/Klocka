@@ -108,9 +108,12 @@ function Propositions({ appel, onFini }) {
 // L'appel
 // ---------------------------------------------------------------------------
 
-function PanneauAppel({ agent, onFermer }) {
+// Le récit de l'appel : trente secondes au plus, puis tout se note seul.
+const RECIT_MAX_S = 30;
+
+function PanneauAppel({ agent, onFermer, onCarte = null }) {
   const queryClient = useQueryClient();
-  const [etat, setEtat] = useState("pret"); // pret | enregistre | analyse | propose
+  const [etat, setEtat] = useState("pret"); // pret | enregistre | recit | note | analyse | propose
   const [secondes, setSecondes] = useState(0);
   const [recit, setRecit] = useState("");
   const [appel, setAppel] = useState(null);
@@ -118,10 +121,48 @@ function PanneauAppel({ agent, onFermer }) {
   const chrono = useRef(0);
   const { supporte: dicteeOk, ecoute, demarrer: dicter, arreter: stopDictee } = useDictee({ onTexte: (t) => setRecit(t) });
   useEffect(() => {
-    if (etat !== "enregistre") return undefined;
-    const t = setInterval(() => setSecondes((s) => { chrono.current = s + 1; return s + 1; }), 1000);
+    if (etat !== "enregistre" && etat !== "recit") return undefined;
+    const t = setInterval(() => setSecondes((s) => {
+      chrono.current = s + 1;
+      // Le récit s'arrête de lui-même à trente secondes.
+      if (etat === "recit" && s + 1 >= RECIT_MAX_S && rec.current?.m?.state === "recording") rec.current.m.stop();
+      return s + 1;
+    }), 1000);
     return () => clearInterval(t);
   }, [etat]);
+
+  // Raconter l'appel en trente secondes : transcrit, noté sur la fiche et dans
+  // Monday d'un coup, puis la carte de confirmation, et le panneau se ferme.
+  const raconter30 = async () => {
+    let flux;
+    try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { toast.error("Le micro est refusé : autorise-le dans le navigateur."); return; }
+    const morceaux = [];
+    const m = new MediaRecorder(flux);
+    m.ondataavailable = (e) => { if (e.data?.size) morceaux.push(e.data); };
+    m.onstop = async () => {
+      flux.getTracks().forEach((t) => t.stop());
+      setEtat("note");
+      try {
+        const form = new FormData();
+        form.append("audio", await versWav(new Blob(morceaux, { type: m.mimeType || "audio/webm" }), 16000), "recit.wav");
+        form.append("duree_s", String(chrono.current));
+        const r = await base44.request("POST", `/api/prospection/agents/${agent.id}/raconter`, { body: form, isForm: true });
+        ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+        queryClient.invalidateQueries({ queryKey: ["agent-ia-listes"] });
+        queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
+        onCarte?.(r.carte);
+        onFermer();
+      } catch (e) {
+        toast.error(e?.message || "L'appel n'a pas pu être noté");
+        setEtat("pret");
+      }
+    };
+    rec.current = { m, flux };
+    m.start(1000);
+    chrono.current = 0;
+    setSecondes(0);
+    setEtat("recit");
+  };
   useEffect(() => () => rec.current?.flux?.getTracks().forEach((t) => t.stop()), []);
 
   const envoyer = async (corps) => {
@@ -197,9 +238,15 @@ function PanneauAppel({ agent, onFermer }) {
           <div className="mt-5 rounded-[14px] border border-trait p-4">
             {etat === "pret" && (
               <>
-                <p className="m-0 text-[12.5px] text-craie">Mets ton téléphone sur haut-parleur. Dis à l'agent que l'appel est enregistré.</p>
+                {/* Le geste principal, après avoir raccroché : trente secondes de récit. */}
+                <div className="mb-4 border-b border-trait pb-4">
+                  <p className="m-0 text-[13.5px] text-encre">Vous avez raccroché ?</p>
+                  <p className="m-0 mt-0.5 text-[12.5px] text-craie">Racontez l'appel en 30 secondes : la fiche et Monday se remplissent seuls. Un mail proposé attend dans « À envoyer ».</p>
+                  <button type="button" onClick={raconter30} className="mt-3 inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[13.5px] font-semibold text-sur-menthe hover:bg-menthe-survol"><Mic className="h-4 w-4" />Raconter l'appel · 30 s</button>
+                </div>
+                <p className="m-0 text-[12.5px] text-craie">Ou enregistre tout l'appel : mets ton téléphone sur haut-parleur et dis à l'agent que l'appel est enregistré.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={demarrer} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[13.5px] font-semibold text-sur-menthe"><Mic className="h-4 w-4" />Enregistrer l'appel</button>
+                  <button type="button" onClick={demarrer} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[13.5px] text-craie hover:text-encre"><Mic className="h-4 w-4" />Enregistrer tout l'appel</button>
                   <button type="button" onClick={sansReponse} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-4 py-2 text-[13.5px] text-craie hover:text-encre"><PhoneOff className="h-4 w-4" />Il n'a pas décroché</button>
                 </div>
                 <div className="mt-4">
@@ -218,6 +265,17 @@ function PanneauAppel({ agent, onFermer }) {
                 <button type="button" onClick={terminer} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[13.5px] font-semibold text-sur-menthe"><Square className="h-4 w-4" />Terminer l'appel</button>
               </div>
             )}
+            {etat === "recit" && (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="inline-flex items-center gap-2 text-[14px] tabular-nums text-encre"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-alerte" />Racontez l'appel · {RECIT_MAX_S - secondes} s</span>
+                  <button type="button" onClick={terminer} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[13.5px] font-semibold text-sur-menthe"><Square className="h-4 w-4" />J'ai fini</button>
+                </div>
+                <span className="h-1 overflow-hidden rounded-full bg-encre/[0.12]"><span className="block h-full bg-menthe transition-[width] duration-1000 ease-linear" style={{ width: `${Math.min(100, (secondes / RECIT_MAX_S) * 100)}%` }} /></span>
+                <p className="m-0 text-[12px] text-brume">Qui vous avez eu, ce qu'il a, ce qu'il veut, quand le rappeler.</p>
+              </div>
+            )}
+            {etat === "note" && <p className="m-0 flex items-center gap-2 text-[13.5px] text-craie"><Loader2 className="h-4 w-4 animate-spin" />Je note l'appel sur la fiche et dans Monday…</p>}
             {etat === "analyse" && <p className="m-0 flex items-center gap-2 text-[13.5px] text-craie"><Loader2 className="h-4 w-4 animate-spin" />AK écoute l'appel et prépare la suite…</p>}
           </div>
         </>
@@ -804,6 +862,55 @@ function OngletReglages() {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// La carte de confirmation, après un appel raconté
+// ---------------------------------------------------------------------------
+
+const CARTE_DUREE_MS = 9000;
+
+/** Tout ce qui a été rempli, sur une seule carte ; elle s'efface seule (le survol la retient). */
+function CarteAppel({ carte, onFermer }) {
+  const [retenue, setRetenue] = useState(false);
+  const [reste, setReste] = useState(CARTE_DUREE_MS);
+  useEffect(() => {
+    if (retenue) return undefined;
+    if (reste <= 0) { onFermer(); return undefined; }
+    const t = setTimeout(() => setReste((r) => r - 100), 100);
+    return () => clearTimeout(t);
+  }, [reste, retenue, onFermer]);
+  const ligne = (mot, valeur) => (valeur ? (
+    <div className="grid grid-cols-[120px_1fr] gap-3 py-1.5">
+      <span className="text-[12.5px] text-brume">{mot}</span>
+      <span className="min-w-0 text-[13.5px] text-encre">{valeur}</span>
+    </div>
+  ) : null);
+  return (
+    <div role="status" aria-live="polite" onMouseEnter={() => setRetenue(true)} onMouseLeave={() => setRetenue(false)}
+      className="animate-in fade-in slide-in-from-bottom-3 duration-300 fixed bottom-6 left-1/2 z-50 w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-bord-doux bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
+      <div className="flex items-start justify-between gap-3 px-5 pt-4">
+        <div className="min-w-0">
+          <p className="m-0 flex items-center gap-2 text-[12px] text-menthe"><Check className="h-3.5 w-3.5" />Appel noté{carte.monday?.ok ? " · Monday à jour" : ""}</p>
+          <p className="m-0 mt-1 truncate text-[17px] font-medium text-encre">{carte.nom}</p>
+          {(carte.agence || carte.ville) && <p className="m-0 truncate text-[13px] text-ardoise">{[carte.agence, carte.ville].filter(Boolean).join(" · ")}</p>}
+        </div>
+        <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+      </div>
+      <div className="mt-2 border-t border-trait px-5 py-2.5">
+        {ligne("Téléphone", carte.telephone)}
+        {ligne("E-mail", carte.email)}
+        {ligne("Issue", carte.issue)}
+        {ligne("Statut", carte.statut && <Pastille ton="menthe">{carte.statut}</Pastille>)}
+        {ligne("Prochaine action", carte.prochaine && `${carte.prochaine.quoi}${carte.prochaine.le ? `, le ${dateCourte(carte.prochaine.le)}` : ""}`)}
+        {ligne("Résumé", carte.resume)}
+        {ligne("Secteurs", carte.secteurs?.length ? carte.secteurs.join(", ") : null)}
+        {ligne("À envoyer", carte.a_envoyer?.length ? carte.a_envoyer.join(" · ") : null)}
+        {ligne("Monday", carte.monday?.ok ? <a href={carte.monday.lien} target="_blank" rel="noreferrer" className="text-menthe hover:underline">Ouvrir la ligne</a> : <span className="text-alerte">pas mis à jour : {carte.monday?.erreur}</span>)}
+      </div>
+      <span className="block h-1 bg-encre/[0.08]"><span className="block h-full bg-menthe transition-[width] duration-100 ease-linear" style={{ width: `${(reste / CARTE_DUREE_MS) * 100}%` }} /></span>
+    </div>
+  );
+}
+
 export default function Prospection() {
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(() => new URLSearchParams(window.location.search).get("onglet") || "grille");
@@ -814,6 +921,7 @@ export default function Prospection() {
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
   const [listeOuverte, setListeOuverte] = useState(null);
   const [appel, setAppel] = useState(null);
+  const [carte, setCarte] = useState(null);
   const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: 60000 });
   const prendre = useMutation({
     mutationFn: (a) => base44.request("POST", `/api/prospection/agents/${a.id}/prendre`).then((r) => ({ ...(r?.agent || {}), ...a })),
@@ -866,9 +974,10 @@ export default function Prospection() {
       </div>}
       {appel && (
         <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
-          <PanneauAppel key={appel.id} agent={appel} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
+          <PanneauAppel key={appel.id} agent={appel} onCarte={setCarte} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
         </div>
       )}
+      {carte && <CarteAppel key={carte.nom + (carte.resume || "")} carte={carte} onFermer={() => setCarte(null)} />}
     </div>
   );
 }

@@ -69,7 +69,7 @@ const SCHEMA = {
   properties: {
     resume: { type: 'string', description: "Deux phrases au plus : ce que l'agent a, ce qu'il cherche, ce qu'il a promis." },
     issue: { type: 'string', enum: Object.keys(R.ISSUES) },
-    date_dite: { type: 'string', description: "AAAA-MM-JJ : la date donnée par l'agent (mandat attendu, rappel demandé), vide sinon" },
+    date_dite: { type: 'string', description: "AAAA-MM-JJ : la date de rappel dite, par l'agent ou par la personne qui raconte l'appel (« à rappeler le 20 octobre ») ; à défaut, la date du mandat attendu ; vide sinon" },
     secteurs: { type: 'array', items: { type: 'string' }, description: 'villes ou quartiers où il travaille' },
     mandats: { type: 'array', items: { type: 'string' }, description: 'mandats à venir, avec leur date si dite' },
     biens: { type: 'array', items: { type: 'string' }, description: 'biens dont il a parlé : type, ville, prix, loyer' },
@@ -314,3 +314,54 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
 
 export const appels = () => Records.list(ENTITE);
 export const appelAValider = (par) => Records.filter(ENTITE, { etat: 'a_valider', par }).sort((x, y) => String(y.le).localeCompare(String(x.le)));
+
+/**
+ * L'appel raconté en trente secondes, après avoir raccroché : le vocal est
+ * transcrit, AK en tire l'issue et la suite, tout est noté d'un coup sur la
+ * fiche (statut, prochaine action, secteurs, mail, remarques) puis dans
+ * Monday, et la carte de confirmation dit ce qui a été rempli. Un mail ou un
+ * SMS proposé attend dans « À envoyer » : rien ne part tout seul.
+ */
+export async function raconterAppel({ agent_id, audio, duree_s = null, par, maintenant = new Date() }) {
+  const a = agentDe(agent_id);
+  if (!a) return { ok: false, error: 'Agent introuvable.' };
+  if (!audio?.length) return { ok: false, error: "Rien n'a été enregistré : réessayez en parlant près du micro." };
+  let recit;
+  try { recit = await transcrire(audio); } catch (e) { return { ok: false, error: `Transcription impossible : ${e?.message || e}. Écrivez le récit à la place.` }; }
+  if (!recit || recit.trim().length < 8) return { ok: false, error: "Je n'ai rien entendu : réessayez en parlant près du micro." };
+  const lu = await analyserAppel({ agent_id, recit, duree_s, par, maintenant });
+  if (!lu.ok) return lu;
+  const v = await validerAppel({ appel_id: lu.appel.id, choix: lu.appel.propositions.map((p) => p.id), envoyer: false, user: { email: par }, maintenant });
+  if (!v.ok) return v;
+  let monday;
+  try {
+    const { pousserUnAgent } = await import('./monday.js');
+    monday = await pousserUnAgent(agent_id);
+  } catch (e) {
+    monday = { ok: false, error: String(e?.message || e).slice(0, 160) };
+  }
+  return { ok: true, recit, carte: carteAppel(agentDe(agent_id), lu.appel, v, monday) };
+}
+
+/** Pure : la carte de confirmation, tout ce qui a été rempli après l'appel. */
+export function carteAppel(a, appel, v, monday = null) {
+  const mail = (appel.propositions || []).find((p) => p.type === 'mail');
+  const sms = (appel.propositions || []).find((p) => p.type === 'sms');
+  return {
+    nom: a.nom,
+    agence: a.agence && a.agence !== a.nom ? a.agence : null,
+    ville: a.ville || null,
+    telephone: a.telephones?.[0] || null,
+    email: a.emails?.[0] || null,
+    issue: R.ISSUES[appel.issue] || appel.issue,
+    statut: R.STATUTS[a.statut] || a.statut || null,
+    prochaine: a.prochaine?.quoi ? { quoi: a.prochaine.quoi, le: a.prochaine.le || null } : null,
+    resume: appel.resume || null,
+    secteurs: a.secteurs || [],
+    remarques: a.remarques || null,
+    a_envoyer: [mail ? `Mail « ${mail.objet} »` : null, sms ? 'SMS' : null].filter(Boolean),
+    referent: a.referent || null,
+    faits: v?.faits || [],
+    monday: monday?.ok ? { ok: true, lien: monday.lien } : { ok: false, erreur: monday?.error || 'Monday non joint' },
+  };
+}

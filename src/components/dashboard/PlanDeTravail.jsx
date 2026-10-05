@@ -23,13 +23,23 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
     <div>
       {/* Un message envoyé : le salut et les colonnes s'effacent, le chat
           devient le fil. L'arbre ne change pas, le chat garde son état. */}
-      <header className={conversation ? "flex flex-col" : "flex flex-col items-center pt-[13vh] text-center max-md:pt-8"}>
+      <header className={conversation ? "flex flex-col" : "relative flex flex-col items-center pt-[13vh] text-center max-md:pt-8"}>
+        {/* Le halo sauge derrière le salut et le chat : réglage « Halo » de
+            Compte (caché à « Sans » et en mode clair, par index.css). Il était
+            parti avec le chat en une barre (14 sept.), sans que le réglage le sache. */}
         {!conversation && (
-          <motion.h1 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-[6vh] h-[900px] overflow-hidden"
+            style={{ maskImage: "linear-gradient(to bottom, #000 55%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, #000 55%, transparent)" }}>
+            <div className="accueil-halo-a" style={{ top: "32%" }} />
+            <div className="accueil-halo-b" style={{ top: "72%" }} />
+          </div>
+        )}
+        {!conversation && (
+          <motion.h1 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="relative m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>
             Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?
           </motion.h1>
         )}
-        {chat && <div className={conversation ? "w-full" : "mt-9 w-full max-w-[660px] max-md:mt-6"}>{chat}</div>}
+        {chat && <div className={conversation ? "w-full" : "relative mt-9 w-full max-w-[660px] max-md:mt-6"}>{chat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}

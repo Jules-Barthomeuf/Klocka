@@ -1,6 +1,7 @@
 import React from "react";
 import { Carte, TitreCarte } from "./Cartes";
 import { evenementsDuBien, libelleDate } from "@/lib/chronologie-bien";
+import { useEdition, ValeurForcee, forcee, estMasque } from "./EditionEnPlace";
 
 // La chronologie du bien, dans l'onglet Bien : l'histoire des murs et du
 // locataire, puis ce qui va arriver au bail. Les étapes du projet avec Klocka
@@ -15,12 +16,35 @@ function Point({ e }) {
   return <span className={`relative z-10 block h-4 w-4 flex-none rounded-full border-2 ${teinte}`} />;
 }
 
+// Dans l'éditeur, la date, le titre et le détail de chaque événement se
+// corrigent au clic (valeurs forcées), et l'événement se retire de la frise ;
+// retiré, il reste pâle dans l'éditeur, le temps de le remettre.
 function Evenement({ e }) {
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  const cle = `chrono:${e.cle}`;
+  const basculer = () => {
+    const liste = edition.masques || [];
+    edition.onChamp("champs_masques", e.masque ? liste.filter((c) => c !== cle) : [...liste, cle], true);
+  };
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <span className={`text-[14.5px] ${e.futur ? (e.alerte ? "text-ambre" : "text-encre") : "text-ardoise"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{libelleDate(e)}</span>
-      <span className={`text-[17px] font-medium leading-[1.3] ${e.futur ? "text-encre" : "text-craie"}`}>{e.titre}</span>
-      {e.detail && <span className="text-[14px] leading-[1.4] text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>{e.detail}</span>}
+    <div className={`flex min-w-0 flex-col gap-1.5 ${e.masque ? "opacity-40" : ""}`}>
+      <span className={`text-[14.5px] ${e.futur ? (e.alerte ? "text-ambre" : "text-encre") : "text-ardoise"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <ValeurForcee cle={`chrono_${e.cle}_date`} type="text">{e.date}</ValeurForcee>
+      </span>
+      <span className={`text-[17px] font-medium leading-[1.3] ${e.futur ? "text-encre" : "text-craie"}`}>
+        <ValeurForcee cle={`chrono_${e.cle}_titre`} type="text">{e.titre}</ValeurForcee>
+      </span>
+      {(e.detail || enEdition) && (
+        <span className="text-[14px] leading-[1.4] text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <ValeurForcee cle={`chrono_${e.cle}_detail`} type="text">{e.detail || "+ détail"}</ValeurForcee>
+        </span>
+      )}
+      {enEdition && (
+        <button type="button" onClick={basculer} className="self-start border-0 bg-transparent p-0 text-[12px] text-brume transition-colors hover:text-encre">
+          {e.masque ? "Remettre" : "Retirer"}
+        </button>
+      )}
     </div>
   );
 }
@@ -35,7 +59,17 @@ function Aujourdhui() {
 }
 
 export default function ChronologieBien({ project, friseLue = null }) {
-  const evenements = evenementsDuBien(project, friseLue);
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  const evenements = evenementsDuBien(project, friseLue)
+    .map((e) => ({
+      ...e,
+      date: forcee(project, `chrono_${e.cle}_date`) || libelleDate(e),
+      titre: forcee(project, `chrono_${e.cle}_titre`) || e.titre,
+      detail: forcee(project, `chrono_${e.cle}_detail`) || e.detail,
+      masque: estMasque(edition, `chrono:${e.cle}`),
+    }))
+    .filter((e) => enEdition || !e.masque);
   if (evenements.length < 2) return null;
   const iAujourdhui = evenements.findIndex((e) => e.futur);
   const avant = iAujourdhui < 0 ? evenements : evenements.slice(0, iAujourdhui);

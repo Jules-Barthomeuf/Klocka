@@ -1,6 +1,6 @@
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Loader2, MapPin, Pause, Play, RefreshCw, X } from "lucide-react";
+import { Building2, ChevronRight, Loader2, MapPin, Pause, Play, RefreshCw, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
@@ -108,6 +108,8 @@ export default function AgentIA() {
         {!cherche.klocka.length && !cherche.activite.length && <span className="text-[13px] text-ambre">Aucune commune à lire.</span>}
         <Link to={`${createPageUrl("Personnalisation")}#agent`} className="ml-1 text-[13px] text-ardoise underline decoration-trait underline-offset-4 hover:text-encre">Choisir les communes</Link>
       </div>
+
+      <Exploitants onOuvrirListe={ouvrirListe} />
 
       {/* Ses listes : il y range tout seul chaque commerce prêt. */}
       {data.listes.length > 0 && (
@@ -222,3 +224,68 @@ export default function AgentIA() {
     </div>
   );
 }
+
+/**
+ * Les propriétaires exploitants : les commerçants qui possèdent leurs murs.
+ * Une recherche Data-B sur les communes du mandataire remplit la liste
+ * « Propriétaires exploitants » ; l'avancement se lit commune par commune.
+ */
+function Exploitants({ onOuvrirListe }) {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["m-exploitants"],
+    queryFn: () => base44.request("GET", "/api/mandataire/exploitants"),
+    refetchInterval: (q) => (q.state.data?.etat?.en_cours ? 4000 : false),
+  });
+  const e = data?.etat || null;
+  const lancer = useMutation({
+    mutationFn: () => base44.request("POST", "/api/mandataire/exploitants/lancer"),
+    onSuccess: (r) => { queryClient.setQueryData(["m-exploitants"], { etat: r.etat }); if (!r.deja) toast.success("Recherche lancée", { description: "La liste se remplit commune par commune ; une notification vous préviendra." }); },
+    onError: (err) => toast.error(err?.message || "Impossible de lancer la recherche"),
+  });
+  // La liste se rafraîchit à mesure qu'elle se remplit.
+  const ajoutes = (e?.communes || []).reduce((n, c) => n + (c.ajoutes || 0), 0);
+  React.useEffect(() => { if (ajoutes) for (const k of [["m-listes"], ["m-agent"]]) queryClient.invalidateQueries({ queryKey: k }); }, [ajoutes, queryClient]);
+  return (
+    <section className="mt-8 rounded-[18px] border border-trait bg-surface-pleine px-6 py-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 max-w-[68ch]">
+          <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><Building2 className="h-4 w-4 text-menthe" />Propriétaires exploitants</p>
+          <p className="m-0 mt-1.5 text-[13.5px] leading-[1.55] text-ardoise">
+            Les commerçants qui possèdent leurs murs : celui qui décroche au commerce est le propriétaire. Data-B les trouve sur vos communes, et ceux qui ont un numéro remplissent la liste « Propriétaires exploitants ».
+          </p>
+        </div>
+        <div className="flex flex-none items-center gap-2">
+          {e?.liste_id && (
+            <button type="button" onClick={() => onOuvrirListe(e.liste_id)}
+              className="inline-flex h-10 items-center gap-1.5 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+              Voir la liste <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
+          <button type="button" onClick={() => lancer.mutate()} disabled={lancer.isPending || e?.en_cours}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-4 text-[13.5px] font-medium text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
+            {lancer.isPending || e?.en_cours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+            {e?.en_cours ? "Recherche en cours" : e?.fini_le ? "Relancer sur mes communes" : "Chercher sur mes communes"}
+          </button>
+        </div>
+      </div>
+      {e?.communes?.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-trait pt-4">
+          {e.communes.map((c) => (
+            <span key={c.nom} title={c.erreur || undefined}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] ${c.statut === "erreur" ? "border-alerte/40" : "border-trait"}`}>
+              {c.statut === "en_cours" ? <Loader2 className="h-3 w-3 animate-spin text-menthe" /> : <MapPin className={`h-3 w-3 ${c.statut === "lue" ? "text-menthe" : c.statut === "erreur" ? "text-alerte" : "text-brume"}`} />}
+              <span className="text-encre">{c.nom}</span>
+              <span className="tabular-nums text-brume">
+                {c.statut === "a_lire" ? "à lire" : c.statut === "erreur" ? "pas lue" : `${c.ajoutes} ajouté${c.ajoutes > 1 ? "s" : ""}${c.lus ? ` sur ${c.lus}` : ""}`}
+              </span>
+            </span>
+          ))}
+          {e.reportees > 0 && <span className="self-center text-[12.5px] text-brume">{e.reportees} autre{e.reportees > 1 ? "s" : ""} commune{e.reportees > 1 ? "s" : ""} au prochain passage</span>}
+        </div>
+      )}
+      {e?.fini_le && !e.en_cours && <p className="m-0 mt-3 text-[12.5px] text-brume">Dernière recherche {ilYa(e.fini_le)} : {ajoutes} commerçant{ajoutes > 1 ? "s" : ""} ajouté{ajoutes > 1 ? "s" : ""} à la liste.</p>}
+    </section>
+  );
+}
+

@@ -165,6 +165,8 @@ export function normaliserDoc(d) {
     enseigne: decoder(d.ENSEIGNE || '') || null,
     societe: decoder(d.NOM_3 || '') || null,
     metier_id: d.config_metiers_id ?? null,
+    ape: d.APET700 || null,
+    ape_libelle: d.APET700_LIB || null,
     adresse,
     code_postal: d.CODPOS || null,
     ville: villeM ? villeM[1] : null,

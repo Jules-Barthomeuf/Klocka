@@ -56,6 +56,9 @@ export function sansSecret(user) {
 const CHAMPS_PROTEGES = [
   'role', 'mot_de_passe', 'mot_de_passe_defini', 'email', 'id', 'invitation_jeton',
   'invitation_expire_le', 'acces', 'inscrit_le', 'inscription_via', 'promu_client_le', 'promu_par',
+  // La famille : qui voit le dossier de qui. Posé par l'équipe seule, sinon
+  // un client verrait le dossier de n'importe quelle adresse.
+  'est_compte_shadow', 'compte_maitre_email', 'comptes_lies',
 ];
 
 export function retirerChampsProteges(patch) {

@@ -336,7 +336,8 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
 
   // --- Bien -----------------------------------------------------------------
   const activite = activiteCourte(projet.activite_locataire || v('destination') || lot?.locataire_activite?.valeur, projet.nom_locataire);
-  const loyerActuel = Number(projet.bail_loyer_actuel) || Number(projet.loyer_annuel_ht) || Number(projet.sim_loyer_initial_ht) || 0;
+  // Le même loyer partout : celui du Simulateur d'abord, comme la page.
+  const loyerActuel = Number(projet.sim_loyer_initial_ht) || Number(projet.bail_loyer_actuel) || Number(projet.loyer_annuel_ht) || 0;
   const surface = Number(projet.sim_surface) || Number(projet.surface_m2) || 0;
   const texteSurface = [v('surface'), texte(lot?.surface_m2?.citation), texte(projet.surface_detail)].filter(Boolean).join(' · ');
   const bien = [

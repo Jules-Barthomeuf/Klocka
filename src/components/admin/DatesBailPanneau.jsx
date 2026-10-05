@@ -11,8 +11,7 @@ import { dureeJusque } from "@/components/projet/durees";
 
 export default function DatesBailPanneau({ formData, setFormData }) {
   const ecrire = (champ) => (e) => setFormData({ ...formData, [champ]: e.target.value });
-  // L'échéance est la même donnée que dans Locataire : un seul champ, deux
-  // endroits où le saisir.
+  // L'échéance ne se saisit qu'ici : la page Locataire la reprend.
   const fin = formData.bail_date_echeance || formData.echeance_bail || "";
   const restant = fin ? dureeJusque(fin, { court: true }) : null;
 
@@ -30,7 +29,7 @@ export default function DatesBailPanneau({ formData, setFormData }) {
           <FField label="Échéance" className="!border-0 !bg-transparent !p-0">
             <FInput type="date" value={fin} onChange={(e) => setFormData({ ...formData, echeance_bail: e.target.value, bail_date_echeance: e.target.value })} className="[color-scheme:dark]" />
           </FField>
-          <div className="mt-1.5 text-[11px] text-brume">{restant ? `${restant} à courir · ` : ""}la même date que dans Locataire</div>
+          <div className="mt-1.5 text-[11px] text-brume">{restant ? `${restant} à courir · ` : ""}la page Locataire la reprend</div>
         </div>
       </div>
     </div>

@@ -66,7 +66,8 @@ export function evenementsDuBien(project, friseLue = null, aujourdhui = new Date
   // Le bail : son début, ses échéances triennales, sa fin.
   const frise = friseDuProjet(project, friseLue);
   if (frise?.debut) {
-    ajouter("bail-debut", frise.debut, "Début du bail en cours");
+    // Un début pris sur l'arrivée du locataire est déjà sur la frise.
+    if (frise.debutVient !== "arrivee") ajouter("bail-debut", frise.debut, "Début du bail en cours");
     const debut = new Date(`${frise.debut}T12:00:00`);
     const fin = frise.fin ? new Date(`${frise.fin}T12:00:00`) : null;
     for (let n = 3; n < 30; n += 3) {

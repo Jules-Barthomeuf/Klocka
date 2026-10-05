@@ -25,7 +25,7 @@ import { direEnPrive } from './messages.js';
 export { reglages, villesDuJour };
 export { enregistrer as enregistrerReglages } from './reglages.js';
 export { agents, agentDe, trouver, verrouiller, liberer, integrer, importerDepuisMonday, majAgent, journal } from './carnet.js';
-export { analyserAppel, validerAppel, appelAValider, appels } from './appel.js';
+export { analyserAppel, validerAppel, raconterAppel, appelAValider, appels } from './appel.js';
 export { aEnvoyer, programmes, envoyerMails, ecarterMail, modifierMail, decider, RAISONS_NON } from './mails.js';
 
 const lireJson = (cle, d) => { try { return JSON.parse(Meta.get(cle) || 'null') ?? d; } catch { return d; } };

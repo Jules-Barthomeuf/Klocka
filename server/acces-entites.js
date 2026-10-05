@@ -79,22 +79,41 @@ export function verdictAcces(user, entity, { ecriture = false } = {}) {
  * l'admin ne s'écrit pas toujours comme celle du compte. Une valeur vide
  * n'appartient à personne — surtout pas au visiteur dont l'email est vide.
  */
-export const sienPar = (champ) => (user) => (rec) => {
-  const a = String(rec?.[champ] || '').trim().toLowerCase();
-  const b = String(user?.email || '').trim().toLowerCase();
-  return !!a && !!b && a === b;
+const norm = (e) => String(e || '').trim().toLowerCase();
+
+/**
+ * Les adresses dont ce compte voit le dossier : la sienne et, pour un membre
+ * d'une famille, celle du titulaire (server/famille.js). Le rattachement est
+ * posé par l'équipe seule : le client ne peut pas l'écrire (CHAMPS_PROTEGES).
+ */
+export const adressesDuDossier = (user) => {
+  const a = [norm(user?.email)];
+  if (user?.est_compte_shadow && user?.compte_maitre_email) a.push(norm(user.compte_maitre_email));
+  return [...new Set(a.filter(Boolean))];
+};
+
+export const sienPar = (champ) => (user) => {
+  const siennes = adressesDuDossier(user);
+  return (rec) => {
+    const a = norm(rec?.[champ]);
+    return !!a && siennes.includes(a);
+  };
 };
 
 /** Un non-admin ne voit que les projets où il figure, jamais les archivés. */
-export const projetVisiblePar = (user) => (p) =>
-  !p.archived &&
-  (p.admin_principal === user.email ||
-    // Plusieurs collaborateurs peuvent suivre un projet : le principal porte
-    // sa carte, les autres y ont les mêmes droits.
-    (Array.isArray(p.admins) && p.admins.includes(user.email)) ||
-    p.client_email === user.email ||
-    (Array.isArray(p.client_emails) && p.client_emails.includes(user.email)) ||
-    p.created_by === user.email);
+export const projetVisiblePar = (user) => {
+  const siennes = adressesDuDossier(user);
+  const sienne = (e) => !!e && siennes.includes(norm(e));
+  return (p) =>
+    !p.archived &&
+    (p.admin_principal === user.email ||
+      // Plusieurs collaborateurs peuvent suivre un projet : le principal porte
+      // sa carte, les autres y ont les mêmes droits.
+      (Array.isArray(p.admins) && p.admins.includes(user.email)) ||
+      sienne(p.client_email) ||
+      (Array.isArray(p.client_emails) && p.client_emails.some(sienne)) ||
+      p.created_by === user.email);
+};
 
 /**
  * Qui voit quoi, pour un compte non-admin. Une entité de ENTITES_CLIENT absente
@@ -109,7 +128,7 @@ export const VISIBILITE_CLIENT = {
   User: (user) => (u) => u.id === user.id,
   // Une remarque porte un échange de dossier : elle n'appartient qu'à l'équipe
   // et à celui qui l'a écrite.
-  Suggestion: sienPar('client_email'),
+  Suggestion: (user) => (rec) => !!user.email && norm(rec?.client_email) === norm(user.email),
   Strategy: sienPar('client_email'),
   // Une présentation bancaire porte le plan de financement d'un client : le
   // front la filtrait déjà par adresse, le serveur ne le vérifiait pas.

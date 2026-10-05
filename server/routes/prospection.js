@@ -81,6 +81,17 @@ export function monterProspection(app) {
     ok(res, r);
   }));
 
+  // L'appel raconté en trente secondes : noté sur la fiche et dans Monday d'un coup.
+  app.post('/api/prospection/agents/:id/raconter', upload.single('audio'), wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const audio = req.file ? fs.readFileSync(req.file.path) : null;
+    if (req.file) fs.promises.unlink(req.file.path).catch(() => {});
+    const r = await (await P()).raconterAppel({ agent_id: req.params.id, audio, par: user.email, duree_s: Number(req.body?.duree_s) || null });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+
   app.post('/api/prospection/appels/:id/valider', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
@@ -334,6 +345,38 @@ export function monterProspection(app) {
     const user = admin(req, res);
     if (!user) return;
     const r = (await IA()).lancer(req.body?.ville, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // Monday (« Prospection Agent Immo ») : les agences cochées, ou la note dite après un appel.
+  const MC = () => import('../prospection/monday-contacts.js');
+  app.post('/api/prospection/agent-ia/monday', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String).slice(0, 200) : [];
+    if (!ids.length) return res.status(400).json({ error: 'Cochez au moins une agence.' });
+    const r = await (await MC()).agencesVersMonday(ids, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/monday/note', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MC()).noteVersMonday(String(req.body?.texte || '').slice(0, 3000), user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // Le mail d'une agence : son brouillon (nos critères), puis l'envoi d'un clic.
+  app.get('/api/prospection/agent-ia/agences/:id/mail', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = await (await MC()).brouillon(req.params.id, { agent: req.query.agent || null });
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/prospection/agent-ia/mail', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MC()).envoyerMail(req.body || {}, user);
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));

@@ -351,6 +351,21 @@ export function monterMandataire(app) {
     if (!user) return;
     ok(res, (await AG()).basculerAgent(user, !!req.body?.actif));
   }));
+  // Les propriétaires exploitants : une recherche Data-B sur les communes du
+  // mandataire, qui remplit la liste « Propriétaires exploitants ».
+  app.get('/api/mandataire/exploitants', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const { etatExploitants } = await import('../mandataire-exploitants.js');
+    ok(res, { etat: etatExploitants(user.email) });
+  }));
+  app.post('/api/mandataire/exploitants/lancer', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await import('../mandataire-exploitants.js')).lancerExploitants(user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   // « Chercher maintenant » : un tour tout de suite, sans attendre les cinq minutes.
   app.post('/api/mandataire/agent/tour', wrap(async (req, res) => {
     const user = mandataire(req, res);

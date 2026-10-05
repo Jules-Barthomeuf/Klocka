@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Landmark, Loader2, Download, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@/components/providers/UserProvider";
+import { adresseDuDossier } from "@/lib/famille";
 import SlideViewer from "@/components/banque/SlideViewer";
 import SlideRenderer from "@/components/banque/SlideRenderer";
 
@@ -14,7 +15,7 @@ export default function Banque() {
   const { data: presentations = [], isLoading } = useQuery({
     queryKey: ["my-presentations-bancaires", user?.email],
     queryFn: async () => {
-      const all = await base44.entities.PresentationBancaire.filter({ client_email: user.email, statut: "publie" }, "-created_date");
+      const all = await base44.entities.PresentationBancaire.filter({ client_email: adresseDuDossier(user), statut: "publie" }, "-created_date");
       return all;
     },
     enabled: !!user?.email,

@@ -5,6 +5,7 @@
 
 import { Records } from '../db.js';
 import { currentUser, ok, wrap } from '../contexte.js';
+import { adressesDuDossier } from '../acces-entites.js';
 
 /** Monte les routes « equimmox / figaro / marche / projects / projets » sur l'application. */
 export function monterMarche(app) {
@@ -19,10 +20,11 @@ export function monterMarche(app) {
     if (!user) return res.status(401).json({ error: 'Not authenticated' });
     const projet = Records.get('Project', req.params.id);
     if (!projet) return res.status(404).json({ error: 'Projet introuvable' });
-    const email = String(user.email || '').trim().toLowerCase();
+    // Sa propre adresse, et celle du titulaire pour un membre d'une famille.
+    const siennes = adressesDuDossier(user);
     const sien = (e) => {
       const a = String(e || '').trim().toLowerCase();
-      return !!a && !!email && a === email;
+      return !!a && siennes.includes(a);
     };
     const autorise =
       user.role === 'admin' || (projet.client_emails || []).some(sien) || sien(projet.client_email);

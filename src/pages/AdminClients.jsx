@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import InviterClient, { BoutonLienInvitation } from "@/components/admin/InviterClient";
+import FamillesClients from "@/components/admin/FamillesClients";
 import { DialogueAssignerProjets } from "@/components/admin/AssignationProjets";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,8 @@ function correspond(user, recherche) {
 export default function AdminClients() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  // Utilisateurs, ou Familles : plusieurs comptes sur un même dossier.
+  const [onglet, setOnglet] = useState("utilisateurs");
   const [etapeFilter, setEtapeFilter] = useState("all");
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -431,36 +434,20 @@ export default function AdminClients() {
     setLinkDialogOpen(true);
   };
 
+  // Le rattachement passe par le serveur : ces champs ne s'écrivent plus par
+  // le CRUD (un client pourrait s'y rattacher au dossier de n'importe qui).
   const handleLinkAccounts = async () => {
     if (!selectedUserForLink || !masterEmail) return;
-
-    // Trouver le compte maître
-    const masterUser = users.find((u) => u.email === masterEmail);
-    if (!masterUser) {
-      alert("Compte maître non trouvé");
+    const titulaire = users.find((u) => u.email === masterEmail);
+    if (!titulaire) return;
+    try {
+      await base44.request("POST", "/api/admin/familles/lier", { body: { titulaire_id: titulaire.id, membre_ids: [selectedUserForLink.id] } });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      toast.success(`${selectedUserForLink.full_name || selectedUserForLink.email} voit le dossier de ${titulaire.full_name || titulaire.email}`);
+    } catch (e) {
+      toast.error(e?.message || "Rattachement impossible");
       return;
     }
-
-    // Mettre à jour le compte esclave
-    await updateUserMutation.mutateAsync({
-      userId: selectedUserForLink.id,
-      data: {
-        compte_maitre_email: masterEmail,
-        est_compte_shadow: true
-      }
-    });
-
-    // Mettre à jour le compte maître avec la liste des comptes liés
-    const currentLinked = masterUser.comptes_lies || [];
-    if (!currentLinked.includes(selectedUserForLink.email)) {
-      await updateUserMutation.mutateAsync({
-        userId: masterUser.id,
-        data: {
-          comptes_lies: [...currentLinked, selectedUserForLink.email]
-        }
-      });
-    }
-
     setLinkDialogOpen(false);
     setSelectedUserForLink(null);
     setMasterEmail("");
@@ -468,28 +455,12 @@ export default function AdminClients() {
 
   const handleUnlinkAccount = async (user) => {
     if (!user.compte_maitre_email) return;
-
-    const masterUser = users.find((u) => u.email === user.compte_maitre_email);
-
-    // Retirer du compte maître
-    if (masterUser) {
-      const currentLinked = masterUser.comptes_lies || [];
-      await updateUserMutation.mutateAsync({
-        userId: masterUser.id,
-        data: {
-          comptes_lies: currentLinked.filter((e) => e !== user.email)
-        }
-      });
+    try {
+      await base44.request("POST", "/api/admin/familles/delier", { body: { user_id: user.id } });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+    } catch (e) {
+      toast.error(e?.message || "Action impossible");
     }
-
-    // Mettre à jour le compte esclave
-    await updateUserMutation.mutateAsync({
-      userId: user.id,
-      data: {
-        compte_maitre_email: null,
-        est_compte_shadow: false
-      }
-    });
   };
 
   if (isLoading) {
@@ -524,6 +495,17 @@ export default function AdminClients() {
         </div>
       </div>
 
+      <div className="mb-8 flex">
+        <div className="flex gap-1 rounded-full bg-rail-actif p-1">
+          {[["utilisateurs", "Utilisateurs"], ["familles", "Familles"]].map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setOnglet(k)}
+              className={`rounded-full px-3 py-1 text-[12.5px] ${onglet === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+              style={onglet === k ? undefined : { background: "transparent" }}>{mot}</button>
+          ))}
+        </div>
+      </div>
+
+      {onglet === "familles" ? <FamillesClients users={users} /> : <>
       {/* Bandeau de chiffres */}
       <div className="flex flex-wrap border-t border-encre/[0.35] mb-8 max-md:mb-6">
         {[
@@ -691,8 +673,8 @@ export default function AdminClients() {
                       <span className="text-encre text-[15px] truncate">{user.full_name || "Sans nom"}</span>
                       {isAdmin && <span className="text-[11px] tracking-[0.16em] uppercase text-menthe border border-menthe/40 rounded-full px-2 py-px">Admin</span>}
                       {user.role === 'mandataire' && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-ardoise/40 rounded-full px-2 py-px">Mandataire</span>}
-                      {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">Lié</span>}
-                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">{user.comptes_lies.length} lié{user.comptes_lies.length > 1 ? "s" : ""}</span>}
+                      {user.est_compte_shadow && user.compte_maitre_email && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px" title={`Voit le dossier de ${user.compte_maitre_email}`}>Famille</span>}
+                      {user.comptes_lies && user.comptes_lies.length > 0 && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise border border-encre/[0.18] rounded-full px-2 py-px">Famille · {user.comptes_lies.length + 1}</span>}
                       {user.profil_investisseur && <span className="text-[11px] tracking-[0.16em] uppercase text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
                     </div>
                     <p className="text-ardoise text-xs truncate m-0 mt-0.5">{user.email}</p>
@@ -806,12 +788,12 @@ export default function AdminClients() {
                       {user.est_compte_shadow ? (
                         <button onClick={() => handleUnlinkAccount(user)}
                           className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-encre transition-colors">
-                          <Unlink className="w-3.5 h-3.5" /> Délier du compte maître
+                          <Unlink className="w-3.5 h-3.5" /> Retirer de la famille
                         </button>
                       ) : (
                         <button onClick={() => handleOpenLinkDialog(user)}
                           className="inline-flex items-center gap-2 text-[11px] tracking-[0.14em] uppercase text-ardoise hover:text-encre transition-colors">
-                          <Link className="w-3.5 h-3.5" /> Lier à un compte maître
+                          <Link className="w-3.5 h-3.5" /> Rattacher à une famille
                         </button>
                       )}
                       {!isAdmin && user.role !== 'mandataire' && (
@@ -851,6 +833,7 @@ export default function AdminClients() {
           </div>
         )}
       </div>
+      </>}
       </div>
 
       {/* Dialog de confirmation de suppression */}
@@ -1036,18 +1019,17 @@ export default function AdminClients() {
         <DialogContent className="bg-fond border-trait">
           <DialogHeader>
             <DialogTitle className="text-encre flex items-center gap-2">
-              <Link className="w-5 h-5 text-blue-500" />
-              Lier les comptes
+              <Link className="w-5 h-5 text-menthe" />
+              Rattacher à une famille
             </DialogTitle>
             <DialogDescription className="text-ardoise">
-              Définissez {selectedUserForLink?.full_name || selectedUserForLink?.email} comme compte esclave d'un compte maître.
-              Le compte esclave verra tous les projets et données du compte maître.
+              {selectedUserForLink?.full_name || selectedUserForLink?.email} garde son adresse et son mot de passe, et voit le dossier du titulaire choisi.
             </DialogDescription>
           </DialogHeader>
 
           <div className="my-4 space-y-4">
             <div>
-              <Label className="text-ardoise text-sm mb-2 block">Compte esclave</Label>
+              <Label className="text-ardoise text-sm mb-2 block">Compte rattaché</Label>
               <div className="p-3 bg-surface rounded-lg border border-bord">
                 <p className="text-encre">{selectedUserForLink?.full_name || "Sans nom"}</p>
                 <p className="text-ardoise text-sm">{selectedUserForLink?.email}</p>
@@ -1055,17 +1037,17 @@ export default function AdminClients() {
             </div>
 
             <div>
-              <Label className="text-ardoise text-sm mb-2 block">Compte maître (principal)</Label>
+              <Label className="text-ardoise text-sm mb-2 block">Titulaire (son dossier est celui que tous voient)</Label>
               <Select value={masterEmail} onValueChange={setMasterEmail}>
                 <SelectTrigger className="bg-fond border-bord text-encre">
-                  <SelectValue placeholder="Sélectionner le compte maître" />
+                  <SelectValue placeholder="Choisir le titulaire" />
                 </SelectTrigger>
                 <SelectContent>
                   {users.
-                  filter((u) => u.email !== selectedUserForLink?.email && !u.est_compte_shadow).
+                  filter((u) => u.email !== selectedUserForLink?.email && !u.est_compte_shadow && u.role !== 'admin' && u.role !== 'mandataire').
                   map((u) =>
                   <SelectItem key={u.id} value={u.email}>
-                        {u.full_name || "Sans nom"} ({u.email}) {u.role === 'admin' ? '(Admin)' : ''}
+                        {u.full_name || "Sans nom"} ({u.email})
                       </SelectItem>
                   )}
                 </SelectContent>
@@ -1090,7 +1072,7 @@ export default function AdminClients() {
               className="bg-menthe text-sur-menthe hover:bg-menthe-survol border-0 rounded-full"
               disabled={!masterEmail}>
 
-              Lier les comptes
+              Rattacher
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1100,7 +1082,7 @@ export default function AdminClients() {
       <Dialog open={familleNameDialogOpen} onOpenChange={setFamilleNameDialogOpen}>
         <DialogContent className="bg-fond border-trait">
           <DialogHeader>
-            <DialogTitle className="text-encre">Créer une famille</DialogTitle>
+            <DialogTitle className="text-encre">Comparer ces profils</DialogTitle>
             <DialogDescription className="text-ardoise">
               Donnez un nom à ce groupe de {selectedUsersForCompare.length} investisseurs.
             </DialogDescription>

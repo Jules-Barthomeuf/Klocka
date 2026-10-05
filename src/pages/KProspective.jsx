@@ -291,7 +291,9 @@ export default function KProspective() {
   const [voletOuvert, setVoletOuvert] = useState(false);
   const [ouverte, setOuverte] = useState(null);
 
-  const { data } = useQuery({ queryKey: ["kprospective"], queryFn: () => base44.request("GET", "/api/kprospective"), enabled: user?.role === "admin" });
+  // L'équipe, et les mandataires depuis l'onglet K Prospective de leur Prospection.
+  const autorise = user?.role === "admin" || user?.role === "mandataire";
+  const { data } = useQuery({ queryKey: ["kprospective"], queryFn: () => base44.request("GET", "/api/kprospective"), enabled: autorise });
   const prospections = data?.prospections || [];
   const groupes = data?.criteres || [];
   const metiers = data?.metiers || [];
@@ -339,7 +341,7 @@ export default function KProspective() {
     setOuverte(id);
   }, [search]);
 
-  if (!user || user.role !== "admin") return null;
+  if (!autorise) return null;
 
   if (ouverte && p) {
     if (p.etat === "en_cours") return <div className="min-h-screen pt-2"><Chargement prospection={p} /></div>;

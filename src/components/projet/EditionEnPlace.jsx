@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { EyeOff } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Édition en place (éditeur admin) : un chiffre affiché devient un champ au
@@ -7,9 +8,38 @@ import React, { useState } from "react";
 // ---------------------------------------------------------------------------
 export const EditionContext = React.createContext(null);
 
-// Lit une valeur par chemin pointé : « bail_admin_fields.2.value ».
+// Lit une valeur par chemin pointé : « bail_admin_fields.2.value ». Un
+// tableau de clés sert quand une clé porte elle-même un point
+// (« cases_forcees », rangées sous « bail.loyer_actuel »).
+export const clesDuChemin = (chemin) => (Array.isArray(chemin) ? chemin : String(chemin).split("."));
 const lireChemin = (objet, chemin) =>
-  String(chemin).split(".").reduce((acc, cle) => (acc == null ? acc : acc[cle]), objet);
+  clesDuChemin(chemin).reduce((acc, cle) => (acc == null ? acc : acc[cle]), objet);
+const nomDuChemin = (chemin) => clesDuChemin(chemin).join(".");
+
+// ---------------------------------------------------------------------------
+// Valeurs forcées : un chiffre que la page calcule ou lit ailleurs (prix de
+// revient, rendement, marché autour) se corrige au clic. La correction vit
+// dans le projet (valeurs_forcees), l'emporte sur le calcul et sur la
+// source, et se répercute sur ce qui en découle. Vider le champ rend la
+// valeur calculée.
+// ---------------------------------------------------------------------------
+export function forcee(project, cle) {
+  const v = project?.valeurs_forcees?.[cle];
+  return v == null || String(v).trim() === "" ? null : String(v);
+}
+
+/** Le nombre d'une valeur forcée : « 6 222 » ou « 3,5 » ; null sinon. */
+export function nombreForce(project, cle) {
+  const v = forcee(project, cle);
+  if (v == null) return null;
+  const n = Number(v.replace(/[\s\u00a0\u202f€%]/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Une valeur affichée qui se force au clic ; `children` est ce qu'on affiche. */
+export function ValeurForcee({ cle, children, type = "number" }) {
+  return <ValeurEditable champ={`valeurs_forcees.${cle}`} type={type} titre="Modifier (vide : valeur calculée)">{children}</ValeurEditable>;
+}
 
 export function useEdition() {
   return React.useContext(EditionContext);
@@ -40,7 +70,53 @@ export function BoutonMasquer({ champ, titre = "Supprimer de la page" }) {
   );
 }
 
-export function ValeurEditable({ champ, children, type = "number" }) {
+// ---------------------------------------------------------------------------
+// Blocs masquables : chaque carte de la page se retire au survol, en
+// édition. Masquée, elle disparaît pour le client ; dans l'éditeur, elle
+// reste en pointillé, le temps de la réafficher. La liste vit dans
+// champs_masques, sous « bloc:<id> ».
+// ---------------------------------------------------------------------------
+export const cleBloc = (id) => `bloc:${id}`;
+
+export function blocMasque(edition, id) {
+  return estMasque(edition, cleBloc(id));
+}
+
+export function Bloc({ id, titre, className = "", children }) {
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  const masque = blocMasque(edition, id);
+  if (!children) return null;
+  if (masque && !enEdition) return null;
+  const basculer = (e) => {
+    e.stopPropagation();
+    const liste = edition.masques || [];
+    edition.onChamp("champs_masques", masque ? liste.filter((c) => c !== cleBloc(id)) : [...liste, cleBloc(id)], true);
+  };
+  if (masque) {
+    return (
+      <div className={`flex min-h-[52px] items-center justify-between gap-3 rounded-[16px] border border-dashed border-bord-doux px-5 py-3 ${className}`}>
+        <span className="min-w-0 truncate text-[13px] text-ardoise">{titre} · masqué pour le client</span>
+        <button type="button" onClick={basculer}
+          className="flex-none rounded-full border border-trait bg-surface-pleine px-3 py-1 text-[12.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre">
+          Afficher
+        </button>
+      </div>
+    );
+  }
+  if (!enEdition) return className ? <div className={className}>{children}</div> : children;
+  return (
+    <div className={`group/bloc relative ${className}`}>
+      {children}
+      <button type="button" onClick={basculer} aria-label={`Masquer ${titre}`} title={`Masquer « ${titre} » pour le client`}
+        className="absolute right-3 top-3 z-20 hidden h-7 items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-2.5 text-[12px] text-ardoise shadow-sm transition-colors hover:border-bord-vif hover:text-encre group-hover/bloc:inline-flex">
+        <EyeOff className="h-3.5 w-3.5" /> Masquer
+      </button>
+    </div>
+  );
+}
+
+export function ValeurEditable({ champ, children, type = "number", titre = null }) {
   const edition = React.useContext(EditionContext);
   const [ouvert, setOuvert] = useState(false);
   const [brouillon, setBrouillon] = useState("");
@@ -85,7 +161,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
   return (
     <button
       type="button"
-       aria-label={`Modifier — ${champ}`} title={`Modifier — ${champ}`}
+      aria-label={titre || `Modifier ${nomDuChemin(champ)}`} title={titre || "Modifier"}
       onClick={(e) => {
         e.stopPropagation();
         setBrouillon(valeurInitiale());
@@ -99,7 +175,7 @@ export function ValeurEditable({ champ, children, type = "number" }) {
 }
 
 // Bloc de texte libre éditable sur place (descriptions, champs longs).
-export function TexteEditable({ champ, children, className = "" }) {
+export function TexteEditable({ champ, children, className = "", initial = "", masquable = true }) {
   const edition = React.useContext(EditionContext);
   const [ouvert, setOuvert] = useState(false);
   const [brouillon, setBrouillon] = useState("");
@@ -128,16 +204,16 @@ export function TexteEditable({ champ, children, className = "" }) {
   return (
     <button
       type="button"
-       aria-label={`Modifier — ${champ}`} title={`Modifier — ${champ}`}
+      aria-label={`Modifier ${nomDuChemin(champ)}`} title="Modifier"
       onClick={(e) => {
         e.stopPropagation();
-        setBrouillon(String(lireChemin(edition.valeurs, champ) ?? ""));
+        setBrouillon(String(lireChemin(edition.valeurs, champ) || initial || ""));
         setOuvert(true);
       }}
       className={`block w-full text-left text-inherit font-inherit bg-transparent border-0 p-0 cursor-text rounded-[3px] hover:bg-menthe/[0.10] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors ${className}`}
     >
       {children}
-      <span className="block text-right"><BoutonMasquer champ={champ} titre="Supprimer ce bloc" /></span>
+      {masquable && <span className="block text-right"><BoutonMasquer champ={champ} titre="Supprimer ce bloc" /></span>}
     </button>
   );
 }

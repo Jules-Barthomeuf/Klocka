@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { EditionContext, ValeurEditable, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer } from "./EditionEnPlace";
+import { adresseAChercher } from "@/lib/adresse-projet";
+import { EditionContext, ValeurEditable, ValeurForcee, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer, Bloc, nombreForce } from "./EditionEnPlace";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -121,7 +122,9 @@ function NotesBlock({ notes }) {
 // documents_projet), sans hero, sans barre d'onglets ni rail IA.
 // `modeEdition` + `onChamp` : éditeur admin — les chiffres deviennent des
 // champs au clic, et le hero comme la synthèse financière sont masqués.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null }) {
+// `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
+// l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -132,7 +135,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const [indexPhoto, setIndexPhoto] = useState(0);
   const photoMontree = photosVivantes.length ? photosVivantes[indexPhoto % photosVivantes.length] : null;
   const rueDisponible = !!(project.adresse_complete || (project.latitude && project.longitude));
-  const [streetView, setStreetView] = useState(false);
+  // Le hero montre la photo, ou l'une des deux vues : la carte Google, ou Street View.
+  const [vue, setVue] = useState(null); // null | "maps" | "street"
+  const streetView = vue === "street";
+  const vueMaps = vue === "maps";
+  const basculerVue = (v) => setVue((x) => (x === v ? null : v));
   // La pièce ouverte à droite quand on clique une case.
   const [piece, setPiece] = useState(null);
   const cases = useCasesProjet(project, isPublic);
@@ -170,29 +177,34 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
   const totalFraisKlocka = feesKlocka + incentiveKlocka;
   const fraisDivers = (project.sim_frais_dossier_bancaire || 0) + (project.sim_cout_creation_societe || 0) + (project.sim_frais_courtage || 0);
 
-  const prixRevientCalcule = prixBienNegocie > 0
+  // Une valeur forcée dans l'éditeur l'emporte sur le calcul, et se
+  // répercute sur ce qui en découle (rendement, prix au m²).
+  const prixRevientCalcule = nombreForce(project, "prix_revient") ?? (prixBienNegocie > 0
     ? prixBienNegocie + droitsEnregistrement + totalFraisKlocka + fraisDivers + (commissionAgentInclusFAI ? 0 : honorairesCA)
-    : project.sim_prix_revient && project.sim_prix_revient > 0 ? project.sim_prix_revient : project.prix_acquisition || 0;
+    : project.sim_prix_revient && project.sim_prix_revient > 0 ? project.sim_prix_revient : project.prix_acquisition || 0);
 
   const loyerAnnuel = project.sim_loyer_initial_ht || project.loyer_annuel_ht || 0;
 
-  const rendementLocatifNetCalcule = prixRevientCalcule > 0 && loyerAnnuel > 0
+  const rendementLocatifNetCalcule = nombreForce(project, "rendement_net") ?? (prixRevientCalcule > 0 && loyerAnnuel > 0
     ? (loyerAnnuel / prixRevientCalcule) * 100
-    : project.sim_rendement_locatif_global_net || 0;
+    : project.sim_rendement_locatif_global_net || 0);
 
   // Clé Embed API extraite en variable d'environnement (VITE_GOOGLE_MAPS_API_KEY).
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+  // L'adresse d'abord, avec la ville du projet : les coordonnées enregistrées
+  // sont parfois le centre de la commune (l'Hôtel de Ville au lieu du local).
+  const adresseCarte = adresseAChercher(project);
   const mapUrl = !mapsKey ? null :
+    adresseCarte ?
+    `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${encodeURIComponent(adresseCarte)}&zoom=15` :
     project.latitude && project.longitude ?
     `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${project.latitude},${project.longitude}&zoom=15` :
-    project.adresse_complete ?
-    `https://www.google.com/maps/embed/v1/place?key=${mapsKey}&q=${encodeURIComponent(project.adresse_complete)}&zoom=15` :
     null;
 
-  const googleMapsLink = project.latitude && project.longitude ?
+  const googleMapsLink = adresseCarte ?
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresseCarte)}` :
+    project.latitude && project.longitude ?
     `https://www.google.com/maps?q=${project.latitude},${project.longitude}` :
-    project.adresse_complete ?
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(project.adresse_complete)}` :
     null;
 
   // Valeurs dérivées consommées par les onglets éditoriaux
@@ -319,6 +331,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       <div className="relative flex min-h-[440px] flex-col gap-8 overflow-hidden rounded-[18px] bg-relief pt-5 pb-6 pl-10 pr-6 max-md:px-4 max-md:pb-4">
         {streetView ? (
           <StreetViewRue project={project} />
+        ) : vueMaps && mapUrl ? (
+          // Toute la carte, jusqu'en haut : les boutons flottent dessus, à droite,
+          // et le retour aux projets s'efface pour laisser la fiche du lieu lisible.
+          <iframe src={mapUrl} className="absolute inset-0 h-full w-full" style={{ border: 0 }} loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Carte Google du projet" allowFullScreen />
         ) : photoMontree ? (
           <img
             key={photoMontree}
@@ -333,13 +349,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         ) : (
           <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(135deg, rgb(var(--k-encre-rgb) / .05) 0 12px, rgb(var(--k-encre-rgb) / .02) 12px 24px)" }} />
         )}
-        {/* En Street View, ni voile ni habillage : le panorama se manipule. */}
-        {!streetView && (
+        {/* En Street View comme sur la carte, ni voile ni habillage : la vue se manipule. */}
+        {!vue && (
           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%)" }} />
         )}
 
         <div className="pointer-events-none relative -ml-4 flex items-center justify-between gap-3 max-md:ml-0 [&_button]:pointer-events-auto">
-          {!modeEdition && !isPublic ? (
+          {!modeEdition && !isPublic && !vueMaps ? (
             <button
               onClick={() => navigate(createPageUrl(isAdmin && !showAsClient ? "AdminProjets" : "MesProjets"))}
               className="k-verre inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px]"
@@ -348,13 +364,21 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             </button>
           ) : <span />}
           <div className="flex gap-2 items-center">
+            {modeEdition && onPhotos && (
+              <button onClick={onPhotos} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">Photos</button>
+            )}
+            {mapUrl && (
+              <button onClick={() => basculerVue("maps")} aria-pressed={vueMaps} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
+                {vueMaps ? "Fermer la carte" : "Vue Maps"}
+              </button>
+            )}
             {mapsKey && rueDisponible && (
-              <button onClick={() => setStreetView((v) => !v)} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
+              <button onClick={() => basculerVue("street")} aria-pressed={streetView} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">
                 {streetView ? "Fermer Street View" : "Street View"}
               </button>
             )}
             {/* Le compteur fait avancer la photo du hero, à la main. */}
-            {!streetView && photosVivantes.length > 1 && (
+            {!vue && photosVivantes.length > 1 && (
               <button
                 onClick={() => setIndexPhoto((i) => (i + 1) % photosVivantes.length)}
                 aria-label="Photo suivante"
@@ -370,18 +394,30 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
         {/* Habillage masqué en Street View pour laisser le panorama réactif :
             le titre à gauche, les deux chiffres à droite, à même la photo. */}
-        <div className={`k-sur-photo pointer-events-none relative mt-auto flex flex-wrap items-end justify-between gap-x-10 gap-y-5 pb-2 pr-4 max-md:pr-0 ${streetView ? "hidden" : ""}`} style={{ color: "white" }}>
-          <h1 className="m-0 flex-[1_1_360px] min-w-0 max-w-[760px] text-[40px] max-md:text-[28px] font-medium leading-[1.1] tracking-[-0.02em]" style={{ textWrap: "pretty", color: "white" }}>{project.titre}</h1>
+        <div className={`k-sur-photo pointer-events-none relative mt-auto flex flex-wrap items-end justify-between gap-x-10 gap-y-5 pb-2 pr-4 max-md:pr-0 [&_button]:pointer-events-auto [&_input]:pointer-events-auto ${vue ? "hidden" : ""}`} style={{ color: "white" }}>
+          <div className="flex-[1_1_360px] min-w-0 max-w-[760px]">
+            <h1 className="m-0 text-[40px] max-md:text-[28px] font-medium leading-[1.1] tracking-[-0.02em]" style={{ textWrap: "pretty", color: "white" }}>
+              <ValeurEditable champ="titre" type="text">{project.titre}</ValeurEditable>
+            </h1>
+            {/* L'adresse, modifiable sur place dans l'éditeur (la carte et le secteur en partent). */}
+            {modeEdition && onChamp && (
+              <p className="m-0 mt-2 text-[15px] text-white/80">
+                <ValeurEditable champ="adresse_complete" type="text" titre="Adresse du bien">{project.adresse_complete || "Ajouter l'adresse du bien"}</ValeurEditable>
+              </p>
+            )}
+          </div>
+          <Bloc id="hero-chiffres" titre="Prix de revient et rendement">
           <div className="flex gap-12 max-md:gap-8" style={{ fontVariantNumeric: "tabular-nums" }}>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] whitespace-nowrap">{formatCurrency(prixRevientCalcule)}</span>
+              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] whitespace-nowrap"><ValeurForcee cle="prix_revient">{formatCurrency(prixRevientCalcule)}</ValeurForcee></span>
               <span className="text-[13px] text-white/75">Prix de revient</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] text-menthe whitespace-nowrap">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : "—"}</span>
+              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] text-menthe whitespace-nowrap"><ValeurForcee cle="rendement_net">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : "—"}</ValeurForcee></span>
               <span className="text-[13px] text-white/75">Rendement net</span>
             </div>
           </div>
+          </Bloc>
         </div>
       </div>
       </div>
@@ -428,7 +464,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
               <MarcheProjet project={project} isPublic={isPublic} prixM2Revient={prixM2Revient} loyerM2={loyerM2} />
 
-              <NotesBlock notes={[...(project.notes_secteur || []), ...(project.notes_marche || [])]} />
+              <Bloc id="marche-notes" titre="Notes du marché"><NotesBlock notes={[...(project.notes_secteur || []), ...(project.notes_marche || [])]} /></Bloc>
 
               {!project.ville_habitants_agglo && !project.ville_revenu_median && !project.adresse_complete
                 && !project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne
@@ -452,14 +488,14 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Locataire"
               />
 
-              <LocataireProjet project={project} />
+              <LocataireProjet project={project} friseLue={cases?.frise} />
 
-              <div className="mt-5">
+              <Bloc id="locataire-liens" titre="Liens du locataire" className="mt-5">
                 <LocataireLiensSociaux liens={project.liens_locataire} />
-              </div>
+              </Bloc>
 
               {project.bilans_locataire && project.bilans_locataire.length > 0 && (
-                <DataTable
+                <Bloc id="locataire-bilans" titre="Santé financière"><DataTable
                   label="Santé financière — comptes déposés"
                   head={['Exercice', 'Document', '']}
                   align={['left', 'left', 'right']}
@@ -468,10 +504,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-craie hover:text-menthe-clair transition-colors">{bilan.nom}</a> },
                     { value: <a href={bilan.url} target="_blank" rel="noopener noreferrer" className="text-menthe-clair text-[12.5px] hover:text-encre transition-colors">Télécharger</a> },
                   ])}
-                />
+                /></Bloc>
               )}
 
-              <NotesBlock notes={project.notes_locataire} />
+              <Bloc id="locataire-notes" titre="Notes du locataire"><NotesBlock notes={project.notes_locataire} /></Bloc>
 
               {!project.nom_locataire && !project.activite_locataire && loyerAnnuel <= 0 && !project.echeance_bail
                 && (!project.notes_locataire || project.notes_locataire.length === 0) && <EmptyTab />}
@@ -491,7 +527,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 title="Copropriété"
               />
 
-              {(modeEdition || (cases?.copropriete || []).some((c) => c.valeur || project?.cases_forcees?.[`copropriete.${c.id}`]?.valeur)) && (
+              {(modeEdition || (cases?.copropriete || []).some((c) => c.valeur)
+                || Object.entries(project?.cases_forcees || {}).some(([cle, f]) => cle.startsWith("copropriete.") && f?.valeur)) && (
+              <Bloc id="copro-pv" titre="PV d'assemblée générale">
               <Carte className="mb-5 p-7 max-md:p-5">
                 <SectionLabel>PV d'assemblée générale</SectionLabel>
                 <TableauAG cases={cases?.copropriete} project={project} />
@@ -500,8 +538,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                   <BandesCases zone="copropriete" cases={(cases?.copropriete || []).filter((c) => c.id === "impayes_copro")} project={project} />
                 </div>
               </Carte>
+              </Bloc>
               )}
 
+              <Bloc id="copro-chiffres" titre="Chiffres de la copropriété">
               <KpiStrip items={[
                 project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot', champ: 'quote_part_lot' },
                 project.charges_copropriete > 0 && { value: `${fmtNum(project.charges_copropriete)} €`, label: 'Charges annuelles', champ: 'charges_copropriete' },
@@ -509,11 +549,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                 project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-menthe', champ: 'taxe_fonciere_an' },
                 project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
               ]} />
+              </Bloc>
 
               {(project.activites_autorisees || project.activites_interdites) && (
                 <div className="grid md:grid-cols-2 gap-5 mb-5">
                   {project.activites_autorisees && (
-                    <Carte className="p-7 max-md:p-5">
+                    <Bloc id="copro-autorisees" titre="Activités autorisées">
+                    <Carte className="p-7 max-md:p-5 h-full">
                       <SectionLabel>Activités autorisées</SectionLabel>
                       <TexteEditable champ="activites_autorisees">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
@@ -523,9 +565,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       </ul>
                       </TexteEditable>
                     </Carte>
+                    </Bloc>
                   )}
                   {project.activites_interdites && (
-                    <Carte className="p-7 max-md:p-5">
+                    <Bloc id="copro-interdites" titre="Activités interdites">
+                    <Carte className="p-7 max-md:p-5 h-full">
                       <SectionLabel>Activités interdites</SectionLabel>
                       <TexteEditable champ="activites_interdites">
                       <ul className="space-y-2.5 list-none pl-0 mb-0">
@@ -535,36 +579,43 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                       </ul>
                       </TexteEditable>
                     </Carte>
+                    </Bloc>
                   )}
                 </div>
               )}
 
               {project.synthese_assemblee_generale && project.synthese_assemblee_generale.trim() && (
+                <Bloc id="copro-synthese" titre="Synthèse de l'assemblée générale">
                 <Carte className="mb-5 p-7 max-md:p-5">
                   <SectionLabel>Synthèse de l'assemblée générale</SectionLabel>
                   <TexteEditable champ="synthese_assemblee_generale"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.synthese_assemblee_generale}</p></TexteEditable>
                 </Carte>
+                </Bloc>
               )}
 
               {(project.resolutions_votees || project.resolutions_refusees) && (
                 <div className="grid md:grid-cols-2 gap-5 mb-5">
                   {project.resolutions_votees && (
-                    <Carte className="p-7 max-md:p-5">
+                    <Bloc id="copro-votees" titre="Résolutions votées">
+                    <Carte className="p-7 max-md:p-5 h-full">
                       <SectionLabel>Résolutions votées</SectionLabel>
                       <TexteEditable champ="resolutions_votees"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_votees}</p></TexteEditable>
                     </Carte>
+                    </Bloc>
                   )}
                   {project.resolutions_refusees && (
-                    <Carte className="p-7 max-md:p-5">
+                    <Bloc id="copro-refusees" titre="Résolutions non acceptées">
+                    <Carte className="p-7 max-md:p-5 h-full">
                       <SectionLabel>Résolutions non acceptées</SectionLabel>
                       <TexteEditable champ="resolutions_refusees"><p className="text-[15px] leading-[1.8] text-craie whitespace-pre-wrap mb-0">{project.resolutions_refusees}</p></TexteEditable>
                     </Carte>
+                    </Bloc>
                   )}
                 </div>
               )}
 
-              <AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} />
-              <NotesBlock notes={project.notes_libres} />
+              <Bloc id="copro-ag" titre="Assemblées générales"><AssembleesGeneralesSection project={project} isAdmin={isAdmin && !showAsClient} showAsClient={showAsClient} /></Bloc>
+              <Bloc id="copro-notes" titre="Notes de la copropriété"><NotesBlock notes={project.notes_libres} /></Bloc>
 
               {project.charges_copropriete <= 0 && !project.type_construction && project.taxe_fonciere_an <= 0
                 && project.provision_charges <= 0 && project.quote_part_lot <= 0
@@ -579,8 +630,10 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <TabHeader
                 title="Documents"
               />
+              {modeEdition && editeurDocuments}
 
               {project.fichiers_projet && project.fichiers_projet.length > 0 ? (
+                <Bloc id="documents-liste" titre="Documents">
                 <Carte className="overflow-hidden">
                   {project.fichiers_projet.map((fichier, idx) => (
                     <a key={idx} href={fichier.url} target="_blank" rel="noopener noreferrer"
@@ -595,6 +648,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
                     </a>
                   ))}
                 </Carte>
+                </Bloc>
               ) : (
                 <EmptyTab text="Aucun document disponible pour ce projet." />
               )}

@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ResultatsProspective } from "@/components/mandataire/ProspecterDataB";
 import AgentIA from "@/components/mandataire/AgentIA";
+import KProspective from "@/pages/KProspective";
 import { J, JL, alpha } from "@/design/jetons";
 
 // La Prospection du mandataire, en deux moitiés.
@@ -72,14 +73,14 @@ export default function MandataireProspection() {
 
   return (
     // Les listes sont des tableaux : elles prennent toute la largeur de la page.
-    <div className={`mx-auto px-5 md:px-8 ${vueId ? "max-w-[1440px]" : !conversation && onglet === "listes" ? "max-w-none" : "max-w-[1100px]"} ${conversation && !vueId ? "" : "pb-14 pt-4"}`}>
+    <div className={`mx-auto px-5 md:px-8 ${vueId ? "max-w-[1440px]" : !conversation && (onglet === "listes" || onglet === "kprospective") ? "max-w-none" : "max-w-[1100px]"} ${conversation && !vueId ? "" : "pb-14 pt-4"}`}>
       {vueId && <VueProspection key={vueId} id={vueId} retour={conversation ? "Conversation" : "Prospection"} onRetour={() => setVueId(null)} />}
 
       {/* Prospecter (le chat) ou Listes (pour appeler) : les deux moitiés de la Prospection. */}
       {!vueId && !conversation && (
         <div className="flex justify-center pt-2">
           <div className="flex gap-1 rounded-full bg-rail-actif p-1">
-            {[["prospecter", "Prospecter"], ["agent", "Agent IA"], ["listes", "Listes"]].map(([k, mot]) => {
+            {[["prospecter", "Prospecter"], ["agent", "Agent IA"], ["listes", "Listes"], ["kprospective", "K Prospective"]].map(([k, mot]) => {
               const actif = onglet === k;
               // L'agent se distingue : un liseré multicolore, léger, qui tourne doucement.
               if (k === "agent") {
@@ -106,6 +107,8 @@ export default function MandataireProspection() {
       )}
       {!vueId && !conversation && onglet === "listes" && <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} />}
       {!vueId && !conversation && onglet === "agent" && <AgentIA />}
+      {/* K Prospective : les commerces d'une zone qui répondent à des critères (5 oct. 2026). */}
+      {!vueId && !conversation && onglet === "kprospective" && <KProspective />}
 
       {/* Les résultats d'une prospective Data-B, en pleine page. */}
       {vueDataB && !vueId && (

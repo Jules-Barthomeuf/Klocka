@@ -6,6 +6,7 @@
 import { Records } from '../db.js';
 import { filtrerListe, verdictAcces, visiblePar } from '../acces-entites.js';
 import { currentUser, normEmail, ok, retirerChampsProteges, sansSecret, wrap } from '../contexte.js';
+import { ecrireCompte } from '../famille.js';
 
 // L'entité User est traitée à part : ses enregistrements portent l'empreinte du
 // mot de passe et le rôle. On les nettoie en lecture, et on interdit d'y
@@ -104,7 +105,8 @@ export function monterEntites(app) {
       if (!rec || !visible(rec)) return res.status(404).json({ error: 'Not found' });
     }
 
-    const rec = Records.update(entity, id, patch);
+    // Son propre compte, pour un membre d'une famille : le dossier va chez le titulaire.
+    const rec = estUser(entity) && user.role !== 'admin' ? ecrireCompte(user, patch) : Records.update(entity, id, patch);
     if (!rec) return res.status(404).json({ error: 'Not found' });
     ok(res, nettoyer(entity, rec));
   }));

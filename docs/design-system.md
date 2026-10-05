@@ -179,6 +179,16 @@ information, ambre, alerte), la phrase sur une ligne, une précision
 Pas de croix : un clic sur la pilule la referme. Phrases courtes :
 « Dossier transféré à Nora ».
 
+**Éditeur de projet** (décision du 5 oct. 2026) : tout chiffre de la page de
+gauche se modifie au clic (`ValeurEditable` pour un champ du projet,
+`ValeurForcee` pour une valeur calculée ou lue ailleurs, rangée dans
+`valeurs_forcees` ; vide, elle revient au calcul). Toute carte se masque au
+survol (`Bloc`, clé `bloc:<id>` dans `champs_masques`) ; masquée, elle reste en
+pointillé dans l'éditeur avec « Afficher ». Une donnée n'a qu'une case dans le
+panneau de droite : le loyer dans Simulateur, l'échéance et la prise d'effet
+dans Analyse du bail, « en place depuis » dans Locataire, les chiffres du
+marché dans Marché.
+
 ## 6. Le chat et l'écran scindé
 
 Le chat est `ChatDashboard` ; une page en crée un espace (`ESPACES`), elle ne

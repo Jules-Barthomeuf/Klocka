@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { adresseAChercher, memeVille } from "@/lib/adresse-projet";
 import { useQuery } from "@tanstack/react-query";
 import { J } from "@/design/jetons";
 
@@ -47,13 +48,15 @@ async function google3DDisponible() {
 // coordonnées enregistrées. Des coordonnées posées au centre de la commune
 // envoyaient le vol à l'Hôtel de Ville au lieu du local.
 // Partagé avec le Street View de la page projet (même clé de cache).
+// L'adresse part avec la ville du projet quand elle ne la dit pas, et un
+// résultat dans une autre ville est refusé (adresse-projet.js).
 export async function geolocaliser(project) {
-  const q = project.adresse_complete;
+  const q = adresseAChercher(project);
   if (q) {
     try {
       const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=1&q=" + encodeURIComponent(q));
       const f = r.ok ? (await r.json()).features?.[0] : null;
-      const precise = f && (f.properties?.score ?? 0) >= 0.5 && ["housenumber", "street"].includes(f.properties?.type);
+      const precise = f && (f.properties?.score ?? 0) >= 0.5 && ["housenumber", "street"].includes(f.properties?.type) && memeVille(project, f.properties?.city);
       if (precise) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
     } catch {
       /* BAN injoignable : les coordonnées enregistrées prennent le relais */

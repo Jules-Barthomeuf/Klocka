@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { FileText, Plus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { J } from "@/design/jetons";
-import { useEdition, ValeurEditable } from "./EditionEnPlace";
+import { useEdition, ValeurEditable, ValeurForcee, TexteEditable, Bloc, forcee } from "./EditionEnPlace";
 import { InfoDot, nf } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 import { ChiffresStrip } from "./SecteurChiffres";
 import { dureeJusque } from "./durees";
-import { friseDuProjet } from "@/lib/frise-bail";
+import { friseDuProjet, friseBornee } from "@/lib/frise-bail";
 export { friseDuProjet };
 
 // Les cases de la page projet : un titre, une valeur courte, un détail, un
@@ -54,12 +54,17 @@ function RenvoiPiece({ source }) {
   );
 }
 
-const fusionner = (base, forcee) => ({
+const fusionner = (base, force) => ({
   ...base,
-  valeur: forcee?.valeur || base.valeur,
-  detail: forcee?.detail ?? base.detail,
-  info: forcee?.info || base.info,
+  titre: force?.titre || base.titre,
+  valeur: force?.valeur || base.valeur,
+  detail: force?.detail ?? base.detail,
+  info: force?.info || base.info,
 });
+
+// Le chemin d'une case corrigée : la clé « bail.loyer_actuel » porte un
+// point, d'où un chemin en tableau.
+const cheminCase = (zone, id, quoi) => ["cases_forcees", `${zone}.${id}`, quoi];
 
 function Case({ titre, valeur, detail, info, source, onSource, champ, edition }) {
   const cliquable = !!source && !edition?.onChamp;
@@ -226,10 +231,14 @@ function Jalon({ jalon }) {
  * La carte du bail : ce qu'il reste à courir, la pièce qui le dit, et la
  * frise des échéances. Elle coiffe les deux vues de l'onglet.
  */
-export function CarteBail({ frise, lignes, onSource }) {
+export function CarteBail({ frise, lignes, onSource, project = null }) {
   if (!frise?.debut && !frise?.fin) return null;
-  const { jalons, part, mesurable } = jalonsDuBail(frise, { ferme: bailFerme(lignes) });
-  const restant = frise.fin ? dureeJusque(frise.fin, { court: true }) : null;
+  // Le bout qui manque se déduit d'un bail de neuf ans : sans lui, l'unique
+  // date se posait à droite et aujourd'hui n'avait pas de place.
+  const bornee = friseBornee(frise);
+  const { jalons, part } = jalonsDuBail(bornee, { ferme: bailFerme(lignes) });
+  const marques = jalons.map((j) => (j.cle === bornee.estime ? { ...j, label: `${j.label} estimée` } : j));
+  const restant = forcee(project, "bail_restant") || (frise.fin ? dureeJusque(frise.fin, { court: true }) : null);
 
   return (
     <div className="k-carte px-8 max-md:px-5 pt-6 pb-7 max-md:pb-6">
@@ -237,7 +246,7 @@ export function CarteBail({ frise, lignes, onSource }) {
         <div>
           <div className="text-[13px] text-ardoise">Restant à courir</div>
           <div className="text-[34px] max-md:text-[26px] font-medium tracking-[-0.01em] leading-tight text-menthe mt-1.5" style={{ fontVariantNumeric: "tabular-nums" }}>
-            {restant || "—"}
+            <ValeurForcee cle="bail_restant" type="text">{restant || "—"}</ValeurForcee>
           </div>
         </div>
         {frise.source && (
@@ -250,7 +259,7 @@ export function CarteBail({ frise, lignes, onSource }) {
       {/* Sur un téléphone la frise se lit de haut en bas : quatre dates côte à
           côte sur 340 px se chevauchent. */}
       <ol className="md:hidden list-none m-0 p-0 mt-6 border-l border-trait pl-5 space-y-4">
-        {jalons.map((j) => (
+        {marques.map((j) => (
           <li key={j.cle} className="relative">
             <span className={`absolute -left-[23px] top-1.5 w-2.5 h-2.5 rounded-full border ${j.passe ? "bg-menthe border-menthe" : "border-menthe bg-surface-pleine"}`} />
             <div className="text-[15px] font-medium tracking-[-0.01em] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{j.texte}</div>
@@ -259,16 +268,16 @@ export function CarteBail({ frise, lignes, onSource }) {
         ))}
       </ol>
 
-      {!mesurable && (
+      {bornee.estime && (
         <p className="text-[12.5px] text-brume mt-5 mb-0">
-          {frise.debut ? "L'échéance manque" : "La prise d'effet manque"} : la frise ne peut pas placer les échéances triennales.
+          {bornee.estime === "debut" ? "Prise d'effet estimée" : "Échéance estimée"} sur un bail de neuf ans : renseignez-la pour une frise exacte.
         </p>
       )}
 
       <div className="max-md:hidden relative mt-12 mb-[76px] mx-1">
         <div className="relative h-[3px] rounded-full bg-trait">
           {part != null && <div className="absolute inset-y-0 left-0 rounded-full bg-menthe" style={{ width: `${part * 100}%` }} />}
-          {jalons.map((j, i) => (
+          {marques.map((j, i) => (
             <span key={j.cle}
               className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-[1.5px] border-menthe ${i === 0 || j.passe ? "bg-menthe" : "bg-surface-pleine"}`}
               style={{ left: `${(j.position ?? 0) * 100}%` }} />
@@ -279,7 +288,7 @@ export function CarteBail({ frise, lignes, onSource }) {
               <span className="absolute left-0 bottom-[calc(100%+12px)] whitespace-nowrap text-[12px] text-ardoise">Aujourd&apos;hui</span>
             </span>
           )}
-          {jalons.map((j) => <Jalon key={j.cle} jalon={j} />)}
+          {marques.map((j) => <Jalon key={j.cle} jalon={j} />)}
         </div>
       </div>
     </div>
@@ -348,15 +357,16 @@ const COLONNES_AG = [
   ["resolutions_non_votees", "Résolutions non votées", J["ardoise"]],
 ];
 
+/** Pure : les points d'une cellule, un par ligne. */
+export const pointsAG = (texte) => String(texte || "").split(/\n+/).map((p) => p.trim()).filter(Boolean);
+
 export function TableauAG({ cases, project }) {
   const edition = useEdition();
   const enEdition = !!edition?.onChamp;
   const forcees = project?.cases_forcees || {};
-  const lu = (id) => {
-    const brut = (cases || []).find((c) => c.id === id);
-    return brut ? fusionner(brut, forcees[`copropriete.${id}`]) : null;
-  };
-  const colonnes = COLONNES_AG.map(([id, titre, teinte]) => ({ id, titre, teinte, c: lu(id) }));
+  // Une colonne que le dossier n'a pas lue se remplit quand même à la main.
+  const lu = (id, titre) => fusionner((cases || []).find((c) => c.id === id) || { id, titre }, forcees[`copropriete.${id}`]);
+  const colonnes = COLONNES_AG.map(([id, titre, teinte]) => ({ id, teinte, c: lu(id, titre) }));
   if (!enEdition && !colonnes.some((x) => x.c?.valeur)) return null;
 
   return (
@@ -364,11 +374,11 @@ export function TableauAG({ cases, project }) {
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
           <tr>
-            {colonnes.map(({ id, titre, teinte }) => (
+            {colonnes.map(({ id, c, teinte }) => (
               <th key={id} className="border-b border-trait px-5 py-3.5 align-bottom font-normal" style={{ width: "33.33%" }}>
                 <span className="inline-flex items-center gap-2 text-[13px]" style={{ color: teinte }}>
                   <span className="h-[3px] w-5 rounded-full" style={{ background: teinte }} />
-                  {titre}
+                  <ValeurEditable champ={enEdition ? cheminCase("copropriete", id, "titre") : null} type="text">{c.titre}</ValeurEditable>
                 </span>
               </th>
             ))}
@@ -377,9 +387,18 @@ export function TableauAG({ cases, project }) {
         <tbody>
           <tr>
             {colonnes.map(({ id, c }) => (
-              <td key={id} className="px-5 py-4 align-top text-[13.5px] leading-[1.6]" style={{ color: c?.valeur ? undefined : undefined }}>
-                <span className={c?.valeur ? "text-craie" : "text-brume"}>{c?.valeur || "—"}</span>
-                {(c?.detail || c?.info) && (
+              <td key={id} className="px-5 py-4 align-top text-[13.5px] leading-[1.6]">
+                {/* En édition, la cellule s'écrit librement : une ligne par point. */}
+                <TexteEditable champ={enEdition ? cheminCase("copropriete", id, "valeur") : null} initial={c.valeur || ""} masquable={false}>
+                  {pointsAG(c.valeur).length > 1 ? (
+                    <ul className="m-0 list-none space-y-1.5 p-0 text-craie">
+                      {pointsAG(c.valeur).map((p, i) => <li key={i}>{p}</li>)}
+                    </ul>
+                  ) : (
+                    <span className={c.valeur ? "text-craie" : "text-brume"}>{c.valeur || (enEdition ? "Cliquer pour remplir" : "—")}</span>
+                  )}
+                </TexteEditable>
+                {(c.detail || c.info) && (
                   <span className="mt-1.5 block text-[12px] text-brume">{[c.detail, c.info].filter(Boolean).join(" · ")}</span>
                 )}
               </td>
@@ -415,16 +434,19 @@ const nombreDe = (valeur) => {
 // chiffre à droite en grand, au registre des chiffres de la carte du loyer.
 // Quand il vient d'une pièce, un clic l'ouvre.
 function LigneFiscalite({ c, onSource }) {
-  const cliquable = !!c.source;
+  const edition = useEdition();
+  const enEdition = !!edition?.onChamp;
+  // En édition, le chiffre se corrige au clic au lieu d'ouvrir la pièce.
+  const cliquable = !!c.source && !enEdition;
   const valeur = (
     <span className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-tight ${c.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-      {c.valeur || "—"}
+      <ValeurEditable champ={enEdition ? cheminCase("bail", c.id, "valeur") : null} type="text">{c.valeur || "—"}</ValeurEditable>
     </span>
   );
   return (
     <div className="flex items-center justify-between gap-4 py-4 border-t border-trait first:border-t-0">
       <span className="flex items-center gap-2 text-[14.5px] max-md:text-[13.5px] text-craie">
-        {c.titre}
+        <ValeurEditable champ={enEdition ? cheminCase("bail", c.id, "titre") : null} type="text">{c.titre}</ValeurEditable>
         <InfoDot texte={c.info || c.detail} />
       </span>
       {cliquable ? (
@@ -451,7 +473,14 @@ export function ResumeBail({ cases, project, onSource }) {
     const brut = (cases?.bail || []).find((c) => c.id === id);
     return brut ? fusionner(brut, forcees[`bail.${id}`]) : null;
   };
-  const loyer = lu("loyer_actuel");
+  // Le loyer saisi (Simulateur, ou au clic sur la page) se voit tout de suite,
+  // sans attendre que le serveur relise les cases ; une correction de la case
+  // garde le dernier mot.
+  const brutLoyer = lu("loyer_actuel");
+  const saisi = Number(project?.sim_loyer_initial_ht) || 0;
+  const loyer = saisi > 0 && !forcees["bail.loyer_actuel"]?.valeur
+    ? { ...(brutLoyer || { id: "loyer_actuel", titre: "Prix du loyer" }), valeur: `${euros(saisi)} HT/an` }
+    : brutLoyer;
   const signature = lu("loyer_signature");
   const depot = lu("depot");
   const fiscalite = ["provision_charges", "tva", "charges_refacturees", "taxe_refacturee"].map(lu).filter((c) => c && c.valeur);
@@ -467,20 +496,23 @@ export function ResumeBail({ cases, project, onSource }) {
   const Sous = ({ c, complement }) => (
     <div>
       <div className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-none ${c?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-        {c?.valeur || "—"}
+        <ValeurEditable champ={c ? cheminCase("bail", c.id, "valeur") : null} type="text">{c?.valeur || "—"}</ValeurEditable>
       </div>
-      <div className="text-[14px] text-ardoise mt-2">{c?.titre}{complement ? ` · ${complement}` : ""}</div>
+      <div className="text-[14px] text-ardoise mt-2">
+        <ValeurEditable champ={c ? cheminCase("bail", c.id, "titre") : null} type="text">{c?.titre || ""}</ValeurEditable>{complement ? ` · ${complement}` : ""}
+      </div>
     </div>
   );
 
   return (
     <div className="grid lg:grid-cols-2 gap-5 items-start">
+      <Bloc id="bail-loyer" titre="Le loyer">
       <div className="k-carte p-7 max-md:p-5">
         <Titre>Le loyer</Titre>
         <div className="py-7 max-md:py-5">
           <div className="flex items-baseline gap-3 flex-wrap">
             <span className={`text-[44px] max-md:text-[30px] font-medium tracking-[-0.01em] leading-none ${loyer?.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
-              {loyer?.valeur ? loyer.valeur.replace(/\s*HT\/an$/, "") : "—"}
+              <ValeurEditable champ="sim_loyer_initial_ht">{loyer?.valeur ? loyer.valeur.replace(/\s*HT\/an$/, "") : "—"}</ValeurEditable>
             </span>
             {loyer?.valeur && <span className="text-[20px] max-md:text-[16px] text-ardoise">HT/an</span>}
           </div>
@@ -496,14 +528,17 @@ export function ResumeBail({ cases, project, onSource }) {
           </div>
         )}
       </div>
+      </Bloc>
 
       {fiscalite.length > 0 && (
+        <Bloc id="bail-fiscalite" titre="Charges et fiscalité">
         <div className="k-carte p-7 max-md:p-5">
           <Titre>Charges &amp; fiscalité</Titre>
           <div className="mt-2">
             {fiscalite.map((c) => <LigneFiscalite key={c.id} c={c} onSource={onSource} />)}
           </div>
         </div>
+        </Bloc>
       )}
     </div>
   );
@@ -607,7 +642,9 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
         {chapeau && <div className="text-[24px] max-md:text-[18px] font-medium tracking-[-0.01em] text-menthe mt-2.5">{chapeau}</div>}
 
         <div className="border-t border-trait mt-6 pt-6">
-          <p className={`m-0 text-[15px] max-md:text-[14px] leading-[1.8] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || "Ce point n'a pas encore été lu dans les pièces."}</p>
+          <TexteEditable champ={`bail_analyse.${c.id}`} initial={c.texte} masquable={false}>
+            <p className={`m-0 text-[15px] max-md:text-[14px] leading-[1.8] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || "Ce point n'a pas encore été lu dans les pièces."}</p>
+          </TexteEditable>
         </div>
 
         <div className="flex items-center justify-between gap-4 mt-auto pt-8">
@@ -643,12 +680,14 @@ export function VueBail({ cases, project, onSource, titre = "Analyse du bail" })
         </div>
       </div>
 
-      <CarteBail frise={friseDuProjet(project, cases?.frise)} lignes={cases?.analyse} onSource={onSource} />
+      <Bloc id="bail-frise" titre="Restant à courir et frise du bail">
+        <CarteBail frise={friseDuProjet(project, cases?.frise)} lignes={cases?.analyse} onSource={onSource} project={project} />
+      </Bloc>
 
       <div className="mt-5">
         {vue === "resume"
           ? <ResumeBail cases={cases} project={project} onSource={onSource} />
-          : <AnalyseBail lignes={cases?.analyse} cases={cases} project={project} onSource={onSource} />}
+          : <Bloc id="bail-analyse" titre="Analyse clause par clause"><AnalyseBail lignes={cases?.analyse} cases={cases} project={project} onSource={onSource} /></Bloc>}
       </div>
     </>
   );

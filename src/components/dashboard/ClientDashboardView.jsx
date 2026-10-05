@@ -5,6 +5,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { RENDEZ_VOUS_URL } from "@/lib/rendezVous";
 import { libelleProfil } from "@/lib/profils";
+import { prenomsDeLaFamille } from "@/lib/famille";
 import LogoKlocka from "@/components/LogoKlocka";
 import {
   BookOpen, Calendar, ArrowRight, Download, ChevronDown,
@@ -214,7 +215,8 @@ export default function ClientDashboardView({
 }) {
   const navigate = useNavigate();
   const [rdvOuvert, setRdvOuvert] = useState(false);
-  const firstName = (user.full_name || user.email.split('@')[0]).split(' ')[0];
+  // Dans une famille, tout le monde est salué : « Bonjour, Paul et Marie ».
+  const firstName = prenomsDeLaFamille(user);
 
   return (
     <div className="min-h-screen">

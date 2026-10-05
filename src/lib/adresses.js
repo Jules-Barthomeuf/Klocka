@@ -31,6 +31,7 @@ export const ADRESSES = {
   TableauProjection: "Projection",
   Comparateur: "Comparateur",
   AdminClients: "Clients",
+  Offres: "Offres",
   AdminPresentations: "Presentations",
   AdminLeadMagnets: "LeadMagnets",
   AdminRessources: "GestionRessources",

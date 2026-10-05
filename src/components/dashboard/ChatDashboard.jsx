@@ -16,6 +16,7 @@ import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
 import PenseeIA from "@/components/PenseeIA";
 import Message from "@/components/MessageIA";
+import SourcesLoi from "@/components/offres/SourcesLoi";
 import { J, alpha } from "@/design/jetons";
 import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/ProspecterDataB";
 
@@ -105,6 +106,9 @@ const ESPACES = {
   estimation: { api: "/api/mandataire", qs: "?espace=estimation", modesAGauche: true, modeParDefaut: "document", modes: MODES_ESTIMATION, commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel bien estimez-vous ? « Les murs de la boulangerie, 14 rue du Marché à Annecy, occupés »" },
   // Le mandat : les questions du mandat de vente, l'aperçu à côté, puis MyNotary.
   mandat: { api: "/api/mandataire", qs: "?espace=mandat", modesAGauche: false, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel mandat préparez-vous ? « Mandat exclusif pour les murs de la boulangerie Martin, 12 rue Carnot à Mâcon, 450 000 € »" },
+  // Les offres (équipe) : le chat d'AK, qui rédige et corrige les lettres
+  // d'intention de la page Offres ; la lettre ouverte lui est donnée.
+  offre: { api: "/api/assistant", page: "offres", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Pour qui, sur quel bien ? « Fais l'offre d'Olivier Luccioni sur le dossier du 1 avenue Mirabeau, 200 000 €, apport 40 000 € »" },
   prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
 };
 
@@ -693,13 +697,13 @@ const ETAPES_PREVUES = {
   defaut: ["Lecture du message", "Recherche dans vos dossiers", "Préparation de la réponse"],
 };
 const OUTILS_LUS = {
-  chercher_dossier: "Recherche du dossier", chercher_projet: "Recherche du projet", etat_dossier: "Lecture du dossier",
+  trouver_bien: "Recherche du bien", chercher_dossier: "Recherche du dossier", chercher_projet: "Recherche du projet", etat_dossier: "Lecture du dossier",
   etat_projet: "Lecture du projet", marche_ville: "Lecture du marché de la ville", data_b: "Lecture Data-B", verifier: "Vérification des chiffres",
   interroger_documents: "Lecture des documents", simuler_dossier: "Simulation", plan_du_jour: "Lecture du plan du jour",
   registre_engagements: "Lecture des engagements", historique_actions: "Lecture de l'historique", preparer_mail: "Rédaction du mail",
   noter_relance: "Création de la relance", noter_rdv: "Création du rendez-vous", nouveau_contact: "Création de la fiche propriétaire",
   appel_sans_reponse: "Relance suivante de la séquence", resultat_appel: "Mise à jour de la fiche", demandes_clients: "Lecture des demandes clients",
-  avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
+  rediger_loi: "Rédaction de la lettre d'intention", avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
 };
 const ACTIONS_FAITES = {
   pousser_dossier_monday: "Dossier poussé dans Monday", pousser_projet_monday: "Projet poussé dans Monday", creer_drive_dossier: "Dossier Drive créé",
@@ -707,7 +711,7 @@ const ACTIONS_FAITES = {
   noter_engagement: "Engagement noté", tenir_engagement: "Engagement tenu", creer_dossier: "Dossier créé",
   analyser_fiche: "Fiche analysée", faire_tout: "Mail traité de bout en bout", deposer_mail: "Mail déposé sur le dossier",
   preanalyser_mail: "Préanalyse lancée", ranger_drive: "Rangé sur le Drive", bloquer_rdv: "Rendez-vous posé dans l'agenda",
-  rediger_loi: "LOI en préparation", lancer_kdata: "Analyse K-Data lancée", generer_prez_bancaire: "Présentation bancaire en préparation",
+  lancer_kdata: "Analyse K-Data lancée", generer_prez_bancaire: "Présentation bancaire en préparation",
   lancer_alx: "Prospection ALX lancée", ajouter_document: "Document ajouté au dossier", creer_client_monday: "Client créé dans Monday",
   renommer_dossier: "Dossier renommé", supprimer_dossier: "Dossier supprimé", creer_projet_depuis_dossier: "Projet créé",
   ajouter_photos_projet: "Photos ajoutées au projet", ajouter_prospect: "Agent ajouté au carnet de prospection",
@@ -932,7 +936,7 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1003,12 +1007,13 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     return () => clearTimeout(sauvegarde.current);
   }, [fil, conversationId, queryClient, E.api, qs]);
 
+  useEffect(() => { onConversationId?.(conversationId); }, [conversationId, onConversationId]);
   // Rouvrir une conversation, ou en commencer une neuve : le fil change de peau.
   const ouvrirConversation = (c) => {
     // La réponse en cours appartient à l'ancien fil : elle ne doit pas atterrir ici.
     controleur.current?.abort();
     setFil(c.messages || []);
-    setConversationId(c.id);
+    setConversationId(c.id || null);
     setTitreSauve(c.titre || null); setTitreEdite(null);
     setSuites([]); setBrouillon(null); setFiche(null);
     setHistoriqueOuvert(false);
@@ -1140,7 +1145,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       actionsVives.current = [];
       const r = mandataire
         ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surAction: (a) => actionsVives.current.push(a) })
-        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type }, signal: controleur.current.signal, surEtape });
+        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: { page: E.page, ...(contexte || {}) } } : {}) }, signal: controleur.current.signal, surEtape });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
       return r;
@@ -1245,9 +1250,10 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         pousser({ role: "bloc", type: "echeances", donnees: r });
         setSuites([]);
       } else {
-        pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
+        pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra, ...(r.sources ? { sources: r.sources } : {}) });
         if (r.brouillon) setBrouillon(brouillonDepuis(r.brouillon));
         setSuites(lireActions(r));
+        onReponse?.(r);
       }
     },
     onError: (e) => {
@@ -1357,6 +1363,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     if (notifFermee.current) return;
     poser("en_cours", "Je m'en occupe", { id: notif.current, surFermeture: () => { notifFermee.current = true; }, description: <EtapesNotif etapes={etapesVives.length ? etapesVives : ["Lecture de la demande"]} enCours /> });
   }, [embarque, travaille, etapesVives]);
+  // La page voisine (l'aperçu à droite) suit le travail en cours et ses étapes.
+  useEffect(() => { onTravail?.({ enCours: travaille, etapes: etapesVives }); }, [onTravail, travaille, etapesVives]);
   useEffect(() => {
     if (!enFlux) return undefined;
     const t = setInterval(() => {
@@ -1373,7 +1381,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   }, [travaille]);
 
   // Le fil prend l'écran dès le premier message envoyé (tableau de bord seulement).
-  const conversation = !!onConversation && fil.some((m) => m.role === "user");
+  const conversation = !!onConversation && fil.some((m) => m.role === "user" || m.reprise);
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
   // « Dashboard » ou « Nouveau chat » dans la barre latérale : retour au départ.
   const location = useLocation();
@@ -1403,9 +1411,12 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     if (!onHistorique) return undefined;
     const ouvrirDepuis = (e) => {
       if (e.detail?.api !== E.api || (e.detail?.qs || "") !== qs) return;
+      // Sans conversation gardée (une offre d'avant, celle d'un collègue), le fil part du message de reprise.
+      const secours = e.detail.secours;
+      if (!e.detail.id && secours) { ouvrirConversation({ id: null, messages: secours }); return; }
       base44.request("GET", `${E.api}/conversations/${e.detail.id}${qs}`)
         .then((c) => { ouvrirConversation(c); onHistorique(false); })
-        .catch(() => toast.error("Conversation introuvable"));
+        .catch(() => { if (secours) ouvrirConversation({ id: null, messages: secours }); else toast.error("Conversation introuvable"); });
     };
     window.addEventListener("klocka:ouvrir-conversation", ouvrirDepuis);
     return () => window.removeEventListener("klocka:ouvrir-conversation", ouvrirDepuis);
@@ -1741,7 +1752,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           <button type="button" onClick={nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
             <ChevronLeft className="h-4 w-4" /> Dashboard
           </button>
-          {titreEdite != null ? (
+          {/* À côté d'un aperçu, pas de titre : il collait à « Dashboard » (3 oct. 2026). */}
+          {barreApercu ? <span className="flex-1" /> : titreEdite != null ? (
             <form className="flex min-w-0 flex-1 justify-center" onSubmit={(e) => { e.preventDefault(); renommerConversation(); }}>
               <input autoFocus value={titreEdite} maxLength={80} onChange={(e) => setTitreEdite(e.target.value)} onBlur={renommerConversation}
                 onKeyDown={(e) => { if (e.key === "Escape") setTitreEdite(null); }} aria-label="Nom de la conversation"
@@ -1762,7 +1774,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         </div>
         {historiqueOuvert && <div className="mx-auto w-full max-w-[760px] flex-none"><HistoriqueConversations api={E.api} qs={qs} actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} /></div>}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${barreApercu ? "-mr-5 pr-5" : ""}`}>
         <div className="mx-auto w-full max-w-[760px] space-y-8 py-8">
           {fil.map((m, i) =>
             m.role === "user" ? (
@@ -1783,6 +1795,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 <div className="min-w-0 flex-1 pt-1.5 text-[16px]">
                   <Etapes etapes={m.etapes} />
                   <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} />
+                  <SourcesLoi sources={m.sources} />
                   {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
                     <div className="mt-5 space-y-3">{m.cartes.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).map((c, n) => <CarteAction key={n} c={c} onOuvrir={ouvrirLien} />)}</div>
@@ -1846,12 +1859,14 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               : m.type === "echeances" ? <Echeances key={i} onBrouillon={setBrouillon} />
               : null
             ) : (
-              <Message
-                key={i}
-                m={m}
-                question={m.role === "assistant" ? [...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null : null}
-                surface={m.role === "assistant" ? E.avis : null}
-              />
+              <React.Fragment key={i}>
+                <Message
+                  m={m}
+                  question={m.role === "assistant" ? [...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null : null}
+                  surface={m.role === "assistant" ? E.avis : null}
+                />
+                <SourcesLoi sources={m.sources} />
+              </React.Fragment>
             )
           )}
           {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}

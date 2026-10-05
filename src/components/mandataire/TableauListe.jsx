@@ -78,7 +78,7 @@ const TON_STATUT = { a_appeler: "neutre", contacte: "ambre", en_discussion: "men
 // du propriétaire et de sa société, en défilant à droite. `cle` éditable :
 // la cellule s'écrit, comme dans une Sheet.
 const COLONNES = [
-  { cle: "activite", titre: "Type d'activité", largeur: 160, lire: (p) => [p.activite || p.cible?.activite, p.ville].filter(Boolean).join(" · ") },
+  { cle: "activite", titre: "Type d'activité", largeur: 160, lire: (p) => p.cible?.activite || p.activite || "" },
   { cle: "appel", titre: "Appel", largeur: 200 },
   // Les clients Klocka (anonymisés) que ce commerce pourrait intéresser.
   { cle: "investisseurs", titre: "Investisseurs possibles", largeur: 200 },
@@ -104,12 +104,12 @@ const COLONNES = [
   { cle: "nom", titre: "Propriétaire des murs", largeur: 200, editable: true, lire: (p) => { const n = p.nom || p.cible?.proprietaire || ""; return n && p.cible?.proprietaire_age ? `${n} · ${p.cible.proprietaire_age} ans` : n; }, sources: (p) => (p.cible?.proprietaire ? [p.cible?.proprietaire_source] : []) },
   { cle: "societe", titre: "Société", largeur: 170, lire: (p) => { const so = p.cible?.societe; if (!so) return ""; if (so.nom) return [so.nom, so.forme && so.nom !== so.forme ? `(${so.forme})` : null].filter(Boolean).join(" "); if (so.en_nom_propre) return "En nom propre"; return so.forme || ""; }, sources: (p) => [p.cible?.societe?.source] },
   { cle: "gerant", titre: "Gérant", largeur: 180, lire: (p) => (p.cible?.gerant ? `${p.cible.gerant.nom}${p.cible.gerant.tranche_age ? ` · ${p.cible.gerant.tranche_age} ans` : ""}` : ""), sources: (p) => [p.cible?.gerant && p.cible?.societe?.source] },
-  { cle: "effectif", titre: "Effectif", largeur: 110, lire: (p) => p.cible?.societe?.effectif || "", sources: (p) => [p.cible?.societe?.effectif && p.cible?.societe?.source] },
+  { cle: "effectif", titre: "Effectif du commerce", largeur: 150, lire: (p) => p.cible?.effectif_commerce || "", sources: (p) => [p.cible?.effectif_commerce && "Data-B"] },
   { cle: "creation", titre: "Société créée", largeur: 120, lire: (p) => (p.cible?.societe?.creation || "").slice(0, 4), sources: (p) => [p.cible?.societe?.creation && p.cible?.societe?.source] },
   // L'adresse du propriétaire : celle de l'annuaire quand on l'a, sinon le
   // siège de sa société (presque toujours son domicile) — pour le courrier.
   { cle: "siege", titre: "Adresse du propriétaire", largeur: 240, lire: (p) => p.adresse_proprietaire || p.cible?.societe?.siege_adresse || p.cible?.societe?.siege_ville || "", sources: (p) => [p.adresse_proprietaire ? "Pages Blanches (118000)" : (p.cible?.societe?.siege_adresse || p.cible?.societe?.siege_ville) && p.cible?.societe?.source] },
-  { cle: "adresse", titre: "Adresse", largeur: 220, lire: (p) => p.adresse || p.cible?.adresse || "", sources: (p) => [!p.adresse && p.cible?.adresse && p.cible?.source] },
+  { cle: "adresse", titre: "Adresse", largeur: 240, lire: (p) => [p.adresse || p.cible?.adresse, p.cible?.arrondissement || p.cible?.ville || p.ville].filter(Boolean).join(", "), sources: (p) => [!p.adresse && p.cible?.adresse && p.cible?.source] },
   { cle: "emplacement", titre: "Emplacement", largeur: 110, lire: (p) => ROND[p.cible?.emplacement] || "" },
   { cle: "email", titre: "Email", largeur: 190, editable: true, lire: (p) => p.email || "" },
   { cle: "tentatives", titre: "Tentatives", largeur: 95, lire: (p) => String(p.tentatives || 0) },
@@ -132,7 +132,7 @@ function PanneauCommerce({ p, libelles, onFermer, onSansReponse, onAppeler }) {
   const adresse = [p.adresse || c.adresse, p.ville].filter(Boolean).join(", ");
   const tel = p.telephone || (c.proprietaire_occupant ? c.telephone : null) || null;
   const faits = [
-    ["Type d'activité", [p.activite || c.activite, p.ville].filter(Boolean).join(" · ")],
+    ["Type d'activité", c.activite || p.activite || null],
     ["Emplacement", ROND[c.emplacement] || null],
     ["Adresse", adresse],
     ["Propriétaire des murs", p.nom || c.proprietaire || null],
@@ -246,7 +246,7 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
   const basculer = (id) => setCoches((c) => { const n = new Set(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // À l'ouverture, les propriétaires manquants se cherchent en fond (sources
   // ouvertes, gratuit) ; tant qu'il en manque, la liste se relit.
-  const sansProprio = (fiches || []).filter((p) => p.cible && !p.cible.proprietaire && !(p.nom || "").trim()).length;
+  const sansProprio = (fiches || []).filter((p) => (p.cible && !p.cible.proprietaire && !(p.nom || "").trim()) || (!p.cible && p.adresse && !p.rattachement_tente_le)).length;
   const sansNumero = (fiches || []).filter((p) => p.cible?.proprietaire && !p.telephone).length;
   const [recherche, setRecherche] = useState(false);
   useEffect(() => {

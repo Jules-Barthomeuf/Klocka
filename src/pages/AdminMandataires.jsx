@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
+import VillesKlocka from "@/components/mandataire/VillesKlocka";
 import { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
 import { AlertTriangle, Check, ChevronDown, Eye, EyeOff, PenLine, Plus, RefreshCw, Search, Trash2, Undo2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -16,7 +17,7 @@ import { J, JL, alpha } from "@/design/jetons";
 // anonymisées, et l'œil sur leurs prospections.
 
 const API = "/api/mandataire/admin";
-const ONGLETS = [["secteurs", "Secteurs"], ["mandataires", "Mandataires"], ["demandes", "Demandes clients"], ["prospections", "Prospections"]];
+const ONGLETS = [["secteurs", "Secteurs"], ["villes", "Villes Klocka"], ["mandataires", "Mandataires"], ["demandes", "Demandes clients"], ["prospections", "Prospections"]];
 
 export default function AdminMandataires() {
   const [onglet, setOnglet] = useState("secteurs");
@@ -34,6 +35,7 @@ export default function AdminMandataires() {
         ))}
       </div>
       {onglet === "secteurs" && <Secteurs />}
+      {onglet === "villes" && <VillesKlocka />}
       {onglet === "mandataires" && <Mandataires />}
       {onglet === "demandes" && <Demandes />}
       {onglet === "prospections" && <Prospections />}

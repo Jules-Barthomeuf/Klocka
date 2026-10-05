@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, FileText, Loader2, Redo2, Undo2, X } from "lucide-react";
+import GenerationDocument from "@/components/mandataire/GenerationDocument";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { eurosEnLettres } from "@/lib/nombre-en-lettres";
@@ -239,7 +240,18 @@ export function DocumentMandat({ q = {}, numero = null }) {
  * La moitié droite de la page Mandat : le mandat de la conversation, et l'état
  * de la saisie MyNotary au-dessus.
  */
-export default function ApercuMandat({ id, onOuvrirPret }) {
+// Les étapes montrées pendant la génération du premier mandat.
+const ETAPES_GENERATION = [
+  "Lecture de votre demande",
+  "Dénomination du mandataire",
+  "Identification du mandant",
+  "Désignation du bien",
+  "Prix et honoraires",
+  "Durée et clauses du mandat",
+  "Mise en page du mandat",
+];
+
+export default function ApercuMandat({ id, onOuvrirPret, generation = false, onGenere = null }) {
   const queryClient = useQueryClient();
   const [enCours, setEnCours] = useState(false);
   const naviguer = async (sens) => {
@@ -258,6 +270,14 @@ export default function ApercuMandat({ id, onOuvrirPret }) {
     queryFn: () => base44.request("GET", `${API}/${id}/apercu`),
     enabled: !!id,
   });
+  if (generation) {
+    return (
+      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
+        <div className="h-14 flex-none border-b border-trait k-barre-apercu" />
+        <div className="min-h-0 flex-1"><GenerationDocument surtitre="Génération du mandat" titre="Le mandat de vente se prépare" etapes={ETAPES_GENERATION} pret={!!id && !!data} onFini={() => onGenere?.()} /></div>
+      </div>
+    );
+  }
   if (!id || !data) {
     return (
       <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
@@ -300,7 +320,7 @@ export default function ApercuMandat({ id, onOuvrirPret }) {
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8">
-        <DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} />
+        <div className="animate-in fade-in slide-in-from-bottom-3 duration-700"><DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} /></div>
       </div>
     </div>
   );

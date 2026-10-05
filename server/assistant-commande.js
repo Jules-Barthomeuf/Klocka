@@ -59,14 +59,73 @@ function rangRecherche(titre, requete) {
   return 3;
 }
 
+// Les mots qui disent ce qu'on cherche sans le nommer : « le projet de
+// Dieppe » cherche Dieppe. Sans ce tri, tous les mots devant apparaître, la
+// recherche ne rendait rien.
+const MOTS_VIDES = new Set(['le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'sur', 'au', 'aux', 'a', 'en', 'pour', 'celui', 'celle', 'ce', 'cet', 'cette', 'projet', 'projets', 'dossier', 'dossiers', 'bien', 'biens', 'fiche', 'deal', 'murs']);
+
 function correspond(texte, requete) {
-  const mots = norm(requete).split(/\s+/).filter((m) => m.length > 1);
+  const mots = norm(requete).replace(/[«»"',.;:!?()]/g, ' ').split(/\s+/).filter((m) => m.length > 1 && !MOTS_VIDES.has(m));
   if (!mots.length) return false;
   const cible = norm(texte);
   return mots.every((m) => cible.includes(m));
 }
 
+/**
+ * Un bien, où qu'il soit : les projets d'abord, puis les dossiers qui n'ont
+ * pas (encore) de projet. Un projet emporte son dossier d'origine. Rend des
+ * candidats numérotés, de quoi les départager, et s'il n'y en a qu'un.
+ */
+export function trouverBien(recherche) {
+  const nombre = (...v) => v.find((x) => typeof x === 'number' && x > 0) ?? null;
+  const projets = Records.list('Project')
+    .filter((p) => !p.archived)
+    .filter((p) => correspond(`${p.titre || ''} ${p.adresse_complete || ''} ${p.ville_secteur_champ1 || ''} ${p.nom_locataire || ''}`, recherche))
+    .map((p) => ({
+      genre: 'projet', projet_id: p.id, deal_id: p.deal_id || null, titre: p.titre || null,
+      adresse: p.adresse_complete || null, ville: p.ville_secteur_champ1 || null, locataire: p.nom_locataire || null,
+      prix: nombre(p.prix_acquisition, p.sim_prix_bien_negocie, p.sim_prix_bien_fai), statut: p.statut || null,
+      _rang: rangRecherche(p.titre || '', recherche), _le: p.created_date || '',
+    }));
+  const dejaVus = new Set(projets.map((p) => p.deal_id).filter(Boolean));
+  const dossiers = Records.list('Deal')
+    .filter((d) => !d.archived && !d.test && !dejaVus.has(d.deal_id))
+    .filter((d) => correspond(`${titreDeal(d)} ${villeDeal(d)} ${d.contact_agent_email || ''} ${d.apercu?.agent_nom || ''} ${d.apercu?.agence || ''} ${d.lots?.[0]?.lot?.locataire_nom?.valeur || ''}`, recherche))
+    .map((d) => {
+      const l = d.lots?.[0]?.lot || {};
+      const v = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
+      const a = v(l.adresse);
+      return {
+        genre: 'dossier', projet_id: d.projet_id && Records.get('Project', d.projet_id) ? d.projet_id : null, deal_id: d.deal_id, titre: titreDeal(d),
+        adresse: typeof a === 'string' ? a : a ? [a.rue, [a.code_postal, a.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ') : null,
+        ville: villeDeal(d) || null, locataire: v(l.locataire_nom) || null, prix: nombre(v(l.prix_fai)), statut: statutDe(d),
+        _rang: rangRecherche(titreDeal(d), recherche), _le: d.cree_le || '',
+      };
+    });
+  const tous = [...projets, ...dossiers]
+    .sort((x, y) => x._rang - y._rang || (x.genre === y.genre ? 0 : x.genre === 'projet' ? -1 : 1) || String(y._le).localeCompare(String(x._le)))
+    .slice(0, 8)
+    .map(({ _rang, _le, ...c }, i) => ({ n: i + 1, ...c }));
+  return {
+    nombre: tous.length,
+    unique: tous.length === 1,
+    candidats: tous,
+    ...(tous.length > 1 ? { conseil: 'Plusieurs biens : liste-les numérotés (titre, adresse, locataire, prix) et demande lequel. Ne choisis pas à la place de la personne.' } : {}),
+    ...(tous.length === 0 ? { conseil: "Aucun bien ne correspond : dis-le, propose d'essayer la ville ou le locataire. N'invente rien." } : {}),
+  };
+}
+
 export const OUTILS = [
+  {
+    name: 'trouver_bien',
+    description:
+      "Trouve un bien de la plateforme d'un seul coup, dans les projets ET les dossiers de préanalyse : par ville, adresse, titre, locataire ou agent. À utiliser en premier dès qu'on parle d'un bien, quand on ne sait pas si c'est un projet ou un dossier. Un projet et le dossier dont il vient ne font qu'un candidat. Rend les candidats numérotés : un seul, agis avec ses identifiants ; plusieurs, liste-les (numéro, titre, adresse, locataire, prix) et demande lequel ; aucun, dis-le, n'invente rien.",
+    input_schema: {
+      type: 'object',
+      properties: { recherche: { type: 'string', description: 'Ville, adresse, titre, locataire ou agent' } },
+      required: ['recherche'],
+    },
+  },
   {
     name: 'chercher_dossier',
     description:
@@ -132,6 +191,7 @@ export const OUTILS = [
         apport_pourcent: { type: 'number', description: "Part d'apport en % du prix de revient (défaut 15)" },
         taux: { type: 'number', description: "Taux d'intérêt annuel en % (défaut 3,7)" },
         duree: { type: 'number', description: 'Durée du crédit en années (défaut 20)' },
+        loyer_annuel: { type: 'number', description: "Loyer annuel HT HC en euros, quand le dossier ne le connaît pas (demande-le d'abord)" },
       },
       required: ['deal_id'],
     },
@@ -356,6 +416,8 @@ export const OUTILS = [
 ];
 
 export async function executerOutil({ name, input }, user) {
+  if (name === 'trouver_bien') return trouverBien(input.recherche);
+
   if (name === 'chercher_dossier') {
     const trouves = Records.list('Deal')
       .filter((d) => !d.archived && !d.test)
@@ -389,6 +451,10 @@ export async function executerOutil({ name, input }, user) {
         projet_id: p.id,
         titre: p.titre,
         ville: p.ville_secteur_champ1 || '',
+        // De quoi départager deux projets d'une même ville.
+        adresse: p.adresse_complete || null,
+        locataire: p.nom_locataire || null,
+        prix: [p.prix_acquisition, p.sim_prix_bien_negocie, p.sim_prix_bien_fai].find((v) => typeof v === 'number' && v > 0) ?? null,
         statut: p.statut,
         deja_dans_monday: !!p.monday_item_id,
       }));
@@ -397,14 +463,18 @@ export async function executerOutil({ name, input }, user) {
 
   if (name === 'simuler_dossier') {
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
-    if (!deal) return { erreur: 'Dossier introuvable' };
-    const lot = deal.lots?.[0];
-    if (!lot?.simulateur?.loyerInitialHTHC) {
-      return { erreur: 'Loyer inconnu sur ce dossier : la simulation ne peut rien produire.' };
+    if (!deal) return { ok: false, error: 'Dossier introuvable : chercher_dossier pour son identifiant.' };
+    const loyer = Number(input.loyer_annuel) > 0 ? Number(input.loyer_annuel) : null;
+    // Sans loyer, rien ne se simule : on le demande, une fois, au lieu de
+    // relancer la même simulation (le 21/09, trois essais de suite).
+    if (!deal.lots?.[0]?.simulateur?.loyerInitialHTHC && !loyer) {
+      return { ok: false, manque: ['le loyer annuel HT HC du bien'], error: 'Loyer inconnu sur ce dossier : demande-le en une ligne, puis rappelle simuler_dossier avec loyer_annuel. Ne relance pas sans lui.' };
     }
+    const lot = loyer ? { ...deal.lots[0], simulateur: { ...(deal.lots[0]?.simulateur || {}), loyerInitialHTHC: loyer } } : deal.lots[0];
     const { simuler } = await import('./video/indicateurs.js');
     return {
       titre: titreDeal(deal),
+      ...(loyer ? { loyer_suppose: loyer } : {}),
       ...simuler(lot, {
         prixNegocie: input.prix_negocie,
         apportPourcent: input.apport_pourcent,
@@ -617,8 +687,10 @@ export async function executerOutil({ name, input }, user) {
     const cible = derniereAnnulable(user?.email);
     if (!cible) {
       const recentes = dernieresActions(3, user?.email);
+      // Rien à défaire n'est pas un échec : c'est la réponse.
       return {
-        ok: false,
+        ok: true,
+        rien_a_annuler: true,
         message: recentes.length
           ? `Rien d'annulable. Dernière action : ${recentes[0].outil}${recentes[0].effet_annulation ? '' : ' — sans retour'}.`
           : "Aucune action exécutée récemment.",

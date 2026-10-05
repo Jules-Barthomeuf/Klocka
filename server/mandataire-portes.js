@@ -11,7 +11,7 @@
 // Rien ne part vers un tiers d'ici : le rapport validé, le mandat prêt, la
 // relance du propriétaire se préparent ; le mandataire les envoie lui-même.
 
-import { Records, Meta } from './db.js';
+import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (user) => String(user?.email || '').toLowerCase();
@@ -353,12 +353,18 @@ export function piecesDu(dossier) {
   return [...base, ...nouvelles];
 }
 
-/** Pure : ce qui manque, et si le dossier est complet. */
+/**
+ * Pure : ce qui manque, si le dossier est complet, et s'il peut partir chez
+ * Klocka. Une pièce suffit pour le transférer (le bail seul, par exemple) ;
+ * après des compléments, il faut celles que l'analyste a demandées.
+ */
 export function checklist(dossier) {
   const docs = dossier.documents || {};
   const lignes = piecesDu(dossier).map((p) => ({ ...p, fichiers: docs[p.cle] || [], recue: (docs[p.cle] || []).length > 0 }));
   const manquantes = lignes.filter((l) => l.requise && !l.recue);
-  return { lignes, manquantes, complet: manquantes.length === 0 };
+  const demandees = lignes.filter((l) => l.demandee);
+  const envoyable = demandees.length ? demandees.every((l) => l.recue) : lignes.some((l) => l.recue);
+  return { lignes, manquantes, complet: manquantes.length === 0, envoyable };
 }
 
 export function creerDossier({ bien, adresse = null, proprietaire = null, proprietaire_email = null, prix = null, surface_m2 = null, loyer_annuel = null }, user) {
@@ -381,16 +387,24 @@ export function creerDossier({ bien, adresse = null, proprietaire = null, propri
   return { ok: true, dossier: d };
 }
 
-export function ajouterPiece(id, categorie, fichier, user) {
+export function ajouterPiece(id, categorie, fichier, user, { uploadDir = CHEMIN_UPLOADS } = {}) {
   const d = lireDossier(id, user);
   if (!d) return { ok: false, error: 'Dossier introuvable.' };
   if (!piecesDu(d).some((p) => p.cle === categorie)) return { ok: false, error: 'Catégorie inconnue.' };
-  if (!['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est à l’étude : les pièces ne se changent plus.' };
+  // Transféré avec une partie des pièces : les suivantes arrivent encore
+  // pendant l'étude et vont tout droit dans l'espace documentaire de l'analyse.
+  const enEtude = d.statut === 'en_etude' && d.deal_id;
+  if (!enEtude && !['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est décidé : les pièces ne se changent plus.' };
   const documents = { ...(d.documents || {}), [categorie]: [...((d.documents || {})[categorie] || []), { nom: fichier.filename, url: fichier.url, le: maintenant() }] };
   const complet = checklist({ ...d, documents }).complet;
-  const statut = d.statut === 'complements' ? 'complements' : complet ? 'complet' : 'documents_en_cours';
+  const statut = enEtude ? 'en_etude' : d.statut === 'complements' ? 'complements' : complet ? 'complet' : 'documents_en_cours';
   const maj = Records.update('DossierMandataire', d.id, { documents, statut, historique: trace(d, `pièce reçue : ${fichier.filename}`, user) });
-  import('./fil-dossier.js').then((F) => F.evenement(d.id, `Pièce reçue : ${piecesDu(d).find((p) => p.cle === categorie)?.mot || categorie} (${fichier.filename}).`)).catch(() => {});
+  const mot = piecesDu(d).find((p) => p.cle === categorie)?.mot || categorie;
+  import('./fil-dossier.js').then((F) => F.evenement(d.id, `Pièce reçue : ${mot} (${fichier.filename}).`)).catch(() => {});
+  if (enEtude) {
+    deposerSurDeal(d.id, d.deal_id, user, uploadDir).catch((e) => console.warn('[portes] pièce après transfert :', e?.message || e));
+    import('./notifications.js').then(({ notifier }) => notifier({ pour: d.analyste_email, titre: `Nouvelle pièce · ${d.bien}`, texte: `${mot} : ${fichier.filename}`, lien: `/Analyse?deal_id=${d.deal_id}`, action: 'Ouvrir', cle: `fil-piece:${d.id}` })).catch(() => {});
+  }
   return { ok: true, dossier: maj };
 }
 
@@ -526,14 +540,72 @@ export function relanceProprietaire(dossier) {
 }
 
 /**
- * Le dossier complet part chez Klocka : un dossier naît côté admin (origine
+ * Les pièces pas encore déposées entrent dans l'espace documentaire du
+ * dossier d'analyse, se lisent, et se classent dans Drive. Au transfert, et
+ * pour chaque pièce qui arrive pendant l'étude.
+ */
+async function deposerSurDeal(id, dealId, user, uploadDir) {
+  const d = Records.get('DossierMandataire', id);
+  if (!d) return;
+  const deja = new Set(d.pieces_deposees || []);
+  // Chaque pièce avec son type, pour la ranger dans le bon onglet d'Analyse.
+  const typesDe = Object.fromEntries(piecesDu(d).map((p) => [p.cle, p.mot]));
+  const aDeposer = Object.entries(d.documents || {}).flatMap(([cle, fs]) => (fs || []).map((f) => ({ ...f, type: typesDe[cle] || cle }))).filter((f) => !deja.has(f.url));
+  if (!aDeposer.length || !uploadDir) return;
+  const fs = await import('fs');
+  const path = await import('path');
+  const { ajouterDocument } = await import('./deal/espace.js');
+  // Les pièces entrent dans l'espace documentaire de l'Analyse, comme
+  // celles d'un dossier normal : onglets Bail, Quittances, Diagnostics.
+  for (const f of aDeposer) {
+    try {
+      const fichier = path.join(uploadDir, path.basename(f.url));
+      const taille = fs.existsSync(fichier) ? fs.statSync(fichier).size : 0;
+      const mime = /\.pdf$/i.test(f.nom || f.url) ? 'application/pdf' : /\.(jpe?g)$/i.test(f.nom || f.url) ? 'image/jpeg' : /\.png$/i.test(f.nom || f.url) ? 'image/png' : 'application/octet-stream';
+      const r = ajouterDocument(dealId, { nom: `${f.type} · ${f.nom}`, url: f.url, mime, taille }, user);
+      if (!r?.ok) throw new Error(r?.error || 'dépôt refusé');
+      // Déposée pour de bon : elle ne sera pas représentée à la prochaine soumission.
+      const frais = Records.get('DossierMandataire', d.id);
+      Records.update('DossierMandataire', d.id, { pieces_deposees: [...(frais?.pieces_deposees || []), f.url] });
+    } catch (e) {
+      console.warn(`[dossier mandataire] ${f.nom} non déposé : ${e?.message || e}`);
+    }
+  }
+  // Les pièces déposées se lisent tout de suite, comme à l'ouverture de
+  // l'étape Analyse : l'analyste trouve bail, quittances et diagnostics
+  // déjà lus. Seules les pièces pas encore lues partent.
+  try {
+    const { lancerEtape } = await import('./deal/etapes-analyse.js');
+    const r = lancerEtape(dealId, 3, { user, uploadDir });
+    if (!r.ok) console.warn('[dossier mandataire] lecture des pièces :', r.error);
+  } catch (e) { console.warn('[dossier mandataire] lecture des pièces :', e?.message || e); }
+  // Et dans Google Drive : le dossier du bien reçoit les nouvelles pièces,
+  // comme pour un deal de l'équipe. Un échec Drive ne bloque rien.
+  try {
+    const { classerDansDrive } = await import('./google-drive.js');
+    const compte = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
+    const fichiers = aDeposer.map((f) => ({ nom: f.nom, chemin: path.basename(f.url), mime: /\.pdf$/i.test(f.nom || '') ? 'application/pdf' : undefined }));
+    const r = await classerDansDrive(compte, `${d.bien}${d.proprietaire ? ` — ${d.proprietaire}` : ''} (K Partners)`, fichiers, uploadDir);
+    Records.update('DossierMandataire', d.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+    if (r.erreurs.length) console.warn(`[dossier mandataire] Drive : ${r.erreurs.join(' ; ')}`);
+  } catch (e) {
+    console.warn(`[dossier mandataire] Drive indisponible : ${e?.message || e}`);
+  }
+}
+
+/**
+ * Le dossier part chez Klocka, dès une pièce : un dossier naît côté admin (origine
  * mandataire), les pièces y sont déposées et lues, un analyste le prend.
  */
 export async function soumettreDossier(id, user, { uploadDir, analyste = null } = {}) {
   const d = lireDossier(id, user);
   if (!d) return { ok: false, error: 'Dossier introuvable.' };
-  if (!['complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Il manque encore des pièces.' };
-  if (!checklist(d).complet) return { ok: false, error: 'Il manque encore des pièces.' };
+  if (!['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est déjà chez Klocka.' };
+  const c = checklist(d);
+  if (!c.envoyable) {
+    const demandees = c.lignes.filter((l) => l.demandee && !l.recue).map((l) => l.mot.toLowerCase());
+    return { ok: false, error: demandees.length ? `Klocka attend encore : ${demandees.join(', ')}.` : 'Déposez au moins une pièce (le bail, par exemple) avant de transférer.' };
+  }
   // Au premier transfert, le mandataire choisit son analyste parmi ceux qui
   // sont disponibles cette semaine. Un renvoi garde l'analyste du dossier.
   if (analyste && !d.deal_id) {
@@ -559,56 +631,7 @@ export async function soumettreDossier(id, user, { uploadDir, analyste = null } 
     Records.update('Deal', cree.id, { origine: 'mandataire', mandataire_email: d.mandataire_email, dossier_mandataire_id: d.id, proprietaire_vendeur: d.proprietaire || null });
   }
   // Les pièces se lisent en arrière-plan : le mandataire n'attend pas la lecture.
-  const deja = new Set(d.pieces_deposees || []);
-  // Chaque pièce avec son type, pour la ranger dans le bon onglet d'Analyse.
-  const typesDe = Object.fromEntries(piecesDu(d).map((p) => [p.cle, p.mot]));
-  const aDeposer = Object.entries(d.documents || {}).flatMap(([cle, fs]) => (fs || []).map((f) => ({ ...f, type: typesDe[cle] || cle }))).filter((f) => !deja.has(f.url));
-  if (aDeposer.length && uploadDir) {
-    const fs = await import('fs');
-    const path = await import('path');
-    const { ajouterDocument } = await import('./deal/espace.js');
-    (async () => {
-      // Les pièces entrent dans l'espace documentaire de l'Analyse, comme
-      // celles d'un dossier normal : onglets Bail, Quittances, Diagnostics.
-      for (const f of aDeposer) {
-        try {
-          const fichier = path.join(uploadDir, path.basename(f.url));
-          const taille = fs.existsSync(fichier) ? fs.statSync(fichier).size : 0;
-          const mime = /\.pdf$/i.test(f.nom || f.url) ? 'application/pdf' : /\.(jpe?g)$/i.test(f.nom || f.url) ? 'image/jpeg' : /\.png$/i.test(f.nom || f.url) ? 'image/png' : 'application/octet-stream';
-          const r = ajouterDocument(dealId, { nom: `${f.type} · ${f.nom}`, url: f.url, mime, taille }, user);
-          if (!r?.ok) throw new Error(r?.error || 'dépôt refusé');
-          // Déposée pour de bon : elle ne sera pas représentée à la prochaine soumission.
-          const frais = Records.get('DossierMandataire', d.id);
-          Records.update('DossierMandataire', d.id, { pieces_deposees: [...(frais?.pieces_deposees || []), f.url] });
-        } catch (e) {
-          console.warn(`[dossier mandataire] ${f.nom} non déposé : ${e?.message || e}`);
-        }
-      }
-      // Les pièces déposées se lisent tout de suite, comme à l'ouverture de
-      // l'étape Analyse : l'analyste trouve bail, quittances et diagnostics
-      // déjà lus. Seules les pièces pas encore lues partent (un renvoi après
-      // compléments ne relit pas tout).
-      try {
-        const { lancerEtape } = await import('./deal/etapes-analyse.js');
-        const r = lancerEtape(dealId, 3, { user, uploadDir });
-        if (!r.ok) console.warn('[dossier mandataire] lecture des pièces :', r.error);
-      } catch (e) { console.warn('[dossier mandataire] lecture des pièces :', e?.message || e); }
-      // Et dans Google Drive : le dossier du bien, avec toutes ses pièces,
-      // comme pour un deal de l'équipe. Un échec Drive ne bloque rien.
-      try {
-        const { classerDansDrive } = await import('./google-drive.js');
-        const compte = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
-        const fichiers = Object.values(d.documents || {}).flat().map((f) => ({ nom: f.nom, chemin: path.basename(f.url), mime: /\.pdf$/i.test(f.nom || '') ? 'application/pdf' : undefined }));
-        if (fichiers.length) {
-          const r = await classerDansDrive(compte, `${d.bien}${d.proprietaire ? ` — ${d.proprietaire}` : ''} (K Partners)`, fichiers, uploadDir);
-          Records.update('DossierMandataire', d.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-          if (r.erreurs.length) console.warn(`[dossier mandataire] Drive : ${r.erreurs.join(' ; ')}`);
-        }
-      } catch (e) {
-        console.warn(`[dossier mandataire] Drive indisponible : ${e?.message || e}`);
-      }
-    })();
-  }
+  if (uploadDir) deposerSurDeal(d.id, dealId, user, uploadDir).catch((e) => console.warn('[portes] dépôt des pièces :', e?.message || e));
   const maj = Records.update('DossierMandataire', d.id, {
     deal_id: dealId,
     soumission_en_cours: null,
@@ -626,10 +649,10 @@ export async function soumettreDossier(id, user, { uploadDir, analyste = null } 
     const F = await import('./fil-dossier.js');
     const a = await F.attribuer(d.id);
     F.evenement(d.id, premiere
-      ? `Dossier complet envoyé à Klocka : ${F.nomAnalyste(a?.analyste_email)} reçoit l'étude, la pré-analyse se fait tout de suite.`
+      ? `Dossier envoyé à Klocka : ${F.nomAnalyste(a?.analyste_email)} reçoit l'étude, la pré-analyse se fait tout de suite.`
       : `Compléments envoyés à Klocka : ${F.nomAnalyste(a?.analyste_email)} reprend l'étude.`);
     const { notifier } = await import('./notifications.js');
-    notifier({ pour: a?.analyste_email, titre: `Dossier à étudier · ${d.bien}`, texte: `Pièces complètes, déposées sur le dossier d'analyse.`, lien: `/Analyse?deal_id=${dealId}`, action: 'Ouvrir', cle: `fil-etude:${d.id}` });
+    notifier({ pour: a?.analyste_email, titre: `Dossier à étudier · ${d.bien}`, texte: c.complet ? `Pièces complètes, déposées sur le dossier d'analyse.` : `${c.lignes.filter((l) => l.recue).length} pièce(s) déposée(s) ; il manque ${c.manquantes.map((m) => m.mot.toLowerCase()).join(', ')}.`, lien: `/Analyse?deal_id=${dealId}`, action: 'Ouvrir', cle: `fil-etude:${d.id}` });
     // Le dossier d'analyse est « chez » l'analyste du mandataire.
     const deal = Records.findBy('Deal', 'deal_id', dealId);
     if (deal && a?.analyste_email) Records.update('Deal', deal.id, { responsables: [F.nomAnalyste(a.analyste_email)] });

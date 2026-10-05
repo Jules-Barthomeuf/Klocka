@@ -393,6 +393,10 @@ export function colonnesDeCible(c) {
     enseigne: c.enseigne || null,
     activite: c.activite || null,
     adresse: c.adresse || null,
+    ville: c.ville || null,
+    arrondissement: c.arrondissement || null,
+    // L'effectif du commerce (Data-B) : celui de la société des murs, une SCI le plus souvent, ne dit rien.
+    effectif_commerce: c.datab?.effectif || null,
     emplacement: c.emplacement ?? null,
     telephone: c.telephone || null,
     site: c.site || null,
@@ -520,16 +524,53 @@ function fichesSansNumero(listeId) {
  * les noms arrivent. Une adresse sans réponse n'est pas retentée avant sept
  * jours (proprietaire_cherche_le).
  */
+/**
+ * Les fiches d'une liste sans commerce rattaché (les exports Data-B d'avant
+ * le 1er oct. 2026 : ni cible, ni propriétaire cherché, et le nom de la
+ * société à la place de l'activité). Chacune retrouve son commerce, par son
+ * SIRET et son adresse, et son activité par le code APE de l'annuaire des
+ * entreprises. Une seule tentative par fiche.
+ */
+const fichesSansCible = (listeId) => Records.list('ProprietaireMandataire')
+  .filter((p) => p.liste_id === listeId && !p.cible_id && p.adresse && !p.rattachement_tente_le);
+
+async function rattacherFiche(p, user) {
+  Records.update('ProprietaireMandataire', p.id, { rattachement_tente_le: new Date().toISOString() });
+  const { cibleDepuisDataB } = await import('./mandataire-prospective.js');
+  const c = await cibleDepuisDataB({
+    ville: p.ville, adresse: p.adresse, nom: p.commerce, enseigne: p.commerce, siret: p.datab_siret || null,
+    lat: p.datab?.lat ?? null, lon: p.datab?.lon ?? null, telephone: p.telephone_commerce || null,
+  }, { user });
+  if (!c.ok) return;
+  let activite = null;
+  if (p.datab_siret) {
+    try {
+      const { societe } = await import('./alx/annuaire.js');
+      const { libelleApe } = await import('./alx/commerces.js');
+      const s = await societe({ siren: String(p.datab_siret).slice(0, 9) });
+      if (s?.ape) activite = libelleApe(s.ape);
+    } catch (e) { console.warn(`[mandataire] activité de ${p.commerce} : ${e?.message || e}`); }
+  }
+  if (activite && !c.cible.activite) Records.update('Cible', c.cible.id, { activite });
+  Records.update('ProprietaireMandataire', p.id, { cible_id: c.cible.id, activite: activite || c.cible.activite || null });
+}
+
 export function completerProprietairesListe(listeId, user) {
   const l = Records.get('ListeMandataire', listeId);
   if (!l || l.mandataire_email !== moi(user)) return { ok: false, error: 'Liste introuvable.' };
+  const sansCible = fichesSansCible(listeId);
   const aFaire = fichesSansProprietaire(listeId);
   const sansNumero = fichesSansNumero(listeId);
-  if ((!aFaire.length && !sansNumero.length) || completions.has(listeId)) return { ok: true, lancees: 0 };
+  if ((!sansCible.length && !aFaire.length && !sansNumero.length) || completions.has(listeId)) return { ok: true, lancees: 0 };
   completions.add(listeId);
   (async () => {
     const { trouverProprietaire } = await import('./alx/enrichir.js');
-    for (const { p, c } of aFaire) {
+    for (const p of sansCible) {
+      await rattacherFiche(p, user).catch((e) => console.warn(`[mandataire] rattachement (${p.commerce || p.adresse}) : ${e?.message || e}`));
+      await new Promise((f) => setTimeout(f, 200));
+    }
+    // Les fiches rattachées à l'instant ont aussi leur propriétaire à chercher.
+    for (const { p, c } of sansCible.length ? fichesSansProprietaire(listeId) : aFaire) {
       Records.update('Cible', c.id, { proprietaire_cherche_le: new Date().toISOString() });
       try {
         const r = await trouverProprietaire(c.id, { user });
@@ -546,7 +587,7 @@ export function completerProprietairesListe(listeId, user) {
       await new Promise((f) => setTimeout(f, 300));
     }
   })().catch(() => {}).finally(() => completions.delete(listeId));
-  return { ok: true, lancees: aFaire.length + sansNumero.length };
+  return { ok: true, lancees: sansCible.length + aFaire.length + sansNumero.length };
 }
 
 export function mesListes(user) {

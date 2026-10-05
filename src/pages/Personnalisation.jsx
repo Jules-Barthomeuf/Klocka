@@ -10,6 +10,7 @@ import { usePersonnalisation } from "@/components/providers/PersonnalisationProv
 import { CLAIR, OPTIONS, POLICES, accentHex, themeEffectif } from "@/lib/personnalisation";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
+import CommunesAgent from "@/components/mandataire/CommunesAgent";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -251,6 +252,12 @@ export default function Personnalisation() {
   // Le mandataire (ou l'admin en Vue Mandataire) a la page large de l'équipe :
   // ses réglages à gauche, ses habilitations à droite, là où l'admin a l'assistant.
   const vueMandataire = vueDe(user) === "mandataire";
+  // « Choisir les communes » (onglet Agent IA) arrive sur #agent.
+  useEffect(() => {
+    if (!vueMandataire || window.location.hash !== "#agent") return undefined;
+    const t = setTimeout(() => document.getElementById("agent")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+    return () => clearTimeout(t);
+  }, [vueMandataire]);
   const large = !vueClient || vueMandataire;
   const theme = themeEffectif(prefs);
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
@@ -272,6 +279,16 @@ export default function Personnalisation() {
 
       {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents et ses habilitations. */}
       <div className="mb-8"><ProfilCompte user={user} partie={vueMandataire ? "haut" : "tout"} /></div>
+
+      {/* Le mandataire : où cherche son agent IA, réglé à l'accueil, modifiable ici. */}
+      {vueMandataire && (
+        <section id="agent" className="mb-5 scroll-mt-6 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
+          <p className={`${etiq} pt-4`}>Votre agent IA</p>
+          <Reglage titre="Où il cherche" note="Les villes Klocka sont toujours lues. Cochez les autres communes de votre secteur que vous travaillez pour votre activité.">
+            <CommunesAgent />
+          </Reglage>
+        </section>
+      )}
 
       {/* L'équipe a deux colonnes : l'application à gauche, l'assistant à droite. */}
       <div className={large ? "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]" : ""}>

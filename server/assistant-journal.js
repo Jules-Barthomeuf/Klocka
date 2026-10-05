@@ -32,6 +32,21 @@ export function estEchec(resultat) {
 }
 
 /**
+ * Ce qu'une action a donné, pour mesurer juste. Une question posée parce
+ * qu'il manquait une information n'est pas un échec, ni un doublon évité :
+ * - « reussite » : fait ;
+ * - « question » : l'outil a rendu ce qui manque (prix, vendeur…), AK l'a demandé ;
+ * - « doublon » : le même geste venait d'être fait, il n'a pas été refait ;
+ * - « echec » : un vrai refus ou une erreur.
+ * Pure.
+ */
+export function issueDe(resultat) {
+  if (resultat?.deja_fait) return 'doublon';
+  if (resultat && resultat.ok === false && Array.isArray(resultat.manque) && resultat.manque.length) return 'question';
+  return estEchec(resultat) ? 'echec' : 'reussite';
+}
+
+/**
  * Consigne une action exécutée.
  * @returns {object} l'entrée du journal
  */

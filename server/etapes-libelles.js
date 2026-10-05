@@ -11,6 +11,7 @@ const entre = (v) => (v ? ` « ${court(v)} »` : '');
 const LIBELLES = {
   chercher_dossier: (i) => `Recherche du dossier${entre(i.recherche || i.ville)}`,
   chercher_projet: (i) => `Recherche du projet${entre(i.recherche || i.nom)}`,
+  trouver_bien: (i) => `Recherche du bien dans les projets et les dossiers${entre(i.recherche)}`,
   etat_dossier: () => 'Lecture du dossier',
   etat_projet: () => 'Lecture du projet',
   simuler_dossier: () => 'Simulation du financement',

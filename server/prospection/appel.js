@@ -240,10 +240,8 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
     transcription, recit, resume: lu.resume || null, issue, date_dite: lu.date_dite || null,
     propositions: props, message, etat: 'a_valider',
   });
-  // Le message part aussi dans le chat privé de la personne : c'est un message
-  // interne, AK l'y dépose au prochain passage.
-  const { direEnPrive } = await import('./messages.js');
-  direEnPrive(par, message, { appel_id: appel.id });
+  // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus
+  // d'envoi dans le chat privé, qui faisait doublon.
   return { ok: true, appel };
 }
 

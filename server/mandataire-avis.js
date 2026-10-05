@@ -493,6 +493,20 @@ La valeur des murs commerciaux vient de Data-B (taux de rendement du secteur pou
 On n'invente rien.`;
 
 /** Un tour du chat de l'estimation. */
+/** Pure : l'étape montrée quand une réponse est notée, avec sa valeur lisible. */
+export function etapeDeReponse(cle, valeur) {
+  const mot = String(cle).replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
+  const brut = typeof valeur === 'object' ? JSON.stringify(valeur) : String(valeur);
+  const n = Number(brut.replace(/[\s\u202f€]/g, '').replace(',', '.'));
+  let lisible = brut;
+  if (Number.isFinite(n) && /^[\d\s\u202f.,€]+$/.test(brut.trim())) {
+    const nombre = n.toLocaleString('fr-FR', { maximumFractionDigits: 2 }).replace(/\u202f/g, ' ');
+    lisible = /surface|m2|m²/i.test(cle) ? `${nombre} m²` : /loyer|prix|valeur|charges|taxe|depot|dépôt|montant|honoraires|droit/i.test(cle) ? `${nombre} €` : nombre;
+  } else if (valeur === true || brut === 'true') lisible = 'oui';
+  else if (valeur === false || brut === 'false') lisible = 'non';
+  return `${mot} : ${lisible.length > 60 ? `${lisible.slice(0, 59)}…` : lisible}`;
+}
+
 export async function discuterEstimation({ historique = [], texte, user, surEtape = null, piece = null, mode = null, conversation_id = null, selection = null }) {
   const conv = conversation_id ? String(conversation_id) : null;
   // L'avis commencé au premier message, avant que la conversation ait son
@@ -530,9 +544,11 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
     onTool: async ({ name, input = {} }) => {
       if (name === 'commencer_avis') { surEtape?.('Nouvel avis de valeur'); return commencer(input, user, conv); }
       if (name === 'noter_reponses') {
-        const tous = Object.keys(input.reponses || {}).map((k) => k.replaceAll('_', ' '));
-        const champs = tous.slice(0, 8);
-        surEtape?.(champs.length ? `Je note : ${champs.join(', ')}${tous.length > champs.length ? '…' : ''}` : 'Réponses enregistrées');
+        // Une étape par valeur notée, avec la valeur : « Loyer annuel hc : 50 000 € ».
+        const notees = Object.entries(input.reponses || {}).filter(([, v]) => v != null && String(v).trim() !== '');
+        for (const [k, v] of notees.slice(0, 6)) surEtape?.(etapeDeReponse(k, v));
+        if (notees.length > 6) surEtape?.(`Et ${notees.length - 6} autre${notees.length - 6 > 1 ? 's' : ''} réponse${notees.length - 6 > 1 ? 's' : ''}`);
+        if (!notees.length) surEtape?.('Réponses enregistrées');
         return noter(input.reponses, user, conv);
       }
       if (name === 'retoucher_avis') {

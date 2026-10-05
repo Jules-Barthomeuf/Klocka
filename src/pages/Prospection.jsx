@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
+import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/AgencesIA";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
 // un agent (il se verrouille à son nom), on enregistre l'appel, et à la fin
@@ -99,37 +100,6 @@ function Propositions({ appel, onFini }) {
           </button>
         )}
       </div>
-    </div>
-  );
-}
-
-// La suite d'un appel part dans Google Chat, en privé : c'est là qu'on
-// répond à l'assistant. La page suit l'envoi ; si le chat ne l'a pas reçu
-// au bout de quarante secondes, elle propose de choisir ici.
-function SuiteDansLeChat({ appel, onFini }) {
-  const [attente, setAttente] = useState(0);
-  const [ici, setIci] = useState(false);
-  const { data } = useQuery({
-    queryKey: ["prospection-appel", appel.id],
-    queryFn: () => base44.request("GET", `/api/prospection/appels/${appel.id}`),
-    refetchInterval: (q) => (q.state.data?.appel?.dit_le || q.state.data?.appel?.etat !== "a_valider" ? false : 4000),
-  });
-  useEffect(() => { const t = setInterval(() => setAttente((x) => x + 1), 1000); return () => clearInterval(t); }, []);
-  const a = data?.appel || appel;
-  const dit = !!a.dit_le;
-  const tranche = a.etat !== "a_valider";
-  return (
-    <div className="mt-4 flex flex-col gap-3">
-      <p className="m-0 flex items-center gap-2 text-[13.5px] text-encre">
-        {tranche ? <><Check className="h-4 w-4 text-menthe" />C'est réglé dans le chat.</>
-          : dit ? <><Check className="h-4 w-4 text-menthe" />L'assistant t'a écrit dans Google Chat : réponds-lui là-bas.</>
-            : <><Loader2 className="h-4 w-4 animate-spin" />L'assistant t'écrit dans Google Chat…</>}
-      </p>
-      <div className="flex flex-wrap justify-end gap-2">
-        {!tranche && (dit || attente > 40) && <button type="button" onClick={() => setIci((x) => !x)} className="text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{ici ? "Replier" : dit ? "Voir ses propositions ici" : "Le chat ne répond pas : choisir ici"}</button>}
-        <button type="button" onClick={onFini} className="rounded-full border border-menthe/60 px-4 py-1.5 text-[12.5px] text-encre">Appel suivant</button>
-      </div>
-      {ici && !tranche && <><Bulle>{a.message}</Bulle><Propositions appel={a} onFini={onFini} /></>}
     </div>
   );
 }
@@ -252,7 +222,8 @@ function PanneauAppel({ agent, onFermer }) {
           </div>
         </>
       )}
-      {etat === "propose" && appel && <SuiteDansLeChat appel={appel} onFini={onFermer} />}
+      {/* Après l'appel, la suite tout de suite ici : ce qu'AK propose, et le mail prêt à relire. */}
+      {etat === "propose" && appel && <div className="mt-4 flex flex-col gap-3"><Bulle>{appel.message}</Bulle><Propositions appel={appel} onFini={onFermer} /></div>}
     </section>
   );
 }
@@ -836,10 +807,16 @@ function OngletReglages() {
 export default function Prospection() {
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(() => new URLSearchParams(window.location.search).get("onglet") || "grille");
+  // Les trois parties de la page : prospecter (le carnet et les appels), l'agent IA, ses listes par ville.
+  // « Prospecter » est caché pour l'instant (décision de Jules, 5 oct. 2026) : la page s'ouvre sur l'agent IA.
+  const PARTIES = [["agent", "Agent IA"], ["listes", "Listes"]];
+  const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "agent"; } catch { return "agent"; } });
+  useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
+  const [listeOuverte, setListeOuverte] = useState(null);
   const [appel, setAppel] = useState(null);
   const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: 60000 });
   const prendre = useMutation({
-    mutationFn: (a) => base44.request("POST", `/api/prospection/agents/${a.id}/prendre`).then(() => a),
+    mutationFn: (a) => base44.request("POST", `/api/prospection/agents/${a.id}/prendre`).then((r) => ({ ...(r?.agent || {}), ...a })),
     onSuccess: (a) => { setAppel({ ...a, raison: a.a_appeler?.raison || "" }); queryClient.invalidateQueries({ queryKey: ["prospection-grille"] }); },
     onError: (e) => toast.error(e?.message || "Déjà pris"),
   });
@@ -851,13 +828,23 @@ export default function Prospection() {
     ["reglages", "Réglages"],
   ], [jour.data]);
   if (jour.isError && /403|réservé/i.test(jour.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
-  const enAttente = jour.data?.appel_a_valider;
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6">
       {/* Le titre au centre, les onglets de la page dessous, à gauche. */}
       <header className="mb-6 flex flex-col gap-5">
         <h1 className="m-0 text-center text-[26px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[24px]">Prospection</h1>
-        <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
+        <div className="flex justify-center">
+          <div className="flex gap-1 rounded-full bg-rail-actif p-1">
+            {PARTIES.map(([k, mot]) => (
+              <button key={k} type="button" onClick={() => setPartie(k)} aria-pressed={partie === k}
+                className={`${k === "agent" ? "agent-onglet relative " : ""}rounded-full border border-transparent px-4 py-1.5 text-[13.5px] transition-colors ${partie === k ? (k === "agent" ? "text-encre" : "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]") : "text-ardoise hover:text-encre"}`}
+                style={partie === k && k !== "agent" ? undefined : { background: "transparent" }}>
+                {mot}
+              </button>
+            ))}
+          </div>
+        </div>
+        {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}
               className={`inline-flex h-8 flex-none items-center gap-1.5 rounded-full border-0 px-3.5 text-[13px] transition-colors ${onglet === cle ? "bg-encre/90 text-fond" : "text-craie hover:text-encre"}`}
@@ -865,17 +852,18 @@ export default function Prospection() {
               {mot}{n ? <span className={`tabular-nums ${onglet === cle ? "" : "text-brume"}`}>{n}</span> : null}
             </button>
           ))}
-        </nav>
+        </nav>}
       </header>
-      {enAttente && !appel && <p className="m-0 mb-4 rounded-[12px] border border-ambre/40 px-4 py-2.5 text-[13px] text-craie">Ton appel avec {enAttente.agent} attend ta réponse dans Google Chat.</p>}
+      {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
+      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
-      <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
+      {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
         {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}
         {onglet === "envois" && <OngletEnvois />}
         {onglet === "decisions" && <OngletDecisions />}
         {onglet === "tableau" && <OngletTableau />}
         {onglet === "reglages" && <OngletReglages />}
-      </div>
+      </div>}
       {appel && (
         <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
           <PanneauAppel key={appel.id} agent={appel} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />

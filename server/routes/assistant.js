@@ -238,7 +238,7 @@ export function monterAssistant(app) {
       const flux = ouvrirFlux(res);
       try {
         const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape })
+          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null })
         );
         flux.fin(resultat);
       } catch (e) {
@@ -247,7 +247,7 @@ export function monterAssistant(app) {
       return;
     }
     const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-      traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null })
+      traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, contexte: req.body?.contexte || null })
     );
     ok(res, resultat);
   }));

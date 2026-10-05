@@ -202,16 +202,16 @@ function SqueletteListes() {
     <div className="mt-6 w-full animate-pulse" aria-busy="true" aria-label="Chargement des listes">
       <div className="flex items-end">
         <span className="w-2 flex-none self-stretch border-b border-trait" />
-        <span className="flex h-[42px] w-[190px] flex-none items-center rounded-t-[10px] border border-b-0 border-trait bg-surface px-4"><span className={`${bloc} h-2.5 w-28`} /></span>
+        <span className="flex h-[42px] w-[190px] flex-none items-center rounded-t-[10px] border border-b-0 border-trait bg-rail-actif px-4"><span className={`${bloc} h-2.5 w-28`} /></span>
         {[150, 170, 130].map((l, i) => (
           <React.Fragment key={i}>
             <span className="w-1 flex-none self-stretch border-b border-trait" />
-            <span className="flex h-[38px] flex-none items-center rounded-t-[10px] border-b border-trait bg-encre/[0.035] px-4" style={{ width: l }}><span className={`${bloc} h-2.5 w-20`} /></span>
+            <span className="flex h-[38px] flex-none items-center rounded-t-[10px] border-b border-trait bg-surface px-4" style={{ width: l }}><span className={`${bloc} h-2.5 w-20`} /></span>
           </React.Fragment>
         ))}
         <span className="flex-1 self-stretch border-b border-trait" />
       </div>
-      <div className="rounded-b-md border-x border-b border-trait bg-surface px-5 pb-5 pt-4">
+      <div className="rounded-b-md border-x border-b border-trait bg-rail-actif px-5 pb-5 pt-4">
         <span className={`${bloc} block h-3.5 w-56`} />
         <span className={`${bloc} mt-2.5 block h-2.5 w-80 max-w-full`} />
         <div className="mt-5 overflow-hidden rounded-[10px] border border-trait">
@@ -259,7 +259,9 @@ function Listes({ demandee = null, onDemandeVue = null }) {
   return (
     <div className="mt-6 w-full">
       {/* Les intercalaires, sans trait : l'onglet ouvert a le fond de la page
-          de la liste, les autres un voile plus léger. */}
+          de la liste, celui du sélecteur Prospecter / Agent IA / Listes
+          (rail-actif, plus clair, décision du 5 oct. 2026) ; les autres, le
+          voile de surface. */}
       <div ref={ongletsRef} role="tablist" aria-label="Vos listes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <span aria-hidden className="w-2 flex-none" />
         {listes.map((x, i) => {
@@ -268,7 +270,7 @@ function Listes({ demandee = null, onDemandeVue = null }) {
             <React.Fragment key={x.id}>
               {i > 0 && <span aria-hidden className="w-1 flex-none" />}
               <button type="button" role="tab" aria-selected={actif} onClick={() => setChoisie(x.id)} title={x.nom}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-surface pb-[11px] pt-2.5 text-encre" : "bg-encre/[0.035] py-2 text-ardoise hover:bg-encre/[0.06] hover:text-encre"}`}>
+                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail-actif pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail-actif hover:text-encre"}`}>
                 {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
                 <span className="truncate">{x.nom}</span>
                 {x.a_appeler > 0 && <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.a_appeler}</span>}
@@ -278,7 +280,7 @@ function Listes({ demandee = null, onDemandeVue = null }) {
         })}
         <span aria-hidden className="min-w-2 flex-1" />
       </div>
-      <div data-zone="listes" className="k-points relative rounded-b-md bg-surface px-5 pb-5 pt-4 max-md:px-3">
+      <div data-zone="listes" className="k-points relative rounded-b-md bg-rail-actif px-5 pb-5 pt-4 max-md:px-3">
         <div className="flex flex-wrap items-center gap-3">
           <p className="m-0 min-w-0 flex-1 truncate text-[15px] text-encre">{l.nom}</p>
           <button type="button" onClick={() => renommer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Pencil className="h-3.5 w-3.5" /> Renommer</button>

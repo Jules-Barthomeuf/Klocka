@@ -318,6 +318,40 @@ export function monterProspection(app) {
     ok(res, { lus: r.lus, crees: r.crees.length, completes: r.completes });
   }));
 
+  // --- L'agent IA : les agences immobilières d'une ville, en listes partagées ---
+  const IA = () => import('../prospection/agent-ia.js');
+  app.get('/api/prospection/agent-ia/listes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { listes: (await IA()).listes() });
+  }));
+  app.get('/api/prospection/agent-ia/listes/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const l = (await IA()).liste(req.params.id);
+    if (!l) return res.status(404).json({ error: 'Liste introuvable.' });
+    ok(res, l);
+  }));
+  app.post('/api/prospection/agent-ia/lancer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await IA()).lancer(req.body?.ville, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/agent-ia/agences/:id/appeler', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await IA()).pourAppeler(req.params.id, { agent: req.body?.agent ?? null }, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/agent-ia/agences/:id/carnet', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await IA()).auCarnet(req.params.id, { agent: req.body?.agent ?? null }, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+
   app.post('/api/prospection/tour', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     ok(res, await (await P()).tour());

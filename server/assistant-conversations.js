@@ -46,6 +46,14 @@ export function serialisables(messages) {
           .slice(0, 8)
           .map((c) => ({ titre: c.titre.slice(0, 160), detail: typeof c.detail === 'string' ? c.detail.slice(0, 400) : null, etat: ['fait', 'annule', 'rate'].includes(c.etat) ? c.etat : 'fait', lien: typeof c.lien === 'string' ? c.lien.slice(0, 400) : null, ...(typeof c.action === 'string' ? { action: c.action.slice(0, 40) } : {}) }));
       }
+      // Les sources d'une LOI : la lettre et les titres, la fenêtre relit le reste.
+      if (m.sources && typeof m.sources.loi_id === 'string' && Array.isArray(m.sources.liens)) {
+        propre.sources = {
+          loi_id: m.sources.loi_id.slice(0, 80),
+          liens: m.sources.liens.filter((x) => x && typeof x.id === 'string' && typeof x.titre === 'string').slice(0, 8)
+            .map((x) => ({ id: x.id.slice(0, 20), titre: x.titre.slice(0, 160), detail: typeof x.detail === 'string' ? x.detail.slice(0, 80) : null })),
+        };
+      }
       propres.push(propre);
     }
   }

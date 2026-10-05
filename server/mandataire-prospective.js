@@ -473,17 +473,44 @@ Raccourcis : s'il dit tout d'un coup (« les boulangeries indépendantes à Mâc
 const EMPLACEMENT_DE_RUE = { 5: 1, 4: 1.5, 3: 2 };
 const libelleMetier = (id) => Object.keys(METIERS).find((k) => String(METIERS[k]) === String(id)) || null;
 
-export async function cibleDepuisDataB(l, { villeNom = null, centre = null, user = null } = {}) {
+/** Pure : « LYON 5EME », « PARIS 11 », « MARSEILLE CEDEX 08 » → la commune seule (« LYON »). */
+export function baseCommune(ville) {
+  return String(ville || '').replace(/\s+cedex\b.*$/i, '').replace(/\s+\d{1,2}\s*(er|eme|ème|e)?\b.*$/i, '').trim() || null;
+}
+
+/**
+ * Pure : l'arrondissement de Paris, Lyon ou Marseille, par le code postal
+ * (69005 → « Lyon 5e », 75116 → « Paris 16e », 13001 → « Marseille 1er »).
+ * Ailleurs, rien.
+ */
+export function arrondissementDe(cp) {
+  const c = String(cp || '').trim();
+  let m;
+  const rang = (ville, n) => `${ville} ${n === 1 ? '1er' : `${n}e`}`;
+  if (c === '75116') return rang('Paris', 16);
+  if ((m = c.match(/^750(\d{2})$/)) && +m[1] >= 1 && +m[1] <= 20) return rang('Paris', +m[1]);
+  if ((m = c.match(/^6900(\d)$/)) && +m[1] >= 1) return rang('Lyon', +m[1]);
+  if ((m = c.match(/^130(\d{2})$/)) && +m[1] >= 1 && +m[1] <= 16) return rang('Marseille', +m[1]);
+  return null;
+}
+
+export async function cibleDepuisDataB(l, { villeNom = null, centre = null, user = null, horsCommune = 'garder' } = {}) {
   const { creerVille, creerCible } = await import('./alx/index.js');
-  // Data-B écrit les villes en capitales sans accent (« MACON ») : la commune
-  // de la prospective (« Mâcon ») fait foi quand c'est la même, sinon le nom
-  // est remis en casse ordinaire. Sinon, une seconde ville « MACON » naîtrait
-  // à côté de « Mâcon ».
-  const memeVille = l.ville && villeNom && normMetier(l.ville).replace(/[^a-z]/g, '') === normMetier(villeNom).replace(/[^a-z]/g, '');
+  // Data-B écrit les villes en capitales sans accent (« MACON »), et Paris,
+  // Lyon, Marseille avec leur arrondissement (« LYON 5EME ») : la commune de
+  // la prospective (« Mâcon », « Lyon ») fait foi quand c'est la même, sinon
+  // le nom est remis en casse ordinaire. L'arrondissement se garde à part,
+  // lu au code postal : la commune reste Lyon, pour ses listes et les villes Klocka.
+  const cle = (t) => normMetier(t).replace(/[^a-z]/g, '');
+  const base = baseCommune(l.ville);
+  const memeVille = base && villeNom && cle(base) === cle(villeNom);
+  // L'agent ne garde que la commune qu'il lit : Data-B place parfois sur la
+  // carte de Lyon un commerce de Marseille (« 39 rue de Lyon, 13015 »).
+  if (horsCommune === 'ignorer' && base && villeNom && !memeVille) return { ok: false, hors: true, error: `${l.adresse || l.nom} est à ${l.ville}, pas à ${villeNom}.` };
   const casse = (t) => String(t).toLowerCase().replace(/(^|[\s-])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
-  const nomVille = memeVille || !l.ville ? villeNom : casse(l.ville);
+  const nomVille = memeVille || !base ? villeNom : casse(base);
   if (!nomVille) return { ok: false, error: 'Ville inconnue.' };
-  const existante = Records.list('Ville').find((v) => normMetier(v.nom).replace(/[^a-z]/g, '') === normMetier(nomVille).replace(/[^a-z]/g, ''));
+  const existante = Records.list('Ville').find((v) => cle(v.nom) === cle(nomVille));
   const cv = existante ? { ok: true, ville: existante } : creerVille({ nom: nomVille, code_postal: l.code_postal || null, user });
   if (!cv.ok) return cv;
   const v = Records.get('Ville', cv.ville.id);
@@ -501,6 +528,10 @@ export async function cibleDepuisDataB(l, { villeNom = null, centre = null, user
     user,
   });
   if (!r.ok) return r;
+  const arrondissement = arrondissementDe(l.code_postal);
+  if (l.code_postal && (r.cible.code_postal !== l.code_postal || (arrondissement && r.cible.arrondissement !== arrondissement))) {
+    Records.update('Cible', r.cible.id, { code_postal: l.code_postal, ...(arrondissement ? { arrondissement } : {}) });
+  }
   if (!r.deja || r.cible.emplacement == null) {
     Records.update('Cible', r.cible.id, {
       emplacement: r.cible.emplacement ?? EMPLACEMENT_DE_RUE[l.type_rue] ?? null,

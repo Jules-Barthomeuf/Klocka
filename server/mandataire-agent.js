@@ -67,15 +67,16 @@ export function noter(email, texte, genre = 'info') {
 // --- Les communes du secteur ----------------------------------------------------
 
 /**
- * Les communes où l'agent travaille. Celles choisies quand le secteur a été
- * dessiné par unités ; sinon (un contour tracé à la main), celles que le
- * contour couvre, lues à l'API Géo sur une grille de points et gardées un
- * mois sur le secteur. Les plus peuplées d'abord : plus de commerces.
+ * Les communes du secteur. Celles choisies quand le secteur a été dessiné par
+ * unités ; sinon (un contour tracé à la main), celles que le contour couvre,
+ * lues à l'API Géo sur une grille de points et gardées un mois sur le
+ * secteur. Les plus peuplées d'abord : plus de commerces.
+ * @returns {Promise<Array<{nom, code, population?}>>}
  */
-export async function communesAgent(secteur) {
-  const choisies = (secteur.unites || []).filter((u) => u.niveau === 'commune').map((u) => u.nom);
+export async function communesDuSecteur(secteur) {
+  const choisies = (secteur.unites || []).filter((u) => u.niveau === 'commune').map((u) => ({ nom: u.nom, code: u.code || null }));
   if (choisies.length) return choisies;
-  if (secteur.communes_auto?.length && Date.now() - Date.parse(secteur.communes_auto_le || 0) < TRENTE_JOURS) return secteur.communes_auto.map((c) => c.nom);
+  if (secteur.communes_auto?.length && Date.now() - Date.parse(secteur.communes_auto_le || 0) < TRENTE_JOURS) return secteur.communes_auto;
   // L'API Géo injoignable : on ne relance pas la grille avant une heure.
   if (secteur.communes_auto_echec_le && Date.now() - Date.parse(secteur.communes_auto_echec_le) < 3600000) return [];
   const { anneauxSecteur, dansSecteur } = await import('./mandataire-espace.js');
@@ -100,7 +101,44 @@ export async function communesAgent(secteur) {
   }
   const communes = [...trouvees.values()].sort((a, b) => b.population - a.population);
   if (secteur.id) Records.update('SecteurMandataire', secteur.id, communes.length ? { communes_auto: communes, communes_auto_le: maintenant(), communes_auto_echec_le: null } : { communes_auto_echec_le: maintenant() });
-  return communes.map((c) => c.nom);
+  return communes;
+}
+
+/**
+ * Où l'agent cherche : les villes Klocka du secteur d'abord, toujours, puis
+ * les communes que le mandataire a cochées pour son activité. Rien d'autre :
+ * une commune du secteur non cochée n'est pas lue.
+ */
+export async function communesAgent(secteur) {
+  const { villesKlocka, rangerCommunes } = await import('./villes-klocka.js');
+  const r = rangerCommunes(await communesDuSecteur(secteur), villesKlocka(), secteur.communes_activite || []);
+  return [...r.klocka, ...r.autres.filter((c) => c.choisie)].map((c) => c.nom);
+}
+
+/** Le réglage du mandataire : les villes Klocka de son secteur, et les autres communes, cochées ou non. */
+export async function reglageCommunes(user) {
+  const { secteurDe } = await import('./mandataire-espace.js');
+  const secteur = secteurDe(user);
+  if (!secteur) return { secteur: null, klocka: [], autres: [], regle: true };
+  const { villesKlocka, rangerCommunes } = await import('./villes-klocka.js');
+  const r = rangerCommunes(await communesDuSecteur(secteur), villesKlocka(), secteur.communes_activite || []);
+  const champ = (c) => ({ nom: c.nom, code: c.code || null, population: c.population || null });
+  return { secteur: { nom: secteur.nom }, klocka: r.klocka.map(champ), autres: r.autres.map((c) => ({ ...champ(c), choisie: c.choisie })), regle: !!secteur.communes_reglees_le };
+}
+
+/** Le mandataire coche ses communes : seulement celles de son secteur, hors villes Klocka (toujours lues). */
+export async function choisirCommunes(user, cles = []) {
+  const { secteurDe } = await import('./mandataire-espace.js');
+  const secteur = secteurDe(user);
+  if (!secteur) return { ok: false, error: "Aucun secteur ne vous est attribué : demandez à Klocka de tracer le vôtre." };
+  const { villesKlocka, rangerCommunes, norm } = await import('./villes-klocka.js');
+  const r = rangerCommunes(await communesDuSecteur(secteur), villesKlocka(), []);
+  const voulues = new Set((Array.isArray(cles) ? cles : []).map(String));
+  const choisies = r.autres.filter((c) => voulues.has(c.code || '') || voulues.has(c.nom) || voulues.has(norm(c.nom))).map((c) => c.code || norm(c.nom));
+  Records.update('SecteurMandataire', secteur.id, { communes_activite: choisies, communes_reglees_le: maintenant() });
+  const noms = [...r.klocka.map((c) => c.nom), ...r.autres.filter((c) => choisies.includes(c.code || norm(c.nom))).map((c) => c.nom)];
+  noter(user.email, noms.length ? `Je cherche désormais à ${noms.slice(0, 6).join(', ')}${noms.length > 6 ? ` et ${noms.length - 6} autres` : ''}.` : "Aucune commune à lire : cochez celles de votre activité dans Compte.", noms.length ? 'info' : 'alerte');
+  return { ok: true, ...(await reglageCommunes(user)) };
 }
 
 // --- 1. Sourcer : Data Prospective, commune après commune -------------------
@@ -115,6 +153,11 @@ export async function sourcer(secteur, user, etat) {
   const c = compteurs(etat);
   const M = await import('./mandataire-prospective.js');
 
+  // Une prospective sur une commune décochée depuis : on la laisse.
+  if (etat.datab?.commune && !(await communesAgent(secteur)).includes(etat.datab.commune)) {
+    noter(user.email, `${etat.datab.commune} n'est plus dans vos communes : je la laisse.`);
+    etat.datab = null;
+  }
   // Une prospective en cours de lecture : les pages suivantes.
   if (etat.datab?.jeton && etat.datab.page <= (etat.datab.pages || 1)) {
     let lus = 0;
@@ -122,10 +165,13 @@ export async function sourcer(secteur, user, etat) {
       const r = await M.resultats(etat.datab.jeton, { page: etat.datab.page, user });
       if (!r.ok) { noter(user.email, `Data-B n'a pas rendu la page ${etat.datab.page} de ${etat.datab.commune} : ${r.error}`, 'alerte'); etat.datab = null; break; }
       let nouvelles = 0;
+      let ailleurs = 0;
       for (const l of r.resultats) {
-        const x = await M.cibleDepuisDataB(l, { villeNom: etat.datab.commune, centre: etat.datab.centre || null, user });
+        const x = await M.cibleDepuisDataB(l, { villeNom: etat.datab.commune, centre: etat.datab.centre || null, user, horsCommune: 'ignorer' });
         if (x.ok && !x.deja) nouvelles += 1;
+        if (x.hors) ailleurs += 1;
       }
+      if (ailleurs) noter(user.email, `${etat.datab.commune} : ${ailleurs} commerce${ailleurs > 1 ? 's' : ''} d'une autre commune écarté${ailleurs > 1 ? 's' : ''} (Data-B les plaçait ici).`);
       c.lus += r.resultats.length;
       lus += r.resultats.length;
       etat.datab.pages = r.pages;
@@ -146,13 +192,13 @@ export async function sourcer(secteur, user, etat) {
   if (etat.prospectives.n >= PROSPECTIVES_PAR_JOUR) return 0;
   const communes = await communesAgent(secteur);
   if (!communes.length) {
-    if (etat.sans_commune_le !== jourDeParis()) { etat.sans_commune_le = jourDeParis(); noter(user.email, 'Votre secteur ne couvre aucune commune que je sache lire : demandez à Klocka de le redessiner.', 'alerte'); }
+    if (etat.sans_commune_le !== jourDeParis()) { etat.sans_commune_le = jourDeParis(); noter(user.email, 'Aucune commune à lire : votre secteur ne compte aucune ville Klocka et vous n\'en avez coché aucune. Cochez celles de votre activité dans Compte.', 'alerte'); }
     return 0;
   }
   const lues = etat.lues || {};
-  const suivante = communes
-    .filter((n) => !lues[n] || Date.now() - Date.parse(lues[n]) > QUATORZE_JOURS)
-    .sort((a, b) => String(lues[a] || '').localeCompare(String(lues[b] || '')))[0];
+  // Les villes Klocka passent avant les communes du mandataire : la première
+  // commune à relire dans l'ordre de communesAgent.
+  const suivante = communes.find((n) => !lues[n] || Date.now() - Date.parse(lues[n]) > QUATORZE_JOURS);
   if (!suivante) return 0;
   const z = await M.resoudreZone({ ville_nom: suivante }, user);
   if (!z.ok) { etat.lues = { ...lues, [suivante]: maintenant() }; noter(user.email, `${suivante} : ${z.error}`, 'alerte'); return 0; }
@@ -220,7 +266,7 @@ export function zoneCouvre(zone, { ville, departement = null, region = null }) {
 export async function matcheurInvestisseurs() {
   const { demandesVisibles } = await import('./mandataire-espace.js');
   const demandes = demandesVisibles();
-  const k = (v) => (v ? `${Math.round(v / 1000)} k€` : null);
+  const k = montantCourt;
   return async (c) => {
     if (!c?.ville) return [];
     const geo = await geoDe(c.ville);
@@ -244,6 +290,14 @@ export async function matcheurInvestisseurs() {
     }
     return res.sort((a, b) => b.score - a.score).slice(0, 3).map(({ score, ...r }) => r);
   };
+}
+
+/** Pure : 450 000 → « 450 k€ », 1 700 000 → « 1,7 M€ ». */
+export function montantCourt(v) {
+  const n = Number(v);
+  if (!n) return null;
+  if (n >= 1e6) return `${(Math.round(n / 1e5) / 10).toLocaleString('fr-FR')} M€`;
+  return `${Math.round(n / 1000)} k€`;
 }
 
 // --- 4. Proposer : les trouvailles ------------------------------------------
@@ -362,7 +416,7 @@ function ligneTrouvaille(t) {
   if (!c) return null;
   return {
     id: t.id, statut: t.statut, raison: t.raison, trouve_le: t.trouve_le, cible_id: c.id,
-    enseigne: c.enseigne || null, activite: c.activite || null, adresse: c.adresse, ville: c.ville,
+    enseigne: c.enseigne || null, activite: c.activite || null, adresse: c.adresse, ville: c.ville, arrondissement: c.arrondissement || null,
     emplacement: c.emplacement ?? null, lat: c.lat ?? null, lon: c.lon ?? null,
     proprietaire: c.proprietaire?.nom || null, forme: c.proprietaire?.forme || c.societe?.forme || null,
     proprietaire_source: c.proprietaire?.source || null,
@@ -373,19 +427,27 @@ function ligneTrouvaille(t) {
 
 export async function vueAgent(user) {
   const { secteurDe } = await import('./mandataire-espace.js');
+  const { villesKlocka, rangerCommunes, norm } = await import('./villes-klocka.js');
   const etat = etatAgent(user.email);
   const secteur = secteurDe(user);
+  // Les communes déjà connues du secteur (sans relancer la grille de l'API Géo à chaque coup d'œil).
+  const connues = secteur ? ((secteur.unites || []).filter((u) => u.niveau === 'commune').map((u) => ({ nom: u.nom, code: u.code || null })).concat(secteur.unites?.some((u) => u.niveau === 'commune') ? [] : secteur.communes_auto || [])) : [];
+  const rang = rangerCommunes(connues, villesKlocka(), secteur?.communes_activite || []);
+  const groupeDe = new Map([...rang.klocka.map((c) => [norm(c.nom), 'klocka']), ...rang.autres.filter((c) => c.choisie).map((c) => [norm(c.nom), 'activite'])]);
   const toutes = Records.list(ENTITE).filter((t) => t.mandataire_email === moi(user.email));
+  // Une trouvaille d'une commune décochée depuis ne s'affiche plus ; elle reste en base.
   const recentes = toutes.filter((t) => t.statut !== 'ignoree')
     .sort((a, b) => String(b.trouve_le).localeCompare(String(a.trouve_le)))
-    .slice(0, 60)
     .map((t) => {
       const l = ligneTrouvaille(t);
       if (!l) return null;
+      const groupe = connues.length ? groupeDe.get(norm(l.ville)) : 'activite';
+      if (!groupe) return null;
       const liste = t.liste_id ? Records.get('ListeMandataire', t.liste_id) : null;
-      return { ...l, investisseurs: t.investisseurs || [], liste: liste ? { id: liste.id, nom: liste.nom } : null };
+      return { ...l, groupe, investisseurs: groupe === 'klocka' ? t.investisseurs || [] : [], liste: liste ? { id: liste.id, nom: liste.nom } : null };
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, 60);
   // Les listes de l'agent : ce qu'il a rangé, commune par commune.
   const fiches = Records.list('ProprietaireMandataire').filter((p) => p.mandataire_email === moi(user.email));
   const listes = Records.list('ListeMandataire')
@@ -397,6 +459,8 @@ export async function vueAgent(user) {
   return {
     actif: etat.actif !== false,
     secteur: secteur ? { nom: secteur.nom, communes: (secteur.unites || []).filter((u) => u.niveau === 'commune').map((u) => u.nom) } : null,
+    // Où il cherche : les villes Klocka du secteur, puis celles cochées par le mandataire.
+    cherche: { klocka: rang.klocka.map((c) => c.nom), activite: rang.autres.filter((c) => c.choisie).map((c) => c.nom), regle: !!secteur?.communes_reglees_le },
     en_cours: etat.datab ? { commune: etat.datab.commune, page: etat.datab.page, pages: etat.datab.pages } : null,
     lues: etat.lues || {},
     aujourdhui: j,

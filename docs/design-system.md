@@ -136,6 +136,10 @@ points et l'espacement séparent ; seuls les tableaux gardent leurs lignes. La
 force des points se règle dans Compte (curseur Intensité, `--k-grid-force`).
 Les blocs de Compte défilent avec la page, aucun n'est collant. Décisions du
 2 oct. 2026.
+Les listes de prospection (mandataire, onglet Listes) : la liste ouverte et
+son intercalaire prennent le fond du sélecteur Prospecter / Agent IA / Listes
+(`bg-rail-actif`), les autres intercalaires le voile `bg-surface` ; plus clair
+qu'avant, jugé trop sombre. Décision du 5 oct. 2026.
 
 **Carte de dossier** (« Vos dossiers » du mandataire, et le haut d'un dossier
 ouvert) : le dessin de la carte de Klocka (Analyse, `CarteDossierAdmin`).
@@ -155,6 +159,13 @@ de grille dans Compte (`.k-grid-toujours`). Décision du 3 oct. 2026.
 **Fenêtres (pop-up)** : centrées sur la zone de contenu, pas sur l'écran
 (`md:left-[var(--k-barre-largeur)]`) ; voile sombre flouté ; Échap et clic
 dehors ferment. Bordure franche (`border-bord-vif`).
+
+**Accueil du mandataire** (`mandataire/AccueilMandataire.jsx`) : à son
+arrivée, une fenêtre par étape (« Bienvenue · étape 1 sur n »), un seul
+bouton « Valider », pas de fermeture tant que ce n'est pas réglé ; chaque
+réglage se retrouve ensuite dans Compte, où chaque case s'enregistre aussitôt.
+Première étape : « Où cherche votre agent » (villes Klocka verrouillées en
+pastilles menthe, les autres communes du secteur en cases). 5 oct. 2026.
 
 **Plein écran** (éditeur ouvert sur téléphone) : rendu par
 `createPortal(…, document.body)`, `fixed inset-0 z-[70]`, fond opaque, la page
@@ -180,20 +191,35 @@ le recopie pas.
   « Connecter un skill » sous le chat, qui ouvre la fenêtre des skills.
 - **Fil** : bulles envoyées en `J.barre`, réponses avec la pastille K, les
   étapes de raisonnement affichées, la dictée disponible partout.
-- **Écran scindé** (Estimation, Mandat), à partir de 1024 px :
+- **Écran scindé** (Estimation, Mandat, Offres), à partir de 1024 px :
   - grille `grid-cols-[minmax(360px,440px)_minmax(0,1fr)]`, `h-[100dvh]` ;
   - la barre latérale s'efface (`html.k-sans-barre`), la page ne défile plus,
     **chaque colonne défile seule** ;
   - séparation `border-l border-bord-doux` ;
-  - fond de l'aperçu = `J.barre` (comme la barre de saisie et les bulles) ;
+  - fond de l'aperçu : `bg-fond` pour l'avis de valeur, le même que derrière
+    les réponses du chat (3 oct. 2026) ; `J.barre` pour le mandat (2 oct.) ;
+  - après chaque message, l'aperçu de l'avis montre les étapes réelles du
+    serveur (« Loyer annuel hc : 50 000 € », `MiseAJourDocument`) tant que le
+    chat travaille, puis l'avis revient ;
   - **les deux barres du haut sont identiques** : `h-14`, `.k-barre-apercu`,
-    bordure basse `border-trait` ; une seule barre de chaque côté ;
+    bordure basse `border-trait` ; une seule barre de chaque côté ; côté chat,
+    « Dashboard » et « Historique » seulement, sans le titre de la conversation ;
+  - au **premier message tapé au tableau de bord**, l'aperçu joue d'abord la
+    génération du document (`GenerationDocument` : sept étapes qui se cochent,
+    ~0,65 s chacune, barre de progression), puis le document entre en fondu.
+    Une reprise (liste, historique) l'affiche tout de suite (3 oct. 2026) ;
   - le chat garde sa place dans l'arbre d'un mode à l'autre (sinon il perd son
     fil) ;
   - un seul chat : il répond aux questions **et** modifie le document à droite ;
     un clic sur un élément du document le désigne au chat (« ça ») ;
   - le document se modifie à tout moment, flèches annuler / rétablir comprises ;
   - au téléphone : le chat seul, le document en plein écran.
+- **Sources d'une réponse** : sous la réponse, « Sources » en petites
+  capitales `text-brume`, puis un lien souligné par source (icône menthe,
+  13,5 px `text-craie`). Un clic ouvre une fenêtre, sans quitter la page : les
+  champs pris à gauche avec leur phrase relevée, le document à droite, phrases
+  surlignées en `bg-menthe/20`, et le PDF d'origine à côté. Première page :
+  la LOI rédigée sur Offres (`offres/SourcesLoi.jsx`, 5 oct. 2026).
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 
@@ -209,6 +235,22 @@ s'impriment et ne suivent pas le thème.
 - Tout texte du document est modifiable ; une mise en forme se garde dans
   `avis.styles`, un déplacement dans `avis.positions` (en mm).
 - À l'impression, rien de l'écran ne sort (`.avis-ecran`, cadres, poignées).
+- La lettre d'intention (page Offres, `offres/lettre-intention.css`) suit le
+  modèle « Lettre d'intention - 1 avenue Mirabeau v2 » : en-tête K et date en
+  vert, acquéreur à gauche, vendeur dans l'encart gris, titres numérotés en
+  vert, cadres de signature. Son texte vient d'un seul endroit
+  (`server/ak/loi.js`, `blocs()`) : l'écran, le Word et le PDF en sortent. Un
+  paragraphe retouché à la main porte un point dans la marge et une flèche
+  pour revenir au modèle (4 oct. 2026).
+- Deux modèles de lettre d'intention : « Classique » (le v2 ci-dessus) et
+  « Menthe » (« Lettre d'intention - 1c bande menthe » : le K de Klocka en
+  tête sur un filet noir (5 oct. 2026, à la place du mot KLOCKA), titre et adresse courte en menthe, sections 00 à 03 en grands
+  chiffres fins, lignes de signature, bande menthe au pied). Une lettre neuve
+  montre les deux côte à côte, remplies ; on choisit, puis tout se construit
+  sur le modèle choisi, Word et PDF compris. « Changer de modèle » rouvre le
+  choix (5 oct. 2026). Quel que soit le modèle, et dès le choix des deux
+  côte à côte, la lettre se modifie dans l'aperçu : paragraphes, titres,
+  parties, adresse du bien, noms au-dessus des signatures (5 oct. 2026).
 
 ## 8. Les mots de l'interface
 

@@ -6,7 +6,7 @@ import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres"
 import { J } from "@/design/jetons";
 import { base44 } from "@/api/base44Client";
 import {
-  ChoixAnalyste, Conversation, FicheDossier, NouveauDossier, Pieces, STATUTS, court, depuisMandataire, euros, quand, teinteStatut, useGestes,
+  ChoixAnalyste, Conversation, FicheDossier, NouveauDossier, Pieces, STATUTS, ajoutPossible, court, depuisMandataire, euros, quand, teinteStatut, useGestes,
 } from "@/components/conversations/EspaceConversations";
 
 // Les dossiers du mandataire. Ce sont les siens : Klocka ne les voit qu'une
@@ -22,7 +22,7 @@ function etatDe(c) {
   if (c.statut === "no_go") return { mot: "No-go", teinte: J["alerte"] };
   if (c.statut === "complements") return { mot: "Compléments", teinte: J["ambre"] };
   if (c.transfere) return { mot: "À l'étude", teinte: J["menthe"] };
-  if (c.checklist.complet) return { mot: "Prêt à envoyer", teinte: J["menthe"] };
+  if (c.checklist.envoyable) return { mot: "Prêt à envoyer", teinte: J["menthe"] };
   return { mot: "À compléter", teinte: recues ? J["ambre"] : J["brume"] };
 }
 
@@ -44,7 +44,7 @@ export function PointNouveau({ n = 0, grand = false, className = "" }) {
  */
 function ColonneDroite({ c, mode, onMode }) {
   const gestes = useGestes(c);
-  const modifiable = ["documents_en_cours", "complet", "complements"].includes(c.statut);
+  const modifiable = ajoutPossible(c);
   const recues = c.checklist.lignes.filter((l) => l.recue).length;
   return (
     <div className="flex flex-col gap-3 lg:sticky lg:top-0">
@@ -228,13 +228,12 @@ function CarteDossier({ c, nonLus, onOuvrir }) {
   const etat = etatDe(c);
   const requises = c.checklist.lignes.filter((l) => l.requise);
   const recues = requises.filter((l) => l.recue).length;
-  const manquantes = requises.length - recues;
   const k = c.carte || {};
   const lieu = [k.ville, k.surface_m2 ? `${k.surface_m2} m²` : null, (k.prix || c.prix) ? euros(k.prix || c.prix) : null].filter(Boolean).join(" · ") || c.adresse || "Adresse à compléter";
   const geste = "flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06]";
   return (
-    <article className="relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
-      <div className="k-grid k-grid-toujours relative h-[112px] flex-none border-b border-trait">
+    <article className="relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+      <div className="k-grid k-grid-toujours relative h-[112px] flex-none rounded-t-[17px] border-b border-trait">
         <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: etat.teinte }} />{etat.mot}
         </span>
@@ -265,10 +264,10 @@ function CarteDossier({ c, nonLus, onOuvrir }) {
         {menu && (
           <div className="absolute right-4 top-[106px] z-20 min-w-[210px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
             <button type="button" onClick={() => { setMenu(false); onOuvrir(); }} className={geste} style={{ background: "transparent" }}><FolderOpen className="h-3.5 w-3.5" /> Ouvrir le dossier</button>
-            {!c.transfere && (c.checklist.complet ? (
+            {!c.transfere && (c.checklist.envoyable ? (
               <button type="button" onClick={() => { setMenu(false); setChoix(true); }} className={geste} style={{ background: "transparent" }}><Send className="h-3.5 w-3.5" /> Envoyer à un analyste</button>
             ) : (
-              <p className="m-0 flex items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-brume"><Send className="h-3.5 w-3.5" /> {manquantes} pièce{manquantes > 1 ? "s" : ""} avant l'envoi</p>
+              <p className="m-0 flex items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-brume"><Send className="h-3.5 w-3.5" /> Une pièce avant l'envoi</p>
             ))}
           </div>
         )}

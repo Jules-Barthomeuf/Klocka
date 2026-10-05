@@ -28,6 +28,8 @@ export const ISSUES = {
   no_go: { mot: "No-go", teinte: J["alerte"] },
 };
 export const MODIFIABLES = ["documents_en_cours", "complet", "complements"];
+/** Pendant l'étude, le mandataire ajoute encore des pièces (sans en retirer) : elles vont dans l'analyse. */
+export const ajoutPossible = (c) => MODIFIABLES.includes(c.statut) || (c.statut === "en_etude" && !!c.deal_id);
 export const teinteStatut = (s) => (s === "go" ? J["vert"] : s === "no_go" ? J["alerte"] : s === "en_etude" || s === "complements" ? J["ambre"] : J["brume"]);
 const teinteEvenement = (t = "") =>
   /^(go\b|décision : go)/i.test(t) ? J["vert"]
@@ -256,7 +258,7 @@ export function Conversation({ c, cote, bord = true }) {
   }, [nb, data]);
 
   // Côté mandataire, un fichier peut devenir une pièce du dossier.
-  const lignesPieces = !klocka && MODIFIABLES.includes(c.statut) ? c.checklist.lignes : null;
+  const lignesPieces = !klocka && ajoutPossible(c) ? c.checklist.lignes : null;
   const choisir = (f) => { if (!f) return; setPiece(f); setRangement(lignesPieces ? devinerPiece(f.name, lignesPieces) : null); };
 
   const envoyer = useMutation({
@@ -433,8 +435,9 @@ function Ligne({ m, c, klocka }) {
   );
 }
 
-/** Les pièces, cochées ou non. `gestes` (mandataire, dossier modifiable) : déposer et retirer. */
+/** Les pièces, cochées ou non. `gestes` (mandataire) : déposer, et retirer tant que le dossier n'est pas transféré. */
 export function Pieces({ c, gestes = null }) {
+  const retirable = gestes && MODIFIABLES.includes(c.statut);
   const recues = c.checklist.lignes.filter((l) => l.recue).length;
   return (
     <div className="flex flex-col">
@@ -451,7 +454,7 @@ export function Pieces({ c, gestes = null }) {
             {l.fichiers.map((f) => (
               <span key={f.url} className="inline-flex max-w-full items-center gap-1.5">
                 <a href={f.url} target="_blank" rel="noreferrer" className="truncate text-[13px] text-menthe hover:underline">{f.nom}</a>
-                {gestes && <button type="button" onClick={() => gestes.retirer.mutate({ cle: l.cle, url: f.url })} aria-label={`Retirer ${f.nom}`} title={`Retirer ${f.nom}`} className="flex-none text-brume hover:text-alerte" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>}
+                {retirable && <button type="button" onClick={() => gestes.retirer.mutate({ cle: l.cle, url: f.url })} aria-label={`Retirer ${f.nom}`} title={`Retirer ${f.nom}`} className="flex-none text-brume hover:text-alerte" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>}
               </span>
             ))}
           </div>
@@ -460,6 +463,17 @@ export function Pieces({ c, gestes = null }) {
       ))}
     </div>
   );
+}
+
+/** Ce qu'il faut savoir avant d'envoyer : une pièce suffit, le reste suit. */
+export function AvantEnvoi({ c }) {
+  const k = c.checklist;
+  const demandees = k.lignes.filter((l) => l.demandee && !l.recue);
+  let mot = null;
+  if (demandees.length) mot = `Klocka attend : ${demandees.map((m) => m.mot.toLowerCase()).join(", ")}.`;
+  else if (!k.envoyable) mot = "Déposez au moins une pièce, le bail par exemple, pour transférer.";
+  else if (!k.complet) mot = `Vous pourrez ajouter le reste après le transfert : ${k.manquantes.map((m) => m.mot.toLowerCase()).join(", ")}.`;
+  return mot ? <p className="m-0 text-[12.5px] leading-[1.5] text-ardoise">{mot}</p> : null;
 }
 
 /** L'envoi à Klocka et la relance du propriétaire (mandataire, dossier modifiable). */
@@ -471,13 +485,11 @@ function Envoi({ c, gestes }) {
   return (
     <div className="flex flex-col gap-2">
       {choix && <ChoixAnalyste c={c} gestes={gestes} onFermer={() => setChoix(false)} />}
-      <button type="button" onClick={transferer} disabled={gestes.soumettre.isPending || !c.checklist.complet}
+      <button type="button" onClick={transferer} disabled={gestes.soumettre.isPending || !c.checklist.envoyable}
         className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
         {gestes.soumettre.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {c.statut === "complements" ? "Renvoyer à Klocka" : "Transférer à Klocka"}
       </button>
-      {!c.checklist.complet && (
-        <p className="m-0 text-[12.5px] leading-[1.5] text-ardoise">Pour transférer, il manque : {c.checklist.manquantes.map((m) => m.mot.toLowerCase()).join(", ")}.</p>
-      )}
+      <AvantEnvoi c={c} />
       {r && (
         <a href={`mailto:${encodeURIComponent(r.destinataire)}?subject=${encodeURIComponent(r.objet)}&body=${encodeURIComponent(r.corps)}`} onClick={gestes.tracerRelance}
           className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-bord-doux px-4 text-[13px] text-craie hover:border-bord-vif hover:text-encre">
@@ -589,7 +601,7 @@ export function Resume({ c, cote, onDossier = null, onAnalyse = null }) {
         {klocka && c.deal_id && !onAnalyse && <Link to={`/Analyse?deal_id=${c.deal_id}&vue=analyse`} className="inline-flex h-[34px] items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre">Ouvrir l'analyse</Link>}
         {onDossier && <button type="button" onClick={onDossier} className="inline-flex h-[34px] items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Voir le dossier</button>}
       </div>
-      {klocka && !c.deal_id && <p className="m-0 -mt-2 text-[12.5px] text-brume">L'analyse s'ouvre quand le mandataire envoie le dossier complet.</p>}
+      {klocka && !c.deal_id && <p className="m-0 -mt-2 text-[12.5px] text-brume">L'analyse s'ouvre quand le mandataire transfère le dossier.</p>}
       {!!c.photos?.length && (
         <div className="flex flex-col gap-2">
           <p className={etiquette}>Photos · {c.photos.length}</p>
@@ -652,8 +664,8 @@ export function FicheDossier({ c, cote, etroit = false, estimations = [], onSupp
         </div>
         {droite || (
           <div className="k-grid rounded-[20px] border border-trait px-6 py-5">
-            <Pieces c={c} gestes={modifiable ? gestes : null} />
-            {modifiable && <p className="m-0 mt-3 text-[12.5px] text-brume">Vous pouvez aussi glisser un fichier dans la conversation : il se range ici.</p>}
+            <Pieces c={c} gestes={!klocka && ajoutPossible(c) ? gestes : null} />
+            {!klocka && ajoutPossible(c) && <p className="m-0 mt-3 text-[12.5px] text-brume">Vous pouvez aussi glisser un fichier dans la conversation : il se range ici.</p>}
           </div>
         )}
       </div>

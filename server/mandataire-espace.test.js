@@ -157,7 +157,9 @@ test('le résultat d\'appel change le statut et pose le rappel demandé', () => 
   assert.equal(r.ok, true);
   assert.equal(r.proprietaire.statut, 'pas_vendeur');
   const rappel = Records.get('Rappel', r.rappel_id);
-  assert.ok(Math.abs(Math.round((new Date(rappel.echeance) - Date.now()) / 86400000) - 180) <= 1);
+  // Un rappel qui tombe un week-end passe au lundi : jusqu'à deux jours de plus.
+  const ecart = Math.round((new Date(rappel.echeance) - Date.now()) / 86400000) - 180;
+  assert.ok(ecart >= -1 && ecart <= 3, `rappel à ${180 + ecart} jours`);
   assert.equal(noterResultat(tabac.id, { statut: 'inconnu' }, MOI).ok, false);
 });
 

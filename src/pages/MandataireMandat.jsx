@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { FileText, Loader2 } from "lucide-react";
@@ -26,6 +26,11 @@ export default function MandataireMandat() {
   const [historique, setHistorique] = useState(false);
   const [courant, setCourant] = useState(null);
   const [fenetre, setFenetre] = useState(null);
+  // Le premier message tapé au tableau de bord : à droite, la génération du
+  // mandat se joue en étapes avant de le montrer. Un mandat repris ou une
+  // conversation rouverte s'affichent tout de suite.
+  const [generation, setGeneration] = useState(false);
+  const rouverte = useRef(false);
   const large = useEcranLarge();
 
   const { data, isLoading } = useQuery({ queryKey: ["m-mandats"], queryFn: () => base44.request("GET", API) });
@@ -42,6 +47,7 @@ export default function MandataireMandat() {
 
   // Reprendre un mandat : on arrive dans sa conversation.
   const reprendre = async (m) => {
+    rouverte.current = true;
     setCourant(m.id);
     try {
       const r = await base44.request("POST", `${API}/${m.id}/conversation`);
@@ -55,6 +61,7 @@ export default function MandataireMandat() {
   useEffect(() => {
     const ouverte = (ev) => {
       if (ev.detail?.qs !== CHAT.qs) return;
+      rouverte.current = true;
       const m = (data?.mandats || []).find((x) => x.conversation_id === ev.detail.id);
       if (m) setCourant(m.id);
     };
@@ -62,6 +69,13 @@ export default function MandataireMandat() {
     return () => window.removeEventListener("klocka:ouvrir-conversation", ouverte);
   }, [data]);
   useEffect(() => { if (!conversation) setCourant(null); }, [conversation]);
+  const ouverteAvant = useRef(false);
+  const surConversation = useCallback((ouverte) => {
+    if (ouverte && !ouverteAvant.current && !rouverte.current) setGeneration(true);
+    if (!ouverte) { rouverte.current = false; setGeneration(false); }
+    ouverteAvant.current = ouverte;
+    setConversation(ouverte);
+  }, []);
   // Chaque réponse du chat : le mandat qu'il remplit, et son aperçu à jour.
   const surReponse = (r) => {
     if (r?.mandat_id) setCourant(r.mandat_id);
@@ -102,7 +116,7 @@ export default function MandataireMandat() {
                 </>
               )}
               <div className={conversation ? "w-full" : "mt-8 w-full max-w-[660px] max-md:mt-6"}>
-                <ChatDashboard espace="mandat" onConversation={setConversation} onHistorique={setHistorique} onReponse={surReponse} barreApercu={scinde}
+                <ChatDashboard espace="mandat" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} barreApercu={scinde}
                   onRecherche={(r) => {
                     if (!r?.mandat_id) return;
                     rafraichir();
@@ -169,7 +183,7 @@ export default function MandataireMandat() {
             </div>
           ))}
         </div>
-        {scinde && <ApercuMandat id={courant} onOuvrirPret={setFenetre} />}
+        {scinde && <ApercuMandat id={courant} onOuvrirPret={setFenetre} generation={generation} onGenere={() => setGeneration(false)} />}
       </div>
       <FenetreMandatPret mandat={mandatFenetre} onFermer={() => setFenetre(null)} />
     </div>

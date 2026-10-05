@@ -7,6 +7,7 @@ export const ENTREES_ADMIN = [
   { cle: "Dashboard", label: "Dashboard" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
+  { cle: "Offres", label: "Offres" },
   { cle: "FichesCommerciales", label: "Fiches" },
   { cle: "Prospection", label: "Prospection" },
   { cle: "ALX", label: "ALX" },

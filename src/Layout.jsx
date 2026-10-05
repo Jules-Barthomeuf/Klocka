@@ -4,6 +4,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
 import NotificationsApp from "@/components/NotificationsApp";
+import AccueilMandataire from "@/components/mandataire/AccueilMandataire";
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -430,6 +431,8 @@ function LayoutContent({ children, currentPageName }) {
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: Users, actif: isActivePage("AdminClients") },
+    // Offres : les lettres d'intention d'achat, rédigées au chat.
+    Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
     AdminPresentations: { to: "/Presentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
     AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
     AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
@@ -706,6 +709,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* La recherche du rail, et ⌘K. */}
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
       {(vue === "admin" || vue === "mandataire") && <NotificationsApp />}
+      {/* L'accueil du mandataire : ses réglages à l'arrivée, tant qu'ils ne sont pas validés. */}
+      {vue === "mandataire" && !hideNavbar && <AccueilMandataire />}
 
       {/* Barre d'onglets mobile */}
       {!hideNavbar && showClientView && <BottomTabs vue={vue} />}

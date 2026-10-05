@@ -16,7 +16,7 @@ TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Goo
 - un mail rédigé (mail_agent, mail_libre, retoucher_brouillon) s'ouvre en brouillon sous ta réponse, à relire et envoyer d'un clic : dis-le en une ligne, ne le recopie pas ;
 - une tâche de fond finie sera annoncée par une notification de l'application : dis « je te préviens quand c'est prêt ».`;
 
-const LECTURES = new Set(['chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'chercher_cible', 'chercher_agents', 'version']);
+const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'chercher_cible', 'chercher_agents', 'version']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
 /**
@@ -24,7 +24,7 @@ const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
  * @param {{texte: string, historique?: Array<{role, contenu}>, user: object, surEtape?: Function}} p
  * @returns {Promise<{texte, actions, outils, brouillon, taches}>}
  */
-export async function repondreApp({ texte, historique = [], user, surEtape = null }) {
+export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null }) {
   const { consigne, OUTILS, executerOutil, MODELE } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
@@ -33,7 +33,7 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
   const espace = `app:${String(user?.email || 'inconnu').toLowerCase()}`;
   const prenom = String(user?.full_name || user?.email || 'Quelqu’un').split(/[ @]/)[0];
   const aujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
-  const message = { espace, auteur: { nom: user?.email || null, affiche: prenom }, texte, pieces: [], groupe: false };
+  const message = { espace, auteur: { nom: user?.email || null, affiche: prenom }, texte, pieces: [], groupe: false, page: contexte?.page || null };
   const messages = [
     ...(Array.isArray(historique) ? historique : [])
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
@@ -42,12 +42,26 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
     { role: 'user', content: `${prenom} (compte ${user?.email || '?'}, ${aujourdhui}, depuis l'application) : ${texte}` },
   ];
 
+  // Une réaction à la réponse d'avant (« non, pas celui-là », « nickel ») :
+  // gardée comme leçon, comme dans Google Chat. Le message est traité ensuite.
+  const { apprendre, noterEchange } = await import('./lecons.js');
+  try { apprendre({ espace, auteur: message.auteur, texte }); } catch (e) { console.warn('[ak app] leçon non gardée :', e?.message || e); }
+  // La page Offres : le chat y rédige et corrige les lettres d'intention.
+  let cadrePage = '';
+  if (contexte?.page === 'offres') {
+    cadrePage = `\n\nTU ES SUR LA PAGE OFFRES (les lettres d'intention d'achat, LOI). Le bien d'une offre est un PROJET de la plateforme : « fais l'offre pour X sur le projet de Dieppe » = trouver_bien (par ville, titre, adresse ou locataire). Plusieurs résultats : liste-les numérotés, une ligne chacun (titre, adresse, locataire, prix), et demande lequel ; on affine (« celui de la rue X », « le 2 ») jusqu'à un seul, sans rédiger avant. Un seul : rediger_loi avec son projet_id, le bien vient du projet. Un candidat sans projet (un dossier seul) : rediger_loi avec son deal_id. Il te manque forcément ce qu'on ne t'a pas dit parmi l'acquéreur, le vendeur, le prix et l'apport : demande TOUT ce qui manque en UNE ligne. Ne devine jamais un nom ou un prix.`;
+    if (contexte.loi_id) {
+      const { contexteLettre } = await import('../offres.js');
+      const ctx = await contexteLettre(String(contexte.loi_id));
+      if (ctx) cadrePage += `\n${ctx}\nUne correction (« le prix à 190 000 », « enlève la clause de substitution », « ajoute que… ») porte sur CETTE lettre : rediger_loi avec loi_id et seulement ce qui change (champs, ou textes par clé). Une offre pour un autre bien ou un autre acquéreur : une nouvelle lettre, sans loi_id.`;
+    }
+  }
   const fond = [];
   const apres = [];
   const actions = [];
   const outils = [];
   const { text } = await runAgent({
-    system: consigne() + CADRE_APP,
+    system: consigne() + CADRE_APP + cadrePage,
     messages,
     tools: OUTILS,
     model: MODELE,
@@ -76,6 +90,19 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
     const { lancerTachesApp } = await import('./veille.js');
     lancerTachesApp(fond, user);
   }
-  const reponse = [String(text || '').trim() || 'Rien à répondre là-dessus.', ...(brouillon ? [] : apres)].join('\n\n');
-  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle) };
+  let reponse = [String(text || '').trim() || 'Rien à répondre là-dessus.', ...(brouillon ? [] : apres)].join('\n\n');
+  // Une LOI rédigée sur la page Offres : elle est déjà ouverte à droite.
+  // Sous la réponse, ses sources : d'où vient chaque champ, à ouvrir sans quitter la page.
+  let sources = null;
+  const loi = contexte?.page === 'offres' ? actions.find((a) => a.name === 'rediger_loi' && a.resultat?.nouvelle) : null;
+  if (loi) {
+    reponse = 'Voici votre LOI rédigée, en deux modèles à droite : choisissez celui que vous préférez. Vous pourrez ensuite l’éditer directement, ou me dire ci-dessous ce qu’il faut changer.';
+    try {
+      const { sourcesDe } = await import('../offres.js');
+      const liste = await sourcesDe(loi.resultat.loi_id);
+      if (liste?.length) sources = { loi_id: loi.resultat.loi_id, liens: liste.map((x) => ({ id: x.id, titre: x.titre, detail: x.detail })) };
+    } catch (e) { console.warn('[ak app] sources de la LOI :', e?.message || e); }
+  }
+  try { noterEchange({ espace, auteur: message.auteur, demande: texte, reponse }); } catch { /* la mesure ne bloque pas la réponse */ }
+  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), ...(sources ? { sources } : {}) };
 }

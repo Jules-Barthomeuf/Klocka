@@ -2,7 +2,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appliquerOperations, appliquerSurcouche, avisProvisoire, sansChampsRepondus, recalculerChiffres, stylerElement, SECTIONS_AVIS } from './mandataire-avis.js';
+import { etapeDeReponse, appliquerOperations, appliquerSurcouche, avisProvisoire, sansChampsRepondus, recalculerChiffres, stylerElement, SECTIONS_AVIS } from './mandataire-avis.js';
 
 const AVIS = () => ({
   version: 1,
@@ -197,4 +197,11 @@ test('photo : le portrait du mandataire a sa place à lui', () => {
   const { avis } = appliquerOperations(AVIS(), [{ op: 'photo', cle: 'portrait', url: '/uploads/jb.jpg' }]);
   assert.equal(avis.photos.portrait, '/uploads/jb.jpg');
   assert.equal(avis.photos.couverture, null, 'la photo du bien ne bouge pas');
+});
+
+test("une réponse notée s'annonce avec sa valeur lisible", () => {
+  assert.equal(etapeDeReponse('loyer_annuel_hc', 50000), 'Loyer annuel hc : 50 000 €');
+  assert.equal(etapeDeReponse('surface_utile', '92'), 'Surface utile : 92 m²');
+  assert.equal(etapeDeReponse('demandeur', 'SCI Mirabeau'), 'Demandeur : SCI Mirabeau');
+  assert.equal(etapeDeReponse('bail_tous_commerces', true), 'Bail tous commerces : oui');
 });

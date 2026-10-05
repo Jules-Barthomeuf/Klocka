@@ -484,8 +484,8 @@ function CarteDossierAdmin({ d, qui, onOuvrir, menu }) {
   const abandonne = d.statut === "abandonne";
   const teinte = abandonne ? J["brume"] : J[TEINTES_ETAPE[etape]];
   return (
-    <article className="relative flex cursor-pointer flex-col overflow-hidden rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
-      <div className="k-grid k-grid-toujours relative h-[112px] flex-none border-b border-trait">
+    <article className="relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+      <div className="k-grid k-grid-toujours relative h-[112px] flex-none rounded-t-[17px] border-b border-trait">
         <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: teinte }} />{abandonne ? "Abandonné" : ETAPES_LIBELLES[etape - 1]}
           {d.a_relancer && <Clock className="h-3 w-3 text-alerte" aria-label="À relancer" />}

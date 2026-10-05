@@ -564,7 +564,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece =
       if (!r.ok) return r;
       const { checklist } = P;
       const c = checklist(r.dossier);
-      return { ok: true, cree: true, piece_rangee: true, titre: `${piece.nom} rangé dans « ${d.bien} »`, pour: c.complet ? 'dossier complet : prêt à envoyer à Klocka' : `il manque ${c.manquantes.map((m) => m.mot.toLowerCase()).join(', ')}`, lien: '/DossierMandataire' };
+      return { ok: true, cree: true, piece_rangee: true, titre: `${piece.nom} rangé dans « ${d.bien} »`, pour: c.complet ? 'dossier complet : prêt à envoyer à Klocka' : r.dossier.statut === 'en_etude' ? 'déposée dans l’analyse de Klocka' : `transférable à Klocka dès maintenant ; il manque encore ${c.manquantes.map((m) => m.mot.toLowerCase()).join(', ')}`, lien: '/DossierMandataire' };
     }
     let e = trouverParBien('EstimationMandataire', input.bien, user);
     if (e === 'ambigu') return { ok: false, error: 'Plusieurs estimations correspondent : demande laquelle en une ligne.' };

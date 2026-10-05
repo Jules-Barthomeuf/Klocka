@@ -333,6 +333,19 @@ export function monterMandataire(app) {
     if (!user) return;
     ok(res, await (await AG()).vueAgent(user));
   }));
+  // Où cherche l'agent : les villes Klocka du secteur (imposées) et les communes cochées.
+  app.get('/api/mandataire/agent/communes', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    ok(res, await (await AG()).reglageCommunes(user));
+  }));
+  app.put('/api/mandataire/agent/communes', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await AG()).choisirCommunes(user, req.body?.communes || []);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/mandataire/agent/actif', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
@@ -557,6 +570,28 @@ export function monterMandataire(app) {
   }));
 
   // --- L'administration : secteurs, mandataires, demandes ------------------
+
+  // Les villes Klocka : où Klocka cherche pour ses investisseurs, partout en France.
+  const VK = () => import('../villes-klocka.js');
+  app.get('/api/mandataire/admin/villes-klocka', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { villes: (await VK()).villesKlocka() });
+  }));
+  app.get('/api/mandataire/admin/communes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    try { ok(res, { communes: await (await VK()).chercherCommunes(req.query.q) }); } catch (e) { res.status(502).json({ error: e.message }); }
+  }));
+  app.post('/api/mandataire/admin/villes-klocka', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await VK()).ajouterVilleKlocka(req.body || {}, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.delete('/api/mandataire/admin/villes-klocka/:code', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, (await VK()).retirerVilleKlocka(req.params.code));
+  }));
 
   app.get('/api/mandataire/admin/secteurs', wrap(async (req, res) => {
     if (!admin(req, res)) return;

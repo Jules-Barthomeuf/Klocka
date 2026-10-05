@@ -52,6 +52,7 @@ import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
 import { monterFiches } from './routes/fiches.js';
+import { monterOffres } from './routes/offres.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
@@ -1141,6 +1142,7 @@ monterIntegrations(app);
 monterMonday(app);
 monterAk(app);
 monterFiches(app);
+monterOffres(app);
 monterProspection(app);
 monterMandataire(app);
 monterMandatairePortes(app);
@@ -1276,6 +1278,9 @@ import('./prospection/index.js').then(({ demarrerProspection }) => {
   const active = demarrerProspection();
   console.log(active ? `  ▸ Prospection suivie (toutes les ${process.env.PROSPECTION_MINUTES || 10} min)` : '  ▸ Prospection : suivi automatique inactif ici');
 }).catch((e) => console.warn(`[démarrage] prospection : ${e?.message || e}`));
+
+// L'agent IA de la prospection : une ville coupée par un redémarrage se dit interrompue.
+import('./prospection/agent-ia.js').then(({ reprendre }) => reprendre()).catch((e) => console.warn(`[démarrage] agent IA prospection : ${e?.message || e}`));
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un
 // redémarrage n'annule pas la promesse.

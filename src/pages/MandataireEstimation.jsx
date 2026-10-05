@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Loader2, MoreHorizontal, Pencil, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { J } from "@/design/jetons";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { dateCourte, euros } from "@/components/mandataire/kit";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import EditeurAvis from "@/components/mandataire/EditeurAvis";
+import GenerationDocument, { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 
 // Estimation — tout passe par le chat : le mandataire dit le bien, joint le
 // bail, répond aux questions ; la valeur vient de Data-B et l'avis de valeur
@@ -39,6 +39,20 @@ export default function MandataireEstimation() {
   const [avisOuvert, setAvisOuvert] = useState(null);
   // L'estimation de la conversation ouverte : son avis se construit à droite du chat.
   const [courante, setCourante] = useState(null);
+  // Le premier message tapé au tableau de bord : à droite, la génération de
+  // l'avis se joue en étapes avant de le montrer. Une estimation reprise ou
+  // une conversation rouverte s'affichent tout de suite.
+  const [generation, setGeneration] = useState(false);
+  // Le travail du chat en cours (ses étapes), que l'aperçu rejoue à droite.
+  const [travail, setTravail] = useState({ enCours: false, etapes: [] });
+  const rouverte = useRef(false);
+  const ouverteAvant = useRef(false);
+  const surConversation = useCallback((ouverte) => {
+    if (ouverte && !ouverteAvant.current && !rouverte.current) setGeneration(true);
+    if (!ouverte) { rouverte.current = false; setGeneration(false); }
+    ouverteAvant.current = ouverte;
+    setConversation(ouverte);
+  }, []);
   // L'élément cliqué dans l'avis à droite : le chat de gauche le reçoit.
   const [selectionAvis, setSelectionAvis] = useState(undefined);
   const large = useEcranLarge();
@@ -69,6 +83,7 @@ export default function MandataireEstimation() {
   // Reprendre une estimation : on arrive dans sa conversation, recréée au
   // besoin par le serveur avec ce qu'on sait déjà.
   const reprendre = async (e) => {
+    rouverte.current = true;
     setCourante(e.id);
     try {
       const r = await base44.request("POST", `${API}/${e.id}/conversation`);
@@ -82,6 +97,7 @@ export default function MandataireEstimation() {
   useEffect(() => {
     const ouverte = (ev) => {
       if (ev.detail?.qs !== CHAT.qs) return;
+      rouverte.current = true;
       const e = (data?.estimations || []).find((x) => x.conversation_id === ev.detail.id);
       if (e) setCourante(e.id);
     };
@@ -159,7 +175,7 @@ export default function MandataireEstimation() {
               </>
             )}
             <div className={conversation ? "w-full" : "mt-8 w-full max-w-[660px] max-md:mt-6"}>
-              <ChatDashboard espace="estimation" onConversation={setConversation} onHistorique={setHistorique} onMode={setModeChat} onReponse={surReponse} avisACote={large} barreApercu={scinde}
+              <ChatDashboard espace="estimation" onConversation={surConversation} onHistorique={setHistorique} onMode={setModeChat} onReponse={surReponse} avisACote={large} barreApercu={scinde} onTravail={setTravail}
                 selectionAvis={scinde ? selectionAvis : null} onEffacerSelection={() => setSelectionAvis(null)}
                 onRecherche={(r) => {
                   if (!r?.avis_id) return;
@@ -227,7 +243,7 @@ export default function MandataireEstimation() {
           </div>
         ))}
       </div>
-      {scinde && <ApercuAvis id={courante} selection={selectionAvis} onSelection={setSelectionAvis} />}
+      {scinde && <ApercuAvis id={courante} selection={selectionAvis} onSelection={setSelectionAvis} generation={generation} onGenere={() => setGeneration(false)} travail={travail} />}
       </div>
 
       {/* L'avis, par-dessus tout (barre latérale comprise) : on le ferme et on reprend le fil.
@@ -259,16 +275,52 @@ function useEcranLarge() {
  * La moitié droite : l'avis de valeur de la conversation, modifiable à tout
  * moment. Avant la rédaction, il se remplit à chaque réponse du chat.
  */
-function ApercuAvis({ id, selection, onSelection }) {
+// Les étapes montrées pendant la génération du premier avis de valeur.
+const ETAPES_GENERATION = [
+  "Lecture de votre demande",
+  "Localisation du bien",
+  "Identification du demandeur",
+  "Lecture du bail et des loyers",
+  "Comparables du secteur",
+  "Rendement et fourchette de valeur",
+  "Mise en page de l'avis de valeur",
+];
+
+function ApercuAvis({ id, selection, onSelection, generation = false, onGenere = null, travail = null }) {
+  // Après un message, l'avis s'efface le temps que le chat travaille : ses
+  // étapes s'affichent à la place, au moins un instant, puis l'avis revient.
+  const [maj, setMaj] = useState(false);
+  const enCours = !!travail?.enCours;
+  useEffect(() => {
+    if (enCours) { setMaj(true); return undefined; }
+    const t = setTimeout(() => setMaj(false), 900);
+    return () => clearTimeout(t);
+  }, [enCours]);
   const { data, isLoading } = useQuery({
     queryKey: ["m-apercu", id],
     queryFn: () => base44.request("GET", `${API}/${id}/apercu`),
     enabled: !!id,
   });
   const reste = data?.manquants?.length || 0;
+  if (generation) {
+    return (
+      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux bg-fond">
+        <div className="h-14 flex-none border-b border-trait k-barre-apercu" />
+        <div className="min-h-0 flex-1"><GenerationDocument surtitre="Génération de l'avis de valeur" titre="L'avis de valeur se prépare" etapes={ETAPES_GENERATION} pret={!!id && !!data} onFini={() => onGenere?.()} /></div>
+      </div>
+    );
+  }
+  if (maj && id && data) {
+    return (
+      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux bg-fond">
+        <div className="h-14 flex-none border-b border-trait k-barre-apercu" />
+        <div className="min-h-0 flex-1"><MiseAJourDocument surtitre="Mise à jour de l'avis de valeur" titre="L'avis de valeur s'adapte" etapes={travail?.etapes || []} enCours={enCours} /></div>
+      </div>
+    );
+  }
   if (!id || !data) {
     return (
-      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
+      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux bg-fond">
         <div className="grid h-full place-items-center px-10 text-center">
           {id && isLoading ? <Loader2 className="h-5 w-5 animate-spin text-ardoise" /> : (
             <p className="m-0 max-w-[42ch] text-[14px] leading-[1.6] text-ardoise">L'avis de valeur se construit ici à mesure de vos réponses : l'adresse, le demandeur, le bail, puis la valeur Data-B une fois rédigé. Vous pouvez le modifier à tout moment.</p>
@@ -280,8 +332,8 @@ function ApercuAvis({ id, selection, onSelection }) {
   // Rédigé ou encore en questions, l'avis se modifie : avant la rédaction, les
   // retouches sont gardées à part et se reposent sur l'avis rédigé.
   return (
-    <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
-      <div className="min-h-0 flex-1">
+    <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux bg-fond">
+      <div className="min-h-0 flex-1 animate-in fade-in slide-in-from-bottom-3 duration-700">
         <EditeurAvis key={data.estimation.id} estimation={data.provisoire ? { ...data.estimation, avis: data.avis } : data.estimation}
           provisoire={data.provisoire} integre onRetour={() => {}} onSelection={onSelection} selectionExterne={selection}
           statut={data.provisoire ? `${reste ? `${reste} information${reste > 1 ? "s" : ""} encore attendue${reste > 1 ? "s" : ""}` : "Prêt à rédiger"} · vos retouches sont gardées` : null} />

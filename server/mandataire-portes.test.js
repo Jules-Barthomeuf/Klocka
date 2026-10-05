@@ -10,6 +10,9 @@ import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-portes-'));
 process.env.MONDAY_TOKEN = '';
+process.env.ANTHROPIC_API_KEY = '';
+process.env.GEMINI_API_KEY = '';
+process.env.MISTRAL_API_KEY = '';
 const { Records } = await import('./db.js');
 const P = await import('./mandataire-portes.js');
 
@@ -71,9 +74,10 @@ test('dossier : checklist, relance, envoi à Klocka, décision', async () => {
   const relance = P.relanceProprietaire(d);
   assert.equal(relance.destinataire, 'martin@x.fr');
   assert.match(relance.corps, /Bail commercial/);
+  assert.equal((await P.soumettreDossier(d.id, MOI)).ok, false, 'sans aucune pièce');
   for (const cle of ['bail', 'quittances', 'diagnostics']) P.ajouterPiece(d.id, cle, { filename: `${cle}.pdf`, url: `/uploads/${cle}.pdf` }, MOI);
   assert.equal(P.lireDossier(d.id, MOI).statut, 'documents_en_cours');
-  assert.equal((await P.soumettreDossier(d.id, MOI)).ok, false, 'incomplet');
+  assert.equal(P.checklist(P.lireDossier(d.id, MOI)).envoyable, true, 'transférable sans être complet');
   const complet = P.ajouterPiece(d.id, 'taxe_fonciere', { filename: 'tf.pdf', url: '/uploads/tf.pdf' }, MOI).dossier;
   assert.equal(complet.statut, 'complet', 'la copropriété et le Kbis sont facultatifs');
   assert.equal(P.relanceProprietaire(complet), null);
@@ -82,11 +86,12 @@ test('dossier : checklist, relance, envoi à Klocka, décision', async () => {
   const deal = Records.findBy('Deal', 'deal_id', s.dossier.deal_id);
   assert.equal(deal.origine, 'mandataire');
   assert.equal(deal.mandataire_email, MOI.email);
-  assert.equal(P.ajouterPiece(d.id, 'bail', { filename: 'b2.pdf', url: '/uploads/b2.pdf' }, MOI).ok, false, 'à l’étude, plus de pièce');
+  assert.equal(P.ajouterPiece(d.id, 'bail', { filename: 'b2.pdf', url: '/uploads/b2.pdf' }, MOI).dossier.statut, 'en_etude', 'à l’étude, une pièce s’ajoute encore');
   assert.equal(P.deciderDossier(d.id, { decision: 'no_go' }, ADMIN).ok, false, 'un no-go dit pourquoi');
   assert.equal(P.deciderDossier(d.id, { decision: 'go' }, MOI).ok, false, 'Klocka décide');
   const go = P.deciderDossier(d.id, { decision: 'go' }, ADMIN);
   assert.equal(go.dossier.statut, 'go');
+  assert.equal(P.ajouterPiece(d.id, 'bail', { filename: 'b3.pdf', url: '/uploads/b3.pdf' }, MOI).ok, false, 'décidé, plus de pièce');
   assert.equal(go.marche.statut, 'preparation', 'la mise en marché naît du go');
 });
 

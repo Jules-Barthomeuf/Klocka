@@ -1,7 +1,9 @@
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Loader2, MapPin, Pause, Play, RefreshCw, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { createPageUrl } from "@/utils";
 import { toast } from "@/components/ui/avis";
 import { Sources } from "@/components/mandataire/TableauListe";
 
@@ -45,6 +47,8 @@ export default function AgentIA() {
   if (!data.secteur) return <p className="m-0 mt-10 text-center text-[14px] text-brume">Aucun secteur attribué : l'agent n'a rien à parcourir. Demandez à Klocka de tracer votre secteur.</p>;
 
   const j = data.aujourdhui || {};
+  const cherche = data.cherche || { klocka: [], activite: [] };
+  const nb = cherche.klocka.length + cherche.activite.length;
   const etat = !data.actif
     ? { mot: "En pause", ton: "bg-brume" }
     : data.en_cours
@@ -63,7 +67,7 @@ export default function AgentIA() {
             </span>
           </div>
           <p className="m-0 mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-ardoise">
-            Il parcourt {data.secteur.communes.length > 1 ? `vos ${data.secteur.communes.length} communes` : "votre secteur"} toute la journée : il lit les commerces, trouve qui possède les murs et le numéro du propriétaire, et vous propose ceux qui sont prêts à appeler.
+            Il parcourt {nb > 1 ? `vos ${nb} communes, les villes Klocka d'abord,` : nb ? "votre commune" : "votre secteur"} toute la journée : il lit les commerces, trouve qui possède les murs et le numéro du propriétaire, et vous propose ceux qui sont prêts à appeler.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -91,15 +95,18 @@ export default function AgentIA() {
         ))}
       </div>
 
-      {/* Les communes du secteur : lues, ou à lire. */}
+      {/* Où il cherche : les villes Klocka d'abord, puis les communes cochées ; lues, ou à lire. */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {data.secteur.communes.map((c) => (
-          <span key={c} className="inline-flex items-center gap-1.5 rounded-full border border-trait px-3 py-1 text-[12.5px]">
-            <MapPin className="h-3 w-3 text-ardoise" />
+        {[...cherche.klocka.map((c) => [c, true]), ...cherche.activite.map((c) => [c, false])].map(([c, k]) => (
+          <span key={c} title={k ? "Ville Klocka : toujours lue" : "Cochée pour votre activité"}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] ${k ? "bg-menthe/[0.14]" : "border border-trait"}`}>
+            <MapPin className={`h-3 w-3 ${k ? "text-menthe" : "text-ardoise"}`} />
             <span className="text-encre">{c}</span>
             <span className="text-brume">{data.en_cours?.commune === c ? "en cours" : data.lues?.[c] ? `lue ${ilYa(data.lues[c])}` : "à lire"}</span>
           </span>
         ))}
+        {!cherche.klocka.length && !cherche.activite.length && <span className="text-[13px] text-ambre">Aucune commune à lire.</span>}
+        <Link to={`${createPageUrl("Personnalisation")}#agent`} className="ml-1 text-[13px] text-ardoise underline decoration-trait underline-offset-4 hover:text-encre">Choisir les communes</Link>
       </div>
 
       {/* Ses listes : il y range tout seul chaque commerce prêt. */}
@@ -139,12 +146,15 @@ export default function AgentIA() {
                 <li key={t.id} className="animate-in fade-in rounded-[18px] border border-trait bg-surface-pleine px-5 py-4 duration-300">
                   <div className="flex flex-wrap items-start gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="m-0 text-[12px] text-brume">J'ai trouvé · {ilYa(t.trouve_le)}</p>
+                      <p className="m-0 flex items-center gap-2 text-[12px] text-brume">
+                        J'ai trouvé · {ilYa(t.trouve_le)}
+                        <span className={`rounded-full px-2 py-px text-[11px] ${t.groupe === "klocka" ? "bg-menthe/[0.14] text-encre" : "border border-trait text-ardoise"}`}>{t.groupe === "klocka" ? "Ville Klocka" : "Votre activité"}</span>
+                      </p>
                       <p className="m-0 mt-1 flex items-center gap-2 text-[15.5px] text-encre">
                         <span className="truncate font-medium">{t.enseigne || t.adresse}</span>
                         {t.emplacement != null && <span className="flex-none rounded border border-bord px-1.5 text-[10.5px] text-ardoise">{ROND[t.emplacement]}</span>}
                       </p>
-                      <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{[t.activite, t.adresse, t.ville].filter(Boolean).join(" · ")}</p>
+                      <p className="m-0 mt-0.5 truncate text-[13px] text-ardoise">{[t.activite, t.adresse, t.arrondissement || t.ville].filter(Boolean).join(" · ")}</p>
                       <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13.5px]">
                         <span className="inline-flex items-center text-craie">Murs : <span className="ml-1 text-encre">{t.proprietaire}</span>
                           <Sources textes={[t.proprietaire_source]} p={{ nom: t.proprietaire, commerce: t.enseigne, adresse: t.adresse, ville: t.ville, cible: { adresse: t.adresse, enseigne: t.enseigne, proprietaire: t.proprietaire } }} />

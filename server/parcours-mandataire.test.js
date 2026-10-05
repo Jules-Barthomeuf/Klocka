@@ -108,6 +108,28 @@ test('la décision revient au mandataire', async () => {
   assert.equal(P.deciderDossier(d.id, { decision: 'go' }, LEA).ok, false, 'un mandataire ne décide pas');
 });
 
+test('une pièce suffit pour transférer ; les suivantes vont dans l’analyse', async () => {
+  const b = P.creerDossier({ bien: 'Pharmacie des Halles' }, LEA).dossier;
+  const vide = await P.soumettreDossier(b.id, LEA, { analyste: JULES.email });
+  assert.equal(vide.ok, false, 'sans aucune pièce, rien ne part');
+  assert.match(vide.error, /au moins une pièce/);
+  assert.equal(P.ajouterPiece(b.id, 'bail', { filename: 'bail.pdf', url: '/uploads/bail-seul.pdf' }, LEA).ok, true);
+  assert.equal(P.checklist(Records.get('DossierMandataire', b.id)).envoyable, true);
+  const r = await P.soumettreDossier(b.id, LEA, { analyste: JULES.email });
+  assert.equal(r.ok, true, r.error);
+  const envoye = Records.get('DossierMandataire', b.id);
+  assert.equal(envoye.statut, 'en_etude');
+  assert.ok(envoye.deal_id);
+  // Pendant l'étude, le mandataire ajoute les quittances : elles restent en étude, Jules est prévenu.
+  const q = P.ajouterPiece(b.id, 'quittances', { filename: 'quittances.pdf', url: '/uploads/quittances-apres.pdf' }, LEA);
+  assert.equal(q.ok, true, q.error);
+  assert.equal(q.dossier.statut, 'en_etude');
+  await new Promise((r) => setTimeout(r, 50));
+  assert.ok(Records.list('Notification').some((n) => n.pour === JULES.email && /Nouvelle pièce/.test(n.titre)));
+  assert.equal(P.retirerPiece(b.id, 'bail', '/uploads/bail-seul.pdf', LEA).ok, false, 'transféré : on ajoute, on ne retire plus');
+  await P.supprimerDossierMandataire(b.id, JULES);
+});
+
 test('supprimer : le mandataire, son dossier pas encore transféré ; Klocka, n’importe lequel, avec sa conversation', async () => {
   const brouillon = P.creerDossier({ bien: 'Épicerie fine (à supprimer)' }, LEA).dossier;
   await F.ecrireMandataire(brouillon.id, LEA, { texte: 'Une question avant de transférer.' });

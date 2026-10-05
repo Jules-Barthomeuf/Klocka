@@ -240,18 +240,27 @@ test("le bilan d'AK compte ce qu'il a fait, pour qui, et ce qu'on lui a repris",
   const { bilanDe, bilanEnMarkdown } = await import('./bilan.js');
   const le = new Date().toISOString();
   const b = bilanDe({
-    actions: [{ outil: 'creer_dossier', par: 'jules.b@klocka.immo (AK pour Jules)', le }, { outil: 'creer_dossier', par: 'maxime.p@klocka.immo (AK pour Max)', le, echec: true }, { outil: 'pousser_dossier_monday', par: 'jules.b@klocka.immo', le }],
+    actions: [
+      { outil: 'creer_dossier', par: 'jules.b@klocka.immo (AK pour Jules)', le },
+      { outil: 'creer_dossier', par: 'maxime.p@klocka.immo (AK pour Max)', le, echec: true },
+      { outil: 'pousser_dossier_monday', par: 'jules.b@klocka.immo', le },
+      { outil: 'rediger_loi', par: "nora.l@klocka.immo (AK dans l'application)", le, resultat: { ok: false, manque: ['le prix'] } },
+      { outil: 'creer_dossier', par: "nora.l@klocka.immo (AK dans l'application)", le, resultat: { ok: false, deja_fait: true, error: 'Déjà fait' } },
+    ],
     couts: [{ operation: 'ak', cout: 0.03, le }, { operation: 'ak', cout: 0.01, le }, { operation: 'assistant', cout: 5, le }],
     taches: [{ genre: 'kdata', etat: 'finie', cree_le: le }, { genre: 'prez', etat: 'ratee', cree_le: le }],
     lecons: [{ verdict: 'correction', le }, { verdict: 'bien', le }],
   });
   assert.equal(b.demandes, 2);
   assert.equal(b.cout_total, 0.04);
-  assert.equal(b.actions, 2, "l'action de l'assistant de la plateforme ne compte pas");
-  assert.equal(b.echecs, 1);
-  assert.deepEqual(b.par_personne, [{ qui: 'Jules', n: 1 }, { qui: 'Max', n: 1 }]);
+  assert.equal(b.actions, 4, "l'action de l'assistant de la plateforme ne compte pas ; celles du chat de l'application, si");
+  assert.equal(b.echecs, 1, 'une question posée ou un doublon évité ne sont pas des échecs');
+  assert.equal(b.questions, 1);
+  assert.equal(b.doublons, 1);
+  assert.deepEqual(b.echecs_par_outil, [{ outil: 'creer_dossier', n: 1 }]);
+  assert.deepEqual(b.par_personne, [{ qui: 'Nora', n: 2 }, { qui: 'Jules', n: 1 }, { qui: 'Max', n: 1 }]);
   assert.equal(b.taux_correction, 50);
-  assert.match(bilanEnMarkdown(b), /2 demandes, 2 actions faites \(1 ratées\)/);
+  assert.match(bilanEnMarkdown(b), /4 actions : 1 réussies, 1 questions posées \(il manquait une information\), 1 doublons évités, 1 vraiment ratées/);
   assert.match(bilanEnMarkdown(bilanDe({})), /Personne ne lui a parlé/);
 });
 
@@ -308,12 +317,21 @@ test("la LOI : les nombres en lettres, les champs manquants, le texte de la mais
   assert.equal(c.adresse_bien, '1 avenue Mirabeau, 06000 Nice');
   const h = lettre({ ...c, acquereur_nom: 'Olivier LUCCIONI', acquereur_societe: 'FONCIERE ANGULARIS', acquereur_adresse: 'LOT 12, STILETTO, 20090 AJACCIO', vendeur_societe: 'PAX AVENUE', vendeur_representant: 'Monsieur Jérôme ABECASSIS', vendeur_adresse: '85 rue de France, 06000 Nice', apport: 40000, date: '2026-09-16', validite: '2026-09-23', fin_exclusivite: '2026-10-09', limite_documents: '2026-09-25' });
   assert.match(h, /Lettre d'intention d'achat d'un local commercial situé au 1 avenue Mirabeau, 06000 Nice/);
-  assert.match(h, /<b>Le prix de vente FAI TTC proposé est de 200[\s\u202f]000 € \(deux cent mille euros\)\.<\/b>/);
+  assert.match(h, /Le prix de vente FAI TTC proposé est de <b>200[\s\u202f]000 € \(deux cent mille euros\)<\/b>\./);
   assert.match(h, /apport personnel de 40[\s\u202f]000 € \(quarante mille euros\)/);
   assert.match(h, /durée maximale de 20 ans avec un taux cible de 4%/);
-  assert.match(h, /s'achèvera le 09\/10\/2026, sous réserve[\s\S]*d'ici le 25\/09\/2026/);
-  assert.match(h, /valable jusqu'au 23\/09\/2026/);
-  assert.match(h, /Le Kbis de la société Cookietelier/);
+  assert.match(h, /s'achèvera le <b>09\/10\/2026<\/b>, sous réserve[\s\S]*d'ici le <b>25\/09\/2026<\/b>/);
+  assert.match(h, /valable jusqu'au <b>23\/09\/2026<\/b>/);
+  // Une retouche à la main remplace son paragraphe, et lui seul.
+  const { blocs } = await import('./loi.js');
+  const r = blocs({ acquereur_nom: 'X', vendeur_societe: 'Y', adresse_bien: 'Z', prix: 1, apport: 1, textes: { substitution: 'Pas de substitution.' } });
+  assert.equal(r.find((b) => b.cle === 'substitution').texte, 'Pas de substitution.');
+  assert.equal(r.find((b) => b.cle === 'substitution').retouche, true);
+  assert.match(r.find((b) => b.cle === 'validite').texte, /valable/);
+  assert.match(h, /le Kbis de la société Cookietelier/);
+  assert.match(h, /situé au <b>1 avenue Mirabeau, 06000 Nice<\/b>/);
+  assert.match(h, /FONCIERE ANGULARIS/);
+  assert.match(h, /PAX AVENUE/);
   assert.match(h, /échéance le 30\/04\/2032/);
   assert.match(h, /CPI75012024000000529/);
   assert.match(h, /À Nice, le 16\/09\/2026/);

@@ -78,7 +78,7 @@ const OUTILS_AK = [
   },
   {
     name: 'analyser_fiche',
-    description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
+    description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. Seulement quand la fiche est là (jointe, collée ou en image) : sinon demande-la, n'appelle pas l'outil. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
     input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' }, texte: { type: 'string', description: 'la fiche recopiée par toi, quand elle est sur une image (capture d\'un mail, d\'une annonce) : tout ce que tu y lis, sans rien inventer' } } },
   },
   {
@@ -141,11 +141,14 @@ const OUTILS_AK = [
   },
   {
     name: 'rediger_loi',
-    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison et l'ouvre en Google Doc sur le Drive (modifiable ; PDF si on le demande), lien posé dans le chat pour relecture. Si un dossier est donné, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne.",
+    description: "Rédige une lettre d'intention d'achat (LOI) sur le modèle de la maison. Dans l'application, elle est prête tout de suite dans la page Offres (éditable, Word et PDF) et une notification « Relire » y mène ; dans Google Chat, elle s'ouvre en Google Doc. Si un projet est donné (projet_id, de chercher_projet), ou à défaut un dossier, l'adresse, la surface, le locataire, le bail et le prix en viennent ; le reste est demandé. Ne rédige que quand tous les champs requis sont là : sinon l'outil rend la liste de ce qui manque, et tu la demandes en une ligne. Pour corriger la LOI ouverte (page Offres) : loi_id, et seulement les champs qui changent, ou `textes` pour réécrire un paragraphe par sa clé.",
     input_schema: {
       type: 'object',
       properties: {
+        projet_id: { type: 'string', description: 'le projet de la plateforme (de chercher_projet) : on y prend le bien' },
         deal_id: { type: 'string' },
+        loi_id: { type: 'string', description: 'la LOI ouverte à corriger ; absent pour une nouvelle lettre' },
+        textes: { type: 'object', description: 'paragraphes réécrits, par clé (ex. { "substitution": "…" }) ; une chaîne vide rend le texte du modèle. **…** met en gras.', additionalProperties: { type: 'string' } },
         acquereur_nom: { type: 'string', description: 'la personne qui signe, ex. Olivier LUCCIONI' }, acquereur_societe: { type: 'string' }, acquereur_adresse: { type: 'string' },
         vendeur_societe: { type: 'string' }, vendeur_representant: { type: 'string', description: 'ex. Monsieur Jérôme ABECASSIS' }, vendeur_adresse: { type: 'string' },
         adresse_bien: { type: 'string' }, surface_m2: { type: 'number' }, locataire: { type: 'string', description: "l'enseigne ou la société locataire" }, fin_bail: { type: 'string', description: 'AAAA-MM-JJ' },
@@ -469,7 +472,29 @@ export async function executerOutil(appel, user, options = {}) {
   }
 }
 
-async function executerOutilSansFilet(appel, user, options = {}) {
+/**
+ * Un identifiant recopié raccourci (« 444c9d83 » pour un dossier) : s'il
+ * désigne un seul dossier ou un seul projet, on le complète. Le 01/10, une
+ * modification de loyer a échoué en « Dossier introuvable » pour ça.
+ */
+export function completerIdentifiants(appel) {
+  const input = { ...(appel?.input || {}) };
+  const prefixe = (v) => String(v || '').trim().toLowerCase();
+  const p = prefixe(input.deal_id);
+  if (p.length >= 6 && !Records.findBy('Deal', 'deal_id', input.deal_id)) {
+    const c = Records.list('Deal').filter((d) => String(d.deal_id || '').toLowerCase().startsWith(p));
+    if (c.length === 1) input.deal_id = c[0].deal_id;
+  }
+  const q = prefixe(input.projet_id);
+  if (q.length >= 6 && !Records.get('Project', input.projet_id)) {
+    const c = Records.list('Project').filter((x) => String(x.id || '').toLowerCase().startsWith(q));
+    if (c.length === 1) input.projet_id = c[0].id;
+  }
+  return { ...appel, input };
+}
+
+async function executerOutilSansFilet(appelBrut, user, options = {}) {
+  const appel = completerIdentifiants(appelBrut);
   if (!GESTES_COUTEUX.has(appel.name)) return executerOutilBrut(appel, user, options);
   // Des photos différentes font un autre geste : les ajouter n'est pas refaire le projet.
   const cle = cleGeste(appel.name, { ...(appel.input || {}), photos_jointes: photosDuMessage(options.message) });
@@ -509,7 +534,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
   }
   if (name === 'analyser_fiche' && (input.texte_du_message || input.texte) && !input.chemin) {
     const texte = String(input.texte || message?.texte || '').trim();
-    if (texte.length < 80) return { ok: false, error: 'Le message ne contient pas de fiche à lire.' };
+    if (texte.length < 80) return { ok: false, manque: ["la fiche du bien : le mail ou l'annonce de l'agent, collé ou joint"], error: "Le message ne contient pas de fiche à lire : demande-la en une ligne, n'appelle pas analyser_fiche sans elle." };
     const { analyserFiche } = await import('../deal/index.js');
     const d = await analyserFiche({ texte }, { user });
     const lot = d.lots?.[0];
@@ -627,14 +652,46 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   if (name === 'bloquer_rdv') return bloquerRendezVous(input);
   if (name === 'agenda') return { jour: input.jour, rendez_vous: await agendaDuJour(input.jour) };
   if (name === 'rediger_loi') {
-    const { manquants, champsDepuisDeal } = await import('./loi.js');
-    const deal = input.deal_id ? Records.findBy('Deal', 'deal_id', input.deal_id) : null;
+    const { manquants, champsDepuisDeal, champsDepuisProjet } = await import('./loi.js');
+    const O = await import('../offres.js');
+    const existante = input.loi_id ? Records.get(O.ENTITE, input.loi_id) : null;
+    if (input.loi_id && !existante) return { ok: false, error: 'LOI introuvable.' };
+    const projetId = input.projet_id || existante?.projet_id || null;
+    const projet = projetId ? Records.get('Project', projetId) : null;
+    if (input.projet_id && !projet) return { ok: false, error: 'Projet introuvable : chercher_projet pour son identifiant.' };
+    const dealId = input.deal_id || existante?.deal_id || projet?.deal_id || null;
+    const deal = dealId ? Records.findBy('Deal', 'deal_id', dealId) : null;
     if (input.deal_id && !deal) return { ok: false, error: 'Dossier introuvable.' };
-    const champs = { ...(deal ? champsDepuisDeal(deal) : {}), ...Object.fromEntries(Object.entries(input).filter(([k, v]) => !['deal_id', 'format'].includes(k) && v !== undefined && v !== null && v !== '')) };
+    const donnes = Object.fromEntries(Object.entries(input).filter(([k, v]) => !['deal_id', 'projet_id', 'format', 'loi_id', 'textes'].includes(k) && v !== undefined && v !== null && v !== ''));
+    // Le projet d'abord, le dossier d'où il vient pour ce qu'il ne dit pas.
+    const sansVide = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== ''));
+    const duBien = { ...(deal ? sansVide(champsDepuisDeal(deal)) : {}), ...(projet ? sansVide(champsDepuisProjet(projet)) : {}) };
+    const champs = { ...(existante ? existante.champs : duBien), ...donnes };
+    // D'où vient chaque champ : les sources que la page Offres montre sous la réponse.
+    const duProjet = projet ? sansVide(champsDepuisProjet(projet)) : {};
+    const origines = existante ? { ...(existante.origines || {}) } : Object.fromEntries(Object.keys(duBien).map((k) => [k, k in duProjet ? 'projet' : 'dossier']));
+    for (const k of Object.keys(donnes)) origines[k] = 'chat';
     const m = manquants(champs);
     if (m.length) return { ok: false, manque: m.map((x) => x.question), champs_connus: champs };
-    fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: input.deal_id || null });
-    return { ok: true, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
+    const lien = (id) => `/Offres?loi=${id}`;
+    // Une correction de la lettre ouverte : elle se met à jour à droite.
+    if (existante) {
+      O.modifierLettre(existante.id, { champs, textes: input.textes || null, origines });
+      return { ok: true, loi_id: existante.id, lien: lien(existante.id), note: 'La LOI est à jour, à droite. Dis ce qui a changé en une ligne.' };
+    }
+    const l = O.creerLettre({ champs, origines, deal_id: dealId, projet_id: projetId, user });
+    if (input.textes) O.modifierLettre(l.id, { textes: input.textes });
+    // Dans l'application, la lettre est prête tout de suite : une
+    // notification « Relire » mène à la page Offres.
+    if (String(message?.espace || '').startsWith('app:')) {
+      // Depuis la page Offres, la lettre s'ouvre déjà à droite : pas de notification.
+      if (message?.page === 'offres') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est ouverte à droite, éditable." };
+      const { notifier } = await import('../notifications.js');
+      notifier({ pour: user?.email, titre: 'Votre LOI est prête', texte: [champs.adresse_bien, champs.acquereur_nom].filter(Boolean).join(' · '), lien: lien(l.id), action: 'Relire', genre: 'tache', cle: `loi:${l.id}` });
+      return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est prête dans la page Offres, éditable, avec Word et PDF ; une notification « Relire » y mène. Dis-le en une ligne, sans recopier la lettre." };
+    }
+    fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: dealId });
+    return { ok: true, loi_id: l.id, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
   }
   if (name === 'lancer_design') {
     const { designActif } = await import('./design.js');
@@ -822,7 +879,9 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (!r.ok) {
       // Le projet existe déjà : les photos s'y ajoutent quand même.
       const ajoutees = r.project_id && images.length ? ajouterPhotos(r.project_id, images) : 0;
-      return { ok: ajoutees > 0, error: r.error, photos_ajoutees: ajoutees, lien: r.project_id ? lien(`/Projet?id=${r.project_id}`) : null };
+      // Le projet existait déjà : c'est une réponse, pas un échec. On le donne.
+      if (r.project_id) return { ok: true, deja: true, projet_id: r.project_id, photos_ajoutees: ajoutees, lien: lien(`/Projet?id=${r.project_id}`), note: 'Le projet existait déjà : donne son lien, sans parler d\'échec.' };
+      return { ok: false, error: r.error };
     }
     const ajoutees = images.length ? ajouterPhotos(r.project.id, images) : 0;
     // Ce qui manque au projet tout juste né, posté tel quel après la réponse :
@@ -951,7 +1010,7 @@ CE QUE TU SAIS FAIRE SUR LA PLATEFORME KLOCKA (${APP_URL})
 Tu as des outils. Le modèle ne décide de rien sur le fond : il traduit une phrase en appel d'outil, et le code agit. « Dossier » désigne un dossier de préanalyse (les documents reçus d'un agent) ; « projet » une fiche projet de la plateforme, créée à partir d'un dossier.
 
 RÈGLES :
-1. Cherche toujours avant d'agir (chercher_dossier, chercher_projet) : il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien. Une recherche, puis l'action : n'appelle pas verifier, etat_dossier ou etat_projet si on ne t'a rien demandé dessus, chaque appel coûte.
+1. Cherche toujours avant d'agir : trouver_bien d'abord (projets et dossiers d'un coup), chercher_dossier ou chercher_projet seulement si on sait lequel ; il te faut l'identifiant. Plusieurs résultats : liste-les et demande lequel. Aucun : dis-le, n'invente rien. Une recherche, puis l'action : n'appelle pas verifier, etat_dossier ou etat_projet si on ne t'a rien demandé dessus, chaque appel coûte.
 2bis. Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une fiche COLLÉE dans le message (un mémorandum, une annonce, des lignes de description du bien) avec la même demande : analyser_fiche avec texte_du_message, jamais creer_dossier. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
 2. « Crée le projet pour X », « rentre le projet dans la plateforme » : chercher_dossier puis creer_projet_depuis_dossier ; les photos jointes au message vont d'elles-mêmes dans les images du projet (dis combien en une demi-phrase). « Mets cette photo sur le projet X » : chercher_projet puis ajouter_photos_projet. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 3. « Fais l'analyse K-Data » : demande TOUJOURS d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms. Ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer K-Data sans demander : alors K-Zoning, K-Expertise et Estimation. Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
@@ -1077,7 +1136,7 @@ export async function repondre(message) {
     onTool: async (appel) => {
       outils.push(appel.name);
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
-      const agissant = !['chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
+      const agissant = !['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user: { ...user, email: `${user.email} (AK pour ${prenom})` } }); } catch (e) { console.warn('[ak] journalisation impossible :', e?.message || e); }

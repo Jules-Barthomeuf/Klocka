@@ -419,7 +419,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <Bloc id="hero-chiffres" titre="Prix de revient et rendement">
           <div className="flex gap-12 max-md:gap-8" style={{ fontVariantNumeric: "tabular-nums" }}>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] whitespace-nowrap"><ValeurForcee cle="prix_revient">{formatCurrency(prixRevientCalcule)}</ValeurForcee></span>
+              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] whitespace-nowrap"><ValeurForcee cle="prix_revient">{prixRevientCalcule > 0 ? formatCurrency(prixRevientCalcule) : "—"}</ValeurForcee></span>
               <span className="text-[13px] text-white/75">Prix de revient</span>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -482,7 +482,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               {!project.ville_habitants_agglo && !project.ville_revenu_median && !project.adresse_complete
                 && !project.marche_prix_m2_median && !project.marche_offre_moyenne && !project.marche_baux_moyenne
-                && !project.notes_secteur?.length && !project.notes_marche?.length && <EmptyTab />}
+                && !project.notes_secteur?.length && !project.notes_marche?.length && !modeEdition && <EmptyTab />}
               {/* Les champs ajoutés dans l'ancien onglet Secteur vivent ici désormais. */}
               <ChampsPersonnalises zone="secteur" project={project} />
               <ChampsPersonnalises zone="marche" project={project} />
@@ -524,7 +524,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <Bloc id="locataire-notes" titre="Notes du locataire"><NotesBlock notes={project.notes_locataire} /></Bloc>
 
               {!project.nom_locataire && !project.activite_locataire && loyerAnnuel <= 0 && !project.echeance_bail
-                && (!project.notes_locataire || project.notes_locataire.length === 0) && <EmptyTab />}
+                && (!project.notes_locataire || project.notes_locataire.length === 0) && !modeEdition && <EmptyTab />}
               <ChampsPersonnalises zone="locataire" project={project} />
             </motion.div>
           </TabsContent>
@@ -634,7 +634,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               {project.charges_copropriete <= 0 && !project.type_construction && project.taxe_fonciere_an <= 0
                 && project.provision_charges <= 0 && project.quote_part_lot <= 0
                 && !project.activites_autorisees && !project.activites_interdites
-                && !project.synthese_assemblee_generale && <EmptyTab />}
+                && !project.synthese_assemblee_generale && !modeEdition && <EmptyTab />}
               <ChampsPersonnalises zone="copropriete" project={project} />
             </motion.div>
           </TabsContent>

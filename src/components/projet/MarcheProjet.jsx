@@ -3,7 +3,7 @@ import { nf, useSecteurProjet } from "./SecteurChiffres";
 import { trouverVille, REFERENCES_FR } from "@/data/villes";
 import { EnTeteOnglet } from "./Cartes";
 import { GridPatternCard, GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
-import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce } from "./EditionEnPlace";
+import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce, useEdition } from "./EditionEnPlace";
 
 // L'onglet Marché (maquette « Projet Detail 1b ») : trois cartes (habitants,
 // revenus, prix résidentiel), puis deux : la courbe du résidentiel, et le
@@ -125,22 +125,23 @@ function Habitants({ habitants, agglomeration, contexte }) {
   return (
     <CarteMarche id="marche-habitants" titre="Habitants" className="flex-[1_1_260px]">
       <EnTeteCarte libelle="Habitants" precision={agglomeration ? "agglomération" : null} />
-      <Grand><ValeurEditable champ="ville_habitants_agglo">{nf.format(habitants)}</ValeurEditable></Grand>
+      <Grand><ValeurEditable champ="ville_habitants_agglo">{habitants > 0 ? nf.format(habitants) : "—"}</ValeurEditable></Grand>
       {contexte && <div className="mt-auto pt-8"><Pastille ton="menthe"><ValeurForcee cle="marche_contexte" type="text">{contexte}</ValeurForcee></Pastille></div>}
     </CarteMarche>
   );
 }
 
 function Revenus({ revenu, nomVille, reference }) {
-  const ecart = ((revenu / reference) - 1) * 100;
+  // Un projet neuf, en édition : la carte vide, des tirets, aucun écart inventé.
+  const ecart = revenu > 0 ? ((revenu / reference) - 1) * 100 : null;
   const plafond = Math.max(revenu, reference);
   const arrondi = Math.round(revenu / 100) * 100;
   return (
     <CarteMarche id="marche-revenus" titre="Revenus" className="flex-[1_1_300px]">
-      <EnTeteCarte libelle="Revenus" precision={`${pourcent(ecart)} vs. France`} />
-      <Grand>≈<ValeurEditable champ="ville_revenu_median">{`${nf.format(arrondi)} €`}</ValeurEditable></Grand>
+      <EnTeteCarte libelle="Revenus" precision={ecart != null ? `${pourcent(ecart)} vs. France` : "vs. France"} />
+      <Grand>{revenu > 0 ? "≈" : ""}<ValeurEditable champ="ville_revenu_median">{revenu > 0 ? `${nf.format(arrondi)} €` : "—"}</ValeurEditable></Grand>
       <div className="mt-6 flex flex-col gap-4">
-        <Comparaison libelle={<ValeurEditable champ="ville_secteur_champ1" type="text">{nomVille || "Ville"}</ValeurEditable>} valeur={<ValeurEditable champ="ville_revenu_median">{`${nf.format(arrondi)} €`}</ValeurEditable>} part={revenu / plafond} accent />
+        <Comparaison libelle={<ValeurEditable champ="ville_secteur_champ1" type="text">{nomVille || "Ville"}</ValeurEditable>} valeur={<ValeurEditable champ="ville_revenu_median">{revenu > 0 ? `${nf.format(arrondi)} €` : "—"}</ValeurEditable>} part={revenu / plafond} accent />
         <Comparaison libelle="France" valeur={<ValeurForcee cle="revenu_france">{`${nf.format(reference)} €`}</ValeurForcee>} part={reference / plafond} />
       </div>
     </CarteMarche>
@@ -151,7 +152,7 @@ function PrixResidentiel({ prix, evo1, evo5 }) {
   return (
     <CarteMarche id="marche-residentiel" titre="Prix résidentiel" className="flex-[1_1_260px]">
       <EnTeteCarte libelle="Prix résidentiel" precision="secteur" />
-      <Grand unite="€/m²"><ValeurEditable champ="marche_rue_prix_m2">{nf.format(prix)}</ValeurEditable></Grand>
+      <Grand unite={prix > 0 ? "€/m²" : undefined}><ValeurEditable champ="marche_rue_prix_m2">{prix > 0 ? nf.format(prix) : "—"}</ValeurEditable></Grand>
       {(evo1 != null || evo5 != null) && (
         <div className="mt-auto flex flex-wrap gap-2 pt-8">
           {evo1 != null && <Pastille ton={signe(evo1)}><ValeurEditable champ="marche_evolution_1an">{pourcent(evo1)}</ValeurEditable> sur 1 an</Pastille>}
@@ -217,10 +218,11 @@ function Evolution({ serie, nom }) {
   );
 }
 
-function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null }) {
+function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition = false }) {
   // Le loyer seul : le prix des murs n'a pas de source fiable à l'échelle
-  // d'une rue (6 oct. 2026, demande de Jules).
-  if (!(loyerAutour > 0) && !(loyerProjet > 0)) return null;
+  // d'une rue (6 oct. 2026, demande de Jules). En édition, la carte reste,
+  // vide, pour être remplie.
+  if (!enEdition && !(loyerAutour > 0) && !(loyerProjet > 0)) return null;
   const c = { cle: "loyer", precision: "loyer au m² / an", unite: "€/m²/an", autour: loyerAutour, projet: loyerProjet };
   // Chaque chiffre se modifie au clic : « Autour » dans les champs du
   // panneau Marché, « Le projet » en valeur forcée (il se déduit du Simulateur).
@@ -300,23 +302,26 @@ export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 })
   const contexte = forcee(project, "marche_contexte") || (nomVille ? `Ville · ${nomVille}` : agglomeration && donnees?.agglomeration?.nom ? `Agglomération · ${donnees.agglomeration.nom}` : null);
   const entete = <EnTeteOnglet titre="Marché" source={prixResidentiel > 0 ? "Source : Le Figaro Immobilier" : null} className="" />;
 
+  // En édition, toutes les cartes restent, vides, pour être remplies au clic :
+  // un projet qu'on vient de créer montre sa page, pas un vide.
+  const enEdition = !!useEdition()?.onChamp;
   const rienDuTout = !habitants && !revenu && !prixResidentiel && !loyerAutour && !loyerProjet;
-  if (rienDuTout) return <div className="mb-5">{entete}</div>;
+  if (rienDuTout && !enEdition) return <div className="mb-5">{entete}</div>;
 
   return (
     <div className="flex flex-col gap-4">
       {entete}
-      {(habitants > 0 || revenu > 0 || prixResidentiel > 0) && (
+      {(enEdition || habitants > 0 || revenu > 0 || prixResidentiel > 0) && (
         <div className="flex flex-wrap gap-4">
-          {habitants > 0 && <Habitants habitants={habitants} agglomeration={agglomeration} contexte={contexte} />}
-          {revenu > 0 && <Revenus revenu={revenu} nomVille={nomVille} reference={revenuFrance} />}
-          {prixResidentiel > 0 && <PrixResidentiel prix={serie.length ? serie[serie.length - 1].prix : prixResidentiel} evo1={evo1} evo5={evo5} />}
+          {(enEdition || habitants > 0) && <Habitants habitants={habitants} agglomeration={agglomeration} contexte={contexte} />}
+          {(enEdition || revenu > 0) && <Revenus revenu={revenu} nomVille={nomVille} reference={revenuFrance} />}
+          {(enEdition || prixResidentiel > 0) && <PrixResidentiel prix={serie.length ? serie[serie.length - 1].prix : prixResidentiel} evo1={evo1} evo5={evo5} />}
         </div>
       )}
-      {(serie.length > 1 || loyerAutour > 0 || loyerProjet > 0) && (
+      {(enEdition || serie.length > 1 || loyerAutour > 0 || loyerProjet > 0) && (
         <div className="flex flex-wrap gap-4">
           <Evolution serie={serie} nom={r?.nom} />
-          <Commercial loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} equimmox={equimmox} />
+          <Commercial loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} equimmox={equimmox} enEdition={enEdition} />
         </div>
       )}
     </div>

@@ -1105,7 +1105,12 @@ export default function AdminProjets() {
     { value: "bail", label: "Analyse du bail" }, { value: "copropriete", label: "Copropriété" },
     { value: "documents_projet", label: "Documents" },
   ];
-  const projetAffiche = apercuProjet || editingProject || null;
+  // Un projet qu'on vient de créer montre déjà sa page, cartes vides, à
+  // remplir au clic : plus de phrase d'attente à la place de l'aperçu.
+  const projetVierge = () => {
+    try { return { ...construireDonnees(formData), id: "apercu" }; } catch { return null; }
+  };
+  const projetAffiche = apercuProjet || editingProject || projetVierge();
 
   if (isDialogOpen) {
     const goToProjectsList = () => { setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); };

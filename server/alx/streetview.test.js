@@ -24,7 +24,7 @@ test('le panorama de la bonne rue passe avant le plus proche', () => {
   assert.equal(choisirPanorama([], point, 'Rue du Nord'), null);
 });
 
-import { choisirPoint, candidatDansLeTexte, rueEcrite } from './streetview.js';
+import { choisirPoint, candidatDansLeTexte, rueEcrite, rueCorrespond } from './streetview.js';
 
 test('le point d’une adresse : la BAN quand Google est d’accord ou que sa ville est écrite, sinon Google', () => {
   const nord = { lat: 50.646706, lon: 3.054499, rue: 'Rue du Nord', ville: 'Lille', code_postal: '59800', score: 0.97, adresse: '1 Rue du Nord 59800 Lille' };
@@ -62,4 +62,12 @@ test('la rue se lit dans l’adresse écrite, sans réseau', () => {
   assert.equal(rueEcrite('Bisou Volé'), null);
   assert.equal(rueEcrite(''), null);
   assert.equal(choisirPoint('1 rue du Nord', [], null), null);
+});
+
+test('la rue d’un résultat doit être celle écrite dans l’adresse', () => {
+  assert.equal(rueCorrespond('rue du Nord', 'Rue du Nord'), true);
+  assert.equal(rueCorrespond('rue du Nord Lille', 'Rue du Nord'), true);
+  // « 1 rue du Nord, 59000 Lille » : la BAN proposait la rue du Havre, en 59000.
+  assert.equal(rueCorrespond('rue du Nord', 'Rue du Havre'), false);
+  assert.equal(rueCorrespond('rue du Nordet', 'Rue du Nord'), false);
 });

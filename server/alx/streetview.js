@@ -148,6 +148,16 @@ const normRue = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').
   .replace(/\b(rue|avenue|av|boulevard|bd|place|pl|quai|chemin|allee|impasse|cours|route|square|passage|du|de|des|la|le|les|l|d)\b/g, ' ')
   .replace(/[^a-z0-9]+/g, ' ').trim();
 
+/**
+ * Pure : la rue d'un résultat est-elle celle écrite dans l'adresse ? Tolère
+ * la suite de l'adresse collée à la rue (« rue du Nord Lille »).
+ */
+export function rueCorrespond(ecrite, rue) {
+  const x = normRue(ecrite);
+  const y = normRue(rue);
+  return !!x && !!y && (x === y || x.startsWith(`${y} `));
+}
+
 /** Pure : deux noms de rue désignent-ils la même voie ? */
 export function memeRue(a, b) {
   const x = normRue(a);
@@ -278,13 +288,20 @@ export async function pointDuLieu(texte) {
  * du titre). Numéros et rues seulement, assez sûrs.
  */
 async function candidatsBan(texte, pres = null) {
-  const essais = [...new Set([texte, String(texte).split(',')[0]].map((x) => String(x || '').trim()).filter(Boolean))];
+  // Le texte, puis sans code postal (un « 59000 » pour une rue en 59800
+  // faisait proposer la rue du Havre à la place de la rue du Nord), puis la
+  // rue seule.
+  const sansCode = String(texte).replace(/\b\d{5}\b/g, ' ').replace(/\s+/g, ' ').replace(/\s+,/g, ',').trim();
+  const essais = [...new Set([texte, sansCode, String(texte).split(',')[0]].map((x) => String(x || '').trim()).filter(Boolean))];
+  const ecrite = rueEcrite(texte);
   const vus = [];
   for (const q of essais) {
     const biais = pres ? `&lat=${pres.lat}&lon=${pres.lon}` : '';
     for (const f of (await banJson(`${BAN}?limit=5&q=${encodeURIComponent(q)}${biais}`))?.features || []) {
       const pr = f.properties || {};
       if ((pr.score ?? 0) < 0.5 || !['housenumber', 'street'].includes(pr.type)) continue;
+      // Une autre rue que celle écrite n'est pas l'adresse, même dans la bonne ville.
+      if (ecrite && !rueCorrespond(ecrite, pr.street || pr.name)) continue;
       vus.push({ lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], rue: pr.street || pr.name || null, ville: pr.city || null, code_postal: pr.postcode || null, score: pr.score, adresse: pr.label || null });
     }
   }

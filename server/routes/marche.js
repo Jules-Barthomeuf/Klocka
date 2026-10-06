@@ -13,7 +13,12 @@ export function monterMarche(app) {
   // sur un simple point, s'ouvrait parfois sur la rue voisine.
   app.get('/api/streetview/panorama', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
-    const { panoramaDeLaRue } = await import('../alx/streetview.js');
+    const { panoramaDeLaRue, panoramaDeAdresse } = await import('../alx/streetview.js');
+    // L'adresse en texte d'abord : résolue comme la carte de la page.
+    if (req.query.adresse) {
+      const r = await panoramaDeAdresse(String(req.query.adresse).slice(0, 300)).catch(() => null);
+      if (r) return ok(res, r);
+    }
     const lat = Number(req.query.lat);
     const lon = Number(req.query.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(400).json({ error: 'Point manquant.' });

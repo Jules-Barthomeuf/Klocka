@@ -176,6 +176,24 @@ async function rueDe(lat, lon) {
   }
 }
 
+/** La rue d'une adresse en texte selon la BAN, si elle tombe à moins de 300 m du point. */
+async function rueDuTexte(texte, point) {
+  // Le texte entier, puis sa première partie (« 1 rue du Nord ») : la ville
+  // ajoutée au texte est parfois l'enseigne du titre.
+  const essais = [...new Set([texte, String(texte).split(',')[0]].map((x) => x.trim()).filter(Boolean))];
+  for (const q of essais) {
+    try {
+      const r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=5&q=${encodeURIComponent(q)}&lat=${point.lat}&lon=${point.lon}`, { signal: AbortSignal.timeout(8000) });
+      const f = r.ok ? ((await r.json()).features || []).find((x) => ['housenumber', 'street'].includes(x.properties?.type)
+        && metres(point, { lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }) <= 300) : null;
+      if (f) return f.properties?.street || f.properties?.name || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 const memoire = new Map();
 
 /** Le panorama Google à ouvrir pour une adresse : `{ pano, cap, lat, lon, meme_rue }`, ou null. */
@@ -204,4 +222,43 @@ export async function panoramaDeLaRue({ lat, lon, rue = null }) {
   if (memoire.size > 500) memoire.clear();
   memoire.set(cleMemoire, choix);
   return choix;
+}
+
+// --- Le panorama d'une adresse, résolue comme la carte de la page ---------------------
+//
+// La carte de la page projet (Maps Embed, mode « place ») cherche l'adresse
+// avec la recherche de lieux de Google. Street View partait d'un autre
+// géocodage (la BAN, puis les coordonnées enregistrées du dossier) : quand ce
+// géocodage échouait, la vue s'ouvrait ailleurs que la carte (« 1 rue du Nord »
+// à la rue du Havre, à 3 km). On résout donc le même texte avec le même
+// moteur, puis on choisit le panorama dans la rue trouvée.
+
+const LIEU = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json';
+const lieux = new Map();
+
+/** Le point d'une adresse selon la recherche de lieux de Google : `{ lat, lon, adresse }`, ou null. */
+export async function pointDuLieu(texte) {
+  const t = String(texte || '').trim();
+  if (!cle() || !t) return null;
+  if (lieux.has(t)) return lieux.get(t);
+  const params = new URLSearchParams({ input: t, inputtype: 'textquery', fields: 'geometry,formatted_address', language: 'fr', region: 'fr', key: cle() });
+  const r = await fetch(`${LIEU}?${params}`, { signal: AbortSignal.timeout(10000) });
+  const d = r.ok ? await r.json() : null;
+  const c = d?.status === 'OK' ? d.candidates?.[0] : null;
+  const point = c?.geometry?.location ? { lat: c.geometry.location.lat, lon: c.geometry.location.lng, adresse: c.formatted_address || null } : null;
+  if (lieux.size > 500) lieux.clear();
+  lieux.set(t, point);
+  return point;
+}
+
+/** Le panorama à ouvrir pour une adresse en texte : `{ point, panorama }` ; panorama null s'il n'y en a pas. */
+export async function panoramaDeAdresse(texte) {
+  const point = await pointDuLieu(texte);
+  if (!point) return null;
+  // La rue écrite dans l'adresse, lue par la BAN près du point : la même source
+  // que la rue de chaque panorama. Le géocodage inverse du point seul tombe
+  // parfois sur la rue d'angle. À défaut, celui-ci.
+  const rue = (await rueDuTexte(texte, point)) || (await rueDe(point.lat, point.lon));
+  const panorama = await panoramaDeLaRue({ lat: point.lat, lon: point.lon, rue });
+  return { point, panorama };
 }

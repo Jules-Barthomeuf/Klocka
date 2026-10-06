@@ -14,10 +14,12 @@ export function monterMarche(app) {
   app.get('/api/streetview/panorama', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
     const { panoramaDeLaRue, panoramaDeAdresse } = await import('../alx/streetview.js');
-    // L'adresse en texte d'abord : résolue comme la carte de la page.
+    // L'adresse en texte d'abord : la BAN et Google croisés. Rien trouvé : on
+    // le dit (point null), on ne renvoie jamais un autre endroit.
     if (req.query.adresse) {
-      const r = await panoramaDeAdresse(String(req.query.adresse).slice(0, 300)).catch(() => null);
-      if (r) return ok(res, r);
+      const pres = Number.isFinite(Number(req.query.lat)) && Number.isFinite(Number(req.query.lon)) ? { lat: Number(req.query.lat), lon: Number(req.query.lon) } : null;
+      const r = await panoramaDeAdresse(String(req.query.adresse).slice(0, 300), { pres }).catch((e) => { console.warn(`[streetview] ${e?.message || e}`); return null; });
+      return ok(res, r || { point: null, panorama: null });
     }
     const lat = Number(req.query.lat);
     const lon = Number(req.query.lon);

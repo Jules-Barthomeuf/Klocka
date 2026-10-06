@@ -45,3 +45,10 @@ test("un résultat de la BAN : une rue sûre, dans la bonne ville ou près de la
   assert.equal(resultatPlausible(sansVille, f('Lille', '59800', 50.6467, 3.0545, 0.97, 'municipality'), lille), false, 'une commune, pas une rue');
   assert.deepEqual(adressesAEssayer(sansVille), ['1 rue du Nord, Bisou Volé', '1 rue du Nord']);
 });
+
+test("une adresse en fin de titre n'est pas prise pour la ville", () => {
+  // « Bisou Volé - 1 Rue du Havre, Lille » : « 1 Rue du Havre, Lille » n'est pas une ville.
+  assert.equal(villeDuProjet({ titre: 'Bisou Volé - 1 Rue du Havre, Lille' }), null);
+  assert.equal(villeDuProjet({ titre: 'Boulangerie - 12 bis, avenue Jean Médecin' }), null);
+  assert.equal(villeDuProjet({ titre: 'Boulangerie - Nice' }), 'Nice');
+});

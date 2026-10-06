@@ -18,7 +18,7 @@ const VIDES = new Set(["", "non disponible", "inconnu", "inconnue", "na", "n a",
 export function villeDuProjet(p) {
   const brute = [p?.ville_secteur_champ1, String(p?.titre || "").split(/\s+[-–—]\s+/).slice(1).pop()]
     .map((v) => String(v || "").trim())
-    .find((v) => v && !VIDES.has(norm(v)) && !/\d{2,}\s*(rue|av|bd|boulevard|place|chemin)/i.test(v));
+    .find((v) => v && !VIDES.has(norm(v)) && !/\d+\s*(bis|ter)?\s*,?\s*(rue|avenue|av|bd|boulevard|place|chemin|quai|all[ée]e|impasse|cours|route)\b/i.test(v));
   if (!brute) return null;
   return brute.replace(/\s+\d+\s*(er|e|eme|ème)?(\s+arrondissement)?$/i, "").replace(/\s*\(.*\)$/, "").trim() || null;
 }

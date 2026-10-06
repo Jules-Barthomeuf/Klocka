@@ -166,14 +166,22 @@ export function choisirPanorama(candidats, point, rue) {
   return bon ? { ...bon, cap: bearing(bon, point), meme_rue: !!rue && memeRue(bon.rue, rue) } : null;
 }
 
-async function rueDe(lat, lon) {
-  try {
-    const r = await fetch(`https://api-adresse.data.gouv.fr/reverse/?lat=${lat}&lon=${lon}&limit=1`, { signal: AbortSignal.timeout(8000) });
-    const f = r.ok ? (await r.json()).features?.[0] : null;
-    return f?.properties?.street || f?.properties?.name || null;
-  } catch {
-    return null;
+/** Un appel à la BAN, avec un second essai : elle répond parfois 429 ou tarde quand on l'interroge en rafale. */
+async function banJson(url) {
+  for (let essai = 0; essai < 2; essai += 1) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) return await r.json();
+      if (r.status < 500 && r.status !== 429) return null;
+    } catch { /* on réessaie une fois */ }
+    await new Promise((f) => setTimeout(f, 400));
   }
+  return null;
+}
+
+async function rueDe(lat, lon) {
+  const f = (await banJson(`https://api-adresse.data.gouv.fr/reverse/?lat=${lat}&lon=${lon}&limit=1`))?.features?.[0];
+  return f?.properties?.street || f?.properties?.name || null;
 }
 
 /** La rue d'une adresse en texte selon la BAN, si elle tombe à moins de 300 m du point. */
@@ -182,16 +190,22 @@ async function rueDuTexte(texte, point) {
   // ajoutée au texte est parfois l'enseigne du titre.
   const essais = [...new Set([texte, String(texte).split(',')[0]].map((x) => x.trim()).filter(Boolean))];
   for (const q of essais) {
-    try {
-      const r = await fetch(`https://api-adresse.data.gouv.fr/search/?limit=5&q=${encodeURIComponent(q)}&lat=${point.lat}&lon=${point.lon}`, { signal: AbortSignal.timeout(8000) });
-      const f = r.ok ? ((await r.json()).features || []).find((x) => ['housenumber', 'street'].includes(x.properties?.type)
-        && metres(point, { lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }) <= 300) : null;
-      if (f) return f.properties?.street || f.properties?.name || null;
-    } catch {
-      return null;
-    }
+    const d = await banJson(`https://api-adresse.data.gouv.fr/search/?limit=5&q=${encodeURIComponent(q)}&lat=${point.lat}&lon=${point.lon}`);
+    const f = (d?.features || []).find((x) => ['housenumber', 'street'].includes(x.properties?.type)
+      && metres(point, { lat: x.geometry.coordinates[1], lon: x.geometry.coordinates[0] }) <= 300);
+    if (f) return f.properties?.street || f.properties?.name || null;
   }
   return null;
+}
+
+/**
+ * Pure : la rue écrite dans l'adresse (« 1 bis rue du Nord, Lille » → « rue du
+ * Nord »), sans réseau. Null si le début de l'adresse ne ressemble pas à une
+ * voie.
+ */
+export function rueEcrite(texte) {
+  const debut = String(texte || '').split(/[,\n]|\s+\d{5}\b/)[0].trim().replace(/^\d+\s*(bis|ter|quater|[a-z])?\b\s*/i, '').trim();
+  return /^(rue|avenue|av\.?|boulevard|bd\.?|place|pl\.?|quai|chemin|all[ée]e|impasse|cours|route|square|passage|promenade|esplanade|faubourg|sentier|voie)\b/i.test(debut) ? debut : null;
 }
 
 const memoire = new Map();
@@ -224,41 +238,120 @@ export async function panoramaDeLaRue({ lat, lon, rue = null }) {
   return choix;
 }
 
-// --- Le panorama d'une adresse, résolue comme la carte de la page ---------------------
+// --- Le point et le panorama d'une adresse ------------------------------------------
 //
 // La carte de la page projet (Maps Embed, mode « place ») cherche l'adresse
 // avec la recherche de lieux de Google. Street View partait d'un autre
-// géocodage (la BAN, puis les coordonnées enregistrées du dossier) : quand ce
-// géocodage échouait, la vue s'ouvrait ailleurs que la carte (« 1 rue du Nord »
-// à la rue du Havre, à 3 km). On résout donc le même texte avec le même
-// moteur, puis on choisit le panorama dans la rue trouvée.
+// géocodage, et retombait sur les coordonnées enregistrées du dossier (le
+// centre de la commune, ou pire) : « 1 rue du Nord » s'ouvrait rue du Havre,
+// à 3 km. Ici, deux sources se recoupent : la Base Adresse Nationale (sans
+// clé, précise au numéro) et la recherche de lieux de Google (avec la clé
+// serveur, quand elle est posée). On garde le point le plus sûr, et la rue
+// qui va avec : Street View y choisit ensuite son panorama.
 
 const LIEU = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json';
+const BAN = 'https://api-adresse.data.gouv.fr/search/';
 const lieux = new Map();
+const normTexte = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-/** Le point d'une adresse selon la recherche de lieux de Google : `{ lat, lon, adresse }`, ou null. */
+/** Le point d'une adresse selon la recherche de lieux de Google : `{ lat, lon, adresse }`, ou null (sans clé aussi). */
 export async function pointDuLieu(texte) {
   const t = String(texte || '').trim();
   if (!cle() || !t) return null;
   if (lieux.has(t)) return lieux.get(t);
-  const params = new URLSearchParams({ input: t, inputtype: 'textquery', fields: 'geometry,formatted_address', language: 'fr', region: 'fr', key: cle() });
-  const r = await fetch(`${LIEU}?${params}`, { signal: AbortSignal.timeout(10000) });
-  const d = r.ok ? await r.json() : null;
-  const c = d?.status === 'OK' ? d.candidates?.[0] : null;
-  const point = c?.geometry?.location ? { lat: c.geometry.location.lat, lon: c.geometry.location.lng, adresse: c.formatted_address || null } : null;
+  let point = null;
+  try {
+    const params = new URLSearchParams({ input: t, inputtype: 'textquery', fields: 'geometry,formatted_address', language: 'fr', region: 'fr', key: cle() });
+    const r = await fetch(`${LIEU}?${params}`, { signal: AbortSignal.timeout(10000) });
+    const d = r.ok ? await r.json() : null;
+    const c = d?.status === 'OK' ? d.candidates?.[0] : null;
+    point = c?.geometry?.location ? { lat: c.geometry.location.lat, lon: c.geometry.location.lng, adresse: c.formatted_address || null } : null;
+  } catch { point = null; }
   if (lieux.size > 500) lieux.clear();
   lieux.set(t, point);
   return point;
 }
 
-/** Le panorama à ouvrir pour une adresse en texte : `{ point, panorama }` ; panorama null s'il n'y en a pas. */
-export async function panoramaDeAdresse(texte) {
-  const point = await pointDuLieu(texte);
-  if (!point) return null;
-  // La rue écrite dans l'adresse, lue par la BAN près du point : la même source
-  // que la rue de chaque panorama. Le géocodage inverse du point seul tombe
-  // parfois sur la rue d'angle. À défaut, celui-ci.
-  const rue = (await rueDuTexte(texte, point)) || (await rueDe(point.lat, point.lon));
-  const panorama = await panoramaDeLaRue({ lat: point.lat, lon: point.lon, rue });
+/**
+ * Les adresses de la BAN pour un texte : le texte entier, puis sa première
+ * partie (« 1 rue du Nord » sans la ville ajoutée, qui est parfois l'enseigne
+ * du titre). Numéros et rues seulement, assez sûrs.
+ */
+async function candidatsBan(texte, pres = null) {
+  const essais = [...new Set([texte, String(texte).split(',')[0]].map((x) => String(x || '').trim()).filter(Boolean))];
+  const vus = [];
+  for (const q of essais) {
+    const biais = pres ? `&lat=${pres.lat}&lon=${pres.lon}` : '';
+    for (const f of (await banJson(`${BAN}?limit=5&q=${encodeURIComponent(q)}${biais}`))?.features || []) {
+      const pr = f.properties || {};
+      if ((pr.score ?? 0) < 0.5 || !['housenumber', 'street'].includes(pr.type)) continue;
+      vus.push({ lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], rue: pr.street || pr.name || null, ville: pr.city || null, code_postal: pr.postcode || null, score: pr.score, adresse: pr.label || null });
+    }
+  }
+  return vus;
+}
+
+/** Pure : la ville ou le code postal de ce candidat sont-ils écrits dans l'adresse ? */
+export function candidatDansLeTexte(texte, c) {
+  const t = ` ${normTexte(texte)} `;
+  return !!((c.code_postal && t.includes(` ${c.code_postal} `)) || (c.ville && normTexte(c.ville) && t.includes(` ${normTexte(c.ville)} `)));
+}
+
+/**
+ * Pure : le point retenu entre la BAN et Google. La BAN est précise au numéro
+ * mais sans ville dite elle cherche dans toute la France ; Google comprend
+ * le texte mais place parfois au mauvais endroit (« 1 rue du Nord » seul : à
+ * Pourrières, dans le Var). `pres`, les coordonnées du dossier, dit au moins
+ * la commune. Dans l'ordre : les deux d'accord (300 m) ; la BAN dont la ville
+ * est écrite dans l'adresse ; la BAN à moins de 15 km du dossier ; Google,
+ * s'il n'est pas à plus de 50 km du dossier (ou, sans dossier, si l'adresse
+ * dit plus qu'une rue) ; sinon rien. Rend
+ * `{ lat, lon, rue, adresse, source }` ou null.
+ */
+export function choisirPoint(texte, candidats, google, pres = null) {
+  const pris = (c, source) => ({ lat: c.lat, lon: c.lon, rue: c.rue || null, adresse: c.adresse || null, source });
+  const proche = google && candidats.find((c) => metres(google, c) <= 300);
+  if (proche) return pris(proche, 'ban+google');
+  const dansTexte = candidats.find((c) => candidatDansLeTexte(texte, c));
+  if (dansTexte) return pris(dansTexte, 'ban');
+  const presDuDossier = pres && candidats.find((c) => metres(pres, c) <= 15000);
+  if (presDuDossier) return pris(presDuDossier, 'ban-pres-du-dossier');
+  // Google seul : s'il n'est pas à plus de 50 km du dossier, ou, sans dossier
+  // situé, si l'adresse dit plus qu'une rue (ville, code postal, enseigne).
+  // « 1 rue du Nord » tout court, Google l'envoyait dans le Var.
+  const texteSitue = /\b\d{5}\b/.test(texte) || String(texte).split(',').length > 1;
+  if (google && (pres ? metres(pres, google) <= 50000 : texteSitue)) return { lat: google.lat, lon: google.lon, rue: null, adresse: google.adresse, source: 'google' };
+  // Une BAN sans ville écrite, sans Google d'accord, sans commune connue :
+  // une rue de ce nom n'importe où en France. Plutôt rien qu'un autre endroit.
+  return null;
+}
+
+const resolutions = new Map();
+
+/** Le point d'une adresse en texte, croisé entre la BAN et Google : `{ lat, lon, rue, adresse, source }`, ou null. */
+export async function resoudrePoint(texte, { pres = null } = {}) {
+  const t = String(texte || '').trim();
+  if (!t) return null;
+  const cleR = `${t}|${pres ? `${pres.lat},${pres.lon}` : ''}`;
+  if (resolutions.has(cleR)) return resolutions.get(cleR);
+  const [google, candidats] = await Promise.all([pointDuLieu(t), candidatsBan(t, pres)]);
+  let point = choisirPoint(t, candidats, google, pres);
+  // Google seul : la rue écrite dans l'adresse, lue par la BAN près du point
+  // (le géocodage inverse du point tombe parfois sur la rue d'angle).
+  if (point && !point.rue) point = { ...point, rue: rueEcrite(t) || (await rueDuTexte(t, point)) || (await rueDe(point.lat, point.lon)) };
+  if (resolutions.size > 500) resolutions.clear();
+  resolutions.set(cleR, point);
+  return point;
+}
+
+/** Le panorama à ouvrir pour une adresse en texte : `{ point, panorama }` ; panorama null sans clé serveur ou sans prise de vue. */
+export async function panoramaDeAdresse(texte, { pres = null } = {}) {
+  const point = await resoudrePoint(texte, { pres });
+  if (!point) {
+    console.log(`[streetview] ${JSON.stringify(texte)} : aucune adresse trouvée`);
+    return null;
+  }
+  const panorama = cle() ? await panoramaDeLaRue({ lat: point.lat, lon: point.lon, rue: point.rue }).catch(() => null) : null;
+  console.log(`[streetview] ${JSON.stringify(texte)} → ${point.adresse || `${point.lat},${point.lon}`} (${point.source}${point.rue ? `, ${point.rue}` : ''}) → ${panorama?.pano ? `panorama ${panorama.pano}${panorama.meme_rue ? '' : ' (autre rue)'}` : cle() ? 'pas de panorama' : 'sans clé serveur : le point'}`);
   return { point, panorama };
 }

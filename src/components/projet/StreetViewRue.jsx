@@ -8,35 +8,36 @@ import { geolocaliser } from "./PlongeeCarte";
 // Embed API Google (gratuite, même clé que la carte embarquée) — le panorama
 // est interactif : glisser pour regarder autour, flèches pour avancer.
 //
-// La vue part du même texte que la carte de la page, résolu par le même moteur
-// (la recherche de lieux de Google, côté serveur) : la carte et Street View
-// montrent le même endroit. Le serveur choisit le panorama Google de la rue
-// et le cap vers le local. Sans lui (page publique, adresse introuvable), on
-// retombe sur la géolocalisation de la plongée.
+// Le serveur résout le texte de l'adresse (Base Adresse Nationale et recherche
+// de lieux de Google, croisées) et choisit le panorama Google de la rue, tourné
+// vers le local. Les coordonnées enregistrées sur le dossier ne servent qu'à
+// orienter cette recherche : elles sont souvent le centre de la commune, et
+// Street View s'y ouvrait à des kilomètres de l'adresse. Une adresse écrite
+// qu'on ne retrouve pas donne un message, jamais un autre endroit. Sans
+// adresse du tout, on retombe sur la géolocalisation de la plongée.
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const embed = (params) => `https://www.google.com/maps/embed/v1/streetview?key=${MAPS_KEY}&${params}&fov=90`;
 
 export default function StreetViewRue({ project }) {
   const adresse = adresseAChercher(project);
+  const pres = project.latitude && project.longitude ? `&lat=${Number(project.latitude)}&lon=${Number(project.longitude)}` : "";
   const { data: vue, isFetched: vueLue } = useQuery({
-    queryKey: ["panorama-adresse", adresse],
-    queryFn: () => base44.request("GET", `/api/streetview/panorama?adresse=${encodeURIComponent(adresse)}`),
+    queryKey: ["panorama-adresse", adresse, pres],
+    queryFn: () => base44.request("GET", `/api/streetview/panorama?adresse=${encodeURIComponent(adresse)}${pres}`),
     enabled: !!adresse,
     staleTime: Infinity,
-    retry: false,
+    retry: 1,
   });
-  const serveur = vue?.panorama?.pano || vue?.point;
-  // Le repli : seulement si le serveur n'a rien trouvé.
+  // Sans adresse écrite seulement : la plongée sait au moins où est la commune.
   const { data: cible, isFetched: cibleLue } = useQuery({
     queryKey: ["geoloc-projet", project.id, project.adresse_complete], // même cache que la plongée
     queryFn: () => geolocaliser(project),
-    enabled: !adresse || (vueLue && !serveur),
+    enabled: !adresse,
     staleTime: Infinity,
   });
 
-  const enAttente = (adresse && !vueLue) || (!serveur && !cibleLue);
-  if (enAttente) {
+  if ((adresse && !vueLue) || (!adresse && !cibleLue)) {
     return (
       <div className="absolute inset-0 bg-fond flex items-center justify-center">
         <div className="w-7 h-7 border-2 border-menthe/30 border-t-menthe rounded-full animate-spin" />
@@ -45,11 +46,13 @@ export default function StreetViewRue({ project }) {
   }
 
   const pano = vue?.panorama;
-  const point = vue?.point || cible;
+  const point = adresse ? vue?.point : cible;
   if (!pano?.pano && !point) {
     return (
-      <div className="absolute inset-0 bg-fond flex items-center justify-center">
-        <p className="text-ardoise text-sm">Adresse non localisable — Street View indisponible.</p>
+      <div className="absolute inset-0 bg-fond flex items-center justify-center px-6 text-center">
+        <p className="text-ardoise text-sm">
+          {adresse ? `Adresse introuvable sur la carte (« ${adresse} ») — Street View indisponible. Vérifiez la rue et la ville du projet.` : "Adresse non renseignée — Street View indisponible."}
+        </p>
       </div>
     );
   }

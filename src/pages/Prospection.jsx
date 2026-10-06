@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
+import ModeAppel from "@/components/prospection/ModeAppel";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
 // un agent (il se verrouille à son nom), on enregistre l'appel, et à la fin
@@ -43,7 +44,8 @@ function Bulle({ children }) {
 function Propositions({ appel, onFini }) {
   const queryClient = useQueryClient();
   const props = appel.propositions || [];
-  const [coches, setCoches] = useState(() => new Set(props.map((p) => p.id)));
+  // Cochées d'avance, sauf celles qu'AK propose sans les imposer (un mail de courtoisie).
+  const [coches, setCoches] = useState(() => new Set(props.filter((p) => p.coche !== false).map((p) => p.id)));
   const pm = props.find((p) => p.type === "mail");
   const ps = props.find((p) => p.type === "sms");
   const [mail, setMail] = useState(pm ? { a: pm.a || "", objet: pm.objet, corps: pm.corps } : null);
@@ -217,7 +219,12 @@ function PanneauAppel({ agent, onFermer, onCarte = null }) {
           <h2 className="m-0 mt-1 text-[20px] font-semibold text-encre">{agent.nom}</h2>
           <p className="m-0 mt-0.5 text-[13px] text-craie">{[agent.agence && agent.agence !== agent.nom ? agent.agence : null, agent.ville].filter(Boolean).join(" · ")}</p>
         </div>
-        {etat === "pret" && <button type="button" onClick={lacher} className="text-[12px] text-brume hover:text-encre max-md:h-9 max-md:px-2" style={{ background: "transparent" }}>Lâcher</button>}
+        {etat === "pret" && (
+          <button type="button" onClick={lacher} aria-label="Lâcher cet appel" title="Lâcher cet appel"
+            className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }}>
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {etat !== "propose" && (
@@ -967,7 +974,8 @@ export default function Prospection() {
   // Les parties de la page : À appeler (qui appeler aujourd'hui, ce qui attend,
   // la fiabilité d'AK), l'agent IA, ses listes par ville. « Prospecter » (le
   // carnet complet) est caché depuis le 5 oct. 2026 et tourne en coulisse.
-  const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"]];
+  // « Mode appel » (6 oct. 2026) : la file d'une ville, une agence à la fois, pensée pour le téléphone.
+  const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"]];
   const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
   const [aAppeler, setAAppeler] = useState(0);
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
@@ -1014,6 +1022,7 @@ export default function Prospection() {
         </nav>}
       </header>
       {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} />}
+      {partie === "appel" && <ModeAppel />}
       {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
       {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}

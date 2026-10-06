@@ -57,6 +57,11 @@ export function mailSansReponse(a) {
   return { objet: 'Klocka : investisseur en murs commerciaux', corps: [bonjour(a), '', 'J\'ai essayé de vous joindre ces derniers jours. Nous achetons des murs commerciaux loués et cherchons des agents avec qui travailler régulièrement.', '', 'Si vous avez ou rentrez ce type de biens, un appel de cinq minutes suffit : dites-moi quand vous êtes disponible.', '', 'Bien à vous,', '{signature}'].join('\n') };
 }
 
+/** Pure : le mail de courtoisie après un « pas intéressé » : on remercie, on laisse la porte ouverte. */
+export function mailCourtoisie(a) {
+  return { objet: 'Merci pour votre temps', corps: [bonjour(a), '', 'Merci d\'avoir pris le temps de me répondre tout à l\'heure. Je comprends que ce n\'est pas le moment.', '', 'Si un jour vous rentrez des murs commerciaux loués, nous restons acheteurs : il suffit de m\'écrire.', '', 'Bien à vous,', '{signature}'].join('\n') };
+}
+
 /** Pure : le SMS après trois appels sans réponse. */
 export const smsSansReponse = (a) => `${bonjour(a)} j'ai essayé de vous joindre : nous achetons des murs commerciaux loués et cherchons des agents partenaires. Quand êtes-vous disponible pour un court appel ? {signature}, Klocka`;
 

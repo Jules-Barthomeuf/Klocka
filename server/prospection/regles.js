@@ -35,6 +35,9 @@ export const ISSUES = {
   veut_mail: 'Veut d\'abord un mail',
   pas_interesse: 'Pas intéressé',
   invalide: 'Mauvais numéro',
+  // Les issues du mode appel, tapées par l'analyste en raccrochant (6 oct. 2026).
+  a_rappeler: 'À rappeler',
+  interesse: 'Intéressé',
   autre: 'Autre',
 };
 
@@ -125,7 +128,10 @@ export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), 
   // Une date de rappel dite (« à rappeler le 20 ») passe avant le délai par défaut.
   if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['demande_fiche'], relance_mail_jours: 3 };
   if (issue === 'veut_mail') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : a-t-il lu notre mail, a-t-il des murs ?', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3 };
-  if (issue === 'pas_interesse') return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'retenter dans six mois', le: ouvre(plusJours(auj, 182)) }, mails: [] };
+  if (issue === 'pas_interesse') return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'retenter dans six mois', le: ouvre(plusJours(auj, 182)) }, mails: [], courtoisie: true };
+  // Intéressé : on se présente avec nos critères, et on rappelle à la date dite.
+  if (issue === 'interesse') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : la suite de notre échange', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3, date_par_defaut: !dite };
+  if (issue === 'a_rappeler') return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler comme convenu', le: dite || ouvre(plusJours(auj, 7)) }, mails: [], date_par_defaut: !dite };
   if (issue === 'invalide') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], autre_contact: true };
   return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler', le: dite || ouvre(plusJours(auj, 7)) }, mails: [] };
 }

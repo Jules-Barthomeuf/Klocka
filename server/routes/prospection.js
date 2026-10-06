@@ -81,6 +81,74 @@ export function monterProspection(app) {
     ok(res, r);
   }));
 
+  // --- Le mode appel : une ville, une file, une issue en un geste ------------
+  const MA = () => import('../prospection/mode-appel.js');
+  app.get('/api/prospection/mode-appel/file', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const liste = String(req.query.liste || '');
+    // Le croisement avec Monday a plus de six heures : on le refait avant de
+    // présenter la file (qui, quand, relance due), sans bloquer si Monday tombe.
+    const lignes = Records.list('AgenceProspect').filter((a) => a.liste_id === liste);
+    const plusVieux = lignes.reduce((m, a) => (!a.monday_verifie_le ? 0 : Math.min(m, Date.parse(a.monday_verifie_le))), Infinity);
+    if (lignes.length && (plusVieux === 0 || Date.now() - plusVieux > 6 * 3600 * 1000)) {
+      try { await (await import('../prospection/monday-connus.js')).marquerListe(liste); } catch { /* la file part avec ce qu'on sait */ }
+    }
+    const r = (await MA()).fileDAppel(liste, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/mode-appel/sessions', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await MA()).ouvrirSession(req.body?.liste_id, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.get('/api/prospection/mode-appel/sessions/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await MA()).recapSession(req.params.id);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // Appeler : l'agence entre au carnet et se verrouille trente minutes.
+  app.post('/api/prospection/mode-appel/prendre', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MA()).prendre(req.body?.agence_id, user);
+    if (!r.ok) return res.status(409).json({ error: r.error });
+    ok(res, r);
+  }));
+  // L'issue tapée en raccrochant, avec le vocal pour les vraies conversations.
+  app.post('/api/prospection/mode-appel/issue', upload.single('audio'), wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const audio = req.file ? fs.readFileSync(req.file.path) : null;
+    if (req.file) fs.promises.unlink(req.file.path).catch(() => {});
+    const r = await (await MA()).noterIssue({
+      agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue,
+      session_id: req.body?.session_id || null, audio, recit: String(req.body?.recit || '').trim().slice(0, 4000) || null, user,
+    });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/mode-appel/appels/:id/valider', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MA()).validerIssue({
+      appel_id: req.params.id, choix: req.body?.choix || [], mail: req.body?.mail || null,
+      envoyer: req.body?.envoyer !== false, session_id: req.body?.session_id || null, issue: req.body?.issue || null, user,
+    });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.get('/api/prospection/mode-appel/appels/:id/recu', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await MA()).recu(req.params.id);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // L'appel raconté en trente secondes : noté sur la fiche et dans Monday d'un coup.
   app.post('/api/prospection/agents/:id/raconter', upload.single('audio'), wrap(async (req, res) => {
     const user = admin(req, res);
@@ -365,6 +433,33 @@ export function monterProspection(app) {
     const { contactsMonday } = await import('../prospection/monday-connus.js');
     await contactsMonday({ forcer: true });
     const r = await I.verifierMonday({ id: req.params.id });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // À qui est une ligne : l'équipe qu'on peut nommer, et nommer ou retirer.
+  app.get('/api/prospection/agent-ia/equipe', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { equipe: (await IA()).equipe(), moi: String(currentUser(req)?.email || '').toLowerCase() });
+  }));
+  app.post('/api/prospection/agent-ia/agences/retirer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await IA()).retirerAgences(Array.isArray(req.body?.ids) ? req.body.ids.slice(0, 500) : [], user, req.body?.motif || null));
+  }));
+  app.get('/api/prospection/agent-ia/listes/:id/retirees', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const I = await IA();
+    ok(res, { retirees: I.retirees(req.params.id), regles: I.reglesApprises().map((r) => ({ cle: r.cle, motif: r.motif, libelle: I.METIERS_EXCLUS.find((m) => m.cle === r.cle)?.libelle || r.cle })) });
+  }));
+  app.post('/api/prospection/agent-ia/agences/:id/remettre', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await IA()).remettreAgence(req.params.id);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/agent-ia/agences/:id/pour', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await IA()).attribuer(req.params.id, { email: req.body?.email || null, retirer: !!req.body?.retirer }, currentUser(req));
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));

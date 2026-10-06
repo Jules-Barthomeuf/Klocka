@@ -236,6 +236,21 @@ export async function lireTableau(boardId, limite = 2000) {
   return lignes;
 }
 
+/**
+ * Un élément relu tel que Monday le garde, avec ses valeurs lisibles : ce qui
+ * permet de confirmer ce qui a réellement été écrit, pas ce qui a été demandé.
+ * Null s'il n'existe pas (ou plus).
+ */
+export async function lireElement(itemId) {
+  const d = await graphql(
+    `query ($ids: [ID!]) { items(ids: $ids) { id name state board { id } column_values { id text } } }`,
+    { ids: [String(itemId)] }
+  );
+  const it = d?.items?.[0];
+  if (!it || it.state === 'deleted') return null;
+  return { id: String(it.id), nom: it.name, tableau: it.board?.id ? String(it.board.id) : null, colonnes: Object.fromEntries((it.column_values || []).map((c) => [c.id, c.text])) };
+}
+
 /** Supprime un élément. Réservé au nettoyage de ce qu'on a soi-même créé. */
 export async function supprimerElement(itemId) {
   return graphql(`mutation ($item: ID!) { delete_item(item_id: $item) { id } }`, { item: String(itemId) });

@@ -30,7 +30,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Smartphone, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail } from "lucide-react";
+  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -88,7 +88,18 @@ const globalTooltipStyles = `
  * React ne remonte plus chaque lien à chaque rendu, et les transitions de
  * survol et de page active jouent au lieu d'être coupées net.
  */
-function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor }) {
+/** Une page fermée : on sait qu'elle existe, et à qui la demander. */
+function AccesReserve() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
+      <span className="grid h-12 w-12 place-items-center rounded-full border border-trait text-ardoise"><Lock className="h-5 w-5" strokeWidth={1.7} /></span>
+      <p className="m-0 text-[18px] text-encre">Accès réservé</p>
+      <p className="m-0 max-w-[380px] text-[14px] text-ardoise">Cette page ne vous est pas ouverte pour l'instant. Demandez à Jules s'il vous la faut.</p>
+    </div>
+  );
+}
+
+function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label = e.label, actif, badge = null, badgeColor, ferme = false }) {
   const d = details[cle] || {};
   const Icone = icon || d.icon;
   const ici = actif ?? d.actif;
@@ -99,12 +110,14 @@ function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label
       to={to || d.to}
       onClick={onNaviguer}
       data-actif={ici ? "1" : undefined}
-      title={replie ? label : undefined}
-      aria-label={label}
+      title={ferme ? `${label} : accès réservé` : replie ? label : undefined}
+      aria-label={ferme ? `${label}, accès réservé` : label}
       className={`relative flex items-center rounded-[10px] transition-colors ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"} ${ici ? "bg-rail-actif text-encre" : "text-ardoise hover:bg-rail-actif hover:text-encre"}`}
     >
       <Icone className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
-      {!replie && <span className="flex-1 truncate text-[15px]">{label}</span>}
+      {!replie && <span className={`flex-1 truncate text-[15px] ${ferme ? "opacity-60" : ""}`}>{label}</span>}
+      {/* Une page que Jules n'a pas ouverte à ce compte : un cadenas à droite du texte. */}
+      {ferme && (replie ? <Lock className="absolute -right-0.5 -top-0.5 h-3 w-3 text-brume" strokeWidth={2} /> : <Lock className="h-3.5 w-3.5 flex-none text-brume" strokeWidth={1.8} />)}
       {pastille ? (
         replie
           ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
@@ -331,6 +344,8 @@ function LayoutContent({ children, currentPageName }) {
   }, [apercu, user?.role, queryClientVue]);
 
   const isAdmin = user?.role === "admin";
+  // Les pages que Jules n'a pas ouvertes à ce compte (acces-pages.js côté serveur).
+  const pagesFermees = isAdmin ? user?.pages_fermees || [] : [];
   const vue = isAdmin ? apercu : user?.role === "mandataire" ? "mandataire" : "client";
   // Ce qui relève de l'équipe (relances, dossiers, assistant, recherche) ne
   // suit que la vue admin : un admin qui regarde la vue mandataire ou client
@@ -595,7 +610,7 @@ function LayoutContent({ children, currentPageName }) {
         <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
             {entrees.map((e) => {
-              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />;
+              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -616,7 +631,7 @@ function LayoutContent({ children, currentPageName }) {
               {autreOpen && (
                 <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-0.5 flex flex-col gap-0.5">
                   {autres.map((e) => {
-              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} />;
+              const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -757,7 +772,7 @@ function LayoutContent({ children, currentPageName }) {
             hauteur minimale d'un écran plein y ajoutait 56px de vide en bas,
             sous les cartes qui, elles, tombent juste. */}
         <div key={`${location.pathname}|${vue}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
-          {children}
+          {pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}
         </div>
       </main>
 

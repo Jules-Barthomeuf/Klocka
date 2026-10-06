@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 
@@ -27,6 +27,8 @@ const ilYa = (iso) => {
 const INDEPENDANT = /^(monsieur|madame|mademoiselle)\s+/i;
 const estIndependant = (a) => INDEPENDANT.test(a.raison_sociale || a.nom || "");
 const nomPropre = (a) => String(a.nom || "").replace(INDEPENDANT, "");
+/** Déjà en contact : appelée par nous, ou reconnue dans Monday. */
+const dejaEnContact = (a) => ["contact", "relance"].includes(a.statut?.etat) || !!a.statut?.appelee;
 
 /** « -50 » → « moins de 50 ans », « +70 » → « plus de 70 ans », « 50-60 » → « 50-60 ans ». */
 const age = (t) => String(t).replace(/^-(\d+)$/, "moins de $1").replace(/^\+(\d+)$/, "plus de $1") + " ans";
@@ -84,7 +86,7 @@ export function OngletAgentIA({ onOuvrirListe }) {
   return (
     <div className="mx-auto max-w-[1100px] pb-16">
       <div className="text-center">
-        <h2 className="m-0 text-[24px] font-normal tracking-[-0.02em] text-encre">Où l'agent cherche-t-il ?</h2>
+        <h2 className="m-0 text-[24px] font-normal tracking-[-0.02em] text-encre">Où cherchez-vous ?</h2>
         <p className="m-0 mx-auto mt-2 max-w-[64ch] text-[14px] leading-[1.6] text-ardoise">
           Donnez une ville : il trouve toutes ses agences immobilières et leur numéro, leur gérant, et les agents qui y publient des annonces. Tout se range dans la liste de la ville, partagée par l'équipe.
         </p>
@@ -166,12 +168,11 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
   const listes = data?.listes || [];
   const active = ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
-  if (!listes.length) return <div className="pb-16"><NoteMonday /><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : lancez l'agent IA sur une ville.</p></div>;
+  if (!listes.length) return <div className="pb-16"><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : lancez l'agent IA sur une ville.</p></div>;
   // Le classeur des listes du mandataire : les intercalaires en haut, l'ouvert
   // raccordé à la page à points (rail-actif), le tableau sur le rail.
   return (
     <div className="w-full pb-16">
-      <NoteMonday />
       <div role="tablist" aria-label="Les listes par ville" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}
         <span aria-hidden className="w-3 flex-none" />
@@ -239,6 +240,18 @@ function TableauAgences({ id, onAppeler }) {
     },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  // Supprimer des lignes cochées : masquées, pas effacées, et elles ne reviennent pas.
+  const retirer = useMutation({
+    mutationFn: ({ ids, motif }) => base44.request("POST", `${API}/agences/retirer`, { body: { ids, motif } }),
+    onSuccess: (r) => {
+      toast.success(`${r.retirees} ligne${r.retirees > 1 ? "s" : ""} supprimée${r.retirees > 1 ? "s" : ""}`, { description: r.metier ? `Retenu : « ${r.metier} ». ${r.aussi ? `${r.aussi} autre${r.aussi > 1 ? "s" : ""} ligne${r.aussi > 1 ? "s" : ""} du même métier retirée${r.aussi > 1 ? "s" : ""}, et les prochaines aussi.` : "Les prochaines de ce métier seront retirées d'elles-mêmes."}` : undefined });
+      setCoches(new Set());
+      setPourquoi(false);
+      for (const k of [["agent-ia-liste", id], ["agent-ia-listes"]]) queryClient.invalidateQueries({ queryKey: k });
+    },
+    onError: (e) => toast.error(e?.message || "Suppression impossible"),
+  });
+  const [pourquoi, setPourquoi] = useState(false);
   const [mail, setMail] = useState(null); // { agence, agent }
   const basculer = (x) => setCoches((c) => { const n = new Set(c); if (n.has(x)) n.delete(x); else n.add(x); return n; });
   const versMonday = useMutation({
@@ -259,13 +272,14 @@ function TableauAgences({ id, onAppeler }) {
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
     return (data?.lignes || []).filter((a) => !a.fermee)
-      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? !a.monday_connu : !a.carnet_id))
+      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? a.statut?.etat === "jamais" : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
       .filter((a) => !t || [a.nom, a.adresse, a.telephone, a.email, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email])].filter(Boolean).join(" ").toLowerCase().includes(t));
   }, [data, q, filtre]);
   if (isLoading || !data) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
 
   return (
     <div>
+      <BarreVille ville={data.ville} chiffres={data.chiffres} />
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
@@ -274,7 +288,7 @@ function TableauAgences({ id, onAppeler }) {
         </div>
         {/* Six filtres : au téléphone, la pilule défile sur une ligne. */}
         <div className="flex gap-1 rounded-full bg-rail-actif p-1 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
-          {[["toutes", "Toutes"], ["agences", "Agences"], ["independants", "Indépendants"], ["telephone", "Avec un numéro"], ["agents", "Avec des agents"], ["hors", "Pas au carnet"], ["inconnues", "Pas encore en contact"]].map(([k, mot]) => (
+          {[["toutes", "Toutes"], ["relance", "Relance due"], ["inconnues", "Jamais contactées"], ["agences", "Agences"], ["independants", "Indépendants"], ["telephone", "Avec un numéro"], ["agents", "Avec des agents"], ["supprimees", "Supprimées"]].map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setFiltre(k)}
               className={`rounded-full px-3 py-1 text-[12.5px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
               style={filtre === k ? undefined : { background: "transparent" }}>{mot}</button>
@@ -304,20 +318,25 @@ function TableauAgences({ id, onAppeler }) {
             className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
             {versMonday.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Envoyer dans Monday
           </button>
+          <button type="button" onClick={() => setPourquoi(true)} disabled={retirer.isPending}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
+            {retirer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Supprimer
+          </button>
           <button type="button" onClick={() => setCoches(new Set())} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
         </div>
       )}
+      {filtre === "supprimees" ? <Supprimees listeId={id} /> : (<>
       <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait">
-        <table className="w-full min-w-[1080px] border-collapse text-left text-[14px]">
+        <table className="w-full min-w-[1200px] border-collapse text-left text-[14px]">
           <thead>
-            <tr className="text-[12.5px] text-ardoise">
+            <tr className="text-[12.5px] text-encre">
               <th className="w-[52px] border-b border-trait py-3.5 pl-5 pr-1">
                 <button type="button" onClick={() => setCoches(lignes.every((a) => coches.has(a.id)) ? new Set() : new Set(lignes.map((a) => a.id)))} disabled={!lignes.length}
                   aria-label="Tout cocher" title="Tout cocher" className="grid place-items-center disabled:opacity-40" style={{ background: "transparent" }}>
                   <Case oui={lignes.length > 0 && lignes.every((a) => coches.has(a.id))} />
                 </button>
               </th>
-              {["Nom", "Adresse", "Site", "Maps", "Téléphone", "Gérants", "Agents"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal">{t}</th>)}
+              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", "Gérants", "Agents"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal text-encre">{t}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -327,18 +346,15 @@ function TableauAgences({ id, onAppeler }) {
               const ouvert = ouverte === a.id;
               return (
                 <React.Fragment key={a.id}>
-                  <tr onClick={() => setOuverte(ouvert ? null : a.id)} className={`cursor-pointer align-top transition-colors [&>td]:border-b [&>td]:border-trait ${coches.has(a.id) ? "bg-menthe/[0.05]" : ouvert ? "bg-relief/50" : "hover:bg-relief/30"}`}>
+                  <tr onClick={() => setOuverte(ouvert ? null : a.id)} className={`cursor-pointer align-top transition-colors [&>td]:border-b [&>td]:border-trait ${a.statut?.etat === "morte" ? "opacity-45" : ""} ${coches.has(a.id) ? "bg-menthe/[0.05]" : ouvert ? "bg-relief/50" : "hover:bg-relief/30"}`}>
                     <td className="py-4 pl-5 pr-1" onClick={(e) => e.stopPropagation()}>
                       <button type="button" onClick={() => basculer(a.id)} aria-label={`Cocher ${nomPropre(a)}`} className="grid place-items-center" style={{ background: "transparent" }}><Case oui={coches.has(a.id)} /></button>
                     </td>
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}><CellulePour agence={a} listeId={id} /></td>
                     <td className="max-w-[260px] px-4 py-4">
                       <p className="m-0 text-encre">{nomPropre(a)}</p>
-                      <p className="m-0 mt-1 flex flex-wrap gap-1.5">
-                        {a.carnet_id && <span className="rounded-[6px] bg-menthe/20 px-1.5 py-px text-[11.5px] text-menthe">Au carnet</span>}
-                        {estIndependant(a) && <span className="rounded-[6px] border border-trait px-1.5 py-px text-[11.5px] text-ardoise">Indépendant</span>}
-                        {/* Oui ou non, sans le statut Monday (6 oct. 2026). */}
-                        {a.monday_connu && <span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span>}
-                      </p>
+                      {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
+                      {dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}
                     </td>
                     <td className="max-w-[220px] px-4 py-4 text-craie">{a.adresse || <span className="text-bord-vif">—</span>}</td>
                     <td className="max-w-[180px] truncate px-4 py-4">
@@ -356,7 +372,7 @@ function TableauAgences({ id, onAppeler }) {
                   {ouvert && (
                     <tr className="[&>td]:border-b [&>td]:border-trait">
                       <td />
-                      <td colSpan={7} className="px-4 pb-5 pt-1">
+                      <td colSpan={8} className="px-4 pb-5 pt-1">
                         <div className="flex flex-wrap items-start gap-6">
                           <div className="min-w-[280px] flex-1">
                             <p className="m-0 mb-2 text-[12.5px] text-ardoise">{(a.agents || []).length ? "Ses agents" : "Le standard"}{a.email ? ` · ${a.email}` : ""}</p>
@@ -396,7 +412,7 @@ function TableauAgences({ id, onAppeler }) {
                             )}
                           </div>
                         </div>
-                        {a.monday_connu && <p className="m-0 mt-3 text-[12.5px] text-ambre">Déjà en contact.</p>}
+                        {a.statut?.probable && <p className="m-0 mt-3 text-[12.5px] text-ambre">Correspondance probable dans Monday ({a.monday_connu?.tableau}, reconnue par {a.monday_connu?.par}) : vérifiez que c'est bien la même agence.</p>}
                       </td>
                     </tr>
                   )}
@@ -412,6 +428,8 @@ function TableauAgences({ id, onAppeler }) {
       <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-brume">
         <ArrowRight className="h-3 w-3" />Une ligne s'ouvre au clic : ses agents, « Appeler », « Email », « Au carnet ». Les cases cochées vont au carnet ou dans Monday.
       </p>
+      </>)}
+      {pourquoi && <FenetrePourquoi n={coches.size} enCours={retirer.isPending} onFermer={() => setPourquoi(false)} onValider={(motif) => retirer.mutate({ ids: [...coches], motif })} />}
       {mail && <FenetreMail {...mail} lignes={data.lignes} onFermer={() => setMail(null)} onEnvoye={() => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] })} />}
     </div>
   );
@@ -426,43 +444,161 @@ function Case({ oui }) {
   );
 }
 
-/**
- * La note après un appel, dite ou tapée (« Sébastien Exemple 06 78 89 98 76,
- * Orpi Nice, rappeler lundi ») : le contact entre dans Monday, tableau
- * « Prospection Agent Immo », et au carnet.
- */
-function NoteMonday() {
-  const [texte, setTexte] = useState("");
-  const { supporte, ecoute, demarrer, arreter } = useDictee({ onTexte: (t) => setTexte(t) });
-  const envoyer = useMutation({
-    mutationFn: (t) => base44.request("POST", "/api/prospection/monday/note", { body: { texte: t } }),
-    onSuccess: (r) => {
-      const noms = (r.contacts || []).map((x) => x.nom).filter(Boolean).join(", ");
-      if (r.crees) toast.success(`Dans Monday : ${noms}`, { description: r.doublons ? `${r.doublons} déjà au tableau.` : "Tableau « Prospection Agent Immo »." });
-      else toast.error("Rien d'ajouté", { description: r.doublons ? "Ce contact est déjà au tableau." : "Je n'ai trouvé ni nom ni numéro." });
-      if (r.crees) setTexte("");
-    },
-    onError: (e) => toast.error(e?.message || "Monday n'a pas répondu"),
-  });
-  const partir = () => { if (ecoute) arreter(); if (texte.trim()) envoyer.mutate(texte.trim()); };
+/** Le tableau de bord de la ville : les agences, la part faite, les intéressées, les relances. */
+function BarreVille({ ville, chiffres }) {
+  if (!chiffres) return null;
+  const pc = chiffres.fait_pourcent ?? 0;
+  const bloc = "rounded-[16px] border border-trait bg-surface px-4 py-3";
   return (
-    <form onSubmit={(e) => { e.preventDefault(); partir(); }}
-      className="mx-auto mb-6 flex max-w-[760px] items-center gap-2 rounded-full border border-trait bg-surface py-1.5 pl-5 pr-1.5 focus-within:border-bord-doux">
-      <input value={texte} onChange={(e) => setTexte(e.target.value)} aria-label="Note après l'appel"
-        placeholder="Après l'appel : « Sébastien Exemple 06 78 89 98 76, Orpi Nice, rappeler lundi »"
-        className="min-w-0 flex-1 border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-      {supporte && (
-        <button type="button" onClick={() => (ecoute ? arreter() : demarrer())} aria-label={ecoute ? "Arrêter la dictée" : "Dicter"} title={ecoute ? "Arrêter la dictée" : "Dicter"}
-          className={`grid h-9 w-9 flex-none place-items-center rounded-full ${ecoute ? "bg-alerte/15 text-alerte" : "text-ardoise hover:text-encre"}`} style={ecoute ? undefined : { background: "transparent" }}>
-          <Mic className="h-4 w-4" />
+    <div className="mb-5">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.agences}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">agences à {ville}</p></div>
+        <div className={bloc}>
+          <p className="m-0 text-[24px] leading-none text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{pc} %</p>
+          <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">fait</p>
+          <div className="mt-2 h-[5px] overflow-hidden rounded-full bg-encre/[0.10]"><div className="h-full rounded-full bg-menthe transition-[width] duration-500" style={{ width: `${pc}%` }} /></div>
+        </div>
+        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.interessees}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">intéressée{chiffres.interessees > 1 ? "s" : ""}</p></div>
+        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.a_rappeler}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">à rappeler</p></div>
+      </div>
+      {(chiffres.independants > 0 || chiffres.annonceurs > 0 || chiffres.mortes > 0) && (
+        <p className="m-0 mt-2 text-[12.5px] text-brume">
+          À part : {[chiffres.independants ? `${chiffres.independants} agent${chiffres.independants > 1 ? "s" : ""} indépendant${chiffres.independants > 1 ? "s" : ""} (en nom propre)` : null, chiffres.annonceurs ? `${chiffres.annonceurs} nom${chiffres.annonceurs > 1 ? "s" : ""} d'annonces sans numéro ni site` : null, chiffres.mortes ? `${chiffres.mortes} morte${chiffres.mortes > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Pourquoi on supprime : quelques mots, que la liste retient pour la suite. */
+const MOTIFS_RAPIDES = ["Notaire", "Syndic", "Gestion locative", "Promoteur", "Que des entrepôts", "Centres commerciaux XXL", "Location saisonnière", "Pas une agence", "Doublon", "Fermée"];
+function FenetrePourquoi({ n, onValider, onFermer, enCours }) {
+  const [motif, setMotif] = useState("");
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm md:left-[var(--k-barre-largeur,0px)]" onMouseDown={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
+      <div className="w-full max-w-[460px] rounded-[20px] border border-bord-vif bg-surface-pleine p-5">
+        <p className="m-0 text-[17px] text-encre">Pourquoi supprimer {n > 1 ? `ces ${n} lignes` : "cette ligne"} ?</p>
+        <p className="m-0 mt-1 text-[13px] text-ardoise">En quelques mots. Un métier (notaire, syndic, entrepôts…) devient une règle : les autres lignes de ce métier sortiront d'elles-mêmes.</p>
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {MOTIFS_RAPIDES.map((m) => (
+            <button key={m} type="button" onClick={() => setMotif(m)}
+              className={`rounded-full border px-3 py-1.5 text-[13px] ${motif === m ? "border-menthe bg-menthe/15 text-encre" : "border-trait text-craie hover:text-encre"}`} style={motif === m ? undefined : { background: "transparent" }}>{m}</button>
+          ))}
+        </div>
+        <input value={motif} onChange={(e) => setMotif(e.target.value)} autoFocus placeholder="Ou écrivez : « le site ne parle que d'entrepôts »"
+          onKeyDown={(e) => { if (e.key === "Enter" && motif.trim()) onValider(motif.trim()); if (e.key === "Escape") onFermer(); }}
+          className="mt-3 h-11 w-full rounded-[12px] border border-trait bg-surface px-3.5 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={onFermer} className="h-10 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+          <button type="button" onClick={() => onValider(motif.trim())} disabled={!motif.trim() || enCours}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-alerte/90 px-4 text-[13.5px] text-white disabled:opacity-50">
+            {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Les lignes supprimées, avec leur motif : le contexte qu'on garde, et « Remettre ». */
+function Supprimees({ listeId }) {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["agent-ia-retirees", listeId], queryFn: () => base44.request("GET", `${API}/listes/${listeId}/retirees`) });
+  const remettre = useMutation({
+    mutationFn: (agence) => base44.request("POST", `${API}/agences/${agence}/remettre`),
+    onSuccess: () => { for (const k of [["agent-ia-retirees", listeId], ["agent-ia-liste", listeId]]) queryClient.invalidateQueries({ queryKey: k }); },
+  });
+  if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  const lignes = data?.retirees || [];
+  return (
+    <div className="mt-4">
+      {(data?.regles || []).length > 0 && <p className="m-0 mb-3 text-[13px] text-craie">Retenu de vos suppressions : {data.regles.map((r) => r.libelle).join(", ")}. Ces métiers sortent des listes d'eux-mêmes.</p>}
+      {!lignes.length && <p className="py-10 text-center text-[14px] text-brume">Aucune ligne supprimée dans cette liste.</p>}
+      <ul className="m-0 list-none border-y border-trait p-0">
+        {lignes.map((x) => (
+          <li key={x.id} className="flex items-center justify-between gap-4 border-t border-trait px-2 py-3.5 first:border-t-0">
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] text-encre">{x.nom}</span>
+              <span className="block text-[12.5px] text-ardoise">{[x.motif || "sans motif", x.par === "automatique" ? "retirée automatiquement" : x.par ? `par ${String(x.par).split("@")[0].split(".")[0]}` : null].filter(Boolean).join(" · ")}</span>
+            </span>
+            <button type="button" onClick={() => remettre.mutate(x.id)} className="h-9 flex-none rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Remettre</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Qui tient la ligne : un clic dans la case y met celui qui clique, « + » y
+ * ajoute quelqu'un de l'équipe, un clic sur un prénom l'enlève (6 oct. 2026).
+ */
+function CellulePour({ agence, listeId }) {
+  const queryClient = useQueryClient();
+  const [menu, setMenu] = useState(false);
+  const { data } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
+  const equipe = data?.equipe || [];
+  const pour = agence.pour || [];
+  const membre = (email) => equipe.find((m) => m.email === email) || { email, nom: String(email).split("@")[0], photo: null };
+  const changer = useMutation({
+    mutationFn: ({ email = null, retirer = false }) => base44.request("POST", `${API}/agences/${agence.id}/pour`, { body: { email, retirer } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", listeId] }),
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const autres = equipe.filter((m) => !pour.includes(m.email));
+  const moi = data?.moi ? membre(data.moi) : null;
+  return (
+    <div className="relative flex min-w-[96px] items-center">
+      {/* Les photos se chevauchent un peu ; un clic sur l'une retire la personne. */}
+      <div className="flex items-center -space-x-1.5">
+        {pour.map((email) => {
+          const m = membre(email);
+          return (
+            <button key={email} type="button" onClick={() => changer.mutate({ email, retirer: true })} title={`${m.nom} · cliquer pour retirer`} aria-label={`Retirer ${m.nom}`}
+              className="relative rounded-full ring-2 ring-surface transition-transform hover:z-10 hover:scale-110" style={{ background: "transparent" }}>
+              <Avatar membre={m} />
+            </button>
+          );
+        })}
+      </div>
+      {!pour.length && (
+        <button type="button" onClick={() => changer.mutate({})} disabled={changer.isPending} title="M'associer à cette ligne" aria-label="M'associer à cette ligne"
+          className="rounded-full opacity-45 transition-opacity hover:opacity-100" style={{ background: "transparent" }}>
+          {moi ? <Avatar membre={moi} pointille /> : <span className="grid h-8 w-8 place-items-center rounded-full border border-dashed border-bord-vif text-[11px] text-brume">Moi</span>}
         </button>
       )}
-      <button type="submit" disabled={!texte.trim() || envoyer.isPending}
-        className="inline-flex h-9 flex-none items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-        {envoyer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Dans Monday
-      </button>
-    </form>
+      {autres.length > 0 && (
+        <button type="button" onClick={() => setMenu((x) => !x)} aria-label="Associer quelqu'un d'autre" title="Associer quelqu'un d'autre"
+          className="ml-1.5 grid h-6 w-6 place-items-center rounded-full border border-trait text-ardoise hover:border-menthe hover:text-encre max-md:h-8 max-md:w-8" style={{ background: "transparent" }}>
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {menu && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
+          {/* Nos têtes en grand : on reconnaît quelqu'un plus vite qu'on ne lit son prénom. */}
+          <div className="absolute left-0 top-full z-40 mt-2 grid w-max grid-cols-3 gap-1 rounded-[14px] border border-bord-vif bg-surface-pleine p-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+            {autres.map((m) => (
+              <button key={m.email} type="button" onClick={() => { changer.mutate({ email: m.email }); setMenu(false); }}
+                className={`flex w-[84px] flex-col items-center gap-1.5 rounded-[12px] px-1.5 py-2 text-[12.5px] hover:bg-relief hover:text-encre ${m.ancien ? "text-brume" : "text-craie"}`} style={{ background: "transparent" }}>
+                <Avatar membre={m} grand /><span className="w-full truncate text-center">{m.nom}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
+}
+
+/** La photo d'un membre de l'équipe, ou son initiale. */
+function Avatar({ membre, petit = false, grand = false, pointille = false }) {
+  const [ko, setKo] = useState(false);
+  const taille = grand ? "h-14 w-14 text-[18px]" : petit ? "h-6 w-6 text-[10.5px]" : "h-8 w-8 text-[12px]";
+  if (membre.photo && !ko) {
+    return <img src={membre.photo} alt={membre.nom} onError={() => setKo(true)} className={`${taille} block rounded-full object-cover ${pointille ? "outline-dashed outline-1 outline-offset-2 outline-bord-vif" : ""}`} />;
+  }
+  return <span className={`${taille} grid place-items-center rounded-full bg-menthe/25 font-medium text-menthe ${pointille ? "border border-dashed border-bord-vif bg-transparent text-brume" : ""}`}>{(membre.nom || "?").charAt(0).toUpperCase()}</span>;
 }
 
 /** Le mail à une agence ou à l'un de ses agents : prérempli avec nos critères, relu, envoyé d'un clic. */

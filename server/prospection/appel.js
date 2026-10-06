@@ -15,7 +15,7 @@ import { Records } from '../db.js';
 import * as R from './regles.js';
 import { agentDe, majAgent, journal, liberer, agents as tousLesAgents } from './carnet.js';
 import { reglages } from './reglages.js';
-import { mailDeCriteres, mailDemandeFiche, mailSansReponse, smsSansReponse, prenomDeLAgent } from './mails.js';
+import { mailDeCriteres, mailCourtoisie, mailDemandeFiche, mailSansReponse, smsSansReponse, prenomDeLAgent } from './mails.js';
 
 const ENTITE = 'AppelAgent';
 
@@ -78,6 +78,17 @@ const SCHEMA = {
     autre_contact: { type: 'string', description: "un autre interlocuteur de l'agence cité (nom, numéro), vide sinon" },
     mail_objet: { type: 'string', description: "l'objet du mail à lui envoyer, vide si aucun mail n'a de sens" },
     mail_corps: { type: 'string', description: 'le corps du mail, vouvoiement, court, sans signature (elle est ajoutée)' },
+    // D'où vient chaque information : la phrase entendue, pour que l'analyste
+    // voie sur quoi repose ce qu'on écrit dans Monday.
+    citations: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: "la phrase exacte où l'adresse mail a été donnée, vide sinon" },
+        autre_contact: { type: 'string', description: "la phrase exacte où l'autre interlocuteur a été cité (« appelez plutôt Sophie, c'est elle qui gère le commerce »), vide sinon" },
+        date: { type: 'string', description: 'la phrase exacte où la date de rappel a été dite (« rappelez-moi après le 15 »), vide sinon' },
+        biens: { type: 'string', description: "la phrase exacte où un local ou des murs à vendre ont été évoqués, vide sinon" },
+      },
+    },
   },
   required: ['resume', 'issue'],
 };
@@ -130,6 +141,11 @@ export function propositions(a, lu, { maintenant = new Date(), criteres = '', ob
   const out = [];
   const a_email = R.normEmail(lu.email_donne) || a.emails?.[0] || null;
   out.push({ id: 'statut', type: 'statut', titre: `Noter l'appel : ${R.ISSUES[issue].toLowerCase()}${suite.statut !== a.statut ? `, statut « ${R.STATUTS[suite.statut]} »` : ''}`, issue, statut: suite.statut, tentatives: suite.tentatives });
+  // Pas intéressé : un mail de courtoisie se propose, décoché.
+  if (suite.courtoisie) {
+    const m = mailCourtoisie(a);
+    out.push({ id: 'mail', type: 'mail', titre: `Lui envoyer un mail de courtoisie « ${m.objet} »${a_email ? '' : ' (il manque son adresse)'}`, a: a_email, ...m, genre: 'courtoisie', avec_relance: false, coche: false });
+  }
   for (const genre of suite.mails) {
     let mail;
     if (lu.mail_objet && lu.mail_corps && genre !== 'sans_reponse') {
@@ -142,17 +158,21 @@ export function propositions(a, lu, { maintenant = new Date(), criteres = '', ob
     if (suite.relance_mail_jours) out.push({ id: 'relance_mail', type: 'relance_mail', titre: `Préparer la relance de ce mail, ${suite.relance_mail_jours} jours après l'envoi (tu la valideras)`, jours: suite.relance_mail_jours });
   }
   if (suite.sms && a.telephones?.length) out.push({ id: 'sms', type: 'sms', titre: `Préparer un SMS pour ${a.telephones[0]}`, a: a.telephones[0], corps: smsSansReponse(a) });
-  if (suite.prochaine) out.push({ id: 'relance', type: 'relance', titre: `Le rappeler le ${R.dateCourte(suite.prochaine.le)} : ${suite.prochaine.quoi}`, prochaine: suite.prochaine });
+  if (suite.prochaine) {
+    // Une date tirée de l'appel porte sa phrase ; une date par défaut est surlignée.
+    const cite = lu.date_dite && lu.citations?.date ? lu.citations.date : null;
+    out.push({ id: 'relance', type: 'relance', titre: `Le rappeler le ${R.dateCourte(suite.prochaine.le)} : ${suite.prochaine.quoi}`, prochaine: suite.prochaine, ...(cite ? { source: cite } : {}), ...(suite.date_par_defaut ? { incertain: 'date par défaut : rien n\'a été dit' } : {}) });
+  }
   const infos = {
     secteurs: (lu.secteurs || []).filter((s) => !(a.secteurs || []).map(R.norm).includes(R.norm(s))),
     notes: [...(lu.mandats || []).map((m) => `mandat à venir : ${m}`), ...(lu.biens || []).map((b) => `bien : ${b}`), ...(lu.demandes || []).map((d) => `demande : ${d}`)],
     email: R.normEmail(lu.email_donne) && !(a.emails || []).includes(R.normEmail(lu.email_donne)) ? R.normEmail(lu.email_donne) : null,
   };
   if (infos.secteurs.length || infos.notes.length || infos.email) {
-    out.push({ id: 'fiche', type: 'fiche', titre: `Ajouter à sa fiche : ${[infos.secteurs.length ? `secteurs ${infos.secteurs.join(', ')}` : null, infos.email ? `mail ${infos.email}` : null, ...infos.notes].filter(Boolean).join(' ; ')}`, infos });
+    out.push({ id: 'fiche', type: 'fiche', titre: `Ajouter à sa fiche : ${[infos.secteurs.length ? `secteurs ${infos.secteurs.join(', ')}` : null, infos.email ? `mail ${infos.email}` : null, ...infos.notes].filter(Boolean).join(' ; ')}`, infos, ...(infos.email && lu.citations?.email ? { source: lu.citations.email } : {}), ...(infos.email && !lu.citations?.email ? { incertain: "l'adresse mail n'a pas de phrase qui la porte" } : {}) });
   }
   if (suite.autre_contact) {
-    if (lu.autre_contact) out.push({ id: 'autre_contact', type: 'note', titre: `Autre contact cité : ${lu.autre_contact}`, texte: `autre contact cité : ${lu.autre_contact}` });
+    if (lu.autre_contact) out.push({ id: 'autre_contact', type: 'note', titre: `Autre contact cité : ${lu.autre_contact}`, texte: `autre contact cité : ${lu.autre_contact}`, ...(lu.citations?.autre_contact ? { source: lu.citations.autre_contact } : {}) });
     for (const x of autres_de_l_agence.slice(0, 2)) out.push({ id: `autre_${x.id}`, type: 'autre_agent', titre: `Appeler plutôt ${x.nom}, même agence (${x.telephones?.[0] || x.emails?.[0] || ''})`, agent_id: x.id });
   }
   return { issue, propositions: out };
@@ -219,7 +239,7 @@ export function messagePasDeReponse(a, props) {
  * L'appel terminé : transcription (ou récit), lecture par AK, propositions.
  * @param {{agent_id, audio?: Buffer, recit?: string, sans_reponse?: boolean, duree_s?: number, par: string}} x
  */
-export async function analyserAppel({ agent_id, audio = null, recit = null, sans_reponse = false, duree_s = null, par, maintenant = new Date() }) {
+export async function analyserAppel({ agent_id, audio = null, recit = null, sans_reponse = false, duree_s = null, par, maintenant = new Date(), issue: issueTapee = null }) {
   const a = agentDe(agent_id);
   if (!a) return { ok: false, error: 'Agent introuvable.' };
   let transcription = null;
@@ -228,21 +248,31 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   }
   const texte = [transcription ? `Transcription :\n${transcription}` : null, recit ? `Ce qu'en dit ${par} :\n${recit}` : null].filter(Boolean).join('\n\n');
   // Personne n'a décroché, ou l'enregistrement est vide : pas besoin du modèle.
-  const lu = sans_reponse || !texte.trim() || (transcription != null && transcription.length < 40 && !recit)
-    ? { resume: 'pas de réponse.', issue: 'pas_de_reponse' }
-    : await lire(a, texte, { par, maintenant });
+  const vide = !texte.trim() || (transcription != null && transcription.length < 40 && !recit);
+  let lu;
+  if (issueTapee && R.ISSUES[issueTapee]) {
+    // L'issue tapée par l'analyste fait foi (mode appel) : la lecture ne sert
+    // qu'à remplir les détails autour, jamais à la contredire.
+    lu = vide || issueTapee === 'pas_de_reponse' ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant })), issue: issueTapee };
+  } else {
+    lu = sans_reponse || vide ? { resume: 'pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant });
+  }
   const r = reglages();
   const autres = tousLesAgents().filter((x) => x.id !== a.id && a.agence && R.norm(x.agence) === R.norm(a.agence) && x.statut !== 'archive' && x.telephones?.length);
   const { issue, propositions: props } = propositions(a, lu, { maintenant, criteres: r.criteres, objet_criteres: r.objet_criteres, autres_de_l_agence: autres });
   const message = issue === 'pas_de_reponse' ? messagePasDeReponse(a, props) : await messageVivant(a, { ...lu, issue }, props, par);
+  // Seul ce qui est extrait se garde (6 oct. 2026) : ni la transcription ni le
+  // récit dicté ne sont enregistrés, l'interlocuteur n'ayant consenti qu'à une
+  // prise de notes. Ils repartent une fois vers l'écran, pour relecture.
   const appel = Records.create(ENTITE, {
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
-    transcription, recit, resume: lu.resume || null, issue, date_dite: lu.date_dite || null,
+    transcription: null, recit: null, resume: lu.resume || null, issue, date_dite: lu.date_dite || null,
+    biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null,
     propositions: props, message, etat: 'a_valider',
   });
   // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus
   // d'envoi dans le chat privé, qui faisait doublon.
-  return { ok: true, appel };
+  return { ok: true, appel: { ...appel, transcription, recit } };
 }
 
 /**
@@ -339,7 +369,7 @@ export async function raconterAppel({ agent_id, audio, duree_s = null, par, main
   if (!recit || recit.trim().length < 8) return { ok: false, error: "Je n'ai rien entendu : réessayez en parlant près du micro." };
   const lu = await analyserAppel({ agent_id, recit, duree_s, par, maintenant });
   if (!lu.ok) return lu;
-  const v = await validerAppel({ appel_id: lu.appel.id, choix: lu.appel.propositions.map((p) => p.id), envoyer: false, user: { email: par }, maintenant });
+  const v = await validerAppel({ appel_id: lu.appel.id, choix: lu.appel.propositions.filter((p) => p.coche !== false).map((p) => p.id), envoyer: false, user: { email: par }, maintenant });
   if (!v.ok) return v;
   let monday;
   try {

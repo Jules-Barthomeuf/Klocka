@@ -22,7 +22,9 @@ export function indexer(lignes) {
   const domaines = new Map();
   const agences = new Map();
   for (const l of lignes) {
-    const info = { tableau: l.tableau, nom: l.nom || null, agence: l.agence || null, statut: l.statut || null, date: l.date || null, id: l.id || null };
+    // Qui suit le contact (« Collaborateurs » ou « SPOC »), et la prochaine relance.
+    const qui = l.referent || (l.collaborateurs || [])[0] || null;
+    const info = { tableau: l.tableau, nom: l.nom || null, agence: l.agence || null, statut: l.statut || null, date: l.date || null, id: l.id || null, qui, relance: l.prochaine_relance || l.relance || null };
     for (const t of String(l.telephone || '').split(/[,;/]/)) { const n = normTel(t); if (n && !tels.has(n)) tels.set(n, info); }
     for (const e of String(l.email || '').split(/[,;\s]/)) {
       const n = normEmail(e);
@@ -55,17 +57,22 @@ export async function contactsMonday({ forcer = false, lire = null } = {}) {
   return cache.index;
 }
 
-/** Pure : ce que Monday sait d'une agence (ou d'un agent), ou null. */
+/**
+ * Pure : ce que Monday sait d'une agence (ou d'un agent), ou null. Le
+ * téléphone normalisé d'abord, puis le mail : ceux-là sont sûrs. Le domaine
+ * et le nom ne sont qu'une correspondance probable (`confiance`), que l'écran
+ * dit comme telle au lieu de trancher seul.
+ */
 export function connu(index, { telephone = null, email = null, site = null, nom = null } = {}) {
   if (!index) return null;
   const t = normTel(telephone);
-  if (t && index.tels.has(t)) return { ...index.tels.get(t), par: 'téléphone' };
+  if (t && index.tels.has(t)) return { ...index.tels.get(t), par: 'téléphone', confiance: 'sure' };
   const m = normEmail(email);
-  if (m && index.mails.has(m)) return { ...index.mails.get(m), par: 'mail' };
+  if (m && index.mails.has(m)) return { ...index.mails.get(m), par: 'mail', confiance: 'sure' };
   const d = domaineDe(site) || domaineDe(email);
-  if (d && index.domaines.has(d)) return { ...index.domaines.get(d), par: 'domaine' };
+  if (d && index.domaines.has(d)) return { ...index.domaines.get(d), par: 'domaine', confiance: 'probable' };
   const k = cleAgence(nom);
-  if (k && k.length > 2 && index.agences.has(k)) return { ...index.agences.get(k), par: 'nom' };
+  if (k && k.length > 2 && index.agences.has(k)) return { ...index.agences.get(k), par: 'nom', confiance: 'probable' };
   return null;
 }
 
@@ -81,13 +88,18 @@ export async function marquerListe(listeId, { index = null } = {}) {
   for (const a of agences) {
     const agents = (a.agents || []).map((x) => {
       const c = connu(ix, { telephone: x.telephone, email: x.email });
-      return { ...x, monday: c ? { tableau: c.tableau, statut: c.statut, date: c.date } : null };
+      return { ...x, monday: c ? { tableau: c.tableau, statut: c.statut, date: c.date, qui: c.qui || null, relance: c.relance || null, id: c.id || null, confiance: c.confiance } : null };
     });
     const direct = connu(ix, { telephone: a.telephone, email: a.email, site: a.site, nom: a.nom });
     const parAgent = agents.find((x) => x.monday);
-    const info = direct || (parAgent ? { ...parAgent.monday, nom: parAgent.nom, par: 'un de ses agents' } : null);
+    // Un rapprochement sûr passe avant un probable : celui d'un agent par son
+    // numéro vaut mieux que celui de l'agence par son nom.
+    const parAgentSur = agents.find((x) => x.monday?.confiance === 'sure');
+    const info = (direct?.confiance === 'sure' ? direct : null)
+      || (parAgentSur ? { ...parAgentSur.monday, nom: parAgentSur.nom, par: 'un de ses agents' } : null)
+      || direct || (parAgent ? { ...parAgent.monday, nom: parAgent.nom, par: 'un de ses agents' } : null);
     if (info) connues += 1;
-    Records.update(AGENCE, a.id, { agents, monday_connu: info ? { tableau: info.tableau, nom: info.nom || null, statut: info.statut || null, date: info.date || null, par: info.par } : null, monday_verifie_le: new Date().toISOString() });
+    Records.update(AGENCE, a.id, { agents, monday_connu: info ? { tableau: info.tableau, nom: info.nom || null, statut: info.statut || null, date: info.date || null, par: info.par, qui: info.qui || null, relance: info.relance || null, id: info.id || null, confiance: info.confiance || 'probable' } : null, monday_verifie_le: new Date().toISOString() });
   }
   return { ok: true, connues, total: agences.length };
 }

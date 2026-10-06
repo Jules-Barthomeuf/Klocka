@@ -55,6 +55,7 @@ import { monterAk } from './routes/ak.js';
 import { monterFiches } from './routes/fiches.js';
 import { monterOffres } from './routes/offres.js';
 import { monterEmailing } from './routes/emailing.js';
+import { apiFermee, pagesFermees, estSuperAdmin, admins as adminsAcces, poserAcces, TOUJOURS_OUVERTES } from './acces-pages.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
@@ -190,6 +191,14 @@ app.use((req, res, next) => {
 // Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
 app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
 
+// Les pages fermées par Jules à un admin ferment aussi leur API (acces-pages.js).
+app.use('/api', (req, res, next) => {
+  const u = currentUser(req);
+  const page = u?.role === 'admin' ? apiFermee(u, req.originalUrl) : null;
+  if (page) return res.status(403).json({ error: `Accès réservé : la page ${page} ne vous est pas ouverte. Demandez à Jules.`, page_fermee: page });
+  next();
+});
+
 // La dictée hors Chrome : le navigateur enregistre, le serveur transcrit.
 // L'audio arrive en base64 (WAV mono 16 kHz, une minute tient en 2 Mo).
 app.post('/api/dictee', wrap(async (req, res) => {
@@ -252,7 +261,20 @@ app.get('/api/auth/me', wrap((req, res) => {
   // Chaque ouverture de l'application repousse l'échéance de la session.
   if (!AUTH_DESACTIVEE) prolongerSession(req, res);
   // Dans une famille, chacun voit le dossier du titulaire sous son propre nom.
-  ok(res, sansSecret(vueDuCompte(user)));
+  // Les pages fermées par Jules, et s'il est celui qui gère les accès.
+  ok(res, { ...sansSecret(vueDuCompte(user)), pages_fermees: pagesFermees(user), gere_les_acces: estSuperAdmin(user) });
+}));
+
+// Les accès des admins, page par page : Jules seul.
+app.get('/api/admin/acces-pages', wrap((req, res) => {
+  const user = currentUser(req);
+  if (!estSuperAdmin(user)) return res.status(403).json({ error: 'Seul Jules gère les accès.' });
+  ok(res, { admins: adminsAcces(), toujours_ouvertes: TOUJOURS_OUVERTES });
+}));
+app.post('/api/admin/acces-pages', wrap((req, res) => {
+  const r = poserAcces(currentUser(req), req.body?.email, req.body?.pages_ouvertes);
+  if (!r.ok) return res.status(403).json({ error: r.error });
+  ok(res, r);
 }));
 
 // Le portrait de la personne : son avatar partout dans l'application, et,
@@ -1392,6 +1414,11 @@ import('./prospection/index.js').then(({ demarrerProspection }) => {
 
 // L'agent IA de la prospection : une ville coupée par un redémarrage se dit interrompue.
 import('./prospection/agent-ia.js').then(({ reprendre }) => reprendre()).catch((e) => console.warn(`[démarrage] agent IA prospection : ${e?.message || e}`));
+// Le mode appel : une écriture Monday ratée reste orange sur le reçu et se
+// réessaie toute seule, chaque minute, jusqu'à ce que la ligne relue soit juste.
+setInterval(() => {
+  import('./prospection/mode-appel.js').then(({ reessayerAttentes }) => reessayerAttentes()).catch((e) => console.warn(`[mode appel] relance Monday : ${e?.message || e}`));
+}, 60_000).unref?.();
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un
 // redémarrage n'annule pas la promesse.

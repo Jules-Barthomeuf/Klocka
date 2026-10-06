@@ -101,7 +101,7 @@ function EmailOuvert({ s, etape, index, onChange, onFermer }) {
   return (
     <div className="flex h-[100dvh] min-h-[640px] flex-col max-md:h-auto max-md:min-h-0">
       <div className="flex flex-wrap items-center gap-3 border-b border-trait px-6 py-3.5 max-md:gap-2 max-md:px-4">
-        <button type="button" onClick={onFermer} className="inline-flex items-center gap-1.5 text-[13px] text-ardoise hover:text-encre max-md:h-9" style={{ background: "transparent" }}><ArrowLeft className="h-3.5 w-3.5" />{s.nom}</button>
+        <button type="button" onClick={onFermer} className="inline-flex items-center gap-1.5 text-[13px] text-ardoise hover:text-encre max-md:h-9" style={{ background: "transparent" }}><ArrowLeft className="h-3.5 w-3.5" />Retour</button>
         <span className="text-[15px] text-encre">Email {index + 1}</span>
         <span className="ml-auto" />
         <button type="button" onClick={() => test.mutate()} disabled={test.isPending} className={boutonLigne}>{test.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-1.5 h-3.5 w-3.5" />}M'envoyer un test</button>

@@ -59,6 +59,8 @@ const CHAMPS_PROTEGES = [
   // La famille : qui voit le dossier de qui. Posé par l'équipe seule, sinon
   // un client verrait le dossier de n'importe quelle adresse.
   'est_compte_shadow', 'compte_maitre_email', 'comptes_lies',
+  // Les pages qu'un admin peut ouvrir : Jules seul les pose (acces-pages.js).
+  'pages_bloquees', 'pages_ouvertes', 'acces_modifies_le', 'acces_modifies_par',
 ];
 
 export function retirerChampsProteges(patch) {

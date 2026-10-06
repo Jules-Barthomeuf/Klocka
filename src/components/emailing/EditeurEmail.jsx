@@ -78,7 +78,7 @@ function TexteDirect({ valeur, onGarde, registrer, blocId, style, as: Balise = "
  * design choisi (THEMES). Un clic dans un texte l'édite ; les champs {{…}}
  * ne sont jamais remplacés par un exemple ici.
  */
-function PreviewEditable({ design, blocs, onChangeBloc, registrer, onChoisirBloc, logo, expediteur, desinscription = true }) {
+const PreviewEditable = React.memo(function PreviewEditable({ design, blocs, onChangeBloc, registrer, onChoisirBloc, logo, expediteur, desinscription = true }) {
   const s = stylesDuTheme(design?.theme);
   // Image et séparateur n'ont pas de texte : un clic les choisit simplement
   // pour l'AK, sans ouvrir de champ d'édition.
@@ -119,7 +119,11 @@ function PreviewEditable({ design, blocs, onChangeBloc, registrer, onChoisirBloc
       {desinscription && <p style={s.pied}>Klocka · murs commerciaux<br />Vous recevez ce mail après votre inscription. <span style={s.lienPied}>Se désinscrire</span></p>}
     </div>
   );
-}
+// Mémorisé sur le contenu réel (design, blocs…) et pas sur le reste de l'éditeur :
+// sans ça, choisir un bloc (actif) ou survoler un onglet refait ce rendu, React
+// réécrit le innerHTML de chaque texte édité sur place et ramène le curseur au
+// début — même valeur ou pas, un clic ne retombait jamais où on l'avait posé.
+}, (a, b) => a.design === b.design && a.blocs === b.blocs && a.logo === b.logo && a.expediteur === b.expediteur && a.desinscription === b.desinscription);
 
 const vars = (c) => ({ prenom: c.prenom || "", nom: c.nom || "", entreprise: c.entreprise || "", ville: c.ville || "", email: c.email || "", lien: "https://klocka.immo/Bienvenue", expediteur: "Jules", ...(c.champs || {}) });
 

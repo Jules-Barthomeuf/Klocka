@@ -304,6 +304,108 @@ export function lancer(villeBrute, user) {
   return { ok: true, liste: resumeListe(Records.get(LISTE, l.id)) };
 }
 
+// --- Compléter les colonnes vides -------------------------------------------
+
+/** Pure : la même agence, d'après son nom ? Un mot qui compte en commun suffit. */
+export function memeNom(a, b) {
+  const ma = new Set(cleAgence(a).split(' ').filter((m) => m.length > 2));
+  return cleAgence(b).split(' ').some((m) => m.length > 2 && ma.has(m));
+}
+
+/** Pure : les colonnes encore vides d'une ligne, telles que le tableau les montre. */
+export function colonnesVides(a) {
+  const vides = [];
+  if (!a.adresse) vides.push('adresse');
+  if (!a.site) vides.push('site');
+  if (!a.maps_url) vides.push('maps');
+  if (!a.telephone && !(a.agents || []).some((x) => x.telephone)) vides.push('telephone');
+  if (!(a.gerants || []).length) vides.push('gerants');
+  if (!(a.agents || []).length) vides.push('agents');
+  return vides;
+}
+
+/**
+ * Complète, ligne par ligne, ce que le tableau montre vide : la fiche Maps de
+ * l'agence (adresse, site, fiche, téléphone), son gérant à l'annuaire des
+ * entreprises, puis les agents par les annonces Equimmox de la ville. Rien de
+ * ce qui est rempli n'est remplacé. Le travail part en fond, comme `lancer`.
+ */
+export function completer(listeId, user) {
+  const l = Records.get(LISTE, listeId);
+  if (!l) return { ok: false, error: 'Liste introuvable.' };
+  if (enCours.has(l.id)) return { ok: true, liste: resumeListe(l), deja: true };
+  Records.update(LISTE, l.id, { etat: 'en_cours', etape: 'Les colonnes vides', lancee_par: user?.email || null, lancee_le: maintenant() });
+  enCours.add(l.id);
+  noter(l, `Je complète les colonnes vides (lancé par ${user?.full_name || user?.email || "l'équipe"}).`);
+  (async () => {
+    const aFaire = agencesDe(l.id).filter((a) => !a.fermee && colonnesVides(a).length);
+    // 1. Maps : une recherche par agence à qui il manque adresse, site, fiche ou numéro.
+    const M = await import('./agences-maps.js');
+    let parMapsNb = 0;
+    if (M.mapsConfigure()) {
+      const commune = await M.communeDe(l.ville).catch(() => null);
+      const pourMaps = aFaire.filter((a) => colonnesVides(a).some((c) => ['adresse', 'site', 'maps', 'telephone'].includes(c)));
+      for (const [i, a] of pourMaps.entries()) {
+        Records.update(LISTE, l.id, { etape: `Google Maps : ${i + 1} sur ${pourMaps.length}` });
+        try {
+          const t = await M.chercherAgence(a.nom, l.ville, { commune });
+          if (!t || !(memeNom(a.nom, t.nom) || (t.telephone && normTel(t.telephone) === normTel(a.telephone)))) continue;
+          const actuelle = Records.get(AGENCE, a.id);
+          const champs = {};
+          for (const k of ['adresse', 'code_postal', 'telephone', 'site', 'place_id', 'maps_url', 'note_google', 'avis_google', 'lat', 'lon']) {
+            if (t[k] != null && t[k] !== '' && (actuelle[k] == null || actuelle[k] === '')) champs[k] = t[k];
+          }
+          if (champs.site && !actuelle.site_source) champs.site_source = 'Google Maps';
+          if (Object.keys(champs).length) {
+            Records.update(AGENCE, a.id, { ...champs, sources: [...new Set([...(actuelle.sources || []), 'Google Maps'])] });
+            parMapsNb += 1;
+          }
+        } catch (e) {
+          noter(l, `Google Maps : ${e?.message || e}`, 'alerte');
+          break;
+        }
+        await pause(150);
+      }
+    } else {
+      noter(l, "Google Maps n'est pas configuré : adresse, site et numéro ne se complètent pas.", 'alerte');
+    }
+    // 2. L'annuaire : le gérant, par le SIREN, sinon par le nom dans la ville.
+    const { societe } = await import('../alx/annuaire.js');
+    let gerantsNb = 0;
+    const pourAnnuaire = agencesDe(l.id).filter((a) => !a.fermee && !(a.gerants || []).length);
+    for (const [i, a] of pourAnnuaire.entries()) {
+      Records.update(LISTE, l.id, { etape: `Annuaire : ${i + 1} sur ${pourAnnuaire.length}` });
+      try {
+        const sv = a.siren ? await societe({ siren: a.siren }) : await societe({ nom: a.raison_sociale || a.nom, ville: l.ville, code_postal: a.code_postal || null });
+        // Par le nom, seule une société de la même ville, au nom qui ressemble, est prise.
+        if (!sv || (!a.siren && (sv.ville_non_recoupee || !memeNom(a.nom, sv.nom || sv.denomination || '')))) continue;
+        const gerants = (sv.gerants || []).filter((g) => !g.personne_morale && g.nom).slice(0, 4).map((g) => ({ nom: nomCourt(g), qualite: g.qualite || null, tranche_age: g.tranche_age || null }));
+        Records.update(AGENCE, a.id, {
+          annuaire_lu_le: maintenant(),
+          ...(gerants.length ? { gerants } : {}),
+          ...(!a.siren && sv.siren ? { siren: sv.siren } : {}),
+          ...(sv.creation && !a.creation ? { creation: String(sv.creation).slice(0, 4) } : {}),
+          ...(sv.effectif && !a.effectif ? { effectif: sv.effectif } : {}),
+        });
+        if (gerants.length) gerantsNb += 1;
+      } catch (e) {
+        if (/429|trop de requ/i.test(e?.message || '')) await pause(3000);
+      }
+      await pause(250);
+    }
+    // 3. Les agents : une seule lecture des annonces de la ville, si des agences n'en ont pas.
+    if (agencesDe(l.id).some((a) => !a.fermee && !(a.agents || []).length)) {
+      await parEquimmox(l).catch((e) => noter(l, `Equimmox : ${e?.message || e}`, 'alerte'));
+    }
+    await verifierMonday(l).catch((e) => noter(l, `Monday : ${e?.message || e}`, 'alerte'));
+    const restent = agencesDe(l.id).filter((a) => !a.fermee && colonnesVides(a).length).length;
+    noter(l, `Colonnes complétées : ${parMapsNb} agence${parMapsNb > 1 ? 's' : ''} par Google Maps, ${gerantsNb} gérant${gerantsNb > 1 ? 's' : ''} trouvé${gerantsNb > 1 ? 's' : ''}. ${restent} ligne${restent > 1 ? 's' : ''} garde${restent > 1 ? 'nt' : ''} une case vide, faute de source.`, 'succes');
+    Records.update(LISTE, l.id, { etat: 'fini', etape: null, fini_le: maintenant() });
+  })().catch((e) => Records.update(LISTE, l.id, { etat: 'erreur', etape: null, erreur: e?.message || String(e) }))
+    .finally(() => enCours.delete(l.id));
+  return { ok: true, liste: resumeListe(Records.get(LISTE, l.id)) };
+}
+
 /**
  * Supprime la liste d'une ville et ses lignes. Ce qui est entré au carnet y
  * reste : le carnet, la liste du jour et Monday ne dépendent pas d'elle.

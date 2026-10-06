@@ -551,9 +551,12 @@ export function ResumeBail({ cases, project, onSource }) {
 }
 
 /**
- * Pure : les clauses à afficher, dans l'ordre où le bail les présente, avec le
- * numéro et le titre de la liste de référence. Un point corrigé à la main
- * entre dans la liste même si la lecture ne l'a pas trouvé.
+ * Pure : les clauses à afficher, toujours dans l'ordre de la liste de
+ * référence (le type de bail d'abord, les taxes à la fin), numérotées de 1 à
+ * n sans trou. L'ordre de lecture des pièces ne compte pas : il mettait les
+ * conditions financières en tête, sous un numéro qui sautait (6 oct. 2026).
+ * Un point corrigé à la main entre dans la liste même si la lecture ne l'a
+ * pas trouvé.
  *
  * @param {Array<{id:string, texte?:string, source?:object}>} lignes
  * @param {Record<string,string>} corrections
@@ -562,13 +565,9 @@ export function ResumeBail({ cases, project, onSource }) {
 export function clausesDuBail(lignes, corrections = {}, { toutes = false } = {}) {
   const rang = new Map(SECTIONS_BAIL.map(([id], i) => [id, i]));
   const lues = new Map((lignes || []).map((l) => [l.id, l]));
-  const ordre = [];
-  for (const l of lignes || []) if (rang.has(l.id) && !ordre.includes(l.id)) ordre.push(l.id);
-  for (const [id] of SECTIONS_BAIL) {
-    if (ordre.includes(id)) continue;
-    if (toutes || (corrections[id] || "").trim()) ordre.push(id);
-  }
-  return ordre.map((id) => {
+  const ordre = SECTIONS_BAIL.map(([id]) => id)
+    .filter((id) => lues.has(id) || toutes || (corrections[id] || "").trim());
+  return ordre.map((id, k) => {
     const i = rang.get(id);
     const lu = lues.get(id);
     // Une correction enregistrée à la main l'emporte, même vidée : c'est ainsi
@@ -577,7 +576,7 @@ export function clausesDuBail(lignes, corrections = {}, { toutes = false } = {})
     const texte = corrige ? (corrections[id] || "").trim() || null : lu?.texte || null;
     return {
       id,
-      numero: i + 1,
+      numero: k + 1,
       titre: SECTIONS_BAIL[i][1],
       texte,
       // Vidée à la main : rien à afficher, et ce n'est pas faute d'avoir été lue.

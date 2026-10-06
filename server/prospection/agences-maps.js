@@ -145,3 +145,26 @@ export async function agencesDeLaVille(ville, { lire = fetch, surCase = () => {}
   const gardes = tous.filter((l) => aGarder(l, commune)).map(versAgence);
   return { commune, agences: gardes, lus: tous.length, ecartes: tous.length - gardes.length, cases, requetes };
 }
+
+/**
+ * Une agence précise, sur Maps : « son nom, sa ville », la première fiche
+ * d'agence immobilière de la commune. Sert à compléter une ligne (adresse,
+ * site, fiche, téléphone) sans relire toute la ville. Null si rien ne tient.
+ */
+export async function chercherAgence(nom, ville, { lire = fetch, commune = null } = {}) {
+  if (!mapsConfigure()) throw new Error('La clé GOOGLE_MAPS_SERVEUR manque.');
+  const c = commune || await communeDe(ville, { lire });
+  const r = await lire(TEXTE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': cle(), 'X-Goog-FieldMask': CHAMPS },
+    body: JSON.stringify({
+      textQuery: `${nom}, ${ville}`, languageCode: 'fr', regionCode: 'FR', pageSize: 3, includedType: 'real_estate_agency',
+      ...(c?.cadre ? { locationBias: { rectangle: { low: { latitude: c.cadre.sud, longitude: c.cadre.ouest }, high: { latitude: c.cadre.nord, longitude: c.cadre.est } } } } : {}),
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(`Google Maps a répondu ${r.status}${j.error?.message ? ` : ${j.error.message}` : ''}`);
+  const lieu = (j.places || []).find((l) => !c || aGarder(l, c));
+  return lieu ? versAgence(lieu) : null;
+}

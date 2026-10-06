@@ -368,6 +368,14 @@ export function monterProspection(app) {
     if (!r.ok) return refus(res, r);
     ok(res, r);
   }));
+  // Compléter les colonnes vides (adresse, site, fiche Maps, numéro, gérants,
+  // agents), sans rien remplacer de ce qui est rempli. En fond.
+  app.post('/api/prospection/agent-ia/listes/:id/completer', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await IA()).completer(req.params.id, currentUser(req));
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
   app.delete('/api/prospection/agent-ia/listes/:id', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const r = (await IA()).supprimerListe(req.params.id);

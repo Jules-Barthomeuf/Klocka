@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, RefreshCw, Search, Send, Trash2, UserPlus, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 
@@ -230,6 +230,15 @@ function TableauAgences({ id, onAppeler }) {
     onSuccess: (r) => { toast.success(`Monday : ${r.connues} agence${r.connues > 1 ? "s" : ""} déjà en contact sur ${r.total}`); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
     onError: (e) => toast.error(e?.message || "Monday n'a pas répondu"),
   });
+  // Compléter les cases vides du tableau : Maps, l'annuaire, puis Equimmox, en fond.
+  const completer = useMutation({
+    mutationFn: () => base44.request("POST", `${API}/listes/${id}/completer`),
+    onSuccess: (r) => {
+      toast.success(r.deja ? "L'agent travaille déjà sur cette liste" : "Je complète les colonnes vides", { description: r.deja ? undefined : "Google Maps, l'annuaire, puis les annonces Equimmox. Rien de rempli n'est remplacé." });
+      for (const k of [["agent-ia-liste", id], ["agent-ia-listes"]]) queryClient.invalidateQueries({ queryKey: k });
+    },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
   const [mail, setMail] = useState(null); // { agence, agent }
   const basculer = (x) => setCoches((c) => { const n = new Set(c); if (n.has(x)) n.delete(x); else n.add(x); return n; });
   const versMonday = useMutation({
@@ -274,6 +283,10 @@ function TableauAgences({ id, onAppeler }) {
         <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
           {data.etat === "en_cours" ? <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span> : `${lignes.length} agence${lignes.length > 1 ? "s" : ""}${data.deja_monday ? ` · ${data.deja_monday} déjà en contact` : ""}${data.fini_le ? ` · mise à jour ${ilYa(data.fini_le)}` : ""}`}
         </span>
+        <button type="button" onClick={() => completer.mutate()} disabled={completer.isPending || data.etat === "en_cours"} title="Remplir les cases vides (adresse, site, Maps, téléphone, gérants, agents) sans toucher au reste"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+          {completer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}Compléter les colonnes vides
+        </button>
         <button type="button" onClick={() => verifier.mutate()} disabled={verifier.isPending || data.etat === "en_cours"} title="Revérifier dans Monday qui est déjà en contact"
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
           {verifier.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}Vérifier dans Monday
@@ -323,7 +336,8 @@ function TableauAgences({ id, onAppeler }) {
                       <p className="m-0 mt-1 flex flex-wrap gap-1.5">
                         {a.carnet_id && <span className="rounded-[6px] bg-menthe/20 px-1.5 py-px text-[11.5px] text-menthe">Au carnet</span>}
                         {estIndependant(a) && <span className="rounded-[6px] border border-trait px-1.5 py-px text-[11.5px] text-ardoise">Indépendant</span>}
-                        {a.monday_connu && <span title={`${a.monday_connu.tableau}${a.monday_connu.statut ? ` · ${a.monday_connu.statut}` : ""}${a.monday_connu.date ? ` · ${a.monday_connu.date}` : ""} (reconnu par ${a.monday_connu.par})`} className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact{a.monday_connu.statut ? ` · ${a.monday_connu.statut}` : ""}</span>}
+                        {/* Oui ou non, sans le statut Monday (6 oct. 2026). */}
+                        {a.monday_connu && <span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span>}
                       </p>
                     </td>
                     <td className="max-w-[220px] px-4 py-4 text-craie">{a.adresse || <span className="text-bord-vif">—</span>}</td>
@@ -382,7 +396,7 @@ function TableauAgences({ id, onAppeler }) {
                             )}
                           </div>
                         </div>
-                        {a.monday_connu && <p className="m-0 mt-3 text-[12.5px] text-ambre">Déjà dans Monday ({a.monday_connu.tableau}{a.monday_connu.nom ? `, ${a.monday_connu.nom}` : ""}{a.monday_connu.statut ? `, ${a.monday_connu.statut}` : ""}{a.monday_connu.date ? `, ${a.monday_connu.date}` : ""}) : reconnu par {a.monday_connu.par}.</p>}
+                        {a.monday_connu && <p className="m-0 mt-3 text-[12.5px] text-ambre">Déjà en contact.</p>}
                       </td>
                     </tr>
                   )}

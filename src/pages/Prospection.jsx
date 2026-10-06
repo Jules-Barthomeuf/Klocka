@@ -964,10 +964,10 @@ function CarteAppel({ carte: initiale, onFermer }) {
 export default function Prospection() {
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(() => new URLSearchParams(window.location.search).get("onglet") || "grille");
-  // Les parties de la page : Ma journée (qui appeler aujourd'hui, ce qui attend,
+  // Les parties de la page : À appeler (qui appeler aujourd'hui, ce qui attend,
   // la fiabilité d'AK), l'agent IA, ses listes par ville. « Prospecter » (le
   // carnet complet) est caché depuis le 5 oct. 2026 et tourne en coulisse.
-  const PARTIES = [["journee", "Ma journée"], ["agent", "Agent IA"], ["listes", "Listes"]];
+  const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"]];
   const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
   const [aAppeler, setAAppeler] = useState(0);
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
@@ -990,11 +990,11 @@ export default function Prospection() {
   if (jour.isError && /403|réservé/i.test(jour.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6 max-md:py-6">
-      {/* Le titre à gauche, la note à droite, les onglets soulignés dessous. */}
-      <header className="mb-8 flex flex-col gap-6">
+      {/* Le titre au centre, les onglets centrés dessous (6 oct. 2026). */}
+      <header className="mb-8 flex flex-col items-center gap-6 text-center">
         <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
         {/* Les onglets en pilule, comme ceux de la page projet. */}
-        <nav className="inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties de la prospection">
+        <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties de la prospection">
           {PARTIES.map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setPartie(k)} aria-pressed={partie === k}
               className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${partie === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}

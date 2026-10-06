@@ -51,3 +51,29 @@ test('05/10 · « à rappeler le 20 octobre » : la date dite passe avant le dé
   // Sans date dite, le délai de la règle.
   assert.equal(R.suiteDeLIssue('veut_mail', { maintenant }).prochaine.le, '2026-10-12');
 });
+
+test('06/10 · fiabilité d\'AK : une carte validée telle quelle compte, une correction se garde (avant → après)', async () => {
+  const A = await import('./appel.js');
+  const P = await import('./index.js');
+  const agent = Records.create('AgentImmo', { nom: 'Julie Martin', telephones: ['0611111111'], statut: 'nouveau' });
+  const props = [{ id: 'statut', type: 'statut', statut: 'a_rappeler', titre: 'Statut : à rappeler', issue: 'a_rappeler' }, { id: 'note', type: 'note', texte: 'x', titre: 'Note' }];
+  const tel = Records.create('AppelAgent', { agent_id: agent.id, etat: 'a_valider', issue: 'a_rappeler', propositions: props, le: new Date().toISOString() });
+  const tel2 = Records.create('AppelAgent', { agent_id: agent.id, etat: 'a_valider', issue: 'a_rappeler', propositions: props, le: new Date().toISOString() });
+  await A.validerAppel({ appel_id: tel.id, choix: ['statut', 'note'], user: { email: 'jules.b@klocka.immo' } });
+  await A.validerAppel({ appel_id: tel2.id, choix: ['statut'], user: { email: 'jules.b@klocka.immo' } });
+  assert.equal(Records.get('AppelAgent', tel.id).modifie, false);
+  assert.equal(Records.get('AppelAgent', tel2.id).modifie, true, 'une proposition écartée est une modification');
+  const c = await A.corrigerAppel({ appel_id: tel.id, champ: 'prochaine_le', valeur: '2026-10-15', user: { email: 'jules.b@klocka.immo' } });
+  assert.equal(c.ok, true);
+  assert.match(c.correction.apres, /15 oct/);
+  assert.equal(Records.get('AppelAgent', tel.id).modifie, true);
+  assert.equal(Records.get('AgentImmo', agent.id).prochaine.le, '2026-10-15');
+  const f = A.fiabilite();
+  assert.equal(f.cartes, 2);
+  assert.equal(f.sans_modification, 0);
+  assert.equal(f.semaines.length, 6);
+  assert.equal(f.corrections[0].champ, 'Date');
+  assert.equal(P.badgeDuJour({ rang: 0, raison: 'rappeler pour le mandat' }), 'Rappel');
+  assert.equal(P.badgeDuJour({ rang: 0, raison: 'relance du mail' }), 'Relance');
+  assert.equal(P.badgeDuJour({ rang: 2, dernier_contact_le: null }), 'Nouveau');
+});

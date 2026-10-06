@@ -2,13 +2,30 @@
    Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ResponsiveContainer, ReferenceDot } from "recharts";
 import { J } from "@/design/jetons";
 
 const fmtK = (v) => `${Math.round(v / 1000)}`;
 
+// Au téléphone, le graphique reprend la place des marges et du titre de
+// l'axe vertical : sur 290 px, il ne restait que 190 px de tracé.
+const REQUETE_TELEPHONE = "(max-width: 767px)";
+function useTelephone() {
+  const [oui, setOui] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(REQUETE_TELEPHONE).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return undefined;
+    const m = window.matchMedia(REQUETE_TELEPHONE);
+    const suivre = () => setOui(m.matches);
+    m.addEventListener?.("change", suivre);
+    return () => m.removeEventListener?.("change", suivre);
+  }, []);
+  return oui;
+}
+
 export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, metric = "richesse" }) {
+  const telephone = useTelephone();
+  const marges = telephone ? { top: 8, right: 8, left: 0, bottom: 28 } : { top: 12, right: 20, left: 20, bottom: 40 };
   const config = useMemo(() => {
     // Jusqu'à cinq ans après la fin du crédit (25 ans pour un prêt de 20),
     // comme le tableau annuel ; la revente reste marquée à son année.
@@ -87,7 +104,7 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
   };
 
   return (
-    <div className="border border-trait rounded-md bg-surface p-4">
+    <div className="border border-trait rounded-md bg-surface p-4 max-md:p-3">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 mb-3">
         <div className="min-w-0">
           <p className="text-encre text-sm font-medium">{config.title}</p>
@@ -95,20 +112,20 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
         </div>
         <p className="text-menthe text-xl font-medium tabular-nums whitespace-nowrap">{config.bigValue}</p>
       </div>
-      <div className="h-[26rem]">
+      <div className="h-[26rem] max-md:h-[20rem]">
         <ResponsiveContainer width="100%" height="100%">
           {config.kind === "grouped" ? (
-            <BarChart key={`bars-${config.data.length}`} data={config.data} margin={{ top: 12, right: 20, left: 20, bottom: 40 }} barGap={4} barCategoryGap="20%">
+            <BarChart key={`bars-${config.data.length}`} data={config.data} margin={marges} barGap={4} barCategoryGap="20%">
               <CartesianGrid stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
-              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: J["ardoise"], fontSize: 11 }} />
-              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
+              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: telephone ? "Année · en milliers d'euros" : "Année", position: "bottom", offset: telephone ? 12 : 18, fill: J["ardoise"], fontSize: 11 }} />
+              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} width={telephone ? 36 : 60} label={telephone ? undefined : { value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip cursor={{ fill: "rgba(255,255,255,0.03)" }} content={<RichesseTooltip />} />
-              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 12, color: "#e5e7eb", paddingBottom: 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
+              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: telephone ? 11 : 12, color: "#e5e7eb", paddingBottom: telephone ? 8 : 12 }} formatter={(v) => <span className="text-encre">{v === "capital" ? "Capital remboursé" : "Cash-flow annuel"}</span>} />
               <Bar name="capital" dataKey="capital" fill="#7FE0D3" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
               <Bar name="cashflow" dataKey="cashflow" fill="#1F6E64" radius={[3, 3, 0, 0]} animationBegin={0} animationDuration={Math.max(config.data.length * 90, 600)} animationEasing="ease-out" />
             </BarChart>
           ) : (
-            <AreaChart data={config.data} margin={{ top: 12, right: 20, left: 20, bottom: 40 }}>
+            <AreaChart data={config.data} margin={marges}>
               <defs>
                 <linearGradient id="simHeroFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={config.color} stopOpacity={0.22} />
@@ -116,8 +133,8 @@ export default function SimHeroChart({ calculs, anneeRevente, formatCurrency, me
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="#ffffff" strokeOpacity={0.08} strokeDasharray="3 3" />
-              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: "Année", position: "bottom", offset: 18, fill: J["ardoise"], fontSize: 11 }} />
-              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} label={{ value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
+              <XAxis dataKey="annee" tick={axisTick} axisLine={axisLine} tickLine={axisLine} label={{ value: telephone ? "Année · en milliers d'euros" : "Année", position: "bottom", offset: telephone ? 12 : 18, fill: J["ardoise"], fontSize: 11 }} />
+              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} tickFormatter={fmtK} width={telephone ? 36 : 60} label={telephone ? undefined : { value: "Milliers €", angle: -90, position: "insideLeft", offset: -4, fill: J["ardoise"], fontSize: 11, style: { textAnchor: "middle" } }} />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "#fff" }} formatter={(v) => [formatCurrency(v), ""]} />
               <Area type="monotone" dataKey="value" stroke={config.color} strokeWidth={2} fill="url(#simHeroFill)" />
               {config.markers?.recupApport && (

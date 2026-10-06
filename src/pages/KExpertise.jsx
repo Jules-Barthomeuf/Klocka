@@ -70,7 +70,7 @@ function Bloc({ children, className = "" }) {
 function Etiquette({ label, children, etoiles = null }) {
   return (
     <div className="mb-1.5 flex items-center gap-3 rounded-[8px] border border-trait bg-surface px-3 py-2 text-[13px]">
-      <span className="w-[190px] flex-shrink-0 text-[11.5px] uppercase tracking-[.06em] text-ardoise">{label}</span>
+      <span className="w-[190px] flex-shrink-0 text-[11.5px] max-md:w-[104px] max-md:text-[10.5px] uppercase tracking-[.06em] text-ardoise">{label}</span>
       <span className="min-w-0 flex-1 font-medium text-encre">{children}</span>
       {etoiles && <Etoiles note={etoiles.note} sur={etoiles.sur} taille={15} />}
     </div>
@@ -100,7 +100,7 @@ function Compteur({ titre, valeur, evolutions = null }) {
 /** Une ligne « intitulé — valeur » d'un tableau du rapport. */
 function Ligne({ label, children, sous = false }) {
   return (
-    <div className={`flex items-baseline justify-between border-b border-trait py-1.5 text-[13px] ${sous ? "pl-4" : ""}`}>
+    <div className={`flex items-baseline justify-between border-b border-trait py-1.5 text-[13px] max-md:gap-3 ${sous ? "pl-4" : ""}`}>
       <span className={sous ? "text-ardoise" : "font-medium text-encre"}>{sous ? `– ${label}` : label}</span>
       <span className="tabular-nums text-encre">{children ?? "—"}</span>
     </div>
@@ -206,9 +206,9 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
       {/* La couverture */}
         <section className="pb-2 text-center">
         <p className="alx-mont m-0 inline-block rounded-full border border-menthe/30 bg-menthe/10 px-4 py-1 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Rapport d&apos;implantation</p>
-        <h1 className="mt-3 mb-0 text-[32px] font-light tracking-[-0.01em] text-encre">Étude d&apos;expertise</h1>
+        <h1 className="mt-3 mb-0 text-[32px] font-light max-md:text-[26px] tracking-[-0.01em] text-encre">Étude d&apos;expertise</h1>
         <div className="mx-auto my-4 h-px w-28 bg-menthe/40" />
-        <p className="m-0 text-[21px] font-medium text-encre">{p?.libelle || e.adresse}</p>
+        <p className="m-0 text-[21px] font-medium text-encre max-md:text-[18px]">{p?.libelle || e.adresse}</p>
         <p className="m-0 mt-1 text-[13px] text-ardoise">{e.activite}</p>
         <p className="m-0 mt-4 text-[13px] text-encre">Étude préparée par <strong>{e.par || user?.full_name || user?.email}</strong></p>
         <p className="m-0 mt-1 text-[11.5px] text-brume">Document généré par K-Data le {quand(e.fini_le || e.cree_le)}{r.sources?.length ? ` · sources : ${r.sources.join(", ")}` : ""}</p>
@@ -271,7 +271,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
                     <span className="w-14 flex-shrink-0 rounded-[6px] bg-relief py-1 text-center font-medium tabular-nums text-encre">{g.distance_m} m</span>
                     <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-menthe/20 text-[10px] font-bold text-menthe-texte">{g.rang}</span>
                     <span className="min-w-0 flex-1"><strong className="text-encre">{g.genre}</strong> <span className="text-encre">{g.nom || ""}</span><span className="block text-[11px] text-brume">{g.famille}</span></span>
-                    <span className="flex-shrink-0 text-[11px] uppercase text-ardoise">{g.adresse || ""}</span>
+                    <span className="flex-shrink-0 text-[11px] uppercase text-ardoise max-md:max-w-[96px] max-md:truncate">{g.adresse || ""}</span>
                   </div>
                 ))}
               </div>
@@ -346,7 +346,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
       )}
       {numeros.length > 0 && (
         <Panel titre="Activité commerciale du tronçon de rue">
-          <div className="grid grid-cols-[1fr_20px_1fr] gap-3">
+          <div className="grid grid-cols-[1fr_20px_1fr] gap-3 max-md:grid-cols-[1fr_2px_1fr] max-md:gap-2">
             <div>
               <p className="alx-mont m-0 mb-3 text-right text-[10.5px] font-semibold uppercase tracking-[.16em] text-ardoise">Côté pair</p>
               {pair.map((n, i) => <Numero key={`${n.numero}-${i}`} n={n} />)}
@@ -448,7 +448,7 @@ function Chargement({ expertise: e }) {
   return (
     <div className="mx-auto max-w-[620px] px-4 pt-16 text-center">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Expertise en cours</p>
-      <h2 className="mt-2 mb-1 text-[24px] font-light text-encre">{e?.libelle || e?.adresse}</h2>
+      <h2 className="mt-2 mb-1 text-[24px] font-light text-encre max-md:text-[20px]">{e?.libelle || e?.adresse}</h2>
       <p className="m-0 text-[13px] text-ardoise">{e?.activite}</p>
       <div className="mx-auto mt-8 h-3 w-full overflow-hidden rounded-full bg-relief">
         <div className="h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${Math.max(4, e?.progression || 0)}%` }} />
@@ -551,18 +551,18 @@ export default function KExpertise() {
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Expertise</p>
-      <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre">Étude d&apos;implantation d&apos;une adresse</h1>
+      <h1 className="mt-2 mb-6 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Étude d&apos;implantation d&apos;une adresse</h1>
 
       <div className="rounded-[18px] border border-trait bg-surface p-5">
         <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-brume">Type de commerce</label>
         <input value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant, opticien… ou vide pour tous les commerces"
-          className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+          className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
         <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-brume">Adresse précise</label>
         <div className="relative">
           <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
             <Search className="h-4 w-4 flex-shrink-0 text-brume" />
             <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="48 rue Basfroi, 75011 Paris"
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-fond p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">

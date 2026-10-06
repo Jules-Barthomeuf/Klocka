@@ -178,7 +178,7 @@ function AvecAnalyse({ analyse, onLancer, onCarte, detailCle, onRetourDetail, do
                   type="button"
                   onClick={() => onCarte(c)}
                   aria-label={c.detail} title={c.detail}
-                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"}`}
+                  className={`px-[18px] pt-[18px] pb-1 text-left transition-colors hover:bg-white/[0.02] ${i === 0 ? "pl-0" : ""} ${i === analyse.cartes.length - 1 ? "pr-0 md:border-r-0" : "border-r border-bord"} ${i % 2 ? "max-md:border-r-0 max-md:pr-0" : "max-md:pl-0"}`}
                   style={{ background: "transparent" }}
                 >
                   <span className="alx-mont flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">

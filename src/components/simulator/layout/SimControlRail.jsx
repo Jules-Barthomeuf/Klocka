@@ -9,7 +9,7 @@ function SectionHeader({ title, open, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ardoise font-medium pt-3 pb-1 hover:text-craie transition-colors"
+      className="w-full flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-ardoise font-medium pt-3 pb-1 max-md:pt-4 max-md:pb-2 hover:text-craie transition-colors"
     >
       <span>{title}</span>
       <ChevronDown className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`} />
@@ -19,8 +19,8 @@ function SectionHeader({ title, open, onToggle }) {
 
 function ToggleRow({ label, checked, onChange }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-[12.5px] text-ardoise">{label}</span>
+    <div className="flex items-center justify-between py-1.5 max-md:py-2.5">
+      <span className="text-[12.5px] max-md:text-[13.5px] text-ardoise">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-menthe h-4 w-7 rounded-full" />
     </div>
   );

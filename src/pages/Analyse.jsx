@@ -194,7 +194,7 @@ export default function Analyse() {
     <div ref={zone} className="contents">
     <button
       onClick={(e) => { e.stopPropagation(); setMenuCarte(ouvert ? null : d.deal_id); }}
-      className={`absolute ${bouton} text-ardoise hover:text-encre transition-colors`}
+      className={`absolute ${bouton} text-ardoise hover:text-encre transition-colors max-md:-m-2.5 max-md:p-2.5`}
       aria-label="Actions" title="Actions" style={{ background: "transparent" }}
     >
       <MoreHorizontal className="w-4 h-4" />
@@ -272,7 +272,7 @@ export default function Analyse() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <button
                 onClick={() => montrerDeal(null)}
-                className="text-ardoise hover:text-encre text-xs flex items-center gap-1.5 transition-colors"
+                className="text-ardoise hover:text-encre text-xs flex flex-none items-center gap-1.5 transition-colors max-md:min-h-[36px]"
               >
                 <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
               </button>
@@ -283,8 +283,8 @@ export default function Analyse() {
                 </button>
               ) : (
                 <button type="button" onClick={() => changerVue(null)}
-                  className="inline-flex h-9 items-center gap-2.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-                  <MessagesSquare className="h-4 w-4" /> Revenir à la conversation · {conversationDuDeal.mandataire_nom} <PointNouveau n={conversationDuDeal.non_lus} />
+                  className="inline-flex h-9 min-w-0 items-center gap-2.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+                  <MessagesSquare className="h-4 w-4 flex-none" /> <span className="truncate"><span className="max-md:hidden">Revenir à la conversation · </span>{conversationDuDeal.mandataire_nom}</span> <PointNouveau n={conversationDuDeal.non_lus} />
                 </button>
               ))}
             </div>
@@ -327,20 +327,20 @@ export default function Analyse() {
                 <span className="text-[15px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                <span className={`mr-1 text-[15px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
+                <span className={`mr-1 text-[15px] max-md:basis-full max-md:text-[13.5px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
                   {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
                 </span>
-                <label className="relative inline-flex h-[46px] items-center gap-2.5 rounded-full border border-bord-doux bg-surface px-[18px] text-[15px] text-encre hover:border-bord-vif">
+                <label className="relative inline-flex h-[46px] items-center gap-2.5 rounded-full border border-bord-doux bg-surface px-[18px] text-[15px] text-encre hover:border-bord-vif max-md:h-10 max-md:px-4 max-md:text-[14px]">
                   <SlidersHorizontal className="h-3.5 w-3.5 text-ardoise" />
                   <span>{TRIS.find((t) => t.id === tri)?.label}</span>
                   <ChevronDown className="h-3.5 w-3.5 text-ardoise" />
-                  <select aria-label="Trier" value={tri} onChange={(e) => setTri(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
+                  <select aria-label="Trier" value={tri} onChange={(e) => setTri(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
                     {TRIS.map((t) => <option key={t.id} value={t.id}>Trier : {t.label}</option>)}
                   </select>
                 </label>
                 <button
                   onClick={() => setCreationOuverte(true)}
-                  className="inline-flex h-[46px] items-center gap-2 rounded-full bg-menthe px-[22px] text-[15px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol"
+                  className="inline-flex h-[46px] items-center gap-2 rounded-full bg-menthe px-[22px] text-[15px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol max-md:h-10 max-md:px-4 max-md:text-[14px]"
                 >
                   <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
@@ -348,14 +348,14 @@ export default function Analyse() {
             </div>
 
             {/* Recherche et étapes, sur une ligne. */}
-            <div className="flex flex-wrap items-center gap-3 pb-2">
+            <div className="flex flex-wrap items-center gap-3 pb-2 max-md:gap-2">
               <div className="flex h-12 min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:basis-full">
                 <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
                 <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
               {[[0, "Toutes"], [2, "Pré-analyse"], [3, "Analyse"], [4, "Vidéo"], [5, "Plateforme"]].map(([v, mot]) => (
                 <button key={v} type="button" onClick={() => setEtapeFiltre(v)}
-                  className={`h-12 rounded-full border px-5 text-[15px] transition-colors ${etapeFiltre === v ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
+                  className={`h-12 rounded-full border px-5 text-[15px] transition-colors max-md:h-10 max-md:px-4 max-md:text-[14px] ${etapeFiltre === v ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
                   {mot}
                 </button>
               ))}
@@ -389,7 +389,7 @@ export default function Analyse() {
         {/* Changer les responsables d'un dossier */}
         {proprio && (
           <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm" onClick={() => setProprio(null)}>
-            <div className="w-full max-w-md rounded-[18px] border border-trait bg-surface-pleine p-6 shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-6 max-md:p-5 shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="m-0 text-[17px] font-medium text-encre">Qui s'occupe du dossier ?</h3>
                 <button onClick={() => setProprio(null)} className="text-ardoise hover:text-encre" aria-label="Fermer" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
@@ -422,10 +422,10 @@ export default function Analyse() {
         {/* Nouveau dossier : nom + responsables */}
         {creationOuverte && (
           <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4" onClick={() => setCreationOuverte(false)}>
-            <div className="w-full max-w-md bg-surface border border-trait rounded-lg p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto bg-surface border border-trait rounded-lg p-6 max-md:p-5" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="m-0 text-[18px] font-medium">Nouveau dossier</h3>
-                <button onClick={() => setCreationOuverte(false)} className="text-ardoise hover:text-encre transition-colors"><X className="w-5 h-5" /></button>
+                <button onClick={() => setCreationOuverte(false)} aria-label="Fermer" title="Fermer" className="text-ardoise hover:text-encre transition-colors"><X className="w-5 h-5" /></button>
               </div>
 
               <label className="block text-[11px] tracking-[0.14em] uppercase text-ardoise mb-1.5">Nom du dossier</label>
@@ -435,7 +435,7 @@ export default function Analyse() {
                 onChange={(e) => setNomDossier(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && nomDossier.trim()) creerDossier.mutate(); }}
                 placeholder="Ex. : Boulangerie — Marseille République"
-                className="w-full bg-surface border border-trait focus:border-menthe rounded-md px-3.5 py-2.5 text-[13.5px] text-encre outline-none placeholder:text-bord-vif transition-colors mb-4"
+                className="w-full bg-surface border border-trait focus:border-menthe rounded-md px-3.5 py-2.5 text-[13.5px] text-encre outline-none placeholder:text-bord-vif transition-colors mb-4 max-md:text-[16px]"
               />
 
               <label className="block text-[11px] tracking-[0.14em] uppercase text-ardoise mb-1.5">Admins responsables</label>
@@ -518,12 +518,15 @@ function CarteDossierAdmin({ d, qui, onOuvrir, menu }) {
 
 /**
  * Les mandataires qui écrivent à propos d'un bien pas encore transféré : il
- * n'a pas d'analyse, seulement sa conversation.
+ * n'a pas d'analyse, seulement sa conversation. Repliées par défaut : un
+ * libellé discret, avec le nombre de non-lus, les ouvre.
  */
 function QuestionsMandataires() {
   const { data } = useQuery({ queryKey: ["k-conversations"], queryFn: () => base44.request("GET", "/api/mandataire/admin/conversations"), refetchInterval: 20_000 });
+  const [ouvert, setOuvert] = useState(false);
   const sansDossier = (data?.conversations || []).filter((c) => !c.deal_id);
   if (!sansDossier.length) return null;
+  const nonLus = sansDossier.reduce((s, c) => s + (c.non_lus || 0), 0);
   const quand = (iso) => {
     if (!iso) return "";
     const t = new Date(iso);
@@ -535,8 +538,13 @@ function QuestionsMandataires() {
   const initiales = (n = "") => String(n).split(/[\s.@]+/).filter(Boolean).map((x) => x[0]).join("").slice(0, 2).toUpperCase() || "?";
   return (
     <div className="pt-6">
-      <p className="m-0 mb-2.5 text-[14px] text-ardoise">Questions de mandataires, sur des biens pas encore transférés</p>
-      <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+      <button type="button" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert}
+        className="inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[13px] text-ardoise transition-colors hover:text-encre">
+        {ouvert ? "Masquer les dossiers mandataires" : `Voir les dossiers mandataires (${sansDossier.length})`}
+        {!ouvert && nonLus > 0 && <PointNouveau n={nonLus} />}
+      </button>
+      {ouvert && (
+      <div className="mt-3 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
         {sansDossier.map((c) => (
           <Link key={c.id} to={`/Conversations?dossier=${c.id}`}
             className="flex items-center gap-3.5 rounded-[16px] border border-trait bg-rail px-4 py-3.5 transition-colors hover:border-bord-doux">
@@ -549,6 +557,7 @@ function QuestionsMandataires() {
           </Link>
         ))}
       </div>
+      )}
     </div>
   );
 }

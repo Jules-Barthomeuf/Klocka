@@ -216,7 +216,7 @@ export default function AdminRessources() {
         </div>
 
         {/* Import Google Drive */}
-        <div className="bg-surface border border-encre/[0.12] mb-6 p-5">
+        <div className="bg-surface border border-encre/[0.12] mb-6 p-5 max-md:p-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-9 h-9 rounded-md bg-menthe/[0.07] flex items-center justify-center">
                 <FolderOpen className="w-[18px] h-[18px] text-menthe" />
@@ -231,13 +231,13 @@ export default function AdminRessources() {
                 <Input
                   value={driveName}
                   onChange={(e) => setDriveeName(e.target.value)}
-                  className="bg-encre/[0.03] border-trait text-encre h-9 text-sm"
+                  className="bg-encre/[0.03] border-trait text-encre h-9 text-sm max-md:text-[16px]"
                   placeholder="Nom de la ressource"
                 />
                 <Input
                   value={driveLink}
                   onChange={(e) => setDriveLink(e.target.value)}
-                  className="bg-encre/[0.03] border-trait text-encre h-9 text-sm"
+                  className="bg-encre/[0.03] border-trait text-encre h-9 text-sm max-md:text-[16px]"
                   placeholder="https://drive.google.com/..."
                 />
               </div>
@@ -280,7 +280,7 @@ export default function AdminRessources() {
         </div>
 
         {resources.length === 0 ? (
-          <div className="bg-surface border border-encre/[0.12] p-12 text-center">
+          <div className="bg-surface border border-encre/[0.12] p-12 text-center max-md:p-6">
               <div className="w-14 h-14 bg-encre/[0.05] rounded-md flex items-center justify-center mx-auto mb-5">
                 <BookOpen className="w-6 h-6 text-ardoise" />
               </div>
@@ -304,10 +304,10 @@ export default function AdminRessources() {
                   className="bg-surface border border-encre/[0.12] hover:border-bord-vif transition-all duration-300 cursor-pointer p-4"
                   onClick={() => handleOpenDialog(resource)}
                 >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 max-md:gap-3">
                       {/* Thumbnail with upload overlay */}
                       <label
-                        className="relative w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer group/thumb"
+                        className="relative w-20 h-14 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer group/thumb max-md:w-16 max-md:h-12"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <input
@@ -337,9 +337,9 @@ export default function AdminRessources() {
                           </div>
                         )}
                       </label>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-encre font-medium">{resource.titre}</h3>
+                      <div className="flex-1 max-md:min-w-0">
+                        <div className="flex items-center gap-2 mb-1 max-md:flex-wrap max-md:gap-1.5">
+                          <h3 className="text-encre font-medium max-md:w-full max-md:truncate">{resource.titre}</h3>
                           <span className="text-[11px] text-encre/30 bg-encre/[0.04] px-2 py-0.5 rounded-full">
                             {typeLabels[resource.type]}
                           </span>
@@ -356,7 +356,7 @@ export default function AdminRessources() {
                         </div>
                         <p className="text-encre/20 text-sm line-clamp-1">{resource.description}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 max-md:flex-shrink-0 max-md:gap-0">
                         {resource.url_fichier && (
                           <a 
                             href={resource.url_fichier} 
@@ -400,7 +400,7 @@ export default function AdminRessources() {
 
         {/* Dialog d'édition */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="bg-surface-pleine border-trait max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="bg-surface-pleine border-trait max-w-2xl max-h-[80vh] overflow-y-auto max-md:max-h-[calc(100dvh-24px)] max-md:w-[calc(100vw-24px)] max-md:rounded-bloc max-md:p-4">
             <DialogHeader>
               <DialogTitle className="text-encre font-light text-lg">
                 {editingResource ? "Modifier la ressource" : "Nouvelle ressource"}
@@ -413,7 +413,7 @@ export default function AdminRessources() {
                 <Input
                   value={formData.titre}
                   onChange={(e) => setFormData({ ...formData, titre: e.target.value })}
-                  className="bg-encre/[0.03] border-trait text-encre mt-1 h-9 text-sm"
+                  className="bg-encre/[0.03] border-trait text-encre mt-1 h-9 text-sm max-md:text-[16px]"
                   placeholder="Titre de la ressource"
                 />
               </div>
@@ -423,7 +423,7 @@ export default function AdminRessources() {
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="bg-encre/[0.03] border-trait text-encre mt-1 text-sm"
+                  className="bg-encre/[0.03] border-trait text-encre mt-1 text-sm max-md:text-[16px]"
                   placeholder="Description de la ressource"
                   rows={3}
                 />
@@ -476,7 +476,7 @@ export default function AdminRessources() {
                   <Input
                     value={formData.url_fichier}
                     onChange={(e) => setFormData({ ...formData, url_fichier: e.target.value })}
-                    className="bg-encre/[0.03] border-trait text-encre flex-1 h-9 text-sm"
+                    className="bg-encre/[0.03] border-trait text-encre flex-1 h-9 text-sm max-md:text-[16px]"
                     placeholder="URL ou importer un fichier"
                   />
                   <label className="cursor-pointer">
@@ -541,7 +541,7 @@ export default function AdminRessources() {
                     type="number"
                     value={formData.duree_minutes}
                     onChange={(e) => setFormData({ ...formData, duree_minutes: e.target.value })}
-                    className="bg-encre/[0.03] border-trait text-encre mt-1 h-9 text-sm"
+                    className="bg-encre/[0.03] border-trait text-encre mt-1 h-9 text-sm max-md:text-[16px]"
                     placeholder="Ex: 15"
                   />
                 </div>
@@ -551,7 +551,7 @@ export default function AdminRessources() {
                     type="number"
                     value={formData.ordre}
                     onChange={(e) => setFormData({ ...formData, ordre: e.target.value })}
-                    className="bg-encre/[0.03] border-trait text-encre mt-1 h-9 text-sm"
+                    className="bg-encre/[0.03] border-trait text-encre mt-1 h-9 text-sm max-md:text-[16px]"
                   />
                 </div>
               </div>
@@ -565,7 +565,7 @@ export default function AdminRessources() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="max-sm:gap-2">
               <Button
                 variant="outline"
                 onClick={handleCloseDialog}

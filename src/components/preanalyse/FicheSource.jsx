@@ -42,7 +42,7 @@ export default function FicheSource({ dossier, className = "" }) {
       </button>
       {ouvert && (
         <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[760px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col">
-          <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait">
+          <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait max-md:px-4 max-md:pt-[max(16px,env(safe-area-inset-top))]">
             <div className="min-w-0">
               <p className="m-0 text-[11px] tracking-[.18em] uppercase text-brume">Fiche commerciale importée</p>
               <p className="m-0 mt-1 text-[15px] text-encre truncate">{courant?.nom || nom}{src.pages && !courant ? <span className="text-brume"> · {src.pages} page{src.pages > 1 ? "s" : ""}</span> : null}</p>
@@ -51,13 +51,13 @@ export default function FicheSource({ dossier, className = "" }) {
               {courant?.url && courant.present !== false && (
                 <a href={courant.url} target="_blank" rel="noopener noreferrer" className="text-[12.5px] text-menthe-clair hover:text-encre">Ouvrir ↗</a>
               )}
-              <button onClick={() => setOuvert(false)} className="w-8 h-8 rounded-full flex items-center justify-center text-ardoise hover:text-encre hover:bg-encre/5" aria-label="Fermer"><X className="w-4 h-4" /></button>
+              <button onClick={() => setOuvert(false)} className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-full flex items-center justify-center text-ardoise hover:text-encre hover:bg-encre/5" aria-label="Fermer" title="Fermer"><X className="w-4 h-4" /></button>
             </div>
           </div>
           {ongletsVisibles && (
             <div className="flex flex-wrap gap-1.5 px-5 py-3 border-b border-trait">
               {originaux.map((o, i) => (
-                <button key={o.url} onClick={() => setVue(i)} className={`max-w-[260px] truncate px-3 py-1 rounded-full text-[12.5px] transition-colors ${vue === i ? "bg-menthe text-sur-menthe font-semibold" : "border border-bord-doux text-ardoise hover:text-encre"}`}>{o.nom}</button>
+                <button key={o.url} onClick={() => setVue(i)} className={`max-w-[260px] max-md:max-w-full truncate px-3 py-1 rounded-full text-[12.5px] transition-colors ${vue === i ? "bg-menthe text-sur-menthe font-semibold" : "border border-bord-doux text-ardoise hover:text-encre"}`}>{o.nom}</button>
               ))}
               {texteDe(src) && (
                 <button onClick={() => setVue("texte")} className={`px-3 py-1 rounded-full text-[12.5px] transition-colors ${vue === "texte" ? "bg-menthe text-sur-menthe font-semibold" : "border border-bord-doux text-ardoise hover:text-encre"}`}>Texte lu</button>
@@ -77,7 +77,16 @@ export default function FicheSource({ dossier, className = "" }) {
             ) : courant ? (
               /^image\//.test(courant.mime || "") || /\.(png|jpe?g|webp|gif)$/i.test(courant.url)
                 ? <div className="p-4"><img src={courant.url} alt={courant.nom} className="w-full h-auto rounded-md" /></div>
-                : <iframe title={courant.nom} src={courant.url} className="w-full h-full min-h-[80vh] bg-surface" />
+                : (
+                  <>
+                    <iframe title={courant.nom} src={courant.url} className="w-full h-full min-h-[80vh] bg-surface max-md:hidden" />
+                    {/* Au téléphone, un PDF dans un cadre ne se lit pas : on l'ouvre à part. */}
+                    <div className="hidden max-md:flex flex-col items-center gap-3 px-6 py-10 text-center">
+                      <p className="m-0 text-[12.5px] text-ardoise">La fiche s'ouvre dans la visionneuse du téléphone.</p>
+                      <a href={courant.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Ouvrir la fiche</a>
+                    </div>
+                  </>
+                )
             ) : (
               <>
                 {data?.colle && vue !== "texte" && (

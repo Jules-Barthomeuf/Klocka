@@ -31,7 +31,7 @@ export function useCasesProjet(project, isPublic) {
 export function PanneauPiece({ piece, onFermer }) {
   if (!piece) return null;
   return (
-    <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] p-4">
+    <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] p-4 max-md:pt-[max(16px,env(safe-area-inset-top))] max-md:pb-[max(16px,env(safe-area-inset-bottom))]">
       <Visionneuse
         extraction={{ document_id: piece.document_id, document_nom: piece.document_nom, document_url: piece.document_url }}
         ligne={{ page: piece.page, citation: piece.citation, element: piece.titre }}
@@ -371,7 +371,7 @@ export function TableauAG({ cases, project }) {
 
   return (
     <div className="overflow-x-auto rounded-[14px] border border-trait bg-carte-grille">
-      <table className="w-full min-w-[640px] border-collapse text-left">
+      <table className="w-full min-w-[640px] max-md:min-w-[560px] border-collapse text-left">
         <thead>
           <tr>
             {colonnes.map(({ id, c, teinte }) => (
@@ -438,25 +438,29 @@ function LigneFiscalite({ c, onSource }) {
   const enEdition = !!edition?.onChamp;
   // En édition, le chiffre se corrige au clic au lieu d'ouvrir la pièce.
   const cliquable = !!c.source && !enEdition;
+  // Un chiffre se lit en grand ; une phrase (« Foncière, ordures ménagères,
+  // balayage… ») passe en taille de texte et va à la ligne, sans pousser le
+  // libellé ni sortir de la carte.
+  const long = String(c.valeur || "").length > 18;
   const valeur = (
-    <span className={`text-[22px] max-md:text-[18px] font-medium tracking-[-0.01em] leading-tight ${c.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+    <span className={`${long ? "text-[16px] max-md:text-[15px] font-normal leading-[1.45]" : "text-[22px] max-md:text-[18px] font-medium leading-tight"} tracking-[-0.01em] [overflow-wrap:anywhere] ${c.valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
       <ValeurEditable champ={enEdition ? cheminCase("bail", c.id, "valeur") : null} type="text">{c.valeur || "—"}</ValeurEditable>
     </span>
   );
   return (
-    <div className="flex items-center justify-between gap-4 py-4 border-t border-trait first:border-t-0">
-      <span className="flex items-center gap-2 text-[14.5px] max-md:text-[13.5px] text-craie">
+    <div className="flex items-center justify-between gap-6 py-4 border-t border-trait first:border-t-0">
+      <span className="flex flex-none items-center gap-2 whitespace-nowrap text-[14.5px] max-md:text-[13.5px] text-craie">
         <ValeurEditable champ={enEdition ? cheminCase("bail", c.id, "titre") : null} type="text">{c.titre}</ValeurEditable>
         <InfoDot texte={c.info || c.detail} />
       </span>
       {cliquable ? (
         <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })} title="Voir la pièce"
-          className="flex-shrink-0 rounded-lg border-0 bg-transparent p-0 text-right decoration-trait underline-offset-4 transition-colors hover:underline [&>span]:hover:text-menthe"
+          className="min-w-0 rounded-lg border-0 bg-transparent p-0 text-right decoration-trait underline-offset-4 transition-colors hover:underline [&>span]:hover:text-menthe"
           style={{ background: "transparent" }}>
           {valeur}
         </button>
       ) : (
-        <span className="flex-shrink-0 text-right">{valeur}</span>
+        <span className="min-w-0 text-right">{valeur}</span>
       )}
     </div>
   );
@@ -522,9 +526,11 @@ export function ResumeBail({ cases, project, onSource }) {
           </div>
         </div>
         {(signature?.valeur || depot?.valeur) && (
-          <div className="grid grid-cols-2 border-t border-trait pt-6">
-            <div className="pr-5"><Sous c={signature} /></div>
-            <div className="pl-5 border-l border-trait"><Sous c={depot} complement={nbMois ? `${nbMois} mois` : null} /></div>
+          // Au téléphone, l'une sous l'autre : deux chiffres en euros ne
+          // tiennent pas côte à côte sur 280 px.
+          <div className="grid grid-cols-2 max-md:grid-cols-1 border-t border-trait pt-6 max-md:pt-5">
+            <div className="pr-5 max-md:pr-0"><Sous c={signature} /></div>
+            <div className="pl-5 border-l border-trait max-md:pl-0 max-md:border-l-0 max-md:border-t max-md:mt-5 max-md:pt-5"><Sous c={depot} complement={nbMois ? `${nbMois} mois` : null} /></div>
           </div>
         )}
       </div>
@@ -565,11 +571,17 @@ export function clausesDuBail(lignes, corrections = {}, { toutes = false } = {})
   return ordre.map((id) => {
     const i = rang.get(id);
     const lu = lues.get(id);
+    // Une correction enregistrée à la main l'emporte, même vidée : c'est ainsi
+    // qu'on efface une clause mal lue, sans qu'elle revienne au texte source.
+    const corrige = Object.prototype.hasOwnProperty.call(corrections, id);
+    const texte = corrige ? (corrections[id] || "").trim() || null : lu?.texte || null;
     return {
       id,
       numero: i + 1,
       titre: SECTIONS_BAIL[i][1],
-      texte: (corrections[id] || "").trim() || lu?.texte || null,
+      texte,
+      // Vidée à la main : rien à afficher, et ce n'est pas faute d'avoir été lue.
+      videe: corrige && !texte,
       source: lu?.source || null,
     };
   });
@@ -629,7 +641,7 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
 
       <div className="k-carte px-8 max-md:px-5 py-7 max-md:py-6 lg:sticky lg:top-4 min-h-[380px] flex flex-col">
         <div className="flex items-start justify-between gap-4">
-          <div className="text-[13px] text-ardoise pt-1.5">Cadre juridique · Clause {c.numero}</div>
+          <div className="text-[13px] text-ardoise pt-1.5 min-w-0">Cadre juridique · Clause {c.numero}</div>
           {c.source && (
             <button type="button" onClick={() => onSource({ ...c.source, titre: c.titre })}
               className="group flex-shrink-0 px-4 py-1.5 rounded-full border border-bord-doux hover:border-menthe/60 transition-colors">
@@ -643,7 +655,7 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
 
         <div className="border-t border-trait mt-6 pt-6">
           <TexteEditable champ={`bail_analyse.${c.id}`} initial={c.texte} masquable={false}>
-            <p className={`m-0 text-[15px] max-md:text-[14px] leading-[1.8] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || "Ce point n'a pas encore été lu dans les pièces."}</p>
+            <p className={`m-0 text-[15px] max-md:text-[14px] leading-[1.8] ${c.texte ? "text-craie" : "text-brume"}`}>{c.texte || (c.videe ? "" : "Ce point n'a pas encore été lu dans les pièces.")}</p>
           </TexteEditable>
         </div>
 

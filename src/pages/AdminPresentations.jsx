@@ -60,23 +60,23 @@ function CasePhoto({ label, url, suggestions, onChange }) {
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between px-2.5 py-2">
+      <div className="flex items-center justify-between px-2.5 py-2 max-md:py-1">
         <span className="text-[11px] tracking-[0.06em] uppercase text-ardoise truncate">{label}</span>
         <div className="flex items-center gap-1 flex-shrink-0">
           {suggestions.length > 1 && (
             <>
               <button onClick={() => naviguer(-1)} aria-label="Photo précédente du projet" title="Photo précédente du projet"
-                className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors">
+                className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors max-md:w-9 max-md:h-9">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button onClick={() => naviguer(1)} aria-label="Photo suivante du projet" title="Photo suivante du projet"
-                className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors">
+                className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors max-md:w-9 max-md:h-9">
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </>
           )}
           <button onClick={() => fichierRef.current?.click()} aria-label="Importer une image" title="Importer une image"
-            className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-menthe-clair transition-colors">
+            className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-menthe-clair transition-colors max-md:w-9 max-md:h-9">
             <Upload className="w-3.5 h-3.5" />
           </button>
           <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={importer} />
@@ -148,13 +148,13 @@ function PanneauGeneration({ project }) {
   return (
     <div className="space-y-5">
       {/* Les six photos du dossier */}
-      <div className="bg-surface border border-trait p-5">
+      <div className="bg-surface border border-trait p-5 max-md:p-4">
         <p className="text-encre text-sm font-medium mb-1">Les six photos du dossier</p>
         <p className="text-ardoise text-xs mb-4">
           Suggérées depuis les photos du projet — utilisez les flèches pour en changer ou importez
           la vôtre. La photo des conditions souhaitées est commune à tous les dossiers.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-sm:grid-cols-1">
           {EMPLACEMENTS.map(({ cle, label }) => (
             <CasePhoto
               key={cle}
@@ -168,7 +168,7 @@ function PanneauGeneration({ project }) {
       </div>
 
       {/* Génération */}
-      <div className="bg-surface border border-trait p-5 space-y-4">
+      <div className="bg-surface border border-trait p-5 space-y-4 max-md:p-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-encre text-sm font-medium mb-1">Présentation de financement</p>
@@ -334,7 +334,7 @@ export default function AdminPresentations() {
   return (
     <div className="min-h-screen text-encre p-4 md:p-10" style={{ background: "rgb(var(--k-fond-rgb))" }}>
       <div className="max-w-5xl mx-auto">
-        <div className="mb-9 text-center">
+        <div className="mb-9 text-center max-md:mb-6">
           <h1 className="text-[24px] md:text-[34px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
           <p className="text-ardoise text-[13.5px] leading-[1.5] mt-2 max-w-[460px] mx-auto">
             Une ville, un dossier : générez la présentation de financement.
@@ -357,7 +357,7 @@ export default function AdminPresentations() {
                 placeholder="Rechercher une ville, un dossier, une adresse, un client…"
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
-                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume py-3.5 px-3 text-[15px]"
+                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume py-3.5 px-3 text-[15px] max-md:text-[16px]"
               />
             </div>
 

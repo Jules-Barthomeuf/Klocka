@@ -21,7 +21,7 @@ function Bulle({ texte }) {
 
 function Carte({ p, reponse, onRepondre, rang, total }) {
   return (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-300 ease-out rounded-[20px] border border-trait bg-surface p-6 md:p-7">
+    <div className="animate-in fade-in slide-in-from-right-4 duration-300 ease-out rounded-[20px] border border-trait bg-surface p-6 max-md:p-5 md:p-7">
       <p className="m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">{p.theme} · {rang} / {total}</p>
       <h2 className="m-0 mt-2 text-[20px] font-semibold text-encre">{p.titre}</h2>
       <p className="m-0 mt-1 text-[13px] text-brume">AK t'écrirait comme ça :</p>
@@ -109,7 +109,7 @@ export default function MonAssistant() {
   const consignes = data?.consignes || [];
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-8 md:px-6">
+    <div className="mx-auto w-full max-w-[720px] px-5 py-8 md:px-6">
       <header className="mb-7">
         <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Ton assistant</h1>
         <p className="m-0 mt-3 max-w-[60ch] text-[14.5px] leading-[1.6] text-craie">

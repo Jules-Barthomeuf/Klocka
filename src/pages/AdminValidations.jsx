@@ -200,7 +200,7 @@ function PanneauMarche({ m, types }) {
         <p className="m-0 mb-2 text-[11.5px] uppercase tracking-[.1em] text-brume">Activité des clients (le nom ne sort jamais vers le mandataire)</p>
         {(m.activite || []).map((a, n) => <p key={n} className="m-0 text-[13px] text-craie"><span className="text-brume">{dateCourte(a.le)} · </span>{types[a.type]}{a.client_nom ? ` · ${a.client_nom}` : ""}{a.note ? ` · ${a.note}` : ""}</p>)}
         <div className="mt-2 flex flex-wrap items-end gap-2">
-          <select value={act.type} onChange={(ev) => setAct((x) => ({ ...x, type: ev.target.value }))} className="rounded-champ border border-trait bg-surface px-3 py-2.5 text-[14px] text-encre outline-none">
+          <select value={act.type} onChange={(ev) => setAct((x) => ({ ...x, type: ev.target.value }))} className="rounded-champ border border-trait bg-surface px-3 py-2.5 text-[14px] text-encre outline-none max-md:text-[16px]">
             {Object.entries(types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <div className="w-44"><Champ mot="Client" value={act.client_nom} onChange={(ev) => setAct((x) => ({ ...x, client_nom: ev.target.value }))} /></div>

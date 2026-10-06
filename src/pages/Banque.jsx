@@ -24,7 +24,7 @@ export default function Banque() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen text-encre p-4 md:p-8">
+    <div className="min-h-screen text-encre px-5 py-5 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 max-md:mb-6">
           <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre m-0">Banque</h1>
@@ -91,11 +91,11 @@ export default function Banque() {
 
         {/* Viewer dialog */}
         <Dialog open={!!viewPres} onOpenChange={() => setViewPres(null)}>
-          <DialogContent className="max-w-4xl p-0 bg-fond border-trait overflow-hidden">
-            <DialogHeader className="px-6 pt-6 pb-0">
+          <DialogContent className="max-w-4xl p-0 bg-fond border-trait overflow-hidden max-md:w-[calc(100vw-24px)] max-md:max-h-[calc(100dvh-24px)] max-md:overflow-y-auto">
+            <DialogHeader className="px-6 pt-6 pb-0 max-md:px-4 max-md:pr-12 max-md:pt-5">
               <DialogTitle className="text-encre font-light">{viewPres?.project_title}</DialogTitle>
             </DialogHeader>
-            <div className="px-4 pb-4">
+            <div className="px-4 pb-4 max-md:px-2 max-md:pb-2">
               {viewPres?.slides && (
                 <SlideViewer slides={viewPres.slides} title={viewPres.project_title} />
               )}

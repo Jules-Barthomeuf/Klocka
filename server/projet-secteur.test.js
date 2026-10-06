@@ -8,8 +8,8 @@ import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-secteur-'));
 const {
-  communeParente, agglomerationDe, distanceM, residentielDe, rueDe, fluxDe,
-  implantationEnCache, lotDuProjet, calculerSecteur, lireSecteur, attendreSecteur, dureeDeGarde, JOURS_GARDE,
+  communeParente, agglomerationDe, distanceM, residentielDe, loyerDe, loyerDataBDe, fluxDe,
+  implantationEnCache, lotDuProjet, calculerSecteur, lireSecteur, attendreSecteur, dureeDeGarde, JOURS_GARDE, secteurGarde,
 } = await import('./projet-secteur.js');
 
 test("une fiche sans résidentiel ou sans rue ne se garde qu'une heure", () => {
@@ -54,11 +54,23 @@ test("le résidentiel prend le quartier, et une évolution nulle reste une évol
   assert.equal(residentielDe({ commune: { prix: {} } }), null);
 });
 
-test("la rue garde le milieu de la fourchette de loyer et ne fabrique pas de prix", () => {
-  const r = rueDe({ rue: 'Rue des Poteaux', loyer: [200, 300], loyer_source: 'DVF déduit, rue', prix_m2: null });
-  assert.equal(r.loyer_m2_an, 250);
-  assert.equal(r.prix_m2, null);
-  assert.equal(rueDe({ rue: 'X', loyer: null, prix_m2: null }), null);
+test("le loyer autour vient d'Equimmox seul : sa moyenne, sinon le milieu de sa fourchette", () => {
+  const r = loyerDe({ bas: 200, moyenne: 240, haut: 300, rayon: '500 m', surface_min: 64, surface_max: 96 }, 'Rue des Poteaux');
+  assert.equal(r.loyer_m2_an, 240);
+  assert.equal(r.loyer_source, 'Equimmox');
+  assert.equal(r.nom, 'Rue des Poteaux');
+  assert.equal(r.surface_min, 64);
+  assert.equal(loyerDe({ bas: 200, haut: 300 }).loyer_m2_an, 250);
+  assert.equal(loyerDe({ bas: null, moyenne: null, haut: null }), null);
+  assert.equal(loyerDe(null), null);
+});
+
+test("sans bail Equimmox, Data-B répond : le quartier d'abord, et il le dit", () => {
+  const d = loyerDataBDe({ rue: { basse: 300, haute: 400 }, quartier: { basse: 200, haute: 260 }, ville: null });
+  assert.deepEqual([d.loyer_m2_an, d.loyer_source, d.maille], [230, 'Data-B', 'quartier']);
+  assert.equal(loyerDataBDe({ rue: { basse: 300, haute: null } }).loyer_m2_an, 300);
+  assert.equal(loyerDataBDe({ rue: null, quartier: null, ville: null }), null);
+  assert.equal(loyerDataBDe(null), null);
 });
 
 test("les étoiles : un flux indisponible n'a pas de note, un tronçon sans flux compte", () => {
@@ -98,12 +110,16 @@ test('le lot du projet est celui de sa rue', () => {
 test("l'assemblage reprend les données du dossier sans relire Le Figaro", async () => {
   let figaroLu = false;
   const donnees = await calculerSecteur(
-    { adresse_complete: '55 rue des Poteaux, 75018 Paris', deal_id: 'd1' },
+    { adresse_complete: '55 rue des Poteaux, 75018 Paris', deal_id: 'd1', sim_surface: 80 },
     {
       resoudre: async () => ({ label: '55 Rue des Poteaux 75018 Paris', code_insee: '75118', numero: '55', rue: 'Rue des Poteaux', code_postal: '75018', ville: 'Paris', lat: 48.8938, lon: 2.3486 }),
       mairie: async (code) => { assert.equal(code, '75056'); return { nom: 'Paris', lat: 48.8564, lon: 2.3525, repere: 'mairie' }; },
       figaro: async () => { figaroLu = true; return null; },
-      rue: async () => ({ rue: 'Rue des Poteaux', loyer: [180, 260], prix_m2: 6200, prix_m2_source: 'DVF, 12 ventes autour' }),
+      loyer: async (adresse, surface) => {
+        assert.equal(adresse, '55 Rue des Poteaux 75018 Paris');
+        assert.equal(surface, 80);
+        return { bas: 180, moyenne: 220, haut: 260, rayon: '500 m', surface_min: 64, surface_max: 96 };
+      },
       etudes: () => [],
       dealDe: () => ({ lots: [{
         prix_residentiel: { commune: { nom: 'Paris', prix: { median: 9400, sur_1_an: -2, sur_5_ans: -8 }, loyer: { median: 30 } } },
@@ -117,6 +133,8 @@ test("l'assemblage reprend les données du dossier sans relire Le Figaro", async
   assert.equal(donnees.centre.repere, 'mairie de Paris');
   assert.equal(donnees.residentiel.prix_m2, 9400);
   assert.equal(donnees.rue.loyer_m2_an, 220);
+  assert.equal(donnees.rue.nom, 'Rue des Poteaux');
+  assert.equal(donnees.rue.loyer_source, 'Equimmox');
   assert.deepEqual(donnees.flux.pieton, { note: 4, sur: 5 });
   assert.equal(donnees.flux.commercialite, null);
 });
@@ -137,4 +155,28 @@ test('la fiche se garde, et un second appel ne relance pas le calcul', async () 
   lireSecteur({ ...projet, adresse_complete: '1 place Masséna, 06000 Nice' }, { calculer });
   await attendreSecteur('p1');
   assert.equal(calculs, 2);
+});
+
+test("l'équipe relance l'analyse du loyer : le calcul repart et Equimmox ignore son cache", async () => {
+  const appels = [];
+  const calculer = async (projet, opts) => { appels.push(opts?.forcerLoyer === true); return { residentiel: { prix_m2: 1 }, rue: { loyer_m2_an: 300 } }; };
+  const projet = { id: 'p-relance', adresse_complete: '3 rue de la Paix, 75002 Paris' };
+  lireSecteur(projet, { calculer });
+  await attendreSecteur('p-relance');
+  lireSecteur(projet, { calculer });
+  await attendreSecteur('p-relance');
+  assert.deepEqual(appels, [false], 'une fiche fraîche ne se recalcule pas');
+  lireSecteur(projet, { calculer, forcerLoyer: true });
+  await attendreSecteur('p-relance');
+  assert.deepEqual(appels, [false, true]);
+  assert.equal(secteurGarde('p-relance').rue.loyer_m2_an, 300);
+
+  let force = null;
+  await calculerSecteur({ adresse_complete: '3 rue de la Paix, 75002 Paris' }, {
+    forcerLoyer: true,
+    resoudre: async () => ({ label: '3 Rue de la Paix 75002 Paris', code_insee: '75102', rue: 'Rue de la Paix', ville: 'Paris', lat: 48.869, lon: 2.331 }),
+    mairie: async () => null, figaro: async () => null, etudes: () => [], dealDe: () => null,
+    loyer: async (_t, _s, forcer) => { force = forcer; return { moyenne: 900 }; },
+  });
+  assert.equal(force, true);
 });

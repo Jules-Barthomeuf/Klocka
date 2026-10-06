@@ -54,14 +54,14 @@ function FenetreSources({ loiId, depart, onFermer }) {
   }, [onFermer]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Sources de la lettre">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 max-md:p-0 md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Sources de la lettre">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onFermer} />
       <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="k-grid relative flex h-[86vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-[20px] border border-bord-vif bg-fond shadow-[0_40px_120px_-24px_rgba(0,0,0,0.8)]">
-        <div className="flex h-14 flex-none items-center gap-3 border-b border-trait px-5">
-          <span className="text-[15px] text-encre">Sources de la lettre</span>
+        className="k-grid relative flex h-[86vh] w-full max-w-[1180px] flex-col overflow-hidden rounded-[20px] border border-bord-vif max-md:h-[100dvh] max-md:rounded-none max-md:border-0 bg-fond shadow-[0_40px_120px_-24px_rgba(0,0,0,0.8)]">
+        <div className="flex h-14 flex-none items-center gap-3 border-b border-trait px-5 max-md:gap-2 max-md:px-3">
+          <span className={`text-[15px] text-encre ${sources.length > 1 ? "max-md:hidden" : ""}`}>Sources de la lettre</span>
           {sources.length > 1 && (
-            <div className="ml-2 flex min-w-0 gap-1 overflow-x-auto rounded-full bg-rail-actif p-1">
+            <div className="ml-2 flex min-w-0 gap-1 overflow-x-auto rounded-full bg-rail-actif p-1 max-md:ml-0">
               {sources.map((x) => (
                 <button key={x.id} type="button" onClick={() => setActive(x.id)}
                   className={`whitespace-nowrap rounded-full px-3 py-1 text-[12.5px] transition-colors ${x.id === s?.id ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
@@ -71,7 +71,7 @@ function FenetreSources({ loiId, depart, onFermer }) {
               ))}
             </div>
           )}
-          <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="ml-auto grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+          <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="ml-auto grid h-8 w-8 flex-none max-md:h-10 max-md:w-10 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -105,7 +105,7 @@ function Source({ s }) {
   };
 
   const champs = (
-    <div className={doc ? "min-h-0 overflow-y-auto border-r border-trait p-5 max-md:border-r-0 max-md:border-b" : "min-h-0 overflow-y-auto p-6"}>
+    <div className={doc ? "min-h-0 overflow-y-auto border-r border-trait p-5 max-md:max-h-[38dvh] max-md:border-r-0 max-md:border-b max-md:p-4" : "min-h-0 overflow-y-auto p-6 max-md:p-4"}>
       <p className="m-0 text-[17px] text-encre">{s.titre}</p>
       {s.lien && (
         <a href={s.lien} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-[13px] text-ardoise hover:text-encre">
@@ -136,7 +136,7 @@ function Source({ s }) {
             <div className="flex gap-1 rounded-full bg-rail-actif p-1">
               {[["texte", "Le texte relevé"], ["pdf", doc.nom || "Le document"]].map(([v, l]) => (
                 <button key={v} type="button" onClick={() => setVue(v)}
-                  className={`max-w-[260px] truncate rounded-full px-3 py-1 text-[12.5px] ${vue === v ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+                  className={`max-w-[260px] truncate rounded-full max-md:max-w-[40vw] px-3 py-1 text-[12.5px] ${vue === v ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
                   style={vue === v ? undefined : { background: "transparent" }}>{l}</button>
               ))}
             </div>
@@ -145,7 +145,7 @@ function Source({ s }) {
         {vue === "pdf" && doc.url ? (
           <iframe title={doc.nom || "Document"} src={doc.url} className="min-h-0 w-full flex-1 border-0 bg-white" />
         ) : (
-          <div ref={zone} className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4">
+          <div ref={zone} className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4 max-md:px-4">
             <TexteSurligne texte={doc.texte} citations={citations} choisie={choisie} />
           </div>
         )}

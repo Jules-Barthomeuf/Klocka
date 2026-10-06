@@ -56,25 +56,25 @@ export default function MonCompte() {
 
 
   return (
-    <div className="min-h-screen bg-fond p-6 md:p-10">
+    <div className="min-h-screen bg-fond px-5 py-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="mb-8 flex items-start justify-between">
+          <div className="mb-8 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-montserrat text-encre mb-2">Mon Compte</h1>
+              <h1 className="text-4xl max-md:text-[26px] font-montserrat text-encre mb-2">Mon Compte</h1>
               <div className="h-0.5 w-32 bg-menthe mb-2 rounded-full"></div>
-              <p className="text-ardoise text-lg">
+              <p className="text-ardoise text-lg max-md:text-base">
                 Gérez vos informations personnelles
               </p>
             </div>
 
             {/* User Avatar */}
             <div className="flex items-center gap-3">
-              <div className="text-right">
+              <div className="text-right max-md:hidden">
                 <p className="text-sm font-montserrat text-encre">
                   {user.full_name || user.email.split('@')[0]}
                 </p>
@@ -187,9 +187,9 @@ export default function MonCompte() {
                       <div className="space-y-2">
                         {user.comptes_lies.map((email) => (
                           <div key={email} className="p-3 bg-surface rounded-lg border border-bord flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-menthe" />
-                              <span className="text-encre">{email}</span>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <Mail className="w-4 h-4 text-menthe flex-shrink-0" />
+                              <span className="text-encre min-w-0 truncate">{email}</span>
                             </div>
                           </div>
                         ))}

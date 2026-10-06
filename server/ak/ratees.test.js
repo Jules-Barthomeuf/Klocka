@@ -84,3 +84,18 @@ test("05/10 · « le projet de Dieppe » ne trouvait rien : trouver_bien cherche
   assert.equal(trouverBien('Diamond Shop').unique, true);
   assert.equal(trouverBien('Lille').nombre, 0);
 });
+
+test('05/10 · rediger_sequence : les jours depuis l\'inscription deviennent des écarts, la signature vide se remplit', async () => {
+  const etapes = [0, 3, 7, 12].map((jour, i) => ({ jour, objet: `Email ${i + 1}`, blocs: [{ type: 'texte', texte: 'Bonjour {{prenom}},' }, { type: 'signature' }] }));
+  const r = await executerOutil({ name: 'rediger_sequence', input: { nom: 'Webinaire', etapes } }, JULES, { ...APP, message: { ...APP.message, page: 'emailing' } });
+  assert.equal(r.ok, true);
+  const s = Records.get('EmailingSequence', r.sequence_id);
+  assert.deepEqual(s.etapes.map((e) => e.delai_jours), [0, 3, 4, 5], 'jours 0, 3, 7, 12 : écarts 0, 3, 4, 5');
+  assert.equal(s.etapes[0].design.blocs[1].texte, "L'équipe Klocka");
+  assert.equal(s.statut, 'brouillon', 'rien ne part avant qu\'on l\'active');
+  // La séquence ouverte se réécrit, sans en créer une autre.
+  const r2 = await executerOutil({ name: 'rediger_sequence', input: { sequence_id: r.sequence_id, etapes: etapes.slice(0, 2) } }, JULES, APP);
+  assert.equal(r2.ok, true);
+  assert.equal(Records.get('EmailingSequence', r.sequence_id).etapes.length, 2);
+  assert.equal(Records.list('EmailingSequence').length, 1);
+});

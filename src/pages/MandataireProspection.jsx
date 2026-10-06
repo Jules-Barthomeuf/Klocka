@@ -11,7 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ResultatsProspective } from "@/components/mandataire/ProspecterDataB";
 import AgentIA from "@/components/mandataire/AgentIA";
-import KProspective from "@/pages/KProspective";
+import KProspectiveDataB from "@/components/mandataire/KProspectiveDataB";
 import { J, JL, alpha } from "@/design/jetons";
 
 // La Prospection du mandataire, en deux moitiés.
@@ -73,20 +73,21 @@ export default function MandataireProspection() {
 
   return (
     // Les listes sont des tableaux : elles prennent toute la largeur de la page.
-    <div className={`mx-auto px-5 md:px-8 ${vueId ? "max-w-[1440px]" : !conversation && (onglet === "listes" || onglet === "kprospective") ? "max-w-none" : "max-w-[1100px]"} ${conversation && !vueId ? "" : "pb-14 pt-4"}`}>
+    <div className={`mx-auto px-5 md:px-8 ${vueId ? "max-w-[1440px]" : !conversation && onglet === "listes" ? "max-w-none" : "max-w-[1100px]"} ${conversation && !vueId ? "" : "pb-14 pt-4"}`}>
       {vueId && <VueProspection key={vueId} id={vueId} retour={conversation ? "Conversation" : "Prospection"} onRetour={() => setVueId(null)} />}
 
       {/* Prospecter (le chat) ou Listes (pour appeler) : les deux moitiés de la Prospection. */}
       {!vueId && !conversation && (
-        <div className="flex justify-center pt-2">
-          <div className="flex gap-1 rounded-full bg-rail-actif p-1">
+        // Au téléphone, les quatre onglets ne tiennent pas : le sélecteur défile de côté.
+        <div className="flex justify-center pt-2 max-md:-mx-5 max-md:justify-start max-md:overflow-x-auto max-md:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1 max-md:mx-auto">
             {[["prospecter", "Prospecter"], ["agent", "Agent IA"], ["listes", "Listes"], ["kprospective", "K Prospective"]].map(([k, mot]) => {
               const actif = onglet === k;
               // L'agent se distingue : un liseré multicolore, léger, qui tourne doucement.
               if (k === "agent") {
                 return (
-                  <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={actif}
-                    className={`agent-onglet relative rounded-full px-4 py-1.5 text-[13.5px] transition-colors ${actif ? "text-encre" : "text-ardoise hover:text-encre"}`}
+                  <button key={k} type="button" onClick={() => { setOnglet(k); setVueDataB(null); }} aria-pressed={actif}
+                    className={`agent-onglet relative whitespace-nowrap rounded-full px-4 py-1.5 text-[13.5px] transition-colors max-md:px-3 max-md:py-2 ${actif ? "text-encre" : "text-ardoise hover:text-encre"}`}
                     // Jamais rempli : seul le liseré (dessiné en CSS, .agent-onglet) le
                     // distingue ; sélectionné, son texte passe en blanc.
                     style={{ background: "transparent" }}>
@@ -95,8 +96,8 @@ export default function MandataireProspection() {
                 );
               }
               return (
-                <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={actif}
-                  className={`rounded-full border border-transparent px-4 py-1.5 text-[13.5px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
+                <button key={k} type="button" onClick={() => { setOnglet(k); setVueDataB(null); }} aria-pressed={actif}
+                  className={`whitespace-nowrap rounded-full border border-transparent px-4 py-1.5 text-[13.5px] transition-colors max-md:px-3 max-md:py-2 ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
                   style={actif ? undefined : { background: "transparent" }}>
                   {mot}
                 </button>
@@ -107,8 +108,9 @@ export default function MandataireProspection() {
       )}
       {!vueId && !conversation && onglet === "listes" && <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} />}
       {!vueId && !conversation && onglet === "agent" && <AgentIA />}
-      {/* K Prospective : les commerces d'une zone qui répondent à des critères (5 oct. 2026). */}
-      {!vueId && !conversation && onglet === "kprospective" && <KProspective />}
+      {/* K Prospective : le formulaire de Data Prospective. On remplit les
+          champs, la prospective se lance dans Data-B (6 oct. 2026). */}
+      {!vueId && !vueDataB && !conversation && onglet === "kprospective" && <KProspectiveDataB onOuvrir={setVueDataB} />}
 
       {/* Les résultats d'une prospective Data-B, en pleine page. */}
       {vueDataB && !vueId && (
@@ -286,8 +288,8 @@ function Listes({ demandee = null, onDemandeVue = null }) {
       <div data-zone="listes" className="k-points relative rounded-b-md bg-rail-actif px-5 pb-5 pt-4 max-md:px-3">
         <div className="flex flex-wrap items-center gap-3">
           <p className="m-0 min-w-0 flex-1 truncate text-[15px] text-encre">{l.nom}</p>
-          <button type="button" onClick={() => renommer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Pencil className="h-3.5 w-3.5" /> Renommer</button>
-          <button type="button" onClick={() => supprimer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] text-brume hover:text-alerte" style={{ background: "transparent" }}><Trash2 className="h-3.5 w-3.5" /> Supprimer</button>
+          <button type="button" onClick={() => renommer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] max-md:min-h-9 text-ardoise hover:text-encre" style={{ background: "transparent" }}><Pencil className="h-3.5 w-3.5" /> Renommer</button>
+          <button type="button" onClick={() => supprimer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] max-md:min-h-9 text-brume hover:text-alerte" style={{ background: "transparent" }}><Trash2 className="h-3.5 w-3.5" /> Supprimer</button>
         </div>
         <p className="m-0 mt-1 text-[13px] text-ardoise">
           {(l.suggeree || l.agent) ? "Remplie par votre agent IA · " : ""}

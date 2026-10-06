@@ -52,7 +52,7 @@ const ETATS = {
 function Levier({ etat, titre, effet, ou, texte }) {
   const e = ETATS[etat] || ETATS.pose;
   return (
-    <div className="border border-trait rounded-[16px] bg-fond px-5 py-4">
+    <div className="border border-trait rounded-[16px] bg-fond px-5 py-4 max-md:px-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white px-2.5 py-0.5 rounded-full" style={{ background: e.fond }}>
           <e.Icone className="w-3 h-3" /> {e.mot}
@@ -61,7 +61,7 @@ function Levier({ etat, titre, effet, ou, texte }) {
         {effet && <span className="text-[12.5px] text-menthe tabular-nums">{effet}</span>}
       </div>
       <p className="m-0 mt-2 text-[13.5px] leading-[1.65] text-craie max-w-[70ch]">{texte}</p>
-      {ou && <p className="m-0 mt-1.5 font-mono text-[11px] text-brume">{ou}</p>}
+      {ou && <p className="m-0 mt-1.5 font-mono text-[11px] text-brume max-md:break-all">{ou}</p>}
     </div>
   );
 }

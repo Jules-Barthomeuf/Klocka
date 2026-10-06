@@ -530,7 +530,7 @@ export default function AdminClients() {
                   placeholder="Rechercher un utilisateur…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-transparent border-none text-[15px] text-encre placeholder:text-brume outline-none py-1" />
+                  className="w-full bg-transparent border-none text-[15px] text-encre placeholder:text-brume outline-none py-1 max-md:text-[16px]" />
               </div>
               {sansMotDePasse > 0 && (
                 <Button
@@ -606,11 +606,11 @@ export default function AdminClients() {
           {(!pendingCollapsed || searchTerm.trim()) && (
             <div className="mt-4">
               {pendingUsers.map((user) => (
-                <div key={user.id} className="flex items-center gap-4 py-3.5 border-t border-encre/[0.12]">
+                <div key={user.id} className="flex items-center gap-4 py-3.5 border-t border-encre/[0.12] max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-2.5">
                   <div className="w-9 h-9 rounded-full border border-menthe/40 flex items-center justify-center flex-shrink-0">
                     <span className="text-[11px] text-menthe">{user.full_name?.charAt(0)?.toUpperCase() || "?"}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 max-md:min-w-[calc(100%-3rem)]">
                     <p className="text-encre text-[15px] truncate m-0">{user.full_name || "Sans nom"}</p>
                     <p className="text-ardoise text-xs truncate m-0">{user.email}</p>
                   </div>
@@ -631,7 +631,7 @@ export default function AdminClients() {
                     Client direct
                   </button>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user)}
-                    className="h-8 w-8 text-brume hover:text-red-400 hover:bg-transparent flex-shrink-0">
+                    className="h-8 w-8 text-brume hover:text-red-400 hover:bg-transparent flex-shrink-0 max-md:ml-auto" aria-label="Supprimer" title="Supprimer">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -887,7 +887,7 @@ export default function AdminClients() {
           </DialogHeader>
 
           {/* Champs obligatoires Budget et Apport */}
-          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-encre/[0.05] border border-bord rounded-lg">
+          <div className="grid grid-cols-2 gap-4 my-4 p-4 bg-encre/[0.05] border border-bord rounded-lg max-md:grid-cols-1">
             <div>
               <Label className="text-ardoise text-sm font-medium">Budget max (€)</Label>
               <Input
@@ -947,7 +947,7 @@ export default function AdminClients() {
           {/* Ajouter un nouveau champ */}
           <div className="border border-bord rounded-lg p-4 space-y-4">
             <h4 className="text-encre font-medium text-sm">Ajouter un critère</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
               <div>
                 <Label className="text-ardoise text-xs">Intitulé</Label>
                 <Input
@@ -1138,7 +1138,7 @@ export default function AdminClients() {
               </div>
             }
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
               <div>
                 <Label className="text-ardoise text-sm">Revenus annuels (€)</Label>
                 <Input

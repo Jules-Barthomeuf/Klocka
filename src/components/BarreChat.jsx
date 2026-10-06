@@ -98,7 +98,7 @@ export default function BarreChat({
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && envoyable && !enCours) { e.preventDefault(); onEnvoyer(); } }}
           placeholder={placeholder}
           disabled={disabled || enCours}
-          className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50"
+          className="min-w-0 flex-1 resize-none border-0 bg-transparent py-1 text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
         />
 
         {actions.map((a) => <RondChat key={a.titre} {...a} icone={a.icone} />)}
@@ -166,7 +166,8 @@ export function MenuChat({ children, largeur = 340 }) {
       <div
         role="menu"
         className="absolute left-0 top-full z-20 mt-3 overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]"
-        style={{ width: largeur, ...OPAQUE }}
+        // Jamais plus large que l'écran du téléphone.
+        style={{ width: largeur, maxWidth: "calc(100vw - 2rem)", ...OPAQUE }}
       >
         {children}
       </div>

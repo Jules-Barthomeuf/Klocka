@@ -38,14 +38,14 @@ export default function DecisionMandataire({ dossierId }) {
               <input type="checkbox" checked={cochees.includes(cle)} onChange={() => setCochees((c) => (c.includes(cle) ? c.filter((x) => x !== cle) : [...c, cle]))} /> {mot}
             </label>
           ))}
-          <input value={libre} onChange={(e) => setLibre(e.target.value)} placeholder="Autre pièce (ex. plan du local)" className="w-full rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[13px] text-encre outline-none" />
+          <input value={libre} onChange={(e) => setLibre(e.target.value)} placeholder="Autre pièce (ex. plan du local)" className="w-full rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[13px] text-encre outline-none max-md:text-[16px]" />
           <button type="button" disabled={decider.isPending || (!cochees.length && !libre.trim())} onClick={() => decider.mutate({ decision: "complements", pieces: [...cochees, ...(libre.trim() ? [libre.trim()] : [])] })}
             className="rounded-full bg-menthe px-3.5 py-1.5 text-[13px] text-sur-menthe disabled:opacity-40">Demander ces pièces</button>
         </div>
       )}
       {mode === "no_go" && (
         <div className="mt-3 space-y-2">
-          <textarea value={motif} onChange={(e) => setMotif(e.target.value)} rows={3} placeholder="La raison, le mandataire la lira" className="w-full rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[13px] text-encre outline-none" />
+          <textarea value={motif} onChange={(e) => setMotif(e.target.value)} rows={3} placeholder="La raison, le mandataire la lira" className="w-full rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[13px] text-encre outline-none max-md:text-[16px]" />
           <button type="button" disabled={decider.isPending || !motif.trim()} onClick={() => decider.mutate({ decision: "no_go", commentaire: motif.trim() })}
             className="rounded-full border border-alerte px-3.5 py-1.5 text-[13px] text-alerte disabled:opacity-40" style={{ background: "transparent" }}>Envoyer le no-go</button>
         </div>

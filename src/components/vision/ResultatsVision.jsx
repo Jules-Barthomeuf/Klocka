@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
 import InteractiveFranceMap from "@/components/vision/InteractiveFranceMap";
@@ -32,9 +32,25 @@ const tailleLisible = (t) => (Number(t) >= 1000 ? `${(Number(t) / 1000).toLocale
 // Les courbes
 // ---------------------------------------------------------------------------
 
-const L = 600;
+const L_BUREAU = 600;
 const H = 220;
 const MARGE = { haut: 12, bas: 26, gauche: 4, droite: 4 };
+
+// Au téléphone, le dessin est plus étroit : à 600 de large sur 300 px
+// d'écran, les années tombaient à 5 px et la courbe à 110 px de haut.
+const L_TELEPHONE = 340;
+function useLargeurDessin() {
+  const requete = "(max-width: 767px)";
+  const [telephone, setTelephone] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(requete).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return undefined;
+    const m = window.matchMedia(requete);
+    const suivre = () => setTelephone(m.matches);
+    m.addEventListener?.("change", suivre);
+    return () => m.removeEventListener?.("change", suivre);
+  }, []);
+  return telephone ? L_TELEPHONE : L_BUREAU;
+}
 
 /**
  * Des courbes sur trente ans, avec un curseur. `series` : [{ cle, couleur,
@@ -43,6 +59,7 @@ const MARGE = { haut: 12, bas: 26, gauche: 4, droite: 4 };
  */
 function Courbes({ data, series, choisi, onChoisir, hauteur = H, zero = false }) {
   const ref = useRef(null);
+  const L = useLargeurDessin();
   const valeurs = data.flatMap((d) => series.map((s) => d[s.cle]));
   const max = Math.max(...valeurs, 0);
   const min = zero ? Math.min(...valeurs, 0) : Math.min(...valeurs, 0);
@@ -56,7 +73,7 @@ function Courbes({ data, series, choisi, onChoisir, hauteur = H, zero = false })
     onChoisir?.(Math.max(0, Math.min(data.length - 1, Math.round(rel * (data.length - 1)))));
   };
   return (
-    <svg ref={ref} viewBox={`0 0 ${L} ${hauteur}`} className="w-full touch-none select-none" onMouseMove={suivre} onTouchMove={suivre} onClick={suivre}>
+    <svg ref={ref} viewBox={`0 0 ${L} ${hauteur}`} className="w-full touch-pan-y select-none" onMouseMove={suivre} onTouchMove={suivre} onClick={suivre}>
       {/* La ligne du zéro, quand la courbe passe dessous. */}
       {min < 0 && <line x1={0} x2={L} y1={y(0)} y2={y(0)} style={{ stroke: J["trait"] }} strokeWidth="1" />}
       {[0, 9, 19, 29].filter((i) => i < data.length).map((i) => (
@@ -84,6 +101,7 @@ function Courbes({ data, series, choisi, onChoisir, hauteur = H, zero = false })
 
 /** Le cashflow en barres : ce qui entre au-dessus du zéro, ce qui sort dessous. */
 function Barres({ data, choisi, onChoisir, hauteur = H }) {
+  const L = useLargeurDessin();
   const valeurs = data.map((d) => d.cashflow);
   const max = Math.max(...valeurs, 0);
   const min = Math.min(...valeurs, 0);
@@ -128,7 +146,7 @@ function Chiffre({ mot, valeur, detail = null, teinte = null, grand = false }) {
   return (
     <div className="border-t border-trait pt-4">
       <p className="m-0 text-[11px] uppercase tracking-[.16em] text-ardoise">{mot}</p>
-      <p className={`m-0 mt-2 font-light leading-none tabular-nums ${grand ? "text-[40px] max-md:text-[30px]" : "text-[28px] max-md:text-[24px]"}`} style={{ color: teinte || J["encre"] }}>
+      <p className={`m-0 mt-2 font-light leading-none tabular-nums ${grand ? "text-[40px] max-md:text-[30px]" : "text-[28px] max-md:text-[20px]"}`} style={{ color: teinte || J["encre"] }}>
         {valeur}
       </p>
       {detail && <p className="m-0 mt-2 text-[13px] leading-[1.5] text-ardoise">{detail}</p>}
@@ -234,7 +252,7 @@ function Frise({ resultat, projets, frequence, apportTotal, revenusMensuels, set
             <label className="inline-flex items-center gap-1.5 rounded-full border border-trait px-3 py-1.5 focus-within:border-menthe">
               <input type="number" inputMode="numeric" value={OBJECTIFS_MENSUELS.includes(revenusMensuels) ? "" : revenusMensuels}
                 onChange={(e) => setRevenusMensuels(e.target.value)} placeholder="Autre"
-                className="w-16 border-0 bg-transparent text-[13px] tabular-nums text-encre outline-none placeholder:text-brume" />
+                className="w-16 border-0 bg-transparent text-[13px] max-md:text-[16px] tabular-nums text-encre outline-none placeholder:text-brume" />
               <span className="text-[12px] text-brume">€ / mois</span>
             </label>
           </div>

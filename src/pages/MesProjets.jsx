@@ -133,7 +133,7 @@ export default function MesProjets() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher un projet..."
-              className="w-full bg-transparent border-none text-[15px] text-encre placeholder:text-brume outline-none py-1"
+              className="w-full bg-transparent border-none text-[15px] max-md:text-[16px] text-encre placeholder:text-brume outline-none py-1"
             />
           </div>
         )}

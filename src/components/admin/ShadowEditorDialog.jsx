@@ -233,17 +233,17 @@ export default function ShadowEditorDialog({ open, onOpenChange, project, shadow
         {/* Form tabs */}
         <div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-10 bg-surface border border-trait rounded-md p-1">
-              <TabsTrigger value="informations" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Infos</TabsTrigger>
-              <TabsTrigger value="environnement" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Env.</TabsTrigger>
-              <TabsTrigger value="secteur" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Secteur</TabsTrigger>
-              <TabsTrigger value="locataire" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Locataire</TabsTrigger>
-              <TabsTrigger value="copropriete" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Copro</TabsTrigger>
-              <TabsTrigger value="marche" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Marché</TabsTrigger>
-              <TabsTrigger value="diagnostique" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Diag</TabsTrigger>
-              <TabsTrigger value="docs_projet" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Docs</TabsTrigger>
-              <TabsTrigger value="images" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Images</TabsTrigger>
-              <TabsTrigger value="simulateur" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg">Simu</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-10 bg-surface border border-trait rounded-md p-1 max-md:flex max-md:justify-start max-md:gap-1 max-md:overflow-x-auto">
+              <TabsTrigger value="informations" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Infos</TabsTrigger>
+              <TabsTrigger value="environnement" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Env.</TabsTrigger>
+              <TabsTrigger value="secteur" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Secteur</TabsTrigger>
+              <TabsTrigger value="locataire" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Locataire</TabsTrigger>
+              <TabsTrigger value="copropriete" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Copro</TabsTrigger>
+              <TabsTrigger value="marche" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Marché</TabsTrigger>
+              <TabsTrigger value="diagnostique" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Diag</TabsTrigger>
+              <TabsTrigger value="docs_projet" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Docs</TabsTrigger>
+              <TabsTrigger value="images" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Images</TabsTrigger>
+              <TabsTrigger value="simulateur" className="data-[state=active]:bg-encre/10 data-[state=active]:text-encre text-[11px] rounded-lg max-md:flex-none max-md:px-3">Simu</TabsTrigger>
             </TabsList>
 
             <TabsContent value="informations"><ProjectFormInfoTab formData={formData} setFormData={setFormData} users={users || []} /></TabsContent>

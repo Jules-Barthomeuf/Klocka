@@ -263,7 +263,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
       {phase !== "repos" &&
         createPortal(
           <div className="animate-in fade-in duration-200 ja-plein fixed inset-0 z-[60] bg-fond flex flex-col">
-            <header className="flex-shrink-0 border-b border-trait">
+            <header className="flex-shrink-0 border-b border-trait max-md:pt-[env(safe-area-inset-top)]">
               <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 py-3.5 flex items-center gap-3">
                 <div className="min-w-0 flex-1 flex items-center gap-2.5">
                   <span className="flex-shrink-0 px-2 h-[22px] rounded-full bg-trait text-ardoise text-[11px] font-semibold tracking-[.06em] inline-flex items-center">
@@ -279,7 +279,7 @@ export default function JournalAnalyste({ dossier, lot, apercu = false, onRefres
                   onClick={fermer}
                   aria-label="Fermer"
                   title={phase === "joue" ? "Fermer — la recherche continue côté serveur" : "Fermer"}
-                  className="flex-shrink-0 p-1.5 rounded-full text-brume hover:text-encre hover:bg-trait transition-colors"
+                  className="flex-shrink-0 p-1.5 max-md:p-2.5 max-md:-m-1 rounded-full text-brume hover:text-encre hover:bg-trait transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>

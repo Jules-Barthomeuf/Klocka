@@ -868,3 +868,26 @@ html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
   border-bottom-color: transparent;
 }
 :root[data-grille~="panneaux"] .k-grid :is(.divide-y) > * { border-color: transparent; }
+
+/* --- Le téléphone (moins de 768 px) ----------------------------------------
+   Rien ici ne touche le bureau. */
+@media (max-width: 767px) {
+  /* Aucune page ne glisse de côté sous le doigt. `clip` plutôt que `hidden` :
+     les en-têtes collants des pages restent collés. */
+  html, body { overflow-x: clip; }
+  /* iOS zoome sur tout champ écrit sous 16 px : au téléphone, tout champ
+     passe à 16 px, styles en ligne compris. Pas le texte modifiable des
+     documents (avis, mandat) : il se mesure en mm, et le forcer le casserait. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  textarea,
+  select { font-size: 16px !important; }
+  /* Un écran plein, dans le contenu, c'est l'écran moins la barre du haut et
+     ce qui occupe le bas (variables posées par Layout) : sans cela, chaque
+     page en min-h-screen défilait d'autant, le chat avec. */
+  .k-contenu .min-h-screen { min-height: calc(100dvh - var(--k-haut-mobile, 0px) - var(--k-bas-mobile, 0px)); }
+  /* Le fil du chat : tout l'écran entre la barre du haut et ce qui occupe
+     le bas, onglets ou clavier, le plus haut des deux. */
+  .k-chat-hauteur { height: calc(100dvh - var(--k-haut-mobile, 3.5rem) - max(var(--k-bas-mobile, 0px), var(--k-clavier, 0px))); }
+}
+/* Le texte garde sa taille quand le téléphone pivote. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

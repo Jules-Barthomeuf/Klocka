@@ -54,7 +54,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
       <p className="text-sm text-ardoise">Ces fichiers seront téléchargeables par le client dans l'onglet "Documents" du projet.</p>
 
       {/* Checklist documents importés */}
-      <div className="p-4 bg-surface border border-encre/[0.12]">
+      <div className="p-4 rounded-bloc bg-surface border border-encre/[0.12]">
         <Label className="text-encre mb-3 block text-xs uppercase tracking-wider">Documents importés</Label>
         <div className="flex flex-wrap gap-4">
           {DOC_CHECKLIST.map(({ key, label }) => {
@@ -79,7 +79,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
       </div>
 
       {/* Upload direct */}
-      <div className="p-4 bg-surface border border-encre/[0.12]">
+      <div className="p-4 rounded-bloc bg-surface border border-encre/[0.12]">
         <Label className="text-encre mb-3 block">Upload depuis votre ordinateur</Label>
         <label className="cursor-pointer">
           <input type="file" className="hidden" onChange={handleUpload} />
@@ -90,7 +90,7 @@ export default function ProjectFormDocumentsTab({ formData, setFormData }) {
       </div>
 
       {/* URL manuelle */}
-      <div className="p-4 bg-surface border border-encre/[0.12]">
+      <div className="p-4 rounded-bloc bg-surface border border-encre/[0.12]">
         <Label className="text-encre mb-3 block">Ajouter via URL</Label>
         <div className="space-y-2">
           <Input

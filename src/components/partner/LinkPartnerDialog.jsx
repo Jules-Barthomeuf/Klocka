@@ -82,9 +82,9 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
               <div className="space-y-2">
                 {linkedPartners.map((email) => (
                   <div key={email} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-bord">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-menthe" />
-                      <span className="text-encre text-sm">{email}</span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Mail className="w-4 h-4 flex-none text-menthe" />
+                      <span className="truncate text-encre text-sm">{email}</span>
                     </div>
                     <Button
                       variant="ghost"
@@ -109,7 +109,7 @@ export default function LinkPartnerDialog({ open, onOpenChange, user, onSuccess 
                 placeholder="email@partenaire.com"
                 value={partnerEmail}
                 onChange={(e) => setPartnerEmail(e.target.value)}
-                className="flex-1 bg-fond border-bord text-encre"
+                className="flex-1 bg-fond border-bord text-encre max-md:text-[16px]"
               />
               <Button
                 onClick={handleLinkPartner}

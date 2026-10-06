@@ -15,17 +15,17 @@ function Coquille({ titre, enTete, onFermer, children, large = false }) {
     <>
       <div className="animate-in fade-in duration-200 fixed inset-0 z-[70] bg-black/45" onClick={onFermer} aria-hidden />
       <aside
-        className={`animate-in slide-in-from-right duration-300 ease-out ja-panneau fixed z-[80] top-0 right-0 bottom-0 w-full bg-surface border-l border-bord-doux overflow-y-auto ${large ? "sm:w-[460px]" : "sm:w-[400px]"}`}
+        className={`animate-in slide-in-from-right duration-300 ease-out ja-panneau fixed z-[80] top-0 right-0 bottom-0 w-full bg-surface border-l border-bord-doux overflow-y-auto overscroll-contain ${large ? "sm:w-[460px]" : "sm:w-[400px]"}`}
         role="dialog"
         aria-label={titre}
       >
-        <header className="sticky top-0 flex items-start justify-between gap-3 px-5 py-4 bg-surface border-b border-trait">
+        <header className="sticky top-0 flex items-start justify-between gap-3 px-5 py-4 bg-surface border-b border-trait max-md:px-4 max-md:pt-[max(16px,env(safe-area-inset-top))]">
           {enTete}
           <button
             type="button"
             onClick={onFermer}
             aria-label="Fermer"
-            className="flex-shrink-0 p-1.5 rounded-full text-brume hover:text-encre hover:bg-trait transition-colors"
+            className="flex-shrink-0 p-1.5 max-md:p-2.5 max-md:-m-1 rounded-full text-brume hover:text-encre hover:bg-trait transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

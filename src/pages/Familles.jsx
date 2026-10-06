@@ -63,12 +63,12 @@ export default function Familles() {
   if (!user || user.role !== 'admin') return null;
 
   return (
-    <div className="min-h-screen bg-fond p-6 md:p-10">
+    <div className="min-h-screen bg-fond px-5 py-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex items-start justify-between">
+        <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-montserrat text-encre mb-2">Familles</h1>
+            <h1 className="text-4xl max-md:text-[26px] font-montserrat text-encre mb-2">Familles</h1>
             <div className="h-0.5 w-32 bg-menthe mb-2 rounded-full"></div>
           </div>
           <NeonButton
@@ -99,7 +99,7 @@ export default function Familles() {
         {/* Liste des familles */}
         {filteredFamilles.length === 0 ? (
           <Card className="bg-gradient-to-br from-fond to-black border-menthe/30">
-            <CardContent className="p-12 text-center">
+            <CardContent className="p-12 max-md:px-5 max-md:py-8 text-center">
               <Users className="w-16 h-16 text-brume mx-auto mb-4" />
               <h2 className="text-xl text-encre mb-2">Aucune famille créée</h2>
               <p className="text-ardoise mb-6">

@@ -61,6 +61,8 @@ const CORPS = 262;
 
 function CarteVeille({ v, etat, onVoir, onFermer }) {
   const [repliee, setRepliee] = useState(false);
+  // Au téléphone, le corps se resserre pour que « Voir » et la croix restent dans l'écran.
+  const corps = typeof window !== "undefined" && window.innerWidth < 768 ? Math.max(160, Math.min(CORPS, window.innerWidth - 170)) : CORPS;
   const enCours = etat === "en_cours";
   const m = enCours ? pendant(v) : fini(v);
   if (!m) return null;
@@ -87,9 +89,9 @@ function CarteVeille({ v, etat, onVoir, onFermer }) {
       {/* Le corps : titre, détail, Voir. Il se ferme en largeur et s'efface ;
           son contenu garde sa largeur pour ne pas se remettre en page pendant
           le mouvement. */}
-      <div className="grid shrink-0 overflow-hidden" style={{ width: repliee ? 0 : CORPS, gridTemplateRows: repliee ? "0fr" : "1fr", opacity: repliee ? 0 : 1, transition: glisse(["width", "grid-template-rows", "opacity"]) }} aria-hidden={repliee}>
+      <div className="grid shrink-0 overflow-hidden" style={{ width: repliee ? 0 : corps, gridTemplateRows: repliee ? "0fr" : "1fr", opacity: repliee ? 0 : 1, transition: glisse(["width", "grid-template-rows", "opacity"]) }} aria-hidden={repliee}>
         <div className="min-h-0 overflow-hidden">
-          <div className="flex items-center gap-3.5" style={{ width: CORPS }}>
+          <div className="flex items-center gap-3.5" style={{ width: corps }}>
             <div className="min-w-0 flex-1">
               <div className="text-[15px] text-encre">{m.titre}</div>
               <div className="mt-1 text-[12.5px] leading-[1.45] text-ardoise">{m.detail}</div>
@@ -177,7 +179,7 @@ export default function VeilleAlx() {
   if (!cartes.length) return null;
 
   return (
-    <div className="fixed bottom-7 left-[34px] z-40 flex flex-col items-start gap-2.5 max-md:left-4">
+    <div className="fixed bottom-7 left-[34px] z-40 flex flex-col items-start gap-2.5 max-md:bottom-[calc(16px+env(safe-area-inset-bottom))] max-md:left-4">
       {cartes.map((v) => (
         <CarteVeille
           key={v.id}

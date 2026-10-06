@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,20 @@ import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
 import { travauxParDefautListe } from "@/components/simulator/CalculFinancier";
+// Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
+const REQUETE_TELEPHONE = "(max-width: 767px)";
+function useTelephone() {
+  const [oui, setOui] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(REQUETE_TELEPHONE).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return undefined;
+    const m = window.matchMedia(REQUETE_TELEPHONE);
+    const suivre = () => setOui(m.matches);
+    m.addEventListener?.("change", suivre);
+    return () => m.removeEventListener?.("change", suivre);
+  }, []);
+  return oui;
+}
+
 export default function AdminProjets() {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(() => {
@@ -54,6 +69,14 @@ export default function AdminProjets() {
   const [assignerOuvert, setAssignerOuvert] = useState(false);
   // L'éditeur se fait sur la page elle-même ; le panneau des champs ne s'ouvre qu'à la demande.
   const [champsOuverts, setChampsOuverts] = useState(false);
+  const telephone = useTelephone();
+  // Éditeur ouvert au téléphone : la page derrière ne défile plus.
+  useEffect(() => {
+    if (!telephone || !isDialogOpen) return undefined;
+    const avant = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = avant; };
+  }, [telephone, isDialogOpen]);
   const [photosOuvertes, setPhotosOuvertes] = useState(false);
   const [ongletPage, setOngletPage] = useState("marche");
   // Historique des modifications faites sur la page, pour le retour en arrière.
@@ -471,6 +494,7 @@ export default function AdminProjets() {
       marche_rue_prix_m2: project.marche_rue_prix_m2 || "",
       marche_residentiel_loyer_m2_mois: project.marche_residentiel_loyer_m2_mois || "",
       marche_commercial_prix_m2: project.marche_commercial_prix_m2 || "",
+      marche_loyer_autour: project.marche_loyer_autour || "",
       fichiers_projet: project.fichiers_projet || [],
       docs_checklist: project.docs_checklist || {},
 
@@ -1039,13 +1063,7 @@ export default function AdminProjets() {
     try {
       const data = construireDonnees(currentFormData);
 
-      const isNewAssignment = !editingProject || editingProject.client_email !== currentFormData.client_email;
-      const previousClientEmails = editingProject?.client_emails || [];
-      const newClientEmails = currentFormData.client_emails.filter(email => !previousClientEmails.includes(email));
 
-      // Le projet d'abord, le mail ensuite : sans identifiant enregistré, le
-      // lien envoyé au client ne pourrait pas pointer sur son projet.
-      let projetId = editingProject?.id || null;
       if (editingProject) {
         const maj = await updateProjectMutation.mutateAsync({ id: editingProject.id, data });
         setEditingProject({ ...editingProject, ...data, ...(maj || {}) });
@@ -1054,23 +1072,9 @@ export default function AdminProjets() {
         const newProject = await createProjectMutation.mutateAsync(data);
         if (!discret) toast.success("Projet créé", { duration: 1800 });
         setEditingProject(newProject);
-        projetId = newProject?.id || null;
       }
 
-      if (isNewAssignment && currentFormData.client_email) {
-        try {
-          await base44.functions.invoke('sendProjectAssignmentEmail', {
-            clientEmail: currentFormData.client_email, projectTitle: currentFormData.titre, projectId: projetId
-          });
-        } catch (error) { console.error("Erreur envoi email:", error); }
-      }
-      for (const email of newClientEmails) {
-        try {
-          await base44.functions.invoke('sendProjectAssignmentEmail', {
-            clientEmail: email, projectTitle: currentFormData.titre, projectId: projetId
-          });
-        } catch (error) { console.error("Erreur envoi email:", error); }
-      }
+      // Plus de mail « Un nouveau projet vous a été attribué » (5 oct. 2026) : le client le voit dans son espace.
       setFormData(currentFormData);
       rafraichirApercu(currentFormData);
       setEnregistreLe(new Date());
@@ -1108,13 +1112,13 @@ export default function AdminProjets() {
     const isSaving = createProjectMutation.isPending || updateProjectMutation.isPending;
     // Le dossier de pré-analyse dont ce projet est issu, s'il y en a un.
     const dossierLie = editingProject?.deal_id || formData.deal_id || null;
-    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2 text-[13.5px] text-encre hover:border-bord-vif transition-colors";
+    const BOUTON = "inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2 text-[13.5px] text-encre hover:border-bord-vif transition-colors max-md:px-3 max-md:py-1.5 max-md:text-[13px]";
     const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
-    return (
-      <div className="h-screen flex flex-col text-encre overflow-hidden">
+    const editeur = (
+      <div className={`${telephone ? "h-full" : "h-screen"} flex flex-col text-encre overflow-hidden`}>
         {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
-        <div className="flex-shrink-0 px-8 max-md:px-4 pt-6 pb-4 border-b border-trait">
-          <div className="flex items-start gap-5">
+        <div className="flex-shrink-0 px-8 max-md:px-4 pt-6 max-md:pt-3 pb-4 max-md:pb-3 border-b border-trait">
+          <div className="flex items-start gap-5 max-md:gap-3">
             <h1
               className="flex-1 min-w-0 m-0 text-[26px] max-md:text-[22px] font-normal tracking-[-.02em] leading-[1.15] text-encre"
               style={{ textWrap: "pretty" }}
@@ -1132,7 +1136,7 @@ export default function AdminProjets() {
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-4 max-md:mt-3 flex flex-wrap items-center gap-2">
             <button onClick={goToProjectsList} className={BOUTON}>Retour aux projets</button>
             {dossierLie && (
               <button onClick={() => navigate(`${createPageUrl("Analyse")}?deal_id=${dossierLie}`)} className={BOUTON}>
@@ -1140,11 +1144,15 @@ export default function AdminProjets() {
               </button>
             )}
             <button onClick={() => setAssignerOuvert(true)} className={BOUTON}>Assigner à un client</button>
-            <button onClick={() => setChampsOuverts((x) => !x)} aria-pressed={champsOuverts} className={BOUTON}>{champsOuverts ? "Masquer les champs" : "Tous les champs"}</button>
+            {/* Au téléphone, une seule colonne à la fois : ce bouton passe de la page aux champs. */}
+            <button onClick={() => setChampsOuverts((x) => !x)} aria-pressed={champsOuverts} className={BOUTON}>
+              <span className="max-md:hidden">{champsOuverts ? "Masquer les champs" : "Tous les champs"}</span>
+              <span className="md:hidden">{champsOuverts ? "Voir la page" : "Les champs"}</span>
+            </button>
             <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
-              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13.5px] text-sur-menthe bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13.5px] text-sur-menthe bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed max-md:px-4 max-md:py-1.5 max-md:text-[13px]"
             >
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
             </button>
@@ -1192,8 +1200,8 @@ export default function AdminProjets() {
 
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
-        <div className={`flex-1 min-h-0 grid ${champsOuverts ? "grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)]" : "grid-cols-1"} max-lg:grid-cols-1 max-lg:overflow-y-auto`}>
-        <div className="min-h-0 overflow-y-auto max-lg:overflow-visible">
+        <div className={`flex-1 min-h-0 grid ${champsOuverts ? "grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-md:grid-rows-[minmax(0,1fr)]" : "grid-cols-1"} max-lg:grid-cols-1 max-lg:overflow-y-auto overscroll-contain`}>
+        <div className={`min-h-0 overflow-y-auto max-lg:overflow-visible ${champsOuverts ? "max-md:hidden" : ""}`}>
           {ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
           ) : ongletPage === "simulateur" ? (
@@ -1253,11 +1261,11 @@ export default function AdminProjets() {
         </Dialog>
 
         {champsOuverts && <aside
-          className="k-sobre min-h-0 flex flex-col bg-rail border-l border-trait max-lg:border-l-0 max-lg:border-t max-lg:min-h-[60vh]"
+          className="k-sobre min-h-0 flex flex-col bg-rail border-l border-trait max-lg:border-l-0 max-lg:border-t max-lg:min-h-[60vh] max-md:min-h-0 max-md:border-t-0"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >
-          <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0">
+          <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0 max-md:px-4 max-md:pt-3">
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => { clicDroite.current = true; setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-encre text-fond border-encre" : "bg-surface-pleine text-craie border-trait hover:text-encre hover:border-bord-vif"}`}>
@@ -1272,7 +1280,7 @@ export default function AdminProjets() {
             </p>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto px-[18px] pb-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-[18px] pb-4 max-md:px-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               {/* « IA » et « Images » n'ont plus de pastille : les onglets du
                   panneau suivent ceux de la page projet. Leur contenu reste, le
@@ -1347,6 +1355,16 @@ export default function AdminProjets() {
         </div>
       </div>
     );
+    // Au téléphone : plein écran posé sur body, hors du conteneur animé de la
+    // page. Il reste au niveau des fenêtres (z-50) pour que celles qu'il ouvre
+    // (assigner, photos) passent devant lui, montées après dans le DOM.
+    if (telephone) {
+      return createPortal(
+        <div className="fixed inset-0 z-50 flex flex-col bg-fond pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">{editeur}</div>,
+        document.body,
+      );
+    }
+    return editeur;
   }
 
   // --- Rendu de la liste : filtres appliqués une seule fois, réutilisés par le
@@ -1386,7 +1404,7 @@ export default function AdminProjets() {
               placeholder="Rechercher un projet, une adresse, un client…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[14px]"
+              className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume text-[14px] max-md:text-[16px]"
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm("")} className="text-brume hover:text-encre transition-colors" aria-label="Effacer" title="Effacer" style={{ background: "transparent" }}>

@@ -171,6 +171,12 @@ pastilles menthe, les autres communes du secteur en cases). 5 oct. 2026.
 `createPortal(…, document.body)`, `fixed inset-0 z-[70]`, fond opaque, la page
 derrière ne défile plus. Jamais dans un conteneur animé : il s'y calerait.
 
+**Mode téléphone** (6 oct. 2026) : l'icône téléphone du compte, en bas de la
+barre latérale (bureau seulement), ouvre la page en cours dans un cadre de
+téléphone (`components/ApercuTelephone.jsx` : iPhone 15, petit Android, Pro
+Max). C'est le vrai rendu : les `max-md:` suivent la largeur du cadre. Avant de
+livrer un écran, le regarder là.
+
 **Notifications** : `poser(ton, titre, opts)` de `src/components/ui/avis.jsx`
 (ou `toast.success`…). Toutes ont la même forme (décision du 3 oct. 2026) :
 une pilule sombre, un point coloré pour le ton (vert succès, accent
@@ -188,6 +194,19 @@ pointillé dans l'éditeur avec « Afficher ». Une donnée n'a qu'une case dans
 panneau de droite : le loyer dans Simulateur, l'échéance et la prise d'effet
 dans Analyse du bail, « en place depuis » dans Locataire, les chiffres du
 marché dans Marché.
+
+**Emailing** (refonte du 6 oct. 2026) : cinq onglets (Campagnes, Séquences,
+Contacts, Templates, Statistiques) dans le sélecteur translucide. Un email a sa
+propre palette figée (`src/lib/email-design.js`, trois designs : Clair, Menthe,
+Sombre), comme les documents imprimés. L'éditeur (`components/emailing/
+EditeurEmail.jsx`) : en haut l'objet et l'aperçu avec leur compteur et
+« Insérer une variable » (valeur de repli `{{prenom | "…"}}`) ; à gauche les
+blocs (glisser-déposer, dupliquer, condition d'affichage), à droite l'aperçu
+exact (ordinateur ou téléphone, « Voir en tant que… ») ; AK en panneau
+repliable à droite, qui propose et n'applique qu'au clic. Une campagne se crée
+en quatre étapes visibles en haut ; une séquence se lit en timeline verticale
+(déclencheur, puis une carte par email, « + » entre deux cartes), le chat
+d'AK en panneau repliable à gauche. Le module suit le thème et le halo.
 
 ## 6. Le chat et l'écran scindé
 

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Bell, FileSignature, FileText, Mail, MessageCircle, Paperclip, Phone, User, X } from "lucide-react";
 import { GridPatternCard, GridPatternCardBody } from "@/components/ui/card-with-grid-ellipsis-pattern";
@@ -42,12 +43,14 @@ export default function SkillsChat({ ouvert, onFermer, onChoisir, espace = "mand
   }, [ouvert, onFermer]);
   if (!ouvert) return null;
 
-  return (
+  // Posée sur body : le chat qui la monte est dans un conteneur animé, où une
+  // position fixe se calerait sur lui au lieu de l'écran.
+  return createPortal(
     // Centrée sur la partie à droite de la barre de navigation, pas sur l'écran.
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Les skills du chat">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onFermer} />
       <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="relative max-h-[85vh] w-full max-w-[880px] overflow-y-auto rounded-[20px] border border-bord-vif bg-fond p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_40px_120px_-24px_rgba(0,0,0,0.8)] max-md:p-4">
+        className="relative max-h-[85vh] w-full max-w-[880px] overflow-y-auto max-md:max-h-[calc(100dvh-2rem)] rounded-[20px] border border-bord-vif bg-fond p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_40px_120px_-24px_rgba(0,0,0,0.8)] max-md:p-4">
         <button type="button" onClick={onFermer} aria-label="Fermer" className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
           <X className="h-4 w-4" />
         </button>
@@ -73,6 +76,7 @@ export default function SkillsChat({ ouvert, onFermer, onChoisir, espace = "mand
           })}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }

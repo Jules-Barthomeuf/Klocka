@@ -88,18 +88,18 @@ export default function EspaceConversations({ cote = "klocka" }) {
   return (
     <div className="flex w-full flex-col gap-[22px] px-5 py-6 md:px-8 md:py-7 lg:h-[100dvh]">
       <header className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr] md:gap-6">
-        <label className="flex h-11 w-full max-w-[340px] items-center gap-2.5 rounded-full border border-trait px-[18px] text-ardoise max-md:order-2">
+        <label className="flex h-11 w-full max-w-[340px] items-center gap-2.5 rounded-full border border-trait px-[18px] text-ardoise max-md:order-2 max-md:max-w-none">
           <Search className="h-4 w-4 flex-none" />
           <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder={klocka ? "Bien, mandataire…" : "Bien, adresse…"} aria-label="Chercher un dossier"
             className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </label>
-        <h1 className="m-0 text-center text-[30px] font-medium tracking-[-0.01em] text-encre max-md:order-1 max-md:text-left">Conversations</h1>
+        <h1 className="m-0 text-center text-[30px] font-medium tracking-[-0.01em] text-encre max-md:order-1 max-md:text-left max-md:text-[26px]">Conversations</h1>
         <div className="flex flex-wrap items-center gap-2.5 md:justify-end max-md:order-3">
           {klocka && (
             <div className="flex gap-0.5 rounded-full bg-rail-actif p-1">
               {[["miens", "Les miens", miens.length], ["tous", "Tous", toutes.length]].map(([cle, mot, n]) => (
                 <button key={cle} type="button" onClick={() => setPortee(cle)} aria-pressed={porteeEffective === cle}
-                  className={`rounded-full px-[18px] py-[9px] text-[14px] ${porteeEffective === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+                  className={`rounded-full px-[18px] py-[9px] text-[14px] max-md:px-3.5 ${porteeEffective === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
                   style={porteeEffective === cle ? undefined : { background: "transparent" }}>{mot} · {n}</button>
               ))}
             </div>
@@ -108,7 +108,7 @@ export default function EspaceConversations({ cote = "klocka" }) {
           <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Affichage">
             {[["conversation", "Conversation"], ["dossier", "Dossier"]].map(([cle, mot]) => (
               <button key={cle} type="button" role="tab" aria-selected={vue === cle && !creation} onClick={() => poser({ vue: cle === "dossier" ? "dossier" : null, nouveau: null })}
-                className={`rounded-full px-[18px] py-[9px] text-[14px] ${vue === cle && !creation ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+                className={`rounded-full px-[18px] py-[9px] text-[14px] max-md:px-3.5 ${vue === cle && !creation ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
                 style={vue === cle && !creation ? undefined : { background: "transparent" }}>{mot}</button>
             ))}
           </div>
@@ -300,7 +300,7 @@ export function Conversation({ c, cote, bord = true }) {
       onDragOver={(e) => { if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setSurvol(true); } }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setSurvol(false); }}
       onDrop={(e) => { e.preventDefault(); setSurvol(false); choisir(e.dataTransfer?.files?.[0]); }}>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-trait px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-trait px-6 py-4 max-md:gap-3 max-md:px-4">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-relief text-[13px] font-semibold text-craie">{initiales(interlocuteur)}</span>
           <span className="flex flex-col gap-0.5">
@@ -316,7 +316,7 @@ export function Conversation({ c, cote, bord = true }) {
             </button>
             <label className="relative inline-flex h-9 items-center rounded-full border border-bord-doux text-[13px] text-craie hover:border-bord-vif">
               <select value="" onChange={(e) => e.target.value && transferer.mutate(e.target.value)} disabled={transferer.isPending} aria-label="Transférer le dossier"
-                className="h-full cursor-pointer appearance-none rounded-full bg-transparent pl-3.5 pr-8 text-[13px] text-craie outline-none">
+                className="h-full cursor-pointer appearance-none rounded-full bg-transparent pl-3.5 pr-8 text-[13px] text-craie outline-none max-md:text-[16px]">
                 <option value="">Transférer à…</option>
                 {(data?.analystes || []).filter((a) => a.email !== data?.analyste?.email).map((a) => <option key={a.email} value={a.email}>{a.nom}</option>)}
               </select>
@@ -327,7 +327,7 @@ export function Conversation({ c, cote, bord = true }) {
       </div>
 
       {brief && briefVisible && (
-        <div className="mx-6 mt-4 flex flex-col gap-2 rounded-[12px] border border-menthe/20 bg-menthe/[0.06] px-4 py-3.5">
+        <div className="mx-6 mt-4 flex flex-col gap-2 rounded-[12px] max-md:mx-4 border border-menthe/20 bg-menthe/[0.06] px-4 py-3.5">
           <div className="flex items-center justify-between gap-3">
             <p className="m-0 text-[11px] tracking-[0.14em] text-menthe">BRIEFING · VISIBLE KLOCKA UNIQUEMENT</p>
             <div className="flex gap-3">
@@ -339,7 +339,7 @@ export function Conversation({ c, cote, bord = true }) {
         </div>
       )}
 
-      <div ref={defile} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-6 pb-5 pt-[18px]">
+      <div ref={defile} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-6 pb-5 pt-[18px] max-md:px-4">
         {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-ardoise" /></div>}
         {!isLoading && !lignes.length && <p className="m-0 py-8 text-center text-[13.5px] text-brume">{klocka ? "Aucun message encore." : "Aucun message encore. Écrivez à votre analyste, ou glissez une pièce ici."}</p>}
         {lignes.map((m, i) => (
@@ -359,7 +359,7 @@ export function Conversation({ c, cote, bord = true }) {
         ))}
       </div>
 
-      <form className="flex flex-col gap-2.5 border-t border-trait px-6 pb-5 pt-3.5" onSubmit={(e) => { e.preventDefault(); soumettre(); }}>
+      <form className="flex flex-col gap-2.5 border-t border-trait px-6 pb-5 pt-3.5 max-md:px-3" onSubmit={(e) => { e.preventDefault(); soumettre(); }}>
         {klocka && (
           <div className="flex gap-0.5 self-start rounded-full bg-surface p-[3px]">
             {[[false, "Au mandataire"], [true, "Note interne"]].map(([v, mot]) => (
@@ -454,7 +454,7 @@ export function Pieces({ c, gestes = null }) {
             {l.fichiers.map((f) => (
               <span key={f.url} className="inline-flex max-w-full items-center gap-1.5">
                 <a href={f.url} target="_blank" rel="noreferrer" className="truncate text-[13px] text-menthe hover:underline">{f.nom}</a>
-                {retirable && <button type="button" onClick={() => gestes.retirer.mutate({ cle: l.cle, url: f.url })} aria-label={`Retirer ${f.nom}`} title={`Retirer ${f.nom}`} className="flex-none text-brume hover:text-alerte" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>}
+                {retirable && <button type="button" onClick={() => gestes.retirer.mutate({ cle: l.cle, url: f.url })} aria-label={`Retirer ${f.nom}`} title={`Retirer ${f.nom}`} className="flex-none text-brume hover:text-alerte max-md:-my-2 max-md:p-2" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>}
               </span>
             ))}
           </div>
@@ -516,8 +516,8 @@ export function ChoixAnalyste({ c, gestes, onFermer }) {
   const nom = analystes.find((a) => a.email === choisi)?.nom;
   const envoyer = (analyste_email) => gestes.soumettre.mutate({ analyste_email, mot, nom: analystes.find((a) => a.email === analyste_email)?.nom || null }, { onSuccess: onFermer });
   return createPortal(
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-fond/60 px-4 backdrop-blur-sm md:left-[var(--k-barre-largeur)]" onClick={onFermer}>
-      <div role="dialog" aria-modal="true" aria-label="Transférer à Klocka" className="k-grid w-full max-w-[520px] rounded-[20px] border border-bord-vif p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-fond/60 px-4 backdrop-blur-sm max-md:px-3 md:left-[var(--k-barre-largeur)]" onClick={onFermer}>
+      <div role="dialog" aria-modal="true" aria-label="Transférer à Klocka" className="k-grid max-h-[calc(100dvh-24px)] w-full max-w-[520px] overflow-y-auto rounded-[20px] border border-bord-vif p-6 max-md:p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="m-0 text-[20px] text-encre">Transférer à Klocka</p>
@@ -591,7 +591,7 @@ export function Resume({ c, cote, onDossier = null, onAnalyse = null }) {
   const gestes = useGestes(c);
   const modifiable = !klocka && MODIFIABLES.includes(c.statut);
   return (
-    <aside className="k-grid flex w-[360px] flex-none flex-col gap-[18px] overflow-y-auto px-6 py-[22px] max-lg:w-full max-lg:border-t max-lg:border-trait">
+    <aside className="k-grid flex w-[360px] flex-none flex-col gap-[18px] overflow-y-auto px-6 py-[22px] max-md:px-4 max-lg:w-full max-lg:border-t max-lg:border-trait">
       <div className="flex flex-col gap-1.5">
         <p className="m-0 text-[22px] font-medium tracking-[-0.01em] text-encre">{c.bien}</p>
         <p className="m-0 text-[13px] text-ardoise">{klocka ? `${c.mandataire_nom} · suivi par ${c.analyste_nom || "personne encore"}` : c.analyste_nom ? `Suivi par ${c.analyste_nom} chez Klocka` : c.adresse || "Pas encore d'analyste attitré"}</p>
@@ -813,7 +813,7 @@ function Estimation({ c, estimations, gestes }) {
         {!!estimations.length && (
           <label className="relative inline-flex h-8 min-w-0 max-w-full items-center rounded-full border border-bord-doux text-[12.5px] text-craie hover:border-bord-vif">
             <select value="" onChange={(ev) => ev.target.value && gestes.lierEstimation.mutate(ev.target.value === "aucune" ? null : ev.target.value)} aria-label="Lier une estimation"
-              className="h-full w-full min-w-0 max-w-[260px] cursor-pointer appearance-none truncate rounded-full bg-transparent pl-3 pr-7 text-[12.5px] text-craie outline-none">
+              className="h-full w-full min-w-0 max-w-[260px] cursor-pointer appearance-none truncate rounded-full bg-transparent pl-3 pr-7 text-[12.5px] text-craie outline-none max-md:text-[16px]">
               <option value="">{e ? "Changer…" : "Lier une estimation…"}</option>
               {estimations.filter((x) => x.id !== e?.id).map((x) => <option key={x.id} value={x.id}>{x.bien}</option>)}
               {e && <option value="aucune">Aucune</option>}
@@ -863,7 +863,7 @@ export function NouveauDossier({ onCree, onAnnuler }) {
   const champs = [["bien", "Le bien", "Boulangerie Martin"], ["adresse", "Adresse", "12 rue Carnot, Mâcon"], ["proprietaire", "Propriétaire", "M. Martin"], ["proprietaire_email", "Mail du propriétaire", "pour la relance"], ["prix", "Prix demandé", "310 000 €"], ["loyer_annuel", "Loyer annuel", "21 600 €"], ["surface_m2", "Surface (m²)", "90"]];
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <form className="mx-auto flex max-w-[640px] flex-col gap-5 px-6 py-10" onSubmit={(e) => { e.preventDefault(); if (f.bien.trim()) creer.mutate(); }}>
+      <form className="mx-auto flex max-w-[640px] flex-col gap-5 px-6 py-10 max-md:px-4 max-md:py-6" onSubmit={(e) => { e.preventDefault(); if (f.bien.trim()) creer.mutate(); }}>
         <div>
           <p className="m-0 text-[24px] font-medium tracking-[-0.01em] text-encre">Nouveau dossier</p>
           <p className="m-0 mt-1.5 text-[14px] leading-[1.6] text-craie">Le bien et son propriétaire suffisent pour commencer. Un dossier s'ouvre aussi tout seul quand un mandat est signé.</p>

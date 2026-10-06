@@ -43,7 +43,7 @@ const liensBien = ({ lat, lon, adresse, ville }) => {
 function Lien({ href, children }) {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-      className="rounded-full border border-bord-doux px-3 py-1 text-[12.5px] text-craie transition-colors hover:border-menthe hover:text-menthe">
+      className="rounded-full border border-bord-doux px-3 py-1 text-[12.5px] text-craie transition-colors hover:border-menthe hover:text-menthe max-md:py-1.5">
       {children} ↗
     </a>
   );
@@ -51,7 +51,7 @@ function Lien({ href, children }) {
 
 function Pastille({ children, actif, onClick }) {
   return (
-    <button onClick={onClick} className="rounded-full border px-3 py-1 text-[12.5px] transition-colors"
+    <button onClick={onClick} className="rounded-full border px-3 py-1 text-[12.5px] transition-colors max-md:py-1.5"
       style={{ borderColor: actif ? J["menthe"] : "rgba(255,255,255,0.1)", color: actif ? J["menthe"] : J["ardoise"], background: actif ? "rgba(150,192,184,0.1)" : "transparent" }}>
       {children}
     </button>
@@ -104,8 +104,8 @@ export default function OngletSocietes({ villeId, onOuvrirCible }) {
     <div className="alx-entree">
       <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-surface py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={JL["ardoise"]} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher une société, un SIREN, une adresse" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none" />
-        {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher une société, un SIREN, une adresse" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none max-md:text-[16px]" />
+        {recherche && <button onClick={() => setRecherche("")} aria-label="Effacer la recherche" className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre max-md:h-9 max-md:px-3" style={{ background: "transparent" }}>×</button>}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -117,7 +117,7 @@ export default function OngletSocietes({ villeId, onOuvrirCible }) {
         <Pastille actif={filtres.transmission} onClick={() => bascule("transmission")}>Transmission</Pastille>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[12.5px] text-ardoise">
-        <span className="flex items-center gap-3">
+        <span className="flex flex-wrap items-center gap-3">
           <span>Trier</span>
           {TRIS.map(([k, mot]) => <button key={k} onClick={() => setTri(k)} className="hover:text-encre" style={{ background: "transparent", color: tri === k ? J["encre"] : J["ardoise"] }}>{mot}</button>)}
         </span>
@@ -381,7 +381,7 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
         <>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
-              <h2 className="alx-mont m-0 text-[30px] font-medium tracking-[-.02em] text-encre max-md:text-[24px]">{joliNom(s.societe.nom)}</h2>
+              <h2 className="alx-mont m-0 break-words text-[30px] font-medium tracking-[-.02em] text-encre max-md:text-[24px]">{joliNom(s.societe.nom)}</h2>
               <div className="mt-1 text-[13.5px] text-ardoise">{s.societe.forme} · SIREN {s.societe.siren} · {s.murs.length} mur{s.murs.length > 1 ? "s" : ""} commercia{s.murs.length > 1 ? "ux" : "l"} à {s.ville}</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {liensSociete(s.societe.siren).map(([mot, href]) => <Lien key={mot} href={href}>{mot}</Lien>)}
@@ -390,7 +390,7 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
                 <div className="mt-3 flex flex-wrap gap-2">{s.profils.map((p) => <Etiquette key={p.cle} teinte={TEINTES.ecrire} title={p.detail}>{p.mot}</Etiquette>)}</div>
               )}
             </div>
-            <div className="text-right">
+            <div className="text-right max-md:text-left">
               <Etiquette>Une vente dans l'année</Etiquette>
               <div className="mt-1"><Nombre taille={30} teinte={TEINTES.ecrire}>{pourcent(s.proba_vente)}</Nombre></div>
               {s.moyenne_adresse != null && <div className="text-[12.5px] text-ardoise">une adresse moyenne : {pourcent(s.moyenne_adresse)}</div>}
@@ -405,7 +405,7 @@ function FicheSociete({ villeId, siren, onRetour, onOuvrirCible }) {
           </div>
 
           {page === "presentation" ? (
-            <div className="mt-6 flex max-w-[760px] flex-col gap-6 rounded-[20px] border border-trait bg-surface p-7">
+            <div className="mt-6 flex max-w-[760px] flex-col gap-6 rounded-[20px] border border-trait bg-surface p-7 max-md:p-5">
               {s.accroche && (
                 <div className="rounded-[14px] border px-5 py-4" style={{ borderColor: `${TEINTES.ecrire}47` }}>
                   <Etiquette teinte={TEINTES.ecrire}>L'accroche</Etiquette>

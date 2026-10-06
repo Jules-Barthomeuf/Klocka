@@ -177,14 +177,14 @@ export function FormulaireColonne({ onAnnuler, onValider, enCours }) {
   return (
     <div className="border border-bord rounded-xl bg-surface px-5 py-4 space-y-3">
       <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Nouvelle colonne</p>
-      <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe/60" />
+      <textarea value={question} onChange={(e) => setQuestion(e.target.value)} rows={2} placeholder="La question posée à chaque document — « Le bail prévoit-il une clause d'accession ? »" className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe/60 max-md:text-[16px]" />
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé court" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none" />
-        <input value={bloc} onChange={(e) => setBloc(e.target.value)} placeholder="Bloc" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none" />
-        <select value={regle} onChange={(e) => setRegle(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none">
+        <input value={libelle} onChange={(e) => setLibelle(e.target.value)} placeholder="Libellé court" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none max-md:text-[16px]" />
+        <input value={bloc} onChange={(e) => setBloc(e.target.value)} placeholder="Bloc" className="bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none max-md:text-[16px]" />
+        <select value={regle} onChange={(e) => setRegle(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none max-md:text-[16px]">
           {REGLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <select value={criticite} onChange={(e) => setCriticite(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none">
+        <select value={criticite} onChange={(e) => setCriticite(e.target.value)} className="bg-surface border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none max-md:text-[16px]">
           <option value="haute">Criticité haute</option><option value="moyenne">Criticité moyenne</option><option value="basse">Criticité basse</option>
         </select>
       </div>
@@ -255,7 +255,7 @@ function Anomalies({ m, dealId, onCellule }) {
                     ))}
                   </div>
                 ) : <p className="m-0 text-[12.5px] text-brume">Aucun document ne répond à cette question.</p>}
-                <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/60" />
+                <textarea defaultValue={r?.commentaire || ""} placeholder="Un mot pour la note de synthèse — pourquoi c'est confirmé, ou pourquoi c'est un faux positif" rows={2} onBlur={(e) => e.target.value !== (r?.commentaire || "") && reviser.mutate({ colonneId: a.colonne.id, verdict: r?.verdict || "confirme", commentaire: e.target.value })} className="w-full bg-transparent border border-bord rounded-lg px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/60 max-md:text-[16px]" />
               </div>
             )}
           </div>

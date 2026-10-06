@@ -106,6 +106,8 @@ const ESPACES = {
   estimation: { api: "/api/mandataire", qs: "?espace=estimation", modesAGauche: true, modeParDefaut: "document", modes: MODES_ESTIMATION, commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel bien estimez-vous ? « Les murs de la boulangerie, 14 rue du Marché à Annecy, occupés »" },
   // Le mandat : les questions du mandat de vente, l'aperçu à côté, puis MyNotary.
   mandat: { api: "/api/mandataire", qs: "?espace=mandat", modesAGauche: false, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel mandat préparez-vous ? « Mandat exclusif pour les murs de la boulangerie Martin, 12 rue Carnot à Mâcon, 450 000 € »" },
+  // L'emailing (équipe) : le chat d'AK conçoit et réécrit les séquences d'emails.
+  sequence: { api: "/api/assistant", page: "emailing", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quelle séquence ? « Après notre webinaire du 12 oct. sur les murs commerciaux : amener les inscrits jusqu'à un appel découverte » " },
   // Les offres (équipe) : le chat d'AK, qui rédige et corrige les lettres
   // d'intention de la page Offres ; la lettre ouverte lui est donnée.
   offre: { api: "/api/assistant", page: "offres", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Pour qui, sur quel bien ? « Fais l'offre d'Olivier Luccioni sur le dossier du 1 avenue Mirabeau, 200 000 €, apport 40 000 € »" },
@@ -164,7 +166,7 @@ function BoiteEnvoi({ versLeHaut = false }) {
       {ouvert && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOuvert(false)} />
-          <div role="menu" className={`animate-in fade-in duration-150 absolute left-0 z-20 max-h-[60vh] min-w-[280px] overflow-y-auto rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)] ${versLeHaut ? "bottom-full mb-2 slide-in-from-bottom-1" : "top-full mt-2 slide-in-from-top-1"}`} style={{ background: J["barre"] }}>
+          <div role="menu" className={`animate-in fade-in duration-150 absolute left-0 z-20 max-h-[60vh] min-w-[280px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[14px] border border-trait p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)] ${versLeHaut ? "bottom-full mb-2 slide-in-from-bottom-1" : "top-full mt-2 slide-in-from-top-1"}`} style={{ background: J["barre"] }}>
             {comptes.map((c) => (
               <button key={c.email} role="menuitem" type="button" onClick={() => defaut.mutate(c.email)} disabled={defaut.isPending}
                 className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[14px] text-craie transition-colors hover:bg-encre/[0.05] hover:text-encre" style={{ background: "transparent" }}>
@@ -703,7 +705,7 @@ const OUTILS_LUS = {
   registre_engagements: "Lecture des engagements", historique_actions: "Lecture de l'historique", preparer_mail: "Rédaction du mail",
   noter_relance: "Création de la relance", noter_rdv: "Création du rendez-vous", nouveau_contact: "Création de la fiche propriétaire",
   appel_sans_reponse: "Relance suivante de la séquence", resultat_appel: "Mise à jour de la fiche", demandes_clients: "Lecture des demandes clients",
-  rediger_loi: "Rédaction de la lettre d'intention", avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
+  rediger_loi: "Rédaction de la lettre d'intention", rediger_sequence: "Rédaction de la séquence", avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
 };
 const ACTIONS_FAITES = {
   pousser_dossier_monday: "Dossier poussé dans Monday", pousser_projet_monday: "Projet poussé dans Monday", creer_drive_dossier: "Dossier Drive créé",
@@ -1533,7 +1535,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
             placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation ? "Répondre ou ajouter une précision…" : modeCourant?.placeholder || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
-            className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[14px]"
+            className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
           <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => { setFichier(e.target.files?.[0] || null); e.target.value = ""; }} />
 
@@ -1742,7 +1744,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className={`flex h-[100dvh] flex-col ${mandataire ? "max-md:h-[calc(100dvh-7rem-env(safe-area-inset-bottom))]" : "max-md:h-[calc(100dvh-11.5rem-env(safe-area-inset-bottom))]"}`}
+        // Au téléphone, la hauteur vient de Layout (barre du haut, onglets, clavier) : index.css, .k-chat-hauteur.
+        className="k-chat-hauteur flex h-[100dvh] flex-col"
         onDragOver={(e) => { if (!E.fichier) return; e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
         onDrop={(e) => { if (E.fichier) deposer(e); }}

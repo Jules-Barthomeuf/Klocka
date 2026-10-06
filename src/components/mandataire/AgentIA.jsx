@@ -70,7 +70,7 @@ export default function AgentIA() {
             Il parcourt {nb > 1 ? `vos ${nb} communes, les villes Klocka d'abord,` : nb ? "votre commune" : "votre secteur"} toute la journée : il lit les commerces, trouve qui possède les murs et le numéro du propriétaire, et vous propose ceux qui sont prêts à appeler.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {data.actif && (
             <button type="button" onClick={() => tour.mutate()} disabled={tour.isPending}
               className="inline-flex h-10 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie transition-colors hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
@@ -88,7 +88,7 @@ export default function AgentIA() {
       {/* Sa journée, en quatre chiffres. */}
       <div className="mt-6 grid grid-cols-2 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine md:grid-cols-4">
         {[["Commerces lus", j.lus], ["Propriétaires identifiés", j.proprietaires], ["Numéros trouvés", j.numeros], ["Prêts à appeler", j.trouvailles]].map(([mot, n], i) => (
-          <div key={mot} className={`px-6 py-5 ${i ? "md:border-l" : ""} ${i % 2 ? "max-md:border-l" : ""} ${i > 1 ? "max-md:border-t" : ""} border-trait`}>
+          <div key={mot} className={`px-6 py-5 max-md:px-4 max-md:py-4 ${i ? "md:border-l" : ""} ${i % 2 ? "max-md:border-l" : ""} ${i > 1 ? "max-md:border-t" : ""} border-trait`}>
             <p className={`m-0 text-[28px] font-light leading-none tabular-nums ${i === 3 ? "text-menthe" : "text-encre"}`}>{n || 0}</p>
             <p className="m-0 mt-2 text-[13px] text-ardoise">{mot} aujourd'hui</p>
           </div>
@@ -145,14 +145,14 @@ export default function AgentIA() {
           ) : (
             <ul className="m-0 list-none space-y-3 p-0">
               {data.trouvailles.map((t) => (
-                <li key={t.id} className="animate-in fade-in rounded-[18px] border border-trait bg-surface-pleine px-5 py-4 duration-300">
+                <li key={t.id} className="animate-in fade-in rounded-[18px] border border-trait bg-surface-pleine px-5 py-4 duration-300 max-md:px-4">
                   <div className="flex flex-wrap items-start gap-4">
                     <div className="min-w-0 flex-1">
                       <p className="m-0 flex items-center gap-2 text-[12px] text-brume">
                         J'ai trouvé · {ilYa(t.trouve_le)}
                         <span className={`rounded-full px-2 py-px text-[11px] ${t.groupe === "klocka" ? "bg-menthe/[0.14] text-encre" : "border border-trait text-ardoise"}`}>{t.groupe === "klocka" ? "Ville Klocka" : "Votre activité"}</span>
                       </p>
-                      <p className="m-0 mt-1 flex items-center gap-2 text-[15.5px] text-encre">
+                      <p className="m-0 mt-1 flex min-w-0 items-center gap-2 text-[15.5px] text-encre">
                         <span className="truncate font-medium">{t.enseigne || t.adresse}</span>
                         {t.emplacement != null && <span className="flex-none rounded border border-bord px-1.5 text-[10.5px] text-ardoise">{ROND[t.emplacement]}</span>}
                       </p>
@@ -179,7 +179,7 @@ export default function AgentIA() {
                         </p>
                       )}
                     </div>
-                    <div className="flex flex-none items-center gap-1.5">
+                    <div className="flex flex-none flex-wrap items-center gap-1.5">
                       {t.liste && (
                         <button type="button" onClick={() => ouvrirListe(t.liste.id)} title={`Rangé dans « ${t.liste.nom} »`}
                           className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol">
@@ -207,7 +207,7 @@ export default function AgentIA() {
         {/* Ce qu'il a fait, en phrases. */}
         <aside className="rounded-[18px] border border-trait bg-surface-pleine lg:sticky lg:top-6">
           <p className="m-0 border-b border-trait px-5 py-3.5 text-[13.5px] text-craie">Journal de l'agent</p>
-          <ol className="m-0 max-h-[560px] list-none overflow-y-auto p-0">
+          <ol className="m-0 max-h-[560px] list-none overflow-y-auto p-0 max-md:max-h-[50dvh]">
             {!data.journal.length && <li className="px-5 py-5 text-[13px] text-brume">Rien encore : le premier tour démarre dans quelques minutes.</li>}
             {data.journal.map((e, i) => (
               <li key={`${e.le}-${i}`} className="flex gap-3 border-b border-trait px-5 py-3 last:border-b-0">
@@ -247,7 +247,7 @@ function Exploitants({ onOuvrirListe }) {
   const ajoutes = (e?.communes || []).reduce((n, c) => n + (c.ajoutes || 0), 0);
   React.useEffect(() => { if (ajoutes) for (const k of [["m-listes"], ["m-agent"]]) queryClient.invalidateQueries({ queryKey: k }); }, [ajoutes, queryClient]);
   return (
-    <section className="mt-8 rounded-[18px] border border-trait bg-surface-pleine px-6 py-5">
+    <section className="mt-8 rounded-[18px] border border-trait bg-surface-pleine px-6 py-5 max-md:px-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 max-w-[68ch]">
           <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><Building2 className="h-4 w-4 text-menthe" />Propriétaires exploitants</p>
@@ -255,7 +255,7 @@ function Exploitants({ onOuvrirListe }) {
             Les commerçants qui possèdent leurs murs : celui qui décroche au commerce est le propriétaire. Data-B les trouve sur vos communes, et ceux qui ont un numéro remplissent la liste « Propriétaires exploitants ».
           </p>
         </div>
-        <div className="flex flex-none items-center gap-2">
+        <div className="flex flex-none flex-wrap items-center gap-2 max-md:flex-1">
           {e?.liste_id && (
             <button type="button" onClick={() => onOuvrirListe(e.liste_id)}
               className="inline-flex h-10 items-center gap-1.5 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>

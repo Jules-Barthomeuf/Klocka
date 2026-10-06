@@ -21,7 +21,7 @@ const ETAPES = {
 
 // La maquette « Connexion » : des champs pleins arrondis avec leur icône, des
 // boutons en pilule de 44 px. Les couleurs passent par le thème.
-const CHAMP = "h-11 w-full rounded-[14px] border border-trait bg-fond py-2 pl-9 pr-3 text-[14px] text-encre outline-none placeholder:text-brume";
+const CHAMP = "h-11 w-full rounded-[14px] border border-trait bg-fond py-2 pl-9 pr-3 text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume";
 const BOUTON = "flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 // Pas de compte : la demande passe par le formulaire d'inscription.
@@ -366,7 +366,7 @@ function ChampMotDePasse({ id, valeur, onChange, libelle, champRef = undefined, 
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
           title={visible ? "Masquer" : "Afficher"}
-          className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border-0 p-0 text-ardoise hover:bg-encre/[0.06]"
+          className="absolute right-1 top-1/2 grid h-7 w-7 max-md:h-9 max-md:w-9 -translate-y-1/2 place-items-center rounded-full border-0 p-0 text-ardoise hover:bg-encre/[0.06]"
           style={{ background: "transparent" }}
         >
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

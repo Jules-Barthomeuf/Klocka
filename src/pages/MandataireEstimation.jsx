@@ -9,7 +9,7 @@ import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres"
 import { dateCourte, euros } from "@/components/mandataire/kit";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import EditeurAvis from "@/components/mandataire/EditeurAvis";
-import GenerationDocument, { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
+import GenerationDocument, { DocumentTelephone, MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 
 // Estimation — tout passe par le chat : le mandataire dit le bien, joint le
 // bail, répond aux questions ; la valeur vient de Data-B et l'avis de valeur
@@ -138,11 +138,11 @@ export default function MandataireEstimation() {
     return (
       <div ref={zone} className="contents">
         <button onClick={(ev) => { ev.stopPropagation(); setMenuCarte(estOuvert ? null : e.id); }}
-          className={`absolute ${bouton} text-ardoise transition-colors hover:text-encre`} aria-label="Actions" style={{ background: "transparent" }}>
+          className={`absolute ${bouton} text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center`} aria-label="Actions" style={{ background: "transparent" }}>
           <MoreHorizontal className="h-4 w-4" />
         </button>
         {estOuvert && (
-          <div className={`absolute ${place} z-20 min-w-[180px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]`}>
+          <div className={`absolute ${place} z-20 min-w-[180px] max-w-[calc(100vw-24px)] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]`}>
             <button
               onClick={() => {
                 setMenuCarte(null);
@@ -197,9 +197,9 @@ export default function MandataireEstimation() {
                 {estimations.length > 0 && <span className="text-[13.5px] text-ardoise">{estimations.length}</span>}
               </div>
               {estimations.length > 4 && (
-                <div className="flex min-w-[240px] max-w-[420px] items-center gap-3 rounded-full border border-trait bg-surface-pleine px-4 py-2.5 focus-within:border-bord-doux">
+                <div className="flex min-w-[240px] max-w-[420px] items-center gap-3 rounded-full max-md:w-full max-md:min-w-0 max-md:max-w-none border border-trait bg-surface-pleine px-4 py-2.5 focus-within:border-bord-doux">
                   <Search className="h-3.5 w-3.5 flex-shrink-0 text-ardoise" />
-                  <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un bien" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+                  <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un bien" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
                 </div>
               )}
             </div>
@@ -244,6 +244,8 @@ export default function MandataireEstimation() {
         ))}
       </div>
       {scinde && <ApercuAvis id={courante} selection={selectionAvis} onSelection={setSelectionAvis} generation={generation} onGenere={() => setGeneration(false)} travail={travail} />}
+      {/* Au téléphone : le chat seul, l'avis en plein écran à la demande. */}
+      {conversation && !large && courante && !avis?.avis && <DocumentTelephone libelle="Voir l'avis de valeur"><ApercuAvis id={courante} /></DocumentTelephone>}
       </div>
 
       {/* L'avis, par-dessus tout (barre latérale comprise) : on le ferme et on reprend le fil.

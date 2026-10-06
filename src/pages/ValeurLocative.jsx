@@ -74,7 +74,7 @@ function Action({ icone: Icone, children, onClick }) {
 function Rapport({ r, point, onFermer }) {
   return (
     <div className="k-impression mx-auto max-w-[760px] px-4 pb-20 pt-8">
-      <div className="k-sans-impression mb-6 flex items-center justify-between">
+      <div className="k-sans-impression mb-6 flex items-center justify-between max-md:flex-wrap max-md:gap-3">
         <button onClick={onFermer} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Revenir à la carte</button>
         <button onClick={() => window.print()} className="inline-flex h-9 items-center gap-2 rounded-full border border-menthe/40 bg-menthe/10 px-4 text-[12px] font-medium uppercase tracking-[.08em] text-menthe-texte hover:bg-menthe/20">
           <Printer className="h-3.5 w-3.5" />Imprimer / PDF
@@ -83,7 +83,7 @@ function Rapport({ r, point, onFermer }) {
       <div className={`${CARTE} p-7 max-md:p-4`}>
         <section className="border-b border-trait pb-6 text-center">
           <span className="alx-mont inline-block rounded-full border border-menthe/40 px-3 py-1 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">Valeur locative</span>
-          <h1 className="mt-4 mb-2 text-[28px] font-light tracking-[-0.01em] text-encre">Estimation du loyer annuel</h1>
+          <h1 className="mt-4 mb-2 text-[28px] font-light max-md:text-[22px] tracking-[-0.01em] text-encre">Estimation du loyer annuel</h1>
           <p className="m-0 text-[15px] font-medium text-encre">{point?.label || r.adresse}</p>
           <p className="m-0 mt-2 text-[11.5px] text-brume">Montant HT / HC au m² selon la rue, le quartier et la ville · {r.unite} · lu le {quand(r.le)}</p>
         </section>
@@ -200,10 +200,10 @@ export default function ValeurLocative() {
     const parClasse = Object.fromEntries(CLASSES.map(([cle]) => [cle, secteurs.filter((x) => x.niveau === cle).sort((a, b) => (b.ici ? 1 : 0) - (a.ici ? 1 : 0) || a.nom_iris.localeCompare(b.nom_iris))]));
     const nLus = secteurs.filter((x) => x.origine === "quartier").length;
     return (
-      <div className="relative h-[calc(100dvh-56px)] overflow-hidden">
+      <div className="relative h-[calc(100dvh-56px)] overflow-hidden max-md:h-[calc(100dvh-var(--k-haut-mobile,56px))]">
         <CarteLoyers point={vue.point} secteurs={vue.secteurs || []} onSecteur={setSecteurOuvert} onErreur={(m) => toast.error(m)} />
 
-        <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
+        <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
           <div className="border-b border-trait px-4 pb-3 pt-4">
             <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">Estimation du loyer annuel</p>
             <p className="m-0 mt-1 text-[12px] leading-[1.5] text-ardoise">Montant HT / HC au m² selon la rue, le quartier et la ville</p>
@@ -242,7 +242,7 @@ export default function ValeurLocative() {
         </div>
 
         {secteurOuvert && (
-          <div className="absolute bottom-4 left-1/2 z-[500] w-[320px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-[14px] border border-bord bg-fond/80 px-4 py-3 backdrop-blur-xl">
+          <div className="absolute bottom-4 left-1/2 z-[500] w-[320px] max-w-[calc(100vw-2rem)] -translate-x-1/2 max-md:bottom-[calc(env(safe-area-inset-bottom)+64px)] rounded-[14px] border border-bord bg-fond/80 px-4 py-3 backdrop-blur-xl">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="m-0 truncate text-[13px] font-medium text-encre">{secteurOuvert.nom_iris}</p>
@@ -253,7 +253,7 @@ export default function ValeurLocative() {
                     : secteurOuvert.origine === "indice" ? ` · indice : ${secteurOuvert.commerces ?? "—"} commerces${secteurOuvert.niveau_de_vie ? `, ${euros(secteurOuvert.niveau_de_vie)} de niveau de vie` : ""}` : ""}
                 </p>
               </div>
-              <button onClick={() => setSecteurOuvert(null)} className="text-brume hover:text-encre"><X className="h-4 w-4" /></button>
+              <button onClick={() => setSecteurOuvert(null)} aria-label="Fermer" className="text-brume hover:text-encre max-md:-m-2 max-md:p-2"><X className="h-4 w-4" /></button>
             </div>
           </div>
         )}
@@ -268,7 +268,7 @@ export default function ValeurLocative() {
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
-      <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre">Valeur locative</h1>
+      <h1 className="mt-2 mb-6 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Valeur locative</h1>
 
       <div className={`${CARTE} p-5`}>
         <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Adresse</label>
@@ -277,7 +277,7 @@ export default function ValeurLocative() {
             <Search className="h-4 w-4 flex-shrink-0 text-brume" />
             <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="Allées Charles de Fitte, 31300 Toulouse"
               onKeyDown={(ev) => { if (ev.key === "Enter" && adresse.trim().length >= 5) chercher.mutate(adresse); }}
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-fond p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">

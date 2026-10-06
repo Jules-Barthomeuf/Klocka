@@ -9,6 +9,17 @@ import { adressesDuDossier } from '../acces-entites.js';
 
 /** Monte les routes « equimmox / figaro / marche / projects / projets » sur l'application. */
 export function monterMarche(app) {
+  // Le panorama Street View d'une adresse, dans sa rue : l'Embed de Google,
+  // sur un simple point, s'ouvrait parfois sur la rue voisine.
+  app.get('/api/streetview/panorama', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const { panoramaDeLaRue } = await import('../alx/streetview.js');
+    const lat = Number(req.query.lat);
+    const lon = Number(req.query.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return res.status(400).json({ error: 'Point manquant.' });
+    ok(res, { panorama: await panoramaDeLaRue({ lat, lon, rue: req.query.rue ? String(req.query.rue).slice(0, 120) : null }) });
+  }));
+
   // Ce que le client voit du bail sur sa page projet : quelques lignes, et
   // l'analyse complète derrière — sans les pièces.
   // « projets » (français) ne figure pas dans le préfixe de la garde globale, qui
@@ -139,7 +150,8 @@ export function monterMarche(app) {
     const { projetVisiblePar } = await import('../acces-entites.js');
     if (user.role !== 'admin' && !projetVisiblePar(user)(projet)) return res.status(403).json({ error: 'Accès refusé' });
     const { lireSecteur } = await import('../projet-secteur.js');
-    ok(res, lireSecteur(projet, { forcer: user.role === 'admin' && req.query.forcer === '1' }));
+    const admin = user.role === 'admin';
+    ok(res, lireSecteur(projet, { forcer: admin && req.query.forcer === '1', forcerLoyer: admin && req.query.relancer_loyer === '1' }));
   }));
 
   // Les flux et la commercialité : l'étude d'implantation Data-B (un crédit),

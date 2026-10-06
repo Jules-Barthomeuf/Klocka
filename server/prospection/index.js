@@ -290,3 +290,58 @@ export function demarrerProspection() {
   minuterie = setInterval(() => tour().catch(() => {}), MINUTES * 60000);
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// Ma journée : la page d'accueil de la prospection
+// ---------------------------------------------------------------------------
+
+/** Pure : le badge d'une ligne de la liste du jour (Rappel, Relance, Nouveau). */
+export function badgeDuJour(a) {
+  if (a.rang === 0) return /relanc/i.test(a.raison || a.prochaine?.quoi || '') ? 'Relance' : 'Rappel';
+  return a.dernier_contact_le ? 'Relance' : 'Nouveau';
+}
+
+/**
+ * Ma journée : la ville choisie (ses chiffres, d'après sa liste de l'agent
+ * IA), qui appeler ou relancer aujourd'hui, l'avancement du jour, ce qui
+ * attend dans « À envoyer », et la fiabilité d'AK.
+ */
+export async function maJournee({ ville = null, pour = null, maintenant = new Date() } = {}) {
+  const IA = await import('./agent-ia.js');
+  const { fiabilite } = await import('./appel.js');
+  const listes = IA.listes();
+  const choisie = ville ? listes.find((l) => R.norm(l.ville) === R.norm(ville)) || { ville, agences: 0, avec_telephone: 0, agents: 0 } : null;
+  const villes = choisie ? [choisie.ville] : villesDuJour(maintenant);
+  const brute = R.listeDuJour(C.agents(), { villes, maintenant });
+  const auj = R.jourDe(maintenant);
+  const prenomDe = (email) => {
+    const u = Records.list('User').find((x) => String(x.email).toLowerCase() === String(email).toLowerCase());
+    return (u?.full_name || email || '').split(/[ @.]/)[0] || email;
+  };
+  const appelsDuJour = Records.list('AppelAgent').filter((x) => String(x.le || '').slice(0, 10) === auj);
+  const appelesAujourdhui = new Set(appelsDuJour.map((x) => x.agent_id));
+  const aAppeler = brute.filter((a) => !appelesAujourdhui.has(a.id)).map((a) => {
+    const verrou = R.verrouTenu(a.verrou) ? a.verrou : null;
+    const heure = a.prochaine?.heure || (String(a.prochaine?.le || '').includes('T') ? String(a.prochaine.le).slice(11, 16) : null);
+    return {
+      id: a.id, nom: a.nom, agence: a.agence && a.agence !== a.nom ? a.agence : null, ville: a.ville || null,
+      badge: badgeDuJour(a), heure, raison: a.raison, telephone: a.telephones?.[0] || null,
+      verrou: verrou ? { par: verrou.par, prenom: prenomDe(verrou.par) } : null, a_moi: !!verrou && verrou.par === pour,
+    };
+  });
+  const faits = appelsDuJour.length;
+  const { aEnvoyer } = await import('./mails.js');
+  const envois = aEnvoyer(maintenant).map((m) => ({
+    id: m.id, nom: m.nom || null, agence: m.agence || null, genre: m.genre, objet: m.objet || null, a: m.a || null,
+    quoi: m.genre === 'relance' ? `Relance « ${m.objet || ''} »` : m.genre === 'sms' ? 'SMS' : `Mail « ${m.objet || ''} »`, cree_le: m.cree_le || null,
+  }));
+  return {
+    villes: listes.map((l) => ({ id: l.id, ville: l.ville, agences: l.agences, avec_telephone: l.avec_telephone, agents: l.agents })),
+    ville: choisie || null,
+    villes_du_jour: choisie ? null : villes,
+    a_appeler: aAppeler,
+    appels: { faits, total: faits + aAppeler.length },
+    a_envoyer: envois,
+    fiabilite: fiabilite({ maintenant }),
+  };
+}

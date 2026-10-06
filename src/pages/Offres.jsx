@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Loader2, MoreHorizontal, Search, Trash2 } from "lucide-react";
+import { FileText, Loader2, MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
@@ -28,6 +28,10 @@ export default function Offres() {
   const [travail, setTravail] = useState({ enCours: false, etapes: [] });
   const [recherche, setRecherche] = useState("");
   const large = useEcranLarge();
+  // Au téléphone, la lettre s'ouvre par-dessus le chat ; fermée, elle reste la
+  // lettre de la conversation (le chat la corrige) et se rouvre d'une pastille.
+  const [lettreTel, setLettreTel] = useState(true);
+  useEffect(() => { if (courante) setLettreTel(true); }, [courante]);
 
   const { data, isLoading } = useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres") });
   const rafraichir = () => queryClient.invalidateQueries({ queryKey: ["offres"] });
@@ -119,7 +123,7 @@ export default function Offres() {
           {offres.length > 0 && <span className="text-[13.5px] text-ardoise">{offres.length}</span>}
         </div>
         {(data?.offres || []).length > 4 && (
-          <div className="flex min-w-[220px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux">
+          <div className="flex min-w-[220px] max-w-[420px] flex-1 items-center max-md:min-w-0 max-md:basis-full max-md:max-w-none gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux">
             <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
             <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Bien, acquéreur, vendeur"
               className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
@@ -178,11 +182,17 @@ export default function Offres() {
       </div>
 
       {/* Au téléphone : la lettre par-dessus tout, on la ferme pour revenir au chat. */}
-      {!large && courante && createPortal(
+      {!large && courante && lettreTel && createPortal(
         <div className="fixed inset-0 z-[70]" style={{ background: "rgb(var(--k-fond-rgb))" }}>
-          <EditeurLoi key={courante} id={courante} travail={travail} onFermer={() => setCourante(null)} />
+          <EditeurLoi key={courante} id={courante} travail={travail} onFermer={() => { if (conversation && window.matchMedia("(max-width: 767px)").matches) setLettreTel(false); else setCourante(null); }} />
         </div>,
         document.body,
+      )}
+      {!large && courante && !lettreTel && conversation && (
+        <button type="button" onClick={() => setLettreTel(true)}
+          className="fixed left-1/2 top-[calc(var(--k-haut-mobile,3.5rem)+3.75rem)] z-30 inline-flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-bord-vif bg-surface-pleine px-4 text-[13px] text-encre shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:hidden">
+          <FileText className="h-4 w-4 text-menthe" /> Voir la lettre
+        </button>
       )}
     </div>
   );
@@ -204,7 +214,7 @@ function LigneOffre({ o, active, onOuvrir, onSupprimer }) {
       </button>
       <div ref={zone} className="contents">
         <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
           <MoreHorizontal className="h-4 w-4" />
         </button>
         {menu && (

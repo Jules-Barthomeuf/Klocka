@@ -99,20 +99,21 @@ export default function SlideViewer({ slides, title }) {
 
         {/* Navigation arrows */}
         {current > 0 && (
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-fond/60 hover:bg-fond/80 rounded-full flex items-center justify-center text-encre transition-colors">
+          <button onClick={prev} aria-label="Slide précédente" className="absolute left-3 max-md:left-1.5 top-1/2 -translate-y-1/2 w-10 h-10 bg-fond/60 hover:bg-fond/80 rounded-full flex items-center justify-center text-encre transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
         )}
         {current < slides.length - 1 && (
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-fond/60 hover:bg-fond/80 rounded-full flex items-center justify-center text-encre transition-colors">
+          <button onClick={next} aria-label="Slide suivante" className="absolute right-3 max-md:right-1.5 top-1/2 -translate-y-1/2 w-10 h-10 bg-fond/60 hover:bg-fond/80 rounded-full flex items-center justify-center text-encre transition-colors">
             <ChevronRight className="w-5 h-5" />
           </button>
         )}
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-fond border-t border-trait">
-        <div className="flex items-center gap-2">
+      {/* Au téléphone, le compteur suffit : une pastille par slide débordait. */}
+      <div className="flex items-center justify-between gap-2 px-4 max-md:px-3 py-3 bg-fond border-t border-trait">
+        <div className="flex items-center gap-2 max-md:hidden">
           {slides.map((_, i) => (
             <button
               key={i}

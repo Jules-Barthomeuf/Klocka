@@ -87,7 +87,9 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
   return (
     <div>
       {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-encre">{titre}</p>}
-      <table className="w-full border-collapse">
+      {/* Au téléphone, le tableau garde ses colonnes et défile de côté. */}
+      <div className="overflow-x-auto">
+      <table className="w-full border-collapse max-md:min-w-[760px]">
         <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[200px]">Notes</Th>{!sansSources && <Th className="w-[190px]">Source</Th>}</tr></thead>
         <tbody>
           {g.lignes.map((l, iLigne) => (
@@ -99,7 +101,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
               <td className={`px-4 py-3 border-b border-r border-trait group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
                 {edition?.id === l.id ? (
                   <div onClick={(e) => e.stopPropagation()}>
-                    <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13.5px] leading-[1.55] text-encre resize-y" />
+                    <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13.5px] leading-[1.55] text-encre resize-y max-md:text-[16px]" />
                     <div className="mt-1.5 flex items-center gap-2">
                       <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
                       <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
@@ -109,7 +111,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                 ) : (
                   <div className="flex items-start gap-2">
                     {l.valeur ? <p className="m-0 flex-1 text-[13.5px] leading-[1.55] text-encre whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[12.5px] text-brume">—</span>}
-                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} aria-label="Modifier la valeur" title="Modifier la valeur" className="flex-none text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
+                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} aria-label="Modifier la valeur" title="Modifier la valeur" className="flex-none text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 max-md:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
                   </div>
                 )}
                 {/* Une valeur venue d'une pièce qui ne relève pas de cette
@@ -144,7 +146,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
               <td className={`px-4 py-3 border-b border-trait group ${sansSources ? "" : "border-r"}`}>
                 {note?.id === l.id ? (
                   <div>
-                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[12.5px] leading-[1.5] text-encre resize-y placeholder:text-brume" />
+                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[12.5px] leading-[1.5] text-encre resize-y placeholder:text-brume max-md:text-[16px]" />
                     <div className="mt-1.5 flex items-center gap-2">
                       <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
                       <button onClick={() => setNote(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
@@ -178,6 +180,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -250,14 +253,14 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
         const enCours = g?.remplissage?.etat === "en_cours";
         return (
           <div key={v.id} className="overflow-hidden rounded-[16px] border border-trait bg-surface">
-            <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+            <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:px-4">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <h2 className="m-0 text-[18px] font-semibold text-encre">{v.titre || g?.titre || v.id}</h2>
                 {v.sousTitre && <span className="text-[12.5px] text-ardoise">{v.sousTitre}</span>}
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 {resume && (
-                  <span className="flex items-center gap-3 text-[12.5px] text-craie">
+                  <span className="flex flex-wrap items-center gap-3 text-[12.5px] text-craie">
                     <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
                     {resume.a_checker > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.a_checker }} />{resume.a_checker} à checker</span>}
                     <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>

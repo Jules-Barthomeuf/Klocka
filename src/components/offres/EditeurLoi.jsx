@@ -73,27 +73,27 @@ export default function EditeurLoi({ id, onFermer, travail = null }) {
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-fond">
-      <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait px-5">
-        <div className="flex min-w-0 items-baseline gap-3">
-          <span className="truncate text-[14.5px] text-encre">Lettre d'intention</span>
-          <span className="truncate text-[12.5px] text-ardoise">{statut}</span>
+      <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait px-5 max-md:gap-2 max-md:px-3">
+        <div className="flex min-w-0 items-baseline gap-3 max-md:flex-col max-md:gap-0">
+          <span className="truncate text-[14.5px] text-encre max-md:max-w-full">Lettre d'intention</span>
+          <span className="truncate text-[12.5px] text-ardoise max-md:max-w-full">{statut}</span>
         </div>
-        <div className="flex flex-none items-center gap-1.5">
+        <div className="flex flex-none items-center gap-1.5 max-md:gap-1">
           {modele && (
-            <button type="button" onClick={() => modifier.mutate({ modele: null })} disabled={modifier.isPending}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] text-ardoise hover:bg-relief hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
-              <LayoutTemplate className="h-3.5 w-3.5" />Changer de modèle
+            <button type="button" onClick={() => modifier.mutate({ modele: null })} disabled={modifier.isPending} aria-label="Changer de modèle" title="Changer de modèle"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] max-md:w-9 max-md:justify-center max-md:px-0 text-ardoise hover:bg-relief hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
+              <LayoutTemplate className="h-3.5 w-3.5" /><span className="max-md:hidden">Changer de modèle</span>
             </button>
           )}
           {["docx", "pdf"].map((f) => (
             <button key={f} type="button" onClick={() => telecharger(f)} disabled={!data || !modele || !!telechargement}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] max-md:px-3 text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
               {telechargement === f ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}{f === "docx" ? "Word" : "PDF"}
             </button>
           ))}
           {onFermer && (
             <button type="button" onClick={onFermer} aria-label="Fermer la lettre" title="Fermer"
-              className="ml-1 grid h-9 w-9 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+              className="ml-1 grid h-9 w-9 flex-none place-items-center max-md:ml-0 rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
               <X className="h-4 w-4" />
             </button>
           )}
@@ -110,7 +110,7 @@ export default function EditeurLoi({ id, onFermer, travail = null }) {
           <ChoixModele d={data} enCours={modifier.isPending ? modifier.variables?.modele : null} onChoisir={(m) => modifier.mutate({ modele: m })}
             onChamp={(k, v) => modifier.mutate({ champs: { [k]: v } })} onTexte={(k, v) => modifier.mutate({ textes: { [k]: v } })} />
         ) : (
-          <div key={modele} className="px-6 py-8 animate-in fade-in duration-500">
+          <div key={modele} className="px-6 py-8 animate-in fade-in duration-500 max-md:py-4">
             <Lettre d={data} modele={modele} onChamp={(k, v) => modifier.mutate({ champs: { [k]: v } })} onTexte={(k, v) => modifier.mutate({ textes: { [k]: v } })} />
           </div>
         )}
@@ -145,7 +145,7 @@ const MODELES = [["classique", "Classique", "Encart gris, titres numérotés I �
  */
 function ChoixModele({ d, enCours, onChoisir, onChamp, onTexte }) {
   return (
-    <div className="px-6 py-7 animate-in fade-in duration-500">
+    <div className="px-6 py-7 animate-in fade-in duration-500 max-md:px-4 max-md:py-5">
       <p className="m-0 text-center text-[17px] text-encre">Choisissez le modèle de la lettre</p>
       <p className="m-0 mt-1 text-center text-[13.5px] text-ardoise">Le texte est le même et se modifie dans l'un comme dans l'autre ; vous pourrez changer de modèle plus tard.</p>
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">

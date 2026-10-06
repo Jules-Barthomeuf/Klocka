@@ -91,7 +91,7 @@ function Nombre({ valeur, onChange, unite, placeholder = "" }) {
       <input
         type="text" inputMode="decimal" value={valeur ?? ""} placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full bg-transparent text-[14px] tabular-nums text-encre outline-none placeholder:text-brume"
+        className="h-11 w-full bg-transparent text-[14px] tabular-nums text-encre outline-none placeholder:text-brume max-md:text-[16px]"
       />
       <span className="flex-shrink-0 text-[13px] text-ardoise">{unite}</span>
     </div>
@@ -139,7 +139,7 @@ function Chargement({ estimation: e }) {
   return (
     <div className="mx-auto max-w-[620px] px-4 pt-16 text-center">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">{affinage ? "Affinage de l'estimation" : "Lecture du marché"}</p>
-      <h2 className="mt-2 mb-1 text-[24px] font-light text-encre">{e?.libelle || e?.adresse}</h2>
+      <h2 className="mt-2 mb-1 text-[24px] font-light text-encre max-md:text-[20px]">{e?.libelle || e?.adresse}</h2>
       <p className="m-0 text-[13px] text-ardoise">{e?.activite}</p>
       <div className="mx-auto mt-8 h-3 w-full overflow-hidden rounded-full bg-relief">
         <div className="h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${Math.max(4, e?.progression || 0)}%` }} />
@@ -218,7 +218,7 @@ function Fourchette({ titre, m, poids, accent = false }) {
         {[["basse", m.basse], ["moyenne", m.moyenne], ["haute", m.haute]].map(([k, v]) => (
           <div key={k} className="px-2 py-3 text-center">
             <p className="m-0 text-[9.5px] uppercase tracking-[.08em] text-brume">{k}</p>
-            <p className={`m-0 mt-0.5 text-[14px] font-semibold tabular-nums ${k === "moyenne" ? "text-encre" : "text-ardoise"}`}>{euros(v)}</p>
+            <p className={`m-0 mt-0.5 text-[14px] font-semibold tabular-nums max-md:text-[12.5px] ${k === "moyenne" ? "text-encre" : "text-ardoise"}`}>{euros(v)}</p>
           </div>
         ))}
       </div>
@@ -259,7 +259,7 @@ function Resultat({ estimation: e }) {
         {[["Estimation basse", r.valeurs.basse], ["Estimation moyenne", r.valeurs.moyenne], ["Estimation haute", r.valeurs.haute]].map(([titre, valeur], i) => (
           <div key={titre} className={`overflow-hidden rounded-[12px] border ${i === 1 ? "border-menthe/40" : "border-bord"}`}>
             <p className="m-0 bg-relief px-3 py-1.5 text-center text-[11px] uppercase tracking-[.08em] text-brume">{titre}</p>
-            <p className={`m-0 py-4 text-center text-[24px] font-semibold tabular-nums ${i === 1 ? "text-menthe-texte" : "text-encre"}`}>{euros(valeur)}</p>
+            <p className={`m-0 py-4 text-center text-[24px] font-semibold max-md:py-3 max-md:text-[21px] tabular-nums ${i === 1 ? "text-menthe-texte" : "text-encre"}`}>{euros(valeur)}</p>
           </div>
         ))}
       </div>
@@ -316,8 +316,8 @@ function Resultat({ estimation: e }) {
             </p>
             <div className="mt-2 max-h-[200px] overflow-y-auto rounded-[10px] border border-trait bg-relief px-3">
               {m.dvf.ventes.map((v, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-3 border-b border-trait py-1.5 text-[12px] last:border-b-0">
-                  <span className="min-w-0 truncate text-craie">{v.adresse || "Vente"} <span className="text-brume">· {quand(v.date)}{v.distance_m != null ? ` · ${v.distance_m} m` : ""}</span></span>
+                <div key={i} className="flex items-baseline justify-between gap-3 border-b border-trait py-1.5 text-[12px] last:border-b-0 max-md:flex-col max-md:items-start max-md:gap-0.5">
+                  <span className="min-w-0 truncate text-craie max-md:max-w-full">{v.adresse || "Vente"} <span className="text-brume">· {quand(v.date)}{v.distance_m != null ? ` · ${v.distance_m} m` : ""}</span></span>
                   <span className="flex-shrink-0 tabular-nums text-encre">{euros(v.prix)} <span className="text-brume">· {v.surface} m² · {v.prix_m2?.toLocaleString("fr-FR")} €/m²</span></span>
                 </div>
               ))}
@@ -334,19 +334,19 @@ function Resultat({ estimation: e }) {
       {/* Le taux, du plus large au plus fin : la bande, la place, les ajustements. */}
       <h3 className="alx-mont mt-8 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Pourquoi ce taux</h3>
       <div className="rounded-[12px] border border-trait bg-relief px-4 py-3">
-        <div className="flex items-baseline justify-between border-b border-trait py-2 text-[13px]">
+        <div className="flex items-baseline justify-between border-b border-trait py-2 text-[13px] max-md:gap-3">
           <span className="text-craie">{t.bande.libelle}{t.bande.interpolee ? " (bande interpolée)" : ""}</span>
           <span className="tabular-nums text-encre">{pct(t.bande.bande[0])} à {pct(t.bande.bande[1])}</span>
         </div>
         {t.raisons.map((x, i) => <Ligne key={`r${i}`} label={x.libelle} valeur={null} pctVal={null} points={null} />)}
         {t.raisons.length > 0 && (
-          <div className="flex items-baseline justify-between border-b border-trait py-2 text-[13px]">
+          <div className="flex items-baseline justify-between border-b border-trait py-2 text-[13px] max-md:gap-3">
             <span className="text-craie">Place dans la bande d&apos;après le quartier</span>
             <span className="tabular-nums text-encre">{Math.round(t.position * 100)} % → {pct(t.base)}</span>
           </div>
         )}
         {t.facteurs.map((f, i) => <Ligne key={`f${i}`} label={f.libelle} points={f.points} />)}
-        <div className="flex items-baseline justify-between py-2 text-[13px]">
+        <div className="flex items-baseline justify-between py-2 text-[13px] max-md:gap-3">
           <span className="font-medium text-encre">Taux retenu{r.statut === "vacant" ? " · risque de vacance compris" : ""}</span>
           <span className="font-semibold tabular-nums text-menthe-texte">{pct(r.statut === "vacant" ? t.vacant : t.retenu)}</span>
         </div>
@@ -359,7 +359,7 @@ function Resultat({ estimation: e }) {
         {r.coefficients.map((c, i) => <Ligne key={`c${i}`} label={c.libelle} pctVal={c.pct} />)}
         {m.vlm?.facteurs?.map((f, i) => <Ligne key={`v${i}`} label={`${f.libelle} (sur la valeur locative)`} pctVal={f.pct} />)}
         {r.coefficients.length > 0 && (
-          <div className="flex items-baseline justify-between py-2 text-[13px]">
+          <div className="flex items-baseline justify-between py-2 text-[13px] max-md:gap-3">
             <span className="font-medium text-encre">Coefficient sur les méthodes par le loyer</span>
             <span className="font-semibold tabular-nums text-menthe-texte">× {String(r.coefficient_valeur).replace(".", ",")}</span>
           </div>
@@ -399,7 +399,7 @@ function Formulaire({ estimation: e, choix, grille, onCalculee, onQuitter }) {
   });
 
   const Options = ({ cle }) => <Pastilles options={choix?.[cle]?.options || []} valeur={rep[cle]} onChange={(v) => poser(cle, v)} />;
-  const champ = "h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none focus:border-menthe";
+  const champ = "h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none focus:border-menthe max-md:text-[16px]";
 
   if (etape === 0) return <Explication onCommencer={() => setEtape(1)} />;
 
@@ -595,7 +595,7 @@ export default function KEstimation() {
             className="inline-flex items-center gap-1.5 text-[12px] text-brume hover:text-alerte"><Trash2 className="h-3.5 w-3.5" />Supprimer</button>
         </div>
         <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Estimation des murs commerciaux</p>
-        <h1 className="mt-2 mb-1 text-[26px] font-light tracking-[-0.01em] text-encre">{titre}</h1>
+        <h1 className="mt-2 mb-1 text-[26px] font-light tracking-[-0.01em] text-encre max-md:text-[22px]">{titre}</h1>
         <p className="m-0 mb-6 text-[13px] text-ardoise">
           {e.activite}
           {e.marche?.dvf?.n != null && <span> · {e.marche.dvf.n} vente{e.marche.dvf.n > 1 ? "s" : ""} de murs à 500 m sur 36 mois</span>}
@@ -613,7 +613,7 @@ export default function KEstimation() {
     return (
       <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
         <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
-        <h1 className="mt-2 mb-2 text-[30px] font-light tracking-[-0.01em] text-encre">Estimation</h1>
+        <h1 className="mt-2 mb-2 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Estimation</h1>
         <p className="m-0 mb-7 max-w-[620px] text-[13.5px] leading-[1.7] text-ardoise">
           Estimer un bien commercial à partir de ce qu&apos;il rapporte, et de ce qu&apos;un investisseur exige pour l&apos;acheter.
         </p>
@@ -636,18 +636,18 @@ export default function KEstimation() {
       <button onClick={() => setPartie(null)} className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre">
         <ChevronLeft className="h-4 w-4" />Estimation
       </button>
-      <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre">Estimation de murs commerciaux</h1>
+      <h1 className="mt-2 mb-6 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Estimation de murs commerciaux</h1>
 
       <div className={`${CARTE} p-5`}>
         <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Type de commerce</label>
         <input value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant, opticien… ou vide pour tous les commerces"
-          className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+          className="mb-4 h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
         <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Adresse précise</label>
         <div className="relative">
           <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
             <Search className="h-4 w-4 flex-shrink-0 text-brume" />
             <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="48 rue Basfroi, 75011 Paris"
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-fond p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">

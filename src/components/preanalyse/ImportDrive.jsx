@@ -43,8 +43,8 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
   const fichiers = data?.fichiers || [];
 
   return (
-    <div onClick={onFermer} className="animate-in fade-in duration-200 fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-6">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[720px] max-h-[80vh] flex flex-col bg-surface border border-bord rounded-[18px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,.6)]">
+    <div onClick={onFermer} className="animate-in fade-in duration-200 fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-6 max-md:p-3">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[720px] max-h-[80vh] max-md:max-h-[calc(100dvh-24px)] flex flex-col bg-surface border border-bord rounded-[18px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,.6)]">
         <header className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait">
           <div className="min-w-0">
             <p className="m-0 text-[15px] font-semibold text-encre">Importer depuis le Drive</p>
@@ -56,7 +56,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
             {data?.folder_url && (
               <a href={data.folder_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ExternalLink className="w-3.5 h-3.5" /> Ouvrir</a>
             )}
-            <button onClick={onFermer} className="text-brume hover:text-encre" aria-label="Fermer"><X className="w-4 h-4" /></button>
+            <button onClick={onFermer} className="text-brume hover:text-encre max-md:-m-2 max-md:p-2" aria-label="Fermer" title="Fermer"><X className="w-4 h-4" /></button>
           </div>
         </header>
 
@@ -66,7 +66,7 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
           <>
             <div className="flex items-center gap-3 px-5 py-3 border-b border-trait">
               <Search className="w-4 h-4 text-brume flex-shrink-0" />
-              <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Chercher par nom…" className="w-full bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-brume" />
+              <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Chercher par nom…" className="w-full bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-brume max-md:text-[16px]" />
             </div>
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
@@ -84,14 +84,14 @@ export default function ImportDrive({ dealId, onFermer, onImporte }) {
                         {pris && <Check className="w-3 h-3 text-fond" strokeWidth={3} />}
                       </span>
                       <span className="flex-1 min-w-0 text-[13.5px] text-encre truncate">{f.nom}</span>
-                      <span className="flex-none text-[12.5px] text-brume tabular-nums">{f.taille ? poids(f.taille) : ""}</span>
+                      <span className="flex-none text-[12.5px] text-brume tabular-nums max-md:hidden">{f.taille ? poids(f.taille) : ""}</span>
                       <span className="flex-none w-[70px] text-right text-[12.5px] text-brume">{quand(f.modifie_le)}</span>
                     </button>
                   );
                 })
               )}
             </div>
-            <footer className="flex items-center justify-between gap-4 px-5 py-4 border-t border-trait">
+            <footer className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 border-t border-trait max-md:gap-3">
               <span className="text-[12.5px] text-brume">{choisis.size ? `${choisis.size} fichier${choisis.size > 1 ? "s" : ""} choisi${choisis.size > 1 ? "s" : ""}` : "Cochez ce qu'il faut rapatrier."}</span>
               <button onClick={() => importer.mutate()} disabled={!choisis.size || importer.isPending} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-menthe-survol disabled:opacity-40">
                 {importer.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Importer

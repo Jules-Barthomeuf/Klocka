@@ -43,7 +43,7 @@ function Case({ coche, onChange, taille = 16 }) {
       role="checkbox"
       aria-checked={!!coche}
       onClick={(e) => { e.stopPropagation(); onChange?.(!coche); }}
-      className="flex shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold transition-colors"
+      className="relative flex shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold transition-colors max-md:after:absolute max-md:after:-inset-2.5 max-md:after:content-['']"
       style={{ width: taille, height: taille, borderColor: coche ? J["menthe"] : "rgba(255,255,255,0.16)", background: coche ? J["menthe"] : "transparent", color: J["sur-menthe"] }}
     >
       {coche ? "✓" : ""}
@@ -155,7 +155,7 @@ function AccueilVille({ villes, onOuvrir }) {
           </p>
           <form
             onSubmit={(e) => { e.preventDefault(); if (nom.trim() && !creer.isPending) creer.mutate(); }}
-            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-surface py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
+            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-surface py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50 max-md:pl-4"
           >
             <input
               value={nom}
@@ -163,7 +163,7 @@ function AccueilVille({ villes, onOuvrir }) {
               placeholder={placeholder}
               className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[18px] text-encre outline-none"
             />
-            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>
+            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending} className="max-md:px-4">
               {creer.isPending ? <PenseeIA etat="searching" taille={20} clair /> : "Lancer ALX"}
             </Bouton>
           </form>
@@ -346,16 +346,18 @@ function Onglets({ onglet, onChange, compte }) {
   const nombres = `${compte.rues}-${compte.commerces}-${compte.messages}`;
   useLayoutEffect(() => {
     const b = barre.current?.children[i];
-    if (b) setPos({ left: b.offsetLeft + 16, width: b.offsetWidth - 32 });
+    // Le trait s'aligne sur le texte : le retrait est celui du bouton (18 px au bureau, moins au téléphone).
+    const retrait = b ? Math.max(0, parseFloat(getComputedStyle(b).paddingLeft) - 2) : 16;
+    if (b) setPos({ left: b.offsetLeft + retrait, width: b.offsetWidth - 2 * retrait });
   }, [i, nombres]);
   return (
-    <div ref={barre} className="relative flex gap-1">
+    <div ref={barre} className="relative flex gap-1 max-md:max-w-full max-md:gap-0 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
       {ONGLETS.map(([k, mot]) => (
-        <button key={k} onClick={() => onChange(k)} className="px-[18px] py-3 text-[15px] transition-colors" style={{ background: "transparent", color: onglet === k ? J["encre"] : J["ardoise"] }}>
+        <button key={k} onClick={() => onChange(k)} className="px-[18px] py-3 text-[15px] transition-colors max-md:flex-none max-md:whitespace-nowrap max-md:px-3" style={{ background: "transparent", color: onglet === k ? J["encre"] : J["ardoise"] }}>
           {mot}{compte[k] != null ? <Nombre taille={12} teinte={onglet === k ? TEINTES.ecrire : TEINTES.muet} className="ml-2">{compte[k]}</Nombre> : null}
         </button>
       ))}
-      <span className="absolute -bottom-px h-[2px] rounded-[2px] bg-menthe" style={{ left: pos.left, width: pos.width, transition: "left .32s cubic-bezier(.2,.8,.2,1), width .32s cubic-bezier(.2,.8,.2,1)" }} />
+      <span className="absolute -bottom-px h-[2px] rounded-[2px] bg-menthe max-md:bottom-0" style={{ left: pos.left, width: pos.width, transition: "left .32s cubic-bezier(.2,.8,.2,1), width .32s cubic-bezier(.2,.8,.2,1)" }} />
     </div>
   );
 }
@@ -383,7 +385,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
   const flux = rue.flux || rue.flux_estime || null;
   const fluxMesure = !!rue.flux;
   return (
-    <div className="flex h-full flex-col px-[26px] py-6">
+    <div className="flex h-full flex-col px-[26px] py-6 max-md:px-4 max-md:py-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Etiquette teinte={e.teinte}>{ecartee ? "Écartée par ALX" : `Emplacement ${e.mot}`}</Etiquette>
@@ -448,10 +450,10 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
             <div className="text-[13.5px] text-encre">Pourquoi {emplacementDe(enAttente).mot} plutôt que {emplacementDe(rue.classe).mot} ?</div>
             <div className="flex flex-wrap gap-1.5">
               {motifs.filter((m) => !m.sens || m.sens === "les_deux" || m.sens === (enAttente < rue.classe ? "hausse" : "baisse")).map((m) => (
-                <button key={m.cle} onClick={() => setMotifCle(m.cle)} aria-label={m.detail} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
+                <button key={m.cle} onClick={() => setMotifCle(m.cle)} aria-label={m.detail} title={m.detail} className="rounded-full border px-2.5 py-1 text-[12.5px] transition-colors max-md:py-1.5" style={{ borderColor: motifCle === m.cle ? J["menthe"] : "rgba(255,255,255,0.1)", color: motifCle === m.cle ? J["menthe"] : J["craie"], background: motifCle === m.cle ? "rgba(150,192,184,0.1)" : "transparent" }}>{m.mot}</button>
               ))}
             </div>
-            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-surface px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/50" />
+            <input value={motifTexte} onChange={(e) => setMotifTexte(e.target.value)} placeholder="Un mot de plus, si vous voulez" className="rounded-[10px] border border-trait bg-surface px-3 py-2 text-[12.5px] text-encre outline-none focus:border-menthe/50 max-md:text-[16px]" />
             <div className="flex flex-wrap items-center gap-2">
               <Bouton principal onClick={() => valider(false)} disabled={classerPending || !motifCle}>{classerPending ? "…" : "ALX retient"}</Bouton>
               <Bouton discret onClick={() => valider(true)} disabled={classerPending}>Sans raison</Bouton>
@@ -475,7 +477,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
             {apprentissage.semblables.length > 1 && <div><Bouton onClick={() => onClasserAussi(apprentissage.semblables.map((x) => x.nom))} disabled={classerPending}>Toutes les {apprentissage.semblables.length}</Bouton></div>}
           </div>
         )}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <span className="text-[13.5px] text-ardoise">{ecartee ? "Reprendre en" : "Reclasser en"}</span>
           {EMPLACEMENTS.map((x) => {
             const on = !ecartee && x.classe === rue.classe;
@@ -484,7 +486,7 @@ function PanneauRue({ rue, ecartee = false, coche, onCoche, onClasser, classerPe
                 key={x.classe}
                 disabled={classerPending || on}
                 onClick={() => (ecartee ? onClasser(rue.nom, x.classe) : setEnAttente(x.classe))}
-                className="alx-mont h-[30px] min-w-[34px] rounded-[9px] border px-2.5 text-[12.5px] font-medium tabular-nums"
+                className="alx-mont h-[30px] min-w-[34px] rounded-[9px] border px-2.5 text-[12.5px] font-medium tabular-nums max-md:h-9 max-md:min-w-[44px]"
                 style={{ borderColor: on ? J["menthe"] : "rgba(255,255,255,0.12)", background: on ? "rgba(150,192,184,0.12)" : "transparent", color: on ? J["menthe"] : x.teinte }}
               >
                 {x.court.replace("N°", "")}
@@ -512,7 +514,7 @@ function CaseTeinte({ teinte, title, onClick, actif = false, partiel = false }) 
       aria-label={title}
       aria-pressed={actif}
       title={title}
-      className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110"
+      className="h-4 w-4 rounded-[4px] border transition-transform hover:scale-110 max-md:h-6 max-md:w-6"
       style={{ borderColor: teinte, background: actif ? teinte : partiel ? `${teinte}55` : "transparent" }}
     />
   );
@@ -744,8 +746,8 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
     <div className="alx-entree">
       <div className="mt-6 flex items-center gap-3 rounded-full border border-trait bg-surface py-[7px] pl-5 pr-3 focus-within:border-menthe/50">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke={J["ardoise"]} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher un commerce, une adresse, un propriétaire" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none" />
-        {recherche && <button onClick={() => setRecherche("")} className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+        <input value={recherche} onChange={(e) => { setRecherche(e.target.value); setPage(1); }} placeholder="Chercher un commerce, une adresse, un propriétaire" className="min-w-0 flex-1 border-0 bg-transparent py-1.5 text-[15px] text-encre outline-none max-md:text-[16px]" />
+        {recherche && <button onClick={() => setRecherche("")} aria-label="Effacer la recherche" className="px-1.5 text-[15px] leading-none text-ardoise hover:text-encre max-md:h-9 max-md:px-3" style={{ background: "transparent" }}>×</button>}
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]">
@@ -755,7 +757,7 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
             </button>
           ))}
           {rues.length > 1 && (
-            <select value={rue} onChange={(e) => { setRue(e.target.value); setPage(1); }} className="rounded-full border border-bord bg-transparent px-3 py-1.5 text-[12.5px] text-craie outline-none">
+            <select value={rue} onChange={(e) => { setRue(e.target.value); setPage(1); }} className="rounded-full border border-bord bg-transparent px-3 py-1.5 text-[12.5px] text-craie outline-none max-md:max-w-full max-md:text-[16px]">
               <option value="" className="bg-fond">Toutes les rues</option>
               {rues.map((r) => <option key={r} value={r} className="bg-fond">{r}</option>)}
             </select>
@@ -772,19 +774,19 @@ function OngletCommerces({ ville, cibles, onOuvrir, onRediger, pending }) {
           {TRANCHES.map(([mot, a, b]) => {
             const on = min === a && (max === b || (!b && !max));
             return (
-              <button key={mot} onClick={() => setTranche(on ? { min: "", max: "" } : { min: String(a / 1000), max: b ? String(b / 1000) : "" })} className="rounded-full border px-2.5 py-1 transition-colors" style={{ borderColor: on ? J["menthe"] : "rgba(255,255,255,0.1)", color: on ? J["menthe"] : J["ardoise"], background: on ? "rgba(150,192,184,0.1)" : "transparent" }}>{mot}</button>
+              <button key={mot} onClick={() => setTranche(on ? { min: "", max: "" } : { min: String(a / 1000), max: b ? String(b / 1000) : "" })} className="rounded-full border px-2.5 py-1 transition-colors max-md:py-1.5" style={{ borderColor: on ? J["menthe"] : "rgba(255,255,255,0.1)", color: on ? J["menthe"] : J["ardoise"], background: on ? "rgba(150,192,184,0.1)" : "transparent" }}>{mot}</button>
             );
           })}
           <span className="flex items-center gap-1.5">
-            <input value={tranche.min} onChange={(e) => { setTranche((t) => ({ ...t, min: e.target.value.replace(/[^\d]/g, "") })); setPage(1); }} placeholder="min" className="w-[58px] rounded-full border border-bord bg-transparent px-2.5 py-1 text-right text-[12.5px] text-encre outline-none focus:border-menthe/50" />
+            <input value={tranche.min} onChange={(e) => { setTranche((t) => ({ ...t, min: e.target.value.replace(/[^\d]/g, "") })); setPage(1); }} placeholder="min" inputMode="numeric" className="w-[58px] rounded-full border border-bord bg-transparent px-2.5 py-1 text-right text-[12.5px] text-encre outline-none focus:border-menthe/50 max-md:w-[68px] max-md:py-1.5 max-md:text-[16px]" />
             <span>–</span>
-            <input value={tranche.max} onChange={(e) => { setTranche((t) => ({ ...t, max: e.target.value.replace(/[^\d]/g, "") })); setPage(1); }} placeholder="max" className="w-[58px] rounded-full border border-bord bg-transparent px-2.5 py-1 text-right text-[12.5px] text-encre outline-none focus:border-menthe/50" />
+            <input value={tranche.max} onChange={(e) => { setTranche((t) => ({ ...t, max: e.target.value.replace(/[^\d]/g, "") })); setPage(1); }} placeholder="max" inputMode="numeric" className="w-[58px] rounded-full border border-bord bg-transparent px-2.5 py-1 text-right text-[12.5px] text-encre outline-none focus:border-menthe/50 max-md:w-[68px] max-md:py-1.5 max-md:text-[16px]" />
             <span>k€</span>
-            {(tranche.min || tranche.max) && <button onClick={() => setTranche({ min: "", max: "" })} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>×</button>}
+            {(tranche.min || tranche.max) && <button onClick={() => setTranche({ min: "", max: "" })} aria-label="Effacer le prix" className="text-ardoise hover:text-encre max-md:h-8 max-md:px-2" style={{ background: "transparent" }}>×</button>}
           </span>
           <span className="text-brume">{avecPrix} commerce{avecPrix > 1 ? "s" : ""} avec un prix</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span>Trier</span>
           {[["urgence", "urgence"], ["prix_desc", "prix ↓"], ["prix_asc", "prix ↑"]].map(([k, mot]) => (
             <button key={k} onClick={() => setTri(k)} className="hover:text-encre" style={{ background: "transparent", color: tri === k ? J["encre"] : J["ardoise"] }}>{mot}</button>
@@ -865,7 +867,7 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
           <Etiquette>À relire</Etiquette>
           <Nombre taille={13} teinte={TEINTES.ecrire}>{avec.length} en attente</Nombre>
         </div>
-        <div className="max-h-[560px] overflow-auto">
+        <div className="max-h-[560px] overflow-auto max-md:max-h-[40dvh]">
           {avec.map((x) => (
             <button
               key={x.id}
@@ -884,7 +886,7 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
       </div>
 
       {c && (
-        <div key={c.id} className="alx-entree flex min-h-[420px] flex-col rounded-[16px] border border-trait px-7 py-[26px]">
+        <div key={c.id} className="alx-entree flex min-h-[420px] flex-col rounded-[16px] border border-trait px-7 py-[26px] max-md:min-h-0 max-md:px-4 max-md:py-5">
           <Etiquette teinte={J["menthe-clair"]}>{c.brouillon.canal === "courrier" ? "Courrier" : "E-mail"}{c.brouillon.corrige_le ? " · corrigé" : ""}</Etiquette>
           <div className="mt-3 text-[24px] font-light tracking-[-.02em] text-encre">{c.proprietaire?.nom ? joliNom(c.proprietaire.nom) : "Propriétaire à établir"}</div>
           <div className="mt-1 text-[13.5px] text-ardoise">{joliNom(c.enseigne) || ""} · {c.adresse}</div>
@@ -892,13 +894,13 @@ function OngletMessages({ cibles, onOuvrir, cibleDemandee = null }) {
             value={objet ?? c.brouillon.objet ?? ""}
             onChange={(e) => setObjet(e.target.value)}
             placeholder="Objet"
-            className="mt-[18px] border-0 border-b border-trait bg-transparent py-2 text-[15px] text-encre outline-none focus:border-menthe/50"
+            className="mt-[18px] border-0 border-b border-trait bg-transparent py-2 text-[15px] text-encre outline-none focus:border-menthe/50 max-md:text-[16px]"
           />
           <textarea
             value={texte ?? c.brouillon.texte ?? ""}
             onChange={(e) => setTexte(e.target.value)}
             rows={Math.max(10, ((texte ?? c.brouillon.texte ?? "").match(/\n/g) || []).length + 3)}
-            className="mt-3 w-full resize-y border-0 bg-transparent text-[15px] leading-[1.7] text-craie outline-none"
+            className="mt-3 w-full resize-y border-0 bg-transparent text-[15px] leading-[1.7] text-craie outline-none max-md:text-[16px]"
           />
           <div className="mt-auto flex flex-wrap items-center gap-2.5 pt-[22px]">
             <Bouton principal onClick={() => enregistrer.mutate()} disabled={!modifie || enregistrer.isPending}>{enregistrer.isPending ? "…" : modifie ? "Enregistrer" : "Enregistré"}</Bouton>
@@ -995,9 +997,9 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
           </button>
           <div className="min-w-0">
             <div className="flex items-center gap-4">
-              <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-encre max-md:text-[24px]">{ville?.nom}</h1>
+              <h1 className="alx-mont m-0 break-words text-[34px] font-medium tracking-[-.02em] text-encre max-md:text-[24px]">{ville?.nom}</h1>
             </div>
-            <div className="mt-1 text-[13.5px] text-ardoise">
+            <div className="mt-1 text-[13.5px] text-ardoise max-md:text-[12.5px]">
               <span style={{ color: teinteStatut }}>{motStatut}</span>
               {ville?.recensement?.le ? ` · relevé du ${dateCourte(ville.recensement.le)} · ${fmt(ville.recensement.commerces_total)} vitrines` : ""}
               {` · ${pluriel(rues.length, "rue", "rues")} · ${pluriel(cibles.length, "commerce analysé", "commerces analysés")} · ${pluriel(brouillons, "message", "messages")}`}
@@ -1054,7 +1056,7 @@ function VillePage({ villeId, ville: villeListe, onNouvelle, ongletDemande = nul
               <span className="flex h-3 shrink-0 items-end gap-[5px]">
                 {[0, 0.18, 0.36].map((d) => <span key={d} className="alx-vague h-[5px] w-[5px] rounded-full bg-menthe" style={{ animationDelay: `${d}s` }} />)}
               </span>
-              <span className="text-[15px] text-craie">{maintenant.texte}</span>
+              <span className="min-w-0 text-[15px] text-craie max-md:text-[13.5px]">{maintenant.texte}</span>
             </div>
             {maintenant.reste && p.phase !== "commerces" && <span className="shrink-0 text-[13.5px] text-ardoise">Temps restant : <Nombre taille={13.5} teinte={J["craie"]}>{maintenant.reste}</Nombre></span>}
           </div>
@@ -1091,14 +1093,14 @@ function AjoutCommerce({ villeId, ville, onAjoute }) {
 
   if (!ouvert) return <Bouton discret onClick={() => setOuvert(true)} title="Un commerce qu'ALX n'a pas vu : adresse et enseigne, il fait le reste">+ Ajouter un commerce</Bouton>;
   return (
-    <form onSubmit={(e) => { e.preventDefault(); if (f.adresse.trim() && !creer.isPending) creer.mutate(); }} className="flex w-full flex-col gap-4 rounded-[16px] border border-trait p-5">
+    <form onSubmit={(e) => { e.preventDefault(); if (f.adresse.trim() && !creer.isPending) creer.mutate(); }} className="flex w-full flex-col gap-4 rounded-[16px] border border-trait p-5 max-md:p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <Champ label="Adresse" value={f.adresse} onChange={poser("adresse")} placeholder="12 rue d'Antibes" />
         <Champ label="Enseigne" value={f.enseigne} onChange={poser("enseigne")} placeholder="Maison Peirano" />
         <Champ label="Activité" value={f.activite} onChange={poser("activite")} placeholder="épicerie fine" />
         <label className="block">
           <Etiquette className="mb-1.5">Rue classée</Etiquette>
-          <select value={f.rue} onChange={(e) => poser("rue")(e.target.value)} className="w-full rounded-[10px] border border-trait bg-surface px-4 py-3 text-[15px] text-encre outline-none focus:border-menthe/50">
+          <select value={f.rue} onChange={(e) => poser("rue")(e.target.value)} className="w-full rounded-[10px] border border-trait bg-surface px-4 py-3 text-[15px] text-encre outline-none focus:border-menthe/50 max-md:text-[16px]">
             <option value="">Hors classement</option>
             {rues.map((r) => <option key={r.nom} value={r.nom}>{r.nom} · emplacement {emplacementDe(r.classe).mot}</option>)}
           </select>

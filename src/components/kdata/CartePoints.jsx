@@ -20,10 +20,13 @@ export default function CartePoints({ point, rayon_m = 0, couches = [], onPoint,
     chargerGoogleMaps()
       .then(() => {
         if (!vivant || !conteneur.current || carte.current) return;
+        // Au téléphone, la carte est posée dans une page qui défile : un doigt
+        // fait défiler la page, deux déplacent la carte. Au bureau, inchangé.
+        const telephone = window.matchMedia?.("(max-width: 767px)").matches;
         carte.current = new window.google.maps.Map(conteneur.current, {
           center: { lat: point?.lat ?? 46.6, lng: point?.lon ?? 2.4 },
           zoom: point ? (rayon_m > 1200 ? 14 : rayon_m > 600 ? 15 : 16) : 6,
-          mapTypeId: "roadmap", disableDefaultUI: true, zoomControl: true, clickableIcons: false, gestureHandling: "greedy",
+          mapTypeId: "roadmap", disableDefaultUI: true, zoomControl: true, clickableIcons: false, gestureHandling: telephone ? "cooperative" : "greedy",
         });
         setPrete(true);
       })

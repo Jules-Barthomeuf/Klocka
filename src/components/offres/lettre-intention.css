@@ -95,3 +95,20 @@
 .loi-logo-k { height: 6mm; width: auto; margin-right: 3mm; flex: none; display: block; }
 .loi-logo-k-noir { fill: #000000; }
 .loi-logo-k-menthe { fill: #72cdba; }
+
+/* Au téléphone : la lettre se resserre pour se lire sans zoomer, parties et
+   signatures l'une sous l'autre (l'écran seulement, l'impression garde le modèle). */
+@media screen and (max-width: 767px) {
+  .loi-entete, .loi-pied { padding: 0 5mm; }
+  .loi-corps, .loi-menthe .loi-corps { padding: 7mm 5mm 8mm; }
+  .loi-parties, .loi-signatures { grid-template-columns: 1fr; gap: 5mm; }
+  .loi-objet { font-size: 12pt; }
+  .loi-h2 { font-size: 13pt; }
+  .loi-m-titre, .loi-m-adresse { font-size: 16pt; }
+  .loi-m-section { grid-template-columns: 12mm 1fr; }
+  .loi-m-num { font-size: 18pt; }
+  .loi-menthe .loi-pied { padding: 4mm 5mm 0; }
+  .loi-m-bande { margin: 2mm 5mm 7mm; }
+  .loi-retouche::before { left: -3.5mm; }
+  .loi-apercu { zoom: 0.8; }
+}

@@ -361,7 +361,7 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
     cas('tva', 'Loyer sujet à TVA', ouiNon(tvaCourte(v('tva_loyer'), projet.sim_loyer_soumis_tva === true), 'Soumis à TVA', 'Non soumis'), v('tva_loyer'), ['tva_loyer']),
     cas('depot', 'Dépôt de garantie', valeurSeule(depotCourt(v('depot'))) || (Number(projet.bail_depot_garantie) > 0 ? { valeur: euros(projet.bail_depot_garantie) } : null), v('depot'), ['depot']),
     cas('charges_refacturees', 'Charges refacturées', chargesRefacturees(v('charges'), v('charges_copro')), [v('charges'), v('charges_copro')].filter(Boolean).join(' '), ['charges', 'charges_copro']),
-    cas('taxe_refacturee', 'Taxe refacturée', ouiNon(taxeFonciereCourte(v('taxe_fonciere'), v('charges')), 'Refacturée', 'Non refacturée'), v('taxe_fonciere') || v('charges'), ['taxe_fonciere', 'charges']),
+    cas('taxe_refacturee', 'Taxes refacturées', ouiNon(taxeFonciereCourte(v('taxe_fonciere'), v('charges')), 'Refacturée', 'Non refacturée'), v('taxe_fonciere') || v('charges'), ['taxe_fonciere', 'charges']),
   ];
   const analyse = ANALYSE_BAIL.filter(([id]) => v(id)).map(([id, titre]) => ({ id, titre, texte: phraseSimple(v(id)), source: source(id) }));
 

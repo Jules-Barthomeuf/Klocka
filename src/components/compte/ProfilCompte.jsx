@@ -40,7 +40,7 @@ function Champ({ valeur, onEnregistrer, placeholder = "", type = "text" }) {
     <div className="flex items-center gap-2">
       <input type={type} value={v} placeholder={placeholder} onChange={(e) => setV(e.target.value)} onBlur={enregistrer}
         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-        className="w-full max-w-[420px] rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] text-encre outline-none placeholder:text-brume focus:border-bord-vif" />
+        className="w-full max-w-[420px] rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume focus:border-bord-vif" />
       {fait && <Check className="h-4 w-4 flex-none text-menthe" aria-label="Enregistré" />}
     </div>
   );
@@ -119,15 +119,15 @@ export default function ProfilCompte({ user, partie = "tout" }) {
           <Champ valeur={user?.full_name} placeholder="Prénom Nom" onEnregistrer={(v) => poserProfil({ full_name: v })} />
         </Ligne>
         <Ligne titre="Adresse e-mail" note="Celle de la connexion : elle ne se change pas ici.">
-          <p className="m-0 text-[14px] text-craie">{user?.email}</p>
+          <p className="m-0 text-[14px] text-craie break-all">{user?.email}</p>
         </Ligne>
         <Ligne titre="Mot de passe">
           {mdp ? (
             <form className="flex max-w-[420px] flex-col gap-2" onSubmit={(e) => { e.preventDefault(); changerMdp.mutate(mdp); }}>
               <input type="password" autoComplete="current-password" placeholder="Mot de passe actuel" value={mdp.ancien} onChange={(e) => setMdp((x) => ({ ...x, ancien: e.target.value }))}
-                className="rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] text-encre outline-none focus:border-bord-vif" />
+                className="rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] max-md:text-[16px] text-encre outline-none focus:border-bord-vif" />
               <input type="password" autoComplete="new-password" placeholder="Nouveau mot de passe" value={mdp.nouveau} onChange={(e) => setMdp((x) => ({ ...x, nouveau: e.target.value }))}
-                className="rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] text-encre outline-none focus:border-bord-vif" />
+                className="rounded-[10px] border border-trait bg-surface-pleine px-3.5 py-2.5 text-[14px] max-md:text-[16px] text-encre outline-none focus:border-bord-vif" />
               <div className="flex gap-2">
                 <button type="submit" disabled={changerMdp.isPending} className="rounded-full bg-menthe px-4 py-2 text-[13px] text-sur-menthe hover:bg-menthe-survol">Changer</button>
                 <button type="button" onClick={() => setMdp(null)} className="rounded-full border border-bord-doux px-4 py-2 text-[13px] text-craie" style={{ background: "transparent" }}>Annuler</button>
@@ -247,7 +247,7 @@ function Disponibilite({ user }) {
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)}
-              className="rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[14px] text-encre outline-none focus:border-bord-vif" />
+              className="rounded-[10px] border border-trait bg-surface-pleine px-3 py-2 text-[14px] max-md:text-[16px] text-encre outline-none focus:border-bord-vif" />
             <button type="button" disabled={!date || absenter.isPending} onClick={() => absenter.mutate(new Date(`${date}T20:00:00`).toISOString())}
               className="rounded-full bg-menthe px-3.5 py-1.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Absent jusqu'à cette date</button>
           </div>

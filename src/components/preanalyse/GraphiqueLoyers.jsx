@@ -33,7 +33,8 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
   const grille = { backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.14) 1px,transparent 1px)", backgroundSize: `${100 / (echelle.graduations.length - 1)}% 100%`, backgroundPosition: "0 0", borderRight: "1px solid rgba(255,255,255,0.14)" };
 
   return (
-    <div className="mt-[62px] grid items-center gap-x-[22px]" style={{ gridTemplateColumns: "196px minmax(0,1fr)" }}>
+    // Au téléphone, la colonne des sources se resserre pour laisser la règle lisible.
+    <div className="mt-[62px] grid items-center gap-x-[22px] grid-cols-[196px_minmax(0,1fr)] max-md:gap-x-3 max-md:grid-cols-[104px_minmax(0,1fr)]">
       <div />
       <div className="relative h-[92px]" style={grille}>
         <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: "rgba(255,255,255,0.32)" }} />
@@ -64,7 +65,7 @@ export default function GraphiqueLoyers({ lectures = [], enPlace = null }) {
         return (
           <React.Fragment key={`${l.service}-${i}`}>
             <div className="py-4 text-right">
-              <div className="text-[15px]" style={{ color: principale ? J["encre"] : J["craie"] }}>{l.service}</div>
+              <div className="text-[15px] max-md:text-[13.5px]" style={{ color: principale ? J["encre"] : J["craie"] }}>{l.service}</div>
               {l.sous && <div className="mt-[3px] text-[12.5px] text-ardoise">{l.sous}</div>}
             </div>
             <div className="relative h-[30px]" style={{ ...grille, backgroundImage: "linear-gradient(90deg,rgba(255,255,255,0.1) 1px,transparent 1px)" }}>

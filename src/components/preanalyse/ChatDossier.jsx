@@ -196,11 +196,11 @@ export default function ChatDossier({
           referme et on la retrouve depuis « Requêtes récentes ». */}
       {!modeMail && !modePreanalyse && (conversation || envoyer.isPending) && (
         <div className="fixed inset-y-0 right-0 z-[60] w-full sm:w-[680px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col animate-in slide-in-from-right duration-300 ease-out">
-          <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait flex-none">
+          <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait flex-none max-md:px-4 max-md:py-2.5 max-md:pt-[max(10px,env(safe-area-inset-top))]">
             <p className="m-0 text-[13.5px] text-encre truncate">{conversation?.titre || "Nouvelle requête"}</p>
-            <button onClick={() => setConversationId(null)} className="text-brume hover:text-encre flex-shrink-0" aria-label="Fermer"><X className="w-4 h-4" /></button>
+            <button onClick={() => setConversationId(null)} className="text-brume hover:text-encre flex-shrink-0 max-md:grid max-md:h-10 max-md:w-10 max-md:-mr-2 max-md:place-items-center" aria-label="Fermer" title="Fermer"><X className="w-4 h-4" /></button>
           </header>
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-6 space-y-7 max-md:px-4 max-md:py-5">
             {(conversation?.messages || []).map((m, i) => (
               <Message
                 key={i}
@@ -215,7 +215,7 @@ export default function ChatDossier({
             )}
             <div ref={finRef} />
           </div>
-          <div className="flex-none px-6 py-4 border-t border-trait">
+          <div className="flex-none px-6 py-4 border-t border-trait max-md:px-4 max-md:py-3 max-md:pb-[max(12px,env(safe-area-inset-bottom))]">
             <BoiteSaisie
               compact
               valeur={suite}
@@ -311,11 +311,11 @@ export default function ChatDossier({
                 </button>
                 <span className="hidden md:block w-[130px] flex-shrink-0 text-[12.5px] text-ardoise">{r.type}</span>
                 <span className="hidden lg:block w-[190px] flex-shrink-0 text-[12.5px] text-brume truncate">{r.auteur || "—"}</span>
-                <span className="w-[86px] flex-shrink-0 text-right text-[12.5px] text-brume">{ilYA(r.date)}</span>
+                <span className="w-[86px] max-md:w-auto flex-shrink-0 text-right text-[12.5px] text-brume">{ilYA(r.date)}</span>
                 {r.supprimer ? (
                   <button
                     onClick={() => { if (window.confirm(`Supprimer « ${r.titre} » ?`)) r.supprimer(); }}
-                    className="text-brume hover:text-red-400 transition-colors flex-shrink-0"
+                    className="text-brume hover:text-red-400 transition-colors flex-shrink-0 max-md:-m-2 max-md:p-2"
                     aria-label="Supprimer" title="Supprimer"
                   >
                     <X className="w-4 h-4" />

@@ -116,8 +116,8 @@ export default function CompareProjectSelector({ projects, selectedIds, onToggle
               </div>
 
               {/* KPIs */}
-              <div className="p-5 flex items-center justify-between">
-                <div className="flex gap-8">
+              <div className="p-5 max-md:p-4 flex items-center justify-between">
+                <div className="flex gap-8 max-md:gap-5 max-md:flex-wrap">
                   <div>
                     <p className="text-encre/25 text-[11px] uppercase tracking-wider mb-1">Prix de revient</p>
                     <p className="text-menthe text-lg font-light">{formatPrice(prixRevient)}</p>

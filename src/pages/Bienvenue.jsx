@@ -35,11 +35,11 @@ export default function Bienvenue() {
 
   return (
     <div className="min-h-screen bg-fond text-encre flex flex-col">
-      <nav className="px-8 md:px-16 py-6">
+      <nav className="px-5 md:px-16 py-6">
         <span className="text-[12.5px] tracking-[.22em] uppercase text-encre">Klocka</span>
       </nav>
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-16">
+      <div className="flex-1 flex items-center justify-center px-5 md:px-6 pb-16">
         <div className="w-full max-w-md">
           {etat.chargement ? (
             <div className="flex justify-center py-16">

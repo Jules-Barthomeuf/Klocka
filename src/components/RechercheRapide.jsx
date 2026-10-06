@@ -43,12 +43,12 @@ export default function RechercheRapide({ ouvert, onFermer }) {
   };
 
   return (
-    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] flex items-start justify-center bg-fond/60 px-4 pt-[12vh] backdrop-blur-sm" onClick={onFermer} role="dialog" aria-modal="true" aria-label="Rechercher">
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] flex items-start justify-center bg-fond/60 px-4 pt-[12vh] backdrop-blur-sm max-md:px-3 max-md:pt-[calc(env(safe-area-inset-top)+12px)]" onClick={onFermer} role="dialog" aria-modal="true" aria-label="Rechercher">
       <div className="animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 w-full max-w-[640px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.18)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-trait px-5 py-4">
           <Search className="h-4 w-4 flex-none text-brume" />
           <input ref={champ} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={clavier} placeholder="Un projet, un dossier, une adresse…" className="w-full border-0 bg-transparent text-[16px] text-encre outline-none placeholder:text-brume" />
-          <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+          <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre max-md:-mr-2 max-md:grid max-md:h-9 max-md:w-9 max-md:flex-none max-md:place-items-center" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>
         <ul className="m-0 max-h-[52vh] list-none overflow-y-auto p-2">
           {resultats.map((r, i) => {

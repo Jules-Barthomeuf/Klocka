@@ -5,7 +5,7 @@
 // liés à la version de l'application, on ne peut pas les rejouer en HTTP comme
 // avec un simple cookie. Klocka pilote donc un vrai navigateur, sans écran, et refait le
 // parcours que l'équipe suivait à la main : Analyse → Analyse de loyer →
-// l'adresse, la suggestion, le rayon à 500 m, la surface à ±30 %, Lancer, puis
+// l'adresse, la suggestion, le rayon à 500 m, la surface à ±20 %, Lancer, puis
 // lire Bas, Moyenne et Haut.
 //
 // Le compte de service est dans .env (EQUIMMOX_EMAIL, EQUIMMOX_MOT_DE_PASSE).
@@ -30,10 +30,13 @@ const CHROMIUM = (process.env.CHROMIUM_PATH || '').trim() || undefined;
 const SESSION = path.join(DATA_DIR, 'equimmox-session.json');
 const CACHE_JOURS = 30;
 const RAYON_METRES = 500;
-const ECART_SURFACE = 0.3;
+const ECART_SURFACE = 0.2;
 
 // Le rayon n'entre dans la clé que hors du 500 m historique : les recherches
 // déjà gardées restent lisibles.
+// Une recherche gardée ne vaut que lue à la même tolérance de surface : celles
+// d'avant le 6 oct. 2026 portaient sur ±30 %, elles ne reviennent plus.
+const memeTolerance = (resultat, s) => !s || resultat?.surface_min === Math.round(s * (1 - ECART_SURFACE));
 const cleCache = (adresse, surface, rayon = RAYON_METRES) => `${String(adresse).toLowerCase().replace(/\s+/g, ' ').trim()}|${surface || 0}${rayon && rayon !== RAYON_METRES ? `|${rayon}` : ''}`;
 
 const nombre = (s) => {
@@ -135,7 +138,7 @@ async function seConnecter(p) {
  * La fourchette de loyer autour d'une adresse, d'après Equimmox.
  * @param {string} adresse - « 9 rue Gazan, 06130 Grasse »
  * @param {{surface?: number, forcer?: boolean, user?: object}} opts - la surface
- *   du local en m² (la recherche porte sur ±30 % autour) ; `forcer` ignore le cache
+ *   du local en m² (la recherche porte sur ±20 % autour) ; `forcer` ignore le cache
  */
 export function analyseLoyer(adresse, opts = {}) {
   return enFile(() => analyseLoyerSeule(adresse, opts));
@@ -163,7 +166,7 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
   const cle = cleCache(texteAdresse, s, r);
   if (!forcer) {
     const recent = Records.filter('EquimmoxRecherche', { cle })
-      .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000)
+      .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000 && memeTolerance(r.resultat, s))
       .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
     if (recent) return { ok: true, resultat: { ...recent.resultat, du_cache: true } };
   }
@@ -225,7 +228,7 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
     const rayonLu = await reglerRayon(p, curseur, r);
     if (!rayonLu) throw new Error(`Equimmox : impossible de régler le rayon à ${r} m.`);
 
-    // La surface : ±30 % autour de celle du local.
+    // La surface : ±20 % autour de celle du local (5 oct. 2026, demande de Jules : avant ±30 %).
     if (s) {
       const min = p.locator('input[placeholder="m² min."]').first();
       const max = p.locator('input[placeholder="m² max."]').first();
@@ -338,8 +341,9 @@ export function etatAnalyseLoyer(cle) {
 /** Le résultat déjà gardé pour cette adresse, s'il en existe un de moins de trente jours. */
 export function analyseLoyerEnCache(adresse, surface = null, rayon = RAYON_METRES) {
   const cle = cleCache(adresse, Number(surface) > 0 ? Math.round(Number(surface)) : null, Number(rayon) > 0 ? Math.round(Number(rayon)) : RAYON_METRES);
+  const s = Number(surface) > 0 ? Math.round(Number(surface)) : null;
   const recent = Records.filter('EquimmoxRecherche', { cle })
-    .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000)
+    .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000 && memeTolerance(r.resultat, s))
     .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
   return recent ? { ...recent.resultat, du_cache: true } : null;
 }

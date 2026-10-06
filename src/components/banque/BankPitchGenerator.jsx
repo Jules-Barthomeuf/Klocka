@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Copy, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/avis";
+import { useSecteurProjet } from "@/components/projet/SecteurChiffres";
 
 const fmt = (v) => {
   if (!v) return null;
@@ -11,7 +12,10 @@ const fmtNum = (v) => v ? new Intl.NumberFormat("fr-FR").format(v) : null;
 const pct = (v) => (v != null && v !== 0) ? `${Number(v).toFixed(2)}%` : null;
 const dateStr = (d) => { try { return d ? new Date(d).toLocaleDateString("fr-FR") : null; } catch { return d; } };
 
-function generateSlideTexts(project, client) {
+// `loyerMarche` : le loyer autour du bien, Equimmox (Data-B en repli), lu
+// comme sur l'onglet Marché. Plus de prix des murs du secteur ni de loyers
+// recopiés d'autres sources (6 oct. 2026).
+function generateSlideTexts(project, client, loyerMarche = null) {
   const p = project || {};
   const clientName = client?.full_name || "";
 
@@ -189,12 +193,9 @@ Faire une capture de la carte Google Maps centrée sur l'adresse, montrant le qu
   // --- Slide 8 : Marché immobilier ---
   const marcheLines = [];
   if (p.marche_quartier_nom) marcheLines.push(`Secteur de référence : ${p.marche_quartier_nom}`);
-  if (p.marche_prix_m2_median) marcheLines.push(`\nValeur des murs (médiane) : ${fmt(p.marche_prix_m2_median)} / m²`);
-  if (p.marche_prix_m2_bas && p.marche_prix_m2_haut) marcheLines.push(`Fourchette : ${fmt(p.marche_prix_m2_bas)} — ${fmt(p.marche_prix_m2_haut)} / m²`);
   if (p.marche_evolution_1an) marcheLines.push(`Évolution sur 1 an : ${p.marche_evolution_1an > 0 ? "+" : ""}${p.marche_evolution_1an}%`);
   if (p.marche_evolution_5ans) marcheLines.push(`Évolution sur 5 ans : ${p.marche_evolution_5ans > 0 ? "+" : ""}${p.marche_evolution_5ans}%`);
-  if (p.marche_offre_bas && p.marche_offre_haut) marcheLines.push(`\nLoyers en offre : ${fmt(p.marche_offre_bas)} — ${fmt(p.marche_offre_haut)} / m²/an (moy. ${fmt(p.marche_offre_moyenne)})`);
-  if (p.marche_baux_bas && p.marche_baux_haut) marcheLines.push(`Baux constatés : ${fmt(p.marche_baux_bas)} — ${fmt(p.marche_baux_haut)} / m²/an (moy. ${fmt(p.marche_baux_moyenne)})`);
+  if (loyerMarche?.valeur) marcheLines.push(`\nLoyer moyen autour : ${fmt(loyerMarche.valeur)} / m²/an (${loyerMarche.source})`);
 
   // marche_secteurs
   if (p.marche_secteurs?.length) {
@@ -212,15 +213,11 @@ Faire une capture de la carte Google Maps centrée sur l'adresse, montrant le qu
   const acqLines = [];
   if (prixNegocie) acqLines.push(`Prix d'acquisition négocié : ${fmt(prixNegocie)}`);
   if (prixM2) acqLines.push(`Prix au m² (acquisition) : ${fmtNum(prixM2)} €/m²`);
-  if (p.marche_prix_m2_median && prixM2) {
-    const diff = Math.round(((prixM2 - p.marche_prix_m2_median) / p.marche_prix_m2_median) * 100);
-    acqLines.push(`Vs marché (${fmtNum(p.marche_prix_m2_median)} €/m²) : ${diff > 0 ? "+" : ""}${diff}%`);
-  }
   if (loyerAnnuel && loyerM2) acqLines.push(`\nLoyer annuel HT : ${fmt(loyerAnnuel)}`);
   if (loyerM2) acqLines.push(`Loyer au m²/an : ${fmtNum(loyerM2)} €/m²/an`);
-  if (p.marche_offre_moyenne && loyerM2) {
-    const lDiff = Math.round(((loyerM2 - p.marche_offre_moyenne) / p.marche_offre_moyenne) * 100);
-    acqLines.push(`Vs marché (${fmtNum(p.marche_offre_moyenne)} €/m²/an) : ${lDiff > 0 ? "+" : ""}${lDiff}%`);
+  if (loyerMarche?.valeur && loyerM2) {
+    const lDiff = Math.round(((loyerM2 - loyerMarche.valeur) / loyerMarche.valeur) * 100);
+    acqLines.push(`Vs marché (${fmtNum(loyerMarche.valeur)} €/m²/an, ${loyerMarche.source}) : ${lDiff > 0 ? "+" : ""}${lDiff}%`);
   }
   if (rendement) acqLines.push(`\nRendement brut : ${pct(rendement)}`);
 
@@ -364,7 +361,12 @@ function SlideBlock({ slide, index }) {
 
 export default function BankPitchGenerator({ project, client }) {
   const [copiedAll, setCopiedAll] = useState(false);
-  const slides = generateSlideTexts(project, client);
+  const { data: secteur } = useSecteurProjet(project);
+  const corrige = Number(project?.marche_loyer_autour) || 0;
+  const loyerMarche = corrige
+    ? { valeur: corrige, source: "corrigé par l'équipe" }
+    : secteur?.rue?.loyer_m2_an ? { valeur: secteur.rue.loyer_m2_an, source: secteur.rue.loyer_source || "Equimmox" } : null;
+  const slides = generateSlideTexts(project, client, loyerMarche);
 
   const handleCopyAll = () => {
     const full = slides.map(s => `--- SLIDE ${s.num} : ${s.title.toUpperCase()} ---\n\n${s.text}`).join("\n\n\n");

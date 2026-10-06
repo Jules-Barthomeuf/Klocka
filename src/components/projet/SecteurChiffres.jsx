@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -38,29 +39,47 @@ export function Etoiles({ note, sur = 5 }) {
 // rester utilisable sur mobile où il n'y a pas de survol.
 export function InfoDot({ texte }) {
   const [open, setOpen] = useState(false);
+  // Au téléphone, la bulle centrée sur la pastille sortait de l'écran près
+  // d'un bord : elle s'y pose en position fixe, bornée à la largeur de l'écran.
+  const [place, setPlace] = useState(null);
   if (!texte) return null;
+  const mesurer = (el) => {
+    if (typeof window === "undefined" || window.innerWidth >= 768 || !el) return setPlace(null);
+    const r = el.getBoundingClientRect();
+    const largeur = Math.min(260, window.innerWidth - 24);
+    const gauche = Math.min(Math.max(12, r.left + r.width / 2 - largeur / 2), window.innerWidth - largeur - 12);
+    setPlace({ gauche, bas: window.innerHeight - r.top + 8, largeur });
+  };
+  const bulle = "z-30 bg-surface border border-bord px-3.5 py-3 text-[12.5px] leading-[1.6] text-craie text-left normal-case tracking-normal shadow-xl";
   return (
     <span className="relative inline-flex align-middle">
       <button
         type="button"
         aria-label="Comment lire ce chiffre"
-        onClick={() => setOpen((v) => !v)}
-        onMouseEnter={() => setOpen(true)}
+        onClick={(e) => { mesurer(e.currentTarget); setOpen((v) => !v); }}
+        onMouseEnter={(e) => { mesurer(e.currentTarget); setOpen(true); }}
         onMouseLeave={() => setOpen(false)}
         onBlur={() => setOpen(false)}
-        className={`w-[15px] h-[15px] rounded-full border text-[11px] leading-none flex items-center justify-center transition-colors
+        className={`relative w-[15px] h-[15px] rounded-full border text-[11px] leading-none flex items-center justify-center transition-colors max-md:before:absolute max-md:before:-inset-3 max-md:before:content-['']
           ${open ? "border-menthe-clair text-menthe-clair" : "border-encre/25 text-ardoise hover:border-menthe-clair hover:text-menthe-clair"}`}
       >
         i
       </button>
-      {open && (
-        <span className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] z-30 w-64 max-md:w-52 bg-surface border border-bord px-3.5 py-3 text-[12.5px] leading-[1.6] text-craie text-left normal-case tracking-normal shadow-xl">
+      {open && place && createPortal(
+        <span className={`fixed z-[80] ${bulle}`} style={{ left: place.gauche, bottom: place.bas, width: place.largeur }}>
+          {texte}
+        </span>,
+        document.body
+      )}
+      {open && !place && (
+        <span className={`absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] w-64 ${bulle}`}>
           {texte}
         </span>
       )}
     </span>
   );
 }
+
 
 export function ChiffresStrip({ chiffres, className = "mb-5" }) {
   const list = (chiffres || []).filter((c) => c && c.valeur != null && c.valeur !== "");

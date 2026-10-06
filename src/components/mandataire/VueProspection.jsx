@@ -186,7 +186,7 @@ export default function VueProspection({ id, retour = "Prospection", onRetour })
             {nouvelle != null ? (
               <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); exporter.mutate({ nom: nouvelle }); }}>
                 <input autoFocus value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} placeholder="Nom de la liste"
-                  className="min-w-0 flex-1 rounded-champ border border-trait bg-surface px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe" />
+                  className="min-w-0 flex-1 rounded-champ border border-trait bg-surface px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
                 <button type="submit" disabled={!nouvelle.trim() || exporter.isPending} className="inline-flex h-9 items-center rounded-full bg-menthe-pale px-4 text-[13px] font-medium text-sur-menthe-pale disabled:opacity-40">
                   {exporter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer"}
                 </button>
@@ -199,8 +199,8 @@ export default function VueProspection({ id, retour = "Prospection", onRetour })
                   Exporter vers une nouvelle liste
                 </button>
                 {(listesData?.listes || []).length > 0 && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <select value={cible} onChange={(e) => setCible(e.target.value)} className="h-9 rounded-full border border-trait bg-surface px-3 text-[13px] text-encre outline-none">
+                  <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                    <select value={cible} onChange={(e) => setCible(e.target.value)} className="h-9 min-w-0 max-w-full rounded-full border border-trait bg-surface px-3 text-[13px] text-encre outline-none max-md:text-[16px]">
                       <option value="">Ajouter à une liste…</option>
                       {listesData.listes.map((l) => <option key={l.id} value={l.id}>{l.nom} ({l.total})</option>)}
                     </select>

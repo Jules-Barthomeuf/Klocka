@@ -297,8 +297,8 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
   const pret = m.document || m.mynotary_url;
   return (
     <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
-      <div className="flex h-14 flex-none items-center justify-between gap-3 border-b border-trait k-barre-apercu px-5 text-[12.5px] text-ardoise">
-        <span>
+      <div className="flex h-14 flex-none items-center justify-between gap-3 border-b border-trait k-barre-apercu px-5 text-[12.5px] text-ardoise max-md:gap-2 max-md:px-3">
+        <span className="min-w-0 max-md:line-clamp-2">
           {m.statut === "brouillon"
             ? reste ? `${reste} information${reste > 1 ? "s" : ""} encore attendue${reste > 1 ? "s" : ""}` : "Complet : dites « c'est tout bon » dans le chat pour l'envoyer dans MyNotary"
             : m.statut === "demande_envoyee" ? "Envoyé : saisie MyNotary en cours"
@@ -315,11 +315,11 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
         )}
         {pret && (
           <button onClick={() => onOuvrirPret?.(m.id)} className="flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
-            <FileText className="h-3.5 w-3.5" /> Le mandat MyNotary
+            <FileText className="h-3.5 w-3.5" /> <span className="max-md:hidden">Le mandat</span> MyNotary
           </button>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 max-md:px-3 max-md:py-4">
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-700"><DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} /></div>
       </div>
     </div>
@@ -334,8 +334,8 @@ export function FenetreMandatPret({ mandat, onFermer }) {
   if (!mandat) return null;
   return createPortal(
     <div className="fixed inset-0 z-[80] grid place-items-center px-4" style={{ background: "rgb(var(--k-encre-rgb) / 0.35)" }} onClick={onFermer}>
-      <div className="relative w-full max-w-[460px] rounded-[20px] border border-trait bg-surface-pleine p-7 shadow-[0_24px_60px_rgb(0_0_0/0.22)]" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onFermer} className="absolute right-4 top-4 text-ardoise transition-colors hover:text-encre" aria-label="Fermer" style={{ background: "transparent" }}>
+      <div className="relative max-h-[calc(100dvh-24px)] w-full max-w-[460px] overflow-y-auto rounded-[20px] border border-trait bg-surface-pleine p-7 max-md:p-5 shadow-[0_24px_60px_rgb(0_0_0/0.22)]" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onFermer} className="absolute right-4 top-4 text-ardoise transition-colors hover:text-encre max-md:right-2 max-md:top-2 max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" aria-label="Fermer" style={{ background: "transparent" }}>
           <X className="h-4 w-4" />
         </button>
         <p className="m-0 text-[12px] uppercase tracking-[.12em] text-menthe">MyNotary</p>

@@ -19,10 +19,10 @@ export function FField({ label = undefined, labelColor = undefined, children, cl
 
 // Input aligné sur le style Infos
 export function FInput({ className = "", ...props }) {
-  return <input {...props} className={`${fieldInput} text-[15px] ${className}`} />;
+  return <input {...props} className={`${fieldInput} text-[15px] ${className} max-md:text-[16px]`} />;
 }
 
 // Textarea aligné sur le style Infos
 export function FTextarea({ className = "", ...props }) {
-  return <textarea {...props} className={`${fieldInput} text-[15px] resize-y ${className}`} />;
+  return <textarea {...props} className={`${fieldInput} text-[15px] resize-y ${className} max-md:text-[16px]`} />;
 }

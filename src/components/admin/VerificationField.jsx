@@ -78,7 +78,7 @@ export default function VerificationField({ fieldKey, formData, setFormData, chi
               value={field.note || ""}
               onChange={(e) => setField({ note: e.target.value })}
               placeholder="Note du vérificateur..."
-              className="bg-fond text-orange-100 border-orange-500/30 text-xs placeholder:text-brume"
+              className="bg-fond text-orange-100 border-orange-500/30 text-xs placeholder:text-brume max-md:text-[16px]"
               rows={2}
             />
           </div>

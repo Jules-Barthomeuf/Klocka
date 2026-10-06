@@ -85,7 +85,7 @@ function BoutonTheme({ sombre, onClick }) {
 
 function Legende({ attribution }) {
   return (
-    <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-bord bg-surface px-3 py-2 text-[11px] text-craie backdrop-blur">
+    <div className="absolute bottom-3 left-3 z-[400] flex flex-wrap gap-x-3.5 gap-y-1 rounded-[10px] border border-bord bg-surface px-3 py-2 text-[11px] text-craie backdrop-blur max-md:bottom-2 max-md:left-2 max-md:right-2 max-md:gap-x-2.5 max-md:px-2.5 max-md:py-1.5">
       {[...EMPLACEMENTS, ECARTEE].map((e) => (
         <span key={String(e.classe)} className="inline-flex items-center gap-1.5">
           <span className="h-[3px] w-4 rounded" style={{ background: e.teinte }} />

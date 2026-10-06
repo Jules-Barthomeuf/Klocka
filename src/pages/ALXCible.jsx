@@ -152,14 +152,18 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
   const v = c?.valorisation || {};
   const raisons = c ? (c.score_ml?.raisons?.length ? c.score_ml.raisons.filter((r) => r.sens > 0).map((r) => r.phrase) : [...(c.signaux?.forts || []), ...(c.signaux?.patients || [])].map((x) => x.libelle + (x.valeur ? ` (${x.valeur})` : ""))) : [];
   return (
-    <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/75 p-6" onClick={onFermer}>
-      <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine">
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/75 p-6 max-md:z-[70] max-md:p-3" onClick={onFermer}>
+      <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine max-md:max-h-[calc(100dvh-24px)] max-md:overflow-y-auto">
         {!c ? <div className="p-10 text-ardoise">Lecture…</div> : (
           <div className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="flex flex-col gap-5 p-7">
+            <div className="flex flex-col gap-5 p-7 max-md:p-5">
               <div>
-                <Etiquette>Coup d'œil</Etiquette>
-                <div className="alx-mont mt-2 text-[32px] font-medium leading-tight tracking-[-.02em] text-encre">{joliNom(c.enseigne) || c.adresse}</div>
+                <div className="flex items-center justify-between gap-3">
+                  <Etiquette>Coup d'œil</Etiquette>
+                  {/* Au téléphone, la fenêtre occupe l'écran : on la ferme ici. */}
+                  <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="-my-2 -mr-2 hidden h-10 w-10 place-items-center rounded-full text-[18px] leading-none text-ardoise hover:text-encre max-md:grid" style={{ background: "transparent" }}>×</button>
+                </div>
+                <div className="alx-mont mt-2 break-words text-[32px] font-medium leading-tight tracking-[-.02em] text-encre max-md:text-[24px]">{joliNom(c.enseigne) || c.adresse}</div>
                 <div className="mt-1 text-[13.5px] text-ardoise">{c.adresse}{c.activite ? ` · ${c.activite}` : ""}</div>
               </div>
               <div>
@@ -171,7 +175,7 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
                 <div className="mt-2"><Urgence c={c} /></div>
                 <div className="mt-2 flex flex-col gap-1.5 text-[13.5px] text-craie">{(raisons.length ? raisons : [c.motif]).filter(Boolean).map((r) => <span key={r}>— {r}</span>)}</div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
                 <div><Etiquette>Loyer</Etiquette><div className="mt-1"><Nombre taille={15} teinte={J["encre"]}>{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</Nombre></div></div>
                 <div><Etiquette>Prix</Etiquette><div className="mt-1"><Nombre taille={15} teinte={J["encre"]}>{v.fourchette ? `${euros(v.fourchette[0])} – ${euros(v.fourchette[1])}` : "—"}</Nombre></div></div>
               </div>
@@ -181,9 +185,9 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
                 <Link to={`/ALXCible?id=${c.id}`} className="ml-1 text-[12.5px] text-menthe hover:text-menthe-clair">Ouvrir la fiche →</Link>
               </div>
             </div>
-            <div className="isolate min-h-[360px] overflow-hidden bg-fond lg:rounded-r-[20px]">
+            <div className="isolate min-h-[360px] overflow-hidden bg-fond lg:rounded-r-[20px] max-md:min-h-[240px]">
               {/* `key` : quand le point de vue arrive, l'iframe se recharge sur le bon panorama. */}
-              {CLE_EMBED && <iframe key={c.vue?.pano || c.photo?.pano || "position"} title={`Street View ${c.adresse}`} src={urlStreetView(c, CLE_EMBED, 90)} className="h-full min-h-[360px] w-full border-0 lg:rounded-r-[20px]" allowFullScreen loading="lazy" />}
+              {CLE_EMBED && <iframe key={c.vue?.pano || c.photo?.pano || "position"} title={`Street View ${c.adresse}`} src={urlStreetView(c, CLE_EMBED, 90)} className="h-full min-h-[360px] w-full border-0 lg:rounded-r-[20px] max-md:min-h-[240px]" allowFullScreen loading="lazy" />}
             </div>
           </div>
         )}
@@ -322,8 +326,8 @@ export default function ALXCible() {
 
         <div className="mt-5 flex flex-wrap items-end justify-between gap-5">
           <div className="min-w-0">
-            <h1 className="alx-mont m-0 text-[42px] font-medium leading-[1.06] tracking-[-.02em] text-encre max-md:text-[32px]">{joliNom(c.enseigne) || c.adresse}</h1>
-            <div className="mt-2 text-[15px] text-ardoise">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}{c.emplacement ? ` · emplacement ${e.mot}` : ""}</div>
+            <h1 className="alx-mont m-0 break-words text-[42px] font-medium leading-[1.06] tracking-[-.02em] text-encre max-md:text-[28px]">{joliNom(c.enseigne) || c.adresse}</h1>
+            <div className="mt-2 text-[15px] text-ardoise max-md:text-[13.5px]">{c.adresse}{c.ville ? `, ${c.ville}` : ""}{c.activite ? ` · ${c.activite}` : ""}{c.emplacement ? ` · emplacement ${e.mot}` : ""}</div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             {ecartee ? (
@@ -348,19 +352,19 @@ export default function ALXCible() {
         </div>
 
         <div className="mt-7 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-          <div className="relative flex flex-col gap-[26px] rounded-[20px] border border-trait bg-surface-pleine p-7">
+          <div className="relative flex flex-col gap-[26px] rounded-[20px] border border-trait bg-surface-pleine p-7 max-md:gap-6 max-md:p-5">
             <button
               onClick={() => setAnalyseOuverte((x) => !x)}
               aria-label={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"} title={analyseOuverte ? "Revenir à la fiche" : "Lire l'analyse"}
               aria-pressed={analyseOuverte}
-              className="absolute right-5 top-5 flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12.5px] transition-colors"
+              className="absolute right-5 top-5 flex h-9 items-center gap-2 rounded-full border px-3.5 text-[12.5px] transition-colors max-md:static max-md:self-end"
               style={{ borderColor: analyseOuverte ? J["menthe"] : "rgba(255,255,255,0.12)", color: analyseOuverte ? J["menthe"] : J["ardoise"], background: analyseOuverte ? "rgba(150,192,184,0.12)" : "transparent" }}
             >
               {analyseOuverte ? "La fiche" : "L'analyse"}
               <span className="text-[11px]">{analyseOuverte ? "◀" : "▶"}</span>
             </button>
             {analyseOuverte ? (
-              <div className="alx-entree flex flex-col gap-6 pr-28">
+              <div className="alx-entree flex flex-col gap-6 pr-28 max-md:pr-0">
                 <div>
                   <Etiquette>L'analyse</Etiquette>
                   <div className="mt-2 flex items-center gap-3"><Urgence c={c} /></div>
@@ -374,9 +378,9 @@ export default function ALXCible() {
               </div>
             ) : (
             <>
-            <div className="pr-28">
+            <div className="pr-28 max-md:pr-0">
               <Etiquette>Propriétaire</Etiquette>
-              <div className="alx-mont mt-2 text-[23px] font-medium tracking-[-.01em] text-encre">{p.nom ? joliNom(p.nom) : c.foncier?.prive ? "Particulier, non publié" : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
+              <div className="alx-mont mt-2 break-words text-[23px] font-medium tracking-[-.01em] text-encre max-md:text-[20px]">{p.nom ? joliNom(p.nom) : c.foncier?.prive ? "Particulier, non publié" : c.foncier ? "Plusieurs, à départager" : "À établir"}</div>
               {proprioMeta && <div className="mt-1 text-[13.5px] text-ardoise">{proprioMeta}</div>}
               {!p.nom && (
                 <button onClick={() => proprietaire.mutate()} disabled={proprietaire.isPending} className="mt-2 text-[12.5px] text-menthe hover:text-menthe-clair disabled:opacity-50" style={{ background: "transparent" }}>
@@ -413,10 +417,10 @@ export default function ALXCible() {
               <div className="mt-2 text-[15px] leading-[1.6] text-craie">{ceQueFait(c).join(" ")}</div>
             </div>
 
-            <div className="rounded-[14px] border px-[22px] py-5" style={{ borderColor: `${teinteVerdict}47` }}>
+            <div className="rounded-[14px] border px-[22px] py-5 max-md:px-4" style={{ borderColor: `${teinteVerdict}47` }}>
               <div className="flex flex-wrap items-center justify-between gap-3.5">
                 <Etiquette>Va vendre ou pas</Etiquette>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <Urgence c={c} compact />
                   {!ml && score != null && !ecartee && <Etiquette title="La somme des poids des signaux : appeler à partir de 3, écrire à partir de 0,7">score {score}</Etiquette>}
                   {ml && !ecartee && <Etiquette title={`Dans les ${Math.max(1, Math.round((ml.rang_part || 0) * 100))} % de tête, sur ${ml.parcelles_ville} parcelles à vitrine de la ville`}>{ml.tranche.libelle.replace(" de la ville", "")}</Etiquette>}
@@ -448,7 +452,7 @@ export default function ALXCible() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
               <div>
                 <Etiquette>Loyer estimé</Etiquette>
                 <div className="mt-1.5"><Nombre taille={19} teinte={J["encre"]}>{v.loyer_fourchette?.[0] != null ? `${Math.round(v.loyer_fourchette[0])}–${Math.round(v.loyer_fourchette[1])} €/m²/an` : "—"}</Nombre></div>
@@ -483,7 +487,7 @@ export default function ALXCible() {
             {mode === "ecart" && (
               <div className="alx-entree flex flex-col gap-3.5 border-t border-trait pt-6">
                 <Etiquette>Pourquoi écarter</Etiquette>
-                <input value={motif} onChange={(ev) => setMotif(ev.target.value)} placeholder="Le gérant vient de renouveler son bail" className="rounded-[12px] border border-trait bg-surface px-4 py-[13px] text-[15px] text-encre outline-none focus:border-menthe/50" />
+                <input value={motif} onChange={(ev) => setMotif(ev.target.value)} placeholder="Le gérant vient de renouveler son bail" className="rounded-[12px] border border-trait bg-surface px-4 py-[13px] text-[15px] text-encre outline-none focus:border-menthe/50 max-md:text-[16px]" />
                 <Etiquette className="mt-1">Ce non généralise</Etiquette>
                 <div className="flex flex-col gap-0.5">
                   {[["activite", `Cette activité${c.activite ? ` (${c.activite})` : ""}`], ["proprietaire", `Ce propriétaire${p.nom ? ` (${joliNom(p.nom)})` : ""}`], ["enseigne", `Cette enseigne${c.enseigne ? ` (${joliNom(c.enseigne)})` : ""}`]].map(([k, mot]) => (
@@ -493,7 +497,7 @@ export default function ALXCible() {
                     </button>
                   ))}
                 </div>
-                <div className="mt-1 flex gap-2.5">
+                <div className="mt-1 flex flex-wrap gap-2.5">
                   <Bouton principal onClick={() => ecarter.mutate()} disabled={ecarter.isPending}>{ecarter.isPending ? "…" : sur.activite || sur.proprietaire || sur.enseigne ? "Créer la règle" : "Écarter"}</Bouton>
                   <Bouton discret onClick={() => setMode("lecture")}>Annuler</Bouton>
                 </div>
@@ -517,14 +521,14 @@ export default function ALXCible() {
                           <div className="truncate text-[13.5px] text-encre">{joliNom(x.enseigne) || x.adresse}</div>
                           <div className="truncate text-[12.5px] text-ardoise">{x.adresse} · {x.raisons.join(" · ")}</div>
                         </div>
-                        <div className="flex shrink-0 gap-3 text-[12.5px]">
+                        <div className="flex shrink-0 gap-3 text-[12.5px] max-md:flex-col max-md:items-end max-md:gap-2">
                           <button onClick={(ev) => { ev.stopPropagation(); ecarterAussi.mutate([x.id]); }} disabled={ecarterAussi.isPending} className="text-menthe hover:text-menthe-clair" style={{ background: "transparent" }}>Écarter aussi</button>
                           <button onClick={(ev) => { ev.stopPropagation(); setResultat((r) => ({ ...r, semblables: r.semblables.filter((y) => y.id !== x.id) })); }} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>Garder</button>
                         </div>
                       </div>
                     ))}
                     {resultat.semblables.length > 1 && (
-                      <div className="mt-3 flex gap-2.5">
+                      <div className="mt-3 flex flex-wrap gap-2.5">
                         <Bouton principal onClick={() => ecarterAussi.mutate(resultat.semblables.map((x) => x.id))} disabled={ecarterAussi.isPending}>Écarter les {resultat.semblables.length}</Bouton>
                         <Bouton onClick={() => setResultat((r) => ({ ...r, semblables: [] }))}>Tout garder</Bouton>
                       </div>
@@ -538,13 +542,13 @@ export default function ALXCible() {
             )}
           </div>
 
-          <div className="isolate min-h-[460px] overflow-hidden rounded-[20px] border border-trait bg-surface">
+          <div className="isolate min-h-[460px] overflow-hidden rounded-[20px] border border-trait bg-surface max-md:min-h-[300px]">
             {CLE_EMBED ? (
               <iframe
                 key={c.vue?.pano || c.photo?.pano || "position"}
                 title={`Street View ${c.adresse}`}
                 src={urlStreetView(c, CLE_EMBED)}
-                className="h-full min-h-[460px] w-full rounded-[20px] border-0"
+                className="h-full min-h-[460px] w-full rounded-[20px] border-0 max-md:min-h-[300px]"
                 allowFullScreen
                 loading="lazy"
               />

@@ -67,24 +67,26 @@ export function MecaniqueEnLigne({ etapes, note, titre = "D'où viennent ces inf
  * en page du panneau au-dessus, et disparaît de lui-même derrière une fiche
  * plein écran (z-index inférieur).
  */
-export function BoutonMecanique({ etapes, note, titre = "D'où viennent ces informations", position = "bottom-4 right-4" }) {
+export function BoutonMecanique({ etapes, note, titre = "D'où viennent ces informations", position = "bottom-4 right-4", className = "" }) {
   const [ouvert, setOuvert] = useState(false);
+  // Au téléphone, le bouton se réduit à son icône et s'écarte du bord bas
+  // (encoche, barre du navigateur) : il laisse la place aux réglages de carte.
   return (
-    <div className={`fixed ${position} z-[500] flex flex-col items-end`}>
+    <div className={`fixed ${position} z-[500] flex flex-col items-end max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:right-3 ${className}`}>
       {ouvert && (
-        <div className="animate-in fade-in slide-in-from-top-1 duration-150 mb-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[16px] border border-bord bg-fond/90 p-4 backdrop-blur-xl">
+        <div className="animate-in fade-in slide-in-from-top-1 duration-150 mb-2 w-[320px] max-w-[calc(100vw-24px)] overflow-hidden rounded-[16px] border border-bord bg-fond/90 p-4 backdrop-blur-xl">
           <div className="mb-1 flex items-center justify-between gap-2">
             <span className="flex items-center gap-2 text-[12.5px] font-medium text-encre"><Waypoints className="h-4 w-4 text-menthe" />{titre}</span>
-            <button onClick={() => setOuvert(false)} className="flex-shrink-0 text-brume hover:text-encre" aria-label="Fermer"><X className="h-3.5 w-3.5" /></button>
+            <button onClick={() => setOuvert(false)} className="flex-shrink-0 text-brume hover:text-encre max-md:-m-2 max-md:p-2" aria-label="Fermer"><X className="h-3.5 w-3.5" /></button>
           </div>
           <div className="max-h-[50vh] overflow-y-auto">
             <Contenu etapes={etapes} note={note} />
           </div>
         </div>
       )}
-      <button onClick={() => setOuvert((o) => !o)}
-        className="flex items-center gap-1.5 rounded-full border border-bord bg-fond/80 px-3.5 py-2 text-[11px] uppercase tracking-[.1em] text-ardoise backdrop-blur-xl hover:text-encre">
-        <Waypoints className="h-3.5 w-3.5" />Mécanique
+      <button onClick={() => setOuvert((o) => !o)} aria-label="Mécanique"
+        className="flex items-center gap-1.5 rounded-full border border-bord bg-fond/80 px-3.5 py-2 text-[11px] uppercase tracking-[.1em] text-ardoise backdrop-blur-xl hover:text-encre max-md:h-10 max-md:w-10 max-md:justify-center max-md:px-0 max-md:py-0">
+        <Waypoints className="h-3.5 w-3.5 max-md:h-4 max-md:w-4" /><span className="max-md:sr-only">Mécanique</span>
       </button>
     </div>
   );

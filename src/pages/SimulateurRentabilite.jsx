@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 import SimControlRail from "../components/simulator/layout/SimControlRail";
+import SimReglagesMobile from "../components/simulator/layout/SimReglagesMobile";
 import SimKpiRow from "../components/simulator/layout/SimKpiRow";
 import SimBudgetDonut from "../components/simulator/layout/SimBudgetDonut";
 import SimChartCarousel from "../components/simulator/layout/SimChartCarousel";
@@ -461,6 +462,25 @@ export default function SimulateurRentabilite() {
     { id: "avance", label: "Paramètres avancés" },
   ];
 
+
+  // Le rail des curseurs : à gauche sur ordinateur, en plein écran au téléphone.
+  const rail = (
+    <SimControlRail
+      projects={availableProjects}
+      selectedProjectId={selectedProjectId}
+      onSelectProject={(v) => {
+        if (v === "default") { handleReset(); setSelectedProjectId(null); }
+        else setSelectedProjectId(v);
+      }}
+      values={values}
+      onChange={onChange}
+      calculs={calculs}
+      formatCurrency={formatCurrency}
+      advanced={advanced}
+      activeTab={activeTab}
+    />
+  );
+
   return (
     <div className="min-h-screen relative w-full max-w-full overflow-x-hidden">
 
@@ -480,26 +500,14 @@ export default function SimulateurRentabilite() {
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
           <aside className="hidden md:block w-[260px] flex-shrink-0">
-            <SimControlRail
-              projects={availableProjects}
-              selectedProjectId={selectedProjectId}
-              onSelectProject={(v) => {
-                if (v === "default") { handleReset(); setSelectedProjectId(null); }
-                else setSelectedProjectId(v);
-              }}
-              values={values}
-              onChange={onChange}
-              calculs={calculs}
-              formatCurrency={formatCurrency}
-              advanced={advanced}
-              activeTab={activeTab}
-            />
+            {rail}
           </aside>
+          <SimReglagesMobile>{rail}</SimReglagesMobile>
 
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 max-md:top-[var(--k-haut-mobile,3.5rem)] z-10 max-md:bg-fond/90 max-md:backdrop-blur-xl max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-2 min-w-0">
               {/* Venu d'un projet (« Simulateur complet ») : la flèche y ramène.
                   L'historique d'abord, pour retrouver la page telle qu'on l'a
@@ -545,7 +553,7 @@ export default function SimulateurRentabilite() {
               </div>
             </div>
 
-            <div key={`${activeTab}-${animKey}`} className={`p-4 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}>
+            <div key={`${activeTab}-${animKey}`} className={`p-4 max-md:pb-24 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}>
               {negoActive && (
                 <div className="flex items-center gap-2 text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.

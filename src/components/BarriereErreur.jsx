@@ -42,7 +42,7 @@ export default class BarriereErreur extends React.Component {
             Le reste de l’application fonctionne. Revenez en arrière, ou
             rechargez cette page — si cela se reproduit, signalez-le nous.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-3">
+          <div className="mt-8 flex items-center justify-center gap-3 max-md:flex-wrap">
             <button
               onClick={() => this.setState({ erreur: null })}
               className="px-5 py-2.5 border border-menthe/50 text-[11px] tracking-[.16em] uppercase text-menthe hover:bg-menthe/[0.08] transition-colors"

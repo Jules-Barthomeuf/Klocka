@@ -63,15 +63,15 @@ function FenetreAnalyseKData({ analyse, onFermer }) {
     return () => window.removeEventListener("keydown", k);
   }, [onFermer]);
   return createPortal(
-    <div className="animate-in fade-in duration-200 fixed inset-0 z-[600] flex flex-col bg-fond/90 p-3 backdrop-blur-sm sm:p-6" onClick={onFermer}>
-      <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-[18px] border border-bord bg-fond shadow-[0_30px_80px_rgba(0,0,0,.6)]" onClick={(e) => e.stopPropagation()}>
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[600] flex flex-col bg-fond/90 p-3 backdrop-blur-sm sm:p-6 max-md:pt-[max(12px,env(safe-area-inset-top))] max-md:pb-[max(12px,env(safe-area-inset-bottom))]" onClick={onFermer}>
+      <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-[18px] max-md:rounded-[14px] border border-bord bg-fond shadow-[0_30px_80px_rgba(0,0,0,.6)]" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-trait px-4 py-2.5">
           <p className="m-0 min-w-0 truncate text-[13px] text-encre">
             <span className="font-medium">{analyse.nom_outil}</span>
             <span className="text-ardoise"> · {analyse.libelle || analyse.adresse}</span>
             {analyse.resume && <span className="text-brume"> · {analyse.resume}</span>}
           </p>
-          <button onClick={onFermer} title="Fermer" aria-label="Fermer" className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre">
+          <button onClick={onFermer} title="Fermer" aria-label="Fermer" className="flex h-8 w-8 max-md:h-10 max-md:w-10 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre">
             <IconeFermer className="h-4 w-4" />
           </button>
         </div>
@@ -140,7 +140,9 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
   const courante = ETAPES.find((e) => e.n === etape) || ETAPES[0];
   const fermer = () => setOuvert(false);
   return (
-    <div className="relative flex-shrink-0" onMouseEnter={() => setOuvert(true)} onMouseLeave={fermer}>
+    // Au doigt, pas de survol : un toucher émettait l'entrée puis le clic, et le
+    // menu se refermait aussitôt ouvert. Seule la souris ouvre au survol.
+    <div className="relative flex-shrink-0" onPointerEnter={(e) => { if (e.pointerType === "mouse") setOuvert(true); }} onPointerLeave={(e) => { if (e.pointerType === "mouse") fermer(); }}>
       <button
         type="button"
         onClick={() => setOuvert((o) => !o)}
@@ -154,7 +156,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
         <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
       </button>
       {ouvert && (
-        <div role="menu" className="absolute right-0 top-full z-30 min-w-[300px] pt-1.5">
+        <div role="menu" className="absolute right-0 top-full z-30 min-w-[300px] max-md:min-w-[min(300px,calc(100vw-40px))] pt-1.5">
           <div className="flex flex-col rounded-lg border border-trait bg-surface py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
             {ETAPES.map((e) => {
               const accessible = e.n <= debloquee;
@@ -242,7 +244,7 @@ function TitreDossier({ dossier, apercu, onRefresh }) {
           if (e.key === "Escape") { setValeur(affiche); setEdition(false); }
         }}
         aria-label="Nom du dossier"
-        className={`${classe} w-[min(900px,80vw)] bg-transparent border-0 border-b border-menthe/60 outline-none p-0`}
+        className={`${classe} w-[min(900px,80vw)] max-md:w-full bg-transparent border-0 border-b border-menthe/60 outline-none p-0`}
       />
     );
   }
@@ -262,7 +264,7 @@ export function TitreEtape({ n, titre, description = undefined }) {
     <div className="mb-6">
       <div className="flex items-baseline gap-3.5 mb-1.5">
         {n != null && <div className="text-xs text-ardoise tabular-nums">{String(n).padStart(2, "0")}</div>}
-        <h2 className="m-0 text-[24px] font-medium text-encre">{titre}</h2>
+        <h2 className="m-0 text-[24px] font-medium text-encre max-md:text-[20px]">{titre}</h2>
       </div>
       {description && <p className="m-0 text-[13.5px] text-ardoise leading-[1.65]">{description}</p>}
     </div>
@@ -456,7 +458,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
 
       {/* En-tête du dossier : nom, repères, actions */}
       {dossier && (
-        <div className="flex flex-wrap items-end justify-between gap-6 pb-6">
+        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 max-md:gap-3 max-md:pb-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
@@ -583,7 +585,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             ))}
             {preuveGrille && (
-              <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto p-4">
+              <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto overscroll-contain p-4 max-md:p-3 max-md:pt-[max(12px,env(safe-area-inset-top))]">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />
               </div>
             )}
@@ -750,14 +752,14 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
           {/* Expéditeur : la ligne d'identité du message */}
           {comptes.length > 0 ? (
             <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
-              <span className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">De</span>
+              <span className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] max-md:w-[52px] flex-shrink-0">De</span>
               <select
                 value={expediteur || comptes[0]?.id}
                 onChange={(e) => {
                   setExpediteur(e.target.value);
                   localStorage.setItem("klocka:dernier-expediteur", e.target.value);
                 }}
-                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre cursor-pointer"
+                className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre cursor-pointer max-md:text-[16px]"
               >
                 {comptes.map((c) => (
                   <option key={c.id} value={c.id} className="bg-surface">{c.label}</option>
@@ -780,23 +782,23 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
           {/* Destinataire et objet, sur filets fins */}
           <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
-            <label htmlFor="mail-to" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">À</label>
+            <label htmlFor="mail-to" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] max-md:w-[52px] flex-shrink-0">À</label>
             <input
               id="mail-to"
               value={brouillon.to}
               onChange={(e) => setBrouillon({ ...brouillon, to: e.target.value })}
               placeholder="agent@agence.fr"
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif max-md:text-[16px]"
             />
           </div>
           <div className="flex items-center gap-3 px-5 py-3 border-b border-relief">
-            <label htmlFor="mail-objet" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] flex-shrink-0">Objet</label>
+            <label htmlFor="mail-objet" className="text-[11px] tracking-[0.14em] uppercase text-brume w-[74px] max-md:w-[52px] flex-shrink-0">Objet</label>
             <input
               id="mail-objet"
               value={brouillon.subject}
               onChange={(e) => setBrouillon({ ...brouillon, subject: e.target.value })}
               placeholder="Objet du message"
-              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif"
+              className="flex-1 min-w-0 bg-transparent border-0 outline-none text-[13.5px] text-encre placeholder:text-bord-vif max-md:text-[16px]"
             />
           </div>
 
@@ -806,7 +808,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
             onChange={(e) => setBrouillon({ ...brouillon, body: e.target.value })}
             rows={14}
             placeholder="Corps du message"
-            className="w-full bg-transparent border-0 outline-none resize-y px-5 py-4 text-[13.5px] leading-[1.75] text-craie placeholder:text-bord-vif"
+            className="w-full bg-transparent border-0 outline-none resize-y px-5 py-4 text-[13.5px] leading-[1.75] text-craie placeholder:text-bord-vif max-md:text-[16px]"
           />
 
           {/* Actions */}
@@ -1306,7 +1308,7 @@ function BlocVideoPresentation({ dossier, apercu }) {
 
   return (
     <div className="bg-surface border border-trait rounded-md px-5 py-4 space-y-3">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 max-md:flex-wrap">
         <div className="flex items-center gap-3">
           <Film className="w-4 h-4 text-ardoise" />
           <div>

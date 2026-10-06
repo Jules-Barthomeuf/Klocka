@@ -153,7 +153,7 @@ function PanneauCommerce({ p, libelles, onFermer, onSansReponse, onAppeler }) {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="relative h-[320px] flex-none bg-fond">
+        <div className="relative h-[320px] flex-none bg-fond max-md:h-[240px]">
           {position && MAPS_KEY ? (
             <iframe
               src={`https://www.google.com/maps/embed/v1/streetview?key=${MAPS_KEY}&location=${position}&fov=85`}
@@ -181,7 +181,7 @@ function PanneauCommerce({ p, libelles, onFermer, onSansReponse, onAppeler }) {
             <ExternalLink className="h-3.5 w-3.5" /> Google Maps
           </a>
         </div>
-        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-5">
+        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-5 max-md:gap-x-4 max-md:px-4">
           {faits.map(([mot, v]) => (
             <div key={mot}><dt className="text-[11px] uppercase tracking-[.1em] text-brume">{mot}</dt><dd className="m-0 mt-0.5 text-[13.5px] leading-[1.5] text-encre">{v}</dd></div>
           ))}
@@ -220,7 +220,7 @@ function Cellule({ p, col, onEnregistrer }) {
     const valider = () => { setEdition(false); if (texte !== valeur) onEnregistrer({ [col.cle]: texte }); };
     return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider}
       onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }}
-      rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none" />;
+      rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none max-md:text-[16px]" />;
   }
   // Les pastilles suivent le texte, hors du bouton : leur clic consulte la
   // source sans ouvrir l'édition, et l'ensemble passe à la ligne proprement.
@@ -285,9 +285,9 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
   return (
     <div className="mt-4 flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
-      <label className="flex h-10 min-w-[260px] max-w-[360px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-rail px-4 focus-within:border-bord-vif">
+      <label className="flex h-10 min-w-[260px] max-w-[360px] flex-1 items-center max-md:min-w-0 max-md:max-w-none max-md:basis-full gap-2.5 rounded-full border border-trait bg-rail px-4 focus-within:border-bord-vif">
         <Search className="h-4 w-4 flex-none text-brume" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un commerce, un nom, un numéro" className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un commerce, un nom, un numéro" className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
       </label>
       {coches.size > 0 && (
         <span className="inline-flex items-center gap-2.5 text-[12.5px] text-craie">
@@ -320,7 +320,7 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                   <Case oui={tout} />
                 </button>
               </th>
-              <th className="sticky left-[44px] z-30 min-w-[220px] border-b border-r border-trait bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
+              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-trait bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
               {COLONNES.map((c) => (
                 <th key={c.cle} className="border-b border-r border-trait bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
               ))}
@@ -343,7 +343,7 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                   </td>
                   <td className="sticky left-[44px] z-10 border-b border-r border-trait bg-rail py-4 pl-2 pr-4 align-middle">
                     <button type="button" onClick={() => setOuvert(p.id)} title="Voir la vitrine (Street View)"
-                      className="block max-w-[220px] truncate border-0 p-0 text-left text-[13.5px] font-medium text-encre hover:text-menthe" style={{ background: "transparent" }}>
+                      className="block max-w-[220px] truncate border-0 p-0 text-left text-[13.5px] font-medium max-md:max-w-[124px] text-encre hover:text-menthe" style={{ background: "transparent" }}>
                       {p.commerce || p.cible?.enseigne || "Commerce"}
                     </button>
                   </td>
@@ -381,7 +381,7 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                           <span className="whitespace-nowrap">{libelles[p.statut] || p.statut}</span>
                           <ChevronDown className="h-3.5 w-3.5 flex-none opacity-70" />
                           <select aria-label={`Statut de ${p.commerce || p.nom}`} value={p.statut} onChange={(e) => statut.mutate({ id: p.id, statut: e.target.value })}
-                            className="absolute inset-0 cursor-pointer opacity-0">
+                            className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
                             {Object.entries(libelles).map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
                           </select>
                         </span>

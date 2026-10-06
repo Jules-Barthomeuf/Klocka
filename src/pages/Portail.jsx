@@ -68,7 +68,7 @@ export default function Portail({ paiement2Fois = false }) {
   return (
     <div className="min-h-screen bg-fond">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 md:px-12 py-5 border-b border-trait bg-fond sticky top-0 z-50">
+      <nav className="flex items-center justify-between px-5 md:px-12 py-5 max-md:py-4 border-b border-trait bg-fond sticky top-0 z-50">
         <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68f0bd18555df3520e1740ca/203835f6a_Capturedecran2025-11-22a160624.png" alt="Klocka" className="h-7 w-auto object-contain" />
         <span className="text-encre/30 text-xs uppercase tracking-widest">Espace client</span>
       </nav>
@@ -95,7 +95,7 @@ export default function Portail({ paiement2Fois = false }) {
           {/* ── Étape 2 : CGV ── */}
           {etape === 2 && (
             <motion.div key="cgv" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
-            <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
+            <div className="max-w-5xl mx-auto px-5 md:px-6 py-8 md:py-12">
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-menthe" />
                 <p className="text-menthe uppercase tracking-[0.3em] text-[11px] font-medium">Conditions Générales de Vente</p>
@@ -108,8 +108,8 @@ export default function Portail({ paiement2Fois = false }) {
               </p>
 
               {/* CGV Content */}
-              <div className="bg-surface border border-trait rounded-md p-6 md:p-10 mb-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                <div className="text-center mb-12">
+              <div className="bg-surface border border-trait rounded-md p-4 md:p-10 mb-6 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                <div className="text-center mb-12 max-md:mb-8">
                   <h2 className="text-encre text-2xl md:text-4xl font-extrabold tracking-tight mb-2">{CGV_HEADER.title}</h2>
                   <p className="text-menthe text-sm md:text-base font-medium mb-1">{CGV_HEADER.subtitle}</p>
                   <p className="text-encre/30 text-xs">{CGV_HEADER.company}</p>
@@ -177,14 +177,14 @@ export default function Portail({ paiement2Fois = false }) {
           {/* ── Étape 3 : Paiement ── */}
           {etape === 3 && (
             <motion.div key="paiement" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
-            <div className="max-w-5xl mx-auto px-6 py-8 md:py-12">
+            <div className="max-w-5xl mx-auto px-5 md:px-6 py-8 md:py-12">
               <p className="text-[11px] tracking-[0.2em] uppercase text-menthe-clair mb-2">Dernière étape</p>
               <h1 className="text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05] text-encre mb-2">
                 Finalisez le paiement
               </h1>
 
               {/* Résumé de la commande */}
-              <div className="bg-encre/[0.02] border border-trait rounded-md p-6 mb-6">
+              <div className="bg-encre/[0.02] border border-trait rounded-md p-6 max-md:p-4 mb-6">
                 <h3 className="text-encre font-medium text-sm mb-4">Récapitulatif de votre commande</h3>
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-4">

@@ -1,5 +1,5 @@
-// La valeur locative à trois échelles — Equimmox à 200 m, 500 m et 1 km,
-// et le loyer déduit des ventes DVF à côté.
+// La valeur locative à trois échelles : Equimmox à 200 m, 500 m et 1 km,
+// Data-B pour l'échelle qu'Equimmox n'a pas lue.
 //
 // Ce n'est pas un doublon du connecteur equimmox : celui-là lit des locaux de
 // surface comparable à 500 m, pour le bien ; celui-ci lit la rue, le quartier
@@ -24,7 +24,7 @@ export default {
   ecran: {
     court: 'Equimmox — la valeur locative du secteur',
     ligne: 'Je lis la valeur locative à trois échelles',
-    legende: 'La rue, le quartier et la ville chez Equimmox, et le loyer déduit des ventes DVF à côté.',
+    legende: 'La rue, le quartier et la ville chez Equimmox, Data-B en complément.',
   },
 
   async lire({ adresse, forcer = false, user = null }) {

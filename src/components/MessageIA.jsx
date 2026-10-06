@@ -73,7 +73,7 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
           disabled={envoyer.isPending}
           title="Bonne réponse — à préserver"
           aria-label="Bonne réponse"
-          className="w-7 h-7 rounded-md flex items-center justify-center text-brume hover:text-menthe hover:bg-menthe/[0.08] transition-colors disabled:opacity-40"
+          className="w-7 h-7 rounded-md flex items-center justify-center text-brume hover:text-menthe hover:bg-menthe/[0.08] transition-colors disabled:opacity-40 max-md:w-9 max-md:h-9"
         >
           <ThumbsUp className="w-3.5 h-3.5" />
         </button>
@@ -82,7 +82,7 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
           disabled={envoyer.isPending}
           title="Mauvaise réponse — dire ce qui ne va pas"
           aria-label="Mauvaise réponse"
-          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors disabled:opacity-40 ${ouvert === "bas" ? "text-alerte bg-alerte/[0.1]" : "text-brume hover:text-alerte hover:bg-alerte/[0.08]"}`}
+          className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors disabled:opacity-40 max-md:w-9 max-md:h-9 ${ouvert === "bas" ? "text-alerte bg-alerte/[0.1]" : "text-brume hover:text-alerte hover:bg-alerte/[0.08]"}`}
         >
           <ThumbsDown className="w-3.5 h-3.5" />
         </button>
@@ -98,7 +98,7 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer.mutate("bas"); } if (e.key === "Escape") setOuvert(null); }}
             rows={2}
             placeholder="Qu'est-ce qui ne va pas ? (facultatif — trop long, hors sujet, chiffre inventé…)"
-            className="w-full bg-transparent border border-bord-vif focus:border-alerte rounded-lg px-3 py-2 outline-none text-[12.5px] leading-[1.55] text-encre placeholder:text-brume resize-y"
+            className="w-full bg-transparent border border-bord-vif focus:border-alerte rounded-lg px-3 py-2 outline-none text-[12.5px] leading-[1.55] text-encre placeholder:text-brume resize-y max-md:text-[16px]"
           />
           <div className="mt-1.5 flex items-center gap-2">
             <button onClick={() => envoyer.mutate("bas")} disabled={envoyer.isPending} className="text-[12.5px] px-3 py-1 rounded-md bg-alerte text-fond font-semibold disabled:opacity-40">Envoyer</button>

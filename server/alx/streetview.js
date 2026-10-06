@@ -134,3 +134,74 @@ export async function lireDevanture(adresse) {
     },
   };
 }
+
+// --- Le panorama d'une adresse, dans sa rue ------------------------------------------
+//
+// L'Embed de Street View, sur un point, se cale sur le panorama le plus
+// proche : souvent celui de la rue voisine, quand la voiture de Google est
+// passée à l'angle (« 1 rue du Nord » ouvrait sur la rue du Havre). On sonde
+// donc les panoramas Google autour du point, on demande à la Base Adresse
+// Nationale dans quelle rue est chacun, et on garde le plus proche de la
+// bonne rue ; à défaut, le plus proche tout court.
+
+const normRue = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .replace(/\b(rue|avenue|av|boulevard|bd|place|pl|quai|chemin|allee|impasse|cours|route|square|passage|du|de|des|la|le|les|l|d)\b/g, ' ')
+  .replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Pure : deux noms de rue désignent-ils la même voie ? */
+export function memeRue(a, b) {
+  const x = normRue(a);
+  const y = normRue(b);
+  return !!x && !!y && x === y;
+}
+
+/**
+ * Pure : parmi les panoramas candidats (chacun avec sa rue, quand on la
+ * connaît), le plus proche du point qui est dans la bonne rue, sinon le plus
+ * proche. Rend aussi le cap vers le point.
+ */
+export function choisirPanorama(candidats, point, rue) {
+  const tries = [...candidats].sort((a, b) => metres(point, a) - metres(point, b));
+  const bon = (rue && tries.find((c) => memeRue(c.rue, rue))) || tries[0] || null;
+  return bon ? { ...bon, cap: bearing(bon, point), meme_rue: !!rue && memeRue(bon.rue, rue) } : null;
+}
+
+async function rueDe(lat, lon) {
+  try {
+    const r = await fetch(`https://api-adresse.data.gouv.fr/reverse/?lat=${lat}&lon=${lon}&limit=1`, { signal: AbortSignal.timeout(8000) });
+    const f = r.ok ? (await r.json()).features?.[0] : null;
+    return f?.properties?.street || f?.properties?.name || null;
+  } catch {
+    return null;
+  }
+}
+
+const memoire = new Map();
+
+/** Le panorama Google à ouvrir pour une adresse : `{ pano, cap, lat, lon, meme_rue }`, ou null. */
+export async function panoramaDeLaRue({ lat, lon, rue = null }) {
+  if (!cle() || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const cleMemoire = `${lat.toFixed(6)},${lon.toFixed(6)},${normRue(rue)}`;
+  if (memoire.has(cleMemoire)) return memoire.get(cleMemoire);
+  const point = { lat, lon };
+  // Huit directions, à 0, 15, 30 et 45 m : de quoi trouver la bonne rue sans
+  // traverser le quartier.
+  const sondes = [[0, 0]];
+  for (const d of [15, 30, 45]) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [0.7, -0.7], [-0.7, 0.7], [-0.7, -0.7]]) sondes.push([a * d, b * d]);
+  const vus = new Map();
+  await Promise.all(sondes.map(async ([dn, de]) => {
+    const la = lat + dn / 111000;
+    const lo = lon + de / (111000 * Math.cos((lat * Math.PI) / 180));
+    try {
+      const m = await unePrise({ location: `${la},${lo}`, radius: '20', source: 'outdoor' });
+      if (m?.google && m.pano && m.lat != null && !vus.has(m.pano)) vus.set(m.pano, m);
+    } catch { /* une sonde muette n'empêche pas les autres */ }
+  }));
+  // La rue des six plus proches seulement : la BAN est gratuite, pas infinie.
+  const proches = [...vus.values()].sort((a, b) => metres(point, a) - metres(point, b)).slice(0, 6);
+  const candidats = await Promise.all(proches.map(async (c) => ({ ...c, rue: rue ? await rueDe(c.lat, c.lon) : null })));
+  const choix = choisirPanorama(candidats, point, rue);
+  if (memoire.size > 500) memoire.clear();
+  memoire.set(cleMemoire, choix);
+  return choix;
+}

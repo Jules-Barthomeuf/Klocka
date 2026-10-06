@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { nf, useSecteurProjet } from "./SecteurChiffres";
 import { trouverVille, REFERENCES_FR } from "@/data/villes";
 import { EnTeteOnglet } from "./Cartes";
@@ -16,11 +15,16 @@ import { Bloc, ValeurEditable, ValeurForcee, forcee, nombreForce } from "./Editi
 // corriger : ce qu'il porte l'emporte toujours, sinon on corrigerait dans le
 // vide.
 
+// ±20 % de la surface du bien : la même tolérance que la recherche Equimmox
+// (equimmox.js, ECART_SURFACE), pour que la case affichée et la case cherchée
+// se lisent sur les mêmes locaux (5 oct. 2026, demande de Jules).
+export const ECART_SURFACE = 0.2;
+
 /** La tranche de surface sur laquelle se lisent les loyers commerciaux. */
 export function trancheSurface(surface) {
   const s = Number(surface) || 0;
   if (!s) return null;
-  return { bas: Math.round(s * 0.7), haut: Math.round(s * 1.3), surface: Math.round(s) };
+  return { bas: Math.round(s * (1 - ECART_SURFACE)), haut: Math.round(s * (1 + ECART_SURFACE)), surface: Math.round(s) };
 }
 
 const pourcent = (v, decimales = 1) => (v == null ? null : `${v > 0 ? "+" : ""}${String(Number(v).toFixed(decimales)).replace(".", ",")} %`);
@@ -213,41 +217,23 @@ function Evolution({ serie, nom }) {
   );
 }
 
-function Commercial({ prixAutour, prixProjet, loyerAutour, loyerProjet, nom }) {
-  const cartes = [
-    (prixAutour > 0 || prixProjet > 0) && { cle: "prix", precision: "prix au m²", unite: "€/m²", autour: prixAutour, projet: prixProjet },
-    (loyerAutour > 0 || loyerProjet > 0) && { cle: "loyer", precision: "loyer au m² / an", unite: "€/m²/an", autour: loyerAutour, projet: loyerProjet },
-  ].filter(Boolean);
+function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null }) {
+  // Le loyer seul : le prix des murs n'a pas de source fiable à l'échelle
+  // d'une rue (6 oct. 2026, demande de Jules).
+  if (!(loyerAutour > 0) && !(loyerProjet > 0)) return null;
+  const c = { cle: "loyer", precision: "loyer au m² / an", unite: "€/m²/an", autour: loyerAutour, projet: loyerProjet };
   // Chaque chiffre se modifie au clic : « Autour » dans les champs du
   // panneau Marché, « Le projet » en valeur forcée (il se déduit du Simulateur).
-  const AUTOUR = { prix: "marche_commercial_prix_m2", loyer: "marche_offre_moyenne" };
-  const forcer = (c, qui, texte) => (qui === "autour"
-    ? <ValeurEditable champ={AUTOUR[c.cle]}>{texte}</ValeurEditable>
+  const forcer = (qui, texte) => (qui === "autour"
+    ? <ValeurEditable champ="marche_loyer_autour">{texte}</ValeurEditable>
     : <ValeurForcee cle={`commercial_${c.cle}_projet`}>{texte}</ValeurForcee>);
-  const [i, setI] = useState(0);
-  if (!cartes.length) return null;
-  const c = cartes[Math.min(i, cartes.length - 1)];
   const plafond = Math.max(c.autour, c.projet) || 1;
   const ecart = c.autour > 0 && c.projet > 0 ? ((c.projet / c.autour) - 1) * 100 : null;
   const difference = c.autour > 0 && c.projet > 0 ? Math.round(c.autour - c.projet) : null;
   const valeur = (v) => (v > 0 ? `${nf.format(Math.round(v))} ${c.unite}` : "—");
-  // Deux vues (le prix, le loyer) : la précision de l'en-tête les fait défiler.
-  const precision = cartes.length > 1 ? (
-    <span className="flex items-center gap-1.5">
-      <button type="button" aria-label="Vue précédente" onClick={() => setI((v) => (v - 1 + cartes.length) % cartes.length)}
-        className="grid h-5 w-5 place-items-center rounded-full border-0 bg-transparent p-0 text-ardoise transition-colors hover:text-encre">
-        <ChevronLeft className="h-3.5 w-3.5" />
-      </button>
-      {c.precision}
-      <button type="button" aria-label="Vue suivante" onClick={() => setI((v) => (v + 1) % cartes.length)}
-        className="grid h-5 w-5 place-items-center rounded-full border-0 bg-transparent p-0 text-ardoise transition-colors hover:text-encre">
-        <ChevronRight className="h-3.5 w-3.5" />
-      </button>
-    </span>
-  ) : c.precision;
   return (
     <CarteMarche id="marche-commercial" titre="Commercial" className="flex-[1_1_300px]">
-      <EnTeteCarte libelle={<>Commercial{nom ? <> · <ValeurForcee cle="commercial_rue" type="text">{nom}</ValeurForcee></> : ""}</>} precision={precision} />
+      <EnTeteCarte libelle={<>Commercial{nom ? <> · <ValeurForcee cle="commercial_rue" type="text">{nom}</ValeurForcee></> : ""}</>} precision={c.precision} />
       {ecart != null && (
         <div className="mb-6 flex flex-col gap-1.5">
           <span className="text-[13px] text-ardoise">Écart avec le marché</span>
@@ -255,22 +241,31 @@ function Commercial({ prixAutour, prixProjet, loyerAutour, loyerProjet, nom }) {
         </div>
       )}
       <div className="flex flex-col gap-4">
-        <Comparaison libelle="Autour" valeur={forcer(c, "autour", valeur(c.autour))} part={c.autour / plafond} />
-        <Comparaison libelle="Le projet" valeur={forcer(c, "projet", valeur(c.projet))} part={c.projet / plafond} accent />
+        <Comparaison libelle="Autour" valeur={forcer("autour", valeur(c.autour))} part={c.autour / plafond} />
+        <Comparaison libelle="Le projet" valeur={forcer("projet", valeur(c.projet))} part={c.projet / plafond} accent />
       </div>
       {difference != null && difference !== 0 && (
         <div className="mt-auto pt-8">
           <div className="border-t border-trait pt-4 text-[13px] text-craie" style={CHIFFRES}>
-            {nf.format(Math.abs(difference))} {c.unite} {difference > 0 ? "sous le" : "au-dessus du"} {c.cle === "loyer" ? "loyer" : "prix"} autour
+            {nf.format(Math.abs(difference))} {c.unite} {difference > 0 ? "sous le" : "au-dessus du"} loyer autour
           </div>
         </div>
+      )}
+      {equimmox && (
+        <span className={`${difference != null && difference !== 0 ? "mt-3" : "mt-auto pt-6"} text-[12px] leading-[1.5] text-ardoise`}>
+          {equimmox.loyer_source === "Data-B"
+            ? `Estimation Data-B ${equimmox.maille === "rue" ? "de la rue" : equimmox.maille === "ville" ? "de la ville" : "du quartier"}, tous locaux confondus : Equimmox n'a pas constaté de bail comparable à 500 m.`
+            : `Baux constatés par Equimmox à ${equimmox.rayon || "500 m"}${equimmox.surface_min && equimmox.surface_max ? `, locaux de ${nf.format(equimmox.surface_min)} à ${nf.format(equimmox.surface_max)} m²` : ""}.`}
+        </span>
       )}
     </CarteMarche>
   );
 }
 
-export default function MarcheProjet({ project, isPublic = false, prixM2Revient = 0, loyerM2 = 0 }) {
-  const { data: donnees } = useSecteurProjet(project, !isPublic);
+export default function MarcheProjet({ project, isPublic = false, loyerM2 = 0 }) {
+  const { data: lus } = useSecteurProjet(project, !isPublic);
+  // Le lien public n'interroge pas le serveur : la fiche gardée vient avec le projet.
+  const donnees = isPublic ? project.secteur || null : lus;
   const r = donnees?.residentiel;
   const rue = donnees?.rue;
   const ville = useMemo(() => trouverVille(project.adresse_complete || ""), [project.adresse_complete]);
@@ -286,23 +281,26 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
   const nomVille = project.ville_secteur_champ1 || ville?.nom || null;
   const revenu = Number(project.ville_revenu_median) || ville?.revenu || 0;
 
-  const prixResidentiel = Number(project.marche_rue_prix_m2) || r?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
+  // Pas de repli sur marche_prix_m2_median : c'est le prix des murs
+  // commerciaux, il s'affichait sous « Prix résidentiel ».
+  const prixResidentiel = Number(project.marche_rue_prix_m2) || r?.prix_m2 || 0;
   const evo1 = duDossier(project.marche_evolution_1an, r?.evolution_1_an?.valeur);
   const evo5 = duDossier(project.marche_evolution_5ans, r?.evolution_5_ans?.valeur);
   const serie = useMemo(() => serieResidentielle({ prix: prixResidentiel, evo1, evo5 }), [prixResidentiel, evo1, evo5]);
 
-  // Ce que le dossier porte l'emporte sur la rue ; ce qui est forcé dans
-  // l'éditeur l'emporte sur le calcul.
-  const prixAutour = Number(project.marche_commercial_prix_m2) || rue?.prix_m2 || Number(project.marche_prix_m2_median) || 0;
-  const loyerAutour = Number(project.marche_offre_moyenne) || rue?.loyer_m2_an || Number(project.marche_baux_moyenne) || 0;
-  const prixProjet = nombreForce(project, "commercial_prix_projet") ?? prixM2Revient;
+  // Le loyer autour : Equimmox seul (500 m, ±20 % de surface), sauf une
+  // correction à la main dans l'éditeur, qui l'emporte. Ni ALX, ni les
+  // fourchettes recopiées du dossier.
+  const corrige = Number(project.marche_loyer_autour) || 0;
+  const loyerAutour = corrige || rue?.loyer_m2_an || 0;
+  const equimmox = !corrige && rue?.loyer_m2_an ? rue : null;
   const loyerProjet = nombreForce(project, "commercial_loyer_projet") ?? loyerM2;
   const nomRue = forcee(project, "commercial_rue") || rue?.nom || null;
 
   const contexte = forcee(project, "marche_contexte") || (nomVille ? `Ville · ${nomVille}` : agglomeration && donnees?.agglomeration?.nom ? `Agglomération · ${donnees.agglomeration.nom}` : null);
   const entete = <EnTeteOnglet titre="Marché" source={prixResidentiel > 0 ? "Source : Le Figaro Immobilier" : null} className="" />;
 
-  const rienDuTout = !habitants && !revenu && !prixResidentiel && !prixAutour && !loyerAutour && !prixProjet && !loyerProjet;
+  const rienDuTout = !habitants && !revenu && !prixResidentiel && !loyerAutour && !loyerProjet;
   if (rienDuTout) return <div className="mb-5">{entete}</div>;
 
   return (
@@ -315,10 +313,10 @@ export default function MarcheProjet({ project, isPublic = false, prixM2Revient 
           {prixResidentiel > 0 && <PrixResidentiel prix={serie.length ? serie[serie.length - 1].prix : prixResidentiel} evo1={evo1} evo5={evo5} />}
         </div>
       )}
-      {(serie.length > 1 || prixAutour > 0 || loyerAutour > 0 || prixProjet > 0 || loyerProjet > 0) && (
+      {(serie.length > 1 || loyerAutour > 0 || loyerProjet > 0) && (
         <div className="flex flex-wrap gap-4">
           <Evolution serie={serie} nom={r?.nom} />
-          <Commercial prixAutour={prixAutour} prixProjet={prixProjet} loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} />
+          <Commercial loyerAutour={loyerAutour} loyerProjet={loyerProjet} nom={nomRue} equimmox={equimmox} />
         </div>
       )}
     </div>

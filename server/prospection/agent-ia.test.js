@@ -106,3 +106,80 @@ test('Monday : les valeurs du tableau « Prospection Agent Immo », et la note l
   const sansMonday = await MC.versMonday([{ nom: 'X', telephone: '0600000000' }]);
   assert.equal(sansMonday.ok, false, 'sans jeton Monday, rien ne part');
 });
+
+test('05/10 · Google Maps : une agence de la commune, ouverte ; son site sans pistage', async () => {
+  const M = await import('./agences-maps.js');
+  const nice = { nom: 'Nice', codes_postaux: ['06000', '06100'] };
+  const lieu = (cp, extra = {}) => ({ id: `p${cp}`, displayName: { text: 'Orpi Nice Centre' }, formattedAddress: `3 rue de France, ${cp} Nice, France`, primaryType: 'real_estate_agency', types: ['real_estate_agency'], businessStatus: 'OPERATIONAL', nationalPhoneNumber: '04 93 00 00 01', websiteUri: 'https://www.orpi.com/nice/?utm_source=gmb&utm_medium=x', ...extra });
+  assert.equal(M.aGarder(lieu('06000'), nice), true);
+  assert.equal(M.aGarder(lieu('06600'), nice), false, 'Antibes : une autre commune');
+  assert.equal(M.aGarder(lieu('06000', { businessStatus: 'CLOSED_PERMANENTLY' }), nice), false);
+  assert.equal(M.aGarder(lieu('06000', { primaryType: 'real_estate_developer', types: ['real_estate_developer'] }), nice), false);
+  const a = M.versAgence(lieu('06000'));
+  assert.equal(a.site, 'https://www.orpi.com/nice/');
+  assert.equal(a.telephone, '04 93 00 00 01');
+  assert.equal(a.code_postal, '06000');
+  assert.equal(M.decouper({ sud: 0, nord: 2, ouest: 0, est: 2 }).length, 4);
+});
+
+test('05/10 · Maps fait foi pour le téléphone et le site ; Equimmox n\'invente plus de site', async () => {
+  const l = Records.create('ListeAgences', { ville: 'Antibes', etat: 'fini', journal: [] });
+  // Avant : une agence née d'Equimmox avec le domaine du mail d'un agent CBRE.
+  const vieille = Records.create('AgenceProspect', { liste_id: l.id, nom: 'Bergé Immobilier', site: 'https://cbre.fr', sources: ['Equimmox'], agents: [], gerants: [] });
+  IA.reprendre();
+  assert.equal(Records.get('AgenceProspect', vieille.id).site, null, 'un site déduit d\'un mail ne vaut rien');
+  assert.equal(Records.get('AgenceProspect', vieille.id).site_mail, 'https://cbre.fr', 'gardé à part, pas perdu');
+  const d = IA.ranger(l.id, { nom: 'Orpi Antibes', telephone: '04 00 00 00 09', site: 'https://ancien.fr', sources: ['Data-B'] });
+  const chercher = async () => ({
+    commune: { nom: 'Antibes' }, ecartes: 0,
+    agences: [
+      { nom: 'Bergé Immobilier', telephone: '04 93 99 52 52', site: 'https://www.berge.fr/', place_id: 'pb', maps_url: 'https://maps.google.com/?cid=1' },
+      { nom: 'ORPI Antibes', telephone: '04 93 11 11 11', site: 'https://www.orpi.com/antibes/', place_id: 'po' },
+    ],
+  });
+  await IA._parMaps(l, { chercher });
+  const berge = Records.get('AgenceProspect', vieille.id);
+  assert.equal(berge.site, 'https://www.berge.fr/');
+  assert.equal(berge.telephone, '04 93 99 52 52');
+  assert.equal(berge.site_source, 'Google Maps');
+  const orpi = Records.get('AgenceProspect', d.agence.id);
+  assert.equal(orpi.site, 'https://www.orpi.com/antibes/', 'la fiche Maps remplace le site lu ailleurs');
+  assert.equal(orpi.telephone, '04 93 11 11 11');
+  assert.equal(IA.liste(l.id).agences, 2, 'sans doublon');
+});
+
+test('05/10 · supprimer une ville : sa liste et ses lignes partent, le carnet reste', async () => {
+  const l = Records.create('ListeAgences', { ville: 'Grasse', etat: 'fini', journal: [] });
+  const a = IA.ranger(l.id, { nom: 'Orpi Grasse', telephone: '04 93 22 22 22', sources: ['Google Maps'] }).agence;
+  const r = await IA.auCarnet(a.id, {}, { email: 'jules.b@klocka.immo' });
+  assert.equal(r.ok, true);
+  const carnetAvant = Records.list('AgentImmo').length;
+  const s = IA.supprimerListe(l.id);
+  assert.deepEqual([s.ok, s.ville, s.agences], [true, 'Grasse', 1]);
+  assert.equal(Records.get('ListeAgences', l.id), null);
+  assert.equal(Records.list('AgenceProspect').filter((x) => x.liste_id === l.id).length, 0);
+  assert.equal(Records.list('AgentImmo').length, carnetAvant, 'le carnet ne dépend pas de la liste');
+  assert.equal(IA.supprimerListe(l.id).ok, false);
+});
+
+test('06/10 · Monday : une agence déjà en contact (téléphone, mail, domaine, nom ou un de ses agents) est marquée', async () => {
+  const MC = await import('./monday-connus.js');
+  const lire = async () => [
+    { tableau: 'Prospection Agent Immo', nom: 'Olivier Lamy', agence: 'Mâcon Centre Transactions', telephone: '03 85 40 12 18', email: 'olivier@mct-immo.fr', statut: 'À rappeler', date: '2026-10-01' },
+    { tableau: 'Agent immobilier', nom: 'Sandrine Perrot', agence: 'Immobilière de la Saône', telephone: '06 11 22 33 44', email: null, statut: 'Intéressé' },
+  ];
+  const index = await MC.contactsMonday({ forcer: true, lire });
+  assert.equal(MC.connu(index, { telephone: '+33 3 85 40 12 18' }).par, 'téléphone');
+  assert.equal(MC.connu(index, { site: 'https://www.mct-immo.fr/agence' }).par, 'domaine');
+  assert.equal(MC.connu(index, { nom: "L'Immobilière de la Saône" }).par, 'nom');
+  assert.equal(MC.connu(index, { telephone: '03 85 00 00 00', nom: 'Autre Agence' }), null);
+  const l = Records.create('ListeAgences', { ville: 'Mâcon', etat: 'fini', journal: [] });
+  const mct = IA.ranger(l.id, { nom: 'Mâcon Centre Transactions', telephone: '03 85 40 12 18', sources: ['Google Maps'] }).agence;
+  const autre = IA.ranger(l.id, { nom: 'Les Clés du Mâconnais', telephone: '03 85 39 77 02', agents: [], sources: ['Google Maps'] }).agence;
+  Records.update('AgenceProspect', autre.id, { agents: [{ nom: 'Sandrine', telephone: '06 11 22 33 44' }] });
+  const r = await MC.marquerListe(l.id, { index });
+  assert.deepEqual([r.connues, r.total], [2, 2]);
+  assert.equal(Records.get('AgenceProspect', mct.id).monday_connu.tableau, 'Prospection Agent Immo');
+  assert.equal(Records.get('AgenceProspect', autre.id).monday_connu.par, 'un de ses agents');
+  assert.equal(IA.liste(l.id).deja_monday, 2);
+});

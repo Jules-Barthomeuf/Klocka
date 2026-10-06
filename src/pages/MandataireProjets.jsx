@@ -27,21 +27,21 @@ export default function MandataireProjets() {
     <div className="mx-auto w-full max-w-[1400px] px-5 py-6 md:px-10 md:py-9">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre">Projets</h1>
+          <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Projets</h1>
           <p className="m-0 mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-craie">Les biens présentés aux investisseurs de Klocka, comme ils les voient. Les vôtres, et tous les autres.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 max-md:w-full">
           <div className="flex rounded-full bg-rail-actif p-1">
             {FILTRES.map(([cle, mot]) => (
               <button key={cle} type="button" onClick={() => setFiltre(cle)} aria-pressed={filtre === cle}
-                className={`rounded-full px-3.5 py-1.5 text-[13px] ${filtre === cle ? "bg-surface-pleine text-encre" : "text-ardoise"}`} style={filtre === cle ? undefined : { background: "transparent" }}>
+                className={`rounded-full px-3.5 py-1.5 text-[13px] max-md:py-2 ${filtre === cle ? "bg-surface-pleine text-encre" : "text-ardoise"}`} style={filtre === cle ? undefined : { background: "transparent" }}>
                 {mot}{cle === "mes" && data ? ` · ${data.mes.length}` : ""}
               </button>
             ))}
           </div>
-          <div className="flex min-w-[220px] items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2">
+          <div className="flex min-w-[220px] items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2 max-md:min-w-0 max-md:flex-1 max-md:basis-full">
             <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
-            <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Ville, activité…" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+            <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Ville, activité…" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
         </div>
       </header>
@@ -79,12 +79,12 @@ function FicheProjet({ p, onFermer }) {
     ["Fin du bail", p.echeance_bail || null],
   ].filter(([, v]) => v);
   return createPortal(
-    <div className="fixed inset-0 z-[80] grid place-items-center px-4" style={{ background: "rgb(var(--k-encre-rgb) / 0.35)" }} onClick={onFermer}>
-      <div className="relative max-h-[88vh] w-full max-w-[720px] overflow-y-auto rounded-[20px] border border-trait k-grid" onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={onFermer} aria-label="Fermer" className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
-        {photos[0] && <img src={photos[0]} alt="" className="h-[300px] w-full object-cover" />}
-        <div className="px-6 py-5">
-          <p className="m-0 text-[20px] text-encre">{p.titre}</p>
+    <div className="fixed inset-0 z-[80] grid place-items-center px-4 max-md:px-3" style={{ background: "rgb(var(--k-encre-rgb) / 0.35)" }} onClick={onFermer}>
+      <div className="relative max-h-[88vh] w-full max-w-[720px] overflow-y-auto max-md:max-h-[calc(100dvh-24px)] rounded-[20px] border border-trait k-grid" onClick={(e) => e.stopPropagation()}>
+        <button type="button" onClick={onFermer} aria-label="Fermer" className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center max-md:right-3 max-md:top-3 max-md:h-10 max-md:w-10 rounded-full bg-surface-pleine text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
+        {photos[0] && <img src={photos[0]} alt="" className="h-[300px] w-full object-cover max-md:h-[200px]" />}
+        <div className="px-6 py-5 max-md:px-4">
+          <p className="m-0 text-[20px] text-encre max-md:pr-10">{p.titre}</p>
           {p.mien && <p className="m-0 mt-1 text-[12.5px] text-menthe">Votre projet{p.origine ? ` · né de votre dossier « ${p.origine.bien} »${p.origine.mandat_numero ? `, mandat n° ${p.origine.mandat_numero}` : ""}` : ""}</p>}
           <dl className="m-0 mt-4 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
             {lignes.map(([k, v]) => (
@@ -96,7 +96,7 @@ function FicheProjet({ p, onFermer }) {
           </dl>
           {photos.length > 1 && (
             <div className="mt-4 grid grid-cols-3 gap-2">
-              {photos.slice(1, 7).map((u) => <img key={u} src={u} alt="" className="h-24 w-full rounded-[10px] object-cover" />)}
+              {photos.slice(1, 7).map((u) => <img key={u} src={u} alt="" className="h-24 w-full rounded-[10px] object-cover max-md:h-20" />)}
             </div>
           )}
         </div>

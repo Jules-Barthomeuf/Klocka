@@ -60,7 +60,9 @@ export default function CarteMurs({ murs, ailleurs = [], villeId = null, onOuvri
         if (!vivant || !conteneur.current || carte.current) return;
         carte.current = new window.google.maps.Map(conteneur.current, {
           center: { lat: 46.6, lng: 2.4 }, zoom: 6, mapTypeId: "roadmap",
-          disableDefaultUI: true, zoomControl: true, gestureHandling: "greedy", clickableIcons: false,
+          disableDefaultUI: true, zoomControl: true, clickableIcons: false,
+          // Au téléphone, un doigt fait défiler le panneau, deux bougent la carte.
+          gestureHandling: window.matchMedia("(max-width: 767px)").matches ? "cooperative" : "greedy",
         });
         setPrete(true);
       })
@@ -99,7 +101,7 @@ export default function CarteMurs({ murs, ailleurs = [], villeId = null, onOuvri
     g.event.addListenerOnce(carte.current, "idle", () => { if (carte.current.getZoom() > 18) carte.current.setZoom(18); });
   }, [prete, cadre, tous, villeId]);
 
-  const pastille = (actif) => `rounded-full border px-2.5 py-0.5 text-[11.5px] backdrop-blur transition-colors ${actif ? "border-menthe text-encre" : "border-bord text-brume hover:text-encre"}`;
+  const pastille = (actif) => `rounded-full border px-2.5 py-0.5 text-[11.5px] backdrop-blur transition-colors max-md:py-1.5 ${actif ? "border-menthe text-encre" : "border-bord text-brume hover:text-encre"}`;
   if (erreur) return <div className={`grid place-items-center rounded-[16px] border border-trait px-6 text-center text-[12.5px] text-ardoise ${className}`}>Carte indisponible : {erreur}.</div>;
   return (
     <div className={className}>
@@ -112,7 +114,7 @@ export default function CarteMurs({ murs, ailleurs = [], villeId = null, onOuvri
           {TYPES_CARTE.slice(0, 2).map((t) => <button key={t.cle} type="button" onClick={() => setType(t.cle)} className={pastille(type === t.cle)} style={{ background: "transparent" }}>{t.nom}</button>)}
         </div>
       </div>
-      <div className="relative h-72 overflow-hidden rounded-[16px] border border-trait">
+      <div className="relative h-72 overflow-hidden rounded-[16px] border border-trait max-md:h-64">
         <div ref={conteneur} className="h-full w-full" />
       </div>
       {autresVilles.length > 0 && <p className="m-0 mt-2 text-[11.5px] text-brume"><span className="inline-block h-2 w-2 rounded-full align-middle" style={{ background: JL.ambre }} /> aussi à {autresVilles.join(", ")}</p>}

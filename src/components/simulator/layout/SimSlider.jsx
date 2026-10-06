@@ -17,6 +17,10 @@ const sliderStyle = `
   background:#96c0b8; border:2px solid #0f1114; cursor:pointer;
 }
 .sim-slider-input:disabled{ opacity:0.4; cursor:not-allowed; }
+@media (max-width: 767px){
+  .sim-slider-input::-webkit-slider-thumb{ width:22px; height:22px; }
+  .sim-slider-input::-moz-range-thumb{ width:22px; height:22px; }
+}
 .sim-num-input::-webkit-outer-spin-button,
 .sim-num-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 .sim-num-input{ -moz-appearance:textfield; appearance:textfield; }
@@ -42,8 +46,8 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
   };
 
   return (
-    <div className="py-1.5">
-      <div className="flex items-center justify-between text-[12.5px] leading-tight">
+    <div className="py-1.5 max-md:py-2.5">
+      <div className="flex items-center justify-between text-[12.5px] max-md:text-[13.5px] leading-tight">
         <span className={`truncate pr-2 ${alerte ? "text-alerte" : "text-ardoise"}`}>{label}</span>
         {editing ? (
           <input
@@ -53,12 +57,12 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-            className="sim-num-input bg-fond text-encre text-right text-[12.5px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
+            className="sim-num-input bg-fond text-encre text-right text-[12.5px] max-md:text-[16px] w-24 px-1.5 py-0.5 rounded border border-menthe/40 outline-none tabular-nums transition-all duration-300 ease-out animate-in fade-in zoom-in-95"
           />
         ) : (
           <button
             onClick={beginEdit}
-            className={`tabular-nums font-medium transition-all duration-300 ease-out ${alerte ? "text-alerte" : muted ? "text-craie" : "text-encre"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-menthe"}`}
+            className={`tabular-nums font-medium max-md:py-1 transition-all duration-300 ease-out ${alerte ? "text-alerte" : muted ? "text-craie" : "text-encre"} ${disabled ? "cursor-not-allowed opacity-60" : "cursor-text hover:underline hover:text-menthe"}`}
             aria-label={alerte || "Cliquer pour modifier"} title={alerte || "Cliquer pour modifier"}
           >
             {display}{unit}
@@ -73,7 +77,7 @@ export default function SimSlider({ label, value, onChange, min, max, step = 1, 
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="sim-slider-input w-full mt-1.5"
+        className="sim-slider-input w-full mt-1.5 max-md:mt-3"
         style={{ background: alerte ? `linear-gradient(to right, #e8746a ${pct}%, #3a1f1c ${pct}%)` : `linear-gradient(to right, #96c0b8 ${pct}%, #262626 ${pct}%)` }}
       />
       {alerte && <p className="m-0 mt-1 text-[11px] text-alerte">{alerte}</p>}

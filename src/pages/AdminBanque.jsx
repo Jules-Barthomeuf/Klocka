@@ -187,7 +187,7 @@ export default function AdminBanque() {
                         value={linkValue}
                         onChange={(e) => setLinkValue(e.target.value)}
                         placeholder="Coller le lien Google Slides ou .pptx ici..."
-                        className="bg-fond border-encre/[0.1] text-encre text-xs h-9 flex-1"
+                        className="bg-fond border-encre/[0.1] text-encre text-xs h-9 flex-1 max-md:text-[16px]"
                       />
                       <Button
                         size="sm"

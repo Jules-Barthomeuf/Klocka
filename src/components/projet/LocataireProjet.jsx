@@ -93,7 +93,7 @@ function Case({ valeur, label, info, champ = null, type = "number", force = null
   const texte = valeur || "—";
   return (
     <div>
-      <div className={`text-[32px] max-md:text-[24px] font-medium tracking-[-0.02em] leading-none ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className={`text-[32px] max-md:text-[21px] font-medium tracking-[-0.02em] leading-none max-md:leading-tight ${valeur ? "text-encre" : "text-brume"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
         {force ? <ValeurForcee cle={force}>{texte}</ValeurForcee> : <ValeurEditable champ={champ} type={type}>{texte}</ValeurEditable>}
       </div>
       <div className="text-[13px] text-ardoise mt-2.5 flex items-center gap-1.5">{label}<InfoDot texte={info} /></div>

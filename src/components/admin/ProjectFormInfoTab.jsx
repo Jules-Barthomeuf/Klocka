@@ -31,31 +31,31 @@ export default function ProjectFormInfoTab({ formData, setFormData }) {
     <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
       <div className={fieldWrap}>
         <div className={flabel}>Activité</div>
-        <input value={formData.activite_locataire || ""} onChange={texte("activite_locataire")} placeholder="Restaurant, pharmacie, prêt-à-porter" className={`${fieldInput} text-[15px]`} />
+        <input value={formData.activite_locataire || ""} onChange={texte("activite_locataire")} placeholder="Restaurant, pharmacie, prêt-à-porter" className={`${fieldInput} text-[15px] max-md:text-[16px]`} />
         <div className="mt-1.5 text-[11px] text-brume">un mot ou deux : c&apos;est ce que le client lit en gros</div>
       </div>
       <div className={fieldWrap}>
         <div className={flabel}>Année de la dernière vente</div>
-        <input type="number" value={formData.derniere_vente_annee || ""} onChange={nombre("derniere_vente_annee")} placeholder="2019" className={`${fieldInput} text-[15px]`} />
+        <input type="number" value={formData.derniere_vente_annee || ""} onChange={nombre("derniere_vente_annee")} placeholder="2019" className={`${fieldInput} text-[15px] max-md:text-[16px]`} />
         <div className="mt-1.5 text-[11px] text-brume">d&apos;après les ventes publiées ou l&apos;acte</div>
       </div>
       <div className={fieldWrap}>
         <div className={flabel}>Prix de la dernière vente</div>
-        <input type="number" value={formData.derniere_vente_prix || ""} onChange={nombre("derniere_vente_prix")} placeholder="480000" className={`${fieldInput} text-[15px]`} />
+        <input type="number" value={formData.derniere_vente_prix || ""} onChange={nombre("derniere_vente_prix")} placeholder="480000" className={`${fieldInput} text-[15px] max-md:text-[16px]`} />
         <div className="mt-1.5 text-[11px] text-brume">en euros, affiché sous l&apos;année</div>
       </div>
       <div className={fieldWrap}>
         <div className={flabel}>Détenu depuis</div>
-        <input type="number" value={formData.detenu_depuis || ""} onChange={nombre("detenu_depuis")} placeholder="2014" className={`${fieldInput} text-[15px]`} />
+        <input type="number" value={formData.detenu_depuis || ""} onChange={nombre("detenu_depuis")} placeholder="2014" className={`${fieldInput} text-[15px] max-md:text-[16px]`} />
         <div className="mt-1.5 text-[11px] text-brume">l&apos;année ; à défaut, celle de la dernière vente</div>
       </div>
       <div className={fieldWrap}>
         <div className={flabel}>Surface m²</div>
-        <input type="number" value={formData.surface_m2 || ""} onChange={nombre("surface_m2")} placeholder="60" className={`${fieldInput} text-[15px]`} />
+        <input type="number" value={formData.surface_m2 || ""} onChange={nombre("surface_m2")} placeholder="60" className={`${fieldInput} text-[15px] max-md:text-[16px]`} />
       </div>
       <div className={fieldWrap}>
         <div className={flabel}>Détail des surfaces</div>
-        <textarea rows={2} value={formData.surface_detail || ""} onChange={texte("surface_detail")} placeholder="40 m² en rez-de-chaussée, 20 m² en sous-sol pondérés à 50 %" className={`${fieldInput} text-[14px] resize-y`} />
+        <textarea rows={2} value={formData.surface_detail || ""} onChange={texte("surface_detail")} placeholder="40 m² en rez-de-chaussée, 20 m² en sous-sol pondérés à 50 %" className={`${fieldInput} text-[14px] resize-y max-md:text-[16px]`} />
         <div className="mt-1.5 text-[11px] text-brume">la pondération, caché derrière l&apos;info au survol</div>
       </div>
     </div>
@@ -128,7 +128,7 @@ export function CarteClients({ formData, setFormData, users }) {
                 <div className="absolute top-[calc(100%+8px)] left-0 w-[280px] bg-surface border border-encre/[0.1] rounded-md p-1.5 z-30 shadow-[0_18px_40px_rgba(0,0,0,0.55)]">
                   <div className="relative mb-1">
                     <Search className="w-4 h-4 text-brume absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Rechercher..." className="w-full bg-surface border border-trait rounded-lg pl-9 pr-3 py-2 text-[12.5px] text-encre outline-none placeholder:text-brume" />
+                    <input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Rechercher..." className="w-full bg-surface border border-trait rounded-lg pl-9 pr-3 py-2 text-[12.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
                   </div>
                   <div className="max-h-[220px] overflow-auto">
                     {clientCandidates.map((u) => (
@@ -162,7 +162,7 @@ export function CarteDocuments({ formData, setFormData }) {
         <div className={flabel}>Documents étudiés (URL)</div>
         <div className="flex flex-col gap-2.5">
           <div className="flex gap-2.5 items-center">
-            <input value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addDoc(); }} placeholder="https://exemple.com/document.pdf" className={`${fieldInput} text-[15px] flex-1`} />
+            <input value={newDocUrl} onChange={(e) => setNewDocUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addDoc(); }} placeholder="https://exemple.com/document.pdf" className={`${fieldInput} text-[15px] flex-1 max-md:text-[16px]`} />
             <button type="button" onClick={addDoc} className="w-8 h-8 rounded-full bg-menthe text-sur-menthe flex items-center justify-center text-[15px] cursor-pointer flex-shrink-0 hover:bg-menthe-survol transition-colors">+</button>
           </div>
           {formData.documents.length > 0 && (

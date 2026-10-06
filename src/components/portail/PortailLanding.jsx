@@ -101,7 +101,7 @@ function CTAButton({ onClick, label }) {
   return (
     <div className="text-center">
       <button onClick={onClick}
-        className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 py-4 rounded-full transition-all text-base group shadow-lg shadow-menthe/20">
+        className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 max-md:px-6 py-4 rounded-full max-md:max-w-full max-md:text-[15px] transition-all text-base group shadow-lg shadow-menthe/20">
         {label} <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
       </button>
       <p className="text-brume text-xs mt-3 italic">Places limitées par cohorte</p>
@@ -112,7 +112,7 @@ function CTAButton({ onClick, label }) {
 function Section({ children, id = undefined, dark = true }) {
   return (
     <section id={id} className={dark ? "bg-fond text-encre" : "bg-surface text-encre"}>
-      <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">{children}</div>
+      <div className="max-w-5xl mx-auto px-6 max-md:px-5 py-20 max-md:py-14 md:py-28">{children}</div>
     </section>
   );
 }
@@ -137,7 +137,7 @@ export default function PortailLanding({ onContinue }) {
 
       {/* ═══════ SECTION 1 — HERO ═══════ */}
       <section className="bg-fond text-encre">
-        <div className="max-w-6xl mx-auto px-6 py-16 md:py-28">
+        <div className="max-w-6xl mx-auto px-6 max-md:px-5 py-16 max-md:py-12 md:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left — Text */}
             <div>
@@ -166,7 +166,7 @@ export default function PortailLanding({ onContinue }) {
               </div>
 
               <button onClick={onContinue}
-                className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-8 py-4 rounded-full transition-all text-base group shadow-lg shadow-menthe/20">
+                className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-8 max-md:px-6 py-4 rounded-full max-md:max-w-full max-md:text-[15px] transition-all text-base group shadow-lg shadow-menthe/20">
                 Je veux investir en immobilier commercial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <p className="text-brume text-xs mt-3 italic">Places limitées par cohorte</p>
@@ -175,7 +175,7 @@ export default function PortailLanding({ onContinue }) {
             {/* Right — Image */}
             <div className="relative">
               <div className="rounded-md overflow-hidden border border-trait shadow-2xl">
-                <img src={PHOTO_COUPLE} alt="Investisseurs sereins" className="w-full h-[400px] lg:h-[480px] object-cover" />
+                <img src={PHOTO_COUPLE} alt="Investisseurs sereins" className="w-full h-[400px] max-md:h-[280px] lg:h-[480px] object-cover" />
               </div>
 
             </div>
@@ -185,7 +185,7 @@ export default function PortailLanding({ onContinue }) {
 
       {/* ═══════ SECTION 2 — IDENTIFICATION DU PROBLÈME ═══════ */}
       <section className="bg-fond text-encre">
-        <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6 max-md:px-5 py-20 max-md:py-14 md:py-28">
         <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-5 text-center text-menthe">Le constat</p>
         <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-center leading-tight uppercase tracking-wide text-encre">
           Vous savez que l'immobilier commercial est un des meilleurs placements. <span className="text-menthe">Mais vous n'avez jamais franchi le cap.</span>
@@ -272,7 +272,7 @@ export default function PortailLanding({ onContinue }) {
 
       {/* ═══════ SECTION 4 — CE QUE COMPREND L'ACCOMPAGNEMENT ═══════ */}
       <section className="bg-fond text-encre">
-        <div className="max-w-6xl mx-auto px-6 py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-6 max-md:px-5 py-20 max-md:py-14 md:py-28">
           <p className="uppercase tracking-[0.25em] text-[11px] font-semibold mb-4 text-center text-menthe">L'accompagnement</p>
           <h2 className="text-3xl md:text-5xl font-black mb-4 text-center leading-tight uppercase tracking-wide text-encre">
             Un service complet, <span className="text-menthe">de A à Z</span>.
@@ -469,8 +469,8 @@ export default function PortailLanding({ onContinue }) {
 
       {/* ═══════ FINAL CTA ═══════ */}
       <section className="bg-fond text-encre">
-        <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
-          <div className="bg-gradient-to-br from-menthe/15 via-menthe/5 to-transparent border border-menthe/25 rounded-3xl p-8 md:p-14 text-center max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto px-6 max-md:px-5 py-20 max-md:py-14 md:py-28">
+          <div className="bg-gradient-to-br from-menthe/15 via-menthe/5 to-transparent border border-menthe/25 rounded-3xl p-8 max-md:px-5 max-md:py-7 md:p-14 text-center max-w-3xl mx-auto">
             <img src={LOGO_KLOCKA} alt="Klocka" className="h-10 mx-auto mb-6 object-contain" />
             <Label>Dernière étape</Label>
             <h2 className="text-2xl md:text-4xl font-black text-encre mb-4 uppercase tracking-wide">
@@ -480,7 +480,7 @@ export default function PortailLanding({ onContinue }) {
               Pour finaliser votre inscription, consultez et acceptez nos conditions générales, puis procédez au paiement sécurisé.
             </p>
             <button onClick={onContinue}
-              className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 py-4 rounded-full transition-all text-base group shadow-lg shadow-menthe/25">
+              className="inline-flex items-center gap-2.5 bg-menthe hover:bg-menthe-fonce text-encre font-bold px-10 max-md:px-6 py-4 rounded-full max-md:max-w-full max-md:text-[15px] transition-all text-base group shadow-lg shadow-menthe/25">
               Démarrer l'accompagnement <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
             <p className="text-brume text-xs mt-4 italic">Places limitées par cohorte</p>
@@ -491,7 +491,7 @@ export default function PortailLanding({ onContinue }) {
       {/* ═══════ FOOTER ═══════ */}
       <footer className="bg-fond border-t border-relief px-6 py-8">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 max-md:flex-col max-md:gap-3 max-md:text-center">
             <img src={LOGO_KLOCKA} alt="Klocka" className="h-5 w-auto opacity-60" />
             <p className="text-brume text-xs">© 2025 Klocka · Développeur de revenus immobiliers</p>
           </div>

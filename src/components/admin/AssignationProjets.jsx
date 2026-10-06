@@ -49,7 +49,7 @@ function Liste({ elements, coches, basculer, recherche, setRecherche, vide }) {
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Rechercher…"
-          className="w-full bg-surface border border-trait focus:border-menthe rounded-md pl-9 pr-3 py-2 text-[13.5px] text-encre outline-none"
+          className="w-full bg-surface border border-trait focus:border-menthe rounded-md pl-9 pr-3 py-2 text-[13.5px] text-encre outline-none max-md:text-[16px]"
         />
       </div>
       {/* Tout, d'un clic — sur ce que la recherche montre, pas au-delà. */}
@@ -125,20 +125,6 @@ export function DialogueAssignerClient({ ouvert, onClose, users, formData, onVal
     // Le principal reste s'il est toujours coché ; sinon le premier prend sa place.
     const principal = coches.has(formData.client_email) ? formData.client_email : emails[0] || "";
     onValider({ client_email: principal, client_emails: emails.filter((e) => e !== principal) });
-    // Les nouveaux venus seulement, et jamais sans un oui : le mail part sous
-    // les yeux de celui qui assigne.
-    const avant = new Set([formData.client_email, ...(formData.client_emails || [])].filter(Boolean));
-    const nouveaux = emails.filter((e) => !avant.has(e));
-    if (nouveaux.length && window.confirm(`Prévenir par e-mail ${nouveaux.length === 1 ? nouveaux[0] : `les ${nouveaux.length} nouveaux clients`} qu'un projet leur est attribué ?`)) {
-      for (const email of nouveaux) {
-        try {
-          await base44.functions.invoke("sendProjectAssignmentEmail", { clientEmail: email, projectTitle: formData.titre, projectId: formData.id });
-        } catch {
-          /* le mail est un plus, l'assignation est le fait */
-        }
-      }
-      toast.success(`${nouveaux.length} client${nouveaux.length > 1 ? "s" : ""} prévenu${nouveaux.length > 1 ? "s" : ""}`);
-    }
     onClose();
   };
 
@@ -208,7 +194,7 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
     });
 
   const enregistrer = useMutation({
-    mutationFn: async (prevenir) => {
+    mutationFn: async () => {
       const email = user.email;
       let ajoutes = 0;
       let retires = 0;
@@ -222,14 +208,6 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
             : { client_email: email };
           await base44.entities.Project.update(p.id, patch);
           ajoutes += 1;
-          // Le client apprend qu'un projet l'attend — si on l'a voulu.
-          if (prevenir) {
-            try {
-              await base44.functions.invoke("sendProjectAssignmentEmail", { clientEmail: email, projectTitle: p.titre, projectId: p.id });
-            } catch {
-              /* le mail est un plus, l'assignation est le fait */
-            }
-          }
         } else {
           const restants = (p.client_emails || []).filter((e) => e !== email);
           const patch =
@@ -283,7 +261,7 @@ export function DialogueAssignerProjets({ user, projects, ouvert, onClose }) {
               Annuler
             </button>
             <button
-              onClick={() => enregistrer.mutate(window.confirm("Prévenir le ou les clients par e-mail qu'un projet leur est attribué ?"))}
+              onClick={() => enregistrer.mutate()}
               disabled={enregistrer.isPending}
               className="inline-flex items-center gap-2 px-5 py-2 bg-menthe text-fond text-[11px] tracking-[.14em] uppercase font-semibold hover:bg-menthe-survol disabled:opacity-40 rounded-full"
             >

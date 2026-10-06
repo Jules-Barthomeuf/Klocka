@@ -170,12 +170,12 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
   return (
     <div className="animate-in fade-in duration-200 fixed inset-0 z-[600] flex flex-col">
       <FondHalo />
-      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-1 flex-col overflow-hidden px-4 pt-6">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-1 flex-col overflow-hidden px-4 pt-6 max-md:overflow-y-auto max-md:pt-[calc(env(safe-area-inset-top)+12px)]">
         <div className="mb-4 flex flex-shrink-0 items-start justify-between gap-4">
           <div>
             <button onClick={onFermer} className="mb-2 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Retour à la carte</button>
             <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">Parcelle {p.section} {p.numero}</p>
-            <h1 className="m-0 mt-1 text-[24px] font-light text-encre">{p.contenance != null ? `${p.contenance.toLocaleString("fr-FR")} m²` : "Contenance inconnue"} · {point?.label}</h1>
+            <h1 className="m-0 mt-1 text-[24px] font-light text-encre max-md:text-[20px]">{p.contenance != null ? `${p.contenance.toLocaleString("fr-FR")} m²` : "Contenance inconnue"} · {point?.label}</h1>
             <p className="m-0 mt-1 text-[12px] text-ardoise">
               {isLoading ? "Lecture du fichier des personnes morales…" : `${proprietaires.length} propriétaire${proprietaires.length > 1 ? "s" : ""} personne${proprietaires.length > 1 ? "s" : ""} morale${proprietaires.length > 1 ? "s" : ""}`}
               {data?.annee ? ` · situation au 1er janvier ${data.annee}` : ""}
@@ -184,8 +184,8 @@ function FicheParcelle({ parcelle: p, voisines, point, onFermer }) {
           <button onClick={onFermer} title="Fermer" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_460px]">
-          <div className="min-h-0 overflow-y-auto rounded-[18px] border border-trait bg-surface p-4">
+        <div className="grid min-h-0 flex-1 gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_460px] max-md:flex-none max-md:pb-[calc(env(safe-area-inset-bottom)+24px)]">
+          <div className="min-h-0 overflow-y-auto rounded-[18px] border border-trait bg-surface p-4 max-md:overflow-visible">
             <p className="alx-mont m-0 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Propriétaires détenant un bien à cette adresse</p>
             {error && <p className="m-0 text-[13px] text-alerte">{error.message}</p>}
             {isLoading && <p className="m-0 flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Lecture…</p>}
@@ -266,17 +266,17 @@ export default function KFoncier() {
   const voisines = ouverte && vue ? vue.parcelles.filter((x) => x.section === ouverte.section) : [];
 
   return (
-    <div className="relative h-[calc(100dvh-56px)] overflow-hidden">
+    <div className="relative h-[calc(100dvh-56px)] overflow-hidden max-md:h-[calc(100dvh-var(--k-haut-mobile,56px))]">
       <CarteParcelles point={carteCentre} parcelles={vue?.parcelles || []} onParcelle={ouvrirParcelle} onErreur={(m) => toast.error(m)} />
 
-      <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
+      <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[45%] max-md:w-auto max-md:max-w-none overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
         <div className="border-b border-trait p-3">
           <div className="relative">
             <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
               <Search className="h-4 w-4 flex-shrink-0 text-brume" />
               <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="Une adresse à analyser"
                 onKeyDown={(ev) => { if (ev.key === "Enter" && adresse.trim().length >= 5) analyser.mutate(adresse); }}
-                className="h-10 w-full bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume" />
+                className="h-10 w-full bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               {analyser.isPending && <Loader2 className="h-4 w-4 animate-spin text-menthe" />}
             </div>
             {suggestions.length > 0 && (
@@ -320,7 +320,7 @@ export default function KFoncier() {
       </div>
 
       {!vue && !analyser.isPending && (
-        <div className="absolute bottom-6 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-bord bg-fond/80 px-4 py-2 text-[12px] text-ardoise backdrop-blur-xl">
+        <div className="absolute bottom-6 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-bord bg-fond/80 px-4 py-2 text-[12px] text-ardoise backdrop-blur-xl max-md:bottom-[calc(env(safe-area-inset-bottom)+16px)] max-md:w-[calc(100%-24px)] max-md:rounded-[14px] max-md:text-center">
           <Building2 className="mr-1.5 inline h-3.5 w-3.5 text-menthe" />Choisissez une adresse : les parcelles autour s&apos;affichent avec leur contenance.
         </div>
       )}

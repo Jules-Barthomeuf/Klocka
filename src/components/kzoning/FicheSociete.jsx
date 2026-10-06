@@ -43,9 +43,9 @@ export const effectif = (code) => EFFECTIFS[code] || (code ? `Code ${code}` : "�
 /** Une ligne d'un tableau de fiche : un intitulé à gauche, sa valeur à droite. */
 function Ligne({ label, children, second = null }) {
   return (
-    <div className="flex items-baseline gap-4 border-b border-trait py-2.5">
-      <span className="w-[210px] flex-shrink-0 text-[12.5px] text-ardoise">{label}</span>
-      <span className="min-w-0 flex-1 text-[13.5px] font-medium text-encre">{children ?? "—"}</span>
+    <div className="flex items-baseline gap-4 border-b border-trait py-2.5 max-md:gap-3">
+      <span className="w-[210px] flex-shrink-0 text-[12.5px] text-ardoise max-md:w-[112px]">{label}</span>
+      <span className="min-w-0 flex-1 text-[13.5px] font-medium text-encre max-md:break-words">{children ?? "—"}</span>
       {second && <span className="flex-shrink-0 text-[12.5px] text-brume">{second}</span>}
     </div>
   );
@@ -54,9 +54,9 @@ function Ligne({ label, children, second = null }) {
 /** Un chiffre du bandeau : sa valeur en grand, son intitulé, une précision. */
 function Cartouche({ label, valeur, detail = null }) {
   return (
-    <div className="rounded-[12px] border border-bord bg-surface px-4 py-3">
+    <div className="min-w-0 rounded-[12px] border border-bord bg-surface px-4 py-3 max-md:px-3">
       <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.12em] text-brume">{label}</p>
-      <p className="m-0 mt-1 text-[20px] font-medium tabular-nums text-encre">{valeur}</p>
+      <p className="m-0 mt-1 text-[20px] font-medium tabular-nums text-encre max-md:break-words max-md:text-[16px]">{valeur}</p>
       {detail && <p className="m-0 mt-0.5 text-[11.5px] text-menthe-texte">{detail}</p>}
     </div>
   );
@@ -86,14 +86,14 @@ function Onglet({ onglet, s, commerce, metier }) {
           )}
           {commerce?.email && (
             <Ligne label="Email">
-              <a href={`mailto:${commerce.email}`} className="inline-flex items-center gap-2 hover:text-menthe-texte">
+              <a href={`mailto:${commerce.email}`} className="inline-flex items-center gap-2 hover:text-menthe-texte max-md:break-all">
                 <Mail className="h-3.5 w-3.5 text-brume" />{commerce.email}
               </a>
             </Ligne>
           )}
           {commerce?.site && (
             <Ligne label="Présence en ligne">
-              <a href={commerce.site} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-menthe-texte">
+              <a href={commerce.site} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-menthe-texte max-md:break-all">
                 <Globe className="h-3.5 w-3.5 text-brume" />{commerce.site.replace(/^https?:\/\//, "")}
               </a>
             </Ligne>
@@ -166,7 +166,7 @@ function Onglet({ onglet, s, commerce, metier }) {
         </h3>
         <ul className="m-0 list-none p-0">
           {s.etablissements.map((e, i) => (
-            <li key={e.siret} className="flex items-center gap-4 border-b border-trait py-3">
+            <li key={e.siret} className="flex items-center gap-4 border-b border-trait py-3 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-1">
               <span className="alx-mont flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-bord text-[11px] text-ardoise">{i + 1}</span>
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2">
@@ -176,7 +176,7 @@ function Onglet({ onglet, s, commerce, metier }) {
                 </span>
                 <span className="mt-0.5 block truncate text-[12px] text-brume">{e.adresse}</span>
               </span>
-              <span className="flex-shrink-0 text-[11px] tabular-nums text-brume">{e.siret}</span>
+              <span className="flex-shrink-0 text-[11px] tabular-nums text-brume max-md:pl-10">{e.siret}</span>
             </li>
           ))}
         </ul>
@@ -191,7 +191,7 @@ function Onglet({ onglet, s, commerce, metier }) {
         <h3 className="m-0 mb-3 text-[17px] font-medium text-encre">Dirigeants et mandataires</h3>
         <ul className="m-0 list-none p-0">
           {s.dirigeants.map((d, i) => (
-            <li key={i} className="flex items-center gap-4 border-b border-trait py-3">
+            <li key={i} className="flex items-center gap-4 border-b border-trait py-3 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-1">
               <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-[12px] text-menthe-texte">
                 {(d.nom || "?").charAt(0).toUpperCase()}
               </span>
@@ -204,7 +204,7 @@ function Onglet({ onglet, s, commerce, metier }) {
               </span>
               {d.siren && (
                 <a href={`https://annuaire-entreprises.data.gouv.fr/entreprise/${d.siren}`} target="_blank" rel="noreferrer"
-                  className="flex-shrink-0 text-[11px] text-ardoise hover:text-encre">SIREN {d.siren}</a>
+                  className="flex-shrink-0 text-[11px] text-ardoise hover:text-encre max-md:py-1 max-md:pl-12">SIREN {d.siren}</a>
               )}
             </li>
           ))}
@@ -296,7 +296,7 @@ export default function FicheSociete({ commerce, metier = null, onFermer }) {
     <div className="animate-in fade-in duration-200 fixed inset-0 z-[1000] overflow-y-auto bg-fond/85 backdrop-blur-sm">
       {/* `pt-20` : la barre du haut de K-Data est fixe, la fiche doit passer
           dessous sans s'y glisser. */}
-      <div className="mx-auto max-w-[1400px] px-6 pb-16 pt-20 max-md:px-4">
+      <div className="mx-auto max-w-[1400px] px-6 pb-16 pt-20 max-md:px-4 max-md:pb-[calc(env(safe-area-inset-bottom)+32px)] max-md:pt-[calc(env(safe-area-inset-top)+72px)]">
         {/* Le bandeau : qui c'est, et les quatre chiffres qui situent. */}
         {/* `bg-surface`, quasi invisible sur le thème sombre, laissait la
             carte traverser bien au-delà du calque voulu. On s'aligne sur le

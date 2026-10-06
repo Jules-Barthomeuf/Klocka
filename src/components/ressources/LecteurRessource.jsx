@@ -25,8 +25,8 @@ export default function LecteurRessource({ ressource, onFermer }) {
   const media = urlIntegrable(ressource?.url_fichier);
   return (
     <Dialog open={!!ressource} onOpenChange={(o) => { if (!o) onFermer(); }}>
-      <DialogContent className="max-w-4xl w-[calc(100vw-32px)] p-0 bg-surface border border-bord rounded-xl overflow-hidden">
-        <DialogTitle className="px-6 pt-5 pb-3 text-[18px] font-light text-encre">{ressource?.titre}</DialogTitle>
+      <DialogContent className="max-w-4xl w-[calc(100vw-32px)] p-0 bg-surface border border-bord rounded-xl overflow-hidden max-md:max-h-[calc(100dvh-32px)] max-md:overflow-y-auto">
+        <DialogTitle className="px-6 pt-5 pb-3 max-md:px-5 max-md:pr-12 text-[18px] font-light text-encre">{ressource?.titre}</DialogTitle>
         {media?.type === "cadre" ? (
           <div className="relative w-full aspect-video bg-black">
             <iframe src={media.src} title={ressource?.titre} className="absolute inset-0 w-full h-full" style={{ border: 0 }}
@@ -35,18 +35,18 @@ export default function LecteurRessource({ ressource, onFermer }) {
         ) : media?.type === "video" ? (
           <video src={media.src} controls autoPlay className="w-full aspect-video bg-black" />
         ) : ressource?.url_fichier ? (
-          <div className="px-6 pb-6">
+          <div className="px-6 pb-6 max-md:px-5">
             <a href={ressource.url_fichier} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-menthe text-fond text-[12.5px] font-semibold hover:bg-menthe-survol transition-colors">
               Ouvrir la ressource <span aria-hidden="true">→</span>
             </a>
           </div>
         ) : (
-          <p className="px-6 pb-6 text-[13.5px] leading-[1.7] text-ardoise mb-0">
+          <p className="px-6 pb-6 max-md:px-5 text-[13.5px] leading-[1.7] text-ardoise mb-0">
             Cette ressource n'est pas encore en ligne : son lien arrive bientôt.
           </p>
         )}
-        {ressource?.description && <p className="px-6 pb-6 pt-3 text-[13.5px] leading-[1.7] text-craie mb-0">{ressource.description}</p>}
+        {ressource?.description && <p className="px-6 pb-6 pt-3 max-md:px-5 text-[13.5px] leading-[1.7] text-craie mb-0">{ressource.description}</p>}
       </DialogContent>
     </Dialog>
   );

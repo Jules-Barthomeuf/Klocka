@@ -3,7 +3,8 @@
 //
 // Ce qui est gratuit se lit tout seul : l'agglomération (fichier Insee
 // embarqué), la mairie (geo.api.gouv.fr), le résidentiel (Le Figaro, pages
-// publiques), la rue (relevé OpenStreetMap et loyer déduit des ventes). Les flux
+// publiques). Le loyer des commerces autour vient d'Equimmox seul : 500 m,
+// locaux à ±20 % de la surface du bien (6 oct. 2026). Les flux
 // et la commercialité viennent de l'étude d'implantation interne, longue la
 // première fois : on reprend celle du dossier ou du cache, et on ne la lance
 // que sur demande de l'équipe.
@@ -81,22 +82,48 @@ export function residentielDe(r) {
   };
 }
 
-/** La rue selon ALX : loyer de marché déduit, prix au m², rang. */
-export function rueDe(e) {
-  if (!e) return null;
-  const [bas, haut] = Array.isArray(e.loyer) ? e.loyer : [null, null];
-  const loyer = Number.isFinite(bas) && Number.isFinite(haut) ? Math.round((bas + haut) / 2) : null;
-  const prix = Number.isFinite(e.prix_m2) ? e.prix_m2 : null;
-  if (loyer == null && prix == null) return null;
+/**
+ * Le loyer des commerces autour, lu chez Equimmox : des baux constatés à
+ * 500 m, sur des locaux à ±20 % de la surface du bien. Equimmox et Data-B
+ * sont les seules sources du loyer de l'onglet Marché (6 oct. 2026, décision
+ * de Jules) : ni ALX, ni loyer déduit des ventes.
+ */
+export function loyerDe(r, nomRue = null) {
+  const n = (v) => (Number.isFinite(v) ? v : null);
+  const moyenne = n(r?.moyenne) ?? (n(r?.bas) != null && n(r?.haut) != null ? Math.round((r.bas + r.haut) / 2) : null);
+  if (moyenne == null) return null;
   return {
-    nom: e.rue || null,
-    loyer_m2_an: loyer,
-    loyer_bas: Number.isFinite(bas) ? bas : null,
-    loyer_haut: Number.isFinite(haut) ? haut : null,
-    loyer_source: e.loyer_source || null,
-    prix_m2: prix,
-    prix_m2_source: e.prix_m2_source || null,
-    vitrines: e.vitrines ?? null,
+    nom: nomRue || null,
+    loyer_m2_an: Math.round(moyenne),
+    loyer_bas: n(r.bas),
+    loyer_haut: n(r.haut),
+    loyer_source: 'Equimmox',
+    rayon: r.rayon || null,
+    surface_min: n(r.surface_min),
+    surface_max: n(r.surface_max),
+    le: r.le || null,
+  };
+}
+
+/**
+ * Data-B, quand Equimmox n'a rien constaté : son estimation du quartier, la
+ * maille la plus proche des 500 m, sinon la rue. Data-B ne filtre pas par
+ * surface, et l'écran le dit.
+ */
+export function loyerDataBDe(d, nomRue = null) {
+  const n = (v) => (Number.isFinite(v) ? v : null);
+  const niveau = [d?.quartier, d?.rue, d?.ville].find((x) => x && (n(x.basse) != null || n(x.haute) != null));
+  if (!niveau) return null;
+  const bas = n(niveau.basse) ?? n(niveau.haute);
+  const haut = n(niveau.haute) ?? n(niveau.basse);
+  return {
+    nom: nomRue || null,
+    loyer_m2_an: Math.round((bas + haut) / 2),
+    loyer_bas: bas,
+    loyer_haut: haut,
+    loyer_source: 'Data-B',
+    maille: niveau === d.quartier ? 'quartier' : niveau === d.rue ? 'rue' : 'ville',
+    le: d.le || null,
   };
 }
 
@@ -145,7 +172,22 @@ export async function calculerSecteur(projet, {
     const r = await prixResidentiel(t);
     return r.ok ? r.resultat : null;
   },
-  rue = async (t) => (await import('./alx/emplacement.js')).emplacementDeLAdresse(t),
+  // Equimmox à 500 m (son rayon par défaut), la surface du bien à ±20 %.
+  // `forcerLoyer` : l'équipe relance l'analyse du loyer, sans le cache de
+  // trente jours d'Equimmox ni celui de Data-B.
+  forcerLoyer = false,
+  loyer = async (t, surface, forcer = false) => {
+    const { analyseLoyer, equimmoxConfigure } = await import('./equimmox.js');
+    if (!equimmoxConfigure()) return null;
+    const r = await analyseLoyer(t, { surface, forcer });
+    return r.ok ? r.resultat : null;
+  },
+  dataB = async (t, forcer = false) => {
+    const { valeurLocative, dataBConfigure } = await import('./data-b.js');
+    if (!dataBConfigure()) return null;
+    const r = await valeurLocative(t, { forcer });
+    return r.ok ? r.resultat : null;
+  },
   // Les études internes d'abord ; les anciennes études (DataBImplantation) restent lisibles.
   etudes = () => [...Records.list('EtudeImplantation'), ...Records.list('DataBImplantation')],
   dealDe = (id) => Records.findBy('Deal', 'deal_id', id),
@@ -154,13 +196,14 @@ export async function calculerSecteur(projet, {
   const { adresseAChercher, memeVille } = await import('../src/lib/adresse-projet.js');
   const texte = adresseAChercher(projet) || '';
   const trouvee = texte ? await resoudre(texte).catch(() => null) : null;
-  const adresse = trouvee && memeVille(projet, trouvee.ville) ? trouvee : null;
+  const adresse = trouvee && memeVille(projet, trouvee.ville, trouvee.code_postal) ? trouvee : null;
   const lot = lotDuProjet(projet, projet.deal_id ? dealDe(projet.deal_id) : null);
 
-  const [hotel, residentiel, emplacement] = await Promise.all([
+  const surface = Number(projet.sim_surface) || Number(projet.surface_m2) || null;
+  const [hotel, residentiel, equimmox] = await Promise.all([
     adresse?.code_insee ? mairie(communeParente(adresse.code_insee)).catch(() => null) : null,
     lot?.prix_residentiel || (texte ? figaro(texte).catch(() => null) : null),
-    texte ? rue(texte).catch(() => null) : null,
+    adresse ? loyer(adresse.label, surface, forcerLoyer).catch(() => null) : null,
   ]);
   const implantation = fluxDe(lot?.implantation) ? lot.implantation : adresse ? implantationEnCache(adresse, etudes()) : null;
 
@@ -169,7 +212,8 @@ export async function calculerSecteur(projet, {
     agglomeration: adresse ? agglomerationDe(adresse.code_insee) : null,
     centre: hotel && adresse ? { distance_m: distanceM(adresse, hotel), repere: `${hotel.repere} de ${hotel.nom}` } : null,
     residentiel: residentielDe(residentiel),
-    rue: rueDe(emplacement),
+    rue: loyerDe(equimmox, adresse?.rue || null)
+      || (adresse ? loyerDataBDe(await dataB(adresse.label, forcerLoyer).catch(() => null), adresse.rue || null) : null),
     flux: fluxDe(implantation),
   };
 }
@@ -186,7 +230,9 @@ export function dureeDeGarde(donnees) {
   return donnees?.residentiel && donnees?.rue ? JOURS_GARDE * 86400000 : HEURE_INCOMPLET;
 }
 const HEURE_INCOMPLET = 3600000;
-const VERSION = 2;
+// Version 3 (6 oct. 2026) : le loyer vient d'Equimmox, plus d'ALX ; la
+// surface du bien entre dans la fiche, et la changer la recalcule.
+const VERSION = 3;
 
 const dernier = (projetId) => Records.filter(ENTITE, { project_id: projetId })
   .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0] || null;
@@ -195,14 +241,15 @@ const dernier = (projetId) => Records.filter(ENTITE, { project_id: projetId })
  * Ce que la page affiche tout de suite, et le calcul relancé en arrière-plan
  * quand la fiche a plus de trente jours ou que l'adresse a changé.
  */
-export function lireSecteur(projet, { forcer = false, calculer = calculerSecteur } = {}) {
+export function lireSecteur(projet, { forcer = false, forcerLoyer = false, calculer = calculerSecteur } = {}) {
   const garde = dernier(projet.id);
   // Version 2 (5 oct. 2026) : l'adresse est cherchée avec la ville du projet ; les fiches d'avant se recalculent.
-  const frais = garde && garde.version === VERSION && garde.adresse === projet.adresse_complete && Date.now() - Date.parse(garde.le) < dureeDeGarde(garde.donnees);
-  if ((forcer || !frais) && projet.adresse_complete && !enCours.has(projet.id)) {
-    const tache = calculer(projet)
+  const surface = Number(projet.sim_surface) || Number(projet.surface_m2) || null;
+  const frais = garde && garde.version === VERSION && garde.adresse === projet.adresse_complete && (garde.surface ?? null) === surface && Date.now() - Date.parse(garde.le) < dureeDeGarde(garde.donnees);
+  if ((forcer || forcerLoyer || !frais) && projet.adresse_complete && !enCours.has(projet.id)) {
+    const tache = calculer(projet, forcerLoyer ? { forcerLoyer: true } : undefined)
       .then((donnees) => {
-        const fiche = { project_id: projet.id, adresse: projet.adresse_complete, version: VERSION, donnees, le: new Date().toISOString() };
+        const fiche = { project_id: projet.id, adresse: projet.adresse_complete, surface, version: VERSION, donnees, le: new Date().toISOString() };
         const avant = dernier(projet.id);
         if (avant) Records.update(ENTITE, avant.id, fiche);
         else Records.create(ENTITE, fiche);
@@ -212,6 +259,15 @@ export function lireSecteur(projet, { forcer = false, calculer = calculerSecteur
     enCours.set(projet.id, tache);
   }
   return { ...(garde?.donnees || {}), le: garde?.le || null, en_cours: enCours.has(projet.id) };
+}
+
+/**
+ * La fiche gardée, telle quelle, sans rien relancer : pour le lien public,
+ * qu'un visiteur ne fasse pas partir une recherche Equimmox.
+ */
+export function secteurGarde(projetId) {
+  const garde = dernier(projetId);
+  return garde?.version === VERSION ? garde.donnees || null : null;
 }
 
 /** Attend le calcul en cours d'un projet (pour les tests et l'étude à la demande). */

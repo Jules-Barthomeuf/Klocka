@@ -412,7 +412,9 @@ export function monterMandataire(app) {
   }));
   app.get('/api/mandataire/prospective/rues', wrap(async (req, res) => {
     if (!mandataire(req, res)) return;
-    ok(res, { rues: await (await P2()).chercherRues(String(req.query.q || ''), String(req.query.ville || ''), { type_rue: req.query.type_rue || '' }) });
+    // Data-B veut le mot-clé de la voie : « rue Carnot » se cherche « carnot ».
+    const { chercherRues, lireRue } = await P2();
+    ok(res, { rues: await chercherRues(lireRue(String(req.query.q || '')).cle, String(req.query.ville || ''), { type_rue: req.query.type_rue || '' }) });
   }));
   app.get('/api/mandataire/prospective', wrap(async (req, res) => {
     const user = mandataire(req, res);

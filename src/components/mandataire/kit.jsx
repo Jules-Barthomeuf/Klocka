@@ -53,7 +53,7 @@ export function BoutonFichier({ onFichier, enCours = false, accept = ".pdf,image
       <button type="button" onClick={() => ref.current?.click()} disabled={enCours}
         className={principal
           ? "inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[13px] font-medium text-fond hover:bg-menthe-survol disabled:opacity-50"
-          : "inline-flex items-center gap-1.5 rounded-full border border-trait px-3.5 py-1.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe disabled:opacity-50"}
+          : "inline-flex items-center gap-1.5 rounded-full border border-trait px-3.5 py-1.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe disabled:opacity-50 max-md:min-h-9"}
         style={principal ? undefined : { background: "transparent" }}>
         {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />} {mot}
       </button>
@@ -73,7 +73,7 @@ export const Bouton = ({ children, onClick, disabled = false, principal = false,
   <button type={type} onClick={onClick} disabled={disabled}
     className={principal
       ? "inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[13px] font-medium text-fond hover:bg-menthe-survol disabled:opacity-50"
-      : `inline-flex items-center gap-1.5 rounded-full border border-trait px-3.5 py-1.5 text-[12.5px] disabled:opacity-50 ${danger ? "text-alerte hover:border-alerte" : "text-craie hover:border-menthe hover:text-menthe"}`}
+      : `inline-flex items-center gap-1.5 rounded-full border border-trait px-3.5 py-1.5 text-[12.5px] disabled:opacity-50 max-md:min-h-9 ${danger ? "text-alerte hover:border-alerte" : "text-craie hover:border-menthe hover:text-menthe"}`}
     style={principal ? undefined : { background: "transparent" }}>
     {children}
   </button>

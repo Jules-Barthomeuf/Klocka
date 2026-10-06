@@ -93,12 +93,12 @@ export default function ProjectFormImagesTab({ formData, setFormData }) {
                       className="w-full h-full object-cover pointer-events-none"
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
-                    <div className="absolute top-2 left-2 bg-fond/60 text-encre p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <div className="absolute top-2 left-2 bg-fond/60 text-encre p-1 rounded opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity pointer-events-none">
                       <GripVertical className="w-3.5 h-3.5" />
                     </div>
                     <button
                       onClick={() => setFormData({ ...formData, photos: formData.photos.filter((_, i) => i !== idx) })}
-                      className="absolute top-2 right-2 bg-red-500 text-encre p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 bg-red-500 text-encre p-0.5 max-md:p-1.5 rounded-full opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity" aria-label="Retirer la photo" title="Retirer la photo"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>

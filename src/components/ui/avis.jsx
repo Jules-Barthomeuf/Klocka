@@ -114,7 +114,10 @@ export const toast = Object.assign((titre, o) => poser("information", titre, o),
   dismiss: sonner.dismiss,
 });
 
-/** Le calque qui empile les avis, en haut à droite. */
+/**
+ * Le calque qui empile les avis, en haut à droite. Au téléphone, sous la
+ * barre du haut (et l'encoche) : posé dessus, l'avis cachait le menu.
+ */
 export function Toaster(props) {
-  return <SonnerToaster position="top-right" gap={12} offset={20} toastOptions={{ unstyled: true }} {...props} />;
+  return <SonnerToaster position="top-right" gap={12} offset={20} mobileOffset={{ top: "calc(3.5rem + env(safe-area-inset-top) + 8px)", left: 12, right: 12 }} toastOptions={{ unstyled: true }} {...props} />;
 }

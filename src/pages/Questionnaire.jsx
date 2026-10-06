@@ -228,7 +228,7 @@ export default function Questionnaire() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-8">
+          <CardContent className="p-8 max-md:p-5">
             <div className="text-center space-y-6">
               <img 
                 src={profilInfo.image} 
@@ -311,7 +311,7 @@ export default function Questionnaire() {
                       <div className="space-y-2">
                         {partnerEmails.map((email) => (
                           <div key={email} className="flex items-center justify-between p-2 bg-menthe/10 rounded-lg border border-menthe/30">
-                            <span className="text-encre text-sm">{email}</span>
+                            <span className="text-encre text-sm min-w-0 truncate">{email}</span>
                             <button
                               type="button"
                               onClick={() => handleRemovePartner(email)}
@@ -355,7 +355,7 @@ export default function Questionnaire() {
                 {question.options.map((option) => (
                   <div
                     key={option.value}
-                    className={`flex items-start space-x-3 p-5 rounded-md border-2 transition-all cursor-pointer hover:shadow-md ${
+                    className={`flex items-start space-x-3 p-5 max-md:p-4 rounded-md border-2 transition-all cursor-pointer hover:shadow-md ${
                       reponses[question.id] === option.value
                         ? 'border-menthe bg-menthe/20'
                         : 'border-bord hover:border-bord bg-fond'

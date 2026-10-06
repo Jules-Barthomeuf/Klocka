@@ -31,7 +31,7 @@ const SENS = {
 /** Une jauge horizontale : la part d'une variable, teintée par son effet. */
 function Jauge({ libelle, part, teinte, droite }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_120px_64px] items-center gap-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_120px_64px] items-center gap-3 max-md:grid-cols-[minmax(0,1fr)_72px_52px] max-md:gap-2">
       <span className="truncate text-[12.5px] text-craie">{libelle}</span>
       <div className="h-2 rounded bg-white/[0.06]">
         <div className="h-2 rounded" style={{ width: `${Math.max(3, Math.min(100, part))}%`, background: teinte }} />
@@ -45,10 +45,10 @@ function Jauge({ libelle, part, teinte, droite }) {
 function Vente({ v, ouverte, onOuvrir }) {
   return (
     <div className="border-t border-trait first:border-t-0">
-      <button onClick={onOuvrir} className="grid w-full grid-cols-[86px_minmax(0,1fr)_150px_64px] items-baseline gap-3 py-[10px] text-left">
+      <button onClick={onOuvrir} className="grid w-full grid-cols-[86px_minmax(0,1fr)_150px_64px] items-baseline gap-3 py-[10px] text-left max-md:grid-cols-[78px_minmax(0,1fr)_52px] max-md:gap-2 max-md:py-3">
         <span className="text-[12.5px] tabular-nums text-ardoise">{quand(v.date_vente)}</span>
         <span className="truncate text-[12.5px] text-craie">{v.enseignes || v.rue || v.parcelle} · {v.ville}</span>
-        <span className="text-right text-[11px] uppercase tracking-[.1em] text-brume">lu le {quand(v.t_reference)}</span>
+        <span className="text-right text-[11px] uppercase tracking-[.1em] text-brume max-md:hidden">lu le {quand(v.t_reference)}</span>
         <span className="text-right text-[12.5px] font-medium tabular-nums text-encre">{pctFr(v.proba, 1)}</span>
       </button>
       {ouverte && (
@@ -132,11 +132,11 @@ export default function ALXEntrainement() {
                 )}
               </div>
               <div className="mt-5">
-                <div className="grid grid-cols-[70px_minmax(0,1fr)_86px_86px] items-center gap-3 pb-2">
+                <div className="grid grid-cols-[70px_minmax(0,1fr)_86px_86px] items-center gap-3 pb-2 max-md:grid-cols-[52px_minmax(0,1fr)_64px_64px] max-md:gap-2">
                   <Etiquette className="!text-[10px]">Pli</Etiquette><span /><Etiquette className="!text-[10px] text-right">ROC-AUC</Etiquette><Etiquette className="!text-[10px] text-right">PR-AUC</Etiquette>
                 </div>
                 {plis.map((p) => (
-                  <div key={p.pli} className="grid grid-cols-[70px_minmax(0,1fr)_86px_86px] items-center gap-3 border-t border-trait py-2 text-[12.5px]">
+                  <div key={p.pli} className="grid grid-cols-[70px_minmax(0,1fr)_86px_86px] items-center gap-3 border-t border-trait py-2 text-[12.5px] max-md:grid-cols-[52px_minmax(0,1fr)_64px_64px] max-md:gap-2">
                     <span className="text-ardoise">{p.pli}</span>
                     <span className="truncate text-brume">{p.periode_test[0]} → {p.periode_test[1]}</span>
                     <span className="text-right tabular-nums text-craie">{virgule(p.roc_auc, 3)}</span>
@@ -193,9 +193,9 @@ export default function ALXEntrainement() {
             <Carte>
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
                 <Etiquette>Les ventes passées, une par une</Etiquette>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {[null, ...villes].map((v) => (
-                    <button key={v || "toutes"} onClick={() => setFiltreVille(v)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${filtreVille === v ? "border-menthe text-menthe" : "border-bord text-ardoise hover:text-encre"}`}>
+                    <button key={v || "toutes"} onClick={() => setFiltreVille(v)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors max-md:py-1.5 ${filtreVille === v ? "border-menthe text-menthe" : "border-bord text-ardoise hover:text-encre"}`}>
                       {v || "Toutes"}
                     </button>
                   ))}

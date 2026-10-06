@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, FileText, Loader2, X } from "lucide-react";
 
 // La génération d'un document au premier message (mandat, avis de valeur) :
 // à droite du chat, les étapes se cochent une à une pendant quelques
@@ -8,6 +9,41 @@ import { Check, Loader2 } from "lucide-react";
 // demande), l'attente s'arrête d'elle-même.
 
 const PAS = 650;
+
+/**
+ * Au téléphone, l'écran scindé laisse le chat seul : une pastille en haut du
+ * fil ouvre le document en plein écran (portail, la page derrière ne défile
+ * plus) ; « Fermer » ramène au chat. L'aperçu reçu garde sa propre barre.
+ */
+export function DocumentTelephone({ libelle, children }) {
+  const [ouvert, setOuvert] = useState(false);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const avant = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = avant; };
+  }, [ouvert]);
+  return (
+    <>
+      <button type="button" onClick={() => setOuvert(true)}
+        className="fixed left-1/2 top-[calc(var(--k-haut-mobile,3.5rem)+3.75rem)] z-30 inline-flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-bord-vif bg-surface-pleine px-4 text-[13px] text-encre shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:hidden">
+        <FileText className="h-4 w-4 text-menthe" /> {libelle}
+      </button>
+      {ouvert && createPortal(
+        <div className="fixed inset-0 z-[70] flex flex-col bg-fond">
+          <div className="flex h-12 flex-none items-center border-b border-trait px-3">
+            <button type="button" onClick={() => setOuvert(false)} className="inline-flex h-10 items-center gap-1.5 px-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+              <X className="h-4 w-4" /> Fermer
+            </button>
+          </div>
+          {/* L'aperçu est taillé pour la colonne de l'écran scindé (100dvh) : ici il prend la place qui reste. */}
+          <div className="min-h-0 flex-1 [&>div]:h-full [&>div]:border-l-0">{children}</div>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
 const ATTENTE_MAX = 12000;
 
 export default function GenerationDocument({ surtitre, titre, etapes, pret, onFini }) {
@@ -22,7 +58,7 @@ export default function GenerationDocument({ surtitre, titre, etapes, pret, onFi
   }, [faites, pret, etapes.length]);
   const part = Math.round((faites / etapes.length) * 100);
   return (
-    <div className="grid h-full place-items-center px-10">
+    <div className="grid h-full place-items-center px-10 max-md:px-6">
       <div className="w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-2 duration-500">
         <p className="m-0 text-[12px] uppercase tracking-[.12em] text-menthe">{surtitre}</p>
         <p className="m-0 mt-1.5 text-[20px] font-normal text-encre">{titre}</p>
@@ -60,7 +96,7 @@ export function MiseAJourDocument({ surtitre, titre, etapes, enCours }) {
   const liste = etapes.length ? etapes : ["Lecture de votre message"];
   const faites = enCours ? liste.length - 1 : liste.length;
   return (
-    <div className="grid h-full place-items-center px-10">
+    <div className="grid h-full place-items-center px-10 max-md:px-6">
       <div className="w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-2 duration-500">
         <p className="m-0 text-[12px] uppercase tracking-[.12em] text-menthe">{surtitre}</p>
         <p className="m-0 mt-1.5 text-[20px] font-normal text-encre">{titre}</p>

@@ -23,15 +23,15 @@ export default function AccueilMandataire() {
   if (!data?.secteur || data.regle) return null;
   const e = ETAPES[0];
   return createPortal(
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Bienvenue dans votre espace">
+    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 max-md:p-3 md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Bienvenue dans votre espace">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="k-grid relative flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[20px] border border-bord-vif bg-fond shadow-[0_40px_120px_-24px_rgba(0,0,0,0.8)]">
+        className="k-grid relative flex max-h-[88vh] w-full max-w-[760px] max-md:max-h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[20px] border border-bord-vif bg-fond shadow-[0_40px_120px_-24px_rgba(0,0,0,0.8)]">
         {/* La liste défile ; « Valider » reste en bas à droite. */}
         <CommunesAgent accueil entete={(
           <div className="mb-6">
             <p className="m-0 text-[12px] uppercase tracking-[0.14em] text-brume">Bienvenue · étape 1 sur {ETAPES.length}</p>
-            <h2 className="m-0 mt-2 text-[24px] font-normal tracking-[-0.02em] text-encre">{e.titre}</h2>
+            <h2 className="m-0 mt-2 text-[24px] font-normal tracking-[-0.02em] text-encre max-md:text-[21px]">{e.titre}</h2>
             <p className="m-0 mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-ardoise">{e.texte}</p>
           </div>
         )} />

@@ -93,7 +93,7 @@ export default function InviterClient({ onCree } = {}) {
               value={nom}
               onChange={(e) => setNom(e.target.value)}
               placeholder="Prénom Nom"
-              className="w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume"
+              className="w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
             />
           </label>
           <label className="flex-1 min-w-[220px]">
@@ -104,7 +104,7 @@ export default function InviterClient({ onCree } = {}) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="client@exemple.fr"
-              className="w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume"
+              className="w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
             />
           </label>
           <div className="flex items-center gap-2">

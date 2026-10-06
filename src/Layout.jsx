@@ -30,8 +30,9 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare } from "lucide-react";
+  Upload, Mic, Compass, Smartphone, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
+import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
@@ -158,7 +159,10 @@ function Wordmark({ collapsed = false }) {
 function MenuApps({ isActivePage }) {
   const [ouvert, setOuvert] = useState(false);
   const minuterie = useRef(null);
-  const ouvrir = () => { clearTimeout(minuterie.current); setOuvert(true); };
+  // Au doigt, le toucher passe par le focus avant le clic : sans cette date,
+  // le clic refermait aussitôt le menu qu'il venait d'ouvrir.
+  const ouvertA = useRef(0);
+  const ouvrir = () => { clearTimeout(minuterie.current); setOuvert((o) => { if (!o) ouvertA.current = Date.now(); return true; }); };
   const fermer = () => { minuterie.current = setTimeout(() => setOuvert(false), 180); };
   useEffect(() => () => clearTimeout(minuterie.current), []);
 
@@ -167,20 +171,21 @@ function MenuApps({ isActivePage }) {
   const actif = MODULES_KDATA.find((m) => isActivePage(m.pageName));
 
   return (
-    <div className="relative" onMouseEnter={ouvrir} onMouseLeave={fermer} onFocus={ouvrir} onBlur={fermer}>
+    <div className="relative min-w-0 max-w-full" onMouseEnter={ouvrir} onMouseLeave={fermer} onFocus={ouvrir} onBlur={fermer}>
       <button
         type="button"
-        onClick={() => (ouvert ? fermer() : ouvrir())}
+        onClick={() => { if (Date.now() - ouvertA.current < 400) return; if (ouvert) fermer(); else ouvrir(); }}
         aria-expanded={ouvert}
-        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors ${ouvert || actif ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
+        className={`flex max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] transition-colors max-md:min-h-[36px] ${ouvert || actif ? "bg-encre/[0.07] text-encre" : "text-ardoise hover:text-encre"}`}
       >
-        <LayoutGrid className="h-3.5 w-3.5" />
-        Apps
-        {actif && <span className="text-menthe-texte">· {actif.nom}</span>}
+        <LayoutGrid className="h-3.5 w-3.5 flex-none" />
+        <span className="flex-none">Apps</span>
+        {/* À 360 px, le nom de l'application se coupe plutôt que de pousser la barre. */}
+        {actif && <span className="min-w-0 truncate text-menthe-texte">· {actif.nom}</span>}
       </button>
 
       {ouvert && (
-        <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-1/2 top-[calc(100%+8px)] z-50 w-[560px] max-w-[92vw] -translate-x-1/2 overflow-hidden rounded-[18px] border border-trait bg-surface-pleine p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+        <div className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-1/2 top-[calc(100%+8px)] z-50 w-[560px] max-w-[92vw] -translate-x-1/2 overflow-hidden max-md:fixed max-md:inset-x-3 max-md:top-[calc(3.5rem+env(safe-area-inset-top)+8px)] max-md:max-h-[calc(100dvh-5rem-env(safe-area-inset-top))] max-md:w-auto max-md:max-w-none max-md:translate-x-0 max-md:overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <Link
             to={createPageUrl("KData")}
             onClick={() => setOuvert(false)}
@@ -232,8 +237,10 @@ function MenuApps({ isActivePage }) {
 function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center gap-1 border-b border-trait px-3 md:px-5"
+      className="fixed top-0 left-0 right-0 z-50 flex items-center gap-1 border-b border-trait px-3 md:px-5"
       style={{
+        // La hauteur compte l'encoche : sans elle, le padding mangeait la barre.
+        height: "calc(3.5rem + env(safe-area-inset-top))",
         paddingTop: "env(safe-area-inset-top)",
         background: "rgb(var(--k-fond-halo-rgb) / 0.42)",
         backdropFilter: "blur(16px) saturate(1.15)",
@@ -245,7 +252,7 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
       </Link>
       <div className="mr-2 h-5 w-px flex-shrink-0 bg-encre/[0.1]" />
 
-      <nav className="flex flex-1 items-center justify-center">
+      <nav className="flex min-w-0 flex-1 items-center justify-center">
         <MenuApps isActivePage={isActivePage} />
       </nav>
 
@@ -400,6 +407,28 @@ function LayoutContent({ children, currentPageName }) {
   };
 
   const closeMobile = () => setIsMobileMenuOpen(false);
+  // Le tiroir ouvert, la page derrière ne défile plus sous le doigt.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return undefined;
+    const avant = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = avant; };
+  }, [isMobileMenuOpen]);
+  // Le clavier du téléphone : iOS ne réduit pas la page quand il sort, il la
+  // recouvre. Sa hauteur, dite en variable, laisse le chat poser sa barre
+  // juste au-dessus. Zéro au bureau, où rien ne la lit.
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return undefined;
+    const mesurer = () => {
+      // Un zoom au pincement réduit aussi la vue : ce n'est pas le clavier.
+      const h = vv.scale > 1.01 ? 0 : Math.max(0, Math.round(window.innerHeight - vv.height));
+      document.documentElement.style.setProperty("--k-clavier", `${h > 80 ? h : 0}px`);
+    };
+    mesurer();
+    vv.addEventListener("resize", mesurer);
+    return () => { vv.removeEventListener("resize", mesurer); document.documentElement.style.removeProperty("--k-clavier"); };
+  }, []);
 
   // On est dans K-Data dès que la page ouverte est son tableau de bord ou
   // l'un de ses modules. Ce n'est pas un lien de plus dans le menu : c'est un
@@ -410,7 +439,11 @@ function LayoutContent({ children, currentPageName }) {
   // dossier — ne montre que l'analyse : ni barre du haut, ni déconnexion,
   // ni menu des applications, qui n'ont aucun sens dans une fenêtre qu'on
   // regarde puis qu'on ferme.
-  const enCadre = typeof window !== "undefined" && window.self !== window.top;
+  // Le mode téléphone ouvre l'app dans un cadre : elle s'y affiche comme sur
+  // un vrai téléphone, pas comme une page intégrée ailleurs.
+  const dansUnCadre = typeof window !== "undefined" && window.self !== window.top;
+  const enCadre = dansUnCadre && !estApercuTelephone();
+  const [apercuTelephone, setApercuTelephone] = useState(false);
   const modoKData = enKData && vueAdmin && !hideNavbar;
 
 
@@ -432,6 +465,8 @@ function LayoutContent({ children, currentPageName }) {
     AdminClients: { to: createPageUrl("AdminClients"), icon: Users, actif: isActivePage("AdminClients") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
+    // Emailing : les séquences des leads et les mails de la plateforme (Resend).
+    Emailing: { to: createPageUrl("Emailing"), icon: Mail, actif: isActivePage("Emailing") },
     AdminPresentations: { to: "/Presentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
     AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
     AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
@@ -472,7 +507,8 @@ function LayoutContent({ children, currentPageName }) {
       if (mots.length >= 2) return `${mots[0]} ${mots[mots.length - 1].charAt(0).toUpperCase()}.`;
       return mots[0] || user?.email?.split("@")[0] || "";
     })();
-    const bouton = "grid h-8 w-8 place-items-center rounded-[8px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre";
+    // Au téléphone, 40 px : la taille d'un doigt.
+    const bouton = "grid h-8 w-8 place-items-center rounded-[8px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre max-md:h-10 max-md:w-10";
     return (
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
@@ -600,6 +636,12 @@ function LayoutContent({ children, currentPageName }) {
           </Link>
           {!replie && <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{nomCourt}</span>}
           <div className={`flex items-center ${replie ? "flex-col gap-1" : "gap-0"}`}>
+            {/* Le mode téléphone : au bureau seulement, et pas depuis le cadre lui-même. */}
+            {!isMobile && !dansUnCadre && (
+              <button type="button" onClick={() => setApercuTelephone(true)} aria-label="Voir comme sur un téléphone" title="Mode téléphone : la page vue comme sur un téléphone" className={bouton} style={{ background: "transparent" }}>
+                <Smartphone className="h-4 w-4" strokeWidth={1.7} />
+              </button>
+            )}
             {!replie && (
               <button type="button" onClick={() => base44.auth.fenetre.ouvrir()} aria-label="Ouvrir un autre compte dans cette fenêtre" title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres" className={bouton} style={{ background: "transparent" }}>
                 <Users className="h-4 w-4" strokeWidth={1.7} />
@@ -617,12 +659,27 @@ function LayoutContent({ children, currentPageName }) {
     );
   };
 
+  // Ce qui occupe le haut et le bas de l'écran du téléphone, dit en variables :
+  // main s'en écarte, et le chat (index.css, .k-chat-hauteur) cale sa barre
+  // juste au-dessus. Au bureau, rien ne les lit.
+  const ongletsMobile = !hideNavbar && showClientView;
+  const assistantVisible = vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName);
+  const hautMobile = hideNavbar || (modoKData && enCadre) ? "0px" : "calc(3.5rem + env(safe-area-inset-top))";
+  const basMobile = hideNavbar || modoKData
+    ? "0px"
+    : ongletsMobile
+      ? "calc(3.5rem + env(safe-area-inset-bottom))"
+      : assistantVisible && currentPageName !== "Note"
+        ? "calc(4.5rem + env(safe-area-inset-bottom))"
+        : "env(safe-area-inset-bottom)";
+
   return (
     // `overflow-x-clip` plutôt que `hidden` : `hidden` créerait un conteneur de
     // défilement qui casserait les positions `sticky` des pages.
-    <div className="min-h-screen flex w-full bg-fond relative overflow-x-clip">
+    <div className="min-h-screen flex w-full bg-fond relative overflow-x-clip" style={{ "--k-haut-mobile": hautMobile, "--k-bas-mobile": basMobile }}>
       <style>{globalTooltipStyles}</style>
       {fondHalo && <FondHalo />}
+      {apercuTelephone && <ApercuTelephone onFermer={() => setApercuTelephone(false)} />}
 
       {modoKData ? (
         /* K-Data n'a pas de barre latérale : sa barre du haut, seule, sur
@@ -642,9 +699,9 @@ function LayoutContent({ children, currentPageName }) {
             </aside>
           )}
 
-          {/* Mobile Top Bar */}
+          {/* Mobile Top Bar : sa hauteur compte l'encoche, comme le haut de main. */}
           {!hideNavbar && (
-            <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between gap-2 px-4" style={{ height: "var(--k-haut-mobile)", paddingTop: "env(safe-area-inset-top)" }}>
               {isChildPage ? (
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-encre -ml-2">
                   <ChevronLeft className="w-5 h-5" />
@@ -654,9 +711,17 @@ function LayoutContent({ children, currentPageName }) {
                   <Wordmark />
                 </Link>
               )}
-              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-encre">
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
+              <div className="flex items-center gap-1">
+                {/* La recherche : ⌘K n'existe pas au téléphone. */}
+                {vueAdmin && (
+                  <Button variant="ghost" size="icon" onClick={() => setRechercheOuverte(true)} className="text-encre" aria-label="Rechercher" title="Rechercher">
+                    <Search className="w-5 h-5" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-encre" aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}>
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -664,7 +729,7 @@ function LayoutContent({ children, currentPageName }) {
           {isMobileMenuOpen && !hideNavbar && (
             <>
               <div className="md:hidden fixed inset-0 bg-fond/60 z-40 animate-in fade-in duration-200" onClick={closeMobile} />
-              <aside data-zone="barre" className="k-points md:hidden fixed top-0 left-0 h-screen w-[248px] z-50 bg-rail animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)" }}>
+              <aside data-zone="barre" className="k-points md:hidden fixed top-0 left-0 h-[100dvh] w-[280px] max-w-[85vw] z-50 bg-rail animate-in slide-in-from-left duration-200 ease-out" style={{ boxShadow: "inset -1px 0 0 rgb(var(--k-encre-rgb) / 0.08)", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
                 {sidebarContent(true)}
               </aside>
             </>
@@ -680,9 +745,9 @@ function LayoutContent({ children, currentPageName }) {
           modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[64px] md:transition-[margin-left] md:duration-200" : "md:ml-[228px] md:transition-[margin-left] md:duration-200") : ""
         } ${
           modoKData
-            ? (enCadre ? "" : "pt-14")
+            ? (enCadre ? "" : "pt-[calc(3.5rem+env(safe-area-inset-top))]")
             : !hideNavbar
-              ? (vueAdmin && currentPageName !== "Note" ? "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom)+4.5rem)] md:pb-0" : "pt-14 md:pt-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0")
+              ? "pt-[var(--k-haut-mobile)] md:pt-0 pb-[var(--k-bas-mobile)] md:pb-0"
               : ""
         }`}
       >

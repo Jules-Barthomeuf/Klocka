@@ -47,7 +47,7 @@ function KpiStrip({ items, className = "" }) {
         {list.map((it, i) => (
           <div key={i} className={`flex-[1_1_200px] flex flex-col gap-2.5 p-7 max-md:p-5 ${i > 0 ? "border-l border-trait max-md:border-l-0 max-md:border-t" : ""}`}>
             <span className="text-[13px] text-ardoise flex items-center gap-1">{it.label}<BoutonMasquer champ={it.champ} /></span>
-            <span className={`text-[32px] max-md:text-[26px] font-medium tracking-[-0.02em] leading-tight whitespace-nowrap ${it.accent ? "text-menthe" : "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
+            <span className={`text-[32px] max-md:text-[26px] font-medium tracking-[-0.02em] leading-tight whitespace-nowrap max-md:whitespace-normal ${it.accent ? "text-menthe" : "text-encre"}`} style={{ fontVariantNumeric: "tabular-nums" }}>
               <ValeurEditable champ={it.champ} type={it.typeChamp || "number"}>{it.value}</ValeurEditable>
             </span>
           </div>
@@ -185,9 +185,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
   const loyerAnnuel = project.sim_loyer_initial_ht || project.loyer_annuel_ht || 0;
 
-  const rendementLocatifNetCalcule = nombreForce(project, "rendement_net") ?? (prixRevientCalcule > 0 && loyerAnnuel > 0
-    ? (loyerAnnuel / prixRevientCalcule) * 100
-    : project.sim_rendement_locatif_global_net || 0);
+  // Le vrai rendement net vient du simulateur complet (loyers nets de
+  // charges, moyenné sur la durée de détention) : on le préfère toujours
+  // quand il existe. Le calcul au loyer de la première année n'est qu'un
+  // repli, pour un projet qui n'est pas encore passé par le simulateur.
+  const rendementLocatifNetCalcule = nombreForce(project, "rendement_net") ?? (project.sim_rendement_locatif_global_net > 0
+    ? project.sim_rendement_locatif_global_net
+    : prixRevientCalcule > 0 && loyerAnnuel > 0 ? (loyerAnnuel / prixRevientCalcule) * 100 : 0);
 
   // Clé Embed API extraite en variable d'environnement (VITE_GOOGLE_MAPS_API_KEY).
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -286,7 +290,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           (flèches à l'écran ou du clavier), jamais tout seul. */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent
-          className="max-w-[100vw] max-h-[100vh] w-screen h-screen p-0 bg-black/90 border-none [&>button]:hidden"
+          className="max-w-[100vw] max-h-[100vh] w-screen h-screen max-md:h-[100dvh] max-md:max-h-[100dvh] p-0 bg-black/90 border-none [&>button]:hidden"
           onKeyDown={(e) => {
             const liste = photosVivantes;
             const n = liste.indexOf(selectedImage);
@@ -297,22 +301,22 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
         >
           <div className="relative w-full h-full flex items-center justify-center">
             <button type="button" onClick={() => setSelectedImage(null)} aria-label="Fermer"
-              className="absolute top-6 right-6 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+              className="absolute top-6 right-6 max-md:top-[max(12px,env(safe-area-inset-top))] max-md:right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
               <X className="h-5 w-5" />
             </button>
             {photosVivantes.length > 1 && (
               <>
                 <button type="button" aria-label="Photo précédente"
                   onClick={() => { const n = photosVivantes.indexOf(selectedImage); setSelectedImage(photosVivantes[(n - 1 + photosVivantes.length) % photosVivantes.length]); }}
-                  className="absolute left-6 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                  className="absolute left-6 max-md:left-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
                   <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button type="button" aria-label="Photo suivante"
                   onClick={() => { const n = photosVivantes.indexOf(selectedImage); setSelectedImage(photosVivantes[(n + 1) % photosVivantes.length]); }}
-                  className="absolute right-6 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                  className="absolute right-6 max-md:right-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
                   <ChevronRight className="h-6 w-6" />
                 </button>
-                <span className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[13px] text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <span className="absolute bottom-6 max-md:bottom-[max(16px,env(safe-area-inset-bottom))] left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-[13px] text-white" style={{ fontVariantNumeric: "tabular-nums" }}>
                   {photosVivantes.indexOf(selectedImage) + 1} / {photosVivantes.length}
                 </span>
               </>
@@ -328,7 +332,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           aperçu d'onglet seulement : l'éditeur montre la page entière. */}
       {!apercuOnglet && (
       <div className="px-4 pt-4 max-md:px-3 max-md:pt-3">
-      <div className="relative flex min-h-[440px] flex-col gap-8 overflow-hidden rounded-[18px] bg-relief pt-5 pb-6 pl-10 pr-6 max-md:px-4 max-md:pb-4">
+      <div className="relative flex min-h-[440px] max-md:min-h-[380px] flex-col gap-8 max-md:gap-6 overflow-hidden rounded-[18px] bg-relief pt-5 pb-6 pl-10 pr-6 max-md:px-4 max-md:pb-4">
         {streetView ? (
           <StreetViewRue project={project} />
         ) : vueMaps && mapUrl ? (
@@ -354,7 +358,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%)" }} />
         )}
 
-        <div className="pointer-events-none relative -ml-4 flex items-center justify-between gap-3 max-md:ml-0 [&_button]:pointer-events-auto">
+        <div className="pointer-events-none relative -ml-4 flex items-center justify-between gap-3 max-md:ml-0 max-md:items-start [&_button]:pointer-events-auto">
           {!modeEdition && !isPublic && !vueMaps ? (
             <button
               onClick={() => navigate(createPageUrl(isAdmin && !showAsClient ? "AdminProjets" : "MesProjets"))}
@@ -363,7 +367,9 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <ChevronLeft className="h-3.5 w-3.5" /> Projets
             </button>
           ) : <span />}
-          <div className="flex gap-2 items-center">
+          {/* Au téléphone, quatre pilules ne tiennent pas sur 300 px : elles
+              passent à la ligne, calées à droite. */}
+          <div className="flex gap-2 items-center max-md:flex-wrap max-md:justify-end max-md:min-w-0">
             {modeEdition && onPhotos && (
               <button onClick={onPhotos} className="k-verre inline-flex h-8 items-center rounded-full px-3.5 text-[13px]">Photos</button>
             )}
@@ -431,8 +437,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           {!apercuOnglet && (
           // La barre reste en haut au défilement, sans bande de fond : seules
           // les deux pilules, en verre, passent au-dessus du contenu.
-          <div className="sticky top-0 max-md:top-14 z-30 -mx-2 mb-10 max-md:mb-7 flex flex-wrap items-center justify-between gap-4 px-2 py-3">
-          <TabsList className="h-auto max-w-full inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+          // Page publique : pas de barre du haut au téléphone, la barre colle en haut.
+          // Au téléphone, une seule rangée : les onglets défilent, le
+          // simulateur garde sa place à droite sous un nom court.
+          <div className={`sticky top-0 ${isPublic ? "" : "max-md:top-[var(--k-haut-mobile,3.5rem)]"} z-30 -mx-2 mb-10 max-md:mb-7 flex flex-wrap max-md:flex-nowrap items-center justify-between gap-4 max-md:gap-2 px-2 py-3`}>
+          <TabsList className="h-auto max-w-full max-md:min-w-0 max-md:flex-shrink inline-flex justify-start gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
               { v: "marche", l: "Marché" },
               { v: "bien", l: "Bien" },
@@ -449,12 +458,13 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               </TabsTrigger>
             ))}
           </TabsList>
-          <div className="rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px]">
+          <div className="max-md:flex-shrink-0 rounded-full border border-trait bg-surface-pleine/60 backdrop-blur-xl p-[5px]">
             <button
               onClick={isPublic ? openPublicSimulator : () => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
-              className="h-9 rounded-full bg-menthe px-4 text-[14px] text-sur-menthe hover:bg-menthe-survol transition-colors"
+              className="h-9 rounded-full bg-menthe px-4 max-md:px-3.5 text-[14px] text-sur-menthe hover:bg-menthe-survol transition-colors max-md:whitespace-nowrap"
             >
-              Simulateur complet →
+              <span className="max-md:hidden">Simulateur complet →</span>
+              <span className="md:hidden">Simulateur</span>
             </button>
           </div>
           </div>

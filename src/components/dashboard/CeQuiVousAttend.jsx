@@ -178,7 +178,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                       </div>
 
                       {l.cloturable && (
-                        <div className="flex-none flex items-center gap-3 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <div className="flex-none flex items-center gap-3 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity max-md:opacity-100">
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); fait.mutate(l); }}
                             disabled={fait.isPending}
@@ -189,7 +189,7 @@ export default function CeQuiVousAttend({ limite = 12 }) {
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (window.confirm(CONFIRMATIONS[l.source] || "Supprimer cette ligne ?")) supprimer.mutate(l); }}
                             aria-label="Supprimer" title="Supprimer"
-                            className="text-brume hover:text-alerte transition-colors"
+                            className="text-brume hover:text-alerte transition-colors max-md:-m-2 max-md:grid max-md:h-9 max-md:w-9 max-md:place-items-center"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>

@@ -307,7 +307,15 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
     smsId = mettreEnAttente({ genre: 'sms', agent_id: a.id, nom: a.nom, a: ps.a, objet: 'SMS', corps: sms?.corps || ps.corps, appel_id }).id;
     faits.push('SMS prêt dans « À envoyer »');
   }
-  Records.update(ENTITE, appel.id, { etat: 'valide', choix: [...pris], valide_le: iso, valide_par: par });
+  // Ce que l'équipe a changé à la proposition d'AK : une suggestion écartée,
+  // un mail réécrit. Sans rien de tout ça, la carte est validée telle quelle
+  // (la fiabilité d'AK se mesure là-dessus).
+  const corrections = appel.propositions.filter((p) => !pris.has(p.id)).map((p) => ({ champ: LIBELLE_PROPOSITION[p.type] || 'Proposition', avant: p.titre, apres: 'écartée', le: iso, par }));
+  if (pm && pris.has(pm.id) && mail) {
+    if (mail.objet != null && String(mail.objet).trim() !== String(pm.objet || '').trim()) corrections.push({ champ: 'Objet du mail', avant: pm.objet || '', apres: mail.objet, le: iso, par });
+    else if (mail.corps != null && String(mail.corps).trim() !== String(pm.corps || '').trim()) corrections.push({ champ: 'Mail', avant: 'proposé', apres: 'réécrit', le: iso, par });
+  }
+  Records.update(ENTITE, appel.id, { etat: 'valide', choix: [...pris], valide_le: iso, valide_par: par, corrections, modifie: corrections.length > 0 });
   liberer(a.id);
   return { ok: true, faits, envoi, mail_id: mailId, sms_id: smsId, agent: agentDe(a.id) };
 }
@@ -344,10 +352,77 @@ export async function raconterAppel({ agent_id, audio, duree_s = null, par, main
 }
 
 /** Pure : la carte de confirmation, tout ce qui a été rempli après l'appel. */
+const LIBELLE_PROPOSITION = { statut: 'Statut', relance: 'Relance', mail: 'Mail', sms: 'SMS', fiche: 'Fiche', note: 'Note', autre_agent: 'Autre contact' };
+
+/**
+ * Une correction faite sur la carte de confirmation, après coup : le statut,
+ * la date ou l'objet de la prochaine action. Elle s'applique à la fiche, part
+ * dans Monday, et compte comme une modification de la carte d'AK.
+ */
+export async function corrigerAppel({ appel_id, champ, valeur, user = null }) {
+  const appel = Records.get(ENTITE, appel_id);
+  if (!appel || appel.etat !== 'valide') return { ok: false, error: 'Appel introuvable ou pas encore validé.' };
+  const a = agentDe(appel.agent_id);
+  if (!a) return { ok: false, error: 'Agent introuvable.' };
+  const v = String(valeur ?? '').trim();
+  let correction;
+  if (champ === 'statut') {
+    if (!R.STATUTS[v]) return { ok: false, error: 'Statut inconnu.' };
+    correction = { champ: 'Statut', avant: R.STATUTS[a.statut] || a.statut || '', apres: R.STATUTS[v] };
+    majAgent(a.id, { statut: v });
+  } else if (champ === 'prochaine_le') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return { ok: false, error: 'Date invalide.' };
+    const jourCourt = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'Europe/Paris' });
+    correction = { champ: 'Date', avant: a.prochaine?.le ? jourCourt(String(a.prochaine.le).slice(0, 10)) : '', apres: jourCourt(v) };
+    majAgent(a.id, { prochaine: { quoi: a.prochaine?.quoi || 'rappeler', le: v } });
+  } else if (champ === 'prochaine_quoi') {
+    if (!v) return { ok: false, error: 'Dites quoi faire.' };
+    correction = { champ: 'Prochaine action', avant: a.prochaine?.quoi || '', apres: v };
+    majAgent(a.id, { prochaine: { quoi: v, le: a.prochaine?.le || R.jourDe(new Date()) } });
+  } else return { ok: false, error: 'Ce champ ne se corrige pas ici.' };
+  if (correction.avant === correction.apres) return { ok: true, inchange: true, agent: agentDe(a.id) };
+  const c = { ...correction, le: new Date().toISOString(), par: user?.email || null };
+  Records.update(ENTITE, appel.id, { corrections: [...(appel.corrections || []), c], modifie: true });
+  journal(a.id, { type: 'note', texte: `Correction : ${c.champ} ${c.avant || '(vide)'} → ${c.apres}`, par: user?.email || null });
+  try { (await import('./monday.js')).pousserUnAgent(a.id).catch(() => {}); } catch { /* Monday rattrapera au tour suivant */ }
+  return { ok: true, correction: c, agent: agentDe(a.id) };
+}
+
+/** Pure : la semaine ISO d'une date (« S41 »). */
+export function semaineIso(d) {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const jour = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - jour);
+  const debut = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - debut) / 86400000 + 1) / 7);
+}
+
+/**
+ * La fiabilité d'AK : la part des cartes d'appel validées sans aucune
+ * modification, semaine par semaine (les six dernières), et les dernières
+ * corrections.
+ */
+export function fiabilite({ semaines = 6, maintenant = new Date() } = {}) {
+  const valides = Records.list(ENTITE).filter((x) => x.etat === 'valide' && x.valide_le);
+  const parSemaine = [];
+  for (let i = semaines - 1; i >= 0; i -= 1) {
+    const d = new Date(maintenant.getTime() - i * 7 * 86400000);
+    const n = semaineIso(d);
+    const dans = valides.filter((x) => { const v = new Date(x.valide_le); return semaineIso(v) === n && Math.abs(v - d) < 8 * 86400000; });
+    const sans = dans.filter((x) => !x.modifie).length;
+    parSemaine.push({ semaine: `S${n}`, cartes: dans.length, sans_modification: sans, taux: dans.length ? Math.round((sans / dans.length) * 100) : null });
+  }
+  const courante = parSemaine[parSemaine.length - 1];
+  const corrections = valides.flatMap((x) => (x.corrections || []).map((c) => ({ ...c, agent_id: x.agent_id }))).sort((p, q) => String(q.le).localeCompare(String(p.le))).slice(0, 6);
+  return { ...courante, semaines: parSemaine, corrections };
+}
+
 export function carteAppel(a, appel, v, monday = null) {
   const mail = (appel.propositions || []).find((p) => p.type === 'mail');
   const sms = (appel.propositions || []).find((p) => p.type === 'sms');
   return {
+    appel_id: appel.id || null,
+    statut_cle: a.statut || null,
     nom: a.nom,
     agence: a.agence && a.agence !== a.nom ? a.agence : null,
     ville: a.ville || null,

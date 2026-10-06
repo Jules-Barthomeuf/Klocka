@@ -88,11 +88,11 @@ export default function Incidents() {
                   <button
                     onClick={() => setDeplie(ouvert ? null : n)}
                     disabled={!i.pile}
-                    className="grid w-full grid-cols-[130px_150px_minmax(0,1fr)] items-baseline gap-3 text-left disabled:cursor-default"
+                    className="grid w-full grid-cols-[130px_150px_minmax(0,1fr)] items-baseline gap-3 text-left disabled:cursor-default max-md:grid-cols-[auto_minmax(0,1fr)] max-md:gap-x-3 max-md:gap-y-1"
                   >
                     <span className="text-[12.5px] tabular-nums text-ardoise">{quand(i.le)}</span>
                     <span className={`inline-flex items-center gap-1.5 text-[12.5px] ${e.teinte}`}><e.Icone className="h-3 w-3" />{e.mot}</span>
-                    <span className="truncate text-[12.5px] text-craie">{i.message}</span>
+                    <span className="truncate text-[12.5px] text-craie max-md:col-span-2">{i.message}</span>
                   </button>
                   {ouvert && i.pile && (
                     <pre className="mt-2 max-h-[280px] overflow-auto whitespace-pre-wrap rounded-md border border-trait bg-surface px-3 py-2 font-mono text-[11px] leading-[1.6] text-ardoise">{i.pile}</pre>

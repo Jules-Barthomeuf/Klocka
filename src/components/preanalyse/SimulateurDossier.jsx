@@ -234,8 +234,9 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
 
         <div className="flex-1 w-0 min-w-0">
           {/* Onglets + actions */}
-          <div className="flex items-center justify-between border-b border-trait px-3 h-10 gap-2">
-            <div className="flex items-center gap-4 h-full overflow-x-auto">
+          {/* Au téléphone, les onglets puis les actions, sur deux rangées. */}
+          <div className="flex items-center justify-between border-b border-trait px-3 h-10 gap-2 max-md:h-auto max-md:flex-col max-md:items-stretch max-md:gap-0 max-md:pb-2">
+            <div className="flex items-center gap-4 h-full overflow-x-auto max-md:h-10">
               {ONGLETS.map((o) => (
                 <button
                   key={o.id}
@@ -250,16 +251,16 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 max-md:flex-wrap">
               <button
                 onClick={() => setRailOuvert((o) => !o)}
-                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-bord text-craie hover:text-encre text-[11px]`}
+                className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 max-md:h-8 rounded-full border border-bord text-craie hover:text-encre text-[11px]`}
               >
                 <SlidersHorizontal className="w-3 h-3" /> Hypothèses
               </button>
               <button
                 onClick={reinitialiser}
-                className="flex items-center gap-1.5 px-2.5 h-7 rounded-full border border-bord text-craie hover:text-encre text-[11px]"
+                className="flex items-center gap-1.5 px-2.5 h-7 max-md:h-8 rounded-full border border-bord text-craie hover:text-encre text-[11px]"
               >
                 <RefreshCw className="w-3 h-3" /> Dossier
               </button>
@@ -268,7 +269,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
                   onClick={() => enregistrer.mutate()}
                   disabled={enregistrer.isPending}
                   title={enregistreLe ? `Enregistré le ${enregistreLe.toLocaleDateString("fr-FR")} à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "Garder ces chiffres sur le dossier"}
-                  className="flex items-center gap-1.5 px-3 h-7 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol text-[11px] disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 h-7 max-md:h-8 rounded-full bg-menthe text-fond font-semibold hover:bg-menthe-survol text-[11px] disabled:opacity-40"
                 >
                   {enregistrer.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : enregistreLe ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                   {enregistreLe ? "Enregistrer à nouveau" : "Enregistrer les chiffres"}

@@ -126,7 +126,7 @@ function Nombre({ valeur, onChange, unite, placeholder }) {
   return (
     <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
       <input type="text" inputMode="numeric" value={valeur} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full bg-transparent text-[14px] tabular-nums text-encre outline-none placeholder:text-brume" />
+        className="h-11 w-full bg-transparent text-[14px] max-md:text-[16px] tabular-nums text-encre outline-none placeholder:text-brume" />
       <span className="flex-shrink-0 text-[13px] text-ardoise">{unite}</span>
     </div>
   );
@@ -316,9 +316,9 @@ function Resultat({ r, onRecommencer, onAppel }) {
   } : null), [a]);
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 pb-24 pt-10">
+    <div className="mx-auto max-w-[1280px] px-4 max-md:px-5 pb-24 pt-10 max-md:pt-7">
       <div className={`mb-8 text-center ${flou("titre")}`}>
-        <h1 className="m-0 text-[32px] font-light leading-[1.15] tracking-[-0.01em] text-encre">Votre parcours d&apos;investissement</h1>
+        <h1 className="m-0 text-[32px] max-md:text-[24px] font-light leading-[1.15] tracking-[-0.01em] text-encre">Votre parcours d&apos;investissement</h1>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -608,10 +608,10 @@ export default function FeuilleDeRoute() {
         {roadmap ? (
           <Resultat r={roadmap} onRecommencer={() => setRoadmap(null)} onAppel={marquerAppel} />
         ) : (
-          <div className="mx-auto max-w-[680px] px-4 pb-24 pt-14">
+          <div className="mx-auto max-w-[680px] px-4 max-md:px-5 pb-24 pt-14 max-md:pt-8">
             <div className="mb-8 text-center">
               <img src="/logo-klocka.svg" alt="Klocka" className="mx-auto mb-6 h-10 w-10 rounded-[8px]" draggable={false} />
-              <h1 className="m-0 mb-3 text-[34px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
+              <h1 className="m-0 mb-3 text-[34px] max-md:text-[26px] font-light leading-[1.15] tracking-[-0.01em] text-encre">
                 Construisez votre retraite dès maintenant
               </h1>
               <p className="mx-auto m-0 max-w-[520px] text-[15px] leading-[1.7] text-ardoise">
@@ -624,11 +624,11 @@ export default function FeuilleDeRoute() {
               <div className="grid gap-x-4 sm:grid-cols-2">
                 <Champ label="Votre prénom">
                   <input value={f.nom} onChange={(e) => poser("nom", e.target.value)} placeholder="Camille"
-                    className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+                    className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
                 </Champ>
                 <Champ label="Votre e-mail">
                   <input type="email" value={f.email} onChange={(e) => poser("email", e.target.value)} placeholder="camille@exemple.fr"
-                    className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+                    className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
                 </Champ>
               </div>
 
@@ -663,7 +663,7 @@ export default function FeuilleDeRoute() {
                   <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
                     <MapPin className="h-4 w-4 flex-shrink-0 text-brume" />
                     <input value={f.quartier} onChange={(e) => poser("quartier", e.target.value)} placeholder="12 rue de la Paix, Saint-Nazaire"
-                      className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+                      className="h-11 w-full bg-transparent text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume" />
                   </div>
                   {suggestions.length > 0 && (
                     <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
@@ -689,7 +689,7 @@ export default function FeuilleDeRoute() {
 
               <Champ label="Votre téléphone" aide="Facultatif. Seulement si vous préférez qu'on vous appelle.">
                 <input value={f.telephone} onChange={(e) => poser("telephone", e.target.value)} placeholder="06 12 34 56 78"
-                  className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+                  className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] max-md:text-[16px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
               </Champ>
 
               <label className="mt-2 flex cursor-pointer items-start gap-2.5 text-[12px] leading-[1.6] text-ardoise">

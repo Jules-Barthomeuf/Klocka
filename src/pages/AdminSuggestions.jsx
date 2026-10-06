@@ -165,7 +165,7 @@ export default function AdminSuggestions() {
   return (
     <div className="min-h-screen bg-fond text-encre px-5 md:px-10 py-8 md:py-12">
       <div className="max-w-[1100px] mx-auto">
-        <h1 className="m-0 mb-8 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
+        <h1 className="m-0 mb-8 max-md:mb-5 text-[34px] max-md:text-[24px] font-light tracking-[-0.02em] leading-[1.05]">Feedback</h1>
 
         <BordureEcoute actif={ecoute} radius="20px">
         <BoiteSaisie
@@ -204,7 +204,7 @@ export default function AdminSuggestions() {
                       onClick={() => setUrgence(n)}
                       aria-pressed={urgence === n}
                       aria-label={URGENCES[n - 1].mot} title={URGENCES[n - 1].mot}
-                      className="w-3.5 rounded-[2px] transition-all hover:opacity-100"
+                      className="w-3.5 rounded-[2px] transition-all hover:opacity-100 max-md:w-5"
                       style={{ height: 8 + n * 3, background: n <= urgence ? urgenceDe(urgence).teinte : J["bord"], opacity: n <= urgence ? 1 : .85 }}
                     />
                   ))}
@@ -249,16 +249,16 @@ export default function AdminSuggestions() {
             {visibles.map((r) => {
               const statut = normaliser(r.statut);
               return (
-                <div key={r.id} className="flex gap-5 py-5 border-b border-relief group">
+                <div key={r.id} className="flex gap-5 py-5 border-b border-relief group max-md:flex-wrap max-md:gap-3">
                   {r.capture_url && (
-                    <button onClick={() => setZoom(r.capture_url)} className="flex-none w-[120px] h-[80px] rounded-lg border border-bord overflow-hidden bg-fond" aria-label="Agrandir" title="Agrandir">
+                    <button onClick={() => setZoom(r.capture_url)} className="flex-none w-[120px] h-[80px] rounded-lg border border-bord overflow-hidden bg-fond max-md:w-[88px] max-md:h-[60px]" aria-label="Agrandir" title="Agrandir">
                       <img src={r.capture_url} alt="" className="w-full h-full object-cover" />
                     </button>
                   )}
                   <div className="min-w-0 flex-1">
                     {edition?.id === r.id ? (
                       <div>
-                        <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-3 py-2 outline-none text-[15px] leading-[1.6] text-encre resize-y" />
+                        <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: r.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); modifier.mutate({ id: r.id, contenu: edition.texte.trim() }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-3 py-2 outline-none text-[15px] leading-[1.6] text-encre resize-y max-md:text-[16px]" />
                         <div className="mt-1.5 flex items-center gap-2">
                           <button onClick={() => modifier.mutate({ id: r.id, contenu: edition.texte.trim() })} disabled={modifier.isPending || !edition.texte.trim()} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> Enregistrer</button>
                           <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
@@ -272,7 +272,7 @@ export default function AdminSuggestions() {
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>
                         <span className="inline-flex items-end gap-px">
                           {[1, 2, 3, 4, 5].map((n) => (
-                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} aria-label={URGENCES[n - 1].mot} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : J["bord"] }} />
+                            <button key={n} type="button" onClick={() => noter.mutate({ id: r.id, urgence: n })} aria-label={URGENCES[n - 1].mot} title={URGENCES[n - 1].mot} className="w-1.5 rounded-[2px] transition-colors max-md:w-3" style={{ height: 5 + n * 1.6, background: n <= urgenceDe(r.urgence).n ? urgenceDe(r.urgence).teinte : J["bord"] }} />
                           ))}
                         </span>
                         <span style={{ color: urgenceDe(r.urgence).teinte }}>{urgenceDe(r.urgence).mot}</span>
@@ -284,24 +284,24 @@ export default function AdminSuggestions() {
                       {r.page && (
                         <>
                           <span className="text-bord-vif">·</span>
-                          <a href={r.page} className="text-brume hover:text-menthe underline decoration-bord underline-offset-2" aria-label="Ouvrir la page d'où vient la remarque" title="Ouvrir la page d'où vient la remarque">{r.page}</a>
+                          <a href={r.page} className="text-brume hover:text-menthe underline decoration-bord underline-offset-2 max-md:break-all" aria-label="Ouvrir la page d'où vient la remarque" title="Ouvrir la page d'où vient la remarque">{r.page}</a>
                         </>
                       )}
                     </p>
                   </div>
-                  <div className="flex-none flex items-start gap-1.5">
+                  <div className="flex-none flex items-start gap-1.5 max-md:w-full max-md:flex-wrap max-md:items-center">
                     {STATUTS.map((s) => (
                       <button
                         key={s.id}
                         onClick={() => statut !== s.id && changerStatut.mutate({ id: r.id, statut: s.id })}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${statut === s.id ? "text-white" : "text-brume hover:text-craie border border-bord"}`}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors max-md:py-1.5 ${statut === s.id ? "text-white" : "text-brume hover:text-craie border border-bord"}`}
                         style={statut === s.id ? { background: s.fond } : undefined}
                       >
                         {s.label}
                       </button>
                     ))}
-                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-brume hover:text-encre opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Modifier" title="Modifier"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-brume hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Supprimer" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setEdition({ id: r.id, texte: r.contenu || "" })} className="ml-2 text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity max-md:ml-auto max-md:p-2 max-md:opacity-100" aria-label="Modifier" title="Modifier"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => window.confirm("Supprimer cette remarque ?") && supprimer.mutate(r.id)} className="text-brume hover:text-red-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity max-md:p-2 max-md:opacity-100" aria-label="Supprimer" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               );
@@ -310,7 +310,7 @@ export default function AdminSuggestions() {
         )}
 
         {zoom && (
-          <div onClick={() => setZoom(null)} className="animate-in fade-in duration-200 fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-8 cursor-zoom-out">
+          <div onClick={() => setZoom(null)} className="animate-in fade-in duration-200 fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-8 cursor-zoom-out max-md:p-3">
             <img src={zoom} alt="Capture" className="max-w-full max-h-full rounded-lg border border-bord" />
           </div>
         )}

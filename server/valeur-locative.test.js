@@ -24,19 +24,17 @@ test('les trois échelles se lisent aux trois rayons, et gardent la forme que le
   assert.deepEqual([r.rue.nom, r.rue.basse, r.rue.haute, r.rue.source], ['Rue Dabray', 300, 400, 'Equimmox']);
   assert.deepEqual([r.quartier.basse, r.quartier.haute], [250, 350]);
   assert.deepEqual([r.ville.nom, r.ville.basse, r.ville.haute], ['Nice', 150, 300]);
-  // Le loyer déduit reste à part : c'est le second regard, jamais mélangé au constat.
-  assert.equal(r.dvf.n, 155);
-  assert.equal(r.dvf.basse, 96);
+  // Le loyer déduit des ventes n'entre plus, même offert (6 oct. 2026).
+  assert.equal(r.dvf, null);
 });
 
-test("sans Equimmox, la déduction DVF prend le quartier et se dit comme telle", () => {
+test("sans Equimmox ni Data-B, aucun loyer : la déduction DVF ne prend plus le quartier", () => {
   const r = composer(ADRESSE, {}, DVF);
   assert.equal(r.constate, false);
-  assert.match(r.source, /DVF/);
+  assert.match(r.source, /aucune/);
   assert.equal(r.rue, null, 'aucune rue inventée');
   assert.equal(r.ville, null);
-  assert.equal(r.quartier.derive, true);
-  assert.deepEqual([r.quartier.basse, r.quartier.haute], [96, 296]);
+  assert.equal(r.quartier, null);
   // Rien du tout : la forme tient, vide, et l'appelant refusera.
   const vide = composer(ADRESSE, {}, null);
   assert.equal(vide.rue, null);

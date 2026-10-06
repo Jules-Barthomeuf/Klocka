@@ -87,7 +87,8 @@ export default function InteractiveFranceMap({ projets }) {
       transition={{ duration: 0.5 }}
       className="relative h-full w-full overflow-hidden rounded-[18px] border border-trait"
     >
-      <MapContainer center={[46.603354, 1.888334]} zoom={5} style={{ height: "100%", width: "100%" }} className="z-0" scrollWheelZoom={false}>
+      {/* Au téléphone, un doigt fait défiler la page, pas la carte : deux doigts la déplacent et la zooment. */}
+      <MapContainer center={[46.603354, 1.888334]} zoom={5} style={{ height: "100%", width: "100%" }} className="z-0" scrollWheelZoom={false} dragging={typeof window === "undefined" || window.innerWidth >= 768}>
         <TileLayer url={fond.url} attribution={fond.attribution} maxZoom={18} eventHandlers={{ tileerror: surErreur }} />
         {projetsAvecCoords.map((projet) => (
           <CircleMarker

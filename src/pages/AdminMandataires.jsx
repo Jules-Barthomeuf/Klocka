@@ -81,7 +81,7 @@ function ChoixDecoupage({ niveau, choisies, onBasculer }) {
         <Search className="h-3.5 w-3.5 flex-shrink-0 text-brume" />
         <input value={q} onChange={(e) => setQ(e.target.value)} autoFocus
           placeholder={commune ? "Nom ou code postal de la commune" : niveau === "departement" ? "Nom ou numéro du département" : "Nom de la région"}
-          className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume" />
+          className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
       </div>
       <div className="mt-2 max-h-[220px] overflow-y-auto rounded-[10px] border border-trait">
         {error ? <p className="m-0 px-3 py-3 text-[12px] text-alerte">{error.message}</p>
@@ -195,13 +195,13 @@ function Secteurs() {
   const listes = filtre.trim()
     ? secteurs.filter((s) => `${s.nom} ${s.mandataire_email || ""} ${nomDe(s.mandataire_email) || ""}`.toLowerCase().includes(filtre.trim().toLowerCase()))
     : secteurs;
-  const champ = "w-full rounded-[10px] border border-bord bg-surface px-3 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe";
+  const champ = "w-full rounded-[10px] border border-bord bg-surface px-3 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]";
   const panneauDroit = trace || ouvert;
 
   return (
     // La mise en page de K-Zoning : la carte en plein cadre, la liste vitrée à
     // gauche, l'élément ouvert vitré à droite.
-    <div className="relative mt-5 h-[calc(100vh-13rem)] min-h-[520px] overflow-hidden rounded-[16px] border border-bord">
+    <div className="relative mt-5 h-[calc(100vh-13rem)] min-h-[520px] overflow-hidden rounded-[16px] border border-bord max-md:h-[calc(100dvh-13rem)] max-md:min-h-[460px]">
       <div className="absolute inset-0">
         <CarteGoogleSecteurs
           secteurs={secteurs.filter((s) => s.id !== enEdition && !masques.has(s.id)).map((s) => ({ ...s, teinte: teinteDe(indexDe(s.id)) }))}
@@ -228,8 +228,9 @@ function Secteurs() {
         </div>
       </div>
 
-      {/* Le panneau de gauche : tracer, chercher, retrouver. */}
-      <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[320px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:max-h-[42%]">
+      {/* Le panneau de gauche : tracer, chercher, retrouver. Au téléphone, il
+          s'efface quand celui de droite s'ouvre : un panneau à la fois. */}
+      <div className={`absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[320px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:left-3 max-md:top-3 max-md:max-h-[42%] max-md:max-w-[calc(100%-1.5rem)] ${panneauDroit ? "max-md:hidden" : ""}`}>
         <div className="flex-shrink-0 p-3">
           <button type="button" onClick={commencer} disabled={trace}
             className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-menthe px-3 py-2.5 text-[13px] font-medium text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
@@ -240,7 +241,7 @@ function Secteurs() {
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-bord bg-surface px-3">
             <Search className="h-3.5 w-3.5 flex-shrink-0 text-brume" />
             <input value={filtre} onChange={(e) => setFiltre(e.target.value)} placeholder="Chercher un secteur ou un mandataire"
-              className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume" />
+              className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pb-2">
@@ -300,7 +301,7 @@ function Secteurs() {
 
       {/* Le panneau de droite : le tracé en cours, ou le secteur ouvert. */}
       {panneauDroit && (
-        <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[360px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:bottom-4 max-md:left-4 max-md:top-auto max-md:w-auto">
+        <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[360px] max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:bottom-3 max-md:left-3 max-md:right-3 max-md:top-auto max-md:w-auto max-md:max-w-none max-md:max-h-[70%]">
           <div className="flex flex-shrink-0 items-start gap-3 border-b border-trait p-4">
             <div className="min-w-0 flex-1">
               <p className="alx-mont m-0 text-[11px] uppercase tracking-[.16em] text-menthe-texte">
@@ -530,7 +531,7 @@ function Mandataires() {
                     {mot}
                     <input type={type} value={valeur(c, type)}
                       onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
-                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none" />
+                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none max-md:text-[16px]" />
                   </label>
                 ))}
               </div>
@@ -541,7 +542,7 @@ function Mandataires() {
                     {mot}
                     <input type={type} value={valeur(c, type)}
                       onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
-                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none" />
+                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none max-md:text-[16px]" />
                   </label>
                 ))}
               </div>
@@ -610,7 +611,7 @@ function Demandes() {
   const champ = (cle, placeholder, type = "text", largeur = "") => (
     <input type={type} value={forme[cle]} placeholder={placeholder}
       onChange={(e) => setForme((f) => ({ ...f, [cle]: e.target.value }))}
-      className={`rounded-champ border border-trait bg-surface px-2.5 py-2 text-[13.5px] text-encre outline-none placeholder:text-brume ${largeur}`} />
+      className={`rounded-champ border border-trait bg-surface px-2.5 py-2 text-[13.5px] text-encre outline-none placeholder:text-brume ${largeur} max-md:text-[16px]`} />
   );
   return (
     <div className="mt-5">

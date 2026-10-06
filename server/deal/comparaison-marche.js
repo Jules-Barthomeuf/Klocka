@@ -167,22 +167,10 @@ async function loyerDeLaRue(adresse) {
   try {
     const { lancerValeurLocative } = await import('../valeur-locative.js');
     lancerValeurLocative(point?.label || adresse);
-  } catch { /* l'estimation d'ALX reste */ }
-  const provisoire = await estimationAlx(adresse);
-  return provisoire ? { ...provisoire, kdata_en_cours: true } : { kdata_en_cours: true, source: 'Valeur locative en cours de lecture (Equimmox, Data-B)' };
-}
-
-/** L'estimation d'ALX : le loyer de la rue déduit des ventes DVF et du rang de la rue. */
-async function estimationAlx(adresse) {
-  const { emplacementDeLAdresse } = await import('../alx/emplacement.js');
-  const e = await emplacementDeLAdresse(adresse).catch(() => null);
-  const [bas, haut] = Array.isArray(e?.loyer) ? e.loyer : [null, null];
-  if (bas == null || haut == null) return null;
-  return {
-    bas, haut, median: Math.round((bas + haut) / 2),
-    source: `Estimation provisoire d'ALX pour ${e.rue || 'la rue'} (déduite des ventes DVF), en attendant Equimmox et Data-B`,
-    constate: false,
-  };
+  } catch { /* la lecture reprendra au prochain passage */ }
+  // Plus d'estimation provisoire d'ALX en attendant (6 oct. 2026 : ALX en
+  // sommeil, les loyers viennent d'Equimmox) : le loyer reste vide et le dit.
+  return { kdata_en_cours: true, source: 'Valeur locative en cours de lecture (Equimmox, Data-B)' };
 }
 
 /**

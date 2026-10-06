@@ -131,7 +131,7 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
           {sousLigne}
         </div>
         {actions && (
-          <div className="absolute inset-x-0 top-14 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="absolute inset-x-0 top-14 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100">
             {actions}
           </div>
         )}

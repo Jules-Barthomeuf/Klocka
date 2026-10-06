@@ -1,18 +1,21 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Building2, MapPin, User } from "lucide-react";
+import { LayoutDashboard, Building2, MapPin, User, Folder, CircleUser } from "lucide-react";
 
 const TABS_CLIENT = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Projets", icon: Building2, page: "MesProjets" },
   { label: "Profil", icon: User, page: "MonCompte" },
 ];
-// Le mandataire n'a pas de projets clients : ses pages s'ajoutent ici avec l'espace mandataire.
+// Le mandataire : ses trois pages de tous les jours, et Compte, la page que
+// sa barre latérale ouvre (pas « Mon compte », qui est celle du client). Le
+// reste est dans le menu du haut.
 const TABS_MANDATAIRE = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Prospection", icon: MapPin, page: "MandataireProspection" },
-  { label: "Profil", icon: User, page: "MonCompte" },
+  { label: "Dossiers", icon: Folder, page: "MandataireDossier" },
+  { label: "Compte", icon: CircleUser, page: "Personnalisation" },
 ];
 
 export default function BottomTabs({ vue = "client" }) {
@@ -34,7 +37,7 @@ export default function BottomTabs({ vue = "client" }) {
               key={page}
               to={url}
               className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
-                isActive ? "text-menthe" : "text-encre/30"
+                isActive ? "text-menthe" : "text-ardoise"
               }`}
             >
               <Icon className="w-5 h-5" />

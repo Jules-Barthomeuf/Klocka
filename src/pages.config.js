@@ -61,6 +61,7 @@ const ALXBilan = lazy(() => import('./pages/ALXBilan'));
 const ALXEntrainement = lazy(() => import('./pages/ALXEntrainement'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const Offres = lazy(() => import('./pages/Offres'));
+const Emailing = lazy(() => import('./pages/Emailing'));
 const AdminProjets = lazy(() => import('./pages/AdminProjets'));
 const AdminRessources = lazy(() => import('./pages/AdminRessources'));
 const AdminSignup = lazy(() => import('./pages/AdminSignup'));
@@ -117,6 +118,7 @@ export const PAGES = {
     "ALXEntrainement": ALXEntrainement,
     "AdminClients": AdminClients,
     "Offres": Offres,
+    "Emailing": Emailing,
     "AdminProjets": AdminProjets,
     "AdminRessources": AdminRessources,
     "AdminSignup": AdminSignup,

@@ -4,6 +4,7 @@ import ExportExcelFullButton from "../components/simulator/ExportExcelFullButton
 import { calculerTVADeductible } from "../components/simulator";
 
 import SimControlRail from "../components/simulator/layout/SimControlRail";
+import SimReglagesMobile from "../components/simulator/layout/SimReglagesMobile";
 import SimKpiRow from "../components/simulator/layout/SimKpiRow";
 import SimBudgetDonut from "../components/simulator/layout/SimBudgetDonut";
 import SimChartCarousel from "../components/simulator/layout/SimChartCarousel";
@@ -387,30 +388,37 @@ export default function SimulateurPublic() {
     );
   }
 
+
+  // Le rail des curseurs : à gauche sur ordinateur, en plein écran au téléphone.
+  const rail = (
+    <SimControlRail
+      projects={[]}
+      selectedProjectId={null}
+      onSelectProject={() => {}}
+      values={values}
+      onChange={onChange}
+      calculs={calculs}
+      formatCurrency={formatCurrency}
+      advanced={advanced}
+      activeTab={activeTab}
+    />
+  );
+
   return (
     <div className="bg-fond min-h-screen relative w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col min-h-screen">
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
           <aside className="hidden md:block w-[260px] flex-shrink-0">
-            <SimControlRail
-              projects={[]}
-              selectedProjectId={null}
-              onSelectProject={() => {}}
-              values={values}
-              onChange={onChange}
-              calculs={calculs}
-              formatCurrency={formatCurrency}
-              advanced={advanced}
-              activeTab={activeTab}
-            />
+            {rail}
           </aside>
+          <SimReglagesMobile>{rail}</SimReglagesMobile>
 
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10">
-              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-surface border border-trait min-w-0 overflow-x-auto">
+            <div className="flex items-center justify-between gap-3 border-b border-trait px-4 h-11 sticky top-0 bg-fond z-10 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-surface border border-trait min-w-0 overflow-x-auto max-md:flex-shrink-0">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;
                   return (
@@ -436,7 +444,7 @@ export default function SimulateurPublic() {
               </div>
             </div>
 
-            <div key={activeTab} className="p-4 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
+            <div key={activeTab} className="p-4 max-md:pb-24 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
               {negoActive && (
                 <div className="flex items-center gap-2 text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.

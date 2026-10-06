@@ -214,9 +214,10 @@ export default function AssistantFlottant() {
         right: gauche ? undefined : mobile ? 12 : 20,
         // À gauche : à côté de la barre latérale, dont Layout dit la largeur ; sur téléphone elle n'est pas là.
         left: gauche ? (mobile ? 12 : "calc(var(--k-barre-largeur, 0px) + 20px)") : undefined,
-        // Sur téléphone, la barre de navigation occupe le bas : la pilule se
-        // pose juste au-dessus, elle ne la recouvre pas.
-        bottom: mobile ? "calc(3.5rem + env(safe-area-inset-bottom) + 10px)" : 20,
+        // Sur téléphone, la vue admin n'a pas d'onglets en bas : la pilule se
+        // pose au-dessus de la barre d'accueil d'iOS, dans la marge que Layout
+        // laisse sous la page (--k-bas-mobile).
+        bottom: mobile ? "calc(env(safe-area-inset-bottom) + 12px)" : 20,
         // Au repos : une petite bulle. Ouvert : le cadre de conversation.
         width: ouvert ? 420 : "auto",
         alignItems: ouvert ? "stretch" : gauche ? "flex-start" : "flex-end",
@@ -263,7 +264,8 @@ export default function AssistantFlottant() {
               onClick={() => setOuvert(false)}
               aria-label="Replier"
               style={{
-                width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center",
+                // Au doigt, une cible de 32 px ; à la souris, la croix discrète.
+                width: mobile ? 32 : 20, height: mobile ? 32 : 20, display: "flex", alignItems: "center", justifyContent: "center",
                 borderRadius: 5, fontSize: 14, color: META, background: "none", border: 0, cursor: "pointer",
               }}
             >
@@ -278,7 +280,7 @@ export default function AssistantFlottant() {
               display: "flex",
               flexDirection: "column",
               gap: 14,
-              maxHeight: "55vh",
+              maxHeight: mobile ? "45dvh" : "55vh",
               overflowY: "auto",
               paddingBottom: 16,
             }}

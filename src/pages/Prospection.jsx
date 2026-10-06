@@ -6,6 +6,7 @@ import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, 
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/AgencesIA";
+import MaJournee from "@/components/prospection/MaJournee";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
 // un agent (il se verrouille à son nom), on enregistre l'appel, et à la fin
@@ -13,7 +14,7 @@ import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/Age
 // fiche. On coche, on relit, on valide. Rien ne part vers un agent sans un
 // clic. Le calcul est côté serveur (server/prospection/).
 
-const champ = "w-full rounded-lg border border-bord-doux bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60";
+const champ = "w-full min-w-0 rounded-lg border border-bord-doux bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 max-md:text-[16px]";
 const etiquette = "m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise";
 const carte = "rounded-[16px] border border-trait bg-surface";
 const jourFr = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
@@ -216,14 +217,14 @@ function PanneauAppel({ agent, onFermer, onCarte = null }) {
           <h2 className="m-0 mt-1 text-[20px] font-semibold text-encre">{agent.nom}</h2>
           <p className="m-0 mt-0.5 text-[13px] text-craie">{[agent.agence && agent.agence !== agent.nom ? agent.agence : null, agent.ville].filter(Boolean).join(" · ")}</p>
         </div>
-        {etat === "pret" && <button type="button" onClick={lacher} className="text-[12px] text-brume hover:text-encre" style={{ background: "transparent" }}>Lâcher</button>}
+        {etat === "pret" && <button type="button" onClick={lacher} className="text-[12px] text-brume hover:text-encre max-md:h-9 max-md:px-2" style={{ background: "transparent" }}>Lâcher</button>}
       </div>
 
       {etat !== "propose" && (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
             {(agent.telephones || []).map((t) => <a key={t} href={telLien(t)} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[14px] font-semibold tabular-nums text-sur-menthe"><PhoneCall className="h-4 w-4" />{t}</a>)}
-            {(agent.emails || []).slice(0, 2).map((e) => <a key={e} href={`mailto:${e}`} className="inline-flex items-center gap-1.5 self-center text-[12.5px] text-craie hover:text-encre"><Mail className="h-3.5 w-3.5" />{e}</a>)}
+            {(agent.emails || []).slice(0, 2).map((e) => <a key={e} href={`mailto:${e}`} className="inline-flex min-w-0 items-center gap-1.5 self-center break-all text-[12.5px] text-craie hover:text-encre"><Mail className="h-3.5 w-3.5" />{e}</a>)}
           </div>
           <p className="m-0 mt-3 text-[13.5px] text-encre">{agent.raison}</p>
           {(agent.secteurs?.length > 0 || agent.resume_dernier_appel) && (
@@ -313,7 +314,7 @@ function Envoi({ m, choisi, onChoisir, onEcarter }) {
           <div className="flex flex-wrap items-center gap-2">
             <Pastille ton={ton}>{libelle}</Pastille>
             <label htmlFor={`envoi-${m.id}`} className="text-[14px] font-semibold text-encre">{m.nom || m.a}</label>
-            <span className="text-[12.5px] text-brume">{m.a || "sans adresse"}</span>
+            <span className="min-w-0 break-all text-[12.5px] text-brume">{m.a || "sans adresse"}</span>
           </div>
           <p className="m-0 mt-1 text-[13px] text-craie">{m.dossier ? `${m.dossier} · ` : ""}{m.genre === "sms" ? "à envoyer depuis ton téléphone, puis coche et « Envoyer » pour le noter" : objet}</p>
           {ouvert ? (
@@ -322,8 +323,8 @@ function Envoi({ m, choisi, onChoisir, onEcarter }) {
               {m.genre !== "sms" && <input id={`objet-${m.id}`} value={objet} onChange={(e) => setObjet(e.target.value)} className={champ} />}
               <textarea id={`corps-${m.id}`} value={corps} onChange={(e) => setCorps(e.target.value)} rows={Math.min(16, corps.split("\n").length + 2)} className={`${champ} leading-[1.55]`} />
               <div className="flex gap-2">
-                {modifie && <button type="button" onClick={() => enregistrer.mutate()} className="rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe">Enregistrer</button>}
-                <button type="button" onClick={() => setOuvert(false)} className="rounded-full border border-bord-doux px-3 py-1 text-[12px] text-craie">Replier</button>
+                {modifie && <button type="button" onClick={() => enregistrer.mutate()} className="rounded-full bg-menthe px-3 py-1 text-[12px] font-semibold text-sur-menthe max-md:py-2">Enregistrer</button>}
+                <button type="button" onClick={() => setOuvert(false)} className="rounded-full border border-bord-doux px-3 py-1 text-[12px] text-craie max-md:py-2">Replier</button>
               </div>
             </div>
           ) : (
@@ -336,7 +337,7 @@ function Envoi({ m, choisi, onChoisir, onEcarter }) {
             <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(corps.replace(/\{signature\}/g, "")); toast.success("SMS copié"); } catch { toast.error("Copie impossible"); } }} className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-menthe" style={{ background: "transparent" }}><Copy className="h-3.5 w-3.5" />Copier le SMS</button>
           )}
         </div>
-        <button type="button" onClick={onEcarter} aria-label="Écarter" title="Écarter" className="grid h-7 w-7 flex-none place-items-center rounded-full text-brume hover:text-alerte"><X className="h-4 w-4" /></button>
+        <button type="button" onClick={onEcarter} aria-label="Écarter" title="Écarter" className="grid h-7 w-7 flex-none place-items-center rounded-full text-brume hover:text-alerte max-md:-mr-1 max-md:-mt-1 max-md:h-9 max-md:w-9"><X className="h-4 w-4" /></button>
       </div>
     </li>
   );
@@ -368,7 +369,7 @@ function OngletEnvois() {
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
             {mails.map((m) => <Envoi key={m.id} m={m} choisi={choisis.has(m.id)} onChoisir={(v) => setChoisis((s) => { const n = new Set(s); if (v) n.add(m.id); else n.delete(m.id); return n; })} onEcarter={() => ecarter.mutate(m.id)} />)}
           </ul>
-          <div className="sticky bottom-4 mt-4 flex justify-end">
+          <div className="sticky bottom-4 mt-4 flex justify-end max-md:bottom-[calc(16px+env(safe-area-inset-bottom))]">
             <button type="button" disabled={!choisis.size || envoyer.isPending} onClick={() => { if (window.confirm(`Envoyer ${choisis.size} élément${choisis.size > 1 ? "s" : ""} ?`)) envoyer.mutate([...choisis]); }} className="inline-flex items-center gap-2 rounded-full bg-menthe px-5 py-2.5 text-[14px] font-semibold text-sur-menthe shadow-lg disabled:opacity-40">
               {envoyer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Envoyer {choisis.size || ""}
             </button>
@@ -420,7 +421,7 @@ function Decision({ d, raisons }) {
       {non && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-trait pt-3">
           <label htmlFor={`raison-${d.deal_id}`} className="text-[12.5px] text-craie">Pourquoi</label>
-          <select id={`raison-${d.deal_id}`} value={raison} onChange={(e) => setRaison(e.target.value)} className="rounded-lg border border-bord-doux bg-fond px-2 py-1.5 text-[13px] text-encre">
+          <select id={`raison-${d.deal_id}`} value={raison} onChange={(e) => setRaison(e.target.value)} className="rounded-lg border border-bord-doux bg-fond px-2 py-1.5 text-[13px] text-encre max-md:min-w-0 max-md:max-w-full max-md:text-[16px]">
             {raisons.map((r) => <option key={r}>{r}</option>)}
           </select>
           <button type="button" onClick={() => decider.mutate({ decision: "non", raison })} className="rounded-full border border-alerte/60 px-3.5 py-1.5 text-[12.5px] text-encre">Préparer la réponse</button>
@@ -467,9 +468,9 @@ function FicheAgent({ id, onFermer }) {
           <h3 className="m-0 text-[18px] font-semibold text-encre">{a.nom}</h3>
           <p className="m-0 mt-0.5 text-[13px] text-craie">{[a.agence, a.ville, STATUTS[a.statut]].filter(Boolean).join(" · ")}</p>
         </div>
-        <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+        <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre max-md:-mr-2 max-md:-mt-2 max-md:grid max-md:h-10 max-md:w-10 max-md:flex-none max-md:place-items-center" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
       </div>
-      <dl className="m-0 mt-4 grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+      <dl className="m-0 mt-4 grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[13px] max-md:grid-cols-[100px_minmax(0,1fr)]">
         {lignes.map(([k, v]) => <React.Fragment key={k}><dt className="text-brume">{k}</dt><dd className="m-0 break-words text-encre">{v}</dd></React.Fragment>)}
       </dl>
       {a.resume_dernier_appel && <p className="m-0 mt-3 text-[13px] text-craie">Dernier appel : {a.resume_dernier_appel}</p>}
@@ -539,7 +540,7 @@ function Cellule({ agent, col, onEnregistrer, equipe = [], teinte = "text-craie"
         <span className="whitespace-nowrap">{mot}</span>
         <ChevronDown className="h-3.5 w-3.5 flex-none opacity-70" />
         <select aria-label={`Statut de ${agent.nom}`} value={agent.statut || "nouveau"} onChange={(e) => onEnregistrer({ statut: e.target.value })}
-          className="absolute inset-0 cursor-pointer opacity-0">
+          className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
           {Object.entries(STATUTS_GRILLE).map(([k, [m]]) => <option key={k} value={k}>{m}</option>)}
         </select>
       </span>
@@ -553,7 +554,7 @@ function Cellule({ agent, col, onEnregistrer, equipe = [], teinte = "text-craie"
     return (
       <span className="relative block w-[130px]">
         <select aria-label={`Attribué à, pour ${agent.nom}`} value={agent.referent || ""} onChange={(e) => onEnregistrer({ referent: e.target.value })}
-          className={`h-8 w-full cursor-pointer appearance-none rounded-lg border-0 bg-relief pl-3 pr-8 text-[13px] outline-none ${agent.referent ? "text-encre" : "text-brume"}`}>
+          className={`h-8 w-full cursor-pointer appearance-none rounded-lg border-0 bg-relief pl-3 pr-8 text-[13px] outline-none max-md:text-[16px] ${agent.referent ? "text-encre" : "text-brume"}`}>
           <option value="">—</option>
           {equipe.map((m) => <option key={m.email} value={m.email}>{m.prenom}</option>)}
           {horsEquipe && <option value={agent.referent}>{valeur}</option>}
@@ -569,7 +570,7 @@ function Cellule({ agent, col, onEnregistrer, equipe = [], teinte = "text-craie"
       if (texte === valeur) return;
       onEnregistrer({ [col.cle]: col.liste ? texte.split(/[,;]/).map((x) => x.trim()).filter(Boolean) : texte });
     };
-    return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }} rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none" />;
+    return <textarea autoFocus aria-label={col.titre} value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={valider} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); valider(); } if (e.key === "Escape") { setTexte(valeur); setEdition(false); } }} rows={2} className="w-full resize-none rounded-md border border-menthe/60 bg-fond px-2 py-1 text-[13.5px] text-encre outline-none max-md:text-[16px]" />;
   }
   return (
     <button type="button" onClick={() => setEdition(true)} className={`block w-full border-0 p-0 text-left text-[13.5px] leading-[1.5] hover:text-encre ${teinte}`} style={{ background: "transparent" }} title={valeur ? `${valeur} (clic pour modifier)` : "Clic pour remplir"}>
@@ -679,9 +680,9 @@ function OngletGrille({ onAppeler }) {
               style={jour === v ? undefined : { background: "transparent" }}>{mot}</button>
           ))}
         </div>
-        <label className="flex h-10 min-w-[220px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-rail px-4 focus-within:border-bord-vif">
+        <label className="flex h-10 min-w-[220px] flex-1 items-center gap-2.5 rounded-full border border-trait bg-rail px-4 focus-within:border-bord-vif max-md:min-w-0 max-md:basis-full">
           <Search className="h-4 w-4 flex-none text-brume" />
-          <input id="recherche-grille" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un nom, une agence, un numéro" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+          <input id="recherche-grille" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un nom, une agence, un numéro" className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </label>
         <div className="inline-flex items-center gap-0.5">
           <button type="button" onClick={annuler} disabled={!historique.current.passe.length} title="Annuler la dernière modification (⌘Z)" aria-label="Annuler" className="grid h-9 w-9 place-items-center rounded-full border-0 p-0 text-craie hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
@@ -700,11 +701,11 @@ function OngletGrille({ onAppeler }) {
       )}
 
       {isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
-        <div className="mt-3 overflow-auto rounded-[16px] border border-trait bg-rail" style={{ maxHeight: "calc(100vh - 300px)" }}>
+        <div className="mt-3 max-h-[calc(100vh-300px)] overflow-auto rounded-[16px] border border-trait bg-rail max-md:max-h-[75dvh]">
           <table className="min-w-full border-collapse text-[13.5px]">
             <thead className="sticky top-0 z-20">
               <tr>
-                <th className="sticky left-0 z-30 min-w-[220px] border-b border-trait bg-rail py-3.5 pl-6 pr-4 text-left text-[12.5px] font-normal text-ardoise">Agent</th>
+                <th className="sticky left-0 z-30 min-w-[220px] border-b border-trait bg-rail py-3.5 pl-6 pr-4 text-left text-[12.5px] font-normal text-ardoise max-md:min-w-[150px] max-md:pl-4 max-md:pr-3">Agent</th>
                 {COLONNES.map((c) => (
                   <th key={c.cle} className="border-b border-trait bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-ardoise" style={{ minWidth: c.largeur }}>{c.titre}</th>
                 ))}
@@ -716,9 +717,9 @@ function OngletGrille({ onAppeler }) {
                 const enregistrerA = (champs) => modifier(a, champs);
                 return (
                   <tr key={a.id} className={`group ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
-                    <td className="sticky left-0 z-10 border-b border-trait bg-rail py-4 pl-6 pr-4 align-middle group-hover:bg-rail">
-                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate border-0 p-0 text-left text-[15px] font-medium text-encre hover:text-menthe" style={{ background: "transparent" }} title={a.onglet || undefined}>{a.nom}</button>
-                      <div className="mt-0.5 max-w-[220px]"><Cellule agent={a} col={COL_AGENCE} onEnregistrer={enregistrerA} teinte="text-ardoise text-[13px]" /></div>
+                    <td className="sticky left-0 z-10 border-b border-trait bg-rail py-4 pl-6 pr-4 align-middle group-hover:bg-rail max-md:pl-4 max-md:pr-3">
+                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate max-md:max-w-[150px] border-0 p-0 text-left text-[15px] font-medium text-encre hover:text-menthe" style={{ background: "transparent" }} title={a.onglet || undefined}>{a.nom}</button>
+                      <div className="mt-0.5 max-w-[220px] max-md:max-w-[150px]"><Cellule agent={a} col={COL_AGENCE} onEnregistrer={enregistrerA} teinte="text-ardoise text-[13px]" /></div>
                     </td>
                     {COLONNES.map((c) => (
                       <td key={c.cle} className="border-b border-trait px-4 py-4 align-middle group-hover:bg-encre/[0.02]" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
@@ -743,7 +744,7 @@ function OngletGrille({ onAppeler }) {
       )}
       <p className="m-0 text-[11px] text-brume">{lignes.length} ligne{lignes.length > 1 ? "s" : ""} · clic sur une cellule pour la modifier, sur un nom pour sa fiche et son historique · « Appeler » le prend à ton nom.</p>
       {fiche && (
-        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[460px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[460px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
           <FicheAgent id={fiche} onFermer={() => setFiche(null)} />
         </div>
       )}
@@ -763,7 +764,7 @@ function OngletTableau() {
     <div className="flex flex-col gap-4">
       <p className="m-0 text-[13px] text-craie">Semaine du {new Date(`${data.semaine}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}.</p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {tuiles.map(([l, v]) => <div key={l} className={`${carte} p-4`}><p className={etiquette}>{l}</p><p className="m-0 mt-2 text-[30px] font-light leading-none tabular-nums text-encre">{v}</p></div>)}
+        {tuiles.map(([l, v]) => <div key={l} className={`${carte} p-4`}><p className={etiquette}>{l}</p><p className="m-0 mt-2 text-[30px] font-light leading-none tabular-nums text-encre max-md:text-[24px]">{v}</p></div>)}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <section className={`${carte} p-5`}>
@@ -820,8 +821,8 @@ function OngletReglages() {
         <p className={etiquette}>Villes cibles</p>
         <p className="m-0 mt-1 text-[13px] text-craie">Chaque nuit, Equimmox y relève qui publie du commerce en vente. Chaque matin, tu choisis parmi elles les villes du jour.</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {r.villes.map((v) => <span key={v} className="inline-flex items-center gap-1 rounded-full border border-menthe/50 px-2.5 py-1 text-[12.5px] text-encre">{v}<button type="button" aria-label={`Retirer ${v}`} onClick={() => setR((x) => ({ ...x, villes: x.villes.filter((y) => y !== v) }))} className="text-brume hover:text-alerte"><X className="h-3 w-3" /></button></span>)}
-          <form onSubmit={(e) => { e.preventDefault(); ajouterVille(ville); setVille(""); }}><input id="ville-cible" value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Ajouter une ville" className="w-[150px] rounded-full border border-bord-doux bg-fond px-3 py-1 text-[12.5px] text-encre outline-none focus:border-menthe/60" /></form>
+          {r.villes.map((v) => <span key={v} className="inline-flex items-center gap-1 rounded-full border border-menthe/50 px-2.5 py-1 text-[12.5px] text-encre">{v}<button type="button" aria-label={`Retirer ${v}`} onClick={() => setR((x) => ({ ...x, villes: x.villes.filter((y) => y !== v) }))} className="text-brume hover:text-alerte max-md:-my-1 max-md:grid max-md:h-7 max-md:w-7 max-md:place-items-center"><X className="h-3 w-3" /></button></span>)}
+          <form onSubmit={(e) => { e.preventDefault(); ajouterVille(ville); setVille(""); }}><input id="ville-cible" value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Ajouter une ville" className="w-[150px] rounded-full border border-bord-doux bg-fond px-3 py-1 text-[12.5px] text-encre outline-none focus:border-menthe/60 max-md:py-1.5 max-md:text-[16px]" /></form>
         </div>
         {suggestions.length > 0 && (
           <p className="m-0 mt-3 flex flex-wrap items-center gap-1.5 text-[12px] text-brume">Villes de vos dossiers : {suggestions.map((v) => <button key={v} type="button" onClick={() => ajouterVille(v)} className="rounded-full border border-dashed border-bord-doux px-2 py-0.5 text-craie hover:text-encre">+ {v}</button>)}</p>
@@ -869,38 +870,87 @@ function OngletReglages() {
 const CARTE_DUREE_MS = 9000;
 
 /** Tout ce qui a été rempli, sur une seule carte ; elle s'efface seule (le survol la retient). */
-function CarteAppel({ carte, onFermer }) {
+function CarteAppel({ carte: initiale, onFermer }) {
+  const queryClient = useQueryClient();
+  const [carte, setCarte] = useState(initiale);
   const [retenue, setRetenue] = useState(false);
+  const [edition, setEdition] = useState(null); // null | "statut" | "prochaine"
+  const [brouillon, setBrouillon] = useState({});
+  // Une correction faite sur la carte : elle s'applique à la fiche et à Monday,
+  // et compte dans la fiabilité d'AK (la carte n'a pas été validée telle quelle).
+  const corriger = useMutation({
+    mutationFn: (corps) => base44.request("POST", `/api/prospection/appels/${carte.appel_id}/corriger`, { body: corps }),
+    onSuccess: (r) => {
+      if (r.agent) setCarte((c) => ({ ...c, statut: STATUTS[r.agent.statut] || r.agent.statut, statut_cle: r.agent.statut, prochaine: r.agent.prochaine ? { quoi: r.agent.prochaine.quoi, le: r.agent.prochaine.le } : c.prochaine }));
+      if (!r.inchange) toast.success("Corrigé", { description: r.correction ? `${r.correction.champ} : ${r.correction.apres}` : undefined });
+      ["prospection-ma-journee", "prospection-jour", "prospection-grille"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (e) => toast.error(e?.message || "Correction impossible"),
+  });
+  const ouvrir = (quoi) => { if (!carte.appel_id) return; setEdition(quoi); setBrouillon({ statut: carte.statut_cle || "a_rappeler", quoi: carte.prochaine?.quoi || "", le: String(carte.prochaine?.le || "").slice(0, 10) }); };
+  const enregistrer = async () => {
+    if (edition === "statut") await corriger.mutateAsync({ champ: "statut", valeur: brouillon.statut });
+    if (edition === "prochaine") {
+      if (brouillon.quoi && brouillon.quoi !== carte.prochaine?.quoi) await corriger.mutateAsync({ champ: "prochaine_quoi", valeur: brouillon.quoi });
+      if (brouillon.le && brouillon.le !== String(carte.prochaine?.le || "").slice(0, 10)) await corriger.mutateAsync({ champ: "prochaine_le", valeur: brouillon.le });
+    }
+    setEdition(null);
+  };
   const [reste, setReste] = useState(CARTE_DUREE_MS);
   useEffect(() => {
-    if (retenue) return undefined;
+    if (retenue || edition) return undefined;
     if (reste <= 0) { onFermer(); return undefined; }
     const t = setTimeout(() => setReste((r) => r - 100), 100);
     return () => clearTimeout(t);
-  }, [reste, retenue, onFermer]);
+  }, [reste, retenue, edition, onFermer]);
   const ligne = (mot, valeur) => (valeur ? (
-    <div className="grid grid-cols-[120px_1fr] gap-3 py-1.5">
+    <div className="grid grid-cols-[120px_1fr] gap-3 py-1.5 max-md:grid-cols-[96px_minmax(0,1fr)]">
       <span className="text-[12.5px] text-brume">{mot}</span>
       <span className="min-w-0 text-[13.5px] text-encre">{valeur}</span>
     </div>
   ) : null);
   return (
     <div role="status" aria-live="polite" onMouseEnter={() => setRetenue(true)} onMouseLeave={() => setRetenue(false)}
-      className="animate-in fade-in slide-in-from-bottom-3 duration-300 fixed bottom-6 left-1/2 z-50 w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-bord-doux bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
+      className="animate-in fade-in slide-in-from-bottom-3 duration-300 fixed bottom-6 left-1/2 z-50 w-[440px] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-bord-doux bg-surface-pleine shadow-[0_24px_60px_rgb(0_0_0/0.35)] max-md:bottom-[calc(16px+env(safe-area-inset-bottom))] max-md:max-h-[calc(100dvh-32px)] max-md:overflow-y-auto">
       <div className="flex items-start justify-between gap-3 px-5 pt-4">
         <div className="min-w-0">
           <p className="m-0 flex items-center gap-2 text-[12px] text-menthe"><Check className="h-3.5 w-3.5" />Appel noté{carte.monday?.ok ? " · Monday à jour" : ""}</p>
           <p className="m-0 mt-1 truncate text-[17px] font-medium text-encre">{carte.nom}</p>
           {(carte.agence || carte.ville) && <p className="m-0 truncate text-[13px] text-ardoise">{[carte.agence, carte.ville].filter(Boolean).join(" · ")}</p>}
         </div>
-        <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+        <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
       </div>
       <div className="mt-2 border-t border-trait px-5 py-2.5">
         {ligne("Téléphone", carte.telephone)}
         {ligne("E-mail", carte.email)}
         {ligne("Issue", carte.issue)}
-        {ligne("Statut", carte.statut && <Pastille ton="menthe">{carte.statut}</Pastille>)}
-        {ligne("Prochaine action", carte.prochaine && `${carte.prochaine.quoi}${carte.prochaine.le ? `, le ${dateCourte(carte.prochaine.le)}` : ""}`)}
+        {ligne("Statut", edition === "statut" ? (
+          <span className="flex flex-wrap items-center gap-2">
+            <select value={brouillon.statut} onChange={(e) => setBrouillon((b) => ({ ...b, statut: e.target.value }))} className="h-8 rounded-[8px] border border-trait bg-surface px-2 text-[13px] text-encre outline-none">
+              {Object.entries(STATUTS).map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
+            </select>
+            <button type="button" onClick={enregistrer} disabled={corriger.isPending} className="text-[12.5px] text-menthe hover:underline" style={{ background: "transparent" }}>Enregistrer</button>
+            <button type="button" onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+          </span>
+        ) : carte.statut && (
+          <button type="button" onClick={() => ouvrir("statut")} title="Corriger le statut" className="group inline-flex items-center gap-2" style={{ background: "transparent" }}>
+            <Pastille ton="menthe">{carte.statut}</Pastille>{carte.appel_id && <span className="text-[11.5px] text-brume group-hover:text-encre">corriger</span>}
+          </button>
+        ))}
+        {ligne("Prochaine action", edition === "prochaine" ? (
+          <span className="flex flex-col gap-2">
+            <input value={brouillon.quoi} onChange={(e) => setBrouillon((b) => ({ ...b, quoi: e.target.value }))} placeholder="Quoi" className="h-8 rounded-[8px] border border-trait bg-surface px-2 text-[13px] text-encre outline-none" />
+            <span className="flex flex-wrap items-center gap-2">
+              <input type="date" value={brouillon.le} onChange={(e) => setBrouillon((b) => ({ ...b, le: e.target.value }))} className="h-8 rounded-[8px] border border-trait bg-surface px-2 text-[13px] text-encre outline-none [color-scheme:dark]" />
+              <button type="button" onClick={enregistrer} disabled={corriger.isPending} className="text-[12.5px] text-menthe hover:underline" style={{ background: "transparent" }}>Enregistrer</button>
+              <button type="button" onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+            </span>
+          </span>
+        ) : carte.prochaine && (
+          <button type="button" onClick={() => ouvrir("prochaine")} title="Corriger la prochaine action" className="group text-left" style={{ background: "transparent" }}>
+            {`${carte.prochaine.quoi}${carte.prochaine.le ? `, le ${dateCourte(carte.prochaine.le)}` : ""}`}{carte.appel_id && <span className="ml-2 text-[11.5px] text-brume group-hover:text-encre">corriger</span>}
+          </button>
+        ))}
         {ligne("Résumé", carte.resume)}
         {ligne("Secteurs", carte.secteurs?.length ? carte.secteurs.join(", ") : null)}
         {ligne("À envoyer", carte.a_envoyer?.length ? carte.a_envoyer.join(" · ") : null)}
@@ -914,10 +964,12 @@ function CarteAppel({ carte, onFermer }) {
 export default function Prospection() {
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(() => new URLSearchParams(window.location.search).get("onglet") || "grille");
-  // Les trois parties de la page : prospecter (le carnet et les appels), l'agent IA, ses listes par ville.
-  // « Prospecter » est caché pour l'instant (décision de Jules, 5 oct. 2026) : la page s'ouvre sur l'agent IA.
-  const PARTIES = [["agent", "Agent IA"], ["listes", "Listes"]];
-  const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "agent"; } catch { return "agent"; } });
+  // Les parties de la page : Ma journée (qui appeler aujourd'hui, ce qui attend,
+  // la fiabilité d'AK), l'agent IA, ses listes par ville. « Prospecter » (le
+  // carnet complet) est caché depuis le 5 oct. 2026 et tourne en coulisse.
+  const PARTIES = [["journee", "Ma journée"], ["agent", "Agent IA"], ["listes", "Listes"]];
+  const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
+  const [aAppeler, setAAppeler] = useState(0);
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
   const [listeOuverte, setListeOuverte] = useState(null);
   const [appel, setAppel] = useState(null);
@@ -925,7 +977,7 @@ export default function Prospection() {
   const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: 60000 });
   const prendre = useMutation({
     mutationFn: (a) => base44.request("POST", `/api/prospection/agents/${a.id}/prendre`).then((r) => ({ ...(r?.agent || {}), ...a })),
-    onSuccess: (a) => { setAppel({ ...a, raison: a.a_appeler?.raison || "" }); queryClient.invalidateQueries({ queryKey: ["prospection-grille"] }); },
+    onSuccess: (a) => { setAppel({ ...a, raison: a.a_appeler?.raison || "" }); ["prospection-grille", "prospection-ma-journee"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); },
     onError: (e) => toast.error(e?.message || "Déjà pris"),
   });
   const onglets = useMemo(() => [
@@ -937,21 +989,20 @@ export default function Prospection() {
   ], [jour.data]);
   if (jour.isError && /403|réservé/i.test(jour.error?.message || "")) return <p className="p-8 text-[14px] text-ardoise">Cette page est réservée à l'équipe.</p>;
   return (
-    <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6">
-      {/* Le titre au centre, les onglets de la page dessous, à gauche. */}
-      <header className="mb-6 flex flex-col gap-5">
-        <h1 className="m-0 text-center text-[26px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[24px]">Prospection</h1>
-        <div className="flex justify-center">
-          <div className="flex gap-1 rounded-full bg-rail-actif p-1">
-            {PARTIES.map(([k, mot]) => (
-              <button key={k} type="button" onClick={() => setPartie(k)} aria-pressed={partie === k}
-                className={`${k === "agent" ? "agent-onglet relative " : ""}rounded-full border border-transparent px-4 py-1.5 text-[13.5px] transition-colors ${partie === k ? (k === "agent" ? "text-encre" : "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]") : "text-ardoise hover:text-encre"}`}
-                style={partie === k && k !== "agent" ? undefined : { background: "transparent" }}>
-                {mot}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-[1500px] px-4 py-8 md:px-6 max-md:py-6">
+      {/* Le titre à gauche, la note à droite, les onglets soulignés dessous. */}
+      <header className="mb-8 flex flex-col gap-6">
+        <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
+        {/* Les onglets en pilule, comme ceux de la page projet. */}
+        <nav className="inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties de la prospection">
+          {PARTIES.map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setPartie(k)} aria-pressed={partie === k}
+              className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${partie === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
+              style={partie === k ? undefined : { background: "transparent" }}>
+              {mot}{k === "journee" && aAppeler > 0 && <span className={`text-[12px] tabular-nums ${partie === k ? "opacity-70" : "text-brume"}`}>{aAppeler}</span>}
+            </button>
+          ))}
+        </nav>
         {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}
@@ -962,6 +1013,7 @@ export default function Prospection() {
           ))}
         </nav>}
       </header>
+      {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} />}
       {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
       {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
@@ -973,7 +1025,7 @@ export default function Prospection() {
         {onglet === "reglages" && <OngletReglages />}
       </div>}
       {appel && (
-        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl">
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[520px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
           <PanneauAppel key={appel.id} agent={appel} onCarte={setCarte} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
         </div>
       )}

@@ -370,18 +370,9 @@ function MarcheSlide({ slide }) {
     <div className="w-full h-full flex flex-col bg-bord p-[5%] relative overflow-hidden">
       <DecoArcs />
       <SlideTitle title="MARCHÉ IMMOBILIER - INDICATEURS CLÉS" subtitle="Analyse comparative des valeurs sectorielles" />
-      <div className="flex-1 grid grid-cols-2 gap-5 mt-2">
-        <InfoCard color={J["menthe"]} className="flex flex-col items-center justify-center text-center">
-          <span className="text-ardoise text-[0.7vw] uppercase bg-bord px-3 py-1 rounded-full border border-trait mb-4">SOURCE : EQUIMMOX / DVF</span>
-          <IconCircle icon={Home} color={J["menthe"]} size="w-14 h-14" />
-          <p className="text-ardoise text-[0.85vw] uppercase tracking-wider mt-4">VALEUR MOYENNE DES MURS</p>
-          <p className="mt-2">
-            <span className="text-encre text-[3.5vw] font-bold">{c.prix_m2_median > 0 ? fmt(c.prix_m2_median) : "—"}</span>
-            <span className="text-ardoise text-[1.2vw] ml-1">€ / m²</span>
-          </p>
-          <p className="text-ardoise text-[0.75vw] italic mt-3 max-w-xs">Basé sur les transactions pour des emplacements et surfaces équivalentes.</p>
-        </InfoCard>
-
+      {/* Le loyer seul : le prix des murs n'a pas de source fiable (6 oct. 2026),
+          il ne s'affiche plus, même dans une présentation déjà enregistrée. */}
+      <div className="flex-1 grid grid-cols-1 gap-5 mt-2 mx-auto w-full max-w-[60%]">
         <InfoCard color={J["menthe"]} className="flex flex-col items-center justify-center text-center">
           <span className="text-ardoise text-[0.7vw] uppercase bg-bord px-3 py-1 rounded-full border border-trait mb-4">SOURCE : EQUIMMOX</span>
           <IconCircle icon={Key} color={J["menthe"]} size="w-14 h-14" />
@@ -446,9 +437,7 @@ function BailSlide({ slide }) {
 // PAGE 11: Acquisition vs Marché - 2 columns with diff badges
 function AcquisitionVsMarcheSlide({ slide }) {
   const c = slide.content;
-  const prixDiff = c.prix_m2_marche_median > 0 && c.prix_m2_achat > 0
-    ? Math.round(((c.prix_m2_achat - c.prix_m2_marche_median) / c.prix_m2_marche_median) * 100)
-    : null;
+  // Pas de comparaison au prix des murs du secteur : il n'a pas de source fiable.
   const loyerDiff = c.offre_moyenne_marche > 0 && c.loyer_m2_achat > 0
     ? Math.round(((c.loyer_m2_achat - c.offre_moyenne_marche) / c.offre_moyenne_marche) * 100)
     : null;
@@ -463,20 +452,11 @@ function AcquisitionVsMarcheSlide({ slide }) {
           <div className="flex items-center gap-3 mb-5">
             <IconCircle icon={TrendingUp} color={J["menthe"]} size="w-9 h-9" />
             <div>
-              <p className="text-encre text-[1.1vw] font-bold">PRIX DE MARCHÉ</p>
+              <p className="text-encre text-[1.1vw] font-bold">LOYER DE MARCHÉ</p>
               <p className="text-ardoise text-[0.8vw]">Secteur Centre-Ville</p>
             </div>
           </div>
           <div className="space-y-5">
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="text-ardoise text-[0.8vw]">Valeur Moyenne des Murs</p>
-                <Home className="w-4 h-4 text-brume" />
-              </div>
-              <p className="text-encre text-[2.5vw] font-bold mt-1">{c.prix_m2_marche_median > 0 ? fmt(c.prix_m2_marche_median) : "—"} <span className="text-ardoise text-[1vw]">€ / m²</span></p>
-              <div className="h-[2px] bg-bord mt-2" />
-              <span className="inline-block mt-2 text-menthe text-[0.7vw] border border-menthe/30 rounded-full px-3 py-0.5">Référence Marché</span>
-            </div>
             <div>
               <div className="flex items-center justify-between">
                 <p className="text-ardoise text-[0.8vw]">Valeur Locative Moyenne</p>
@@ -502,12 +482,6 @@ function AcquisitionVsMarcheSlide({ slide }) {
             <div>
               <div className="flex items-center justify-between">
                 <p className="text-ardoise text-[0.8vw]">Prix d'Acquisition hors droits {c.prix_negocie ? `(${c.prix_negocie})` : ''}</p>
-                {prixDiff !== null && (
-                  <div className="flex items-center gap-1 border-2 border-menthe rounded-lg px-2 py-1">
-                    <ArrowDown className="w-3 h-3 text-menthe" />
-                    <span className="text-menthe text-[0.9vw] font-bold">{prixDiff}%</span>
-                  </div>
-                )}
               </div>
               <p className="text-encre text-[2.5vw] font-bold mt-1">{c.prix_m2_achat > 0 ? fmt(c.prix_m2_achat) : "—"} <span className="text-ardoise text-[1vw]">€ / m²</span></p>
               <div className="h-[2px] bg-bord mt-2" />

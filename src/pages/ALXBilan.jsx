@@ -31,7 +31,7 @@ const PILES_MOTS = { appeler: "À appeler", ecrire: "À écrire", surveiller: "�
 /** Une ligne de table : un libellé, des cellules à droite. */
 function Ligne({ libelle, cellules, sourdine = false }) {
   return (
-    <div className={`grid items-center gap-3 py-[10px] border-t border-trait first:border-t-0 text-[12.5px] ${sourdine ? "text-brume" : ""}`} style={{ gridTemplateColumns: `minmax(0,1fr) repeat(${cellules.length}, 72px)` }}>
+    <div className={`grid items-center gap-3 py-[10px] border-t border-trait first:border-t-0 text-[12.5px] [--col:72px] max-md:gap-2 max-md:[--col:50px] ${sourdine ? "text-brume" : ""}`} style={{ gridTemplateColumns: `minmax(0,1fr) repeat(${cellules.length}, var(--col))` }}>
       <span className={`truncate ${sourdine ? "" : "text-craie"}`}>{libelle}</span>
       {cellules.map((c, i) => <span key={i} className={`text-right tabular-nums ${i === cellules.length - 1 ? "text-encre" : "text-ardoise"}`}>{c}</span>)}
     </div>
@@ -39,7 +39,7 @@ function Ligne({ libelle, cellules, sourdine = false }) {
 }
 function Entetes({ colonnes }) {
   return (
-    <div className="grid items-center gap-3 pb-2" style={{ gridTemplateColumns: `minmax(0,1fr) repeat(${colonnes.length}, 72px)` }}>
+    <div className="grid items-center gap-3 pb-2 [--col:72px] max-md:gap-2 max-md:[--col:50px]" style={{ gridTemplateColumns: `minmax(0,1fr) repeat(${colonnes.length}, var(--col))` }}>
       <span />
       {colonnes.map((c) => <Etiquette key={c} className="text-right !text-[10px]">{c}</Etiquette>)}
     </div>
@@ -50,7 +50,7 @@ function BarreSignal({ cle, total, reponses, max }) {
   const pct = max ? Math.round((total / max) * 100) : 0;
   const tauxReponse = total ? Math.round((reponses / total) * 100) : 0;
   return (
-    <div className="grid grid-cols-[150px_minmax(0,1fr)_54px] gap-3 items-center">
+    <div className="grid grid-cols-[150px_minmax(0,1fr)_54px] gap-3 items-center max-md:grid-cols-[110px_minmax(0,1fr)_44px]">
       <div className="text-[12.5px] text-craie truncate">{cle}</div>
       <div className="h-2 rounded bg-white/[0.06]">
         <div className="h-2 rounded bg-menthe" style={{ width: `${Math.max(4, pct)}%` }} />
@@ -136,7 +136,7 @@ function Predictions({ p, onVerifier, enCours }) {
         <div className="text-[11px] tracking-[.16em] uppercase text-ardoise">Prédictions figées, et ce qui est arrivé</div>
         <Bouton discret disabled={enCours || !p.verifiables} onClick={onVerifier} title="Relit DVF pour chaque cible prédite il y a plus d'un an, et marque ce qui s'est vendu">{enCours ? "…" : "Confronter à DVF"}</Bouton>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 max-md:grid-cols-1">
         <Stat label="Figées" valeur={p.figees} detail={p.plus_ancienne ? `depuis le ${quand(p.plus_ancienne)}` : "à chaque lecture d'une cible"} />
         <Stat label="Vérifiables" valeur={p.verifiables} detail="plus de douze mois" />
         <Stat label="Réalisées" valeur={p.realisees} teinte={J["menthe"]} detail={p.verifiees ? `${pct(p.taux_realisation)} des ${p.verifiees} vérifiées` : "aucune vérifiée encore"} />
@@ -208,7 +208,7 @@ function Poids({ poids, nonObservables }) {
         <Entetes colonnes={["poids", "vendeurs", "témoins", "lift"]} />
         {poids.signaux.map((s) => (
           <div key={s.cle} className={`border-t border-trait first:border-t-0 py-[10px] ${s.observable ? "" : "text-brume"}`}>
-            <div className="grid items-center gap-3 text-[12.5px]" style={{ gridTemplateColumns: "minmax(0,1fr) repeat(4, 72px)" }}>
+            <div className="grid items-center gap-3 text-[12.5px] [--col:72px] max-md:gap-2 max-md:[--col:50px]" style={{ gridTemplateColumns: "minmax(0,1fr) repeat(4, var(--col))" }}>
               <span className="flex min-w-0 items-center gap-2">
                 <span className={`truncate ${s.observable ? "text-craie" : ""}`}>{s.libelle}</span>
                 {!s.observable && <Etiquette teinte={TEINTES.muet} className="shrink-0 !text-[10px]">dossier seulement</Etiquette>}
@@ -240,7 +240,7 @@ function MesureDvf({ m, enCours, onLancer, lancable }) {
       </div>
       {m ? (
         <>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 max-md:grid-cols-1">
             <Stat label="Taux de base" valeur={pct(m.base.taux, m.base.fiable)} detail={`${m.base.ventes} ventes sur ${m.horizon_mois} mois · ≈ ${pct(m.base.taux_annuel_approx, m.base.fiable)} par an`} />
             {(() => {
               const f = m.par_fenetre.find((x) => x.cle === "18-48") || {};
@@ -320,7 +320,7 @@ export default function ALXBilan() {
 
   return (
     <div className="min-h-screen text-encre">
-      <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20">
+      <div className="max-w-[1440px] mx-auto px-7 pt-7 pb-20 max-md:px-4 max-md:pt-5">
         <EnTeteAlx titre="Bilan" />
 
         <div className="flex flex-col gap-5">

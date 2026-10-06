@@ -191,7 +191,7 @@ export default function BaseDonneesMarche() {
                     placeholder="Rechercher par ville, secteur ou code postal..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-10 md:h-12 text-sm md:text-base bg-fond text-encre border-bord"
+                    className="pl-10 h-10 md:h-12 text-[16px] md:text-base bg-fond text-encre border-bord"
                   />
                 </div>
                 <Button
@@ -335,7 +335,7 @@ export default function BaseDonneesMarche() {
 
       {/* Dialog d'ajout/édition */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-fond border-bord max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-fond border-bord max-w-4xl max-h-[90vh] overflow-y-auto max-md:max-h-[calc(100dvh-24px)] max-md:w-[calc(100vw-24px)] max-md:rounded-bloc max-md:p-4">
           <DialogHeader>
             <DialogTitle className="text-encre flex items-center gap-2">
               <Database className="w-5 h-5 text-menthe" />
@@ -554,7 +554,7 @@ export default function BaseDonneesMarche() {
             </div>
           </div>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="mt-6 max-sm:gap-2">
             <Button
               variant="outline"
               onClick={() => {

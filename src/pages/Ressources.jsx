@@ -92,7 +92,7 @@ export default function Ressources() {
   const hasResources = resources.length > 0;
 
   return (
-    <div className="min-h-screen text-encre p-3 md:p-8">
+    <div className="min-h-screen text-encre px-5 py-5 md:p-8">
 
       <div className="max-w-5xl mx-auto">
         {/* Header */}
@@ -178,7 +178,7 @@ export default function Ressources() {
           </div>
         ) : (
           /* État vide - bientôt disponible */
-          <div className="bg-surface border border-encre/[0.12] p-10 md:p-16 text-center">
+          <div className="bg-surface border border-encre/[0.12] p-10 max-md:px-5 max-md:py-8 md:p-16 text-center">
             <div className="w-16 h-16 bg-menthe/[0.07] rounded-md flex items-center justify-center mx-auto mb-6">
               <BookOpen className="w-8 h-8 text-menthe" />
             </div>

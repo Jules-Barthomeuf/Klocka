@@ -40,9 +40,10 @@ const km = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2).replace(".", ",")} km` :
 
 
 /** Le fond de carte : les types de Google, puisque la carte est la sienne. */
-function SelecteurFond({ type, setType }) {
+function SelecteurFond({ type, setType, cacheMobile = false }) {
+  // Au téléphone, la fiche d'une zone s'ouvre en bas : le sélecteur lui cède la place.
   return (
-    <div className="absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-bord bg-fond/80 p-1 backdrop-blur-xl">
+    <div className={`absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full ${cacheMobile ? "max-md:hidden" : ""} max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:left-3 max-md:translate-x-0 border border-bord bg-fond/80 p-1 backdrop-blur-xl`}>
       <div className="flex items-center gap-0.5">
         {TYPES_CARTE.map((t) => (
           <button
@@ -95,10 +96,10 @@ function ChercheAdresse({ onChoisi }) {
           onChange={(e) => setTexte(e.target.value)}
           onFocus={() => setOuvert(true)}
           placeholder="Rechercher un point de départ, une adresse ou un lieu"
-          className="h-10 w-full bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume"
+          className="h-10 w-full bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
         />
         {texte && (
-          <button onClick={() => { setTexte(""); setSuggestions([]); }} className="text-brume hover:text-encre" aria-label="Effacer">
+          <button onClick={() => { setTexte(""); setSuggestions([]); }} className="text-brume hover:text-encre max-md:-mr-2 max-md:p-2" aria-label="Effacer">
             <X className="h-3.5 w-3.5" />
           </button>
         )}
@@ -164,10 +165,10 @@ function LigneZone({ zone, actif, visible, onOuvrir, onBasculerVisible, onSuppri
         <p className="alx-mont m-0 truncate text-[12px] font-medium uppercase tracking-[.08em] text-encre">{zone.nom}</p>
         <p className="m-0 mt-0.5 text-[11px] text-brume">Rayon de {km(zone.rayon_m)}</p>
       </button>
-      <button onClick={onBasculerVisible} className="flex-shrink-0 text-brume hover:text-encre" title={visible ? "Masquer sur la carte" : "Montrer sur la carte"}>
+      <button onClick={onBasculerVisible} className="flex-shrink-0 text-brume hover:text-encre max-md:p-2" title={visible ? "Masquer sur la carte" : "Montrer sur la carte"}>
         {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
       </button>
-      <button onClick={onSupprimer} className="flex-shrink-0 text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100" title="Supprimer la zone">
+      <button onClick={onSupprimer} className="flex-shrink-0 text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 max-md:p-2 max-md:opacity-100" title="Supprimer la zone">
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -509,7 +510,7 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Chercher un métier"
-            className="h-9 w-full bg-transparent text-[13px] text-encre outline-none placeholder:text-brume"
+            className="h-9 w-full bg-transparent text-[13px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
           />
         </div>
       </div>
@@ -638,7 +639,7 @@ export default function KZoning() {
   const centreOuvert = zoneOuverte ? [Number(zoneOuverte.centre_lat), Number(zoneOuverte.centre_lon)] : null;
 
   return (
-    <div className="relative h-[calc(100vh-3.5rem)] w-full overflow-hidden">
+    <div className="relative h-[calc(100vh-3.5rem)] w-full overflow-hidden max-md:h-[calc(100dvh-var(--k-haut-mobile,3.5rem))]">
       {/* La carte : Google, comme demandé — le cercle d'une zone y porte un
           bord noir et un vert nourri, pour se voir d'un coup d'œil. */}
       <div className="absolute inset-0">
@@ -653,16 +654,17 @@ export default function KZoning() {
           onErreur={(m) => toast.error(m)}
         />
       </div>
-      <SelecteurFond type={typeCarte} setType={setTypeCarte} />
-      <BoutonMecanique etapes={ETAPES_MECANIQUE} />
+      <SelecteurFond type={typeCarte} setType={setTypeCarte} cacheMobile={!!zoneOuverte} />
+      <BoutonMecanique etapes={ETAPES_MECANIQUE} className={zoneOuverte ? "max-md:hidden" : ""} />
 
       {/* La fiche d'une société : plein écran, par-dessus la carte. */}
       {commerceOuvert && (
         <FicheSociete commerce={commerceOuvert} metier={commerceOuvert.metier || null} onFermer={() => setCommerceOuvert(null)} />
       )}
 
-      {/* Le panneau de gauche : chercher, créer, retrouver */}
-      <div className="absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl">
+      {/* Le panneau de gauche : chercher, créer, retrouver. Au téléphone, il
+          prend le haut de l'écran et s'efface quand une zone est ouverte. */}
+      <div className={`absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none ${zoneOuverte ? "max-md:hidden" : ""}`}>
         <div className="flex-shrink-0 p-3">
           <ChercheAdresse key={rechercheNeuve} onChoisi={(s) => { setPoint(s); setRayon(RAYON_DEFAUT); }} />
           {point && (
@@ -680,7 +682,7 @@ export default function KZoning() {
               value={filtreZone}
               onChange={(e) => setFiltreZone(e.target.value)}
               placeholder="Chercher une zone"
-              className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume"
+              className="h-8 w-full bg-transparent text-[12.5px] text-encre outline-none placeholder:text-brume max-md:h-9 max-md:text-[16px]"
             />
           </div>
           <button
@@ -688,8 +690,8 @@ export default function KZoning() {
               const nom = window.prompt("Nom du dossier");
               if (nom?.trim()) nouveauDossier.mutate(nom.trim());
             }}
-            className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-full border border-bord px-3 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre"
-            title="Créer un dossier"
+            className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-full border border-bord px-3 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre max-md:h-9"
+            title="Créer un dossier" aria-label="Créer un dossier"
           >
             <FolderPlus className="h-3.5 w-3.5" />
           </button>
@@ -743,9 +745,10 @@ export default function KZoning() {
         </div>
       </div>
 
-      {/* Le panneau de droite : ce qu'on lit dans la zone ouverte */}
+      {/* Le panneau de droite : ce qu'on lit dans la zone ouverte. Au
+          téléphone, une feuille posée en bas, la carte reste visible dessus. */}
       {zoneOuverte && (
-        <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[420px] max-w-[calc(100vw-2rem)]">
+        <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[420px] max-w-[calc(100vw-2rem)] max-md:bottom-[calc(env(safe-area-inset-bottom)+12px)] max-md:left-3 max-md:right-3 max-md:top-auto max-md:max-h-[62%] max-md:w-auto max-md:max-w-none">
           {/* Le rail des modes, à gauche du panneau */}
           <div className="mr-2 flex flex-shrink-0 flex-col gap-2">
             {[
@@ -775,7 +778,7 @@ export default function KZoning() {
                 </p>
                 <h2 className="mt-1 mb-0 truncate text-[17px] font-medium text-encre">{zoneOuverte.nom}</h2>
               </div>
-              <button onClick={() => setZoneOuverte(null)} className="flex-shrink-0 text-brume hover:text-encre" aria-label="Fermer">
+              <button onClick={() => setZoneOuverte(null)} className="flex-shrink-0 text-brume hover:text-encre max-md:-m-2 max-md:p-2" aria-label="Fermer">
                 <X className="h-4 w-4" />
               </button>
             </div>

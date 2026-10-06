@@ -69,12 +69,8 @@ function mapperMarche(ville, codePostal, chiffres = null) {
     ['marche_prix_m2_haut', entree.prix_m2_haut],
     ['marche_evolution_1an', entree.evolution_1an],
     ['marche_evolution_5ans', entree.evolution_5ans],
-    ['marche_offre_bas', entree.offre_bas],
-    ['marche_offre_moyenne', entree.offre_moyenne],
-    ['marche_offre_haut', entree.offre_haut],
-    ['marche_baux_bas', entree.baux_bas],
-    ['marche_baux_moyenne', entree.baux_moyenne],
-    ['marche_baux_haut', entree.baux_haut],
+    // Les loyers n'en viennent plus : Equimmox et Data-B, seules sources des
+    // loyers (6 oct. 2026), les posent plus bas.
   ];
   const deLaBase = {};
   for (const [cle, v] of paires) if (v != null && v !== 0) deLaBase[cle] = v;
@@ -165,12 +161,8 @@ function mapperChiffres(c) {
     marche_prix_m2_haut: n(c.prix_m2_haut),
     marche_evolution_1an: Number.isFinite(c.evolution_1an) ? c.evolution_1an : 0,
     marche_evolution_5ans: Number.isFinite(c.evolution_5ans) ? c.evolution_5ans : 0,
-    marche_offre_bas: n(c.loyer_offre_bas),
-    marche_offre_moyenne: n(c.loyer_offre_moyen),
-    marche_offre_haut: n(c.loyer_offre_haut),
-    marche_baux_bas: n(c.loyer_baux_bas),
-    marche_baux_moyenne: n(c.loyer_baux_moyen),
-    marche_baux_haut: n(c.loyer_baux_haut),
+    // Pas les loyers que le point de marché cite : ils viennent d'une
+    // recherche sur le web, pas d'Equimmox ni de Data-B.
     marche_quartier_nom: String(c.quartier || '').slice(0, 120),
   };
 }

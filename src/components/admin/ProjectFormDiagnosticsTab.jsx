@@ -18,9 +18,9 @@ export default function ProjectFormDiagnosticsTab({ formData, setFormData }) {
       <h3 className="text-xl text-encre mb-6">Diagnostiques énergétiques</h3>
       
       {/* DPE */}
-      <div className="p-6 bg-surface border border-encre/[0.12]">
+      <div className="p-6 max-md:p-4 bg-surface border border-encre/[0.12]">
         <h4 className="text-lg text-encre mb-4">DPE - Diagnostic de Performance Énergétique</h4>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4">
           <VerificationField fieldKey="dpe_note" formData={formData} setFormData={setFormData}>
             <FField label="Note DPE">
               <Select value={formData.dpe_note || ""} onValueChange={(value) => setFormData({...formData, dpe_note: value})}>
@@ -57,9 +57,9 @@ export default function ProjectFormDiagnosticsTab({ formData, setFormData }) {
       </div>
 
       {/* GES */}
-      <div className="p-6 bg-surface border border-encre/[0.12]">
+      <div className="p-6 max-md:p-4 bg-surface border border-encre/[0.12]">
         <h4 className="text-lg text-encre mb-4">GES - Émissions de gaz à effet de serre</h4>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1 max-md:gap-4">
           <VerificationField fieldKey="ges_note" formData={formData} setFormData={setFormData}>
             <FField label="Note GES">
               <Select value={formData.ges_note || ""} onValueChange={(value) => setFormData({...formData, ges_note: value})}>

@@ -79,7 +79,7 @@ function PopupEnrichissement({ travail, onFini }) {
   const rang = { apollo: 0, messages: 1, fini: 2, erreur: 2 }[travail?.etat] ?? 0;
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-fond/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true">
-      <div className="alx-entree w-full max-w-[420px] rounded-[20px] border border-trait bg-surface p-7 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <div className="alx-entree w-full max-w-[420px] rounded-[20px] border border-trait bg-surface p-7 shadow-[0_30px_80px_rgba(0,0,0,0.5)] max-md:max-h-[calc(100dvh-32px)] max-md:overflow-y-auto max-md:p-5">
         <p className={etiq}>Enrichissement et démarchage</p>
         <ul className="m-0 mt-5 flex list-none flex-col gap-4 p-0">
           {etapes.map(([cle, mot, detail], i) => {
@@ -159,9 +159,9 @@ function DetailCommerce({ m, onRetour, retour }) {
   const surface = v.surface ? `${v.surface} m²` : v.surface_estimee ? `${v.surface_estimee[0]}–${v.surface_estimee[1]} m², estimée` : null;
   return (
     <div className="alx-entree">
-      <button type="button" onClick={onRetour} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>← {retour}</button>
+      <button type="button" onClick={onRetour} className="text-[12.5px] text-ardoise hover:text-encre max-md:h-9" style={{ background: "transparent" }}>← {retour}</button>
       <p className={`${etiq} mt-4`}>{x.activite || "Activité à qualifier"}</p>
-      <h3 className="m-0 mt-1 text-[21px] font-semibold tracking-[-.01em] text-encre">{joliNom(x.enseigne) || "Local commercial"}</h3>
+      <h3 className="m-0 mt-1 break-words text-[21px] font-semibold tracking-[-.01em] text-encre">{joliNom(x.enseigne) || "Local commercial"}</h3>
       <p className="m-0 mt-1 flex items-center gap-1.5 text-[13px] text-ardoise"><MapPin className="h-3.5 w-3.5" />{x.adresse}</p>
 
       <div className="mt-4 isolate h-60 overflow-hidden rounded-[16px] border border-trait">
@@ -188,7 +188,7 @@ function DetailCommerce({ m, onRetour, retour }) {
               </ul>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
             <div><p className={etiq}>Loyer estimé</p><p className="m-0 mt-1"><Nombre taille={15}>{loyer}</Nombre></p>{v.loyer_source && <p className="m-0 mt-0.5 text-[11.5px] text-brume">{v.loyer_source}</p>}</div>
             <div><p className={etiq}>Prix estimé</p><p className="m-0 mt-1"><Nombre taille={15}>{prix}</Nombre></p>{surface && <p className="m-0 mt-0.5 text-[11.5px] text-brume">{surface}</p>}</div>
           </div>
@@ -211,11 +211,11 @@ function MursDeLaSociete({ s, villeId, onOuvrir }) {
   const enFrance = useQuery({ queryKey: ["alx-murs-france", s.cle], queryFn: () => base44.request("GET", `/api/alx/demarchage/societe/${encodeURIComponent(s.cle)}/murs`), enabled: !!s.siren, staleTime: 300000 });
   return (
     <section className="mt-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className={etiq}>Ses murs dans la ville · {s.murs.length}</p>
         <div className="inline-flex gap-1">
           {[["carte", "Carte"], ["liste", "Vue réduite"]].map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => setVue(k)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-bord text-brume hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
+            <button key={k} type="button" onClick={() => setVue(k)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors max-md:py-1.5 ${vue === k ? "border-menthe text-encre" : "border-bord text-brume hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
           ))}
         </div>
       </div>
@@ -256,15 +256,15 @@ function PanneauSociete({ villeId, s, onFermer }) {
 
   return (
     <>
-      <div ref={panneau} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[600px] overflow-y-auto border-l border-trait bg-surface p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+      <div ref={panneau} className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[600px] overflow-y-auto border-l border-trait bg-surface p-6 shadow-[0_0_60px_rgba(0,0,0,0.4)] backdrop-blur-2xl max-md:z-[70] max-md:border-l-0 max-md:bg-surface-pleine max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
         {commerce ? <DetailCommerce m={commerce} retour={joliNom(s.nom)} onRetour={() => setCommerce(null)} /> : (<>
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className={etiq}>{s.forme || "Société"} {s.siren ? `· ${s.siren}` : ""}</p>
-            <h2 className="m-0 mt-1.5 text-[22px] font-semibold tracking-[-.01em] text-encre">{joliNom(s.nom)}</h2>
+            <h2 className="m-0 mt-1.5 break-words text-[22px] font-semibold tracking-[-.01em] text-encre">{joliNom(s.nom)}</h2>
             <div className="mt-2"><Etat etat={s.etat} /></div>
           </div>
-          <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre max-md:-mr-2 max-md:-mt-2 max-md:grid max-md:h-10 max-md:w-10 max-md:flex-none max-md:place-items-center" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
         </div>
 
         <MursDeLaSociete s={s} villeId={villeId} onOuvrir={ouvrirCommerce} />
@@ -278,7 +278,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
             {s.contacts.map((c) => (
               <li key={c.gerant} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="text-encre">{c.gerant}</span>
-                {c.email && <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 text-menthe"><Mail className="h-3.5 w-3.5" />{c.email}</a>}
+                {c.email && <a href={`mailto:${c.email}`} className="inline-flex min-w-0 items-center gap-1 break-all text-menthe"><Mail className="h-3.5 w-3.5 flex-none" />{c.email}</a>}
                 {c.telephone && <a href={`tel:${c.telephone}`} className="inline-flex items-center gap-1 text-menthe"><Phone className="h-3.5 w-3.5" />{c.telephone}</a>}
                 {c.linkedin && <a href={c.linkedin} target="_blank" rel="noreferrer" className="text-menthe">LinkedIn</a>}
                 <span className="text-brume">{c.poste ? `${c.poste}${c.entreprise ? ` chez ${c.entreprise}` : ""} · ` : ""}Apollo</span>
@@ -292,9 +292,9 @@ function PanneauSociete({ villeId, s, onFermer }) {
             <p className={etiq}>Le message</p>
             {s.message ? (
               <div className="mt-3 flex flex-col gap-2.5">
-                <input id="alx-a" value={a} onChange={(e) => setA(e.target.value)} placeholder="Adresse du gérant" className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-menthe/60" />
-                <input id="alx-objet" value={objet} onChange={(e) => setObjet(e.target.value)} className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-menthe/60" />
-                <textarea id="alx-corps" value={corps} onChange={(e) => setCorps(e.target.value)} rows={Math.min(18, corps.split("\n").length + 2)} className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[13.5px] leading-[1.55] text-encre outline-none focus:border-menthe/60" />
+                <input id="alx-a" value={a} onChange={(e) => setA(e.target.value)} placeholder="Adresse du gérant" className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-menthe/60 max-md:text-[16px]" />
+                <input id="alx-objet" value={objet} onChange={(e) => setObjet(e.target.value)} className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-menthe/60 max-md:text-[16px]" />
+                <textarea id="alx-corps" value={corps} onChange={(e) => setCorps(e.target.value)} rows={Math.min(18, corps.split("\n").length + 2)} className="w-full rounded-[10px] border border-bord bg-fond px-3.5 py-2.5 text-[13.5px] leading-[1.55] text-encre outline-none focus:border-menthe/60 max-md:text-[16px]" />
                 <div className="flex flex-wrap justify-end gap-2">
                   {modifie && <Bouton onClick={() => enregistrer.mutate()}>Enregistrer</Bouton>}
                   {!envoye && <Bouton principal disabled={!a || envoyer.isPending} onClick={() => { if (window.confirm(`Envoyer ce message à ${a} depuis ta boîte ?`)) envoyer.mutate(); }}>{envoyer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Envoyer</Bouton>}
@@ -313,7 +313,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
             )}
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <span className="text-[12.5px] text-ardoise">Un appel au gérant :</span>
-              {[["sans_reponse", "Pas de réponse"], ["interesse", "Intéressé"], ["pas_interesse", "Pas vendeur"]].map(([k, mot]) => <button key={k} type="button" onClick={() => appel.mutate(k)} className="rounded-full border border-bord px-3 py-1 text-[12px] text-ardoise hover:border-menthe/50 hover:text-encre">{mot}</button>)}
+              {[["sans_reponse", "Pas de réponse"], ["interesse", "Intéressé"], ["pas_interesse", "Pas vendeur"]].map(([k, mot]) => <button key={k} type="button" onClick={() => appel.mutate(k)} className="rounded-full border border-bord px-3 py-1 text-[12px] text-ardoise hover:border-menthe/50 hover:text-encre max-md:py-2">{mot}</button>)}
             </div>
           </section>
         ) : <p className="mt-7 border-t border-trait pt-6 text-[12.5px] text-brume">Propriétaire public ou non démarchable : pas de message.</p>}
@@ -330,7 +330,7 @@ function PanneauSociete({ villeId, s, onFermer }) {
 function AlerteDoublons({ deja, nouvelles, onChoisir, onAnnuler }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-fond/70 backdrop-blur-sm p-4" role="dialog" aria-modal="true">
-      <div className="alx-entree w-full max-w-[480px] rounded-[20px] border border-ambre/40 bg-surface p-7 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <div className="alx-entree w-full max-w-[480px] rounded-[20px] border border-ambre/40 bg-surface p-7 shadow-[0_30px_80px_rgba(0,0,0,0.5)] max-md:max-h-[calc(100dvh-32px)] max-md:overflow-y-auto max-md:p-5">
         <p className={etiq}>Déjà démarchées</p>
         <h3 className="m-0 mt-2 text-[18px] font-semibold text-encre">{deja.length} société{deja.length > 1 ? "s" : ""} dans ta sélection {deja.length > 1 ? "ont" : "a"} déjà été contactée{deja.length > 1 ? "s" : ""}</h3>
         <ul className="m-0 mt-4 flex list-none flex-col gap-1.5 p-0 text-[13px] text-encre">
@@ -354,7 +354,7 @@ function AlerteDoublons({ deja, nouvelles, onChoisir, onAnnuler }) {
 // macOS) et un fond plein ; celle-ci reste transparente, menthe une fois cochée.
 function Case({ id, coche, onChange, label }) {
   return (
-    <label htmlFor={id} className="relative inline-flex h-4 w-4 cursor-pointer items-center justify-center">
+    <label htmlFor={id} className="relative inline-flex h-4 w-4 cursor-pointer items-center justify-center max-md:after:absolute max-md:after:-inset-2.5 max-md:after:content-['']">
       <input id={id} type="checkbox" checked={coche} onChange={(e) => onChange(e.target.checked)} aria-label={label} className="peer absolute inset-0 m-0 cursor-pointer appearance-none rounded-[5px] border border-bord-vif bg-transparent transition-colors checked:border-menthe focus-visible:outline focus-visible:outline-2 focus-visible:outline-menthe/60" />
       {coche && <Check className="pointer-events-none relative h-3 w-3 text-menthe" strokeWidth={3} />}
     </label>
@@ -437,7 +437,7 @@ export default function ALXDemarchage() {
 
   return (
     <div className="alx sur-halo min-h-screen">
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-10 md:px-8">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-10 md:px-8 max-md:py-6">
         <header className="relative mb-8 text-center">
           <h1 className="m-0 text-[38px] font-normal leading-[1.1] tracking-[-.02em] text-encre max-md:text-[28px]">Prospecter facilement en <span className="alx-serif italic text-menthe">off market</span></h1>
           <Link to="/ALXAtelier" className="mt-3 inline-block text-[12.5px] text-brume hover:text-encre">L'atelier (rues, cartes, bilan) →</Link>
@@ -467,7 +467,7 @@ export default function ALXDemarchage() {
           <>
             <div className="mb-6 flex flex-wrap justify-center gap-y-4">
               {compteurs.map(([l, n], k) => (
-                <div key={l} className={`px-6 text-center ${k ? "md:border-l md:border-trait" : ""}`}>
+                <div key={l} className={`px-6 text-center max-md:w-1/2 max-md:px-2 ${k ? "md:border-l md:border-trait" : ""}`}>
                   <p className="m-0"><Nombre taille={26}>{nf.format(n)}</Nombre></p>
                   <p className={`${etiq} mt-1`}>{l}</p>
                 </div>
@@ -481,14 +481,14 @@ export default function ALXDemarchage() {
                   <button key={k} type="button" onClick={() => setFiltre(k)} className={`rounded-full border px-3.5 py-1.5 text-[12.5px] transition-colors ${filtre === k ? "border-menthe text-encre" : "border-bord text-brume hover:text-encre"}`}>{mot}</button>
                 ))}
               </div>
-              <div className="flex min-w-[220px] flex-1 items-center gap-2 border-b border-encre/[0.18] pb-1.5 focus-within:border-bord-vif">
-                <Search className="h-4 w-4 text-brume" />
-                <input id="recherche-alx" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher une société, un gérant, une adresse" className="w-full border-none bg-transparent py-1 text-[13.5px] text-encre outline-none placeholder:text-brume" />
+              <div className="flex min-w-[220px] flex-1 items-center gap-2 border-b border-encre/[0.18] pb-1.5 focus-within:border-bord-vif max-md:min-w-0 max-md:basis-full">
+                <Search className="h-4 w-4 flex-none text-brume" />
+                <input id="recherche-alx" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher une société, un gérant, une adresse" className="w-full border-none bg-transparent py-1 text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
               {d.isFetching && <Loader2 className="h-4 w-4 animate-spin text-ardoise" />}
             </div>
 
-            <div className="overflow-auto rounded-[16px] border border-trait" style={{ maxHeight: "calc(100vh - 380px)" }}>
+            <div className="max-h-[calc(100vh-380px)] overflow-auto rounded-[16px] border border-trait max-md:max-h-[75dvh]">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-20 backdrop-blur-xl">
                   <tr>
@@ -507,7 +507,7 @@ export default function ALXDemarchage() {
                         <td className={TD} onClick={(e) => e.stopPropagation()}>
                           <Case id={`cocher-${s.cle}`} coche={choisies.has(s.cle)} onChange={() => basculer(s.cle)} label={`Choisir ${s.nom}`} />
                         </td>
-                        <td className={`${TD} min-w-[220px] cursor-pointer font-medium text-encre`} onClick={() => setOuverte(s.cle)}>{joliNom(s.nom)}</td>
+                        <td className={`${TD} min-w-[220px] cursor-pointer font-medium text-encre max-md:min-w-[160px]`} onClick={() => setOuverte(s.cle)}>{joliNom(s.nom)}</td>
                         <td className={TD}><button type="button" onClick={() => setOuverte(s.cle)} className="inline-flex items-center gap-1 text-menthe" style={{ background: "transparent" }}><Nombre taille={13}>{s.murs.length}</Nombre> mur{s.murs.length > 1 ? "s" : ""}</button></td>
                         <td className={TD}>{s.gerants.length ? <button type="button" onClick={() => setOuverte(s.cle)} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}>Voir ({s.gerants.length})</button> : <span className="text-brume">—</span>}</td>
                         <td className={TD}>{trouve ? <span className="inline-flex items-center gap-1.5 text-menthe"><Mail className="h-3.5 w-3.5" />Trouvé</span> : <span className="text-brume">—</span>}</td>
@@ -532,8 +532,8 @@ export default function ALXDemarchage() {
           écran de ces panneaux si on les posait juste ici. */}
       <div>
         {choisies.size > 0 && (
-          <div className="alx-entree fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
-            <div className="flex items-center gap-4 rounded-full border border-trait bg-surface px-5 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <div className="alx-entree fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 max-md:bottom-[calc(12px+env(safe-area-inset-bottom))] max-md:px-3">
+            <div className="flex items-center gap-4 rounded-full border border-trait bg-surface px-5 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.4)] max-md:flex-wrap max-md:justify-center max-md:gap-x-2 max-md:gap-y-1 max-md:rounded-[20px] max-md:px-4">
               <span className="text-[13px] text-encre">{choisies.size} société{choisies.size > 1 ? "s" : ""} choisie{choisies.size > 1 ? "s" : ""}</span>
               <Bouton discret onClick={() => setChoisies(new Set())}>Vider</Bouton>
               <Bouton principal onClick={lancerLot} disabled={!data?.apollo}>Enrichir et démarcher</Bouton>

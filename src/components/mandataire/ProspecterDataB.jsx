@@ -40,7 +40,7 @@ function ChoixVille({ onChoisir }) {
       <label className="flex h-11 max-w-[420px] items-center gap-2.5 rounded-full border border-trait bg-surface px-4 focus-within:border-menthe">
         <Search className="h-4 w-4 flex-none text-ardoise" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Mâcon, Charnay…" autoFocus
-          className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+          className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         {isFetching && <Loader2 className="h-4 w-4 animate-spin text-brume" />}
       </label>
       {(data?.villes || []).slice(0, 6).map((v) => (
@@ -49,6 +49,79 @@ function ChoixVille({ onChoisir }) {
           <MapPin className="h-3.5 w-3.5 flex-none text-ardoise" /> {v.nom}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Les métiers Data-B : une liste cherchable à cocher, les choisis en tête.
+ * Servi par la fenêtre multicritère du chat et par l'onglet K Prospective.
+ */
+export function ChoixMetiers({ tous = {}, metiers, onBasculer, pleineHauteur = false }) {
+  const [q, setQ] = useState("");
+  const libelle = (id) => Object.keys(tous).find((k) => tous[k] === id) || id;
+  const liste = useMemo(() => {
+    const n = norm(q.trim());
+    return Object.entries(tous).filter(([lib]) => !n || norm(lib).includes(n)).sort(([a], [b]) => a.localeCompare(b, "fr"));
+  }, [tous, q]);
+  return (
+    <>
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="m-0 text-[15px] font-medium text-encre">Métiers</h3>
+        <span className="text-[12.5px] text-ardoise">{metiers.length ? `${metiers.length} choisi${metiers.length > 1 ? "s" : ""}` : "Tous les commerces"}</span>
+      </div>
+      <label className="mt-3 flex h-10 items-center gap-2.5 rounded-full border border-trait bg-surface px-4 focus-within:border-menthe">
+        <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Boulangerie, pharmacie…"
+          className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+      </label>
+      {metiers.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {metiers.map((id) => (
+            <span key={id} className="inline-flex items-center gap-1.5 rounded-full bg-menthe/[0.14] py-1 pl-3 pr-2 text-[12.5px] text-encre">
+              {libelle(id)}
+              <button type="button" onClick={() => onBasculer(id)} aria-label={`Retirer ${libelle(id)}`} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className={`mt-3 max-h-[320px] overflow-y-auto rounded-[14px] border border-trait ${pleineHauteur ? "lg:max-h-none lg:min-h-0 lg:flex-1" : ""}`}>
+        {liste.map(([lib, id]) => {
+          const oui = metiers.includes(id);
+          return (
+            <button key={id} type="button" onClick={() => onBasculer(id)}
+              className="flex w-full items-center gap-3 border-b border-trait px-3.5 py-2.5 text-left text-[13.5px] transition-colors last:border-b-0 hover:bg-encre/[0.03]"
+              style={{ background: oui ? "rgb(var(--k-menthe-rgb) / 0.07)" : "transparent" }}>
+              <Case oui={oui} />
+              <span className={oui ? "text-encre" : "text-craie"}>{lib}</span>
+            </button>
+          );
+        })}
+        {!liste.length && <p className="m-0 px-3.5 py-4 text-[13px] text-brume">Aucun métier ne correspond.</p>}
+      </div>
+    </>
+  );
+}
+
+/** Les familles de critères Data-B, en pastilles, toutes visibles. */
+export function GrilleCriteres({ valeurs = {}, filtres, onBasculer }) {
+  return (
+    <div className="grid content-start gap-x-10 gap-y-7 md:grid-cols-2">
+      {ORDRE_FILTRES.map(([cle, titre]) => {
+        const n = (filtres[cle] || []).length;
+        return (
+          <section key={cle}>
+            <h3 className="m-0 text-[14px] font-medium text-encre">
+              {titre}{n > 0 && <span className="ml-2 text-[12px] font-normal text-menthe">{n}</span>}
+            </h3>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {Object.entries(valeurs?.[cle] || {}).map(([v, lib]) => (
+                <Chip key={v} actif={(filtres[cle] || []).includes(v)} onClick={() => onBasculer(cle, v)}>{lib}</Chip>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -71,7 +144,6 @@ export function FenetreMulticriteres({ ville: villeDonnee = null, rue = null, on
   const { data: ref } = useQuery({ queryKey: ["m-prospective-ref"], queryFn: () => base44.request("GET", `${API}/prospective/metiers`), staleTime: Infinity });
   const [ville, setVille] = useState(villeDonnee);
   const [metiers, setMetiers] = useState([]);
-  const [qMetier, setQMetier] = useState("");
   const [filtres, setFiltres] = useState({});
 
   // Échap ferme ; la page derrière ne défile plus tant que la fenêtre est
@@ -94,12 +166,6 @@ export function FenetreMulticriteres({ ville: villeDonnee = null, rue = null, on
 
   const tous = ref?.metiers || {};
   const libelleMetier = (id) => Object.keys(tous).find((k) => tous[k] === id) || id;
-  const listeMetiers = useMemo(() => {
-    const q = norm(qMetier.trim());
-    return Object.entries(tous)
-      .filter(([lib]) => !q || norm(lib).includes(q))
-      .sort(([a], [b]) => a.localeCompare(b, "fr"));
-  }, [tous, qMetier]);
   const basculerMetier = (id) => setMetiers((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
   const basculer = (cle, valeur) => setFiltres((f) => {
     const l = new Set(f[cle] || []);
@@ -136,59 +202,12 @@ export function FenetreMulticriteres({ ville: villeDonnee = null, rue = null, on
           <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[340px_minmax(0,1fr)] lg:overflow-hidden">
             {/* Les métiers : une liste cherchable à cocher, les choisis en tête. */}
             <section className="flex flex-col border-trait px-8 py-6 max-md:px-5 lg:min-h-0 lg:border-r">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="m-0 text-[15px] font-medium text-encre">Métiers</h3>
-                <span className="text-[12.5px] text-ardoise">{metiers.length ? `${metiers.length} choisi${metiers.length > 1 ? "s" : ""}` : "Tous les commerces"}</span>
-              </div>
-              <label className="mt-3 flex h-10 items-center gap-2.5 rounded-full border border-trait bg-surface px-4 focus-within:border-menthe">
-                <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
-                <input value={qMetier} onChange={(e) => setQMetier(e.target.value)} placeholder="Boulangerie, pharmacie…"
-                  className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume" />
-              </label>
-              {metiers.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {metiers.map((id) => (
-                    <span key={id} className="inline-flex items-center gap-1.5 rounded-full bg-menthe/[0.14] py-1 pl-3 pr-2 text-[12.5px] text-encre">
-                      {libelleMetier(id)}
-                      <button type="button" onClick={() => basculerMetier(id)} aria-label={`Retirer ${libelleMetier(id)}`} className="text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="mt-3 max-h-[320px] overflow-y-auto rounded-[14px] border border-trait lg:max-h-none lg:min-h-0 lg:flex-1">
-                {listeMetiers.map(([lib, id]) => {
-                  const oui = metiers.includes(id);
-                  return (
-                    <button key={id} type="button" onClick={() => basculerMetier(id)}
-                      className="flex w-full items-center gap-3 border-b border-trait px-3.5 py-2.5 text-left text-[13.5px] transition-colors last:border-b-0 hover:bg-encre/[0.03]"
-                      style={{ background: oui ? "rgb(var(--k-menthe-rgb) / 0.07)" : "transparent" }}>
-                      <Case oui={oui} />
-                      <span className={oui ? "text-encre" : "text-craie"}>{lib}</span>
-                    </button>
-                  );
-                })}
-                {!listeMetiers.length && <p className="m-0 px-3.5 py-4 text-[13px] text-brume">Aucun métier ne correspond.</p>}
-              </div>
+              <ChoixMetiers tous={tous} metiers={metiers} onBasculer={basculerMetier} pleineHauteur />
             </section>
 
             {/* Les critères : toutes les familles visibles, en pastilles. */}
-            <div className="grid content-start gap-x-10 gap-y-7 px-8 py-6 max-md:px-5 md:grid-cols-2 lg:min-h-0 lg:overflow-y-auto">
-              {ORDRE_FILTRES.map(([cle, titre]) => {
-                const valeurs = ref?.filtres?.[cle] || {};
-                const n = (filtres[cle] || []).length;
-                return (
-                  <section key={cle}>
-                    <h3 className="m-0 text-[14px] font-medium text-encre">
-                      {titre}{n > 0 && <span className="ml-2 text-[12px] font-normal text-menthe">{n}</span>}
-                    </h3>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {Object.entries(valeurs).map(([v, lib]) => (
-                        <Chip key={v} actif={(filtres[cle] || []).includes(v)} onClick={() => basculer(cle, v)}>{lib}</Chip>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
+            <div className="px-8 py-6 max-md:px-5 lg:min-h-0 lg:overflow-y-auto">
+              <GrilleCriteres valeurs={ref?.filtres} filtres={filtres} onBasculer={basculer} />
             </div>
           </div>
         )}
@@ -321,7 +340,7 @@ export function ResultatsProspective({ jeton, onRetour }) {
             {nouvelle != null ? (
               <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); exporter.mutate({ nom: nouvelle }); }}>
                 <input autoFocus value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} placeholder="Nom de la liste"
-                  className="min-w-0 flex-1 rounded-champ border border-trait bg-surface px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe" />
+                  className="min-w-0 flex-1 rounded-champ border border-trait bg-surface px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
                 <button type="submit" disabled={!nouvelle.trim() || exporter.isPending} className="inline-flex h-9 items-center rounded-full bg-menthe-pale px-4 text-[13px] font-medium text-sur-menthe-pale disabled:opacity-40">
                   {exporter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer"}
                 </button>
@@ -334,8 +353,8 @@ export function ResultatsProspective({ jeton, onRetour }) {
                   Exporter vers une nouvelle liste
                 </button>
                 {(listesData?.listes || []).length > 0 && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <select value={cible} onChange={(e) => setCible(e.target.value)} className="h-9 rounded-full border border-trait bg-surface px-3 text-[13px] text-encre outline-none">
+                  <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+                    <select value={cible} onChange={(e) => setCible(e.target.value)} className="h-9 min-w-0 max-w-full rounded-full border border-trait bg-surface px-3 text-[13px] text-encre outline-none max-md:text-[16px]">
                       <option value="">Ajouter à une liste…</option>
                       {listesData.listes.map((l) => <option key={l.id} value={l.id}>{l.nom} ({l.total})</option>)}
                     </select>
@@ -392,7 +411,7 @@ function CarteProspective({ lignes, coches, onBasculer }) {
   }, [lignes, coches, onBasculer]);
   return (
     <div className="overflow-hidden rounded-[16px] border border-trait">
-      <div ref={ref} className="h-[640px] w-full max-lg:h-[380px]" />
+      <div ref={ref} className="h-[640px] w-full max-lg:h-[380px] max-md:h-[300px]" />
     </div>
   );
 }

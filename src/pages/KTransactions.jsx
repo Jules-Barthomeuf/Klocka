@@ -90,7 +90,7 @@ function Resultat({ r, onRetour }) {
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-20 pt-8">
       <button onClick={onRetour} className="mb-3 text-[12.5px] text-ardoise hover:text-encre">Toutes les analyses</button>
-      <h1 className="m-0 text-[24px] font-light tracking-[-0.01em] text-encre">{r.point.label}</h1>
+      <h1 className="m-0 text-[24px] font-light tracking-[-0.01em] text-encre max-md:text-[20px]">{r.point.label}</h1>
       <p className="m-0 mt-1 mb-6 text-[12.5px] text-ardoise">
         murs vendus dans {r.rayon} m · fonds cédés dans la commune sur {r.annees} ans
       </p>
@@ -100,7 +100,7 @@ function Resultat({ r, onRetour }) {
           point à partir d'un nom de rue serait une localisation inventée. */}
       {ventes.length > 0 && (
         <div className="mb-5">
-          <div className={`${CARTE} relative min-h-[440px] overflow-hidden`}>
+          <div className={`${CARTE} relative min-h-[440px] overflow-hidden max-md:min-h-[380px]`}>
             <CartePoints point={r.point} rayon_m={r.rayon} couches={couches}
               onPoint={setChoisie} onErreur={(m) => toast.error(m)} />
 
@@ -118,10 +118,10 @@ function Resultat({ r, onRetour }) {
             </div>
 
             {choisie && (
-              <div className="absolute right-3 top-3 w-[290px] rounded-[12px] border border-bord bg-fond/85 p-3 backdrop-blur-xl">
+              <div className="absolute right-3 top-3 w-[290px] rounded-[12px] max-md:left-3 max-md:w-auto border border-bord bg-fond/85 p-3 backdrop-blur-xl">
                 <div className="flex items-start justify-between gap-2">
                   <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-menthe-texte">Vente enregistrée</p>
-                  <button onClick={() => setChoisie(null)} className="text-brume hover:text-encre"><X className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setChoisie(null)} aria-label="Fermer" className="text-brume hover:text-encre max-md:-m-2 max-md:grid max-md:h-9 max-md:w-9 max-md:place-items-center"><X className="h-3.5 w-3.5" /></button>
                 </div>
                 <p className="m-0 mt-1 text-[13px] font-medium leading-[1.4] text-encre">{choisie.adresse || choisie.commune || "Adresse non publiée"}</p>
                 <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">
@@ -315,7 +315,7 @@ export default function KTransactions() {
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
-      <h1 className="mt-2 mb-2 text-[30px] font-light tracking-[-0.01em] text-encre">K-Transactions</h1>
+      <h1 className="mt-2 mb-2 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">K-Transactions</h1>
       <p className="m-0 mb-7 max-w-[620px] text-[13.5px] leading-[1.7] text-ardoise">
         Ce que les murs et les fonds se sont vraiment vendus autour d&apos;une adresse : prix au m² des locaux, prix de cession
         des fonds de commerce, et les comparables de la rue.
@@ -328,7 +328,7 @@ export default function KTransactions() {
             <Search className="h-4 w-4 flex-shrink-0 text-brume" />
             <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="49 rue Dabray, 06000 Nice"
               onKeyDown={(e) => { if (e.key === "Enter" && adresse.trim().length >= 5) analyser.mutate(adresse); }}
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">

@@ -47,8 +47,8 @@ function Historique() {
       {envois.map((m) => {
         const etat = ETATS[m.statut] || ETATS.envoye;
         return (
-          <li key={m.id} className="flex items-baseline gap-4 border-t border-trait py-3 first:border-t-0">
-            <span className="w-[150px] flex-shrink-0 text-[12px] text-brume" style={{ fontVariantNumeric: "tabular-nums" }}>{quand(m.le)}</span>
+          <li key={m.id} className="flex items-baseline gap-4 border-t border-trait py-3 first:border-t-0 max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-0.5">
+            <span className="w-[150px] flex-shrink-0 text-[12px] text-brume max-md:w-full" style={{ fontVariantNumeric: "tabular-nums" }}>{quand(m.le)}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13.5px] text-encre">{m.sujet}</span>
               <span className="block truncate text-[12px] text-ardoise">
@@ -153,7 +153,7 @@ export default function BoiteMail() {
                       {c.par_defaut && <span className="flex-none text-[12.5px] text-craie">par défaut</span>}
                     </button>
                     <button type="button" disabled={occupe} onClick={() => confirmerRetrait(c.email)} aria-label={`Déconnecter ${c.email}`} title="Déconnecter cette boîte"
-                      className="mr-2 grid h-7 w-7 flex-none place-items-center rounded-full text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-40" style={{ background: "transparent" }}>
+                      className="mr-2 grid h-7 w-7 flex-none place-items-center rounded-full text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-40 max-md:h-9 max-md:w-9 max-md:opacity-100" style={{ background: "transparent" }}>
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </li>

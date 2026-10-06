@@ -31,9 +31,9 @@ export default function CompareSummaryTable({ metrics }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-trait">
-              <th className="text-left text-encre/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px]">Indicateur</th>
+              <th className="text-left text-encre/30 text-xs uppercase tracking-wider py-3 px-4 min-w-[160px] max-md:min-w-[124px] max-md:px-3 max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-fond">Indicateur</th>
               {metrics.map((m, i) => (
-                <th key={i} className="text-left py-3 px-4 min-w-[140px]">
+                <th key={i} className="text-left py-3 px-4 min-w-[140px] max-md:min-w-[120px] max-md:px-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${DOT_COLORS[i]}`} />
                     <span className={`text-xs font-medium ${COLORS[i]} truncate max-w-[120px]`}>{m.titre}</span>
@@ -45,11 +45,12 @@ export default function CompareSummaryTable({ metrics }) {
           <tbody>
             {rows.map((row, rowIdx) => (
               <tr key={row.key} className={rowIdx % 2 === 0 ? "bg-encre/[0.01]" : ""}>
-                <td className="py-3 px-4 text-encre/40 text-xs">{row.label}</td>
+                {/* Au téléphone, l'intitulé reste à gauche quand les projets défilent. */}
+                <td className="py-3 px-4 text-encre/40 text-xs max-md:px-3 max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-fond">{row.label}</td>
                 {metrics.map((m, i) => {
                   const val = m[row.key];
                   return (
-                    <td key={i} className="py-3 px-4 text-encre text-xs font-medium">
+                    <td key={i} className="py-3 px-4 max-md:px-3 text-encre text-xs font-medium">
                       {row.fmt(val)}
                     </td>
                   );

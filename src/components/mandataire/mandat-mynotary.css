@@ -92,3 +92,23 @@
 .mn-doc .mn-liste { list-style: disc outside; }
 .mn-doc .mn-liste-num { list-style: decimal outside; }
 .mn-doc .mn-liste li, .mn-doc .mn-liste-num li { display: list-item; }
+
+/* Au téléphone : la page A4 se resserre pour se lire sans zoomer (l'écran seulement, l'impression garde le modèle). */
+@media screen and (max-width: 767px) {
+  .mn-doc { gap: 16px; padding-bottom: 32px; }
+  .mn-page { font-size: 10pt; }
+  .mn-garde { height: auto; }
+  .mn-garde-haut { padding: 20mm 7mm 12mm; }
+  .mn-garde-k { top: 7mm; right: 7mm; height: 10mm; }
+  .mn-garde-titre { margin-top: 8mm; font-size: 22pt; }
+  .mn-garde-titre .mn-ligne { width: 36mm; }
+  .mn-garde-trait { width: 60mm; max-width: 100%; margin: 9mm 0 6mm; }
+  .mn-garde-loi, .mn-garde-adresse { font-size: 11pt; }
+  .mn-garde-agence { margin-top: 9mm; font-size: 13pt; }
+  .mn-garde-bas { height: 36mm; }
+  .mn-corps { padding: 9mm 5mm 10mm; }
+  .mn-titre { font-size: 18pt; }
+  .mn-titre-num { width: 60mm; max-width: 100%; }
+  .mn-h1 { font-size: 12pt; }
+  .mn-vide { min-width: 24mm; }
+}

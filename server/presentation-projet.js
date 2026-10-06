@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url';
 import PptxGenJS from 'pptxgenjs';
 import { invokeLLM, llmEnabled } from './llm.js';
 import { trouverVille, trouverSecteur } from '../src/data/villes.js';
+import { secteurGarde } from './projet-secteur.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = CHEMIN_UPLOADS;
@@ -606,18 +607,18 @@ export async function genererPresentationProjet(project, photos = {}) {
       fontFace: SANS, fontSize: 32, bold: true, color: C.ivoire,
     });
 
-    const mursSecteur = positif(p.marche_prix_m2_median) ||
-      (positif(p.marche_prix_m2_bas) && positif(p.marche_prix_m2_haut)
-        ? Math.round((p.marche_prix_m2_bas + p.marche_prix_m2_haut) / 2) : null);
-    const locatifSecteur = positif(p.marche_baux_moyenne) || positif(p.marche_offre_moyenne);
+    // Le loyer autour seul, comme sur l'onglet Marché : la correction de
+    // l'équipe, sinon Equimmox (Data-B en repli). Plus de prix des murs du
+    // secteur, faute de source fiable (6 oct. 2026).
+    const lu = secteurGarde(p.id)?.rue || null;
+    const locatifSecteur = positif(p.marche_loyer_autour) || positif(lu?.loyer_m2_an);
+    const sourceLoyer = positif(p.marche_loyer_autour) ? 'Klocka' : lu?.loyer_source || 'Equimmox';
 
     // Marché (encadré blanc), puis le local (encadré teal), reliés visuellement.
     s.addShape('roundRect', { x: 1.7, y: 1.35, w: 9.9, h: 1.85, rectRadius: 0.12, fill: { color: 'FFFFFF' }, line: { color: C.teal, width: 1.5 } });
-    s.addText('Prix de marché secteur', { x: 1.7, y: 1.44, w: 9.9, h: 0.35, align: 'center', fontFace: SANS, fontSize: 13, color: '4A514F' });
-    blocTeal(s, { x: 2.45, y: 1.95, w: 3.6, h: 1, titre: 'Valeur moyenne des murs', valeur: mursSecteur ? `${nombre(mursSecteur)} €/m²` : '—', corps: 16 });
+    s.addText('Loyer de marché du secteur', { x: 1.7, y: 1.44, w: 9.9, h: 0.35, align: 'center', fontFace: SANS, fontSize: 13, color: '4A514F' });
     blocTeal(s, { x: 7.25, y: 1.95, w: 3.6, h: 1, titre: 'Valeur moyenne locative', valeur: locatifSecteur ? `${nombre(Math.round(locatifSecteur))} €/m²/an` : '—', corps: 16 });
 
-    s.addText('↓', { x: 4, y: 3.22, w: 0.6, h: 0.5, align: 'center', fontFace: SANS, fontSize: 24, color: C.teal });
     s.addText('↓', { x: 8.8, y: 3.22, w: 0.6, h: 0.5, align: 'center', fontFace: SANS, fontSize: 24, color: C.teal });
 
     s.addShape('roundRect', { x: 1.7, y: 3.75, w: 9.9, h: 2.15, rectRadius: 0.12, fill: { color: C.teal } });
@@ -632,17 +633,11 @@ export async function genererPresentationProjet(project, photos = {}) {
     blocNoir(7.25, 'Valeur du loyer actuel', loyerM2 ? `${nombre(loyerM2)} €/m²/an` : '—', loyer ? `Loyer annuel HC HT : ${euros(loyer)}` : null);
 
     const phrases = [];
-    if (prixM2 && mursSecteur) {
-      phrases.push(
-        `La valeur d'acquisition, fixée à ${nombre(prixM2)} €/m², ${prixM2 <= mursSecteur ? 'reste inférieure' : 'est supérieure'} à la moyenne observée sur le secteur (≈ ${nombre(mursSecteur)} €/m²)` +
-        (prixM2 <= mursSecteur ? ", ce qui offre un point d'entrée attractif pour un investisseur." : '.')
-      );
-    }
     if (loyerM2 && locatifSecteur) {
       phrases.push(`Le niveau de loyer actuel de ${nombre(loyerM2)} €/m²/an est ${loyerM2 <= locatifSecteur ? 'inférieur' : 'supérieur'} à la moyenne locale de ${nombre(Math.round(locatifSecteur))} €/m²/an.`);
     }
     if (phrases.length) {
-      s.addText(phrases.join(' ') + ' Source : Klocka, sources ouvertes', {
+      s.addText(phrases.join(' ') + ` Source : ${sourceLoyer}`, {
         x: 1.1, y: 6.15, w: 11.1, h: 1.1, align: 'center', fontFace: SANS, fontSize: 12.5, color: C.ivoire, valign: 'top',
       });
     }

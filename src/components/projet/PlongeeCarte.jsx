@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { adresseAChercher, memeVille } from "@/lib/adresse-projet";
+import { adressesAEssayer, resultatPlausible } from "@/lib/adresse-projet";
 import { useQuery } from "@tanstack/react-query";
 import { J } from "@/design/jetons";
 
@@ -46,26 +46,26 @@ async function google3DDisponible() {
 
 // Géolocalise le projet : l'adresse d'abord (API Adresse, BAN), puis les
 // coordonnées enregistrées. Des coordonnées posées au centre de la commune
-// envoyaient le vol à l'Hôtel de Ville au lieu du local.
+// envoyaient le vol à l'Hôtel de Ville au lieu du local, et Street View à
+// trois kilomètres (« 1 rue du Nord » ouvrait rue du Havre, à Lille).
 // Partagé avec le Street View de la page projet (même clé de cache).
-// L'adresse part avec la ville du projet quand elle ne la dit pas, et un
-// résultat dans une autre ville est refusé (adresse-projet.js).
+// La recherche est orientée vers la commune du dossier (ses coordonnées), et
+// un résultat n'est gardé que s'il est plausible (adresse-projet.js) ; on
+// essaie l'adresse avec la ville du projet, puis l'adresse seule. La rue
+// trouvée part avec : Street View choisit son panorama dans cette rue.
 export async function geolocaliser(project) {
-  const q = adresseAChercher(project);
-  if (q) {
+  const pres = project.latitude && project.longitude ? { lat: Number(project.latitude), lon: Number(project.longitude) } : null;
+  const biais = pres ? `&lat=${pres.lat}&lon=${pres.lon}` : "";
+  for (const q of adressesAEssayer(project)) {
     try {
-      const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=1&q=" + encodeURIComponent(q));
-      const f = r.ok ? (await r.json()).features?.[0] : null;
-      const precise = f && (f.properties?.score ?? 0) >= 0.5 && ["housenumber", "street"].includes(f.properties?.type) && memeVille(project, f.properties?.city);
-      if (precise) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+      const r = await fetch("https://api-adresse.data.gouv.fr/search/?limit=5&q=" + encodeURIComponent(q) + biais);
+      const f = r.ok ? ((await r.json()).features || []).find((x) => resultatPlausible(project, x, pres)) : null;
+      if (f) return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], rue: f.properties?.street || f.properties?.name || null };
     } catch {
-      /* BAN injoignable : les coordonnées enregistrées prennent le relais */
+      break; /* BAN injoignable : les coordonnées enregistrées prennent le relais */
     }
   }
-  if (project.latitude && project.longitude) {
-    return { lat: Number(project.latitude), lon: Number(project.longitude) };
-  }
-  return null;
+  return pres;
 }
 
 // ---------------------------------------------------------------------------

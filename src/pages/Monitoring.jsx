@@ -146,7 +146,8 @@ export default function Monitoring() {
                 {data.personnes.length === 0 ? (
                   <p className="m-0 text-[12.5px] text-brume">Aucune activité sur la période.</p>
                 ) : (
-                  <table className="w-full border-collapse">
+                  <div className="max-md:-mx-4 max-md:overflow-x-auto max-md:px-4">
+                  <table className="w-full border-collapse max-md:min-w-[480px]">
                     <thead>
                       <tr className="border-b border-bord">
                         {["Personne", "Pages", "IA", "Actions", "Vu le"].map((h, i) => (
@@ -176,6 +177,7 @@ export default function Monitoring() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
 
@@ -190,8 +192,8 @@ export default function Monitoring() {
                   <div className="space-y-2.5">
                     {data.pages.slice(0, 12).map((p) => (
                       <div key={p.page}>
-                        <div className="flex justify-between text-[12.5px] mb-1">
-                          <span className="text-craie">{p.page}</span>
+                        <div className="flex justify-between text-[12.5px] mb-1 max-md:gap-3">
+                          <span className="text-craie max-md:min-w-0 max-md:truncate">{p.page}</span>
                           <span className="text-ardoise tabular-nums">{p.visites}</span>
                         </div>
                         <Barre part={p.visites / maxVisites} />
@@ -211,8 +213,8 @@ export default function Monitoring() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
                   {data.outils.slice(0, 12).map((o) => (
                     <div key={o.outil}>
-                      <div className="flex justify-between text-[12.5px] mb-1">
-                        <span className="text-craie">{o.outil}</span>
+                      <div className="flex justify-between text-[12.5px] mb-1 max-md:gap-3">
+                        <span className="text-craie max-md:min-w-0 max-md:truncate">{o.outil}</span>
                         <span className="text-ardoise tabular-nums">{o.appels}</span>
                       </div>
                       <Barre part={o.appels / maxOutils} />
@@ -282,7 +284,7 @@ export default function Monitoring() {
                 <p className="m-0 mb-2 text-[11px] tracking-[.14em] uppercase text-brume">Par opération</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 mb-6">
                   {couts.operations.slice(0, 10).map((o) => (
-                    <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-relief">
+                    <div key={o.cle} className="flex justify-between text-[12.5px] py-1 border-b border-relief max-md:flex-wrap max-md:gap-x-3">
                       <span className="text-craie">{o.cle}</span>
                       <span className="text-ardoise tabular-nums">
                         {euros(o.cout)} <span className="text-bord-vif">· {o.requetes} req. · {o.duree_ms ? duree(o.duree_ms / o.requetes) : "—"}</span>

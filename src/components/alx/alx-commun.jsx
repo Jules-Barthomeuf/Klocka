@@ -161,7 +161,7 @@ export function Champ({ label, value, onChange, placeholder = "", type = "text",
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-surface border border-bord rounded-[10px] px-4 py-3 text-[15px] text-encre placeholder:text-brume outline-none focus:border-menthe transition-colors"
+        className="w-full bg-surface border border-bord rounded-[10px] px-4 py-3 text-[15px] text-encre placeholder:text-brume outline-none focus:border-menthe transition-colors max-md:text-[16px]"
       />
     </label>
   );
@@ -169,7 +169,7 @@ export function Champ({ label, value, onChange, placeholder = "", type = "text",
 
 /** Une carte sombre, le conteneur de base de toutes les sections ALX. */
 export function Carte({ children, className = "", id = undefined }) {
-  return <section id={id} className={`bg-surface border border-trait rounded-[18px] p-[26px] ${className}`}>{children}</section>;
+  return <section id={id} className={`bg-surface border border-trait rounded-[18px] p-[26px] max-md:p-4 ${className}`}>{children}</section>;
 }
 
 /** Un chiffre-clé, dans une grille de statistiques. */

@@ -145,7 +145,7 @@ function Resultat({ r, onRetour }) {
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-20 pt-8">
       <button onClick={onRetour} className="mb-3 text-[12.5px] text-ardoise hover:text-encre">Toutes les analyses</button>
-      <h1 className="m-0 text-[24px] font-light tracking-[-0.01em] text-encre">{r.point.label}</h1>
+      <h1 className="m-0 text-[24px] font-light tracking-[-0.01em] text-encre max-md:text-[20px]">{r.point.label}</h1>
       <p className="m-0 mt-1 mb-6 text-[12.5px] text-ardoise">
         {r.rayon} m autour du point · fermetures des {r.annees_fermeture} dernières années · face à {r.point.ville || "la commune"}
       </p>
@@ -179,7 +179,7 @@ function Resultat({ r, onRetour }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className={`${CARTE} relative min-h-[460px] overflow-hidden`}>
+        <div className={`${CARTE} relative min-h-[460px] overflow-hidden max-md:min-h-[380px]`}>
           <CartePoints point={r.point} rayon_m={r.rayon} couches={couches} onPoint={setOuvert} onErreur={(m) => toast.error(m)} />
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-[10px] border border-bord bg-fond/80 px-3 py-2 text-[11px] backdrop-blur-xl">
             <p className="m-0 flex items-center gap-1.5 text-ardoise"><span className="h-2.5 w-2.5 rounded-full" style={{ background: JL.alerte }} />Local vide vu depuis la rue</p>
@@ -187,10 +187,10 @@ function Resultat({ r, onRetour }) {
             <p className="m-0 mt-1 flex items-center gap-1.5 text-ardoise"><span className="h-2 w-2 rounded-full" style={{ background: JL.ambre }} />Commerce fermé au registre</p>
           </div>
           {ouvert && (
-            <div className="absolute right-3 top-3 w-[260px] rounded-[12px] border border-bord bg-fond/85 p-3 backdrop-blur-xl">
+            <div className="absolute right-3 top-3 w-[260px] rounded-[12px] max-md:left-3 max-md:w-auto border border-bord bg-fond/85 p-3 backdrop-blur-xl">
               <div className="flex items-start justify-between gap-2">
                 <p className="alx-mont m-0 text-[10px] uppercase tracking-[.12em] text-menthe-texte">{ouvert.nature}</p>
-                <button onClick={() => setOuvert(null)} className="text-brume hover:text-encre"><X className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setOuvert(null)} aria-label="Fermer" className="text-brume hover:text-encre max-md:-m-2 max-md:grid max-md:h-9 max-md:w-9 max-md:place-items-center"><X className="h-3.5 w-3.5" /></button>
               </div>
               <p className="m-0 mt-1 text-[13px] font-medium text-encre">{ouvert.titre || "—"}</p>
               {ouvert.adresse && <p className="m-0 mt-0.5 text-[11.5px] text-ardoise">{ouvert.adresse}</p>}
@@ -348,7 +348,7 @@ export default function KVacance() {
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
-      <h1 className="mt-2 mb-2 text-[30px] font-light tracking-[-0.01em] text-encre">K-Vacance</h1>
+      <h1 className="mt-2 mb-2 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">K-Vacance</h1>
       <p className="m-0 mb-7 max-w-[620px] text-[13.5px] leading-[1.7] text-ardoise">
         Y a-t-il beaucoup de locaux vides ici ? Ce qu&apos;on voit depuis la rue et ce que dit le registre, comparés à la commune.
       </p>
@@ -360,7 +360,7 @@ export default function KVacance() {
             <Search className="h-4 w-4 flex-shrink-0 text-brume" />
             <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="49 rue Dabray, 06000 Nice"
               onKeyDown={(e) => { if (e.key === "Enter" && adresse.trim().length >= 5) analyser.mutate(adresse); }}
-              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+              className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
           </div>
           {suggestions.length > 0 && (
             <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">

@@ -220,7 +220,7 @@ function NotesLigne({ textes, manuelle = null, onNoter = null, enCours = false }
           onChange={(e) => setEdition(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) valider(); }}
           rows={Math.min(8, Math.max(3, edition.split("\n").length + 1))}
-          className="w-full resize-y rounded-md border border-menthe/40 bg-fond px-2.5 py-2 text-[12.5px] leading-[1.5] text-encre outline-none focus:border-menthe/70"
+          className="w-full resize-y rounded-md border border-menthe/40 bg-fond px-2.5 py-2 text-[12.5px] leading-[1.5] text-encre outline-none focus:border-menthe/70 max-md:text-[16px]"
         />
         <span className="flex items-center gap-3">
           <button type="button" onClick={valider} disabled={enCours} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12px] font-semibold text-sur-menthe disabled:opacity-40"><Check className="h-3 w-3" /> Enregistrer</button>
@@ -245,7 +245,7 @@ function NotesLigne({ textes, manuelle = null, onNoter = null, enCours = false }
             {affiches.map((t) => <li key={t} className="whitespace-pre-line text-[12.5px] leading-[1.5] text-craie">{t}</li>)}
           </ul>
         ) : <span className="text-[12.5px] text-brume">{onNoter ? "— ajouter une note" : "—"}</span>}
-        {onNoter && <Pencil className="mt-1 h-3 w-3 text-brume opacity-0 transition-opacity group-hover:opacity-100" />}
+        {onNoter && <Pencil className="mt-1 h-3 w-3 text-brume opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />}
       </button>
       {manuelle && (
         <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-ambre">
@@ -277,12 +277,12 @@ function AttendusInfo({ lignes }) {
   const attendus = lignes.map((l) => ({ id: l.id, element: l.element, attendu: l.c?.attendu || l.attenduMarche || null })).filter((l) => l.attendu);
   if (!attendus.length) return null;
   return (
-    <span ref={ref} className="relative inline-flex" onMouseEnter={() => setOuvert(true)} onMouseLeave={() => setOuvert(false)}>
+    <span ref={ref} className="relative inline-flex max-md:static" onPointerEnter={(e) => { if (e.pointerType === "mouse") setOuvert(true); }} onPointerLeave={(e) => { if (e.pointerType === "mouse") setOuvert(false); }}>
       <button type="button" onClick={() => setOuvert((o) => !o)} aria-label="Ce que la grille attend de chaque ligne" aria-expanded={ouvert} className="grid h-5 w-5 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
         <Info className="h-4 w-4" />
       </button>
-      <div className={`absolute left-0 top-full z-30 pt-2 transition-[opacity,transform] duration-200 ease-out ${ouvert ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
-        <div className="w-[340px] rounded-lg border border-trait p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)]" style={{ background: "rgb(var(--k-surface-pleine-rgb))" }}>
+      <div className={`absolute left-0 top-full z-30 pt-2 max-md:left-3 max-md:right-3 transition-[opacity,transform] duration-200 ease-out ${ouvert ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}>
+        <div className="w-[340px] max-md:w-auto rounded-lg border border-trait p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)]" style={{ background: "rgb(var(--k-surface-pleine-rgb))" }}>
           <p className="m-0 mb-2 text-[11px] font-medium uppercase tracking-[.14em] text-ardoise">Attendu</p>
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
             {attendus.map((a) => (
@@ -414,7 +414,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
 
   return (
     <div className="overflow-hidden rounded-[16px] border border-trait bg-surface">
-      <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:relative max-md:px-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-2">
             <h2 className="m-0 text-[18px] font-semibold text-encre">{titre}</h2>
@@ -423,7 +423,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
           {sousTitre && <span className="text-[12.5px] text-ardoise">{sousTitre}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <span className="flex items-center gap-3 text-[12.5px] text-craie">
+          <span className="flex flex-wrap items-center gap-3 text-[12.5px] text-craie">
             <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
             {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} no go</span>}
@@ -993,7 +993,7 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null }) {
         <CarteGoogle adresse={adresse} lat={centre.lat} lon={centre.lon} zoom={repere ? 17 : undefined} />
       )}
       {vue === "street" && (
-        <div className="relative h-[420px] rounded-md overflow-hidden border border-trait">
+        <div className="relative h-[420px] max-md:h-[300px] rounded-md overflow-hidden border border-trait">
           <StreetViewRue project={lieu} />
         </div>
       )}
@@ -1028,7 +1028,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
           onKeyDown={(e) => { if (e.key === "Enter") valider(); if (e.key === "Escape") setEdition(null); }}
           placeholder="400 000"
           inputMode="numeric"
-          className={`w-[150px] bg-transparent border-b border-bord-vif focus:border-encre outline-none tabular-nums font-light text-encre placeholder:text-bord-vif ${compact ? "text-[13.5px] py-0.5" : "text-[24px] py-1"}`}
+          className={`w-[150px] bg-transparent border-b border-bord-vif focus:border-encre outline-none tabular-nums font-light text-encre placeholder:text-bord-vif ${compact ? "text-[13.5px] py-0.5 max-md:text-[16px]" : "text-[24px] py-1"}`}
         />
         <button onClick={valider} disabled={!valide || enCours} className="hover:bg-menthe-survol inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe text-sur-menthe font-semibold rounded-full disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
         <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
@@ -1044,7 +1044,7 @@ export function PrixFai({ lot, onSaisie, enCours, apercu = false, compact = fals
       className={`group inline-flex items-baseline gap-2 text-left tabular-nums font-light ${compact ? "text-[13.5px]" : "text-[24px]"} ${valeur == null ? "text-ambre" : "text-encre"} disabled:cursor-default`}
     >
       {valeur == null ? "à renseigner" : euros(valeur)}
-      {modifiable && <Pencil className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-brume opacity-0 group-hover:opacity-100 transition-opacity`} />}
+      {modifiable && <Pencil className={`${compact ? "w-3 h-3" : "w-3.5 h-3.5"} text-brume opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity`} />}
     </button>
   );
 }
@@ -1097,7 +1097,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sans
           onChange={(e) => setEdition(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") valider(edition.trim()); if (e.key === "Escape") setEdition(null); }}
           placeholder={champ === "adresse" ? "12 rue Exemple, 69002 Lyon" : ""}
-          className="min-w-[220px] bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[13.5px] font-light tabular-nums text-encre py-0.5 placeholder:text-bord-vif"
+          className="min-w-[220px] max-md:min-w-0 max-md:w-full bg-transparent border-b border-bord-vif focus:border-encre outline-none text-[13.5px] max-md:text-[16px] font-light tabular-nums text-encre py-0.5 placeholder:text-bord-vif"
         />
         <button onClick={() => valider(edition.trim())} disabled={enCours} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md disabled:opacity-40"><Check className="w-3 h-3" /> OK</button>
         <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
@@ -1115,7 +1115,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sans
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
       {!sansNote && !absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
       {!sansNote && !absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
-      {modifiable && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 transition-opacity flex-none" />}
+      {modifiable && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity flex-none" />}
     </button>
   );
 }
@@ -1199,14 +1199,14 @@ function CorrectionFiche({ ouverte, lot, onSaisie, enCours, onFermer }) {
                       onChange={(e) => setBrouillon((b) => ({ ...b, [champ]: e.target.value }))}
                       onKeyDown={(e) => { if (e.key === "Enter") relancer(); }}
                       placeholder={champ === "adresse" ? `non renseignée, par exemple ${exemple}` : "non renseigné"}
-                      className={`rounded-md border bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 ${modifie ? "border-menthe/40" : "border-trait"}`}
+                      className={`rounded-md border bg-fond px-3 py-2 text-[13.5px] max-md:text-[16px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 ${modifie ? "border-menthe/40" : "border-trait"}`}
                     />
                   )}
                 </label>
               );
             })}
           </div>
-          <div className="mt-5 flex items-center justify-end gap-3">
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
             {nb > 0 && <button type="button" tabIndex={ouverte ? 0 : -1} onClick={() => setBrouillon(depart)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler les modifications</button>}
             <button type="button" tabIndex={ouverte ? 0 : -1} onClick={relancer} disabled={!nb || enCours} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[12.5px] font-semibold text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
               {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
@@ -1270,7 +1270,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               onNoter={apercu || !dossier?.deal_id ? null : (ligne, texte) => noter.mutate({ ligne, texte })}
               enNote={noter.isPending ? noter.variables?.ligne : null}
               actions={(
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   {!apercu && onSaisie && (
                     <button type="button" onClick={() => setCorrection((v) => !v)} aria-expanded={correction} className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] transition-colors ${correction ? "border-menthe/50 text-encre" : "border-bord-doux text-craie hover:text-encre hover:border-bord-vif"}`} style={{ background: "transparent" }}>
                       <Pencil className="w-3.5 h-3.5" /> Corriger la fiche
@@ -1329,7 +1329,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 
           {/* Le détail */}
           <div className="mt-8 border-t border-trait">
-            <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between text-ardoise hover:text-encre text-xs transition-colors">
+            <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between gap-3 text-left text-ardoise hover:text-encre text-xs transition-colors">
               <span>Détail — données extraites avec citations, enrichissement{lot.contexte_marche ? ", marché local" : ""}</span>
               {detailOuvert ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
@@ -1361,15 +1361,15 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                   const c = lot.lot[champ];
                   const absent = !c || c.absent;
                   return (
-                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-relief">
-                      <span className="text-ardoise text-xs w-40 flex-shrink-0">{libelle}</span>
+                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-relief max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-1">
+                      <span className="text-ardoise text-xs w-40 max-md:w-28 flex-shrink-0">{libelle}</span>
                       <span className={`text-xs flex-1 ${absent ? "text-brume italic" : "text-encre"}`}>
                         {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
                       </span>
                       {!absent && c.citation && (
                         <span
                           title={c.citation}
-                          className="text-brume text-[11px] flex items-center gap-1 max-w-[45%] truncate cursor-help"
+                          className="text-brume text-[11px] flex items-center gap-1 max-w-[45%] max-md:max-w-full truncate cursor-help"
                         >
                           <Quote className="w-3 h-3 flex-shrink-0" />
                           {c.citation}

@@ -398,7 +398,7 @@ export function Visionneuse({ source, onFermer }) {
         >
           Ouvrir
         </a>
-        <button onClick={onFermer} className="text-ardoise hover:text-encre flex-shrink-0">
+        <button onClick={onFermer} className="text-ardoise hover:text-encre flex-shrink-0 max-md:-m-2 max-md:p-2" aria-label="Fermer" title="Fermer">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -414,12 +414,19 @@ export function Visionneuse({ source, onFermer }) {
 
       {estPdf ? (
         // #page=N est interprété nativement par la visionneuse PDF du navigateur.
-        <iframe
-          key={`${source.url}#${source.page}`}
-          src={`${source.url}#page=${source.page}&view=FitH`}
-          title={`${source.fichier} page ${source.page}`}
-          className="w-full h-[70vh] bg-fond"
-        />
+        <>
+          <iframe
+            key={`${source.url}#${source.page}`}
+            src={`${source.url}#page=${source.page}&view=FitH`}
+            title={`${source.fichier} page ${source.page}`}
+            className="w-full h-[70vh] bg-fond max-md:hidden"
+          />
+          {/* Au téléphone, le PDF s'ouvre dans la visionneuse du système. */}
+          <div className="hidden max-md:flex flex-col items-center gap-3 px-6 py-8 text-center">
+            <p className="m-0 text-[12.5px] text-ardoise">Le document s'ouvre dans la visionneuse du téléphone, page {source.page}.</p>
+            <a href={`${source.url}#page=${source.page}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Ouvrir le document</a>
+          </div>
+        </>
       ) : (
         <img src={source.url} alt={source.fichier} className="w-full max-h-[70vh] object-contain bg-fond" />
       )}

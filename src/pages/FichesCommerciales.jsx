@@ -52,7 +52,8 @@ function Semaines({ semaines, record }) {
         ))}
       </div>
       <div className="absolute inset-x-0 bottom-0 flex gap-1.5">
-        {semaines.map((s, k) => <span key={s.semaine} className={`flex-1 text-center text-[10.5px] ${k === semaines.length - 1 ? "text-encre" : "text-brume"}`}>{semaineCourte(s.semaine)}</span>)}
+        {/* Au téléphone, au-delà de six semaines, une date sur deux : elles se chevaucheraient. */}
+        {semaines.map((s, k) => <span key={s.semaine} className={`min-w-0 flex-1 truncate text-center text-[10.5px] ${k === semaines.length - 1 ? "text-encre" : "text-brume"} ${semaines.length > 6 && (semaines.length - 1 - k) % 2 ? "max-md:invisible" : ""}`}>{semaineCourte(s.semaine)}</span>)}
       </div>
     </div>
   );
@@ -66,8 +67,8 @@ function Agent({ fiche, onCorriger }) {
     return (
       <span className="flex items-center gap-1.5">
         <input autoFocus value={edition} onChange={(e) => setEdition(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") valider(); if (e.key === "Escape") setEdition(null); }}
-          placeholder="Laurent Sebban, laurent@pointdevente.fr" className="w-[230px] rounded-md border border-menthe/40 bg-fond px-2 py-1 text-[12.5px] text-encre outline-none placeholder:text-bord-vif" />
-        <button type="button" onClick={valider} aria-label="Enregistrer l'agent" className="grid h-6 w-6 place-items-center rounded-full bg-menthe text-sur-menthe"><Check className="h-3 w-3" /></button>
+          placeholder="Laurent Sebban, laurent@pointdevente.fr" className="w-[230px] rounded-md border border-menthe/40 bg-fond px-2 py-1 text-[12.5px] text-encre outline-none placeholder:text-bord-vif max-md:text-[16px]" />
+        <button type="button" onClick={valider} aria-label="Enregistrer l'agent" className="grid h-6 w-6 flex-none place-items-center max-md:h-9 max-md:w-9 rounded-full bg-menthe text-sur-menthe"><Check className="h-3 w-3" /></button>
       </span>
     );
   }
@@ -75,7 +76,7 @@ function Agent({ fiche, onCorriger }) {
     <button type="button" onClick={() => setEdition(fiche.agent_email && fiche.agent !== fiche.agent_email ? `${fiche.agent}, ${fiche.agent_email}` : fiche.agent || "")}
       className="group inline-flex items-center gap-1.5 text-left" style={{ background: "transparent" }} title="Corriger l'agent">
       <span className={fiche.agent ? "text-craie" : "text-ambre"}>{fiche.agent || "à renseigner"}</span>
-      <Pencil className="h-3 w-3 text-brume opacity-0 transition-opacity group-hover:opacity-100" />
+      <Pencil className="h-3 w-3 text-brume opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />
     </button>
   );
 }
@@ -121,10 +122,10 @@ export default function FichesCommerciales() {
       </header>
 
       <section className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
-        <div className="rounded-[16px] border border-trait bg-surface p-6">
+        <div className="rounded-[16px] border border-trait bg-surface p-6 max-md:p-5">
           <p className="m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Cette semaine</p>
           <div className="mt-2 flex items-end gap-3">
-            <span className="text-[56px] font-light leading-none text-encre tabular-nums">{nf.format(courante.fiches)}</span>
+            <span className="text-[56px] font-light leading-none text-encre tabular-nums max-md:text-[44px]">{nf.format(courante.fiches)}</span>
             <span className="pb-2 text-[14px] text-craie">fiche{courante.fiches > 1 ? "s" : ""} reçue{courante.fiches > 1 ? "s" : ""}</span>
           </div>
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-encre/[0.08]">
@@ -138,7 +139,7 @@ export default function FichesCommerciales() {
           </p>
         </div>
 
-        <div className="rounded-[16px] border border-trait bg-surface p-6">
+        <div className="rounded-[16px] border border-trait bg-surface p-6 max-md:p-5">
           <p className="m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Depuis la remise à zéro</p>
           <ul className="m-0 mt-3 flex list-none flex-col gap-3 p-0">
             {ETAPES.map((e, k) => {
@@ -159,7 +160,7 @@ export default function FichesCommerciales() {
         </div>
       </section>
 
-      <section className="mt-4 rounded-[16px] border border-trait bg-surface p-6">
+      <section className="mt-4 rounded-[16px] border border-trait bg-surface p-6 max-md:p-4">
         <p className="m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Fiches reçues par semaine</p>
         <Semaines semaines={semaines} record={record} />
       </section>
@@ -169,7 +170,7 @@ export default function FichesCommerciales() {
           <h2 className="m-0 text-[18px] font-semibold text-encre">Les fiches <span className="text-[13px] font-normal text-brume">{data?.total || 0}</span></h2>
           <div className="flex flex-wrap gap-1.5">
             {[["tout", "Toutes"], ["a_preanalyser", "À préanalyser"], ["recue", "En attente de décision"], ["oui", "Oui"], ["non", "Non"]].map(([v, mot]) => (
-              <button key={v} type="button" onClick={() => setFiltre(v)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${filtre === v ? "border-menthe bg-menthe text-sur-menthe font-semibold" : "border-bord-doux text-craie hover:text-encre"}`}>{mot}</button>
+              <button key={v} type="button" onClick={() => setFiltre(v)} className={`rounded-full border px-3 py-1 text-[12px] transition-colors max-md:py-1.5 ${filtre === v ? "border-menthe bg-menthe text-sur-menthe font-semibold" : "border-bord-doux text-craie hover:text-encre"}`}>{mot}</button>
             ))}
           </div>
         </div>

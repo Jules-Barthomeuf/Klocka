@@ -10,7 +10,7 @@ import { useDictee, versWav } from "@/lib/dictee";
 // fiche à jour : statut, rappel, rendez-vous. Rien à ressaisir après l'appel.
 
 const duree = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-const champ = "w-full rounded-lg border border-bord-doux bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60";
+const champ = "w-full rounded-lg border border-bord-doux bg-fond px-3 py-2 text-[13.5px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 max-md:text-[16px]";
 
 export default function PanneauAppelFiche({ p, onFermer, onFait }) {
   const [etat, setEtat] = useState("pret"); // pret | enregistre | analyse | fait
@@ -73,8 +73,8 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
   const raconter = () => { const f = new FormData(); f.append("recit", recit.trim()); envoyer(f); };
 
   return (
-    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm" onClick={onFermer}>
-      <div className="animate-in slide-in-from-bottom-4 w-full max-w-[560px] rounded-[18px] border border-trait bg-surface-pleine p-5 shadow-[0_24px_60px_rgb(0_0_0/0.2)] duration-300 md:p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] flex items-center justify-center bg-fond/60 px-4 backdrop-blur-sm max-md:px-3" onClick={onFermer}>
+      <div className="animate-in slide-in-from-bottom-4 max-h-[calc(100dvh-24px)] w-full max-w-[560px] overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-5 shadow-[0_24px_60px_rgb(0_0_0/0.2)] duration-300 md:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="m-0 text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Votre appel</p>
@@ -94,8 +94,8 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
                   <PhoneCall className="h-4 w-4" />{tel}
                 </a>
                 {viaCommerce
-                  ? <span className="ml-2.5 text-[12px] text-ambre">Numéro du commerce : demandez qui possède les murs et comment le joindre.</span>
-                  : p.telephone_source && <span className="ml-2.5 text-[12px] text-brume">{p.telephone_source}</span>}
+                  ? <span className="ml-2.5 text-[12px] text-ambre max-md:mt-2 max-md:block max-md:ml-0">Numéro du commerce : demandez qui possède les murs et comment le joindre.</span>
+                  : p.telephone_source && <span className="ml-2.5 text-[12px] text-brume max-md:mt-2 max-md:block max-md:ml-0">{p.telephone_source}</span>}
               </div>
             )}
 
@@ -115,7 +115,7 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
                       {dicteeOk && <button type="button" onClick={() => (ecoute ? stopDictee() : dicter())} aria-label="Dicter"
                         className={`grid h-10 w-10 flex-none place-items-center rounded-full border ${ecoute ? "border-menthe bg-menthe/15 text-menthe" : "border-bord-doux text-craie"}`} style={ecoute ? undefined : { background: "transparent" }}><Mic className="h-4 w-4" /></button>}
                     </div>
-                    <button type="button" onClick={raconter} disabled={!recit.trim()} className="mt-2 rounded-full border border-menthe/60 px-4 py-1.5 text-[12.5px] text-encre disabled:opacity-40" style={{ background: "transparent" }}>Lire mon récit</button>
+                    <button type="button" onClick={raconter} disabled={!recit.trim()} className="mt-2 rounded-full border border-menthe/60 px-4 py-1.5 text-[12.5px] max-md:py-2 text-encre disabled:opacity-40" style={{ background: "transparent" }}>Lire mon récit</button>
                   </div>
                 </>
               )}

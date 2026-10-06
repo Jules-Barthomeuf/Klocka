@@ -67,7 +67,7 @@ function Criteres({ groupes, choix, onChoix }) {
                   <button
                     key={op.valeur} type="button" disabled={op.indisponible} title={op.indisponible ? op.pourquoi : op.aide || ""}
                     onClick={() => onChoix(g.cle, actif ? actifs.filter((v) => v !== op.valeur) : [...actifs, op.valeur])}
-                    className={`rounded-full border px-3 py-1 text-[12px] transition-colors ${
+                    className={`rounded-full border px-3 py-1 text-[12px] transition-colors max-md:py-1.5 ${
                       op.indisponible ? "cursor-not-allowed border-trait text-brume/50 line-through" : actif ? "border-menthe bg-menthe/[0.14] text-menthe-texte" : "border-bord text-ardoise hover:border-bord-doux hover:text-encre"
                     }`}
                   >
@@ -127,10 +127,10 @@ function FicheCommerce({ commerce: c, point, onFermer }) {
   return (
     <div className="animate-in fade-in duration-200 fixed inset-0 z-[600] flex flex-col">
       <FondHalo />
-      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-1 flex-col overflow-hidden px-4 pt-6">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-1 flex-col overflow-hidden px-4 pt-6 max-md:overflow-y-auto max-md:pt-[calc(16px+env(safe-area-inset-top))]">
         <div className="mb-4 flex flex-shrink-0 items-start justify-between gap-4">
           <div className="min-w-0">
-            <button onClick={onFermer} className="mb-2 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Retour aux résultats</button>
+            <button onClick={onFermer} className="mb-2 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre max-md:h-9"><ChevronLeft className="h-4 w-4" />Retour aux résultats</button>
             <p className="alx-mont m-0 flex items-center gap-2 text-[10.5px] uppercase tracking-[.16em] text-menthe-texte">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full" style={{ background: couleur }}><Icone className="h-3 w-3 text-fond" /></span>
               {c.metier || c.genre}{c.categorie ? ` · ${c.categorie}` : ""}
@@ -138,12 +138,12 @@ function FicheCommerce({ commerce: c, point, onFermer }) {
             <h1 className="m-0 mt-1 truncate text-[24px] font-light text-encre">{c.nom || "Commerce sans nom"}</h1>
             <p className="m-0 mt-1 text-[12px] text-ardoise">{c.adresse ? `${c.adresse}, ` : ""}{point?.label?.split(" ").slice(-2).join(" ")}{c.distance_m != null ? ` · à ${c.distance_m} m de l'adresse` : ""}</p>
           </div>
-          <button onClick={onFermer} title="Fermer" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre"><X className="h-4 w-4" /></button>
+          <button onClick={onFermer} title="Fermer" aria-label="Fermer" className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-bord text-ardoise hover:text-encre max-md:h-10 max-md:w-10"><X className="h-4 w-4" /></button>
         </div>
 
         {/* La colonne de gauche défile seule ; la droite reste en place. */}
-        <div className="grid min-h-0 flex-1 gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_460px]">
-          <div className={`${CARTE} min-h-0 overflow-y-auto p-4`}>
+        <div className="grid min-h-0 flex-1 gap-4 pb-6 lg:grid-cols-[minmax(0,1fr)_460px] max-md:flex-none max-md:pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className={`${CARTE} min-h-0 overflow-y-auto p-4 max-md:overflow-visible`}>
             <p className="alx-mont m-0 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Le commerce</p>
             <Ligne label="Enseigne">{c.enseigne || c.nom || "—"}</Ligne>
             <Ligne label="Activité relevée">{c.metier || c.genre || "—"}</Ligne>
@@ -206,7 +206,7 @@ function FicheCommerce({ commerce: c, point, onFermer }) {
             <div className={`${CARTE} overflow-hidden`}>
               <p className="alx-mont m-0 border-b border-trait px-4 py-2.5 text-[10.5px] uppercase tracking-[.14em] text-brume">Vue de la rue</p>
               {CLE_MAPS ? (
-                <iframe title="Vue de la rue" className="block h-[260px] w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen
+                <iframe title="Vue de la rue" className="block h-[260px] w-full border-0 max-md:h-[220px]" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen
                   src={`https://www.google.com/maps/embed/v1/streetview?key=${CLE_MAPS}&location=${c.lat},${c.lon}&heading=0&pitch=0&fov=90`} />
               ) : <p className="m-0 px-4 py-6 text-[12.5px] text-ardoise">Clé Google Maps absente.</p>}
             </div>
@@ -231,19 +231,19 @@ function Resultats({ prospection: p, onRetour, onSupprimer }) {
   const survoler = useCallback((c) => setActif(c.id), []);
 
   return (
-    <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden">
+    <div className="flex h-[calc(100dvh-56px)] flex-col overflow-hidden max-md:h-auto max-md:overflow-visible">
       <div className="mx-auto flex w-full max-w-[1400px] flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-5">
         <div className="min-w-0">
           <button onClick={onRetour} className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise hover:text-encre"><ChevronLeft className="h-4 w-4" />Toutes les prospections</button>
           <h1 className="m-0 mt-1 truncate text-[22px] font-light text-encre">{p.libelle || p.adresse}</h1>
           <p className="m-0 text-[12px] text-ardoise">{p.activite} · {p.rayon_m} m · {liste.length} commerce{liste.length > 1 ? "s" : ""} retenu{liste.length > 1 ? "s" : ""} sur {p.nb_commerces}</p>
         </div>
-        <button onClick={onSupprimer} className="inline-flex items-center gap-1.5 text-[12px] text-brume hover:text-alerte"><Trash2 className="h-3.5 w-3.5" />Supprimer</button>
+        <button onClick={onSupprimer} className="inline-flex items-center gap-1.5 text-[12px] text-brume hover:text-alerte max-md:h-9"><Trash2 className="h-3.5 w-3.5" />Supprimer</button>
       </div>
 
       {/* La liste défile seule ; la carte reste en place. */}
       <div className="mx-auto grid w-full max-w-[1400px] min-h-0 flex-1 gap-4 px-4 pb-4 lg:grid-cols-[440px_minmax(0,1fr)]">
-        <div className={`${CARTE} min-h-0 overflow-y-auto p-2`}>
+        <div className={`${CARTE} min-h-0 overflow-y-auto p-2 max-md:max-h-[60dvh]`}>
           {!liste.length && <p className="m-0 p-4 text-[13px] text-ardoise">Aucun commerce ne répond à ces critères dans la zone.</p>}
           {liste.map((c) => {
             const { icone: Icone, couleur } = familleDe(c.categorie);
@@ -356,16 +356,16 @@ export default function KProspective() {
 
   const nbCriteres = Object.values(criteres).reduce((n, v) => n + (v?.length || 0), 0);
   return (
-    <div className="mx-auto max-w-[1100px] px-4 pb-20 pt-10">
+    <div className="mx-auto max-w-[1100px] px-4 pb-20 pt-10 max-md:pt-6">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Prospective</p>
-      <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre">Prospecter une zone</h1>
+      <h1 className="mt-2 mb-6 text-[30px] font-light tracking-[-0.01em] text-encre max-md:text-[24px]">Prospecter une zone</h1>
 
-      <div className={`${CARTE} p-5`}>
+      <div className={`${CARTE} p-5 max-md:p-4`}>
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_150px]">
           <div>
             <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Type de commerce</label>
             <input list="metiers-prospective" value={activite} onChange={(ev) => setActivite(ev.target.value)} placeholder="Boulangerie, restaurant… ou vide pour tous"
-              className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+              className="h-11 w-full rounded-[10px] border border-bord bg-surface px-3 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
             <datalist id="metiers-prospective">{metiers.map((m) => <option key={m} value={m} />)}</datalist>
           </div>
           <div>
@@ -374,11 +374,11 @@ export default function KProspective() {
               <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
                 <Search className="h-4 w-4 flex-shrink-0 text-brume" />
                 <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="49 rue Dabray, 06000 Nice"
-                  className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume" />
+                  className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
               {suggestions.length > 0 && (
                 <ul className="absolute left-0 right-0 top-[48px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
-                  {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre">{s}</button></li>)}
+                  {suggestions.map((s) => <li key={s}><button onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }} className="block w-full px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre max-md:py-3">{s}</button></li>)}
                 </ul>
               )}
             </div>

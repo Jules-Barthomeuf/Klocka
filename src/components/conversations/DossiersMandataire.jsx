@@ -52,7 +52,7 @@ function ColonneDroite({ c, mode, onMode }) {
         <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Pièces ou conversation">
           {[["pieces", `Pièces · ${recues}/${c.checklist.lignes.length}`], ["conversation", "Conversation"]].map(([cle, mot]) => (
             <button key={cle} type="button" role="tab" aria-selected={mode === cle} onClick={() => onMode(cle)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-[7px] text-[13.5px] ${mode === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-[7px] text-[13.5px] max-md:px-3 max-md:py-2 ${mode === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
               style={mode === cle ? undefined : { background: "transparent" }}>
               {mot}{cle === "conversation" && mode !== cle && c.transfere && <PointNouveau n={c.non_lus} />}
             </button>
@@ -60,11 +60,11 @@ function ColonneDroite({ c, mode, onMode }) {
         </div>
       </div>
       {mode === "conversation" ? (
-        <div className="flex h-[calc(100dvh-300px)] min-h-[480px] overflow-hidden rounded-[16px] border border-trait">
+        <div className="flex h-[calc(100dvh-300px)] min-h-[480px] overflow-hidden rounded-[16px] border border-trait max-md:h-[72dvh] max-md:min-h-[420px]">
           <Conversation key={c.id} c={c} cote="mandataire" bord={false} />
         </div>
       ) : (
-        <div className="k-grid rounded-[16px] border border-trait px-6 py-5">
+        <div className="k-grid rounded-[16px] border border-trait px-6 py-5 max-md:px-4">
           <Pieces c={c} gestes={modifiable ? gestes : null} />
           {modifiable && <p className="m-0 mt-3 text-[12.5px] text-brume">Vous pouvez aussi glisser un fichier dans la conversation : il se range ici.</p>}
         </div>
@@ -106,7 +106,7 @@ export default function DossiersMandataire() {
     return (
       <div className="mx-auto w-full max-w-[1500px] px-5 py-6 md:px-8 md:py-7">
         <header className="grid items-center gap-4 md:grid-cols-[1fr_auto_1fr] md:gap-6">
-          <label className="flex h-11 w-full max-w-[340px] items-center gap-2.5 rounded-full border border-trait px-[18px] text-ardoise max-md:order-2">
+          <label className="flex h-11 w-full max-w-[340px] items-center max-md:max-w-none gap-2.5 rounded-full border border-trait px-[18px] text-ardoise max-md:order-2">
             <Search className="h-4 w-4 flex-none" />
             <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier…" aria-label="Rechercher un dossier"
               className="min-w-0 flex-1 border-0 bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
@@ -138,7 +138,7 @@ export default function DossiersMandataire() {
   return (
     <div className="flex w-full flex-col gap-[22px] px-5 py-6 md:px-8 md:py-7 lg:h-[100dvh]">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 text-[30px] font-medium tracking-[-0.01em] text-encre">Dossiers</h1>
+        <h1 className="m-0 text-[30px] font-medium tracking-[-0.01em] text-encre max-md:text-[26px]">Dossiers</h1>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -231,11 +231,11 @@ function CarteDossier({ c, nonLus, onOuvrir }) {
       </div>
       <div ref={zone} className="contents" onClick={(e) => e.stopPropagation()}>
         <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
-          className="absolute right-4 top-[84px] text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}>
+          className="absolute right-4 top-[84px] text-ardoise transition-colors hover:text-encre max-md:-m-3 max-md:p-3" style={{ background: "transparent" }}>
           <MoreHorizontal className="h-4 w-4" />
         </button>
         {menu && (
-          <div className="absolute right-4 top-[106px] z-20 min-w-[210px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+          <div className="absolute right-4 top-[106px] z-20 min-w-[210px] max-w-[calc(100vw-24px)] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
             <button type="button" onClick={() => { setMenu(false); onOuvrir(); }} className={geste} style={{ background: "transparent" }}><FolderOpen className="h-3.5 w-3.5" /> Ouvrir le dossier</button>
             {!c.transfere && (c.checklist.envoyable ? (
               <button type="button" onClick={() => { setMenu(false); setChoix(true); }} className={geste} style={{ background: "transparent" }}><Send className="h-3.5 w-3.5" /> Envoyer à un analyste</button>

@@ -82,9 +82,10 @@ function Bloc({ titre, compte = null, vide = null, lignes, agir, discret = false
       {visibles.map((l) => {
         const enEdition = edition?.id === l.id ? edition : null;
         return (
-          <div key={l.id} className="group flex items-center gap-3 border-t border-trait py-3 first:border-t-0">
+          <div key={l.id} className="group flex items-center gap-3 border-t border-trait py-3 first:border-t-0 max-md:flex-wrap max-md:gap-y-1">
             <span className={`h-[7px] w-[7px] flex-none rounded-full ${l.dans < 0 ? "bg-alerte" : l.genre === "rdv" ? "bg-ambre" : "bg-menthe"}`} />
-            <div className="min-w-0 flex-1">
+            {/* Au téléphone, le titre prend la ligne ; les gestes passent dessous, à droite. */}
+            <div className="min-w-0 flex-1 max-md:basis-[calc(100%-19px)]">
               {enEdition?.mode === "titre" ? (
                 <form onSubmit={(e) => { e.preventDefault(); valider(); }}>
                   <input autoFocus value={enEdition.valeur} maxLength={120} onChange={(e) => setEdition({ ...enEdition, valeur: e.target.value })}
@@ -99,11 +100,11 @@ function Bloc({ titre, compte = null, vide = null, lignes, agir, discret = false
               </p>
             </div>
             {enEdition?.mode === "date" ? (
-              <div className="flex flex-none items-center gap-1.5">
+              <div className="flex flex-none items-center gap-1.5 max-md:ml-auto">
                 <input autoFocus type="date" value={enEdition.valeur} min={jourLocal()} aria-label="Reporter au"
                   onChange={(e) => setEdition({ ...enEdition, valeur: e.target.value })}
                   onKeyDown={(e) => { if (e.key === "Escape") fermer(); if (e.key === "Enter") valider(); }}
-                  className="rounded-champ border border-menthe bg-surface px-2.5 py-1.5 text-[13.5px] text-encre outline-none" />
+                  className="rounded-champ border border-menthe bg-surface px-2.5 py-1.5 text-[13.5px] text-encre outline-none max-md:text-[16px]" />
                 <button type="button" onClick={valider} disabled={!enEdition.valeur} aria-label="Reporter" title="Reporter"
                   className="grid h-9 w-9 place-items-center rounded-full bg-menthe text-fond disabled:opacity-40"><Check className="h-4 w-4" /></button>
                 <button type="button" onClick={fermer} aria-label="Annuler" title="Annuler"
@@ -112,7 +113,7 @@ function Bloc({ titre, compte = null, vide = null, lignes, agir, discret = false
             ) : (
               // À la souris, les gestes attendent le survol ; au doigt (pas de
               // survol), ils restent visibles. Le clavier les retrouve au focus.
-              <div className="flex flex-none items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
+              <div className="flex flex-none items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-md:-my-1 max-md:ml-auto max-md:opacity-100">
                 {l.telephone && (
                   <a href={`tel:${String(l.telephone).replace(/[^\d+]/g, "")}`} aria-label={`Appeler ${telLisible(l.telephone)}`} title={`Appeler ${telLisible(l.telephone)}`} className="grid h-10 w-10 place-items-center rounded-full text-menthe hover:bg-encre/[0.05]">
                     <Phone className="h-4 w-4" />

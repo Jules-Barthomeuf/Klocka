@@ -70,8 +70,47 @@ const decoder = (t) => String(t || '').replace(/&#0?39;/g, "'").replace(/&amp;/g
 // Les sélecteurs du site : villes, rues.
 // ---------------------------------------------------------------------------
 
-/** Les villes que Data-B connaît sous ce nom, avec la valeur exacte de son sélecteur. */
+/**
+ * Les villes que Data-B connaît sous ce nom, avec la valeur exacte de son
+ * sélecteur. Data-B ne cherche que le début exact du nom : « Anibes » ne rend
+ * rien. Dans ce cas, la Base Adresse Nationale, limitée aux communes (elle
+ * tolère la faute), propose le bon nom, et Data-B est réinterrogé avec lui.
+ * Jamais une rue : « Anibes » ne doit pas devenir « rue d'Antibes ».
+ */
 export async function chercherVilles(recherche) {
+  const villes = await villesDataB(recherche);
+  if (villes.length) return villes;
+  const vues = new Set();
+  for (const nom of (await communesProches(recherche)).slice(0, 2)) {
+    for (const v of await villesDataB(nom)) {
+      if (vues.has(v.valeur)) continue;
+      vues.add(v.valeur);
+      // Le nom corrigé d'abord, ses homonymes plus loin.
+      const exact = normMetier(v.nom) === normMetier(nom);
+      villes.splice(exact ? villes.filter((x) => x.exact).length : villes.length, 0, { ...v, corrige_de: String(recherche || '').trim(), exact });
+    }
+  }
+  return villes.map(({ exact, ...v }) => v);
+}
+
+/** Les noms de communes proches de ce qui a été tapé, selon la BAN. Vide si elle ne répond pas. */
+export async function communesProches(recherche) {
+  const q = String(recherche || '').trim();
+  if (q.length < 3) return [];
+  try {
+    const r = await fetch(`https://api-adresse.data.gouv.fr/search/?type=municipality&limit=5&q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return [];
+    const noms = ((await r.json()).features || [])
+      .filter((f) => (f.properties?.score ?? 0) >= 0.4)
+      .map((f) => f.properties?.city || f.properties?.name)
+      .filter(Boolean);
+    return [...new Set(noms)];
+  } catch {
+    return [];
+  }
+}
+
+async function villesDataB(recherche) {
   const html = await postDataB('https://prospective.data-b.com/frontend/load/inc/ter_situation_ville.php', { search: String(recherche || '').trim(), dep: '' });
   const villes = [];
   for (const m of String(html).matchAll(/<input[^>]*lat="([^"]+)"[^>]*lng="([^"]+)"[^>]*name="ville"[^>]*value="([^"]+)"[^>]*lib="([^"]+)"/g)) {

@@ -54,7 +54,7 @@ export default function Installer() {
 
   return (
     <div className="min-h-screen bg-fond text-encre flex flex-col">
-      <nav className="px-8 md:px-16 py-6 flex items-center justify-between">
+      <nav className="px-5 md:px-16 py-6 flex items-center justify-between">
         <span className="inline-flex items-center gap-3">
           <img src="/icones/icone-192.png" alt="" className="w-8 h-8 rounded-[8px]" />
           <span className="text-[12.5px] tracking-[.22em] uppercase">Klocka</span>
@@ -62,7 +62,7 @@ export default function Installer() {
         <a href="/" className="text-[12.5px] text-ardoise hover:text-encre">Se connecter</a>
       </nav>
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-20">
+      <div className="flex-1 flex items-center justify-center px-5 md:px-6 pb-20">
         <div className="w-full max-w-md text-center">
           <img src="/icones/icone-512.png" alt="Klocka" className="w-24 h-24 rounded-[22px] mx-auto mb-8 shadow-[0_20px_60px_rgba(150,192,184,.18)]" />
           <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ardoise">Application Klocka</p>

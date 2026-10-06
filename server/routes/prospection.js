@@ -92,6 +92,21 @@ export function monterProspection(app) {
     ok(res, r);
   }));
 
+  // Ma journée : la ville, qui appeler, l'avancement, « À envoyer », la fiabilité d'AK.
+  app.get('/api/prospection/ma-journee', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, await (await P()).maJournee({ ville: req.query.ville || null, pour: user.email }));
+  }));
+  // Corriger la carte de confirmation d'un appel (statut, date, prochaine action).
+  app.post('/api/prospection/appels/:id/corriger', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { corrigerAppel } = await import('../prospection/appel.js');
+    const r = await corrigerAppel({ appel_id: req.params.id, champ: req.body?.champ, valeur: req.body?.valeur, user });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
   app.post('/api/prospection/appels/:id/valider', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
@@ -340,6 +355,24 @@ export function monterProspection(app) {
     const l = (await IA()).liste(req.params.id);
     if (!l) return res.status(404).json({ error: 'Liste introuvable.' });
     ok(res, l);
+  }));
+  // Revérifier dans Monday qui est déjà en contact, sans relancer la recherche.
+  app.post('/api/prospection/agent-ia/listes/:id/monday', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const I = await IA();
+    const l = I.liste(req.params.id);
+    if (!l) return res.status(404).json({ error: 'Liste introuvable.' });
+    const { contactsMonday } = await import('../prospection/monday-connus.js');
+    await contactsMonday({ forcer: true });
+    const r = await I.verifierMonday({ id: req.params.id });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.delete('/api/prospection/agent-ia/listes/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await IA()).supprimerListe(req.params.id);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
   }));
   app.post('/api/prospection/agent-ia/lancer', wrap(async (req, res) => {
     const user = admin(req, res);

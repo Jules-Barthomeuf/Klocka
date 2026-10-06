@@ -41,7 +41,7 @@ function Pilules({ valeur, valeurs = null, options, onChoisir, rendre }) {
         type="button"
         onClick={() => onChoisir(v)}
         aria-pressed={actif}
-        className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${actif ? "border-menthe bg-menthe/10 text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`}
+        className={`rounded-full border px-3.5 py-1.5 max-md:py-2 text-[13px] transition-colors ${actif ? "border-menthe bg-menthe/10 text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`}
         style={{ background: actif ? undefined : "transparent" }}
       >
         {rendre ? rendre(v, mot) : mot}
@@ -263,7 +263,7 @@ export default function Personnalisation() {
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
   return (
-    <div className={`mx-auto w-full px-4 py-8 md:px-6 md:py-10 ${large ? "max-w-[1400px]" : "max-w-[980px]"}`}>
+    <div className={`mx-auto w-full px-5 py-8 md:px-6 md:py-10 ${large ? "max-w-[1400px]" : "max-w-[980px]"}`}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Compte</h1>

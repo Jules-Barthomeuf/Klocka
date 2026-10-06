@@ -50,7 +50,7 @@ export default function PiecesBrouillon({ b, onChange }) {
                   type="button"
                   onClick={() => onChange({ ...b, pieces: pieces.filter((x) => x.id !== p.id) })}
                   aria-label={`Retirer ${p.nom}`}
-                  className="flex h-4 w-4 items-center justify-center rounded-full text-brume hover:text-encre"
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-brume hover:text-encre max-md:h-7 max-md:w-7"
                   style={{ background: "transparent" }}
                 >
                   <X className="h-3 w-3" />

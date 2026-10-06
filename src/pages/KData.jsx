@@ -146,7 +146,7 @@ function Question({ q, valeur, onChange }) {
         value={valeur ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={q.exemple || ""}
-        className="h-9 w-full rounded-champ border border-bord bg-surface px-3 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+        className="h-9 w-full rounded-champ border border-bord bg-surface px-3 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:h-10 max-md:text-[16px]" />
       {q.aide && <p className="m-0 mt-1 text-[10.5px] text-brume">{q.aide}</p>}
     </div>
   );
@@ -230,7 +230,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-3 rounded-full py-3 pl-4 pr-3" style={{ background: J["barre"], border: `1px solid ${alpha("craie", 0.11)}` }}>
+      <div className="flex items-center gap-3 rounded-full py-3 pl-4 pr-3 max-md:gap-2 max-md:py-2 max-md:pl-2 max-md:pr-2" style={{ background: J["barre"], border: `1px solid ${alpha("craie", 0.11)}` }}>
         {/* Les outils : un menu à cocher, comme le mode du chat Klocka. */}
         <div className="relative flex-none">
           <button type="button" onClick={() => setMenu((o) => !o)} aria-expanded={menu} aria-haspopup="menu"
@@ -244,7 +244,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
           {menu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-              <div role="menu" className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-0 top-full z-20 mt-3 w-[360px] overflow-hidden rounded-bloc text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]" style={{ background: J["barre"] }}>
+              <div role="menu" className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-0 top-full z-20 mt-3 w-[360px] overflow-hidden rounded-bloc max-md:max-h-[70vh] max-md:w-[calc(100vw-40px)] max-md:overflow-y-auto text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]" style={{ background: J["barre"] }}>
                 <div className="flex items-center justify-between border-b border-bord px-4 pb-2.5 pt-3.5">
                   <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Les outils à lancer</span>
                   <button type="button" onClick={() => setOutils(tous ? new Set() : new Set(MODULES_KDATA.map((m) => m.cle)))} className="text-[11px] text-menthe-texte hover:text-encre">
@@ -284,7 +284,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
           }}
           placeholder={outils.size ? "L'adresse à analyser : 49 rue Dabray, 06000 Nice" : "Choisissez d'abord des outils, puis donnez l'adresse"}
           disabled={enCours}
-          className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[15px] text-encre outline-none placeholder:text-brume disabled:opacity-50" />
+          className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[15px] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]" />
 
         {/* Sans question à poser, la flèche lance d'ici. Dès qu'un outil en a,
             le lancement descend sous les champs : un seul bouton, au bout du
@@ -298,7 +298,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
         )}
       </div>
       {suggestions.length > 0 && (
-        <ul className="absolute left-[120px] right-16 top-[58px] z-20 m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+        <ul className="absolute left-[120px] right-16 top-[58px] z-20 max-md:left-0 max-md:right-0 max-md:top-[64px] m-0 list-none overflow-hidden rounded-[10px] border border-bord bg-surface-pleine p-0 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
           {suggestions.map((s) => (
             <li key={s}><button type="button" onClick={() => { choisie.current = s; setAdresse(s); setSuggestions([]); }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-craie hover:bg-relief hover:text-encre"><Search className="h-3.5 w-3.5 text-brume" />{s}</button></li>
@@ -363,7 +363,7 @@ function Ligne({ a, cochee, onCocher, onOuvrir }) {
         </span>
       </span>
       <span className="flex flex-shrink-0 items-center gap-2 text-[11px] text-brume">
-        {a.dossier_nom && <span className="inline-flex items-center gap-1 rounded-full border border-trait px-2 py-0.5 text-ardoise"><Folder className="h-3 w-3" />{a.dossier_nom}</span>}
+        {a.dossier_nom && <span className="inline-flex items-center gap-1 rounded-full border border-trait px-2 py-0.5 text-ardoise max-md:max-w-[96px]"><Folder className="h-3 w-3 flex-none" /><span className="truncate">{a.dossier_nom}</span></span>}
         {a.etat === "en_cours" ? <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" /> : a.etat === "echec" ? <XCircle className="h-3.5 w-3.5 text-alerte" /> : <Check className="h-3.5 w-3.5 text-vert" />}
         <span className="tabular-nums">{quand(a.cree_le)}</span>
         {ouvrable && <ArrowUpRight className="h-3.5 w-3.5 text-ardoise" />}
@@ -415,7 +415,7 @@ export default function KData() {
 
   return (
     <div className="min-h-screen text-encre">
-      <div className="mx-auto max-w-[1400px] px-6 pb-20 pt-8">
+      <div className="mx-auto max-w-[1400px] px-6 pb-20 pt-8 max-md:px-4 max-md:pt-4">
         {/* Deux moitiés égales : à gauche le composeur et la file, à droite
             les outils, en photo. */}
         <div className="grid grid-cols-1 gap-8 pt-2 lg:grid-cols-2 lg:items-start">
@@ -432,7 +432,7 @@ export default function KData() {
                 {coches.size > 0 ? (
                   <div className="flex flex-1 flex-wrap items-center gap-2">
                     <span className="text-[12.5px] text-encre">{coches.size} cochée{coches.size > 1 ? "s" : ""}</span>
-                    <select value={dossierChoisi} onChange={(e) => setDossierChoisi(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-encre outline-none">
+                    <select value={dossierChoisi} onChange={(e) => setDossierChoisi(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-encre outline-none max-md:h-9 max-md:min-w-0 max-md:max-w-full max-md:text-[16px]">
                       <option value="">Choisir un dossier…</option>
                       {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
                     </select>
@@ -440,16 +440,16 @@ export default function KData() {
                       className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-4 text-[11px] font-medium uppercase tracking-[.1em] text-sur-menthe disabled:opacity-50">
                       {ranger.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Folder className="h-3.5 w-3.5" />}Envoyer dans le dossier
                     </button>
-                    <button type="button" onClick={() => ranger.mutate({ ids: [...coches], dossier_id: null })} className="text-[11px] text-brume hover:text-encre">Sortir du dossier</button>
-                    <button type="button" onClick={() => { if (window.confirm(`Supprimer ${coches.size} analyse${coches.size > 1 ? "s" : ""} de la file ?`)) [...coches].forEach((id) => supprimer.mutate(id)); }} className="text-[11px] text-brume hover:text-alerte">Supprimer</button>
-                    <button type="button" onClick={() => setCoches(new Set())} className="ml-auto flex-shrink-0 text-brume hover:text-encre" aria-label="Tout décocher"><X className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => ranger.mutate({ ids: [...coches], dossier_id: null })} className="text-[11px] text-brume hover:text-encre max-md:py-2">Sortir du dossier</button>
+                    <button type="button" onClick={() => { if (window.confirm(`Supprimer ${coches.size} analyse${coches.size > 1 ? "s" : ""} de la file ?`)) [...coches].forEach((id) => supprimer.mutate(id)); }} className="text-[11px] text-brume hover:text-alerte max-md:py-2">Supprimer</button>
+                    <button type="button" onClick={() => setCoches(new Set())} className="ml-auto flex-shrink-0 text-brume hover:text-encre max-md:grid max-md:h-9 max-md:w-9 max-md:place-items-center" aria-label="Tout décocher"><X className="h-3.5 w-3.5" /></button>
                   </div>
                 ) : (
                   <>
                     <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">
                       Vos analyses{enCours.length ? ` · ${enCours.length} en cours` : ""} <span className="normal-case tracking-normal">· {visibles.length}</span>
                     </p>
-                    <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-ardoise outline-none">
+                    <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className="h-8 rounded-full border border-bord bg-surface px-3 text-[12px] text-ardoise outline-none max-md:h-9 max-md:max-w-full max-md:text-[16px]">
                       <option value="tous">Tous les dossiers</option>
                       <option value="sans">Sans dossier</option>
                       {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}

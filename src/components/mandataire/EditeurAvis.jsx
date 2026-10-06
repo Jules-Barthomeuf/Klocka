@@ -671,7 +671,7 @@ function Styles({ selection, avis, onStyle, onPosition, onFermer }) {
             <span className="w-[72px] flex-none text-[12px] text-ardoise">Taille</span>
             <button type="button" onClick={() => poserTaille((taille ?? 10) - 1)} aria-label="Plus petit" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Minus className="h-3.5 w-3.5" /></button>
             <input type="number" step="0.5" min="5" max="80" value={taille != null ? Math.round(taille * 2) / 2 : ""} onChange={(e) => poserTaille(Number(e.target.value))} aria-label="Taille en points"
-              className="h-7 w-14 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12.5px] tabular-nums text-encre outline-none focus:border-menthe" />
+              className="h-7 w-14 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12.5px] tabular-nums text-encre outline-none focus:border-menthe max-md:text-[16px]" />
             <span className="text-[11.5px] text-brume">pt</span>
             <button type="button" onClick={() => poserTaille((taille ?? 10) + 1)} aria-label="Plus grand" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Plus className="h-3.5 w-3.5" /></button>
           </div>
@@ -728,7 +728,7 @@ function Styles({ selection, avis, onStyle, onPosition, onFermer }) {
               <label key={k} className="flex items-center gap-1 text-[11.5px] text-brume">{fleche}
                 <input type="number" step="0.5" value={pos?.[k] ?? 0} aria-label={k === "x" ? "Décalage horizontal" : "Décalage vertical"}
                   onChange={(e) => onPosition(selection.clePos, { x: pos?.x || 0, y: pos?.y || 0, [k]: Number(e.target.value) || 0 })}
-                  className="h-7 w-16 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12px] tabular-nums text-encre outline-none focus:border-menthe" />
+                  className="h-7 w-16 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12px] tabular-nums text-encre outline-none focus:border-menthe max-md:text-[16px]" />
                 mm
               </label>
             ))}
@@ -1006,14 +1006,14 @@ function NomAvis({ estimation }) {
     return (
       <input autoFocus value={nom} maxLength={160} aria-label="Nom de l'avis" onChange={(e) => setNom(e.target.value)} onBlur={enregistrer}
         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { setNom(estimation.bien || ""); setEdition(false); } }}
-        className="w-full max-w-[460px] rounded-champ border border-menthe bg-surface px-3 py-1 text-center text-[14px] text-encre outline-none" />
+        className="w-full max-w-[460px] rounded-champ border border-menthe bg-surface px-3 py-1 text-center text-[14px] text-encre outline-none max-md:text-[16px]" />
     );
   }
   return (
     <button type="button" onClick={() => setEdition(true)} title="Renommer l'avis"
       className="group inline-flex min-w-0 items-center gap-1.5 truncate text-[14px] text-encre" style={{ background: "transparent" }}>
       <span className="truncate">{nom || "Avis de valeur"}</span>
-      {etat === "envoi" ? <Loader2 className="h-3 w-3 flex-none animate-spin text-brume" /> : <Pencil className="h-3 w-3 flex-none text-brume opacity-0 transition-opacity group-hover:opacity-100" />}
+      {etat === "envoi" ? <Loader2 className="h-3 w-3 flex-none animate-spin text-brume" /> : <Pencil className="h-3 w-3 flex-none text-brume opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />}
     </button>
   );
 }
@@ -1032,7 +1032,8 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
   // À côté du chat, c'est lui qui retouche : l'atelier se réduit au plan et aux versions.
   const [onglet, setOnglet] = useState(integre ? "plan" : "retouches");
   // À côté du chat de l'estimation, l'atelier reste fermé : le chat de gauche fait les questions.
-  const [panneau, setPanneau] = useState(!integre);
+  // Au téléphone, l'atelier couvrirait l'avis : il s'ouvre fermé, l'avis en plein écran.
+  const [panneau, setPanneau] = useState(() => !integre && (typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches));
   const [zoom, setZoom] = useState(1);
   const minuterie = useRef(null);
   const passe = useRef([]);
@@ -1191,6 +1192,13 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
     if (largeur) setZoom(Math.min(1, Math.max(0.35, (largeur - 48) / PAGE_PX)));
   };
   useEffect(() => { ajuster(); }, [panneau]);
+  // Au téléphone, la page suit la largeur (rotation de l'écran comprise).
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 767px)");
+    const surTaille = () => { if (m.matches) ajuster(); };
+    window.addEventListener("resize", surTaille);
+    return () => window.removeEventListener("resize", surTaille);
+  }, []);
 
   const titre = useMemo(() => `${avis?.bien?.rue || "Avis"}, ${avis?.bien?.ville || ""}`, [avis]);
   const positions = positionsVives || avis?.positions || {};

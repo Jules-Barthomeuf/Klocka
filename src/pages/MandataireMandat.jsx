@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { BoutonFichier, LienFichier, dateCourte, euros, formDe } from "@/components/mandataire/kit";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
+import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
 
 // Mandat — comme l'Estimation, tout passe par le chat : il pose les questions
 // du mandat de vente, le mandat se construit à droite, et quand tout est bon
@@ -184,6 +185,8 @@ export default function MandataireMandat() {
           ))}
         </div>
         {scinde && <ApercuMandat id={courant} onOuvrirPret={setFenetre} generation={generation} onGenere={() => setGeneration(false)} />}
+        {/* Au téléphone : le chat seul, le mandat en plein écran à la demande. */}
+        {conversation && !large && courant && <DocumentTelephone libelle="Voir le mandat"><ApercuMandat id={courant} onOuvrirPret={setFenetre} /></DocumentTelephone>}
       </div>
       <FenetreMandatPret mandat={mandatFenetre} onFermer={() => setFenetre(null)} />
     </div>

@@ -24,7 +24,7 @@ const kEuros = (n) => (n == null ? "—" : n >= 10000 ? `${fmt(Math.round(n / 10
 const taux = ([a, b]) => (a === b ? `${virgule(a)} %` : `${virgule(a)} à ${virgule(b)} %`);
 const plage = (f, unite) => (!f ? "—" : f[0] === f[1] ? `${fmt(f[0])} ${unite}` : `${fmt(f[0])} à ${fmt(f[1])} ${unite}`);
 
-const CHAMP = "w-full rounded-[10px] border border-bord bg-surface px-4 py-3 text-[15px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe";
+const CHAMP = "w-full rounded-[10px] border border-bord bg-surface px-4 py-3 text-[15px] text-encre outline-none transition-colors placeholder:text-brume focus:border-menthe max-md:text-[16px]";
 
 /** Une case à cocher : un carré, une coche. */
 function Case({ coche, onChange }) {
@@ -34,7 +34,7 @@ function Case({ coche, onChange }) {
       role="checkbox"
       aria-checked={!!coche}
       onClick={(e) => { e.stopPropagation(); onChange?.(!coche); }}
-      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold transition-colors"
+      className="relative flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold transition-colors max-md:after:absolute max-md:after:-inset-2.5 max-md:after:content-['']"
       style={{ borderColor: coche ? J["menthe"] : "rgba(255,255,255,0.16)", background: coche ? J["menthe"] : "transparent", color: J["sur-menthe"] }}
     >
       {coche ? "✓" : ""}
@@ -156,7 +156,7 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
           </p>
           <form
             onSubmit={(e) => { e.preventDefault(); if (nom.trim() && !creer.isPending) creer.mutate(); }}
-            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-surface py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50"
+            className="mt-8 flex w-full max-w-[600px] items-center gap-2.5 rounded-full border border-trait bg-surface py-[7px] pl-[22px] pr-[7px] focus-within:border-menthe/50 max-md:pl-4"
           >
             <input
               value={nom}
@@ -164,7 +164,7 @@ export default function Cartes({ villes = [], onOuvrirCarte, onOuvrirVille }) {
               placeholder="Investisseur Machin"
               className="min-w-0 flex-1 border-0 bg-transparent py-2.5 text-[18px] text-encre outline-none"
             />
-            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending}>{creer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Créer la carte"}</Bouton>
+            <Bouton type="submit" principal disabled={!nom.trim() || creer.isPending} className="max-md:px-4">{creer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Créer la carte"}</Bouton>
           </form>
           <p className="mb-0 mt-3.5 text-[12.5px] text-ardoise">Le nom est libre. Les critères se posent dans la carte, et se changent quand le client change d'avis.</p>
         </div>
@@ -219,7 +219,7 @@ function Criteres({ carte, familles }) {
   });
 
   return (
-    <section className="rounded-[18px] border border-trait bg-surface p-[26px]">
+    <section className="rounded-[18px] border border-trait bg-surface p-[26px] max-md:p-4">
       <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
         <Champ label="Budget mini" value={f.prix_min} onChange={change("prix_min")} placeholder="200 000" />
         <Champ label="Budget maxi" value={f.prix_max} onChange={change("prix_max")} placeholder="300 000" />
@@ -233,7 +233,7 @@ function Criteres({ carte, familles }) {
         </label>
         <Champ label="Ce qu'il évite" value={f.note} onChange={change("note")} placeholder="Restauration rapide, pas de rez-de-chaussée aveugle…" />
       </div>
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <Bouton principal onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}>{enregistrer.isPending ? <PenseeIA etat="working" taille={20} clair /> : "Enregistrer les critères"}</Bouton>
         <span className="text-[12.5px] text-ardoise">Le rendement commande la ville : au-delà de 9 %, on quitte les métropoles.</span>
       </div>
@@ -363,17 +363,17 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <button onClick={onFermer} className="mb-2 text-[12.5px] text-ardoise hover:text-encre">← Toutes les cartes</button>
+          <button onClick={onFermer} className="mb-2 text-[12.5px] text-ardoise hover:text-encre max-md:h-9">← Toutes les cartes</button>
           {/* La flèche contre le nom : elle ouvre les critères de cette carte. */}
           <div className="flex items-center gap-2.5">
-            <h1 className="alx-mont m-0 text-[34px] font-medium tracking-[-.02em] text-encre">{carte.nom}</h1>
+            <h1 className="alx-mont m-0 min-w-0 break-words text-[34px] font-medium tracking-[-.02em] text-encre max-md:text-[26px]">{carte.nom}</h1>
             <button
               type="button"
               onClick={() => setCriteresOuverts((o) => !o)}
               aria-expanded={criteresOuverts}
               aria-label={criteresOuverts ? "Masquer les critères" : "Voir les critères"}
               title={criteresOuverts ? "Masquer les critères" : "Voir les critères"}
-              className="grid h-8 w-8 flex-none place-items-center rounded-full border border-bord text-ardoise transition-colors hover:border-menthe hover:text-menthe"
+              className="grid h-8 w-8 flex-none place-items-center rounded-full border border-bord text-ardoise transition-colors hover:border-menthe hover:text-menthe max-md:h-10 max-md:w-10"
               style={{ background: "transparent" }}
             >
               <ChevronDown className={`h-4 w-4 transition-transform ${criteresOuverts ? "rotate-180" : ""}`} />
@@ -420,23 +420,23 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
       )}
 
       <section className="overflow-hidden rounded-[18px] border border-trait bg-surface">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-[26px] pt-[24px]">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-[26px] pt-[24px] max-md:px-4 max-md:pt-5">
           <div>
             <Etiquette>Où aller chercher</Etiquette>
             <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">
               {conseillees.length} ville{conseillees.length > 1 ? "s" : ""} se traite{conseillees.length > 1 ? "nt" : ""} à ce rendement. Le loyer est celui que le budget doit porter ; la surface s'en déduit quand ALX connaît déjà le loyer au mètre.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 max-md:w-full">
             {cochees.size > 0 && (
               <Bouton principal onClick={() => prospecter.mutate()} disabled={prospecter.isPending}>
                 {prospecter.isPending ? <PenseeIA etat="searching" taille={20} clair /> : `Prospecter ${cochees.size} ville${cochees.size > 1 ? "s" : ""}`}
               </Bouton>
             )}
-          <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Chercher une ville" className="w-[220px] rounded-full border border-bord bg-surface px-4 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
+          <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Chercher une ville" className="w-[220px] rounded-full border border-bord bg-surface px-4 py-2 text-[13px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:w-full max-md:text-[16px]" />
           </div>
         </div>
-        <div className="overflow-x-auto px-[26px] pb-[10px]">
+        <div className="overflow-x-auto px-[26px] pb-[10px] max-md:px-4">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="text-[11px] uppercase tracking-[.14em] text-brume">
@@ -458,13 +458,13 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
           {!montrees.length && <p className="py-6 text-center text-[13px] text-ardoise">Aucune ville à ce rendement. Élargissez la fourchette.</p>}
         </div>
         {filtrees.length > montrees.length && (
-          <div className="border-t border-trait px-[26px] py-3 text-center">
+          <div className="border-t border-trait px-[26px] py-3 text-center max-md:px-4">
             <button onClick={() => setTout(true)} className="text-[12.5px] text-menthe hover:underline">Voir les {filtrees.length - montrees.length} autres villes</button>
           </div>
         )}
       </section>
 
-      <section className="rounded-[18px] border border-trait bg-surface p-[26px]">
+      <section className="rounded-[18px] border border-trait bg-surface p-[26px] max-md:p-4">
         <div className="flex flex-wrap items-baseline justify-end gap-3">
           {societeFiltre && (
             <button onClick={() => setSocieteFiltre(null)} className="text-[12.5px] text-menthe hover:underline">
@@ -493,7 +493,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
         {cibles.length === 0 ? (
           <p className="m-0 mt-4 text-[13px] text-ardoise">Rien encore. Cochez des villes ci-dessus : les commerces arrivent avec leur loyer.</p>
         ) : (
-          <div className="mt-5 grid gap-7" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,320px)" }}>
+          <div className="mt-5 grid grid-cols-[minmax(0,1fr)_minmax(0,320px)] gap-7 max-md:grid-cols-1">
             <div className="flex flex-col">
               {retenues.map((c) => {
                 const marche = prospectees.find((p) => p.ville_id === c.ville_id);
@@ -504,7 +504,7 @@ export function PageCarte({ carteId, onOuvrirVille, onFermer }) {
                       onClick={() => setDetail(ouvert ? null : c.id)}
                       className="flex w-full flex-wrap items-baseline justify-between gap-x-5 gap-y-1 py-3 text-left transition-colors hover:bg-white/[0.02]"
                     >
-                      <span className="min-w-[220px] flex-1">
+                      <span className="min-w-[220px] flex-1 max-md:min-w-0 max-md:basis-full">
                         <span className="text-[14px] text-encre">{joliNom(c.nom)}</span>
                         <span className="ml-2 text-[12.5px] text-brume">{[c.adresse, c.ville].filter(Boolean).join(", ")}</span>
                       </span>

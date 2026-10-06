@@ -126,6 +126,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
 
   const url = local?.url ? (page && /pdf/i.test(local.type || extraction.document_url || "") ? `${local.url}#page=${page}` : local.url) : lienSource(extraction.document_url, page);
   const affichable = lisibleEnCadre(extraction.document_url, local?.type || extraction.document_mime);
+  const estPdf = /pdf/i.test(local?.type || extraction.document_mime || extraction.document_url || "");
   // Le passage d'abord : le texte de la page avec la citation surlignée. Le
   // PDF reste à un clic, ouvert à la bonne page.
   const peutSurligner = !!(dealId && extraction.document_id && ligne?.citation);
@@ -133,7 +134,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
   useEffect(() => { setVue(peutSurligner ? "passage" : "document"); }, [peutSurligner, extraction.document_id, page, ligne?.citation]);
 
   return (
-    <div className="bg-surface border border-trait rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] [.panneau-source_&]:static">
+    <div className="bg-surface border border-trait rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static">
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-bord flex-shrink-0">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[12.5px] text-encre truncate">{extraction.document_nom}</p>
@@ -158,7 +159,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
             Plein écran
           </a>
         )}
-        <button onClick={onFermer} className="text-brume hover:text-encre transition-colors flex-shrink-0" title="Fermer">
+        <button onClick={onFermer} className="text-brume hover:text-encre transition-colors flex-shrink-0 max-md:-m-2 max-md:p-2" title="Fermer" aria-label="Fermer">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -185,12 +186,22 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
           <p className="m-0 text-[12.5px] text-brume">Il a peut-être été supprimé du dossier, ou votre session a expiré.</p>
         </div>
       ) : affichable ? (
-        <iframe
-          key={url}
-          src={url}
-          title={extraction.document_nom}
-          className="flex-1 w-full bg-fond border-0"
-        />
+        <>
+          <iframe
+            key={url}
+            src={url}
+            title={extraction.document_nom}
+            className={`flex-1 w-full bg-fond border-0 ${estPdf ? "max-md:hidden" : ""}`}
+          />
+          {/* Au téléphone, un PDF dans un cadre ne montre que sa première
+              page (iOS) ou rien du tout (Android) : on l'ouvre à part. */}
+          {estPdf && (
+            <div className="flex-1 flex-col items-center justify-center gap-3 px-6 text-center hidden max-md:flex">
+              <p className="m-0 text-[12.5px] text-ardoise">Le document s'ouvre dans la visionneuse du téléphone{page ? `, page ${page}` : ""}.</p>
+              <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Ouvrir le document</a>
+            </div>
+          )}
+        </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
           <p className="m-0 text-[12.5px] text-ardoise">
@@ -331,7 +342,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher"
-            className="bg-surface border border-trait focus:border-menthe/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-encre outline-none placeholder:text-brume transition-colors w-[170px]"
+            className="bg-surface border border-trait focus:border-menthe/60 rounded-md px-3.5 py-1.5 text-[12.5px] text-encre outline-none placeholder:text-brume transition-colors w-[170px] max-md:text-[16px]"
           />
           <button onClick={() => onSupprimer?.(extraction.id)} className="text-[12.5px] text-brume hover:text-red-400 transition-colors" title="Retirer cette extraction">
             Retirer
@@ -388,7 +399,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         defaultValue={l.constat}
                         onBlur={(e) => majLigne.mutate({ index: l.index, constat: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[12.5px] text-encre outline-none resize-y"
+                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[12.5px] text-encre outline-none resize-y max-md:text-[16px]"
                       />
                     ) : (
                       <button
@@ -432,7 +443,7 @@ export function TableExtraction({ extraction, dealId, onSupprimer = undefined, o
                         defaultValue={l.commentaire}
                         onBlur={(e) => majLigne.mutate({ index: l.index, commentaire: e.target.value })}
                         onKeyDown={(e) => { if (e.key === "Escape") setEdition(null); }}
-                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[12.5px] text-encre outline-none resize-y"
+                        className="w-full bg-fond border border-menthe rounded px-2 py-1 text-[12.5px] text-encre outline-none resize-y max-md:text-[16px]"
                       />
                     ) : (
                       <button
@@ -573,7 +584,7 @@ export default function AnalyseDocuments({ dossier, coches, onCocher, onRefresh,
                     defaultValue={renommage.titre}
                     onBlur={(ev) => renommer.mutate({ id: e.id, titre: ev.target.value })}
                     onKeyDown={(ev) => { if (ev.key === "Enter") ev.currentTarget.blur(); if (ev.key === "Escape") setRenommage(null); }}
-                    className="mx-6 my-1 bg-fond border border-menthe rounded px-2 py-1 text-[13.5px] text-encre outline-none"
+                    className="mx-6 my-1 bg-fond border border-menthe rounded px-2 py-1 text-[13.5px] text-encre outline-none max-md:text-[16px]"
                   />
                 ) : (
                   <button

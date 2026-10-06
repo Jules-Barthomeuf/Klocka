@@ -91,7 +91,7 @@ export default function MandataireClients() {
         </div>
         {FAMILLES.map(([f]) => (
           <button key={f} type="button" onClick={() => setFamille(f)}
-            className={`h-12 rounded-full border px-[18px] text-[15px] transition-colors ${famille === f ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
+            className={`h-12 rounded-full border px-[18px] text-[15px] transition-colors max-md:h-10 max-md:px-4 max-md:text-[14px] ${famille === f ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
             {f}
           </button>
         ))}
@@ -165,7 +165,7 @@ function CarteClient({ d, onOuvrir }) {
           <Critere mot="Zones" valeur={zonesDe(d)} large />
           {d.bail && <Critere mot="Bail" valeur={d.bail} large doux />}
         </div>
-        <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5">
+        <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-trait pt-3.5 max-md:flex-wrap">
           <span className="text-[14px]">
             <span className="text-menthe tabular-nums">{n}</span>{" "}
             <span className="text-ardoise">{n > 1 ? "commerces à prospecter" : n === 1 ? "commerce à prospecter" : "rien à prospecter pour l'instant"}</span>
@@ -235,11 +235,11 @@ function FicheClient({ d, onFermer, onProspecter }) {
       <div className="absolute inset-0 bg-fond/60 backdrop-blur-[2px]" onClick={onFermer} />
       <aside role="dialog" aria-modal="true" aria-label={nomDe(d)}
         className="absolute inset-y-0 right-0 flex w-[520px] max-w-full flex-col overflow-y-auto border-l border-trait bg-surface-pleine animate-in slide-in-from-right duration-200">
-        <div className="flex items-start justify-between gap-4 border-b border-trait px-7 pb-5 pt-7">
-          <div className="flex items-center gap-3.5">
+        <div className="flex items-start justify-between gap-4 border-b border-trait px-7 pb-5 pt-7 max-md:px-5 max-md:pt-5">
+          <div className="flex min-w-0 items-center gap-3.5">
             <Avatar d={d} taille="h-12 w-12" />
-            <div className="flex flex-col gap-1">
-              <span className="text-[22px] font-medium text-encre">{nomDe(d)}</span>
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="text-[22px] font-medium text-encre max-md:text-[20px]">{nomDe(d)}</span>
               <span className="text-[13px] text-ardoise">{[d.profil, entreLe(d) ? `client depuis le ${entreLe(d)}` : null].filter(Boolean).join(" · ")}</span>
             </div>
           </div>
@@ -249,10 +249,10 @@ function FicheClient({ d, onFermer, onProspecter }) {
           </button>
         </div>
 
-        <div className="flex flex-col px-7 py-5">
+        <div className="flex flex-col px-7 py-5 max-md:px-5">
           <p className="m-0 pb-1.5 text-[12px] tracking-[0.14em] text-ardoise">CRITÈRES</p>
           {criteres.map(([mot, valeur]) => (
-            <div key={mot} className="grid grid-cols-[150px_1fr] gap-4 border-b border-trait py-3">
+            <div key={mot} className="grid grid-cols-[150px_1fr] gap-4 border-b border-trait py-3 max-md:grid-cols-[112px_1fr] max-md:gap-3">
               <span className="text-[13px] text-ardoise">{mot}</span>
               <span className="text-[14px] leading-[1.5] text-encre">{valeur}</span>
             </div>
@@ -260,14 +260,14 @@ function FicheClient({ d, onFermer, onProspecter }) {
         </div>
 
         {(d.remarque || d.information) && (
-          <div className="flex flex-col gap-2 px-7 pb-5 pt-1">
+          <div className="flex flex-col gap-2 px-7 pb-5 pt-1 max-md:px-5">
             <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">MOT DE L'ÉQUIPE</p>
             {d.remarque && <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55] text-craie">{d.remarque}</p>}
             {d.information && <p className="m-0 text-[13.5px] leading-[1.55] text-ardoise">{d.information}</p>}
           </div>
         )}
 
-        <div className="flex flex-col gap-2.5 px-7 pb-7 pt-1">
+        <div className="flex flex-col gap-2.5 px-7 pb-7 pt-1 max-md:px-5">
           <p className="m-0 text-[12px] tracking-[0.14em] text-ardoise">DANS VOTRE SECTEUR</p>
           <div className="grid grid-cols-3 overflow-hidden rounded-[12px] border border-trait bg-surface">
             <Compte n={d.commerces_du_secteur ?? 0} mot="correspondent" />
@@ -287,7 +287,7 @@ function FicheClient({ d, onFermer, onProspecter }) {
 }
 
 const Compte = ({ n, mot, accent = false }) => (
-  <div className="border-trait px-4 py-3.5 [&:not(:first-child)]:border-l">
+  <div className="min-w-0 border-trait px-4 py-3.5 max-md:px-3 [&:not(:first-child)]:border-l">
     <p className={`m-0 text-[22px] leading-none tabular-nums ${accent ? "text-menthe" : "text-encre"}`}>{n}</p>
     <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">{mot}</p>
   </div>

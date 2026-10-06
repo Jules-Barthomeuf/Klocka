@@ -9,6 +9,7 @@ import { googleStatus, disconnectAccount } from './google-oauth.js';
 import { changerStatut, repousserRelance, ajouterSuivi, statutDe } from './deal/lifecycle.js';
 import { alimenterBaseMarche } from './deal/marche.js';
 import { lireCases } from './projet-cases.js';
+import { secteurGarde } from './projet-secteur.js';
 
 // Fait avancer le cycle de vie d'un deal après l'envoi d'un mail d'intention :
 // trace l'envoi dans `suivi`, applique la transition de statut correspondante
@@ -160,7 +161,9 @@ export const functions = {
     const project = Records.get('Project', id);
     if (!project) return { success: false, error: 'Project not found' };
     // Le lien public montre les cases, sans les pièces : /uploads exige un compte.
-    return { success: true, project: { ...project, cases: lireCases(project, { sansSources: true }) } };
+    // Le secteur gardé aussi (le loyer Equimmox de l'onglet Marché), sans
+    // relancer de recherche pour un visiteur.
+    return { success: true, project: { ...project, cases: lireCases(project, { sansSources: true }), secteur: secteurGarde(project.id) } };
   },
 
   searchProjects({ searchTerm } = {}, { user }) {
@@ -171,37 +174,6 @@ export const functions = {
       normalize(`${p.titre} ${p.adresse_complete} ${p.nom_locataire}`).includes(q)
     );
     return { results };
-  },
-
-  // Un projet attribué : le client l'apprend, et le lien l'emmène droit sur ce
-  // projet-là, pas sur la liste. Le prénom vient de son compte quand on le
-  // connaît. L'adresse publique vient de la requête : un lien relatif dans un
-  // mail n'est cliquable nulle part.
-  async sendProjectAssignmentEmail(params, { user, base: basePublique }) {
-    const { to, clientEmail, projectTitle, projectId } = params || {};
-    const recipient = to || clientEmail;
-    const compte = Records.filter('User', { email: String(recipient || '').toLowerCase() })[0];
-    const prenom = (compte?.full_name || '').split(' ')[0];
-    const base = (basePublique || process.env.APP_URL || '').replace(/\/$/, '');
-    // Sans identifiant de projet, la liste reste le meilleur repli.
-    const lien = projectId ? `${base}/ProjetDetail?id=${encodeURIComponent(projectId)}` : `${base}/MesProjets`;
-    await sendEmail({
-      owner: user?.email,
-      to: recipient,
-      subject: 'Klocka - Un nouveau projet vous a été attribué dans votre espace 🚀',
-      body: `Bonjour${prenom ? ` ${prenom}` : ''},
-
-Bonne nouvelle ! Un nouveau projet vient de vous être attribué.
-
-Découvrez-le sans plus attendre sur notre plateforme Klocka :
-
-${lien}
-
-À très vite,
-
-${user?.full_name?.split(' ')[0] || 'Klocka'}`,
-    });
-    return { success: true, projet: projectTitle || projectId };
   },
 
   // --- Mails page ---------------------------------------------------------

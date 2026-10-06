@@ -88,24 +88,24 @@ export default function Feedback() {
 
 
   return (
-    <div className="min-h-screen bg-fond p-6 md:p-10">
+    <div className="min-h-screen bg-fond px-5 py-6 md:p-10">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="mb-8 flex items-start justify-between">
+          <div className="mb-8 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-montserrat text-encre mb-2">Suggestions</h1>
+              <h1 className="text-4xl max-md:text-[26px] font-montserrat text-encre mb-2">Suggestions</h1>
               <div className="h-0.5 w-32 bg-menthe mb-2 rounded-full"></div>
-              <p className="text-ardoise text-lg">
+              <p className="text-ardoise text-lg max-md:text-base">
                 Proposez vos idées d'amélioration
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-right">
+              <div className="text-right max-md:hidden">
                 <p className="text-sm font-montserrat text-encre">
                   {user.full_name || user.email.split('@')[0]}
                 </p>
@@ -214,8 +214,8 @@ export default function Feedback() {
                     <Card key={suggestion.id} className="bg-gradient-to-br from-fond to-black border-surface">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <p className="text-craie text-sm mb-2">{suggestion.contenu}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-craie text-sm mb-2 break-words">{suggestion.contenu}</p>
                             <p className="text-xs text-ardoise">
                               {moment(suggestion.created_date).format('DD MMMM YYYY à HH:mm')}
                             </p>

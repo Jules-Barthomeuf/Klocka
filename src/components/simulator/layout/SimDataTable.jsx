@@ -145,7 +145,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                   onClick={() => toggle(sec.title)}
                 >
                   <td
-                    className="sticky left-0 z-10 px-3 py-2 text-[11px] uppercase tracking-[0.18em] font-semibold border-b border-trait whitespace-nowrap"
+                    className="sticky left-0 z-10 px-3 py-2 text-[11px] uppercase tracking-[0.18em] max-md:tracking-[0.08em] font-semibold border-b border-trait whitespace-nowrap max-md:whitespace-normal max-md:min-w-[124px] max-md:max-w-[140px]"
                     style={{ backgroundColor: sec.headerBg, color: sec.color }}
                   >
                     <span className="inline-flex items-center gap-1.5">
@@ -164,7 +164,7 @@ export default function SimDataTable({ calculs, anneeRevente, formatCurrency, du
                 </tr>
                 {openSections[sec.title] && sec.rows.map((row, ri) => (
                   <tr key={row.label} className={`border-b border-encre/[0.03] last:border-0 hover:bg-encre/[0.04] transition-colors ${ri % 2 === 0 ? "bg-encre/[0.02]" : "bg-transparent"}`}>
-                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-ardoise whitespace-nowrap ${ri % 2 === 0 ? "bg-relief" : "bg-surface"}`}>{row.label}</td>
+                    <td className={`sticky left-0 z-10 px-3 py-1.5 text-xs text-ardoise whitespace-nowrap max-md:whitespace-normal max-md:min-w-[124px] max-md:max-w-[140px] ${ri % 2 === 0 ? "bg-relief" : "bg-surface"}`}>{row.label}</td>
                     {rows.map((r) => {
                       const val = row.get(r);
                       const isNeg = typeof val === "string" && val.trim().startsWith("-");

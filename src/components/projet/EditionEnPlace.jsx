@@ -109,7 +109,7 @@ export function Bloc({ id, titre, className = "", children }) {
     <div className={`group/bloc relative ${className}`}>
       {children}
       <button type="button" onClick={basculer} aria-label={`Masquer ${titre}`} title={`Masquer « ${titre} » pour le client`}
-        className="absolute right-3 top-3 z-20 hidden h-7 items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-2.5 text-[12px] text-ardoise shadow-sm transition-colors hover:border-bord-vif hover:text-encre group-hover/bloc:inline-flex">
+        className="absolute right-3 top-3 z-20 hidden h-7 items-center gap-1.5 rounded-full border border-trait bg-surface-pleine px-2.5 text-[12px] text-ardoise shadow-sm transition-colors hover:border-bord-vif hover:text-encre group-hover/bloc:inline-flex max-md:inline-flex">
         <EyeOff className="h-3.5 w-3.5" /> Masquer
       </button>
     </div>
@@ -152,7 +152,7 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
           if (e.key === "Enter") { e.preventDefault(); valider(); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className="bg-surface-pleine border border-menthe text-encre rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit"
+        className="bg-surface-pleine border border-menthe text-encre rounded px-2 py-0.5 w-full max-w-[190px] outline-none text-inherit font-inherit max-md:text-[16px]"
         style={{ fontVariantNumeric: "tabular-nums" }}
       />
     );
@@ -196,7 +196,7 @@ export function TexteEditable({ champ, children, className = "", initial = "", m
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); setOuvert(false); edition.onChamp(champ, brouillon, true); }
           if (e.key === "Escape") setOuvert(false);
         }}
-        className={`w-full bg-surface-pleine border border-menthe text-encre rounded px-3 py-2 outline-none text-[13.5px] leading-[1.7] ${className}`}
+        className={`w-full bg-surface-pleine border border-menthe text-encre rounded px-3 py-2 outline-none text-[13.5px] max-md:text-[16px] leading-[1.7] ${className}`}
       />
     );
   }

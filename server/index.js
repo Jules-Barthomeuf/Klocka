@@ -54,6 +54,7 @@ import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
 import { monterFiches } from './routes/fiches.js';
 import { monterOffres } from './routes/offres.js';
+import { monterEmailing } from './routes/emailing.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
@@ -186,7 +187,8 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'same-origin');
   next();
 });
-app.use(express.json({ limit: '25mb' }));
+// Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
+app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
 
 // La dictée hors Chrome : le navigateur enregistre, le serveur transcrit.
 // L'audio arrive en base64 (WAV mono 16 kHz, une minute tient en 2 Mo).
@@ -444,6 +446,30 @@ ${logo ? `<p style="margin-top:18px"><img src="${esc(logo)}" alt="Klocka" width=
 
 const OBJET_ACCES = 'Klocka — Créez votre profil';
 
+// Le mail d'accès part par Resend (notifications-klocka.com), avec le modèle
+// « Invitation d'un client » que l'équipe retouche dans Emailing ; la réponse
+// revient à l'admin qui invite. Si Resend refuse (domaine pas encore vérifié,
+// clé absente), il part comme avant depuis la boîte Gmail de l'admin.
+async function envoyerAcces({ to, prenom, lien, admin, base }) {
+  try {
+    const { envoyerPlateforme } = await import('./emailing/index.js');
+    const signature = admin?.full_name?.split(' ')[0] || admin?.full_name || 'Klocka';
+    const r = await envoyerPlateforme('invitation_client', { a: to, vars: { prenom, lien, expediteur: signature }, repondreA: admin?.email || null, testeur: admin?.email || null });
+    if (r.ok) return { success: true, simulated: !!r.simule, via: 'resend', redirige: r.redirige || null };
+    // Une adresse en bounce ou en plainte n'est servie par aucune voie.
+    if (r.bloque) return { success: false, simulated: false, error: r.error };
+    console.warn(`[emailing] invitation par Resend refusée (${r.error}) : envoi par Gmail`);
+  } catch (e) {
+    console.warn(`[emailing] invitation : ${e?.message || e}`);
+  }
+  // Le repli Gmail suit le même garde-fou : hors Render, l'invitation va à
+  // l'admin qui invite, jamais au client.
+  const { destinataireGarde } = await import('./emailing/envoi.js');
+  const garde = destinataireGarde(to, admin?.email);
+  if (!garde) return { success: true, simulated: true };
+  return sendEmail({ owner: admin.email, to: garde.a, subject: `${garde.objetPrefixe}${OBJET_ACCES}`, ...mailAcces(prenom, lien, admin, base) });
+}
+
 
 // Inviter un client : le compte est créé par l'équipe, la personne reçoit un
 // lien et n'a qu'à choisir son mot de passe. Le compte entre directement à
@@ -462,12 +488,7 @@ app.post('/api/admin/clients/inviter', wrap(async (req, res) => {
   const prenom = (r.user.full_name || '').split(' ')[0];
   let envoi = null;
   if (req.body?.envoyer) {
-    envoi = await sendEmail({
-      owner: admin.email,
-      to: r.user.email,
-      subject: OBJET_ACCES,
-      ...mailAcces(prenom, r.lien, admin, urlPublique(req)),
-    });
+    envoi = await envoyerAcces({ to: r.user.email, prenom, lien: r.lien, admin, base: urlPublique(req) });
   }
   console.log(`[auth] invitation : ${r.user.email} par ${admin.email}${envoi ? (envoi.simulated ? ' (mail simulé)' : ' (mail envoyé)') : ''}`);
   ok(res, {
@@ -507,12 +528,7 @@ app.post('/api/admin/familles/inviter', wrap(async (req, res) => {
   if (!r.ok) return res.status(400).json({ error: r.error });
   for (const m of r.resultats) {
     if (!m.lien || !req.body?.envoyer) continue;
-    const envoi = await sendEmail({
-      owner: admin.email,
-      to: m.email,
-      subject: OBJET_ACCES,
-      ...mailAcces((m.full_name || '').split(' ')[0], m.lien, admin, base),
-    });
+    const envoi = await envoyerAcces({ to: m.email, prenom: (m.full_name || '').split(' ')[0], lien: m.lien, admin, base });
     m.envoye = !!(envoi?.success && !envoi.simulated);
     m.simule = !!envoi?.simulated;
     m.erreur_envoi = envoi && !envoi.success && !envoi.simulated ? envoi.error || 'Envoi impossible' : null;
@@ -571,12 +587,7 @@ app.post('/api/admin/clients/inviter-tous', wrap(async (req, res) => {
     let mail = null;
     if (envoyer) {
       const prenom = (r.user.full_name || '').split(' ')[0];
-      mail = await sendEmail({
-        owner: admin.email,
-        to: r.user.email,
-        subject: OBJET_ACCES,
-        ...mailAcces(prenom, r.lien, admin, base),
-      });
+      mail = await envoyerAcces({ to: r.user.email, prenom, lien: r.lien, admin, base });
       if (mail?.success && !mail.simulated) envoyes += 1;
     }
     liens.push({ email: r.user.email, nom: r.user.full_name || null, lien: r.lien, envoye: !!(mail?.success && !mail.simulated) });
@@ -1211,6 +1222,7 @@ monterMonday(app);
 monterAk(app);
 monterFiches(app);
 monterOffres(app);
+monterEmailing(app);
 monterProspection(app);
 monterMandataire(app);
 monterMandatairePortes(app);
@@ -1315,6 +1327,37 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
 setInterval(() => {
   import('./ak/veille.js').then(({ avancerTachesApp }) => avancerTachesApp()).catch((e) => console.warn('[ak app] tâches :', e?.message || e));
 }, 30_000).unref?.();
+
+// L'emailing passe ses données à la v2 au démarrage (une fois, sans perte).
+import('./emailing/schema.js').then(({ migrer }) => {
+  const b = migrer();
+  if (!b.deja) console.log(`[emailing] migration v2 : ${b.contacts} contact(s), ${b.listes} liste(s), ${b.sequences} séquence(s), ${b.envois} envoi(s), ${b.templates} template(s)`);
+}).catch((e) => console.warn(`[démarrage] migration emailing : ${e?.message || e}`));
+
+// La file de l'emailing : chaque minute, les réponses reçues sortent leurs
+// auteurs des séquences qui le demandent, puis les étapes de séquence et les
+// campagnes dont l'heure est venue partent par Resend. Sur Render seulement,
+// sauf EMAILING_AUTO=true ; et même alors, le garde-fou d'envoi.js empêche
+// tout envoi chez un vrai contact hors Render.
+if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
+  let fileEnCours = false;
+  setInterval(async () => {
+    if (fileEnCours) return;
+    fileEnCours = true;
+    try {
+      const M = await import('./emailing/index.js');
+      const C = await import('./emailing/campagnes.js');
+      const sorties = await M.reponsesRecues();
+      const s = await M.tourEmailing();
+      const c = await C.tourCampagnes();
+      if (sorties || s?.envoyes || c?.envoyes) console.log(`[emailing] ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);
+    } catch (e) {
+      console.warn('[emailing]', e?.message || e);
+    } finally {
+      fileEnCours = false;
+    }
+  }, 60_000).unref?.();
+}
 
 // La veille mandataire : ALX parcourt le secteur, les propriétaires et leurs
 // numéros se cherchent à l'avance, la liste du jour se pose chaque matin.

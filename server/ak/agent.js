@@ -160,6 +160,45 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'rediger_sequence',
+    description: "Crée ou réécrit une séquence d'emails (page Emailing) : chaque email avec son jour d'envoi compté depuis l'inscription (0 pour le premier), son objet, sa ligne d'aperçu et son contenu en blocs. Elle s'ouvre à droite, éditable, en brouillon : rien ne part avant que l'équipe l'active. Pour corriger la séquence ouverte : sequence_id et la liste COMPLÈTE des emails telle qu'elle doit être (ceux qu'on ne touche pas, recopiés à l'identique).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        sequence_id: { type: 'string', description: 'la séquence ouverte à corriger ; absent pour une nouvelle' },
+        nom: { type: 'string', description: 'court, ex. « Webinaire 12 oct. · après l\'événement »' },
+        liste: { type: 'string', description: 'la liste de contacts visée, si elle est connue (une des listes existantes)' },
+        etapes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              jour: { type: 'number', description: "jour d'envoi depuis l'inscription : 0, 3, 7, 12… (croissant)" },
+              objet: { type: 'string', description: 'court, concret ; {{prenom}} permis' },
+              apercu: { type: 'string', description: 'la ligne grise sous l\'objet dans la boîte' },
+              theme: { type: 'string', enum: ['clair', 'menthe', 'sombre'] },
+              blocs: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: { type: 'string', enum: ['titre', 'texte', 'bouton', 'image', 'separateur', 'signature'] },
+                    texte: { type: 'string', description: '**gras** et retours à la ligne permis ; {{prenom}}, {{nom}}' },
+                    lien: { type: 'string', description: 'pour un bouton ou une image' },
+                    src: { type: 'string', description: 'adresse de l\'image' },
+                  },
+                  required: ['type'],
+                },
+              },
+            },
+            required: ['jour', 'objet', 'blocs'],
+          },
+        },
+      },
+      required: ['etapes'],
+    },
+  },
+  {
     name: 'lancer_design',
     description: "Confie un changement de la plateforme Klocka elle-même à Claude Code (« redesign la page K-Zoning », « ajoute un filtre par ville sur Mes projets ») : il travaille sur une copie du dépôt, vérifie lint et build, et rend une branche à relire. Tâche de fond de cinq à trente minutes ; AK donnera la branche dans le chat. Reformule la demande en une consigne précise : quelle page, quoi changer, ce qu'il ne faut pas toucher.",
     input_schema: { type: 'object', properties: { demande: { type: 'string' } }, required: ['demande'] },
@@ -692,6 +731,38 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     }
     fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: dealId });
     return { ok: true, loi_id: l.id, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
+  }
+  if (name === 'rediger_sequence') {
+    const E = await import('../emailing/index.js');
+    // Le modèle compte en jours depuis l'inscription ; la séquence garde
+    // l'écart avec l'email précédent (ce que montre et règle l'éditeur).
+    let avant = 0;
+    const etapes = (input.etapes || []).slice(0, 12).map((e, i) => {
+      const jour = Number.isFinite(Number(e.jour)) ? Math.max(avant, Number(e.jour)) : avant + Math.max(0, Number(e.delai_jours) || 0);
+      const delai = i === 0 ? 0 : jour - avant;
+      avant = i === 0 ? 0 : jour;
+      return {
+        id: `e${Date.now().toString(36)}${i}`,
+        delai_jours: delai,
+        objet: e.objet || '', apercu: e.apercu || '',
+        design: { theme: e.theme || 'clair', blocs: (e.blocs || []).map((b, k) => ({
+          id: `b${Date.now().toString(36)}${i}${k}`, type: b.type,
+          ...(b.type === 'signature' ? { texte: String(b.texte || '').trim() || "L'équipe Klocka" } : b.texte != null ? { texte: b.texte } : {}),
+          ...(b.lien ? { lien: b.lien } : {}), ...(b.src ? { src: b.src } : {}),
+        })) },
+      };
+    });
+    if (!etapes.length) return { ok: false, error: 'Une séquence a au moins un email.' };
+    const listes = E.listes().map((l) => l.nom);
+    const liste = input.liste && listes.includes(input.liste) ? input.liste : undefined;
+    if (input.sequence_id) {
+      const r = E.modifierSequence(input.sequence_id, { etapes, ...(input.nom ? { nom: input.nom } : {}), ...(liste ? { liste } : {}) });
+      if (!r.ok) return r;
+      return { ok: true, sequence_id: input.sequence_id, emails: etapes.length, note: 'La séquence est à jour, à droite. Dis ce qui a changé en une ou deux lignes, sans recopier les emails.' };
+    }
+    const s = E.creerSequence({ nom: input.nom || 'Nouvelle séquence', liste: liste || null }, user);
+    E.modifierSequence(s.id, { etapes });
+    return { ok: true, nouvelle: true, sequence_id: s.id, emails: etapes.length, note: "La séquence est ouverte à droite, en brouillon, éditable sur place. Résume-la en quelques lignes (l'idée de chaque email et son jour), puis propose une ou deux pistes pour l'améliorer. Ne recopie pas les emails." };
   }
   if (name === 'lancer_design') {
     const { designActif } = await import('./design.js');

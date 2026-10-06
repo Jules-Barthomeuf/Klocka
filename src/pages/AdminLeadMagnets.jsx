@@ -127,7 +127,7 @@ export default function AdminLeadMagnets() {
   return (
     <div className="mx-auto max-w-[1100px] px-4 pb-20 pt-10">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Acquisition</p>
-      <h1 className="mt-2 mb-2 text-[30px] font-light tracking-[-0.01em] text-encre">Lead magnets</h1>
+      <h1 className="mt-2 mb-2 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Lead magnets</h1>
       <p className="m-0 mb-7 max-w-[620px] text-[13.5px] leading-[1.7] text-ardoise">
         Les pages ouvertes à tous, sans compte, qui ramènent des contacts. Copiez le lien pour le partager.
       </p>
@@ -135,7 +135,7 @@ export default function AdminLeadMagnets() {
       <div className="grid gap-3 md:grid-cols-2">
         {!magnets.length && <p className="m-0 text-[13px] text-brume">Aucun lead magnet pour l&apos;instant.</p>}
         {magnets.map((m) => (
-          <div key={m.slug} className={`${CARTE} p-5`}>
+          <div key={m.slug} className={`${CARTE} p-5 max-md:p-4`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="m-0 text-[16px] font-medium text-encre">{m.titre}</p>
@@ -208,7 +208,7 @@ export default function AdminLeadMagnets() {
                 <div className="min-w-0">
                   <p className="m-0 text-[15px] font-medium text-encre">{l.nom}</p>
                   <p className="m-0 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ardoise">
-                    <a href={`mailto:${l.email}`} className="inline-flex items-center gap-1.5 text-menthe-texte"><Mail className="h-3 w-3" />{l.email}</a>
+                    <a href={`mailto:${l.email}`} className="inline-flex items-center gap-1.5 text-menthe-texte max-md:break-all"><Mail className="h-3 w-3" />{l.email}</a>
                     {l.telephone && <a href={`tel:${l.telephone}`} className="inline-flex items-center gap-1.5 text-menthe-texte"><Phone className="h-3 w-3" />{l.telephone}</a>}
                     <span className="inline-flex items-center gap-1.5"><MapPin className="h-3 w-3" />{l.quartier}</span>
                   </p>

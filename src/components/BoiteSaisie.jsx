@@ -57,7 +57,7 @@ export default function BoiteSaisie({
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && peutEnvoyer && !enCours) { e.preventDefault(); onEnvoyer(); } }}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[15px]" : "text-[18px] max-md:text-[15px]"} leading-[1.55] text-encre placeholder:text-brume disabled:opacity-50`}
+          className={`w-full bg-transparent border-0 outline-none resize-none ${compact ? "text-[15px] max-md:text-[16px]" : "text-[18px] max-md:text-[16px]"} leading-[1.55] text-encre placeholder:text-brume disabled:opacity-50`}
         />
         {sous}
       </div>
@@ -70,7 +70,7 @@ export default function BoiteSaisie({
           disabled={!peutEnvoyer || enCours || disabled}
           title={libelle}
           aria-label={libelle}
-          className={`inline-flex items-center justify-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8" : "w-10 h-10"}`}
+          className={`inline-flex items-center justify-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol disabled:opacity-30 transition-colors flex-shrink-0 ${compact ? "w-8 h-8 max-md:w-9 max-md:h-9" : "w-10 h-10"}`}
         >
           {enCours ? <PenseeIA etat="working" taille={20} clair /> : <ArrowUp className={compact ? "w-4 h-4" : "w-[18px] h-[18px]"} strokeWidth={2.2} />}
         </button>

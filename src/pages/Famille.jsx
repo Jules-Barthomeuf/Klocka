@@ -168,7 +168,7 @@ export default function Famille() {
 
   if (selectedUsers.length === 0) {
     return (
-      <div className="min-h-screen bg-fond p-6 md:p-10">
+      <div className="min-h-screen bg-fond px-5 py-6 md:p-10">
         <div className="max-w-7xl mx-auto text-center py-20">
           <Users className="w-16 h-16 text-brume mx-auto mb-4" />
           <h2 className="text-2xl text-encre mb-4">Aucun utilisateur sélectionné</h2>
@@ -187,7 +187,7 @@ export default function Famille() {
   }
 
   return (
-    <div className="min-h-screen bg-fond p-6 md:p-10">
+    <div className="min-h-screen bg-fond px-5 py-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -199,7 +199,7 @@ export default function Famille() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour
           </Button>
-          <h1 className="text-4xl font-montserrat text-encre mb-2">
+          <h1 className="text-4xl max-md:text-[26px] font-montserrat text-encre mb-2">
             Comparaison Famille
           </h1>
           <div className="h-0.5 w-32 bg-menthe mb-4 rounded-full"></div>
@@ -234,7 +234,7 @@ export default function Famille() {
                       </div>
                       <div>
                         <p className="text-encre font-medium">{u.full_name || "Sans nom"}</p>
-                        <p className="text-ardoise text-xs">{u.email}</p>
+                        <p className="text-ardoise text-xs break-all">{u.email}</p>
                       </div>
                     </div>
                     {profil ? (
@@ -321,9 +321,9 @@ export default function Famille() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-bord">
-                    <th className="text-left p-3 text-ardoise min-w-[200px]">Question</th>
+                    <th className="text-left p-3 text-ardoise min-w-[200px] max-md:min-w-[150px]">Question</th>
                     {selectedUsers.map(u => (
-                      <th key={u.id} className="text-left p-3 text-ardoise min-w-[150px]">
+                      <th key={u.id} className="text-left p-3 text-ardoise min-w-[150px] max-md:min-w-[120px]">
                         {u.full_name || u.email.split('@')[0]}
                       </th>
                     ))}

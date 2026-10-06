@@ -249,7 +249,7 @@ export default function AccueilVision({
                           <select
                             value={p.taille}
                             onChange={(e) => modifierTailleProjet(i, e.target.value)}
-                            className="min-w-0 flex-1 appearance-none rounded-champ border border-trait bg-surface px-3 py-2 text-[14px] tabular-nums text-encre outline-none focus:border-menthe"
+                            className="min-w-0 flex-1 appearance-none rounded-champ border border-trait bg-surface px-3 py-2 text-[14px] max-md:text-[16px] tabular-nums text-encre outline-none focus:border-menthe"
                           >
                             {TAILLES.map(([v, m]) => <option key={v} value={v}>{m}</option>)}
                           </select>

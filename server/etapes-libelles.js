@@ -48,6 +48,7 @@ const LIBELLES = {
   bloquer_rdv: (i) => `Rendez-vous dans l'agenda${entre(i.titre)}`,
   agenda: () => "Lecture de l'agenda",
   rediger_loi: (i) => `Rédaction de la LOI${entre(i.adresse_bien)}`,
+  rediger_sequence: (i) => (i.sequence_id ? 'Réécriture de la séquence' : `Rédaction de la séquence${(i.etapes || []).length ? ` (${i.etapes.length} emails)` : ''}`),
   lancer_design: () => 'Lancement du chantier de design',
   version: () => 'Lecture de la version en ligne',
   retenir: () => 'Je retiens',

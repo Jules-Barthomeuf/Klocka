@@ -199,7 +199,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
   return (
     <div className="space-y-6">
       {/* Profil header */}
-      <div className="bg-fond rounded-md border border-trait p-6">
+      <div className="bg-fond rounded-md border border-trait p-6 max-md:p-4">
         <div className="flex items-center gap-4 mb-3">
           <div className="w-12 h-12 rounded-md flex items-center justify-center" style={{ backgroundColor: config.color + "20" }}>
             <Icon className="w-6 h-6" style={{ color: config.color }} />
@@ -235,7 +235,7 @@ export default function CompareCompatibilite({ metrics, userProfil, budgetMax })
       {/* Pie chart + détails */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie chart */}
-        <div className="bg-fond rounded-md border border-trait p-6">
+        <div className="bg-fond rounded-md border border-trait p-6 max-md:p-4">
           <p className="text-encre/40 text-xs uppercase tracking-[0.15em] mb-4">Compatibilité relative</p>
           <div className="relative">
             <ResponsiveContainer width="100%" height={280}>

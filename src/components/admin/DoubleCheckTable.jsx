@@ -142,7 +142,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                   <div className="col-span-4">
                     <Input
                     value={val.ia}
-                    onChange={(e) => updateField(field.key, "ia", e.target.value)} className="bg-slate-800 text-encre px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-purple-500/10 focus:border-purple-500/30 h-8 placeholder:text-bord-vif"
+                    onChange={(e) => updateField(field.key, "ia", e.target.value)} className="bg-slate-800 text-encre px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-purple-500/10 focus:border-purple-500/30 h-8 placeholder:text-bord-vif max-md:text-[16px]"
 
                     placeholder="—" />
                   
@@ -150,7 +150,7 @@ export default function DoubleCheckTable({ checkData, onChange }) {
                   <div className="col-span-4">
                     <Input
                     value={val.human}
-                    onChange={(e) => updateField(field.key, "human", e.target.value)} className="bg-slate-800 text-encre px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-menthe/10 focus:border-menthe/30 h-8 placeholder:text-bord-vif"
+                    onChange={(e) => updateField(field.key, "human", e.target.value)} className="bg-slate-800 text-encre px-3 py-1 text-xs rounded-md flex w-full border shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm border-menthe/10 focus:border-menthe/30 h-8 placeholder:text-bord-vif max-md:text-[16px]"
 
                     placeholder="—" />
                   

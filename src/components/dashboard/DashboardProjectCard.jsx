@@ -30,7 +30,7 @@ export default function DashboardProjectCard({ projects }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => manualNav((current - 1 + projects.length) % projects.length)}
-              className="w-7 h-7 rounded-full border border-trait flex items-center justify-center text-craie hover:text-encre hover:border-bord-vif transition-colors"
+              className="w-7 h-7 rounded-full border border-trait flex items-center justify-center text-craie hover:text-encre hover:border-bord-vif transition-colors max-md:w-9 max-md:h-9"
             >
               <ChevronLeft className="w-3 h-3" />
             </button>
@@ -39,7 +39,7 @@ export default function DashboardProjectCard({ projects }) {
             </span>
             <button
               onClick={() => manualNav((current + 1) % projects.length)}
-              className="w-7 h-7 rounded-full border border-trait flex items-center justify-center text-craie hover:text-encre hover:border-bord-vif transition-colors"
+              className="w-7 h-7 rounded-full border border-trait flex items-center justify-center text-craie hover:text-encre hover:border-bord-vif transition-colors max-md:w-9 max-md:h-9"
             >
               <ChevronRight className="w-3 h-3" />
             </button>

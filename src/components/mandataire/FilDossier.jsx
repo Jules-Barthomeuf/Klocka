@@ -104,7 +104,7 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
             <label className="inline-flex items-center gap-1.5 text-[12px] text-ardoise">
               <ArrowRightLeft className="h-3 w-3" />
               <select value="" onChange={(e) => e.target.value && transferer.mutate(e.target.value)} disabled={transferer.isPending}
-                className="rounded-full border border-bord-doux bg-transparent px-2 py-1 text-[12px] text-craie outline-none">
+                className="rounded-full border border-bord-doux bg-transparent px-2 py-1 text-[12px] text-craie outline-none max-md:text-[16px]">
                 <option value="">Transférer à…</option>
                 {(data.analystes || []).filter((a) => a.email !== data.analyste?.email).map((a) => <option key={a.email} value={a.email}>{a.nom}</option>)}
               </select>

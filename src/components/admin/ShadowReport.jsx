@@ -189,7 +189,7 @@ Réponds UNIQUEMENT en JSON.`;
                       <span className="text-brume">→</span>
                       <span className="text-xs text-purple-400 truncate">Shadow: <strong>{String(diff.shadowVal)}</strong></span>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100 transition-opacity flex-shrink-0">
                       <button
                         onClick={() => handleClickDiff(diff.tab, "current")}
                         className="text-[11px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"
@@ -250,7 +250,7 @@ Réponds UNIQUEMENT en JSON.`;
                         <p className="text-xs text-red-400 font-medium">{diff.label}</p>
                         <p className="text-xs text-ardoise mt-1">{diff.description}</p>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100 transition-opacity flex-shrink-0">
                         <button
                           onClick={() => handleClickDiff(diff.tab, "current")}
                           className="text-[11px] text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded-md flex items-center gap-1 transition-all"

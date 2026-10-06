@@ -94,7 +94,7 @@ function OnboardingCard({ icon: Icon, title, description, cta, onClick, delay = 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
       onClick={onClick}
-      className={`group cursor-pointer rounded-[18px] px-6 py-6 flex flex-col transition-colors ${
+      className={`group cursor-pointer rounded-[18px] px-6 py-6 max-md:px-5 max-md:py-5 flex flex-col transition-colors ${
         principal
           ? "bg-menthe/[0.07] border border-menthe/40 hover:border-menthe"
           : "bg-surface-pleine border border-trait hover:border-bord-vif"
@@ -135,13 +135,14 @@ export function FenetreRendezVous({ user, onFermer }) {
     return () => window.removeEventListener("keydown", echap);
   }, [onFermer]);
   return (
-    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4" onClick={onFermer}>
-      <div className="w-full max-w-[900px] h-[86vh] bg-surface-pleine border border-trait rounded-[18px] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-trait">
-          <LogoKlocka className="h-10" />
+    <div className="animate-in fade-in duration-200 fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-4 max-md:p-0" onClick={onFermer}>
+      {/* Au téléphone, plein écran : la fenêtre de Calendly a besoin de toute la hauteur. */}
+      <div className="w-full max-w-[900px] h-[86vh] max-md:h-[100dvh] max-md:max-w-none max-md:rounded-none max-md:border-0 bg-surface-pleine border border-trait rounded-[18px] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-4 px-6 py-4 max-md:px-4 max-md:py-3 max-md:pt-[max(12px,env(safe-area-inset-top))] border-b border-trait">
+          <LogoKlocka className="h-10 max-md:h-8" />
           <div className="flex items-center gap-5">
             <p className="m-0 text-[12.5px] text-ardoise max-md:hidden">Définition de votre stratégie · 45 min</p>
-            <button onClick={onFermer} className="text-brume hover:text-encre transition-colors" aria-label="Fermer">
+            <button onClick={onFermer} className="text-brume hover:text-encre transition-colors max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center max-md:-mr-2" aria-label="Fermer">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -167,7 +168,7 @@ function EnRecherche({ user, userEtape, onRendezVous }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-surface-pleine border border-trait rounded-[18px] p-8 min-h-[240px] flex flex-col"
+      className="bg-surface-pleine border border-trait rounded-[18px] p-8 max-md:p-5 min-h-[240px] flex flex-col"
     >
       <div className="flex items-center gap-2.5 mb-3">
         <Search className="w-4 h-4 text-menthe" />

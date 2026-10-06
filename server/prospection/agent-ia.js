@@ -4,14 +4,19 @@
 // ville, partagée par toute l'équipe (une liste Nice, une liste Lyon…). Une
 // ville relancée complète sa liste, sans doublon.
 //
-//   1. Data-B      les établissements « Immobilier » de la commune : nom,
-//                  adresse, téléphone, mail, site, SIRET (une prospective) ;
-//   2. l'annuaire  des entreprises, par SIREN : le gérant, la création,
+//   1. Google Maps la recherche « agence immobilière » dans la ville, comme
+//                  on la ferait sur Maps : nom, adresse, téléphone et site de
+//                  la fiche. Le téléphone et le site ne viennent que de là
+//                  quand Maps les donne (5 oct. 2026 : un site déduit du mail
+//                  d'un agent envoyait « Berge Immobilier » chez CBRE) ;
+//   2. Data-B      les établissements « Immobilier » de la commune : SIRET,
+//                  mail, et les agences sans fiche Maps (une prospective) ;
+//   3. l'annuaire  des entreprises, par SIREN : le gérant, la création,
 //                  l'effectif (gratuit) ;
-//   3. Equimmox    les agents qui publient des annonces dans la ville, avec
+//   4. Equimmox    les agents qui publient des annonces dans la ville, avec
 //                  leur mail et leur téléphone, rattachés à leur agence par
-//                  son nom ou le domaine de son site ; un agent d'une agence
-//                  que Data-B ne connaît pas fait naître la sienne.
+//                  son nom, sinon par le domaine de son site ; un agent d'une
+//                  agence inconnue fait naître la sienne, sans site.
 //
 // Rien ne part vers une agence : « Au carnet » la fait entrer dans la
 // prospection (le carnet des agents, la liste du jour, Monday), d'un clic.
@@ -77,7 +82,7 @@ function resumeListe(l) {
   return {
     id: l.id, ville: l.ville, etat: l.etat, etape: l.etape || null, lancee_par: l.lancee_par || null, lancee_le: l.lancee_le || null, fini_le: l.fini_le || null,
     agences: a.length, avec_telephone: a.filter((x) => x.telephone).length, agents: a.reduce((n, x) => n + (x.agents || []).length, 0),
-    au_carnet: a.filter((x) => x.carnet_id).length, journal: (l.journal || []).slice(0, 12),
+    au_carnet: a.filter((x) => x.carnet_id).length, deja_monday: a.filter((x) => x.monday_connu).length, journal: (l.journal || []).slice(0, 12),
   };
 }
 
@@ -86,34 +91,71 @@ export const listes = () => Records.list(LISTE).sort((a, b) => a.ville.localeCom
 export function liste(id) {
   const l = Records.get(LISTE, id);
   if (!l) return null;
-  const agences = agencesDe(id).sort((a, b) => (b.annonces || 0) - (a.annonces || 0) || (b.agents || []).length - (a.agents || []).length || String(a.nom).localeCompare(String(b.nom), 'fr'));
+  // Un agent du carnet en cours d'appel (verrou tenu) : son agence porte un cadenas.
+  const carnet = new Map(Records.list('AgentImmo').map((x) => [x.id, x]));
+  const enAppel = (a) => {
+    const v = carnet.get(a.carnet_id)?.verrou;
+    return v?.par && Date.now() - Date.parse(v.le) < 30 * 60000 ? v.par : null;
+  };
+  const agences = agencesDe(id).map((a) => ({ ...a, en_appel_par: enAppel(a) })).sort((a, b) => (b.annonces || 0) - (a.annonces || 0) || (b.agents || []).length - (a.agents || []).length || String(a.nom).localeCompare(String(b.nom), 'fr'));
   return { ...resumeListe(l), lignes: agences };
 }
 
 // --- Ranger une agence, sans doublon ---------------------------------------
 
-/** L'agence déjà dans la liste : même SIRET, même téléphone, même nom ou même domaine. */
+/**
+ * L'agence déjà dans la liste : même fiche Maps, même SIRET, même téléphone,
+ * même nom, puis même domaine. Dans cet ordre : un nom dit l'agence mieux
+ * qu'un domaine, qui peut être celui d'un réseau.
+ */
 function retrouver(listeId, a) {
   const tel = normTel(a.telephone);
   const cle = cleAgence(a.nom);
   const dom = domaineDe(a.site) || domaineDe(a.email);
-  return agencesDe(listeId, { toutes: true }).find((x) => (a.siret && x.siret === a.siret)
-    || (tel && normTel(x.telephone) === tel)
-    || (cle && cle.length > 2 && cleAgence(x.nom) === cle)
-    || (dom && (domaineDe(x.site) === dom || domaineDe(x.email) === dom))) || null;
+  const toutes = agencesDe(listeId, { toutes: true });
+  return (a.place_id && toutes.find((x) => x.place_id === a.place_id))
+    || (a.siret && toutes.find((x) => x.siret === a.siret))
+    || (tel && toutes.find((x) => normTel(x.telephone) === tel))
+    || (cle && cle.length > 2 && toutes.find((x) => cleAgence(x.nom) === cle))
+    || (dom && toutes.find((x) => domaineDe(x.site) === dom || domaineDe(x.email) === dom))
+    || null;
 }
 
-export function ranger(listeId, a) {
+/**
+ * Range une agence, sans doublon. On complète ce qui manque sans écraser ;
+ * `autorite` nomme les champs que cette source tranche (Maps : le téléphone
+ * et le site), qui remplacent alors ce qu'on avait.
+ */
+export function ranger(listeId, a, { autorite = [] } = {}) {
   const deja = retrouver(listeId, a);
   if (!deja) return { agence: Records.create(AGENCE, { liste_id: listeId, agents: [], gerants: [], sources: [], ...a, cree_le: maintenant() }), nouvelle: true };
-  // On complète ce qui manque, sans écraser ce qu'on avait.
   const champs = {};
-  for (const [k, v] of Object.entries(a)) if (v != null && v !== '' && (deja[k] == null || deja[k] === '') && !Array.isArray(v)) champs[k] = v;
+  for (const [k, v] of Object.entries(a)) {
+    if (v == null || v === '' || Array.isArray(v)) continue;
+    if (autorite.includes(k) || deja[k] == null || deja[k] === '') champs[k] = v;
+  }
   champs.sources = [...new Set([...(deja.sources || []), ...(a.sources || [])])];
   return { agence: Records.update(AGENCE, deja.id, champs), nouvelle: false };
 }
 
-// --- 1. Data-B ----------------------------------------------------------------
+// --- 1. Google Maps -----------------------------------------------------------
+
+async function parMaps(l, { chercher = null } = {}) {
+  const M = await import('./agences-maps.js');
+  if (!chercher && !M.mapsConfigure()) { noter(l, "Google Maps n'est pas configuré (GOOGLE_MAPS_SERVEUR) : je passe à Data-B.", 'alerte'); return 0; }
+  Records.update(LISTE, l.id, { etape: 'Google Maps : les agences de la ville' });
+  const r = await (chercher || M.agencesDeLaVille)(l.ville, { surCase: ({ cases, lieux }) => Records.update(LISTE, l.id, { etape: `Google Maps : ${lieux} lieux, ${cases} zone${cases > 1 ? 's' : ''} lue${cases > 1 ? 's' : ''}` }) });
+  let nouvelles = 0;
+  for (const a of r.agences) {
+    if (!a.nom) continue;
+    const { nouvelle } = ranger(l.id, { ...a, site_source: a.site ? 'Google Maps' : null, sources: ['Google Maps'] }, { autorite: ['telephone', 'site', 'site_source', 'place_id', 'maps_url', 'adresse'] });
+    if (nouvelle) nouvelles += 1;
+  }
+  noter(l, `Google Maps : ${r.agences.length} agences immobilières à ${r.commune.nom} (${r.ecartes} lieux d'à côté écartés), ${nouvelles} nouvelles dans la liste ; téléphone et site de leur fiche Maps.`, 'succes');
+  return nouvelles;
+}
+
+// --- 2. Data-B ----------------------------------------------------------------
 
 async function parDataB(l, user) {
   const { dataBConfigure } = await import('../data-b.js');
@@ -154,7 +196,7 @@ async function parDataB(l, user) {
   return nouvelles;
 }
 
-// --- 2. L'annuaire des entreprises : le gérant ------------------------------
+// --- 3. L'annuaire des entreprises : le gérant ------------------------------
 
 async function parAnnuaire(l) {
   const { societe } = await import('../alx/annuaire.js');
@@ -181,7 +223,7 @@ async function parAnnuaire(l) {
   if (aLire.length) noter(l, `Annuaire des entreprises : le gérant de ${lus} agences.`, 'succes');
 }
 
-// --- 3. Equimmox : les agents qui publient ----------------------------------
+// --- 4. Equimmox : les agents qui publient ----------------------------------
 
 async function parEquimmox(l) {
   const { equimmoxConfigure, exporterAnnoncesVente } = await import('../equimmox.js');
@@ -202,9 +244,14 @@ async function parEquimmox(l) {
     if (!agent.email && !agent.telephone) continue;
     if (PAS_UNE_AGENCE.test(String(ag.agence || '').replace(/\s*\([^)]*\)\s*$/, '').trim())) continue;
     const dom = domaineDe(agent.email);
-    let a = agencesDe(l.id).find((x) => (ag.agence && cleAgence(x.nom) === cleAgence(ag.agence)) || (dom && (domaineDe(x.site) === dom || domaineDe(x.email) === dom)));
+    // Le nom d'abord : le domaine du mail d'un agent n'est pas toujours celui
+    // de l'agence où il publie (un agent CBRE pour « Berge Immobilier »).
+    const ici = agencesDe(l.id);
+    let a = (ag.agence && ici.find((x) => cleAgence(x.nom) === cleAgence(ag.agence)))
+      || (dom && ici.find((x) => domaineDe(x.site) === dom || domaineDe(x.email) === dom));
     if (!a) {
-      a = ranger(l.id, { nom: casse(ag.agence || agent.nom || agent.email), site: dom ? `https://${dom}` : null, sources: ['Equimmox'] }).agence;
+      // Jamais de site déduit d'un mail : la fiche Maps le donnera, ou rien.
+      a = ranger(l.id, { nom: casse(ag.agence || agent.nom || agent.email), sources: ['Equimmox'] }).agence;
       nees += 1;
     }
     const liste = a.agents || [];
@@ -214,6 +261,18 @@ async function parEquimmox(l) {
     rattaches += 1;
   }
   noter(l, `Equimmox : ${agents.length} agents qui publient à ${r.ville}, ${rattaches} rangés dans leur agence${nees ? ` (${nees} agences en plus)` : ''}.`, 'succes');
+}
+
+// --- 5. Monday : qui est déjà en contact ------------------------------------
+
+/** Les agences déjà en contact dans Monday sont marquées : on ne les rappelle pas comme des inconnues. */
+export async function verifierMonday(l) {
+  Records.update(LISTE, l.id, { etape: 'Monday : qui est déjà en contact' });
+  const { marquerListe } = await import('./monday-connus.js');
+  const r = await marquerListe(l.id);
+  if (!r.ok) { noter(l, `Monday non vérifié : ${r.error}`, 'alerte'); return r; }
+  noter(l, `Monday : ${r.connues} agence${r.connues > 1 ? 's' : ''} sur ${r.total} déjà en contact, marquée${r.connues > 1 ? 's' : ''} « Déjà en contact ».`, 'succes');
+  return r;
 }
 
 // --- Lancer une ville -------------------------------------------------------
@@ -232,9 +291,11 @@ export function lancer(villeBrute, user) {
   enCours.add(l.id);
   noter(l, `Je cherche les agences immobilières de ${ville} (lancé par ${user?.full_name || user?.email || "l'équipe"}).`);
   (async () => {
+    await parMaps(l).catch((e) => noter(l, `Google Maps : ${e?.message || e}`, 'alerte'));
     await parDataB(l, user).catch((e) => noter(l, `Data-B : ${e?.message || e}`, 'alerte'));
     await parAnnuaire(l).catch((e) => noter(l, `Annuaire : ${e?.message || e}`, 'alerte'));
     await parEquimmox(l).catch((e) => noter(l, `Equimmox : ${e?.message || e}`, 'alerte'));
+    await verifierMonday(l).catch((e) => noter(l, `Monday : ${e?.message || e}`, 'alerte'));
     const fin = resumeListe(Records.get(LISTE, l.id));
     noter(l, `Fini : ${fin.agences} agences, ${fin.avec_telephone} avec un numéro, ${fin.agents} agents.`, 'succes');
     Records.update(LISTE, l.id, { etat: 'fini', etape: null, fini_le: maintenant() });
@@ -243,10 +304,32 @@ export function lancer(villeBrute, user) {
   return { ok: true, liste: resumeListe(Records.get(LISTE, l.id)) };
 }
 
+/**
+ * Supprime la liste d'une ville et ses lignes. Ce qui est entré au carnet y
+ * reste : le carnet, la liste du jour et Monday ne dépendent pas d'elle.
+ */
+export function supprimerListe(id) {
+  const l = Records.get(LISTE, id);
+  if (!l) return { ok: false, error: 'Liste introuvable.' };
+  if (enCours.has(id)) return { ok: false, error: `L'agent cherche encore à ${l.ville} : attendez la fin pour supprimer la liste.` };
+  const lignes = agencesDe(id, { toutes: true });
+  for (const a of lignes) Records.delete(AGENCE, a.id);
+  Records.delete(LISTE, id);
+  return { ok: true, ville: l.ville, agences: lignes.length };
+}
+
 /** Au démarrage du serveur : une liste restée « en cours » ne l'est plus. */
 export function reprendre() {
   for (const l of Records.list(LISTE).filter((x) => x.etat === 'en_cours')) Records.update(LISTE, l.id, { etat: 'interrompue', etape: null });
+  // Les sites déduits du mail d'un agent (avant le 5 oct. 2026) n'en sont
+  // pas : ils passent dans `site_mail`, la fiche Maps donnera le vrai.
+  for (const a of Records.list(AGENCE)) {
+    const sources = a.sources || [];
+    if (a.site && !a.site_source && sources.length && sources.every((s) => s === 'Equimmox')) Records.update(AGENCE, a.id, { site: null, site_mail: a.site });
+  }
 }
+
+export { parMaps as _parMaps };
 
 // --- Au carnet ----------------------------------------------------------------
 

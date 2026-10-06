@@ -18,8 +18,9 @@ function Card({ title, children }) {
 
 function Kpi({ label, value, accent = "text-encre" }) {
   return (
-    <div className="flex-1 px-4 py-3 min-w-0">
-      <p className="text-[11px] uppercase tracking-[0.16em] text-ardoise font-medium truncate">{label}</p>
+    // Au téléphone, deux par rangée : six tuiles sur une ligne se tronquaient.
+    <div className="flex-1 max-md:basis-1/2 max-md:border-b max-md:border-trait px-4 py-3 min-w-0">
+      <p className="text-[11px] uppercase tracking-[0.16em] max-md:tracking-[0.1em] text-ardoise font-medium truncate">{label}</p>
       <p className={`text-lg font-medium tabular-nums mt-1 truncate ${accent}`}>{value}</p>
     </div>
   );
@@ -99,10 +100,10 @@ export default function SimParametresAvances({ values, advanced, calculs, format
               {Array.from({ length: 25 }, (_, i) => i + 1).map((y) => <SelectItem key={y} value={String(y)}>An {y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs w-24 rounded-md" />
+          <Input type="number" min="0" max="12" placeholder="mois" value={vacMois} onChange={(e) => setVacMois(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs max-md:text-[16px] w-24 rounded-md" />
           <button
             onClick={() => { if (vacMois) { const n = [...advanced.vacancesLocatives]; n[vacYear - 1] = Number(vacMois); advanced.setVacancesLocatives(n); setVacMois(""); } }}
-            className="w-8 h-8 rounded-md bg-menthe text-black flex items-center justify-center"
+            className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-md bg-menthe text-black flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">
@@ -122,10 +123,10 @@ export default function SimParametresAvances({ values, advanced, calculs, format
               {Array.from({ length: 25 }, (_, i) => i + 1).map((y) => <SelectItem key={y} value={String(y)}>An {y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs w-28 rounded-md" />
+          <Input type="number" placeholder="€" value={travauxMontant} onChange={(e) => setTravauxMontant(e.target.value)} className="bg-fond text-encre border-trait h-8 text-xs max-md:text-[16px] w-28 rounded-md" />
           <button
             onClick={() => { if (travauxMontant) { const n = [...advanced.travauxBailleur]; n[travauxYear - 1] = Number(travauxMontant); advanced.setTravauxBailleur(n); setTravauxMontant(""); } }}
-            className="w-8 h-8 rounded-md bg-menthe text-black flex items-center justify-center"
+            className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-md bg-menthe text-black flex items-center justify-center"
           ><Plus className="w-4 h-4" /></button>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-3">

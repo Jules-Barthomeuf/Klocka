@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { RotateCw } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { useSecteurProjet, nf } from "@/components/projet/SecteurChiffres";
 import { trancheSurface } from "@/components/projet/MarcheProjet";
 import { FField, FInput } from "./FormField";
@@ -52,6 +55,23 @@ export default function MarcheCases({ formData, setFormData, projetId = null }) 
   const r = donnees?.residentiel;
   const rue = donnees?.rue;
   const tranche = trancheSurface(formData.sim_surface || formData.surface_m2);
+  const queryClient = useQueryClient();
+  const [relance, setRelance] = useState(null);
+
+  // Relancer l'analyse du loyer : Equimmox (et Data-B en repli) sans leur
+  // cache de trente jours. Le serveur répond tout de suite, la recherche
+  // tourne derrière ; la page et ce panneau repassent tant qu'elle dure.
+  const relancerLoyer = async () => {
+    setRelance("envoi");
+    try {
+      const reponse = await base44.request("GET", `/api/projects/${projetId}/secteur?relancer_loyer=1`);
+      queryClient.setQueriesData({ queryKey: ["secteur-projet", projetId] }, reponse);
+      setRelance(null);
+    } catch (e) {
+      setRelance(e?.message || "La relance n'est pas partie.");
+    }
+  };
+  const enCours = relance === "envoi" || !!donnees?.en_cours;
 
   return (
     <div className="space-y-5">
@@ -79,18 +99,35 @@ export default function MarcheCases({ formData, setFormData, projetId = null }) 
         <div className="mb-1.5 text-[11px] uppercase tracking-[.16em] text-ardoise">Commercial</div>
         <p className="m-0 mb-2.5 text-[11.5px] leading-[1.5] text-brume">
           {tranche
-            ? `Lus sur des locaux de ${nf.format(tranche.bas)} à ${nf.format(tranche.haut)} m², soit la surface du projet à 30 % près. Le client voit cette tranche en passant la souris sur le chiffre.`
-            : "Renseignez la surface du bien pour que la tranche de comparaison s'affiche."}
+            ? `Baux constatés par Equimmox à 500 m, sur des locaux de ${nf.format(tranche.bas)} à ${nf.format(tranche.haut)} m², soit la surface du projet à 20 % près.`
+            : "Baux constatés par Equimmox à 500 m. Renseignez la surface du bien : la recherche porte sur les locaux à 20 % près."}
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <Case label="Prix des murs autour" unite="€/m²" champ="marche_commercial_prix_m2" formData={formData} setFormData={setFormData} reference={rue?.prix_m2 ?? null} sourceMot={rue?.prix_m2_source || "DVF"} />
-          <Case label="Loyer moyen des baux existants" unite="€/m²/an · à saisir, aucune source ne le publie" champ="marche_baux_moyenne" formData={formData} setFormData={setFormData} reference={null} />
-          <Case label="Loyer moyen à l'offre" unite="€/m²/an" champ="marche_offre_moyenne" formData={formData} setFormData={setFormData} reference={rue?.loyer_m2_an ?? null} sourceMot="ALX" />
+          <Case label="Loyer moyen autour" unite="€/m²/an" champ="marche_loyer_autour" formData={formData} setFormData={setFormData} reference={rue?.loyer_m2_an ?? null} sourceMot={rue?.loyer_source || "Equimmox"} />
         </div>
+        {projetId && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <button type="button" onClick={relancerLoyer} disabled={enCours || !formData.adresse_complete}
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-craie transition-colors hover:border-menthe hover:text-encre disabled:opacity-50 disabled:hover:border-trait disabled:hover:text-craie"
+              style={{ background: "transparent" }}>
+              <RotateCw className={`h-4 w-4 ${enCours ? "animate-spin" : ""}`} />
+              {enCours ? "Analyse du loyer en cours" : "Relancer l'analyse du loyer"}
+            </button>
+            <span className="text-[11.5px] leading-[1.5] text-brume">
+              {enCours
+                ? "Equimmox, environ une minute, sur la surface enregistrée du projet."
+                : typeof relance === "string" && relance !== "envoi"
+                  ? relance
+                  : rue?.le
+                    ? `Dernière lecture ${rue.loyer_source || "Equimmox"} le ${new Date(rue.le).toLocaleDateString("fr-FR")}.`
+                    : !formData.adresse_complete ? "Renseignez l'adresse du bien." : "Aucune lecture encore."}
+            </span>
+          </div>
+        )}
       </div>
 
       <p className="m-0 text-[11.5px] leading-[1.5] text-brume">
-        Le prix et le loyer du projet au m² se déduisent du Simulateur ; on les force au clic sur la page.
+        Le loyer du projet au m² se déduit du Simulateur ; on le force au clic sur la page.
       </p>
     </div>
   );

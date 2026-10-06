@@ -76,12 +76,34 @@ const RECONNAITRE = [
  * « prenom », « champs.budget », « tags » ou « ignorer »). Une colonne sans
  * en-tête qui porte des adresses devient l'email.
  */
+// Les intitulés tels qu'ils arrivent dans les fichiers : « Adresse e-mail »,
+// « Prénom du contact », « Nom de l'entreprise ». Après les noms exacts, ces
+// motifs, dans cet ordre : l'entreprise passe avant le nom, le prénom aussi.
+const MOTIFS = [
+  ['email', /\b(e ?mail|mail|courriel)\b/],
+  ['prenom', /\b(prenom|first ?name)\b/],
+  ['entreprise', /\b(entreprise|societe|company|organisation|organization|raison sociale|cabinet|agence)\b/],
+  ['nom', /^(nom|last ?name|surname|nom de famille|nom famille)$|\bnom\b|\blast ?name\b/],
+  ['ville', /\b(ville|city|commune|localite)\b/],
+  ['tags', /\b(tags?|etiquettes?)\b/],
+  ['type', /\b(type|categorie|profil)\b/],
+];
+
+/** Pure : ce qu'un intitulé de colonne désigne, ou null. */
+export function cibleDeEntete(h) {
+  const t = sansAccent(h);
+  const exact = RECONNAITRE.find(([, noms]) => noms.includes(t))?.[0];
+  if (exact) return exact;
+  const mots = t.replace(/[^a-z0-9]+/g, ' ').trim();
+  return MOTIFS.find(([, motif]) => motif.test(mots))?.[0] || null;
+}
+
 export function proposerCorrespondance({ entetes, lignes }, champs = []) {
   const pris = new Set();
   return entetes.map((h, i) => {
     const t = sansAccent(h);
-    let choix = RECONNAITRE.find(([, noms]) => noms.includes(t))?.[0]
-      || champs.find((c) => sansAccent(c.libelle) === t || c.cle === t)?.cle && `champs.${champs.find((c) => sansAccent(c.libelle) === t || c.cle === t).cle}`
+    let choix = champs.find((c) => sansAccent(c.libelle) === t || c.cle === t)?.cle && `champs.${champs.find((c) => sansAccent(c.libelle) === t || c.cle === t).cle}`
+      || cibleDeEntete(h)
       || null;
     if (!choix && lignes.slice(0, 20).some((l) => EMAIL.test(l[i] || ''))) choix = 'email';
     if (!choix || pris.has(choix)) return 'ignorer';

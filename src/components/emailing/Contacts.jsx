@@ -37,84 +37,66 @@ function exporterCsv(contacts) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// L'import (6 oct. 2026, demande de Jules) : nos fichiers portent toujours
+// prénom, nom, email… en en-tête. Les colonnes se reconnaissent d'elles-mêmes
+// et le fichier s'importe dès qu'on le choisit, dans la liste qui porte son
+// nom (ou celle qu'on a tapée avant). Plus d'étape de correspondance.
 function Import({ onFermer }) {
   const queryClient = useQueryClient();
   const { data: ref } = useReferentiel();
   const [texte, setTexte] = useState("");
-  const [analyse, setAnalyse] = useState(null);
-  const [corr, setCorr] = useState([]);
   const [liste, setListe] = useState("");
   const [tags, setTags] = useState("");
   const [conversion, setConversion] = useState(false);
-  const lireFichier = async (f) => {
-    if (!f) return;
-    if (!/\.(xlsx|xls)$/i.test(f.name)) { const r = new FileReader(); r.onload = () => setTexte(String(r.result || "")); r.readAsText(f); return; }
-    setConversion(true);
-    try {
-      const form = new FormData();
-      form.append("fichier", f, f.name);
-      const r = await base44.request("POST", `${API}/contacts/convertir`, { body: form, isForm: true });
-      setTexte(r.csv || "");
-      if (!liste) setListe(f.name.replace(/\.(xlsx|xls)$/i, ""));
-      toast.success(`${f.name} converti en CSV`, { description: pluriel(r.lignes, "ligne") });
-    } catch (e) { toast.error(e?.message || "Fichier Excel illisible"); } finally { setConversion(false); }
-  };
-  const analyser = useMutation({ mutationFn: () => req("POST", "/contacts/analyser", { texte }), onSuccess: (r) => { setAnalyse(r); setCorr(r.correspondance); }, onError: (e) => toast.error(e?.message || "Lecture impossible") });
   const importer = useMutation({
-    mutationFn: () => req("POST", "/contacts/importer", { texte, correspondance: corr, liste: liste || null, tags: tags.split(",").map((t) => t.trim()).filter(Boolean) }),
+    mutationFn: ({ csv, nomListe }) => req("POST", "/contacts/importer", { texte: csv, auto: true, liste: nomListe || null, tags: tags.split(",").map((t) => t.trim()).filter(Boolean) }),
     onSuccess: (r) => {
-      toast.success(`${pluriel(r.nouveaux, "contact ajouté", "contacts ajoutés")}, ${pluriel(r.mis_a_jour, "mis à jour", "mis à jour")}`, { description: r.invalides ? `${pluriel(r.invalides, "ligne sans adresse valable", "lignes sans adresse valable")}, écartée${r.invalides > 1 ? "s" : ""}.` : undefined });
+      if (r?.ok === false) { toast.error(r.error || "Import impossible"); return; }
+      toast.success(`${pluriel(r.nouveaux, "contact ajouté", "contacts ajoutés")}, ${pluriel(r.mis_a_jour, "mis à jour", "mis à jour")}${r.liste ? ` dans « ${r.liste} »` : ""}`, { description: r.invalides ? `${pluriel(r.invalides, "ligne sans adresse valable", "lignes sans adresse valable")}, écartée${r.invalides > 1 ? "s" : ""}.` : undefined });
       ["emailing-contacts", "emailing-referentiel", "emailing-contacts-apercu"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
       onFermer();
     },
     onError: (e) => toast.error(e?.message || "Import impossible"),
   });
-  const cibles = [["ignorer", "Ignorer"], ["email", "Email"], ["prenom", "Prénom"], ["nom", "Nom"], ["entreprise", "Entreprise"], ["ville", "Ville"], ["type", "Type (lead, client, mandataire, partenaire)"], ["tags", "Tags (séparés par des virgules)"], ...(ref?.champs || []).map((c) => [`champs.${c.cle}`, c.libelle])];
+  const occupe = conversion || importer.isPending;
+  const lireFichier = async (f) => {
+    if (!f) return;
+    // La liste : celle qu'on a tapée, sinon le nom du fichier.
+    const nomListe = liste.trim() || f.name.replace(/\.(xlsx|xls|csv|txt)$/i, "");
+    if (!/\.(xlsx|xls)$/i.test(f.name)) {
+      const r = new FileReader();
+      r.onload = () => importer.mutate({ csv: String(r.result || ""), nomListe });
+      r.readAsText(f);
+      return;
+    }
+    setConversion(true);
+    try {
+      const form = new FormData();
+      form.append("fichier", f, f.name);
+      const r = await base44.request("POST", `${API}/contacts/convertir`, { body: form, isForm: true });
+      importer.mutate({ csv: r.csv || "", nomListe });
+    } catch (e) { toast.error(e?.message || "Fichier Excel illisible"); } finally { setConversion(false); }
+  };
   return (
     <Fenetre titre="Importer des contacts" onFermer={onFermer} large
-      pied={analyse
-        ? <><button type="button" className={bouton} onClick={() => setAnalyse(null)}>Retour</button><button type="button" className={boutonPlein} disabled={importer.isPending || !corr.includes("email")} onClick={() => importer.mutate()}>{importer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}Importer {analyse.total} ligne{analyse.total > 1 ? "s" : ""}</button></>
-        : <><button type="button" className={bouton} onClick={onFermer}>Annuler</button><button type="button" className={boutonPlein} disabled={!texte.trim() || analyser.isPending} onClick={() => analyser.mutate()}>Suivant : les colonnes</button></>}>
-      {!analyse ? (
-        <>
-          <p className="m-0 text-[13px] text-ardoise">Collez l'export (une adresse par ligne, ou un tableau avec en-tête), ou choisissez un fichier Excel ou CSV.</p>
-          <label className={`${bouton} mt-3 cursor-pointer`}>
-            {conversion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Fichier Excel ou CSV
-            <input type="file" accept=".xlsx,.xls,.csv,.txt,text/csv" className="hidden" onChange={(e) => { lireFichier(e.target.files?.[0]); e.target.value = ""; }} />
-          </label>
-          <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={10} placeholder={"email;prénom;nom;ville\nmarie.durand@exemple.fr;Marie;Durand;Lyon"}
-            className="mt-3 w-full rounded-[12px] border border-trait bg-surface px-3 py-2.5 font-mono text-[12.5px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
-        </>
-      ) : (
-        <>
-          <p className="m-0 text-[13px] text-ardoise">À quoi correspond chaque colonne ? Une adresse déjà connue est mise à jour, jamais dupliquée, et garde son statut.</p>
-          <div className="mt-3 overflow-x-auto rounded-[12px] border border-trait">
-            <table className="w-full text-[12.5px]">
-              <thead>
-                <tr>{analyse.entetes.map((h, i) => (
-                  <th key={i} className="min-w-[150px] border-b border-trait px-3 py-2 text-left font-normal">
-                    <span className="block truncate text-craie">{h}</span>
-                    <select value={corr[i]} onChange={(e) => setCorr((c) => c.map((x, k) => (k === i ? e.target.value : x)))} className="mt-1 h-8 w-full rounded-[8px] border border-trait bg-surface px-2 text-encre outline-none max-md:h-10 max-md:text-[16px]">
-                      {cibles.map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
-                    </select>
-                  </th>
-                ))}</tr>
-              </thead>
-              <tbody>{analyse.apercu.map((l, r) => <tr key={r} className="border-t border-trait">{analyse.entetes.map((_, i) => <td key={i} className={`truncate px-3 py-1.5 ${corr[i] === "ignorer" ? "text-brume" : "text-encre"}`}>{l[i]}</td>)}</tr>)}</tbody>
-            </table>
-          </div>
-          {!corr.includes("email") && <p className="m-0 mt-2 text-[12.5px] text-alerte">Choisissez la colonne de l'email.</p>}
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <label className={etiquette}>Ajouter à la liste (facultatif)
-              <input list="import-listes" value={liste} onChange={(e) => setListe(e.target.value)} placeholder="ex. Webinaire 12 oct." className={`${champ} mt-1.5`} />
-              <datalist id="import-listes">{(ref?.listes || []).map((l) => <option key={l.id} value={l.nom} />)}</datalist>
-            </label>
-            <label className={etiquette}>Tags à poser (séparés par des virgules)
-              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="ex. webinaire-oct" className={`${champ} mt-1.5`} />
-            </label>
-          </div>
-        </>
-      )}
+      pied={<><button type="button" className={bouton} onClick={onFermer}>Annuler</button><button type="button" className={boutonPlein} disabled={!texte.trim() || occupe} onClick={() => importer.mutate({ csv: texte, nomListe: liste.trim() })}>{importer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}Importer le texte collé</button></>}>
+      <p className="m-0 text-[13px] text-ardoise">Choisissez le fichier : chaque contact entre aussitôt dans la liste, prénom, nom, email et le reste repris de ses colonnes. Une adresse déjà connue est mise à jour, jamais dupliquée, et garde son statut.</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className={etiquette}>Liste (sinon, le nom du fichier)
+          <input list="import-listes" value={liste} onChange={(e) => setListe(e.target.value)} placeholder="ex. Webinaire 12 oct." className={`${champ} mt-1.5`} />
+          <datalist id="import-listes">{(ref?.listes || []).map((l) => <option key={l.id} value={l.nom} />)}</datalist>
+        </label>
+        <label className={etiquette}>Tags à poser (séparés par des virgules)
+          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="ex. webinaire-oct" className={`${champ} mt-1.5`} />
+        </label>
+      </div>
+      <label className={`${boutonPlein} mt-4 cursor-pointer ${occupe ? "pointer-events-none opacity-60" : ""}`}>
+        {occupe ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{conversion ? "Lecture du fichier…" : importer.isPending ? "Import en cours…" : "Choisir le fichier Excel ou CSV"}
+        <input type="file" accept=".xlsx,.xls,.csv,.txt,text/csv" className="hidden" disabled={occupe} onChange={(e) => { lireFichier(e.target.files?.[0]); e.target.value = ""; }} />
+      </label>
+      <p className="m-0 mt-5 text-[12.5px] text-brume">Ou collez un tableau avec son en-tête :</p>
+      <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={6} placeholder={"email;prénom;nom;ville\nmarie.durand@exemple.fr;Marie;Durand;Lyon"}
+        className="mt-2 w-full rounded-[12px] border border-trait bg-surface px-3 py-2.5 font-mono text-[12.5px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
     </Fenetre>
   );
 }

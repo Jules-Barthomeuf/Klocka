@@ -1,0 +1,8 @@
+/* L'aperçu éditable de l'éditeur d'email : cliquer un texte l'édite sur
+   place, directement dans le rendu (comme la LOI). Teintes fixes, pas les
+   jetons du thème Klocka : la carte reprend la palette de l'email lui-même
+   (claire, menthe ou sombre), qui n'a rien à voir avec le thème de l'admin. */
+.k-email-editable { border-radius: 4px; outline: none; cursor: text; transition: background-color 120ms, box-shadow 120ms; }
+.k-email-editable:hover { background: rgba(127, 168, 152, 0.12); }
+.k-email-editable:focus { background: rgba(127, 168, 152, 0.18); box-shadow: 0 0 0 2px rgba(127, 168, 152, 0.4); }
+.k-email-editable:empty::before { content: attr(data-placeholder); opacity: .4; }

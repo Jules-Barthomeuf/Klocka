@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Braces, Copy, Eye, Filter, GripVertical, Loader2, Monitor, Plus, Save, Smartphone, Sparkles, Trash2, X } from "lucide-react";
-import { THEMES, TYPES_BLOCS, VARIABLES, blocNeuf, rendreEmail } from "@/lib/email-design";
+import { THEMES, TYPES_BLOCS, VARIABLES, blocNeuf, rendreEmail, styles as stylesDuTheme } from "@/lib/email-design";
+import "./email-editable.css";
 import { toast } from "@/components/ui/avis";
 import { req, useReferentiel, useSansDefilement, useTelephone, bouton, boutonPlein, champ } from "./commun";
 
@@ -21,6 +22,103 @@ const LIMITE_APERCU = 110;
 
 function Compteur({ n, max }) {
   return <span className={`flex-none text-[11.5px] tabular-nums ${n > max ? "text-ambre" : "text-brume"}`}>{n}/{max}</span>;
+}
+
+// ---------------------------------------------------------------------------
+// L'aperçu éditable : chaque texte se modifie en cliquant dedans, directement
+// dans le rendu — comme la LOI (EditeurLoi.jsx). Les champs { prenom }} ne
+// sont jamais remplacés ici : on édite le modèle brut, pas un exemple ; les
+// voir substitués est le rôle de « Visualiser ».
+// ---------------------------------------------------------------------------
+
+const echapperDom = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** Pure : du markdown (**gras**, retours à la ligne) vers du HTML sûr. */
+function versHtmlGras(texte) {
+  return String(texte ?? "").split(/(\*\*[^*]+\*\*)/).filter(Boolean)
+    .map((x) => (x.startsWith("**") && x.endsWith("**") ? `<strong>${echapperDom(x.slice(2, -2))}</strong>` : echapperDom(x).replace(/\n/g, "<br>")))
+    .join("");
+}
+
+/** Pure : le DOM d'un bloc contentEditable vers du markdown. */
+function versTexteDeDom(el) {
+  let t = "";
+  const marcher = (n) => {
+    if (n.nodeType === 3) { t += n.textContent; return; }
+    const nom = n.nodeName;
+    if (nom === "BR") { t += "\n"; return; }
+    const gras = nom === "STRONG" || nom === "B";
+    if ((nom === "DIV" || nom === "P") && t && !t.endsWith("\n")) t += "\n";
+    if (gras) t += "**";
+    n.childNodes.forEach(marcher);
+    if (gras) t += "**";
+  };
+  el.childNodes.forEach(marcher);
+  return t.replace(/\u00a0/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Un texte qu'on modifie en cliquant dedans ; Échap annule la frappe en cours. */
+function TexteDirect({ valeur, onGarde, registrer, blocId, style, as: Balise = "p", placeholder = "" }) {
+  const ref = useRef(null);
+  return (
+    <Balise ref={ref} style={style} className="k-email-editable" data-placeholder={placeholder}
+      contentEditable suppressContentEditableWarning spellCheck
+      onFocus={() => registrer(ref.current, onGarde, blocId)}
+      onBlur={() => { const t = versTexteDeDom(ref.current); if (t !== String(valeur || "")) onGarde(t); }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") { ref.current.innerHTML = versHtmlGras(valeur); ref.current.blur(); }
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") { e.preventDefault(); document.execCommand("bold"); }
+      }}
+      dangerouslySetInnerHTML={{ __html: versHtmlGras(valeur) }} />
+  );
+}
+
+/**
+ * Le corps de l'email, rendu et modifiable sur place, dans la palette du
+ * design choisi (THEMES). Un clic dans un texte l'édite ; les champs {{…}}
+ * ne sont jamais remplacés par un exemple ici.
+ */
+function PreviewEditable({ design, blocs, onChangeBloc, registrer, onChoisirBloc, logo, expediteur, desinscription = true }) {
+  const s = stylesDuTheme(design?.theme);
+  // Image et séparateur n'ont pas de texte : un clic les choisit simplement
+  // pour l'AK, sans ouvrir de champ d'édition.
+  const choisir = (id) => () => onChoisirBloc(id);
+  return (
+    <div style={{ ...s.page, minHeight: "100%" }}>
+      <div style={{ ...s.carte, position: "relative" }}>
+        {design?.logo !== false && logo && <img src={logo} alt="Klocka" width={40} height={40} style={{ ...s.logo, borderRadius: 10 }} />}
+        {blocs.map((b) => {
+          const garder = (v) => onChangeBloc({ ...b, texte: v });
+          if (b.type === "titre") return <TexteDirect key={b.id} blocId={b.id} registrer={registrer} as="h1" style={s.titre} valeur={b.texte} placeholder="Un titre" onGarde={garder} />;
+          if (b.type === "signature") return <TexteDirect key={b.id} blocId={b.id} registrer={registrer} as="p" style={s.signature} valeur={b.texte} placeholder="La signature" onGarde={garder} />;
+          if (b.type === "separateur") return <hr key={b.id} style={{ ...s.separateur, cursor: "pointer" }} onClick={choisir(b.id)} />;
+          if (b.type === "bouton") return (
+            <div key={b.id} style={s.zoneBouton}>
+              <TexteDirect blocId={b.id} registrer={registrer} as="span" style={s.bouton} valeur={b.texte} placeholder="Le bouton" onGarde={garder} />
+            </div>
+          );
+          if (b.type === "image") return b.src
+            ? <img key={b.id} src={b.src} alt="" style={{ ...s.image, cursor: "pointer" }} onClick={choisir(b.id)} />
+            : <div key={b.id} onClick={choisir(b.id)} className="mb-5 grid h-28 cursor-pointer place-items-center rounded-[10px] border border-dashed border-bord-doux text-[13px] text-ardoise">Cliquez pour poser l'image (à gauche)</div>;
+          if (b.type === "citation") return (
+            <blockquote key={b.id} style={s.citation}>
+              <TexteDirect blocId={b.id} registrer={registrer} as="span" style={{}} valeur={b.texte} placeholder="Une citation" onGarde={garder} />
+              <TexteDirect blocId={b.id} registrer={registrer} as="span" style={s.auteur} valeur={b.auteur} placeholder="— l'auteur" onGarde={(v) => onChangeBloc({ ...b, auteur: v })} />
+            </blockquote>
+          );
+          if (b.type === "colonnes") return (
+            <table key={b.id} role="presentation" width="100%" cellPadding={0} cellSpacing={0} style={{ margin: "0 0 20px" }}><tbody><tr>
+              <td style={{ ...s.colonne, paddingRight: 12 }}><TexteDirect blocId={b.id} registrer={registrer} as="div" style={{}} valeur={b.gauche} placeholder="À gauche" onGarde={(v) => onChangeBloc({ ...b, gauche: v })} /></td>
+              <td style={{ ...s.colonne, paddingLeft: 12 }}><TexteDirect blocId={b.id} registrer={registrer} as="div" style={{}} valeur={b.droite} placeholder="À droite" onGarde={(v) => onChangeBloc({ ...b, droite: v })} /></td>
+            </tr></tbody></table>
+          );
+          return <TexteDirect key={b.id} blocId={b.id} registrer={registrer} as="p" style={s.texte} valeur={b.texte} placeholder="Votre texte" onGarde={garder} />;
+        })}
+        {!blocs.length && <p style={{ ...s.texte, opacity: .5 }}>Ajoutez un bloc à gauche.</p>}
+      </div>
+      {desinscription && <p style={s.pied}>Klocka · murs commerciaux<br />Vous recevez ce mail après votre inscription. <span style={s.lienPied}>Se désinscrire</span></p>}
+    </div>
+  );
 }
 
 const vars = (c) => ({ prenom: c.prenom || "", nom: c.nom || "", entreprise: c.entreprise || "", ville: c.ville || "", email: c.email || "", lien: "https://klocka.immo/Bienvenue", expediteur: "Jules", ...(c.champs || {}) });
@@ -139,7 +237,7 @@ function MenuVariable({ variables, onInserer, onFermer }) {
 }
 
 /** L'email tel qu'il partira, au milieu de la page. Échap ou un clic dehors referment. */
-function Visualisation({ html, objet, apercu, expediteur, onFermer }) {
+function Visualisation({ html, objet, apercu, expediteur, contacts, vu, onVu, onFermer }) {
   const [largeur, setLargeur] = useState("ordinateur");
   useSansDefilement(true);
   useEffect(() => {
@@ -158,6 +256,10 @@ function Visualisation({ html, objet, apercu, expediteur, onFermer }) {
             <div className="truncate text-[15px] text-encre">{objet || <span className="text-brume">Sans objet</span>}</div>
             {apercu && <div className="truncate text-ardoise">{apercu}</div>}
           </div>
+          <select value={vu} onChange={(e) => onVu(e.target.value)} className="h-8 max-w-[200px] flex-none rounded-[8px] border border-trait bg-surface px-2 text-[12.5px] text-encre outline-none max-md:max-w-[140px]">
+            <option value="">Exemple (Marie Durand)</option>
+            {contacts.map((c) => <option key={c.id} value={c.id}>{[c.prenom, c.nom].filter(Boolean).join(" ") || c.email}</option>)}
+          </select>
           <div className="inline-flex flex-none gap-0.5 rounded-full border border-trait p-0.5">
             <button type="button" className={pilule(largeur === "ordinateur")} onClick={() => setLargeur("ordinateur")} aria-label="Largeur ordinateur" title="Ordinateur"><Monitor className="h-3.5 w-3.5" /></button>
             <button type="button" className={pilule(largeur === "telephone")} onClick={() => setLargeur("telephone")} aria-label="Largeur téléphone" title="Téléphone"><Smartphone className="h-3.5 w-3.5" /></button>
@@ -295,10 +397,19 @@ export default function EditeurEmail({ email, onChange, expediteur = "L'équipe 
     setMenuVar(false);
     if (!f?.el) { toast.error("Cliquez d'abord dans l'objet, l'aperçu ou un texte."); return; }
     const { el } = f;
-    const debut = el.selectionStart ?? el.value.length;
-    const fin = el.selectionEnd ?? el.value.length;
-    f.appliquer(`${el.value.slice(0, debut)}${texte}${el.value.slice(fin)}`);
-    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(debut + texte.length, debut + texte.length); });
+    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+      const debut = el.selectionStart ?? el.value.length;
+      const fin = el.selectionEnd ?? el.value.length;
+      f.appliquer(`${el.value.slice(0, debut)}${texte}${el.value.slice(fin)}`);
+      requestAnimationFrame(() => { el.focus(); el.setSelectionRange(debut + texte.length, debut + texte.length); });
+      return;
+    }
+    // Un texte édité sur place (contentEditable) : on replace le curseur où il
+    // était au moment d'ouvrir le menu (les clics du menu ont pu le déplacer),
+    // puis on insère ; le commit normal (au blur) la garde.
+    el.focus();
+    if (f.range) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(f.range); }
+    document.execCommand("insertText", false, texte);
   };
 
   const glisser = (i) => ({
@@ -342,7 +453,14 @@ export default function EditeurEmail({ email, onChange, expediteur = "L'équipe 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setMenuVar((v) => !v)} className={`${bouton} h-8 text-[12.5px]`}><Braces className="h-3.5 w-3.5" />Insérer une variable</button>
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => {
+              const f = focus.current;
+              if (f?.el && !["INPUT", "TEXTAREA"].includes(f.el.tagName)) {
+                const sel = window.getSelection();
+                f.range = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+              }
+              setMenuVar((v) => !v);
+            }} className={`${bouton} h-8 text-[12.5px]`}><Braces className="h-3.5 w-3.5" />Insérer une variable</button>
             {menuVar && <MenuVariable variables={listeVars} onInserer={inserer} onFermer={() => setMenuVar(false)} />}
           </div>
           <span className="text-[12px] text-brume">**gras** dans les textes</span>
@@ -385,14 +503,10 @@ export default function EditeurEmail({ email, onChange, expediteur = "L'équipe 
             </label>
           </div>
 
-          {/* L'aperçu en direct. */}
+          {/* L'aperçu, modifiable sur place : un clic dans un texte l'édite. */}
           <div className="flex min-h-0 flex-col bg-rail">
             <div className="flex flex-wrap items-center gap-2 border-b border-trait px-4 py-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[12.5px] text-ardoise"><Eye className="h-3.5 w-3.5" />Voir en tant que</span>
-              <select value={vu} onChange={(e) => setVu(e.target.value)} className="h-8 max-w-[260px] rounded-[8px] border border-trait bg-surface px-2 text-[12.5px] text-encre outline-none max-md:h-10 max-md:min-w-0 max-md:flex-1 max-md:text-[16px]">
-                <option value="">Exemple (Marie Durand)</option>
-                {(lesContacts?.contacts || []).map((c) => <option key={c.id} value={c.id}>{[c.prenom, c.nom].filter(Boolean).join(" ") || c.email}{c.prenom || c.nom ? ` · ${c.email}` : ""}</option>)}
-              </select>
+              <span className="text-[12.5px] text-ardoise">Cliquez un texte pour le modifier</span>
               <div className="ml-auto inline-flex gap-0.5 rounded-full border border-trait p-0.5">
                 <button type="button" className={pilule(largeur === "ordinateur")} onClick={() => setLargeur("ordinateur")} aria-label="Largeur ordinateur"><Monitor className="h-3.5 w-3.5" /></button>
                 <button type="button" className={pilule(largeur === "telephone")} onClick={() => setLargeur("telephone")} aria-label="Largeur téléphone"><Smartphone className="h-3.5 w-3.5" /></button>
@@ -400,14 +514,17 @@ export default function EditeurEmail({ email, onChange, expediteur = "L'équipe 
             </div>
             <div className="border-b border-trait px-4 py-2 text-[12.5px]">
               <div className="truncate text-ardoise">De <span className="text-craie">{expediteur}</span></div>
-              <div className="truncate text-[13.5px] font-medium text-encre">{objetVu || <span className="text-brume">Sans objet</span>}</div>
+              <div className="truncate text-[13.5px] font-medium text-encre">{email?.objet || <span className="text-brume">Sans objet</span>}</div>
             </div>
             <div className="flex min-h-0 flex-1 justify-center overflow-y-auto p-4 max-md:px-3">
-              <iframe title="Aperçu de l'email" srcDoc={html} className="h-full min-h-[560px] rounded-[12px] border border-trait bg-white transition-[width] max-md:max-w-full" style={{ width: largeur === "telephone" ? 390 : "100%" }} />
+              <div className="h-fit w-full overflow-hidden rounded-[12px] border border-trait bg-white transition-[max-width]" style={{ maxWidth: largeur === "telephone" ? 390 : "100%" }}>
+                <PreviewEditable design={design} blocs={blocs} onChangeBloc={remplacerBloc} registrer={noterFocus} onChoisirBloc={setActif}
+                  logo="/icones/icone-192.png" expediteur={expediteur} desinscription={desinscription} />
+              </div>
             </div>
           </div>
         </div>
-        {visualiser && <Visualisation html={html} objet={objetVu} apercu={email?.apercu} expediteur={expediteur} onFermer={() => setVisualiser(false)} />}
+        {visualiser && <Visualisation html={html} objet={objetVu} apercu={email?.apercu} expediteur={expediteur} contacts={lesContacts?.contacts || []} vu={vu} onVu={setVu} onFermer={() => setVisualiser(false)} />}
         {avecAK && ak && (() => {
           const panneau = (
             <PanneauAK email={email} bloc={blocActif} onFermer={() => setAk(false)}

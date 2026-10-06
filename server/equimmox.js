@@ -5,8 +5,9 @@
 // liés à la version de l'application, on ne peut pas les rejouer en HTTP comme
 // avec un simple cookie. Klocka pilote donc un vrai navigateur, sans écran, et refait le
 // parcours que l'équipe suivait à la main : Analyse → Analyse de loyer →
-// l'adresse, la suggestion, le rayon à 500 m, la surface à ±20 %, Lancer, puis
-// lire Bas, Moyenne et Haut.
+// l'adresse, la suggestion, le rayon à 500 m, la surface à ±20 %, « Baux »
+// (et non « Offres ») et la classe « Commerces » seule, Lancer, puis lire Bas,
+// Moyenne et Haut des baux existants (6 oct. 2026).
 //
 // Le compte de service est dans .env (EQUIMMOX_EMAIL, EQUIMMOX_MOT_DE_PASSE).
 // La session est gardée sur disque entre deux recherches : on ne se
@@ -34,9 +35,10 @@ const ECART_SURFACE = 0.2;
 
 // Le rayon n'entre dans la clé que hors du 500 m historique : les recherches
 // déjà gardées restent lisibles.
-// Une recherche gardée ne vaut que lue à la même tolérance de surface : celles
-// d'avant le 6 oct. 2026 portaient sur ±30 %, elles ne reviennent plus.
-const memeTolerance = (resultat, s) => !s || resultat?.surface_min === Math.round(s * (1 - ECART_SURFACE));
+// Une recherche gardée ne vaut que lue sur les baux des commerces, à la même
+// tolérance de surface. Celles d'avant le 6 oct. 2026 portaient sur les
+// offres, de bureaux, à ±30 % : elles ne reviennent plus.
+const memeTolerance = (resultat, s) => resultat?.base === 'baux' && (!s || resultat?.surface_min === Math.round(s * (1 - ECART_SURFACE)));
 const cleCache = (adresse, surface, rayon = RAYON_METRES) => `${String(adresse).toLowerCase().replace(/\s+/g, ' ').trim()}|${surface || 0}${rayon && rayon !== RAYON_METRES ? `|${rayon}` : ''}`;
 
 const nombre = (s) => {
@@ -154,6 +156,78 @@ function enFile(travail) {
   return suite;
 }
 
+// Les boutons de la page sont ceux de Bubble : un <button> et son libellé
+// dans un span.label-item. On les trouve par leur libellé exact.
+const boutonLibelle = (p, libelle) => p.locator('button').filter({ has: p.locator('span.label-item', { hasText: new RegExp(`^${libelle}$`) }) });
+
+async function choisirBaux(p) {
+  const baux = boutonLibelle(p, 'Baux').first();
+  if (!(await baux.isVisible().catch(() => false))) throw new Error('Equimmox : le choix « Baux » est introuvable.');
+  await baux.click({ timeout: 10000 });
+  await p.waitForTimeout(1500);
+}
+
+// Les classes d'actif : au pluriel dans la liste, au singulier sur la puce
+// une fois choisie (« Commerces » devient « Commerce »).
+const PUCES = ['Bureaux', 'Bureau', 'Commerce', 'Commerces', "Locaux d'activités", "Local d'activités", 'Industriel (logistique...)', 'Hôtels', 'Hôtel'];
+const estCommerce = (l) => /^Commerces?$/.test(l);
+
+const capture = async (p, nom) => { if (process.env.EQUIMMOX_TEXTE) await p.screenshot({ path: `${process.env.EQUIMMOX_TEXTE}.${nom}.png` }).catch(() => {}); };
+
+/** Les puces posées dans le champ Classe d'actif (sa rangée seule, pas la liste ouverte dessous). */
+async function pucesDeClasse(p) {
+  return p.evaluate((libelles) => {
+    const feuilles = [...document.querySelectorAll('*')].filter((e) => e.childElementCount === 0);
+    const titre = feuilles.find((e) => /^Classe d.actif$/.test(e.textContent.trim()));
+    if (!titre) return null;
+    const t = titre.getBoundingClientRect();
+    const puces = [...document.querySelectorAll('button')]
+      .map((b) => ({ r: b.getBoundingClientRect(), l: b.querySelector('span.label-item')?.textContent.trim() }))
+      .filter((x) => libelles.includes(x.l) && x.r.width > 0 && x.r.top >= t.bottom - 2 && x.r.bottom <= t.bottom + 48 && x.r.left >= t.left - 10 && x.r.left <= t.left + 300)
+      .map((x) => ({ libelle: x.l, x: x.r.left + x.r.width / 2, y: x.r.top + x.r.height / 2 }));
+    return { puces, champ: { x: t.left + 285, y: t.bottom + 22 }, titre: { x: t.left + 20, y: t.top + t.height / 2 } };
+  }, PUCES);
+}
+
+async function choisirCommerces(p) {
+  let etat = await pucesDeClasse(p);
+  if (!etat) throw new Error("Equimmox : le champ « Classe d'actif » est introuvable.");
+  await capture(p, 'classe-1');
+  if (!etat.puces.some((x) => estCommerce(x.libelle))) {
+    // Le champ s'ouvre au clic dans sa partie vide ; « Commerces » se coche
+    // dans la liste qui s'ouvre dessous.
+    await p.mouse.click(etat.champ.x, etat.champ.y);
+    await p.waitForTimeout(1200);
+    const choix = await p.evaluate(({ y }) => {
+      const b = [...document.querySelectorAll('button')]
+        .map((x) => ({ r: x.getBoundingClientRect(), l: x.querySelector('span.label-item')?.textContent.trim() }))
+        .find((x) => x.l === 'Commerces' && x.r.width > 0 && x.r.top > y + 12);
+      return b ? { x: b.r.left + b.r.width / 2, y: b.r.top + b.r.height / 2 } : null;
+    }, { y: etat.champ.y });
+    if (!choix) throw new Error('Equimmox : « Commerces » n\'apparaît pas dans la liste des classes d\'actif.');
+    await p.mouse.click(choix.x, choix.y);
+    await p.waitForTimeout(1200);
+    await capture(p, 'classe-2');
+    // On referme la liste en cliquant sur le titre du champ.
+    await p.mouse.click(etat.titre.x, etat.titre.y);
+    await p.waitForTimeout(800);
+    etat = await pucesDeClasse(p);
+  }
+  // Les autres puces se retirent d'un clic (leur croix).
+  for (let tour = 0; tour < 6; tour++) {
+    const autre = etat?.puces.find((x) => !estCommerce(x.libelle));
+    if (!autre) break;
+    await p.mouse.click(autre.x, autre.y);
+    await p.waitForTimeout(1000);
+    etat = await pucesDeClasse(p);
+  }
+  await capture(p, 'classe-3');
+  const libelles = (etat?.puces || []).map((x) => x.libelle);
+  if (libelles.length !== 1 || !estCommerce(libelles[0])) {
+    throw new Error(`Equimmox : la classe d'actif n'a pas pu être réglée sur Commerces (lu : ${libelles.join(', ') || 'rien'}).`);
+  }
+}
+
 async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES, forcer = false, user = null } = {}) {
   if (!equimmoxConfigure()) return { ok: false, error: 'Equimmox n\'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env.' };
   const texteAdresse = String(adresse || '').trim();
@@ -198,7 +272,6 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
     if (!(await cliquerTexte(p, 'Analyse', 2500))) throw new Error('Equimmox : le menu Analyse est introuvable.');
     if (!(await cliquerTexte(p, 'Analyse de loyer', 3000))) throw new Error('Equimmox : « Analyse de loyer » est introuvable (plan Premium ?).');
     await cliquerTexte(p, 'Quitter cette page', 2000);
-    await cliquerTexte(p, 'Commerce', 800);
 
     // L'adresse, tapée comme l'équipe la tape : « 9 Rue Gazan, Grasse ». Un
     // code postal dans la saisie laisse leur autocomplétion muette. La Base
@@ -237,11 +310,27 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
       await p.waitForTimeout(600);
     }
 
+    // Les baux signés, pas les offres (6 oct. 2026, demande de Jules) : la page
+    // s'ouvre sur « Offres », les annonces en cours.
+    await choisirBaux(p);
+    // La classe d'actif : « Commerces », seule. La page s'ouvre sur « Bureaux »,
+    // et le clic sur « Commerce » d'avant ne prenait pas : la moyenne lue
+    // était celle des bureaux.
+    await choisirCommerces(p);
+    await capture(p, 'avant-lancer');
+
     await p.locator('button, div, a').filter({ hasText: /^Lancer$/ }).first().click({ force: true, timeout: 10000 });
     // Les chiffres arrivent quand « Bas : » apparaît.
     await p.locator('text=/^Bas\\s*:/').first().waitFor({ state: 'visible', timeout: 45000 }).catch(() => {});
     await p.waitForTimeout(1500);
     const lignes = await texteDe(p);
+    // Pour vérifier ce que la page affiche : EQUIMMOX_TEXTE=chemin y écrit le
+    // texte lu, et des captures du réglage des filtres à côté.
+    if (process.env.EQUIMMOX_TEXTE) { try { fs.writeFileSync(process.env.EQUIMMOX_TEXTE, lignes.join('\n')); } catch { /* diagnostic seulement */ } }
+    // La fourchette doit être celle des baux : la page le dit en tête.
+    if (!lignes.some((l) => /^Baux existants$/i.test(l))) {
+      throw new Error('Equimmox n\'a pas rendu la fourchette des baux existants (la page affiche les offres).');
+    }
     const bas = lireLigne(lignes, /^Bas\s*:/i);
     const moyenne = lireLigne(lignes, /^Moyenne\s*:/i);
     const haut = lireLigne(lignes, /^Haut\s*:/i);
@@ -257,7 +346,9 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
       surface_min: s ? Math.round(s * (1 - ECART_SURFACE)) : null,
       surface_max: s ? Math.round(s * (1 + ECART_SURFACE)) : null,
       rayon: rayonLu.replace(/^\+\s*/, ''),
-      classe: 'Commerce',
+      classe: 'Commerces',
+      // Des baux signés, pas des annonces : « Baux » est choisi avant Lancer.
+      base: 'baux',
       bas, moyenne, haut,
       delai_jours: delai ? nombre(delai) : null,
       le: new Date().toISOString(),

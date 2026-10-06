@@ -54,8 +54,10 @@ export function monterEmailing(app) {
   route('post', '/api/emailing/contacts/masse', async (req) => (await K()).enMasse(req.body?.ids || [], { action: req.body?.action, valeur: req.body?.valeur ?? null }));
   // L'import en deux temps : l'aperçu et la correspondance des colonnes, puis l'import.
   route('post', '/api/emailing/contacts/analyser', async (req) => (await K()).analyserImport(req.body?.texte));
-  route('post', '/api/emailing/contacts/importer', async (req, user) => (req.body?.correspondance
-    ? (await K()).importer(req.body.texte, { correspondance: req.body.correspondance, liste: req.body.liste || null, tags: req.body.tags || [], source: req.body.source || 'import', par: user.email })
+  // `auto` : les colonnes se reconnaissent d'elles-mêmes (prénom, nom, email…),
+  // sans étape de correspondance à l'écran.
+  route('post', '/api/emailing/contacts/importer', async (req, user) => (req.body?.correspondance || req.body?.auto
+    ? (await K()).importer(req.body.texte, { correspondance: req.body.correspondance || null, liste: req.body.liste || null, tags: req.body.tags || [], source: req.body.source || 'import', par: user.email })
     : (await E()).importerContacts(req.body?.texte, { liste: req.body?.liste, source: req.body?.source || 'webinaire', par: user.email })));
   // Un fichier Excel devient du CSV, que l'écran montre avant l'import.
   app.post('/api/emailing/contacts/convertir', upload.single('fichier'), wrap(async (req, res) => {

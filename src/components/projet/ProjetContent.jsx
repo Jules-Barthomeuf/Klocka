@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { adresseAChercher } from "@/lib/adresse-projet";
 import { EditionContext, ValeurEditable, ValeurForcee, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer, Bloc, nombreForce } from "./EditionEnPlace";
+import { rendementGlobalNetDuProjet } from "@/components/simulator/CalculFinancier";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -185,13 +186,16 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
   const loyerAnnuel = project.sim_loyer_initial_ht || project.loyer_annuel_ht || 0;
 
-  // Le vrai rendement net vient du simulateur complet (loyers nets de
-  // charges, moyenné sur la durée de détention) : on le préfère toujours
-  // quand il existe. Le calcul au loyer de la première année n'est qu'un
-  // repli, pour un projet qui n'est pas encore passé par le simulateur.
-  const rendementLocatifNetCalcule = nombreForce(project, "rendement_net") ?? (project.sim_rendement_locatif_global_net > 0
-    ? project.sim_rendement_locatif_global_net
-    : prixRevientCalcule > 0 && loyerAnnuel > 0 ? (loyerAnnuel / prixRevientCalcule) * 100 : 0);
+  // Le rendement global net, celui du simulateur : loyers nets de charges,
+  // moyennés jusqu'à la revente, calculés ici avec le même moteur et les
+  // paramètres du projet, pour qu'il suive la dernière saisie. Jamais le loyer
+  // de la première année sur le prix de revient (6 oct. 2026, demande de
+  // Jules). Une valeur forcée dans l'éditeur l'emporte ; le chiffre enregistré
+  // par le simulateur ne sert qu'à défaut de prix ou de loyer.
+  const rendementGlobalNet = useMemo(() => rendementGlobalNetDuProjet(project), [project]);
+  const rendementLocatifNetCalcule = nombreForce(project, "rendement_net")
+    ?? rendementGlobalNet
+    ?? (project.sim_rendement_locatif_global_net > 0 ? project.sim_rendement_locatif_global_net : 0);
 
   // Clé Embed API extraite en variable d'environnement (VITE_GOOGLE_MAPS_API_KEY).
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -419,7 +423,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
               <span className="text-[13px] text-white/75">Prix de revient</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] text-menthe whitespace-nowrap"><ValeurForcee cle="rendement_net">{rendementLocatifNetCalcule > 0 ? `${rendementLocatifNetCalcule.toFixed(2).replace('.', ',')} %` : "—"}</ValeurForcee></span>
+              <span className="text-[40px] max-md:text-[26px] leading-[1.1] tracking-[-0.02em] text-menthe whitespace-nowrap"><ValeurForcee cle="rendement_net">{rendementLocatifNetCalcule > 0 ? `${Number(rendementLocatifNetCalcule).toFixed(1).replace('.', ',')} %` : "—"}</ValeurForcee></span>
               <span className="text-[13px] text-white/75">Rendement net</span>
             </div>
           </div>

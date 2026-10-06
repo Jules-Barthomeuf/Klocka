@@ -326,3 +326,90 @@ export function calculerTableauAnnuel(params) {
     }
   };
 }
+/**
+ * Pure : les paramètres du simulateur tels que la page Simulateur les lit
+ * dans un projet (mêmes champs, mêmes valeurs par défaut). Sert à montrer,
+ * hors du simulateur, les mêmes indicateurs que lui : le rendement global
+ * net de la page projet (6 oct. 2026).
+ */
+export function parametresDuProjet(p = {}) {
+  const prixBienNegocie = p.sim_prix_bien_negocie || p.sim_prix_bien_fai || p.prix_acquisition || 0;
+  const prixBienFAI = p.sim_prix_bien_fai || p.sim_prix_bien_negocie || p.prix_acquisition || 0;
+  const sansFees = !!p.sim_no_fees_klocka;
+  const travauxBailleur = Array(25).fill(0);
+  for (let i = 1; i <= 20; i++) {
+    const annee = p[`sim_travaux_annee${i}`];
+    const montant = p[`sim_travaux_montant${i}`];
+    if (annee && montant && annee <= 25) travauxBailleur[annee - 1] = montant;
+  }
+  const params = {
+    surface: p.sim_surface || p.surface_m2 || 0,
+    loyerInitialHTHC: p.sim_loyer_initial_ht || p.loyer_annuel_ht || 0,
+    indexation: p.sim_indexation_loyers || 2,
+    loyerSoumisTVA: p.sim_loyer_soumis_tva || false,
+    tauxTVA: p.sim_taux_tva || 20,
+    chargesCopropriete: p.sim_charges_copropriete || 0,
+    chargesCoproRefacturables: p.sim_charges_refacturable !== false,
+    taxeFonciere: p.sim_taxe_fonciere || 0,
+    taxeFonciereRefacturable: p.sim_taxe_refacturable !== false,
+    revalorisationActive: p.sim_annee_revalorisation > 0,
+    anneeRevalorisation: p.sim_annee_revalorisation > 0 ? p.sim_annee_revalorisation : 5,
+    loyerRevalorise: p.sim_loyer_revalorise || 0,
+    dureeCredit: p.sim_duree_credit || 20,
+    tauxInteret: p.sim_taux_interet || 3.9,
+    tauxAssuranceCredit: p.sim_taux_assurance || 0.25,
+    renegociationActive: p.sim_annee_renegociation > 0,
+    anneeRenegociation: p.sim_annee_renegociation > 0 ? p.sim_annee_renegociation : 5,
+    nouveauTauxRenegociation: p.sim_taux_renegocie || 2.5,
+    iraRenegociation: p.sim_ira_mois || 0,
+    pretInFine: p.sim_pret_in_fine ?? false,
+    sansCredit: false,
+    coutCreationSociete: p.sim_cout_creation_societe || 1000,
+    fraisDossierBancaire: p.sim_frais_dossier_bancaire || 1000,
+    fraisCourtage: p.sim_frais_courtage || 0,
+    comptabilite: p.sim_comptabilite || 600,
+    assurancePNE: p.sim_assurance_pne || 400,
+    gestionLocative: p.sim_gestion_locative || 0,
+    chargesDiverses: p.sim_charges_diverses || 0,
+    vacancesLocatives: Array(25).fill(0),
+    travauxBailleur,
+    anneeRevente: p.sim_annee_revente || 20,
+    tauxCommissionAgentRevente: p.sim_commission_agent_revente || 5,
+    rendementBrutAcheteur: p.sim_rendement_capital || 6.5,
+    prixBienFAI,
+    prixBienNegocie,
+    tauxCommissionAgent: p.sim_commission_agent !== undefined ? p.sim_commission_agent : 5,
+    commissionAgentType: p.sim_commission_agent_type || "pourcentage",
+    commissionAgentInclusFAI: p.sim_commission_agent_inclus_fai ?? true,
+    commissionAgentActive: p.sim_commission_agent_active || false,
+    tauxDroitsEnregistrement: p.sim_droits_enregistrement !== undefined ? p.sim_droits_enregistrement : 8,
+    tauxFeesKlocka: sansFees ? 0 : (p.sim_fees_klocka !== undefined ? p.sim_fees_klocka : 8),
+    feesKlockaType: p.sim_fees_klocka_type || "pourcentage",
+    tauxIncentiveKlocka: sansFees ? 0 : (p.sim_incentive_klocka !== undefined ? p.sim_incentive_klocka : 20),
+  };
+  // Sans apport enregistré, le simulateur pose 15 % du prix de revient.
+  if (p.sim_apport) params.apport = p.sim_apport;
+  else {
+    const droits = prixBienNegocie * (params.tauxDroitsEnregistrement / 100);
+    const fees = params.feesKlockaType === "fixe" ? params.tauxFeesKlocka : prixBienNegocie * (params.tauxFeesKlocka / 100);
+    const incentive = Math.max(0, (prixBienFAI > 0 ? prixBienFAI : prixBienNegocie) - prixBienNegocie) * (params.tauxIncentiveKlocka / 100);
+    params.apport = Math.round((prixBienNegocie + droits + fees + incentive + params.fraisDossierBancaire + params.coutCreationSociete + params.fraisCourtage) * 0.15);
+  }
+  return params;
+}
+
+/**
+ * Pure : le rendement locatif global net du projet, moyenne des rendements
+ * nets annuels jusqu'à la revente, comme l'affiche le simulateur. Null si le
+ * projet n'a ni prix ni loyer.
+ */
+export function rendementGlobalNetDuProjet(p = {}) {
+  const params = parametresDuProjet(p);
+  if (!(params.prixBienNegocie > 0) || !(params.loyerInitialHTHC > 0)) return null;
+  try {
+    const r = Number(calculerTableauAnnuel(params).indicateurs.rendementLocatifGlobalNet);
+    return Number.isFinite(r) && r > 0 ? r : null;
+  } catch {
+    return null;
+  }
+}

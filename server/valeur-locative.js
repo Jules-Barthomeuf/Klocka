@@ -27,6 +27,9 @@ import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
 
 const ENTITE = 'ValeurLocativeRecherche';
+// Version 2 (6 oct. 2026) : Equimmox lit les baux des commerces, plus les
+// offres de bureaux ; les recherches d'avant ne se reprennent plus.
+const VERSION = 2;
 const CACHE_JOURS = 30;
 export const UNITE = '€ HT HC / m² / an';
 
@@ -103,7 +106,7 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
   const cle = cleDe(adresse.label);
   if (!forcer) {
     const recent = Records.filter(ENTITE, { cle })
-      .filter((x) => Date.now() - Date.parse(x.le) < CACHE_JOURS * 86400000)
+      .filter((x) => x.version === VERSION && Date.now() - Date.parse(x.le) < CACHE_JOURS * 86400000)
       .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
     if (recent) return { ok: true, id: recent.id, resultat: { ...recent.resultat, du_cache: true }, du_cache: true };
   }
@@ -138,7 +141,7 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
   if (!resultat.rue && !resultat.quartier && !resultat.ville) {
     return { ok: false, error: `Aucune valeur locative lisible ici : ${erreurs.join(' ; ') || 'aucune source n\'a répondu'}.` };
   }
-  const record = Records.create(ENTITE, { cle, adresse: adresse.label, point: { lat: adresse.lat, lon: adresse.lon, code_insee: adresse.code_insee, ville: adresse.ville }, resultat, le: resultat.le, par: resultat.par }, user?.email);
+  const record = Records.create(ENTITE, { cle, version: VERSION, adresse: adresse.label, point: { lat: adresse.lat, lon: adresse.lon, code_insee: adresse.code_insee, ville: adresse.ville }, resultat, le: resultat.le, par: resultat.par }, user?.email);
   console.log(`[valeur-locative] ${adresse.label} : ${resultat.source}${user?.email ? ` — ${user.email}` : ''}`);
   return { ok: true, id: record.id, resultat };
 }

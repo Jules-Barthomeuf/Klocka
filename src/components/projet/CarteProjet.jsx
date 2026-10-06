@@ -1,4 +1,6 @@
 import React from "react";
+import { rendementGlobalNetDuProjet } from "@/components/simulator/CalculFinancier";
+import { nombreForce } from "./EditionEnPlace";
 
 // La carte d'un projet, la même en admin et chez le client (maquette du 28
 // septembre 2026) : la photo du local en haut, sinon une trame « photo du
@@ -49,17 +51,11 @@ export function chiffresDuProjet(project) {
     ? prixBienNegocie + droits + fees + incentive + divers + (inclusFAI ? 0 : honorairesAgent)
     : project.sim_prix_revient || project.prix_acquisition || 0;
 
-  // Le rendement moyen sur la durée de détention, loyers indexés.
-  const anneeRevente = project.sim_annee_revente || 20;
-  const indexation = project.sim_indexation_loyers || 2;
-  let total = 0;
-  let loyer = project.sim_loyer_initial_ht || 0;
-  for (let annee = 1; annee <= anneeRevente; annee++) {
-    if (annee > 1) loyer *= 1 + indexation / 100;
-    total += loyer;
-  }
-  const loyerMoyen = anneeRevente > 0 ? total / anneeRevente : 0;
-  const rendement = prixRevient > 0 && loyerMoyen > 0 ? (loyerMoyen / prixRevient) * 100 : 0;
+  // Le rendement global net, le même que la page projet et le simulateur
+  // (6 oct. 2026) : la carte et la page ne disent plus deux chiffres.
+  const rendement = nombreForce(project, "rendement_net")
+    ?? rendementGlobalNetDuProjet(project)
+    ?? (project.sim_rendement_locatif_global_net > 0 ? project.sim_rendement_locatif_global_net : 0);
 
   return { prixRevient, rendement, surface: project.sim_surface || project.surface_m2 || 0 };
 }
@@ -152,7 +148,7 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
 
         <div className="mt-4 grid grid-cols-3 gap-2.5 border-t border-trait pt-4" style={{ fontVariantNumeric: "tabular-nums" }}>
           <Chiffre valeur={formatPrix(prixRevient)} label="Prix de revient" />
-          <Chiffre valeur={`${rendement.toFixed(2).replace(".", ",")} %`} label="Rendement" teinte="text-menthe" />
+          <Chiffre valeur={rendement > 0 ? `${Number(rendement).toFixed(1).replace(".", ",")} %` : "—"} label="Rendement net" teinte="text-menthe" />
           {surface > 0 ? <Chiffre valeur={`${Math.round(surface)} m²`} label="Surface" /> : <div />}
         </div>
         {pied}

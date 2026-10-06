@@ -232,7 +232,8 @@ export function dureeDeGarde(donnees) {
 const HEURE_INCOMPLET = 3600000;
 // Version 3 (6 oct. 2026) : le loyer vient d'Equimmox, plus d'ALX ; la
 // surface du bien entre dans la fiche, et la changer la recalcule.
-const VERSION = 3;
+// Version 4 (même jour) : Equimmox lit les baux existants des commerces.
+const VERSION = 4;
 
 const dernier = (projetId) => Records.filter(ENTITE, { project_id: projetId })
   .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0] || null;

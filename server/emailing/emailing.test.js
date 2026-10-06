@@ -2,8 +2,14 @@
 // part étape par étape et s'arrête à la désinscription, le mail
 // d'invitation rendu depuis son modèle. Resend est remplacé par un faux.
 
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
+
+// Ces tests rejouent une journée fixe (le 6 oct. 2026, tours à 10 h UTC et
+// après) alors que le code date ce qu'il crée avec l'heure réelle : sans
+// horloge figée au matin de ce jour, une campagne « programmée maintenant »
+// tombait après le tour de 10 h dès l'après-midi, et rien ne partait.
+mock.timers.enable({ apis: ['Date'], now: new Date('2026-10-06T08:00:00Z') });
 import fs from 'fs';
 import os from 'os';
 import path from 'path';

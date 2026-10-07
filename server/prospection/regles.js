@@ -30,8 +30,11 @@ export const STATUTS = {
 
 export const ISSUES = {
   pas_de_reponse: 'Pas de réponse',
-  pas_de_murs: 'Pas de murs en ce moment',
-  a_des_murs: 'A des murs intéressants',
+  // Spec du mode appel (7 oct. 2026) : « Répondeur, message laissé » compte
+  // comme un sans-réponse, retenté à J+3.
+  repondeur: 'Répondeur, message laissé',
+  pas_de_murs: 'Pas de bien pour l\'instant',
+  a_des_murs: 'A un bien intéressant',
   veut_mail: 'Veut d\'abord un mail',
   pas_interesse: 'Pas intéressé',
   invalide: 'Mauvais numéro',
@@ -114,7 +117,7 @@ export const dateCourte = (jour) => (jour ? `${String(jour).slice(8, 10)}/${Stri
  * @param {{tentatives?: number, maintenant?: Date, date_dite?: string|null}} ctx
  * @returns {{statut, tentatives, prochaine: {quoi, le, moment?}|null, mails: string[], sms?: boolean, autre_contact?: boolean}}
  */
-export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), date_dite = null } = {}) {
+export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), date_dite = null, statut = null } = {}) {
   const auj = jourDe(maintenant);
   const dite = date_dite && /^\d{4}-\d{2}-\d{2}$/.test(date_dite) && date_dite > auj ? ouvre(date_dite) : null;
   if (issue === 'pas_de_reponse') {
@@ -124,11 +127,26 @@ export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), 
     const moment = heureDe(maintenant) < 13 ? "l'après-midi" : 'le matin';
     return { statut: 'a_rappeler', tentatives: n, prochaine: { quoi: `rappeler (essai ${n + 1} sur ${ESSAIS_MAX}), plutôt ${moment}`, le: plusJoursOuvres(auj, 2), moment }, mails: [] };
   }
-  if (issue === 'pas_de_murs') return { statut: 'pas_de_murs', tentatives: 0, prochaine: { quoi: dite ? 'rappeler pour le mandat annoncé' : 'point du mois : a-t-il rentré des murs ?', le: dite || ouvre(plusJours(auj, 30)) }, mails: ['presentation'] };
+  // Le répondeur : un message laissé, on lui laisse trois jours ; ensuite comme un sans-réponse.
+  if (issue === 'repondeur') {
+    const n = tentatives + 1;
+    if (n >= ESSAIS_MAX) return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'rappeler après la pause (3 appels sans réponse)', le: ouvre(plusJours(auj, 30)) }, mails: [] };
+    return { statut: 'a_rappeler', tentatives: n, prochaine: { quoi: `rappeler : message laissé (essai ${n + 1} sur ${ESSAIS_MAX})`, le: ouvre(plusJours(auj, 3)) }, mails: [] };
+  }
+  // Pas de bien pour l'instant : un agent à entretenir. L'échéance qu'il a
+  // donnée, sinon un mois ; ensuite un point tous les trois mois, la liste de
+  // diffusion entretenant la relation entre-temps.
+  if (issue === 'pas_de_murs') {
+    const suivi = statut === 'pas_de_murs';
+    return { statut: 'pas_de_murs', tentatives: 0, prochaine: { quoi: dite ? 'rappeler à l\'échéance qu\'il a donnée' : suivi ? 'point des trois mois : a-t-il rentré des murs ?' : 'point du mois : a-t-il rentré des murs ?', le: dite || ouvre(plusJours(auj, suivi ? 91 : 30)) }, mails: ['presentation'], diffusion: true, date_par_defaut: !dite };
+  }
   // Une date de rappel dite (« à rappeler le 20 ») passe avant le délai par défaut.
-  if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['demande_fiche'], relance_mail_jours: 3 };
+  // A un bien intéressant : on demande les documents ; rappel à J+3 ouvrés si
+  // la fiche n'est pas arrivée, annulé dès qu'elle arrive (si_fiche).
+  if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: dite || plusJoursOuvres(auj, 3), si_fiche: true }, mails: ['demande_fiche'], diffusion: true, date_par_defaut: !dite };
   if (issue === 'veut_mail') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : a-t-il lu notre mail, a-t-il des murs ?', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3 };
-  if (issue === 'pas_interesse') return { statut: 'pause', tentatives: 0, prochaine: { quoi: 'retenter dans six mois', le: ouvre(plusJours(auj, 182)) }, mails: [], courtoisie: true };
+  // Pas intéressé : ne plus appeler, ni relance ni mail.
+  if (issue === 'pas_interesse') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], ne_plus_appeler: true };
   // Intéressé : on se présente avec nos critères, et on rappelle à la date dite.
   if (issue === 'interesse') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : la suite de notre échange', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3, date_par_defaut: !dite };
   if (issue === 'a_rappeler') return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler comme convenu', le: dite || ouvre(plusJours(auj, 7)) }, mails: [], date_par_defaut: !dite };

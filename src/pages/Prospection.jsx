@@ -230,7 +230,21 @@ function PanneauAppel({ agent, onFermer, onCarte = null }) {
       {etat !== "propose" && (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
-            {(agent.telephones || []).map((t) => <a key={t} href={telLien(t)} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[14px] font-semibold tabular-nums text-sur-menthe"><PhoneCall className="h-4 w-4" />{t}</a>)}
+            {/* Le numéro : un clic appelle. Fond transparent, bord clair ; le geste principal est le micro. */}
+            {(agent.telephones || []).map((t) => <a key={t} href={telLien(t)} className="inline-flex h-[38px] items-center rounded-full border border-encre px-4 text-[14px] tabular-nums text-encre hover:bg-encre/[0.06]">{t}</a>)}
+            {/* Le micro, à côté du numéro : enregistrer la conversation, haut-parleur allumé. */}
+            {etat === "pret" && (
+              <button type="button" onClick={demarrer} aria-label="Enregistrer la conversation" title="Enregistrer la conversation (haut-parleur allumé, l'agent prévenu)"
+                className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol">
+                <Mic className="h-4 w-4" />
+              </button>
+            )}
+            {etat === "enregistre" && (
+              <button type="button" onClick={terminer} aria-label="Arrêter l'enregistrement" title="Arrêter l'enregistrement"
+                className="inline-flex h-[38px] items-center gap-2 rounded-full bg-alerte px-3.5 text-[13.5px] font-semibold tabular-nums text-white">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-white" />{duree(secondes)}<Square className="h-3.5 w-3.5" />
+              </button>
+            )}
             {(agent.emails || []).slice(0, 2).map((e) => <a key={e} href={`mailto:${e}`} className="inline-flex min-w-0 items-center gap-1.5 self-center break-all text-[12.5px] text-craie hover:text-encre"><Mail className="h-3.5 w-3.5" />{e}</a>)}
           </div>
           <p className="m-0 mt-3 text-[13.5px] text-encre">{agent.raison}</p>

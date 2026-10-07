@@ -323,8 +323,10 @@ export async function sendEmail({
   try {
     let messageId;
     let threadId = null;
+    // Retrouvé dans les envoyés : Gmail le confirme ; un serveur SMTP ne dit rien de tel.
+    let dansLesEnvoyes = false;
     if (account.provider === 'google') {
-      ({ messageId, threadId } = await sendViaGmail(account.email, message));
+      ({ messageId, threadId, dansLesEnvoyes } = await sendViaGmail(account.email, message));
     } else {
       const info = await transporterFor(account).sendMail({
         from: `${account.name} <${account.email}>`,
@@ -336,7 +338,7 @@ export async function sendEmail({
     // Le fil Gmail : la réponse de l'agent s'y inscrit, et c'est par lui
     // qu'elle retrouve son dossier plutôt que par son expéditeur.
     logEmail({ ...base, statut: 'envoye', message_id: messageId || null, thread_id: threadId || null });
-    return { success: true, messageId, from: base.from };
+    return { success: true, messageId, from: base.from, dans_les_envoyes: !!dansLesEnvoyes, expediteur: account.email };
   } catch (e) {
     const error = String(e?.message || e);
     console.error(`[email:erreur] ${account.email} → ${base.to} | ${error}`);

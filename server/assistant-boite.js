@@ -12,11 +12,24 @@ const TYPES = ['note', 'fiche', 'client', 'echeances', 'assistant'];
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const compter = (t, motifs) => motifs.reduce((n, m) => n + (m.test(t) ? 1 : 0), 0);
 
+// Une consigne en tête, suivie d'un texte collé : « Fais-lui un mail de retour :
+// [le mail de l'agent] ». C'est une demande à l'assistant sur ce texte, pas le
+// texte à ranger ; sans ça, le mail collé l'emportait et partait en fiche.
+const CONSIGNE = /^(fais|fait|faites|redige|ecris|ecrit|reponds|repond|repondre|prepare|dis|traduis|resume|reformule|corrige|relis|explique|compare|aide|peux[- ]tu|tu peux|pourrais[- ]tu|est[- ]ce que|que penses|qu'?en penses)\b/;
+
+/** La première phrase, si c'est une consigne courte posée avant un texte collé. */
+export function consigneEnTete(texte) {
+  const t = norm(texte).trim();
+  const tete = t.split(/\n|:/)[0].trim();
+  return tete.length > 0 && tete.length <= 200 && CONSIGNE.test(tete);
+}
+
 /** Les règles : un score par famille, et un verdict quand une famille domine nettement. */
 export function classerParRegles(texte) {
   const t = norm(texte);
   const longueur = t.length;
   const scores = { note: 0, fiche: 0, client: 0, echeances: 0, assistant: 0 };
+  if (consigneEnTete(texte)) return { type: 'assistant', scores: { ...scores, assistant: 10 }, sur: true };
 
   // Une note d'appel commence presque toujours par « j'ai eu », « eu au téléphone »…
   if (/^(j'?ai eu|jai eu|eu au tel|eu au telephone|appel avec|appele|j'?ai appele|au tel avec|note|noter?\b)/.test(t)) scores.note += 3;
@@ -56,7 +69,7 @@ export async function classerParModele(texte) {
 - "fiche" : le mail ou l'annonce d'un agent décrivant un bien à vendre (prix, surface, loyer, bail…)
 - "client" : le compte rendu d'un appel de découverte avec un futur client investisseur (budget, apport, objectifs…)
 - "echeances" : il demande ce qui attend, les relances, ce qui n'a pas eu de réponse
-- "assistant" : une question ou un ordre pour l'assistant (dossiers, mails, Monday, simulation…)
+- "assistant" : une question ou un ordre pour l'assistant (dossiers, mails, Monday, simulation…), y compris une consigne suivie d'un texte collé (« réponds-lui que ça ne nous intéresse pas : [mail de l'agent] ») : c'est la consigne qui compte, pas le texte collé
 
 --- TEXTE ---
 ${String(texte || '').slice(0, 6000)}

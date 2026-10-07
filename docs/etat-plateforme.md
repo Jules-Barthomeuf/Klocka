@@ -1,16 +1,16 @@
 # État de la plateforme
 
-Écrit le 06/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 07/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-15 personnes, 3 372 pages ouvertes, 3 demandes à l'assistant, 87 actions exécutées.
+15 personnes, 3 390 pages ouvertes, 3 demandes à l'assistant, 87 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 284 | 3 | 2 | 06/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 302 | 3 | 2 | 07/10/2026 |
 | admin@klocka.local (équipe) | 534 | 0 | 0 | 21/09/2026 |
 | jules.btmf@gmail.com (équipe) | 281 | 0 | 0 | 21/09/2026 |
 | admin.stress@test.local (équipe) | 131 | 0 | 0 | 06/10/2026 |
@@ -27,23 +27,23 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 650 (19 %)
+- **Analyse** — 651 (19 %)
 - **ALX** — 477 (14 %)
-- **Dashboard** — 394 (12 %)
-- **AdminProjets** — 280 (8 %)
-- **Emailing** — 115 (3 %)
-- **Prospection** — 96 (3 %)
+- **Dashboard** — 397 (12 %)
+- **AdminProjets** — 282 (8 %)
+- **Emailing** — 116 (3 %)
+- **Prospection** — 100 (3 %)
 - **ProjetDetail** — 95 (3 %)
 - **ALXCible** — 95 (3 %)
 - **MandataireProspection** — 88 (3 %)
 - **KZoning** — 82 (2 %)
+- **Personnalisation** — 80 (2 %)
 - **KData** — 78 (2 %)
-- **Personnalisation** — 77 (2 %)
-- Le reste, sous 2 % : MandataireEstimation, MandataireDossier, Monitoring, KExpertise, SimulateurRentabilite, MandataireMandat, Home, AdminSuggestions, ConversationsMandataires, SimulateurPublic, AdminClients, KEstimation, KFoncier, MandataireClients, MesProjets, AdminLeadMagnets, KVacance, ALXVilles, FeuilleDeRoute, AdminMandataires, ALXBilan, FichesCommerciales, ValeurLocative, CoutsIA, ALXEntrainement, Offres, KProspective, ApercuEchelle, MonAssistant, MandataireMarche, Feedback, Vision, MonCompte, KTransactions, Ressources, MandataireProjets, analyse, Comparateur, AdminPresentations, ImportProjets, Banque, AdminPortail, AdminRessources, ALXAtelier, Preanalyse
+- Le reste, sous 2 % : MandataireEstimation, MandataireDossier, Monitoring, KExpertise, SimulateurRentabilite, MandataireMandat, Home, AdminSuggestions, ConversationsMandataires, SimulateurPublic, AdminClients, KEstimation, KFoncier, MandataireClients, MesProjets, AdminLeadMagnets, KVacance, ALXVilles, AdminMandataires, FeuilleDeRoute, ALXBilan, FichesCommerciales, Offres, ValeurLocative, CoutsIA, ALXEntrainement, KProspective, ApercuEchelle, MonAssistant, MandataireMarche, Feedback, Vision, MonCompte, KTransactions, Ressources, MandataireProjets, analyse, Comparateur, AdminPresentations, ImportProjets, Banque, AdminPortail, AdminRessources, ALXAtelier, Preanalyse
 
 ## Ce que l'IA coûte
 
-24,59 € sur la période, 1 209 appels, 6 322 k jetons. 40 % part en tâche de fond, sans que personne clique. 47 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+24,63 € sur la période, 1 215 appels, 6 332 k jetons. 40 % part en tâche de fond, sans que personne clique. 47 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -62,7 +62,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : fil dossier (0,01 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,04 €) · fil dossier (0,01 €).
 
 ## Les leviers sur la dépense
 

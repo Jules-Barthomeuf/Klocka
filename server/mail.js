@@ -14,17 +14,17 @@ import { listAccounts } from './email.js';
 // Seeding
 // ---------------------------------------------------------------------------
 
-const DEFAULT_TEMPLATES = [
+export const DEFAULT_TEMPLATES = [
   {
     slug: 'presentation',
     titre: 'Présentation Klocka',
     description: "Présenter l'activité Klocka à un agent / apporteur d'affaires rencontré au téléphone.",
     objet: 'Présentation de notre activité – Klocka',
-    contenu: `Bonjour,
+    contenu: `{{salutation}}
 
 Comme convenu, je vous prie de trouver ci-dessous une brève présentation de notre activité.
 
-Je suis {{signature}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis dans toute la France. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne seront pas impactés.
+Je suis {{analyste}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis dans toute la France. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne seront pas impactés.
 
 Concernant notre méthodologie, nous analysons principalement des murs commerciaux occupés. Nous sélectionnons et présentons un maximum de trois projets à nos clients lors de points en visioconférence afin d'assurer un taux de transformation optimal. Les documents relatifs aux dossiers restent confidentiels dans notre base de données et ne sont transmis que lorsque le client souhaite approfondir une opportunité précise.
 
@@ -40,16 +40,16 @@ Bien cordialement,
     titre: "Suite d'appel – Demande de documents",
     description: "Demander les pièces d'un dossier (bail, RCP, PV d'AG, quittances) après un appel.",
     objet: 'Murs commerciaux - Klocka',
-    contenu: `Bonjour,
+    contenu: `{{salutation}}
 
 Pour faire suite à notre échange téléphonique de ce jour, afin d'approfondir notre analyse nous avons besoin des éléments suivants :
 - Bail
 - RCP
 - PV d'AG
 - Quittances
-- Diagnostiques (si déjà faits)
+- Diagnostics (si déjà faits)
 
-Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.
+Pour rappel, nous travaillons avec des mandats de recherche : vos honoraires resteront inchangés.
 De plus je vous transmets le cahier des charges de nos clients :
 - Type de bien : Murs commerciaux occupés
 - Rendement : 5-7% AEM
@@ -64,11 +64,11 @@ Bien à vous,
     titre: 'Présentation + Cahier des charges',
     description: "Présentation complète de l'activité accompagnée du cahier des charges clients.",
     objet: 'Présentation de notre activité et cahier des charges – Klocka',
-    contenu: `Bonjour,
+    contenu: `{{salutation}}
 
 Suite à notre échange, je me permets de vous adresser une brève présentation de notre activité ainsi que le cahier des charges de nos clients.
 
-Je suis {{signature}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis sur l'ensemble du territoire français. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne sont pas impactés.
+Je suis {{analyste}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis sur l'ensemble du territoire français. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne sont pas impactés.
 
 Dans le cadre de notre méthodologie, nous analysons principalement des murs commerciaux occupés. Nous sélectionnons et présentons un maximum de trois opportunités à nos clients lors de points en visioconférence, afin d'assurer un taux de transformation optimal. L'ensemble des documents relatifs aux dossiers reste confidentiel au sein de notre base de données et n'est transmis qu'en cas d'intérêt confirmé pour une opportunité spécifique.
 
@@ -108,7 +108,7 @@ Cordialement,
     titre: 'Cahier des charges',
     description: 'Communiquer uniquement les critères de recherche des clients Klocka.',
     objet: 'Cahier des charges – Klocka',
-    contenu: `Bonjour,
+    contenu: `{{salutation}}
 
 Suite à notre échange je me permets donc de vous communiquer le cahier des charges de nos clients :
 - Type de bien : Murs commerciaux occupés
@@ -124,9 +124,28 @@ Bien cordialement,
   },
 ];
 
+// Les corrections du 7 oct. 2026 (spec du mode appel), sur les modèles déjà
+// en base : une phrase n'est remplacée que si elle est encore à l'ancienne,
+// une retouche faite à la main depuis la page Mails reste.
+const RETOUCHES_V2 = [
+  ['- Diagnostiques (si déjà faits)', '- Diagnostics (si déjà faits)'],
+  ['Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.', 'Pour rappel, nous travaillons avec des mandats de recherche : vos honoraires resteront inchangés.'],
+  ['Je suis {{signature}}, analyste', 'Je suis {{analyste}}, analyste'],
+];
+export function retoucherModeles(liste = Records.list('MailTemplate')) {
+  let n = 0;
+  for (const t of liste) {
+    let contenu = String(t.contenu || '');
+    for (const [avant, apres] of RETOUCHES_V2) contenu = contenu.split(avant).join(apres);
+    if (['presentation', 'demande-documents', 'presentation-cahier', 'cahier-des-charges'].includes(t.slug) && /^Bonjour,\n/.test(contenu)) contenu = contenu.replace(/^Bonjour,\n/, '{{salutation}}\n');
+    if (contenu !== t.contenu) { Records.update('MailTemplate', t.id, { contenu }); n += 1; }
+  }
+  return n;
+}
+
 // Populate the entity on first boot. Safe to call on every start.
 export function ensureMailTemplates() {
-  if (Records.count('MailTemplate')) return;
+  if (Records.count('MailTemplate')) { retoucherModeles(); return; }
   DEFAULT_TEMPLATES.forEach((t, i) => Records.create('MailTemplate', { ...t, ordre: i, archived: false }));
   console.log(`[mail] ${DEFAULT_TEMPLATES.length} templates initialisés.`);
 }
@@ -217,9 +236,12 @@ function matchTemplate(prompt, templates) {
 // Variable filling
 // ---------------------------------------------------------------------------
 
+// {{salutation}} et {{analyste}} (7 oct. 2026) ont une valeur sûre par défaut :
+// « Bonjour, » et le nom de qui signe. {{contexte}} vide disparaît avec sa ligne.
 export function fillVariables(text, vars) {
-  return (text || '').replace(/\{\{\s*(\w+)\s*\}\}/g, (full, key) => {
-    const v = vars[key];
+  const v0 = { salutation: 'Bonjour,', analyste: vars?.signature || '', ...vars };
+  return (text || '').replace(/\n?\{\{\s*contexte\s*\}\}\n?/g, (full) => (v0.contexte ? full.replace(/\{\{\s*contexte\s*\}\}/, v0.contexte) : '\n')).replace(/\{\{\s*(\w+)\s*\}\}/g, (full, key) => {
+    const v = v0[key];
     return v == null || v === '' ? full : String(v);
   });
 }

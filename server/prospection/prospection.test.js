@@ -37,9 +37,14 @@ test('la suite d\'un appel, issue par issue', () => {
   assert.equal(troisieme.prochaine.le, '2026-10-26', 'un mois de pause, glissé au lundi');
   const murs = R.suiteDeLIssue('pas_de_murs', { maintenant: vendrediMatin, date_dite: '2026-10-31' });
   assert.deepEqual([murs.statut, murs.prochaine.le, murs.mails[0]], ['pas_de_murs', '2026-11-02', 'presentation'], 'la date du mandat, glissée au lundi');
+  // Spec du 7 oct. : a un bien → J+3 ouvrés (annulé si la fiche arrive) ; pas intéressé → ne plus appeler.
   const a = R.suiteDeLIssue('a_des_murs', { maintenant: vendrediMatin });
-  assert.deepEqual([a.mails[0], a.relance_mail_jours, a.prochaine.le], ['demande_fiche', 3, '2026-10-02']);
-  assert.equal(R.suiteDeLIssue('pas_interesse', { maintenant: vendrediMatin }).prochaine.le, '2027-03-26');
+  assert.deepEqual([a.mails[0], a.prochaine.le, a.prochaine.si_fiche, a.diffusion], ['demande_fiche', '2026-09-30', true, true]);
+  const pi = R.suiteDeLIssue('pas_interesse', { maintenant: vendrediMatin });
+  assert.deepEqual([pi.statut, pi.prochaine, pi.ne_plus_appeler], ['archive', null, true]);
+  assert.equal(R.suiteDeLIssue('pas_de_murs', { maintenant: vendrediMatin }).prochaine.le, '2026-10-26', 'J+30');
+  assert.equal(R.suiteDeLIssue('pas_de_murs', { maintenant: vendrediMatin, statut: 'pas_de_murs' }).prochaine.le, '2026-12-25', 'ensuite tous les trois mois');
+  assert.equal(R.suiteDeLIssue('repondeur', { maintenant: vendrediMatin }).prochaine.le, '2026-09-28', 'J+3, glissé au lundi');
   assert.deepEqual([R.suiteDeLIssue('invalide').statut, R.suiteDeLIssue('invalide').autre_contact], ['archive', true]);
 });
 
@@ -100,7 +105,7 @@ test('ce qu\'AK propose après un appel', () => {
   assert.match(msg, /^Appel avec Sophie Martin \(Barnes\) : Rien pour l'instant\.\nVoici ce que je te propose :\n1\. Lui envoyer/);
   assert.match(msg, /Réponds-moi « 1 2 3 », « tout », « tout sauf 2 » ou « rien »/);
   const murs = propositions(a, { resume: 'Deux murs à Cannes.', issue: 'a_des_murs', mail_objet: 'Les murs de la rue d\'Antibes', mail_corps: 'Merci pour l\'appel. Pouvez-vous nous envoyer la fiche ?' }, { maintenant: vendrediMatin });
-  assert.deepEqual(murs.propositions.map((x) => x.id), ['statut', 'mail', 'relance_mail', 'relance']);
+  assert.deepEqual(murs.propositions.map((x) => x.id), ['statut', 'mail', 'relance'], 'plus de relance par mail : un rappel à J+3 ouvrés si la fiche manque');
   assert.match(murs.propositions[1].corps, /^Bonjour Sophie,\n\nMerci pour l'appel\..*\n\nBien à vous,\n\{signature\}$/s);
   const rien = propositions({ ...a, tentatives: 2 }, { issue: 'pas_de_reponse' }, { maintenant: vendrediMatin });
   assert.deepEqual(rien.propositions.map((x) => x.id), ['statut', 'mail', 'sms', 'relance'], 'au troisième échec : mail, SMS, pause');

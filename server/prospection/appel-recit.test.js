@@ -23,7 +23,7 @@ test('la carte dit tout ce qui a été rempli : agent, agence, téléphone, stat
   assert.equal(c.agence, 'Immo Riviera');
   assert.equal(c.telephone, '06 12 34 56 78');
   assert.equal(c.statut, 'En discussion');
-  assert.equal(c.issue, 'A des murs intéressants');
+  assert.equal(c.issue, 'A un bien intéressant');
   assert.deepEqual(c.prochaine, { quoi: 'rappeler pour le mandat', le: '2026-10-20' });
   assert.deepEqual(c.a_envoyer, ['Mail « Vos murs à Antibes »'], 'le mail attend, il ne part pas');
   assert.equal(c.monday.ok, true);

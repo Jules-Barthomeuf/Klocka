@@ -389,7 +389,9 @@ export async function sendViaGmail(email, message) {
   if (!resp.ok) {
     throw new Error(data?.error?.message || `Gmail a refusé l'envoi (${resp.status})`);
   }
-  return { messageId: data.id, threadId: data.threadId || null, from: `${account.name} <${account.email}>` };
+  // Gmail rend le message rangé : l'étiquette SENT dit qu'il est dans les
+  // éléments envoyés de la boîte, ce que le reçu du mode appel exige.
+  return { messageId: data.id, threadId: data.threadId || null, from: `${account.name} <${account.email}>`, dansLesEnvoyes: Array.isArray(data.labelIds) && data.labelIds.includes('SENT') };
 }
 
 export function googleStatus() {

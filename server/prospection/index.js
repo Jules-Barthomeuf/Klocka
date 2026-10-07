@@ -86,6 +86,15 @@ export async function rattacherFiches(liste, { maintenant = new Date() } = {}) {
       a = crees[0] || C.agentParEmail(f.agent_email);
       if (!a) continue;
     }
+    // « A un bien intéressant » : le rappel J+3 attendait la fiche. Elle est
+    // là : il est annulé tout de suite, ici et dans Monday, sans attendre la
+    // préanalyse (spec du mode appel, 7 oct. 2026).
+    if (a.prochaine?.si_fiche && String(f.le || maintenant.toISOString()) >= String(a.dernier_contact_le || '')) {
+      C.majAgent(a.id, { prochaine: null });
+      C.journal(a.id, { type: 'note', texte: `Fiche reçue (${f.titre}) : le rappel prévu est annulé`, le: f.le || maintenant.toISOString() });
+      if (a.monday_ligne_id) { try { await (await import('./monday-agents.js')).viderRelance(a.monday_ligne_id); } catch { /* le tour suivant de Monday le relira */ } }
+      a = C.agentParEmail(f.agent_email);
+    }
     // La préanalyse n'est pas finie : on attend le tour suivant pour prévenir.
     if (!f.verdict && f.etape === 'recue') continue;
     const annulees = annulerRelances(a.id, 'fiche reçue');
@@ -318,7 +327,7 @@ export async function maJournee({ ville = null, pour = null, maintenant = new Da
     const u = Records.list('User').find((x) => String(x.email).toLowerCase() === String(email).toLowerCase());
     return (u?.full_name || email || '').split(/[ @.]/)[0] || email;
   };
-  const appelsDuJour = Records.list('AppelAgent').filter((x) => String(x.le || '').slice(0, 10) === auj);
+  const appelsDuJour = Records.list('AppelAgent').filter((x) => !x.essai && String(x.le || '').slice(0, 10) === auj);
   const appelesAujourdhui = new Set(appelsDuJour.map((x) => x.agent_id));
   const aAppeler = brute.filter((a) => !appelesAujourdhui.has(a.id)).map((a) => {
     const verrou = R.verrouTenu(a.verrou) ? a.verrou : null;

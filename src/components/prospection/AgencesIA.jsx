@@ -208,6 +208,16 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
 }
 
 function TableauAgences({ id, onAppeler }) {
+  // L'agent d'un collègue (le premier qui l'a joint) : absent de ma file, signalé ici.
+  const { data: equipeDonnees } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
+  const moiEmail = equipeDonnees?.moi || null;
+  const contactDe = (a) => {
+    const p = a.statut?.proprietaire;
+    if (!p || !moiEmail || p === moiEmail) return null;
+    const m = (equipeDonnees?.equipe || []).find((x) => x.email === p);
+    const n = (m?.nom || String(p).split("@")[0].split(".")[0]).split(" ")[0];
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  };
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState("toutes");
@@ -354,7 +364,8 @@ function TableauAgences({ id, onAppeler }) {
                     <td className="max-w-[260px] px-4 py-4">
                       <p className="m-0 text-encre">{nomPropre(a)}</p>
                       {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
-                      {dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}
+                      {contactDe(a) ? <p className="m-0 mt-1"><span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">Contact de {contactDe(a)}</span></p>
+                        : dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}
                     </td>
                     <td className="max-w-[220px] px-4 py-4 text-craie">{a.adresse || <span className="text-bord-vif">—</span>}</td>
                     <td className="max-w-[180px] truncate px-4 py-4">
@@ -452,7 +463,7 @@ function BarreVille({ ville, chiffres }) {
   return (
     <div className="mb-5">
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.agences}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">agences à {ville}</p></div>
+        <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.agences}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">agence{chiffres.agences > 1 ? "s" : ""} à {ville}</p></div>
         <div className={bloc}>
           <p className="m-0 text-[24px] leading-none text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{pc} %</p>
           <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">fait</p>
@@ -461,9 +472,15 @@ function BarreVille({ ville, chiffres }) {
         <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.interessees}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">intéressée{chiffres.interessees > 1 ? "s" : ""}</p></div>
         <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.a_rappeler}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">à rappeler</p></div>
       </div>
-      {(chiffres.independants > 0 || chiffres.annonceurs > 0 || chiffres.mortes > 0) && (
+      {/* Ce qui n'est pas compté comme agence, dit pour qu'on sache d'où vient le reste des lignes. */}
+      {(chiffres.independants > 0 || chiffres.societes > 0 || chiffres.annonceurs > 0 || chiffres.mortes > 0) && (
         <p className="m-0 mt-2 text-[12.5px] text-brume">
-          À part : {[chiffres.independants ? `${chiffres.independants} agent${chiffres.independants > 1 ? "s" : ""} indépendant${chiffres.independants > 1 ? "s" : ""} (en nom propre)` : null, chiffres.annonceurs ? `${chiffres.annonceurs} nom${chiffres.annonceurs > 1 ? "s" : ""} d'annonces sans numéro ni site` : null, chiffres.mortes ? `${chiffres.mortes} morte${chiffres.mortes > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}.
+          À part : {[
+            chiffres.independants ? `${chiffres.independants} agent${chiffres.independants > 1 ? "s" : ""} en nom propre` : null,
+            chiffres.societes ? `${chiffres.societes} société${chiffres.societes > 1 ? "s" : ""} sans vitrine (ni fiche Google, ni annonce)` : null,
+            chiffres.annonceurs ? `${chiffres.annonceurs} nom${chiffres.annonceurs > 1 ? "s" : ""} d'annonces` : null,
+            chiffres.mortes ? `${chiffres.mortes} morte${chiffres.mortes > 1 ? "s" : ""}` : null,
+          ].filter(Boolean).join(" · ")}.
         </p>
       )}
     </div>

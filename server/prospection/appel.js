@@ -15,7 +15,7 @@ import { Records } from '../db.js';
 import * as R from './regles.js';
 import { agentDe, majAgent, journal, liberer, agents as tousLesAgents } from './carnet.js';
 import { reglages } from './reglages.js';
-import { mailDeCriteres, mailCourtoisie, mailDemandeFiche, mailSansReponse, smsSansReponse, prenomDeLAgent } from './mails.js';
+import { mailDeCriteres, mailRelance, mailDemandeFiche, mailSansReponse, smsSansReponse, prenomDeLAgent } from './mails.js';
 
 const ENTITE = 'AppelAgent';
 
@@ -64,30 +64,57 @@ export async function transcrire(buffer) {
 // La lecture de l'appel
 // ---------------------------------------------------------------------------
 
+// Sortie de la lecture, toujours la même (spec du mode appel, 7 oct. 2026) :
+// chaque champ rempli porte la phrase exacte qui le justifie et un niveau de
+// confiance ; la date est dite en mots, le code la calcule (dates-fr.js).
+const CONFIANCE = { type: 'string', enum: ['haute', 'moyenne', 'basse'] };
 const SCHEMA = {
   type: 'object',
   properties: {
-    resume: { type: 'string', description: "Deux phrases au plus : ce que l'agent a, ce qu'il cherche, ce qu'il a promis." },
+    resume: { type: 'string', description: "Deux à trois lignes : ce que l'agent a, ce qu'il cherche, ce qu'il a promis." },
     issue: { type: 'string', enum: Object.keys(R.ISSUES) },
-    date_dite: { type: 'string', description: "AAAA-MM-JJ : la date de rappel dite, par l'agent ou par la personne qui raconte l'appel (« à rappeler le 20 octobre ») ; à défaut, la date du mandat attendu ; vide sinon" },
-    secteurs: { type: 'array', items: { type: 'string' }, description: 'villes ou quartiers où il travaille' },
-    mandats: { type: 'array', items: { type: 'string' }, description: 'mandats à venir, avec leur date si dite' },
-    biens: { type: 'array', items: { type: 'string' }, description: 'biens dont il a parlé : type, ville, prix, loyer' },
-    demandes: { type: 'array', items: { type: 'string' }, description: 'ce qu\'il nous demande' },
+    issue_entendue: { type: 'string', enum: ['pas_de_reponse', 'pas_de_murs', 'a_des_murs', 'pas_interesse', 'autre'], description: "ce que la conversation dit, indépendamment de l'issue tapée" },
+    interlocuteur: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string', description: "le nom de la personne qui a répondu, tel qu'il a été dit ; vide s'il n'a pas été dit" },
+        civilite: { type: 'string', description: 'Madame ou Monsieur, seulement si dit ou évident ; vide sinon' },
+        fonction: { type: 'string', description: 'sa fonction si dite (gérant, négociateur commerce…), vide sinon' },
+      },
+    },
+    telephone_direct: { type: 'string', description: "un numéro direct donné pendant l'appel, tel que dit ; vide sinon" },
     email_donne: { type: 'string', description: "une adresse mail donnée pendant l'appel, vide sinon" },
+    date_en_mots: { type: 'string', description: "la date de rappel ou l'échéance dite, en toutes lettres et telle quelle (« jeudi prochain », « dans un mois », « après le 15 ») ; jamais calculée ; vide sinon" },
+    prochaine_etape: { type: 'string', description: "ce qui a été convenu pour la suite (« il envoie la fiche demain »), vide sinon" },
+    secteurs: { type: 'array', items: { type: 'string' }, description: 'villes ou quartiers où il travaille' },
+    mandats: { type: 'array', items: { type: 'string' }, description: 'mandats à venir, avec leur échéance si dite' },
+    biens: { type: 'array', items: { type: 'string' }, description: 'biens évoqués : adresse, type, surface, prix, loyer, seulement ce qui a été dit' },
+    demandes: { type: 'array', items: { type: 'string' }, description: 'ce qu\'il nous demande' },
+    contexte: { type: 'string', description: "une seule phrase pour le mail de demande de documents, qui rappelle le bien évoqué (« Comme évoqué, le local de la rue de France nous intéresse. ») ; vide si aucun bien précis n'a été cité" },
+    nouveau_contact: {
+      type: 'object',
+      properties: { nom: { type: 'string' }, telephone: { type: 'string' }, email: { type: 'string' } },
+      description: "un autre interlocuteur à appeler, donné pendant l'appel (« appelez Sophie au 06… ») ; vide sinon",
+    },
     autre_contact: { type: 'string', description: "un autre interlocuteur de l'agence cité (nom, numéro), vide sinon" },
-    mail_objet: { type: 'string', description: "l'objet du mail à lui envoyer, vide si aucun mail n'a de sens" },
-    mail_corps: { type: 'string', description: 'le corps du mail, vouvoiement, court, sans signature (elle est ajoutée)' },
-    // D'où vient chaque information : la phrase entendue, pour que l'analyste
-    // voie sur quoi repose ce qu'on écrit dans Monday.
+    // D'où vient chaque information : la phrase entendue. Sans phrase, le champ reste vide.
     citations: {
       type: 'object',
       properties: {
+        interlocuteur: { type: 'string', description: "la phrase exacte où son nom ou sa fonction a été dit, vide sinon" },
+        telephone: { type: 'string', description: 'la phrase exacte où le numéro direct a été donné, vide sinon' },
         email: { type: 'string', description: "la phrase exacte où l'adresse mail a été donnée, vide sinon" },
-        autre_contact: { type: 'string', description: "la phrase exacte où l'autre interlocuteur a été cité (« appelez plutôt Sophie, c'est elle qui gère le commerce »), vide sinon" },
-        date: { type: 'string', description: 'la phrase exacte où la date de rappel a été dite (« rappelez-moi après le 15 »), vide sinon' },
-        biens: { type: 'string', description: "la phrase exacte où un local ou des murs à vendre ont été évoqués, vide sinon" },
+        date: { type: 'string', description: 'la phrase exacte où la date ou l\'échéance a été dite (« rappelez-moi après le 15 »), vide sinon' },
+        biens: { type: 'string', description: 'la phrase exacte où un local ou des murs ont été évoqués, vide sinon' },
+        prochaine_etape: { type: 'string', description: 'la phrase exacte où la suite a été convenue, vide sinon' },
+        nouveau_contact: { type: 'string', description: "la phrase exacte où l'autre contact a été donné, vide sinon" },
+        autre_contact: { type: 'string', description: "la phrase exacte où l'autre interlocuteur a été cité, vide sinon" },
       },
+    },
+    confiance: {
+      type: 'object',
+      description: "pour chaque champ rempli : haute si dit clairement, moyenne si mal entendu ou épelé, basse si déduit",
+      properties: { interlocuteur: CONFIANCE, telephone: CONFIANCE, email: CONFIANCE, date: CONFIANCE, biens: CONFIANCE, prochaine_etape: CONFIANCE },
     },
   },
   required: ['resume', 'issue'],
@@ -96,7 +123,7 @@ const SCHEMA = {
 const lignesJournal = (a) => (a.journal || []).slice(0, 6).map((j) => `${String(j.le).slice(0, 10)} ${j.type} : ${j.texte}`).join('\n') || 'aucun échange';
 
 /** Lit l'appel (transcription ou récit) et rend ce qu'AK en retient. */
-async function lire(a, texte, { par, maintenant }) {
+async function lire(a, texte, { par, maintenant, issueTapee = null }) {
   const { invokeLLM, llmEnabled } = await import('../llm.js');
   if (!llmEnabled) return { resume: texte.slice(0, 300), issue: 'autre' };
   const r = reglages();
@@ -105,15 +132,15 @@ async function lire(a, texte, { par, maintenant }) {
     prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${u?.full_name || par} vient d'appeler un agent immobilier. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
 
 L'issue, une seule :
-- pas_de_reponse : personne n'a décroché, messagerie ;
-- pas_de_murs : il n'a rien pour nous en ce moment ;
-- a_des_murs : il a des murs qui peuvent nous intéresser ;
+- pas_de_reponse : personne n'a décroché, ou répondeur ;
+- pas_de_murs : il n'a pas de bien pour nous en ce moment (même s'il en aura peut-être un plus tard) ;
+- a_des_murs : il a un bien qui peut nous intéresser ;
 - veut_mail : il veut d'abord un mail avant d'aller plus loin ;
 - pas_interesse : il ne veut pas travailler avec nous ;
 - invalide : mauvais numéro, la personne n'est plus là ;
 - autre.
 
-Le mail, s'il a un sens : a_des_murs, lui demander la fiche des biens cités ; veut_mail ou pas_de_murs, nous présenter avec nos critères ; en rappelant ce qui s'est dit. Écrit comme ${u?.full_name?.split(' ')[0] || "l'analyste"} l'écrirait, vouvoiement, cinq à huit lignes, sans signature.
+Règles : n'écris un champ que s'il a été dit, avec la phrase exacte dans « citations ». Un nom mal entendu reste tel qu'entendu, avec une confiance moyenne. Une date se recopie en mots (« jeudi prochain »), jamais en chiffres calculés. Aucun mail à écrire : les modèles sont fixes.
 
 Nos critères (n'en invente aucun : cite seulement ceux-ci ; s'il n'y en a pas, dis seulement que nous achetons des murs commerciaux loués) :
 ${r.criteres || '(pas encore écrits)'}
@@ -122,7 +149,7 @@ L'agent : ${a.nom}${a.agence ? `, ${a.agence}` : ''}${a.ville ? `, ${a.ville}` :
 Ce qu'on sait déjà :
 ${lignesJournal(a)}
 
-Aujourd'hui : ${R.jourDe(maintenant)}.
+Aujourd'hui : ${R.jourDe(maintenant)}${issueTapee ? `. L'analyste a tapé l'issue « ${R.ISSUES[issueTapee] || issueTapee} » : elle ne change pas, remplis seulement les détails, et dis dans issue_entendue ce que la conversation dit vraiment` : ''}.
 
 L'appel :
 ${texte}`,
@@ -137,15 +164,10 @@ ${texte}`,
  */
 export function propositions(a, lu, { maintenant = new Date(), criteres = '', objet_criteres, autres_de_l_agence = [] } = {}) {
   const issue = lu.issue && R.ISSUES[lu.issue] ? lu.issue : 'autre';
-  const suite = R.suiteDeLIssue(issue, { tentatives: a.tentatives || 0, maintenant, date_dite: lu.date_dite || null });
+  const suite = R.suiteDeLIssue(issue, { tentatives: a.tentatives || 0, maintenant, date_dite: lu.date_dite || null, statut: a.statut || null });
   const out = [];
   const a_email = R.normEmail(lu.email_donne) || a.emails?.[0] || null;
   out.push({ id: 'statut', type: 'statut', titre: `Noter l'appel : ${R.ISSUES[issue].toLowerCase()}${suite.statut !== a.statut ? `, statut « ${R.STATUTS[suite.statut]} »` : ''}`, issue, statut: suite.statut, tentatives: suite.tentatives });
-  // Pas intéressé : un mail de courtoisie se propose, décoché.
-  if (suite.courtoisie) {
-    const m = mailCourtoisie(a);
-    out.push({ id: 'mail', type: 'mail', titre: `Lui envoyer un mail de courtoisie « ${m.objet} »${a_email ? '' : ' (il manque son adresse)'}`, a: a_email, ...m, genre: 'courtoisie', avec_relance: false, coche: false });
-  }
   for (const genre of suite.mails) {
     let mail;
     if (lu.mail_objet && lu.mail_corps && genre !== 'sans_reponse') {
@@ -155,7 +177,7 @@ export function propositions(a, lu, { maintenant = new Date(), criteres = '', ob
     else if (genre === 'demande_fiche') mail = mailDemandeFiche(a, lu.biens || []);
     else mail = mailSansReponse(a);
     out.push({ id: 'mail', type: 'mail', titre: `Lui envoyer « ${mail.objet} »${a_email ? '' : ' (il manque son adresse)'}`, a: a_email, ...mail, genre, avec_relance: !!suite.relance_mail_jours });
-    if (suite.relance_mail_jours) out.push({ id: 'relance_mail', type: 'relance_mail', titre: `Préparer la relance de ce mail, ${suite.relance_mail_jours} jours après l'envoi (tu la valideras)`, jours: suite.relance_mail_jours });
+    if (suite.relance_mail_jours) out.push({ id: 'relance_mail', type: 'relance_mail', titre: `Préparer la relance de ce mail, ${suite.relance_mail_jours} jours après l'envoi (tu la valideras)`, jours: suite.relance_mail_jours, apercu: mailRelance({ objet: mail.objet, sous_genre: genre }, a, maintenant) });
   }
   if (suite.sms && a.telephones?.length) out.push({ id: 'sms', type: 'sms', titre: `Préparer un SMS pour ${a.telephones[0]}`, a: a.telephones[0], corps: smsSansReponse(a) });
   if (suite.prochaine) {
@@ -243,8 +265,14 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   const a = agentDe(agent_id);
   if (!a) return { ok: false, error: 'Agent introuvable.' };
   let transcription = null;
+  let transcriptionEchec = null;
   if (audio?.length) {
-    try { transcription = await transcrire(audio); } catch (e) { return { ok: false, error: `Transcription impossible : ${e?.message || e}. Raconte l'appel en une phrase à la place.` }; }
+    try { transcription = await transcrire(audio); } catch (e) {
+      // Le mode appel ne bloque jamais sur une transcription : l'écran
+      // d'actions s'ouvre sur l'issue seule, avec un champ Note.
+      if (!issueTapee) return { ok: false, error: `Transcription impossible : ${e?.message || e}. Raconte l'appel en une phrase à la place.` };
+      transcriptionEchec = String(e?.message || e).slice(0, 200);
+    }
   }
   const texte = [transcription ? `Transcription :\n${transcription}` : null, recit ? `Ce qu'en dit ${par} :\n${recit}` : null].filter(Boolean).join('\n\n');
   // Personne n'a décroché, ou l'enregistrement est vide : pas besoin du modèle.
@@ -253,14 +281,21 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   if (issueTapee && R.ISSUES[issueTapee]) {
     // L'issue tapée par l'analyste fait foi (mode appel) : la lecture ne sert
     // qu'à remplir les détails autour, jamais à la contredire.
-    lu = vide || issueTapee === 'pas_de_reponse' ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant })), issue: issueTapee };
+    lu = vide || ['pas_de_reponse', 'repondeur'].includes(issueTapee) ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant, issueTapee })), issue: issueTapee };
   } else {
     lu = sans_reponse || vide ? { resume: 'pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant });
   }
+  // Ce qui a été compris : le code garde ce qui a une phrase, vérifie les
+  // formats, calcule la date. La date d'AK n'est jamais prise telle quelle.
+  const { comprisDe } = await import('./compris.js');
+  const connus = [a.nom, ...(a.contacts || []).map((x) => x.nom)].filter(Boolean);
+  const compris = comprisDe(lu, { issue: lu.issue, connus, maintenant });
+  lu.date_dite = compris.date_dite;
   const r = reglages();
   const autres = tousLesAgents().filter((x) => x.id !== a.id && a.agence && R.norm(x.agence) === R.norm(a.agence) && x.statut !== 'archive' && x.telephones?.length);
   const { issue, propositions: props } = propositions(a, lu, { maintenant, criteres: r.criteres, objet_criteres: r.objet_criteres, autres_de_l_agence: autres });
-  const message = issue === 'pas_de_reponse' ? messagePasDeReponse(a, props) : await messageVivant(a, { ...lu, issue }, props, par);
+  // Le mode appel (issue tapée) n'a pas de message à lire : l'écran suffit, sans second appel au modèle.
+  const message = issueTapee ? null : issue === 'pas_de_reponse' ? messagePasDeReponse(a, props) : await messageVivant(a, { ...lu, issue }, props, par);
   // Seul ce qui est extrait se garde (6 oct. 2026) : ni la transcription ni le
   // récit dicté ne sont enregistrés, l'interlocuteur n'ayant consenti qu'à une
   // prise de notes. Ils repartent une fois vers l'écran, pour relecture.
@@ -268,6 +303,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
     transcription: null, recit: null, resume: lu.resume || null, issue, date_dite: lu.date_dite || null,
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null,
+    compris, transcription_echec: transcriptionEchec,
     propositions: props, message, etat: 'a_valider',
   });
   // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus
@@ -296,9 +332,9 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
   if (statut) {
     champs.statut = statut.statut;
     champs.tentatives = statut.tentatives;
-    if (statut.issue !== 'pas_de_reponse') champs.dernier_contact_le = iso;
+    if (!['pas_de_reponse', 'repondeur'].includes(statut.issue)) champs.dernier_contact_le = iso;
     // Le premier de l'équipe qui joint un agent en devient le référent.
-    if (!a.referent && !['pas_de_reponse', 'invalide'].includes(statut.issue)) { champs.referent = par; faits.push('tu es son référent'); }
+    if (!a.referent && !['pas_de_reponse', 'repondeur', 'invalide'].includes(statut.issue)) { champs.referent = par; faits.push('tu es son référent'); }
   }
   const relance = props.find((p) => p.type === 'relance');
   champs.prochaine = relance ? relance.prochaine : statut ? null : a.prochaine;
@@ -350,8 +386,9 @@ export async function validerAppel({ appel_id, choix = [], mail = null, sms = nu
   return { ok: true, faits, envoi, mail_id: mailId, sms_id: smsId, agent: agentDe(a.id) };
 }
 
-export const appels = () => Records.list(ENTITE);
-export const appelAValider = (par) => Records.filter(ENTITE, { etat: 'a_valider', par }).sort((x, y) => String(y.le).localeCompare(String(x.le)));
+// Les appels du mode essai ne comptent nulle part : ni tableau de bord, ni fiabilité d'AK.
+export const appels = () => Records.list(ENTITE).filter((x) => !x.essai);
+export const appelAValider = (par) => Records.filter(ENTITE, { etat: 'a_valider', par }).filter((x) => !x.essai).sort((x, y) => String(y.le).localeCompare(String(x.le)));
 
 /**
  * L'appel raconté en trente secondes, après avoir raccroché : le vocal est
@@ -433,7 +470,7 @@ export function semaineIso(d) {
  * corrections.
  */
 export function fiabilite({ semaines = 6, maintenant = new Date() } = {}) {
-  const valides = Records.list(ENTITE).filter((x) => x.etat === 'valide' && x.valide_le);
+  const valides = Records.list(ENTITE).filter((x) => !x.essai && x.etat === 'valide' && x.valide_le);
   const parSemaine = [];
   for (let i = semaines - 1; i >= 0; i -= 1) {
     const d = new Date(maintenant.getTime() - i * 7 * 86400000);

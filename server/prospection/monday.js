@@ -197,6 +197,8 @@ export async function pousserUnAgent(agentId) {
   const { agentDe } = await import('./carnet.js');
   const a = agentDe(agentId);
   if (!a) return { ok: false, error: 'Agent introuvable.' };
+  // Une fiche du mode essai n'entre jamais dans Monday.
+  if (a.essai) return { ok: false, essai: true, error: 'mode essai : rien écrit dans Monday' };
   const t = await assurerTableaux();
   const id = await poserAgent(t, a);
   if (!id) return { ok: false, error: "Monday n'a pas rendu d'identifiant." };

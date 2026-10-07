@@ -78,11 +78,11 @@ export function mettreEnAttente(champs) {
 export function aEnvoyer(maintenant = new Date()) {
   const auj = R.jourDe(maintenant);
   return Records.list(ENTITE)
-    .filter((m) => m.etat === 'pret' || (m.etat === 'prevu' && m.pour_le <= auj))
+    .filter((m) => !m.essai && (m.etat === 'pret' || (m.etat === 'prevu' && m.pour_le <= auj)))
     .sort((x, y) => String(y.cree_le).localeCompare(String(x.cree_le)));
 }
 /** Les relances préparées pour plus tard. */
-export const programmes = (maintenant = new Date()) => Records.list(ENTITE).filter((m) => m.etat === 'prevu' && m.pour_le > R.jourDe(maintenant)).sort((x, y) => String(x.pour_le).localeCompare(String(y.pour_le)));
+export const programmes = (maintenant = new Date()) => Records.list(ENTITE).filter((m) => !m.essai && m.etat === 'prevu' && m.pour_le > R.jourDe(maintenant)).sort((x, y) => String(x.pour_le).localeCompare(String(y.pour_le)));
 
 export function modifierMail(id, { objet, corps, a }) {
   const m = Records.get(ENTITE, id);
@@ -128,6 +128,8 @@ export async function envoyerMails(ids, user) {
   for (const id of ids || []) {
     const m = Records.get(ENTITE, id);
     if (!m || !['pret', 'prevu'].includes(m.etat)) { resultats.push({ id, ok: false, error: 'déjà parti ou écarté' }); continue; }
+    // Un mail du mode essai ne part jamais : son adresse est fictive.
+    if (m.essai) { resultats.push({ id, ok: false, essai: true, error: 'mode essai : le mail ne part pas' }); continue; }
     const corps = String(m.corps).replace(/\{signature\}/g, signature);
     const maintenant = new Date();
     if (m.genre === 'sms') {
@@ -150,7 +152,8 @@ export async function envoyerMails(ids, user) {
         mettreEnAttente({ genre: 'relance', sous_genre: m.sous_genre, agent_id: m.agent_id, nom: m.nom, agence: m.agence, a: m.a, ...mailRelance(m, a, maintenant), etat: 'prevu', pour_le: R.plusJoursOuvres(R.jourDe(maintenant), 3), relance_de: m.id });
       }
     }
-    resultats.push({ id, ok: true, simule: !r.success });
+    if (r.success) Records.update(ENTITE, id, { dans_les_envoyes: !!r.dans_les_envoyes, expediteur: r.expediteur || null, message_id: r.messageId || null });
+    resultats.push({ id, ok: true, simule: !r.success, dans_les_envoyes: !!r.dans_les_envoyes, expediteur: r.expediteur || null });
   }
   return { ok: true, resultats, envoyes: resultats.filter((x) => x.ok && !x.simule && !x.sms).length, simules: resultats.filter((x) => x.simule).length, sms: resultats.filter((x) => x.sms).length, rates: resultats.filter((x) => !x.ok).length };
 }

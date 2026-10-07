@@ -13,7 +13,9 @@ import * as R from './regles.js';
 const ENTITE = 'AgentImmo';
 const JOURNAL_MAX = 80;
 
-export const agents = () => Records.list(ENTITE);
+// Les fiches du mode essai (agences fictives) ne sortent jamais de l'essai :
+// ni liste du jour, ni Monday, ni tableau de bord.
+export const agents = () => Records.list(ENTITE).filter((a) => !a.essai);
 export const agentDe = (id) => Records.get(ENTITE, id);
 
 export function majAgent(id, champs) {

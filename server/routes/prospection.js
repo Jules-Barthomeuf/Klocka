@@ -96,7 +96,30 @@ export function monterProspection(app) {
     }
     const r = (await MA()).fileDAppel(liste, user);
     if (!r.ok) return refus(res, r);
+    // Le cahier des charges clients, sous les yeux avant d'appeler.
+    const cahier = await (await import('../prospection/modeles-appel.js')).cahierDesCharges();
+    ok(res, { ...r, cahier, issues: (await MA()).ISSUES_APPEL, raisons_passer: (await MA()).RAISONS_PASSER });
+  }));
+  // L'agence à l'écran : tenue pour soi, renouvelée tant qu'elle y reste.
+  app.post('/api/prospection/mode-appel/reserver', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await MA()).reserver(req.body?.agence_id, user);
+    if (!r.ok) return res.status(409).json({ error: r.error, prise: !!r.prise });
     ok(res, r);
+  }));
+  // « Passer », avec sa raison : fermée, pas pertinente, plus tard.
+  app.post('/api/prospection/mode-appel/passer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await MA()).passer(req.body?.agence_id, String(req.body?.raison || ''), user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // L'agent qui rappelle : retrouvé par son nom ou son numéro.
+  app.get('/api/prospection/mode-appel/chercher', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, (await MA()).chercher(String(req.query.q || '').slice(0, 80)));
   }));
   app.post('/api/prospection/mode-appel/sessions', wrap(async (req, res) => {
     const user = admin(req, res);
@@ -104,6 +127,12 @@ export function monterProspection(app) {
     const r = (await MA()).ouvrirSession(req.body?.liste_id, user);
     if (!r.ok) return refus(res, r);
     ok(res, r);
+  }));
+  // Le mode essai : quatre agences fictives remises à zéro, rien ne sort (ni Monday, ni mail).
+  app.post('/api/prospection/mode-appel/essai', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await MA()).ouvrirEssai(user));
   }));
   app.get('/api/prospection/mode-appel/sessions/:id', wrap(async (req, res) => {
     if (!admin(req, res)) return;
@@ -127,7 +156,8 @@ export function monterProspection(app) {
     if (req.file) fs.promises.unlink(req.file.path).catch(() => {});
     const r = await (await MA()).noterIssue({
       agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue,
-      session_id: req.body?.session_id || null, audio, recit: String(req.body?.recit || '').trim().slice(0, 4000) || null, user,
+      session_id: req.body?.session_id || null, audio, recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
+      numero: req.body?.numero || null, user,
     });
     if (!r.ok) return refus(res, r);
     ok(res, r);
@@ -135,11 +165,57 @@ export function monterProspection(app) {
   app.post('/api/prospection/mode-appel/appels/:id/valider', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
+    const b = req.body || {};
     const r = await (await MA()).validerIssue({
-      appel_id: req.params.id, choix: req.body?.choix || [], mail: req.body?.mail || null,
-      envoyer: req.body?.envoyer !== false, session_id: req.body?.session_id || null, issue: req.body?.issue || null, user,
+      appel_id: req.params.id, choix: Array.isArray(b.choix) ? b.choix : [], mail: b.mail || null,
+      relance_le: b.relance_le || null, monday_ligne: b.monday_ligne || null, note: String(b.note || '').slice(0, 2000),
+      cle: b.cle ? String(b.cle).slice(0, 80) : null, session_id: b.session_id || null, issue: b.issue || null,
+      corrections: Array.isArray(b.corrections) ? b.corrections : [], user,
     });
     if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // « Annuler », dans les dix secondes qui suivent la validation.
+  app.post('/api/prospection/mode-appel/appels/:id/annuler', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MA()).annulerValidation(req.params.id, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // « C'est bien cette ligne ? » : la ligne Monday choisie après coup.
+  app.post('/api/prospection/mode-appel/appels/:id/ligne-monday', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = await (await MA()).choisirLigneMonday(req.params.id, req.body?.ligne_id || 'nouvelle');
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // Réessayer Monday tout de suite, depuis le récapitulatif.
+  app.post('/api/prospection/mode-appel/appels/:id/reessayer', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    await (await MA()).reessayerAttentes({ max: 50 });
+    const r = (await MA()).recu(req.params.id);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/prospection/mode-appel/appels/:id/brouillon', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await MA()).brouillonOuvert(req.params.id);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // L'appel resté sans issue (application fermée) : rendu à la réouverture.
+  app.get('/api/prospection/mode-appel/en-suspens', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const appel = Records.list('AppelAgent').filter((x) => x.par === user.email && x.etat === 'a_valider' && x.agence_id && !x.essai_archive && Date.now() - Date.parse(x.le) < 2 * 86400000).sort((x, y) => String(y.le).localeCompare(String(x.le)))[0] || null;
+    ok(res, { appel: appel ? { id: appel.id, agence_id: appel.agence_id, agence: Records.get('AgenceProspect', appel.agence_id)?.nom || appel.agent, issue: appel.issue_tapee || appel.issue, le: appel.le, propositions: appel.propositions, compris: appel.compris, resume: appel.resume } : null });
+  }));
+  app.post('/api/prospection/mode-appel/appels/:id/renvoyer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await MA()).renvoyerMail(req.params.id, user);
+    if (!r.recu) return refus(res, r);
     ok(res, r);
   }));
   app.get('/api/prospection/mode-appel/appels/:id/recu', wrap(async (req, res) => {

@@ -8,8 +8,8 @@ import { Eye, X } from "lucide-react";
 // et son interrupteur ; Monday ne se décoche pas pour un appel abouti. Le
 // tracé se dessine une fois à l'ouverture.
 
-const MAILS = { "presentation-cahier": "Présentation + cahier des charges", presentation: "Présentation seule", "demande-documents": "Murs commerciaux" };
-const ISSUES = { pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé" };
+const MAILS = { "presentation-cahier": "Présentation + cahier des charges", presentation: "Présentation seule", "demande-fiche": "Murs commerciaux · fiche commerciale", "demande-documents": "Murs commerciaux · documents du dossier" };
+const ISSUES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé" };
 const jourLong = (j) => (j ? new Date(`${String(j).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
 const lenteur = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -140,7 +140,7 @@ function Feuille({ feuille, mail, onMail, onFermer }) {
 
         {feuille.doute && (
           <div className="flex flex-col gap-2">
-            <p className="m-0 text-[15px] text-ambre">C'est bien cette ligne ?</p>
+            <p className="m-0 text-[15px] text-ambre">C'est bien ce contact ?</p>
             {feuille.doute.candidates.map((c) => (
               <button key={c.id} type="button" onClick={() => { feuille.doute.choisir(c.id); onFermer(); }}
                 className={`flex flex-col items-start gap-0.5 rounded-[12px] border px-3.5 py-3 text-left ${feuille.doute.choisie === c.id ? "border-menthe bg-menthe/10" : "border-trait"}`} style={feuille.doute.choisie === c.id ? undefined : { background: "transparent" }}>
@@ -150,7 +150,7 @@ function Feuille({ feuille, mail, onMail, onFermer }) {
             ))}
             <button type="button" onClick={() => { feuille.doute.choisir("nouvelle"); onFermer(); }}
               className={`rounded-[12px] border px-3.5 py-3 text-left text-[15px] ${feuille.doute.choisie === "nouvelle" ? "border-menthe bg-menthe/10 text-encre" : "border-trait text-craie"}`} style={feuille.doute.choisie === "nouvelle" ? undefined : { background: "transparent" }}>
-              Aucune : créer une nouvelle ligne
+              Aucun : nouveau contact
             </button>
           </div>
         )}
@@ -206,11 +206,12 @@ function Feuille({ feuille, mail, onMail, onFermer }) {
 /**
  * @param {{appel, agence, issue, coches: Set, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi}} props
  */
-export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi = false }) {
+export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, onLancer, envoi = false }) {
   const props = appel.propositions || [];
   const par = (t) => props.find((p) => p.type === t);
   const pm = par("mail");
   const pr = par("relance");
+  const pr2 = par("relance_suivante");
   const pmo = par("monday");
   const pdi = par("diffusion");
   const compris = appel.compris?.champs || {};
@@ -240,12 +241,12 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const basculer = (id) => () => setCoches((st) => { const n = new Set(st); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const modifie = pm && mail && (mail.objet !== pm.objet || mail.corps !== pm.corps || (mail.a || "") !== (pm.a || ""));
   const dateRelance = relanceLe || pr?.prochaine?.le;
-  const choisie = ligneMonday ? (ligneMonday === "nouvelle" ? { nom: "Nouvelle ligne" } : (ligne?.candidates || []).find((c) => c.id === ligneMonday)) : null;
+  const choisie = ligneMonday ? (ligneMonday === "nouvelle" ? { nom: "Nouveau contact" } : (ligne?.candidates || []).find((c) => c.id === ligneMonday)) : null;
 
   const feuilles = {
     monday: () => ({
       kicker: "MONDAY · AGENTS IMMOBILIERS",
-      titre: ligne?.etat === "trouvee" ? `${ligne.ligne.nom} · ligne existante` : ligne?.etat === "nouvelle" ? "Nouvelle ligne" : ligne?.etat === "doute" ? (choisie ? `${choisie.nom}` : "Quelle ligne ?") : agence?.nom || appel.agent,
+      titre: ligne?.etat === "trouvee" ? `${ligne.ligne.nom || "Contact sans nom"} · déjà dans Monday` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `${choisie.nom}` : "Quel contact ?") : agence?.nom || appel.agent,
       ...(ligne?.etat === "doute" ? { doute: { candidates: ligne.candidates || [], choisie: ligneMonday, choisir: setLigneMonday } } : {}),
       champs: ligne?.etat === "indisponible" || ligne?.etat === "info"
         ? [{ label: "Monday", apres: ligne.texte, warn: ligne.etat === "indisponible" }]
@@ -262,6 +263,11 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       { label: "Pourquoi cette date", apres: relanceLe ? "Choisie à la main" : pr.source ? `Dit : « ${pr.source} »` : pr.incertain ? "Date par défaut : rien n'a été dit" : "Selon l'issue", warn: !relanceLe && !!pr.incertain },
       pr.prochaine?.si_fiche && { label: "Annulée", apres: "Dès que la fiche arrive depuis son adresse" },
     ].filter(Boolean) }),
+    relance_suivante: () => ({ kicker: "FILE D'APPELS · SECONDE RELANCE", titre: "Faire le point", date: { valeur: relance2Le || pr2.prochaine?.le, changer: setRelance2Le }, champs: [
+      { label: "Quoi", apres: pr2.prochaine?.quoi },
+      { label: "Pourquoi cette date", apres: relance2Le ? "Choisie à la main" : pr2.incertain ? "Date par défaut : trois semaines" : `Dit : « ${pr2.source} »`, warn: !relance2Le && !!pr2.incertain },
+      { label: "Ordre", apres: "Après la relance de la fiche ; si la fiche arrive, c'est elle qui devient la prochaine" },
+    ] }),
     fiche: () => ({ kicker: "FICHE · CE QUI S'AJOUTE", titre: agence?.nom || appel.agent, champs: [
       ...(par("fiche")?.infos?.secteurs || []).length ? [{ label: "Secteurs", apres: par("fiche").infos.secteurs.join(", ") }] : [],
       ...par("fiche")?.infos?.email ? [{ label: "Email", apres: par("fiche").infos.email }] : [],
@@ -289,18 +295,19 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const etape = (q, champs) => ({ k: q.id, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: voir(q.type, q), ...champs });
   const maintenant = [];
   if (pmo) {
-    const detail = ligne?.etat === "trouvee" ? `Ligne de ${ligne.ligne.nom}, retrouvée par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouvelle ligne" : ligne?.etat === "doute" ? (choisie ? `Ligne choisie : ${choisie.nom}` : "C'est bien cette ligne ? Choisissez") : ligne?.texte || "";
-    maintenant.push(etape(pmo, { label: "Mettre à jour Monday", detail, warn: doute || ligne?.etat === "indisponible" }));
+    const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
+    maintenant.push(etape(pmo, { label: "Contact Monday", detail, warn: doute || ligne?.etat === "indisponible" }));
   }
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
-  if (pm) maintenant.push(etape(pm, { label: MAILS[mail?.modele || pm.modele] || "Mail", detail: `${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
+  if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
   if (pdi) maintenant.push(etape(pdi, { label: "Ajouter à la liste de diffusion agents", detail: pdi.a || mail?.a ? `${mail?.a || pdi.a}` : "il manque l'adresse", warn: !(pdi.a || mail?.a) }));
-  for (const q of props.filter((x) => ["fiche", "signaler_bien", "nouveau_contact"].includes(x.type))) {
+  for (const q of props.filter((x) => ["fiche", "signaler_bien", "nouveau_contact"].includes(x.type) && !x.cache)) {
     const lib = { fiche: "Compléter sa fiche", signaler_bien: "Noter le bien évoqué", nouveau_contact: "Appeler le contact donné" }[q.type];
     maintenant.push(etape(q, { label: lib, detail: String(q.titre).replace(/^Ajouter à sa fiche : /, "").replace(/^Noter le bien évoqué : /, ""), warn: !!q.incertain }));
   }
   const ensuite = [];
   if (pr) ensuite.push(etape(pr, { label: "Planifier la relance", detail: `${pr.prochaine?.quoi}${relanceLe ? " · date changée" : ""}`, warn: !relanceLe && !!pr.incertain }));
+  if (pr2) ensuite.push(etape(pr2, { label: "Seconde relance", detail: `${jourLong(relance2Le || pr2.prochaine?.le)} · ${pr2.prochaine?.quoi}`, warn: !relance2Le && !!pr2.incertain }));
   const pv = par("prevenir");
   if (pv) ensuite.push(etape(pv, { label: "Prévenir un collègue", detail: pv.pour.map((e) => e.split("@")[0].split(".")[0]).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(", ") }));
   const n = [...maintenant, ...ensuite].filter((e) => e.on).length;
@@ -322,7 +329,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         </>
       )}
 
-      {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Monday a plusieurs lignes possibles : ouvrez « Mettre à jour Monday » et choisissez la bonne.</p>}
+      {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Monday a plusieurs contacts possibles : ouvrez « Contact Monday » et choisissez le bon.</p>}
       <button type="button" onClick={onLancer} disabled={envoi || !n || doute}
         className="mt-5 w-full rounded-full bg-encre py-[18px] text-[17px] text-fond hover:opacity-90 disabled:opacity-50">
         {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}

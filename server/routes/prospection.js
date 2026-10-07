@@ -149,18 +149,51 @@ export function monterProspection(app) {
     ok(res, r);
   }));
   // L'issue tapée en raccrochant, avec le vocal pour les vraies conversations.
-  app.post('/api/prospection/mode-appel/issue', upload.single('audio'), wrap(async (req, res) => {
+  // La transcription en direct (7 oct. 2026) : un morceau de quelques
+  // secondes, transcrit et rendu tout de suite. L'audio n'est pas gardé.
+  app.post('/api/prospection/mode-appel/morceau', upload.single('audio'), wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    if (!req.file) return res.status(400).json({ error: 'Morceau vide.' });
+    const audio = fs.readFileSync(req.file.path);
+    fs.promises.unlink(req.file.path).catch(() => {});
+    try {
+      const texte = await (await import('../prospection/appel.js')).transcrire(audio);
+      ok(res, { ok: true, i: Number(req.body?.i) || 0, texte });
+    } catch (e) {
+      res.status(502).json({ error: `Morceau non transcrit : ${e?.message || e}` });
+    }
+  }));
+  // La fin de l'appel : la transcription faite en direct ; les morceaux restés
+  // sans texte (réseau, transcription ratée) arrivent en audio, dans l'ordre.
+  app.post('/api/prospection/mode-appel/issue', upload.array('audio', 80), wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    const audio = req.file ? fs.readFileSync(req.file.path) : null;
-    if (req.file) fs.promises.unlink(req.file.path).catch(() => {});
+    const fichiers = req.files || [];
+    const audios = fichiers.map((f) => fs.readFileSync(f.path));
+    for (const f of fichiers) fs.promises.unlink(f.path).catch(() => {});
+    let transcription = String(req.body?.transcription || '').trim() || null;
+    let audio = null;
+    let morceaux = null;
+    try { morceaux = req.body?.morceaux ? JSON.parse(req.body.morceaux) : null; } catch { morceaux = null; }
+    if (Array.isArray(morceaux)) {
+      const A = await import('../prospection/appel.js');
+      let k = 0;
+      const textes = [];
+      for (const m of morceaux) {
+        if (typeof m === 'string') { textes.push(m); continue; }
+        const b = audios[k++];
+        if (b) { try { textes.push(await A.transcrire(b)); } catch { textes.push(''); } }
+      }
+      transcription = textes.filter(Boolean).join('\n').trim() || null;
+    } else if (audios.length) audio = audios[0];
     const r = await (await MA()).noterIssue({
       agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue,
-      session_id: req.body?.session_id || null, audio, recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
+      session_id: req.body?.session_id || null, audio, transcription, remplace: req.body?.remplace || null,
+      recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
       numero: req.body?.numero || null, user,
     });
     if (!r.ok) return refus(res, r);
-    ok(res, r);
+    ok(res, { ...r, transcription });
   }));
   app.post('/api/prospection/mode-appel/appels/:id/valider', wrap(async (req, res) => {
     const user = admin(req, res);
@@ -168,7 +201,7 @@ export function monterProspection(app) {
     const b = req.body || {};
     const r = await (await MA()).validerIssue({
       appel_id: req.params.id, choix: Array.isArray(b.choix) ? b.choix : [], mail: b.mail || null,
-      relance_le: b.relance_le || null, monday_ligne: b.monday_ligne || null, note: String(b.note || '').slice(0, 2000),
+      relance_le: b.relance_le || null, relance2_le: b.relance2_le || null, monday_ligne: b.monday_ligne || null, note: String(b.note || '').slice(0, 2000),
       cle: b.cle ? String(b.cle).slice(0, 80) : null, session_id: b.session_id || null, issue: b.issue || null,
       corrections: Array.isArray(b.corrections) ? b.corrections : [], user,
     });

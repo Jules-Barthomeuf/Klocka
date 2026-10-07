@@ -54,11 +54,17 @@ test('ce qui a été compris : rien sans sa phrase, les formats vérifiés, la d
 
 test('les modèles : texte fixe, variables remplies, corrections de la spec', () => {
   const murs = DEFAULT_TEMPLATES.find((t) => t.slug === 'demande-documents');
-  assert.match(murs.contenu, /- Diagnostics \(si déjà faits\)/);
-  assert.match(murs.contenu, /Pour rappel, nous travaillons avec des mandats de recherche : vos honoraires resteront inchangés\./);
+  // Le canevas de Jules (7 oct. 2026), mot pour mot.
+  assert.match(murs.contenu, /- Diagnostiques \(si déjà faits\)/);
+  assert.match(murs.contenu, /Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés\./);
+  const seule = remplirModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation'), { analyste: 'Nora Lorinquer' });
+  assert.equal(seule.objet, 'Présentation de notre activité – Klocka');
+  assert.match(seule.corps, /Je suis Nora Lorinquer, analyste/);
+  assert.match(seule.corps, /Je vous souhaite une excellente journée\.\n\nBien cordialement\n\{signature\}$/);
   const m = remplirModele(murs, { analyste: 'Nora Lorinquer', salutation: 'Bonjour Madame Martin,', contexte: 'Comme évoqué, le local de la rue de France nous intéresse.' });
   assert.equal(m.objet, 'Murs commerciaux - Klocka');
   assert.match(m.corps, /^Bonjour Madame Martin,\n\nComme évoqué, le local de la rue de France nous intéresse\.\n\nPour faire suite/);
+  assert.match(m.corps, /Bien à vous,\n\{signature\}$/);
   assert.match(m.corps, /\{signature\}$/, "la signature se pose à l'envoi");
   const pres = remplirModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation-cahier'), { analyste: 'Nora Lorinquer' });
   assert.match(pres.corps, /^Bonjour,\n/);
@@ -142,7 +148,7 @@ test('scénario 5 : « Pas intéressé » : ne plus appeler, aucune relance, abs
 test('scénario 4 : « A un bien intéressant » : relance J+3 ouvrés, annulée quand la fiche arrive', async () => {
   const { ag } = ville('Menton');
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'a_des_murs', user: nora });
-  assert.equal(r.appel.propositions.find((p) => p.id === 'mail').modele, 'demande-documents');
+  assert.equal(r.appel.propositions.find((p) => p.id === 'mail').modele, 'demande-fiche', 'la fiche commerciale seule, par défaut');
   const relance = r.appel.propositions.find((p) => p.id === 'relance');
   assert.equal(relance.prochaine.si_fiche, true);
   await MA.validerIssue({ appel_id: r.appel.id, choix: r.appel.propositions.filter((p) => p.coche !== false).map((p) => p.id), user: nora, issue: 'a_des_murs' });
@@ -158,9 +164,44 @@ test('scénario 8 : sans enregistrement ni note, l\'écran d\'actions s\'ouvre s
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_de_murs', user: nora });
   assert.equal(r.ok, true);
   assert.equal(r.appel.sans_details, true);
-  assert.deepEqual(r.appel.compris.champs, {});
+  assert.deepEqual(Object.keys(r.appel.compris.champs), ['telephone'], 'seul le numéro appelé, sûr');
+  assert.equal(r.appel.compris.champs.telephone.appele, true);
   const v = await MA.validerIssue({ appel_id: r.appel.id, choix: ['statut', 'relance'], note: 'Rappeler après les vacances', user: nora, issue: 'pas_de_murs' });
   assert.equal(v.ok, true);
   const agentId = Records.get('AgenceProspect', ag.id).carnet_id;
   assert.ok(Records.get('AgentImmo', agentId).journal.some((j) => /Note : Rappeler après les vacances/.test(j.texte)));
+});
+
+test("sans boutons : AK déduit l'issue de la transcription faite en direct, l'écran d'actions s'ouvre toujours, l'issue se change d'un geste", async () => {
+  const { issueDuModeAppel } = await import('./appel.js');
+  assert.deepEqual(['veut_mail', 'autre', 'invalide', 'a_des_murs'].map(issueDuModeAppel), ['pas_de_murs', 'pas_de_murs', 'pas_de_reponse', 'a_des_murs']);
+  const { ag } = ville('Mougins');
+  // Rien d'entendu : pas de réponse, mais l'écran s'ouvre (relance seule, pas de Monday).
+  const vide = await MA.noterIssue({ agence_id: ag.id, issue: 'auto', transcription: '', user: nora });
+  assert.equal(vide.simple, false);
+  assert.equal(vide.appel.issue_tapee, 'pas_de_reponse');
+  assert.equal(vide.appel.issue_deduite, true);
+  assert.ok(!vide.appel.propositions.some((p) => p.id === 'monday'));
+  // Une conversation : sans modèle ici, AK rend « autre », qui devient « Pas de bien pour l'instant ».
+  const parle = await MA.noterIssue({ agence_id: ag.id, issue: 'auto', transcription: "Bonjour, je n'ai rien en murs commerciaux pour le moment, rappelez-moi plus tard dans l'année.", user: nora });
+  assert.equal(parle.appel.issue_tapee, 'pas_de_murs');
+  assert.ok(parle.appel.propositions.some((p) => p.id === 'mail'));
+  // Changée à la main : l'ancien appel est remplacé, l'écran reste celui des actions.
+  const change = await MA.noterIssue({ agence_id: ag.id, issue: 'a_des_murs', remplace: parle.appel.id, transcription: 'Il a un local à vendre.', user: nora });
+  assert.equal(change.simple, false);
+  assert.equal(change.appel.propositions.find((p) => p.id === 'mail').modele, 'demande-fiche');
+  assert.equal(Records.get('AppelAgent', parle.appel.id).etat, 'remplace');
+});
+
+test("un bien et un mandat annoncé : la fiche commerciale seule, et deux relances", () => {
+  const lu = {
+    biens: ['Carrefour Market, Nice'], demande_documents: 'fiche_commerciale',
+    mandat_a_venir: { quoi: "un mandat qu'elle rentre", echeance_en_mots: 'dans deux semaines' },
+    citations: { biens: 'on a un Carrefour Market à Nice', mandat: "j'ai peut-être un mandat d'ici deux semaines" },
+  };
+  const c = comprisDe(lu, { issue: 'a_des_murs', maintenant: MERCREDI });
+  assert.equal(c.demande, 'fiche_commerciale');
+  assert.equal(c.champs.mandat.date, '2026-10-21');
+  assert.equal(comprisDe({ ...lu, demande_documents: 'documents' }, { issue: 'a_des_murs', maintenant: MERCREDI }).demande, 'documents');
+  assert.equal(comprisDe({ ...lu, citations: { biens: lu.citations.biens } }, { issue: 'a_des_murs' }).champs.mandat, undefined, 'sans phrase, pas de mandat');
 });

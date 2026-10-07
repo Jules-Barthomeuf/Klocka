@@ -95,11 +95,10 @@ test("« pas de réponse » × 3 : J+2 à l'autre moment, puis J+30 ; aucune lig
   assert.equal(r.recu.monday, null, 'un sans-réponse reste dans la plateforme');
   assert.equal(r.recu.mail, null);
   const fiche = () => Records.get('AgentImmo', Records.get('AgenceProspect', ag.id).carnet_id);
-  // Aujourd'hui, elle sort de la file ; à sa date, elle revient en « 2e tentative ».
-  assert.ok(!MA.fileDAppel(L.id, user).file.some((x) => x.id === ag.id), 'déjà appelée aujourd\'hui');
+  // Appelée une fois : elle sort du mode appel pour de bon, la relance est posée (elle ira aux relances).
+  assert.ok(!MA.fileDAppel(L.id, user).file.some((x) => x.id === ag.id), 'déjà appelée');
   const leJour = new Date(`${fiche().prochaine.le}T08:00:00Z`);
-  const revenue = MA.fileDAppel(L.id, user, { maintenantD: leJour }).file.find((x) => x.id === ag.id);
-  assert.equal(revenue?.badge, '2e tentative');
+  assert.ok(!MA.fileDAppel(L.id, user, { maintenantD: leJour }).file.some((x) => x.id === ag.id), 'pas même à sa date de relance');
   const R = await import('./regles.js');
   assert.equal(R.suiteDeLIssue('pas_de_reponse', { tentatives: 2, maintenant: MAINTENANT }).prochaine.le, '2026-11-05', 'après la 3e tentative : J+30');
   const recap = MA.recapSession(s.id);
@@ -158,10 +157,10 @@ test("Monday « Agents immobiliers » : la bonne ligne, Remarques allongées san
   await M.restaurer(r, { fonctions });
   assert.equal(etat['1'].colonnes.text4, '12/09/2026 · Nora · Pas de réponse');
   assert.equal(etat['1'].colonnes.date, '');
-  // Une ligne créée pour un inconnu s'appelle « Accueil » ; Annuler la retire.
+  // Une ligne créée pour un inconnu a un Contact vide (Monday refuse le vide : espace de largeur nulle) ; Annuler la retire.
   const n = await M.ecrire({ cible: { telephones: ['0700000000'], agence: 'Autre Agence', ville: 'Nice' }, donnees: { ...d, contact: null, agence: 'Autre Agence', telephone: '0700000000', email: null } }, { fonctions });
   assert.equal(n.cree, true);
-  assert.equal(etat[n.item_id].nom, 'Accueil');
+  assert.equal(etat[n.item_id].nom, M.CONTACT_VIDE);
   await M.restaurer(n, { fonctions });
   assert.ok(!etat[n.item_id]);
   // Monday garde une autre valeur : le reçu reste orange.
@@ -193,7 +192,7 @@ test("un ancien rapprochement Monday sans confiance : le nom ne donne qu'une cor
   assert.equal(MA.statutDeLAgence({ monday_connu: { par: 'téléphone', statut: 'Mort' } }).etat, 'morte');
 });
 
-test("la file : mes relances dues, les sans-réponse à retenter, puis les jamais contactées ; ni les agents d'un collègue, ni ce qu'il a à l'écran", async () => {
+test("la file : seulement les jamais contactées ; ni les agents d'un collègue, ni ce qu'il a à l'écran", async () => {
   const L = Records.create('ListeAgences', { ville: 'Cannes', etat: 'fini', journal: [] });
   const moi = { email: 'nora.l@klocka.immo', role: 'admin' };
   const mienne = Records.create('AgenceProspect', { liste_id: L.id, nom: 'À moi', telephone: '04 93 00 00 01', pour: ['nora.l@klocka.immo'], monday_connu: { statut: 'Intéressé', date: '2026-09-01', relance: '2026-10-05', confiance: 'sure', qui: 'nora.l@klocka.immo' }, agents: [], gerants: [] });
@@ -204,9 +203,9 @@ test("la file : mes relances dues, les sans-réponse à retenter, puis les jamai
   const ecran = Records.create('AgenceProspect', { liste_id: L.id, nom: 'À l\'écran de Maxime', telephone: '04 93 00 00 06', reservee: { par: 'maxime.p@klocka.immo', jusqu: new Date(MAINTENANT.getTime() + 60000).toISOString() }, agents: [], gerants: [] });
   const f = MA.fileDAppel(L.id, moi, { maintenantD: MAINTENANT }).file;
   const ids = f.map((x) => x.id);
-  assert.deepEqual(ids.slice(0, 2), [mienne.id, libre.id], 'ma relance due, puis la jamais contactée');
-  assert.equal(f[0].badge, 'Relance');
-  assert.equal(f[1].badge, 'Jamais contactée');
+  assert.equal(ids[0], libre.id, 'seulement les jamais contactées');
+  assert.ok(!ids.includes(mienne.id), 'ma relance due attend dans les relances, pas dans le mode appel');
+  assert.equal(f[0].badge, 'Jamais contactée');
   assert.ok(!ids.includes(prise.id), 'la ligne d\'une collègue');
   assert.ok(!ids.includes(connue.id), 'déjà en contact, sans relance due');
   assert.ok(!ids.includes(deThomas.id), 'l\'agent d\'un collègue (premier à l\'avoir joint)');

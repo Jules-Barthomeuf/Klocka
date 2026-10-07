@@ -28,6 +28,7 @@ const TITRES = {
   statut: ['Statut'], dernier_contact: ['Dernier contact'], diffusion: ['Liste de diffusion'],
 };
 
+export const CONTACT_VIDE = '\u200b';
 export const tableauAgents = () => (process.env.MONDAY_BOARD_AGENTS || '').trim();
 export const lienLigne = (id, tableau = tableauAgents()) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
 
@@ -125,9 +126,11 @@ export function valeursPour(ligne, cols, d) {
     attendus.push({ cle, titre, colonne: cols[cle].id, attendu, mode });
     apercu.push({ titre, avant: avant[cle] ?? '', apres: montre ?? attendu });
   };
-  // Le nom de la ligne : l'interlocuteur, « Accueil » s'il n'est pas sûr. Une ligne existante garde le sien, sauf « Accueil ».
+  // Le nom de la ligne : l'interlocuteur, rien s'il n'est pas sûr (7 oct. 2026 : Jules ne veut pas
+  // « Accueil »). Monday refuse un nom vide : un espace de largeur nulle laisse la case blanche.
+  // Une ligne existante garde le sien, sauf s'il est vide ou « Accueil ».
   const contact = d.contact || null;
-  const nom = !ligne ? contact || 'Accueil' : (R.norm(ligne.nom) === 'accueil' && contact ? contact : null);
+  const nom = !ligne ? contact || CONTACT_VIDE : (['', 'accueil'].includes(R.norm(ligne.nom)) && contact ? contact : null);
   if (nom) { valeurs.name = nom; attendus.push({ cle: 'nom', titre: 'Contact', colonne: 'name', attendu: nom }); apercu.push({ titre: 'Contact', avant: ligne?.nom || '', apres: nom }); }
   if (d.ville && R.norm(avant.ville) !== R.norm(d.ville)) poser('ville', 'Ville', String(d.ville), String(d.ville));
   if (d.agence && !avant.entreprise) poser('entreprise', 'Entreprise', cols.entreprise?.type === 'dropdown' ? { labels: [String(d.agence).slice(0, 100)] } : String(d.agence), String(d.agence).slice(0, 100));
@@ -181,7 +184,7 @@ export function valeursDeRetour(avantLu, attendus, cols) {
   const v = {};
   const type = (colId) => Object.values(cols).find((c) => c.id === colId)?.type;
   for (const x of attendus) {
-    if (x.colonne === 'name') { v.name = avantLu?.nom || 'Accueil'; continue; }
+    if (x.colonne === 'name') { v.name = avantLu?.nom || CONTACT_VIDE; continue; }
     const texte = String(avantLu?.colonnes?.[x.colonne] ?? '');
     const t = type(x.colonne);
     if (!texte) v[x.colonne] = t === 'people' ? { personsAndTeams: [] } : '';
@@ -268,7 +271,7 @@ export async function ecrire({ cible, donnees: donnees0, ligne_id = null, item_c
   const cree = !id;
   if (cree) {
     const { name, ...reste } = valeurs;
-    const it = await M.creerElement(tableau, String(name || 'Accueil').slice(0, 250), reste, { labels: true });
+    const it = await M.creerElement(tableau, String(name || CONTACT_VIDE).slice(0, 250), reste, { labels: true });
     id = it?.id ? String(it.id) : null;
     if (!id) throw new Error("Monday n'a pas rendu d'identifiant");
   } else if (Object.keys(valeurs).length) {
@@ -281,7 +284,7 @@ export async function ecrire({ cible, donnees: donnees0, ligne_id = null, item_c
   const base = { item_id: id, cree, avant: avantLu, attendus, lien: lienLigne(id, tableau) };
   if (ecarts.length) return { ...base, etat: 'attente', texte: 'Monday en attente, nouvel essai en cours', erreur: ecarts.join(' ; '), ecarts };
   const entreprise = cols.entreprise ? lu.colonnes?.[cols.entreprise.id] : null;
-  return { ...base, etat: 'ok', texte: [entreprise || donnees.agence, lu.nom, donnees.issue].filter(Boolean).join(' · '), relu_le: new Date().toISOString() };
+  return { ...base, etat: 'ok', texte: [entreprise || donnees.agence, lu.nom, donnees.issue].filter((x) => String(x || '').replace(/\u200b/g, '').trim()).join(' · '), relu_le: new Date().toISOString() };
 }
 
 /** Annuler : la ligne reprend ses valeurs d'avant ; une ligne créée à l'instant est retirée. */
@@ -296,12 +299,13 @@ export async function restaurer({ item_id, cree, avant, attendus }, { fonctions 
   return { ok: true };
 }
 
-/** La relance annulée (la fiche est arrivée) : la colonne « Prochaine relance » se vide. */
-export async function viderRelance(itemId) {
+/** La relance annulée (la fiche est arrivée) : « Prochaine relance » passe à la suivante, ou se vide. */
+export async function viderRelance(itemId, suivante = null) {
+  if (!(await mondayAgentsBranche())) return { ok: false };
   const cols = await colonnes();
   if (!cols.relance || !itemId) return { ok: false };
   const M = await api();
-  await M.majElement(tableauAgents(), itemId, { [cols.relance.id]: '' });
+  await M.majElement(tableauAgents(), itemId, { [cols.relance.id]: suivante ? { date: suivante } : '' });
   lignesCache = null;
   return { ok: true };
 }

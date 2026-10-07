@@ -208,6 +208,14 @@ en quatre étapes visibles en haut ; une séquence se lit en timeline verticale
 (déclencheur, puis une carte par email, « + » entre deux cartes), le chat
 d'AK en panneau repliable à gauche. Le module suit le thème et le halo.
 
+**Mode appel** (décision du 7 oct. 2026, qui remplace les boutons d'issue de la
+spec du même jour) : pendant l'appel avec notes, la transcription s'affiche en
+direct à droite, par morceaux de huit secondes ; pas de chronomètre (il
+stressait) : le micro qui pulse, avec « Je vous écoute » dessous. Au raccrochage,
+pas de bouton d'issue : la transcription à gauche, les actions d'AK à droite,
+l'issue qu'AK a déduite écrite au-dessus avec un lien « changer ». Les boutons
+d'issue ne restent que pour un appel sans notes.
+
 ## 6. Le chat et l'écran scindé
 
 Le chat est `ChatDashboard` ; une page en crée un espace (`ESPACES`), elle ne

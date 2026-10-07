@@ -90,6 +90,14 @@ const SCHEMA = {
     mandats: { type: 'array', items: { type: 'string' }, description: 'mandats à venir, avec leur échéance si dite' },
     biens: { type: 'array', items: { type: 'string' }, description: 'biens évoqués : adresse, type, surface, prix, loyer, seulement ce qui a été dit' },
     demandes: { type: 'array', items: { type: 'string' }, description: 'ce qu\'il nous demande' },
+    demande_documents: { type: 'string', enum: ['fiche_commerciale', 'documents', ''], description: "ce que l'analyste a demandé pour le bien : fiche_commerciale si seulement la fiche commerciale (le cas habituel d'un premier échange sur un bien), documents si les pièces du dossier (bail, RCP, PV d'AG, quittances, diagnostics) ; vide si aucun bien" },
+    mandat_a_venir: {
+      type: 'object',
+      properties: {
+        quoi: { type: 'string', description: "le mandat ou le bien que l'agent pense rentrer bientôt, tel que dit (« un mandat d'ici quelques semaines ») ; vide sinon" },
+        echeance_en_mots: { type: 'string', description: "son échéance en toutes lettres, telle que dite (« dans deux semaines »), jamais calculée ; vide si non dite" },
+      },
+    },
     contexte: { type: 'string', description: "une seule phrase pour le mail de demande de documents, qui rappelle le bien évoqué (« Comme évoqué, le local de la rue de France nous intéresse. ») ; vide si aucun bien précis n'a été cité" },
     nouveau_contact: {
       type: 'object',
@@ -108,6 +116,7 @@ const SCHEMA = {
         biens: { type: 'string', description: 'la phrase exacte où un local ou des murs ont été évoqués, vide sinon' },
         prochaine_etape: { type: 'string', description: 'la phrase exacte où la suite a été convenue, vide sinon' },
         nouveau_contact: { type: 'string', description: "la phrase exacte où l'autre contact a été donné, vide sinon" },
+        mandat: { type: 'string', description: "la phrase exacte où le mandat à venir a été évoqué, vide sinon" },
         autre_contact: { type: 'string', description: "la phrase exacte où l'autre interlocuteur a été cité, vide sinon" },
       },
     },
@@ -132,7 +141,8 @@ async function lire(a, texte, { par, maintenant, issueTapee = null }) {
     prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${u?.full_name || par} vient d'appeler un agent immobilier. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
 
 L'issue, une seule :
-- pas_de_reponse : personne n'a décroché, ou répondeur ;
+- pas_de_reponse : personne n'a décroché ;
+- repondeur : on est tombé sur la messagerie et un message a été laissé ;
 - pas_de_murs : il n'a pas de bien pour nous en ce moment (même s'il en aura peut-être un plus tard) ;
 - a_des_murs : il a un bien qui peut nous intéresser ;
 - veut_mail : il veut d'abord un mail avant d'aller plus loin ;
@@ -257,17 +267,25 @@ export function messagePasDeReponse(a, props) {
   return `Pas de réponse chez ${a.nom}. Je te le remets ${relance ? `le ${R.dateCourte(relance.le)}, ${relance.moment ? `plutôt ${relance.moment}` : ''}`.trim() : 'plus tard'}. Ça te va ? (dis-moi « 1 » et je le note, ou une autre date)`;
 }
 
+/** Pure : l'issue lue par AK ramenée aux cinq du mode appel. « Veut d'abord un mail » et « autre » : on s'est parlé, sans bien. */
+export function issueDuModeAppel(issue) {
+  if (['pas_de_reponse', 'repondeur', 'pas_de_murs', 'a_des_murs', 'pas_interesse'].includes(issue)) return issue;
+  if (issue === 'invalide') return 'pas_de_reponse';
+  return 'pas_de_murs';
+}
+
 /**
  * L'appel terminé : transcription (ou récit), lecture par AK, propositions.
  * @param {{agent_id, audio?: Buffer, recit?: string, sans_reponse?: boolean, duree_s?: number, par: string}} x
  */
-export async function analyserAppel({ agent_id, audio = null, recit = null, sans_reponse = false, duree_s = null, par, maintenant = new Date(), issue: issueTapee = null }) {
+export async function analyserAppel({ agent_id, audio = null, recit = null, transcription_texte = null, sans_reponse = false, duree_s = null, par, maintenant = new Date(), issue: issueTapee = null }) {
   const a = agentDe(agent_id);
   if (!a) return { ok: false, error: 'Agent introuvable.' };
-  let transcription = null;
+  // La transcription faite en direct pendant l'appel (mode appel, 7 oct. 2026) arrive déjà en texte.
+  let transcription = String(transcription_texte || '').trim() || null;
   let transcriptionEchec = null;
   if (audio?.length) {
-    try { transcription = await transcrire(audio); } catch (e) {
+    try { transcription = [transcription, await transcrire(audio)].filter(Boolean).join('\n') || null; } catch (e) {
       // Le mode appel ne bloque jamais sur une transcription : l'écran
       // d'actions s'ouvre sur l'issue seule, avec un champ Note.
       if (!issueTapee) return { ok: false, error: `Transcription impossible : ${e?.message || e}. Raconte l'appel en une phrase à la place.` };
@@ -278,7 +296,13 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   // Personne n'a décroché, ou l'enregistrement est vide : pas besoin du modèle.
   const vide = !texte.trim() || (transcription != null && transcription.length < 40 && !recit);
   let lu;
-  if (issueTapee && R.ISSUES[issueTapee]) {
+  if (issueTapee === 'auto') {
+    // Le mode appel sans boutons (7 oct. 2026) : AK lit la conversation et en
+    // déduit l'issue ; l'analyste la voit, et la change d'un geste si besoin.
+    lu = vide ? { resume: 'Pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant });
+    lu.issue = issueDuModeAppel(lu.issue);
+    lu.issue_deduite = true;
+  } else if (issueTapee && R.ISSUES[issueTapee]) {
     // L'issue tapée par l'analyste fait foi (mode appel) : la lecture ne sert
     // qu'à remplir les détails autour, jamais à la contredire.
     lu = vide || ['pas_de_reponse', 'repondeur'].includes(issueTapee) ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant, issueTapee })), issue: issueTapee };
@@ -290,7 +314,8 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   const { comprisDe } = await import('./compris.js');
   const connus = [a.nom, ...(a.contacts || []).map((x) => x.nom)].filter(Boolean);
   const compris = comprisDe(lu, { issue: lu.issue, connus, maintenant });
-  lu.date_dite = compris.date_dite;
+  // L'échéance d'un mandat à venir fait sa propre relance : elle ne repousse pas celle de la fiche.
+  lu.date_dite = compris.champs.mandat?.date && compris.champs.mandat.date === compris.date_dite && lu.issue === 'a_des_murs' ? null : compris.date_dite;
   const r = reglages();
   const autres = tousLesAgents().filter((x) => x.id !== a.id && a.agence && R.norm(x.agence) === R.norm(a.agence) && x.statut !== 'archive' && x.telephones?.length);
   const { issue, propositions: props } = propositions(a, lu, { maintenant, criteres: r.criteres, objet_criteres: r.objet_criteres, autres_de_l_agence: autres });
@@ -301,7 +326,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, sans
   // prise de notes. Ils repartent une fois vers l'écran, pour relecture.
   const appel = Records.create(ENTITE, {
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
-    transcription: null, recit: null, resume: lu.resume || null, issue, date_dite: lu.date_dite || null,
+    transcription: null, recit: null, resume: lu.resume || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null,
     compris, transcription_echec: transcriptionEchec,
     propositions: props, message, etat: 'a_valider',

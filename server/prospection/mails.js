@@ -120,10 +120,17 @@ export function annulerRelances(agentId, raison) {
  * Un mail d'agent avec relance fait préparer sa relance pour J+3, qui
  * attendra elle aussi un clic.
  */
+/** Pure : la signature d'un analyste, sous la formule de politesse. */
+export function signatureDe(user) {
+  const email = String(user?.email || '').toLowerCase();
+  const nom = user?.full_name || email.split('@')[0];
+  return [nom, 'Klocka · klocka.immo', email].filter(Boolean).join('\n');
+}
+
 export async function envoyerMails(ids, user) {
   const { functions } = await import('../functions.js');
   const { agentDe, journal, majAgent } = await import('./carnet.js');
-  const signature = user?.full_name || String(user?.email || '').split('@')[0];
+  const signature = signatureDe(user);
   const resultats = [];
   for (const id of ids || []) {
     const m = Records.get(ENTITE, id);

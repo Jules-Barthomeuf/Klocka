@@ -6,7 +6,7 @@
 // l'agence X") into a ready-to-send draft: it picks the template, resolves the
 // recipient against the Contact book, and personalises the body.
 
-import { Records } from './db.js';
+import { Records, Meta } from './db.js';
 import { invokeLLM, llmEnabled } from './llm.js';
 import { listAccounts } from './email.js';
 
@@ -17,7 +17,7 @@ import { listAccounts } from './email.js';
 export const DEFAULT_TEMPLATES = [
   {
     slug: 'presentation',
-    titre: 'Présentation Klocka',
+    titre: 'Présentation seule',
     description: "Présenter l'activité Klocka à un agent / apporteur d'affaires rencontré au téléphone.",
     objet: 'Présentation de notre activité – Klocka',
     contenu: `{{salutation}}
@@ -26,13 +26,11 @@ Comme convenu, je vous prie de trouver ci-dessous une brève présentation de no
 
 Je suis {{analyste}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis dans toute la France. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne seront pas impactés.
 
-Concernant notre méthodologie, nous analysons principalement des murs commerciaux occupés. Nous sélectionnons et présentons un maximum de trois projets à nos clients lors de points en visioconférence afin d'assurer un taux de transformation optimal. Les documents relatifs aux dossiers restent confidentiels dans notre base de données et ne sont transmis que lorsque le client souhaite approfondir une opportunité précise.
-
-Dans un premier temps, je vous invite à me transmettre une fiche commerciale. Je la présenterai à mes clients et, si un intérêt se manifeste, nous pourrons approfondir les échanges comme vous l'avez suggéré.
+Concernant notre méthodologie, nous analysons principalement des murs commerciaux occupés. Les documents relatifs aux dossiers restent confidentiels dans notre base de données et ne sont transmis que lorsque le client souhaite approfondir une opportunité précise.
 
 Je vous souhaite une excellente journée.
 
-Bien cordialement,
+Bien cordialement
 {{signature}}`,
   },
   {
@@ -43,14 +41,38 @@ Bien cordialement,
     contenu: `{{salutation}}
 
 Pour faire suite à notre échange téléphonique de ce jour, afin d'approfondir notre analyse nous avons besoin des éléments suivants :
+
 - Bail
 - RCP
 - PV d'AG
 - Quittances
-- Diagnostics (si déjà faits)
+- Diagnostiques (si déjà faits)
 
-Pour rappel, nous travaillons avec des mandats de recherche : vos honoraires resteront inchangés.
+Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.
 De plus je vous transmets le cahier des charges de nos clients :
+
+- Type de bien : Murs commerciaux occupés
+- Rendement : 5-7% AEM
+- Budget : 100K-3M
+- Emplacement : N°1 ou n°1 bis
+
+Bien à vous,
+{{signature}}`,
+  },
+  {
+    // Dérivé du canevas Murs commerciaux (7 oct. 2026) : au premier échange
+    // sur un bien, on ne demande que la fiche commerciale.
+    slug: 'demande-fiche',
+    titre: 'Murs commerciaux (fiche commerciale seule)',
+    description: "Demander seulement la fiche commerciale d'un bien évoqué au téléphone.",
+    objet: 'Murs commerciaux - Klocka',
+    contenu: `{{salutation}}
+
+Pour faire suite à notre échange téléphonique de ce jour, afin d'étudier ce bien nous avons besoin de sa fiche commerciale.
+
+Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.
+De plus je vous transmets le cahier des charges de nos clients :
+
 - Type de bien : Murs commerciaux occupés
 - Rendement : 5-7% AEM
 - Budget : 100K-3M
@@ -61,7 +83,7 @@ Bien à vous,
   },
   {
     slug: 'presentation-cahier',
-    titre: 'Présentation + Cahier des charges',
+    titre: 'Présentation + cahier des charges',
     description: "Présentation complète de l'activité accompagnée du cahier des charges clients.",
     objet: 'Présentation de notre activité et cahier des charges – Klocka',
     contenu: `{{salutation}}
@@ -70,17 +92,16 @@ Suite à notre échange, je me permets de vous adresser une brève présentation
 
 Je suis {{analyste}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis sur l'ensemble du territoire français. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne sont pas impactés.
 
-Dans le cadre de notre méthodologie, nous analysons principalement des murs commerciaux occupés. Nous sélectionnons et présentons un maximum de trois opportunités à nos clients lors de points en visioconférence, afin d'assurer un taux de transformation optimal. L'ensemble des documents relatifs aux dossiers reste confidentiel au sein de notre base de données et n'est transmis qu'en cas d'intérêt confirmé pour une opportunité spécifique.
+Dans le cadre de notre méthodologie, nous analysons principalement des murs commerciaux occupés. L'ensemble des documents relatifs aux dossiers reste confidentiel au sein de notre base de données et n'est transmis qu'en cas d'intérêt confirmé pour une opportunité spécifique.
 
 À ce titre, voici le cahier des charges correspondant à la majorité de notre clientèle :
+
 - Type de bien : murs commerciaux occupés
 - Rendement : 5 % à 7 % AEM
 - Budget : 100 K€ à 3 M€
 - Emplacement : n°1 ou n°1 bis
 
-Nous accompagnons également certains clients sur des opérations spécifiques avec des budgets supérieurs à 10 M€, incluant d'autres typologies d'actifs (immeubles, entrepôts, murs vacants, hôtels, etc.).
-
-Dans un premier temps, je vous invite à me transmettre une fiche commerciale. Je pourrai ainsi la présenter à mes clients et, en cas d'intérêt, nous pourrons approfondir nos échanges comme évoqué.
+Nous accompagnons également certains clients sur des opérations spécifiques avec des budgets supérieurs à 2 M€, incluant d'autres typologies d'actifs (immeubles, entrepôts, murs vacants, hôtels, etc.).
 
 Je reste bien entendu à votre disposition pour toute opportunité correspondant à ces critères.
 
@@ -124,28 +145,42 @@ Bien cordialement,
   },
 ];
 
-// Les corrections du 7 oct. 2026 (spec du mode appel), sur les modèles déjà
-// en base : une phrase n'est remplacée que si elle est encore à l'ancienne,
-// une retouche faite à la main depuis la page Mails reste.
-const RETOUCHES_V2 = [
-  ['- Diagnostiques (si déjà faits)', '- Diagnostics (si déjà faits)'],
-  ['Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.', 'Pour rappel, nous travaillons avec des mandats de recherche : vos honoraires resteront inchangés.'],
-  ['Je suis {{signature}}, analyste', 'Je suis {{analyste}}, analyste'],
-];
-export function retoucherModeles(liste = Records.list('MailTemplate')) {
+// Les modèles du mode appel, tels que Jules les a donnés le 7 oct. 2026
+// (Présentation seule, Murs commerciaux, Présentation + cahier des charges) :
+// posés une fois sur les modèles en base, mot pour mot, seules les variables
+// en plus ({{salutation}} pour « Bonjour, », {{analyste}} pour « ... »,
+// {{signature}} sous la formule de politesse). Les doublons d'un double
+// amorçage sont archivés, pas supprimés. Une retouche faite ensuite depuis la
+// page Mails reste.
+const CANEVAS_DU_7_OCT = ['presentation', 'demande-documents', 'presentation-cahier'];
+export function poserCanevas(liste = Records.list('MailTemplate')) {
+  if (Meta.get('mail.canevas_7_oct')) return 0;
   let n = 0;
-  for (const t of liste) {
-    let contenu = String(t.contenu || '');
-    for (const [avant, apres] of RETOUCHES_V2) contenu = contenu.split(avant).join(apres);
-    if (['presentation', 'demande-documents', 'presentation-cahier', 'cahier-des-charges'].includes(t.slug) && /^Bonjour,\n/.test(contenu)) contenu = contenu.replace(/^Bonjour,\n/, '{{salutation}}\n');
-    if (contenu !== t.contenu) { Records.update('MailTemplate', t.id, { contenu }); n += 1; }
+  for (const slug of CANEVAS_DU_7_OCT) {
+    const modele = DEFAULT_TEMPLATES.find((t) => t.slug === slug);
+    const memes = liste.filter((t) => t.slug === slug && !t.archived).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+    if (!memes.length) { Records.create('MailTemplate', { ...modele, ordre: DEFAULT_TEMPLATES.indexOf(modele), archived: false }); n += 1; continue; }
+    Records.update('MailTemplate', memes[0].id, { titre: modele.titre, objet: modele.objet, contenu: modele.contenu });
+    for (const x of memes.slice(1)) Records.update('MailTemplate', x.id, { archived: true, archive_pourquoi: 'doublon' });
+    n += 1;
   }
+  for (const slug of [...new Set(liste.map((t) => t.slug))].filter((x) => x && !CANEVAS_DU_7_OCT.includes(x))) {
+    const memes = liste.filter((t) => t.slug === slug && !t.archived).sort((x, y) => (x.ordre ?? 0) - (y.ordre ?? 0));
+    for (const x of memes.slice(1)) Records.update('MailTemplate', x.id, { archived: true, archive_pourquoi: 'doublon' });
+  }
+  Meta.set('mail.canevas_7_oct', new Date().toISOString());
   return n;
 }
 
 // Populate the entity on first boot. Safe to call on every start.
 export function ensureMailTemplates() {
-  if (Records.count('MailTemplate')) { retoucherModeles(); return; }
+  if (Records.count('MailTemplate')) {
+    poserCanevas();
+    // Un modèle livré après coup (la demande de fiche, 7 oct. 2026) entre une fois.
+    const presents = new Set(Records.list('MailTemplate').map((t) => t.slug));
+    DEFAULT_TEMPLATES.forEach((t, i) => { if (!presents.has(t.slug)) Records.create('MailTemplate', { ...t, ordre: i, archived: false }); });
+    return;
+  }
   DEFAULT_TEMPLATES.forEach((t, i) => Records.create('MailTemplate', { ...t, ordre: i, archived: false }));
   console.log(`[mail] ${DEFAULT_TEMPLATES.length} templates initialisés.`);
 }

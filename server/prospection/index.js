@@ -90,9 +90,11 @@ export async function rattacherFiches(liste, { maintenant = new Date() } = {}) {
     // là : il est annulé tout de suite, ici et dans Monday, sans attendre la
     // préanalyse (spec du mode appel, 7 oct. 2026).
     if (a.prochaine?.si_fiche && String(f.le || maintenant.toISOString()) >= String(a.dernier_contact_le || '')) {
-      C.majAgent(a.id, { prochaine: null });
-      C.journal(a.id, { type: 'note', texte: `Fiche reçue (${f.titre}) : le rappel prévu est annulé`, le: f.le || maintenant.toISOString() });
-      if (a.monday_ligne_id) { try { await (await import('./monday-agents.js')).viderRelance(a.monday_ligne_id); } catch { /* le tour suivant de Monday le relira */ } }
+      // La seconde relance (le point sur un mandat annoncé) devient la prochaine.
+      const [suivante = null, ...reste] = a.relances_suivantes || [];
+      C.majAgent(a.id, { prochaine: suivante, relances_suivantes: reste });
+      C.journal(a.id, { type: 'note', texte: `Fiche reçue (${f.titre}) : le rappel de la fiche est annulé${suivante ? `, prochaine relance le ${R.dateCourte(suivante.le)}` : ''}`, le: f.le || maintenant.toISOString() });
+      if (a.monday_ligne_id) { try { await (await import('./monday-agents.js')).viderRelance(a.monday_ligne_id, suivante?.le || null); } catch { /* le tour suivant de Monday le relira */ } }
       a = C.agentParEmail(f.agent_email);
     }
     // La préanalyse n'est pas finie : on attend le tour suivant pour prévenir.

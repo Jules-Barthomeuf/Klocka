@@ -8,7 +8,8 @@ import { Records } from '../db.js';
 /** L'issue et son modèle : le choix par défaut, et la variante d'un clic. */
 export const MODELES_DE_L_ISSUE = {
   pas_de_murs: { defaut: 'presentation-cahier', variante: 'presentation' },
-  a_des_murs: { defaut: 'demande-documents' },
+  // A un bien : la fiche commerciale seule d'abord ; les pièces du dossier si elles ont été demandées.
+  a_des_murs: { defaut: 'demande-fiche', variante: 'demande-documents', si_documents: 'demande-documents' },
 };
 
 /** Le modèle d'un slug : celui de la base (modifiable depuis la page Mails), sinon celui livré. */

@@ -94,6 +94,12 @@ export function comprisDe(lu, { issue, connus = [], maintenant = new Date() } = 
   if ((lu?.biens || []).length) poser('biens', lu.biens, c.biens);
   if (lu?.prochaine_etape) poser('prochaine_etape', lu.prochaine_etape, c.prochaine_etape || c.date);
 
+  // Un mandat que l'agent pense rentrer : le point se fait à l'échéance dite, sinon dans trois semaines.
+  const mandat = lu?.mandat_a_venir || {};
+  if (mandat.quoi && String(c.mandat || '').trim()) {
+    const quand = mandat.echeance_en_mots ? dateDepuisTexte(mandat.echeance_en_mots, maintenant) : null;
+    champs.mandat = { valeur: String(mandat.quoi).trim(), source: String(c.mandat).trim(), ...(quand ? { date: quand.le, mots: quand.expression } : {}) };
+  }
   // La date : les mots d'AK, le calcul du code.
   const mots = String(lu?.date_en_mots || '').trim() || String(c.date || '').trim();
   const calcul = mots ? dateDepuisTexte(mots, maintenant) : null;
@@ -119,5 +125,7 @@ export function comprisDe(lu, { issue, connus = [], maintenant = new Date() } = 
   // La phrase de contexte du mail Murs commerciaux : une seule, et seulement si un bien a été cité.
   const contexte = issue === 'a_des_murs' && champs.biens && lu?.contexte ? String(lu.contexte).trim().split(/(?<=[.!?])\s/)[0].slice(0, 220) : null;
 
-  return { champs, salutation, date_dite: champs.date?.valeur || null, avertissement, nouveau_contact: nouveau, contexte };
+  // Pour un bien : la fiche commerciale seule, sauf si les pièces du dossier ont été demandées.
+  const demande = issue === 'a_des_murs' ? (lu?.demande_documents === 'documents' ? 'documents' : 'fiche_commerciale') : null;
+  return { champs, salutation, date_dite: champs.date?.valeur || null, avertissement, nouveau_contact: nouveau, contexte, demande };
 }

@@ -21,7 +21,6 @@ const API = "/api/prospection/mode-appel";
 const ESSAI = "essai";
 const CLE_EN_COURS = "klocka.mode-appel.en-cours";
 const telLien = (t) => `tel:${String(t).replace(/\s/g, "")}`;
-const minSec = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const jourLong = (j) => (j ? new Date(`${String(j).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
 const duree = (debut, maintenant) => {
   const min = Math.max(0, Math.round((maintenant - Date.parse(debut)) / 60000));
@@ -37,8 +36,34 @@ const poserLocal = (k, v) => { try { if (v == null) localStorage.removeItem(k); 
 // Une conversation d'exemple pour l'appel simulé : AK la lit comme un vrai appel.
 const EXEMPLE = "Bonjour, Madame Sophie Essai à l'appareil, je suis la gérante. Pour l'instant je n'ai rien en murs commerciaux, mais j'aurai peut-être un bien dans un mois, une boulangerie louée en centre-ville. Mon adresse c'est sophie@agence-essai.fr. Rappelez-moi jeudi prochain si vous voulez.";
 const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse"], ["repondeur", "Répondeur, message laissé"]];
-const CHAMPS_COMPRIS = [["interlocuteur", "Interlocuteur"], ["fonction", "Fonction"], ["telephone", "Téléphone direct"], ["email", "Email"], ["biens", "Biens évoqués"], ["prochaine_etape", "Prochaine étape"], ["date", "Date dite"]];
+const CHAMPS_COMPRIS = [["interlocuteur", "Interlocuteur"], ["fonction", "Fonction"], ["telephone", "Téléphone"], ["email", "Email"], ["biens", "Biens évoqués"], ["mandat", "Mandat à venir"], ["prochaine_etape", "Prochaine étape"], ["date", "Date dite"]];
 const MODIFIABLES = ["interlocuteur", "telephone", "email"];
+const ISSUES_TOUTES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé" };
+
+/** La transcription : en direct pendant l'appel, puis relue à côté des actions. Jamais gardée sur le serveur. */
+function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false }) {
+  const [ouvert, setOuvert] = useState(!replie);
+  const textes = direct.filter((x) => x.texte);
+  const enCours = direct.some((x) => x.etat === "envoi");
+  const rates = direct.filter((x) => x.etat === "echec").length;
+  return (
+    <div className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-trait bg-fond p-6">
+      <div className="flex items-center justify-between gap-3">
+        <span className="m-0 text-[12px] tracking-[.14em] text-ardoise">{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
+        {replie ? <button type="button" onClick={() => setOuvert((x) => !x)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{ouvert ? "Replier" : "Afficher"}</button>
+          : enCours && <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />}
+      </div>
+      {ouvert && (
+        <div className={`flex flex-col gap-2 overflow-y-auto pr-1 text-[15px] leading-[1.55] text-encre ${replie ? "max-h-[260px]" : "max-h-[420px]"}`}>
+          {!textes.length && <p className="m-0 text-[14px] text-brume">{!notes ? "Appel sans notes : rien n'est transcrit." : enDirect ? "La transcription apparaît ici, quelques secondes après chaque phrase." : "Rien n'a été entendu."}</p>}
+          {textes.map((x) => <p key={x.i} className="m-0 [text-wrap:pretty]">{x.texte}</p>)}
+          {rates > 0 && <p className="m-0 text-[13px] text-ambre">{rates} passage{rates > 1 ? "s" : ""} pas encore transcrit{rates > 1 ? "s" : ""} : nouvel essai au raccrochage.</p>}
+          {fin && <span ref={fin} />}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** La fiche de l'agence, en pile : deux cartes devinées derrière, comme une file. */
 function CarteAgence({ a, recherches, cahier }) {
@@ -120,7 +145,7 @@ function ChoixLigne({ candidates, onChoisir, occupe }) {
           {c.nom} <span className="text-ardoise">· {[c.entreprise, c.ville, c.telephone].filter(Boolean).join(" · ")}</span>
         </button>
       ))}
-      <button type="button" disabled={occupe} onClick={() => onChoisir("nouvelle")} className="rounded-[12px] border border-trait px-3 py-2 text-left text-[14px] text-craie hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>Aucune : nouvelle ligne</button>
+      <button type="button" disabled={occupe} onClick={() => onChoisir("nouvelle")} className="rounded-[12px] border border-trait px-3 py-2 text-left text-[14px] text-craie hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>Aucun : nouveau contact</button>
     </div>
   );
 }
@@ -142,6 +167,7 @@ export default function ModeAppel() {
   const [coches, setCoches] = useState(() => new Set());
   const [mail, setMail] = useState(null);
   const [relanceLe, setRelanceLe] = useState(null);
+  const [relance2Le, setRelance2Le] = useState(null);
   const [ligneMonday, setLigneMonday] = useState(null);
   const [note, setNote] = useState("");
   const [edits, setEdits] = useState({});
@@ -150,6 +176,7 @@ export default function ModeAppel() {
   const [recu, setRecu] = useState(null);
   const [annulerDans, setAnnulerDans] = useState(0);
   const [passerOuvert, setPasserOuvert] = useState(false);
+  const [changerOuvert, setChangerOuvert] = useState(false);
   const [message, setMessage] = useState(null);
   const [voirPourcent, setVoirPourcent] = useState(false);
   const [horloge, setHorloge] = useState(Date.now());
@@ -159,7 +186,10 @@ export default function ModeAppel() {
   const [enCours, setEnCours] = useState(() => lireLocal(CLE_EN_COURS));
   const chrono = useRef(null);
   const rec = useRef(null);
-  const audio = useRef(null); // Promise<Blob|null> : la conversation enregistrée
+  // La transcription en direct : un morceau toutes les quelques secondes, transcrit à la volée.
+  const morceaux = useRef([]); // [{ i, texte: string|null, wav: Blob|null, etat: 'envoi'|'ok'|'echec' }]
+  const [direct, setDirect] = useState([]);
+  const directFin = useRef(null);
   const compte = useRef(null);
   const messageT = useRef(null);
 
@@ -196,14 +226,22 @@ export default function ModeAppel() {
   const dire = (texte) => { setMessage(texte); clearTimeout(messageT.current); messageT.current = setTimeout(() => setMessage(null), 5000); };
   function arreterTout() {
     clearInterval(chrono.current); clearInterval(compte.current);
-    if (rec.current?.m?.state === "recording") { rec.current.jeter = true; rec.current.m.stop(); }
-    audio.current = null;
+    couperMicro(true);
+    morceaux.current = []; setDirect([]);
+  }
+  function couperMicro(jeter = false) {
+    const r0 = rec.current;
+    if (!r0) return;
+    r0.actif = false;
+    if (jeter) r0.jeter = true;
+    clearTimeout(r0.minuterie);
+    if (r0.m?.state === "recording") r0.m.stop(); else r0.flux?.getTracks().forEach((t) => t.stop());
   }
   const suivante = (texte = null) => {
     arreterTout();
     if (a && !rappel) setPassees((s) => new Set(s).add(a.id));
     setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({}); setOuvertFait(null);
-    setSimule(false); setRelanceLe(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false);
+    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false);
     if (texte) dire(texte);
     queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
     queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
@@ -232,6 +270,7 @@ export default function ModeAppel() {
           const f = new FormData();
           for (const [k, v] of Object.entries(x.champs)) if (v != null) f.append(k, v);
           if (x.audio) f.append("audio", x.audio, "appel.wav");
+          (x.audios || []).forEach((w, k) => f.append("audio", w, `m${k}.wav`));
           r = await base44.request("POST", `${API}/issue`, { body: f, isForm: true });
         } else r = await base44.request("POST", x.url, { body: x.champs });
         await retirer(x.id);
@@ -260,25 +299,53 @@ export default function ModeAppel() {
     onError: (e) => { if (!erreurReseau(e)) toast.error(e?.message || "Un collègue l'appelle déjà"); },
   });
   const lancerChrono = (depart = 0) => { clearInterval(chrono.current); setSecondes(depart); chrono.current = setInterval(() => setSecondes((s) => s + 1), 1000); };
+  const montrer = () => setDirect(morceaux.current.map((x) => ({ i: x.i, texte: x.texte, etat: x.etat })));
+  const transcrireMorceau = async (x) => {
+    try {
+      const f = new FormData();
+      f.append("i", String(x.i));
+      f.append("audio", x.wav, `m${x.i}.wav`);
+      const r = await base44.request("POST", `${API}/morceau`, { body: f, isForm: true });
+      x.texte = r.texte || ""; x.etat = "ok"; x.wav = null;
+    } catch { x.etat = "echec"; }
+    montrer();
+  };
+  // Enregistre par morceaux de huit secondes, chacun lisible seul, transcrit pendant que l'appel continue.
   const enregistrer = async () => {
     let flux;
     try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {
-      setNotes(false); dire("Micro indisponible ou pris par l'appel : appel sans notes. L'issue suffit.");
+      setNotes(false); dire("Micro indisponible ou pris par l'appel : appel sans notes, vous taperez l'issue.");
       return;
     }
-    const morceaux = [];
-    const m = new MediaRecorder(flux);
-    m.ondataavailable = (e) => { if (e.data?.size) morceaux.push(e.data); };
-    let fin;
-    audio.current = new Promise((ok) => { fin = ok; });
-    m.onstop = async () => {
-      flux.getTracks().forEach((t) => t.stop());
-      if (rec.current?.jeter) { fin(null); return; }
-      try { fin(await versWav(new Blob(morceaux, { type: m.mimeType || "audio/webm" }), 8000)); } catch { fin(null); }
+    const r0 = { flux, actif: true, jeter: false, m: null, minuterie: null };
+    rec.current = r0;
+    const tour = () => {
+      if (!r0.actif) { flux.getTracks().forEach((t) => t.stop()); return; }
+      const bouts = [];
+      const m = new MediaRecorder(flux);
+      r0.m = m;
+      m.ondataavailable = (e) => { if (e.data?.size) bouts.push(e.data); };
+      m.onstop = async () => {
+        const encore = r0.actif;
+        if (encore) tour(); else flux.getTracks().forEach((t) => t.stop());
+        if (r0.jeter || !bouts.length) return;
+        const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi" };
+        morceaux.current.push(x); montrer();
+        try { x.wav = await versWav(new Blob(bouts, { type: m.mimeType || "audio/webm" }), 16000); } catch { x.etat = "echec"; montrer(); return; }
+        transcrireMorceau(x);
+      };
+      m.start();
+      r0.minuterie = setTimeout(() => { if (m.state === "recording") m.stop(); }, 8000);
     };
-    rec.current = { m, flux, jeter: false };
-    m.start(1000);
+    tour();
   };
+  // Attend la fin des morceaux en cours (au plus vingt secondes), puis réessaie une fois ceux qui ont raté.
+  const morceauxPrets = async () => {
+    const t0 = Date.now();
+    while (morceaux.current.some((x) => x.etat === "envoi") && Date.now() - t0 < 20000) await new Promise((ok) => setTimeout(ok, 250));
+    await Promise.all(morceaux.current.filter((x) => x.etat === "echec" && x.wav).map(transcrireMorceau));
+  };
+  useEffect(() => { directFin.current?.scrollIntoView({ block: "nearest" }); }, [direct.length, direct.filter((x) => x.texte).length]);
   const retenirEnCours = (x) => { poserLocal(CLE_EN_COURS, x); setEnCours(x); };
   const appeler = (avecNotes) => (e) => {
     if (session?.essai) e.preventDefault();
@@ -287,17 +354,31 @@ export default function ModeAppel() {
     if (!session?.essai) retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: a.telephone, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
     if (avecNotes && !session?.essai) enregistrer();
   };
-  // « Sans notes » : l'enregistrement s'arrête et s'efface.
-  const sansNotes = () => { if (rec.current?.m?.state === "recording") { rec.current.jeter = true; rec.current.m.stop(); } audio.current = null; setNotes(false); };
-  const raccrocher = () => { clearInterval(chrono.current); if (rec.current?.m?.state === "recording") rec.current.m.stop(); setEcran("issue"); };
-  const rappeler = () => { setEcran("appel"); lancerChrono(); if (notes && !simule) enregistrer(); };
+  // « Sans notes » : l'enregistrement s'arrête, et ce qui avait été transcrit s'efface.
+  const sansNotes = () => { couperMicro(true); morceaux.current = []; setDirect([]); setNotes(false); };
+  // Au raccrochage : avec la transcription, AK lit l'appel et l'écran d'actions s'ouvre ; sans notes, l'issue se tape.
+  const raccrocher = () => {
+    clearInterval(chrono.current);
+    couperMicro(false);
+    if (!notes) { setEcran("issue"); return; }
+    setEcran("analyse");
+    noter.mutate({ issue: "auto" });
+  };
+  const rappeler = () => { setEcran("appel"); lancerChrono(secondes); if (notes && !simule) enregistrer(); };
+  // L'appel simulé : la conversation d'exemple défile phrase par phrase, comme une vraie transcription.
   const simuler = () => {
     if (!session?.essai) { setSimulerApres(true); choisir(ESSAI); return; }
     if (!a) return;
     prendre.mutate(a.id);
+    morceaux.current = []; setDirect([]);
     setNotes(true); setSimule(true); setEcran("appel"); setSecondes(0);
+    const phrases = EXEMPLE.split(/(?<=[.?!])\s+/);
+    let n = 0;
     clearInterval(chrono.current);
-    chrono.current = setInterval(() => setSecondes((s) => { if (s >= 131) { clearInterval(chrono.current); setEcran("issue"); dire("Appel terminé · 2 min 14 · notes enregistrées"); return 134; } return s + 3; }), 70);
+    chrono.current = setInterval(() => {
+      setSecondes((s0) => s0 + 4);
+      if (n < phrases.length) { morceaux.current.push({ i: n, texte: phrases[n], etat: "ok" }); n += 1; montrer(); }
+    }, 900);
   };
   useEffect(() => { if (simulerApres && session?.essai && a && ecran === "fiche") { setSimulerApres(false); simuler(); } });
 
@@ -315,52 +396,61 @@ export default function ModeAppel() {
     setCoches(new Set(props.filter((p) => p.coche !== false).map((p) => p.id)));
     const pm = props.find((p) => p.type === "mail");
     setMail(pm ? { a: pm.a || "", objet: pm.objet, corps: pm.corps, modele: pm.modele } : null);
-    setRelanceLe(null); setLigneMonday(null); setNote(""); setEdits({});
+    setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setEdits({});
     setEcran("actions");
   };
   const noter = useMutation({
-    mutationFn: async ({ issue: is, simple }) => {
-      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: a.telephone || null };
-      if (!simple && simule) champs.recit = EXEMPLE;
-      const wav = !simple && audio.current ? await audio.current : null;
+    mutationFn: async ({ issue: is, simple = false, remplace = null }) => {
+      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: a.telephone || null, remplace };
+      let wavs = [];
+      if (is === "auto" || remplace) {
+        await morceauxPrets();
+        // Le texte de chaque morceau ; ceux restés sans texte partent en audio, à leur place.
+        champs.morceaux = JSON.stringify(morceaux.current.map((x) => (x.etat === "ok" ? x.texte || "" : x.wav ? null : "")));
+        wavs = morceaux.current.filter((x) => x.etat !== "ok" && x.wav).map((x) => x.wav);
+      }
       const f = new FormData();
       for (const [k, v] of Object.entries(champs)) if (v != null) f.append(k, v);
-      if (wav) f.append("audio", wav, "appel.wav");
+      wavs.forEach((w, k) => f.append("audio", w, `m${k}.wav`));
       try {
         return await base44.request("POST", `${API}/issue`, { body: f, isForm: true });
       } catch (e) {
-        // Sans réseau, l'issue et l'enregistrement restent dans le téléphone.
+        // Sans réseau, la transcription et les morceaux restent dans le téléphone.
         if (!erreurReseau(e)) throw e;
-        await garder({ id: nouvelleCle(), genre: "issue", champs, audio: wav || null });
+        await garder({ id: nouvelleCle(), genre: "issue", champs, audios: wavs });
         setHorsLigne((n) => n + 1);
         return { hors_ligne: true, simple };
       }
     },
     onSuccess: (r, v) => {
       retenirEnCours(null);
-      if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et ses notes sont gardés ; les actions s'ouvriront au retour du réseau");
+      if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et sa transcription sont gardés ; les actions s'ouvriront au retour du réseau");
       if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
-      ouvrirActions(r.appel, v.issue);
+      ouvrirActions(r.appel, r.appel.issue_tapee || v.issue);
     },
-    onError: (e) => { toast.error(e?.message || "L'issue n'a pas pu être notée"); setEcran("issue"); },
+    onError: (e) => { toast.error(e?.message || "L'appel n'a pas pu être lu"); setEcran(direct.length ? "appel" : "issue"); },
   });
+  // Sans transcription (appel sans notes), l'issue se tape encore.
   const choisirIssue = (is, simple) => {
     setIssue(is);
     if (!simple) setEcran("analyse");
     noter.mutate({ issue: is, simple });
   };
+  // AK s'est trompé d'issue : on la change, les actions se refont sur la même transcription.
+  const changerIssue = (is) => { setEcran("analyse"); noter.mutate({ issue: is, remplace: appel.id }); };
 
   // --- Ce qui a été compris ----------------------------------------------------
   const compris = appel?.compris?.champs || {};
   const faits = useMemo(() => CHAMPS_COMPRIS.map(([k, libelle]) => {
     const x = compris[k];
-    const valeur = !x ? "" : k === "date" ? `${jourLong(x.valeur)}${x.mots ? ` (« ${x.mots} »)` : ""}` : Array.isArray(x.valeur) ? x.valeur.join(" ; ") : String(x.valeur);
-    return { cle: k, libelle, valeur, citation: x?.source || null, incertain: x?.incertain || null };
+    const valeur = !x ? "" : k === "date" ? `${jourLong(x.valeur)}${x.mots ? ` (« ${x.mots} »)` : ""}` : k === "mandat" && x.date ? `${x.valeur} · ${jourLong(x.date)}` : Array.isArray(x.valeur) ? x.valeur.join(" ; ") : String(x.valeur);
+    // Le numéro appelé n'a pas de phrase : il est sûr, on le dit sans lien « d'où ça vient ».
+    return { cle: k, libelle: x?.appele ? "Téléphone (numéro appelé)" : libelle, valeur, citation: x?.appele ? null : x?.source || null, incertain: x?.incertain || null };
   }), [appel]);
 
   // --- Valider, une fois ; le reçu ; annuler dix secondes -----------------------
   const corpsValidation = () => ({
-    choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, monday_ligne: ligneMonday, note: note.trim(), cle,
+    choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: note.trim(), cle,
     session_id: session?.id || null, issue,
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
@@ -549,7 +639,7 @@ export default function ModeAppel() {
               </div>
             )}
 
-            {/* Pendant l'appel : pas de transcription qui défile. */}
+            {/* Pendant l'appel : le micro qui écoute, la transcription en direct à droite. */}
             {ecran === "appel" && a && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
                 <div className="flex flex-col gap-[22px] rounded-[20px] border border-trait bg-fond p-6">
@@ -558,23 +648,35 @@ export default function ModeAppel() {
                       <p className="m-0 break-words text-[22px] text-encre">{a.nom}</p>
                       <p className="m-0 mt-1 text-[14px] text-ardoise">{[a.interlocuteurs?.[0], a.telephone].filter(Boolean).join(" · ")}</p>
                     </div>
-                    {notes ? <span className="flex flex-none items-center gap-2 rounded-full border border-menthe/40 px-3 py-1 text-[13px] text-menthe"><span className="h-[7px] w-[7px] rounded-full bg-menthe" />Notes en cours</span>
-                      : <span className="flex-none rounded-full border border-trait px-3 py-1 text-[13px] text-ardoise">Sans notes</span>}
                   </div>
-                  <p className="m-0 py-3 text-center font-mono text-[72px] font-light leading-none tracking-[-0.02em] text-encre tabular-nums max-md:text-[56px]">{minSec(secondes)}</p>
+                  {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    {notes ? (
+                      <span className="relative grid h-[104px] w-[104px] place-items-center">
+                        <span className="absolute inset-0 rounded-full bg-menthe/30 motion-safe:animate-ping" style={{ animationDuration: "1.8s" }} />
+                        <span className="relative grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe"><IconeMicro /></span>
+                      </span>
+                    ) : (
+                      <span className="grid h-[104px] w-[104px] place-items-center rounded-full border border-trait text-ardoise"><IconeMicro /></span>
+                    )}
+                    <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
+                  </div>
                   <p className="m-0 border-t border-trait pt-4 text-[14px] leading-[1.5] text-ardoise">
-                    {notes ? "À dire en ouverture : « Je prends des notes avec notre assistant, ça vous va ? »" : "Pas de notes : vous taperez l'issue après l'appel."}
+                    {notes ? "À dire en ouverture : « Je prends des notes avec notre assistant, ça vous va ? » Au raccrochage, AK lit l'appel et propose les actions." : "Pas de notes : vous taperez l'issue après l'appel."}
                   </p>
                   <div className="flex gap-2.5">
                     {notes && <button type="button" onClick={sansNotes} className="flex-1 rounded-full border border-trait py-4 text-[15px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Sans notes</button>}
                     <button type="button" onClick={raccrocher} className="flex-[2] rounded-full bg-alerte py-4 text-[16px] text-white hover:opacity-90">Raccrocher</button>
                   </div>
+                  {(cahier.length > 0 || a.raison) && (
+                    <div className="flex flex-col gap-1.5 border-t border-trait pt-4">
+                      {a.raison && <p className="m-0 mb-1 text-[14px] text-ambre">{a.raison}</p>}
+                      {cahier.length > 0 && <span className={etiquette}>CAHIER DES CHARGES</span>}
+                      {cahier.map((q) => <span key={q} className="text-[14px] text-craie">{q}</span>)}
+                    </div>
+                  )}
                 </div>
-                <div className="flex flex-col gap-3.5 rounded-[20px] border border-trait bg-fond p-6">
-                  {cahier.length > 0 && <><span className={etiquette}>CAHIER DES CHARGES</span>{cahier.map((q) => <span key={q} className="text-[15px] text-encre">{q}</span>)}</>}
-                  {recherches.length > 0 && <><span className={`${etiquette} mt-2`}>RECHERCHES CLIENTS</span><div className="flex flex-col items-start gap-2">{recherches.map((q) => <span key={q} className="rounded-full border border-trait px-3.5 py-2 text-[15px] text-encre">{q}</span>)}</div></>}
-                  {a.raison && <p className="m-0 mt-1.5 text-[14px] text-ambre">{a.raison}</p>}
-                </div>
+                <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect />
               </div>
             )}
 
@@ -583,7 +685,7 @@ export default function ModeAppel() {
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-stretch gap-5">
                 <CarteAgence a={a} recherches={[]} cahier={[]} />
                 <div className="mt-[22px] flex flex-col gap-3 rounded-[28px] border border-trait bg-fond p-6">
-                  <div className="flex items-baseline justify-between"><span className="text-[15px] text-encre">{rappel?.badge === "Rappel entrant" ? "Appel entrant" : "Appel terminé"}</span>{secondes > 0 && <span className="font-mono text-[20px] text-ardoise tabular-nums">{minSec(secondes)}</span>}</div>
+                  <div className="flex items-baseline justify-between"><span className="text-[15px] text-encre">{rappel?.badge === "Rappel entrant" ? "Appel entrant" : "Appel terminé"}</span></div>
                   {notes ? <span className="text-[13px] text-menthe">✓ Notes enregistrées</span> : <span className="text-[13px] text-ardoise">Sans notes : l'issue suffit</span>}
                   {!rappel && <button type="button" onClick={rappeler} className="self-start p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>L'appel a coupé ? Rappeler</button>}
                   <span className={`${etiquette} mt-3`}>PERSONNE AU BOUT DU FIL</span>
@@ -601,10 +703,20 @@ export default function ModeAppel() {
               </div>
             )}
 
-            {ecran === "analyse" && a && (
+            {ecran === "analyse" && a && direct.length > 0 && (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
+                <PanneauTranscription direct={direct} notes fin={directFin} />
+                <div className="flex flex-col items-center justify-center gap-3.5 rounded-[20px] border border-trait bg-fond px-5 py-16 text-center">
+                  <p className="m-0 text-[20px] text-encre">AK lit l'appel…</p>
+                  <p className="m-0 text-[14px] leading-[1.6] text-ardoise">L'issue, l'interlocuteur, l'email, les biens évoqués, la prochaine étape</p>
+                  <span className="h-1 w-[200px] overflow-hidden rounded-full bg-encre/[0.12]"><span className="block h-full w-3/5 animate-pulse rounded-full bg-menthe" /></span>
+                </div>
+              </div>
+            )}
+            {ecran === "analyse" && a && !direct.length && (
               <div className="flex flex-col items-center gap-3.5 px-5 py-20 text-center">
                 <p className="m-0 text-[22px] text-encre">Lecture de l'appel…</p>
-                <p className="m-0 text-[14px] leading-[1.6] text-ardoise">Interlocuteur, téléphone, email, biens évoqués, prochaine étape<br />{a.nom}{secondes ? ` · ${minSec(secondes)}` : ""}</p>
+                <p className="m-0 text-[14px] leading-[1.6] text-ardoise">Interlocuteur, téléphone, email, biens évoqués, prochaine étape<br />{a.nom}</p>
                 <span className="h-1 w-[200px] overflow-hidden rounded-full bg-encre/[0.12]"><span className="block h-full w-3/5 animate-pulse rounded-full bg-menthe" /></span>
               </div>
             )}
@@ -612,8 +724,21 @@ export default function ModeAppel() {
             {/* Ce qui a été compris, et les actions proposées. */}
             {ecran === "actions" && appel && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
+                <div className="flex min-w-0 flex-col gap-4">
+                {direct.length > 0 && <PanneauTranscription direct={direct} notes fin={null} replie />}
                 <div className="flex min-w-0 flex-col gap-4 rounded-[20px] border border-trait bg-fond p-6">
-                  <span className={etiquette}>CE QUI A ÉTÉ COMPRIS</span>
+                  <div className="flex flex-col gap-2">
+                    <span className={etiquette}>CE QU'AK A COMPRIS</span>
+                    <p className="m-0 text-[15px] text-encre">{appel.issue_deduite ? "Issue : " : "Issue tapée : "}<span className="text-menthe">{ISSUES_TOUTES[issue] || issue}</span>
+                      <button type="button" onClick={() => setChangerOuvert((x) => !x)} className="ml-2 p-0 text-[13px] text-ardoise underline hover:text-encre" style={{ background: "transparent" }}>changer</button></p>
+                    {changerOuvert && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(ISSUES_TOUTES).filter(([k]) => k !== issue).map(([k, l]) => (
+                          <button key={k} type="button" disabled={noter.isPending} onClick={() => { setChangerOuvert(false); changerIssue(k); }} className="h-8 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>{l}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {appel.compris?.avertissement && <p className="m-0 text-[13px] leading-[1.5] text-ambre">{appel.compris.avertissement}</p>}
                   {appel.transcription_echec && <p className="m-0 text-[13px] leading-[1.5] text-ambre">La transcription n'a pas abouti : les actions reposent sur l'issue seule. Ajoutez une note si besoin.</p>}
                   {appel.resume && !appel.sans_details && <p className="m-0 text-[15px] leading-[1.5] text-craie">{appel.resume}</p>}
@@ -636,9 +761,10 @@ export default function ModeAppel() {
                     <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Ce qu'il faut retenir, en quelques mots" className="rounded-[12px] border border-trait bg-surface px-3.5 py-3 text-[16px] text-encre outline-none focus:border-menthe" />
                   </label>
                 </div>
+                </div>
                 <div className="min-w-0 max-md:order-first">
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
-                    relanceLe={relanceLe} setRelanceLe={setRelanceLe} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
+                    relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     onLancer={() => valider.mutate()} envoi={valider.isPending} />
                 </div>
               </div>

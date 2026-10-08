@@ -295,10 +295,11 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
           {contacts.map((x) => {
             const actif = choisi?.id === x.id;
             return (
-              <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif}
-                className={`flex flex-col items-start gap-0.5 rounded-champ px-3 py-2.5 text-left transition-colors ${actif ? "bg-menthe/10" : "hover:bg-relief"}`} style={actif ? undefined : { background: "transparent" }}>
-                <span className="break-words text-[15px] text-encre">{x.nom}</span>
-                <span className={`text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
+              <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={x.nom}
+                className={`flex w-full min-w-0 flex-col items-start gap-0.5 rounded-champ px-3 py-2.5 text-left transition-colors ${actif ? "bg-menthe/10" : "hover:bg-relief"}`} style={actif ? undefined : { background: "transparent" }}>
+                {/* Un nom sans espace (une adresse mail) ne déborde pas : coupé, en entier au survol. */}
+                <span className="block w-full truncate text-[15px] text-encre">{x.nom}</span>
+                <span className={`block w-full truncate text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
               </button>
             );
           })}

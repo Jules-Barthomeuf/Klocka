@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import { versWav } from "@/lib/dictee";
 import { garder, enAttente, retirer, erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
+import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -165,6 +166,18 @@ function CarteAgence({ a, recherches, cahier }) {
   );
 }
 
+/** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
+function ZoneNotes({ valeur, onChange }) {
+  return (
+    <label className="flex min-w-0 flex-col gap-2 rounded-[20px] border border-trait bg-transparent p-6 max-md:p-5">
+      <span className="m-0 text-[12px] tracking-[.14em] text-ardoise">NOTES</span>
+      <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3}
+        placeholder="Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."
+        className="w-full resize-y rounded-champ border border-trait bg-fond px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
+    </label>
+  );
+}
+
 /** Le micro : il appelle et prend les notes. */
 function IconeMicro({ taille = 34 }) {
   return (
@@ -215,33 +228,6 @@ function ChoixLigne({ candidates, onChoisir, occupe }) {
   );
 }
 
-
-/** Trois petits points qui s'allument tour à tour, pendant qu'AK lit l'appel. */
-function TroisPoints() {
-  return (
-    <span className="flex items-center gap-2" role="status" aria-label="Lecture en cours">
-      {[0, 1, 2].map((k) => <span key={k} className="h-2.5 w-2.5 rounded-full bg-menthe motion-safe:animate-bounce" style={{ animationDelay: `${k * 160}ms`, animationDuration: "1s" }} />)}
-    </span>
-  );
-}
-
-/** Un petit cercle qui se remplit en cinq secondes, 5, 4, 3, 2, 1, puis recommence : pour faire passer l'attente. */
-function CompteARebours() {
-  const [n, setN] = useState(5);
-  useEffect(() => { const t = setInterval(() => setN((x) => (x <= 1 ? 5 : x - 1)), 1000); return () => clearInterval(t); }, []);
-  const r = 15;
-  const tour = 2 * Math.PI * r;
-  return (
-    <span className="relative grid h-10 w-10 place-items-center" aria-hidden="true">
-      <svg viewBox="0 0 36 36" className="absolute inset-0 h-full w-full -rotate-90">
-        <circle cx="18" cy="18" r={r} fill="none" stroke="currentColor" strokeWidth="2" className="text-trait" />
-        <circle cx="18" cy="18" r={r} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-menthe transition-[stroke-dashoffset] duration-1000 ease-linear"
-          strokeDasharray={tour} strokeDashoffset={tour * ((n - 1) / 5)} />
-      </svg>
-      <span className="text-[13px] tabular-nums text-craie">{n}</span>
-    </span>
-  );
-}
 
 /**
  * La fiche avant l'appel (maquette de Jules, 7 oct. 2026), la même en mode
@@ -421,6 +407,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const [relance2Le, setRelance2Le] = useState(null);
   const [ligneMonday, setLigneMonday] = useState(null);
   const [note, setNote] = useState("");
+  // Les notes tapées pendant l'appel (8 oct. 2026) : email, numéro, nom, date ; elles font foi sur la transcription.
+  const [notesAppel, setNotesAppel] = useState("");
+  const [notesLues, setNotesLues] = useState(null);
+  // La chaîne de raisonnement d'AK pendant la lecture, puis repliée à l'écran d'actions (8 oct. 2026).
+  const chaine = useEtapesVives();
+  const [etapesFinies, setEtapesFinies] = useState([]);
   const [edits, setEdits] = useState({});
   const [cle, setCle] = useState(null);
   const [recu, setRecu] = useState(null);
@@ -500,7 +492,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     arreterTout();
     if (a && !rappel) setPassees((s) => new Set(s).add(a.id));
     setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({});
-    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false);
+    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false); setNotesAppel(""); setNotesLues(null);
     if (texte) dire(texte);
     queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
     queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
@@ -512,7 +504,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     if (!relances || !relance?.agence_id) return;
     arreterTout();
     setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({}); setFait(null);
-    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null);
+    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setNotesAppel(""); setNotesLues(null);
   }, [relance?.agence_id]);
   // Relances : la ligne reste à moi tant que je m'en sers (j'ai bougé dans la dernière minute, ou l'appel est en cours).
   const activite = useRef(Date.now());
@@ -700,7 +692,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
   const noter = useMutation({
     mutationFn: async ({ issue: is, simple = false, remplace = null }) => {
-      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null };
+      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAppel.trim() || null };
+      setNotesLues(notesAppel);
       let wavs = [];
       if (is === "auto" || remplace) {
         await morceauxPrets();
@@ -712,7 +705,11 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       for (const [k, v] of Object.entries(champs)) if (v != null) f.append(k, v);
       wavs.forEach((w, k) => f.append("audio", w, `m${k}.wav`));
       try {
-        return await base44.request("POST", `${API}/issue`, { body: f, isForm: true });
+        chaine.reinitialiser();
+        const r = await base44.flux(`${API}/issue?flux=1`, { body: f, isForm: true, surEtape: chaine.pousser });
+        await chaine.vider();
+        setEtapesFinies(chaine.lire());
+        return r;
       } catch (e) {
         // Sans réseau, la transcription et les morceaux restent dans le téléphone.
         if (!erreurReseau(e)) throw e;
@@ -912,7 +909,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     <button type="button" onClick={raccrocher} className="flex-[2] rounded-full bg-alerte py-4 text-[16px] text-white hover:opacity-90">Raccrocher</button>
                     {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
                     <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
-                      className="grid h-14 w-14 flex-none place-items-center rounded-full border border-trait bg-black text-encre hover:border-bord-vif"><X className="h-5 w-5" /></button>
+                      className="grid h-14 w-14 flex-none place-items-center rounded-full border border-trait bg-black text-white hover:border-bord-vif"><X className="h-5 w-5" /></button>
                   </div>
                   {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
                   {(autresNumeros.length > 0 || a.site) && (
@@ -927,7 +924,10 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     </div>
                   )}
                 </div>
-                <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect />
+                <div className="flex min-w-0 flex-col gap-4">
+                  <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect />
+                  <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />
+                </div>
               </div>
             )}
 
@@ -970,32 +970,26 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 <p className="m-0 text-[14px] text-ardoise delay-300 duration-700 animate-in fade-in-0 fill-mode-both">{a.nom}</p>
               </div>
             )}
+            {/* AK lit l'appel : sa chaîne de raisonnement, étape par étape, au moment où il la fait. */}
             {ecran === "analyse" && a && direct.length > 0 && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
                 <PanneauTranscription direct={direct} notes fin={directFin} />
-                <div className="relative flex flex-col items-center justify-center gap-3.5 rounded-[20px] border border-trait bg-transparent px-5 py-16 text-center">
-                  <span className="absolute right-4 top-4"><CompteARebours /></span>
-                  <p className="m-0 text-[20px] text-encre">AK lit l'appel</p>
-                  <p className="m-0 text-[14px] leading-[1.6] text-ardoise">L'issue, l'interlocuteur, l'email, les biens évoqués, la prochaine étape</p>
-                  <TroisPoints />
-                </div>
+                <ChaineEtapes etapes={chaine.etapes} />
               </div>
             )}
-            {ecran === "analyse" && a && !direct.length && (
-              <div className="relative flex flex-col items-center gap-3.5 rounded-[20px] border border-trait bg-transparent px-5 py-20 text-center">
-                <span className="absolute right-4 top-4"><CompteARebours /></span>
-                <p className="m-0 text-[22px] text-encre">Lecture de l'appel</p>
-                <p className="m-0 text-[14px] leading-[1.6] text-ardoise">Interlocuteur, téléphone, email, biens évoqués, prochaine étape<br />{a.nom}</p>
-                <TroisPoints />
-              </div>
-            )}
+            {ecran === "analyse" && a && !direct.length && <ChaineEtapes etapes={chaine.etapes} titre={`AK lit l'appel · ${a.nom}`} />}
 
             {/* Ce qui a été compris, et les actions proposées. */}
             {ecran === "actions" && appel && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
                 <div className="flex min-w-0 flex-col gap-4">
                 {/* « Ce qu'AK a compris » retiré (7 oct. 2026) : il doublait la fenêtre de Contact Monday. */}
+                <ChaineRepliee etapes={etapesFinies} />
                 <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} />
+                <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />
+                {notesLues != null && notesAppel !== notesLues && (
+                  <button type="button" onClick={() => changerIssue("auto")} disabled={noter.isPending} className="self-start rounded-full border border-trait px-4 py-2 text-[14px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Ré-analyser avec les notes</button>
+                )}
                 </div>
                 <div className="min-w-0 max-md:order-first">
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}

@@ -151,7 +151,12 @@ export function monterProspection(app) {
   app.post('/api/prospection/rappels/:id/analyser', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    reponse(res, await (await RP()).analyser(req.params.id, { remplace: req.body?.remplace || null, issue: req.body?.issue || 'auto' }, user));
+    const flux = req.query.flux === '1' ? (await import('../flux.js')).ouvrirFlux(res) : null;
+    let r;
+    try { r = await (await RP()).analyser(req.params.id, { remplace: req.body?.remplace || null, issue: req.body?.issue || 'auto', surEtape: flux?.etape || null }, user); } catch (e) { if (flux) return flux.erreur(e); throw e; }
+    if (!flux) return reponse(res, r);
+    if (!r.ok) return flux.erreur({ message: r.error || 'Impossible.' });
+    flux.fin(r);
   }));
   app.post('/api/prospection/rappels/:id/titre', wrap(async (req, res) => {
     const user = admin(req, res);
@@ -332,6 +337,8 @@ export function monterProspection(app) {
   app.post('/api/prospection/mode-appel/issue', upload.array('audio', 80), wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
+    // `?flux=1` : chaque étape part au moment où elle se fait (comme le chat), puis le résultat.
+    const flux = req.query.flux === '1' ? (await import('../flux.js')).ouvrirFlux(res) : null;
     const fichiers = req.files || [];
     const audios = fichiers.map((f) => fs.readFileSync(f.path));
     for (const f of fichiers) fs.promises.unlink(f.path).catch(() => {});
@@ -343,6 +350,7 @@ export function monterProspection(app) {
       const A = await import('../prospection/appel.js');
       let k = 0;
       const textes = [];
+      if (morceaux.some((m) => typeof m !== 'string')) flux?.etape("Je transcris la fin de l'appel");
       for (const m of morceaux) {
         if (typeof m === 'string') { textes.push(m); continue; }
         const b = audios[k++];
@@ -350,13 +358,23 @@ export function monterProspection(app) {
       }
       transcription = textes.filter(Boolean).join('\n').trim() || null;
     } else if (audios.length) audio = audios[0];
-    const r = await (await MA()).noterIssue({
-      agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue,
-      session_id: req.body?.session_id || null, audio, transcription, remplace: req.body?.remplace || null,
-      recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
-      numero: req.body?.numero || null, motif: req.body?.motif || null, user,
-    });
-    if (!r.ok) return refus(res, r);
+    // Les notes tapées pendant l'appel : AK les lit après la transcription, elles l'emportent (email, numéro, nom, date).
+    const notesAppel = String(req.body?.notes || '').trim().slice(0, 4000) || null;
+    if (notesAppel) { transcription = (await import('../prospection/rappels.js')).texteAAnalyser(transcription, notesAppel); flux?.etape('Je lis vos notes : elles l\'emportent sur la transcription'); }
+    let r;
+    try {
+      r = await (await MA()).noterIssue({
+        agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue, notes: notesAppel,
+        session_id: req.body?.session_id || null, audio, transcription, remplace: req.body?.remplace || null,
+        recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
+        numero: req.body?.numero || null, motif: req.body?.motif || null, surEtape: flux?.etape || null, user,
+      });
+    } catch (e) {
+      if (flux) return flux.erreur(e);
+      throw e;
+    }
+    if (!r.ok) return flux ? flux.erreur({ message: r.error || 'Impossible.' }) : refus(res, r);
+    if (flux) return flux.fin({ ...r, transcription });
     ok(res, { ...r, transcription });
   }));
   app.post('/api/prospection/mode-appel/appels/:id/valider', wrap(async (req, res) => {

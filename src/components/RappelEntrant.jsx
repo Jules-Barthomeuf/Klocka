@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { versWav } from "@/lib/dictee";
 import { erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
+import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 
 // « Il me rappelle » (spec du 8 oct. 2026). Un agent rappelle sur le
 // téléphone de l'analyste : un seul tap, depuis n'importe quelle page (ou le
@@ -36,26 +37,6 @@ export function BoutonRappel({ compact = false }) {
       style={{ background: compact ? "transparent" : undefined }}>
       <PhoneIncoming className={compact ? "h-5 w-5" : "h-4 w-4"} />{!compact && "Rappel"}
     </button>
-  );
-}
-
-/** Trois petits points qui s'allument tour à tour, comme le mode appel de la Prospection pendant qu'AK lit. */
-function TroisPoints() {
-  return (
-    <span className="flex items-center gap-2" role="status" aria-label="Lecture en cours">
-      {[0, 1, 2].map((k) => <span key={k} className="h-2.5 w-2.5 rounded-full bg-menthe motion-safe:animate-bounce" style={{ animationDelay: `${k * 160}ms`, animationDuration: "1s" }} />)}
-    </span>
-  );
-}
-
-/** L'attente : le titre au-dessus, la phrase, les trois points dessous. */
-function AKLit({ titre = "AK lit l'appel", texte }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3.5 rounded-[20px] border border-trait px-5 py-16 text-center">
-      <p className="m-0 text-[20px] text-encre">{titre}</p>
-      {texte && <p className="m-0 text-[14px] leading-[1.6] text-ardoise">{texte}</p>}
-      <TroisPoints />
-    </div>
   );
 }
 
@@ -111,6 +92,16 @@ export default function RappelEntrant() {
   const [cle, setCle] = useState(null);
   const [recu, setRecu] = useState(null);
   const [annulerDans, setAnnulerDans] = useState(0);
+  // La chaîne de raisonnement d'AK, comme au mode appel (8 oct. 2026).
+  const chaine = useEtapesVives();
+  const [etapesFinies, setEtapesFinies] = useState([]);
+  const analyserEnFlux = async (corps) => {
+    chaine.reinitialiser();
+    const r = await base44.flux(`${API}/${idRef.current}/analyser?flux=1`, { body: corps, surEtape: chaine.pousser });
+    await chaine.vider();
+    setEtapesFinies(chaine.lire());
+    return r;
+  };
   const rec = useRef(null);
   const morceaux = useRef([]);
   const minuteur = useRef(null);
@@ -230,7 +221,7 @@ export default function RappelEntrant() {
     setEcran("actions");
   };
   const analyser = useMutation({
-    mutationFn: (opts = {}) => base44.request("POST", `${API}/${rappel.id}/analyser`, { body: opts }),
+    mutationFn: (opts = {}) => analyserEnFlux(opts),
     onMutate: () => setEcran("actions"),
     onSuccess: (r) => { setRappel(r.rappel); if (r.rien_de_nouveau) setEcran("rien"); else ouvrirActions(r.appel); },
     onError: (e) => toast.error(e?.message || "L'analyse a échoué"),
@@ -252,7 +243,7 @@ export default function RappelEntrant() {
   const reanalyser = useMutation({
     mutationFn: async () => {
       await base44.request("POST", `${API}/${rappel.id}/notes`, { body: { notes } });
-      return base44.request("POST", `${API}/${rappel.id}/analyser`, { body: { remplace: appel?.id || null } });
+      return analyserEnFlux({ remplace: appel?.id || null });
     },
     onMutate: () => setEcran("actions"),
     onSuccess: (r) => { setRappel(r.rappel); if (r.rien_de_nouveau) setEcran("rien"); else ouvrirActions(r.appel); },
@@ -354,7 +345,7 @@ export default function RappelEntrant() {
     <div className="flex min-h-[120px] flex-col gap-2 rounded-[16px] border border-trait p-4">
       <span className={etiquette}>TRANSCRIPTION</span>
       {ecran === "enregistrement" ? <p className="m-0 text-[14px] text-brume">La transcription s'affiche à la fin de l'appel.</p>
-        : ecran === "transcription" ? <span className="flex items-center gap-3 text-[14px] text-ardoise">Transcription en cours <TroisPoints /></span>
+        : ecran === "transcription" ? <span className="text-[14px] text-ardoise">Transcription en cours</span>
           : rappel?.transcription ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{rappel.transcription}</p>
             : <p className="m-0 text-[14px] text-brume">{microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Rien n'a été entendu."}</p>}
       {rappel?.transcription_echec && <p className="m-0 text-[12.5px] text-ambre">Une partie n'a pas pu être transcrite.</p>}
@@ -408,7 +399,7 @@ export default function RappelEntrant() {
           </div>
         )}
 
-        {ecran === "transcription" && <AKLit texte="La transcription, puis qui a appelé" />}
+        {ecran === "transcription" && <ChaineEtapes etapes={["Je termine la transcription et je cherche qui a appelé"]} titre="AK lit l'appel" />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}
         {ecran === "identification" && rappel && (
@@ -468,9 +459,10 @@ export default function RappelEntrant() {
             </div>
             <div className="flex min-w-0 flex-col gap-4 max-md:order-first">
               {!appel || analyser.isPending || reanalyser.isPending ? (
-                <AKLit texte="L'issue, l'interlocuteur, l'email, les biens évoqués, la prochaine étape" />
+                <ChaineEtapes etapes={chaine.etapes} />
               ) : (
                 <>
+                  <ChaineRepliee etapes={etapesFinies} />
                   <label className="flex flex-col gap-1.5">
                     <span className={etiquette}>COMPRIS</span>
                     <input value={titre} onChange={(e) => setTitre(e.target.value)} aria-label="Ce qui a été compris" className={champ} />

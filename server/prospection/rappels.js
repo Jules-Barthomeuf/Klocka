@@ -382,7 +382,7 @@ export async function lever(id, user) {
  * (noterIssue), sur la transcription et les notes. « Ne plus appeler » n'est
  * jamais coché d'office. Un appel sans contenu : « Rien de nouveau ».
  */
-export async function analyser(id, { remplace = null, titre = null, issue = 'auto' } = {}, user) {
+export async function analyser(id, { remplace = null, titre = null, issue = 'auto', surEtape = null } = {}, user) {
   const r = Records.get(ENTITE, id);
   if (!r || r.par !== moiDe(user) || r.etat !== 'identifie') return { ok: false, error: r && r.etat === 'a_identifier' ? 'Identifiez d\'abord l\'agent.' : 'Rappel introuvable.' };
   if (sansContenu(r.transcription, r.notes)) {
@@ -393,7 +393,7 @@ export async function analyser(id, { remplace = null, titre = null, issue = 'aut
   const lu = await MA.noterIssue({
     // Une issue changée à la main (« changer ») : jamais un sans-réponse, l'agent a appelé.
     agence_id: r.agence_id, agent_id: r.agent_id, issue: SANS_REPONSE.includes(issue) ? 'auto' : issue, transcription: texteAAnalyser(r.transcription, r.notes),
-    notes: r.notes || null, entrant: true, remplace: remplace || r.appel_id || null, user,
+    notes: r.notes || null, entrant: true, remplace: remplace || r.appel_id || null, surEtape, user,
   });
   if (!lu.ok) return lu;
   const propositions = (lu.appel.propositions || []).map((p) => (p.type === 'ne_plus_appeler' ? { ...p, coche: false, toujours: false } : p));

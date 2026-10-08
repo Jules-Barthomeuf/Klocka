@@ -141,7 +141,9 @@ export async function envoyerMails(ids, user) {
     if (!m || !['pret', 'prevu'].includes(m.etat)) { resultats.push({ id, ok: false, error: 'déjà parti ou écarté' }); continue; }
     // Un mail du mode essai ne part jamais : son adresse est fictive.
     if (m.essai) { resultats.push({ id, ok: false, essai: true, error: 'mode essai : le mail ne part pas' }); continue; }
-    const corps = String(m.corps).replace(/\{signature\}/g, signature);
+    // Un mail du mode appel s'arrête à la formule de politesse : la signature s'ajoute ici (texte), la bannière dans le HTML.
+    const brut = String(m.corps);
+    const corps = m.signature_auto && !brut.includes('{signature}') ? `${brut.replace(/\s+$/, '')}\n${signature}` : brut.replace(/\{signature\}/g, signature);
     const maintenant = new Date();
     if (m.genre === 'sms') {
       Records.update(ENTITE, id, { etat: 'envoye', envoye_le: maintenant.toISOString(), par: user?.email || null, corps });

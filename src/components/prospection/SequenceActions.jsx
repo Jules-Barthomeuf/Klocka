@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Eye, X } from "lucide-react";
+import Calendrier from "@/components/ui/calendrier";
 
 // Les actions proposées après un appel abouti, en séquence (maquette de
 // Jules, 7 oct. 2026) : ce qui part maintenant (Monday, le mail du modèle, la
@@ -105,10 +106,13 @@ function Case({ c }) {
   const e = c.edit;
   return (
     <div className={`-ml-px -mt-px flex min-w-0 flex-col gap-2 border-l border-t border-trait bg-transparent px-5 py-4 max-md:px-4 max-md:py-3.5 ${c.large ? "col-span-2 max-md:col-span-1" : ""}`} style={bleu ? VOILE_BLEU : undefined}>
-      <span className={`text-[13.5px] ${bleu ? "text-bleu" : "text-ardoise"}`}>{c.label}{c.statut ? ` · ${c.statut}` : ""}</span>
+      {/* Le libellé seul (8 oct. 2026) : plus de « · nouveau » à côté ; le bleu dit déjà ce qu'AK écrit. */}
+      <span className={`text-[13.5px] ${bleu ? "text-bleu" : "text-ardoise"}`}>{c.label}</span>
       {e?.type === "date" && (
-        <input type="date" value={e.valeur || ""} min={new Date().toISOString().slice(0, 10)} onChange={(x) => x.target.value && e.changer(x.target.value)} aria-label={c.label}
-          className="self-start rounded-champ border border-bleu/50 bg-transparent px-3 py-2 text-[16px] text-encre outline-none focus:border-bleu" />
+        <>
+          <span className="text-center text-[16px] text-encre">{e.valeur ? enJour(e.valeur) : "Choisissez un jour"}</span>
+          <div className="flex justify-center"><Calendrier valeur={e.valeur || ""} onChoisir={e.changer} label={c.label} /></div>
+        </>
       )}
       {e?.type === "texte" && <input value={e.valeur ?? ""} onChange={(x) => e.changer(x.target.value)} placeholder={e.placeholder || "—"} aria-label={c.label} className={`${saisie} ${c.warn ? "text-ambre" : ""}`} />}
       {e?.type === "zone" && <textarea value={e.valeur ?? ""} onChange={(x) => e.changer(x.target.value)} rows={e.lignes || 3} aria-label={c.label} className={`${saisie} resize-y text-[15px] leading-[1.55]`} />}
@@ -146,7 +150,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer }) {
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-fond/80 p-6 backdrop-blur-xl md:left-[var(--k-barre-largeur)] max-md:p-0" onMouseDown={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
       <div role="dialog" aria-modal="true" aria-label={c.titre}
-        className="grid max-h-[min(720px,100%)] w-full max-w-[760px] grid-cols-[190px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-bloc border border-bord-vif bg-transparent shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:h-full max-md:max-w-none max-md:grid-cols-1 max-md:rounded-none">
+        className="grid h-[min(720px,100%)] w-full max-w-[760px] grid-cols-[190px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-bloc border border-bord-vif bg-transparent shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:h-full max-md:max-w-none max-md:grid-cols-1 max-md:rounded-none">
         <nav className="flex min-h-0 flex-col overflow-y-auto border-r border-trait bg-transparent px-3 py-5 max-md:hidden">
           {groupes.map((g) => (
             <div key={g.titre} className="mb-5 flex flex-col gap-1 last:mb-0">
@@ -162,7 +166,7 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer }) {
         <div className="flex min-h-0 flex-col px-7 pb-6 pt-6 max-md:px-4 max-md:pb-[calc(72px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-2">
-              <span className="text-[11px] uppercase tracking-[.16em] text-ardoise">{c.kicker}<span className="md:hidden"> · {i + 1} sur {pas.length}</span></span>
+              {(c.kicker || pas.length > 1) && <span className="text-[11px] uppercase tracking-[.16em] text-ardoise">{c.kicker}<span className="md:hidden">{c.kicker ? " · " : ""}{i + 1} sur {pas.length}</span></span>}
               <span className="break-words text-[22px] leading-[1.25] tracking-[-0.01em] text-encre max-md:text-[20px]">{c.titre}</span>
             </div>
             <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-9 w-9 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
@@ -204,7 +208,9 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const pmo = par("monday");
   const pdi = par("diffusion");
   const compris = appel.compris?.champs || {};
-  const interlocuteur = compris.interlocuteur?.valeur || agence?.interlocuteurs?.[0] || appel.avant?.interlocuteur || null;
+  // Le nom seul (8 oct. 2026) : ni « président de SAS », ni numéro, ni civilité.
+  const nomSeul = (t) => String(t || "").split(/[,·(]/)[0].replace(/^(madame|monsieur)\s+/i, "").trim() || null;
+  const interlocuteur = nomSeul(compris.interlocuteur?.valeur) || (agence?.contacts || []).find((x) => !x.standard)?.nom || nomSeul(agence?.interlocuteurs?.[0]) || nomSeul(appel.avant?.interlocuteur);
   const [ouverte, setOuverte] = useState(null);
   const [choixIssue, setChoixIssue] = useState(false);
   const [debut] = useState(() => performance.now());
@@ -248,6 +254,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   // Les cases Monday qu'on corrige ici sont celles que la validation sait reporter :
   // le contact, le téléphone, l'email (corrections) et la date de relance.
   const CLE_MONDAY = { Contact: "interlocuteur", "Téléphone": "telephone", "E-mail": "email" };
+  // Ce qu'on met dans chaque case (8 oct. 2026) : vide, la case ne dit pas quoi y écrire.
+  const PLACEHOLDERS_MONDAY = { interlocuteur: "Nom de la personne au bout du fil (vide si vous ne l'avez pas)", telephone: "Son numéro direct, sinon celui appelé", email: "Son adresse mail" };
   const casesMonday = () => {
     if (!ligne) return [];
     if (ligne.etat === "indisponible" || ligne.etat === "info") return [{ label: "Monday", valeur: ligne.texte, warn: ligne.etat === "indisponible", large: true }];
@@ -255,8 +263,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       const statut = String(x.avant || "").replace(/\u200b/g, "").trim() ? "modifié" : "nouveau";
       const apres = String(x.apres ?? "").replace(/\u200b/g, "").trim();
       const cle = CLE_MONDAY[x.titre];
-      if (x.titre === "Prochaine relance" && pr) return { label: x.titre, statut, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
-      if (cle && setEdits) return { label: x.titre, statut, edit: { type: "texte", valeur: edits?.[cle] ?? apres, changer: (v) => setEdits((e) => ({ ...e, [cle]: v })) } };
+      if (x.titre === "Prochaine relance" && pr) return { label: x.titre, statut, large: true, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
+      if (cle && setEdits) return { label: x.titre, statut, edit: { type: "texte", valeur: edits?.[cle] ?? apres, changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       if (x.titre === "Remarques") return { label: x.titre, statut: String(x.avant || "").trim() ? "ajout" : "nouveau", valeur: apres.replace(/^\+\s*/, ""), large: true };
       return { label: x.titre, statut, valeur: apres ? enJour(apres) : "(vidée)" };
     });
@@ -325,14 +333,14 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
           { label: "Objet", statut: m.objet !== pm.objet ? "modifié" : null, edit: { type: "texte", valeur: m.objet, changer: change("objet") } },
           { label: "Message", statut: m.corps !== pm.corps ? "modifié" : null, large: true, edit: { type: "zone", valeur: m.corps, changer: change("corps"), lignes: 12 } },
         ],
-        aide: m.a ? "Le texte du modèle est fixe : seules les variables sont remplies. Il part depuis votre boîte dix secondes après la validation ; {signature} devient votre nom." : "Sans adresse, le mail ne part pas.",
+        aide: m.a ? "+ votre signature, chargée dans votre compte." : "Sans adresse, le mail ne part pas.",
         retablir: modifie || m.modele !== pm.modele ? () => setMail({ a: pm.a || "", objet: pm.objet, corps: pm.corps, modele: pm.modele }) : null,
       };
     }
     if (q.type === "relance") return {
-      kicker: "FILE D'APPELS", titre: `Rappeler ${interlocuteur || agence?.nom || ""}`.trim(),
+      kicker: "", titre: `Rappeler ${interlocuteur || agence?.nom || ""}`.trim(),
       cases: [
-        { label: "Date", statut: relanceLe ? "modifié" : null, edit: { type: "date", valeur: dateRelance, changer: setRelanceLe } },
+        { label: "Date", statut: relanceLe ? "modifié" : null, large: true, edit: { type: "date", valeur: dateRelance, changer: setRelanceLe } },
         pourquoi(pr, !!relanceLe, "Date par défaut : rien n'a été dit"),
         { label: "Quoi", valeur: pr.prochaine?.quoi, large: true },
         pr.prochaine?.si_fiche && { label: "Annulée", valeur: "Dès que la fiche arrive depuis son adresse", large: true },
@@ -340,9 +348,9 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       retablir: relanceLe ? () => setRelanceLe(null) : null,
     };
     if (q.type === "relance_suivante") return {
-      kicker: "FILE D'APPELS · SECONDE RELANCE", titre: "Faire le point",
+      kicker: "SECONDE RELANCE", titre: "Faire le point",
       cases: [
-        { label: "Date", statut: relance2Le ? "modifié" : null, edit: { type: "date", valeur: relance2Le || pr2.prochaine?.le, changer: setRelance2Le } },
+        { label: "Date", statut: relance2Le ? "modifié" : null, large: true, edit: { type: "date", valeur: relance2Le || pr2.prochaine?.le, changer: setRelance2Le } },
         pourquoi(pr2, !!relance2Le, "Date par défaut : trois semaines"),
         { label: "Quoi", valeur: pr2.prochaine?.quoi, large: true },
         { label: "Ordre", valeur: "Après la relance de la fiche ; si la fiche arrive, c'est elle qui devient la prochaine", large: true },
@@ -375,7 +383,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       ].filter(Boolean),
     };
     if (q.type === "ne_plus_appeler") return {
-      kicker: "MONDAY · FILE D'APPELS", titre: "Ne plus appeler",
+      kicker: "MONDAY", titre: "Ne plus appeler",
       cases: [
         { label: "Monday", statut: "modifié", valeur: "Ligne marquée « Ne plus appeler », relance vidée" },
         { label: "File", valeur: "L'agence ne revient plus dans les sessions" },

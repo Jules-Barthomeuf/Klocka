@@ -153,12 +153,13 @@ export function valeursPour(ligne, cols, d) {
   const prenom = contact ? String(contact).replace(/^(madame|monsieur)\s+/i, '').split(/\s+/)[0] : null;
   if (prenom && !avant.prenom && !ligne) poser('prenom', 'Prénom', prenom, prenom);
   const jourFr = d.dernier_contact ? `${d.dernier_contact.slice(8, 10)}/${d.dernier_contact.slice(5, 7)}/${d.dernier_contact.slice(0, 4)}` : null;
-  if (d.dernier_contact && cols.date_contact) poser('date_contact', 'Date', cols.date_contact.type === 'date' ? { date: d.dernier_contact } : jourFr, cols.date_contact.type === 'date' ? d.dernier_contact : jourFr);
+  // « Date » sur le tableau, « Dernier contact » à l'écran (8 oct. 2026) : c'est le jour du dernier contact.
+  if (d.dernier_contact && cols.date_contact) poser('date_contact', 'Dernier contact', cols.date_contact.type === 'date' ? { date: d.dernier_contact } : jourFr, cols.date_contact.type === 'date' ? d.dernier_contact : jourFr);
   if (d.statut) poser('statut', 'Statut', cols.statut?.type === 'status' ? { label: d.statut } : d.statut, d.statut);
   if (d.dernier_contact && cols.dernier_contact) {
     const t = cols.dernier_contact.type;
     const texte = [jourFr, d.analyste_nom].filter(Boolean).join(' · ');
-    poser('dernier_contact', 'Dernier contact', t === 'date' ? { date: d.dernier_contact } : t === 'long_text' ? { text: texte } : texte, t === 'date' ? d.dernier_contact : texte);
+    poser('dernier_contact', cols.date_contact ? 'Dernier contact, par qui' : 'Dernier contact', t === 'date' ? { date: d.dernier_contact } : t === 'long_text' ? { text: texte } : texte, t === 'date' ? d.dernier_contact : texte);
   }
   if (d.diffusion != null && cols.diffusion) {
     const t = cols.diffusion.type;

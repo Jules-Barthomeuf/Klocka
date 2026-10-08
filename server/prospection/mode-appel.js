@@ -646,7 +646,9 @@ const cibleMonday = (d, agence, fiche) => ({
  * va y changer, le mail du modèle, la liste de diffusion, la relance.
  * Une transcription ratée n'empêche rien : l'écran s'ouvre sur l'issue seule.
  */
-export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, user }) {
+export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, surEtape = null, user }) {
+  // Les étapes, dites au moment où elles se font (8 oct. 2026) : l'écran les déroule au lieu d'un simple « AK lit l'appel ».
+  const etape = (t) => { try { surEtape?.(t); } catch { /* l'écran est parti : rien ne bloque */ } };
   // « auto » (7 oct. 2026) : pas de bouton d'issue, AK la déduit de la
   // transcription faite en direct ; l'écran d'actions s'ouvre toujours.
   const auto = issueDemandee === 'auto';
@@ -662,9 +664,11 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const A = await import('./appel.js');
   // Une relance « Bien retenu » ou « Bien refusé » : un appel abouti sans nouveau bien, c'est l'agent prévenu.
   const surUnBien = ['bien_retenu', 'bien_refuse'].includes(motif);
+  etape(auto ? "Je lis l'appel et j'en déduis l'issue" : "Je lis l'appel");
   const lu = await A.analyserAppel({ agent_id: agentId, audio: def0?.simple && !surActions ? null : audio, recit: recit || null, transcription_texte: transcription, issue: auto ? 'auto' : def0.cle, par: user?.email, sans_reponse: !!def0?.simple && !transcription && def0.cle !== 'agent_prevenu', sur_un_bien: surUnBien, entrant });
   if (!lu.ok) return lu;
   if (auto) issue = lu.appel.issue;
+  etape(`Issue : ${(ISSUES_APPEL[issue]?.titre || R.ISSUES[issue] || issue).toLowerCase()}`);
   const def = ISSUES_APPEL[issue];
   const essai = estEssai(a);
   Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...(essai ? { essai: true } : {}) });
@@ -687,7 +691,11 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const emailPrevu = valeurSure(compris, 'email') || (f?.emails || [])[0] || a.email || null;
   const d = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : !!emailPrevu });
   // Les sans-réponse restent dans la plateforme : pas de ligne Monday.
+  const releve = [['interlocuteur', 'l\'interlocuteur'], ['email', 'l\'email'], ['telephone', 'le numéro'], ['biens', 'les biens évoqués'], ['mandat', 'le mandat à venir'], ['date', 'la date dite']].filter(([k]) => compris.champs?.[k] && !compris.champs[k].appele).map(([, m]) => m);
+  if (releve.length && !def.simple) etape(`Je relève ${releve.length > 1 ? `${releve.slice(0, -1).join(', ')} et ${releve.at(-1)}` : releve[0]}${notes ? ', notes comprises' : ''}`);
+  if (!def.simple && !essai) etape('Je cherche sa ligne dans Monday');
   const monday = def.simple ? null : essai ? { etat: 'info', texte: "Essai : Monday n'est pas touché" } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
+  if (monday && !essai) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Monday : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Monday : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Monday' : 'Je prépare les champs pour Monday');
   if (monday) actions.push({ id: 'monday', type: 'monday', titre: 'Contact Monday', coche: true, toujours: true, ligne: monday });
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
   const MO = await import('./modeles-appel.js');
@@ -697,30 +705,34 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const destinataire = emailSur || (f?.emails || [])[0] || a.email || emailIncertain || null;
   if (choixModele) {
     const vars = { analyste, salutation: compris.salutation || 'Bonjour,', contexte: compris.contexte || null };
-    const { signatureDe } = await import('./mails.js');
-    const signature = signatureDe({ ...user, full_name: analyste });
     const variantes = [];
     // A un bien : la fiche commerciale seule, sauf si les pièces du dossier ont été demandées.
     const ordre = compris.demande === 'documents' && choixModele.si_documents ? [choixModele.si_documents, choixModele.defaut] : [choixModele.defaut, choixModele.variante];
     for (const slug of [...new Set(ordre.filter(Boolean))]) {
       const t = await MO.modele(slug);
       // La signature se voit dès l'aperçu : nom, Klocka, adresse.
-      if (t) { const m = MO.remplirModele(t, vars); variantes.push({ ...m, corps: m.corps.replace(/\{signature\}/g, signature) }); }
+      // Le mail s'arrête à la formule de politesse (8 oct. 2026) : la signature (la bannière de la boîte) s'ajoute à l'envoi.
+      if (t) { const m = MO.remplirModele(t, vars); variantes.push({ ...m, corps: sansJetonSignature(m.corps) }); }
     }
     if (variantes.length) {
       const m = variantes[0];
       actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!destinataire });
     }
     actions.push({ id: 'diffusion', type: 'diffusion', titre: 'Ajouter à la liste de diffusion agents', liste: LISTE_DIFFUSION, a: destinataire, coche: !!destinataire });
+    if (variantes.length) etape(destinataire ? `Je prépare l'email pour ${destinataire}` : 'Je prépare l\'email (il manque son adresse)');
   }
-  if (relance) actions.push({ ...relance, titre: 'Planifier la relance', coche: true });
+  if (relance) {
+    actions.push({ ...relance, titre: 'Planifier la relance', coche: true });
+    etape(`Je mets la relance au ${jourLong(relance.prochaine.le)} dans le calendrier`);
+  }
   // Un mandat annoncé en plus du bien : une seconde relance, pour faire le point, à l'échéance dite ou dans trois semaines.
   const mandat = compris.champs?.mandat;
   if (mandat && issue === 'a_des_murs') {
     const le = mandat.date && mandat.date > (relance?.prochaine?.le || '') ? mandat.date : R.plusJoursOuvres(R.jourDe(new Date()), 15);
+    etape(`Je prépare la seconde relance, le ${jourLong(le)}, pour faire le point sur le mandat`);
     actions.push({ id: 'relance_2', type: 'relance_suivante', titre: 'Planifier la seconde relance', prochaine: { quoi: `faire le point sur le mandat annoncé : ${mandat.valeur}`, le }, source: mandat.source, phrase: mandat.source || null, pourquoi: lu.appel.pourquoi_relance || null, ...(mandat.date ? {} : { incertain: 'date par défaut : trois semaines' }), coche: true });
   }
-  if (issue === 'pas_interesse') actions.push({ id: 'ne_plus_appeler', type: 'ne_plus_appeler', titre: 'Ne plus appeler', coche: true, toujours: true });
+  if (issue === 'pas_interesse') { actions.push({ id: 'ne_plus_appeler', type: 'ne_plus_appeler', titre: 'Ne plus appeler', coche: true, toujours: true }); etape('Je note : ne plus appeler'); }
   const statut = base.find((p) => p.type === 'statut');
   if (statut) actions.push({ ...statut, cache: true });
   // La fiche de la plateforme (secteurs, mandats) se complète d'office, sans étape à l'écran.
@@ -734,6 +746,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Le téléphone : le direct s'il a été dit, sinon le numéro appelé.
   if (!compris.champs?.telephone && (numero || numeroDe(a))) compris.champs = { ...(compris.champs || {}), telephone: { valeur: numero || numeroDe(a), source: 'Numéro appelé', appele: true } };
   Records.update(APPEL, lu.appel.id, { propositions: actions, monday_prevu: monday, compris });
+  etape('Tout est prêt : à vous de vérifier et valider');
   const avant = f ? { statut: R.STATUTS[f.statut] || null, interlocuteur: f.nom || null, email: (f.emails || [])[0] || null, prochaine: f.prochaine || null, dernier_contact_le: f.dernier_contact_le || null, referent: f.referent || null } : null;
   return {
     ok: true, simple: false,
@@ -861,7 +874,7 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
     if (!m.a) mailRecu = { etat: 'echec', texte: "Mail non parti : il manque l'adresse" };
     else {
       const sansBoite = !essai && !(await boiteDEnvoi(moi));
-      const cree = mettreEnAttente({ genre: 'agent', sous_genre: pm.modele, agent_id: appel.agent_id, nom: a?.nom, agence: a?.agence, a: m.a, objet: m.objet, corps: m.corps, appel_id, modele: pm.modele, etat: essai ? 'pret' : sansBoite ? 'brouillon' : 'differe', partir_le: new Date(maintenantD.getTime() + DELAI_ANNULER_MS).toISOString(), ...(essai ? { essai: true } : {}) });
+      const cree = mettreEnAttente({ genre: 'agent', signature_auto: true, sous_genre: pm.modele, agent_id: appel.agent_id, nom: a?.nom, agence: a?.agence, a: m.a, objet: m.objet, corps: m.corps, appel_id, modele: pm.modele, etat: essai ? 'pret' : sansBoite ? 'brouillon' : 'differe', partir_le: new Date(maintenantD.getTime() + DELAI_ANNULER_MS).toISOString(), ...(essai ? { essai: true } : {}) });
       mailId = cree.id;
       if (essai) mailRecu = { etat: 'info', texte: `Essai : le mail à ${m.a} est prêt, il ne part pas`, mail_id: cree.id };
       else if (sansBoite) mailRecu = { etat: 'brouillon', texte: 'Aucune boîte connectée : ouvrez le brouillon pour l\'envoyer', mail_id: cree.id, mailto: mailtoDe(m, user) };
@@ -901,9 +914,13 @@ async function boiteDEnvoi(email) {
   try { return (await boitesDe(email)).some((x) => x.peut_envoyer !== false && !x.needs_reconnect); } catch { return false; }
 }
 
+/** Pure : le corps sans le jeton {signature} ni les blancs qu'il laisse : on le lit jusqu'à « Bien cordialement, ». */
+export const sansJetonSignature = (corps) => String(corps || '').replace(/\n*\{signature\}\s*$/, '').replace(/\{signature\}/g, '').replace(/\s+$/, '');
+
 const mailtoDe = (m, user) => {
   const signature = user?.full_name || prenom(user?.email);
-  return `mailto:${encodeURIComponent(m.a)}?subject=${encodeURIComponent(m.objet || '')}&body=${encodeURIComponent(String(m.corps || '').replace(/\{signature\}/g, signature))}`;
+  const corps = String(m.corps || '');
+  return `mailto:${encodeURIComponent(m.a)}?subject=${encodeURIComponent(m.objet || '')}&body=${encodeURIComponent(corps.includes('{signature}') ? corps.replace(/\{signature\}/g, signature) : `${corps}\n${signature}`)}`;
 };
 
 /** Écrit dans Monday, relit ; un échec se met en attente (avec ce qu'il faut pour réessayer) et reste orange. */

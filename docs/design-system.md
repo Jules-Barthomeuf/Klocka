@@ -220,6 +220,24 @@ intercalaires de ville `rounded-t-[10px]` 13 px, l'ouvert en `bg-rail`
 raccordé à la page à points (`k-points bg-rail`), toute la largeur ; l'onglet
 Essai en pointillé au bout. Décision du 7 oct. 2026.
 
+**AK lit l'appel** (8 oct. 2026) : plus de compte à rebours ni de trois
+points ; la chaîne de raisonnement du chat (`ChaineEtapes.jsx`) : « AK lit
+l'appel » en titre, puis chaque étape au moment où le serveur la fait (« Je
+lis l'appel », « Je prépare les champs pour Monday », « Je prépare
+l'email », « Je mets la relance au … dans le calendrier »), coche menthe
+quand elle est faite, point qui pulse pour celle en cours. À l'écran
+d'actions, elle se replie en « Analyse terminée · n étapes ». Mode appel et
+Rappel.
+
+**Pendant l'appel, des notes** (8 oct. 2026) : sous la transcription, un
+bloc « NOTES » (même bordure, 20 px) pour ce que le micro capte mal ; elles
+restent sous la transcription à l'écran d'actions, avec « Ré-analyser avec
+les notes » quand elles ont changé. **Dates** : un calendrier du mois intégré
+(`components/ui/calendrier.jsx`, lundi en premier, jours passés grisés, le
+jour choisi en menthe) remplace le champ de date. Les cases de l'écran
+d'actions n'ont plus « · nouveau » / « · modifié » après le libellé : le bleu
+suffit ; une case vide dit en clair ce qu'on y écrit.
+
 **Détail d'une action proposée** (maquette de Jules, 7 oct. 2026) : l'œil
 d'une étape ouvre une fenêtre (`SequenceActions.jsx`, `Panneau`). À gauche,
 sur `rail`, toutes les étapes rangées par moment (« Maintenant », puis chaque

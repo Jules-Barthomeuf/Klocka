@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, PhoneIncoming, Search, X } from "lucide-react";
+import { ExternalLink, Loader2, Mic, PhoneIncoming, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { versWav } from "@/lib/dictee";
 import { erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
+import MicroEcoute from "@/components/prospection/MicroEcoute";
+import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 
 // « Il me rappelle » (spec du 8 oct. 2026). Un agent rappelle sur le
@@ -272,6 +274,15 @@ export default function RappelEntrant() {
   });
   const recuFrais = useQuery({ queryKey: ["mode-appel-recu", appel?.id], queryFn: () => base44.request("GET", `${MA}/appels/${appel.id}/recu`), enabled: ecran === "recu" && !!appel?.id, refetchInterval: 2500 });
   const r = recuFrais.data?.recu || recu;
+  // « Tout préparé » (8 oct. 2026) : une fois Annuler écoulé et le mail parti, la fenêtre récapitule, puis Terminer ferme.
+  const [prepare, setPrepare] = useState(false);
+  const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "");
+  useEffect(() => {
+    if (ecran === "recu" && r && annulerDans === 0 && !mailEnRoute && r.monday?.etat !== "doute" && r.mail?.etat !== "brouillon") setPrepare(true);
+  }, [ecran, annulerDans, mailEnRoute, r?.monday?.etat, r?.mail?.etat]);
+  const jourLong = (j) => (j ? new Date(`${String(j).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
+  const dateProchain = relanceLe || (appel?.propositions || []).find((x) => x.type === "relance")?.prochaine?.le || null;
+  const nomProchain = (edits?.interlocuteur || "").trim() || appel?.compris?.champs?.interlocuteur?.valeur || rappel?.agent?.nom || "l'agent";
   const annuler = useMutation({
     mutationFn: () => base44.request("POST", `${MA}/appels/${appel.id}/annuler`),
     onSuccess: () => { clearInterval(compte.current); setRecu(null); setCle(nouvelleCle()); setEcran("actions"); toast.success("Annulé : rien n'est resté"); },
@@ -386,10 +397,7 @@ export default function RappelEntrant() {
                 </>
               ) : (
                 <>
-                  <span className="relative grid h-[120px] w-[120px] place-items-center">
-                    <span className="absolute inset-0 rounded-full bg-menthe/30 motion-safe:animate-ping" style={{ animationDuration: "1.8s" }} />
-                    <span className="relative grid h-[120px] w-[120px] place-items-center rounded-full bg-menthe text-sur-menthe"><PhoneIncoming className="h-10 w-10" /></span>
-                  </span>
+                  <MicroEcoute taille={220}><Mic className="h-11 w-11" strokeWidth={1.8} /></MicroEcoute>
                   <span className="font-mono text-[28px] tabular-nums text-encre">{chrono(secondes)}</span>
                 </>
               )}
@@ -490,6 +498,11 @@ export default function RappelEntrant() {
           </div>
         )}
 
+        {prepare && ecran === "recu" && (
+          <ToutPrepare libelle="Terminer →" onSuivant={() => { setPrepare(false); fermer(); }}
+            phrase={issue === "pas_interesse" ? `${agent?.nom || "L'agent"} ne sera plus appelé.` : dateProchain ? `Prochain appel à ${nomProchain} le ${jourLong(dateProchain)}.` : null}
+            lignes={lignesDuRecu(r, { issue, dateRelance: dateProchain, jourLong })} />
+        )}
         {ecran === "recu" && r && (
           <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[20px] border border-trait p-7 max-md:p-5">
             <ul className="m-0 flex list-none flex-col gap-3 p-0">

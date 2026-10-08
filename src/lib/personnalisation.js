@@ -39,6 +39,7 @@ export const DEFAUT = Object.freeze({
   assistant: "droite", // droite | gauche | masquee
   grille: ["panneaux", "listes"], // où poser la grille de points : panneaux | listes | barre | fond
   grille_intensite: 50, // la force des points, de 10 (à peine) à 100 (marqués) ; 50 : celle d'origine
+  points_actions: "oui", // les points dans la fenêtre des actions proposées (8 oct. 2026) : oui | non
 });
 
 /** Les choix offerts, dans l'ordre où la page les montre : [valeur, libellé]. */
@@ -56,6 +57,7 @@ export const OPTIONS = {
   barre: [["depliee", "Dépliée"], ["repliee", "Repliée"]],
   assistant: [["droite", "En bas à droite"], ["gauche", "En bas à gauche"], ["masquee", "Masquée"]],
   grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes de prospection"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
+  points_actions: [["oui", "Avec des points"], ["non", "Sans points"]],
 };
 
 /** Les polices, telles que le CSS les lit. Toutes sont déjà chargées (index.html). */
@@ -262,6 +264,7 @@ export function appliquerPrefs(brut) {
   racine.dataset.assistant = p.assistant;
   // Les zones où la grille de points se dessine (index.css, .k-grid et .k-points).
   racine.dataset.grille = p.grille.join(" ");
+  racine.dataset.pointsActions = p.points_actions;
   // Leur force : 50 rend les points d'origine, 100 les double.
   poser("--k-grid-force", p.grille_intensite === 50 ? null : String(p.grille_intensite / 50));
   // La taille : tout grossit d'un bloc, texte et espacements.

@@ -220,6 +220,37 @@ intercalaires de ville `rounded-t-[10px]` 13 px, l'ouvert en `bg-rail`
 raccordé à la page à points (`k-points bg-rail`), toute la largeur ; l'onglet
 Essai en pointillé au bout. Décision du 7 oct. 2026.
 
+**Mode Essai** (8 oct. 2026) : dans le mode appel de la Prospection et de
+Relances, l'intercalaire « Essai » en pointillé au bout des villes. Dans le
+cadre Essai, une case « Écrire pour de vrai dans Monday » (cochée par défaut).
+**Transitions** (8 oct. 2026) : chaque écran du mode appel entre en fondu
+avec une montée de 8 px (500 ms) ; dans la fenêtre des actions, l'étape
+glisse depuis la droite quand on avance, depuis la gauche quand on recule, et
+la barre de l'étape courante s'épaissit ; les parties de la Prospection et
+de Relances entrent en fondu. Sur la
+fiche, un cadre en pointillé « MODE ESSAI · CAS DE FIGURE » : les cas rangés
+par groupe en pilules (les relances d'abord dans Relances), « Attendu : … »
+sous le cas choisi ; un clic joue l'appel. Pendant la lecture et les
+actions, un bandeau en pointillé rappelle le cas et ce qu'on doit voir. Les
+cas : `components/prospection/scenarios-essai.js`.
+
+**Tout préparé** (8 oct. 2026, environ 3 s) : après le reçu (Annuler écoulé,
+rien à choisir), une fenêtre par-dessus l'écran (`ToutPrepare.jsx`, voile
+flouté), carte `fond` bordée d'un filet, sans couleur d'accent ; mode appel
+(« Appel suivant → ») et Rappel (« Terminer → »).
+« Tout préparé » en 40 px, gris, qu'un reflet blanc traverse de gauche à
+droite (0,3 à 1,5 s) et laisse en `encre` ; à 1,3 s « Prochain appel à … le
+… » monte dessous en `ardoise` ; à 1,5 s le récapitulatif (coche, action,
+résultat en gris, filets entre les lignes) ; de 1,8 à 2,7 s chaque ligne se
+coche (cercle plein `encre`, nom du gris au blanc) ; à 3,1 s « Appel suivant
+→ » en pilule `encre`. Rien ne passe seul : le bouton enchaîne.
+
+**Le micro pendant l'enregistrement** (maquette de Jules, 8 oct. 2026) :
+`MicroEcoute.jsx`, 220 px. Un disque `menthe-pale` (57 % de la taille),
+l'icône micro en `sur-menthe-pale`, deux anneaux fins (`encre` à 12 et 16 %)
+qui respirent en décalé, et une onde qui part du disque toutes les deux
+secondes. Mode appel et Rappel ; immobile si les animations sont réduites.
+
 **AK lit l'appel** (8 oct. 2026) : plus de compte à rebours ni de trois
 points ; la chaîne de raisonnement du chat (`ChaineEtapes.jsx`) : « AK lit
 l'appel » en titre, puis chaque étape au moment où le serveur la fait (« Je
@@ -238,17 +269,28 @@ jour choisi en menthe) remplace le champ de date. Les cases de l'écran
 d'actions n'ont plus « · nouveau » / « · modifié » après le libellé : le bleu
 suffit ; une case vide dit en clair ce qu'on y écrit.
 
-**Détail d'une action proposée** (maquette de Jules, 7 oct. 2026) : l'œil
-d'une étape ouvre une fenêtre (`SequenceActions.jsx`, `Panneau`). À gauche,
-sur `rail`, toutes les étapes rangées par moment (« Maintenant », puis chaque
-date de relance) ; à droite, l'étape ouverte en cases sur une grille à deux
-colonnes séparées d'un trait. Une case qu'AK écrit a son libellé en `bleu`
-(« Statut · modifié », « E-mail · nouveau ») et un voile bleu ; seules les
-cases que la validation sait reporter se changent d'un clic (contact,
-téléphone, email, dates de relance, le mail). En pied : « ← Précédente »,
-« Rétablir » (ce qu'AK avait proposé pour l'étape), « Suivante → » puis
-« Terminer ». Au téléphone, plein écran, sans la colonne d'étapes
-(« 1 sur 4 » dans le surtitre).
+**Détail d'une action proposée** (maquette de Jules, 8 oct. 2026, qui
+remplace celle du 7) : l'œil d'une étape ouvre une fenêtre (`SequenceActions.jsx`,
+`Panneau`) de 1000 px au plus, haute de son contenu (720 px au plus), rayon
+28 px. En haut, sur `fond` : le nom de l'étape au centre (30 px), « 1 / 8 » et
+une croix ronde à droite ; dessous, la frise des étapes, une barre de 3 px
+chacune (la courante en `encre`, les autres en `relief`), « MAINTENANT » puis
+chaque date de relance au-dessus de la première étape de son groupe, les
+étapes retirées en `brume`. Le corps, sur `surface-pleine`, défile : une
+phrase d'introduction, puis des lignes libellé (170 px) / valeur (17 px) sur
+deux colonnes, un trait sous chacune ; un point `bleu` devant le libellé de ce
+qu'AK écrit ; une ligne longue (Remarques, un calendrier) prend les deux
+colonnes. En pied : « ← Précédente », « Rétablir » en `ardoise`, et
+« Suivante → » en pilule `encre` de 56 px. Au téléphone, plein écran.
+Après la dernière étape, « Terminer » ouvre l'écran de fin : « Étapes
+vérifiées » en titre, les barres de la frise en menthe, un cercle menthe
+coché, « Toutes les étapes sont vérifiées », ce qui partira et ce qui est
+retiré, la liste des étapes (un clic en rouvre une) ; en pied « ← Revoir »,
+« Fermer » et « Valider · n étapes » en pilule menthe. On valide aussi d'ici à n'importe
+quelle étape (« Valider · n », pilule bordée menthe à côté de « Suivante ») :
+la fenêtre reste ouverte et devient « Envoi en cours » (8 oct. 2026), chaque
+ligne (Monday, Email, Liste, Relance) passe de la roue à la coche une fois
+relue, « Annuler · 10 s » en pied ; puis « Tout préparé » prend le relais.
 
 **Relances** (spec de Jules du 8 oct. 2026, qui remplace les onglets et les
 fiches du 7 oct.) : une page à part (menu « Relances », après Prospection),

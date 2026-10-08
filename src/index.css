@@ -570,6 +570,32 @@ body[data-editeur-projet] .assistant-flottant {
 @keyframes kl-curseur { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .accueil-wrap.voix .accueil-beam { animation: none; } #accueil-voix[aria-pressed="true"] .dot { animation: none; } }
 
+/* Le micro qui écoute (8 oct. 2026) : les anneaux respirent, une onde part du disque. */
+@keyframes k-anneau-respire { 0%, 100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.045); opacity: 1; } }
+@keyframes k-onde-part { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.75); opacity: 0; } }
+.k-anneau { animation: k-anneau-respire 2.4s ease-in-out infinite; }
+.k-onde-part { animation: k-onde-part 2s cubic-bezier(.2, .6, .3, 1) infinite; }
+@media (prefers-reduced-motion: reduce) { .k-anneau, .k-onde-part { animation: none; } }
+
+/* « Tout préparé » (8 oct. 2026) : un reflet blanc traverse le titre gris et le laisse en blanc cassé ;
+   puis la phrase monte, la liste apparaît, chaque ligne se coche, le bouton arrive. Blanc et gris, sans accent. */
+.k-reflet {
+  background-image: linear-gradient(100deg, rgb(var(--k-encre-rgb)) 0%, rgb(var(--k-encre-rgb)) 40%, rgb(255 255 255) 50%, rgb(var(--k-encre-rgb) / 0.28) 60%, rgb(var(--k-encre-rgb) / 0.28) 100%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: k-reflet 1.2s ease-in-out .3s forwards;
+}
+@keyframes k-reflet { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+@keyframes k-monte { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes k-blanchit { from { color: rgb(var(--k-encre-rgb) / 0.4); } to { color: rgb(var(--k-encre-rgb)); } }
+@keyframes k-coche { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+.k-monte { opacity: 0; animation: k-monte .5s ease-out both; }
+.k-blanchit { color: rgb(var(--k-encre-rgb) / 0.4); animation: k-blanchit .35s ease-out both; }
+.k-coche { opacity: 0; animation: k-coche .3s cubic-bezier(.3, 1.4, .5, 1) both; }
+
 .accueil-composer { position: relative; border: 1px solid var(--k-bord); border-radius: 16px; background: rgb(var(--k-surface-pleine-rgb)); box-shadow: 0 26px 70px rgb(var(--k-fond-rgb) / .35); }
 .accueil-composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent;
   padding: 20px 26px 22px; font: 300 16px/1.5 Figtree, "Instrument Sans", sans-serif; color: rgb(var(--k-encre-rgb)); max-height: 9em; overflow-y: auto; }
@@ -857,6 +883,15 @@ html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
 :root[data-grille~="barre"] .k-points[data-zone="barre"]::before,
 :root[data-grille~="fond"] .k-points[data-zone="fond"]::before,
 :root[data-grille~="panneaux"] .k-points[data-zone="panneaux"]::before { display: block; }
+/* La fenêtre des actions proposées (8 oct. 2026) : des points en fond, sauf si le Compte les retire ; ses traits restent.
+   En fond de la zone (et non en ::before) : ils suivent le défilement jusqu'en bas. */
+:root:not([data-points-actions="non"]) .k-fond-points {
+  background-image: radial-gradient(circle, var(--k-grid-point, rgb(255 255 255 / calc(0.08 * var(--k-grid-force, 1)))) 0.6px, transparent 0.75px);
+  background-size: var(--k-grid-pas, 14px) var(--k-grid-pas, 14px);
+  background-position: calc(var(--k-grid-pas, 14px) / -2 + 0.5px) calc(var(--k-grid-pas, 14px) / -2 + 0.5px);
+  background-attachment: local;
+}
+:root[data-theme="clair"]:not([data-points-actions="non"]) .k-fond-points { --k-grid-point: rgb(0 0 0 / calc(0.1 * var(--k-grid-force, 1))); }
 
 /* Là où les points se dessinent, pas de traits gris horizontaux entre les
    rangées : les points et l'espacement séparent déjà (décision du 2 oct. 2026).

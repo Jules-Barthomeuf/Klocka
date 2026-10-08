@@ -6,7 +6,10 @@ import { toast } from "@/components/ui/avis";
 import { versWav } from "@/lib/dictee";
 import { garder, enAttente, retirer, erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
+import MicroEcoute from "@/components/prospection/MicroEcoute";
+import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
+import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -41,7 +44,45 @@ const lireLocal = (k) => { try { return JSON.parse(localStorage.getItem(k) || "n
 const poserLocal = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* navigation privée */ } };
 
 // Une conversation d'exemple pour l'appel simulé : AK la lit comme un vrai appel.
-const EXEMPLE = "Bonjour, Madame Sophie Essai à l'appareil, je suis la gérante. Pour l'instant je n'ai rien en murs commerciaux, mais j'aurai peut-être un bien dans un mois, une boulangerie louée en centre-ville. Mon adresse c'est sophie@agence-essai.fr. Rappelez-moi jeudi prochain si vous voulez.";
+// Le cas joué quand on touche le micro sans en avoir choisi (mode Essai).
+const SCENARIO_DEFAUT = "date_dite";
+const MOTIFS_ESSAI = { bien_retenu: "Bien retenu", bien_refuse: "Bien refusé", point_mensuel: "Point mensuel" };
+
+/** Le mode Essai : les cas de figure, par groupe ; un clic joue l'appel. */
+function ChoixScenario({ choisi, onJouer, relancesDabord = false, monday = true, setMonday = null }) {
+  const groupes = relancesDabord ? [...GROUPES_ESSAI.filter(([k]) => k === "relance"), ...GROUPES_ESSAI.filter(([k]) => k !== "relance")] : GROUPES_ESSAI;
+  const sc = scenarioEssai(choisi);
+  return (
+    <div className="flex flex-col gap-4 rounded-[20px] border border-dashed border-bord-vif p-5 max-md:p-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-[11px] tracking-[.16em] text-brume">MODE ESSAI · CAS DE FIGURE</span>
+        <span className="text-[14px] leading-[1.5] text-craie">Choisissez un cas : l'appel se joue tout seul, AK le lit pour de vrai et propose ses actions. Aucun mail ne part, rien ne compte dans les statistiques.</span>
+      </div>
+      {setMonday && (
+        <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-trait px-4 py-3">
+          <input type="checkbox" checked={monday} onChange={(e) => setMonday(e.target.checked)} className="mt-1 h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[14.5px] text-encre">Écrire pour de vrai dans Monday</span>
+            <span className="text-[13px] leading-[1.45] text-ardoise">{monday ? "La ligne de l'agence fictive est créée ou mise à jour dans « Agent immobilier », marquée « (Essai) », remarque « Essai · … ». Annuler la remet comme avant." : "Monday n'est pas touché : l'écran montre seulement ce qui y serait écrit."}</span>
+          </span>
+        </label>
+      )}
+      {groupes.map(([g, titre]) => (
+        <div key={g} className="flex flex-col gap-2">
+          <span className="text-[12.5px] text-ardoise">{titre}</span>
+          <div className="flex flex-wrap gap-2">
+            {SCENARIOS_ESSAI.filter((x) => x.groupe === g).map((x) => (
+              <button key={x.cle} type="button" onClick={() => onJouer(x)} aria-pressed={choisi === x.cle}
+                className={`h-9 rounded-full border px-3.5 text-[13.5px] transition-colors ${choisi === x.cle ? "border-menthe bg-menthe/10 text-encre" : "border-trait text-craie hover:border-menthe hover:text-encre"}`}
+                style={choisi === x.cle ? undefined : { background: "transparent" }}>{x.titre}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {sc && <p className="m-0 text-[13px] leading-[1.5] text-ardoise"><span className="text-menthe">Attendu :</span> {sc.attendu}</p>}
+    </div>
+  );
+}
 const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse"], ["repondeur", "Répondeur, message laissé"]];
 const CHAMPS_COMPRIS = [["interlocuteur", "Interlocuteur"], ["fonction", "Fonction"], ["telephone", "Téléphone"], ["email", "Email"], ["biens", "Biens évoqués"], ["mandat", "Mandat à venir"], ["prochaine_etape", "Prochaine étape"], ["date", "Date dite"]];
 const MODIFIABLES = ["interlocuteur", "telephone", "email"];
@@ -388,7 +429,12 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   );
 }
 
-export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null }) {
+export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false }) {
+  // `essaiSeul` (page Relances, 8 oct. 2026) : seulement le mode Essai, sans les villes, les relances d'abord.
+  const [scenario, setScenario] = useState(null);
+  // En essai, écrire pour de vrai dans Monday (8 oct. 2026) : oui par défaut, retenu dans le navigateur.
+  const [mondayEssai, setMondayEssaiBrut] = useState(() => lireLocal("klocka.essai.monday") !== false);
+  const setMondayEssai = (v) => { setMondayEssaiBrut(v); poserLocal("klocka.essai.monday", v); };
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(null);
   const [sessions, setSessions] = useState({}); // onglet → { id, liste_id, ville, essai, debut }
@@ -435,8 +481,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const messageT = useRef(null);
 
   const [fait, setFait] = useState(null); // relances : ce qui vient d'être noté, avant « Relance suivante »
-  const listes = useQuery({ queryKey: ["agent-ia-listes"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/listes"), enabled: !relances });
-  const villes = relances ? [] : (listes.data?.listes || []).filter((l) => l.agences > 0);
+  const listes = useQuery({ queryKey: ["agent-ia-listes"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/listes"), enabled: !relances && !essaiSeul });
+  const villes = relances || essaiSeul ? [] : (listes.data?.listes || []).filter((l) => l.agences > 0);
   const session = onglet ? sessions[onglet] : null;
 
   const ouvrir = useMutation({
@@ -452,7 +498,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setOnglet(k); setEcran("fiche"); setPassees(new Set()); setPrise(null); setRappel(null);
     if (!sessions[k] || k === ESSAI) ouvrir.mutate(k);
   };
-  useEffect(() => { if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) choisir(villes[0].id); }, [villes.length]);
+  useEffect(() => { if (!onglet && essaiSeul) choisir(ESSAI); else if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) choisir(villes[0].id); }, [villes.length]);
   useEffect(() => { const t = setInterval(() => setHorloge(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => () => { clearInterval(chrono.current); clearInterval(compte.current); clearTimeout(messageT.current); rec.current?.flux?.getTracks().forEach((t) => t.stop()); }, []);
 
@@ -461,7 +507,11 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     : { queryKey: ["mode-appel-file", session?.liste_id], queryFn: () => base44.request("GET", `${API}/file?liste=${session.liste_id}`), enabled: !!session?.liste_id, staleTime: 30_000 });
   const recap = useQuery({ queryKey: ["mode-appel-recap", session?.id], queryFn: () => base44.request("GET", `${API}/sessions/${session.id}`), enabled: !!session?.id, refetchInterval: ecran === "fin" ? 5000 : false });
   const agences = useMemo(() => (file.data?.file || []).filter((x) => relances || !passees.has(x.id)), [file.data, passees]);
-  const a = rappel || agences[0] || null;
+  const a0 = rappel || agences[0] || null;
+  // En essai, un cas joué comme une relance (ou l'essai de la page Relances) : la fiche porte son motif, comme une vraie relance.
+  const scJoue = session?.essai ? scenarioEssai(scenario) : null;
+  const motifEssai = session?.essai && a0 && !a0.relance ? (scJoue?.motif || (essaiSeul ? "point_mensuel" : null)) : null;
+  const a = motifEssai ? { ...a0, relance: { motif: { cle: motifEssai, libelle: MOTIFS_ESSAI[motifEssai] }, phrase: `Essai : ${scJoue?.titre || "relance fictive"}.`, dernier: null, bien: null, historique: [] } } : a0;
   const surUnBien = ["bien_retenu", "bien_refuse"].includes(a?.relance?.motif?.cle);
   const c = file.data?.chiffres;
   const recherches = file.data?.recherches || [];
@@ -658,18 +708,21 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const annulerAppel = () => { arreterTout(); retenirEnCours(null); setNotes(true); setSimule(false); setEcran("fiche"); };
   const rappeler = () => { setEcran("appel"); lancerChrono(secondes); if (notes && !simule) enregistrer(); };
   // L'appel simulé : la conversation d'exemple défile phrase par phrase, comme une vraie transcription.
-  const simuler = () => {
+  // Un cas de figure du mode Essai : ses phrases défilent comme une vraie transcription, ses notes se posent.
+  const simuler = (cas = null) => {
+    const sc = cas || scenarioEssai(scenario) || scenarioEssai(SCENARIO_DEFAUT);
+    setScenario(sc.cle);
     if (!session?.essai) { setSimulerApres(true); choisir(ESSAI); return; }
     if (!a) return;
     prendre.mutate(a.id);
     morceaux.current = []; setDirect([]);
+    setNotesAppel(sc.notes || "");
     setNotes(true); setSimule(true); setEcran("appel"); setSecondes(0);
-    const phrases = EXEMPLE.split(/(?<=[.?!])\s+/);
     let n = 0;
     clearInterval(chrono.current);
     chrono.current = setInterval(() => {
       setSecondes((s0) => s0 + 4);
-      if (n < phrases.length) { morceaux.current.push({ i: n, texte: phrases[n], etat: "ok" }); n += 1; montrer(); }
+      if (n < sc.phrases.length) { morceaux.current.push({ i: n, texte: sc.phrases[n], etat: "ok" }); n += 1; montrer(); }
     }, 900);
   };
   useEffect(() => { if (simulerApres && session?.essai && a && ecran === "fiche") { setSimulerApres(false); simuler(); } });
@@ -693,7 +746,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
   const noter = useMutation({
     mutationFn: async ({ issue: is, simple = false, remplace = null }) => {
-      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAppel.trim() || null };
+      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAppel.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null };
       setNotesLues(notesAppel);
       let wavs = [];
       if (is === "auto" || remplace) {
@@ -751,6 +804,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     session_id: session?.id || null, issue,
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
+  // Valider depuis la fenêtre des actions (8 oct. 2026) : elle reste ouverte et suit l'envoi, puis « Tout préparé ».
+  const depuisFenetre = useRef(false);
   const valider = useMutation({
     mutationFn: async () => {
       const url = `${API}/appels/${appel.id}/valider`;
@@ -764,7 +819,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     },
     onSuccess: (r) => {
       if (r.hors_ligne) return suivante("Hors ligne : la validation est gardée et partira une seule fois au retour du réseau");
-      setRecu(r.recu); setEcran("recu");
+      setRecu(r.recu);
+      if (!depuisFenetre.current) setEcran("recu");
       queryClient.invalidateQueries({ queryKey: ["mode-appel-suspens"] });
       if (relances) queryClient.invalidateQueries({ queryKey: ["relances"] });
       const fin = Date.parse(r.recu?.annulable_jusqu || 0);
@@ -783,20 +839,29 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const recuFrais = useQuery({
     queryKey: ["mode-appel-recu", appel?.id],
     queryFn: () => base44.request("GET", `${API}/appels/${appel.id}/recu`),
-    enabled: ecran === "recu" && !!appel?.id,
+    enabled: (ecran === "recu" || (ecran === "actions" && !!recu)) && !!appel?.id,
     refetchInterval: 2500,
   });
   const r = recuFrais.data?.recu || recu;
   const aFaire = r && (r.mail?.etat === "brouillon" || r.monday?.etat === "doute");
   // Le mail part juste après les dix secondes : on attend de savoir s'il est retrouvé dans les envoyés.
   const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "");
-  // Dix secondes, puis l'agence suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
+  // Dix secondes, puis « Tout est préparé ! » (8 oct. 2026), puis la suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
+  const [bilan, setBilan] = useState("");
   useEffect(() => {
-    if (relances || ecran !== "recu" || annulerDans > 0 || !r || aFaire || mailEnRoute || annuler.isPending) return;
+    if (!(ecran === "recu" || (ecran === "actions" && recu)) || annulerDans > 0 || !r || aFaire || mailEnRoute || annuler.isPending) return;
     clearInterval(compte.current);
     const ok = [r.monday, r.mail, r.diffusion, r.relance].filter(Boolean);
-    suivante(ok.map((x) => x.texte).join(" · "));
+    setBilan(ok.map((x) => x.texte).join(" · "));
+    setEcran("prepare");
   }, [annulerDans, ecran, aFaire, mailEnRoute]);
+  const apresPrepare = () => { if (relances) onSuivante?.(); else suivante(bilan); };
+  // Ce que « Tout préparé » récapitule : le prochain appel, puis ce que le reçu a vérifié.
+  const prRelance = (appel?.propositions || []).find((x) => x.type === "relance");
+  const dateProchain = relanceLe || prRelance?.prochaine?.le || null;
+  const nomProchain = (edits?.interlocuteur || "").trim() || appel?.compris?.champs?.interlocuteur?.valeur || a?.nom || "";
+  const phrasePrepare = issue === "pas_interesse" ? `${a?.nom || "L'agence"} ne sera plus appelée.` : dateProchain ? `Prochain appel à ${nomProchain} le ${jourLong(dateProchain)}.` : null;
+  const lignesPrepare = lignesDuRecu(r, { issue, dateRelance: dateProchain, jourLong });
 
   const ligne = useMutation({
     mutationFn: ({ id, choix }) => base44.request("POST", `${API}/appels/${id}/ligne-monday`, { body: { ligne_id: choix } }),
@@ -822,7 +887,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   return (
     <div className="w-full pb-16">
       {/* Les villes, en onglets de classeur : le même que les Listes (7 oct. 2026), l'intercalaire ouvert raccordé à la page à points. */}
-      {!relances && <div role="tablist" aria-label="Les villes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {!relances && !essaiSeul && <div role="tablist" aria-label="Les villes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <span aria-hidden className="w-3 flex-none" />
         {villes.map((l, i) => {
           const actif = onglet === l.id;
@@ -869,11 +934,20 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         {session && (c || relances) && (
           <>
 
-            {session.essai && ecran === "fiche" && <p className="m-0 px-1 text-[13px] text-ardoise"><span className="text-menthe">Essai.</span> Agences fictives : rien n'est écrit dans Monday, aucun mail ne part, rien ne compte dans les statistiques.</p>}
+            {session.essai && ecran === "fiche" && a && <ChoixScenario choisi={scenario} onJouer={(sc) => simuler(sc)} relancesDabord={essaiSeul} monday={mondayEssai} setMonday={setMondayEssai} />}
+            {session.essai && ecran !== "fiche" && scJoue && <p className="m-0 rounded-[14px] border border-dashed border-bord-vif px-4 py-2.5 text-[13.5px] leading-[1.5] text-ardoise"><span className="text-menthe">Essai · {scJoue.titre}.</span> Attendu : {scJoue.attendu}</p>}
+            {session.essai && ecran === "fiche" && !a && (
+              <div className="flex flex-col items-center gap-3 py-12 text-center">
+                <p className="m-0 text-[14px] text-craie">Les agences d'essai sont toutes appelées.</p>
+                <button type="button" onClick={() => choisir(ESSAI)} className="h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">Recommencer l'essai</button>
+              </div>
+            )}
             {message && <p className="m-0 flex items-start gap-2.5 px-1 text-[14px] text-ardoise"><span className="text-menthe">✓</span><span className="min-w-0 break-words">{message}</span></p>}
 
+            {/* Chaque écran entre en fondu, avec une légère montée (8 oct. 2026) : la clé change, l'animation rejoue. */}
+            <div key={ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
             {/* La fiche et le panneau d'appel. */}
-            {ecran === "fiche" && !a && !relances && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
+            {ecran === "fiche" && !a && !relances && !session.essai && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
               <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
                 choisi={contactChoisi} onChoisir={setChoisi}
@@ -895,10 +969,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
                   <div className="flex flex-col items-center gap-3 py-4">
                     {notes ? (
-                      <span className="relative grid h-[104px] w-[104px] place-items-center">
-                        <span className="absolute inset-0 rounded-full bg-menthe/30 motion-safe:animate-ping" style={{ animationDuration: "1.8s" }} />
-                        <span className="relative grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe"><IconeMicro /></span>
-                      </span>
+                      <MicroEcoute taille={220}><IconeMicro taille={44} /></MicroEcoute>
                     ) : (
                       <span className="grid h-[104px] w-[104px] place-items-center rounded-full border border-trait text-ardoise"><IconeMicro /></span>
                     )}
@@ -996,7 +1067,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
-                    onLancer={() => valider.mutate()} envoi={valider.isPending} />
+                    onLancer={(o) => { depuisFenetre.current = !!o?.depuisFenetre; valider.mutate(); }} envoi={valider.isPending}
+                    envoiFenetre={recu ? { recu: r, annulerDans, onAnnuler: () => annuler.mutate(), annulation: annuler.isPending, onBrouillon: () => ouvrirBrouillon(appel.id, r?.mail?.mailto), onChoisirLigne: (choix) => ligne.mutate({ id: appel.id, choix }) } : null}
+                    onQuitterEnvoi={() => { depuisFenetre.current = false; setEcran("recu"); }} />
                 </div>
               </div>
             )}
@@ -1026,6 +1099,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 </div>
               </div>
             )}
+
+            {/* Tout est envoyé : la ligne fait le tour du texte en cinq secondes, puis on passe à la suivante. */}
+            {ecran === "prepare" && <ToutPrepare phrase={phrasePrepare} lignes={lignesPrepare} onSuivant={apresPrepare} />}
 
             {/* Relances : l'issue est notée (sans réponse, hors ligne) ; on enchaîne ou on revient à la liste. */}
             {ecran === "fait" && relances && (
@@ -1065,11 +1141,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 ))}
                 <p className="m-0 flex gap-2.5 text-[15px] text-craie">
                   <span className={recap.data.monday_a_jour ? "text-menthe" : "text-ambre"}>{recap.data.monday_a_jour ? "✓" : "!"}</span>
-                  {session.essai ? "Essai : rien n'a été écrit dans Monday, aucun mail n'est parti." : recap.data.monday_a_jour ? "Tout est à jour dans Monday" : `${pl(recap.data.monday_en_attente, "ligne Monday", "lignes Monday")} en attente : nouvel essai automatique`}
+                  {session.essai ? (mondayEssai ? "Essai : Monday écrit sur les lignes « (Essai) », aucun mail n'est parti." : "Essai : rien n'a été écrit dans Monday, aucun mail n'est parti.") : recap.data.monday_a_jour ? "Tout est à jour dans Monday" : `${pl(recap.data.monday_en_attente, "ligne Monday", "lignes Monday")} en attente : nouvel essai automatique`}
                 </p>
                 <button type="button" onClick={() => setEcran("fiche")} className="self-start rounded-full border border-trait px-[18px] py-2.5 text-[14px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Reprendre la session</button>
               </div>
             )}
+            </div>
           </>
         )}
       </div>

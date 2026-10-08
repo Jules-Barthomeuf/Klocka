@@ -100,7 +100,7 @@ export default function Relances() {
   const [aucuneLibre, setAucuneLibre] = useState(false);
   const choisirPartie = async (k) => {
     if (k === partie) return;
-    if (k !== "appel") { if (courante) await retour(); setPartie(k); return; }
+    if (k !== "appel") { setEssai(false); if (courante) await retour(); setPartie(k); return; }
     setPartie("appel");
     if (courante) return;
     setAucuneLibre(false);
@@ -109,8 +109,16 @@ export default function Relances() {
   };
   // Le mode appel, ville par ville (8 oct. 2026) : les intercalaires de la Prospection, « Toutes les villes » d'abord.
   const ongletsVilles = data ? [["", "Toutes les villes", (data.lignes || []).length], ...data.villes.map((v) => [v, v, (data.lignes || []).filter((x) => x.ville === v).length])] : [];
+  // Le mode Essai (8 oct. 2026) : des agences fictives et des cas de figure, sans toucher aux vraies relances.
+  const [essai, setEssai] = useState(false);
+  const ouvrirEssai = async () => {
+    if (courante) await base44.request("POST", `${API}/lacher`, { body: { cle: courante.cle } }).catch(() => {});
+    setCourante(null); setAucuneLibre(false); setEssai(true);
+    rafraichir();
+  };
   const changerDeVille = async (v) => {
-    if (v === ville) return;
+    if (v === ville && !essai) return;
+    setEssai(false);
     setVille(v);
     if (courante) await base44.request("POST", `${API}/lacher`, { body: { cle: courante.cle } }).catch(() => {});
     setCourante(null); setAucuneLibre(false);
@@ -151,12 +159,12 @@ export default function Relances() {
         </nav>
       </header>
 
-      {(partie === "appel" || partie === "liste") && data && ongletsVilles.length > 1 && (
+      {(partie === "appel" || partie === "liste") && data && (ongletsVilles.length > 1 || partie === "appel") && (
         // Le classeur de la Prospection : les intercalaires des villes, l'ouvert raccordé au panneau.
         <div role="tablist" aria-label="Les villes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <span aria-hidden className="w-3 flex-none" />
           {ongletsVilles.map(([v, mot, n], i) => {
-            const actif = ville === v;
+            const actif = ville === v && !(partie === "appel" && essai);
             return (
               <React.Fragment key={v || "toutes"}>
                 {i > 0 && <span aria-hidden className="w-1 flex-none" />}
@@ -168,12 +176,25 @@ export default function Relances() {
               </React.Fragment>
             );
           })}
+          {/* L'essai, en pointillé au bout, comme dans la Prospection. */}
+          {partie === "appel" && (
+            <>
+              <span aria-hidden className="w-1 flex-none" />
+              <button type="button" role="tab" aria-selected={essai} onClick={ouvrirEssai}
+                className={`flex flex-none items-center gap-2 rounded-t-[10px] border border-b-0 border-dashed border-bord-vif px-4 text-[13px] transition-colors ${essai ? "bg-rail pb-[11px] pt-2.5 text-encre" : "py-2 text-ardoise hover:bg-rail hover:text-encre"}`}
+                style={essai ? undefined : { background: "transparent" }}>
+                Essai
+              </button>
+            </>
+          )}
         </div>
       )}
-      {partie === "appel" && courante ? (
+      {partie === "appel" && essai ? (
+        <ModeAppel essaiSeul />
+      ) : partie === "appel" && courante ? (
         <ModeAppel relances relance={courante} onSuivante={suivante} onRetour={retour} />
       ) : (
-        <div className="flex flex-col gap-6 pb-16">
+        <div key={partie} className="flex flex-col gap-6 pb-16 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
           {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
           {q.isError && !/403|réservé/i.test(q.error?.message || "") && <p className="py-12 text-center text-[14px] text-alerte">Les relances n'ont pas pu être lues : {q.error?.message || "erreur"}.</p>}
           {data && partie === "bord" && <TableauDeBordRelances data={data} />}

@@ -165,6 +165,10 @@ Aujourd'hui : ${R.jourDe(maintenant)}${issueTapee ? `. L'analyste a tapé l'issu
 L'appel :
 ${texte}`,
     response_json_schema: SCHEMA,
+    // Réflexion réduite (8 oct. 2026) : l'analyste attend devant « Je lis l'appel ».
+    // Mesuré sur trois appels types : les mêmes champs, l'issue et les dates
+    // identiques, en 2,6 à 6,9 s au lieu de 7,6 à 14,3 s. Haiku n'allait pas plus vite.
+    effort: 'low',
   });
 }
 

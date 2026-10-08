@@ -367,7 +367,7 @@ export function monterProspection(app) {
         agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue, notes: notesAppel,
         session_id: req.body?.session_id || null, audio, transcription, remplace: req.body?.remplace || null,
         recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
-        numero: req.body?.numero || null, motif: req.body?.motif || null, surEtape: flux?.etape || null, user,
+        numero: req.body?.numero || null, motif: req.body?.motif || null, surEtape: flux?.etape || null, mondayEssai: req.body?.monday_essai === '1' || req.body?.monday_essai === true, user,
       });
     } catch (e) {
       if (flux) return flux.erreur(e);

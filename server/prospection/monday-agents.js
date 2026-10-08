@@ -32,6 +32,18 @@ export const CONTACT_VIDE = '\u200b';
 export const tableauAgents = () => (fauxMonday ? 'faux-tableau' : (process.env.MONDAY_BOARD_AGENTS || '').trim());
 export const lienLigne = (id, tableau = tableauAgents()) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
 
+/** Les colonnes d'« Agents immobiliers » telles qu'elles sont (8 oct. 2026), pour montrer en essai ce qui serait écrit. */
+export const COLONNES_DU_TABLEAU = [
+  { id: 'spoc', title: 'SPOC', type: 'people' }, { id: 'prenom', title: 'Prénom', type: 'text' }, { id: 'date_contact', title: 'Date', type: 'date' },
+  { id: 'email', title: 'E-mail', type: 'email' }, { id: 'phone', title: 'Téléphone', type: 'phone' }, { id: 'statut', title: 'Statut', type: 'status' },
+  { id: 'dernier', title: 'Dernier contact', type: 'text' }, { id: 'diffusion', title: 'Liste de diffusion', type: 'status' }, { id: 'ville', title: 'Ville', type: 'text' },
+  { id: 'entreprise', title: 'Entreprise', type: 'dropdown' }, { id: 'remarques', title: 'Remarques', type: 'text' }, { id: 'relance', title: 'Prochaine relance', type: 'date' },
+];
+
+/** Pure : l'aperçu d'une nouvelle ligne, sans Monday (le mode essai). */
+// Le SPOC s'y montre aussi : l'identifiant Monday ne sert qu'à l'écriture.
+export const apercuSansMonday = (donnees) => valeursPour(null, colonnesParTitre(COLONNES_DU_TABLEAU), { ...donnees, analyste_monday_id: donnees.analyste_monday_id || -1, analyste_nom: donnees.analyste_nom || null }).apercu;
+
 /** Pure : les colonnes du tableau par leur titre, avec leur type. */
 export function colonnesParTitre(liste) {
   const out = {};
@@ -242,13 +254,18 @@ export const mondayAgentsBranche = async () => (fauxMonday ? true : !process.env
 /** La ligne d'un contact et l'aperçu de ce qui va changer, pour l'écran d'actions. Ne lève jamais : Monday absent rend « indisponible ». */
 export async function preparer(cible, donnees) {
   try {
-    if (!(await mondayAgentsBranche())) return { etat: 'indisponible', texte: "Monday n'est pas branché ici" };
+    if (!(await mondayAgentsBranche())) return { etat: 'indisponible', texte: "Monday n'est pas branché ici : voici ce qui serait écrit sur une nouvelle ligne", apercu: apercuSansMonday(donnees) };
     const [cols, toutes] = await Promise.all([colonnes(), lignes()]);
+    // Le SPOC dans l'aperçu : l'analyste, retrouvé dans Monday par son adresse (comme à l'écriture).
+    const M = await api();
+    if (donnees.analyste_email && !donnees.analyste_monday_id && M.personneMonday) {
+      try { const p = await M.personneMonday({ email: donnees.analyste_email }); if (p?.id) donnees = { ...donnees, analyste_monday_id: p.id, analyste_nom: donnees.analyste_nom || p.name }; } catch { /* sans SPOC */ }
+    }
     const m = trouverLigne(toutes, cible);
     const ligne = m.etat === 'trouvee' ? toutes.find((l) => l.id === m.ligne.id) : null;
     return { ...m, apercu: valeursPour(ligne, cols, donnees).apercu };
   } catch (e) {
-    return { etat: 'indisponible', texte: 'Monday ne répond pas : la ligne sera retrouvée à la validation', erreur: String(e?.message || e).slice(0, 200) };
+    return { etat: 'indisponible', texte: 'Monday ne répond pas : la ligne sera retrouvée à la validation. Voici ce qui serait écrit sur une nouvelle ligne', erreur: String(e?.message || e).slice(0, 200), apercu: apercuSansMonday(donnees) };
   }
 }
 

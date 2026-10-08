@@ -612,6 +612,9 @@ const valeurSure = (compris, cle, corrige = {}) => {
   return c && !c.incertain ? c.valeur : null;
 };
 
+/** Pure : une ligne Monday écrite depuis le mode Essai se reconnaît : « (Essai) » devant l'agence, « Essai » en tête de remarque. */
+export const marquerEssai = (d) => ({ ...d, agence: /^\(Essai\)/.test(d.agence || '') ? d.agence : `(Essai) ${d.agence || ''}`.trim(), remarque: d.remarque ? `Essai · ${d.remarque}` : 'Essai' });
+
 /** Ce que la ligne Monday doit recevoir pour cet appel. */
 function donneesMonday({ appel, agence, fiche, issue, user, relance, note = '', corrige = {}, email = null, diffusion = null }) {
   const compris = appel.compris || {};
@@ -646,7 +649,7 @@ const cibleMonday = (d, agence, fiche) => ({
  * va y changer, le mail du modèle, la liste de diffusion, la relance.
  * Une transcription ratée n'empêche rien : l'écran s'ouvre sur l'issue seule.
  */
-export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, surEtape = null, user }) {
+export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, surEtape = null, mondayEssai = false, user }) {
   // Les étapes, dites au moment où elles se font (8 oct. 2026) : l'écran les déroule au lieu d'un simple « AK lit l'appel ».
   const etape = (t) => { try { surEtape?.(t); } catch { /* l'écran est parti : rien ne bloque */ } };
   // « auto » (7 oct. 2026) : pas de bouton d'issue, AK la déduit de la
@@ -671,7 +674,9 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   etape(`Issue : ${(ISSUES_APPEL[issue]?.titre || R.ISSUES[issue] || issue).toLowerCase()}`);
   const def = ISSUES_APPEL[issue];
   const essai = estEssai(a);
-  Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...(essai ? { essai: true } : {}) });
+  // En essai, Monday peut être écrit pour de vrai (8 oct. 2026, Jules : « ça doit impacter Monday ») : ligne marquée « (Essai) ».
+  const ecrireEssai = essai && !!mondayEssai;
+  Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }
   if (def.simple && !surActions) {
     const choix = lu.appel.propositions.filter((p) => p.coche !== false && ['statut', 'relance'].includes(p.type)).map((p) => p.id);
@@ -689,13 +694,15 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const relance = base.find((p) => p.type === 'relance');
   const appelPourMonday = { ...lu.appel, compris, rappel_entrant: !!entrant, numero: numero || numeroDe(a) };
   const emailPrevu = valeurSure(compris, 'email') || (f?.emails || [])[0] || a.email || null;
-  const d = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : !!emailPrevu });
+  const d0 = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : !!emailPrevu });
+  const d = ecrireEssai ? marquerEssai(d0) : d0;
   // Les sans-réponse restent dans la plateforme : pas de ligne Monday.
   const releve = [['interlocuteur', 'l\'interlocuteur'], ['email', 'l\'email'], ['telephone', 'le numéro'], ['biens', 'les biens évoqués'], ['mandat', 'le mandat à venir'], ['date', 'la date dite']].filter(([k]) => compris.champs?.[k] && !compris.champs[k].appele).map(([, m]) => m);
   if (releve.length && !def.simple) etape(`Je relève ${releve.length > 1 ? `${releve.slice(0, -1).join(', ')} et ${releve.at(-1)}` : releve[0]}${notes ? ', notes comprises' : ''}`);
-  if (!def.simple && !essai) etape('Je cherche sa ligne dans Monday');
-  const monday = def.simple ? null : essai ? { etat: 'info', texte: "Essai : Monday n'est pas touché" } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
-  if (monday && !essai) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Monday : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Monday : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Monday' : 'Je prépare les champs pour Monday');
+  if (!def.simple && (!essai || ecrireEssai)) etape('Je cherche sa ligne dans Monday');
+  // En essai, Monday n'est pas lu ni écrit, mais l'aperçu montre ce qui serait écrit sur une nouvelle ligne.
+  const monday = def.simple ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Monday. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
+  if (monday && (!essai || ecrireEssai)) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Monday : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Monday : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Monday' : 'Je prépare les champs pour Monday');
   if (monday) actions.push({ id: 'monday', type: 'monday', titre: 'Contact Monday', coche: true, toujours: true, ligne: monday });
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
   const MO = await import('./modeles-appel.js');
@@ -855,8 +862,9 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
   if (!def.simple && ag) {
     const emailUtilise = action('mail') ? R.normEmail(mail?.a ?? action('mail').a) : adresse;
     const dansLaListe = dif ? ['ok'].includes(diffusion?.etat) : issueTapee === 'pas_interesse' ? false : null;
-    const d = donneesMonday({ appel, agence: ag, fiche: a, issue: issueTapee, user, relance: a?.prochaine?.le || null, note, corrige, email: emailUtilise, diffusion: dansLaListe });
-    if (essai) monday = { etat: 'info', texte: `Essai : Monday n'est pas touché (on y aurait écrit « ${[d.agence, d.contact || 'contact sans nom', d.issue].join(' · ')} »)` };
+    const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: issueTapee, user, relance: a?.prochaine?.le || null, note, corrige, email: emailUtilise, diffusion: dansLaListe });
+    const d = essai && appel.monday_essai ? marquerEssai(d0) : d0;
+    if (essai && !appel.monday_essai) monday = { etat: 'info', texte: `Essai : Monday n'est pas touché (on y aurait écrit « ${[d.agence, d.contact || 'contact sans nom', d.issue].join(' · ')} »)` };
     else {
       const r = await ecrireMonday({ appel_id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: monday_ligne });
       monday = r.monday;
@@ -953,12 +961,13 @@ async function ecrireMonday({ appel_id, cible, donnees, ligne_id = null, item_cr
 export async function choisirLigneMonday(appelId, ligneId) {
   const appel = Records.get(APPEL, appelId);
   if (!appel?.recu) return { ok: false, error: 'Appel introuvable.' };
-  if (appel.essai) return { ok: false, error: 'Mode essai.' };
+  if (appel.essai && !appel.monday_essai) return { ok: false, error: 'Mode essai.' };
   const ag = Records.get(AGENCE, appel.agence_id);
   const { agentDe } = await import('./carnet.js');
   const a = agentDe(appel.agent_id);
   const user = { email: appel.par };
-  const d = donneesMonday({ appel, agence: ag, fiche: a, issue: appel.issue_tapee, user, relance: a?.prochaine?.le || null, email: appel.recu.mail?.detail?.a || null, diffusion: appel.recu.diffusion ? appel.recu.diffusion.etat === 'ok' : appel.issue_tapee === 'pas_interesse' ? false : null });
+  const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: appel.issue_tapee, user, relance: a?.prochaine?.le || null, email: appel.recu.mail?.detail?.a || null, diffusion: appel.recu.diffusion ? appel.recu.diffusion.etat === 'ok' : appel.issue_tapee === 'pas_interesse' ? false : null });
+  const d = appel.essai ? marquerEssai(d0) : d0;
   const r = await ecrireMonday({ appel_id: appel.id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: ligneId || 'nouvelle' });
   const recu = { ...appel.recu, monday: r.monday };
   Records.update(APPEL, appel.id, { recu, annuler: { ...(appel.annuler || {}), ecriture: r.ecriture } });

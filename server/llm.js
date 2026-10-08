@@ -308,7 +308,7 @@ function toGeminiTools(tools = []) {
  * @param {string[]} [opts.file_urls] - resolved to text and appended to the prompt
  * @param {function} [opts.resolveFileText] - async (url) => string
  */
-export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText, effort = null } = {}) {
+export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText, effort = null, modele = null } = {}) {
   const wantsJson = !!response_json_schema;
 
   if (!llmEnabled) {
@@ -339,8 +339,10 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
     });
     text = geminiText(data);
   } else {
+    // `modele` : un modèle plus rapide pour une lecture courte où l'attente se voit (le mode appel).
+    const choisi = modele || ANTHROPIC_MODEL;
     const message = await anthropic.messages.create({
-      model: ANTHROPIC_MODEL,
+      model: choisi,
       max_tokens: 16000,
       // `effort` règle la profondeur de réflexion du modèle, donc les jetons de
       // sortie — les plus chers. « low » sur un geste mécanique : mettre en
@@ -350,7 +352,7 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
       ...(system ? { system } : {}),
       messages: [{ role: 'user', content: fullPrompt }],
     });
-    compter(ANTHROPIC_MODEL, message.usage);
+    compter(choisi, message.usage);
     text = (message.content || [])
       .filter((b) => b.type === 'text')
       .map((b) => b.text)

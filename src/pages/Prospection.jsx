@@ -1036,10 +1036,13 @@ export default function Prospection() {
           ))}
         </nav>}
       </header>
+      {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
+      <div key={partie} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
       {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} />}
       {partie === "appel" && <ModeAppel />}
       {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
       {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
+      </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
       {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
         {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}

@@ -330,6 +330,9 @@ export default function Personnalisation() {
         <Reglage titre="Halo" note="Les nappes de couleur derrière les pages, en sombre. Le clair n'en a jamais.">
           <Pilules valeur={prefs.halo} options={OPTIONS.halo} onChoisir={(v) => changer({ halo: v })} />
         </Reglage>
+        <Reglage titre="Points dans la fenêtre des actions" note="Le fond de la fenêtre qui détaille les actions proposées après un appel.">
+          <Pilules valeur={prefs.points_actions} options={OPTIONS.points_actions} onChoisir={(v) => changer({ points_actions: v })} />
+        </Reglage>
         <Reglage titre="Grille de points" note="Des points discrets en fond, là où vous les voulez. Plusieurs choix possibles ; aucun, pas de points.">
           <Pilules valeurs={prefs.grille} options={OPTIONS.grille}
             onChoisir={(v) => changer({ grille: prefs.grille.includes(v) ? prefs.grille.filter((z) => z !== v) : [...prefs.grille, v] })} />

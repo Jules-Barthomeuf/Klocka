@@ -308,7 +308,7 @@ export function reseauDe(a, lignes, maintenantD = new Date(), ville = null) {
 }
 
 /** Le numéro à appeler : celui de l'agence, sinon celui d'un de ses agents. */
-const numeroDe = (a) => a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
+export const numeroDe = (a) => a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
 
 const SANS_REPONSE = ['pas_de_reponse', 'repondeur'];
 const RESERVATION_MS = 5 * 60 * 1000;
@@ -324,6 +324,9 @@ export const reserveeParUnAutre = (a, moi, maintenantD = new Date()) => !!a?.res
  * agents d'un collègue, les agences appelées ou passées aujourd'hui, celles
  * qu'un collègue a à l'écran.
  */
+/** Pure : l'agence a été renvoyée en prospection, et aucun appel ne l'a touchée depuis. */
+export const remiseEnProspection = (a) => !!a?.remise_en_prospection?.le && !(a.statut?.quand && String(a.statut.quand) > a.remise_en_prospection.le);
+
 export function placeDansLaFile(a, moi, { jour, fiche = null, maintenantD = new Date() } = {}) {
   if (a.statut.etat === 'morte' || !numeroDe(a) || a.genre === 'annonceur' || a.ne_plus_appeler) return null;
   const pour = a.pour || [];
@@ -335,6 +338,11 @@ export function placeDansLaFile(a, moi, { jour, fiche = null, maintenantD = new 
   if (a.prioritaire?.le === jour && (!a.prioritaire.par || a.prioritaire.par === moi)) return 0;
   if (a.passee?.le === jour && a.passee.par === moi) return null;
   if (a.statut.quand && String(a.statut.quand).slice(0, 10) === jour) return null;
+  // Envoyée dans Relances à la main : c'est là qu'elle s'appelle désormais.
+  if (a.en_relance) return null;
+  // Renvoyée en prospection depuis Relances (8 oct. 2026) : jamais vraiment démarchée,
+  // elle revient comme une jamais contactée, jusqu'au prochain appel.
+  if (remiseEnProspection(a)) return 3;
   // Le mode appel n'appelle que ceux qu'on n'a jamais appelés (7 oct. 2026) : dès
   // le premier appel, même sans réponse, l'agence passe aux relances.
   if (a.statut.etat === 'jamais' && !a.statut.appelee) return 3;
@@ -373,36 +381,81 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
   const file = placees
     // Un même numéro ne passe qu'une fois dans la file : on n'appelle pas deux fois la même agence.
     .filter((x, i, t) => t.findIndex((y) => R.normTel(numeroDe(y.a)) === R.normTel(numeroDe(x.a))) === i)
-    .map(({ a, place }) => {
-      const f = fiches.get(a.carnet_id) || null;
-      const derniers = Records.list(APPEL).filter((x) => x.agent_id === a.carnet_id && x.etat === 'valide' && !x.essai_archive).sort((x, y) => String(y.le).localeCompare(String(x.le))).slice(0, 3);
-      const telephone = place === 0 && a.prioritaire?.telephone ? a.prioritaire.telephone : numeroDe(a);
-      return {
-        id: a.id, nom: a.nom, adresse: a.adresse || null, telephone, place, badge: badgeDe(place, a.statut.tentatives),
-        autres_numeros: [...new Set((a.agents || []).map((x) => x.telephone).filter((t) => t && R.normTel(t) !== R.normTel(telephone)))].slice(0, 3),
-        email: a.email || (a.agents || []).find((x) => x.email)?.email || null,
-        interlocuteurs: [
-          ...(place === 0 && a.prioritaire?.nom ? [`${a.prioritaire.nom}${a.prioritaire.telephone ? ` · ${a.prioritaire.telephone}` : ''} (contact donné)`] : []),
-          ...(f?.nom && f.nom !== a.nom ? [`${f.nom} (dernier interlocuteur)`] : []),
-          ...(a.gerants || []).slice(0, 2).map((g) => `${g.nom}${g.qualite ? `, ${String(g.qualite).toLowerCase()}` : ''}`),
-          ...(a.agents || []).filter((x) => x.nom).slice(0, 3).map((x) => `${x.nom}${x.telephone ? ` · ${x.telephone}` : ''}`),
-          a.monday_connu?.nom ? `${a.monday_connu.nom} (dans Monday)` : null,
-        ].filter(Boolean).filter((x, i, t) => t.indexOf(x) === i).slice(0, 5),
-        statut: a.statut, pertinence: a.pertinence,
-        historique: [
-          ...derniers.map((x) => `${R.dateCourte(String(x.le).slice(0, 10))} · ${prenom(x.par)} · ${R.ISSUES[x.issue] || x.issue}${x.resume && !SANS_REPONSE.includes(x.issue) ? ` : ${x.resume}` : ''}`),
-          ...(!derniers.length && f?.remarques ? [f.remarques] : []),
-          ...(!derniers.length && a.monday_connu ? [`Monday : ${[a.monday_connu.statut, a.monday_connu.date].filter(Boolean).join(', ')}`] : []),
-        ].slice(0, 3),
-        site: a.site || null, maps_url: a.maps_url || null,
-        lieu: [l.ville, a.adresse].filter(Boolean).join(' · '),
-        // Au moment de rappeler : la raison de la relance et ce qu'a dit le dernier appel.
-        raison: place === 1 && f?.prochaine?.quoi ? `Relance : ${f.prochaine.quoi}${derniers[0]?.resume ? `. Dernier appel : ${derniers[0].resume}` : ''}` : place === 2 ? `Retente : ${f?.prochaine?.quoi || 'pas de réponse la dernière fois'}` : null,
-        reseau: reseauDe(a, lignes, maintenantD, l.ville),
-      };
-    });
+    .map(({ a, place }) => elementDeFile(a, { place, fiche: fiches.get(a.carnet_id) || null, ville: l.ville, lignes, maintenantD }));
   const chiffres = chiffresDeLaVille(lignes);
   return { ok: true, ville: l.ville, chiffres, recherches, file };
+}
+
+/**
+ * Pure : les interlocuteurs d'une agence, du plus sûr au moins sûr : le contact
+ * donné pendant un appel, le contact Monday, le dernier joint, les dirigeants du
+ * registre, les agents qui publient, puis le standard. Chacun : nom, source,
+ * fonction, numéro (le sien, sinon aucun : on appelle alors le standard).
+ */
+export function contactsDe(a, fiche = null, place = null) {
+  const out = [];
+  const ajouter = (x) => {
+    const nom = String(x.nom || '').trim();
+    if (!nom && !x.standard) return;
+    if (nom && out.some((y) => R.norm(y.nom) === R.norm(nom))) {
+      const y = out.find((z) => R.norm(z.nom) === R.norm(nom));
+      if (!y.telephone && x.telephone) y.telephone = x.telephone;
+      if (!y.fonction && x.fonction) y.fonction = x.fonction;
+      return;
+    }
+    out.push({ id: `c${out.length}`, nom: nom || 'Standard', source: x.source, fonction: x.fonction || null, telephone: x.telephone || null, standard: !!x.standard });
+  };
+  if (place === 0 && a.prioritaire?.nom) ajouter({ nom: a.prioritaire.nom, source: 'Contact donné', telephone: a.prioritaire.telephone });
+  if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Monday', telephone: a.monday_connu.telephone || null });
+  if (fiche?.nom && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
+  for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
+  for (const x of (a.agents || []).filter((y) => y.nom).slice(0, 3)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : 'Agent', telephone: x.telephone || null });
+  const standard = a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
+  if (standard) ajouter({ standard: true, source: 'Standard', telephone: standard });
+  return out.slice(0, 6);
+}
+
+/**
+ * Pure (lit les appels) : ce que la fiche du mode appel montre d'une agence :
+ * le numéro, les interlocuteurs, les trois derniers appels, la raison d'un
+ * rappel. Partagé par la file d'une ville et par la page Relances.
+ */
+export function elementDeFile(a, { place, badge = null, fiche: f = null, ville = null, lignes = [], maintenantD = new Date() } = {}) {
+  const derniers = Records.list(APPEL).filter((x) => x.agent_id && x.agent_id === a.carnet_id && x.etat === 'valide' && !x.essai_archive).sort((x, y) => String(y.le).localeCompare(String(x.le))).slice(0, 3);
+  const telephone = place === 0 && a.prioritaire?.telephone ? a.prioritaire.telephone : numeroDe(a);
+  return {
+    id: a.id, nom: a.nom, adresse: a.adresse || null, telephone, place, badge: badge || badgeDe(place, a.statut?.tentatives),
+    autres_numeros: [...new Set((a.agents || []).map((x) => x.telephone).filter((t) => t && R.normTel(t) !== R.normTel(telephone)))].slice(0, 3),
+    email: a.email || (a.agents || []).find((x) => x.email)?.email || (f?.emails || [])[0] || null,
+    interlocuteurs: [
+      ...(place === 0 && a.prioritaire?.nom ? [`${a.prioritaire.nom}${a.prioritaire.telephone ? ` · ${a.prioritaire.telephone}` : ''} (contact donné)`] : []),
+      ...(f?.nom && f.nom !== a.nom ? [`${f.nom} (dernier interlocuteur)`] : []),
+      ...(a.gerants || []).slice(0, 2).map((g) => `${g.nom}${g.qualite ? `, ${String(g.qualite).toLowerCase()}` : ''}`),
+      ...(a.agents || []).filter((x) => x.nom).slice(0, 3).map((x) => `${x.nom}${x.telephone ? ` · ${x.telephone}` : ''}`),
+      a.monday_connu?.nom ? `${a.monday_connu.nom} (dans Monday)` : null,
+    ].filter(Boolean).filter((x, i, t) => t.indexOf(x) === i).slice(0, 5),
+    statut: a.statut, pertinence: a.pertinence,
+    historique: [
+      ...derniers.map((x) => `${R.dateCourte(String(x.le).slice(0, 10))} · ${prenom(x.par)} · ${R.ISSUES[x.issue] || x.issue}${x.resume && !SANS_REPONSE.includes(x.issue) ? ` : ${x.resume}` : ''}`),
+      ...(!derniers.length && f?.remarques ? [f.remarques] : []),
+      ...(!derniers.length && a.monday_connu ? [`Monday : ${[a.monday_connu.statut, a.monday_connu.date].filter(Boolean).join(', ')}`] : []),
+    ].slice(0, 3),
+    site: a.site || null, maps_url: a.maps_url || null,
+    lieu: [ville, a.adresse].filter(Boolean).join(' · '),
+    // Au moment de rappeler : la raison de la relance et ce qu'a dit le dernier appel.
+    raison: place === 1 && f?.prochaine?.quoi ? `Relance : ${f.prochaine.quoi}${derniers[0]?.resume ? `. Dernier appel : ${derniers[0].resume}` : ''}` : place === 2 ? `Retente : ${f?.prochaine?.quoi || 'pas de réponse la dernière fois'}` : null,
+    reseau: lignes.length ? reseauDe(a, lignes, maintenantD, ville) : null,
+    // La fiche de la maquette du 7 oct. 2026 : les interlocuteurs, chacun avec sa source et son numéro, et l'historique en lignes.
+    ville,
+    secteur: [ville, a.quartier || (a.code_postal || String(a.adresse || '').match(/\b\d{5}\b/)?.[0] || null)].filter(Boolean).join(' · '),
+    contacts: contactsDe(a, f, place),
+    historique_detail: [
+      ...derniers.map((x) => ({ quoi: R.ISSUES[x.issue] || x.issue, quand: R.dateCourte(String(x.le).slice(0, 10)), qui: prenom(x.par), resume: x.resume && !SANS_REPONSE.includes(x.issue) ? x.resume : null })),
+      ...(!derniers.length && a.monday_connu?.statut ? [{ quoi: a.monday_connu.statut, quand: a.monday_connu.date ? R.dateCourte(jourIso(a.monday_connu.date) || '') : null, qui: a.monday_connu.qui ? prenom(a.monday_connu.qui) : 'Monday', resume: null }] : []),
+    ].slice(0, 4),
+    // Les notes de la fiche (secteurs, mandats annoncés, biens évoqués), pour le contexte d'une relance.
+    notes_avant: f?.remarques ? String(f.remarques).slice(0, 600) : null,
+  };
 }
 
 /** L'agence à l'écran est tenue cinq minutes (renouvelées tant qu'elle y reste) : un collègue de la même ville ne la voit pas. */
@@ -411,8 +464,9 @@ export function reserver(agenceId, user, { maintenantD = new Date() } = {}) {
   if (!a) return { ok: false, error: 'Agence introuvable.' };
   const moi = String(user?.email || '').toLowerCase();
   if (reserveeParUnAutre(a, moi, maintenantD)) return { ok: false, prise: true, error: `${prenom(a.reservee.par)} l'a à l'écran.` };
-  Records.update(AGENCE, a.id, { reservee: { par: moi, jusqu: new Date(maintenantD.getTime() + RESERVATION_MS).toISOString() } });
-  return { ok: true };
+  const jusqu = new Date(maintenantD.getTime() + RESERVATION_MS).toISOString();
+  Records.update(AGENCE, a.id, { reservee: { par: moi, jusqu } });
+  return { ok: true, jusqu };
 }
 
 const liberer = (agenceId, moi) => {
@@ -526,6 +580,8 @@ export const ISSUES_APPEL = {
   pas_de_murs: { cle: 'pas_de_murs', titre: "Pas de bien pour l'instant", groupe: 'abouti', principal: true },
   a_des_murs: { cle: 'a_des_murs', titre: 'A un bien intéressant', groupe: 'abouti' },
   pas_interesse: { cle: 'pas_interesse', titre: 'Pas intéressé', groupe: 'abouti' },
+  // Relances (8 oct. 2026) : on a dit à l'agent ce qu'on pense de son bien (retenu ou refusé).
+  agent_prevenu: { cle: 'agent_prevenu', titre: 'Agent prévenu', groupe: 'abouti', simple: true },
 };
 
 /** L'agence prise pour l'appeler : elle entre au carnet si besoin, et personne d'autre ne la prend pendant trente minutes. */
@@ -590,7 +646,7 @@ const cibleMonday = (d, agence, fiche) => ({
  * va y changer, le mail du modèle, la liste de diffusion, la relance.
  * Une transcription ratée n'empêche rien : l'écran s'ouvre sur l'issue seule.
  */
-export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, user }) {
+export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, user }) {
   // « auto » (7 oct. 2026) : pas de bouton d'issue, AK la déduit de la
   // transcription faite en direct ; l'écran d'actions s'ouvre toujours.
   const auto = issueDemandee === 'auto';
@@ -604,7 +660,9 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   let agentId = agent_id;
   if (!agentId) { const p = await prendre(agence_id, user); if (!p.ok) return p; agentId = p.agent_id; }
   const A = await import('./appel.js');
-  const lu = await A.analyserAppel({ agent_id: agentId, audio: def0?.simple && !surActions ? null : audio, recit: recit || null, transcription_texte: transcription, issue: auto ? 'auto' : def0.cle, par: user?.email, sans_reponse: !!def0?.simple && !transcription });
+  // Une relance « Bien retenu » ou « Bien refusé » : un appel abouti sans nouveau bien, c'est l'agent prévenu.
+  const surUnBien = ['bien_retenu', 'bien_refuse'].includes(motif);
+  const lu = await A.analyserAppel({ agent_id: agentId, audio: def0?.simple && !surActions ? null : audio, recit: recit || null, transcription_texte: transcription, issue: auto ? 'auto' : def0.cle, par: user?.email, sans_reponse: !!def0?.simple && !transcription && def0.cle !== 'agent_prevenu', sur_un_bien: surUnBien, entrant });
   if (!lu.ok) return lu;
   if (auto) issue = lu.appel.issue;
   const def = ISSUES_APPEL[issue];
@@ -616,7 +674,8 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     return validerIssue({ appel_id: lu.appel.id, choix, session_id, agence_id, user, issue });
   }
   const f = Records.get('AgentImmo', agentId);
-  const compris = lu.appel.compris || { champs: {} };
+  // Un rappel entrant (« Il me rappelle ») : l'email et le numéro tapés dans les notes l'emportent sur ceux entendus.
+  const compris = notes ? (await import('./rappels.js')).notesFontFoi(lu.appel.compris || { champs: {} }, notes) : (lu.appel.compris || { champs: {} });
   const moi = String(user?.email || '').toLowerCase();
   const u = Records.filter('User', { email: moi })[0];
   const analyste = u?.full_name || user?.full_name || prenom(moi);
@@ -624,7 +683,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const base = lu.appel.propositions.filter((p) => ['statut', 'relance', 'fiche'].includes(p.type));
   const actions = [];
   const relance = base.find((p) => p.type === 'relance');
-  const appelPourMonday = { ...lu.appel, numero: numero || numeroDe(a) };
+  const appelPourMonday = { ...lu.appel, compris, rappel_entrant: !!entrant, numero: numero || numeroDe(a) };
   const emailPrevu = valeurSure(compris, 'email') || (f?.emails || [])[0] || a.email || null;
   const d = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : !!emailPrevu });
   // Les sans-réponse restent dans la plateforme : pas de ligne Monday.
@@ -650,7 +709,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     }
     if (variantes.length) {
       const m = variantes[0];
-      actions.push({ id: 'mail', type: 'mail', titre: 'Email', a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!destinataire });
+      actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!destinataire });
     }
     actions.push({ id: 'diffusion', type: 'diffusion', titre: 'Ajouter à la liste de diffusion agents', liste: LISTE_DIFFUSION, a: destinataire, coche: !!destinataire });
   }
@@ -659,7 +718,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const mandat = compris.champs?.mandat;
   if (mandat && issue === 'a_des_murs') {
     const le = mandat.date && mandat.date > (relance?.prochaine?.le || '') ? mandat.date : R.plusJoursOuvres(R.jourDe(new Date()), 15);
-    actions.push({ id: 'relance_2', type: 'relance_suivante', titre: 'Planifier la seconde relance', prochaine: { quoi: `faire le point sur le mandat annoncé : ${mandat.valeur}`, le }, source: mandat.source, ...(mandat.date ? {} : { incertain: 'date par défaut : trois semaines' }), coche: true });
+    actions.push({ id: 'relance_2', type: 'relance_suivante', titre: 'Planifier la seconde relance', prochaine: { quoi: `faire le point sur le mandat annoncé : ${mandat.valeur}`, le }, source: mandat.source, phrase: mandat.source || null, pourquoi: lu.appel.pourquoi_relance || null, ...(mandat.date ? {} : { incertain: 'date par défaut : trois semaines' }), coche: true });
   }
   if (issue === 'pas_interesse') actions.push({ id: 'ne_plus_appeler', type: 'ne_plus_appeler', titre: 'Ne plus appeler', coche: true, toujours: true });
   const statut = base.find((p) => p.type === 'statut');
@@ -741,7 +800,7 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
     majAgent(appel.agent_id, { prochaine: p2, relances_suivantes: reste });
   }
   if (issueTapee === 'pas_interesse') {
-    majAgent(appel.agent_id, { statut: 'archive', prochaine: null, relances_suivantes: [], ne_plus_appeler: true });
+    majAgent(appel.agent_id, { statut: 'archive', prochaine: null, relances_suivantes: [], ne_plus_appeler: true, ne_plus_appeler_le: maintenantD.toISOString() });
     if (ag) Records.update(AGENCE, ag.id, { ne_plus_appeler: true });
   }
   if (note && String(note).trim()) journal(appel.agent_id, { type: 'note', texte: `Note : ${String(note).trim().slice(0, 500)}`, par: moi });
@@ -811,6 +870,9 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
     }
   }
 
+  // La page Relances : l'agent joint est prévenu de ses biens jugés, et la ligne prise se libère.
+  if (!essai) (await import('./relances.js')).apresAppel({ agent_id: appel.agent_id, agence_id: agenceId, issue: issueTapee, user, maintenantD });
+
   const suivantes = (a?.relances_suivantes || []).map((x) => `puis ${jourLong(x.le)} pour faire le point`).join(', ');
   const relance = a?.prochaine?.le ? { etat: 'ok', texte: `Relance ${jourLong(a.prochaine.le)}${a.prochaine.moment ? `, ${a.prochaine.moment}` : ''}${a.prochaine.si_fiche ? ', si la fiche n\'est pas arrivée' : ''}${suivantes ? ` ; ${suivantes}` : ''}` } : issueTapee === 'pas_interesse' ? { etat: 'ok', texte: 'Ne plus appeler : aucune relance' } : null;
   const recu = { monday, mail: mailRecu, diffusion, relance, extras, le: maintenantD.toISOString(), cle: cle || null, annulable_jusqu: new Date(maintenantD.getTime() + DELAI_ANNULER_MS).toISOString() };
@@ -822,8 +884,21 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
 }
 
 /** Une boîte d'envoi rattachée par la personne (Gmail ou SMTP) : sans elle, le mail s'ouvre en brouillon. */
+/** La boîte d'où partira le mail : celle par défaut de l'analyste, sinon la première qui sait envoyer. */
+// Les tests posent les boîtes connectées (actions-proposees.test.js) ; jamais en dehors de node --test.
+let boitesPourTests = null;
+export function brancherBoitesPourTests(liste) { boitesPourTests = process.env.NODE_TEST_CONTEXT ? liste : null; }
+const boitesDe = async (email) => (boitesPourTests || (await import('../email.js')).listAccounts(email));
+
+async function expediteurDe(email) {
+  try {
+    const t = (await boitesDe(email)).filter((x) => x.peut_envoyer !== false && !x.needs_reconnect);
+    return (t.find((x) => x.par_defaut) || t[0])?.email || null;
+  } catch { return null; }
+}
+
 async function boiteDEnvoi(email) {
-  try { const { listAccounts } = await import('../email.js'); return listAccounts(email).some((x) => x.peut_envoyer !== false && !x.needs_reconnect); } catch { return false; }
+  try { return (await boitesDe(email)).some((x) => x.peut_envoyer !== false && !x.needs_reconnect); } catch { return false; }
 }
 
 const mailtoDe = (m, user) => {

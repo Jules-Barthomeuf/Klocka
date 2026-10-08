@@ -989,6 +989,7 @@ export default function Prospection() {
   // la fiabilité d'AK), l'agent IA, ses listes par ville. « Prospecter » (le
   // carnet complet) est caché depuis le 5 oct. 2026 et tourne en coulisse.
   // « Mode appel » (6 oct. 2026) : la file d'une ville, une agence à la fois, pensée pour le téléphone.
+  // Les relances (7 oct. 2026) ont leur propre page : Relances.
   const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"]];
   const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
   const [aAppeler, setAAppeler] = useState(0);

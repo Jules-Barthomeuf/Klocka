@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Eye, X } from "lucide-react";
 
 // Les actions proposées après un appel abouti, en séquence (maquette de
@@ -82,7 +83,7 @@ function Etape({ e }) {
 function Carte({ titre, etapes, p, allume }) {
   const actif = etapes.some((e) => e.on);
   return (
-    <div className={`relative rounded-[18px] border border-trait bg-fond px-[18px] pb-1.5 pt-3.5 transition-opacity ${actif ? "" : "opacity-45"}`}>
+    <div className={`relative rounded-[18px] border border-trait bg-transparent px-[18px] pb-1.5 pt-3.5 transition-opacity ${actif ? "" : "opacity-45"}`}>
       <p className={`m-0 mb-0.5 text-[12px] tracking-[.14em] transition-colors ${allume ? "text-menthe" : "text-ardoise"}`}>{titre}</p>
       {etapes.map((e) => <Etape key={e.k} e={e} />)}
       <Trace p={p} rayon={18} />
@@ -90,123 +91,111 @@ function Carte({ titre, etapes, p, allume }) {
   );
 }
 
-/** La feuille de détail qui glisse du bas : les champs avant → après, ou le mail à relire. */
-function Feuille({ feuille, mail, onMail, onFermer }) {
-  const [brouillon, setBrouillon] = useState(() => (feuille.mail ? { a: mail?.a || "", objet: mail?.objet || "", corps: mail?.corps || "", modele: mail?.modele || feuille.mail.modele } : null));
-  const [date, setDate] = useState(feuille.date?.valeur || "");
-  // La phrase de contexte du mail Murs commerciaux : surlignée, retirable.
-  const contexte = feuille.mail?.contexte && brouillon?.corps?.includes(feuille.mail.contexte) ? feuille.mail.contexte : null;
+// Le voile bleu des cases qu'AK écrit, posé sur la surface (pas d'hexadécimal).
+const VOILE_BLEU = { backgroundImage: "linear-gradient(rgb(var(--k-bleu-rgb) / 0.08), rgb(var(--k-bleu-rgb) / 0.08))" };
+const enJour = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "")) ? jourLong(v).replace(/^./, (c) => c.toUpperCase()) : v);
+
+/**
+ * Une case du détail. En bleu (libellé « · modifié » ou « · nouveau ») : ce
+ * qu'AK écrit. Une case qui a `edit` se change d'un clic ; les autres se lisent.
+ */
+function Case({ c }) {
+  const bleu = !!c.statut;
+  const saisie = "min-w-0 -mx-2 rounded-champ border border-transparent bg-transparent px-2 py-1 text-[16px] leading-[1.4] text-encre outline-none hover:border-bord-doux focus:border-bleu";
+  const e = c.edit;
+  return (
+    <div className={`-ml-px -mt-px flex min-w-0 flex-col gap-2 border-l border-t border-trait bg-transparent px-5 py-4 max-md:px-4 max-md:py-3.5 ${c.large ? "col-span-2 max-md:col-span-1" : ""}`} style={bleu ? VOILE_BLEU : undefined}>
+      <span className={`text-[13.5px] ${bleu ? "text-bleu" : "text-ardoise"}`}>{c.label}{c.statut ? ` · ${c.statut}` : ""}</span>
+      {e?.type === "date" && (
+        <input type="date" value={e.valeur || ""} min={new Date().toISOString().slice(0, 10)} onChange={(x) => x.target.value && e.changer(x.target.value)} aria-label={c.label}
+          className="self-start rounded-champ border border-bleu/50 bg-transparent px-3 py-2 text-[16px] text-encre outline-none focus:border-bleu" />
+      )}
+      {e?.type === "texte" && <input value={e.valeur ?? ""} onChange={(x) => e.changer(x.target.value)} placeholder={e.placeholder || "—"} aria-label={c.label} className={`${saisie} ${c.warn ? "text-ambre" : ""}`} />}
+      {e?.type === "zone" && <textarea value={e.valeur ?? ""} onChange={(x) => e.changer(x.target.value)} rows={e.lignes || 3} aria-label={c.label} className={`${saisie} resize-y text-[15px] leading-[1.55]`} />}
+      {!e && <span className={`whitespace-pre-line text-[16px] leading-[1.45] [text-wrap:pretty] ${c.warn ? "text-ambre" : c.valeur ? "text-encre" : "text-brume"}`}>{c.valeur || "—"}</span>}
+      {c.source && <span className="text-[12.5px] text-menthe">{c.source}</span>}
+    </div>
+  );
+}
+
+/**
+ * Le détail des étapes, en fenêtre (maquette de Jules, 7 oct. 2026) : à
+ * gauche toutes les étapes, rangées par moment ; à droite celle qu'on lit,
+ * en cases. Précédente et Suivante passent d'une étape à l'autre ; Rétablir
+ * remet ce qu'AK avait proposé pour l'étape ouverte.
+ */
+function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer }) {
   useEffect(() => {
     const f = (e) => { if (e.key === "Escape") onFermer(); };
     window.addEventListener("keydown", f);
     return () => window.removeEventListener("keydown", f);
   }, [onFermer]);
-  const champ = "rounded-[12px] border border-trait bg-surface px-3.5 py-3 text-[16px] text-encre outline-none focus:border-menthe";
-  return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/65" onMouseDown={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
-      <div className="flex max-h-[86vh] w-full max-w-[520px] flex-col gap-[18px] overflow-auto rounded-t-[24px] border border-b-0 border-trait bg-surface-pleine px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-3">
-        <span className="h-1 w-10 self-center rounded-full bg-bord-vif" />
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[12px] tracking-[.14em] text-ardoise">{feuille.kicker}</span>
-            <span className="text-[22px] leading-[1.25] text-encre">{feuille.titre}</span>
+  const i = Math.max(0, pas.findIndex((x) => x.k === ouverte));
+  const courant = pas[i];
+  const c = contenuDe(courant.q);
+  const cases = c.cases || [];
+  // Une case seule en fin de ligne prend toute la largeur : pas de trou dans la grille.
+  const simples = cases.filter((x) => !x.large).length;
+  const groupes = [];
+  for (const x of pas) {
+    const g = groupes[groupes.length - 1];
+    if (g && g.titre === x.groupe) g.pas.push(x); else groupes.push({ titre: x.groupe, pas: [x] });
+  }
+  const bouton = "p-0 text-[14px] transition-colors disabled:opacity-35";
+  // Rendue dans le body : sous un parent qui crée son propre empilement, la barre du téléphone passait devant.
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-fond/80 p-6 backdrop-blur-xl md:left-[var(--k-barre-largeur)] max-md:p-0" onMouseDown={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
+      <div role="dialog" aria-modal="true" aria-label={c.titre}
+        className="grid max-h-[min(720px,100%)] w-full max-w-[760px] grid-cols-[190px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-bloc border border-bord-vif bg-transparent shadow-[0_18px_40px_rgb(0_0_0/0.18)] max-md:h-full max-md:max-w-none max-md:grid-cols-1 max-md:rounded-none">
+        <nav className="flex min-h-0 flex-col overflow-y-auto border-r border-trait bg-transparent px-3 py-5 max-md:hidden">
+          {groupes.map((g) => (
+            <div key={g.titre} className="mb-5 flex flex-col gap-1 last:mb-0">
+              <span className="mb-1.5 px-4 text-[11px] uppercase tracking-[.16em] text-ardoise">{g.titre}</span>
+              {g.pas.map((x) => (
+                <button key={x.k} type="button" onClick={() => setOuverte(x.k)} aria-current={x.k === courant.k ? "step" : undefined}
+                  className={`rounded-champ px-3 py-2.5 text-left text-[14.5px] transition-colors ${x.k === courant.k ? "bg-relief text-encre" : "text-craie hover:text-encre"} ${x.on ? "" : "line-through opacity-45"}`}
+                  style={x.k === courant.k ? undefined : { background: "transparent" }}>{x.court}</button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="flex min-h-0 flex-col px-7 pb-6 pt-6 max-md:px-4 max-md:pb-[calc(72px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 flex-col gap-2">
+              <span className="text-[11px] uppercase tracking-[.16em] text-ardoise">{c.kicker}<span className="md:hidden"> · {i + 1} sur {pas.length}</span></span>
+              <span className="break-words text-[22px] leading-[1.25] tracking-[-0.01em] text-encre max-md:text-[20px]">{c.titre}</span>
+            </div>
+            <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-9 w-9 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
           </div>
-          <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-10 w-10 flex-none place-items-center rounded-full border border-trait text-craie hover:bg-relief" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+          <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+            {!courant.on && <p className="m-0 text-[13.5px] text-ardoise">Étape retirée : elle ne partira pas à la validation.</p>}
+            {c.haut}
+            {cases.length > 0 && (
+              <div className="grid grid-cols-2 overflow-hidden rounded-bloc border border-trait max-md:grid-cols-1">
+                {cases.map((x, n) => <Case key={`${x.label}-${n}`} c={!x.large && simples % 2 === 1 && cases.slice(n + 1).every((y) => y.large) ? { ...x, large: true } : x} />)}
+              </div>
+            )}
+            {c.aide && <p className="m-0 text-[13.5px] leading-[1.5] text-ardoise">{c.aide}</p>}
+          </div>
+          <div className="mt-5 flex items-center gap-6 border-t border-trait pt-4 max-md:gap-4">
+            <button type="button" disabled={i === 0} onClick={() => setOuverte(pas[i - 1].k)} className={`${bouton} text-craie hover:text-encre`} style={{ background: "transparent" }}>← Précédente</button>
+            <button type="button" disabled={!c.retablir} onClick={() => c.retablir?.()} className={`${bouton} text-craie hover:text-encre`} style={{ background: "transparent" }}>Rétablir</button>
+            <button type="button" onClick={() => (i < pas.length - 1 ? setOuverte(pas[i + 1].k) : onFermer())}
+              className="ml-auto h-10 rounded-full bg-encre px-5 text-[14px] text-fond hover:opacity-90">{i < pas.length - 1 ? "Suivante →" : "Terminer"}</button>
+          </div>
         </div>
-
-        {feuille.champs && (
-          <div className="flex flex-col">
-            {feuille.champs.map((f) => (
-              <div key={f.label} className="grid grid-cols-[minmax(0,120px)_minmax(0,1fr)] gap-3 border-t border-trait py-3">
-                <span className="pt-0.5 text-[13px] text-ardoise">{f.label}</span>
-                <span className="flex flex-col gap-0.5">
-                  {f.avant && <span className="text-[13px] text-brume line-through">{f.avant}</span>}
-                  <span className={`text-[16px] leading-[1.4] [text-wrap:pretty] ${f.warn ? "text-ambre" : "text-encre"}`}>{f.apres}</span>
-                  {f.source && <span className="text-[12px] text-menthe">{f.source}</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {feuille.texte && (
-          <div className="flex flex-col gap-3">
-            {feuille.a && <div className="flex gap-2.5 border-b border-trait pb-3 text-[14px]"><span className="w-11 flex-none text-ardoise">À</span><span className="text-encre">{feuille.a}</span></div>}
-            {feuille.objet && <p className="m-0 text-[15px] text-encre">{feuille.objet}</p>}
-            <p className="m-0 whitespace-pre-line rounded-[12px] border border-trait bg-surface px-3.5 py-3 text-[15px] leading-[1.55] text-craie">{feuille.texte}</p>
-            {feuille.note && <span className="text-[12px] text-ardoise">{feuille.note}</span>}
-          </div>
-        )}
-
-        {feuille.doute && (
-          <div className="flex flex-col gap-2">
-            <p className="m-0 text-[15px] text-ambre">C'est bien ce contact ?</p>
-            {feuille.doute.candidates.map((c) => (
-              <button key={c.id} type="button" onClick={() => { feuille.doute.choisir(c.id); onFermer(); }}
-                className={`flex flex-col items-start gap-0.5 rounded-[12px] border px-3.5 py-3 text-left ${feuille.doute.choisie === c.id ? "border-menthe bg-menthe/10" : "border-trait"}`} style={feuille.doute.choisie === c.id ? undefined : { background: "transparent" }}>
-                <span className="text-[15px] text-encre">{c.nom}</span>
-                <span className="text-[13px] text-ardoise">{[c.entreprise, c.ville, c.telephone, c.email].filter(Boolean).join(" · ")}</span>
-              </button>
-            ))}
-            <button type="button" onClick={() => { feuille.doute.choisir("nouvelle"); onFermer(); }}
-              className={`rounded-[12px] border px-3.5 py-3 text-left text-[15px] ${feuille.doute.choisie === "nouvelle" ? "border-menthe bg-menthe/10 text-encre" : "border-trait text-craie"}`} style={feuille.doute.choisie === "nouvelle" ? undefined : { background: "transparent" }}>
-              Aucun : nouveau contact
-            </button>
-          </div>
-        )}
-
-        {feuille.date && (
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1.5"><span className="text-[13px] text-ardoise">Date de la relance</span>
-              <input type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} className={champ} /></label>
-            <div className="flex justify-end">
-              <button type="button" disabled={!date} onClick={() => { feuille.date.changer(date); onFermer(); }} className="rounded-full bg-encre px-6 py-3.5 text-[16px] text-fond hover:opacity-90 disabled:opacity-50">Enregistrer</button>
-            </div>
-          </div>
-        )}
-
-        {feuille.mail && brouillon && (
-          <>
-            {feuille.mail.variantes?.length > 1 && (
-              <div className="flex flex-wrap gap-1.5">
-                {feuille.mail.variantes.map((v) => (
-                  <button key={v.slug} type="button" onClick={() => setBrouillon({ ...brouillon, objet: v.objet, corps: v.corps, modele: v.slug })}
-                    className={`h-8 rounded-full border px-3 text-[13px] ${brouillon.modele === v.slug ? "border-menthe/50 bg-menthe/10 text-encre" : "border-trait text-craie"}`} style={brouillon.modele === v.slug ? undefined : { background: "transparent" }}>
-                    {MAILS[v.slug] || v.titre}
-                  </button>
-                ))}
-              </div>
-            )}
-            {contexte && (
-              <div className="flex items-start justify-between gap-3 rounded-[12px] bg-ambre/15 px-3.5 py-2.5">
-                <span className="text-[14px] leading-[1.45] text-ambre">{contexte}</span>
-                <button type="button" onClick={() => setBrouillon({ ...brouillon, corps: brouillon.corps.replace(`${contexte}\n\n`, "").replace(contexte, "") })} className="flex-none p-0 text-[13px] text-ambre underline" style={{ background: "transparent" }}>Retirer</button>
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1.5"><span className="text-[13px] text-ardoise">À</span>
-                <input value={brouillon.a} onChange={(e) => setBrouillon({ ...brouillon, a: e.target.value })} placeholder="adresse@agence.fr" className={`${champ} ${brouillon.a ? "" : "border-ambre/60"}`} /></label>
-              <label className="flex flex-col gap-1.5"><span className="text-[13px] text-ardoise">Objet</span>
-                <input value={brouillon.objet} onChange={(e) => setBrouillon({ ...brouillon, objet: e.target.value })} className={champ} /></label>
-              <label className="flex flex-col gap-1.5"><span className="text-[13px] text-ardoise">Message</span>
-                <textarea value={brouillon.corps} onChange={(e) => setBrouillon({ ...brouillon, corps: e.target.value })} rows={12} className={`${champ} resize-y text-[15px] leading-[1.55]`} /></label>
-              <span className="text-[12px] text-ardoise">{brouillon.a ? "Le texte du modèle est fixe : seules les variables sont remplies. Il part depuis votre boîte dix secondes après la validation ; {signature} devient votre nom." : "Sans adresse, le mail ne part pas."}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <button type="button" onClick={() => setBrouillon({ a: feuille.mail.a || "", objet: feuille.mail.objet, corps: feuille.mail.corps, modele: feuille.mail.modele })} className="p-0 text-[14px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Rétablir le texte proposé</button>
-              <button type="button" onClick={() => { onMail(brouillon); onFermer(); }} className="rounded-full bg-encre px-6 py-3.5 text-[16px] text-fond hover:opacity-90">Enregistrer</button>
-            </div>
-          </>
-        )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 /**
  * @param {{appel, agence, issue, coches: Set, setCoches, mail, setMail, relanceLe, setRelanceLe, ligneMonday, setLigneMonday, onLancer, envoi}} props
  */
-export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, onLancer, envoi = false }) {
+export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false }) {
+  // Relances (8 oct. 2026) : « Agent prévenu » s'ajoute aux issues pour un bien retenu ou refusé.
+  const ISS = issuesEnPlus ? { ...ISSUES, ...issuesEnPlus } : ISSUES;
   const props = appel.propositions || [];
   const par = (t) => props.find((p) => p.type === t);
   const pm = par("mail");
@@ -216,7 +205,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const pdi = par("diffusion");
   const compris = appel.compris?.champs || {};
   const interlocuteur = compris.interlocuteur?.valeur || agence?.interlocuteurs?.[0] || appel.avant?.interlocuteur || null;
-  const [feuille, setFeuille] = useState(null);
+  const [ouverte, setOuverte] = useState(null);
+  const [choixIssue, setChoixIssue] = useState(false);
   const [debut] = useState(() => performance.now());
   const [t, setT] = useState(() => (lenteur() ? 99 : 0));
   const ligne = pmo?.ligne || null;
@@ -243,56 +233,173 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const dateRelance = relanceLe || pr?.prochaine?.le;
   const choisie = ligneMonday ? (ligneMonday === "nouvelle" ? { nom: "Nouveau contact" } : (ligne?.candidates || []).find((c) => c.id === ligneMonday)) : null;
 
-  const feuilles = {
-    monday: () => ({
-      kicker: "MONDAY · AGENTS IMMOBILIERS",
-      titre: ligne?.etat === "trouvee" ? `${ligne.ligne.nom || "Contact sans nom"} · déjà dans Monday` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `${choisie.nom}` : "Quel contact ?") : agence?.nom || appel.agent,
-      ...(ligne?.etat === "doute" ? { doute: { candidates: ligne.candidates || [], choisie: ligneMonday, choisir: setLigneMonday } } : {}),
-      champs: ligne?.etat === "indisponible" || ligne?.etat === "info"
-        ? [{ label: "Monday", apres: ligne.texte, warn: ligne.etat === "indisponible" }]
-        : (ligne?.apercu || []).map((x) => ({ label: x.titre, avant: x.avant && x.avant !== x.apres ? String(x.avant).split("\n").slice(-1)[0] : null, apres: x.apres || "(vidée)", source: x.titre === "Prochaine relance" && relanceLe ? "Date changée : appliquée à la validation" : null })),
-    }),
-    mail: () => ({ kicker: "MAIL · DEPUIS VOTRE BOÎTE", titre: MAILS[mail?.modele || pm.modele] || pm.titre, mail: { ...pm, modele: pm.modele } }),
-    diffusion: () => ({ kicker: "EMAILING · LISTE DE DIFFUSION", titre: pdi.liste, champs: [
-      { label: "Adresse", apres: pdi.a || mail?.a || "(il manque l'adresse)", warn: !(pdi.a || mail?.a) },
-      { label: "Effet", apres: "Reçoit les nouvelles de Klocka : une partie des relances téléphoniques en moins" },
-      { label: "Annuler", apres: "Retiré de la liste si vous annulez dans les dix secondes" },
-    ] }),
-    relance: () => ({ kicker: "FILE D'APPELS", titre: `Rappeler ${interlocuteur || agence?.nom || ""}`.trim(), date: { valeur: dateRelance, changer: setRelanceLe }, champs: [
-      { label: "Quoi", apres: pr.prochaine?.quoi },
-      { label: "Pourquoi cette date", apres: relanceLe ? "Choisie à la main" : pr.source ? `Dit : « ${pr.source} »` : pr.incertain ? "Date par défaut : rien n'a été dit" : "Selon l'issue", warn: !relanceLe && !!pr.incertain },
-      pr.prochaine?.si_fiche && { label: "Annulée", apres: "Dès que la fiche arrive depuis son adresse" },
-    ].filter(Boolean) }),
-    relance_suivante: () => ({ kicker: "FILE D'APPELS · SECONDE RELANCE", titre: "Faire le point", date: { valeur: relance2Le || pr2.prochaine?.le, changer: setRelance2Le }, champs: [
-      { label: "Quoi", apres: pr2.prochaine?.quoi },
-      { label: "Pourquoi cette date", apres: relance2Le ? "Choisie à la main" : pr2.incertain ? "Date par défaut : trois semaines" : `Dit : « ${pr2.source} »`, warn: !relance2Le && !!pr2.incertain },
-      { label: "Ordre", apres: "Après la relance de la fiche ; si la fiche arrive, c'est elle qui devient la prochaine" },
-    ] }),
-    fiche: () => ({ kicker: "FICHE · CE QUI S'AJOUTE", titre: agence?.nom || appel.agent, champs: [
-      ...(par("fiche")?.infos?.secteurs || []).length ? [{ label: "Secteurs", apres: par("fiche").infos.secteurs.join(", ") }] : [],
-      ...par("fiche")?.infos?.email ? [{ label: "Email", apres: par("fiche").infos.email }] : [],
-      ...(par("fiche")?.infos?.notes || []).map((n, i) => ({ label: i ? "" : "Notes", apres: n })),
-    ] }),
-    nouveau_contact: () => { const x = par("nouveau_contact"); return { kicker: "CONTACT DONNÉ PENDANT L'APPEL", titre: x.contact.nom || "Nouveau contact", champs: [
-      x.contact.telephone && { label: "Téléphone", apres: x.contact.telephone, warn: !!x.incertain, source: x.incertain || null },
-      x.contact.email && { label: "Email", apres: x.contact.email },
-      { label: "D'où ça vient", apres: `« ${x.source} »` },
-      { label: "Suite", apres: "Ajouté à l'agence et mis en tête de file aujourd'hui" },
-    ].filter(Boolean) }; },
-    ne_plus_appeler: () => ({ kicker: "MONDAY · FILE D'APPELS", titre: "Ne plus appeler", champs: [
-      { label: "Monday", apres: "Ligne marquée « Ne plus appeler », relance vidée" },
-      { label: "File", apres: "L'agence ne revient plus dans les sessions" },
-    ] }),
-    signaler_bien: () => { const b = par("signaler_bien"); return { kicker: "BIEN ÉVOQUÉ", titre: b.biens[0], champs: [
-      ...b.biens.map((x, i) => ({ label: i ? "" : "Biens", apres: x, source: i === 0 && b.source ? `Dit : « ${b.source} »` : null })),
-      { label: "Suite", apres: "Le dossier se crée quand la fiche arrive par mail" },
-    ] }; },
-    prevenir: () => { const x = par("prevenir"); return { kicker: "MESSAGE · NOTIFICATION", titre: "Prévenir un collègue", a: x.pour.map((e) => e.split("@")[0].split(".")[0]).join(", "), texte: `Vous avez appelé ${agence?.nom || appel.agent} : ${ISSUES[issue] || ""}${appel.resume ? `. ${appel.resume}` : ""}`, note: "Envoyé à la validation, dans les notifications de l'application." }; },
-    autre: (q) => ({ kicker: "ÉTAPE", titre: q.titre, texte: q.texte || q.titre }),
+  // Le mail tel qu'il partira : celui retouché, sinon celui du modèle.
+  const m = pm ? (mail || { a: pm.a || "", objet: pm.objet, corps: pm.corps, modele: pm.modele }) : null;
+  const pastille = (on) => `h-9 rounded-full border px-3.5 text-[13.5px] ${on ? "border-menthe/50 bg-menthe/10 text-encre" : "border-trait text-craie hover:text-encre"}`;
+  const prenomDe = (e) => { const x = e.split("@")[0].split(".")[0]; return x.charAt(0).toUpperCase() + x.slice(1); };
+  // « Pourquoi cette date » (8 oct. 2026) : la phrase exacte d'abord, puis le contexte de l'appel.
+  const pourquoi = (q, aLaMain, defaut) => {
+    if (aLaMain) return { label: "Pourquoi cette date", valeur: "Choisie à la main", large: true };
+    const phrase = q.phrase || q.source || null;
+    const lignes = [phrase ? `« ${phrase} »` : null, q.pourquoi || null, !phrase && q.incertain ? defaut : null].filter(Boolean);
+    return { label: "Pourquoi cette date", valeur: lignes.join("\n\n") || "Selon l'issue", warn: !phrase && !q.pourquoi && !!q.incertain, large: true };
   };
-  const voir = (k, q) => () => setFeuille((feuilles[k] || feuilles.autre)(q));
 
-  const etape = (q, champs) => ({ k: q.id, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: voir(q.type, q), ...champs });
+  // Les cases Monday qu'on corrige ici sont celles que la validation sait reporter :
+  // le contact, le téléphone, l'email (corrections) et la date de relance.
+  const CLE_MONDAY = { Contact: "interlocuteur", "Téléphone": "telephone", "E-mail": "email" };
+  const casesMonday = () => {
+    if (!ligne) return [];
+    if (ligne.etat === "indisponible" || ligne.etat === "info") return [{ label: "Monday", valeur: ligne.texte, warn: ligne.etat === "indisponible", large: true }];
+    return (ligne.apercu || []).map((x) => {
+      const statut = String(x.avant || "").replace(/\u200b/g, "").trim() ? "modifié" : "nouveau";
+      const apres = String(x.apres ?? "").replace(/\u200b/g, "").trim();
+      const cle = CLE_MONDAY[x.titre];
+      if (x.titre === "Prochaine relance" && pr) return { label: x.titre, statut, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
+      if (cle && setEdits) return { label: x.titre, statut, edit: { type: "texte", valeur: edits?.[cle] ?? apres, changer: (v) => setEdits((e) => ({ ...e, [cle]: v })) } };
+      if (x.titre === "Remarques") return { label: x.titre, statut: String(x.avant || "").trim() ? "ajout" : "nouveau", valeur: apres.replace(/^\+\s*/, ""), large: true };
+      return { label: x.titre, statut, valeur: apres ? enJour(apres) : "(vidée)" };
+    });
+  };
+  const mondayRetouche = !!relanceLe || ["interlocuteur", "telephone", "email"].some((k) => edits?.[k] != null);
+
+  /** Ce que la fenêtre montre pour une étape : son titre, ses cases, et ce que « Rétablir » remet. */
+  const contenuDe = (q) => {
+    if (q.type === "monday") {
+      const cases = casesMonday();
+      return {
+        kicker: "MONDAY · AGENTS IMMOBILIERS",
+        titre: ligne?.etat === "trouvee" ? `${String(ligne.ligne.nom || "").replace(/\u200b/g, "").trim() || "Contact sans nom"} · ${agence?.nom || ""}`.replace(/ · $/, "") : ligne?.etat === "doute" ? (choisie ? choisie.nom : "Quel contact ?") : agence?.nom || appel.agent,
+        haut: (
+          <>
+            {ligne?.etat === "trouvee" && <p className="m-0 text-[13.5px] text-ardoise">Déjà dans Monday, retrouvé par {ligne.par}.</p>}
+            {ligne?.etat === "nouvelle" && <p className="m-0 text-[13.5px] text-ardoise">Pas encore dans Monday : une ligne sera créée.</p>}
+            {ligne?.etat === "doute" && (
+              <div className="flex flex-col gap-2">
+                <p className="m-0 text-[15px] text-ambre">Plusieurs contacts possibles dans Monday : lequel est le bon ?</p>
+                {(ligne.candidates || []).map((c) => (
+                  <button key={c.id} type="button" onClick={() => setLigneMonday(c.id)}
+                    className={`flex flex-col items-start gap-0.5 rounded-champ border px-4 py-3 text-left ${ligneMonday === c.id ? "border-menthe bg-menthe/10" : "border-trait hover:border-bord-doux"}`} style={ligneMonday === c.id ? undefined : { background: "transparent" }}>
+                    <span className="text-[15px] text-encre">{c.nom}</span>
+                    <span className="text-[13.5px] text-ardoise">{[c.entreprise, c.ville, c.telephone, c.email].filter(Boolean).join(" · ")}</span>
+                  </button>
+                ))}
+                <button type="button" onClick={() => setLigneMonday("nouvelle")}
+                  className={`rounded-champ border px-4 py-3 text-left text-[15px] ${ligneMonday === "nouvelle" ? "border-menthe bg-menthe/10 text-encre" : "border-trait text-craie hover:border-bord-doux"}`} style={ligneMonday === "nouvelle" ? undefined : { background: "transparent" }}>
+                  Aucun : nouveau contact
+                </button>
+              </div>
+            )}
+          </>
+        ),
+        cases,
+        aide: cases.some((c) => c.statut) ? `Cases en bleu : ce qu'AK écrit sur la ligne.${cases.some((c) => c.edit) ? " Cliquez sur une case pour la changer." : ""}` : null,
+        retablir: mondayRetouche ? () => { setRelanceLe(null); setEdits?.((e) => { const n0 = { ...e }; delete n0.interlocuteur; delete n0.telephone; delete n0.email; return n0; }); } : null,
+      };
+    }
+    if (q.type === "mail") {
+      const contexte = pm.contexte && m.corps?.includes(pm.contexte) ? pm.contexte : null;
+      const change = (k) => (v) => setMail({ ...m, [k]: v });
+      return {
+        kicker: "MAIL",
+        titre: MAILS[m.modele || pm.modele] || pm.titre,
+        haut: (
+          <>
+            {/* La boîte d'où il part (8 oct. 2026) : on la voit avant de valider. */}
+            <p className={`m-0 text-[14px] ${pm.depuis ? "text-ardoise" : "text-ambre"}`}>{pm.depuis ? <>Mail envoyé depuis <span className="text-encre">{pm.depuis}</span></> : "Aucune boîte d'envoi connectée : le mail deviendra un brouillon à envoyer vous-même"}</p>
+            {pm.variantes?.length > 1 && (
+              <div className="flex flex-wrap gap-1.5">
+                {pm.variantes.map((v) => <button key={v.slug} type="button" onClick={() => setMail({ ...m, objet: v.objet, corps: v.corps, modele: v.slug })} className={pastille(m.modele === v.slug)} style={m.modele === v.slug ? undefined : { background: "transparent" }}>{MAILS[v.slug] || v.titre}</button>)}
+              </div>
+            )}
+            {contexte && (
+              <div className="flex items-start justify-between gap-3 rounded-champ bg-ambre/15 px-4 py-3">
+                <span className="text-[14px] leading-[1.45] text-ambre">{contexte}</span>
+                <button type="button" onClick={() => setMail({ ...m, corps: m.corps.replace(`${contexte}\n\n`, "").replace(contexte, "") })} className="flex-none p-0 text-[13.5px] text-ambre underline" style={{ background: "transparent" }}>Retirer</button>
+              </div>
+            )}
+          </>
+        ),
+        cases: [
+          { label: "À", statut: (m.a || "") !== (pm.a || "") ? "modifié" : null, warn: !m.a || (pm.a_incertain && m.a === pm.a), source: pm.a_incertain && m.a === pm.a ? pm.a_incertain : null, edit: { type: "texte", valeur: m.a, changer: change("a"), placeholder: "adresse@agence.fr" } },
+          { label: "Objet", statut: m.objet !== pm.objet ? "modifié" : null, edit: { type: "texte", valeur: m.objet, changer: change("objet") } },
+          { label: "Message", statut: m.corps !== pm.corps ? "modifié" : null, large: true, edit: { type: "zone", valeur: m.corps, changer: change("corps"), lignes: 12 } },
+        ],
+        aide: m.a ? "Le texte du modèle est fixe : seules les variables sont remplies. Il part depuis votre boîte dix secondes après la validation ; {signature} devient votre nom." : "Sans adresse, le mail ne part pas.",
+        retablir: modifie || m.modele !== pm.modele ? () => setMail({ a: pm.a || "", objet: pm.objet, corps: pm.corps, modele: pm.modele }) : null,
+      };
+    }
+    if (q.type === "relance") return {
+      kicker: "FILE D'APPELS", titre: `Rappeler ${interlocuteur || agence?.nom || ""}`.trim(),
+      cases: [
+        { label: "Date", statut: relanceLe ? "modifié" : null, edit: { type: "date", valeur: dateRelance, changer: setRelanceLe } },
+        pourquoi(pr, !!relanceLe, "Date par défaut : rien n'a été dit"),
+        { label: "Quoi", valeur: pr.prochaine?.quoi, large: true },
+        pr.prochaine?.si_fiche && { label: "Annulée", valeur: "Dès que la fiche arrive depuis son adresse", large: true },
+      ].filter(Boolean),
+      retablir: relanceLe ? () => setRelanceLe(null) : null,
+    };
+    if (q.type === "relance_suivante") return {
+      kicker: "FILE D'APPELS · SECONDE RELANCE", titre: "Faire le point",
+      cases: [
+        { label: "Date", statut: relance2Le ? "modifié" : null, edit: { type: "date", valeur: relance2Le || pr2.prochaine?.le, changer: setRelance2Le } },
+        pourquoi(pr2, !!relance2Le, "Date par défaut : trois semaines"),
+        { label: "Quoi", valeur: pr2.prochaine?.quoi, large: true },
+        { label: "Ordre", valeur: "Après la relance de la fiche ; si la fiche arrive, c'est elle qui devient la prochaine", large: true },
+      ],
+      retablir: relance2Le ? () => setRelance2Le(null) : null,
+    };
+    if (q.type === "diffusion") return {
+      kicker: "EMAILING · LISTE DE DIFFUSION", titre: q.liste,
+      cases: [
+        { label: "Adresse", statut: "nouveau", valeur: m?.a || q.a || "Il manque l'adresse", warn: !(m?.a || q.a) },
+        { label: "Annuler", valeur: "Retiré de la liste si vous annulez dans les dix secondes" },
+        { label: "Effet", valeur: "Reçoit les nouvelles de Klocka : une partie des relances téléphoniques en moins", large: true },
+      ],
+    };
+    if (q.type === "fiche") return {
+      kicker: "FICHE · CE QUI S'AJOUTE", titre: agence?.nom || appel.agent,
+      cases: [
+        (q.infos?.secteurs || []).length && { label: "Secteurs", statut: "nouveau", valeur: q.infos.secteurs.join(", ") },
+        q.infos?.email && { label: "Email", statut: "nouveau", valeur: q.infos.email },
+        (q.infos?.notes || []).length && { label: "Notes", statut: "nouveau", valeur: q.infos.notes.join("\n"), large: true },
+      ].filter(Boolean),
+    };
+    if (q.type === "nouveau_contact") return {
+      kicker: "CONTACT DONNÉ PENDANT L'APPEL", titre: q.contact.nom || "Nouveau contact",
+      cases: [
+        q.contact.telephone && { label: "Téléphone", statut: "nouveau", valeur: q.contact.telephone, warn: !!q.incertain, source: q.incertain || null },
+        q.contact.email && { label: "Email", statut: "nouveau", valeur: q.contact.email },
+        { label: "D'où ça vient", valeur: `« ${q.source} »`, large: true },
+        { label: "Suite", valeur: "Ajouté à l'agence et mis en tête de file aujourd'hui", large: true },
+      ].filter(Boolean),
+    };
+    if (q.type === "ne_plus_appeler") return {
+      kicker: "MONDAY · FILE D'APPELS", titre: "Ne plus appeler",
+      cases: [
+        { label: "Monday", statut: "modifié", valeur: "Ligne marquée « Ne plus appeler », relance vidée" },
+        { label: "File", valeur: "L'agence ne revient plus dans les sessions" },
+      ],
+    };
+    if (q.type === "signaler_bien") return {
+      kicker: "BIEN ÉVOQUÉ", titre: q.biens[0],
+      cases: [
+        { label: "Biens", statut: "nouveau", valeur: q.biens.join("\n"), source: q.source ? `Dit : « ${q.source} »` : null, large: true },
+        { label: "Suite", valeur: "Le dossier se crée quand la fiche arrive par mail", large: true },
+      ],
+    };
+    if (q.type === "prevenir") return {
+      kicker: "MESSAGE · NOTIFICATION", titre: "Prévenir un collègue",
+      cases: [
+        { label: "À", valeur: q.pour.map(prenomDe).join(", ") },
+        { label: "Quand", valeur: "À la validation, dans les notifications de l'application" },
+        { label: "Message", valeur: `Vous avez appelé ${agence?.nom || appel.agent} : ${ISS[issue] || ""}${appel.resume ? `. ${appel.resume}` : ""}`, large: true },
+      ],
+    };
+    return { kicker: "ÉTAPE", titre: q.titre, cases: [{ label: "Détail", valeur: q.texte || q.titre, large: true }] };
+  };
+
+  const etape = (q, champs) => ({ k: q.id, q, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: () => setOuverte(q.id), ...champs });
   const maintenant = [];
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
@@ -311,14 +418,33 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const pv = par("prevenir");
   if (pv) ensuite.push(etape(pv, { label: "Prévenir un collègue", detail: pv.pour.map((e) => e.split("@")[0].split(".")[0]).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(", ") }));
   const n = [...maintenant, ...ensuite].filter((e) => e.on).length;
+  // Les étapes de la fenêtre, rangées par moment : maintenant, puis chaque date de relance dans l'ordre.
+  const COURT = { monday: "Contact Monday", ne_plus_appeler: "Ne plus appeler", mail: "Email", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
+  const dateDe = (e) => (e.q.type === "relance" ? dateRelance : e.q.type === "relance_suivante" ? relance2Le || pr2?.prochaine?.le : null);
+  const datees = ensuite.filter((e) => dateDe(e)).sort((x, y) => String(dateDe(x)).localeCompare(String(dateDe(y))));
+  const pas = [
+    ...[...maintenant, ...ensuite.filter((e) => !dateDe(e))].map((e) => ({ ...e, groupe: "Maintenant" })),
+    ...datees.map((e) => ({ ...e, groupe: jourLong(dateDe(e)) })),
+  ].map((e) => ({ ...e, court: COURT[e.q.type] || e.label }));
   const allume = (k) => p(k) >= 1;
 
   return (
     <div className="flex flex-col">
       <div className="mb-3 flex items-center justify-between px-1">
         <span className="text-[12px] tracking-[.14em] text-ardoise">ACTIONS PROPOSÉES</span>
-        <span className={`text-[13px] ${issue === "pas_interesse" ? "text-ardoise" : "text-menthe"}`}>{ISSUES[issue] || ""}</span>
+        <span className="flex items-center gap-2">
+          <span className={`text-[13px] ${issue === "pas_interesse" ? "text-ardoise" : "text-menthe"}`}>{ISS[issue] || ""}</span>
+          {/* AK s'est trompé d'issue : on la change, les actions se refont sur la même transcription. */}
+          {onChangerIssue && <button type="button" onClick={() => setChoixIssue((x) => !x)} disabled={changementEnCours} className="p-0 text-[13px] text-ardoise underline hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>changer</button>}
+        </span>
       </div>
+      {choixIssue && onChangerIssue && (
+        <div className="mb-3 flex flex-wrap justify-end gap-1.5 px-1">
+          {Object.entries(ISS).filter(([k]) => k !== issue).map(([k, l]) => (
+            <button key={k} type="button" onClick={() => { setChoixIssue(false); onChangerIssue(k); }} className="h-8 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l}</button>
+          ))}
+        </div>
+      )}
 
       {maintenant.length > 0 && <Carte titre="MAINTENANT" etapes={maintenant} p={p("maintenant")} allume={allume("maintenant")} />}
 
@@ -335,7 +461,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}
       </button>
 
-      {feuille && <Feuille feuille={feuille} mail={mail} onMail={(m) => setMail(m)} onFermer={() => setFeuille(null)} />}
+      {ouverte && pas.some((x) => x.k === ouverte) && <Panneau pas={pas} ouverte={ouverte} setOuverte={setOuverte} contenuDe={contenuDe} onFermer={() => setOuverte(null)} />}
     </div>
   );
 }

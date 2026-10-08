@@ -16,6 +16,7 @@ export const ADRESSES = {
   Analyse: "Dossiers",
   FichesCommerciales: "Fiches",
   Prospection: "Prospection",
+  Relances: "Relances",
   ALX: "ALX",
   ALXAtelier: "ALXAtelier",
   ALXVilles: "ALXVilles",

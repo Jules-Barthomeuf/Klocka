@@ -9,6 +9,7 @@
 // Sans aucun compte, les envois sont simulés : journalisés dans EmailLog avec le
 // statut « simule », mais jamais délivrés.
 
+import { banniereDe, sansSignature, htmlAvecBanniere, CID } from './signatures.js';
 import nodemailer from 'nodemailer';
 import { Records } from './db.js';
 import { listGoogleAccounts, sendViaGmail } from './google-oauth.js';
@@ -309,6 +310,11 @@ export async function sendEmail({
     };
   }
 
+  // La bannière de l'expéditeur (8 oct. 2026) remplace, dans le HTML, la signature en texte ;
+  // l'image part dans le mail (pièce intégrée). Un HTML déjà composé ailleurs n'est pas touché.
+  const banniere = !html ? banniereDe(account.email) : null;
+  const corpsHtml = banniere ? htmlAvecBanniere(textToHtml(sansSignature(text, { email: account.email, nom: banniere.nom }).corps), banniere) : null;
+  const pieces = [...(attachments || []), ...(banniere ? [{ filename: `klocka-${banniere.email.split('@')[0]}.jpg`, content: banniere.contenu, cid: CID, contentType: 'image/jpeg', contentDisposition: 'inline' }] : [])];
   const message = {
     to: toList,
     ...(ccList.length ? { cc: ccList } : {}),
@@ -316,8 +322,8 @@ export async function sendEmail({
     replyTo: replyTo || account.email,
     subject: subject || '',
     text,
-    html: html || textToHtml(text),
-    ...(attachments?.length ? { attachments } : {}),
+    html: html || corpsHtml || textToHtml(text),
+    ...(pieces.length ? { attachments: pieces } : {}),
   };
 
   try {

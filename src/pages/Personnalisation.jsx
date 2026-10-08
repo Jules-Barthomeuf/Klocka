@@ -153,6 +153,22 @@ function EditeurMenu({ principales, autres, prefs, changer }) {
 // pas AK.
 const AVIS = [["oui", "Oui"], ["non", "Non"], ["", "Sans avis"]];
 
+/** La bannière en bas des mails (8 oct. 2026) : celle de son adresse Klocka, telle qu'elle part. */
+function SignatureMails({ email }) {
+  const [absente, setAbsente] = useState(false);
+  const local = String(email || "").toLowerCase().endsWith("@klocka.immo") ? String(email).toLowerCase().split("@")[0] : null;
+  return (
+    <section className="mt-5 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
+      <p className={`${etiq} pt-4`}>Mails</p>
+      <Reglage titre="Signature des mails" note="En bas de chaque mail parti de votre boîte Klocka, à la place de la signature en texte.">
+        {local && !absente
+          ? <img src={`/signatures/${local}.jpg`} alt="Votre bannière de signature" onError={() => setAbsente(true)} className="block w-full max-w-[500px] rounded-[8px]" />
+          : <p className="m-0 text-[13.5px] text-ardoise">Pas encore de bannière pour {email || "cette adresse"} : demandez-la à Jules.</p>}
+      </Reglage>
+    </section>
+  );
+}
+
 function ReglagesAssistant() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({ queryKey: ["ak-questionnaire"], queryFn: () => base44.request("GET", "/api/ak/questionnaire") });
@@ -366,6 +382,7 @@ export default function Personnalisation() {
       </section>
       )}
       </div>
+      {admin && !vueClient && <SignatureMails email={user?.email} />}
       {!vueClient && <ReglagesAssistant />}
 
       {vueMandataire && <ProfilCompte user={user} partie="habilitations" />}

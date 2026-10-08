@@ -71,7 +71,8 @@ const CONFIANCE = { type: 'string', enum: ['haute', 'moyenne', 'basse'] };
 const SCHEMA = {
   type: 'object',
   properties: {
-    resume: { type: 'string', description: "Deux à trois lignes : ce que l'agent a, ce qu'il cherche, ce qu'il a promis." },
+    resume: { type: 'string', description: "Deux à trois phrases, ce qui part dans Monday : ce que l'agent a dit et les informations clés (biens qu'il a ou n'a pas, mandats à venir et leur échéance, ce que chacun a promis, avec la date si dite). Sujet « L'agent », au présent. Jamais qui a appelé qui, ni l'issue, ni le nom de l'agence. Exemple : « L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines. Jules a promis de lui envoyer une présentation de notre activité. »" },
+    pourquoi_relance: { type: 'string', description: "Une ou deux phrases qui expliquent la suite et sa date, avec le contexte de l'appel (« Il n'avait pas de bien, mais il rentrera un commerce en mandat dans deux à trois semaines : on le rappelle à ce moment-là. ») ; vide si rien n'a été dit sur la suite" },
     issue: { type: 'string', enum: Object.keys(R.ISSUES) },
     issue_entendue: { type: 'string', enum: ['pas_de_reponse', 'pas_de_murs', 'a_des_murs', 'pas_interesse', 'autre'], description: "ce que la conversation dit, indépendamment de l'issue tapée" },
     interlocuteur: {
@@ -132,13 +133,13 @@ const SCHEMA = {
 const lignesJournal = (a) => (a.journal || []).slice(0, 6).map((j) => `${String(j.le).slice(0, 10)} ${j.type} : ${j.texte}`).join('\n') || 'aucun échange';
 
 /** Lit l'appel (transcription ou récit) et rend ce qu'AK en retient. */
-async function lire(a, texte, { par, maintenant, issueTapee = null }) {
+async function lire(a, texte, { par, maintenant, issueTapee = null, entrant = false }) {
   const { invokeLLM, llmEnabled } = await import('../llm.js');
   if (!llmEnabled) return { resume: texte.slice(0, 300), issue: 'autre' };
   const r = reglages();
   const u = Records.filter('User', { email: par })[0];
   return invokeLLM({
-    prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${u?.full_name || par} vient d'appeler un agent immobilier. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
+    prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${entrant ? `Un agent immobilier vient de rappeler ${u?.full_name || par}` : `${u?.full_name || par} vient d'appeler un agent immobilier`}. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
 
 L'issue, une seule :
 - pas_de_reponse : personne n'a décroché ;
@@ -193,7 +194,9 @@ export function propositions(a, lu, { maintenant = new Date(), criteres = '', ob
   if (suite.prochaine) {
     // Une date tirée de l'appel porte sa phrase ; une date par défaut est surlignée.
     const cite = lu.date_dite && lu.citations?.date ? lu.citations.date : null;
-    out.push({ id: 'relance', type: 'relance', titre: `Le rappeler le ${R.dateCourte(suite.prochaine.le)} : ${suite.prochaine.quoi}`, prochaine: suite.prochaine, ...(cite ? { source: cite } : {}), ...(suite.date_par_defaut ? { incertain: 'date par défaut : rien n\'a été dit' } : {}) });
+    // « Pourquoi cette date » : la phrase exacte d'abord (la date, le mandat, ou la suite convenue), puis le contexte.
+    const phrase = cite || lu.citations?.mandat || lu.citations?.prochaine_etape || null;
+    out.push({ id: 'relance', type: 'relance', titre: `Le rappeler le ${R.dateCourte(suite.prochaine.le)} : ${suite.prochaine.quoi}`, prochaine: suite.prochaine, ...(cite ? { source: cite } : {}), phrase, pourquoi: lu.pourquoi_relance || null, ...(suite.date_par_defaut ? { incertain: 'date par défaut : rien n\'a été dit' } : {}) });
   }
   const infos = {
     secteurs: (lu.secteurs || []).filter((s) => !(a.secteurs || []).map(R.norm).includes(R.norm(s))),
@@ -278,7 +281,7 @@ export function issueDuModeAppel(issue) {
  * L'appel terminé : transcription (ou récit), lecture par AK, propositions.
  * @param {{agent_id, audio?: Buffer, recit?: string, sans_reponse?: boolean, duree_s?: number, par: string}} x
  */
-export async function analyserAppel({ agent_id, audio = null, recit = null, transcription_texte = null, sans_reponse = false, duree_s = null, par, maintenant = new Date(), issue: issueTapee = null }) {
+export async function analyserAppel({ agent_id, audio = null, recit = null, transcription_texte = null, sans_reponse = false, duree_s = null, par, maintenant = new Date(), issue: issueTapee = null, sur_un_bien = false, entrant = false }) {
   const a = agentDe(agent_id);
   if (!a) return { ok: false, error: 'Agent introuvable.' };
   // La transcription faite en direct pendant l'appel (mode appel, 7 oct. 2026) arrive déjà en texte.
@@ -299,13 +302,17 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
   if (issueTapee === 'auto') {
     // Le mode appel sans boutons (7 oct. 2026) : AK lit la conversation et en
     // déduit l'issue ; l'analyste la voit, et la change d'un geste si besoin.
-    lu = vide ? { resume: 'Pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant });
+    lu = vide ? { resume: 'Pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant, entrant });
     lu.issue = issueDuModeAppel(lu.issue);
+    // Rappeler un agent pour lui dire ce qu'on pense de son bien : sans nouveau bien, il est prévenu.
+    if (sur_un_bien && lu.issue === 'pas_de_murs') lu.issue = 'agent_prevenu';
+    // Un rappel entrant : l'agent a appelé, ce n'est jamais un « pas de réponse ».
+    if (entrant && ['pas_de_reponse', 'repondeur'].includes(lu.issue)) lu.issue = 'pas_de_murs';
     lu.issue_deduite = true;
   } else if (issueTapee && R.ISSUES[issueTapee]) {
     // L'issue tapée par l'analyste fait foi (mode appel) : la lecture ne sert
     // qu'à remplir les détails autour, jamais à la contredire.
-    lu = vide || ['pas_de_reponse', 'repondeur'].includes(issueTapee) ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant, issueTapee })), issue: issueTapee };
+    lu = vide || ['pas_de_reponse', 'repondeur', 'agent_prevenu'].includes(issueTapee) ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant, issueTapee, entrant })), issue: issueTapee };
   } else {
     lu = sans_reponse || vide ? { resume: 'pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant });
   }
@@ -327,7 +334,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
   const appel = Records.create(ENTITE, {
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
     transcription: null, recit: null, resume: lu.resume || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
-    biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null,
+    biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null, pourquoi_relance: lu.pourquoi_relance || null,
     compris, transcription_echec: transcriptionEchec,
     propositions: props, message, etat: 'a_valider',
   });

@@ -148,11 +148,11 @@ test("Monday « Agents immobiliers » : la bonne ligne, Remarques allongées san
   assert.equal(r.etat, 'ok');
   assert.equal(r.cree, false);
   assert.equal(r.texte, "Riviera Commerce · Sophie Martin · Pas de bien pour l'instant");
-  assert.equal(etat['1'].colonnes.text4, "12/09/2026 · Nora · Pas de réponse\n07/10/2026 · Nora · Pas de bien pour l'instant · Rien en ce moment, un mandat fin novembre.", 'ajoutée à la suite');
+  assert.equal(etat['1'].colonnes.text4, "12/09/2026 · Nora · Pas de réponse\n07/10/2026 · Rien en ce moment, un mandat fin novembre.", 'ajoutée à la suite, sans qui ni l\'issue');
   assert.equal(etat['1'].colonnes.date, '2026-11-06');
   // Un nouvel essai ne double pas la remarque.
   await M.ecrire({ cible: { telephones: [d.telephone] }, donnees: d, ligne_id: '1' }, { fonctions: { ...fonctions, lignes: M.lignesDuTableau(Object.values(etat), cols) } });
-  assert.equal(etat['1'].colonnes.text4.split('Pas de bien').length, 2);
+  assert.equal(etat['1'].colonnes.text4.split('Rien en ce moment').length, 2);
   // Annuler : la ligne reprend ses valeurs d'avant.
   await M.restaurer(r, { fonctions });
   assert.equal(etat['1'].colonnes.text4, '12/09/2026 · Nora · Pas de réponse');
@@ -291,4 +291,14 @@ test("le même réseau contacté ce mois-ci se signale, pas les mots générique
   ];
   assert.equal(MA.reseauDe(lignes[3], lignes, MAINTENANT, 'Nice'), null);
   assert.match(MA.reseauDe(lignes[0], lignes, MAINTENANT, 'Nice'), /Même réseau que Metropole Commerces Cimiez, contactée le 02\/10/);
+});
+
+test("la fiche de la file porte ses interlocuteurs (avec leur source), son secteur et son historique en lignes", () => {
+  const L = Records.create('ListeAgences', { ville: 'Antibes', etat: 'fini', journal: [] });
+  const ag = Records.create('AgenceProspect', { liste_id: L.id, nom: 'Riviera Commerce', telephone: '04 93 87 12 41', code_postal: '06600', monday_connu: { nom: 'Sophie Martin', confiance: 'probable' }, gerants: [{ nom: 'Jean-Luc Ferrand', qualite: 'Gérant' }], agents: [{ nom: 'Sophie Martin', telephone: '06 12 48 90 33' }], sources: ['Google Maps'] });
+  // Connue de Monday, elle n'est plus dans la file du mode appel (elle irait aux relances) : on lit son élément de file directement.
+  const x = MA.elementDeFile({ ...ag, statut: { etat: 'contact' } }, { place: 1, ville: L.ville });
+  assert.deepEqual(x.contacts.map((c) => [c.nom, c.source, c.telephone]), [['Sophie Martin', 'Contact Monday', '06 12 48 90 33'], ['Jean-Luc Ferrand', 'Registre du commerce', null], ['Standard', 'Standard', '04 93 87 12 41']]);
+  assert.equal(x.secteur, 'Antibes · 06600');
+  assert.ok(Array.isArray(x.historique_detail));
 });

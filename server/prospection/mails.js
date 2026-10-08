@@ -127,6 +127,10 @@ export function signatureDe(user) {
   return [nom, 'Klocka · klocka.immo', email].filter(Boolean).join('\n');
 }
 
+// Les tests remplacent l'envoi réel (actions-proposees.test.js) ; jamais en dehors de node --test.
+let envoiPourTests = null;
+export function brancherEnvoiPourTests(f) { envoiPourTests = process.env.NODE_TEST_CONTEXT ? f : null; }
+
 export async function envoyerMails(ids, user) {
   const { functions } = await import('../functions.js');
   const { agentDe, journal, majAgent } = await import('./carnet.js');
@@ -148,7 +152,7 @@ export async function envoyerMails(ids, user) {
     if (!m.a) { resultats.push({ id, ok: false, error: 'pas d\'adresse' }); continue; }
     const deal = ['oui', 'retour'].includes(m.genre) ? { deal_id: m.deal_id, intention: m.intention } : {};
     let r;
-    try { r = await functions.sendMail({ to: m.a, subject: m.objet, body: corps, ...deal }, { user }); } catch (e) { r = { success: false, error: e?.message || String(e) }; }
+    try { r = envoiPourTests ? await envoiPourTests({ to: m.a, subject: m.objet, body: corps, user }) : await functions.sendMail({ to: m.a, subject: m.objet, body: corps, ...deal }, { user }); } catch (e) { r = { success: false, error: e?.message || String(e) }; }
     if (!r?.success && !r?.simulated) { resultats.push({ id, ok: false, error: r?.error || 'envoi raté' }); continue; }
     Records.update(ENTITE, id, { etat: r.success ? 'envoye' : 'simule', envoye_le: maintenant.toISOString(), par: user?.email || null, corps });
     if (m.agent_id && agentDe(m.agent_id)) {

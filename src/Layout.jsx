@@ -30,7 +30,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail } from "lucide-react";
+  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -47,6 +47,7 @@ import { UserProvider, useUser } from "@/components/providers/UserProvider";
 import VeilleAlx from "@/components/alx/VeilleAlx";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
+import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -351,6 +352,8 @@ function LayoutContent({ children, currentPageName }) {
   // suit que la vue admin : un admin qui regarde la vue mandataire ou client
   // voit exactement ce que voit un mandataire ou un client.
   const vueAdmin = vue === "admin";
+  // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ou Relances ouvertes).
+  const rappelOuvert = vueAdmin && !(pagesFermees.includes("Prospection") && pagesFermees.includes("Relances"));
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
   // rappel dû n'existe que si l'on retourne au tableau de bord.
   const { data: attend } = useQuery({
@@ -471,6 +474,7 @@ function LayoutContent({ children, currentPageName }) {
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
+    Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
@@ -727,6 +731,7 @@ function LayoutContent({ children, currentPageName }) {
                 </Link>
               )}
               <div className="flex items-center gap-1">
+                {rappelOuvert && <BoutonRappel compact />}
                 {/* La recherche : ⌘K n'existe pas au téléphone. */}
                 {vueAdmin && (
                   <Button variant="ghost" size="icon" onClick={() => setRechercheOuverte(true)} className="text-encre" aria-label="Rechercher" title="Rechercher">
@@ -788,6 +793,15 @@ function LayoutContent({ children, currentPageName }) {
       {/* La recherche du rail, et ⌘K. */}
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
       {(vue === "admin" || vue === "mandataire") && <NotificationsApp />}
+      {/* « Il me rappelle » : le bouton en haut à droite (dans la barre au téléphone), l'écran d'appel et le bandeau « Rappel à terminer ». */}
+      {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), puis « Rappel », côte à côte. */}
+      {vueAdmin && !hideNavbar && !modoKData && (
+        <div className="fixed right-5 top-4 z-40 flex items-center gap-3 max-md:hidden">
+          <div id="k-haut-droite" className="flex items-center gap-3 empty:hidden" />
+          {rappelOuvert && <BoutonRappel />}
+        </div>
+      )}
+      {rappelOuvert && !hideNavbar && <RappelEntrant />}
       {/* L'accueil du mandataire : ses réglages à l'arrivée, tant qu'ils ne sont pas validés. */}
       {vue === "mandataire" && !hideNavbar && <AccueilMandataire />}
 

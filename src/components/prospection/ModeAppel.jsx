@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, Search, X } from "lucide-react";
+import { Check, ExternalLink, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { versWav } from "@/lib/dictee";
@@ -16,6 +16,12 @@ import SequenceActions from "@/components/prospection/SequenceActions";
 // (Monday, le mail retrouvé dans les envoyés) et dix secondes pour annuler.
 // Rien ne se perd : un envoi sans réseau attend dans le téléphone, un appel
 // resté sans issue est redemandé à la réouverture.
+// `relances` (page Relances, spec du 8 oct. 2026) : le même écran, ouvert sur
+// une seule ligne prise dans la liste partagée (`relance` : sa clé et son
+// agence). Pas d'onglets de ville : en tête de la fiche, pourquoi on relance.
+// L'écran garde la ligne tant que l'analyste s'en sert (`garder`, toutes les
+// minutes s'il a bougé, ou pendant l'appel) ; après l'issue, « Relance
+// suivante » (`onSuivante`) ou « Retour à la liste » (`onRetour`).
 
 const API = "/api/prospection/mode-appel";
 const ESSAI = "essai";
@@ -39,6 +45,67 @@ const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse"], ["repondeur"
 const CHAMPS_COMPRIS = [["interlocuteur", "Interlocuteur"], ["fonction", "Fonction"], ["telephone", "Téléphone"], ["email", "Email"], ["biens", "Biens évoqués"], ["mandat", "Mandat à venir"], ["prochaine_etape", "Prochaine étape"], ["date", "Date dite"]];
 const MODIFIABLES = ["interlocuteur", "telephone", "email"];
 const ISSUES_TOUTES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé" };
+// Relances « Bien retenu » et « Bien refusé » : les quatre issues de la spec du 8 oct. 2026.
+const ISSUES_BIEN = [["agent_prevenu", "Agent prévenu", true], ["pas_de_reponse", "Pas de réponse", true], ["a_des_murs", "A un autre bien", false], ["pas_interesse", "Pas intéressé", false]];
+const RELANCES = "relances";
+const MINUTE = 60_000;
+const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
+
+/** Relances : pourquoi on rappelle, l'agent, le dernier échange, le bien en cours, l'historique replié. */
+function PourquoiRelance({ a }) {
+  const [histo, setHisto] = useState(false);
+  const r = a.relance;
+  const etiq = "text-[11px] tracking-[.16em] text-brume";
+  const bien = r.bien;
+  const verdict = bien?.verdict === "retenu" ? "Retenu" : bien?.verdict === "refuse" ? "Refusé" : bien?.recue ? "En cours d'analyse" : null;
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2 rounded-[14px] border border-ambre/40 px-4 py-3.5">
+        <span className="text-[12.5px] text-ambre">{r.motif.libelle}</span>
+        <span className="text-[17px] leading-[1.45] text-encre [text-wrap:pretty]">{r.phrase}</span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className={etiq}>L'AGENT</span>
+        <span className="text-[15px] text-encre">{[r.agent, a.nom].filter(Boolean).join(" · ")}</span>
+        <span className="flex flex-wrap gap-x-3 gap-y-1 text-[14px] text-craie">
+          {a.lieu && <span>{a.lieu}</span>}
+          {a.telephone && <a href={telLien(a.telephone)} className="tabular-nums text-menthe hover:underline">{a.telephone}</a>}
+          {a.email && <a href={`mailto:${a.email}`} className="break-all text-craie hover:text-encre">{a.email}</a>}
+        </span>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className={etiq}>DERNIER ÉCHANGE</span>
+        {r.dernier ? (
+          <>
+            <span className="text-[12.5px] text-ardoise">{[jourCourt(r.dernier.le), r.dernier.par, r.dernier.monday ? "Monday" : null, r.dernier.issue].filter(Boolean).join(" · ")}</span>
+            {r.dernier.resume && <span className="line-clamp-2 text-[14.5px] leading-[1.5] text-craie">{r.dernier.resume}</span>}
+          </>
+        ) : <span className="text-[13.5px] text-brume">Aucun échange noté</span>}
+      </div>
+      {bien && (
+        <div className="flex flex-col gap-1">
+          <span className={etiq}>LE BIEN EN COURS</span>
+          <span className="text-[15px] text-encre">{bien.titre}{bien.adresse ? <span className="text-ardoise"> · {bien.adresse}</span> : null}</span>
+          <span className="text-[13.5px] text-craie">
+            {bien.recue ? `Fiche reçue${bien.recue_le ? ` le ${jourCourt(bien.recue_le)}` : ""}` : <span className="text-ambre">Fiche non reçue</span>}
+            {verdict && <span className={bien.verdict === "retenu" ? "text-menthe" : bien.verdict === "refuse" ? "text-alerte" : "text-ardoise"}> · {verdict}</span>}
+            {bien.raison && <span className="text-ardoise"> : {bien.raison}</span>}
+          </span>
+        </div>
+      )}
+      {r.historique?.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <button type="button" onClick={() => setHisto((x) => !x)} className={`${etiq} self-start p-0 hover:text-encre`} style={{ background: "transparent" }} aria-expanded={histo}>
+            HISTORIQUE COMPLET · {r.historique.length} {histo ? "▴" : "▾"}
+          </button>
+          {histo && r.historique.map((h, k) => (
+            <span key={k} className="text-[13px] leading-[1.45] text-craie"><span className="text-brume">{[jourCourt(h.le), h.par, h.type].filter(Boolean).join(" · ")}</span> {h.texte}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** La transcription : en direct pendant l'appel, puis relue à côté des actions. Jamais gardée sur le serveur. */
 function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false }) {
@@ -47,7 +114,7 @@ function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = f
   const enCours = direct.some((x) => x.etat === "envoi");
   const rates = direct.filter((x) => x.etat === "echec").length;
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-trait bg-fond p-6">
+    <div className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-trait bg-transparent p-6">
       <div className="flex items-center justify-between gap-3">
         <span className="m-0 text-[12px] tracking-[.14em] text-ardoise">{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
         {replie ? <button type="button" onClick={() => setOuvert((x) => !x)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{ouvert ? "Replier" : "Afficher"}</button>
@@ -68,10 +135,8 @@ function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = f
 /** La fiche de l'agence, en pile : deux cartes devinées derrière, comme une file. */
 function CarteAgence({ a, recherches, cahier }) {
   return (
-    <div className="relative min-w-0 pt-[22px]">
-      <div className="absolute left-8 right-8 top-0 h-[60px] rounded-[26px] bg-relief" />
-      <div className="absolute left-4 right-4 top-[11px] h-[60px] rounded-[26px] bg-surface" />
-      <div className="relative flex flex-col gap-5 rounded-[28px] border border-trait bg-surface-pleine p-7 max-md:p-5">
+    <div className="relative min-w-0">
+      <div className="relative flex flex-col gap-5 rounded-[28px] border border-trait bg-transparent p-7 max-md:p-5">
         <div className="flex items-center justify-between gap-3">
           <span className={`rounded-[7px] px-2.5 py-1 text-[13px] ${a.badge === "Jamais contactée" ? "bg-menthe/15 text-menthe" : "bg-ambre/15 text-ambre"}`}>{a.badge || a.statut?.libelle}</span>
           <span className="min-w-0 truncate text-[14px] text-ardoise">{a.lieu}</span>
@@ -150,7 +215,193 @@ function ChoixLigne({ candidates, onChoisir, occupe }) {
   );
 }
 
-export default function ModeAppel() {
+
+/** Trois petits points qui s'allument tour à tour, pendant qu'AK lit l'appel. */
+function TroisPoints() {
+  return (
+    <span className="flex items-center gap-2" role="status" aria-label="Lecture en cours">
+      {[0, 1, 2].map((k) => <span key={k} className="h-2.5 w-2.5 rounded-full bg-menthe motion-safe:animate-bounce" style={{ animationDelay: `${k * 160}ms`, animationDuration: "1s" }} />)}
+    </span>
+  );
+}
+
+/** Un petit cercle qui se remplit en cinq secondes, 5, 4, 3, 2, 1, puis recommence : pour faire passer l'attente. */
+function CompteARebours() {
+  const [n, setN] = useState(5);
+  useEffect(() => { const t = setInterval(() => setN((x) => (x <= 1 ? 5 : x - 1)), 1000); return () => clearInterval(t); }, []);
+  const r = 15;
+  const tour = 2 * Math.PI * r;
+  return (
+    <span className="relative grid h-10 w-10 place-items-center" aria-hidden="true">
+      <svg viewBox="0 0 36 36" className="absolute inset-0 h-full w-full -rotate-90">
+        <circle cx="18" cy="18" r={r} fill="none" stroke="currentColor" strokeWidth="2" className="text-trait" />
+        <circle cx="18" cy="18" r={r} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-menthe transition-[stroke-dashoffset] duration-1000 ease-linear"
+          strokeDasharray={tour} strokeDashoffset={tour * ((n - 1) / 5)} />
+      </svg>
+      <span className="text-[13px] tabular-nums text-craie">{n}</span>
+    </span>
+  );
+}
+
+/**
+ * La fiche avant l'appel (maquette de Jules, 7 oct. 2026), la même en mode
+ * appel et en relances : les interlocuteurs et l'historique à gauche, la fiche
+ * de l'agence au centre, le micro et le numéro à droite. On compose le
+ * numéro sur son téléphone, puis on touche le micro quand l'agent décroche.
+ */
+/** Pure : un nom tout en capitales remis en casse normale (« PETROVA INVESTISSEMENT » → « Petrova Investissement ») ; les sigles courts restent. */
+const PETITS_MOTS = new Set(["de", "du", "des", "la", "le", "les", "et", "en", "au", "aux", "d", "l", "sur"]);
+function nomLisible(nom) {
+  const t = String(nom || "").trim();
+  if (!t || /[a-zà-ÿ]/.test(t)) return t;
+  return t.toLowerCase().split(/(\s+|-|')/).map((m, k) => {
+    if (!/\p{L}/u.test(m)) return m;
+    if (k > 0 && PETITS_MOTS.has(m)) return m;
+    if (m.length <= 3 && !PETITS_MOTS.has(m) && !/[aeiouyàâéèêëîïôöûü]/.test(m)) return m.toUpperCase();
+    return m.charAt(0).toUpperCase() + m.slice(1);
+  }).join("");
+}
+
+function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null }) {
+  const contacts = (a.contacts || []).filter((x) => !x.standard);
+  const standard = (a.contacts || []).find((x) => x.standard)?.telephone || a.telephone;
+  const numero = choisi?.telephone || standard;
+  const personne = choisi && !choisi.standard ? choisi : null;
+  const histo = a.historique_detail || [];
+  const etiq = "text-[11px] tracking-[.16em] text-brume";
+  const relance = !!a.relance || /relance|tentative/i.test(a.badge || "");
+  // L'accroche (ou, en relance, ce qu'on s'est dit) : sous la fiche à l'ordinateur, sous le micro au téléphone.
+  const suite = (
+    <>
+        {relances ? (
+        // En relance : ce qui s'est dit aux appels d'avant, pour rappeler en sachant où on en est.
+        <div className="flex flex-col gap-3">
+          <span className={etiq}>CE QU'ON S'EST DIT</span>
+          {histo.filter((h) => h.resume).map((h, k) => (
+            <div key={k} className="flex flex-col gap-1">
+              <span className="text-[12.5px] text-ardoise">{[h.quand, h.qui, h.quoi].filter(Boolean).join(" · ")}</span>
+              <span className="text-[15px] leading-[1.55] text-craie [text-wrap:pretty]">{h.resume}</span>
+            </div>
+          ))}
+          {a.notes_avant && <span className="text-[14px] leading-[1.55] text-ardoise [text-wrap:pretty]">{a.notes_avant}</span>}
+          {!histo.some((h) => h.resume) && !a.notes_avant && <span className="text-[13.5px] text-brume">Rien de noté aux appels précédents.</span>}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <span className={etiq}>L'ACCROCHE</span>
+          <span className="text-[18px] leading-[1.5] text-craie [text-wrap:pretty]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</span>
+          {recherches.length > 0 && (
+            <ul className="m-0 mt-1 flex list-none flex-col gap-1.5 p-0">
+              {recherches.map((q) => <li key={q} className="flex gap-2.5 text-[13.5px] text-ardoise"><span className="text-brume">·</span><span className="min-w-0">{q}</span></li>)}
+            </ul>
+          )}
+        </div>
+      )}
+    </>
+  );
+  const ligne = "grid grid-cols-[minmax(0,110px)_minmax(0,1fr)] items-baseline gap-4 border-t border-trait py-3.5";
+  return (
+    <div className="grid overflow-hidden rounded-bloc border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
+      {/* Les interlocuteurs et l'historique. */}
+      <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-6 max-lg:order-4 max-lg:border-t lg:border-r">
+        <div className="flex flex-col gap-1.5">
+          <span className={`${etiq} px-3`}>INTERLOCUTEURS</span>
+          {contacts.map((x) => {
+            const actif = choisi?.id === x.id;
+            return (
+              <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif}
+                className={`flex flex-col items-start gap-0.5 rounded-champ px-3 py-2.5 text-left transition-colors ${actif ? "bg-menthe/10" : "hover:bg-relief"}`} style={actif ? undefined : { background: "transparent" }}>
+                <span className="break-words text-[15px] text-encre">{x.nom}</span>
+                <span className={`text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
+              </button>
+            );
+          })}
+          {!contacts.length && <span className="px-3 pt-1 text-[13.5px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className={`${etiq} px-3`}>HISTORIQUE</span>
+          {histo.map((h, k) => (
+            <div key={k} className="flex gap-3 px-3 py-2">
+              <span className="mt-[7px] h-1.5 w-1.5 flex-none rounded-full bg-bord-vif" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[14px] text-encre">{h.quoi}</span>
+                <span className="text-[12.5px] text-ardoise">{[h.quand, h.qui].filter(Boolean).join(" · ")}</span>
+              </span>
+            </div>
+          ))}
+          {!histo.length && <span className="px-3 pt-1 text-[13.5px] text-brume">Jamais appelée</span>}
+        </div>
+      </div>
+
+      {/* La fiche. */}
+      <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-7 max-lg:order-1 max-md:p-5 lg:border-r">
+        <div className="flex flex-col gap-3">
+          <span className={etiq}>{relances ? "RELANCES" : "TABLEAU PROSPECTION"} · {String(a.ville || "").toUpperCase()}</span>
+          <p className="m-0 break-words text-[clamp(24px,2.2vw,32px)] font-normal leading-[1.15] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className={`rounded-full px-2.5 py-0.5 text-[12.5px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>
+            {a.secteur && <span className="text-[13.5px] text-ardoise">{a.secteur}</span>}
+          </div>
+        </div>
+        <div className="flex flex-col border-b border-trait">
+          <div className={ligne}>
+            <span className="text-[13.5px] text-ardoise">Interlocuteur</span>
+            <span className={`break-words text-[15px] ${personne ? "text-encre" : "text-brume"}`}>{personne?.nom || "Non connu"}</span>
+          </div>
+          {personne?.fonction && (
+            <div className={ligne}>
+              <span className="text-[13.5px] text-ardoise">Fonction</span>
+              <span className="text-[15px] text-encre">{personne.fonction}</span>
+            </div>
+          )}
+        </div>
+        {(a.raison || a.reseau) && (
+          <div className="flex flex-col gap-1.5">
+            {a.raison && <span className="text-[13.5px] leading-[1.5] text-ambre">{a.raison}</span>}
+            {a.reseau && <span className="text-[13.5px] leading-[1.5] text-ambre">{a.reseau}</span>}
+          </div>
+        )}
+        {a.relance ? <PourquoiRelance a={a} /> : <div className="max-lg:hidden">{suite}</div>}
+      </div>
+
+      {/* Le micro et le numéro. */}
+      <div className="flex min-w-0 flex-col p-6 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <span />
+          {/* En relances, on quitte sans appeler : la ligne se libère pour les autres. */}
+          {onRetour
+            ? <button type="button" onClick={onRetour} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
+            : <button type="button" onClick={() => setPasserOuvert((x) => !x)} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Passer</button>}
+        </div>
+        {passerOuvert && !onRetour && (
+          <div className="mt-3 flex flex-wrap justify-end gap-1.5">
+            {Object.entries(raisons || { fermee: "Fermée", pas_pertinente: "Pas pertinente", plus_tard: "Plus tard" }).map(([k, l]) => (
+              <button key={k} type="button" disabled={passerEnCours} onClick={() => onPasser(k)} className="h-8 rounded-full border border-trait px-3 text-[13px] text-encre hover:border-menthe disabled:opacity-50" style={{ background: "transparent" }}>{l}</button>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 max-md:py-8">
+          <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
+            className="group grid h-[220px] w-[220px] place-items-center rounded-full border border-menthe/20 max-md:h-[184px] max-md:w-[184px]" style={{ background: "transparent" }}>
+            <span className="grid h-[78%] w-[78%] place-items-center rounded-full border border-menthe/30">
+              <span className="grid h-[74%] w-[74%] place-items-center rounded-full bg-menthe text-sur-menthe transition-transform group-hover:scale-[1.04]"><IconeMicro taille={38} /></span>
+            </span>
+          </button>
+          <span className="max-w-[260px] text-center text-[14px] leading-[1.5] text-ardoise">{essai ? "Touchez le micro pour simuler un appel" : "Composez ce numéro sur votre téléphone, puis enregistrez"}</span>
+          {/* Pas de lien tel: (7 oct. 2026) : l'application n'est qu'un micro, on compose sur son téléphone. */}
+          <span className="flex flex-col items-center gap-1.5">
+            <span className="select-all whitespace-nowrap font-mono text-[26px] leading-none tracking-[.04em] text-encre tabular-nums max-md:text-[22px]">{numero || "—"}</span>
+            <span className="text-[13px] text-brume">{personne ? `${personne.nom} · ${personne.telephone ? "sa ligne" : "par le standard"}` : "Standard"}</span>
+          </span>
+          {!essai && <button type="button" onClick={onSansNotes} className="p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Appelé sans enregistrer ? Taper l'issue</button>}
+        </div>
+      </div>
+      {!a.relance && <div className="border-t border-bord-doux p-5 max-lg:order-3 lg:hidden">{suite}</div>}
+    </div>
+  );
+}
+
+export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null }) {
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(null);
   const [sessions, setSessions] = useState({}); // onglet → { id, liste_id, ville, essai, debut }
@@ -171,17 +422,14 @@ export default function ModeAppel() {
   const [ligneMonday, setLigneMonday] = useState(null);
   const [note, setNote] = useState("");
   const [edits, setEdits] = useState({});
-  const [ouvertFait, setOuvertFait] = useState(null);
   const [cle, setCle] = useState(null);
   const [recu, setRecu] = useState(null);
   const [annulerDans, setAnnulerDans] = useState(0);
   const [passerOuvert, setPasserOuvert] = useState(false);
-  const [changerOuvert, setChangerOuvert] = useState(false);
   const [message, setMessage] = useState(null);
-  const [voirPourcent, setVoirPourcent] = useState(false);
+  const [reserveeJusqu, setReserveeJusqu] = useState(null);
+  const [choisi, setChoisi] = useState(null);
   const [horloge, setHorloge] = useState(Date.now());
-  const [recherche, setRecherche] = useState("");
-  const [chercherOuvert, setChercherOuvert] = useState(false);
   const [horsLigne, setHorsLigne] = useState(0);
   const [enCours, setEnCours] = useState(() => lireLocal(CLE_EN_COURS));
   const chrono = useRef(null);
@@ -193,12 +441,13 @@ export default function ModeAppel() {
   const compte = useRef(null);
   const messageT = useRef(null);
 
-  const listes = useQuery({ queryKey: ["agent-ia-listes"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/listes") });
-  const villes = (listes.data?.listes || []).filter((l) => l.agences > 0);
+  const [fait, setFait] = useState(null); // relances : ce qui vient d'être noté, avant « Relance suivante »
+  const listes = useQuery({ queryKey: ["agent-ia-listes"], queryFn: () => base44.request("GET", "/api/prospection/agent-ia/listes"), enabled: !relances });
+  const villes = relances ? [] : (listes.data?.listes || []).filter((l) => l.agences > 0);
   const session = onglet ? sessions[onglet] : null;
 
   const ouvrir = useMutation({
-    mutationFn: (k) => (k === ESSAI ? base44.request("POST", `${API}/essai`) : base44.request("POST", `${API}/sessions`, { body: { liste_id: k } })),
+    mutationFn: (k) => (k === ESSAI ? base44.request("POST", `${API}/essai`) : k === RELANCES ? base44.request("POST", "/api/prospection/relances/session") : base44.request("POST", `${API}/sessions`, { body: { liste_id: k } })),
     onSuccess: (r, k) => {
       setSessions((s) => ({ ...s, [k]: { id: r.session.id, liste_id: r.session.liste_id, ville: r.session.ville, essai: !!r.session.essai, debut: r.session.debut } }));
       if (k === ESSAI) queryClient.removeQueries({ queryKey: ["mode-appel-file", r.session.liste_id] });
@@ -210,15 +459,17 @@ export default function ModeAppel() {
     setOnglet(k); setEcran("fiche"); setPassees(new Set()); setPrise(null); setRappel(null);
     if (!sessions[k] || k === ESSAI) ouvrir.mutate(k);
   };
-  useEffect(() => { if (!onglet && villes.length) choisir(villes[0].id); }, [villes.length]);
+  useEffect(() => { if (!onglet && relances) choisir(RELANCES); else if (!onglet && villes.length) choisir(villes[0].id); }, [villes.length]);
   useEffect(() => { const t = setInterval(() => setHorloge(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => () => { clearInterval(chrono.current); clearInterval(compte.current); clearTimeout(messageT.current); rec.current?.flux?.getTracks().forEach((t) => t.stop()); }, []);
 
-  const file = useQuery({ queryKey: ["mode-appel-file", session?.liste_id], queryFn: () => base44.request("GET", `${API}/file?liste=${session.liste_id}`), enabled: !!session?.liste_id, staleTime: 30_000 });
+  const file = useQuery(relances
+    ? { queryKey: ["relance-fiche", relance?.agence_id], queryFn: () => base44.request("GET", `/api/prospection/relances/fiche?agence=${relance.agence_id}`), enabled: !!session && !!relance?.agence_id }
+    : { queryKey: ["mode-appel-file", session?.liste_id], queryFn: () => base44.request("GET", `${API}/file?liste=${session.liste_id}`), enabled: !!session?.liste_id, staleTime: 30_000 });
   const recap = useQuery({ queryKey: ["mode-appel-recap", session?.id], queryFn: () => base44.request("GET", `${API}/sessions/${session.id}`), enabled: !!session?.id, refetchInterval: ecran === "fin" ? 5000 : false });
-  const suspens = useQuery({ queryKey: ["mode-appel-suspens"], queryFn: () => base44.request("GET", `${API}/en-suspens`), staleTime: 60_000 });
-  const agences = useMemo(() => (file.data?.file || []).filter((x) => !passees.has(x.id)), [file.data, passees]);
+  const agences = useMemo(() => (file.data?.file || []).filter((x) => relances || !passees.has(x.id)), [file.data, passees]);
   const a = rappel || agences[0] || null;
+  const surUnBien = ["bien_retenu", "bien_refuse"].includes(a?.relance?.motif?.cle);
   const c = file.data?.chiffres;
   const recherches = file.data?.recherches || [];
   const cahier = file.data?.cahier || [];
@@ -237,27 +488,75 @@ export default function ModeAppel() {
     clearTimeout(r0.minuterie);
     if (r0.m?.state === "recording") r0.m.stop(); else r0.flux?.getTracks().forEach((t) => t.stop());
   }
+  // Relances : rien ne s'enchaîne seul ; ce qui est noté s'affiche, avec « Relance suivante » et « Retour à la liste ».
   const suivante = (texte = null) => {
+    if (relances) {
+      arreterTout();
+      setFait(texte || "Issue notée"); setEcran("fait");
+      queryClient.invalidateQueries({ queryKey: ["relances"] });
+      queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
+      return;
+    }
     arreterTout();
     if (a && !rappel) setPassees((s) => new Set(s).add(a.id));
-    setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({}); setOuvertFait(null);
+    setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({});
     setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null); setPasserOuvert(false);
     if (texte) dire(texte);
     queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
     queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
+    queryClient.invalidateQueries({ queryKey: ["relances"] });
   };
+
+  // Relances : une nouvelle ligne prise, l'écran repart de la fiche.
+  useEffect(() => {
+    if (!relances || !relance?.agence_id) return;
+    arreterTout();
+    setRappel(null); setEcran("fiche"); setPrise(null); setIssue(null); setAppel(null); setRecu(null); setEdits({}); setFait(null);
+    setSimule(false); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setCle(null);
+  }, [relance?.agence_id]);
+  // Relances : la ligne reste à moi tant que je m'en sers (j'ai bougé dans la dernière minute, ou l'appel est en cours).
+  const activite = useRef(Date.now());
+  const ecranRef = useRef(ecran);
+  useEffect(() => { ecranRef.current = ecran; }, [ecran]);
+  useEffect(() => {
+    if (!relances || !relance?.cle) return undefined;
+    const bouger = () => { activite.current = Date.now(); };
+    const evts = ["pointerdown", "keydown", "touchstart", "scroll"];
+    evts.forEach((e) => window.addEventListener(e, bouger, { passive: true }));
+    const t = setInterval(() => {
+      const enAppel = ["appel", "raccroche", "analyse"].includes(ecranRef.current);
+      if (!enAppel && Date.now() - activite.current > MINUTE) return;
+      base44.request("POST", "/api/prospection/relances/garder", { body: { cle: relance.cle } }).then((r) => {
+        if (r?.perdue) { toast.error(`${r.prise_par || "Un collègue"} a repris cette relance`); onRetour?.({ deja_lachee: true }); }
+      }).catch(() => { /* sans réseau, la ligne reste prise jusqu'à quinze minutes */ });
+    }, MINUTE);
+    return () => { clearInterval(t); evts.forEach((e) => window.removeEventListener(e, bouger)); };
+  }, [relance?.cle]);
 
   // --- La réservation : l'agence à l'écran est à moi -------------------------
   useEffect(() => {
-    if (!a?.id || ecran !== "fiche" || session?.essai || rappel) return undefined;
+    if (!a?.id || ecran !== "fiche" || session?.essai || rappel || relances) return undefined;
     let fini = false;
     const tenir = () => base44.request("POST", `${API}/reserver`, { body: { agence_id: a.id } }).catch((e) => {
       if (!fini && /l'a à l'écran/.test(String(e?.message || ""))) { setPassees((s) => new Set(s).add(a.id)); dire(`${a.nom} : ${e.message}`); }
     });
-    tenir();
-    const t = setInterval(tenir, 120_000);
-    return () => { fini = true; clearInterval(t); };
+    // Réservée cinq minutes, sans compte à rebours à l'écran (il stressait) ; renouvelée seule à une minute de la fin.
+    const tenirEtCompter = () => tenir().then((r) => { if (!fini && r?.jusqu) setReserveeJusqu(r.jusqu); });
+    tenirEtCompter();
+    const t = setInterval(() => { if (Date.parse(reserveeRef.current || 0) - Date.now() < 60_000) tenirEtCompter(); }, 5_000);
+    return () => { fini = true; clearInterval(t); setReserveeJusqu(null); };
   }, [a?.id, ecran, session?.essai]);
+  const reserveeRef = useRef(null);
+  useEffect(() => { reserveeRef.current = reserveeJusqu; }, [reserveeJusqu]);
+  // L'interlocuteur choisi : le premier de la liste à chaque nouvelle agence.
+  useEffect(() => { setChoisi(null); }, [a?.id]);
+  const contacts = a?.contacts || [];
+  const contactChoisi = contacts.find((x) => x.id === choisi) || contacts.find((x) => !x.standard) || contacts[0] || null;
+  const standard = contacts.find((x) => x.standard)?.telephone || a?.telephone || null;
+  const numeroAppel = contactChoisi?.telephone || standard;
+  // Les autres numéros de l'agence (interlocuteurs, standard, agents), sans celui qu'on appelle.
+  const autresNumeros = [...contacts.filter((x) => x.telephone).map((x) => ({ nom: x.nom, telephone: x.telephone })), ...(a?.autres_numeros || []).map((t) => ({ nom: "", telephone: t }))]
+    .filter((x, k, t) => x.telephone && telLien(x.telephone) !== telLien(numeroAppel || "") && t.findIndex((y) => telLien(y.telephone) === telLien(x.telephone)) === k).slice(0, 4);
 
   // --- Les envois gardés hors ligne -------------------------------------------
   const vider = async () => {
@@ -347,23 +646,23 @@ export default function ModeAppel() {
   };
   useEffect(() => { directFin.current?.scrollIntoView({ block: "nearest" }); }, [direct.length, direct.filter((x) => x.texte).length]);
   const retenirEnCours = (x) => { poserLocal(CLE_EN_COURS, x); setEnCours(x); };
-  const appeler = (avecNotes) => (e) => {
-    if (session?.essai) e.preventDefault();
+  const micro = () => {
+    if (session?.essai) { simuler(); return; }
     if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
-    setNotes(avecNotes); setSimule(!!session?.essai); setEcran("appel"); lancerChrono();
-    if (!session?.essai) retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: a.telephone, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
-    if (avecNotes && !session?.essai) enregistrer();
+    retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: numeroAppel, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
+    setNotes(true); setSimule(false); setEcran("appel"); lancerChrono(); enregistrer();
   };
-  // « Sans notes » : l'enregistrement s'arrête, et ce qui avait été transcrit s'efface.
-  const sansNotes = () => { couperMicro(true); morceaux.current = []; setDirect([]); setNotes(false); };
   // Au raccrochage : avec la transcription, AK lit l'appel et l'écran d'actions s'ouvre ; sans notes, l'issue se tape.
   const raccrocher = () => {
     clearInterval(chrono.current);
     couperMicro(false);
     if (!notes) { setEcran("issue"); return; }
-    setEcran("analyse");
+    // Une courte transition (« Appel terminé ») avant la lecture, pendant qu'AK commence déjà à lire.
+    setEcran("raccroche");
+    setTimeout(() => setEcran((e) => (e === "raccroche" ? "analyse" : e)), 1100);
     noter.mutate({ issue: "auto" });
   };
+  const annulerAppel = () => { arreterTout(); retenirEnCours(null); setNotes(true); setSimule(false); setEcran("fiche"); };
   const rappeler = () => { setEcran("appel"); lancerChrono(secondes); if (notes && !simule) enregistrer(); };
   // L'appel simulé : la conversation d'exemple défile phrase par phrase, comme une vraie transcription.
   const simuler = () => {
@@ -401,7 +700,7 @@ export default function ModeAppel() {
   };
   const noter = useMutation({
     mutationFn: async ({ issue: is, simple = false, remplace = null }) => {
-      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: a.telephone || null, remplace };
+      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null };
       let wavs = [];
       if (is === "auto" || remplace) {
         await morceauxPrets();
@@ -425,7 +724,7 @@ export default function ModeAppel() {
     onSuccess: (r, v) => {
       retenirEnCours(null);
       if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et sa transcription sont gardés ; les actions s'ouvriront au retour du réseau");
-      if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
+      if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : v.issue === "agent_prevenu" ? "Agent prévenu" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
       ouvrirActions(r.appel, r.appel.issue_tapee || v.issue);
     },
     onError: (e) => { toast.error(e?.message || "L'appel n'a pas pu être lu"); setEcran(direct.length ? "appel" : "issue"); },
@@ -469,6 +768,7 @@ export default function ModeAppel() {
       if (r.hors_ligne) return suivante("Hors ligne : la validation est gardée et partira une seule fois au retour du réseau");
       setRecu(r.recu); setEcran("recu");
       queryClient.invalidateQueries({ queryKey: ["mode-appel-suspens"] });
+      if (relances) queryClient.invalidateQueries({ queryKey: ["relances"] });
       const fin = Date.parse(r.recu?.annulable_jusqu || 0);
       clearInterval(compte.current);
       const tic = () => setAnnulerDans(Math.max(0, Math.ceil((fin - Date.now()) / 1000)));
@@ -494,7 +794,7 @@ export default function ModeAppel() {
   const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "");
   // Dix secondes, puis l'agence suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
   useEffect(() => {
-    if (ecran !== "recu" || annulerDans > 0 || !r || aFaire || mailEnRoute || annuler.isPending) return;
+    if (relances || ecran !== "recu" || annulerDans > 0 || !r || aFaire || mailEnRoute || annuler.isPending) return;
     clearInterval(compte.current);
     const ok = [r.monday, r.mail, r.diffusion, r.relance].filter(Boolean);
     suivante(ok.map((x) => x.texte).join(" · "));
@@ -519,38 +819,43 @@ export default function ModeAppel() {
     base44.request("POST", `${API}/appels/${id}/brouillon`).then((x) => { if (ecran === "recu") setRecu(x.recu); recap.refetch(); }).catch(() => {});
   };
 
-  // --- L'agent qui rappelle ------------------------------------------------------
-  const trouves = useQuery({ queryKey: ["mode-appel-chercher", recherche], queryFn: () => base44.request("GET", `${API}/chercher?q=${encodeURIComponent(recherche)}`), enabled: recherche.trim().length >= 2 });
-  const rattacher = (x) => {
-    arreterTout();
-    setRappel({ id: x.agence_id, nom: x.nom, telephone: x.telephone, lieu: x.ville, badge: "Rappel entrant", historique: [], interlocuteurs: x.qui ? [x.qui] : [] });
-    setChercherOuvert(false); setRecherche(""); setNotes(false); setSecondes(0); setEcran("issue");
-  };
-
   // --- Rendu ---------------------------------------------------------------
-  const pc = c?.fait_pourcent ?? 0;
-  const carteChiffre = "rounded-[18px] border border-trait bg-relief px-[18px] py-4";
-  const suspensAppel = suspens.data?.appel && suspens.data.appel.id !== appel?.id ? suspens.data.appel : null;
   const enCoursSansIssue = enCours && ecran === "fiche" && !rappel && Date.now() - Date.parse(enCours.le) < 86400000 ? enCours : null;
   return (
-    <div className="mx-auto w-full max-w-[1180px] pb-16">
-      {/* Les villes, en onglets de classeur. */}
-      <div className="flex items-end gap-1.5 overflow-x-auto pl-3 [scrollbar-width:none]">
-        {villes.map((l) => (
-          <button key={l.id} type="button" onClick={() => choisir(l.id)}
-            className={`flex flex-none items-center gap-2.5 rounded-t-[14px] px-[18px] text-[15px] ${onglet === l.id ? "bg-surface py-3 text-encre" : "bg-relief/60 py-2.5 text-ardoise hover:text-encre"}`}>
-            {l.ville} <span className={`text-[13px] ${onglet === l.id ? "text-menthe" : ""}`}>{l.agences_seules ?? l.agences}</span>
-          </button>
-        ))}
-        <button type="button" onClick={() => choisir(ESSAI)}
-          className={`flex flex-none items-center gap-2 rounded-t-[14px] border border-b-0 border-dashed border-bord-vif px-[18px] text-[14px] ${onglet === ESSAI ? "bg-surface py-3 text-encre" : "py-2.5 text-ardoise hover:text-encre"}`} style={onglet === ESSAI ? undefined : { background: "transparent" }}>
-          Essai
-        </button>
-      </div>
+    <div className="w-full pb-16">
+      {/* Les villes, en onglets de classeur : le même que les Listes (7 oct. 2026), l'intercalaire ouvert raccordé à la page à points. */}
+      {!relances && <div role="tablist" aria-label="Les villes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <span aria-hidden className="w-3 flex-none" />
+        {villes.map((l, i) => {
+          const actif = onglet === l.id;
+          return (
+            <React.Fragment key={l.id}>
+              {i > 0 && <span aria-hidden className="w-1 flex-none" />}
+              <button type="button" role="tab" aria-selected={actif} onClick={() => choisir(l.id)}
+                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+                <span className="truncate">{l.ville}</span>
+                <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{l.agences_seules ?? l.agences}</span>
+              </button>
+            </React.Fragment>
+          );
+        })}
+        {!relances && (
+          <>
+            {villes.length > 0 && <span aria-hidden className="w-1 flex-none" />}
+            <button type="button" role="tab" aria-selected={onglet === ESSAI} onClick={() => choisir(ESSAI)}
+              className={`flex flex-none items-center gap-2 rounded-t-[10px] border border-b-0 border-dashed border-bord-vif px-4 text-[13px] transition-colors ${onglet === ESSAI ? "bg-rail pb-[11px] pt-2.5 text-encre" : "py-2 text-ardoise hover:bg-rail hover:text-encre"}`}
+              style={onglet === ESSAI ? undefined : { background: "transparent" }}>
+              Essai
+            </button>
+          </>
+        )}
+        <span aria-hidden className="min-w-3 flex-1" />
+      </div>}
 
-      <div className="flex flex-col gap-4 rounded-[24px] bg-surface p-5 max-md:p-3">
-        {listes.isLoading || ouvrir.isPending || (session && file.isLoading) ? <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : null}
-        {!listes.isLoading && !villes.length && onglet !== ESSAI && <p className="m-0 py-12 text-center text-[14px] text-brume">Aucune ville encore : lancez l'agent IA sur une ville, ou ouvrez l'onglet Essai.</p>}
+      <div data-zone="listes" className={`k-points relative flex flex-col gap-4 bg-rail px-5 pb-5 pt-4 max-md:px-3 ${relances ? "rounded-[12px]" : "rounded-b-md rounded-t-[12px]"}`}>
+        {(!relances && listes.isLoading) || ouvrir.isPending || (session && file.isLoading) ? <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : null}
+        {!relances && !listes.isLoading && !villes.length && onglet !== ESSAI && <p className="m-0 py-12 text-center text-[14px] text-brume">Aucune ville encore : lancez l'agent IA sur une ville, ou ouvrez l'onglet Essai.</p>}
+        {relances && file.isError && <p className="m-0 py-12 text-center text-[14px] text-alerte">Cette relance n'a pas pu s'ouvrir : {file.error?.message || "erreur"}.</p>}
 
         {horsLigne > 0 && <p className="m-0 flex items-center gap-2 rounded-[14px] border border-ambre/40 px-4 py-2.5 text-[14px] text-ambre"><Loader2 className="h-3.5 w-3.5 animate-spin" />{pl(horsLigne, "envoi gardé", "envois gardés")} dans le téléphone : ils partent au retour du réseau.</p>}
         {enCoursSansIssue && (
@@ -562,91 +867,31 @@ export default function ModeAppel() {
             </span>
           </div>
         )}
-        {suspensAppel && ecran === "fiche" && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-ambre/40 px-4 py-3">
-            <span className="text-[15px] text-ambre">Actions à valider : {suspensAppel.agence}</span>
-            <button type="button" onClick={() => { setRappel({ id: suspensAppel.agence_id, nom: suspensAppel.agence, lieu: "", badge: "À valider", historique: [] }); ouvrirActions(suspensAppel, suspensAppel.issue); }} className="rounded-full border border-ambre/40 px-3.5 py-1.5 text-[13px] text-ambre" style={{ background: "transparent" }}>Reprendre</button>
-          </div>
-        )}
 
-        {session && c && (
+        {session && (c || relances) && (
           <>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
-              <div className={carteChiffre}>
-                <p className="m-0 text-[28px] leading-none text-encre tabular-nums">{recap.data?.appels ?? 0}</p>
-                <p className="m-0 mt-1.5 text-[14px] text-ardoise">appels cette session · {duree(session.debut, horloge)}</p>
-              </div>
-              <button type="button" onClick={() => setVoirPourcent((v) => !v)} className={`${carteChiffre} text-left hover:border-menthe/50`}>
-                <p className="m-0 text-[28px] leading-none text-menthe tabular-nums">{voirPourcent ? `${pc} %` : `${c.appelees} / ${c.agences - (c.mortes || 0)}`}</p>
-                <p className="m-0 mt-1.5 text-[14px] text-ardoise">agences contactées</p>
-                <span className="mt-2.5 block h-[5px] overflow-hidden rounded-full bg-encre/[0.12]"><span className="block h-full rounded-full bg-menthe" style={{ width: `${pc}%` }} /></span>
-              </button>
-              <div className={carteChiffre}>
-                <p className="m-0 text-[28px] leading-none text-encre tabular-nums">{agences.length}</p>
-                <p className="m-0 mt-1.5 text-[14px] text-ardoise">dans ma file</p>
-              </div>
-              <div className={`${carteChiffre} flex items-start justify-between gap-2`}>
-                <button type="button" onClick={() => setChercherOuvert((x) => !x)} className="flex items-center gap-2 p-0 text-left text-[14px] text-craie hover:text-encre" style={{ background: "transparent" }}><Search className="h-4 w-4" />Un agent rappelle ?</button>
-                {ecran !== "fin" && <button type="button" onClick={() => { arreterTout(); setEcran("fin"); recap.refetch(); }} className="rounded-full border border-trait px-3.5 py-2 text-[13px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Terminer</button>}
-              </div>
-            </div>
-
-            {chercherOuvert && (
-              <div className="flex flex-col gap-2 rounded-[18px] border border-trait bg-fond p-4">
-                <input autoFocus value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Son nom, son agence ou son numéro" className="rounded-[12px] border border-trait bg-surface px-3.5 py-3 text-[16px] text-encre outline-none focus:border-menthe" />
-                {(trouves.data?.resultats || []).map((x) => (
-                  <button key={x.agence_id} type="button" onClick={() => rattacher(x)} className="flex flex-col items-start rounded-[12px] px-3 py-2 text-left hover:bg-relief" style={{ background: "transparent" }}>
-                    <span className="text-[15px] text-encre">{x.nom}{x.qui ? ` · ${x.qui}` : ""}</span>
-                    <span className="text-[13px] text-ardoise">{[x.ville, x.telephone].filter(Boolean).join(" · ")}</span>
-                  </button>
-                ))}
-                {recherche.trim().length >= 2 && trouves.data && !trouves.data.resultats.length && <span className="text-[13px] text-brume">Personne à ce nom ou ce numéro.</span>}
-              </div>
-            )}
 
             {session.essai && ecran === "fiche" && <p className="m-0 px-1 text-[13px] text-ardoise"><span className="text-menthe">Essai.</span> Agences fictives : rien n'est écrit dans Monday, aucun mail ne part, rien ne compte dans les statistiques.</p>}
             {message && <p className="m-0 flex items-start gap-2.5 px-1 text-[14px] text-ardoise"><span className="text-menthe">✓</span><span className="min-w-0 break-words">{message}</span></p>}
 
             {/* La fiche et le panneau d'appel. */}
-            {ecran === "fiche" && !a && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant. « Terminer » donne le récapitulatif.</p>}
+            {ecran === "fiche" && !a && !relances && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-stretch gap-5">
-                <CarteAgence a={a} recherches={recherches} cahier={cahier} />
-                <div className="mt-[22px] flex flex-col items-center justify-center gap-4 rounded-[28px] border border-trait bg-fond px-6 py-8">
-                  <a href={session.essai ? "#" : telLien(a.telephone)} onClick={appeler(false)} title="Appeler sans enregistrer"
-                    className="flex h-16 w-full max-w-[340px] items-center justify-center whitespace-nowrap rounded-full border-[1.5px] border-encre text-[22px] tracking-[0.02em] text-encre tabular-nums hover:bg-encre/[0.06]">
-                    {a.telephone}
-                  </a>
-                  <a href={session.essai ? "#" : telLien(a.telephone)} onClick={appeler(true)} title="Appeler et prendre des notes" aria-label="Appeler et prendre des notes"
-                    className="mt-2 grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol">
-                    <IconeMicro />
-                  </a>
-                  <span className="text-[13px] text-ardoise">Appeler · le micro prend les notes</span>
-                  {!passerOuvert ? (
-                    <div className="mt-3 flex items-center gap-2.5">
-                      <button type="button" onClick={() => setPasserOuvert(true)} className="rounded-full border border-trait px-[18px] py-2 text-[14px] text-craie hover:bg-surface" style={{ background: "transparent" }}>Passer</button>
-                      <button type="button" onClick={simuler} className="rounded-full border border-dashed border-menthe/60 px-4 py-2 text-[13px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>▶ Simuler un appel</button>
-                    </div>
-                  ) : (
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                      {Object.entries(file.data?.raisons_passer || { fermee: "Fermée", pas_pertinente: "Pas pertinente", plus_tard: "Plus tard" }).map(([k, l]) => (
-                        <button key={k} type="button" disabled={passer.isPending} onClick={() => (rappel ? suivante() : passer.mutate(k))} className="rounded-full border border-trait px-4 py-2 text-[14px] text-encre hover:bg-surface disabled:opacity-50" style={{ background: "transparent" }}>{l}</button>
-                      ))}
-                      <button type="button" onClick={() => setPasserOuvert(false)} aria-label="Fermer" className="grid h-9 w-9 place-items-center rounded-full text-ardoise hover:bg-surface" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
+                choisi={contactChoisi} onChoisir={setChoisi}
+                onMicro={micro} onSansNotes={() => { setNotes(false); setEcran("issue"); }}
+                passerOuvert={passerOuvert} setPasserOuvert={setPasserOuvert} raisons={file.data?.raisons_passer} onPasser={(k) => (rappel ? suivante() : passer.mutate(k))} passerEnCours={passer.isPending}
+                onRetour={relances ? () => onRetour?.() : null} />
             )}
 
             {/* Pendant l'appel : le micro qui écoute, la transcription en direct à droite. */}
             {ecran === "appel" && a && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
-                <div className="flex flex-col gap-[22px] rounded-[20px] border border-trait bg-fond p-6">
+                <div className="flex flex-col gap-[22px] rounded-[20px] border border-trait bg-transparent p-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="m-0 break-words text-[22px] text-encre">{a.nom}</p>
-                      <p className="m-0 mt-1 text-[14px] text-ardoise">{[a.interlocuteurs?.[0], a.telephone].filter(Boolean).join(" · ")}</p>
+                      <p className="m-0 mt-1 text-[14px] text-ardoise">{[contactChoisi && !contactChoisi.standard ? contactChoisi.nom : null, numeroAppel].filter(Boolean).join(" · ")}</p>
                     </div>
                   </div>
                   {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
@@ -661,18 +906,24 @@ export default function ModeAppel() {
                     )}
                     <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
                   </div>
-                  <p className="m-0 border-t border-trait pt-4 text-[14px] leading-[1.5] text-ardoise">
-                    {notes ? "À dire en ouverture : « Je prends des notes avec notre assistant, ça vous va ? » Au raccrochage, AK lit l'appel et propose les actions." : "Pas de notes : vous taperez l'issue après l'appel."}
-                  </p>
                   <div className="flex gap-2.5">
-                    {notes && <button type="button" onClick={sansNotes} className="flex-1 rounded-full border border-trait py-4 text-[15px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Sans notes</button>}
+                    {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
+                    <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="flex-1 rounded-full border border-trait py-4 text-[15px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Rappeler</button>
                     <button type="button" onClick={raccrocher} className="flex-[2] rounded-full bg-alerte py-4 text-[16px] text-white hover:opacity-90">Raccrocher</button>
+                    {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
+                    <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
+                      className="grid h-14 w-14 flex-none place-items-center rounded-full border border-trait bg-black text-encre hover:border-bord-vif"><X className="h-5 w-5" /></button>
                   </div>
-                  {(cahier.length > 0 || a.raison) && (
-                    <div className="flex flex-col gap-1.5 border-t border-trait pt-4">
-                      {a.raison && <p className="m-0 mb-1 text-[14px] text-ambre">{a.raison}</p>}
-                      {cahier.length > 0 && <span className={etiquette}>CAHIER DES CHARGES</span>}
-                      {cahier.map((q) => <span key={q} className="text-[14px] text-craie">{q}</span>)}
+                  {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
+                  {(autresNumeros.length > 0 || a.site) && (
+                    <div className="flex flex-col gap-2 border-t border-trait pt-4">
+                      {autresNumeros.length > 0 && <span className={etiquette}>AUTRES NUMÉROS</span>}
+                      {autresNumeros.map((x) => (
+                        <span key={x.telephone} className="flex items-baseline justify-between gap-3 text-[15px]">
+                          <span className="select-all font-mono tracking-[.04em] text-encre">{x.telephone}</span><span className="min-w-0 truncate text-[13px] text-ardoise">{x.nom}</span>
+                        </span>
+                      ))}
+                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-[15px] text-menthe hover:underline ${autresNumeros.length ? "mt-2" : ""}`}>{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
                     </div>
                   )}
                 </div>
@@ -684,10 +935,18 @@ export default function ModeAppel() {
             {ecran === "issue" && a && (
               <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))] items-stretch gap-5">
                 <CarteAgence a={a} recherches={[]} cahier={[]} />
-                <div className="mt-[22px] flex flex-col gap-3 rounded-[28px] border border-trait bg-fond p-6">
-                  <div className="flex items-baseline justify-between"><span className="text-[15px] text-encre">{rappel?.badge === "Rappel entrant" ? "Appel entrant" : "Appel terminé"}</span></div>
+                <div className="flex flex-col gap-3 rounded-[28px] border border-trait bg-transparent p-6">
+                  <div className="flex items-baseline justify-between"><span className="text-[15px] text-encre">Appel terminé</span></div>
                   {notes ? <span className="text-[13px] text-menthe">✓ Notes enregistrées</span> : <span className="text-[13px] text-ardoise">Sans notes : l'issue suffit</span>}
                   {!rappel && <button type="button" onClick={rappeler} className="self-start p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>L'appel a coupé ? Rappeler</button>}
+                  {surUnBien ? (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {ISSUES_BIEN.map(([k, l, simple]) => (
+                        <button key={k} type="button" disabled={noter.isPending} onClick={() => choisirIssue(k, simple)}
+                          className={k === "agent_prevenu" ? "col-span-2 h-[72px] rounded-full bg-menthe text-[18px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50" : bouton} style={k === "agent_prevenu" ? undefined : { background: "transparent" }}>{l}</button>
+                      ))}
+                    </div>
+                  ) : (<>
                   <span className={`${etiquette} mt-3`}>PERSONNE AU BOUT DU FIL</span>
                   <div className="grid grid-cols-2 gap-2">
                     {ISSUES_NON_ABOUTIES.map(([k, l]) => <button key={k} type="button" disabled={noter.isPending} onClick={() => choisirIssue(k, true)} className={bouton} style={{ background: "transparent" }}>{l}</button>)}
@@ -698,73 +957,50 @@ export default function ModeAppel() {
                     <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("a_des_murs", false)} className="h-14 rounded-full border border-menthe/60 text-[15px] text-menthe hover:bg-menthe/10 disabled:opacity-50" style={{ background: "transparent" }}>A un bien intéressant</button>
                     <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("pas_interesse", false)} className="h-14 rounded-full border border-trait text-[15px] text-encre hover:bg-relief disabled:opacity-50" style={{ background: "transparent" }}>Pas intéressé</button>
                   </div>
+                  </>)}
                   {noter.isPending && <p className="m-0 flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin" />Je note…</p>}
                 </div>
               </div>
             )}
 
+            {ecran === "raccroche" && a && (
+              <div className="flex flex-col items-center justify-center gap-5 rounded-[20px] border border-trait bg-transparent px-5 py-20 text-center duration-500 animate-in fade-in-0">
+                <span className="grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe duration-500 animate-in zoom-in-50"><Check className="h-10 w-10" strokeWidth={2.2} /></span>
+                <p className="m-0 text-[22px] text-encre duration-700 animate-in fade-in-0 slide-in-from-bottom-2">Appel terminé</p>
+                <p className="m-0 text-[14px] text-ardoise delay-300 duration-700 animate-in fade-in-0 fill-mode-both">{a.nom}</p>
+              </div>
+            )}
             {ecran === "analyse" && a && direct.length > 0 && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
                 <PanneauTranscription direct={direct} notes fin={directFin} />
-                <div className="flex flex-col items-center justify-center gap-3.5 rounded-[20px] border border-trait bg-fond px-5 py-16 text-center">
-                  <p className="m-0 text-[20px] text-encre">AK lit l'appel…</p>
+                <div className="relative flex flex-col items-center justify-center gap-3.5 rounded-[20px] border border-trait bg-transparent px-5 py-16 text-center">
+                  <span className="absolute right-4 top-4"><CompteARebours /></span>
+                  <p className="m-0 text-[20px] text-encre">AK lit l'appel</p>
                   <p className="m-0 text-[14px] leading-[1.6] text-ardoise">L'issue, l'interlocuteur, l'email, les biens évoqués, la prochaine étape</p>
-                  <span className="h-1 w-[200px] overflow-hidden rounded-full bg-encre/[0.12]"><span className="block h-full w-3/5 animate-pulse rounded-full bg-menthe" /></span>
+                  <TroisPoints />
                 </div>
               </div>
             )}
             {ecran === "analyse" && a && !direct.length && (
-              <div className="flex flex-col items-center gap-3.5 px-5 py-20 text-center">
-                <p className="m-0 text-[22px] text-encre">Lecture de l'appel…</p>
+              <div className="relative flex flex-col items-center gap-3.5 rounded-[20px] border border-trait bg-transparent px-5 py-20 text-center">
+                <span className="absolute right-4 top-4"><CompteARebours /></span>
+                <p className="m-0 text-[22px] text-encre">Lecture de l'appel</p>
                 <p className="m-0 text-[14px] leading-[1.6] text-ardoise">Interlocuteur, téléphone, email, biens évoqués, prochaine étape<br />{a.nom}</p>
-                <span className="h-1 w-[200px] overflow-hidden rounded-full bg-encre/[0.12]"><span className="block h-full w-3/5 animate-pulse rounded-full bg-menthe" /></span>
+                <TroisPoints />
               </div>
             )}
 
             {/* Ce qui a été compris, et les actions proposées. */}
             {ecran === "actions" && appel && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
                 <div className="flex min-w-0 flex-col gap-4">
-                {direct.length > 0 && <PanneauTranscription direct={direct} notes fin={null} replie />}
-                <div className="flex min-w-0 flex-col gap-4 rounded-[20px] border border-trait bg-fond p-6">
-                  <div className="flex flex-col gap-2">
-                    <span className={etiquette}>CE QU'AK A COMPRIS</span>
-                    <p className="m-0 text-[15px] text-encre">{appel.issue_deduite ? "Issue : " : "Issue tapée : "}<span className="text-menthe">{ISSUES_TOUTES[issue] || issue}</span>
-                      <button type="button" onClick={() => setChangerOuvert((x) => !x)} className="ml-2 p-0 text-[13px] text-ardoise underline hover:text-encre" style={{ background: "transparent" }}>changer</button></p>
-                    {changerOuvert && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {Object.entries(ISSUES_TOUTES).filter(([k]) => k !== issue).map(([k, l]) => (
-                          <button key={k} type="button" disabled={noter.isPending} onClick={() => { setChangerOuvert(false); changerIssue(k); }} className="h-8 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>{l}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {appel.compris?.avertissement && <p className="m-0 text-[13px] leading-[1.5] text-ambre">{appel.compris.avertissement}</p>}
-                  {appel.transcription_echec && <p className="m-0 text-[13px] leading-[1.5] text-ambre">La transcription n'a pas abouti : les actions reposent sur l'issue seule. Ajoutez une note si besoin.</p>}
-                  {appel.resume && !appel.sans_details && <p className="m-0 text-[15px] leading-[1.5] text-craie">{appel.resume}</p>}
-                  {faits.map((f) => (
-                    <div key={f.cle} className="flex flex-col gap-1 border-b border-trait pb-3 last:border-b-0">
-                      <div className="flex justify-between gap-2.5 text-[13px]">
-                        <span className="text-ardoise">{f.libelle}</span>
-                        {f.citation && <button type="button" onClick={() => setOuvertFait((o) => (o === f.cle ? null : f.cle))} className="p-0 text-[13px] text-menthe" style={{ background: "transparent" }}>d'où ça vient</button>}
-                      </div>
-                      {MODIFIABLES.includes(f.cle) ? (
-                        <input value={edits[f.cle] ?? f.valeur} onChange={(e) => setEdits((x) => ({ ...x, [f.cle]: e.target.value }))} placeholder="—"
-                          className={`min-w-0 rounded-[6px] border-0 px-1.5 py-0.5 text-[16px] leading-[1.4] outline-none focus:ring-1 focus:ring-menthe ${f.incertain && edits[f.cle] == null ? "bg-ambre/15 text-ambre" : "bg-transparent text-encre"}`} />
-                      ) : <span className={`text-[16px] leading-[1.4] ${f.incertain ? "-ml-1.5 self-start rounded-[6px] bg-ambre/15 px-1.5 py-0.5 text-ambre" : f.valeur ? "text-encre" : "text-brume"}`}>{f.valeur || "—"}</span>}
-                      {f.incertain && edits[f.cle] == null && <span className="text-[12px] text-ambre">{f.incertain}</span>}
-                      {ouvertFait === f.cle && <p className="m-0 mt-1 border-l-2 border-menthe/50 pl-2.5 text-[14px] italic text-craie">« {f.citation} »</p>}
-                    </div>
-                  ))}
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-[13px] text-ardoise">Note{appel.sans_details ? " (aucune note prise pendant l'appel)" : ""}</span>
-                    <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Ce qu'il faut retenir, en quelques mots" className="rounded-[12px] border border-trait bg-surface px-3.5 py-3 text-[16px] text-encre outline-none focus:border-menthe" />
-                  </label>
-                </div>
+                {/* « Ce qu'AK a compris » retiré (7 oct. 2026) : il doublait la fenêtre de Contact Monday. */}
+                <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} />
                 </div>
                 <div className="min-w-0 max-md:order-first">
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
+                    edits={edits} setEdits={setEdits} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
                     onLancer={() => valider.mutate()} envoi={valider.isPending} />
                 </div>
               </div>
@@ -772,7 +1008,7 @@ export default function ModeAppel() {
 
             {/* Le reçu : chaque coche est une relecture. Dix secondes pour annuler. */}
             {ecran === "recu" && r && (
-              <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[20px] border border-trait bg-fond p-7 max-md:p-5">
+              <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
                 <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
                   <LigneRecu l={r.monday ? { ...r.monday, texte: r.monday.etat === "ok" ? `Monday : ${r.monday.texte}` : r.monday.texte } : null} lien={r.monday?.etat === "ok" ? r.monday.lien : null}>
                     {r.monday?.etat === "doute" && <ChoixLigne candidates={r.monday.candidates || []} occupe={ligne.isPending} onChoisir={(choix) => ligne.mutate({ id: appel.id, choix })} />}
@@ -786,14 +1022,30 @@ export default function ModeAppel() {
                 </ul>
                 <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-trait pt-4">
                   {annulerDans > 0 ? <button type="button" onClick={() => annuler.mutate()} disabled={annuler.isPending} className="rounded-full border border-trait px-[18px] py-2.5 text-[14px] text-encre hover:bg-surface disabled:opacity-50" style={{ background: "transparent" }}>{annuler.isPending ? "Annulation…" : `Annuler · ${annulerDans} s`}</button> : <span />}
-                  <button type="button" onClick={() => { clearInterval(compte.current); suivante(); }} className="p-0 text-[14px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Agence suivante →</button>
+                  {relances ? (
+                    <span className="flex flex-wrap items-center justify-end gap-2">
+                      <button type="button" onClick={() => { clearInterval(compte.current); onRetour?.(); }} className="h-10 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
+                      <button type="button" onClick={() => { clearInterval(compte.current); onSuivante?.(); }} className="h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">Relance suivante</button>
+                    </span>
+                  ) : <button type="button" onClick={() => { clearInterval(compte.current); suivante(); }} className="p-0 text-[14px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Agence suivante →</button>}
+                </div>
+              </div>
+            )}
+
+            {/* Relances : l'issue est notée (sans réponse, hors ligne) ; on enchaîne ou on revient à la liste. */}
+            {ecran === "fait" && relances && (
+              <div className="flex w-full max-w-[620px] flex-col gap-5 self-center rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
+                <p className="m-0 flex items-start gap-3 text-[16px] leading-[1.45] text-encre"><span className="text-menthe">✓</span><span className="min-w-0 break-words">{fait}</span></p>
+                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-trait pt-4">
+                  <button type="button" onClick={() => onRetour?.()} className="h-10 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
+                  <button type="button" onClick={() => onSuivante?.()} className="h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">Relance suivante</button>
                 </div>
               </div>
             )}
 
             {/* La fin de session. */}
             {ecran === "fin" && recap.data && (
-              <div className="flex flex-col gap-[18px] rounded-[20px] border border-trait bg-fond p-7 max-md:p-5">
+              <div className="flex flex-col gap-[18px] rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
                 <p className="m-0 text-[26px] text-encre">Session {recap.data.ville} · {duree(session.debut, horloge)}</p>
                 <p className="m-0 text-[16px] leading-[1.7] text-craie">
                   {pl(recap.data.appels, "appel")} · {recap.data.par_issue?.pas_de_reponse ?? 0} sans réponse · {recap.data.par_issue?.repondeur ?? 0} répondeur · {recap.data.pas_de_bien} pas de bien pour l'instant · {recap.data.a_un_bien} avec un bien · {recap.data.pas_interesses} pas intéressé{recap.data.pas_interesses > 1 ? "s" : ""}<br />

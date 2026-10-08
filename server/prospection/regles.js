@@ -38,6 +38,10 @@ export const ISSUES = {
   veut_mail: 'Veut d\'abord un mail',
   pas_interesse: 'Pas intéressé',
   invalide: 'Mauvais numéro',
+  // Relances (8 oct. 2026) : l'agent sait ce qu'on pense de son bien.
+  agent_prevenu: 'Agent prévenu',
+  // « Il me rappelle » (8 oct. 2026) : un appel entrant sans contenu.
+  rien_de_nouveau: 'Rien de nouveau',
   // Les issues du mode appel, tapées par l'analyste en raccrochant (6 oct. 2026).
   a_rappeler: 'À rappeler',
   interesse: 'Intéressé',
@@ -145,6 +149,8 @@ export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), 
   // la fiche n'est pas arrivée, annulé dès qu'elle arrive (si_fiche).
   if (issue === 'a_des_murs') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler si la fiche n\'est pas arrivée', le: dite || plusJoursOuvres(auj, 3), si_fiche: true }, mails: ['demande_fiche'], diffusion: true, date_par_defaut: !dite };
   if (issue === 'veut_mail') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : a-t-il lu notre mail, a-t-il des murs ?', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3 };
+  // Agent prévenu (page Relances) : on lui a dit oui ou non pour son bien ; le point du mois suit.
+  if (issue === 'agent_prevenu') return { statut: statut === 'envoie_des_fiches' ? statut : 'en_discussion', tentatives: 0, prochaine: { quoi: 'point du mois : a-t-il rentré des murs ?', le: dite || ouvre(plusJours(auj, 30)) }, mails: [], date_par_defaut: !dite };
   // Pas intéressé : ne plus appeler, ni relance ni mail.
   if (issue === 'pas_interesse') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], ne_plus_appeler: true };
   // Intéressé : on se présente avec nos critères, et on rappelle à la date dite.

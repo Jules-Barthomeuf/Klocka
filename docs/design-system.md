@@ -215,6 +215,55 @@ stressait) : le micro qui pulse, avec « Je vous écoute » dessous. Au raccroch
 pas de bouton d'issue : la transcription à gauche, les actions d'AK à droite,
 l'issue qu'AK a déduite écrite au-dessus avec un lien « changer ». Les boutons
 d'issue ne restent que pour un appel sans notes.
+Le mode appel de la Prospection prend le classeur de l'onglet Listes :
+intercalaires de ville `rounded-t-[10px]` 13 px, l'ouvert en `bg-rail`
+raccordé à la page à points (`k-points bg-rail`), toute la largeur ; l'onglet
+Essai en pointillé au bout. Décision du 7 oct. 2026.
+
+**Détail d'une action proposée** (maquette de Jules, 7 oct. 2026) : l'œil
+d'une étape ouvre une fenêtre (`SequenceActions.jsx`, `Panneau`). À gauche,
+sur `rail`, toutes les étapes rangées par moment (« Maintenant », puis chaque
+date de relance) ; à droite, l'étape ouverte en cases sur une grille à deux
+colonnes séparées d'un trait. Une case qu'AK écrit a son libellé en `bleu`
+(« Statut · modifié », « E-mail · nouveau ») et un voile bleu ; seules les
+cases que la validation sait reporter se changent d'un clic (contact,
+téléphone, email, dates de relance, le mail). En pied : « ← Précédente »,
+« Rétablir » (ce qu'AK avait proposé pour l'étape), « Suivante → » puis
+« Terminer ». Au téléphone, plein écran, sans la colonne d'étapes
+(« 1 sur 4 » dans le surtitre).
+
+**Relances** (spec de Jules du 8 oct. 2026, qui remplace les onglets et les
+fiches du 7 oct.) : une page à part (menu « Relances », après Prospection),
+partagée par toute l'équipe, sans onglets. Titre centré, puis le tableau de
+bord : le total (« 23 relances à faire · 4 en retard », 22 px), les motifs en
+pastilles cliquables qui filtrent la liste (Bien retenu en `menthe` et Bien
+refusé en `alerte` tant qu'il en reste), puis trois blocs bordés en grille :
+Mails à valider (aperçu, Envoyer, Modifier, Ignorer), Activité, Pilotage
+(barre des contactés avec un trait à la cible de 90 %). Au téléphone, seuls
+le total et les motifs restent, « Tableau de bord » déplie le reste. La
+liste : cinq colonnes (Pris par en initiales dans un rond, Motif en pastille,
+Agent avec l'agence dessous, Ville, Échéance « Aujourd'hui » ou « En retard
+de 4 j » en `ambre`), sur deux étages au téléphone ; une ligne prise par un
+collègue est à 45 % d'opacité, « En cours : Maxime » au survol. Un clic ouvre
+le mode appel de la Prospection sans écran intermédiaire, avec en tête de la
+fiche le motif et la phrase à dire dans un cadre `ambre`. Après l'issue,
+« Retour à la liste » et « Relance suivante » (principal). Dans les Listes de
+la Prospection, « Envoyer dans Relances » reste sur les lignes cochées.
+
+**Il me rappelle** (spec de Jules du 8 oct. 2026) : un bouton menthe
+« Rappel » (icône d'appel entrant ; libellé raccourci le même jour) en haut à
+droite de chaque page de l'équipe. Ce qu'une page pose en haut à droite le
+rejoint dans le même coin fixe, côte à côte, 12 px d'écart (`#k-haut-droite`
+dans Layout ; la pilule des boîtes du Dashboard y passe sur ordinateur), en icône dans la barre du haut au téléphone ; un tap démarre
+l'enregistrement, sans écran intermédiaire. L'écran d'appel couvre la page
+(plein écran, `z-[70]`) : bandeau « Rappel entrant · agent à identifier », le
+micro qui pulse avec le chronomètre et Stop en `alerte` à gauche, la
+transcription (à la fin de l'appel) et les notes à droite. Puis « Qui a
+appelé » : le premier candidat dans un cadre menthe (« Probablement … »), deux
+autres en lignes, chercher, nouveau contact ; le cadre des actions reste en
+pointillé tant que l'agent n'est pas confirmé. « Ne plus appeler » en cadre
+`alerte`, une relance prise par un collègue en `ambre`. Fermé avant la fin,
+le rappel reste dans une pilule « Rappel à terminer » en bas, au centre.
 
 ## 6. Le chat et l'écran scindé
 

@@ -29,7 +29,7 @@ const TITRES = {
 };
 
 export const CONTACT_VIDE = '\u200b';
-export const tableauAgents = () => (process.env.MONDAY_BOARD_AGENTS || '').trim();
+export const tableauAgents = () => (fauxMonday ? 'faux-tableau' : (process.env.MONDAY_BOARD_AGENTS || '').trim());
 export const lienLigne = (id, tableau = tableauAgents()) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
 
 /** Pure : les colonnes du tableau par leur titre, avec leur type. */
@@ -104,10 +104,14 @@ export function trouverLigne(lignes, { telephones = [], emails = [], agence = nu
 }
 
 /** Pure : la ligne datée des Remarques : « 07/10/2026 · Nora · Pas de bien pour l'instant · résumé ». */
-export function ligneDeRemarque({ jour, analyste, issue, resume: r = '', ne_plus_appeler = false }) {
+// La remarque dit ce que l'agent a dit et ce qui compte (8 oct. 2026, Jules) :
+// ni qui a appelé (le SPOC le dit), ni l'issue, seulement la date et le
+// résumé. L'issue ne sert qu'à défaut de résumé.
+export function ligneDeRemarque({ jour, issue, resume: r = '', ne_plus_appeler = false }) {
   const j = String(jour || '').slice(0, 10);
   const date = j ? `${j.slice(8, 10)}/${j.slice(5, 7)}/${j.slice(0, 4)}` : '';
-  return [date, analyste, issue, ne_plus_appeler ? 'Ne plus appeler' : null, String(r || '').replace(/\s+/g, ' ').trim().slice(0, 300)].filter(Boolean).join(' · ');
+  const texte = String(r || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  return [date, ne_plus_appeler ? 'Ne plus appeler' : null, texte || issue].filter(Boolean).join(' · ');
 }
 
 /**
@@ -206,7 +210,12 @@ export function valeursDeRetour(avantLu, attendus, cols) {
 let colonnesCache = null;
 let lignesCache = null;
 
-async function api() { return import('../monday.js'); }
+// Les tests rejouent tout le parcours sur un faux tableau (actions-proposees.test.js) :
+// il remplace l'API Monday, jamais en dehors de node --test.
+let fauxMonday = null;
+export function brancherPourTests(faux) { fauxMonday = process.env.NODE_TEST_CONTEXT ? faux : null; colonnesCache = null; lignesCache = null; }
+
+async function api() { return fauxMonday || import('../monday.js'); }
 
 export async function colonnes() {
   if (colonnesCache) return colonnesCache;
@@ -227,7 +236,7 @@ export async function lignes({ frais = false } = {}) {
 
 // Les tests (node --test) n'écrivent jamais dans le vrai tableau, même si le
 // .env est chargé par une dépendance : le 7 oct. 2026, un essai y a laissé une ligne.
-export const mondayAgentsBranche = async () => !process.env.NODE_TEST_CONTEXT && !!tableauAgents() && (await api()).mondayConfigure();
+export const mondayAgentsBranche = async () => (fauxMonday ? true : !process.env.NODE_TEST_CONTEXT && !!tableauAgents() && (await api()).mondayConfigure());
 
 /** La ligne d'un contact et l'aperçu de ce qui va changer, pour l'écran d'actions. Ne lève jamais : Monday absent rend « indisponible ». */
 export async function preparer(cible, donnees) {

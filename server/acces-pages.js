@@ -17,6 +17,8 @@ export const estSuperAdmin = (u) => !!u && SUPER_ADMINS.includes(norm(u.email));
 /** Les API qu'une page possède en propre : fermer la page les ferme aussi. */
 export const API_DES_PAGES = {
   Prospection: ['/api/prospection'],
+  // Relances (7 oct. 2026) : sa page et le mode appel, qu'elle partage avec la Prospection.
+  Relances: ['/api/prospection/relances', '/api/prospection/mode-appel', '/api/prospection/rappels'],
   Emailing: ['/api/emailing'],
   ALX: ['/api/alx'],
 };
@@ -34,12 +36,15 @@ export function pagesFermees(u) {
   return PAGES_EQUIPE.filter((p) => !ouvertes.has(p));
 }
 
-/** Pure : cette adresse d'API est-elle fermée pour ce compte ? */
+/** Pure : cette adresse d'API est-elle fermée pour ce compte ? Une API partagée par deux pages reste ouverte si l'une des deux l'est. */
 export function apiFermee(u, chemin) {
   const fermees = pagesFermees(u);
   if (!fermees.length) return null;
   const c = String(chemin || '').split('?')[0];
-  return fermees.find((p) => (API_DES_PAGES[p] || []).some((prefixe) => c === prefixe || c.startsWith(`${prefixe}/`))) || null;
+  const couvre = (p) => (API_DES_PAGES[p] || []).some((prefixe) => c === prefixe || c.startsWith(`${prefixe}/`));
+  const pages = Object.keys(API_DES_PAGES).filter(couvre);
+  if (pages.some((p) => !fermees.includes(p))) return null;
+  return pages[0] || null;
 }
 
 /** Les admins et leurs pages fermées, pour l'écran de Jules. */

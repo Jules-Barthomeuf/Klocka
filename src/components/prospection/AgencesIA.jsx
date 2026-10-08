@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, PhoneForwarded, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 
@@ -273,6 +273,19 @@ function TableauAgences({ id, onAppeler }) {
     },
     onError: (e) => toast.error(e?.message || "Monday n'a pas répondu"),
   });
+  // Envoyer dans Relances : chaque ligne y entre due aujourd'hui, dans la liste de sa ville.
+  const versRelances = useMutation({
+    mutationFn: (ids) => base44.request("POST", "/api/prospection/relances/envoyer", { body: { ids } }),
+    onSuccess: (r) => {
+      const n = r.envoyees;
+      toast.success(n ? `${n} agence${n > 1 ? "s" : ""} dans Relances${r.villes?.length ? ` · ${r.villes.join(", ")}` : ""}` : "Rien d'envoyé", {
+        description: [r.deja ? `${r.deja} déjà en relance` : null, r.refusees?.length ? `${r.refusees.length} refusée${r.refusees.length > 1 ? "s" : ""} (morte, hors cible ou « Ne plus appeler »)` : null].filter(Boolean).join(" · ") || undefined,
+      });
+      setCoches(new Set());
+      for (const k of [["agent-ia-liste", id], ["relances"]]) queryClient.invalidateQueries({ queryKey: k });
+    },
+    onError: (e) => toast.error(e?.message || "Envoi impossible"),
+  });
   // Appeler : l'agence (ou l'agent) entre au carnet si besoin, puis le panneau d'appel s'ouvre.
   const appeler = useMutation({
     mutationFn: ({ agence, agent }) => base44.request("POST", `${API}/agences/${agence}/appeler`, { body: { agent: agent ?? null } }),
@@ -323,6 +336,10 @@ function TableauAgences({ id, onAppeler }) {
           <button type="button" onClick={async () => { for (const x of coches) { const a = (data.lignes || []).find((l) => l.id === x); if (a && !a.carnet_id) await carnet.mutateAsync({ agence: x }).catch(() => {}); } setCoches(new Set()); }} disabled={carnet.isPending}
             className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-encre hover:border-menthe" style={{ background: "transparent" }}>
             {carnet.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}Mettre au carnet
+          </button>
+          <button type="button" onClick={() => versRelances.mutate([...coches])} disabled={versRelances.isPending}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+            {versRelances.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PhoneForwarded className="h-3.5 w-3.5" />}Envoyer dans Relances
           </button>
           <button type="button" onClick={() => versMonday.mutate([...coches])} disabled={versMonday.isPending}
             className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
@@ -447,7 +464,7 @@ function TableauAgences({ id, onAppeler }) {
 }
 
 /** Une case à cocher, comme dans les listes du mandataire. */
-function Case({ oui }) {
+export function Case({ oui }) {
   return (
     <span className={`grid h-[18px] w-[18px] place-items-center rounded-[5px] border transition-colors ${oui ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif hover:border-menthe"}`}>
       {oui && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -550,7 +567,7 @@ function Supprimees({ listeId }) {
  * Qui tient la ligne : un clic dans la case y met celui qui clique, « + » y
  * ajoute quelqu'un de l'équipe, un clic sur un prénom l'enlève (6 oct. 2026).
  */
-function CellulePour({ agence, listeId }) {
+export function CellulePour({ agence, listeId }) {
   const queryClient = useQueryClient();
   const [menu, setMenu] = useState(false);
   const { data } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
@@ -559,7 +576,8 @@ function CellulePour({ agence, listeId }) {
   const membre = (email) => equipe.find((m) => m.email === email) || { email, nom: String(email).split("@")[0], photo: null };
   const changer = useMutation({
     mutationFn: ({ email = null, retirer = false }) => base44.request("POST", `${API}/agences/${agence.id}/pour`, { body: { email, retirer } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", listeId] }),
+    // La même cellule sert à la liste des relances : les deux se relisent.
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", listeId] }); queryClient.invalidateQueries({ queryKey: ["relances"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const autres = equipe.filter((m) => !pour.includes(m.email));
@@ -609,7 +627,7 @@ function CellulePour({ agence, listeId }) {
 }
 
 /** La photo d'un membre de l'équipe, ou son initiale. */
-function Avatar({ membre, petit = false, grand = false, pointille = false }) {
+export function Avatar({ membre, petit = false, grand = false, pointille = false }) {
   const [ko, setKo] = useState(false);
   const taille = grand ? "h-14 w-14 text-[18px]" : petit ? "h-6 w-6 text-[10.5px]" : "h-8 w-8 text-[12px]";
   if (membre.photo && !ko) {

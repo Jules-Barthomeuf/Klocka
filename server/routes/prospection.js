@@ -100,6 +100,170 @@ export function monterProspection(app) {
     const cahier = await (await import('../prospection/modeles-appel.js')).cahierDesCharges();
     ok(res, { ...r, cahier, issues: (await MA()).ISSUES_APPEL, raisons_passer: (await MA()).RAISONS_PASSER });
   }));
+  // --- « Il me rappelle » : un agent rappelle (spec du 8 oct. 2026) ----------
+  const RP = () => import('../prospection/rappels.js');
+  const reponse = (res, r) => (r.ok ? ok(res, r) : refus(res, r));
+  app.get('/api/prospection/rappels/en-cours', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, { rappels: (await RP()).enCours(user) });
+  }));
+  app.post('/api/prospection/rappels', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await RP()).ouvrir(user));
+  }));
+  app.get('/api/prospection/rappels/chercher', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { resultats: (await RP()).chercher(String(req.query.q || '')) });
+  }));
+  app.get('/api/prospection/rappels/:id', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, (await RP()).lire(req.params.id, user));
+  }));
+  // Stop : les morceaux transcrits pendant l'appel, et ceux qui ne l'étaient pas encore (en audio, à leur place).
+  app.post('/api/prospection/rappels/:id/fin', upload.array('audio', 80), wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    let morceaux = [];
+    try { morceaux = JSON.parse(req.body?.morceaux || '[]'); } catch { morceaux = []; }
+    const audios = (req.files || []).map((f) => f.buffer || (f.path ? fs.readFileSync(f.path) : null)).filter(Boolean);
+    for (const f of req.files || []) if (f.path) fs.unlink(f.path, () => {});
+    reponse(res, await (await RP()).finir(req.params.id, { morceaux, audios, notes: req.body?.notes ?? null, duree_s: Number(req.body?.duree_s) || null }, user));
+  }));
+  app.post('/api/prospection/rappels/:id/notes', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, (await RP()).noter(req.params.id, req.body?.notes, user));
+  }));
+  app.post('/api/prospection/rappels/:id/identifier', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const b = req.body || {};
+    reponse(res, await (await RP()).identifier(req.params.id, { agent_id: b.agent_id || null, agence_id: b.agence_id || null, nouveau: b.nouveau || null }, user));
+  }));
+  app.post('/api/prospection/rappels/:id/lever', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, await (await RP()).lever(req.params.id, user));
+  }));
+  app.post('/api/prospection/rappels/:id/analyser', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, await (await RP()).analyser(req.params.id, { remplace: req.body?.remplace || null, issue: req.body?.issue || 'auto' }, user));
+  }));
+  app.post('/api/prospection/rappels/:id/titre', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, (await RP()).titrer(req.params.id, req.body?.titre, user));
+  }));
+  app.post('/api/prospection/rappels/:id/rien-de-nouveau', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, await (await RP()).rienDeNouveau(req.params.id, user));
+  }));
+  app.post('/api/prospection/rappels/:id/terminer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, (await RP()).terminer(req.params.id, user));
+  }));
+  app.post('/api/prospection/rappels/:id/abandonner', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, (await RP()).abandonner(req.params.id, user));
+  }));
+
+  // --- Les relances (page Relances, spec du 8 oct. 2026) ---------------------
+  const RL = () => import('../prospection/relances.js');
+  // La liste partagée et le tableau de bord.
+  app.get('/api/prospection/relances', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, { ...(await (await RL()).relances()), moi: String(user.email || '').toLowerCase() });
+  }));
+  // « Pris par » : relu toutes les secondes et demie par chaque écran, tenu en mémoire.
+  app.get('/api/prospection/relances/prises', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const rl = await RL();
+    ok(res, { prises: rl.prises(), version: rl.version() });
+  }));
+  app.post('/api/prospection/relances/prendre', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await RL()).prendre(String(req.body?.cle || ''), user);
+    if (!r.ok) return res.status(409).json({ error: r.error, prise_par: r.prise_par || null });
+    ok(res, r);
+  }));
+  app.post('/api/prospection/relances/garder', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await RL()).garder(String(req.body?.cle || ''), user));
+  }));
+  app.post('/api/prospection/relances/lacher', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await RL()).lacher(String(req.body?.cle || ''), user));
+  }));
+  // La fiche du mode appel pour la ligne prise.
+  app.get('/api/prospection/relances/fiche', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await RL()).ficheDeRelance(String(req.query.agence || ''), user);
+    if (!r.ok) return refus(res, r);
+    const cahier = await (await import('../prospection/modeles-appel.js')).cahierDesCharges();
+    ok(res, { ...r, cahier, issues: (await MA()).ISSUES_APPEL, raisons_passer: {} });
+  }));
+  app.post('/api/prospection/relances/session', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await RL()).ouvrirSession(user));
+  }));
+  // Des lignes de la Prospection envoyées dans Relances.
+  app.post('/api/prospection/relances/envoyer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String).slice(0, 500) : [];
+    if (!ids.length) return res.status(400).json({ error: 'Cochez au moins une agence.' });
+    ok(res, await (await RL()).envoyer(ids, user));
+  }));
+  // Les mails de relance à valider : Envoyer, Modifier, Ignorer. Rien ne part sans un clic.
+  const mailDeRelance = async (id) => (await RL()).mailsAValider().some((m) => m.id === id);
+  app.post('/api/prospection/relances/mails/:id/envoyer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    if (!(await mailDeRelance(req.params.id))) return res.status(404).json({ error: 'Mail introuvable ou déjà parti.' });
+    const r = await (await import('../prospection/mails.js')).envoyerMails([req.params.id], user);
+    const x = r.resultats?.[0];
+    if (!x?.ok) return res.status(400).json({ error: x?.error || "Le mail n'est pas parti." });
+    ok(res, x);
+  }));
+  app.post('/api/prospection/relances/mails/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    if (!(await mailDeRelance(req.params.id))) return res.status(404).json({ error: 'Mail introuvable ou déjà parti.' });
+    const r = (await import('../prospection/mails.js')).modifierMail(req.params.id, { objet: req.body?.objet, corps: req.body?.corps, a: req.body?.a });
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/relances/mails/:id/ignorer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    if (!(await mailDeRelance(req.params.id))) return res.status(404).json({ error: 'Mail introuvable ou déjà parti.' });
+    const r = (await import('../prospection/mails.js')).ecarterMail(req.params.id, user.email);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  // La liste des relances, lignes cochées (8 oct. 2026) : supprimer, ou renvoyer en prospection.
+  app.post('/api/prospection/relances/retirer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await RL()).retirerDesRelances(req.body?.cles, user));
+  }));
+  app.post('/api/prospection/relances/prospection', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await RL()).renvoyerEnProspection(req.body?.cles, user));
+  }));
   // L'agence à l'écran : tenue pour soi, renouvelée tant qu'elle y reste.
   app.post('/api/prospection/mode-appel/reserver', wrap(async (req, res) => {
     const user = admin(req, res);
@@ -190,7 +354,7 @@ export function monterProspection(app) {
       agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue,
       session_id: req.body?.session_id || null, audio, transcription, remplace: req.body?.remplace || null,
       recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
-      numero: req.body?.numero || null, user,
+      numero: req.body?.numero || null, motif: req.body?.motif || null, user,
     });
     if (!r.ok) return refus(res, r);
     ok(res, { ...r, transcription });
@@ -241,7 +405,8 @@ export function monterProspection(app) {
   app.get('/api/prospection/mode-appel/en-suspens', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    const appel = Records.list('AppelAgent').filter((x) => x.par === user.email && x.etat === 'a_valider' && x.agence_id && !x.essai_archive && Date.now() - Date.parse(x.le) < 2 * 86400000).sort((x, y) => String(y.le).localeCompare(String(x.le)))[0] || null;
+    // Un rappel entrant a son propre bandeau (« Rappel à terminer ») : il ne revient pas ici.
+    const appel = Records.list('AppelAgent').filter((x) => x.par === user.email && x.etat === 'a_valider' && x.agence_id && !x.essai_archive && !x.rappel_id && Date.now() - Date.parse(x.le) < 2 * 86400000).sort((x, y) => String(y.le).localeCompare(String(x.le)))[0] || null;
     ok(res, { appel: appel ? { id: appel.id, agence_id: appel.agence_id, agence: Records.get('AgenceProspect', appel.agence_id)?.nom || appel.agent, issue: appel.issue_tapee || appel.issue, le: appel.le, propositions: appel.propositions, compris: appel.compris, resume: appel.resume } : null });
   }));
   app.post('/api/prospection/mode-appel/appels/:id/renvoyer', wrap(async (req, res) => {

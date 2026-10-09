@@ -189,7 +189,7 @@ app.use((req, res, next) => {
   next();
 });
 // Le webhook de Resend se vérifie sur le corps brut : on le garde, pour lui seul.
-app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook')) req.corpsBrut = buf.toString('utf8'); } }));
+app.use(express.json({ limit: '25mb', verify: (req, res, buf) => { if (req.url.startsWith('/api/emailing/webhook') || req.url.startsWith('/api/emailing/calendly')) req.corpsBrut = buf.toString('utf8'); } }));
 
 // Les pages fermées par Jules à un admin ferment aussi leur API (acces-pages.js).
 app.use('/api', (req, res, next) => {
@@ -1374,10 +1374,13 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
     try {
       const M = await import('./emailing/index.js');
       const C = await import('./emailing/campagnes.js');
+      const N = await import('./emailing/newsletters.js');
       const sorties = await M.reponsesRecues();
       const s = await M.tourEmailing();
+      // Les newsletters d'abord : un mail prêt dont l'heure est venue devient une campagne, envoyée dans la foulée.
+      const nl = await N.tourNewsletters();
       const c = await C.tourCampagnes();
-      if (sorties || s?.envoyes || c?.envoyes) console.log(`[emailing] ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);
+      if (sorties || s?.envoyes || c?.envoyes || nl?.lances || nl?.alertes) console.log(`[emailing] ${nl?.lances || 0} mail(s) de newsletter lancé(s), ${nl?.alertes || 0} alerte(s), ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);
     } catch (e) {
       console.warn('[emailing]', e?.message || e);
     } finally {

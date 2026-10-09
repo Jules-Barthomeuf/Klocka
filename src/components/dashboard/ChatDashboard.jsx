@@ -107,6 +107,8 @@ const ESPACES = {
   // Le mandat : les questions du mandat de vente, l'aperçu à côté, puis MyNotary.
   mandat: { api: "/api/mandataire", qs: "?espace=mandat", modesAGauche: false, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quel mandat préparez-vous ? « Mandat exclusif pour les murs de la boulangerie Martin, 12 rue Carnot à Mâcon, 450 000 € »" },
   // L'emailing (équipe) : le chat d'AK conçoit et réécrit les séquences d'emails.
+  // L'atelier des newsletters (9 oct. 2026) : le chat en colonne à gauche, la newsletter à droite.
+  newsletter: { api: "/api/assistant", page: "emailing", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quelle newsletter ? « Pour les inscrits du webinaire du 12 oct. : un mail tous les 14 jours, de la valeur, le simulateur en appel à l'action »" },
   sequence: { api: "/api/assistant", page: "emailing", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quelle séquence ? « Après notre webinaire du 12 oct. sur les murs commerciaux : amener les inscrits jusqu'à un appel découverte » " },
   // Les offres (équipe) : le chat d'AK, qui rédige et corrige les lettres
   // d'intention de la page Offres ; la lettre ouverte lui est donnée.
@@ -705,7 +707,7 @@ const OUTILS_LUS = {
   registre_engagements: "Lecture des engagements", historique_actions: "Lecture de l'historique", preparer_mail: "Rédaction du mail",
   noter_relance: "Création de la relance", noter_rdv: "Création du rendez-vous", nouveau_contact: "Création de la fiche propriétaire",
   appel_sans_reponse: "Relance suivante de la séquence", resultat_appel: "Mise à jour de la fiche", demandes_clients: "Lecture des demandes clients",
-  rediger_loi: "Rédaction de la lettre d'intention", rediger_sequence: "Rédaction de la séquence", avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
+  rediger_loi: "Rédaction de la lettre d'intention", rediger_sequence: "Rédaction de la séquence", rediger_newsletter: "Rédaction de la newsletter", avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
 };
 const ACTIONS_FAITES = {
   pousser_dossier_monday: "Dossier poussé dans Monday", pousser_projet_monday: "Projet poussé dans Monday", creer_drive_dossier: "Dossier Drive créé",
@@ -938,7 +940,7 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1745,13 +1747,14 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         // Au téléphone, la hauteur vient de Layout (barre du haut, onglets, clavier) : index.css, .k-chat-hauteur.
-        className="k-chat-hauteur flex h-[100dvh] flex-col"
+        // `sansBarreHaut` (atelier des newsletters, 9 oct. 2026) : la page pose sa propre barre au-dessus, le chat prend la hauteur qu'on lui laisse.
+        className={`k-chat-hauteur flex ${sansBarreHaut ? "h-full" : "h-[100dvh]"} flex-col`}
         onDragOver={(e) => { if (!E.fichier) return; e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
         onDrop={(e) => { if (E.fichier) deposer(e); }}
       >
         {/* À côté d'un aperçu, la barre du haut est la même des deux côtés : fond et hauteur. */}
-        <div className={`flex flex-none items-center gap-3 border-b border-trait ${barreApercu ? "k-barre-apercu -mx-5 h-14 px-5" : "py-3"}`}>
+        <div className={`flex flex-none items-center gap-3 border-b border-trait ${sansBarreHaut ? "hidden" : ""} ${barreApercu ? "k-barre-apercu -mx-5 h-14 px-5" : "py-3"}`}>
           <button type="button" onClick={nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
             <ChevronLeft className="h-4 w-4" /> Dashboard
           </button>

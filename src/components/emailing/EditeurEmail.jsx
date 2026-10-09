@@ -125,7 +125,7 @@ const PreviewEditable = React.memo(function PreviewEditable({ design, blocs, onC
 // début — même valeur ou pas, un clic ne retombait jamais où on l'avait posé.
 }, (a, b) => a.design === b.design && a.blocs === b.blocs && a.logo === b.logo && a.expediteur === b.expediteur && a.desinscription === b.desinscription);
 
-const vars = (c) => ({ prenom: c.prenom || "", nom: c.nom || "", entreprise: c.entreprise || "", ville: c.ville || "", email: c.email || "", lien: "https://klocka.immo/Bienvenue", expediteur: "Jules", ...(c.champs || {}) });
+const vars = (c) => ({ prenom: c.prenom || "", nom: c.nom || "", entreprise: c.entreprise || "", ville: c.ville || "", email: c.email || "", lien: "https://klocka.immo/Bienvenue", lien_simulateur: `/SimulateurPublic?k=${c.jeton || "exemple"}`, k: c.jeton || "exemple", expediteur: "Jules", ...(c.champs || {}) });
 
 /** Une zone de texte qui grandit avec son contenu. */
 function Zone({ valeur, onChange, onFocus, lignes = 3, placeholder = "" }) {
@@ -367,6 +367,37 @@ function PanneauAK({ email, bloc, onBloc, onObjet, onFermer }) {
  *   desinscription?: boolean, variables?: string[]|null, actions?: React.ReactNode,
  *   onEnregistrerTemplate?: () => void, avecAK?: boolean}} props
  */
+/**
+ * « Insérer un asset » (9 oct. 2026) : le simulateur, un lead magnet, un
+ * encadré enregistré dans l'onglet Assets ; ses blocs s'ajoutent au mail,
+ * avec de nouveaux identifiants, et se retouchent comme les autres.
+ */
+function InsererAsset({ onInserer }) {
+  const [ouvert, setOuvert] = useState(false);
+  const { data } = useQuery({ queryKey: ["emailing-assets"], queryFn: () => req("GET", "/assets"), enabled: ouvert });
+  return (
+    <span className="relative inline-flex">
+      <button type="button" onClick={() => setOuvert((x) => !x)} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-bord-doux px-3.5 py-2 text-[13px] text-ardoise hover:text-encre max-md:py-2.5"><Plus className="h-3.5 w-3.5" />Insérer un asset</button>
+      {ouvert && (
+        <>
+          <span className="fixed inset-0 z-[60]" onClick={() => setOuvert(false)} />
+          <span className="absolute bottom-full left-0 z-[70] mb-2 flex w-[280px] flex-col rounded-[12px] border border-bord-doux bg-surface-pleine p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+            {!data && <span className="flex justify-center py-2"><Loader2 className="h-4 w-4 animate-spin text-ardoise" /></span>}
+            {(data?.assets || []).map((a) => (
+              <button key={a.id} type="button" onClick={() => { setOuvert(false); onInserer((a.blocs || []).map((b, k) => ({ ...b, id: `${b.type}-${Date.now().toString(36)}${k}` }))); }}
+                className="flex flex-col items-start rounded-[8px] px-2.5 py-2 text-left hover:bg-relief" style={{ background: "transparent" }}>
+                <span className="text-[13.5px] text-encre">{a.nom}</span>
+                {a.description && <span className="line-clamp-2 text-[12px] text-ardoise">{a.description}</span>}
+              </button>
+            ))}
+            {data && !(data.assets || []).length && <span className="px-2.5 py-2 text-[12.5px] text-brume">Aucun asset : créez-en dans l'onglet Assets.</span>}
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
 export default function EditeurEmail({ email, onChange, expediteur = "L'équipe Klocka <equipe@notifications-klocka.com>", desinscription = true, variables = null, actions = null, onEnregistrerTemplate = null, avecAK = true }) {
   const { data: referentiel } = useReferentiel();
   const { data: lesContacts } = useQuery({ queryKey: ["emailing-contacts-apercu"], queryFn: () => req("GET", "/contacts/recherche?par_page=50"), staleTime: 30_000 });
@@ -499,7 +530,10 @@ export default function EditeurEmail({ email, onChange, expediteur = "L'équipe 
             </div>
             <div className="mt-3">
               {ajout ? <ChoixBloc onChoisir={(t) => { setAjout(false); const nb = blocNeuf(t); changerBlocs([...blocs, nb]); setActif(nb.id); }} /> : (
-                <button type="button" onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-bord-doux px-3.5 py-2 text-[13px] text-ardoise hover:text-encre max-md:py-2.5"><Plus className="h-3.5 w-3.5" />Ajouter un bloc</button>
+                <span className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-bord-doux px-3.5 py-2 text-[13px] text-ardoise hover:text-encre max-md:py-2.5"><Plus className="h-3.5 w-3.5" />Ajouter un bloc</button>
+                  <InsererAsset onInserer={(nouveaux) => changerBlocs([...blocs, ...nouveaux])} />
+                </span>
               )}
             </div>
             <label className="mt-4 flex items-center gap-2 text-[12.5px] text-ardoise">

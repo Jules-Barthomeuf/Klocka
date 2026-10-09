@@ -179,7 +179,7 @@ function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = f
   const enCours = direct.some((x) => x.etat === "envoi");
   const rates = direct.filter((x) => x.etat === "echec").length;
   return (
-    <div className={`flex min-w-0 flex-col gap-3 ${nu ? "" : "rounded-[20px] border border-trait bg-transparent p-6"}`}>
+    <div className={`flex min-w-0 flex-col gap-3 ${nu ? "" : "rounded-[18px] border border-bord-doux bg-transparent p-6"}`}>
       <div className="flex items-center justify-between gap-3">
         <span className={nu ? "text-[11px] tracking-[.16em] text-brume" : "m-0 text-[12px] tracking-[.14em] text-ardoise"}>{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
         {replie ? <button type="button" onClick={() => setOuvert((x) => !x)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{ouvert ? "Replier" : "Afficher"}</button>
@@ -233,11 +233,11 @@ function CarteAgence({ a, recherches, cahier }) {
 /** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
 function ZoneNotes({ valeur, onChange, nu = false }) {
   return (
-    <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[20px] border border-trait bg-transparent p-6 max-md:p-5"}`}>
+    <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[18px] border border-bord-doux bg-transparent p-6 max-md:p-5"}`}>
       <span className={nu ? "text-[11px] tracking-[.16em] text-brume" : "m-0 text-[12px] tracking-[.14em] text-ardoise"}>NOTES</span>
       <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3}
         placeholder={nu ? "Email, numéro, nom, date : elles l'emportent sur la transcription" : "Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."}
-        className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[14px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-trait bg-fond focus:border-menthe"}`} />
+        className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[14px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-bord-doux bg-transparent focus:border-bord-vif"}`} />
     </label>
   );
 }
@@ -756,11 +756,25 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     await Promise.all(morceaux.current.filter((x) => x.etat === "echec" && x.wav).map(transcrireMorceau));
   };
   useEffect(() => { directFin.current?.scrollIntoView({ block: "nearest" }); }, [direct.length, direct.filter((x) => x.texte).length]);
+  // La lecture en avance (9 oct. 2026) : pendant l'appel, AK lit la transcription du moment, au plus toutes
+  // les 25 secondes et une à la fois. Au raccrochage, si la fin n'y change rien, l'écran d'actions s'ouvre aussitôt.
+  const preLecture = useRef({ dernier: 0, sig: "", enCours: false });
+  useEffect(() => {
+    if (ecran !== "appel" || !notes || !a || prise?.agence_id !== a.id || !prise?.agent_id) return;
+    const textes = morceaux.current.filter((x) => x.etat === "ok" && x.texte).map((x) => x.texte);
+    const sig = `${textes.join("\n")}\n--\n${notesAppel.trim()}`;
+    const pl = preLecture.current;
+    if (pl.enCours || textes.join("\n").length < 80 || sig === pl.sig || Date.now() - pl.dernier < 25000) return;
+    pl.enCours = true; pl.dernier = Date.now(); pl.sig = sig;
+    base44.request("POST", `${API}/pre-lecture`, { body: { agent_id: prise.agent_id, agence_id: a.id, morceaux: JSON.stringify(textes), notes: notesAppel.trim() || null } })
+      .catch(() => {}).finally(() => { pl.enCours = false; });
+  }, [direct, ecran, notesAppel, prise?.agent_id]);
   const retenirEnCours = (x) => { poserLocal(CLE_EN_COURS, x); setEnCours(x); };
   const micro = () => {
     if (session?.essai) { simuler(); return; }
     if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
     retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: numeroAppel, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
+    preLecture.current = { dernier: 0, sig: "", enCours: false };
     setNotes(true); setSimule(false); setEcran("appel"); lancerChrono(); enregistrer();
   };
   // Au raccrochage : avec la transcription, AK lit l'appel et l'écran d'actions s'ouvre ; sans notes, l'issue se tape.
@@ -784,6 +798,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     if (!a) return;
     prendre.mutate(a.id);
     morceaux.current = []; setDirect([]);
+    preLecture.current = { dernier: 0, sig: "", enCours: false };
     setNotesAppel(sc.notes || "");
     setNotes(true); setSimule(true); setEcran("appel"); setSecondes(0);
     let n = 0;
@@ -1148,15 +1163,16 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 {voirTranscription && (<>
                 <ChaineRepliee etapes={etapesFinies} />
                 <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} tape />
-                <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />
-                {notesLues != null && notesAppel !== notesLues && (
+                {/* Les notes seulement s'il y en a eu pendant l'appel (9 oct. 2026). */}
+                {String(notesLues || "").trim() && <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />}
+                {String(notesLues || "").trim() && notesAppel !== notesLues && (
                   <button type="button" onClick={() => changerIssue("auto")} disabled={noter.isPending} className="self-start rounded-full border border-trait px-4 py-2 text-[14px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Ré-analyser avec les notes</button>
                 )}
                 </>)}
                 </div>
                 <div className="mx-auto flex w-full min-w-0 max-w-[680px] flex-col gap-3">
                   <button type="button" onClick={() => setVoirTranscription((x) => !x)} aria-pressed={voirTranscription}
-                    className={`inline-flex h-8 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] transition-colors ${voirTranscription ? "border-menthe/60 text-menthe" : "border-bord-vif text-craie hover:border-encre/40 hover:text-encre"}`} style={{ background: "transparent" }}>
+                    className={`inline-flex h-8 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] transition-colors ${voirTranscription ? "border-menthe/60 text-menthe" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>
                     <AudioLines className="h-3.5 w-3.5" />Transcription
                   </button>
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}

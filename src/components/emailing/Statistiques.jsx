@@ -4,9 +4,12 @@ import { Loader2 } from "lucide-react";
 import { req, pourcent } from "./commun";
 
 // Les statistiques, dessinées sur la maquette (6 oct. 2026) : la période, cinq
-// chiffres en bandeau, les envoyés et ouverts en barres, puis le détail par
-// campagne et par étape d'une séquence. Les ouvertures, clics, bounces et
-// plaintes viennent du webhook de Resend.
+// chiffres en bandeau, les envoyés et ouverts en barres. Depuis le 9 oct. 2026
+// (plan des newsletters) : la santé du domaine avec ses seuils, l'entonnoir
+// d'une newsletter jusqu'au call (l'indicateur principal), le détail de chaque
+// mail, et les contacts à cibler. Les ouvertures, clics, bounces et plaintes
+// viennent du webhook de Resend ; le simulateur et les calls, des liens
+// personnels et de Calendly.
 
 const PERIODES = [[7, "7 j"], [30, "30 j"], [90, "90 j"], [365, "12 mois"]];
 const MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
@@ -81,11 +84,101 @@ function Tableau({ colonnes, gabarit, lignes, vide }) {
   );
 }
 
+const SEUILS_MOTS = { bounce: "Bounces", plainte: "Plaintes", desinscription: "Désinscriptions" };
+
+/** La santé du domaine : trois taux et leur seuil ; au-delà, l'alerte. */
+function Sante({ jours }) {
+  const { data } = useQuery({ queryKey: ["emailing-sante", jours], queryFn: () => req("GET", `/sante?jours=${jours}`) });
+  if (!data) return null;
+  return (
+    <div className="mt-[30px]">
+      <p className="m-0 text-[15px] text-encre">Santé du domaine</p>
+      <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-[14px] border border-trait bg-trait max-md:grid-cols-1">
+        {Object.keys(SEUILS_MOTS).map((k) => {
+          const alerte = data.alertes.includes(k);
+          return (
+            <div key={k} className="bg-rail p-[18px] max-md:p-4">
+              <p className="m-0 text-[12.5px] text-ardoise">{SEUILS_MOTS[k]}</p>
+              <p className={`m-0 mt-2 text-[22px] tabular-nums ${alerte ? "text-alerte" : "text-encre"}`}>{pourcent(data.taux[k])}</p>
+              <p className={`m-0 mt-1 text-[12px] ${alerte ? "text-alerte" : "text-ardoise"}`}>{alerte ? `Au-dessus du seuil de ${pourcent(data.seuils[k])}` : `Seuil : ${pourcent(data.seuils[k])}`}</p>
+            </div>
+          );
+        })}
+      </div>
+      <p className="m-0 mt-2 text-[12px] text-ardoise">{data.envoyes < 50 ? "Moins de 50 envois sur la période : les taux sont indicatifs, aucune alerte." : `Sur ${nombre(data.envoyes)} envois. Au-dessus d'un seuil, Gmail et Outlook classent plus vite en spam : nettoyer la liste avant le prochain envoi.`}</p>
+    </div>
+  );
+}
+
+/** L'entonnoir d'une newsletter, jusqu'au call, et chaque mail. */
+function ParNewsletter() {
+  const [id, setId] = useState("");
+  const { data: liste } = useQuery({ queryKey: ["emailing-newsletters"], queryFn: () => req("GET", "/newsletters") });
+  const nls = liste?.newsletters || [];
+  const nid = id || nls[0]?.id || "";
+  const { data } = useQuery({ queryKey: ["emailing-newsletter-stats", nid], queryFn: () => req("GET", `/newsletters/${nid}/stats`), enabled: !!nid });
+  const e = data?.entonnoir;
+  const etapes = e ? [["Envoyés", e.envoyes], ["Délivrés", e.delivres], ["Ouverts", e.ouverts], ["Cliqués", e.cliques], ["Simulateur utilisé", e.simulateur], ["Call pris", e.calls]] : [];
+  const max = Math.max(1, e?.envoyes || 0);
+  return (
+    <div className="mt-[30px]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="m-0 text-[15px] text-encre">Par newsletter</p>
+        {nls.length > 0 && (
+          <select value={nid} onChange={(x) => setId(x.target.value)} className="h-9 rounded-[8px] border border-bord-doux bg-surface px-2.5 text-[13px] text-encre outline-none max-md:h-10 max-md:text-[16px]">
+            {nls.map((n) => <option key={n.id} value={n.id}>{n.nom}</option>)}
+          </select>
+        )}
+      </div>
+      {!nls.length ? <p className="m-0 mt-3 text-[13px] text-brume">Aucune newsletter encore.</p> : (
+        <>
+          <div className="mt-3 flex flex-col gap-2.5 rounded-[14px] border border-trait bg-rail px-5 py-[18px] max-md:px-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px] text-ardoise">Calls pris</span>
+              <span className="text-[28px] tabular-nums text-menthe">{nombre(e?.calls)}</span>
+            </div>
+            {etapes.map(([mot, v], k) => (
+              <div key={mot} className="grid grid-cols-[150px_minmax(0,1fr)_110px] items-center gap-3 text-[13px] max-md:grid-cols-[110px_minmax(0,1fr)_80px]">
+                <span className="text-craie">{mot}</span>
+                <span className="h-2 overflow-hidden rounded-full bg-encre/[0.06]"><span className={`block h-full rounded-full ${mot === "Call pris" ? "bg-menthe" : "bg-menthe-pale"}`} style={{ width: `${((v || 0) / max) * 100}%` }} /></span>
+                <span className="text-right tabular-nums text-encre">{nombre(v)}{k ? <span className="text-ardoise"> · {part(v, etapes[k - 1][1])}</span> : null}</span>
+              </div>
+            ))}
+            <p className="m-0 text-[12px] text-ardoise">En contacts : chaque étape rapportée à la précédente. Le simulateur et le call comptent après le premier mail reçu.</p>
+          </div>
+          <Tableau gabarit="grid-cols-[minmax(0,2.2fr)_100px_repeat(4,minmax(0,1fr))_minmax(0,1.6fr)]" colonnes={["Mail", "Parti le", "Envoyés", "Ouvertures", "Clics", "Désinscr.", "Lien le plus cliqué"]} vide="Aucun mail encore."
+            lignes={(data?.mails || []).map((m) => ({ cle: m.id, cellules: [`Mail ${m.rang + 1} · ${m.objet || "Sans objet"}`, m.envoye_le ? new Date(m.envoye_le).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : m.statut === "pret" ? "Prêt" : "Brouillon", nombre(m.envoyes), pourcent(m.taux_ouverture), pourcent(m.taux_clic), nombre(m.desinscrits), m.liens?.[0] ? `${String(m.liens[0].lien).replace(/^https?:\/\/(www\.)?/, "").split("?")[0]} · ${m.liens[0].clics}` : "—"] }))} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Les contacts à cibler : ceux qui ont utilisé le simulateur sans prendre de call, puis les plus engagés. */
+function ACibler() {
+  const [filtre, setFiltre] = useState("simulateur_sans_call");
+  const { data } = useQuery({ queryKey: ["emailing-engagement", filtre], queryFn: () => req("GET", `/engagement?filtre=${filtre === "tous" ? "" : filtre}`) });
+  const lignes = (data?.contacts || []).map((c) => ({ cle: c.id, cellules: [[c.prenom, c.nom].filter(Boolean).join(" ") || c.email, nombre(c.score), nombre(c.ouverts), nombre(c.cliques), nombre(c.simulateur), c.call ? "Oui" : "Non"] }));
+  return (
+    <div className="mt-[30px]">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="m-0 text-[15px] text-encre">Contacts à cibler</p>
+        <div className="flex gap-1.5">
+          {[["simulateur_sans_call", "Simulateur sans call"], ["tous", "Les plus engagés"]].map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setFiltre(k)} aria-pressed={filtre === k} className={`rounded-[8px] px-3 py-1.5 text-[13px] transition-colors ${filtre === k ? "bg-relief text-encre" : "text-ardoise hover:text-encre"}`} style={filtre === k ? undefined : { background: "transparent" }}>{mot}</button>
+          ))}
+        </div>
+      </div>
+      <Tableau gabarit="grid-cols-[minmax(0,2.2fr)_repeat(5,minmax(0,1fr))]" colonnes={["Contact", "Score", "Ouvertures", "Clics", "Simulateur", "Call"]} lignes={lignes}
+        vide={filtre === "simulateur_sans_call" ? "Personne n'a encore utilisé le simulateur sans prendre de call." : "Aucun engagement mesuré encore."} />
+      <p className="m-0 mt-2 text-[12px] text-ardoise">Score : 1 par ouverture, 3 par clic, 5 par passage au simulateur, 20 pour un call.</p>
+    </div>
+  );
+}
+
 export default function Statistiques() {
   const [jours, setJours] = useState(30);
-  const [sequenceId, setSequenceId] = useState("");
   const { data, isLoading } = useQuery({ queryKey: ["emailing-stats", jours], queryFn: () => req("GET", `/stats?jours=${jours}`) });
-  const { data: lesSequences } = useQuery({ queryKey: ["emailing-sequences"], queryFn: () => req("GET", "/sequences") });
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
   const g = data?.globales || {};
   const periode = PERIODES.find(([j]) => j === jours)?.[1];
@@ -96,9 +189,6 @@ export default function Statistiques() {
     ["Désinscriptions", part(g.desinscrits, g.envoyes), nombre(g.desinscrits)],
     ["Bounces", pourcent(g.taux_bounce), nombre(g.bounces)],
   ];
-  const sequences = data?.sequences || [];
-  const seq = sequences.find((s) => s.id === sequenceId) || sequences[0] || null;
-  const delais = Object.fromEntries(((lesSequences?.sequences || []).find((s) => s.id === seq?.id)?.etapes || []).map((e) => [e.id, e.delai_jours]));
   return (
     <div className="px-10 pb-20 pt-7 max-md:px-4 max-md:pt-5">
       <div className="flex gap-1.5">
@@ -130,20 +220,9 @@ export default function Statistiques() {
         <Barres seaux={barres(g.par_jour, jours)} />
       </div>
 
-      <p className="m-0 mt-[30px] text-[15px] text-encre">Par campagne</p>
-      <Tableau gabarit="grid-cols-[minmax(0,2.4fr)_repeat(5,minmax(0,1fr))]" colonnes={["Campagne", "Envoyés", "Ouvertures", "Clics", "Désinscriptions", "Bounces"]} vide="Aucune campagne envoyée encore."
-        lignes={(data?.campagnes || []).map((c) => ({ cle: c.id, cellules: [c.nom, nombre(c.envoyes), pourcent(c.taux_ouverture), pourcent(c.taux_clic), part(c.desinscrits, c.envoyes), pourcent(c.taux_bounce)] }))} />
-
-      <div className="mt-[30px] flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 text-[15px] text-encre">Par étape de séquence</p>
-        {sequences.length > 0 && (
-          <select value={seq?.id || ""} onChange={(e) => setSequenceId(e.target.value)} className="h-9 rounded-[8px] border border-bord-doux bg-surface px-2.5 text-[13px] text-encre outline-none max-md:h-10 max-md:text-[16px]">
-            {sequences.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
-          </select>
-        )}
-      </div>
-      <Tableau gabarit="grid-cols-[minmax(0,2.4fr)_110px_repeat(3,minmax(0,1fr))]" colonnes={["Étape", "Délai", "Envoyés", "Ouvertures", "Clics"]} vide="Aucune séquence encore."
-        lignes={(seq?.etapes || []).map((e, i) => ({ cle: e.id, cellules: [`Email ${i + 1} · ${e.objet || "Sans objet"}`, delais[e.id] ? `${delais[e.id]} jour${delais[e.id] > 1 ? "s" : ""}` : "Immédiat", nombre(e.envoyes), pourcent(e.taux_ouverture), pourcent(e.taux_clic)] }))} />
+      <Sante jours={jours} />
+      <ParNewsletter />
+      <ACibler />
       <p className="m-0 mt-6 text-[12px] text-ardoise">Les ouvertures se comptent par une image invisible, que certaines boîtes bloquent ou chargent d'office : un taux indicatif, les clics sont plus sûrs.</p>
     </div>
   );

@@ -15,6 +15,7 @@ import SimScenarios from "../components/simulator/layout/SimScenarios";
 import SimParametresAvances from "../components/simulator/layout/SimParametresAvances";
 
 import { travauxParDefaut } from "@/components/simulator/CalculFinancier";
+import RendezVousFondateur, { useVisiteSimulateur } from "@/components/simulator/RendezVousFondateur";
 function PMT(rate, nper, pv) {
   if (rate === 0) return -pv / nper;
   const pvif = Math.pow(1 + rate, nper);
@@ -361,6 +362,8 @@ export default function SimulateurPublic() {
   const onChange = (key, val) => setters[key]?.(val);
   const advanced = { loyerSoumisTVA, setLoyerSoumisTVA, chargesCoproRefacturables, setChargesCoproRefacturables, taxeFonciereRefacturable, setTaxeFonciereRefacturable, pretInFine, setPretInFine, sansCredit, setSansCredit, revalorisationActive, setRevalorisationActive, anneeRevalorisation, setAnneeRevalorisation, loyerRevalorise, setLoyerRevalorise, renegociationActive, setRenegociationActive, anneeRenegociation, setAnneeRenegociation, nouveauTauxRenegociation, setNouveauTauxRenegociation, iraRenegociation, setIraRenegociation, vacancesLocatives, setVacancesLocatives, travauxBailleur, setTravauxBailleur };
 
+  // Le lien personnel d'une newsletter (9 oct. 2026) : les valeurs du contact se rangent dans sa fiche.
+  const { visite, qui } = useVisiteSimulateur({ prixBienFAI, loyerInitialHTHC, surface, apport, dureeCredit, tauxInteret, sansCredit });
   const exportParams = { surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive };
 
   const handleCopyShareLink = () => {
@@ -436,6 +439,7 @@ export default function SimulateurPublic() {
                 })}
               </div>
               <div className="flex items-center gap-2">
+                <RendezVousFondateur visite={visite} qui={qui} />
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">
                   {linkCopied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Link2 className="w-3.5 h-3.5" />}

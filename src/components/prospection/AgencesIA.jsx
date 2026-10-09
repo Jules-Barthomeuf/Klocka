@@ -124,7 +124,7 @@ export function OngletAgentIA({ onOuvrirListe }) {
                       </span>
                     </span>
                     <span className="mt-1 block text-[13px] text-ardoise">
-                      {l.agences} agence{l.agences > 1 ? "s" : ""} · {l.avec_telephone} avec un numéro · {l.agents} agent{l.agents > 1 ? "s" : ""}{l.au_carnet ? ` · ${l.au_carnet} au carnet` : ""}
+                      {l.agences} agence{l.agences > 1 ? "s" : ""} · {l.avec_telephone} avec un numéro{l.au_carnet ? ` · ${l.au_carnet} au carnet` : ""}
                     </span>
                   </span>
                   <span className="flex-none text-[12.5px] text-brume">{ilYa(l.fini_le || l.lancee_le)}</span>
@@ -363,7 +363,7 @@ function TableauAgences({ id, onAppeler }) {
                   <Case oui={lignes.length > 0 && lignes.every((a) => coches.has(a.id))} />
                 </button>
               </th>
-              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", "Gérants", "Agents"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal text-encre">{t}</th>)}
+              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", "Gérants"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal text-encre">{t}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -379,7 +379,7 @@ function TableauAgences({ id, onAppeler }) {
                     </td>
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}><CellulePour agence={a} listeId={id} /></td>
                     <td className="max-w-[260px] px-4 py-4">
-                      <p className="m-0 text-encre">{nomPropre(a)}</p>
+                      <p className="m-0 text-encre">{nomPropre(a)}{a.en_appel_par && <Lock className="ml-1.5 inline h-3 w-3 text-ardoise" aria-label={`En appel par ${a.en_appel_par}`} />}</p>
                       {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
                       {contactDe(a) ? <p className="m-0 mt-1"><span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">Contact de {contactDe(a)}</span></p>
                         : dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}
@@ -393,9 +393,6 @@ function TableauAgences({ id, onAppeler }) {
                     </td>
                     <td className="whitespace-nowrap px-4 py-4 tabular-nums text-encre">{tel || <span className="text-bord-vif">—</span>}</td>
                     <td className="px-4 py-4 text-craie">{(a.gerants || []).length ? a.gerants.map((g) => g.nom).join(", ") : <span className="text-bord-vif">—</span>}</td>
-                    <td className="whitespace-nowrap px-4 py-4 tabular-nums text-craie">
-                      {(a.agents || []).length}{a.en_appel_par && <Lock className="ml-1.5 inline h-3 w-3 text-ardoise" aria-label={`En appel par ${a.en_appel_par}`} />}
-                    </td>
                   </tr>
                   {ouvert && (
                     <tr className="[&>td]:border-b [&>td]:border-trait">

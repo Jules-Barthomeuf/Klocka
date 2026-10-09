@@ -226,7 +226,7 @@ let lignesCache = null;
 // Les tests rejouent tout le parcours sur un faux tableau (actions-proposees.test.js) :
 // il remplace l'API Monday, jamais en dehors de node --test.
 let fauxMonday = null;
-export function brancherPourTests(faux) { fauxMonday = process.env.NODE_TEST_CONTEXT ? faux : null; colonnesCache = null; lignesCache = null; }
+export function brancherPourTests(faux) { fauxMonday = process.env.NODE_TEST_CONTEXT ? faux : null; colonnesCache = null; lignesCache = null; personnes.clear(); }
 
 async function api() { return fauxMonday || import('../monday.js'); }
 
@@ -237,14 +237,48 @@ export async function colonnes() {
   return colonnesCache;
 }
 
-/** Les lignes du tableau, relues au plus toutes les deux minutes (et après chaque écriture). */
-export async function lignes({ frais = false } = {}) {
-  if (!frais && lignesCache && Date.now() - lignesCache.le < 120000) return lignesCache.lignes;
+/**
+ * Les lignes du tableau, relues au plus toutes les deux minutes (et après
+ * chaque écriture). `ageMax` : un aperçu accepte des lignes plus anciennes
+ * (l'écriture, elle, relit toujours le tableau frais).
+ */
+let relectureEnCours = null;
+export async function lignes({ frais = false, ageMax = 120000 } = {}) {
+  if (!frais && lignesCache && Date.now() - lignesCache.le < ageMax) return lignesCache.lignes;
+  if (!frais && relectureEnCours) return relectureEnCours;
   const M = await api();
-  const cols = await colonnes();
-  const l = lignesDuTableau(await M.lireTableau(tableauAgents(), 10000), cols);
-  lignesCache = { le: Date.now(), lignes: l };
-  return l;
+  const lire = (async () => {
+    const cols = await colonnes();
+    const l = lignesDuTableau(await M.lireTableau(tableauAgents(), 10000), cols);
+    lignesCache = { le: Date.now(), lignes: l };
+    return l;
+  })();
+  if (!frais) {
+    relectureEnCours = lire;
+    lire.then(() => {}, () => {}).finally(() => { if (relectureEnCours === lire) relectureEnCours = null; });
+  }
+  return lire;
+}
+
+/**
+ * Au début d'un appel (9 oct. 2026) : les colonnes et les lignes se relisent
+ * en fond, pour que l'aperçu du raccrochage n'attende pas Monday. Ne bloque
+ * rien, ne lève jamais ; rien en test.
+ */
+export function prechauffer() {
+  if (fauxMonday || process.env.NODE_TEST_CONTEXT) return;
+  mondayAgentsBranche().then((b) => (b ? Promise.all([colonnes(), lignes({ ageMax: 60000 })]) : null)).catch(() => {});
+}
+
+// Le SPOC de l'aperçu : la personne Monday d'une adresse, gardée pour la journée.
+const personnes = new Map();
+async function personneDe(M, email) {
+  const k = String(email || '').toLowerCase();
+  const x = personnes.get(k);
+  if (x && Date.now() - x.le < 86400000) return x.p;
+  const p = await M.personneMonday({ email: k });
+  if (p?.id) personnes.set(k, { p, le: Date.now() });
+  return p;
 }
 
 // Les tests (node --test) n'écrivent jamais dans le vrai tableau, même si le
@@ -255,12 +289,17 @@ export const mondayAgentsBranche = async () => (fauxMonday ? true : !process.env
 export async function preparer(cible, donnees) {
   try {
     if (!(await mondayAgentsBranche())) return { etat: 'indisponible', texte: "Monday n'est pas branché ici : voici ce qui serait écrit sur une nouvelle ligne", apercu: apercuSansMonday(donnees) };
-    const [cols, toutes] = await Promise.all([colonnes(), lignes()]);
-    // Le SPOC dans l'aperçu : l'analyste, retrouvé dans Monday par son adresse (comme à l'écriture).
+    // L'aperçu se contente de lignes lues dans le quart d'heure (relues en fond au début de l'appel) ;
+    // l'écriture relit toujours le tableau frais avant de choisir la ligne.
     const M = await api();
-    if (donnees.analyste_email && !donnees.analyste_monday_id && M.personneMonday) {
-      try { const p = await M.personneMonday({ email: donnees.analyste_email }); if (p?.id) donnees = { ...donnees, analyste_monday_id: p.id, analyste_nom: donnees.analyste_nom || p.name }; } catch { /* sans SPOC */ }
-    }
+    const [cols, toutes, spoc] = await Promise.all([
+      colonnes(),
+      lignes({ ageMax: 15 * 60000 }),
+      donnees.analyste_email && !donnees.analyste_monday_id && M.personneMonday ? personneDe(M, donnees.analyste_email).catch(() => null) : null,
+    ]);
+    if (lignesCache && Date.now() - lignesCache.le > 120000) lignes({ ageMax: 120000 }).catch(() => {});
+    // Le SPOC dans l'aperçu : l'analyste, retrouvé dans Monday par son adresse (comme à l'écriture).
+    if (spoc?.id) donnees = { ...donnees, analyste_monday_id: spoc.id, analyste_nom: donnees.analyste_nom || spoc.name };
     const m = trouverLigne(toutes, cible);
     const ligne = m.etat === 'trouvee' ? toutes.find((l) => l.id === m.ligne.id) : null;
     return { ...m, apercu: valeursPour(ligne, cols, donnees).apercu };

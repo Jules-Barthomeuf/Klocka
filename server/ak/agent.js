@@ -160,6 +160,47 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'rediger_newsletter',
+    description: "Crée ou réécrit une NEWSLETTER (page Emailing) : une cohorte fixe (les listes d'un webinaire), une date de départ, un rythme (14 jours par défaut) et une heure fixe ; ses mails sont datés au calendrier (départ + rang × rythme), et chacun reste en BROUILLON : l'équipe le retouche puis le marque Prêt, rien ne part avant. Pour la newsletter ouverte à droite : newsletter_id et la liste COMPLÈTE des mails NON ENVOYÉS telle qu'elle doit être (ceux qu'on ne touche pas, recopiés à l'identique) ; les mails déjà partis ne changent jamais.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        newsletter_id: { type: 'string', description: 'la newsletter ouverte à corriger ; absent pour une nouvelle' },
+        nom: { type: 'string', description: 'court, ex. « Webinaire 12 oct. · la lettre des murs »' },
+        listes: { type: 'array', items: { type: 'string' }, description: 'les noms des listes visées, parmi les listes existantes' },
+        depart: { type: 'string', description: 'AAAA-MM-JJ, la date du premier mail' },
+        rythme_jours: { type: 'number', description: 'l\'écart entre deux mails, 14 par défaut' },
+        heure: { type: 'string', description: 'HH:MM, heure de Paris, 08:30 par défaut' },
+        mails: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              objet: { type: 'string', description: 'court, concret ; {{prenom}} permis' },
+              apercu: { type: 'string', description: 'la ligne grise sous l\'objet dans la boîte' },
+              theme: { type: 'string', enum: ['clair', 'menthe', 'sombre'] },
+              blocs: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: { type: 'string', enum: ['titre', 'texte', 'bouton', 'image', 'separateur', 'signature'] },
+                    texte: { type: 'string', description: '**gras** et retours à la ligne permis ; {{prenom}}' },
+                    lien: { type: 'string', description: 'pour un bouton ou une image ; {{lien_simulateur}} pour le simulateur' },
+                    src: { type: 'string' },
+                  },
+                  required: ['type'],
+                },
+              },
+            },
+            required: ['objet', 'blocs'],
+          },
+        },
+      },
+      required: ['mails'],
+    },
+  },
+  {
     name: 'rediger_sequence',
     description: "Crée ou réécrit une séquence d'emails (page Emailing) : chaque email avec son jour d'envoi compté depuis l'inscription (0 pour le premier), son objet, sa ligne d'aperçu et son contenu en blocs. Elle s'ouvre à droite, éditable, en brouillon : rien ne part avant que l'équipe l'active. Pour corriger la séquence ouverte : sequence_id et la liste COMPLÈTE des emails telle qu'elle doit être (ceux qu'on ne touche pas, recopiés à l'identique).",
     input_schema: {
@@ -731,6 +772,34 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     }
     fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: dealId });
     return { ok: true, loi_id: l.id, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
+  }
+  if (name === 'rediger_newsletter') {
+    const N = await import('../emailing/newsletters.js');
+    const E = await import('../emailing/index.js');
+    const nouveaux = (input.mails || []).slice(0, 26).map((m, i) => ({
+      objet: m.objet || '', apercu: m.apercu || '',
+      design: { theme: m.theme || 'clair', blocs: (m.blocs || []).map((b, k) => ({
+        id: `b${Date.now().toString(36)}${i}${k}`, type: b.type,
+        ...(b.type === 'signature' ? { texte: String(b.texte || '').trim() || "L'équipe Klocka" } : b.texte != null ? { texte: b.texte } : {}),
+        ...(b.lien ? { lien: b.lien } : {}), ...(b.src ? { src: b.src } : {}),
+      })) },
+    }));
+    if (!nouveaux.length) return { ok: false, error: 'Une newsletter a au moins un mail.' };
+    const toutes = E.listes();
+    const listes = (input.listes || []).map((x) => toutes.find((l) => l.nom === x)?.id).filter(Boolean);
+    const reglages = { ...(input.nom ? { nom: input.nom } : {}), ...(listes.length ? { listes } : {}), ...(input.depart ? { depart: input.depart } : {}), ...(input.rythme_jours ? { rythme_jours: input.rythme_jours } : {}), ...(input.heure ? { heure: input.heure } : {}) };
+    const { Records } = await import('../db.js');
+    let n = input.newsletter_id ? Records.get(N.NEWSLETTER, input.newsletter_id) : null;
+    if (input.newsletter_id && !n) return { ok: false, error: 'Newsletter introuvable.' };
+    if (!n) n = N.creerNewsletter({ nom: input.nom || 'Nouvelle newsletter', listes }, user);
+    // Les mails partis restent ; les autres sont remplacés, dans l'ordre, et repassent en brouillon.
+    const partis = (n.mails || []).filter((m) => m.statut === 'envoye');
+    const restants = (n.mails || []).filter((m) => m.statut !== 'envoye');
+    const mails = [...partis, ...nouveaux.map((m, i) => ({ ...(restants[i] || {}), id: restants[i]?.id || `m${Date.now().toString(36)}${i}`, ...m, statut: 'brouillon', date: restants[i]?.date || null }))];
+    Records.update(N.NEWSLETTER, n.id, { mails });
+    const r = N.modifierNewsletter(n.id, reglages);
+    if (!r.ok) return r;
+    return { ok: true, nouvelle: !input.newsletter_id, newsletter_id: n.id, mails: nouveaux.length, note: input.newsletter_id ? 'La newsletter est à jour, à droite ; les mails réécrits sont repassés en brouillon. Dis ce qui a changé en une ou deux lignes.' : "La newsletter est ouverte à droite, ses mails en brouillon, datés au rythme choisi. Résume-la (l'idée de chaque mail et sa date), propose une ou deux pistes, et rappelle qu'il faut choisir les listes et marquer chaque mail Prêt. Ne recopie pas les mails." };
   }
   if (name === 'rediger_sequence') {
     const E = await import('../emailing/index.js');

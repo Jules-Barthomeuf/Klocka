@@ -281,6 +281,71 @@ export function issueDuModeAppel(issue) {
   return 'pas_de_murs';
 }
 
+// ---------------------------------------------------------------------------
+// La lecture en avance (9 oct. 2026) : pendant l'appel, la transcription en
+// direct est lue par AK toutes les trente secondes environ. Au raccrochage, si
+// ce qui s'est dit depuis n'est qu'une courte fin sans rien qui compte (ni
+// chiffre, ni adresse, ni date, ni bien : « merci, bonne journée »), la
+// dernière lecture sert telle quelle et l'écran d'actions s'ouvre tout de
+// suite. Sinon AK relit l'appel entier, comme avant.
+// ---------------------------------------------------------------------------
+const AVANCE = new Map(); // `${par}|${agent}|${entrant}` → { texte, lu, le, enCours }
+const DUREE_AVANCE_MS = 15 * 60 * 1000;
+const cleAvance = (par, agentId, entrant) => `${String(par || '').toLowerCase()}|${agentId}|${entrant ? 1 : 0}`;
+const RISQUE_FIN = /\d|@|arobase|mail|courriel|adresse|num[ée]ro|t[ée]l[ée]phone|portable|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|semaine|mois|demain|janvier|f[ée]vrier|mars|avril|mai\b|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|rappel|mandat|\b(?:un|le|ce|des|les|mon|son|votre|leur|d'autres?)\s+biens?\b|local|murs|commerce|prix|loyer|fiche|document|coll[eè]gue|contact|s'appelle|appelez|pas int[ée]ress|non merci/i;
+
+/** Pure : un texte lu en deux parts, l'appel et le bloc des notes (ou du résumé) de l'analyste. */
+export function partsDuTexte(texte) {
+  const t = String(texte || '');
+  const k = t.search(/\n\n(Notes de l'analyste|Résumé de l'appel par l'analyste)/);
+  return k < 0 ? { appel: t.trim(), notes: '' } : { appel: t.slice(0, k).trim(), notes: t.slice(k).trim() };
+}
+
+/** Pure : la lecture faite sur `avant` vaut-elle pour `apres` ? Mêmes notes, et seulement une courte fin sans rien qui compte. */
+export function finSansEnjeu(avant, apres) {
+  const a = partsDuTexte(avant);
+  const b = partsDuTexte(apres);
+  if (a.notes !== b.notes || !a.appel || !b.appel.startsWith(a.appel)) return false;
+  const fin = b.appel.slice(a.appel.length).trim();
+  return fin.length <= 220 && !RISQUE_FIN.test(fin);
+}
+
+const texteDeLecture = (transcription, recit, par) => [transcription ? `Transcription :\n${transcription}` : null, recit ? `Ce qu'en dit ${par} :\n${recit}` : null].filter(Boolean).join('\n\n');
+
+/** Pendant l'appel : lit la transcription du moment et garde la lecture. Une seule à la fois par appel ; ne lève jamais. */
+export async function lireEnAvance({ agent_id, transcription_texte, par, entrant = false, maintenant = new Date() }) {
+  const a = agentDe(agent_id);
+  const transcription = String(transcription_texte || '').trim();
+  if (!a || transcription.length < 80) return { ok: false, raison: 'trop court' };
+  const cle = cleAvance(par, agent_id, entrant);
+  const avant = AVANCE.get(cle);
+  if (avant?.enCours) return { ok: true, en_cours: true };
+  const texte = texteDeLecture(transcription, null, par);
+  if (avant?.texte === texte) return { ok: true, deja: true };
+  const debut = Date.now();
+  const enCours = lire(a, texte, { par, maintenant, entrant }).then((lu) => {
+    AVANCE.set(cle, { texte, lu, le: Date.now(), enCours: null });
+    return lu;
+  }).catch(() => { const x = AVANCE.get(cle); if (x?.enCours) AVANCE.set(cle, { ...x, enCours: null }); return null; });
+  AVANCE.set(cle, { ...(avant || {}), enCours, texteEnCours: texte });
+  await enCours;
+  return { ok: true, ms: Date.now() - debut };
+}
+
+/** La lecture d'AK, reprise de l'avance quand la fin de l'appel n'y change rien. */
+async function lireOuReprendre(a, texte, opts) {
+  const cle = cleAvance(opts.par, a.id, opts.entrant);
+  const x = AVANCE.get(cle);
+  for (const [k, v] of AVANCE) if (Date.now() - (v.le || Date.now()) > DUREE_AVANCE_MS) AVANCE.delete(k);
+  if (x?.enCours && x.texteEnCours && finSansEnjeu(x.texteEnCours, texte)) {
+    const lu = await x.enCours;
+    if (lu) { AVANCE.delete(cle); return { ...lu, lu_en_avance: true }; }
+  }
+  if (x?.lu && x.texte && finSansEnjeu(x.texte, texte)) { AVANCE.delete(cle); return { ...x.lu, lu_en_avance: true }; }
+  AVANCE.delete(cle);
+  return lire(a, texte, opts);
+}
+
 /**
  * L'appel terminé : transcription (ou récit), lecture par AK, propositions.
  * @param {{agent_id, audio?: Buffer, recit?: string, sans_reponse?: boolean, duree_s?: number, par: string}} x
@@ -299,14 +364,14 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
       transcriptionEchec = String(e?.message || e).slice(0, 200);
     }
   }
-  const texte = [transcription ? `Transcription :\n${transcription}` : null, recit ? `Ce qu'en dit ${par} :\n${recit}` : null].filter(Boolean).join('\n\n');
+  const texte = texteDeLecture(transcription, recit, par);
   // Personne n'a décroché, ou l'enregistrement est vide : pas besoin du modèle.
   const vide = !texte.trim() || (transcription != null && transcription.length < 40 && !recit);
   let lu;
   if (issueTapee === 'auto') {
     // Le mode appel sans boutons (7 oct. 2026) : AK lit la conversation et en
     // déduit l'issue ; l'analyste la voit, et la change d'un geste si besoin.
-    lu = vide ? { resume: 'Pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant, entrant });
+    lu = vide ? { resume: 'Pas de réponse.', issue: 'pas_de_reponse' } : await lireOuReprendre(a, texte, { par, maintenant, entrant });
     lu.issue = issueDuModeAppel(lu.issue);
     // Rappeler un agent pour lui dire ce qu'on pense de son bien : sans nouveau bien, il est prévenu.
     if (sur_un_bien && lu.issue === 'pas_de_murs') lu.issue = 'agent_prevenu';

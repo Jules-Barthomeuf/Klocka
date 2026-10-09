@@ -2,40 +2,39 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { req, boutonContour, boutonPrincipal } from "@/components/emailing/commun";
-import Campagnes from "@/components/emailing/Campagnes";
-import Sequences from "@/components/emailing/Sequences";
+import Newsletters from "@/components/emailing/Newsletters";
+import Assets from "@/components/emailing/Assets";
 import Contacts from "@/components/emailing/Contacts";
-import Templates from "@/components/emailing/Templates";
 import Statistiques from "@/components/emailing/Statistiques";
 
-// La page Emailing, dessinée sur la maquette de Jules (6 oct. 2026) : le
-// titre, l'expéditeur, l'action de l'onglet à droite, puis cinq onglets
-// soulignés. Campagnes pour un envoi ponctuel, Séquences pour des emails
-// espacés et automatiques, Contacts, Templates, Statistiques. Tout envoi
-// passe par Resend, sous le garde-fou : hors Render, rien ne part chez un
-// vrai contact. Une campagne ou un email ouvert prend toute la page.
+// La page Emailing, dessinée sur la maquette de Jules (6 oct. 2026), réduite
+// à trois onglets le 9 oct. 2026 (le plan des newsletters) : Newsletters (une
+// cohorte, des mails datés au rythme choisi), Contacts (listes, imports,
+// fiches), Statistiques (l'entonnoir jusqu'au call). Les templates se
+// choisissent en créant un mail ; les campagnes ponctuelles et les séquences
+// sortent de la V1, leurs données restent. Tout envoi passe par Resend, sous
+// le garde-fou : hors Render, rien ne part chez un vrai contact. Un mail
+// ouvert prend toute la page.
 
-const ONGLETS = [["campagnes", "Campagnes"], ["sequences", "Séquences"], ["contacts", "Contacts"], ["templates", "Templates"], ["statistiques", "Statistiques"]];
+const ONGLETS = [["newsletters", "Newsletters"], ["assets", "Assets"], ["contacts", "Contacts"], ["statistiques", "Statistiques"]];
 // L'action de l'en-tête, par onglet : [libellé, demande] ; Contacts en a deux.
 const ACTIONS = {
-  campagnes: [["Nouvelle campagne", "nouvelle", true]],
-  sequences: [["Nouvelle séquence", "nouvelle", true]],
+  newsletters: [["Nouvelle newsletter", "nouvelle", true]],
+  assets: [["Nouvel asset", "nouveau", true]],
   contacts: [["Importer", "importer", false], ["Ajouter un contact", "ajouter", true]],
-  templates: [["Nouveau template", "nouveau", true]],
 };
 
 export default function Emailing() {
   const [onglet, setOnglet] = useState(() => {
-    try { return localStorage.getItem("k-emailing-onglet") || "campagnes"; } catch { return "campagnes"; }
+    // Un onglet retenu d'avant (campagnes, séquences, templates) ouvre les newsletters.
+    try { const v = localStorage.getItem("k-emailing-onglet"); return ONGLETS.some(([k]) => k === v) ? v : "newsletters"; } catch { return "newsletters"; }
   });
-  const [campagneAOuvrir, setCampagneAOuvrir] = useState(null);
   // Le bouton de l'en-tête parle à l'onglet ouvert : une demande numérotée.
   const [demande, setDemande] = useState(null);
   const [detail, setDetail] = useState(false);
   const { data: etat } = useQuery({ queryKey: ["emailing-etat"], queryFn: () => req("GET", "/etat") });
   const choisir = (v) => {
     setOnglet(v);
-    setCampagneAOuvrir(null);
     setDemande(null);
     setDetail(false);
     try { localStorage.setItem("k-emailing-onglet", v); } catch { /* l'onglet ne sera pas gardé */ }
@@ -77,10 +76,9 @@ export default function Emailing() {
           </nav>
         </div>
       )}
-      {onglet === "campagnes" && <Campagnes ouvrir={campagneAOuvrir} {...commun} />}
-      {onglet === "sequences" && <Sequences {...commun} />}
+      {onglet === "newsletters" && <Newsletters {...commun} />}
+      {onglet === "assets" && <Assets {...commun} />}
       {onglet === "contacts" && <Contacts {...commun} />}
-      {onglet === "templates" && <Templates onCampagne={(id) => { setOnglet("campagnes"); setCampagneAOuvrir(id); }} {...commun} />}
       {onglet === "statistiques" && <Statistiques />}
     </div>
   );

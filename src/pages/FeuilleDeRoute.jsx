@@ -74,6 +74,9 @@ function useVue(slug) {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (vivant) setVueId(d?.vue_id || null); })
       .catch(() => { /* la mesure n'est pas la page : son échec ne se voit pas */ });
+    // Venue d'une newsletter (9 oct. 2026) : le lien personnel (k) range la visite dans la fiche du contact.
+    const k = new URLSearchParams(window.location.search).get("k");
+    if (k && k !== "exemple") fetch("/api/emailing/activite", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ k, type: "lead_magnet" }) }).catch(() => {});
     return () => { vivant = false; };
   }, [slug]);
   return vueId;

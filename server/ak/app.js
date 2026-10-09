@@ -69,6 +69,27 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
 - Jamais de chiffre ni de cas inventé présenté comme réel (« un cas réel », « un client a gagné ») : un exemple chiffré s'annonce comme un exemple type, et un témoignage ou un dossier réel se demande à l'équipe.
 - Après rediger_sequence : résume chaque email en une ligne (jour, idée), propose une ou deux améliorations. Une remarque (« le 2 est trop long », « ajoute un témoignage », « plus direct ») : réécris avec sequence_id, la liste complète des emails.
 Listes de contacts existantes : ${listes.length ? listes.map((l) => `« ${l.nom} » (${l.total})`).join(', ') : 'aucune encore (l\'équipe importe les inscrits dans Contacts)'}.`;
+    // Les newsletters (9 oct. 2026) : l'atelier en plein écran, le chat à gauche, la newsletter à droite.
+    if (contexte.mode === 'newsletter') {
+      const N = await import('../emailing/newsletters.js');
+      const { resumeAssets } = await import('../emailing/assets.js');
+      cadrePage = `\n\nTU ES DANS L'ATELIER DES NEWSLETTERS (page Emailing), avec ${prenom}, pour CONCEVOIR une newsletter (rediger_newsletter). Tu es un rédacteur marketing exigeant.
+- Klocka accompagne des particuliers qui investissent dans des MURS COMMERCIAUX (un local loué à un commerce). Les contacts sont les inscrits d'un webinaire : une cohorte fixe, qui reçoit un mail tous les quatorze jours environ, à date fixe.
+- Chaque mail APPORTE DE LA VALEUR : une idée, un chiffre type annoncé comme tel, une erreur à éviter, une méthode, un outil. Au plus un appel à l'action, et le plus souvent vers un ASSET : le simulateur (lien personnel {{lien_simulateur}}, qui permet ensuite de parler au fondateur) ou un lead magnet. Ne vends rien ; le call vient du simulateur.
+- Avant d'écrire, si le sujet du webinaire, le nombre de mails ou l'angle manquent, pose en UNE fois les deux ou trois questions qui comptent ; sinon écris tout de suite une première version complète (4 mails par défaut) et dis ce que tu as supposé.
+- Style : vouvoiement, phrases courtes, concret, chaleureux sans emphase ; pas de tiret cadratin, pas d'emoji, pas de jargon creux. Objets courts et précis. Signature « L'équipe Klocka ». {{prenom}} avec parcimonie.
+- Un asset s'insère en recopiant ses blocs tels quels dans le mail (mêmes textes, même lien).
+- Jamais de chiffre ni de cas inventé présenté comme réel.
+- Après rediger_newsletter : résume chaque mail en une ligne (date, idée), propose une ou deux améliorations. Une remarque : réécris avec newsletter_id, la liste complète des mails non envoyés.
+Listes existantes : ${E.listes().map((l) => `« ${l.nom} » (${l.abonnes} abonnés)`).join(', ') || 'aucune encore'}.
+ASSETS DISPONIBLES :\n${resumeAssets()}`;
+      const n = contexte.newsletter_id ? N.newsletter(String(contexte.newsletter_id)) : null;
+      if (n) {
+        const noms = new Map(E.listes().map((l) => [l.id, l.nom]));
+        const resume = n.mails.map((m, i) => `Mail ${i + 1} (${m.jour || '?'}, ${m.statut}) objet « ${m.objet} », aperçu « ${m.apercu || ''} » : ${JSON.stringify((m.design?.blocs || []).map((b) => ({ type: b.type, ...(b.texte ? { texte: b.texte } : {}), ...(b.lien ? { lien: b.lien } : {}) })))}`).join('\n');
+        cadrePage += `\nLA NEWSLETTER OUVERTE À DROITE (newsletter_id ${n.id}, « ${n.nom} », ${n.statut}, listes ${(n.listes || []).map((x) => noms.get(x)).filter(Boolean).join(', ') || 'aucune'}, départ ${n.depart}, tous les ${n.rythme_jours} jours à ${n.heure}) ; l'équipe a pu la retoucher, c'est la version à jour :\n${resume}\nUne correction porte sur CETTE newsletter : rediger_newsletter avec newsletter_id. Les mails envoyés ne se réécrivent pas.`;
+      }
+    }
     if (contexte.sequence_id) {
       const s = E.sequence(String(contexte.sequence_id));
       if (s) {

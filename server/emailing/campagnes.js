@@ -18,6 +18,7 @@ import { envoyerLot, envoyerResend, resendConfigure, TAILLE_LOT } from './resend
 import { envoiReel, expedier, adresseDeTest } from './envoi.js';
 import { compterAudience } from './contacts.js';
 import { designNewsletter } from './modeles.js';
+import { lienSimulateur } from './newsletters.js';
 
 const maintenant = () => new Date().toISOString();
 const base = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').replace(/\/$/, '');
@@ -31,6 +32,10 @@ const MODIFIABLE = new Set(['brouillon', 'programmee']);
 const audienceDe = (c) => ({ listes: c.audience?.listes || [], segments: c.audience?.segments || [], tags: c.audience?.tags || [] });
 export const lienDesinscription = (contact, source) => `${base()}/api/emailing/desinscription/${contact.jeton}${source ? `?s=${encodeURIComponent(source)}` : ''}`;
 export const varsDuContact = (c) => ({ prenom: c.prenom || '', nom: c.nom || '', entreprise: c.entreprise || '', ville: c.ville || '', email: c.email, ...(c.champs || {}) });
+// La source d'un envoi : la newsletter pour un mail de newsletter, sinon la campagne.
+const sourceDe = (c) => (c.origine?.newsletter_id ? `newsletter:${c.origine.newsletter_id}:${c.origine.mail_id}` : `campagne:${c.id}`);
+// Un mail de newsletter ne va pas à qui a pris un call (9 oct. 2026).
+const servi = (c, contact) => !(c.origine?.newsletter_id && contact?.call_pris_le);
 
 function resume(c) {
   const envois = Records.list(E.ENVOI).filter((e) => e.campagne_id === c.id);
@@ -47,7 +52,7 @@ function resume(c) {
   };
 }
 
-export const campagnes = () => Records.list(E.CAMPAGNE).sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le))).map(resume);
+export const campagnes = () => Records.list(E.CAMPAGNE).filter((c) => !c.origine).sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le))).map(resume);
 export const campagne = (id) => { const c = Records.get(E.CAMPAGNE, id); return c ? resume(c) : null; };
 
 export function creerCampagne({ nom = '', design = null, objet = '', apercu = '' } = {}, user = null) {
@@ -121,7 +126,7 @@ export function verification(id) {
 
 /** Le rendu de la campagne pour un contact (ou un exemple). */
 export function rendrePour(c, contact) {
-  const vars = varsDuContact(contact);
+  const vars = { ...varsDuContact(contact), lien_simulateur: lienSimulateur(contact, sourceDe(c)), k: contact.jeton || 'exemple' };
   const { html, texte } = rendreEmail(c.design, vars, { desinscription: lienDesinscription(contact, `campagne:${c.id}`), logo: logo(), apercu: c.apercu, contact });
   return { objet: remplir(c.objet, vars).trim(), html, texte };
 }
@@ -162,7 +167,7 @@ export function annuler(id) {
 function preparer(c, quand) {
   const deja = new Set(Records.list(E.ENVOI).filter((e) => e.campagne_id === c.id).map((e) => e.cle_envoi));
   let n = 0;
-  for (const contact of audience(audienceDe(c))) {
+  for (const contact of audience(audienceDe(c)).filter((x) => servi(c, x))) {
     const cle = cleEnvoi.campagne(c.id, contact.id);
     if (deja.has(cle)) continue;
     Records.create(E.ENVOI, { type: 'campagne', cle_envoi: cle, campagne_id: c.id, contact_id: contact.id, email: contact.email, statut: 'en_attente', le: quand });
@@ -192,6 +197,7 @@ export async function tourCampagnes({ quand = new Date(), lot = envoyerLot, unit
       for (const e of paquet) {
         const contact = Records.get(E.CONTACT, e.contact_id);
         if (!envoyable(contact)) { Records.update(E.ENVOI, e.id, { statut: 'ignore', erreur: contact ? `contact ${contact.statut}` : 'contact supprimé' }); continue; }
+        if (!servi(c, contact)) { Records.update(E.ENVOI, e.id, { statut: 'ignore', erreur: 'call pris' }); continue; }
         const m = rendrePour(c, contact);
         const lien = lienDesinscription(contact, `campagne:${c.id}`);
         prets.push({ e, m: {

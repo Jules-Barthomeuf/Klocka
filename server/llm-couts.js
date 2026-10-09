@@ -284,6 +284,7 @@ function regrouper(lignes) {
 const ACTIONS = [
   { cle: 'lecture_piece', libelle: 'Lire une pièce du dossier', unite: 'par document', parAppel: true, operations: ['matrice', 'lecture des pièces'], ou: "Étape Analyse, à l'arrivée d'une pièce ou sur « Relancer l'analyse »" },
   { cle: 'extraction', libelle: 'Extraire un document déposé', unite: 'par document', parAppel: true, operations: ['extraction'], ou: 'Au dépôt dans l’espace du dossier' },
+  { cle: 'recap_matin', libelle: 'Faire le récap du matin', unite: 'par récap', parAppel: false, operations: ['récap du matin'], ou: 'Chaque matin à 5 h 30, depuis le Mac de Jules (npm run recap)' },
   { cle: 'preanalyse', libelle: 'Analyser une fiche commerciale', unite: 'par fiche', parAppel: false, operations: ['pré-analyse'], ou: 'Étape Pré-analyse, ou fiche collée dans un chat' },
   { cle: 'grille', libelle: 'Mettre en forme une grille', unite: 'par grille', parAppel: false, prefixe: 'grille ', ou: 'Onglets Bail, Quittances, Copropriété, Diagnostics' },
   { cle: 'question', libelle: 'Poser une question sur les pièces', unite: 'par question', parAppel: false, operations: ['chat du dossier'], ou: 'Chat du dossier, étape Analyse' },

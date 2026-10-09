@@ -10,6 +10,7 @@ import { envoyerResend, resendConfigure } from './resend.js';
 import { MAILS_PLATEFORME, sequenceWebinaire } from './modeles.js';
 import { E as ENT, cleEnvoi, listeDuNom, audience, envoyable, HEURE_PAR_DEFAUT } from './schema.js';
 import { expedier, jourParis, aParis } from './envoi.js';
+import { lienSimulateur, signalerReponses } from './newsletters.js';
 
 const CONTACT = ENT.CONTACT;
 const SEQUENCE = ENT.SEQUENCE;
@@ -184,7 +185,9 @@ export function desinscrire(jeton, source = null) {
   const c = Records.list(CONTACT).find((x) => x.jeton && x.jeton === jeton);
   if (!c) return { ok: false };
   // La source (« campagne:id », « sequence:id ») compte la désinscription dans ses statistiques.
-  if (c.statut === 'abonne') Records.update(CONTACT, c.id, { statut: 'desinscrit', statut_le: maintenant(), desinscription_source: /^(campagne|sequence):[\w-]+$/.test(source || '') ? source : null });
+  // Une newsletter compte la désinscription sur son mail : « newsletter:id:mail » devient la campagne de ce mail.
+  const src = /^newsletter:[\w-]+:[\w-]+$/.test(source || '') ? (() => { const [, nid, mid] = source.split(':'); const camp = Records.list(ENT.CAMPAGNE).find((x) => x.origine?.newsletter_id === nid && x.origine?.mail_id === mid); return camp ? `campagne:${camp.id}` : null; })() : source;
+  if (c.statut === 'abonne') Records.update(CONTACT, c.id, { statut: 'desinscrit', statut_le: maintenant(), desinscription_source: /^(campagne|sequence):[\w-]+$/.test(src || '') ? src : null });
   sortirDesSequences(c.id, 'desinscription');
   return { ok: true, email: c.email };
 }
@@ -346,7 +349,7 @@ export function inscrireListe(id, { quand = maintenant() } = {}) {
   return { nouveaux };
 }
 
-const varsContact = (c, s) => ({ prenom: c.prenom || '', nom: c.nom || '', email: c.email, entreprise: c.entreprise || '', ville: c.ville || '', ...(c.champs || {}), expediteur: s?.signature || 'L\'équipe Klocka' });
+const varsContact = (c, s) => ({ prenom: c.prenom || '', nom: c.nom || '', email: c.email, entreprise: c.entreprise || '', ville: c.ville || '', ...(c.champs || {}), expediteur: s?.signature || 'L\'équipe Klocka', lien_simulateur: lienSimulateur(c, s ? `sequence:${s.id}` : null), k: c.jeton || 'exemple' });
 
 /** Rendu d'une étape pour un contact (ou des valeurs d'exemple). */
 export function rendreEtape(etape, vars, { desinscription = null, contact = null } = {}) {
@@ -493,6 +496,8 @@ export async function reponsesRecues() {
     .filter((m) => m.email && m.le && m.le > depuis);
   Meta.set('emailing:reponses_le', maintenant());
   if (!recus.length) return 0;
+  // Les newsletters (9 oct. 2026) : qui répond reste inscrit, l'auteur est prévenu.
+  try { await signalerReponses(recus); } catch (e) { console.warn('[emailing] réponses aux newsletters', e?.message || e); }
   const parEmail = new Map(Records.list(CONTACT).map((c) => [c.email, c]));
   const avecRegle = new Set(Records.list(SEQUENCE).filter((s) => s.sortie?.si_reponse).map((s) => s.id));
   let sorties = 0;

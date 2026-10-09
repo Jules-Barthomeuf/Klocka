@@ -308,7 +308,7 @@ function toGeminiTools(tools = []) {
  * @param {string[]} [opts.file_urls] - resolved to text and appended to the prompt
  * @param {function} [opts.resolveFileText] - async (url) => string
  */
-export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText, effort = null, modele = null } = {}) {
+export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText, effort = null, modele = null, max_tokens = 16000 } = {}) {
   const wantsJson = !!response_json_schema;
 
   if (!llmEnabled) {
@@ -343,7 +343,8 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
     const choisi = modele || ANTHROPIC_MODEL;
     const message = await anthropic.messages.create({
       model: choisi,
-      max_tokens: 16000,
+      // `max_tokens` : 16 000 d'ordinaire ; plus pour une longue synthèse, où la réflexion seule peut tout prendre (le récap du matin).
+      max_tokens,
       // `effort` règle la profondeur de réflexion du modèle, donc les jetons de
       // sortie — les plus chers. « low » sur un geste mécanique : mettre en
       // forme une valeur déjà lue, trier un mail, ranger une phrase. Jamais sur

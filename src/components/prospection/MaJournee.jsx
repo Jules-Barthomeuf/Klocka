@@ -155,7 +155,7 @@ export default function MaJournee({ onAppeler, enCours = false, onCompte = null 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <ChoixVille villes={data.villes} ville={v?.ville || null} onChoisir={choisir} />
-            <p className="m-0 mt-1 text-[13.5px] text-ardoise">{v ? `${v.agences} agences · ${v.avec_telephone} numéros · ${v.agents} agents` : (data.villes_du_jour || []).join(", ") || "Aucune ville du jour : choisissez-en une."}</p>
+            <p className="m-0 mt-1 text-[13.5px] text-ardoise">{v ? `${v.agences} agences · ${v.avec_telephone} numéros` : (data.villes_du_jour || []).join(", ") || "Aucune ville du jour : choisissez-en une."}</p>
           </div>
           <div className="min-w-[180px]">
             <p className="m-0 text-right text-[13px] text-craie">{faits} appel{faits > 1 ? "s" : ""} fait{faits > 1 ? "s" : ""} sur {total} aujourd'hui</p>

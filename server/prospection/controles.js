@@ -171,7 +171,8 @@ export function planifier() {
   if (!auto) return null;
   const tour = async () => {
     const maintenant = new Date();
-    const heure = Number(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: 'numeric', hour12: false }).format(maintenant));
+    // R.heureDe : en fr-FR, l'heure s'écrit « 07 h » et Number() rendait NaN, le rapport ne partait jamais.
+    const heure = R.heureDe(maintenant);
     const dernier = dernierRapport();
     const dejaAujourdhui = dernier && R.jourDe(new Date(dernier.le)) === R.jourDe(maintenant) && dernier.envoye_a;
     if (heure >= 7 && !dejaAujourdhui) {

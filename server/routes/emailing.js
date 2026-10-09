@@ -12,6 +12,8 @@ const C = () => import('../emailing/campagnes.js');
 const T = () => import('../emailing/templates.js');
 const S = () => import('../emailing/stats.js');
 const IA = () => import('../emailing/ia.js');
+const N = () => import('../emailing/newsletters.js');
+const A = () => import('../emailing/assets.js');
 
 /** Monte les routes « emailing » sur l'application. */
 export function monterEmailing(app) {
@@ -155,6 +157,61 @@ export function monterEmailing(app) {
   route('post', '/api/emailing/ia/retoucher', async (req, user) => (await IA()).retoucher(req.body || {}, user));
   route('post', '/api/emailing/ia/objets', async (req, user) => (await IA()).objets(req.body || {}, user));
   route('post', '/api/emailing/ia/relire', async (req, user) => (await IA()).relire(req.body || {}, user));
+
+  // --- Les newsletters (9 oct. 2026) ---
+  route('get', '/api/emailing/newsletters', async () => ({ newsletters: (await N()).newsletters() }));
+  route('post', '/api/emailing/newsletters', async (req, user) => {
+    const tpl = req.body?.template_id ? (await T()).template(req.body.template_id) : null;
+    return (await N()).creerNewsletter({ nom: req.body?.nom, listes: req.body?.listes || [], template: tpl }, user);
+  });
+  route('get', '/api/emailing/newsletters/:id', async (req) => (await N()).newsletter(req.params.id));
+  route('patch', '/api/emailing/newsletters/:id', async (req) => (await N()).modifierNewsletter(req.params.id, req.body || {}));
+  route('delete', '/api/emailing/newsletters/:id', async (req) => (await N()).supprimerNewsletter(req.params.id));
+  route('post', '/api/emailing/newsletters/:id/statut', async (req) => (await N()).changerStatut(req.params.id, req.body?.statut));
+  route('get', '/api/emailing/newsletters/:id/stats', async (req) => (await N()).statsNewsletter(req.params.id));
+  route('post', '/api/emailing/newsletters/:id/mails', async (req) => {
+    const tpl = req.body?.template_id ? (await T()).template(req.body.template_id) : null;
+    return (await N()).ajouterMail(req.params.id, { template: tpl });
+  });
+  route('delete', '/api/emailing/newsletters/:id/mails/:mid', async (req) => (await N()).retirerMail(req.params.id, req.params.mid));
+  route('post', '/api/emailing/newsletters/:id/mails/:mid/statut', async (req) => (await N()).statutDuMail(req.params.id, req.params.mid, req.body?.statut));
+  // Le test d'un mail : rendu pour le premier inscrit (ou un exemple), envoyé à soi-même.
+  route('post', '/api/emailing/newsletters/:id/mails/:mid/test', async (req, user) => {
+    const Nm = await N();
+    const n = Nm.newsletter(req.params.id);
+    const m = n?.mails?.find((x) => x.id === req.params.mid);
+    if (!m) return { ok: false, error: 'Mail introuvable.' };
+    const { rendrePour } = await C();
+    const { envoyerResend } = await import('../emailing/resend.js');
+    const contact = Nm.inscrits(n)[0] || { email: user.email, prenom: 'Jules', nom: 'Exemple', jeton: 'exemple', tags: [], champs: {} };
+    const r = rendrePour({ id: 'test', origine: { newsletter_id: n.id, mail_id: m.id }, objet: m.objet, apercu: m.apercu, design: m.design }, contact);
+    const e = await envoyerResend({ a: user.email, objet: `[Test] ${r.objet}`, html: r.html, texte: r.texte, repondreA: n.repondre_a || null });
+    return e.ok ? { ok: true, a: user.email } : e;
+  });
+  // --- Les assets (9 oct. 2026) : ce qu'on glisse dans un mail en un clic ---
+  route('get', '/api/emailing/assets', async () => ({ assets: (await A()).assets() }));
+  route('post', '/api/emailing/assets', async (req, user) => (await A()).creerAsset(req.body || {}, user));
+  route('post', '/api/emailing/assets/generer', async (req, user) => (await A()).genererAsset(req.body?.description, user));
+  route('patch', '/api/emailing/assets/:id', async (req) => (await A()).modifierAsset(req.params.id, req.body || {}));
+  route('delete', '/api/emailing/assets/:id', async (req) => (await A()).supprimerAsset(req.params.id), { code: 404 });
+  route('get', '/api/emailing/sante', async (req) => (await N()).sante({ jours: Math.min(365, Number(req.query.jours) || 30) }));
+  route('get', '/api/emailing/engagement', async (req) => ({ contacts: (await N()).engagement({ filtre: req.query.filtre || null, limite: Math.min(100, Number(req.query.limite) || 30) }) }));
+
+  // --- Le simulateur et le call : publics, par le jeton personnel du contact ---
+  app.get('/api/emailing/visiteur', wrap(async (req, res) => ok(res, (await N()).visiteur(req.query?.k))));
+  app.post('/api/emailing/activite', wrap(async (req, res) => {
+    const b = req.body || {};
+    const r = await (await N()).noterActivite({ k: b.k, type: b.type, valeurs: b.valeurs || null, source: b.s || b.source || null });
+    res.status(r.ok ? 200 : 404).json(r);
+  }));
+  // Le webhook de Calendly (invitee.created) : un rendez-vous pris avec l'adresse d'un contact le sort des newsletters.
+  // Vérifié par la clé de signature du webhook (CALENDLY_WEBHOOK_SIGNING_KEY) ; sans elle, refusé.
+  app.post('/api/emailing/calendly', wrap(async (req, res) => {
+    const Nm = await N();
+    const cle = (process.env.CALENDLY_WEBHOOK_SIGNING_KEY || '').trim();
+    if (!Nm.signatureCalendly({ entete: req.headers['calendly-webhook-signature'], corps: req.corpsBrut, cle })) return res.status(401).json({ error: 'Signature invalide.' });
+    ok(res, await Nm.rendezVousCalendly(req.body));
+  }));
 
   // --- Le webhook de Resend : public, vérifié par sa signature Svix ---
   app.post('/api/emailing/webhook', wrap(async (req, res) => {

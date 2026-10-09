@@ -35,7 +35,7 @@ export function useEtapesVives() {
 export function ChaineEtapes({ etapes, titre = "AK lit l'appel", attente = "Je lis l'appel" }) {
   const liste = etapes.length ? etapes : [attente];
   return (
-    <div className="flex flex-col gap-5 rounded-[20px] border border-trait bg-transparent px-7 py-8 max-md:px-5">
+    <div className="flex flex-col gap-5 rounded-[20px] border border-bord-doux bg-transparent px-7 py-8 max-md:px-5">
       <p className="m-0 text-[20px] text-encre">{titre}</p>
       <div className="flex flex-col gap-3">
         {liste.map((e, i) => {

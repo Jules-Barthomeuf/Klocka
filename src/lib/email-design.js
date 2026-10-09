@@ -48,7 +48,7 @@ export function blocNeuf(type) {
 
 /** Les variables qu'un email peut porter, et ce qu'elles deviennent. */
 export const VARIABLES = [
-  ["prenom", "Prénom"], ["nom", "Nom"], ["entreprise", "Entreprise"], ["ville", "Ville"], ["email", "Adresse"], ["lien", "Lien (invitation)"], ["expediteur", "Expéditeur"],
+  ["prenom", "Prénom"], ["nom", "Nom"], ["entreprise", "Entreprise"], ["ville", "Ville"], ["email", "Adresse"], ["lien", "Lien (invitation)"], ["lien_simulateur", "Lien du simulateur (personnel)"], ["expediteur", "Expéditeur"],
 ];
 
 /** Pure : les variables d'un texte, avec leur valeur de repli ({{prenom | "Bonjour"}}). */

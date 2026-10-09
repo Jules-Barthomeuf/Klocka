@@ -6,6 +6,21 @@ const b = (type, champs = {}, id = null) => ({ id: id || `${type}-${Math.random(
 
 /** Les mails de la plateforme, par clé. */
 export const MAILS_PLATEFORME = {
+  alerte_newsletter: {
+    nom: 'Alerte newsletter',
+    description: 'Part trois jours avant la date d\'un mail de newsletter qui n\'est pas prêt (ou pas encore écrit), à l\'auteur de la newsletter.',
+    variables: ['titre', 'texte', 'lien'],
+    objet: '{{titre}}',
+    apercu: '{{texte}}',
+    design: {
+      theme: 'clair',
+      blocs: [
+        b('titre', { texte: '{{titre}}' }, 'titre'),
+        b('texte', { texte: '{{texte}}' }, 'texte'),
+        b('bouton', { texte: 'Ouvrir la newsletter', lien: '{{lien}}' }, 'bouton'),
+      ],
+    },
+  },
   rapport_regles: {
     nom: 'Rapport des règles',
     description: 'Part chaque matin vers 7 h à Jules : les règles de la prospection contrôlées la nuit, « Tout est conforme » ou les écarts.',
@@ -19,6 +34,30 @@ export const MAILS_PLATEFORME = {
         b('texte', { texte: '{{resume}}' }, 'resume'),
         b('texte', { texte: '{{details}}' }, 'details'),
         b('bouton', { texte: 'Ouvrir le Suivi', lien: '{{lien}}' }, 'bouton'),
+      ],
+    },
+  },
+  recap_du_matin: {
+    nom: 'Récap du matin',
+    description: 'Part chaque matin à 5 h 30 à Jules, depuis son Mac : ce qu\'il y a à finir, ce qui attend sa décision, ce qui a été fait la veille, un court diagnostic et des idées.',
+    variables: ['titre', 'resume', 'a_finir', 'decisions', 'sessions', 'hier', 'diagnostic', 'idees', 'prompt'],
+    objet: '{{objet}}',
+    apercu: '{{resume}}',
+    design: {
+      theme: 'clair',
+      blocs: [
+        b('titre', { texte: '{{titre}}' }, 'titre'),
+        b('texte', { texte: '{{resume}}' }, 'resume'),
+        b('separateur', {}, 'sep1'),
+        b('texte', { texte: '**À finir aujourd\'hui**\n{{a_finir}}' }, 'a_finir'),
+        b('texte', { texte: '**En attente de ta décision**\n{{decisions}}' }, 'decisions'),
+        b('separateur', {}, 'sep2'),
+        b('texte', { texte: '**Tes sessions Claude Code**\n{{sessions}}' }, 'sessions'),
+        b('texte', { texte: '**Hier**\n{{hier}}' }, 'hier'),
+        b('texte', { texte: '**Diagnostic**\n{{diagnostic}}' }, 'diagnostic'),
+        b('texte', { texte: '**Idées**\n{{idees}}' }, 'idees'),
+        b('separateur', {}, 'sep3'),
+        b('texte', { texte: '**Pour démarrer, à coller dans Claude Code**\n{{prompt}}' }, 'prompt'),
       ],
     },
   },

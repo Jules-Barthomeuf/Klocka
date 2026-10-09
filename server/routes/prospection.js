@@ -350,6 +350,25 @@ export function monterProspection(app) {
     if (!user) return;
     const r = await (await MA()).prendre(req.body?.agence_id, user);
     if (!r.ok) return res.status(409).json({ error: r.error });
+    // L'appel commence : Monday se relit maintenant, pour que sa ligne soit prête au raccrochage.
+    (await import('../prospection/monday-agents.js')).prechauffer();
+    ok(res, r);
+  }));
+  // La lecture en avance (9 oct. 2026) : pendant l'appel, la transcription du
+  // moment (et les notes) est lue par AK ; au raccrochage, si la fin n'y change
+  // rien, cette lecture sert et l'écran d'actions s'ouvre aussitôt.
+  app.post('/api/prospection/mode-appel/pre-lecture', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const agentId = String(req.body?.agent_id || '');
+    if (!agentId) return res.status(400).json({ error: 'Agent manquant.' });
+    (await import('../prospection/monday-agents.js')).prechauffer();
+    let textes = [];
+    try { textes = JSON.parse(String(req.body?.morceaux || '[]')); } catch { textes = []; }
+    let transcription = (Array.isArray(textes) ? textes : []).map((t) => String(t || '')).filter(Boolean).join('\n').trim() || null;
+    const notes = String(req.body?.notes || '').trim().slice(0, 4000) || null;
+    if (notes) transcription = (await import('../prospection/rappels.js')).texteAAnalyser(transcription, notes);
+    const r = await (await import('../prospection/appel.js')).lireEnAvance({ agent_id: agentId, transcription_texte: transcription, par: user.email });
     ok(res, r);
   }));
   // L'issue tapée en raccrochant, avec le vocal pour les vraies conversations.

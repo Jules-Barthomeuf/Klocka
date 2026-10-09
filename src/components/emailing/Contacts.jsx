@@ -150,6 +150,11 @@ function EditeurSegment({ segment, onFermer }) {
   );
 }
 
+// L'historique d'un contact, en mots (9 oct. 2026) : les mails, puis le simulateur et le call.
+const MOT_HISTO = { envoye: "Mail reçu", delivre: "Délivré", ouvert: "Ouvert", clique: "Cliqué", bounce: "Bounce", plainte: "Plainte", echec: "Échec d'envoi", retarde: "Retardé", supprime: "Adresse supprimée", simulateur: "Simulateur utilisé", clic_call: "Bouton « Parler au fondateur »", call_pris: "Call pris", reponse: "A répondu", lead_magnet: "Lead magnet ouvert" };
+const euros = (v) => `${Math.round(Number(v) / 1000).toLocaleString("fr-FR")} k€`;
+const valeursLisibles = (v) => [v.prixBienFAI != null && `prix ${euros(v.prixBienFAI)}`, v.loyerInitialHTHC != null && `loyer ${euros(v.loyerInitialHTHC)}/an`, v.apport != null && `apport ${euros(v.apport)}`, v.sansCredit ? "sans crédit" : v.dureeCredit != null && `crédit ${v.dureeCredit} ans`].filter(Boolean).join(", ");
+
 function Fiche({ id, onFermer }) {
   const queryClient = useQueryClient();
   const { data: ref } = useReferentiel();
@@ -192,13 +197,15 @@ function Fiche({ id, onFermer }) {
             <p className="m-0 mt-1 text-[12px] text-brume">Source : {c.source || "?"} · ajouté le {date(c.ajoute_le)}</p>
             {c.statut === "abonne" && <button type="button" onClick={() => { if (window.confirm(`Désinscrire ${c.email} ? Il ne recevra plus aucun email marketing.`)) maj.mutate({ statut: "desinscrit" }); }} className={`${bouton} mt-3`}>Désinscrire</button>}
 
-            <p className="m-0 mt-6 text-[13px] text-encre">Séquences</p>
-            {data.sequences.length ? data.sequences.map((s) => <p key={s.id} className="m-0 mt-1 text-[13px] text-craie">{s.nom} · {s.statut === "en_cours" ? `email ${s.etape + 1} sur ${s.total}, prochain le ${dateHeure(s.prochain_envoi)}` : s.statut === "sortie" ? `sorti (${s.raison})` : s.statut}</p>) : <p className="m-0 mt-1 text-[13px] text-brume">Aucune</p>}
-            <p className="m-0 mt-5 text-[13px] text-encre">Campagnes reçues</p>
-            {data.campagnes.length ? data.campagnes.map((x) => <p key={x.id} className="m-0 mt-1 text-[13px] text-craie">{x.nom} · {date(x.le)}{x.ouvert ? " · ouvert" : ""}{x.clique ? " · cliqué" : ""}</p>) : <p className="m-0 mt-1 text-[13px] text-brume">Aucune</p>}
+            {/* L'engagement (9 oct. 2026) : le score, ce qui le fait, et le call. */}
+            <p className="m-0 mt-6 text-[13px] text-encre">Engagement</p>
+            <p className="m-0 mt-1 text-[13px] text-craie">Score {data.score ?? 0} · {pluriel(data.engagement?.ouverts || 0, "ouverture")}, {pluriel(data.engagement?.cliques || 0, "clic")}, {pluriel(data.engagement?.simulateur || 0, "passage", "passages")} au simulateur</p>
+            {c.call_pris_le ? <p className="m-0 mt-1 text-[13px] text-menthe">Call pris le {dateHeure(c.call_pris_le)}{c.call_pris_via === "calendly" ? " (Calendly)" : " (depuis le simulateur)"}</p> : null}
+            <p className="m-0 mt-5 text-[13px] text-encre">Newsletters</p>
+            {data.newsletters?.length ? data.newsletters.map((n) => <p key={n.id} className="m-0 mt-1 text-[13px] text-craie">{n.nom} · {n.recoit ? (n.statut === "active" ? "reçoit les mails" : "newsletter en pause") : c.call_pris_le ? "sorti : call pris" : `sorti : ${c.statut}`}</p>) : <p className="m-0 mt-1 text-[13px] text-brume">Aucune : ses listes ne sont dans aucune newsletter.</p>}
             <p className="m-0 mt-5 text-[13px] text-encre">Historique</p>
             <ol className="m-0 mt-1 list-none p-0">
-              {data.historique.slice(0, 60).map((h, i) => <li key={i} className="border-t border-trait py-1.5 text-[12.5px] first:border-t-0"><span className="text-ardoise">{dateHeure(h.le)}</span> · <span className="text-encre">{h.type}</span>{h.objet ? <span className="text-craie"> · {h.objet}</span> : null}{h.lien ? <span className="text-ardoise"> · {h.lien}</span> : null}</li>)}
+              {data.historique.slice(0, 80).map((h, i) => <li key={i} className="border-t border-trait py-1.5 text-[12.5px] first:border-t-0"><span className="text-ardoise">{dateHeure(h.le)}</span> · <span className={h.type === "call_pris" ? "text-menthe" : "text-encre"}>{MOT_HISTO[h.type] || h.type}</span>{h.objet ? <span className="text-craie"> · {h.objet}</span> : null}{h.lien ? <span className="text-ardoise"> · {String(h.lien).replace(/^https?:\/\/(www\.)?/, "").split("?")[0]}</span> : null}{h.valeurs ? <span className="text-craie"> · {valeursLisibles(h.valeurs)}</span> : null}{h.changements ? <span className="text-ardoise"> · {pluriel(h.changements, "réglage changé", "réglages changés")}</span> : null}</li>)}
               {!data.historique.length && <li className="text-[12.5px] text-brume">Rien encore.</li>}
             </ol>
           </div>
@@ -241,7 +248,7 @@ const TYPES = [["", "Tous"], ["lead", "Lead"], ["client", "Client"], ["mandatair
 const MOT_TYPE = Object.fromEntries(TYPES);
 const SOUS_ONGLETS = [["tous", "Tous les contacts"], ["listes", "Listes"], ["segments", "Segments"], ["champs", "Champs personnalisés"]];
 const STATUT = { abonne: ["Abonné", "bg-menthe"], desinscrit: ["Désinscrit", "bg-brume"], bounce: ["Bounce", "bg-alerte"], plainte: ["Plainte", "bg-alerte"] };
-const COLONNES = "grid-cols-[28px_minmax(0,2.4fr)_100px_100px_minmax(0,1.4fr)_100px_minmax(0,1.8fr)]";
+const COLONNES = "grid-cols-[28px_minmax(0,2.4fr)_100px_100px_minmax(0,1.4fr)_100px_64px_minmax(0,1.8fr)]";
 const jourCourt = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 
 /** Le résumé d'une règle de segment, en clair. */
@@ -274,12 +281,6 @@ export default function Contacts({ demande = null }) {
   const { data, isLoading } = useQuery({ queryKey: ["emailing-contacts", params.toString()], queryFn: () => req("GET", `/contacts/recherche?${params}`), enabled: sous === "tous" });
   const raf = () => ["emailing-contacts", "emailing-referentiel", "emailing-contacts-apercu"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
   const masse = useMutation({ mutationFn: (corps) => req("POST", "/contacts/masse", { ids: choisis, ...corps }), onSuccess: (r) => { toast.success(`${pluriel(r.touches, "contact")} mis à jour`); setChoisis([]); raf(); } });
-  const { data: lesSequences } = useQuery({ queryKey: ["emailing-sequences"], queryFn: () => req("GET", "/sequences") });
-  const inscrire = useMutation({
-    mutationFn: (sequenceId) => req("POST", `/sequences/${sequenceId}/inscrire`, { ids: choisis }),
-    onSuccess: (r) => { toast.success(pluriel(r.inscrits, "contact inscrit", "contacts inscrits"), { description: r.refus?.length ? r.refus.join(" ; ") : undefined }); setChoisis([]); queryClient.invalidateQueries({ queryKey: ["emailing-sequences"] }); },
-    onError: (e) => toast.error(e?.message || "Inscription impossible"),
-  });
   const appel = useMutation({ mutationFn: ([m, c, b]) => req(m, c, b), onSuccess: raf, onError: (e) => toast.error(e?.message || "Impossible") });
   // Les contacts vus, page après page : l'export sort toute la sélection.
   const vus = useRef(new Map());
@@ -328,9 +329,6 @@ export default function Contacts({ demande = null }) {
                 <option value="">Ajouter à une liste</option>{(ref?.listes || []).map((l) => <option key={l.id} value={l.id}>{l.nom}</option>)}
               </select>
               <button type="button" className={boutonLigne} onClick={() => { const t = window.prompt("Tag à ajouter :"); if (t) masse.mutate({ action: "ajouter_tag", valeur: t.trim() }); }}><Tag className="mr-1.5 h-3.5 w-3.5" />Ajouter un tag</button>
-              <select defaultValue="" onChange={(e) => { const id = e.target.value; e.target.value = ""; const sq = (lesSequences?.sequences || []).find((x) => x.id === id); if (sq && window.confirm(`Inscrire ${pluriel(choisis.length, "contact")} à « ${sq.nom} » ? ${sq.statut === "active" ? "Ils reçoivent le premier email au prochain passage." : "Ils démarreront à l'activation de la séquence."}`)) inscrire.mutate(id); }} className={selectMasse}>
-                <option value="">Inscrire à une séquence</option>{(lesSequences?.sequences || []).map((x) => <option key={x.id} value={x.id}>{x.nom}{x.statut === "active" ? "" : " (inactive)"}</option>)}
-              </select>
               <button type="button" className={boutonLigne} onClick={() => exporterCsv(choisis.map((id) => vus.current.get(id)).filter(Boolean))}><Download className="mr-1.5 h-3.5 w-3.5" />Exporter</button>
               <button type="button" className={boutonLigne} onClick={() => { if (window.confirm(`Désinscrire ${pluriel(choisis.length, "contact")} ? Ils ne recevront plus d'email marketing.`)) masse.mutate({ action: "desinscrire" }); }}>Désinscrire</button>
               <button type="button" className={`${boutonLigne} text-alerte`} onClick={() => { if (window.confirm(`Supprimer ${pluriel(choisis.length, "contact")} ? Leurs séquences s'arrêtent.`)) masse.mutate({ action: "supprimer" }); }}><Trash2 className="mr-1.5 h-3.5 w-3.5" />Supprimer</button>
@@ -344,7 +342,7 @@ export default function Contacts({ demande = null }) {
                   <div className="min-w-[1000px]">
                     <div className={`grid ${COLONNES} items-center gap-3.5 border-b border-trait bg-surface-pleine px-4 py-[11px] text-[12px] text-ardoise`}>
                       <input type="checkbox" checked={tous} onChange={(e) => setChoisis(e.target.checked ? contacts.map((c) => c.id) : [])} aria-label="Tout choisir" className="h-4 w-4" />
-                      <div>Contact</div><div>Type</div><div>Ville</div><div>Tags</div><div>Statut</div><div>Dernière activité</div>
+                      <div>Contact</div><div>Type</div><div>Ville</div><div>Tags</div><div>Statut</div><div title="1 par ouverture, 3 par clic, 5 par passage au simulateur, 20 pour un call">Score</div><div>Dernière activité</div>
                     </div>
                     {contacts.map((c) => {
                       const oui = choisis.includes(c.id);
@@ -361,6 +359,7 @@ export default function Contacts({ demande = null }) {
                           <div className="truncate text-craie">{c.ville || "—"}</div>
                           <div className="flex min-w-0 flex-wrap gap-1 overflow-hidden">{(c.tags || []).slice(0, 3).map((t) => <span key={t} className="rounded-full border border-bord-doux px-[7px] py-px text-[11.5px] text-craie">{t}</span>)}{(c.tags || []).length > 3 && <span className="text-[11.5px] text-ardoise">+{c.tags.length - 3}</span>}</div>
                           <div className="flex items-center gap-1.5 text-craie"><span className={`h-1.5 w-1.5 rounded-full ${point}`} />{motStatut}</div>
+                          <div className={`tabular-nums ${c.call_pris_le ? "text-menthe" : c.score ? "text-encre" : "text-brume"}`} title={c.call_pris_le ? "Call pris" : undefined}>{c.score || 0}</div>
                           <div className="text-[12.5px] text-ardoise">{c.derniere_activite ? `${c.derniere_activite.texte} · ${jourCourt(c.derniere_activite.le)}` : "—"}</div>
                         </div>
                       );

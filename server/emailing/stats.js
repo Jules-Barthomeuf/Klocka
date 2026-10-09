@@ -67,7 +67,7 @@ export function deSequence(id) {
 
 /** Les campagnes envoyées et les séquences, avec leurs chiffres, pour le tableau des statistiques. */
 export function tableau() {
-  const campagnes = Records.list(E.CAMPAGNE).filter((c) => ['en_cours', 'envoyee'].includes(c.statut))
+  const campagnes = Records.list(E.CAMPAGNE).filter((c) => !c.origine && ['en_cours', 'envoyee'].includes(c.statut))
     .sort((a, b) => String(b.envoyee_le || b.demarree_le).localeCompare(String(a.envoyee_le || a.demarree_le)))
     .map((c) => ({ id: c.id, nom: c.nom, le: c.envoyee_le || c.demarree_le, ...deCampagne(c.id) }));
   const sequences = Records.list(E.SEQUENCE).map((s) => ({ id: s.id, nom: s.nom, statut: s.statut, ...deSequence(s.id) }));

@@ -36,7 +36,8 @@ const moi = (email) => String(email || '').toLowerCase();
 const PARIS = 'Europe/Paris';
 const maintenant = () => new Date().toISOString();
 const jourDeParis = () => new Intl.DateTimeFormat('en-CA', { timeZone: PARIS, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-const heureDeParis = () => Number(new Intl.DateTimeFormat('fr-FR', { timeZone: PARIS, hour: '2-digit', hour12: false }).format(new Date()));
+// en-GB : « 13 ». En fr-FR, l'heure s'écrit « 13 h » et Number() rendait NaN.
+const heureDeParis = () => Number(new Intl.DateTimeFormat('en-GB', { timeZone: PARIS, hour: '2-digit', hour12: false }).format(new Date())) % 24;
 
 // --- L'état de l'agent, par mandataire --------------------------------------
 

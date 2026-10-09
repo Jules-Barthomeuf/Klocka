@@ -6,6 +6,7 @@
 import { randomBytes } from 'crypto';
 import { Records } from '../db.js';
 import { E, listeDuNom, audience, dansSegment, envoyable, STATUTS_CONTACT } from './schema.js';
+import { NEWSLETTER, activitesDe, actif, score, scores } from './newsletters.js';
 
 const maintenant = () => new Date().toISOString();
 const normEmail = (e) => String(e || '').trim().toLowerCase();
@@ -217,10 +218,11 @@ export function rechercher({ q = '', liste = null, segment = null, tag = null, s
   const envoisPage = Records.list(E.ENVOI).filter((e) => ids.has(e.contact_id));
   const contactDeEnvoi = new Map(envoisPage.map((e) => [e.id, e.contact_id]));
   const evtsPage = Records.list(E.EVENEMENT).filter((e) => contactDeEnvoi.has(e.envoi_id));
+  const lesScores = scores();
   const activite = new Map(page_.map((c) => [c.id, derniereActivite(c, envoisPage.filter((e) => e.contact_id === c.id), evtsPage.filter((e) => contactDeEnvoi.get(e.envoi_id) === c.id))]));
   return {
     total: tous.length,
-    contacts: tous.slice(debut, debut + parPage).map((c) => ({ ...c, type: c.type || 'lead', liste_ids: c.listes || [], listes: (c.listes || []).map((id) => noms.get(id)).filter(Boolean), derniere_activite: activite.get(c.id) || derniereActivite(c, [], []) })),
+    contacts: tous.slice(debut, debut + parPage).map((c) => ({ ...c, score: lesScores.get(c.id)?.score || 0, type: c.type || 'lead', liste_ids: c.listes || [], listes: (c.listes || []).map((id) => noms.get(id)).filter(Boolean), derniere_activite: activite.get(c.id) || derniereActivite(c, [], []) })),
   };
 }
 
@@ -294,9 +296,15 @@ export function fiche(id) {
   const historique = [
     ...envois.map((e) => ({ le: e.le, type: e.statut === 'echec' ? 'echec' : 'envoye', objet: e.objet, source: e.campagne_id ? campagnes.get(e.campagne_id)?.nom : e.sequence_id ? sequences.get(e.sequence_id)?.nom : e.cle || null })),
     ...evts.map((e) => ({ le: e.le, type: e.type, lien: e.lien || null, objet: envois.find((x) => x.id === e.envoi_id)?.objet || null })),
+    // Les newsletters (9 oct. 2026) : le simulateur (ses valeurs), le bouton du call, le call pris, les réponses.
+    ...activitesDe(id).map((a) => ({ le: a.le, type: a.type, valeurs: a.valeurs || null, changements: a.changements || 0, via: a.via || null })),
   ].sort((a, b) => String(b.le).localeCompare(String(a.le)));
+  const nls = Records.list(NEWSLETTER).filter((n) => (n.listes || []).some((l) => (c.listes || []).includes(l)));
+  const sc = scores().get(id) || { ouverts: 0, cliques: 0, simulateur: 0, call: !!c.call_pris_le };
   return {
     contact: { ...c, listes_noms: (c.listes || []).map((x) => noms.get(x)).filter(Boolean) },
+    score: score(sc), engagement: sc,
+    newsletters: nls.map((n) => ({ id: n.id, nom: n.nom, statut: n.statut, recoit: actif(c) })),
     campagnes: envois.filter((e) => e.campagne_id).map((e) => ({ id: e.campagne_id, nom: campagnes.get(e.campagne_id)?.nom || 'Campagne supprimée', le: e.le, statut: e.statut, ouvert: !!e.ouvert_le, clique: !!e.clique_le })),
     sequences: Records.list(E.INSCRIPTION).filter((i) => i.contact_id === id).map((i) => ({ id: i.sequence_id, nom: sequences.get(i.sequence_id)?.nom || 'Séquence supprimée', statut: i.statut, raison: i.raison || null, etape: i.etape, total: sequences.get(i.sequence_id)?.etapes?.length || 0, prochain_envoi: i.prochain_envoi })),
     historique,

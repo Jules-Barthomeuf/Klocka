@@ -10,7 +10,7 @@
 // appel garde son résumé, les phrases exactes, ce qui a été compris et les
 // notes tapées.
 
-import { Records } from '../db.js';
+import { Records, Meta } from '../db.js';
 import * as R from './regles.js';
 import { prenomDe, EQUIPE } from './equipe.js';
 
@@ -82,8 +82,20 @@ export function chiffres(appels, { sessions = [], maintenantD = new Date() } = {
  * plus récent d'abord). `source` filtre (prospection, relances, rappel) ;
  * l'essai n'entre que si on le demande.
  */
+// La remise à zéro (9 oct. 2026) : rien ne s'efface ; le suivi compte à partir de ce moment, jusqu'à « Tout afficher ».
+const CLE_ZERO = 'suivi_appels.remise_a_zero';
+export const remiseAZero = () => { try { return JSON.parse(Meta.get(CLE_ZERO) || 'null'); } catch { return null; } };
+export function remettreAZero(par, maintenantD = new Date()) {
+  const r = { le: maintenantD.toISOString(), par: String(par || '').toLowerCase() || null };
+  Meta.set(CLE_ZERO, JSON.stringify(r));
+  return r;
+}
+export function toutAfficher() { Meta.set(CLE_ZERO, 'null'); return null; }
+
 export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(), journal = 300 } = {}) {
-  const depuis = new Date(maintenantD.getTime() - jours * 86400000).toISOString();
+  const zero = remiseAZero();
+  const fenetre = new Date(maintenantD.getTime() - jours * 86400000).toISOString();
+  const depuis = zero?.le && zero.le > fenetre ? zero.le : fenetre;
   const sessions = new Map(Records.list('SessionAppel').map((s) => [s.id, s]));
   const agences = new Map(Records.list('AgenceProspect').map((a) => [a.id, a]));
   const listes = new Map(Records.list('ListeAgences').map((l) => [l.id, l]));
@@ -149,6 +161,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     ok: true,
     jours,
     source,
+    remise_a_zero: zero?.le && zero.le > fenetre ? zero : null,
     depuis_mesures: '2026-10-09',
     equipe: chiffres(appels, { sessions: sessionsFen, maintenantD }),
     analystes,

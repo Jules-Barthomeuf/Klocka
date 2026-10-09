@@ -204,7 +204,7 @@ export default function Relances() {
           )}
 
           {data && partie === "liste" && (
-            <div className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+            <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
               {avis && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-ambre/40 px-4 py-3">
                   <span className="text-[15px] text-ambre">{avis.texte}</span>

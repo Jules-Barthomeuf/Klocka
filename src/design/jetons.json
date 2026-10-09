@@ -262,6 +262,38 @@
       }
     }
   },
+  "_monday": [
+    "Le tableau Monday reproduit dans l'étape « Contact Monday » (9 oct. 2026) : les couleurs de",
+    "Monday (fond blanc, traits gris bleuté, liens bleus, étiquettes de statut pleines),",
+    "pour que l'analyste reconnaisse la ligne qu'il retrouvera dans Monday. Ces teintes",
+    "ne servent qu'à ce tableau ; les étiquettes sans couleur connue prennent le gris."
+  ],
+  "monday": {
+    "fond": "#ffffff",
+    "entete": "#ffffff",
+    "trait": "#d0d4e4",
+    "texte": "#323338",
+    "texte_doux": "#676879",
+    "lien": "#1f76c2",
+    "groupe": "#579bfc",
+    "puce": "#d3ebee",
+    "avatar": "#579bfc",
+    "drapeau_bleu": "#002395",
+    "drapeau_blanc": "#ffffff",
+    "drapeau_rouge": "#ed2939",
+    "etiquettes": {
+      "A un bien intéressant": "#5bc47b",
+      "Oui": "#5bc47b",
+      "Agent prévenu": "#5bc47b",
+      "Pas de bien pour l'instant": "#fdab3d",
+      "Ne plus appeler": "#df2f4a",
+      "Pas intéressé": "#df2f4a",
+      "Pas de réponse": "#c4c4c4",
+      "Répondeur, message laissé": "#c4c4c4",
+      "Non": "#c4c4c4"
+    },
+    "etiquette_defaut": "#c4c4c4"
+  },
   "surfaces_pleines": {
     "sombre": {
       "surface": "#1c1e1d",

@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ExternalLink, Loader2, X } from "lucide-react";
+import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { versWav } from "@/lib/dictee";
+import { useDictee, versWav } from "@/lib/dictee";
 import { garder, enAttente, retirer, erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
-import MicroEcoute from "@/components/prospection/MicroEcoute";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
@@ -149,23 +148,47 @@ function PourquoiRelance({ a }) {
   );
 }
 
+/**
+ * La machine à écrire (9 oct. 2026) : la transcription s'écrit quand on l'ouvre.
+ * Au plus deux secondes et demie, quelle que soit sa longueur ; tout de suite
+ * si le système demande moins d'animations.
+ */
+function useTape(paragraphes, actif) {
+  const total = paragraphes.reduce((n, t) => n + t.length, 0);
+  const [n, setN] = useState(actif ? 0 : Infinity);
+  useEffect(() => {
+    if (!actif) { setN(Infinity); return undefined; }
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) { setN(Infinity); return undefined; }
+    setN(0);
+    const pas = Math.max(1, Math.ceil(total / 150));
+    let vu = 0, id = 0;
+    const avancer = () => { vu += pas; if (vu >= total) { setN(Infinity); return; } setN(vu); id = requestAnimationFrame(avancer); };
+    id = requestAnimationFrame(avancer);
+    return () => cancelAnimationFrame(id);
+  // Relancée à l'ouverture seulement, pas à chaque morceau qui arrive.
+  }, [actif]);
+  let reste = n;
+  return paragraphes.map((t) => { const vu = t.slice(0, Math.max(0, reste)); reste -= t.length; return vu; });
+}
+
 /** La transcription : en direct pendant l'appel, puis relue à côté des actions. Jamais gardée sur le serveur. */
-function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false }) {
+function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false, tape = false, nu = false }) {
   const [ouvert, setOuvert] = useState(!replie);
   const textes = direct.filter((x) => x.texte);
+  const tapes = useTape(textes.map((x) => x.texte), tape);
   const enCours = direct.some((x) => x.etat === "envoi");
   const rates = direct.filter((x) => x.etat === "echec").length;
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-trait bg-transparent p-6">
+    <div className={`flex min-w-0 flex-col gap-3 ${nu ? "" : "rounded-[20px] border border-trait bg-transparent p-6"}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className="m-0 text-[12px] tracking-[.14em] text-ardoise">{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
+        <span className={nu ? "text-[11px] tracking-[.16em] text-brume" : "m-0 text-[12px] tracking-[.14em] text-ardoise"}>{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
         {replie ? <button type="button" onClick={() => setOuvert((x) => !x)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{ouvert ? "Replier" : "Afficher"}</button>
           : enCours && <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />}
       </div>
       {ouvert && (
-        <div className={`flex flex-col gap-2 overflow-y-auto pr-1 text-[15px] leading-[1.55] text-encre ${replie ? "max-h-[260px]" : "max-h-[420px]"}`}>
+        <div className={`flex flex-col gap-2 overflow-y-auto pr-1 text-[15px] leading-[1.55] text-encre ${replie ? "max-h-[260px]" : nu ? "min-h-[180px] max-h-[360px]" : "max-h-[420px]"}`}>
           {!textes.length && <p className="m-0 text-[14px] text-brume">{!notes ? "Appel sans notes : rien n'est transcrit." : enDirect ? "La transcription apparaît ici, quelques secondes après chaque phrase." : "Rien n'a été entendu."}</p>}
-          {textes.map((x) => <p key={x.i} className="m-0 [text-wrap:pretty]">{x.texte}</p>)}
+          {textes.map((x, k) => (tapes[k] ? <p key={x.i} className="m-0 [text-wrap:pretty]">{tapes[k]}</p> : null))}
           {rates > 0 && <p className="m-0 text-[13px] text-ambre">{rates} passage{rates > 1 ? "s" : ""} pas encore transcrit{rates > 1 ? "s" : ""} : nouvel essai au raccrochage.</p>}
           {fin && <span ref={fin} />}
         </div>
@@ -208,13 +231,13 @@ function CarteAgence({ a, recherches, cahier }) {
 }
 
 /** Les notes de l'appel, sous la transcription : ce que le micro capte mal. Elles l'emportent sur ce qu'AK a entendu. */
-function ZoneNotes({ valeur, onChange }) {
+function ZoneNotes({ valeur, onChange, nu = false }) {
   return (
-    <label className="flex min-w-0 flex-col gap-2 rounded-[20px] border border-trait bg-transparent p-6 max-md:p-5">
-      <span className="m-0 text-[12px] tracking-[.14em] text-ardoise">NOTES</span>
+    <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[20px] border border-trait bg-transparent p-6 max-md:p-5"}`}>
+      <span className={nu ? "text-[11px] tracking-[.16em] text-brume" : "m-0 text-[12px] tracking-[.14em] text-ardoise"}>NOTES</span>
       <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3}
-        placeholder="Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."
-        className="w-full resize-y rounded-champ border border-trait bg-fond px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
+        placeholder={nu ? "Email, numéro, nom, date : elles l'emportent sur la transcription" : "Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."}
+        className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[14px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-trait bg-fond focus:border-menthe"}`} />
     </label>
   );
 }
@@ -289,7 +312,48 @@ function nomLisible(nom) {
   }).join("");
 }
 
-function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null }) {
+/**
+ * Déjà appelé, sans enregistrer (9 oct. 2026) : on dit ou on écrit ce qui
+ * s'est dit, en quelques mots, et AK le lit comme un appel : il en déduit
+ * l'issue, la relance, le mail et la ligne Monday, puis l'écran d'actions
+ * s'ouvre. « Pas de réponse » reste à un geste, sans lecture d'AK.
+ */
+function ResumeAppel({ onAnalyser, onSansReponse, occupe }) {
+  const [texte, setTexte] = useState("");
+  const base = useRef("");
+  const { supporte, ecoute, demarrer, arreter, finalisation } = useDictee({ onTexte: (t) => setTexte([base.current, t].filter(Boolean).join(base.current ? " " : "")) });
+  const dicter = () => { if (ecoute) { arreter(); return; } base.current = texte.trim(); demarrer(); };
+  const pret = texte.trim().length >= 8 && !ecoute && !finalisation && !occupe;
+  return (
+    <div className="flex w-full max-w-[420px] flex-col gap-2">
+      <span className="text-[13px] text-ardoise">Déjà appelé ? Dites ou écrivez ce qui s'est dit</span>
+      <div className={`flex flex-col rounded-[14px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
+        <textarea
+          value={texte}
+          onChange={(e) => setTexte(e.target.value)}
+          rows={3}
+          aria-label="Ce qui s'est dit pendant l'appel"
+          className="resize-none bg-transparent px-3.5 pt-3 text-[14px] leading-[1.5] text-encre outline-none placeholder:text-brume"
+        />
+        <div className="flex items-center justify-between gap-2 px-2 pb-2">
+          {supporte ? (
+            <button type="button" onClick={dicter} aria-label={ecoute ? "Arrêter la dictée" : "Dicter"} title={ecoute ? "Arrêter la dictée" : "Dicter le résumé"}
+              className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={ecoute ? undefined : { background: "transparent" }}>
+              {ecoute ? <Square className="h-3 w-3" fill="currentColor" /> : finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+            </button>
+          ) : <span />}
+          <button type="button" disabled={!pret} onClick={() => onAnalyser(texte.trim())}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
+            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Analyser<ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <button type="button" onClick={onSansReponse} className="self-start p-0 text-[12.5px] text-brume underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
+    </div>
+  );
+}
+
+function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null }) {
   const contacts = (a.contacts || []).filter((x) => !x.standard);
   const standard = (a.contacts || []).find((x) => x.standard)?.telephone || a.telephone;
   const numero = choisi?.telephone || standard;
@@ -415,13 +479,13 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
               <span className="grid h-[74%] w-[74%] place-items-center rounded-full bg-menthe text-sur-menthe transition-transform group-hover:scale-[1.04]"><IconeMicro taille={38} /></span>
             </span>
           </button>
-          <span className="max-w-[260px] text-center text-[14px] leading-[1.5] text-ardoise">{essai ? "Touchez le micro pour simuler un appel" : "Composez ce numéro sur votre téléphone, puis enregistrez"}</span>
+          {essai && <span className="max-w-[260px] text-center text-[14px] leading-[1.5] text-ardoise">Touchez le micro pour simuler un appel</span>}
           {/* Pas de lien tel: (7 oct. 2026) : l'application n'est qu'un micro, on compose sur son téléphone. */}
           <span className="flex flex-col items-center gap-1.5">
             <span className="select-all whitespace-nowrap font-mono text-[26px] leading-none tracking-[.04em] text-encre tabular-nums max-md:text-[22px]">{numero || "—"}</span>
-            <span className="text-[13px] text-brume">{personne ? `${personne.nom} · ${personne.telephone ? "sa ligne" : "par le standard"}` : "Standard"}</span>
+            {personne?.nom && <span className="text-[13px] text-brume">{personne.nom}</span>}
           </span>
-          {!essai && <button type="button" onClick={onSansNotes} className="p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Appelé sans enregistrer ? Taper l'issue</button>}
+          {!essai && <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />}
         </div>
       </div>
       {!a.relance && <div className="border-t border-bord-doux p-5 max-lg:order-3 lg:hidden">{suite}</div>}
@@ -457,6 +521,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   // Les notes tapées pendant l'appel (8 oct. 2026) : email, numéro, nom, date ; elles font foi sur la transcription.
   const [notesAppel, setNotesAppel] = useState("");
   const [notesLues, setNotesLues] = useState(null);
+  // L'écran des actions s'ouvre sur les actions seules ; la transcription et les notes à la demande (9 oct. 2026).
+  const [voirTranscription, setVoirTranscription] = useState(false);
   // La chaîne de raisonnement d'AK pendant la lecture, puis repliée à l'écran d'actions (8 oct. 2026).
   const chaine = useEtapesVives();
   const [etapesFinies, setEtapesFinies] = useState([]);
@@ -512,6 +578,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const scJoue = session?.essai ? scenarioEssai(scenario) : null;
   const motifEssai = session?.essai && a0 && !a0.relance ? (scJoue?.motif || (essaiSeul ? "point_mensuel" : null)) : null;
   const a = motifEssai ? { ...a0, relance: { motif: { cle: motifEssai, libelle: MOTIFS_ESSAI[motifEssai] }, phrase: `Essai : ${scJoue?.titre || "relance fictive"}.`, dernier: null, bien: null, historique: [] } } : a0;
+  // Une nouvelle agence : les actions seules à nouveau.
+  useEffect(() => { setVoirTranscription(false); }, [a?.id]);
   const surUnBien = ["bien_retenu", "bien_refuse"].includes(a?.relance?.motif?.cle);
   const c = file.data?.chiffres;
   const recherches = file.data?.recherches || [];
@@ -745,11 +813,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setEcran("actions");
   };
   const noter = useMutation({
-    mutationFn: async ({ issue: is, simple = false, remplace = null }) => {
-      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAppel.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null,
+    mutationFn: async ({ issue: is, simple = false, remplace = null, notes: notesDites = null }) => {
+      const notesAEnvoyer = notesDites ?? notesAppel;
+      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAEnvoyer.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null,
         // Le suivi de l'usage (9 oct. 2026) : la durée de l'appel et le mode d'où il part.
         duree_s: secondes > 0 ? String(secondes) : null, source: session?.essai ? "essai" : relances ? "relances" : "prospection" };
-      setNotesLues(notesAppel);
+      setNotesLues(notesAEnvoyer);
       let wavs = [];
       if (is === "auto" || remplace) {
         await morceauxPrets();
@@ -782,6 +851,14 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     },
     onError: (e) => { toast.error(e?.message || "L'appel n'a pas pu être lu"); setEcran(direct.length ? "appel" : "issue"); },
   });
+  // Déjà appelé, sans enregistrer : le résumé dit ou écrit tient lieu de notes, AK en déduit tout (9 oct. 2026).
+  const analyserResume = (texte) => {
+    if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
+    morceaux.current = []; setDirect([]); setSecondes(0);
+    setNotesAppel(texte); setNotes(false);
+    setEcran("analyse");
+    noter.mutate({ issue: "auto", notes: texte });
+  };
   // Sans transcription (appel sans notes), l'issue se tape encore.
   const choisirIssue = (is, simple) => {
     setIssue(is);
@@ -918,6 +995,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         <span aria-hidden className="min-w-3 flex-1" />
       </div>}
 
+      {/* Tous les écrans, raisonnement et actions proposées compris, sur le fond des listes : la couleur de la barre choisie dans Compte, et ses points (9 oct. 2026). */}
       <div data-zone="listes" className={`k-points relative flex flex-col gap-4 bg-rail px-5 pb-5 pt-4 max-md:px-3 ${relances ? "rounded-[12px]" : "rounded-b-md rounded-t-[12px]"}`}>
         {(!relances && listes.isLoading) || ouvrir.isPending || (session && file.isLoading) ? <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : null}
         {!relances && !listes.isLoading && !villes.length && onglet !== ESSAI && <p className="m-0 py-12 text-center text-[14px] text-brume">Aucune ville encore : lancez l'agent IA sur une ville, ou ouvrez l'onglet Essai.</p>}
@@ -955,53 +1033,60 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
               <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
                 choisi={contactChoisi} onChoisir={setChoisi}
                 onMicro={micro} onSansNotes={() => { setNotes(false); setEcran("issue"); }}
+                onResume={analyserResume} resumeEnCours={noter.isPending}
                 passerOuvert={passerOuvert} setPasserOuvert={setPasserOuvert} raisons={file.data?.raisons_passer} onPasser={(k) => (rappel ? suivante() : passer.mutate(k))} passerEnCours={passer.isPending}
                 onRetour={relances ? () => onRetour?.() : null} />
             )}
 
             {/* Pendant l'appel : le micro qui écoute, la transcription en direct à droite. */}
+            {/* Pendant l'appel (refait le 9 oct. 2026, au registre de la fiche) : une seule carte, trois colonnes.
+                L'agence et ses numéros, la transcription en direct et les notes, puis le micro là où on l'a touché. */}
             {ecran === "appel" && a && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4">
-                <div className="flex flex-col gap-[22px] rounded-[20px] border border-trait bg-transparent p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="m-0 break-words text-[22px] text-encre">{a.nom}</p>
-                      <p className="m-0 mt-1 text-[14px] text-ardoise">{[contactChoisi && !contactChoisi.standard ? contactChoisi.nom : null, numeroAppel].filter(Boolean).join(" · ")}</p>
-                    </div>
-                  </div>
-                  {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
-                  <div className="flex flex-col items-center gap-3 py-4">
-                    {notes ? (
-                      <MicroEcoute taille={220}><IconeMicro taille={44} /></MicroEcoute>
-                    ) : (
-                      <span className="grid h-[104px] w-[104px] place-items-center rounded-full border border-trait text-ardoise"><IconeMicro /></span>
-                    )}
-                    <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
-                  </div>
-                  <div className="flex gap-2.5">
-                    {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
-                    <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="flex-1 rounded-full border border-trait py-4 text-[15px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Rappeler</button>
-                    <button type="button" onClick={raccrocher} className="flex-[2] rounded-full bg-alerte py-4 text-[16px] text-white hover:opacity-90">Raccrocher</button>
-                    {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
-                    <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
-                      className="grid h-14 w-14 flex-none place-items-center rounded-full border border-trait bg-black text-white hover:border-bord-vif"><X className="h-5 w-5" /></button>
+              <div className="grid overflow-hidden rounded-bloc border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
+                <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-6 max-lg:order-3 max-lg:border-t lg:border-r">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] tracking-[.16em] text-brume">EN LIGNE</span>
+                    <p className="m-0 break-words text-[20px] leading-[1.25] text-encre">{a.nom}</p>
+                    {contactChoisi && !contactChoisi.standard && <p className="m-0 text-[14px] text-craie">{contactChoisi.nom}</p>}
+                    <span className="select-all font-mono text-[15px] tracking-[.04em] text-ardoise">{numeroAppel}</span>
                   </div>
                   {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
                   {(autresNumeros.length > 0 || a.site) && (
                     <div className="flex flex-col gap-2 border-t border-trait pt-4">
-                      {autresNumeros.length > 0 && <span className={etiquette}>AUTRES NUMÉROS</span>}
+                      {autresNumeros.length > 0 && <span className="text-[11px] tracking-[.16em] text-brume">AUTRES NUMÉROS</span>}
                       {autresNumeros.map((x) => (
-                        <span key={x.telephone} className="flex items-baseline justify-between gap-3 text-[15px]">
-                          <span className="select-all font-mono tracking-[.04em] text-encre">{x.telephone}</span><span className="min-w-0 truncate text-[13px] text-ardoise">{x.nom}</span>
+                        <span key={x.telephone} className="flex flex-col">
+                          <span className="select-all font-mono text-[14px] tracking-[.04em] text-encre">{x.telephone}</span>
+                          {x.nom && <span className="truncate text-[12.5px] text-ardoise">{x.nom}</span>}
                         </span>
                       ))}
-                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-[15px] text-menthe hover:underline ${autresNumeros.length ? "mt-2" : ""}`}>{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
+                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-[14px] text-menthe hover:underline ${autresNumeros.length ? "mt-2" : ""}`}>{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
                     </div>
                   )}
                 </div>
-                <div className="flex min-w-0 flex-col gap-4">
-                  <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect />
-                  <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />
+                <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-7 max-lg:order-2 max-lg:border-t max-md:p-5 lg:border-r">
+                  <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect nu />
+                  <div className="border-t border-trait pt-5"><ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu /></div>
+                </div>
+                {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
+                <div className="flex min-w-0 flex-col items-center justify-center gap-6 p-6 max-lg:order-1 max-md:p-5">
+                  <div className="flex flex-col items-center gap-3">
+                    {/* Le micro de la fiche, à l'identique (9 oct. 2026) : mêmes cercles, même menthe ; pendant l'écoute, les anneaux respirent. */}
+                    <span className={`grid h-[220px] w-[220px] place-items-center rounded-full border max-md:h-[184px] max-md:w-[184px] ${notes ? "k-anneau border-menthe/30" : "border-bord-doux"}`} role="img" aria-label={notes ? "Enregistrement en cours" : "Sans enregistrement"}>
+                      <span className={`grid h-[78%] w-[78%] place-items-center rounded-full border ${notes ? "k-anneau border-menthe/40" : "border-bord-doux"}`} style={notes ? { animationDelay: "0.6s" } : undefined}>
+                        <span className={`grid h-[74%] w-[74%] place-items-center rounded-full ${notes ? "bg-menthe text-sur-menthe" : "border border-bord-doux text-ardoise"}`}><IconeMicro taille={38} /></span>
+                      </span>
+                    </span>
+                    <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
+                    <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
+                    <button type="button" onClick={raccrocher} className="h-10 rounded-full bg-alerte px-5 text-[14px] text-white hover:opacity-90">Raccrocher</button>
+                    {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
+                    <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
+                      className="grid h-10 w-10 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1046,27 +1131,34 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
               </div>
             )}
             {/* AK lit l'appel : sa chaîne de raisonnement, étape par étape, au moment où il la fait. */}
-            {ecran === "analyse" && a && direct.length > 0 && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
-                <PanneauTranscription direct={direct} notes fin={directFin} />
-                <ChaineEtapes etapes={chaine.etapes} />
+            {/* L'écran de raisonnement (9 oct. 2026) : le raisonnement seul, au milieu, sur le fond des listes ; pas de transcription. */}
+            {ecran === "analyse" && a && (
+              <div className="mx-auto w-full max-w-[640px] py-6 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
+                <ChaineEtapes etapes={chaine.etapes} titre={`AK lit l'appel · ${a.nom}`} />
               </div>
             )}
-            {ecran === "analyse" && a && !direct.length && <ChaineEtapes etapes={chaine.etapes} titre={`AK lit l'appel · ${a.nom}`} />}
 
             {/* Ce qui a été compris, et les actions proposées. */}
+            {/* On arrive sur les actions seules, au centre ; « Transcription » les fait glisser
+                vers la droite et la transcription s'écrit à gauche, les notes dessous (9 oct. 2026). */}
             {ecran === "actions" && appel && (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,420px),1fr))] gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
-                <div className="flex min-w-0 flex-col gap-4">
+              <div className={`grid gap-y-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3 md:transition-[grid-template-columns,column-gap] md:duration-700 md:ease-[cubic-bezier(.22,1,.36,1)] max-md:grid-cols-1 ${voirTranscription ? "md:grid-cols-[1fr_1fr] md:gap-x-4" : "md:grid-cols-[0fr_1fr] md:gap-x-0"}`}>
+                <div className={`flex min-w-0 flex-col gap-4 overflow-hidden transition-opacity duration-500 max-md:order-last ${voirTranscription ? "opacity-100 delay-200" : "pointer-events-none opacity-0 max-md:hidden"}`} aria-hidden={!voirTranscription}>
                 {/* « Ce qu'AK a compris » retiré (7 oct. 2026) : il doublait la fenêtre de Contact Monday. */}
+                {voirTranscription && (<>
                 <ChaineRepliee etapes={etapesFinies} />
-                <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} />
+                <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} tape />
                 <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />
                 {notesLues != null && notesAppel !== notesLues && (
                   <button type="button" onClick={() => changerIssue("auto")} disabled={noter.isPending} className="self-start rounded-full border border-trait px-4 py-2 text-[14px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Ré-analyser avec les notes</button>
                 )}
+                </>)}
                 </div>
-                <div className="min-w-0 max-md:order-first">
+                <div className="mx-auto flex w-full min-w-0 max-w-[680px] flex-col gap-3">
+                  <button type="button" onClick={() => setVoirTranscription((x) => !x)} aria-pressed={voirTranscription}
+                    className={`inline-flex h-8 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] transition-colors ${voirTranscription ? "border-menthe/60 text-menthe" : "border-bord-vif text-craie hover:border-encre/40 hover:text-encre"}`} style={{ background: "transparent" }}>
+                    <AudioLines className="h-3.5 w-3.5" />Transcription
+                  </button>
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}

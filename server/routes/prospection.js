@@ -119,6 +119,17 @@ export function monterProspection(app) {
     const source = SOURCES[req.query.source] ? String(req.query.source) : null;
     ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source }));
   }));
+  // Remettre le Suivi des appels à zéro, ou tout réafficher : rien ne s'efface.
+  app.post('/api/monitoring/appels/remettre-a-zero', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, { ok: true, remise_a_zero: (await import('../prospection/suivi-appels.js')).remettreAZero(user.email) });
+  }));
+  app.post('/api/monitoring/appels/tout-afficher', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    (await import('../prospection/suivi-appels.js')).toutAfficher();
+    ok(res, { ok: true });
+  }));
   app.get('/api/monitoring/qualite-ak', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     ok(res, (await CT()).qualiteAK({ semaines: Math.min(26, Number(req.query.semaines) || 8) }));
@@ -384,7 +395,7 @@ export function monterProspection(app) {
     } else if (audios.length) audio = audios[0];
     // Les notes tapées pendant l'appel : AK les lit après la transcription, elles l'emportent (email, numéro, nom, date).
     const notesAppel = String(req.body?.notes || '').trim().slice(0, 4000) || null;
-    if (notesAppel) { transcription = (await import('../prospection/rappels.js')).texteAAnalyser(transcription, notesAppel); flux?.etape('Je lis vos notes : elles l\'emportent sur la transcription'); }
+    if (notesAppel) { const avecTranscription = !!transcription; transcription = (await import('../prospection/rappels.js')).texteAAnalyser(transcription, notesAppel); flux?.etape(avecTranscription ? 'Je lis vos notes : elles l\'emportent sur la transcription' : 'Je lis votre résumé de l\'appel'); }
     let r;
     try {
       r = await (await MA()).noterIssue({

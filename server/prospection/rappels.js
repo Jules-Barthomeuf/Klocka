@@ -56,10 +56,15 @@ export function notesFontFoi(compris, notes) {
 }
 
 /** Pure : le texte qu'AK lit : la transcription, puis les notes, qui l'emportent en cas de désaccord. */
-export const texteAAnalyser = (transcription, notes) => [
-  transcription ? String(transcription).trim() : null,
-  String(notes || '').trim() ? `Notes de l'analyste (elles font foi sur la transcription : email, numéro, nom, date) :\n${String(notes).trim()}` : null,
-].filter(Boolean).join('\n\n');
+// Sans transcription (9 oct. 2026 : « Déjà appelé ? », un appel passé sans
+// enregistrer), les notes sont le résumé de l'appel par l'analyste : AK le lit
+// comme le seul récit de la conversation.
+export const texteAAnalyser = (transcription, notes) => {
+  const t = transcription ? String(transcription).trim() : '';
+  const n = String(notes || '').trim();
+  if (!t && n) return `Résumé de l'appel par l'analyste (l'appel n'a pas été enregistré ; ce résumé est le récit de la conversation) :\n${n}`;
+  return [t || null, n ? `Notes de l'analyste (elles font foi sur la transcription : email, numéro, nom, date) :\n${n}` : null].filter(Boolean).join('\n\n');
+};
 
 /** Pure : un appel sans contenu utile (« Rien de nouveau ») : presque rien d'entendu, rien de noté. */
 export const sansContenu = (transcription, notes) => String(transcription || '').trim().length < 40 && !String(notes || '').trim();

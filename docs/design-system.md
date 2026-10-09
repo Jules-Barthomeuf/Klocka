@@ -63,6 +63,12 @@ Prospection et des Relances, mode appel, dossiers, fiches, et la barre de chat
 (`barre`). Le fond qui porte des cartes s'écrit donc en `bg-rail`, jamais en
 `bg-fond` ni en couleur figée, pour suivre ce choix. Décision du 9 oct. 2026.
 
+**La ligne Monday** : dans l'étape « Contact Monday » des actions proposées,
+la ligne s'affiche au dessin de Monday (fond blanc, colonnes dans l'ordre du
+tableau, étiquettes de statut pleines, liens bleus), avec les teintes de
+`monday` dans `jetons.json`, seule exception au thème de l'application : la
+ressemblance met l'analyste en confiance. Décision du 9 oct. 2026.
+
 **Thème clair** : tout ce qui passe par un jeton suit seul. Une couleur figée
 (une barre noire) doit avoir sa variante claire dans `src/index.css`
 (exemple : `.k-barre-apercu`, noire en sombre, `surface-pleine` en clair),

@@ -82,3 +82,18 @@ test("le tableau complet : l'équipe entière même à zéro, l'essai à part, l
   assert.equal(s.par_jour.length, 30);
   assert.equal(S.suiviAppels({ jours: 30, source: 'essai', maintenantD: MAINTENANT }).equipe.appels, 1, "l'essai se voit quand on le demande");
 });
+
+test('remettre à zéro : le suivi compte à partir de ce moment, rien ne s\'efface, « Tout afficher » revient en arrière', () => {
+  const avant = new Date(MAINTENANT.getTime() - 3 * 3600000).toISOString();
+  const apres = new Date(MAINTENANT.getTime() - 3600000).toISOString();
+  Records.create('AppelAgent', { par: 'nora.l@klocka.immo', le: avant, issue: 'pas_de_reponse', etat: 'valide', agence_id: 'za', source: 'prospection' });
+  Records.create('AppelAgent', { par: 'nora.l@klocka.immo', le: apres, issue: 'pas_de_murs', etat: 'valide', agence_id: 'zb', source: 'prospection' });
+  const tout = S.suiviAppels({ jours: 7, maintenantD: MAINTENANT }).equipe.appels;
+  S.remettreAZero('jules.b@klocka.immo', new Date(MAINTENANT.getTime() - 2 * 3600000));
+  const r = S.suiviAppels({ jours: 7, maintenantD: MAINTENANT });
+  assert.ok(r.equipe.appels >= 1 && r.equipe.appels < tout, "les appels d'avant la remise à zéro ne comptent plus, celui d'après oui");
+  assert.equal(r.remise_a_zero.par, 'jules.b@klocka.immo');
+  assert.equal(Records.list('AppelAgent').filter((x) => ['za', 'zb'].includes(x.agence_id)).length, 2, 'rien n\'est effacé');
+  S.toutAfficher();
+  assert.equal(S.suiviAppels({ jours: 7, maintenantD: MAINTENANT }).equipe.appels, tout);
+});

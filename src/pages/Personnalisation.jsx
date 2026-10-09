@@ -511,7 +511,7 @@ export default function Personnalisation() {
         <Reglage titre="Points dans la fenêtre des actions" note="Le fond de la fenêtre qui détaille les actions proposées après un appel.">
           <Pilules valeur={prefs.points_actions} options={OPTIONS.points_actions} onChoisir={(v) => changer({ points_actions: v })} />
         </Reglage>
-        <Reglage titre="Grille de points" note="Des points discrets en fond, là où vous les voulez. Plusieurs choix possibles ; aucun, pas de points.">
+        <Reglage titre="Grille de points" note="Des points discrets en fond, là où vous les voulez. « Listes et mode appel » : les listes et le mode appel de la Prospection et des Relances. Plusieurs choix possibles ; aucun, pas de points.">
           <Pilules valeurs={prefs.grille} options={OPTIONS.grille}
             onChoisir={(v) => changer({ grille: prefs.grille.includes(v) ? prefs.grille.filter((z) => z !== v) : [...prefs.grille, v] })} />
           <label className="mt-2 flex w-full max-w-[420px] items-center gap-3">

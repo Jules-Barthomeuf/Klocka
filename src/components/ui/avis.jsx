@@ -1,12 +1,14 @@
 import React from "react";
 import { toast as sonner, Toaster as SonnerToaster } from "sonner";
-import { Check, CircleAlert, TriangleAlert, Info, LoaderCircle } from "lucide-react";
+import { Check, CircleAlert, TriangleAlert, Info, LoaderCircle, X } from "lucide-react";
 import { J } from "@/design/jetons";
 
-// Les avis de l'application : la pilule qui apparaît en haut de l'écran quand
-// quelque chose s'est passé (un dossier transféré, un message reçu, une
-// notification). Une seule forme pour les cinq tons : un point coloré, la
-// phrase, et « Voir » quand il y a quelque chose à ouvrir.
+// Les avis de l'application : la pilule qui apparaît en haut de l'écran, au
+// centre, quand quelque chose s'est passé (un dossier transféré, un message
+// reçu, une notification). Depuis le 9 oct. 2026, exactement la pilule des
+// « boîtes connectées » du Dashboard : même hauteur, même texte, le petit
+// point à gauche (vert, ambre ou rouge selon le ton), la phrase à droite,
+// et une petite croix en haut à gauche pour la fermer.
 //
 // Tout passe par sonner pour l'empilement et les minuteurs ; le dessin est à
 // nous. Les pages importent `toast` depuis ce fichier, pas depuis sonner :
@@ -17,7 +19,7 @@ const TONS = {
   succes: { teinte: J["vert"], Icone: Check, mot: "Succès" },
   erreur: { teinte: J["alerte"], Icone: CircleAlert, mot: "Erreur" },
   avertissement: { teinte: J["ambre"], Icone: TriangleAlert, mot: "Avertissement" },
-  information: { teinte: J["menthe"], Icone: Info, mot: "Information" },
+  information: { teinte: J["vert"], Icone: Info, mot: "Information" },
   en_cours: { teinte: J["ardoise"], Icone: LoaderCircle, mot: "En cours" },
 };
 
@@ -25,10 +27,11 @@ const DUREES = { erreur: 7000, avertissement: 6000, en_cours: Infinity };
 const dureeDe = (ton, d) => (d != null ? d : DUREES[ton] != null ? DUREES[ton] : 4500);
 
 /**
- * Un avis (maquette du 3 octobre 2026) : une pilule sombre, un point coloré
- * pour le ton, la phrase, et à droite « Voir » quand il y a quelque chose à
- * ouvrir. Une précision éventuelle tient sur une ligne, sous la phrase. Un
- * clic sur la pilule (hors du bouton) la referme.
+ * Un avis : la pilule des « boîtes connectées » (BoiteMail), à l'identique :
+ * le point de 7 px, la phrase en 13,5 px, une précision éventuelle à la
+ * suite, plus pâle, sur la même ligne, et « Voir » en lien quand il y a
+ * quelque chose à ouvrir. La croix en haut à gauche, ou un clic sur la
+ * pilule (hors du lien), la referme.
  *
  * @param {{ton?:string, titre:React.ReactNode, description?:React.ReactNode,
  *   action?:{mot:string, faire:Function}, duree?:number, progression?:number,
@@ -39,31 +42,42 @@ const dureeDe = (ton, d) => (d != null ? d : DUREES[ton] != null ? DUREES[ton] :
 export function Avis({ ton = "information", titre, description = null, action = null, progression = null, onFermer = null }) {
   const { teinte, mot } = TONS[ton] || TONS.information;
   return (
-    <div
-      role="status"
-      aria-label={typeof titre === "string" ? `${mot} : ${titre}` : mot}
-      onClick={() => onFermer?.()}
-      className={`relative flex w-fit max-w-[min(520px,calc(100vw-32px))] cursor-default items-center gap-3.5 overflow-hidden border border-trait bg-surface-pleine py-2.5 pl-5 shadow-[0_18px_48px_-16px_rgba(0,0,0,0.8)] ${action ? "pr-2.5" : "pr-6"} ${description ? "rounded-[28px]" : "rounded-full"}`}
-    >
-      {ton === "en_cours"
-        ? <LoaderCircle className="h-3.5 w-3.5 flex-none animate-spin text-ardoise" />
-        : <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: teinte, boxShadow: `0 0 10px ${teinte}` }} />}
-      <div className={`min-w-0 flex-1 ${action ? "" : "py-1.5"}`}>
-        <div className="truncate text-[16px] leading-snug text-encre">{titre}</div>
-        {description && <div className="truncate text-[13px] leading-[1.45] text-ardoise">{description}</div>}
-      </div>
-      {action && (
+    <div className="relative flex w-full justify-center">
+      <div
+        role="status"
+        aria-label={typeof titre === "string" ? `${mot} : ${titre}` : mot}
+        onClick={() => onFermer?.()}
+        className="relative inline-flex max-w-full cursor-default items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-2 text-[13.5px] text-encre"
+      >
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); action.faire?.(); onFermer?.(); }}
-          className="h-11 flex-none rounded-full bg-relief px-5 text-[15px] text-encre transition-colors hover:bg-barre-relief"
+          onClick={(e) => { e.stopPropagation(); onFermer?.(); }}
+          aria-label="Fermer la notification"
+          className="absolute -left-1.5 -top-1.5 grid h-[18px] w-[18px] place-items-center rounded-full border border-trait bg-surface-pleine text-ardoise transition-colors hover:border-bord-doux hover:text-encre"
         >
-          {action.mot}
+          <X className="h-2.5 w-2.5" strokeWidth={2.4} />
         </button>
-      )}
-      {progression != null && (
-        <span className="absolute bottom-0 left-0 h-[2px] w-full origin-left" style={{ background: J["menthe"], transform: `scaleX(${Math.max(0, Math.min(1, progression))})` }} />
-      )}
+        {ton === "en_cours"
+          ? <LoaderCircle className="h-[11px] w-[11px] flex-none animate-spin text-ardoise" />
+          : <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: teinte }} />}
+        <span className="min-w-0 truncate">
+          {titre}
+          {description && <span className="text-ardoise"> · {description}</span>}
+        </span>
+        {action && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); action.faire?.(); onFermer?.(); }}
+            className="ml-1 flex-none text-[13.5px] text-menthe transition-colors hover:text-menthe-clair"
+            style={{ background: "transparent" }}
+          >
+            {action.mot}
+          </button>
+        )}
+        {progression != null && (
+          <span className="absolute inset-x-3 bottom-0 h-px origin-left" style={{ background: J["menthe"], transform: `scaleX(${Math.max(0, Math.min(1, progression))})` }} />
+        )}
+      </div>
     </div>
   );
 }
@@ -115,9 +129,10 @@ export const toast = Object.assign((titre, o) => poser("information", titre, o),
 });
 
 /**
- * Le calque qui empile les avis, en haut à droite. Au téléphone, sous la
- * barre du haut (et l'encoche) : posé dessus, l'avis cachait le menu.
+ * Le calque qui empile les avis, en haut au centre (9 oct. 2026). Au
+ * téléphone, sous la barre du haut (et l'encoche) : posé dessus, l'avis
+ * cachait le menu.
  */
 export function Toaster(props) {
-  return <SonnerToaster position="top-right" gap={12} offset={20} mobileOffset={{ top: "calc(3.5rem + env(safe-area-inset-top) + 8px)", left: 12, right: 12 }} toastOptions={{ unstyled: true }} {...props} />;
+  return <SonnerToaster position="top-center" gap={10} offset={16} style={{ "--width": "min(560px, calc(100vw - 32px))" }} mobileOffset={{ top: "calc(3.5rem + env(safe-area-inset-top) + 8px)", left: 12, right: 12 }} toastOptions={{ unstyled: true }} {...props} />;
 }

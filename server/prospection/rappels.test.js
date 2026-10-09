@@ -29,6 +29,7 @@ test('les notes font foi : leur email et leur numéro remplacent ceux entendus ;
   assert.equal(c.champs.interlocuteur.valeur, 'Marc Dupont', 'le reste ne bouge pas');
   assert.deepEqual(RP.lireNotes('marc.dupont@riviera').avertissements, ['« marc.dupont@riviera » n\'est pas une adresse valide']);
   assert.match(RP.texteAAnalyser('Bonjour, Marc de Riviera.', 'email marc@riviera.fr'), /Notes de l'analyste \(elles font foi/);
+  assert.match(RP.texteAAnalyser(null, 'Rien en ce moment, rappeler en décembre'), /^Résumé de l'appel par l'analyste/, 'sans enregistrement, les notes sont le récit');
   assert.equal(RP.sansContenu('Allô ? Oui.', ''), true);
   assert.equal(RP.sansContenu('Allô ? Oui.', 'il a un local'), false);
 });

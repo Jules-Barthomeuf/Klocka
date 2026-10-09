@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
@@ -166,6 +166,12 @@ export default function SuiviAppels() {
   const [qui, setQui] = useState("");
   const [vue, setVue] = useState("ensemble");
   const voirJournalDe = (prenom) => { setQui(prenom); setVue("journal"); };
+  // Remettre à zéro (9 oct. 2026) : le suivi compte à partir de maintenant ; rien ne s'efface, « Tout afficher » revient en arrière.
+  const queryClient = useQueryClient();
+  const zero = useMutation({
+    mutationFn: (quoi) => base44.request("POST", `/api/monitoring/appels/${quoi}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["suivi-appels"] }),
+  });
   const { data, isLoading, error } = useQuery({
     queryKey: ["suivi-appels", jours, mode],
     queryFn: () => base44.request("GET", `/api/monitoring/appels?jours=${jours}${mode ? `&source=${mode}` : ""}`),
@@ -187,11 +193,21 @@ export default function SuiviAppels() {
             <OngletsSuivi className="mb-3.5" />
             <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Appels et relances</h1>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin. */}
+          <div className="flex flex-col items-end gap-2 md:pr-14">
             <div className="flex flex-wrap gap-1.5">{PERIODES.map(([j, mot]) => <button key={j} type="button" onClick={() => setJours(j)} className={filtre(jours === j)}>{mot}</button>)}</div>
             <div className="flex flex-wrap gap-1.5">{MODES.map(([k, mot]) => <button key={k || "tout"} type="button" onClick={() => setMode(k)} className={filtre(mode === k)}>{mot}</button>)}</div>
+            <button type="button" disabled={zero.isPending} onClick={() => { if (window.confirm("Remettre le suivi des appels à zéro ? Il comptera à partir de maintenant. Rien n'est effacé : « Tout afficher » revient en arrière.")) zero.mutate("remettre-a-zero"); }}
+              className="h-8 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Remettre à zéro</button>
           </div>
         </div>
+
+        {data?.remise_a_zero && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-trait px-4 py-2.5">
+            <span className="text-[13.5px] text-craie">Compté depuis la remise à zéro du {new Date(data.remise_a_zero.le).toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}{data.remise_a_zero.par ? ` par ${data.remise_a_zero.par.split("@")[0].split(".")[0].replace(/^./, (c) => c.toUpperCase())}` : ""}.</span>
+            <button type="button" disabled={zero.isPending} onClick={() => zero.mutate("tout-afficher")} className="p-0 text-[13px] text-menthe underline-offset-4 hover:underline disabled:opacity-50" style={{ background: "transparent" }}>Tout afficher</button>
+          </div>
+        )}
 
         <div className="mb-6 flex gap-5 border-b border-trait">
           {VUES.map(([k, mot]) => (

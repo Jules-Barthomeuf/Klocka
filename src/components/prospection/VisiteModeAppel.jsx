@@ -14,7 +14,7 @@ const L = 1100; // largeur de dessin des maquettes ; elles se réduisent pour te
 const H = 620;
 
 const ETAPES = [
-  { ecran: "fiche", zone: [69.7, 0, 30.3, 100], titre: "Appelez depuis votre portable", texte: "Composez ce numéro sur votre téléphone, mettez le haut-parleur, puis touchez le micro pour enregistrer dès que l'agent décroche." },
+  { ecran: "fiche", zone: [69.7, 0, 30.3, 100], titre: "Appelez depuis votre portable", texte: "Composez ce numéro sur votre téléphone, mettez le haut-parleur, puis touchez le micro pour enregistrer dès que l'agent décroche. Appelé sans enregistrer ? Dites ou écrivez ce qui s'est dit dessous : AK en tire l'issue et la relance." },
   { ecran: "fiche", zone: [19.7, 0, 50, 100], titre: "Les informations du prospect", texte: "L'agence, son statut, l'interlocuteur à demander, et l'accroche à dire en ouvrant l'appel." },
   { ecran: "fiche", zone: [0, 0, 19.7, 100], titre: "L'historique des appels", texte: "Les interlocuteurs connus et chaque appel déjà passé : qui a appelé, quand, et ce qui s'est dit." },
   { ecran: "appel", zone: [0, 0, 47, 100], titre: "L'enregistrement est en cours", texte: "Le micro pulse : votre assistant écoute. « Rappeler » si l'appel coupe, « Raccrocher » à la fin, la croix pour annuler sans rien noter." },
@@ -71,9 +71,9 @@ function Fiche() {
       </div>
       <div className="flex flex-col items-center justify-center gap-5 p-6">
         <span className="grid h-[200px] w-[200px] place-items-center rounded-full border border-menthe/20"><span className="grid h-[78%] w-[78%] place-items-center rounded-full border border-menthe/30"><span className="grid h-[74%] w-[74%] place-items-center rounded-full bg-menthe text-sur-menthe"><Micro /></span></span></span>
-        <span className="max-w-[240px] text-center text-[14px] text-ardoise">Composez ce numéro sur votre téléphone, puis enregistrez</span>
         <span className="font-mono text-[26px] tracking-[.04em] text-encre">04 93 87 12 40</span>
-        <span className="text-[13px] text-brume">Sophie Martin · sa ligne</span>
+        <span className="text-[13px] text-brume">Sophie Martin</span>
+        <span className="mt-1 w-full max-w-[300px] rounded-[12px] border border-trait px-3 py-2.5 text-[13px] text-brume">Déjà appelé ? Dites ou écrivez ce qui s'est dit</span>
       </div>
     </div>
   );

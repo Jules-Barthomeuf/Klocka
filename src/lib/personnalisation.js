@@ -62,7 +62,7 @@ export const OPTIONS = {
   animations: [["normales", "Normales"], ["reduites", "Réduites"]],
   barre: [["depliee", "Dépliée"], ["repliee", "Repliée"]],
   assistant: [["droite", "En bas à droite"], ["gauche", "En bas à gauche"], ["masquee", "Masquée"]],
-  grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes de prospection"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
+  grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes et mode appel"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
   points_actions: [["oui", "Avec des points"], ["non", "Sans points"]],
 };
 

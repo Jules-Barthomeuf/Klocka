@@ -2,7 +2,8 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { J } from "@/design/jetons";
 
-// Suivi : une seule entrée dans le menu, deux pages derrière.
+// Suivi : une seule entrée dans le menu, trois pages derrière (les Appels
+// depuis le 9 oct. 2026 : l'usage de la Prospection, des Relances et du Rappel).
 //
 // L'usage de la plateforme et ce que coûte chaque geste répondent à la même
 // question — qu'est-ce qui tourne, et à quel prix. Deux lignes dans la barre
@@ -10,6 +11,7 @@ import { J } from "@/design/jetons";
 
 const PAGES = [
   { to: "/Suivi", mot: "Usage" },
+  { to: "/SuiviAppels", mot: "Appels" },
   { to: "/CoutsIA", mot: "Coûts IA" },
 ];
 

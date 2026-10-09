@@ -649,7 +649,9 @@ const cibleMonday = (d, agence, fiche) => ({
  * va y changer, le mail du modèle, la liste de diffusion, la relance.
  * Une transcription ratée n'empêche rien : l'écran s'ouvre sur l'issue seule.
  */
-export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, surEtape = null, mondayEssai = false, user }) {
+export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, session_id = null, audio = null, recit = null, transcription = null, remplace = null, numero = null, motif = null, notes = null, entrant = false, surEtape = null, mondayEssai = false, dureeS = null, source = null, user }) {
+  // Le suivi de l'usage (9 oct. 2026) : quand la lecture a commencé, pour mesurer son temps.
+  const debutLecture = Date.now();
   // Les étapes, dites au moment où elles se font (8 oct. 2026) : l'écran les déroule au lieu d'un simple « AK lit l'appel ».
   const etape = (t) => { try { surEtape?.(t); } catch { /* l'écran est parti : rien ne bloque */ } };
   // « auto » (7 oct. 2026) : pas de bouton d'issue, AK la déduit de la
@@ -676,7 +678,15 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const essai = estEssai(a);
   // En essai, Monday peut être écrit pour de vrai (8 oct. 2026, Jules : « ça doit impacter Monday ») : ligne marquée « (Essai) ».
   const ecrireEssai = essai && !!mondayEssai;
-  Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
+  // Ce que le Suivi lit de chaque appel (9 oct. 2026) : d'où il vient, sa durée, s'il a été enregistré, les notes tapées, le temps de lecture d'AK.
+  const usage = {
+    source: essai ? 'essai' : source || (entrant ? 'rappel' : Records.get(SESSION, session_id || '')?.relances ? 'relances' : 'prospection'),
+    duree_s: Number.isFinite(Number(dureeS)) && Number(dureeS) > 0 ? Math.round(Number(dureeS)) : lu.appel.duree_s || null,
+    enregistre: !!(String(transcription || '').trim() || audio?.length),
+    notes: notes ? String(notes).slice(0, 2000) : null,
+    lecture_ms: Date.now() - debutLecture,
+  };
+  Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }
   if (def.simple && !surActions) {
     const choix = lu.appel.propositions.filter((p) => p.coche !== false && ['statut', 'relance'].includes(p.type)).map((p) => p.id);
@@ -780,7 +790,7 @@ export async function validerIssue(x) {
   return p;
 }
 
-async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, maintenantD = new Date() }) {
+async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
   const appel = Records.get(APPEL, appel_id);
   const A = await import('./appel.js');
   const agenceId = agence_id || appel.agence_id || null;
@@ -890,6 +900,30 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
       if (mailRecu) mailRecu.detail = { a: m.a, objet: m.objet, corps: m.corps };
     }
   }
+
+  // Le suivi de l'usage (9 oct. 2026) : validé depuis la fenêtre ou la page, les étapes ouvertes, celles retirées.
+  try {
+    const visibles = actions.filter((p) => !p.cache);
+    Records.update(APPEL, appel.id, { validation_ui: {
+      depuis_fenetre: !!depuisFenetre,
+      etapes: visibles.length,
+      vues: Array.isArray(etapesVues) ? [...new Set(etapesVues.map(String))].filter((k) => visibles.some((p) => p.id === k)).length : null,
+      retirees: visibles.filter((p) => p.coche !== false && !p.toujours && !pris.has(p.id)).map((p) => p.type),
+      ajoutees: visibles.filter((p) => p.coche === false && pris.has(p.id)).map((p) => p.type),
+    } });
+  } catch { /* le suivi ne bloque jamais une validation */ }
+
+  // La qualité d'AK (9 oct. 2026) : ce que l'analyste a corrigé de ce qu'AK proposait.
+  try {
+    const { mesureDeValidation } = await import('./controles.js');
+    const pm0 = actions.find((p) => p.id === 'mail');
+    const pr0 = actions.find((p) => p.type === 'relance');
+    Records.update(APPEL, appel.id, { mesure_ak: mesureDeValidation({
+      appel, remplace: Records.list(APPEL).find((x) => x.remplace_par === appel.id) || null, corrections,
+      relanceProposee: pr0?.prochaine?.le || null, relanceChoisie: relance_le || null,
+      mailPropose: pm0 ? { a: pm0.a || '', objet: pm0.objet, corps: pm0.corps } : null, mailEnvoye: mail && pris.has('mail') ? { a: mail.a || '', objet: mail.objet, corps: mail.corps } : null,
+    }) });
+  } catch { /* la mesure ne bloque jamais une validation */ }
 
   // La page Relances : l'agent joint est prévenu de ses biens jugés, et la ligne prise se libère.
   if (!essai) (await import('./relances.js')).apresAppel({ agent_id: appel.agent_id, agence_id: agenceId, issue: issueTapee, user, maintenantD });
@@ -1069,7 +1103,7 @@ export async function annulerValidation(appelId, user, { maintenantD = new Date(
     Records.update('AgentImmo', id, { ...nouveaux, ...avant });
   }
   if (an.agence && appel.agence_id) Records.update(AGENCE, appel.agence_id, an.agence);
-  Records.update(APPEL, appel.id, { etat: 'a_valider', recu: null, annule_le: maintenant(), annuler: null, validation_cle: null });
+  Records.update(APPEL, appel.id, { etat: 'a_valider', recu: null, annule_le: maintenant(), annuler: null, validation_cle: null, annulations: (appel.annulations || 0) + 1 });
   const s = appel.session_id ? Records.get(SESSION, appel.session_id) : null;
   if (s) Records.update(SESSION, s.id, { appels: (s.appels || []).filter((x) => x.appel_id !== appel.id) });
   return { ok: true, fait, appel: { ...Records.get(APPEL, appel.id), agence: Records.get(AGENCE, appel.agence_id)?.nom || appel.agent } };

@@ -309,7 +309,7 @@ app.post('/api/auth/updateMe', wrap((req, res) => {
 // Les préférences d'affichage d'un compte : ce que règle la page
 // Personnalisation (thème, accent, police, menu...). Rien de secret, rien de
 // protégé : on ne garde que les clés connues, à plat, bornées en taille.
-const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'menu_autre', 'assistant', 'grille', 'grille_intensite']);
+const CLES_PREFERENCES = new Set(['mode', 'accent', 'fond_sombre', 'fond_clair', 'halo', 'surfaces', 'police', 'boutons', 'taille', 'animations', 'accueil', 'barre', 'menu_masques', 'menu_ordre', 'menu_autre', 'assistant', 'grille', 'grille_intensite', 'points_actions', 'barre_sombre', 'barre_clair', 'accent_perso']);
 app.post('/api/moi/preferences', wrap((req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
@@ -1265,6 +1265,11 @@ monterKData(app);
 import('./etat-plateforme.js')
   .then((m) => m.tenirAJour())
   .catch((e) => console.error('[état] module absent :', e.message));
+
+// Les règles de la prospection, contrôlées chaque nuit : le rapport part par mail vers 7 h (Render seulement).
+import('./prospection/controles.js')
+  .then((m) => m.planifier())
+  .catch((e) => console.error('[contrôles] module absent :', e.message));
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {

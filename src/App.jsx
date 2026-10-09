@@ -39,6 +39,7 @@ const FeuilleDeRoute = lazy(() => import('@/pages/FeuilleDeRoute'));
 const Analyse = lazy(() => import('@/pages/Analyse'));
 const Monitoring = lazy(() => import('@/pages/Monitoring'));
 const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
+const SuiviAppels = lazy(() => import('@/pages/SuiviAppels'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
@@ -95,7 +96,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, Alexis, AdminPresentations };
+const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, Alexis, AdminPresentations };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

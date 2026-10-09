@@ -68,7 +68,7 @@ function Barres({ seaux }) {
 function Tableau({ colonnes, gabarit, lignes, vide }) {
   if (!lignes.length) return <p className="m-0 mt-3 text-[13px] text-brume">{vide}</p>;
   return (
-    <div className="mt-3 overflow-x-auto rounded-[14px] border border-trait">
+    <div className="mt-3 overflow-x-auto rounded-[14px] border border-trait bg-rail">
       <div className="min-w-[720px]">
         <div className={`grid ${gabarit} gap-3.5 border-b border-trait bg-surface-pleine px-4 py-[11px] text-[12px] text-ardoise`}>{colonnes.map((c) => <div key={c}>{c}</div>)}</div>
         {lignes.map((l) => (
@@ -111,7 +111,7 @@ export default function Statistiques() {
 
       <div className="mt-[18px] grid grid-cols-5 gap-px overflow-hidden rounded-[14px] border border-trait bg-trait max-md:grid-cols-2">
         {chiffres.map(([mot, valeur, sous]) => (
-          <div key={mot} className="bg-surface-pleine p-[18px] max-md:p-4">
+          <div key={mot} className="bg-rail p-[18px] max-md:p-4">
             <p className="m-0 text-[12.5px] text-ardoise">{mot}</p>
             <p className="m-0 mt-2 text-[26px] tracking-[-0.01em] text-encre tabular-nums max-md:text-[22px]">{valeur}</p>
             <p className="m-0 mt-1 text-[12px] text-ardoise">{sous}</p>
@@ -119,7 +119,7 @@ export default function Statistiques() {
         ))}
       </div>
 
-      <div className="mt-[18px] rounded-[14px] border border-trait px-5 py-[18px] max-md:px-4">
+      <div className="mt-[18px] rounded-[14px] border border-trait bg-rail px-5 py-[18px] max-md:px-4">
         <div className="flex flex-wrap justify-between gap-3 text-[13px]">
           <span className="text-encre">Envoyés et ouverts</span>
           <span className="flex gap-3.5 text-[12px] text-ardoise">

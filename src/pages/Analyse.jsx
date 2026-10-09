@@ -326,7 +326,8 @@ export default function Analyse() {
                 <h1 className="m-0 text-[34px] font-medium leading-[1.05] tracking-[-0.01em] text-encre max-md:text-[26px]">Dossiers</h1>
                 <span className="text-[15px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
               </div>
-              <div className="flex flex-wrap items-center gap-2.5">
+              {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin (9 oct. 2026). */}
+              <div className="flex flex-wrap items-center gap-2.5 md:pr-14">
                 <span className={`mr-1 text-[15px] max-md:basis-full max-md:text-[13.5px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
                   {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
                 </span>

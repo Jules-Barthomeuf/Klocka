@@ -746,7 +746,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
   const noter = useMutation({
     mutationFn: async ({ issue: is, simple = false, remplace = null }) => {
-      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAppel.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null };
+      const champs = { agence_id: a.id, agent_id: prise?.agence_id === a.id ? prise.agent_id : null, issue: is, session_id: session?.id || null, numero: numeroAppel || a.telephone || null, remplace, motif: a.relance?.motif?.cle || null, notes: notesAppel.trim() || null, monday_essai: session?.essai && mondayEssai ? "1" : null,
+        // Le suivi de l'usage (9 oct. 2026) : la durée de l'appel et le mode d'où il part.
+        duree_s: secondes > 0 ? String(secondes) : null, source: session?.essai ? "essai" : relances ? "relances" : "prospection" };
       setNotesLues(notesAppel);
       let wavs = [];
       if (is === "auto" || remplace) {
@@ -801,11 +803,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   // --- Valider, une fois ; le reçu ; annuler dix secondes -----------------------
   const corpsValidation = () => ({
     choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: note.trim(), cle,
-    session_id: session?.id || null, issue,
+    session_id: session?.id || null, issue, depuis_fenetre: depuisFenetre.current, etapes_vues: etapesVues.current,
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
   // Valider depuis la fenêtre des actions (8 oct. 2026) : elle reste ouverte et suit l'envoi, puis « Tout préparé ».
   const depuisFenetre = useRef(false);
+  const etapesVues = useRef([]);
   const valider = useMutation({
     mutationFn: async () => {
       const url = `${API}/appels/${appel.id}/valider`;
@@ -1067,7 +1070,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}
-                    onLancer={(o) => { depuisFenetre.current = !!o?.depuisFenetre; valider.mutate(); }} envoi={valider.isPending}
+                    onLancer={(o) => { depuisFenetre.current = !!o?.depuisFenetre; etapesVues.current = o?.vues || []; valider.mutate(); }} envoi={valider.isPending}
                     envoiFenetre={recu ? { recu: r, annulerDans, onAnnuler: () => annuler.mutate(), annulation: annuler.isPending, onBrouillon: () => ouvrirBrouillon(appel.id, r?.mail?.mailto), onChoisirLigne: (choix) => ligne.mutate({ id: appel.id, choix }) } : null}
                     onQuitterEnvoi={() => { depuisFenetre.current = false; setEcran("recu"); }} />
                 </div>

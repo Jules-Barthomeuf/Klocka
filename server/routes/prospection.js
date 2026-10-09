@@ -100,6 +100,30 @@ export function monterProspection(app) {
     const cahier = await (await import('../prospection/modeles-appel.js')).cahierDesCharges();
     ok(res, { ...r, cahier, issues: (await MA()).ISSUES_APPEL, raisons_passer: (await MA()).RAISONS_PASSER });
   }));
+  // --- Le Suivi : les règles contrôlées chaque nuit, la qualité d'AK (9 oct. 2026) ---
+  const CT = () => import('../prospection/controles.js');
+  app.get('/api/monitoring/regles', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { rapport: (await CT()).dernierRapport() });
+  }));
+  // Lancer le contrôle maintenant, et recevoir le rapport (en local : redirigé ou simulé, sous le garde-fou des envois).
+  app.post('/api/monitoring/regles', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, await (await CT()).controlerEtEnvoyer({ envoyer: req.body?.envoyer !== false, testeur: user.email }));
+  }));
+  // Le Suivi des appels : l'usage de chacun en Prospection, Relances et Rappel (9 oct. 2026).
+  app.get('/api/monitoring/appels', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { suiviAppels, SOURCES } = await import('../prospection/suivi-appels.js');
+    const source = SOURCES[req.query.source] ? String(req.query.source) : null;
+    ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source }));
+  }));
+  app.get('/api/monitoring/qualite-ak', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, (await CT()).qualiteAK({ semaines: Math.min(26, Number(req.query.semaines) || 8) }));
+  }));
+
   // --- « Il me rappelle » : un agent rappelle (spec du 8 oct. 2026) ----------
   const RP = () => import('../prospection/rappels.js');
   const reponse = (res, r) => (r.ok ? ok(res, r) : refus(res, r));
@@ -367,7 +391,7 @@ export function monterProspection(app) {
         agence_id: req.body?.agence_id, agent_id: req.body?.agent_id || null, issue: req.body?.issue, notes: notesAppel,
         session_id: req.body?.session_id || null, audio, transcription, remplace: req.body?.remplace || null,
         recit: String(req.body?.recit || '').trim().slice(0, 4000) || null,
-        numero: req.body?.numero || null, motif: req.body?.motif || null, surEtape: flux?.etape || null, mondayEssai: req.body?.monday_essai === '1' || req.body?.monday_essai === true, user,
+        numero: req.body?.numero || null, motif: req.body?.motif || null, surEtape: flux?.etape || null, mondayEssai: req.body?.monday_essai === '1' || req.body?.monday_essai === true, dureeS: req.body?.duree_s || null, source: req.body?.source || null, user,
       });
     } catch (e) {
       if (flux) return flux.erreur(e);
@@ -385,6 +409,7 @@ export function monterProspection(app) {
       appel_id: req.params.id, choix: Array.isArray(b.choix) ? b.choix : [], mail: b.mail || null,
       relance_le: b.relance_le || null, relance2_le: b.relance2_le || null, monday_ligne: b.monday_ligne || null, note: String(b.note || '').slice(0, 2000),
       cle: b.cle ? String(b.cle).slice(0, 80) : null, session_id: b.session_id || null, issue: b.issue || null,
+      depuisFenetre: !!b.depuis_fenetre, etapesVues: Array.isArray(b.etapes_vues) ? b.etapes_vues.slice(0, 30) : null,
       corrections: Array.isArray(b.corrections) ? b.corrections : [], user,
     });
     if (!r.ok) return refus(res, r);

@@ -15,7 +15,7 @@ const EXEMPLE = { prenom: "Marie", nom: "Durand", lien: "https://klocka.immo/Bie
 function Vignette({ t, onOuvrir, actions }) {
   const html = rendreEmail(t.design, EXEMPLE, { logo: "/icones/icone-192.png" }).html;
   return (
-    <div className="group overflow-hidden rounded-[16px] border border-trait bg-surface-pleine">
+    <div className="group overflow-hidden rounded-[16px] border border-trait bg-rail">
       <button type="button" onClick={onOuvrir} className="block w-full" style={{ background: "transparent" }}>
         <div className="pointer-events-none h-[220px] overflow-hidden bg-white">
           <iframe title={t.nom} srcDoc={html} className="h-[640px] w-[200%] origin-top-left scale-50 border-0" tabIndex={-1} />
@@ -97,7 +97,7 @@ export default function Templates({ onCampagne, demande = null, onDetail = null 
           ))}
         </div>
       ) : <p className="m-0 text-[13.5px] text-brume">Aucun encore : dans l'éditeur d'une campagne, « Enregistrer comme template ».</p>}
-      <div className="mt-12 rounded-[18px] border border-trait p-5 max-md:p-4">
+      <div className="mt-12 rounded-[18px] border border-trait bg-rail p-5 max-md:p-4">
         <p className="m-0 text-[15px] text-encre">Emails de la plateforme</p>
         <p className="m-0 mt-1 text-[13px] text-ardoise">Les emails que Klocka envoie de lui-même, pas du marketing : pas de lien de désinscription, mais une adresse en bounce n'est jamais servie. Ils partent par Resend, et par Gmail si Resend refuse.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

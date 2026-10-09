@@ -340,7 +340,7 @@ export default function Contacts({ demande = null }) {
           {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
             : !contacts.length ? <p className="py-14 text-center text-[14px] text-brume">Aucun contact{q || type || filtre ? " pour ces filtres" : " : « Importer » ou « Ajouter un contact », en haut à droite"}.</p>
               : (
-                <div className="mt-3.5 overflow-x-auto rounded-[14px] border border-trait">
+                <div className="mt-3.5 overflow-x-auto rounded-[14px] border border-trait bg-rail">
                   <div className="min-w-[1000px]">
                     <div className={`grid ${COLONNES} items-center gap-3.5 border-b border-trait bg-surface-pleine px-4 py-[11px] text-[12px] text-ardoise`}>
                       <input type="checkbox" checked={tous} onChange={(e) => setChoisis(e.target.checked ? contacts.map((c) => c.id) : [])} aria-label="Tout choisir" className="h-4 w-4" />
@@ -380,7 +380,7 @@ export default function Contacts({ demande = null }) {
       {sous === "listes" && (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
           {(ref?.listes || []).map((l) => (
-            <div key={l.id} className="group rounded-[14px] border border-trait bg-surface-pleine p-4">
+            <div key={l.id} className="group rounded-[14px] border border-trait bg-rail p-4">
               <button type="button" onClick={() => { setFiltre({ liste: l.id, nom: l.nom }); setType(""); setPage(1); setSous("tous"); }} className="flex w-full justify-between gap-3 text-left text-[14.5px]" style={{ background: "transparent" }}>
                 <span className="min-w-0 truncate text-encre">{l.nom}</span><span className="tabular-nums text-craie">{l.total}</span>
               </button>
@@ -406,7 +406,7 @@ export default function Contacts({ demande = null }) {
       {sous === "segments" && (
         <div className="flex max-w-[760px] flex-col gap-2.5">
           {(ref?.segments || []).map((x) => (
-            <div key={x.id} className="group flex items-center justify-between gap-4 rounded-[14px] border border-trait bg-surface-pleine p-4">
+            <div key={x.id} className="group flex items-center justify-between gap-4 rounded-[14px] border border-trait bg-rail p-4">
               <button type="button" onClick={() => setSegment(x)} className="min-w-0 text-left" style={{ background: "transparent" }}>
                 <span className="block truncate text-[14.5px] text-encre">{x.nom}</span>
                 <span className="mt-1.5 block truncate text-[12.5px] text-ardoise">{resumeRegles(x, ref) || "Aucune règle"}</span>
@@ -424,7 +424,7 @@ export default function Contacts({ demande = null }) {
 
       {sous === "champs" && (
         <div className="max-w-[820px]">
-          <div className="overflow-hidden rounded-[14px] border border-trait">
+          <div className="overflow-hidden rounded-[14px] border border-trait bg-rail">
             <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_90px_40px] gap-3.5 border-b border-trait bg-surface-pleine px-4 py-[11px] text-[12px] text-ardoise"><div>Champ</div><div>Variable</div><div>Type</div><div /></div>
             {[["prenom", "Prénom", "Texte"], ["nom", "Nom", "Texte"], ["email", "Email", "Email"], ["ville", "Ville", "Texte"], ["entreprise", "Société", "Texte"]].map(([k, mot, t]) => (
               <div key={k} className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_90px_40px] items-center gap-3.5 border-b border-trait px-4 py-3 text-[13px]">

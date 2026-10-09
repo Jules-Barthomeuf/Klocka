@@ -178,7 +178,7 @@ function LigneEnvoi({ l, nom, children = null }) {
   );
 }
 
-function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = null, validable = true, envoi = false, envoiFenetre = null, onQuitterEnvoi = null }) {
+function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = null, validable = true, envoi = false, envoiFenetre = null, onQuitterEnvoi = null, onVoir = null }) {
   // L'envoi suivi dans la fenêtre (8 oct. 2026) : validé d'ici, on y voit chaque ligne passer de « en cours » à « fait ».
   const enEnvoi = !!envoiFenetre;
   const re = envoiFenetre?.recu || null;
@@ -193,6 +193,8 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
   }, [onFermer]);
   const i = Math.max(0, pas.findIndex((x) => x.k === ouverte));
   const courant = pas[i];
+  // Le suivi de l'usage (9 oct. 2026) : les étapes réellement ouvertes avant de valider.
+  useEffect(() => { onVoir?.(courant.k); }, [courant.k]);
   const c = contenuDe(courant.q);
   // Le sens du glissement (8 oct. 2026) : l'étape suivante arrive de la droite, la précédente de la gauche.
   const avant = useRef(i);
@@ -352,6 +354,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const nomSeul = (t) => String(t || "").split(/[,·(]/)[0].replace(/^(madame|monsieur)\s+/i, "").trim() || null;
   const interlocuteur = nomSeul(compris.interlocuteur?.valeur) || (agence?.contacts || []).find((x) => !x.standard)?.nom || nomSeul(agence?.interlocuteurs?.[0]) || nomSeul(appel.avant?.interlocuteur);
   const [ouverte, setOuverte] = useState(null);
+  const vues = useRef(new Set());
   const [choixIssue, setChoixIssue] = useState(false);
   const [debut] = useState(() => performance.now());
   const [t, setT] = useState(() => (lenteur() ? 99 : 0));
@@ -612,12 +615,12 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       )}
 
       {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Monday a plusieurs contacts possibles : ouvrez « Contact Monday » et choisissez le bon.</p>}
-      <button type="button" onClick={onLancer} disabled={envoi || !n || doute}
+      <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}
         className="mt-5 w-full rounded-full bg-encre py-[18px] text-[17px] text-fond hover:opacity-90 disabled:opacity-50">
         {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}
       </button>
 
-      {ouverte && pas.some((x) => x.k === ouverte) && <Panneau pas={pas} ouverte={ouverte} setOuverte={setOuverte} contenuDe={contenuDe} onFermer={() => setOuverte(null)} onValider={onLancer} validable={!!n && !doute} envoi={envoi} envoiFenetre={envoiFenetre} onQuitterEnvoi={onQuitterEnvoi} />}
+      {ouverte && pas.some((x) => x.k === ouverte) && <Panneau pas={pas} ouverte={ouverte} setOuverte={setOuverte} contenuDe={contenuDe} onFermer={() => setOuverte(null)} onValider={(o) => onLancer({ ...(o || {}), vues: [...vues.current] })} validable={!!n && !doute} envoi={envoi} envoiFenetre={envoiFenetre} onQuitterEnvoi={onQuitterEnvoi} onVoir={(k) => vues.current.add(k)} />}
     </div>
   );
 }

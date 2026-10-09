@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { vueDe } from "@/lib/vue";
-import { Check, Eye, EyeOff, Grip, Loader2, RotateCcw } from "lucide-react";
+import { Check, Eye, EyeOff, Grip, Loader2, Pipette, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
-import { CLAIR, OPTIONS, POLICES, accentHex, themeEffectif } from "@/lib/personnalisation";
+import { CLAIR, OPTIONS, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
+import jetons from "@/design/jetons.json";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import AccesAdmins from "@/components/compte/AccesAdmins";
@@ -73,6 +74,150 @@ function Accents({ valeur, theme, onChoisir }) {
       </button>
     );
   });
+}
+
+/**
+ * La couleur d'accent (9 oct. 2026) : les teintes proposées, la couleur
+ * enregistrée (« Ma couleur »), et « Personnaliser » : le sélecteur, un
+ * aperçu sur un bouton, puis « Enregistrer la couleur ».
+ */
+function ChoixAccent({ prefs, changer, theme }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [brouillon, setBrouillon] = useState(() => prefs.accent_perso || accentHex(prefs.accent, theme));
+  const perso = /^#/.test(String(prefs.accent || ""));
+  const pastille = (couleur, actif) => (
+    <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: couleur }}>
+      {actif && <Check className="h-3.5 w-3.5" style={{ color: theme === CLAIR ? "rgb(255 255 255)" : "rgb(0 0 0 / .7)" }} strokeWidth={3} />}
+    </span>
+  );
+  const pilule = (actif) => `inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[13px] transition-colors ${actif ? "border-menthe text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`;
+  return (
+    <>
+      <Accents valeur={prefs.accent} theme={theme} onChoisir={(v) => { changer({ accent: v }); setOuvert(false); }} />
+      {prefs.accent_perso && (
+        <button type="button" onClick={() => { changer({ accent: prefs.accent_perso }); setOuvert(false); }} aria-pressed={perso} title="Votre couleur enregistrée" className={pilule(perso)} style={{ background: "transparent" }}>
+          {pastille(prefs.accent_perso, perso)}Ma couleur
+        </button>
+      )}
+      <button type="button" onClick={() => { setBrouillon(prefs.accent_perso || accentHex(prefs.accent, theme)); setOuvert((x) => !x); }} aria-expanded={ouvert} className={pilule(ouvert)} style={{ background: "transparent" }}>
+        <span className="h-6 w-6 rounded-full" style={{ background: "conic-gradient(from 0deg, hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 55%), hsl(180 85% 55%), hsl(240 85% 65%), hsl(300 85% 62%), hsl(360 85% 60%))" }} />
+        Personnaliser
+      </button>
+      {ouvert && (
+        <div className="mt-2 flex w-full flex-wrap items-start gap-6 rounded-[14px] border border-trait p-4">
+          <SelecteurCouleur valeur={brouillon} onChoisir={setBrouillon} />
+          <div className="flex flex-col gap-3">
+            <span className="text-[12px] text-brume">Aperçu</span>
+            <span className="inline-flex h-10 items-center rounded-full px-5 text-[14px]" style={{ background: brouillon, color: theme === CLAIR ? "rgb(255 255 255)" : "rgb(0 0 0 / .78)" }}>Valider · 4 étapes</span>
+            <span className="text-[14px]" style={{ color: brouillon }}>Un lien, un état actif</span>
+            <span className="mt-2 flex gap-2">
+              <button type="button" onClick={() => { changer({ accent: brouillon, accent_perso: brouillon }); setOuvert(false); }} className="h-9 rounded-full bg-encre px-4 text-[13.5px] text-fond hover:opacity-90">Enregistrer la couleur</button>
+              <button type="button" onClick={() => setOuvert(false)} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+            </span>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Le sélecteur de couleur : un carré (saturation de gauche à droite, valeur
+ * de haut en bas) dans la teinte choisie, et le spectre dessous. On glisse
+ * le curseur, ou on tape le code.
+ */
+function SelecteurCouleur({ valeur, onChoisir }) {
+  const [hsv, setHsv] = useState(() => hexVersHsv(valeur));
+  const [saisie, setSaisie] = useState(valeur);
+  const carre = useRef(null);
+  const spectre = useRef(null);
+  useEffect(() => { setSaisie(valeur); if (hsvVersHex(...hsv) !== valeur) setHsv(hexVersHsv(valeur)); }, [valeur]);
+  const poser = (h, s0, v) => { setHsv([h, s0, v]); onChoisir(hsvVersHex(h, s0, v)); };
+  const glisser = (zone, lire) => (e) => {
+    const el = zone.current;
+    if (!el) return;
+    el.setPointerCapture?.(e.pointerId);
+    const suivre = (ev) => { const r = el.getBoundingClientRect(); lire(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))); };
+    suivre(e);
+    const fin = () => { el.removeEventListener("pointermove", suivre); el.removeEventListener("pointerup", fin); el.removeEventListener("pointercancel", fin); };
+    el.addEventListener("pointermove", suivre);
+    el.addEventListener("pointerup", fin);
+    el.addEventListener("pointercancel", fin);
+  };
+  const [h, sat, val] = hsv;
+  return (
+    <div className="flex w-full max-w-[320px] flex-col gap-3">
+      <div
+        ref={carre}
+        onPointerDown={glisser(carre, (x, y) => poser(h, x, 1 - y))}
+        className="relative h-[170px] cursor-crosshair touch-none rounded-[10px]"
+        style={{ backgroundColor: `hsl(${h} 100% 50%)`, backgroundImage: "linear-gradient(to top, rgb(0 0 0), transparent), linear-gradient(to right, rgb(255 255 255), transparent)" }}
+      >
+        <span className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2" style={{ left: `${sat * 100}%`, top: `${(1 - val) * 100}%`, borderColor: "rgb(255 255 255)", boxShadow: "0 0 0 1px rgb(0 0 0 / .4)", background: valeur }} />
+      </div>
+      <div
+        ref={spectre}
+        onPointerDown={glisser(spectre, (x) => poser(x * 360, sat, val))}
+        className="relative h-3 cursor-pointer touch-none rounded-full"
+        style={{ backgroundImage: `linear-gradient(to right, ${[0, 60, 120, 180, 240, 300, 360].map((d) => `hsl(${d} 100% 50%)`).join(", ")})` }}
+      >
+        <span className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2" style={{ left: `${(h / 360) * 100}%`, borderColor: "rgb(255 255 255)", boxShadow: "0 0 0 1px rgb(0 0 0 / .4)", background: `hsl(${h} 100% 50%)` }} />
+      </div>
+      <label className="flex items-center gap-2 text-[12.5px] text-ardoise">
+        Code
+        <input
+          value={saisie}
+          onChange={(e) => { const v = e.target.value.trim(); setSaisie(v); if (/^#?[0-9a-f]{6}$/i.test(v)) onChoisir((v.startsWith("#") ? v : `#${v}`).toLowerCase()); }}
+          spellCheck={false}
+          className="w-[96px] rounded-md border border-bord-doux bg-transparent px-2 py-1 font-mono text-[12.5px] text-encre outline-none focus:border-menthe"
+        />
+      </label>
+    </div>
+  );
+}
+
+/**
+ * La couleur de la barre latérale pour un mode : les teintes proposées, puis
+ * « Personnaliser », qui ouvre le sélecteur. Les panneaux de l'application
+ * (listes, mode appel, dossiers, fiches, barre de chat) la reprennent.
+ */
+function ChoixBarre({ mode, prefs, changer, theme }) {
+  const cle = `barre_${mode}`;
+  const choix = prefs[cle];
+  const teintes = Object.entries(jetons.barres[mode]);
+  const perso = choix.startsWith("#");
+  const [ouvert, setOuvert] = useState(perso);
+  const hex = barreHex(prefs, mode === "clair" ? CLAIR : "sombre");
+  const pastille = (actif) => `inline-flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[13px] transition-colors ${actif ? "border-menthe text-encre" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`;
+  return (
+    <>
+      {teintes.map(([k, t]) => (
+        <button key={k} type="button" onClick={() => { changer({ [cle]: k }); setOuvert(false); }} aria-pressed={choix === k} className={pastille(choix === k)} style={{ background: "transparent" }}>
+          <span className="h-6 w-6 rounded-full border border-bord-vif" style={{ background: t.teinte }} />{t.nom}
+        </button>
+      ))}
+      <button type="button" onClick={() => { setOuvert(true); if (!perso) changer({ [cle]: hex }); }} aria-pressed={perso} className={pastille(perso)} style={{ background: "transparent" }}>
+        <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: perso ? choix : "conic-gradient(hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 60%), hsl(180 85% 60%), hsl(240 85% 60%), hsl(300 85% 60%), hsl(360 85% 60%))" }}>
+          {!perso && <Pipette className="h-3 w-3" style={{ color: "rgb(255 255 255)" }} />}
+        </span>
+        Personnaliser
+      </button>
+      {perso && ouvert && (
+        <div className="k-monte mt-2 flex w-full flex-wrap items-start gap-5">
+          <SelecteurCouleur valeur={choix} onChoisir={(v) => changer({ [cle]: v })} />
+          <div className="flex flex-col gap-2 text-[12.5px]">
+            <span className="text-ardoise">Aperçu</span>
+            <span className="flex h-[74px] w-[140px] overflow-hidden rounded-[10px] border border-bord-doux">
+              <span className="w-[36px]" style={{ background: choix }} />
+              <span className="flex-1 bg-fond p-2"><span className="block h-full rounded-[6px]" style={{ background: choix }} /></span>
+            </span>
+            {!barreLisible(choix, mode === "clair" ? CLAIR : "sombre") && <span className="max-w-[220px] text-ambre">Le texte du mode {mode} sera peu lisible sur cette teinte.</span>}
+            {(mode === "clair") !== (theme === CLAIR) && <span className="max-w-[220px] text-brume">Se voit quand le mode {mode} est affiché.</span>}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 /**
@@ -276,11 +421,26 @@ export default function Personnalisation() {
     return () => clearTimeout(t);
   }, [vueMandataire]);
   const large = !vueClient || vueMandataire;
+  // Les sections de la page, selon qui regarde.
+  const sections = [
+    ["profil", "Profil", true],
+    ["acces", "Accès de l'équipe", !vueClient && !!user?.gere_les_acces],
+    ["agent", "Agent IA", vueMandataire],
+    ["couleurs", "Couleurs", true],
+    ["affichage", "Affichage", true],
+    ["navigation", "Navigation", !vueClient],
+    ["signature", "Signature", admin && !vueClient],
+    ["assistant", "Assistant", !vueClient],
+    ["habilitations", "Habilitations", vueMandataire],
+  ].filter((x) => x[2]);
+  const [sectionBrute, setSection] = useState(() => { try { return (typeof window !== "undefined" && window.location.hash === "#agent") ? "agent" : localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
+  const section = sections.some(([k]) => k === sectionBrute) ? sectionBrute : "profil";
+  const choisir = (k) => { setSection(k); try { localStorage.setItem("compte.section", k); } catch { /* navigation privée */ } };
   const theme = themeEffectif(prefs);
   const etatMot = !connecte ? "Sur cet appareil seulement" : etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré : le serveur n'a pas répondu" : "Enregistré sur votre compte";
 
   return (
-    <div className={`mx-auto w-full px-5 py-8 md:px-6 md:py-10 ${large ? "max-w-[1400px]" : "max-w-[980px]"}`}>
+    <div className={`mx-auto w-full px-5 py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Compte</h1>
@@ -294,15 +454,25 @@ export default function Personnalisation() {
         </div>
       </header>
 
-      {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents et ses habilitations. */}
-      <div className="mb-8"><ProfilCompte user={user} partie={vueMandataire ? "haut" : "tout"} /></div>
+      {/* Les sections en onglets (9 oct. 2026) : on va droit à la bonne, sans faire défiler toute la page. */}
+      <nav className="mb-6 inline-flex max-w-full gap-1 overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Sections du compte">
+        {sections.map(([k, mot]) => (
+          <button key={k} type="button" onClick={() => choisir(k)} aria-pressed={section === k}
+            className={`inline-flex h-9 flex-none items-center rounded-full border-0 px-4 text-[14px] transition-colors ${section === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
+            style={section === k ? undefined : { background: "transparent" }}>{mot}</button>
+        ))}
+      </nav>
+
+      <div key={section} className="duration-300 animate-in fade-in-0">
+      {/* Qui vous êtes : photo, nom, mot de passe ; pour un mandataire, ses documents. */}
+      {section === "profil" && <ProfilCompte user={user} partie={vueMandataire ? "haut" : "tout"} />}
 
       {/* Jules seul : qui, parmi les admins, ouvre quelles pages. */}
-      {!vueClient && user?.gere_les_acces && <div className="mb-8"><AccesAdmins /></div>}
+      {section === "acces" && <AccesAdmins />}
 
       {/* Le mandataire : où cherche son agent IA, réglé à l'accueil, modifiable ici. */}
-      {vueMandataire && (
-        <section id="agent" className="mb-5 scroll-mt-6 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
+      {section === "agent" && (
+        <section id="agent" className="scroll-mt-6 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
           <p className={`${etiq} pt-4`}>Votre agent IA</p>
           <Reglage titre="Où il cherche" note="Les villes Klocka sont toujours lues. Cochez les autres communes de votre secteur que vous travaillez pour votre activité.">
             <CommunesAgent />
@@ -310,16 +480,13 @@ export default function Personnalisation() {
         </section>
       )}
 
-      {/* L'équipe a deux colonnes : l'application à gauche, l'assistant à droite. */}
-      <div className={large ? "grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_380px]" : ""}>
-      <div className="min-w-0">
+      {section === "couleurs" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        {!vueClient && <p className={`${etiq} pt-4`}>Apparence</p>}
         <Reglage titre="Mode" note="Sombre, clair, ou celui de l'appareil, qui change avec lui.">
           <Pilules valeur={prefs.mode} options={OPTIONS.mode} onChoisir={(v) => changer({ mode: v })} />
         </Reglage>
         <Reglage titre="Couleur d'accent" note="Boutons, liens, états actifs et pastilles. En clair, la teinte descend d'un cran pour rester lisible.">
-          <Accents valeur={prefs.accent} theme={theme} onChoisir={(v) => changer({ accent: v })} />
+          <ChoixAccent prefs={prefs} changer={changer} theme={theme} />
         </Reglage>
         <Reglage titre="Fond" note="Le fond de l'application, pour chacun des deux modes.">
           <span className="w-full text-[12px] text-brume">En sombre</span>
@@ -327,9 +494,20 @@ export default function Personnalisation() {
           <span className="mt-1 w-full text-[12px] text-brume">En clair</span>
           <Pilules valeur={prefs.fond_clair} options={OPTIONS.fond_clair} onChoisir={(v) => changer({ fond_clair: v })} />
         </Reglage>
+        <Reglage titre="Couleur de la barre" note="La barre de gauche, et avec elle le fond des listes, du mode appel, des dossiers, des fiches et de la barre de chat. Une teinte proposée, ou n'importe laquelle.">
+          <span className="w-full text-[12px] text-brume">En sombre</span>
+          <ChoixBarre mode="sombre" prefs={prefs} changer={changer} theme={theme} />
+          <span className="mt-1 w-full text-[12px] text-brume">En clair</span>
+          <ChoixBarre mode="clair" prefs={prefs} changer={changer} theme={theme} />
+        </Reglage>
         <Reglage titre="Halo" note="Les nappes de couleur derrière les pages, en sombre. Le clair n'en a jamais.">
           <Pilules valeur={prefs.halo} options={OPTIONS.halo} onChoisir={(v) => changer({ halo: v })} />
         </Reglage>
+      </section>
+      )}
+
+      {section === "affichage" && (
+      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <Reglage titre="Points dans la fenêtre des actions" note="Le fond de la fenêtre qui détaille les actions proposées après un appel.">
           <Pilules valeur={prefs.points_actions} options={OPTIONS.points_actions} onChoisir={(v) => changer({ points_actions: v })} />
         </Reglage>
@@ -366,10 +544,10 @@ export default function Personnalisation() {
           </Reglage>
         )}
       </section>
+      )}
 
-      {!vueClient && (
-      <section className="mt-5 rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-        <p className={`${etiq} pt-4`}>Navigation</p>
+      {section === "navigation" && (
+      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <Reglage titre="Page d'ouverture" note="La page qui s'ouvre quand vous arrivez sur Klocka.">
           <Pilules valeur={prefs.accueil} options={admin ? PAGES_OUVERTURE_ADMIN : PAGES_OUVERTURE_CLIENT} onChoisir={(v) => changer({ accueil: v })} />
         </Reglage>
@@ -384,11 +562,10 @@ export default function Personnalisation() {
         </Reglage>
       </section>
       )}
-      </div>
-      {admin && !vueClient && <SignatureMails email={user?.email} />}
-      {!vueClient && <ReglagesAssistant />}
 
-      {vueMandataire && <ProfilCompte user={user} partie="habilitations" />}
+      {section === "signature" && <SignatureMails email={user?.email} />}
+      {section === "assistant" && <ReglagesAssistant />}
+      {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       </div>
     </div>
   );

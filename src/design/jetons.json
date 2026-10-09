@@ -214,6 +214,54 @@
       }
     }
   },
+  "_barres": [
+    "La couleur de la barre latérale (9 oct. 2026), que reprennent tous les panneaux",
+    "posés en bg-rail : les listes de la Prospection et des Relances, le mode appel,",
+    "les dossiers, les fiches, la barre de chat. Des teintes proposées par mode ;",
+    "« Personnaliser » en ouvre n'importe quelle autre, gardée sur le compte."
+  ],
+  "barres": {
+    "sombre": {
+      "origine": {
+        "nom": "Noir chaud",
+        "teinte": "#191a19"
+      },
+      "noir": {
+        "nom": "Noir pur",
+        "teinte": "#000000"
+      },
+      "anthracite": {
+        "nom": "Anthracite",
+        "teinte": "#242625"
+      },
+      "nuit": {
+        "nom": "Bleu nuit",
+        "teinte": "#151a24"
+      },
+      "foret": {
+        "nom": "Vert forêt",
+        "teinte": "#14201b"
+      }
+    },
+    "clair": {
+      "origine": {
+        "nom": "Gris perle",
+        "teinte": "#f4f4f2"
+      },
+      "blanc": {
+        "nom": "Blanc",
+        "teinte": "#ffffff"
+      },
+      "sable": {
+        "nom": "Sable",
+        "teinte": "#eeeae2"
+      },
+      "brume": {
+        "nom": "Bleu brume",
+        "teinte": "#e8edf1"
+      }
+    }
+  },
   "surfaces_pleines": {
     "sombre": {
       "surface": "#1c1e1d",

@@ -33,11 +33,14 @@ const MODIFIABLES = [["interlocuteur", "Interlocuteur"], ["telephone", "Téléph
 
 /** Le bouton « Rappel », en haut de chaque page : il démarre l'enregistrement dans le même geste (le micro l'exige). */
 export function BoutonRappel({ compact = false }) {
+  // Une icône seule, dans le coin : sur ordinateur, posée dans la marge en
+  // haut à droite, hors des en-têtes des pages (9 oct. 2026) ; au téléphone,
+  // dans la barre du haut.
   return (
-    <button type="button" onClick={() => window.dispatchEvent(new Event(EVT))} aria-label="Il me rappelle : enregistrer l'appel entrant" title="Un agent vous rappelle : enregistrer"
-      className={compact ? "grid h-10 w-10 place-items-center rounded-full text-menthe hover:bg-menthe/10" : "inline-flex h-9 items-center gap-2 rounded-full border border-menthe/50 px-3.5 text-[13px] text-menthe backdrop-blur-xl hover:bg-menthe/10"}
+    <button type="button" onClick={() => window.dispatchEvent(new Event(EVT))} aria-label="Il me rappelle : enregistrer l'appel entrant" title="Rappel : un agent vous rappelle, enregistrer l'appel"
+      className={compact ? "grid h-10 w-10 place-items-center rounded-full text-menthe hover:bg-menthe/10" : "grid h-11 w-11 place-items-center rounded-full border border-menthe/40 bg-rail text-menthe shadow-sm transition-colors hover:border-menthe/70 hover:bg-menthe/10"}
       style={{ background: compact ? "transparent" : undefined }}>
-      <PhoneIncoming className={compact ? "h-5 w-5" : "h-4 w-4"} />{!compact && "Rappel"}
+      <PhoneIncoming className="h-5 w-5" strokeWidth={1.8} />
     </button>
   );
 }

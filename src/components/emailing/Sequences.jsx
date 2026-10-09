@@ -52,7 +52,7 @@ function Declencheur({ s, changer, onInscrire }) {
   const d = s.declencheur || { type: "manuel" };
   const options = d.type === "liste" ? (ref?.listes || []).map((l) => [l.id, l.nom]) : d.type === "segment" ? (ref?.segments || []).map((x) => [x.id, x.nom]) : d.type === "tag" ? (ref?.tags || []).map((t) => [t.nom, t.nom]) : [];
   return (
-    <div className="rounded-[14px] border border-trait bg-surface-pleine px-[18px] py-4">
+    <div className="rounded-[14px] border border-trait bg-rail px-[18px] py-4">
       <p className="m-0 text-[11.5px] uppercase tracking-[.04em] text-ardoise">Déclencheur</p>
       <div className="mt-2.5 flex flex-wrap gap-2">
         {TYPES.map(([k, mot]) => (
@@ -179,7 +179,7 @@ function VueSequence({ id, onEmail, onSupprimee }) {
         return (
           <React.Fragment key={e.id}>
             <Delai s={s} e={e} changerEtape={(p) => changerEtape(e.id, p)} />
-            <div className="flex items-center justify-between gap-4 rounded-[14px] border border-trait bg-surface-pleine px-[18px] py-4">
+            <div className="flex items-center justify-between gap-4 rounded-[14px] border border-trait bg-rail px-[18px] py-4">
               <div className="min-w-0">
                 <p className="m-0 text-[12px] text-ardoise">Email {i + 1}</p>
                 <p className={`m-0 mt-1 truncate text-[14.5px] ${e.objet ? "text-encre" : "text-brume"}`}>{e.objet || "Sans objet"}</p>
@@ -279,7 +279,7 @@ export default function Sequences({ demande = null, onDetail = null }) {
       <div className="flex flex-col gap-2 max-lg:flex-row max-lg:overflow-x-auto max-lg:pb-1">
         {liste.map((s) => (
           <button key={s.id} type="button" onClick={() => setChoisie(s.id)}
-            className={`flex flex-col gap-2 rounded-[12px] border p-3.5 text-left transition-colors max-lg:min-w-[240px] ${s.id === choisie ? "border-bord-vif bg-relief" : "border-trait bg-surface-pleine hover:border-bord-doux"}`}>
+            className={`flex flex-col gap-2 rounded-[12px] border p-3.5 text-left transition-colors max-lg:min-w-[240px] ${s.id === choisie ? "border-bord-vif bg-relief" : "border-trait bg-rail hover:border-bord-doux"}`}>
             <span className="flex items-center justify-between gap-2"><span className="min-w-0 truncate text-[14px] text-encre">{s.nom}</span><Pastille statut={s.statut === "brouillon" ? "brouillon" : s.statut} /></span>
             <span className="text-[12.5px] text-ardoise">{pluriel(s.etapes?.length || 0, "email")} · {pluriel(s.inscrits || 0, "inscrit")}</span>
           </button>

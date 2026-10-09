@@ -477,7 +477,7 @@ function LayoutContent({ children, currentPageName }) {
     Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
-    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") },
+    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
@@ -794,12 +794,12 @@ function LayoutContent({ children, currentPageName }) {
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}
       {(vue === "admin" || vue === "mandataire") && <NotificationsApp />}
       {/* « Il me rappelle » : le bouton en haut à droite (dans la barre au téléphone), l'écran d'appel et le bandeau « Rappel à terminer ». */}
-      {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), puis « Rappel », côte à côte. */}
+      {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
-        <div className="fixed right-5 top-4 z-40 flex items-center gap-3 max-md:hidden">
-          <div id="k-haut-droite" className="flex items-center gap-3 empty:hidden" />
-          {rappelOuvert && <BoutonRappel />}
-        </div>
+        <>
+          <div id="k-haut-droite" className={`fixed ${rappelOuvert ? "right-[68px]" : "right-5"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          {rappelOuvert && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
+        </>
       )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}
       {/* L'accueil du mandataire : ses réglages à l'arrivée, tant qu'ils ne sont pas validés. */}

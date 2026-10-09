@@ -25,6 +25,7 @@ export const ADRESSES = {
   ALXEntrainement: "ALXEntrainement",
   Monitoring: "Suivi",
   CoutsIA: "CoutsIA",
+  SuiviAppels: "SuiviAppels",
   AdminSuggestions: "Feedback",
   Feedback: "MonFeedback",
   SimulateurRentabilite: "Simulateur",

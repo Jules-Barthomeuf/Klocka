@@ -1392,7 +1392,8 @@ export default function AdminProjets() {
     <div className="relative min-h-screen px-5 py-7 text-encre md:px-10 md:py-9">
       <div className="relative max-w-[1400px] mx-auto">
         {/* En-tête */}
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-4 max-md:mb-5">
+        {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin (9 oct. 2026). */}
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-4 max-md:mb-5 md:pr-14">
           <h1 className="m-0 text-[30px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]">Gestion des projets</h1>
           <button onClick={() => { resetForm(); setIsDialogOpen(true); }}
             className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-4 py-2 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">

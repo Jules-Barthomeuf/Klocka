@@ -6,6 +6,22 @@ const b = (type, champs = {}, id = null) => ({ id: id || `${type}-${Math.random(
 
 /** Les mails de la plateforme, par clé. */
 export const MAILS_PLATEFORME = {
+  rapport_regles: {
+    nom: 'Rapport des règles',
+    description: 'Part chaque matin vers 7 h à Jules : les règles de la prospection contrôlées la nuit, « Tout est conforme » ou les écarts.',
+    variables: ['titre', 'resume', 'details', 'lien'],
+    objet: '{{objet}}',
+    apercu: '{{resume}}',
+    design: {
+      theme: 'clair',
+      blocs: [
+        b('titre', { texte: '{{titre}}' }, 'titre'),
+        b('texte', { texte: '{{resume}}' }, 'resume'),
+        b('texte', { texte: '{{details}}' }, 'details'),
+        b('bouton', { texte: 'Ouvrir le Suivi', lien: '{{lien}}' }, 'bouton'),
+      ],
+    },
+  },
   invitation_client: {
     nom: 'Invitation d\'un client',
     description: 'Part quand on invite un client depuis Clients : son lien pour créer son espace.',

@@ -38,7 +38,7 @@ function Destinataires({ c, changer }) {
   const maj = (k, v) => changer({ audience: { ...a, [k]: v } });
   return (
     <div className="mx-auto max-w-[820px] px-6 py-8 max-md:px-4 max-md:py-6">
-      <div className="mb-6 flex items-baseline justify-between gap-4 rounded-[16px] border border-trait bg-surface-pleine px-5 py-4 max-md:px-4">
+      <div className="mb-6 flex items-baseline justify-between gap-4 rounded-[16px] border border-trait bg-rail px-5 py-4 max-md:px-4">
         <span className="text-[14px] text-craie">Contacts qui recevront la campagne</span>
         <span className="text-[26px] font-medium tabular-nums text-encre">{isFetching ? <Loader2 className="inline h-5 w-5 animate-spin text-ardoise" /> : compte?.eligibles ?? 0}</span>
       </div>
@@ -98,7 +98,7 @@ function Verification({ c, onEnvoye }) {
   return (
     <div className="mx-auto grid max-w-[1000px] gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_340px] max-md:px-4 max-md:py-6">
       <div>
-        <div className="rounded-[16px] border border-trait bg-surface-pleine p-5">
+        <div className="rounded-[16px] border border-trait bg-rail p-5">
           <p className="m-0 text-[12.5px] text-ardoise">Récapitulatif</p>
           <p className="m-0 mt-2 text-[15px] text-encre">{c.objet || <span className="text-brume">Sans objet</span>}</p>
           <p className="m-0 mt-1 text-[13px] text-craie">{c.apercu}</p>
@@ -114,7 +114,7 @@ function Verification({ c, onEnvoye }) {
         </ul>
       </div>
       <div className="flex flex-col gap-4">
-        <div className="rounded-[16px] border border-trait bg-surface-pleine p-5">
+        <div className="rounded-[16px] border border-trait bg-rail p-5">
           <p className="m-0 text-[14px] text-encre">Envoyer un test</p>
           <label className={`${etiquette} mt-3`}>Rendu pour
             <select value={vu} onChange={(e) => setVu(e.target.value)} className={`${champ} mt-1.5 h-9 text-[13px]`}>
@@ -124,7 +124,7 @@ function Verification({ c, onEnvoye }) {
           </label>
           <button type="button" onClick={() => test.mutate()} disabled={test.isPending} className={`${bouton} mt-3 w-full justify-center`}>{test.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}M'envoyer le test</button>
         </div>
-        <div className="rounded-[16px] border border-trait bg-surface-pleine p-5">
+        <div className="rounded-[16px] border border-trait bg-rail p-5">
           <div className="inline-flex gap-0.5 rounded-full border border-trait p-0.5">
             {[["maintenant", "Maintenant"], ["programmer", "Programmer"]].map(([k, mot]) => (
               <button key={k} type="button" onClick={() => setMode(k)} className={`h-8 rounded-full px-3 text-[12.5px] ${mode === k ? "bg-encre text-fond" : "text-craie"}`}>{mot}</button>
@@ -154,7 +154,7 @@ function StatsCampagne({ c }) {
     <div className="mx-auto max-w-[1000px] px-6 py-8 max-md:px-4 max-md:py-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {cases.map(([mot, n, t]) => (
-          <div key={mot} className="rounded-[14px] border border-trait bg-surface-pleine px-4 py-3">
+          <div key={mot} className="rounded-[14px] border border-trait bg-rail px-4 py-3">
             <p className="m-0 text-[12px] text-ardoise">{mot}</p>
             <p className="m-0 mt-1 text-[22px] tabular-nums text-encre">{n ?? 0}</p>
             {t && <p className="m-0 text-[12px] text-menthe">{t}</p>}
@@ -162,7 +162,7 @@ function StatsCampagne({ c }) {
         ))}
       </div>
       {s?.liens?.length > 0 && (
-        <div className="mt-6 rounded-[16px] border border-trait">
+        <div className="mt-6 rounded-[16px] border border-trait bg-rail">
           <p className="m-0 border-b border-trait px-4 py-2.5 text-[13px] text-craie">Liens les plus cliqués</p>
           {s.liens.map((l) => <div key={l.lien} className="flex justify-between gap-4 border-t border-trait px-4 py-2 text-[13px] first:border-t-0"><span className="truncate text-encre">{l.lien}</span><span className="tabular-nums text-ardoise">{l.clics}</span></div>)}
         </div>
@@ -274,7 +274,7 @@ export default function Campagnes({ ouvrir = null, demande = null, onDetail = nu
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
         : !liste.length ? <p className="py-14 text-center text-[14px] text-brume">Aucune campagne encore : « Nouvelle campagne », en haut à droite.</p>
           : (
-            <div className="overflow-x-auto rounded-[14px] border border-trait">
+            <div className="overflow-x-auto rounded-[14px] border border-trait bg-rail">
               <div className="min-w-[960px]">
                 <div className={`grid ${COLONNES} gap-4 border-b border-trait bg-surface-pleine px-[18px] py-[11px] text-[12px] text-ardoise`}>
                   <div>Campagne</div><div>Destinataires</div><div>Date</div><div>Ouvertures</div><div>Clics</div><div />

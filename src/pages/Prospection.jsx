@@ -8,6 +8,7 @@ import { useDictee, versWav } from "@/lib/dictee";
 import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
 import ModeAppel from "@/components/prospection/ModeAppel";
+import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
 // un agent (il se verrouille à son nom), on enregistre l'appel, et à la fin
@@ -991,6 +992,8 @@ export default function Prospection() {
   // « Mode appel » (6 oct. 2026) : la file d'une ville, une agence à la fois, pensée pour le téléphone.
   // Les relances (7 oct. 2026) ont leur propre page : Relances.
   const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"]];
+  // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
+  const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
   const [aAppeler, setAAppeler] = useState(0);
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
@@ -1016,6 +1019,7 @@ export default function Prospection() {
       {/* Le titre au centre, les onglets centrés dessous (6 oct. 2026). */}
       <header className="mb-8 flex flex-col items-center gap-6 text-center">
         <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Prospection</h1>
+        {visite && <VisiteModeAppel onFermer={() => setVisite(false)} />}
         {/* Les onglets en pilule, comme ceux de la page projet. */}
         <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties de la prospection">
           {PARTIES.map(([k, mot]) => (
@@ -1026,6 +1030,7 @@ export default function Prospection() {
             </button>
           ))}
         </nav>
+        <button type="button" onClick={() => setVisite(true)} className="-mt-3 p-0 text-[12.5px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Visite du mode appel</button>
         {partie === "prospecter" && <nav className="inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-full border border-trait p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Onglets de la prospection">
           {onglets.map(([cle, mot, n]) => (
             <button key={cle} type="button" onClick={() => setOnglet(cle)}

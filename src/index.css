@@ -827,7 +827,8 @@ html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
 .k-grid {
   --k-grid-pas: 14px;
   --k-grid-marge: 14px;
-  --k-grid-fond: #161716;
+  /* Le fond des cartes à points : celui de la barre latérale (9 oct. 2026). */
+  --k-grid-fond: rgb(var(--k-rail-rgb));
   --k-grid-point: rgb(255 255 255 / calc(0.08 * var(--k-grid-force, 1)));
   background-color: var(--k-grid-fond);
   background-image:
@@ -856,7 +857,7 @@ html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
   background-clip: padding-box;
 }
 :root[data-theme="clair"] .k-grid {
-  --k-grid-fond: rgb(var(--k-surface-pleine-rgb));
+  --k-grid-fond: rgb(var(--k-rail-rgb));
   --k-grid-point: rgb(0 0 0 / calc(0.1 * var(--k-grid-force, 1)));
 }
 /* Compte > Grille de points : « Panneaux et fenêtres » décoché, le fond reste, sans les points. */

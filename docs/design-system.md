@@ -56,6 +56,13 @@ derrière un aperçu (jeton `barre`) prennent la teinte de la barre de
 navigation (`rail`), sinon ils se confondent avec le fond. Posé dans
 `appliquerPrefs` (`src/lib/personnalisation.js`). Décision du 3 oct. 2026.
 
+**Couleur de la barre** : chacun choisit, dans Compte, la teinte de la barre
+latérale par mode (teintes de `barres` dans `jetons.json`, ou n'importe quelle
+couleur au sélecteur). Tout panneau posé en `bg-rail` la suit : listes de la
+Prospection et des Relances, mode appel, dossiers, fiches, et la barre de chat
+(`barre`). Le fond qui porte des cartes s'écrit donc en `bg-rail`, jamais en
+`bg-fond` ni en couleur figée, pour suivre ce choix. Décision du 9 oct. 2026.
+
 **Thème clair** : tout ce qui passe par un jeton suit seul. Une couleur figée
 (une barre noire) doit avoir sa variante claire dans `src/index.css`
 (exemple : `.k-barre-apercu`, noire en sombre, `surface-pleine` en clair),

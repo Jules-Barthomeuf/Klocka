@@ -23,8 +23,14 @@ export const CLAIR = "clair";
 export const DEFAUT = Object.freeze({
   mode: "sombre", // sombre | clair | appareil
   accent: "menthe",
+  // La couleur d'accent personnalisée, enregistrée (9 oct. 2026) : on la retrouve même après être revenu à une teinte proposée.
+  accent_perso: null,
   fond_sombre: "noir", // noir (chaud, maquette) | profond (noir pur) | anthracite
   fond_clair: "perle", // perle (gris chaud, maquette) | blanc
+  // La couleur de la barre latérale, que reprennent les panneaux en bg-rail
+  // (9 oct. 2026) : une teinte de jetons.barres, ou n'importe quel #rrggbb.
+  barre_sombre: "origine",
+  barre_clair: "origine",
   halo: false,
   surfaces: "verre", // verre | plein
   police: "instrument", // instrument | figtree | montserrat | systeme
@@ -75,7 +81,16 @@ export function normaliser(brut) {
   const p = { ...DEFAUT, ...(brut && typeof brut === "object" ? brut : {}) };
   p.taille = Number(p.taille);
   p.halo = p.halo !== false && p.halo !== "false";
-  for (const [k, valeurs] of Object.entries(CHOIX)) if (k !== "halo" && k !== "grille" && !valeurs.includes(p[k])) p[k] = DEFAUT[k];
+  for (const t of ["sombre", "clair"]) {
+    const v = String(p[`barre_${t}`] || "");
+    p[`barre_${t}`] = jetons.barres[t][v] ? v : /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : "origine";
+  }
+  // Un accent personnalisé est un code couleur ; il échappe à la liste des teintes proposées.
+  const hex = (v) => (/^#[0-9a-f]{6}$/i.test(String(v || "")) ? String(v).toLowerCase() : null);
+  p.accent_perso = hex(p.accent_perso);
+  const accentPerso = hex(p.accent);
+  for (const [k, valeurs] of Object.entries(CHOIX)) if (k !== "halo" && k !== "grille" && !(k === "accent" && accentPerso) && !valeurs.includes(p[k])) p[k] = DEFAUT[k];
+  if (accentPerso) p.accent = accentPerso;
   p.grille = Array.isArray(p.grille) ? [...new Set(p.grille.map(String).filter((z) => CHOIX.grille.includes(z)))] : [...DEFAUT.grille];
   const force = Math.round(Number(p.grille_intensite));
   p.grille_intensite = Number.isFinite(force) ? Math.min(100, Math.max(10, force)) : DEFAUT.grille_intensite;
@@ -153,9 +168,41 @@ const luminosite = (rgb, delta) => {
   return hslVersRgb([h, s, Math.max(0, Math.min(1, l + delta))]);
 };
 const triplet = (rgb) => rgb.join(" ");
+// La luminance relative (WCAG), pour savoir si un texte clair reste lisible sur une teinte.
+const luminance = (rgb) => {
+  const [r, g, b] = rgb.map((c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** La teinte de la barre choisie pour un thème, en hexadécimal. */
+export function barreHex(p, theme) {
+  const t = theme === CLAIR ? "clair" : "sombre";
+  const v = p[`barre_${t}`] || "origine";
+  return jetons.barres[t][v]?.teinte || (v.startsWith("#") ? v : jetons.barres[t].origine.teinte);
+}
+
+/** Le texte de l'application reste-t-il lisible sur cette barre (contraste 4,5 au moins) ? */
+export function barreLisible(hex, theme) {
+  const texte = hexVersRgb(theme === CLAIR ? jetons.couleurs_clair.encre : jetons.couleurs.encre);
+  const [a, b] = [luminance(hexVersRgb(hex)), luminance(texte)].sort((x, y) => y - x);
+  return (a + 0.05) / (b + 0.05) >= 4.5;
+}
+
+// Le sélecteur de couleur pense en teinte, saturation, valeur (le carré et le spectre).
+export const hexVersHsv = (hex) => {
+  const [r, g, b] = hexVersRgb(hex).map((c) => c / 255);
+  const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [((h * 60) + 360) % 360, max ? d / max : 0, max];
+};
+export const hsvVersHex = (h, s, v) => {
+  const f = (n) => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+  return `#${[f(5), f(3), f(1)].map((x) => Math.round(x * 255).toString(16).padStart(2, "0")).join("")}`;
+};
 
 /** L'accent choisi, en hexadécimal, pour un thème : ce que la page montre en pastille. */
-export const accentHex = (cle, theme) => (jetons.accents[cle] || jetons.accents.menthe)[theme === CLAIR ? "clair" : "sombre"];
+export const accentHex = (cle, theme) => (/^#[0-9a-f]{6}$/i.test(String(cle || "")) ? String(cle).toLowerCase() : (jetons.accents[cle] || jetons.accents.menthe)[theme === CLAIR ? "clair" : "sombre"]);
 
 /**
  * La famille d'un accent : les sept jetons que la menthe occupe, dérivés de
@@ -239,19 +286,34 @@ export function appliquerPrefs(brut) {
   // En anthracite, la barre de chat (et les bulles envoyées, qui partagent son
   // jeton) se confondrait avec le fond : elle prend la teinte de la barre de
   // navigation (décision du 3 oct. 2026).
-  poser("--k-barre-rgb", !clair && choixFond === "anthracite" ? triplet(hexVersRgb(jetons.couleurs.rail)) : null);
+  // La barre latérale choisie (9 oct. 2026) : elle et tous les panneaux en
+  // bg-rail prennent sa teinte ; la barre de chat la suit aussi dès qu'elle
+  // n'est plus celle d'origine. Le survol s'adapte : un voile clair sur une
+  // barre sombre, foncé sur une barre claire.
+  const choixBarre = p[clair ? "barre_clair" : "barre_sombre"];
+  const barre = hexVersRgb(barreHex(p, theme));
+  const barreChoisie = choixBarre !== "origine";
+  poser("--k-rail-rgb", barreChoisie ? triplet(barre) : null);
+  poser("--k-rail-actif", barreChoisie ? (luminance(barre) > 0.35 ? "rgba(28, 29, 28, 0.08)" : "rgba(242, 243, 245, 0.08)") : null);
+  poser("--k-barre-rgb", barreChoisie || (!clair && choixFond === "anthracite") ? triplet(barreChoisie ? barre : hexVersRgb(jetons.couleurs.rail)) : null);
 
   // Le fond des cartes à grille, des tableaux et des champs de recherche : la
   // teinte d'un onglet au repos, la surface à 60 % sur le fond choisi. Calculé
   // ici pour que le noir pur, l'anthracite ou le blanc aient chacun la leur.
   const surfacePleine = hexVersRgb((clair ? jetons.couleurs_clair : jetons.couleurs)["surface-pleine"]);
   const fondRgb = hexVersRgb(fond?.fond || (clair ? jetons.couleurs_clair : jetons.couleurs).fond);
-  poser("--k-carte-grille-rgb", triplet(surfacePleine.map((c, i) => Math.round(c * 0.6 + fondRgb[i] * 0.4))));
+  poser("--k-carte-grille-rgb", barreChoisie ? triplet(barre) : triplet(surfacePleine.map((c, i) => Math.round(c * 0.6 + fondRgb[i] * 0.4))));
 
   // Les surfaces : du verre, ou des aplats.
   const aplats = p.surfaces === "plein" ? jetons.surfaces_pleines[clair ? "clair" : "sombre"] : null;
-  poser("--k-surface", aplats ? aplats.surface : null);
-  poser("--k-relief", aplats ? aplats.relief : null);
+  // Une barre choisie l'emporte : toutes les cartes, panneaux et fenêtres
+  // prennent sa teinte (9 oct. 2026). Les champs et menus montent d'un cran,
+  // le relief (survol, case active) de deux, pour rester visibles dessus.
+  const cran = (d) => triplet(luminosite(barre, luminance(barre) > 0.35 ? -d : d));
+  poser("--k-surface", barreChoisie ? `rgb(${triplet(barre)})` : aplats ? aplats.surface : null);
+  poser("--k-relief", barreChoisie ? `rgb(${cran(0.06)})` : aplats ? aplats.relief : null);
+  poser("--k-surface-pleine-rgb", barreChoisie ? cran(0.03) : null);
+  poser("--k-barre-relief-rgb", barreChoisie ? cran(0.07) : null);
 
   // La police : la même partout, ALX compris, dès qu'on en choisit une.
   const police = p.police === "instrument" ? null : POLICES[p.police];

@@ -19,6 +19,8 @@ export const API_DES_PAGES = {
   Prospection: ['/api/prospection'],
   // Relances (7 oct. 2026) : sa page et le mode appel, qu'elle partage avec la Prospection.
   Relances: ['/api/prospection/relances', '/api/prospection/mode-appel', '/api/prospection/rappels'],
+  // Le Suivi : l'usage de chaque analyste et les règles de la nuit, fermés avec la page Suivi.
+  Monitoring: ['/api/monitoring/appels', '/api/monitoring/regles', '/api/monitoring/qualite-ak'],
   Emailing: ['/api/emailing'],
   ALX: ['/api/alx'],
 };

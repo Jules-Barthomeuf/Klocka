@@ -186,6 +186,17 @@ retire, « Annuler » et le bouton d'action en `bg-alerte`. Décision du
 **État vide** : une phrase `text-brume` centrée qui dit quoi faire
 (« Aucun mandat encore : dites au chat quel mandat vous préparez. »).
 
+**Vos présentations** (maquette de Jules, 12 oct. 2026) : la liste des
+documents sans colonne Auteur, avec Nom, Modifié et PDF (170 px). La date en
+tête de phrase (« À l'instant », « Il y a 48 min », « Hier », « Il y a
+9 jours », `depuisCourt`). Le PDF dit son état : « Génération 9/14 » en `bleu`
+pendant l'export, un bouton bordé `rounded-[10px]` avec la flèche et la date
+du dernier export (il télécharge ce fichier), ou « Non exporté » en `brume`.
+Sans photo de couverture, la vignette est `bg-surface` avec une icône d'écran.
+En tête, le titre et le nombre à côté, « Depuis un projet » et « Tout
+afficher » en liens à droite (cinq lignes, puis toutes). L'aperçu du PDF et
+la suppression sont dans le menu ⋯.
+
 **Fenêtres (pop-up)** : centrées sur la zone de contenu, pas sur l'écran
 (`md:left-[var(--k-barre-largeur)]`) ; voile sombre flouté ; Échap et clic
 dehors ferment. Bordure franche (`border-bord-vif`).

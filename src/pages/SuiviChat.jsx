@@ -62,6 +62,7 @@ function Echange({ id, onFerme }) {
           {(e.tours || []).map((t, i) => (
             <div key={i} className="rounded-bloc border border-trait px-4 py-3">
               <p className="m-0 text-[12px] text-ardoise">Tour {i + 1} · {t.stop_reason} · {t.jetons?.entree ?? 0} jetons en entrée, {t.jetons?.cache_lecture ?? 0} lus du cache, {t.jetons?.sortie ?? 0} en sortie{t.outils?.length ? ` · demande ${t.outils.join(", ")}` : ""}</p>
+              {t.reflexion && <p className="m-0 mt-1.5 whitespace-pre-wrap text-[12.5px] italic text-ardoise">Réflexion ({t.jetons?.reflexion ?? 0} jetons) : {t.reflexion}</p>}
               {t.texte && <p className="m-0 mt-1.5 whitespace-pre-wrap text-[13.5px] text-craie">{t.texte}</p>}
             </div>
           ))}

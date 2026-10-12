@@ -12,6 +12,7 @@
 // Chaque écriture revient avec de quoi l'annuler : le chat affiche « Relance
 // créée pour jeudi · Annuler ».
 
+import { effortDuChat } from './ak/effort.js';
 import { auBanc, SIMULES_MANDATAIRE, simule } from './ak/banc/garde.js';
 import { tracer } from './ak/trace.js';
 import { Records } from './db.js';
@@ -806,7 +807,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     : '';
   let prospectionModifiee = false;
   const trace = [];
-  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, journal: { chat: 'mandataire', par: user?.email || null }, signal,
+  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal,
     system: consigne() + cadre + surPage,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,

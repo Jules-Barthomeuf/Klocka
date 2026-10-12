@@ -8,6 +8,7 @@
 // garantie, assurance) ne se demande jamais. Le mandataire donne le mandant,
 // le bien, le prix, les honoraires, la durée.
 
+import { effortDuChat } from './ak/effort.js';
 import { Records } from './db.js';
 
 const ENTITE = 'MandatMandataire';
@@ -261,7 +262,7 @@ export async function discuterMandat({ historique = [], texte, user, surEtape = 
     .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
     .slice(-24)
     .map((m) => ({ role: m.role, content: m.contenu }));
-  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, journal: { chat: 'mandataire-mandat', par: user?.email || null },
+  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire-mandat', par: user?.email || null },
     system: `${CONSIGNE}\n\nNous sommes le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' })}.${contexte}`,
     messages,
     tools: OUTILS,

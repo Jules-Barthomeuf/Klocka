@@ -17,6 +17,7 @@
 // Une prospective lancée reste chez Data-B (« Prospectives réalisées ») ; on
 // garde ici le jeton et les critères, et on relit les pages à la demande.
 
+import { effortDuChat } from './ak/effort.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -443,7 +444,7 @@ Raccourcis : s'il dit tout d'un coup (« les boulangeries indépendantes à Mâc
     .slice(-16)
     .map((m) => ({ role: m.role, content: m.contenu }));
 
-  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, journal: { chat: 'mandataire-prospection', par: user?.email || null },
+  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire-prospection', par: user?.email || null },
     system: consigne,
     messages,
     tools: OUTILS_PROSPECTIVE,

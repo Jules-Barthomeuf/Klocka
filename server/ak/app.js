@@ -38,7 +38,7 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
 
 export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null }) {
-  const { consigne, OUTILS, executerOutil, MODELE } = await import('./agent.js');
+  const { consigne, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
   const { estEchec, journaliser } = await import('../assistant-journal.js');
@@ -134,6 +134,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   const { text, tours = null, limite = false } = await runAgent({
     journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
     signal,
+    effort: effortDuChat(),
     system: consigne() + CADRE_APP + cadrePage,
     messages,
     tools: OUTILS,

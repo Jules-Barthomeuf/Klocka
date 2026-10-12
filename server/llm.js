@@ -642,7 +642,7 @@ const MAX_TOOL_ROUNDS = 6;
  * @param {boolean} [opts.cache] - mettre la consigne et les outils en cache chez Anthropic : ils sont identiques
  *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
-export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null }) {
+export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null, effort = null }) {
   if (!llmEnabled) {
     return {
       text:
@@ -673,7 +673,7 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
   try {
     res = provider === 'gemini'
       ? await runAgentGemini({ system, messages, tools, onTool: onToolNote })
-      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal });
+      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort });
   } catch (e) { erreur = e; }
   if (journal) {
     const { noterEchange } = await import('./ak/journal-echanges.js');
@@ -727,7 +727,14 @@ async function runAgentGemini({ system, messages, tools, onTool }) {
   return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).' };
 }
 
-async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null }) {
+// La réflexion du modèle (12 oct. 2026, vérifié dans la doc d'Anthropic) : sur Opus 5.5 et Sonnet 5.5 elle est
+// adaptative et déjà active, mais cachée (« omitted »). On la demande en résumé pour la lire dans Suivi > Chat ;
+// les blocs repartent intacts au tour suivant, comme l'API l'exige pendant une boucle d'outils. Elle compte dans
+// max_tokens : 32 000 laissent la place à la réflexion et à la réponse.
+const REFLEXION = { type: 'adaptive', display: 'summarized' };
+const MAX_TOKENS_AGENT = 32000;
+
+async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null }) {
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   const modele = model || ANTHROPIC_MODEL;
   // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
@@ -741,7 +748,9 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
     if (signal?.aborted) return { text: 'Arrêté.', tours: i, arrete: true };
     const resp = await anthropic.messages.create({
       model: modele,
-      max_tokens: 16000,
+      max_tokens: MAX_TOKENS_AGENT,
+      thinking: REFLEXION,
+      ...(effort ? { output_config: { effort } } : {}),
       ...(systeme ? { system: systeme } : {}),
       ...(outils.length ? { tools: outils } : {}),
       messages: convo,
@@ -754,8 +763,9 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
       notes.tours.push({
         stop_reason: resp.stop_reason || null,
         texte: (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').slice(0, 4000),
+        reflexion: (resp.content || []).filter((b) => b.type === 'thinking' && b.thinking).map((b) => b.thinking).join('\n').slice(0, 4000) || null,
         outils: (resp.content || []).filter((b) => b.type === 'tool_use').map((b) => b.name),
-        jetons: { entree: u.input_tokens || 0, sortie: u.output_tokens || 0, cache_lecture: u.cache_read_input_tokens || 0, cache_ecriture: u.cache_creation_input_tokens || 0 },
+        jetons: { entree: u.input_tokens || 0, sortie: u.output_tokens || 0, reflexion: u.output_tokens_details?.thinking_tokens || 0, cache_lecture: u.cache_read_input_tokens || 0, cache_ecriture: u.cache_creation_input_tokens || 0 },
       });
     }
 

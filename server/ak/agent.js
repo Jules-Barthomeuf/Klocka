@@ -12,6 +12,7 @@
 // chat répond « envoie » ; c'est la veille qui l'envoie, pas le modèle.
 // L'outil d'envoi de l'assistant reste exclu : rien ne part sans avoir été lu.
 
+import { effortDuChat } from './effort.js';
 import { designActif } from './design.js';
 import { auBanc, SIMULES_AK, simule } from './banc/garde.js';
 import fs from 'fs';
@@ -36,6 +37,7 @@ const MAX_MESSAGES = 16;
 // il traduit des phrases courtes en appels d'outils, ce n'est pas la lecture
 // d'un bail. Vide : le modèle de la configuration.
 export const MODELE = (process.env.AK_MODELE || '').trim() || null;
+export { effortDuChat } from './effort.js';
 const ici = path.dirname(fileURLToPath(import.meta.url));
 const APP_URL = APP_URL_PROD || 'http://localhost:5173';
 
@@ -1359,6 +1361,7 @@ export async function repondre(message) {
   const outils = [];
   const { text } = await runAgent({
     journal: { chat: 'google-chat', par: user?.email || message?.auteur?.nom || null },
+    effort: effortDuChat(),
     system: consigne(),
     messages: historique,
     tools: OUTILS,

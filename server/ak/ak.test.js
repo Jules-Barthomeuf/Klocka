@@ -53,10 +53,11 @@ test("AK reconnaît ce qui lui est adressé, et ne se répond pas à lui-même",
 });
 
 test("la consigne est le document de Jules, mot pour mot, puis le cadre de la plateforme", () => {
-  assert.match(CONSIGNE, /^PERSONNALITÉ ET REGLES DE COMMUNICATION DE L'AGENT AK/);
-  assert.match(CONSIGNE, /"préz bancaire" \(jamais "présentation bancaire"\)/);
+  assert.match(CONSIGNE, /^PERSONNALITÉ ET RÈGLES DE COMMUNICATION DE L'AGENT AK/);
+  // 12 oct. 2026 : AK parle normalement, sans l'argot de l'équipe.
+  assert.match(CONSIGNE, /jamais « c bon », « dcp »/);
   assert.doesNotMatch(CONSIGNE, /maître/, 'un seul ton pour tout le monde');
-  assert.match(CONSIGNE, /Non je suis en train de faire autre chose rappelle-moi plus tard/);
+  assert.match(CONSIGNE, /Je termine autre chose, redemande-moi dans un instant/);
   const c = consigne();
   assert.ok(c.startsWith(CONSIGNE));
   // Le modèle n'envoie rien lui-même : c'est le « envoie » de la personne qui a lu le mail.

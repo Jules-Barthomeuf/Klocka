@@ -13,7 +13,7 @@ import { auBanc } from './banc/garde.js';
 const CADRE_APP = `
 
 TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Google Chat :
-- le même ton que l'équipe (le document au-dessus), mais une écriture normale : majuscules et ponctuation ; le markdown est retiré à l'affichage, n'en mets pas ; des retours à la ligne, et des tirets pour une liste quand elle aide ;
+- le ton du document au-dessus, en écriture normale ; le markdown est retiré à l'affichage, n'en mets pas ; des retours à la ligne, et des tirets pour une liste quand elle aide ;
 - pas de mention @, pas de pièce jointe à poster ;
 - les liens vers la plateforme en chemins relatifs (/Dossiers?deal_id=…, /Projet?id=…) ;
 - un mail rédigé (mail_agent, mail_libre, retoucher_brouillon) s'ouvre en brouillon sous ta réponse, à relire et envoyer d'un clic : dis-le en une ligne, ne le recopie pas ;

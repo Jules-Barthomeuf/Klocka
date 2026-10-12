@@ -19,7 +19,7 @@ TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Goo
 - un mail rédigé (mail_agent, mail_libre, retoucher_brouillon) s'ouvre en brouillon sous ta réponse, à relire et envoyer d'un clic : dis-le en une ligne, ne le recopie pas ;
 - une tâche de fond finie sera annoncée par une notification de l'application : dis « je te préviens quand c'est prêt ».`;
 
-const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version']);
+const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
 /**
@@ -132,6 +132,14 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   const actions = [];
   const outils = [];
   const trace = [];
+  // Ce que l'écran montre sous la réponse (1.8) : la fiche analysée, la fiche client à relire, les échéances, les liens d'une note d'appel.
+  const blocs = [];
+  const noterBloc = (nom, r) => {
+    if (nom === 'analyser_fiche' && r?.deal_id && r?.cree) blocs.push({ type: 'fiche', deal_id: r.deal_id });
+    if (nom === 'fiche_client_decouverte' && r?.champs) blocs.push({ type: 'client', champs: r.champs });
+    if (nom === 'echeances' && r?.ok && !blocs.some((b) => b.type === 'echeances')) blocs.push({ type: 'echeances' });
+    if (nom === 'note_d_appel' && r) blocs.push({ type: 'note', dossier: r.dossier?.lien || null, agent: r.agent?.url || null });
+  };
   const { text, tours = null, limite = false } = await runAgent({
     journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
     signal,
@@ -149,6 +157,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       outils.push(appel.name);
       surEtape?.(libelleOutil(appel.name, appel.input));
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
+      noterBloc(appel.name, resultat);
       if (!LECTURES.has(appel.name)) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user, via: "AK dans l'application" }); } catch (e) { console.warn('[ak app] journalisation impossible :', e?.message || e); }
@@ -183,5 +192,5 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     } catch (e) { console.warn('[ak app] sources de la LOI :', e?.message || e); }
   }
   try { noterEchange({ espace, auteur: message.auteur, demande: texte, reponse }); } catch { /* la mesure ne bloque pas la réponse */ }
-  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
+  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, blocs, ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
 }

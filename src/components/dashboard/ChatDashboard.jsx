@@ -1274,7 +1274,20 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       } else {
         pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra, ...(r.sources ? { sources: r.sources } : {}) });
         if (r.brouillon) setBrouillon(brouillonDepuis(r.brouillon));
-        setSuites(lireActions(r));
+        const suitesAk = lireActions(r);
+        // Ce qu'AK a choisi de faire et que l'écran montre (1.8) : la fiche analysée, la fiche client, les échéances, la note d'appel.
+        for (const b of r.blocs || []) {
+          if (b.type === "client") setFiche(b.champs);
+          if (b.type === "echeances") pousser({ role: "bloc", type: "echeances", donnees: {} });
+          if (b.type === "note") { if (b.dossier) suitesAk.push({ libelle: "Ouvrir le dossier", principal: true, href: b.dossier }); if (b.agent) suitesAk.push({ libelle: "Fiche Monday de l'agent", externe: b.agent }); }
+          if (b.type === "fiche") {
+            Promise.all([
+              base44.request("GET", `/api/preanalyse/dossiers/${b.deal_id}`).catch(() => null),
+              base44.request("GET", `/api/preanalyse/dossiers/${b.deal_id}/clients`).catch(() => null),
+            ]).then(([d, c]) => pousser({ role: "bloc", type: "fiche", donnees: { deal_id: b.deal_id, lot: d?.lots?.[0] || null, titre: d?.titre || null, clients: c?.clients || [] } }));
+          }
+        }
+        setSuites(suitesAk);
         onReponse?.(r);
       }
     },
@@ -1484,9 +1497,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       envoiEnVol.current = true; boite.mutate({ t, type: null, piece });
       return;
     }
-    // Une pièce et une phrase : AK lit les deux (vérifier une préz, ranger au Drive…). La pièce seule reste une fiche à analyser.
-    if (fichier && t && !prospection) {
-      pousser({ role: "user", contenu: `📎 ${fichier.name} — ${t}` });
+    // Une pièce, avec ou sans phrase (1.8) : AK la lit et décide (fiche à analyser, préz à vérifier, pièce à ranger…).
+    if (fichier && !prospection) {
+      pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
       setTexte("");
       setSuites([]);
       setEnCoursTexte("Je lis la pièce…");
@@ -1532,7 +1545,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     onFin: (t) => {
       if (envoiFait.current) { envoiFait.current = false; return; }
       // Une note d'appel dictée part seule (admin) ; le reste attend d'être relu.
-      if (!mandataire && /^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer([avantDictee.current, t].filter(Boolean).join(" "), "note");
+      // Elle part sans étiquette (1.8) : AK reconnaît lui-même une note d'appel.
+      if (!mandataire && /^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer([avantDictee.current, t].filter(Boolean).join(" "));
     },
   });
 

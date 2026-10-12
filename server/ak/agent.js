@@ -298,6 +298,22 @@ const OUTILS_AK = [
     description: "Cherche parmi les dossiers et projets de la plateforme ceux qui répondent à des critères : ville, prix max ou min, rendement FAI minimum en %, bail restant minimum en années, surface minimum, activité. Pour « t'as des murs à Lyon sous 500 k avec un bail de plus de 6 ans ? ».",
     input_schema: { type: 'object', properties: { ville: { type: 'string' }, prix_max: { type: 'number' }, prix_min: { type: 'number' }, rendement_min: { type: 'number' }, bail_min_ans: { type: 'number' }, surface_min: { type: 'number' }, activite: { type: 'string' } } },
   },
+  // Ce que le tri d'avant AK faisait seul (12 oct. 2026, 1.8) : désormais AK choisit, avec ces trois outils.
+  {
+    name: 'note_d_appel',
+    description: "Une note dictée ou collée dans le chat après un appel avec un agent immobilier ou un contact (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi », « eu au tel l'agent de Dieppe, pas de nouvelles »). Met à jour sa fiche dans Monday (date, remarques, prochaine relance) et le dossier si un bien est décrit. Le texte de la note tel quel.",
+    input_schema: { type: 'object', properties: { texte: { type: 'string', description: 'la note, telle qu’écrite ou dictée' } }, required: ['texte'] },
+  },
+  {
+    name: 'fiche_client_decouverte',
+    description: "Le compte rendu d'un appel de découverte avec un futur client investisseur (budget, apport, objectifs, secteurs) : en tire la fiche client, que la personne relit, corrige et crée elle-même sous ta réponse. Rien n'est créé par l'outil. Le compte rendu tel quel.",
+    input_schema: { type: 'object', properties: { texte: { type: 'string' } }, required: ['texte'] },
+  },
+  {
+    name: 'echeances',
+    description: "Ce qui attend : nos mails restés sans réponse, les promesses faites et pas tenues, les dossiers qui dorment. Les cartes s'affichent sous ta réponse : résume en une ligne (combien, le plus urgent).",
+    input_schema: { type: 'object', properties: {} },
+  },
   {
     name: 'verifier_presentation',
     description: "Relit une présentation jointe au message (projet de financement, préz bancaire, PDF ou Word) contre le projet de la plateforme (et son dossier) : chaque chiffre comparé, les calculs refaits (loyer au m², mensuel, indexation, cumuls, rendement), les cases restées vides. Ne crée rien. trouver_bien d'abord pour le projet_id (ou le deal_id).",
@@ -923,6 +939,19 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   if (name === 'souvenirs') return { souvenirs: souvenirs(200).filter((s) => !s.pour || s.pour === String(user?.email || '').toLowerCase()).map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait, personnelle: !!s.pour })) };
   if (name === 'verifier_renta') return verifierRenta(input);
   if (name === 'chercher_biens') { const biens = chercherBiens(input); return { biens, nombre: biens.length }; }
+  if (name === 'note_d_appel') {
+    const { traiterNoteAppel } = await import('../deal/appels.js');
+    return traiterNoteAppel(String(input.texte || ''), { user });
+  }
+  if (name === 'fiche_client_decouverte') {
+    const { extraireClient } = await import('../clients-decouverte.js');
+    return { ok: true, champs: await extraireClient(String(input.texte || ''), { par: user }), a_relire: 'la fiche s’affiche sous la réponse, à relire et créer' };
+  }
+  if (name === 'echeances') {
+    const { echeances } = await import('../deal/echeances.js');
+    const e = echeances();
+    return { ok: true, sans_reponse: e.sans_reponse.length, engagements: e.engagements.length, silencieux: e.silencieux.length, plus_urgent: e.sans_reponse[0] || e.engagements[0] || e.silencieux[0] || null };
+  }
   if (name === 'verifier_presentation') {
     const chemin = String(input.chemin || '');
     if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
@@ -1257,6 +1286,8 @@ CHERCHER
 - etat_dossier, etat_projet, verifier : dès qu'ils aident à répondre juste.
 
 DOSSIERS ET PROJETS
+- Une pièce jointe sans message : regarde ce que c'est (lire_piece). La fiche ou l'annonce d'un bien à vendre, c'est le cas le plus courant : analyser_fiche. Autre chose : dis en trois lignes ce que c'est et demande ce qu'il faut en faire.
+- Le compte rendu d'un appel de découverte avec un futur client (budget, apport, objectifs) : fiche_client_decouverte ; la fiche s'affiche sous ta réponse, dis-le en une ligne. « Qu'est-ce qui attend ? », « les relances », « ce qui n'a pas eu de réponse » : echeances.
 - Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une fiche COLLÉE dans le message (un mémorandum, une annonce, des lignes de description du bien) avec la même demande : analyser_fiche avec texte_du_message. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
 - « Crée le projet pour X », « rentre le projet dans la plateforme » : chercher_dossier puis creer_projet_depuis_dossier ; les photos jointes au message vont d'elles-mêmes dans les images du projet (dis combien en une demi-phrase). « Mets cette photo sur le projet X » : chercher_projet puis ajouter_photos_projet. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
 - Changer un chiffre d'un dossier (loyer, prix, surface, bail) : modifier_dossier, après trouver_bien pour le bon dossier.
@@ -1284,7 +1315,8 @@ LE MARCHÉ, DATA-B ET K-DATA
 - K-Data n'est pas encore au point : il ne part que si la personne le nomme. « Fais l'analyse K-Data » : demande d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms ; ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer K-Data sans demander (alors K-Zoning, K-Expertise et Estimation). Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
-- « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Un appel raconté après coup (« j'ai eu Rosario, pas de murs, mandat fin octobre ») : noter_appel avec le récit dans ses mots ; tes propositions sont postées par le code, ne les recopie pas. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
+- Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Monday de l'agent à jour. Une ligne pour dire ce qui est fait.
+- « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Un appel de la liste du jour de la Prospection raconté après coup (« j'ai eu Rosario, pas de murs, mandat fin octobre ») : noter_appel avec le récit dans ses mots ; tes propositions sont postées par le code, ne les recopie pas. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 
 LES TÂCHES DE FOND

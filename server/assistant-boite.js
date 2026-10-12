@@ -105,8 +105,13 @@ export async function traiterBoite({ texte, historique = [], user, type: force =
     const { repondreApp } = await import('./ak/app.js');
     return { type: 'assistant', tri: 'piece', ...(await repondreApp({ texte, historique, user, surEtape, contexte, pieces, estAnnule, signal, surTexte })) };
   }
-  if (!force) surEtape?.('Lecture du message');
-  const tri = force && TYPES.includes(force) ? { type: force, par: 'force' } : await classer(texte);
+  // Plus de tri d'avant AK (12 oct. 2026, 1.8) : sans mode choisi à la main, tout va à AK, qui décide avec ses outils
+  // (note d'appel, fiche, compte rendu client, échéances). Un mode choisi dans l'écran reste respecté.
+  if (!(force && TYPES.includes(force)) || force === 'assistant') {
+    const { repondreApp } = await import('./ak/app.js');
+    return { type: 'assistant', tri: 'ak', ...(await repondreApp({ texte, historique, user, surEtape, contexte, estAnnule, signal, surTexte })) };
+  }
+  const tri = { type: force, par: 'force' };
   const base = { type: tri.type, tri: tri.par };
   const MOTS_TRI = { note: "C'est une note d'appel", fiche: "C'est une fiche d'agent", client: "C'est un compte rendu de découverte", echeances: 'Vous demandez ce qui attend' };
   if (!force && MOTS_TRI[tri.type]) surEtape?.(MOTS_TRI[tri.type]);

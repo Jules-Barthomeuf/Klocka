@@ -226,7 +226,8 @@ export function monterAssistant(app) {
   // dorment — les cartes du mode « Échéances » du chat du tableau de bord.
   // La boîte : un seul chat, ce qu'on y met est trié et fait.
   app.post('/api/assistant/boite', upload.single('fichier'), wrap(async (req, res) => {
-    const texte = String(req.body?.texte || '').trim();
+    // Une pièce seule, sans message : AK regarde ce que c'est (1.8).
+    const texte = String(req.body?.texte || '').trim() || (req.file ? '(une pièce jointe, sans message)' : '');
     if (!texte) return res.status(400).json({ error: 'Rien à traiter.' });
     const user = currentUser(req);
     // Une pièce jointe avec une phrase (12 oct. 2026, « vérifie ma préz ») : elle part à AK avec le message.

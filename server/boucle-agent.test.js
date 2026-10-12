@@ -92,3 +92,14 @@ test('la consigne en blocs : un point de cache sur chaque bloc stable, aucun sur
 });
 
 test.after(() => L.brancherClientAgentPourTests(null));
+
+test('plus de tri d’avant AK : une note d’appel va à AK, qui choisit note_d_appel', async () => {
+  const c = fauxClient([{ stop_reason: 'end_turn', content: [texte('c bon, noté')] }]);
+  L.brancherClientAgentPourTests(c);
+  const { traiterBoite } = await import('./assistant-boite.js');
+  const r = await traiterBoite({ texte: "j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi", historique: [], user: { email: 'jules.b@klocka.immo' } });
+  assert.equal(r.tri, 'ak');
+  assert.equal(r.texte, 'c bon, noté');
+  assert.ok(c.requetes[0].tools.some((t) => t.name === 'note_d_appel'), 'AK a l’outil de la note d’appel');
+  L.brancherClientAgentPourTests(null);
+});

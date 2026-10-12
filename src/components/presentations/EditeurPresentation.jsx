@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import Deck, { poser } from "./Deck";
-import PanneauDeck from "./PanneauDeck";
+import PanneauDeck, { StylesElement } from "./PanneauDeck";
 import { ordreDuModele } from "@/lib/presentation-modele";
 
 // La présentation bancaire ouverte, à droite du chat de la page Présentations
@@ -27,7 +27,8 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
   const [mode, setMode] = useState("edition");
   const [courante, setCourante] = useState(null);
   const [selection, setSelection] = useState(null);
-  const [panneau, setPanneau] = useState(true);
+  // Le panneau des diapositives est fermé par défaut : la diapositive prend la place, on l'ouvre si on veut (12 oct. 2026).
+  const [panneau, setPanneau] = useState(false);
   const scene = useRef(null);
   // Les gestes faits, pour annuler : chacun garde l'état d'avant (une diapositive, ou l'ordre).
   const passe = useRef([]);
@@ -165,7 +166,7 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
           <button type="button" onClick={annuler} disabled={!passe.current.length} aria-label="Annuler" title="Annuler (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
           <button type="button" onClick={retablir} disabled={!futur.current.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
           <button type="button" onClick={pleinEcran} aria-label="Plein écran" title="Plein écran (lecture)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Maximize2 className="h-4 w-4" /></button>
-          <button type="button" onClick={() => setPanneau((v) => !v)} aria-pressed={panneau} aria-label="Panneau" title="Diapositives et élément" className={`grid h-8 w-8 place-items-center rounded-full ${panneau ? "bg-encre/[0.08] text-encre" : "text-ardoise hover:text-encre"}`} style={panneau ? undefined : { background: "transparent" }}><PanelRight className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setPanneau((v) => !v)} aria-pressed={panneau} aria-label="Diapositives" title="Diapositives" className={`grid h-8 w-8 place-items-center rounded-full ${panneau ? "bg-encre/[0.08] text-encre" : "text-ardoise hover:text-encre"}`} style={panneau ? undefined : { background: "transparent" }}><PanelRight className="h-4 w-4" /></button>
         </div>
         <div className="flex flex-none items-center gap-1.5 max-md:gap-1">
           <button type="button" onClick={() => exporter("pptx")} disabled={!data || !!export_}
@@ -205,18 +206,17 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
             </div>
           ) : (
             <div className="flex h-full flex-col">
-              <div className="min-h-0 flex-1 p-6 max-md:p-3">
+              <div className="relative min-h-0 flex-1 p-5 max-md:p-3">
                 <Deck diapos={diapos} courante={courantId} onCourante={(x) => { setCourante(x); setSelection(null); }} mode={mode}
                   selection={selection} onSelection={setSelection} onChange={changer} onPhoto={(diapo, chemin) => setPhotoDe({ diapo, chemin })} sceneRef={scene} />
+                {/* L'élément cliqué : son menu « Styles » flotte en haut à droite, comme dans l'avis de valeur. */}
+                {edition && selection && <StylesElement diapos={diapos} selection={selection} onChange={changer} onSelection={setSelection} />}
               </div>
-              <p className="m-0 flex-none px-6 pb-3 text-center text-[12.5px] text-brume max-md:hidden">
-                {edition ? "Cliquez un texte, un chiffre ou une photo pour le modifier ; les flèches et les repères changent de diapositive." : "Les flèches, les repères et le sommaire naviguent ; ← → au clavier ; plein écran pour présenter."}
-              </p>
             </div>
           )}
         </div>
         {panneau && data && !data.ancienne && (
-          <PanneauDeck diapos={diapos} courante={courantId} selection={selection} mode={mode} onAller={(x) => { setCourante(x); setSelection(null); }} onChange={changer} onOrdre={ordonner} onSelection={setSelection} />
+          <PanneauDeck diapos={diapos} courante={courantId} onAller={(x) => { setCourante(x); setSelection(null); }} onChange={changer} onOrdre={ordonner} onFermer={() => setPanneau(false)} />
         )}
       </div>
       {photoDe && data && <ChoixPhoto photos={data.photos_projet || []} onChoisir={poserPhoto} onFermer={() => setPhotoDe(null)} />}

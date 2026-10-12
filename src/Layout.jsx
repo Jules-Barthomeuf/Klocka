@@ -350,6 +350,8 @@ function LayoutContent({ children, currentPageName }) {
   // suit que la vue admin : un admin qui regarde la vue mandataire ou client
   // voit exactement ce que voit un mandataire ou un client.
   const vueAdmin = vue === "admin";
+  // L'agent testeur : un outil de super admin, qu'il peut masquer dans Personnalisation (12 oct. 2026).
+  const testeurVisible = vueAdmin && !!user?.gere_les_acces && prefs.agent_testeur !== "non";
   // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ou Relances ouvertes).
   const rappelOuvert = vueAdmin && !(pagesFermees.includes("Prospection") && pagesFermees.includes("Relances"));
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
@@ -732,7 +734,7 @@ function LayoutContent({ children, currentPageName }) {
                 </Link>
               )}
               <div className="flex items-center gap-1">
-                {vueAdmin && <BoutonTesteur compact vue={vue} />}
+                {testeurVisible && <BoutonTesteur compact vue={vue} />}
                 {rappelOuvert && <BoutonRappel compact />}
                 {/* La recherche : ⌘K n'existe pas au téléphone. */}
                 {vueAdmin && (
@@ -801,7 +803,7 @@ function LayoutContent({ children, currentPageName }) {
         <>
           <div id="k-haut-droite" className={`fixed ${rappelOuvert ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
-          <div className={`fixed ${rappelOuvert ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>
+          {testeurVisible && <div className={`fixed ${rappelOuvert ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
           {rappelOuvert && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
         </>
       )}

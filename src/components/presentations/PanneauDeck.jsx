@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Eye, EyeOff, Italic, Minus, Plus, RotateCcw } from "lucide-react";
+import React from "react";
+import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Eye, EyeOff, Italic, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { NOMS, dansLOrdreDuModele } from "@/lib/presentation-modele";
 import { PALETTE, lire } from "./Deck";
 
-// Le panneau à droite du deck, comme l'atelier de l'avis de valeur : les
-// diapositives (aller, masquer, réordonner) et l'élément choisi (sa mise en
-// forme). Une mise en forme se garde dans diapo.styles[chemin] ; le PPTX la lit.
+// Autour du deck (refait le 12 oct. 2026, Jules : « comme dans l'estimation ») :
+//  - le panneau des diapositives, à droite, fermé par défaut, qu'on ouvre si
+//    on veut (aller, masquer, réordonner, éléments masqués) ;
+//  - le menu « Styles » de l'élément cliqué en édition, flottant en haut à
+//    droite de la scène, au dessin de celui de l'avis de valeur (bg-rail,
+//    14 px, ombre douce) ; la croix, Échap ou un clic dans le vide le ferment.
+// Une mise en forme se garde dans diapo.styles[chemin] ; le PPTX la lit.
 
 /** Ce qu'on appelle un chemin, en clair. */
 export function libelleChemin(chemin) {
@@ -36,100 +40,40 @@ function Pastilles({ valeur, onChoisir }) {
   );
 }
 
-/**
- * @param {Array} diapos toutes les diapositives
- * @param {string} courante l'id de la diapositive affichée
- * @param {object|null} selection { diapo, chemin, taille }
- * @param {(id: string) => void} onAller
- * @param {(d: object) => void} onChange une diapositive retouchée (masquer, mise en forme)
- * @param {(ordre: string[]) => void} onOrdre
- * @param {"lecture"|"edition"} mode
- */
-export default function PanneauDeck({ diapos, courante, selection, onAller, onChange, onOrdre, onSelection, mode }) {
-  // Un élément choisi ouvre son onglet ; on peut revenir aux diapositives sans le désélectionner.
-  const [onglet, setOnglet] = useState("diapos");
-  useEffect(() => { if (selection && mode === "edition") setOnglet("element"); }, [selection?.diapo, selection?.chemin, mode]);
-  const ongletVu = onglet;
-  const dSel = selection ? diapos.find((x) => x.id === selection.diapo) : null;
-  const st = dSel?.styles?.[selection.chemin] || {};
-  const poserStyle = (patch) => {
+/** Retouche un style d'un élément : un patch fusionné, ou null pour revenir au modèle. */
+function retoucheur(dSel, chemin, onChange, onSelection) {
+  return (patch) => {
     if (!dSel) return;
     const styles = { ...(dSel.styles || {}) };
-    if (patch === null) delete styles[selection.chemin];
+    if (patch === null) delete styles[chemin];
     else {
-      const suivant = { ...(styles[selection.chemin] || {}), ...patch };
+      const suivant = { ...(styles[chemin] || {}), ...patch };
       for (const k of Object.keys(suivant)) if (suivant[k] === null || suivant[k] === false || suivant[k] === undefined) delete suivant[k];
-      if (Object.keys(suivant).length) styles[selection.chemin] = suivant; else delete styles[selection.chemin];
+      if (Object.keys(suivant).length) styles[chemin] = suivant; else delete styles[chemin];
     }
     onChange({ ...dSel, styles });
     if (patch?.masque) onSelection(null);
   };
-  const deplacer = (i, sens) => {
-    const ids = diapos.map((d) => d.id);
-    const j = i + sens;
-    if (j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-    onOrdre(ids);
-  };
+}
+
+/**
+ * Le menu « Styles » de l'élément choisi, flottant sur la scène.
+ * @param {object|null} selection { diapo, chemin, taille }
+ */
+export function StylesElement({ diapos, selection, onChange, onSelection }) {
+  const dSel = selection ? diapos.find((x) => x.id === selection.diapo) : null;
+  if (!dSel) return null;
+  const st = dSel.styles?.[selection.chemin] || {};
+  const poserStyle = retoucheur(dSel, selection.chemin, onChange, onSelection);
   const taille = st.taille ?? selection?.taille ?? null;
   const poserTaille = (t) => { if (t >= 8 && t <= 200) poserStyle({ taille: Math.round(t) }); };
-  const masques = diapos.flatMap((d) => Object.entries(d.styles || {}).filter(([, x]) => x?.masque).map(([chemin]) => ({ d, chemin })));
-
   return (
-    <aside className="flex w-[300px] flex-none flex-col border-l border-trait bg-rail max-md:hidden">
-      <div className="flex flex-none gap-1 border-b border-trait px-2 py-1.5">
-        {[["diapos", "Diapositives"], ["element", "Élément"]].map(([k, mot]) => (
-          <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={ongletVu === k}
-            className={`inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full text-[12.5px] ${ongletVu === k ? "bg-encre/[0.08] text-encre" : "text-ardoise hover:text-encre"}`} style={ongletVu === k ? undefined : { background: "transparent" }}>
-            {mot}
-          </button>
-        ))}
+    <div className="absolute right-4 top-4 z-10 flex max-h-[calc(100%-2rem)] w-[272px] flex-col rounded-[14px] border border-trait bg-rail shadow-[0_18px_40px_rgb(0_0_0/0.22)] max-md:right-2 max-md:top-2" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Mise en forme de l'élément">
+      <div className="flex flex-none items-center gap-2 border-b border-trait py-1.5 pl-4 pr-1.5">
+        <span className="min-w-0 flex-1 truncate text-[12px] text-craie" title={libelleChemin(selection.chemin)}>{NOMS[dSel.id]} › {libelleChemin(selection.chemin)}</span>
+        <button type="button" onClick={() => onSelection(null)} aria-label="Fermer" title="Fermer (Échap)" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-        {ongletVu === "diapos" ? (
-          <>
-            <p className="m-0 px-1 pb-2 text-[12.5px] text-ardoise">Un clic y va ; l'œil la masque, les flèches la déplacent.</p>
-            {!dansLOrdreDuModele(diapos) && (
-              <button type="button" onClick={() => onOrdre("modele")} className="mb-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-ambre/50 px-3 text-[12.5px] text-encre hover:border-ambre" style={{ background: "transparent" }}>
-                <ArrowUp className="h-3.5 w-3.5 text-ambre" />Remettre dans l'ordre du modèle
-              </button>
-            )}
-            {diapos.map((d, i) => {
-              const active = d.id === courante;
-              const rang = d.masquee ? null : diapos.slice(0, i + 1).filter((x) => !x.masquee).length;
-              return (
-                <div key={d.id} className={`group flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[13.5px] ${active ? "bg-encre/[0.08]" : "hover:bg-encre/[0.05]"} ${d.masquee ? "text-brume" : "text-encre"}`}>
-                  <span className="w-5 flex-none text-right text-[12px] tabular-nums text-brume">{rang ?? "·"}</span>
-                  <button type="button" onClick={() => onAller(d.id)} className="min-w-0 flex-1 truncate text-left" style={{ background: "transparent", color: "inherit" }}>{NOMS[d.id] || d.id}</button>
-                  <span className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                    <button type="button" onClick={() => deplacer(i, -1)} disabled={i === 0} aria-label="Monter" title="Monter" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><ArrowUp className="h-3.5 w-3.5" /></button>
-                    <button type="button" onClick={() => deplacer(i, 1)} disabled={i === diapos.length - 1} aria-label="Descendre" title="Descendre" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><ArrowDown className="h-3.5 w-3.5" /></button>
-                  </span>
-                  <button type="button" onClick={() => onChange({ ...d, masquee: !d.masquee })} aria-label={d.masquee ? "Afficher la diapositive" : "Masquer la diapositive"} title={d.masquee ? "Afficher" : "Masquer"}
-                    className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                    {d.masquee ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-              );
-            })}
-            {masques.length > 0 && (
-              <div className="mt-4 border-t border-trait pt-3">
-                <p className="m-0 px-1 pb-1.5 text-[12.5px] text-ardoise">Éléments masqués</p>
-                {masques.map(({ d, chemin }) => (
-                  <div key={`${d.id}.${chemin}`} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[13px] text-brume hover:bg-encre/[0.05]">
-                    <span className="min-w-0 flex-1 truncate">{NOMS[d.id]} › {libelleChemin(chemin)}</span>
-                    <button type="button" onClick={() => { const styles = { ...d.styles }; const s = { ...styles[chemin] }; delete s.masque; if (Object.keys(s).length) styles[chemin] = s; else delete styles[chemin]; onChange({ ...d, styles }); }} aria-label="Afficher" title="Afficher"
-                      className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Eye className="h-3.5 w-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        ) : !dSel ? (
-          <p className="m-0 px-1 text-[12.5px] leading-[1.6] text-ardoise">{mode === "edition" ? "Cliquez un texte, un chiffre ou une photo de la diapositive : sa mise en forme se règle ici." : "Passez en édition pour choisir un élément."}</p>
-        ) : (
-          <>
-            <p className="m-0 mb-2 truncate px-1 text-[12px] text-craie" title={libelleChemin(selection.chemin)}>{NOMS[dSel.id]} › {libelleChemin(selection.chemin)}</p>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
             {typeof lire(dSel, selection.chemin) === "string" || lire(dSel, selection.chemin) == null ? (
               <Groupe titre="Texte">
                 <div className="flex items-center gap-1">
@@ -178,8 +122,66 @@ export default function PanneauDeck({ diapos, courante, selection, onAller, onCh
                 )}
               </div>
             </Groupe>
-          </>
-        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Le panneau des diapositives : aller, masquer, réordonner, et les éléments masqués.
+ * @param {(ordre: string[] | "modele") => void} onOrdre
+ */
+export default function PanneauDeck({ diapos, courante, onAller, onChange, onOrdre, onFermer }) {
+  const deplacer = (i, sens) => {
+    const ids = diapos.map((d) => d.id);
+    const j = i + sens;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    onOrdre(ids);
+  };
+  const masques = diapos.flatMap((d) => Object.entries(d.styles || {}).filter(([, x]) => x?.masque).map(([chemin]) => ({ d, chemin })));
+  return (
+    <aside className="flex w-[280px] flex-none flex-col border-l border-trait bg-rail max-md:hidden">
+      <div className="flex h-11 flex-none items-center gap-2 border-b border-trait pl-4 pr-1.5">
+        <span className="flex-1 text-[11px] uppercase tracking-[.14em] text-brume">Diapositives</span>
+        <button type="button" onClick={onFermer} aria-label="Fermer le panneau" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            {!dansLOrdreDuModele(diapos) && (
+              <button type="button" onClick={() => onOrdre("modele")} className="mb-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-ambre/50 px-3 text-[12.5px] text-encre hover:border-ambre" style={{ background: "transparent" }}>
+                <ArrowUp className="h-3.5 w-3.5 text-ambre" />Remettre dans l'ordre du modèle
+              </button>
+            )}
+            {diapos.map((d, i) => {
+              const active = d.id === courante;
+              const rang = d.masquee ? null : diapos.slice(0, i + 1).filter((x) => !x.masquee).length;
+              return (
+                <div key={d.id} className={`group flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[13.5px] ${active ? "bg-encre/[0.08]" : "hover:bg-encre/[0.05]"} ${d.masquee ? "text-brume" : "text-encre"}`}>
+                  <span className="w-5 flex-none text-right text-[12px] tabular-nums text-brume">{rang ?? "·"}</span>
+                  <button type="button" onClick={() => onAller(d.id)} className="min-w-0 flex-1 truncate text-left" style={{ background: "transparent", color: "inherit" }}>{NOMS[d.id] || d.id}</button>
+                  <span className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                    <button type="button" onClick={() => deplacer(i, -1)} disabled={i === 0} aria-label="Monter" title="Monter" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => deplacer(i, 1)} disabled={i === diapos.length - 1} aria-label="Descendre" title="Descendre" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><ArrowDown className="h-3.5 w-3.5" /></button>
+                  </span>
+                  <button type="button" onClick={() => onChange({ ...d, masquee: !d.masquee })} aria-label={d.masquee ? "Afficher la diapositive" : "Masquer la diapositive"} title={d.masquee ? "Afficher" : "Masquer"}
+                    className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+                    {d.masquee ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              );
+            })}
+            {masques.length > 0 && (
+              <div className="mt-4 border-t border-trait pt-3">
+                <p className="m-0 px-1 pb-1.5 text-[12.5px] text-ardoise">Éléments masqués</p>
+                {masques.map(({ d, chemin }) => (
+                  <div key={`${d.id}.${chemin}`} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[13px] text-brume hover:bg-encre/[0.05]">
+                    <span className="min-w-0 flex-1 truncate">{NOMS[d.id]} › {libelleChemin(chemin)}</span>
+                    <button type="button" onClick={() => { const styles = { ...d.styles }; const s = { ...styles[chemin] }; delete s.masque; if (Object.keys(s).length) styles[chemin] = s; else delete styles[chemin]; onChange({ ...d, styles }); }} aria-label="Afficher" title="Afficher"
+                      className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Eye className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
       </div>
     </aside>
   );

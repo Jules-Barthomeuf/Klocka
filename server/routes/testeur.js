@@ -4,13 +4,15 @@
 
 import { ok, wrap, currentUser } from '../contexte.js';
 import { Records } from '../db.js';
+import { estSuperAdmin } from '../acces-pages.js';
 
 const R = () => import('../testeur/rapport.js');
 
 export function monterTesteur(app) {
+  // Réservé aux super admins (12 oct. 2026) : chaque audit ouvre un bac à sable et appelle le modèle.
   const admin = (req, res) => {
     const user = currentUser(req);
-    if (user?.role !== 'admin') { res.status(403).json({ error: 'Réservé à l\'équipe.' }); return null; }
+    if (user?.role !== 'admin' || !estSuperAdmin(user)) { res.status(403).json({ error: 'Réservé aux super admins.' }); return null; }
     return user;
   };
   const leger = (r) => ({ id: r.id, page: r.page, url: r.url, vue: r.vue, note: r.note, lance_par: r.lance_par, lance_le: r.lance_le, fini_le: r.fini_le, etat: r.etat, avancement: r.avancement, notes: r.notes, variation: r.variation, n_problemes: (r.problemes || []).length, n_bloquants: (r.problemes || []).filter((p) => p.gravite === 'bloquant').length, cout_usd: r.cout_usd ?? null, mail: r.mail || null, erreur: r.erreur || null });

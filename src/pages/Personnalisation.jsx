@@ -560,6 +560,12 @@ export default function Personnalisation() {
         <Reglage titre="Bulle de l'assistant" note="La pilule qui ouvre AK sur les pages de travail.">
           <Pilules valeur={prefs.assistant} options={OPTIONS.assistant} onChoisir={(v) => changer({ assistant: v })} />
         </Reglage>
+        {/* L'agent testeur est un outil de super admin (12 oct. 2026) : lui seul voit son bouton, et peut le masquer ici. */}
+        {user?.gere_les_acces && (
+          <Reglage titre="Agent testeur" note="Le bouton en haut à droite qui fait tester la page ouverte par l'agent. Réservé aux super admins.">
+            <Pilules valeur={prefs.agent_testeur} options={OPTIONS.agent_testeur} onChoisir={(v) => changer({ agent_testeur: v })} />
+          </Reglage>
+        )}
       </section>
       )}
 

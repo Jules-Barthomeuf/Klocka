@@ -46,6 +46,7 @@ export const DEFAUT = Object.freeze({
   grille: ["panneaux", "listes"], // où poser la grille de points : panneaux | listes | barre | fond
   grille_intensite: 50, // la force des points, de 10 (à peine) à 100 (marqués) ; 50 : celle d'origine
   points_actions: "oui", // les points dans la fenêtre des actions proposées (8 oct. 2026) : oui | non
+  agent_testeur: "oui", // le bouton « Tester cette page avec l'agent », pour un super admin (12 oct. 2026) : oui | non
 });
 
 /** Les choix offerts, dans l'ordre où la page les montre : [valeur, libellé]. */
@@ -64,6 +65,7 @@ export const OPTIONS = {
   assistant: [["droite", "En bas à droite"], ["gauche", "En bas à gauche"], ["masquee", "Masquée"]],
   grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes et mode appel"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
   points_actions: [["oui", "Avec des points"], ["non", "Sans points"]],
+  agent_testeur: [["oui", "Affiché"], ["non", "Masqué"]],
 };
 
 /** Les polices, telles que le CSS les lit. Toutes sont déjà chargées (index.html). */

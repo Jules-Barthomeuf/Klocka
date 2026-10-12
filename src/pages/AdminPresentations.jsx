@@ -132,7 +132,7 @@ export default function AdminPresentations() {
   );
 
   return (
-    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
+    <div className="k-page-presentation relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
       <div className={scinde ? "grid h-[100dvh] grid-cols-[minmax(360px,440px)_minmax(0,1fr)] overflow-hidden" : ""}>
         <div className={scinde ? (conversation ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8") : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
@@ -159,7 +159,7 @@ export default function AdminPresentations() {
 
       {/* Au téléphone : la présentation par-dessus tout, on la ferme pour revenir au chat. */}
       {!large && courante && ouverteTel && createPortal(
-        <div className="fixed inset-0 z-[70]" style={{ background: "rgb(var(--k-fond-rgb))" }}>
+        <div className="k-presentation-tel fixed inset-0 z-[70]" style={{ background: "rgb(var(--k-fond-rgb))" }}>
           <EditeurPresentation key={courante} id={courante} travail={travail} onFermer={() => { if (conversation) setOuverteTel(false); else setCourante(null); }} />
         </div>,
         document.body,

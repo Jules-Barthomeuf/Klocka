@@ -12,6 +12,7 @@
 // chat répond « envoie » ; c'est la veille qui l'envoie, pas le modèle.
 // L'outil d'envoi de l'assistant reste exclu : rien ne part sans avoir été lu.
 
+import { auBanc, SIMULES_AK, simule } from './banc/garde.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -595,6 +596,8 @@ export function dejaFait(cle, gestes, maintenant = Date.now()) {
 }
 
 export async function executerOutil(appel, user, options = {}) {
+  // Le banc d'essai : ce qui sortirait de la plateforme est simulé.
+  if (auBanc() && SIMULES_AK.has(appel?.name)) return simule(appel.name);
   // Aucun outil ne doit faire tomber le tour : une exception devient un refus
   // propre, dit en clair au modele, et la vraie erreur part dans les logs.
   try {

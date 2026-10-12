@@ -712,10 +712,11 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
         .map((b) => b.text)
         .join('\n')
         .trim(),
+      tours: i + 1,
     };
   }
 
-  return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).' };
+  return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).', tours: MAX_TOOL_ROUNDS, limite: true };
 }
 
 /**

@@ -580,6 +580,8 @@ export async function rendrePptx(diapos, { titre = '' } = {}) {
   visibles.forEach((d, i) => {
     const s = pptx.addSlide();
     s.background = { color: C.sauge };
+    // Le numéro en filigrane, sous tout le reste : 390 px, gras, encre à 10 %.
+    ecrire(s, String(i + 1).padStart(2, '0'), { x: 34, y: 64, w: 600, h: 390, taille: 390, couleur: C.encre, bold: true, transparency: 90, charSpacing: -24, valign: 'top' });
     heros(s, d, i, total);
     barre(s, d, i, total, logo);
     boite(s, { ...CARTE, fond: d.type === 'merci' ? C.noir : d.type === 'emplacement' && cartes.get(d) ? null : C.carte, bord: 84, rayon: 28 });
@@ -625,12 +627,23 @@ function barre(s, d, i, total, logo) {
   if (logo) s.addImage({ data: `data:image/png;base64,${logo}`, x: pouces(48), y: pouces(y + 27.5), w: pouces(108), h: pouces(17) });
   ecrire(s, texte(d.etape).toUpperCase(), { x: 184, y: y + 26, w: 230, h: 20, taille: 12.5, couleur: C.clair, charSpacing: 1.2 });
   const x0 = 442;
-  const x1 = 1140;
+  const x1 = 1090;
   const part = (i + 0.5) / total;
   s.addShape('rect', { x: pouces(x0), y: pouces(y + 35), w: pouces(x1 - x0), h: pouces(2), fill: { color: C.filet, transparency: 84 }, line: { type: 'none' } });
   s.addShape('rect', { x: pouces(x0), y: pouces(y + 35), w: pouces((x1 - x0) * part), h: pouces(2), fill: { color: C.sauge }, line: { type: 'none' } });
+  // Un repère par diapositive : passés et courant en sauge, à venir en clair.
+  const pas = (x1 - x0) / total;
+  for (let k = 0; k < total; k++) {
+    s.addShape('roundRect', { x: pouces(x0 + (k + 0.5) * pas - 1), y: pouces(y + 32), w: pouces(2), h: pouces(8), rectRadius: pouces(1), fill: k <= i ? { color: C.sauge } : { color: C.filet, transparency: 60 }, line: { type: 'none' } });
+  }
   s.addShape('ellipse', { x: pouces(x0 + (x1 - x0) * part - 8), y: pouces(y + 28), w: pouces(16), h: pouces(16), fill: { color: C.sauge }, line: { type: 'none' } });
-  ecrire(s, `${String(i + 1).padStart(2, '0')} / ${total}`, { x: x1 + 20, y: y + 26, w: 1232 - x1 - 20, h: 20, taille: 13, couleur: C.clair, align: 'right' });
+  ecrire(s, `${String(i + 1).padStart(2, '0')} / ${total}`, { x: x1 + 12, y: y + 26, w: 60, h: 20, taille: 13, couleur: C.clair, align: 'right', charSpacing: 1 });
+  // Les deux flèches : précédente à contour, suivante pleine (sans action dans un PPTX).
+  const fy = y + 14;
+  s.addShape('ellipse', { x: pouces(1176), y: pouces(fy), w: pouces(44), h: pouces(44), fill: { type: 'none' }, line: { color: C.filet, width: 0.75, transparency: 76 } });
+  ecrire(s, '←', { x: 1176, y: fy, w: 44, h: 44, taille: 18, couleur: C.ivoire, align: 'center' });
+  s.addShape('ellipse', { x: pouces(1228), y: pouces(fy), w: pouces(44), h: pouces(44), fill: { color: C.sauge }, line: { type: 'none' } });
+  ecrire(s, '→', { x: 1228, y: fy, w: 44, h: 44, taille: 18, couleur: C.encre, align: 'center' });
 }
 
 const X = CARTE.x;
@@ -760,12 +773,19 @@ const DESSINS = {
     es.forEach((e, k) => {
       const x = X + 32 + (k % 3) * (cw + g);
       const y = Y + 32 + Math.floor(k / 3) * (ch + g);
-      boite(s, { x, y, w: cw, h: ch, rayon: 18, bord: 92, fond: C.case });
-      boite(s, { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, rayon: 10, fond: C.ivoire });
+      // La sixième tuile reste un emplacement libre, en pointillé, tant qu'elle n'a pas d'enseigne.
+      const libre = k === 5 && /^\[/.test(texte(e.nom));
+      boite(s, { x, y, w: cw, h: ch, rayon: 18, bord: libre ? 76 : 92, fond: libre ? null : C.case, pointille: libre });
       const b64 = img(e.logo);
-      if (b64) s.addImage({ data: `data:image/png;base64,${b64}`, x: pouces(x + 34), y: pouces(y + 24), w: pouces(cw - 68), h: pouces(ch - 110), sizing: { type: 'contain', w: pouces(cw - 68), h: pouces(ch - 110) } });
-      else ecrire(s, '[Logo]', { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, taille: 13, couleur: '6F716E', align: 'center' });
-      ecrire(s, e.nom, { x: x + 14, y: y + ch - 66, w: cw - 28, h: 24, taille: 17 });
+      if (libre && !b64) {
+        boite(s, { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, rayon: 10, bord: 76, pointille: true });
+        ecrire(s, '[Logo]', { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, taille: 13, couleur: C.gris, align: 'center' });
+      } else {
+        boite(s, { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, rayon: 10, fond: C.ivoire });
+        if (b64) s.addImage({ data: `data:image/png;base64,${b64}`, x: pouces(x + 34), y: pouces(y + 24), w: pouces(cw - 68), h: pouces(ch - 110), sizing: { type: 'contain', w: pouces(cw - 68), h: pouces(ch - 110) } });
+        else ecrire(s, '[Logo]', { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, taille: 13, couleur: '6F716E', align: 'center' });
+      }
+      ecrire(s, e.nom, { x: x + 14, y: y + ch - 66, w: cw - 28, h: 24, taille: 17, couleur: libre ? C.clair : C.ivoire });
       ecrire(s, e.secteur, { x: x + 14, y: y + ch - 40, w: cw - 28, h: 20, taille: 13, couleur: C.gris });
     });
   },

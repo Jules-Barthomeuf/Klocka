@@ -257,8 +257,11 @@ titre qui porte la diapositive, l'accroche, la note, calés en bas), une carte
 sombre à droite (le détail), une barre noire en bas (logo, étape, frise). Sa
 palette est celle du dossier, dans `presentation-bancaire.css`, comme un
 document imprimé ; les mesures communes à l'écran et au PPTX sont dans
-`src/lib/presentation-modele.js`. Les animations du modèle (travelling, 3D)
-ne sont pas reprises : l'éditeur et le PPTX sont à plat. Ce qui reste à
+`src/lib/presentation-modele.js`. Le numéro de la diapositive en filigrane (390 px, encre à 10 %), les seize
+repères de la frise et les deux flèches rondes sont repris en image ; les
+animations du modèle (travelling, 3D, cascade) ne le sont pas : l'éditeur et
+le PPTX sont à plat. La sixième tuile d'enseigne reste en pointillé tant
+qu'elle est libre. Ce qui reste à
 remplir s'écrit entre crochets (« [Prénom NOM] »). Tout s'y modifie : un
 texte au clic, une photo au clic, une liste par « + » et « × ». Au-dessus de
 chaque diapositive, son numéro et son nom, puis monter, descendre et masquer

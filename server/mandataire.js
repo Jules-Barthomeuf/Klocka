@@ -12,6 +12,8 @@
 // Chaque écriture revient avec de quoi l'annuler : le chat affiche « Relance
 // créée pour jeudi · Annuler ».
 
+import { auBanc, SIMULES_MANDATAIRE, simule } from './ak/banc/garde.js';
+import { tracer } from './ak/trace.js';
 import { Records } from './db.js';
 
 const norme = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -435,6 +437,7 @@ function trouverParBien(entite, bien, user) {
 }
 
 export async function executerOutilMandataire(appel, user, contexte = {}) {
+  if (auBanc() && SIMULES_MANDATAIRE.has(appel?.name)) return simule(appel.name);
   // Meme filet que cote AK : une exception d'outil devient un refus propre.
   try {
     return await executerOutilMandataireBrut(appel, user, contexte);
@@ -802,11 +805,12 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     ? `\n\nLe mandataire regarde sa prospection « ${ouverte.nom} » (${ouverte.criteres?.ville || 'son secteur'} ; activités : ${(ouverte.criteres?.activites || []).join(', ') || 'toutes'} ; emplacement : ${ouverte.criteres?.emplacement == null ? 'tous' : ouverte.criteres.emplacement === 1.5 ? '1 bis' : `n°${ouverte.criteres.emplacement}`}). Une demande qui change ce qu'on cherche (activité, emplacement) passe par affiner_prospection ; réponds ensuite en une phrase ce qui a changé.`
     : '';
   let prospectionModifiee = false;
-  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null,
+  const trace = [];
+  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null,
     system: consigne() + cadre + surPage,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,
-    onTool: async (appel) => {
+    onTool: tracer(async (appel) => {
       // Stop : plus aucune écriture, le modèle est prié de conclure sur l'acquis.
       if (estAnnule?.()) return { ok: false, error: 'Le mandataire a arrêté la demande : ne fais plus rien, dis en une ligne ce qui a déjà été fait.' };
       surEtape?.(libelleOutil(appel.name, appel.input));
@@ -838,7 +842,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
       // Chaque action part tout de suite vers l'écran : un Stop n'efface pas l'acquis.
       for (const a of actions.slice(avant)) surAction?.(a);
       return r;
-    },
+    }, trace),
   });
-  return { texte: String(text || '').trim(), actions, brouillon, ...(prospectionModifiee ? { prospection_modifiee: true } : {}) };
+  return { texte: String(text || '').trim(), actions, brouillon, trace, tours, ...(limite ? { limite } : {}), ...(prospectionModifiee ? { prospection_modifiee: true } : {}) };
 }

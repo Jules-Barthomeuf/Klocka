@@ -1,0 +1,365 @@
+[
+ {
+  "id": "01",
+  "note": "Générer la préz bancaire de Libourne",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Fais la présentation du projet de libourne.",
+  "piece": null,
+  "reponse_d_origine": "C bon, préz bancaire Libourne (Chocolaterie Tarnaise) générée, ouverte à droite. Manque encore porteur, destinataire, CV et structuration si tu veux que je les mette.",
+  "source": "10101dd0-f019-467c-abed-225847484097"
+ },
+ {
+  "id": "02",
+  "note": "Relire une préz jointe contre le projet",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Vérifie que tout est correct et en accord avec le dossier de Libourne.",
+  "piece": {
+   "chemin": "server/uploads/1791805577178-6daffe4e-Projet_de_financement_____Chocolaterie_-_10_Place_Abel_Surchamp__33500_Libourne-1.pdf",
+   "nom": "Projet de financement — Chocolaterie - 10 Place Abel Surchamp, 33500 Libourne-1.pdf",
+   "type": "application/pdf"
+  },
+  "reponse_d_origine": "Le point bloquant : le prix \"droits inclus\" page 8 oublie les 8% de droits d'enregistrement, ça devrait être 361 800 € et pas 335 000 €. A corriger aussi : le taux d'intérêt non chiffré (3,7% dispo) et le cumul loyers net année 20 qui dérape de quelques euros dès l'année 6. A vérifier : le loyer de marché affiché 150-180 €/m² est 3x en dessous du loyer réel (558 €/m²), ça sent le chiffre pas sourcé, et la fourchette prix/m² est plus étroite que celle de la plateforme. Sinon pas mal de champs encore génériques à remplir (page1, CV porteur, structuration, contact) avant envoi.",
+  "source": "7485165c-fc99-4e18-87fb-b522d111f396"
+ },
+ {
+  "id": "03",
+  "note": "LOI : deux biens avenue Mirabeau, il faut demander lequel",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "offres",
+  "historique": [],
+  "texte": "Fais l'offre d'olivier luccioni sur le bien avenue mirabeau",
+  "piece": null,
+  "reponse_d_origine": "2 résultats : 1) Basic Fit, 15 avenue Mirabeau Antibes, 4 123 000€ (projet). 2) Cookietelier, 1 avenue Mirabeau Nice, 220 000€ (dossier). Lequel ?",
+  "source": "d7995fe1-ae31-431b-939a-58cd51715bb1"
+ },
+ {
+  "id": "04",
+  "note": "LOI : « Odiep » est une coquille de dictée pour Dieppe",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "offres",
+  "historique": [],
+  "texte": "Fais l'offre pour Rachel Perabou pour le projet d'Odiep, 42 rue Saint-Jacques.",
+  "piece": null,
+  "reponse_d_origine": "Trouvé, c'est Diamond Shop à Dieppe (Odiep = coquille de dictée). Pour la LOI il me manque : société acquéreur de Rachel Perabou + son adresse, le vendeur (société et représentant) + adresse, le prix proposé et l'apport.",
+  "source": "fc38319c-80dc-4a9f-b878-bf21633eeed0"
+ },
+ {
+  "id": "05",
+  "note": "Échec connu : dossier de Dieppe introuvable alors que le projet existe",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "offres",
+  "historique": [],
+  "texte": "Tu fasses une offre pour Rachel Peyrabout, pour le dossier de Dieppe.",
+  "piece": null,
+  "reponse_d_origine": "Aucun dossier Dieppe trouvé chez moi. T'es sûr du nom ou de la ville ?",
+  "source": "78660a81-db0a-4ec8-b49c-fbd23a030eb2"
+ },
+ {
+  "id": "06",
+  "note": "Échec connu : indexation ILC 2010 → 2026, il n’a pas les indices",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "J'ai un bail d'attente de 2010, je veux savoir avec l'indexation combien le loyer est de en 2026. Le loyer de base c'était 12 000 euros par an en 2010.",
+  "piece": null,
+  "reponse_d_origine": "j'ai pas les valeurs d'indices (ilc/icc) en mémoire pour te sortir le chiffre exact, dcp je peux pas inventer. tu sais quel indice est prévu au bail (ilc, icc ou ilat) et son trimestre de référence ? si c'est un dossier précis je peux check le bail avec interroger_documents pour avoir la clause d'indexation exacte.",
+  "source": "7bf4c044-ec57-4394-a1ef-fec8262a31a2"
+ },
+ {
+  "id": "07",
+  "note": "Échec connu : trois scénarios d’indexation",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "J'ai un bail d'attente de 2010, je veux savoir avec l'indexation combien le loyer est de en 2026. Le loyer de base c'était 12 000 euros par an en 2010."
+   },
+   {
+    "role": "assistant",
+    "contenu": "j'ai pas les valeurs d'indices (ilc/icc) en mémoire pour te sortir le chiffre exact, dcp je peux pas inventer. tu sais quel indice est prévu au bail (ilc, icc ou ilat) et son trimestre de référence ? si c'est un dossier précis je peux check le bail avec interroger_documents pour avoir la clause d'indexation exacte."
+   }
+  ],
+  "texte": "C'était l'ILC. Mais donne-moi les trois scénarios. Je veux les différents scénarios possibles avec les différents... Indice.",
+  "piece": null,
+  "reponse_d_origine": "j'ai pas les séries ILC réelles en mémoire (c'est de la donnée insee, pas un outil que j'ai), donc je peux pas te sortir des vrais chiffres sans inventer un truc faux. la seule façon propre c'est si c'est un dossier chez nous avec le bail joint — je check la clause exacte et les indices appliqués avec interroger_documents. t'as un deal_id ou c'est un cas théorique ?",
+  "source": "7bf4c044-ec57-4394-a1ef-fec8262a31a2"
+ },
+ {
+  "id": "08",
+  "note": "Ce qu’il sait faire",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "J'ai un bail d'attente de 2010, je veux savoir avec l'indexation combien le loyer est de en 2026. Le loyer de base c'était 12 000 euros par an en 2010."
+   },
+   {
+    "role": "assistant",
+    "contenu": "j'ai pas les valeurs d'indices (ilc/icc) en mémoire pour te sortir le chiffre exact, dcp je peux pas inventer. tu sais quel indice est prévu au bail (ilc, icc ou ilat) et son trimestre de référence ? si c'est un dossier précis je peux check le bail avec interroger_documents pour avoir la clause d'indexation exacte."
+   },
+   {
+    "role": "user",
+    "contenu": "C'était l'ILC. Mais donne-moi les trois scénarios. Je veux les différents scénarios possibles avec les différents... Indice."
+   },
+   {
+    "role": "assistant",
+    "contenu": "j'ai pas les séries ILC réelles en mémoire (c'est de la donnée insee, pas un outil que j'ai), donc je peux pas te sortir des vrais chiffres sans inventer un truc faux. la seule façon propre c'est si c'est un dossier chez nous avec le bail joint — je check la clause exacte et les indices appliqués avec interroger_documents. t'as un deal_id ou c'est un cas théorique ?"
+   }
+  ],
+  "texte": "Cite-moi. tous tes skills et ce que tu sais faire.",
+  "piece": null,
+  "reponse_d_origine": "en vrac c'que je sais faire :\n\ndossiers : chercher/créer un dossier, pousser sur monday, créer le drive, état du dossier, vérifier ce qui manque, extraire les docs, interroger les docs (bail/pv/rcp...), ajouter un document, renommer, supprimer, avis_dossier, verifier_renta\n\nprojets plateforme : chercher/état projet, créer le projet depuis un dossier, ajouter des photos, pousser sur monday, générer la préz bancaire\n\nfinance : simuler un dossier (négo, apport, taux, durée), rédiger une loi\n\ndata marché : data-b (valeur locative, cessions de fonds, étude d'implantation, proprio), marché d'une vil",
+  "source": "7bf4c044-ec57-4394-a1ef-fec8262a31a2"
+ },
+ {
+  "id": "09",
+  "note": "Échec connu : modifier le loyer du dossier Nutrition, a dit ne pas avoir l’outil",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "J'ai un bail d'attente de 2010, je veux savoir avec l'indexation combien le loyer est de en 2026. Le loyer de base c'était 12 000 euros par an en 2010."
+   },
+   {
+    "role": "assistant",
+    "contenu": "j'ai pas les valeurs d'indices (ilc/icc) en mémoire pour te sortir le chiffre exact, dcp je peux pas inventer. tu sais quel indice est prévu au bail (ilc, icc ou ilat) et son trimestre de référence ? si c'est un dossier précis je peux check le bail avec interroger_documents pour avoir la clause d'indexation exacte."
+   },
+   {
+    "role": "user",
+    "contenu": "C'était l'ILC. Mais donne-moi les trois scénarios. Je veux les différents scénarios possibles avec les différents... Indice."
+   },
+   {
+    "role": "assistant",
+    "contenu": "j'ai pas les séries ILC réelles en mémoire (c'est de la donnée insee, pas un outil que j'ai), donc je peux pas te sortir des vrais chiffres sans inventer un truc faux. la seule façon propre c'est si c'est un dossier chez nous avec le bail joint — je check la clause exacte et les indices appliqués avec interroger_documents. t'as un deal_id ou c'est un cas théorique ?"
+   },
+   {
+    "role": "user",
+    "contenu": "Cite-moi. tous tes skills et ce que tu sais faire."
+   },
+   {
+    "role": "assistant",
+    "contenu": "en vrac c'que je sais faire :\n\ndossiers : chercher/créer un dossier, pousser sur monday, créer le drive, état du dossier, vérifier ce qui manque, extraire les docs, interroger les docs (bail/pv/rcp...), ajouter un document, renommer, supprimer, avis_dossier, verifier_renta\n\nprojets plateforme : chercher/état projet, créer le projet depuis un dossier, ajouter des photos, pousser sur monday, générer la préz bancaire\n\nfinance : simuler un dossier (négo, apport, taux, durée), rédiger une loi\n\ndata marché : data-b (valeur locative, cessions de fonds, étude d'implantation, proprio), marché d'une ville, chercher_biens par critères\n\nmails : lire la boîte reçue, lire un mail, mails d'un dossier, préanalyser un mail, faire_tout sur un mail, déposer un mail sur un dossier, mail à l'agent (refus/relance/demande docs/abandon/présentation), mail libre, retoucher un brouillon\n\nprospection : alx (lancer, sociétés, messages, appels), appels du jour, noter un appel, ajouter un prospect, chercher des agents, créer une fiche agent\n\ndivers : agenda/rdv, drive (chercher/ranger), plan du jour, registre des engagements (noter/tenir), mémoire (retenir/oublier/souvenirs), historique des actions, annuler la dernière, k-data (sur demande explicite), version de la plateforme, lancer_design pour changer la plateforme elle-même\n\nce que j'ai pas : aucune base d'indices (ilc/icc/ilat) ni accès web, je sors rien de la plateforme ou des docs qu'on a."
+   }
+  ],
+  "texte": "dans le dossier toutes la nutrition, je veux que tu modifies le loyer de 30 000€ actuellement ment en 18 490 euros.",
+  "piece": null,
+  "reponse_d_origine": "j'ai pas d'outil pour modifier le loyer direct sur un dossier existant, dcp je peux pas changer ça à la main. par contre je peux rejouer la simu avec simuler_dossier si tu veux voir ce que ça donne à 18 490 au lieu de 30k, tu veux ça ?",
+  "source": "7bf4c044-ec57-4394-a1ef-fec8262a31a2"
+ },
+ {
+  "id": "10",
+  "note": "Loyer de marché au m², rue Notre-Dame-de-Lorette",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Euh, le loyer au mètre carré moyen pour un local de 45 m² à Pa Paris, rue de la Lorette, 45 rue de la Lorette, je crois que c'est. Tu sais, c'est le truc toutes les nu- toute la nutrition. Je veux que tu me donnes le loyer moyen autour.",
+  "piece": null,
+  "reponse_d_origine": "rue Notre-Dame de Lorette ça se loue entre 708 et 1062 €/m²/an, donc pour tes 45 m² ça fait grosso modo 31,9k à 47,8k € HT HC annuel. c'est rangé sur le projet Toute la nutrition.",
+  "source": "c119cbe7-4d9a-422c-8729-fc0bdea31a06"
+ },
+ {
+  "id": "11",
+  "note": "Calcul au m² et marge de hausse (suite)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "Euh, le loyer au mètre carré moyen pour un local de 45 m² à Pa Paris, rue de la Lorette, 45 rue de la Lorette, je crois que c'est. Tu sais, c'est le truc toutes les nu- toute la nutrition. Je veux que tu me donnes le loyer moyen autour."
+   },
+   {
+    "role": "assistant",
+    "contenu": "rue Notre-Dame de Lorette ça se loue entre 708 et 1062 €/m²/an, donc pour tes 45 m² ça fait grosso modo 31,9k à 47,8k € HT HC annuel. c'est rangé sur le projet Toute la nutrition."
+   }
+  ],
+  "texte": "mis à 18 490 € hors taxes hors charges par mois, ça fait combien du coup au mètre carré ? Et est-ce que je peux l'augmenter ? Si oui, de combien ? Tu penses que c'est à peu près un loyer Bien pour un truc comme ça.",
+  "piece": null,
+  "reponse_d_origine": "18490x12=221880€/an, /45m² ça fait environ 4930€/m²/an. la fourchette marché c'est 708-1062€/m²/an, donc là c'est genre 5x le marché, totalement hors clous. aucune marge pour augmenter, c'est même largement au-dessus de ce qui se loue dans le quartier.",
+  "source": "c119cbe7-4d9a-422c-8729-fc0bdea31a06"
+ },
+ {
+  "id": "12",
+  "note": "Mail à un agent pour la fiche commerciale",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Demande la fiche commerciale du bien 20 pl nationale antibes auprès de jules.btmf@gmail.com. Précise : surface utile, état locatif, charges, taxe foncière.",
+  "piece": null,
+  "reponse_d_origine": "Le brouillon est prêt à relire dans la fenêtre dédiée, destiné à jules.btmf@gmail.com, demandant la fiche commerciale du 20 Place Nationale à Antibes avec surface utile, état locatif, charges et taxe foncière. Dis-moi si je l'envoie.",
+  "source": "ecbf2f1f-8171-4e08-b0d6-9ebcf9fdce13"
+ },
+ {
+  "id": "13",
+  "note": "Chercher des murs sous 500 k avec bail > 3 ans",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "t'as des murs sous 500k avec un bail de plus de 3 ans ?",
+  "piece": null,
+  "reponse_d_origine": "ouais j'en ai 4 : librairie à Lyon 296k (6,83%, bail 3,3 ans), local opticien à Lyon 400k (7%, bail 4,3 ans, y'en a 2 doublons GO sous réserve), et un local commerce à Paris 1er 350k (8,06%, bail 3,4 ans). le Paris a la meilleure renta.",
+  "source": "7f41c544-c776-463c-8e7f-7c89cae1cd7b"
+ },
+ {
+  "id": "14",
+  "note": "Vérifier la renta de Devred Firminy",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "vérifie la renta de devred firminy",
+  "piece": null,
+  "reponse_d_origine": "rendement ça tourne, 9,07% AEM, mais le bail c'est limite : 1,4 an restant. dcp c'est jouable mais faut sécuriser un renouvellement avant de s'engager.",
+  "source": "de57d1be-d845-474e-8d57-c53a5e95bc56"
+ },
+ {
+  "id": "15",
+  "note": "K-Data sur Devred : doit demander les outils",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "fais l'analyse k data sur devred firminy et mets dans le dossier",
+  "piece": null,
+  "reponse_d_origine": "tu veux quels outils : kzoning, kexpertise, kestimation, kprospective, kfoncier, valeur-locative, kvacance, ktransactions ? dis-moi lesquels et j'ajuste les réglages si besoin.",
+  "source": "6969f06d-26f0-4c79-af97-b642908926d6"
+ },
+ {
+  "id": "16",
+  "note": "Échec connu : K-Data sur « le dossier de Cannes », rien trouvé",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "crée le projet pour devred de firminy"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Le projet existe déjà, rav de le recréer : http://localhost:5173/projet/d03ba809-a922-4126-90ea-9d7481021341\n\nPar contre 2 trous sur le dossier : le bien n'est pas dans Monday (Propriétés), et l'agent n'a pas d'adresse mail donc pas de fiche agent possible. Je le pousse dans Monday ?"
+   }
+  ],
+  "texte": "fais l'analyse k data sur le dossier de cannes et mets dans le dossier",
+  "piece": null,
+  "reponse_d_origine": "J'ai rien sur Cannes en préanalyse, aucun dossier ne sort. Tu as un autre nom ou une adresse ? Ou c'est un projet plateforme plutôt qu'un dossier ?\n\nDès que j'ai le bon dossier, tu me dis quels outils : K-Zoning (rayon), K-Expertise (activité), Estimation (activité), K-Prospective (métier + rayon), K-Foncier, Valeur locative, K-Vacance (rayon), K-Transactions (profondeur). Je lance rien tant que t'as pas choisi.",
+  "source": "1d31cfab-32f5-4915-a470-93ccd452a8ab"
+ },
+ {
+  "id": "17",
+  "note": "Question de droit : 3-6-9 contre dérogatoire",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "c'est quoi la différence entre un bail 3-6-9 et un bail dérogatoire ?",
+  "piece": null,
+  "reponse_d_origine": "bail 3-6-9 c'est le classique commercial : 9 ans minimum, le locataire peut sortir à chaque échéance triennale (d'où le nom), droit au renouvellement et à l'indemnité d'éviction si le bailleur refuse. protection forte pour le preneur.\n\nle dérogatoire (ou bail précaire) c'est une exception : max 3 ans au total, pas de statut des baux commerciaux, pas de droit au renouvellement ni d'indemnité d'éviction. utile pour tester un local ou une activité avant de s'engager. attention si les parties restent dans les lieux après le terme sans le formaliser, ça bascule automatiquement en bail commercial cl",
+  "source": "75700b79-d53e-47b9-8c2e-41c219474b09"
+ },
+ {
+  "id": "18",
+  "note": "Créer une newsletter de 8 mails (geste long, plusieurs étapes)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "emailing",
+  "historique": [],
+  "texte": "Créé la newsletter pour 8 mails, avec de la valeur à chaque fois. Le but n'est pas de vendre.",
+  "piece": null,
+  "reponse_d_origine": "c bon, 8 mails sur essai webinaire, tous les 14j à partir du 20/10, rien d'inventé niveau chiffres :\nj0 rendement affiché vs réel, j14 bail commercial, j28 emplacement, j42 lecture banque + simulateur, j56 erreurs fréquentes, j70 fiscalité, j84 valeur locative, j98 checklist LOI + feuille de route.\n\nj'ai mis les deux ctas (simulateur, feuille de route) sur les mails 4 et 8 seulement, le reste c'est que du contenu. éventuellement on pourrait varier un peu plus le ton entre les mails et ajouter un vrai cas concret si t'en as un en tête, sinon je laisse comme ça.",
+  "source": "496b63b4-36c2-4112-881c-e877f74feee0"
+ },
+ {
+  "id": "19",
+  "note": "Mandataire : valeur du local de la boulangerie rue Carnot",
+  "chat": "mandataire",
+  "user": "test.mandataire@kpartners.fr",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "Qu'est-ce qu'il me manque pour le dossier du pressing ?"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Il n'y a pas encore de dossier ouvert pour le pressing, seulement l'estimation en brouillon. Pour constituer le dossier il faudra le bail (déjà déposé pour l'estimation, à réintégrer), les quittances de loyer, les diagnostics et la taxe foncière, qui sont obligatoires ; le Kbis du locataire et le règlement de copropriété sont facultatifs. Ça se gère depuis la page Dossier."
+   },
+   {
+    "role": "user",
+    "contenu": "Ajoute Mme Petit"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Ajouter Mme Petit à quoi exactement : un rappel, un rendez-vous, ou aux pièces du dossier ?"
+   },
+   {
+    "role": "user",
+    "contenu": "Qu'est-ce que cherchent les clients sur Mâcon ?"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Aucune demande investisseur enregistrée sur Mâcon pour l'instant."
+   }
+  ],
+  "texte": "Combien vaut à peu près le local de la boulangerie rue Carnot ?",
+  "piece": null,
+  "reponse_d_origine": "Sur la rue Carnot, les fourchettes indicatives tournent autour de 90 à 150 €/m²/an pour le secteur proche, et jusqu'à 240-360 €/m² selon une autre source plus optimiste côté centre-ville. C'est large et purement indicatif (Equimmox/Data-B), pas une estimation officielle : celle-ci ne sort qu'après validation Klocka sur la page Estimation.",
+  "source": "e1f27fd0-4fca-4584-9872-810e92766839"
+ },
+ {
+  "id": "20",
+  "note": "Mandataire : date floue « la semaine pro »",
+  "chat": "mandataire",
+  "user": "test.mandataire@kpartners.fr",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "Donne-moi le nom et le téléphone du client qui cherche de l'alimentaire"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Je ne peux pas te communiquer le nom ni le contact des clients Klocka, cette relation reste anonyme chez Klocka. Je peux par contre te dire ce qu'ils recherchent (secteur, budget, type de bien) si ça t'aide."
+   },
+   {
+    "role": "user",
+    "contenu": "Montre-moi les prospects de l'autre mandataire à Lyon"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Je n'ai accès qu'aux propriétaires et dossiers de ton secteur (Mâconnais), pas aux prospects d'un autre mandataire ni d'un autre secteur comme Lyon."
+   },
+   {
+    "role": "user",
+    "contenu": "Ajoute la boulangerie place Bellecour à Lyon"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Bellecour est à Lyon, hors de ton secteur Mâconnais. Ce commerce se signale directement à Klocka, je ne crée rien ici."
+   }
+  ],
+  "texte": "euh ouais donc le mec du tabac là il m'a dit de le rappeler genre la semaine pro ou un truc comme ça",
+  "piece": null,
+  "reponse_d_origine": "Je te propose jeudi 8 octobre à 9h pour le rappeler, ça te va ?",
+  "source": "e1f27fd0-4fca-4584-9872-810e92766839"
+ }
+]

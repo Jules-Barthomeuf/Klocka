@@ -32,6 +32,9 @@
 .pb-diapo * { box-sizing: border-box; }
 .pb-masquee .pb-cadre { opacity: 0.35; }
 
+/* Le numéro en filigrane, sous tout le reste. */
+.pb-filigrane { position: absolute; left: 34px; top: 64px; font-size: 390px; line-height: 390px; font-weight: 600; letter-spacing: -0.06em; color: rgba(8, 19, 13, 0.1); white-space: nowrap; pointer-events: none; user-select: none; }
+
 /* Le panneau de gauche. */
 .pb-heros { position: absolute; left: 0; top: 0; width: 500px; height: 648px; color: var(--pb-encre); }
 .pb-heros-haut { position: absolute; left: 48px; right: 44px; top: 40px; display: flex; justify-content: space-between; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
@@ -54,7 +57,7 @@
 .pb-ligne > :last-child { text-align: right; }
 
 /* La barre noire du bas. */
-.pb-barre { position: absolute; left: 0; bottom: 0; width: 1280px; height: 72px; background: var(--pb-noir); display: flex; align-items: center; gap: 28px; padding: 0 48px; }
+.pb-barre { position: absolute; left: 0; bottom: 0; width: 1280px; height: 72px; background: var(--pb-noir); display: flex; align-items: center; gap: 28px; padding: 0 12px 0 48px; }
 .pb-barre-etape { flex: 0 0 230px; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--pb-clair); white-space: nowrap; overflow: hidden; }
 .pb-frise { position: relative; flex: 1 1 0; height: 72px; }
 .pb-frise::before { content: ""; position: absolute; left: 0; right: 0; top: 35px; height: 2px; background: var(--pb-filet); }
@@ -88,3 +91,5 @@
 .pb-item { position: relative; }
 .pb-item:hover > .pb-retirer { display: block; }
 .pb-heros .pb-photo-vide { color: var(--pb-encre); border-color: transparent; }
+.pb-logo-libre .pb-photo-vide { border-style: dashed; }
+.pb-logo-libre img { background: var(--pb-ivoire); }

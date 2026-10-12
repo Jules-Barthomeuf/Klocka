@@ -8,6 +8,8 @@
 //  - une tâche de fond (LOI, K-Data, préz, prospection ALX) s'annonce, finie,
 //    par une notification de l'application.
 
+import { tracer } from './trace.js';
+import { auBanc } from './banc/garde.js';
 const CADRE_APP = `
 
 TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Google Chat :
@@ -128,13 +130,14 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   const apres = [];
   const actions = [];
   const outils = [];
-  const { text } = await runAgent({
+  const trace = [];
+  const { text, tours = null, limite = false } = await runAgent({
     system: consigne() + CADRE_APP + cadrePage,
     messages,
     tools: OUTILS,
     model: MODELE,
     cache: true,
-    onTool: async (appel) => {
+    onTool: tracer(async (appel) => {
       outils.push(appel.name);
       surEtape?.(libelleOutil(appel.name, appel.input));
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
@@ -143,7 +146,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user: { ...user, email: `${user?.email} (AK dans l'application)` } }); } catch (e) { console.warn('[ak app] journalisation impossible :', e?.message || e); }
       }
       return resultat;
-    },
+    }, trace),
   });
 
   // Le mail rédigé : le brouillon qu'AK garde pour cet espace.
@@ -154,7 +157,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     if (b) brouillon = { destinataire: b.a || '', objet: b.objet || '', corps: b.corps || '', deal_id: b.deal_id || null, intention: b.intention || null, ak_id: b.id };
   }
   // Les tâches de fond partent, et s'annonceront par une notification.
-  if (fond.length) {
+  if (fond.length && !auBanc()) {
     const { lancerTachesApp } = await import('./veille.js');
     lancerTachesApp(fond, user);
   }
@@ -172,5 +175,5 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     } catch (e) { console.warn('[ak app] sources de la LOI :', e?.message || e); }
   }
   try { noterEchange({ espace, auteur: message.auteur, demande: texte, reponse }); } catch { /* la mesure ne bloque pas la réponse */ }
-  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), ...(sources ? { sources } : {}) };
+  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
 }

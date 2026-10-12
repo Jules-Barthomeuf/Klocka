@@ -43,11 +43,11 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 ## Ce que l'IA coûte
 
-28,71 € sur la période, 1 345 appels, 7 555 k jetons. 36 % part en tâche de fond, sans que personne clique. 44 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+28,89 € sur la période, 1 350 appels, 7 560 k jetons. 36 % part en tâche de fond, sans que personne clique. 44 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,0089 € par appel | 547 | 7,34 € | — |
+| Non attribué (fond) | 0,0089 € par appel | 551 | 7,50 € | — |
 | Demander quelque chose à AK | 0,06 € par demande | 42 | 4,27 € | 14 s |
 | Demander quelque chose à l'assistant (mandataire) | 0,01 € par demande | 107 | 2,53 € | 22 s |
 | Retrouver l’annonce en ligne (fond) | 0,18 € par bien | 8 | 2,40 € | 1 min |
@@ -62,7 +62,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,60 €) · relecture de préz (0,42 €) · template depuis une capture (0,03 €) · POST /api/prospection/rappels/:id/analyser (0,02 €) · fil dossier (0,01 €) · POST /api/prospection/mode-appel/pre-lecture (0,0098 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,60 €) · relecture de préz (0,42 €) · template depuis une capture (0,03 €) · POST /api/prospection/rappels/:id/analyser (0,02 €) · POST /api/admin/presentations-bancaires/:id/reconstruire (0,01 €) · fil dossier (0,01 €).
 
 ## Les leviers sur la dépense
 

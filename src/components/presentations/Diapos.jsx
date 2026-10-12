@@ -180,15 +180,19 @@ const CARTES = {
   ),
   enseignes: ({ d, set, photo }) => (
     <div style={{ height: "100%", padding: 32, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gridTemplateRows: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-      {(d.enseignes || []).slice(0, 6).map((e, k) => (
-        <div key={k} style={{ borderRadius: 18, background: "var(--pb-verre)", border: "1px solid var(--pb-filet-doux)", padding: 14, display: "flex", flexDirection: "column", gap: 12, minHeight: 0 }}>
-          {photo(`enseignes.${k}.logo`, { flex: "1 1 0", minHeight: 0, borderRadius: 10, background: "var(--pb-ivoire)" }, "[Logo]", "pb-logo")}
+      {(d.enseignes || []).slice(0, 6).map((e, k) => {
+        // La sixième tuile reste un emplacement libre, en pointillé, tant qu'elle n'a pas d'enseigne.
+        const libre = k === 5 && /^\[/.test(String(e.nom || "")) && !e.logo;
+        return (
+        <div key={k} style={{ borderRadius: 18, background: libre ? "transparent" : "var(--pb-verre)", border: libre ? "1px dashed var(--pb-pointille)" : "1px solid var(--pb-filet-doux)", padding: 14, display: "flex", flexDirection: "column", gap: 12, minHeight: 0 }}>
+          {photo(`enseignes.${k}.logo`, { flex: "1 1 0", minHeight: 0, borderRadius: 10, background: libre ? "transparent" : "var(--pb-ivoire)" }, "[Logo]", libre ? "pb-logo pb-logo-libre" : "pb-logo")}
           <div>
             <Champ valeur={e.nom} onGarde={(v) => set(`enseignes.${k}.nom`, v)} style={{ fontSize: 17 }} />
             <Champ valeur={e.secteur} onGarde={(v) => set(`enseignes.${k}.secteur`, v)} className="pb-gris" style={{ fontSize: 13 }} />
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   ),
   marche: ({ d, set }) => {
@@ -401,8 +405,14 @@ function Barre({ d, set, rang, total }) {
       <div className="pb-frise">
         <div style={{ position: "absolute", left: 0, top: 35, height: 2, width: `${part}%`, background: "var(--pb-sauge)" }} />
         {rang ? <div style={{ position: "absolute", left: `${part}%`, top: 28, width: 16, height: 16, marginLeft: -8, borderRadius: 9999, background: "var(--pb-sauge)", boxShadow: "0 0 0 5px rgba(150,192,184,.25)" }} /> : null}
+        {Array.from({ length: total }, (_, k) => (
+          <span key={k} style={{ position: "absolute", left: `${((k + 0.5) / total) * 100}%`, top: 32, width: 2, height: 8, marginLeft: -1, borderRadius: 2, background: rang && k < rang ? "var(--pb-sauge)" : "rgba(242,243,245,.4)" }} />
+        ))}
       </div>
-      <span style={{ fontSize: 13, letterSpacing: ".08em", color: "var(--pb-clair)" }}>{rang ? `${String(rang).padStart(2, "0")} / ${total}` : "—"}</span>
+      <span style={{ fontSize: 13, letterSpacing: ".08em", color: "var(--pb-clair)", whiteSpace: "nowrap" }}>{rang ? `${String(rang).padStart(2, "0")} / ${total}` : "—"}</span>
+      {/* Les flèches du modèle, en image : le PPTX n'a pas de clic. */}
+      <span aria-hidden style={{ width: 44, height: 44, borderRadius: 9999, border: "1px solid var(--pb-pointille)", display: "grid", placeItems: "center", color: "var(--pb-ivoire)", fontSize: 18 }}>←</span>
+      <span aria-hidden style={{ width: 44, height: 44, borderRadius: 9999, background: "var(--pb-sauge)", display: "grid", placeItems: "center", color: "var(--pb-encre)", fontSize: 18, marginLeft: -20 }}>→</span>
     </div>
   );
 }
@@ -434,6 +444,7 @@ export default function Diapo({ d, rang, total, onChange, onPhoto }) {
   return (
     <div ref={cadre} className="pb pb-cadre">
       <div className="pb-diapo" style={{ transform: `scale(${echelle})`, height: HAUTEUR }}>
+        {rang ? <span aria-hidden className="pb-filigrane">{String(rang).padStart(2, "0")}</span> : null}
         <Heros d={d} set={set} rang={rang} total={total} photo={photo} />
         <div className="pb-carte" style={d.type === "merci" ? { background: "var(--pb-noir)" } : undefined}>
           {Contenu ? <Contenu d={d} set={set} photo={photo} /> : null}

@@ -23,7 +23,7 @@ export function depuis(iso, maintenant = Date.now()) {
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", ...(d.getFullYear() !== new Date(maintenant).getFullYear() ? { year: "numeric" } : {}) });
 }
 
-/** Pure : la date d'une ligne, en tête de phrase (« Il y a 48 min », « Hier », « 4 oct. »). */
+/** Pure : la date d'une ligne, en tête de phrase (« Il y a 48 min », « Hier », « Il y a 9 jours », puis « 4 oct. » au-delà d'un mois). */
 export function depuisCourt(iso, maintenant = Date.now()) {
   const t = iso ? Date.parse(iso) : NaN;
   if (!Number.isFinite(t)) return "";
@@ -33,7 +33,8 @@ export function depuisCourt(iso, maintenant = Date.now()) {
   const jour = (d) => new Date(d).toDateString();
   if (s < 86400 && jour(t) === jour(maintenant)) return `Il y a ${Math.round(s / 3600)} h`;
   if (jour(t) === jour(maintenant - 86400000)) return "Hier";
-  if (s < 8 * 86400) return `Il y a ${Math.max(2, Math.round(s / 86400))} jours`;
+  // En jours jusqu'à un mois (« Il y a 9 jours », maquette de Jules), puis la date.
+  if (s < 31 * 86400) return `Il y a ${Math.max(2, Math.round(s / 86400))} jours`;
   const d = new Date(t);
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", ...(d.getFullYear() !== new Date(maintenant).getFullYear() ? { year: "numeric" } : {}) });
 }

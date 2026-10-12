@@ -8,7 +8,7 @@ import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
-import { EnTeteListe, LigneDocument, Vignette, depuisCourt } from "@/components/ui/liste-documents";
+import { depuisCourt } from "@/components/ui/liste-documents";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 import ApercuPdf from "@/components/presentations/ApercuPdf";
 
@@ -129,30 +129,32 @@ export default function AdminPresentations() {
   };
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
 
-  // La liste (maquette de Jules, 12 oct. 2026) : Nom, Modifié, PDF, et les cinq dernières tant qu'on n'a pas tout affiché.
-  const LIMITE = 5;
+  // La liste (maquette de Jules, 12 oct. 2026) : Nom, Modifié, PDF, et les quatre dernières tant qu'on n'a pas tout affiché.
+  const LIMITE = 4;
   const affichees = toutes ? presentations : presentations.slice(0, LIMITE);
   const liste = (
-    <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[1100px]"}>
-      <div className="flex items-center justify-between gap-3 pb-4">
-        <div className="flex items-baseline gap-3">
-          <h2 className="m-0 text-[20px] font-normal tracking-[-0.01em] text-encre">Vos présentations</h2>
+    <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[750px]"}>
+      <div className="flex items-center justify-between gap-3 pb-[14px]">
+        <div className="flex items-baseline gap-[10px]">
+          <h2 className="m-0 text-[19px] font-medium tracking-[-0.01em] text-encre">Vos présentations</h2>
           {presentations.length > 0 && <span className="text-[15px] text-ardoise tabular-nums">{presentations.length}</span>}
         </div>
-        <div className="flex items-center gap-5">
-          <button type="button" onClick={() => setChoixProjet(true)} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Depuis un projet</button>
-          {presentations.length > LIMITE && (
-            <button type="button" onClick={() => setToutes(!toutes)} className="text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{toutes ? "Réduire" : "Tout afficher"}</button>
-          )}
-        </div>
+        {presentations.length > LIMITE && (
+          <button type="button" onClick={() => setToutes(!toutes)} className="text-[14px] text-craie hover:text-encre" style={{ background: "transparent" }}>{toutes ? "Réduire" : "Tout afficher"}</button>
+        )}
       </div>
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
       ) : !presentations.length ? (
-        <p className="py-12 text-center text-[14px] text-brume">Aucune présentation encore : nommez un projet au chat, ou partez de la liste des projets.</p>
+        <p className="py-12 text-center text-[14px] text-brume">
+          Aucune présentation encore : nommez un projet au chat, ou{" "}
+          <button type="button" onClick={() => setChoixProjet(true)} className="text-craie underline underline-offset-2 hover:text-encre" style={{ background: "transparent" }}>partez de la liste des projets</button>.
+        </p>
       ) : (
         <div className="border-y border-trait">
-          <EnTeteListe auteur={false} droite="PDF" largeurDroite={170} />
+          <div className={`${COLONNES} h-[41px] border-b border-trait text-[12.5px] text-brume max-md:hidden`}>
+            <span className="pl-3">Nom</span><span>Modifié</span><span>PDF</span><span />
+          </div>
           {affichees.map((p) => (
             <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)} onPdf={() => setPdfDe(p)} onSupprimer={() => supprimer.mutate(p.id)} />
           ))}
@@ -232,19 +234,22 @@ export default function AdminPresentations() {
 /** L'état du PDF d'une présentation : en génération, à télécharger (avec sa date), ou pas encore exporté. */
 function EtatPdf({ p }) {
   if (p.pdf_en_cours) {
-    return <span className="text-[13.5px] text-bleu tabular-nums">Génération {Math.min(p.pdf_en_cours.fait + 1, p.pdf_en_cours.total)}/{p.pdf_en_cours.total}</span>;
+    return <span className="text-[13px] text-bleu tabular-nums">Génération {Math.min(p.pdf_en_cours.fait + 1, p.pdf_en_cours.total)}/{p.pdf_en_cours.total}</span>;
   }
   if (p.pdf_url && p.pdf_le) {
     const date = new Date(p.pdf_le).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
     return (
       <a href={p.pdf_url} download={`${p.titre || "presentation"}.pdf`} title={`Télécharger le PDF du ${quand(p.pdf_le)}`}
-        className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-bord-doux px-3.5 text-[13.5px] text-encre no-underline hover:border-menthe">
+        className="inline-flex h-[34px] items-center gap-2 rounded-[7px] border border-bord-doux bg-surface px-3 text-[13px] text-encre no-underline hover:border-bord-vif">
         <Download className="h-3.5 w-3.5" />{date}
       </a>
     );
   }
-  return <span className="text-[13.5px] text-brume">Non exporté</span>;
+  return <span className="text-[13px] text-brume">Non exporté</span>;
 }
+
+/** Les colonnes de la liste (maquette de Jules, 12 oct. 2026) : Nom, Modifié, PDF, le menu. */
+const COLONNES = "grid grid-cols-[minmax(0,1fr)_137px_170px_43px] items-center max-md:grid-cols-[minmax(0,1fr)_auto_43px]";
 
 /** Une présentation de la liste : la couverture, le titre et son détail, la date, le PDF, le menu. */
 function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
@@ -257,36 +262,40 @@ function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
   const action = "flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px]";
   return (
     <>
-      <LigneDocument active={active} onOuvrir={onOuvrir} reserve={48} colonneAuteur={false} largeurDroite={170}
-        titre={titre} detail={detail} modifie={p.maj_le} modifieLibelle={depuisCourt(p.maj_le)}
-        vignette={<Vignette photo={p.photo} titre={p.titre} icone={Monitor} />}
-        droite={<span aria-hidden className="block h-9 max-md:hidden" />}
-        menu={(
-          <div ref={zone} className="contents">
-            {/* Le PDF, posé sur sa colonne hors du bouton de la ligne : son lien se clique seul. */}
-            <div className="pointer-events-none absolute right-12 top-1/2 flex w-[170px] -translate-y-1/2 items-center max-md:static max-md:mt-2 max-md:w-auto max-md:translate-y-0 max-md:pl-[102px]">
-              <span className="pointer-events-auto"><EtatPdf p={p} /></span>
-            </div>
-            <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
-              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-ardoise transition-colors hover:text-encre max-md:top-3 max-md:h-10 max-md:w-10 max-md:translate-y-0" style={{ background: "transparent" }}>
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-            {menu && (
-              <div className="absolute right-1 top-[calc(50%+16px)] z-20 min-w-[190px] max-md:top-14 rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
-                <button type="button" onClick={() => { setMenu(false); onPdf(); }} className={`${action} text-encre hover:bg-encre/[0.04]`} style={{ background: "transparent" }}>
-                  <FileText className="h-3.5 w-3.5" /> {p.pdf_url ? "Aperçu du PDF" : "Exporter en PDF"}
-                </button>
-                <button type="button" onClick={() => { setMenu(false); setConfirmer(true); }} className={`${action} text-alerte hover:bg-alerte/[0.08]`} style={{ background: "transparent" }}>
-                  <Trash2 className="h-3.5 w-3.5" /> Supprimer
-                </button>
-              </div>
-            )}
-          </div>
-        )} />
+      <div role="button" tabIndex={0} onClick={onOuvrir} onKeyDown={(e) => { if (e.key === "Enter") onOuvrir(); }}
+        className={`${COLONNES} relative min-h-[73px] cursor-pointer border-b border-trait py-[13px] last:border-b-0 hover:bg-encre/[0.02] ${active ? "bg-surface" : ""}`}>
+        <span className="flex min-w-0 items-center gap-4 pl-3">
+          <span aria-hidden className="relative grid h-[46px] w-[70px] flex-none place-items-center overflow-hidden rounded-[6px] border border-trait bg-surface">
+            {p.photo ? <img src={p.photo} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" /> : <Monitor className="h-3.5 w-3.5 text-ardoise" />}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-medium text-encre">{titre}</span>
+            <span className="mt-[3px] block truncate text-[13px] text-ardoise">{detail}</span>
+          </span>
+        </span>
+        <span className="text-[14px] text-craie max-md:hidden">{depuisCourt(p.maj_le)}</span>
+        <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation"><EtatPdf p={p} /></span>
+        <span ref={zone} className="relative flex justify-center" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
+          <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
+            className="grid h-8 w-8 place-items-center rounded-full text-ardoise transition-colors hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }}>
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          {menu && (
+            <span className="absolute right-0 top-9 z-20 block min-w-[190px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+              <button type="button" onClick={() => { setMenu(false); onPdf(); }} className={`${action} text-encre hover:bg-encre/[0.04]`} style={{ background: "transparent" }}>
+                <FileText className="h-3.5 w-3.5" /> {p.pdf_url ? "Aperçu du PDF" : "Exporter en PDF"}
+              </button>
+              <button type="button" onClick={() => { setMenu(false); setConfirmer(true); }} className={`${action} text-alerte hover:bg-alerte/[0.08]`} style={{ background: "transparent" }}>
+                <Trash2 className="h-3.5 w-3.5" /> Supprimer
+              </button>
+            </span>
+          )}
+        </span>
+      </div>
       <AlertDialog open={confirmer} onOpenChange={setConfirmer}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-encre">Supprimer la présentation « {p.titre} » ?</AlertDialogTitle>
+            <AlertDialogTitle className="text-encre">Supprimer la présentation « {titre} » ?</AlertDialogTitle>
             <AlertDialogDescription className="text-ardoise">Ses diapositives et ses retouches disparaissent. Les PDF déjà téléchargés restent.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

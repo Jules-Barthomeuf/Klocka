@@ -186,16 +186,20 @@ retire, « Annuler » et le bouton d'action en `bg-alerte`. Décision du
 **État vide** : une phrase `text-brume` centrée qui dit quoi faire
 (« Aucun mandat encore : dites au chat quel mandat vous préparez. »).
 
-**Vos présentations** (maquette de Jules, 12 oct. 2026) : la liste des
-documents sans colonne Auteur, avec Nom, Modifié et PDF (170 px). La date en
-tête de phrase (« À l'instant », « Il y a 48 min », « Hier », « Il y a
-9 jours », `depuisCourt`). Le PDF dit son état : « Génération 9/14 » en `bleu`
-pendant l'export, un bouton bordé `rounded-[10px]` avec la flèche et la date
-du dernier export (il télécharge ce fichier), ou « Non exporté » en `brume`.
-Sans photo de couverture, la vignette est `bg-surface` avec une icône d'écran.
-En tête, le titre et le nombre à côté, « Depuis un projet » et « Tout
-afficher » en liens à droite (cinq lignes, puis toutes). L'aperçu du PDF et
-la suppression sont dans le menu ⋯.
+**Vos présentations** (maquette de Jules, 12 oct. 2026, à reproduire telle
+quelle) : 750 px de large, son propre dessin (pas `LigneDocument`). En tête,
+« Vos présentations » 19 px medium et le nombre en 15 px `ardoise`, « Tout
+afficher » à droite (14 px `craie`, au-delà de quatre lignes). Colonnes Nom,
+Modifié (137 px), PDF (170 px) et ⋯ (43 px), titres en 12,5 px `brume` sur
+41 px. Lignes de 73 px, filets `border-trait` : vignette 70 × 46 rayon 6
+(photo, ou `bg-surface` et icône d'écran), titre 15 px medium, détail 13 px
+`ardoise`. La date en tête de phrase (`depuisCourt` : « À l'instant », « Il y a
+48 min », « Hier », « Il y a 9 jours » jusqu'à un mois). Le PDF : « Génération
+9/14 » en `bleu` 13 px pendant l'export, un bouton de 34 px rayon 7
+(`bg-surface`, `border-bord-doux`, flèche et date du dernier export) qui
+télécharge, ou « Non exporté » en `brume`. L'aperçu et la suppression sont
+dans le menu ⋯ ; « partez de la liste des projets » dans la phrase de la
+liste vide ouvre le choix d'un projet.
 
 **Fenêtres (pop-up)** : centrées sur la zone de contenu, pas sur l'écran
 (`md:left-[var(--k-barre-largeur)]`) ; voile sombre flouté ; Échap et clic

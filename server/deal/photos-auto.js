@@ -70,12 +70,13 @@ export async function photosDuBien({ adresse, lat, lon, ville }, uploadDir) {
     }
   }
 
-  // Le quartier vu du ciel, puis la ville en plan large.
+  // Le quartier vu du ciel, puis la ville en plan large. Google plafonne ces images à 640 px : on les demande
+  // en 640 × 360 à double densité, soit un vrai 1280 × 720 (12 oct. 2026 ; « 1280x720 » revenait réduit).
   const centre = adresse ? encodeURIComponent(adresse) : lat != null && lon != null ? `${lat},${lon}` : null;
   if (centre) {
     try {
       photos.push(await telecharger(
-        `https://maps.googleapis.com/maps/api/staticmap?center=${centre}&zoom=18&size=1280x720&maptype=satellite&key=${CLE}`,
+        `https://maps.googleapis.com/maps/api/staticmap?center=${centre}&zoom=18&size=640x360&scale=2&maptype=satellite&key=${CLE}`,
         uploadDir
       ));
     } catch (e) { raisons.push(`vue aérienne indisponible : ${e?.message || e}`); }
@@ -83,7 +84,7 @@ export async function photosDuBien({ adresse, lat, lon, ville }, uploadDir) {
   if (ville) {
     try {
       photos.push(await telecharger(
-        `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(ville)}&zoom=13&size=1280x720` +
+        `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(ville)}&zoom=13&size=640x360&scale=2` +
         `&maptype=roadmap&markers=color:0x96c0b8%7C${centre || encodeURIComponent(ville)}&key=${CLE}`,
         uploadDir
       ));

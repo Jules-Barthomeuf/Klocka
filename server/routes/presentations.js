@@ -21,6 +21,16 @@ export function monterPresentations(app) {
     ok(res, d);
   }));
 
+  // La carte Google Maps de l'emplacement : une session, ou le jeton du navigateur d'impression.
+  app.get('/api/presentations-carte', wrap(async (req, res) => {
+    const P2 = await import('../presentation-pdf.js');
+    if (!currentUser(req) && !P2.jetonValide(req.get('x-klocka-impression'))) return res.status(401).json({ error: 'Not authenticated' });
+    const f = await P2.carteDuPoint(req.query.lat, req.query.lon);
+    if (!f) return res.status(404).json({ error: 'Carte indisponible.' });
+    res.set('Cache-Control', 'private, max-age=86400');
+    res.sendFile(f);
+  }));
+
   // Le PDF, tiré du deck lui-même : identique à l'écran.
   app.post(`${base}/:id/pdf`, wrap(async (req, res) => {
     if (!admin(req, res)) return;

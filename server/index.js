@@ -62,6 +62,7 @@ import { monterMandataire } from './routes/mandataire.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
 import { monterAlx } from './routes/alx.js';
 import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.js';
+import { jetonValide as jetonImpressionValide } from './presentation-pdf.js';
 import { monterTesteur } from './routes/testeur.js';
 import { monterSuiviChat } from './routes/suivi-chat.js';
 import { monterEquipe } from './routes/equipe.js';
@@ -237,6 +238,8 @@ app.use(
   '/uploads',
   (req, res, next) => {
     if (AUTH_DESACTIVEE || currentUser(req)) return next();
+    // Le navigateur qui imprime une présentation bancaire en PDF : son jeton d'impression, deux minutes.
+    if (req.get('x-klocka-impression') && jetonImpressionValide(req.get('x-klocka-impression'))) return next();
     res.status(401).json({ error: 'Not authenticated' });
   },
   express.static(UPLOAD_DIR)

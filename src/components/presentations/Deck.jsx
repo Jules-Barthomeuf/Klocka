@@ -138,11 +138,11 @@ function Lignes({ ls, chemin, taille = 15, valeurCouleur = () => undefined }) {
     </div>
   ));
 }
-function Atouts({ as, padding = "4px 0", filets = false }) {
-  return (as || []).slice(0, 3).map((a, k) => (
+function Atouts({ as, padding = "4px 0", filets = false, max = 3, lignes = null }) {
+  return (as || []).slice(0, max).map((a, k) => (
     <div key={k} style={{ display: "flex", gap: 16, padding, borderTop: filets ? `1px solid var(${k === 0 ? "--pb-filet" : "--pb-filet-doux"})` : undefined }}>
       <span className="pb-sauge" style={{ flex: "0 0 16px", fontSize: 13 }}>{"ABC"[k]}</span>
-      <Champ chemin={`atouts.${k}`} style={{ flex: 1 }} multiligne />
+      <Champ chemin={`atouts.${k}`} style={{ flex: 1, minWidth: 0, ...(lignes ? { display: "-webkit-box", WebkitLineClamp: lignes, WebkitBoxOrient: "vertical", overflow: "hidden" } : {}) }} multiligne />
     </div>
   ));
 }
@@ -174,18 +174,20 @@ const CARTES = {
       <Ajouter onClick={() => set("items.+", { titre: "Nouvelle partie", page: "p. —" })} style={{ left: 36, bottom: 8 }} mot="Partie" />
     </div>
   ),
+  // La ville (refaite le 12 oct. 2026, Jules : « la photo est trop petite », deux atouts au lieu de trois) :
+  // la photo prend la moitié de la carte ; libellé et chiffre sur une grille, ils ne peuvent plus se chevaucher.
   ville: ({ d }) => (
-    <div style={{ height: "100%", padding: 36, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-      <Photo chemin={"photo"} style={{ height: 130 }} vide="[Photo de la ville]" />
-      <div>
+    <div style={{ height: "100%", padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+      <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo de la ville]" />
+      <div style={{ flex: "none" }}>
         {(d.chiffres || []).slice(0, 3).map((c, k) => (
-          <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, padding: "11px 0", borderTop: "1px solid var(--pb-filet)", borderBottom: k === 2 ? "1px solid var(--pb-filet)" : undefined }}>
-            <Champ chemin={`chiffres.${k}.label`} className="pb-gris" style={{ fontSize: 14 }} />
-            <Champ chemin={`chiffres.${k}.valeur`} style={{ fontSize: 34, letterSpacing: "-0.03em", whiteSpace: "nowrap" }} />
+          <div key={k} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", columnGap: 24, padding: "9px 0", borderTop: "1px solid var(--pb-filet)", borderBottom: k === 2 ? "1px solid var(--pb-filet)" : undefined }}>
+            <Champ chemin={`chiffres.${k}.label`} className="pb-gris" style={{ fontSize: 13.5, minWidth: 0 }} />
+            <Champ chemin={`chiffres.${k}.valeur`} style={{ fontSize: 28, letterSpacing: "-0.03em", whiteSpace: "nowrap", textAlign: "right" }} />
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 14.5, lineHeight: 1.4, color: "var(--pb-clair)" }}><Atouts as={d.atouts} /></div>
+      <div style={{ flex: "none", fontSize: 14, lineHeight: 1.4, color: "var(--pb-clair)" }}><Atouts as={d.atouts} max={2} lignes={2} /></div>
     </div>
   ),
   emplacement: ({ d }) => <Carte d={d} />,
@@ -397,31 +399,24 @@ const CARTES = {
 };
 
 
-/** La carte IGN de l'emplacement, les mêmes tuiles que le PPTX : zoom 16, cinq sur quatre. Le repère pulse en lecture. */
+/** La carte de l'emplacement : Google Maps (12 oct. 2026, à la place des tuiles IGN), centrée sur le local ; le repère pulse en lecture. */
 function Carte({ d }) {
   const lat = Number(d.lat);
   const lon = Number(d.lon);
   const ok = d.lat != null && d.lon != null && Number.isFinite(lat) && Number.isFinite(lon);
+  const [rate, setRate] = useState(false);
   if (!ok) return <div className="pb-photo-vide" style={{ alignItems: "end", paddingBottom: 40 }}>Adresse non géolocalisable : carte à insérer.</div>;
-  const n = 2 ** 16;
-  const rad = (lat * Math.PI) / 180;
-  const cx = ((lon + 180) / 360) * n;
-  const cy = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n;
-  const x0 = Math.round(cx - 2.5);
-  const y0 = Math.round(cy - 2);
-  const tw = CARTE.w / 5;
-  const th = CARTE.h / 4;
-  const tuiles = [];
-  for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) tuiles.push({ i, j, url: `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/png&TILEMATRIX=16&TILEROW=${y0 + j}&TILECOL=${x0 + i}` });
-  const px = ((cx - x0) / 5) * CARTE.w;
-  const py = ((cy - y0) / 4) * CARTE.h;
+  // La carte est centrée sur le point : le repère est au milieu.
+  const px = CARTE.w / 2;
+  const py = CARTE.h / 2;
   return (
     <>
-      {tuiles.map((t) => <img key={`${t.i}-${t.j}`} src={t.url} alt="" draggable={false} style={{ position: "absolute", left: t.i * tw, top: t.j * th, width: tw + 0.5, height: th + 0.5 }} />)}
+      {rate
+        ? <div className="pb-photo-vide" style={{ position: "absolute", inset: 0 }}>Carte Google Maps indisponible</div>
+        : <img src={`/api/presentations-carte?lat=${lat}&lon=${lon}`} alt="Plan du quartier" draggable={false} onError={() => setRate(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       <span className="f-pulse" style={{ position: "absolute", left: px - 12, top: py - 12, width: 24, height: 24, borderRadius: 9999, background: "var(--pb-encre)" }} />
       <span style={{ position: "absolute", left: px - 9, top: py - 9, width: 18, height: 18, borderRadius: 9999, background: "var(--pb-sauge)", border: "3px solid var(--pb-encre)" }} />
       <Champ chemin="legende" className="f-pin" style={{ position: "absolute", left: px + 20, top: py - 40, padding: "10px 20px", borderRadius: 9999, background: "var(--pb-encre)", fontSize: 15, fontWeight: 500, whiteSpace: "nowrap" }} />
-      <span style={{ position: "absolute", right: 20, bottom: 8, fontSize: 10, color: "var(--pb-encre)" }}>© IGN</span>
     </>
   );
 }

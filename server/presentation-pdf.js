@@ -25,6 +25,9 @@ export function jetonImpression(id, maintenant = Date.now()) {
   return jeton;
 }
 
+/** Pure : ce jeton d'impression vaut-il encore ? Le navigateur d'impression le porte pour lire les photos et la carte. */
+export const jetonValide = (jeton, maintenant = Date.now()) => { const v = JETONS.get(String(jeton || '')); return !!(v && v.expire >= maintenant); };
+
 /** Ce que la page d'impression lit : le titre et les diapositives, si le jeton vaut encore. */
 export function lireParJeton(jeton, maintenant = Date.now()) {
   const v = JETONS.get(String(jeton || ''));
@@ -53,7 +56,10 @@ export async function exporterPdf(id, { base, forcer = false } = {}) {
   const contexte = await nav.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2, locale: 'fr-FR' });
   try {
     const page = await contexte.newPage();
-    await page.goto(`${base}/ImpressionPresentation?jeton=${jetonImpression(id)}`, { waitUntil: 'networkidle', timeout: 60000 });
+    const jeton = jetonImpression(id);
+    // Les photos déposées et la carte demandent une session : le jeton d'impression en tient lieu, le temps de l'impression.
+    await page.setExtraHTTPHeaders({ 'X-Klocka-Impression': jeton });
+    await page.goto(`${base}/ImpressionPresentation?jeton=${jeton}`, { waitUntil: 'networkidle', timeout: 60000 });
     await page.waitForFunction('window.__impressionPrete === true || !!window.__impressionErreur', null, { timeout: 60000 });
     const erreur = await page.evaluate('window.__impressionErreur || null');
     if (erreur) return { ok: false, error: `La page d'impression n'a pas pu s'ouvrir : ${erreur}` };
@@ -61,7 +67,7 @@ export async function exporterPdf(id, { base, forcer = false } = {}) {
     const n = await pages.count();
     if (!n) return { ok: false, error: 'Aucune diapositive à imprimer.' };
     const images = [];
-    for (let k = 0; k < n; k++) images.push((await pages.nth(k).screenshot({ type: 'jpeg', quality: 92 })).toString('base64'));
+    for (let k = 0; k < n; k++) images.push((await pages.nth(k).screenshot({ type: 'jpeg', quality: 95 })).toString('base64'));
     const feuille = await contexte.newPage();
     await feuille.setContent(`<!doctype html><html><head><style>@page{size:1280px 720px;margin:0}html,body{margin:0;padding:0;background:#000}img{display:block;width:1280px;height:720px;break-after:page;page-break-after:always}img:last-child{break-after:auto;page-break-after:auto}</style></head><body>${images.map((b) => `<img src="data:image/jpeg;base64,${b}">`).join('')}</body></html>`, { waitUntil: 'load' });
     const pdf = await feuille.pdf({ width: '1280px', height: '720px', printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
@@ -74,4 +80,33 @@ export async function exporterPdf(id, { base, forcer = false } = {}) {
   // pdf_le après maj_le : le prochain export réutilise ce fichier tant que rien n'est retouché.
   Records.update(ENTITE, id, { pdf_url, pdf_le: new Date().toISOString() });
   return { ok: true, pdf_url };
+}
+
+// --- La carte de l'emplacement -----------------------------------------------
+
+const CLE_CARTE = () => (process.env.GOOGLE_MAPS_SERVEUR || process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
+
+/** Pure : l'adresse Google Static Maps d'un point, en 1280 × 1040 (taille 640 × 520, échelle 2), sans marqueur : le deck pose le sien. */
+export function urlCarteGoogle(lat, lon, cle, zoom = 16) {
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lon}&zoom=${zoom}&size=640x520&scale=2&maptype=roadmap&language=fr&key=${encodeURIComponent(cle)}`;
+}
+
+/**
+ * La carte Google Maps d'un point (12 oct. 2026, Jules : « une map Google Maps, pas OpenStreetMap ») :
+ * demandée une fois à Google avec la clé du serveur, gardée sur le disque. Rend le chemin du fichier, ou null.
+ */
+export async function carteDuPoint(lat, lon, { recuperer = fetch } = {}) {
+  const la = Math.round(Number(lat) * 1e5) / 1e5;
+  const lo = Math.round(Number(lon) * 1e5) / 1e5;
+  if (!Number.isFinite(la) || !Number.isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) return null;
+  const dossier = path.join(CHEMIN_UPLOADS, 'cartes');
+  const fichier = path.join(dossier, `google-${la}_${lo}.png`);
+  if (fs.existsSync(fichier)) return fichier;
+  const cle = CLE_CARTE();
+  if (!cle) return null;
+  const r = await recuperer(urlCarteGoogle(la, lo, cle), { signal: AbortSignal.timeout(15000) });
+  if (!r.ok || !String(r.headers.get('content-type') || '').startsWith('image/')) return null;
+  fs.mkdirSync(dossier, { recursive: true });
+  fs.writeFileSync(fichier, Buffer.from(await r.arrayBuffer()));
+  return fichier;
 }

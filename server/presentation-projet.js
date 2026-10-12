@@ -179,8 +179,31 @@ async function chargerImage(url) {
   }
 }
 
+// Le secteur d'une enseigne, d'après le type de commerce noté dans OpenStreetMap (12 oct. 2026 : il restait « [Secteur] »).
+const SECTEURS_OSM = {
+  'shop=supermarket': 'Supermarché', 'shop=convenience': 'Supérette', 'shop=bakery': 'Boulangerie', 'shop=pastry': 'Pâtisserie', 'shop=chocolate': 'Chocolaterie', 'shop=confectionery': 'Confiserie',
+  'shop=butcher': 'Boucherie', 'shop=wine': 'Cave à vins', 'shop=alcohol': 'Cave à vins', 'shop=deli': 'Épicerie fine', 'shop=greengrocer': 'Primeur', 'shop=frozen_food': 'Surgelés',
+  'shop=clothes': 'Prêt-à-porter', 'shop=shoes': 'Chaussures', 'shop=bag': 'Maroquinerie', 'shop=jewelry': 'Bijouterie', 'shop=watches': 'Horlogerie', 'shop=sports': 'Sport',
+  'shop=cosmetics': 'Beauté', 'shop=beauty': 'Beauté', 'shop=perfumery': 'Parfumerie', 'shop=hairdresser': 'Coiffure', 'shop=optician': 'Optique', 'shop=chemist': 'Droguerie',
+  'shop=mobile_phone': 'Téléphonie', 'shop=telecommunication': 'Téléphonie', 'shop=electronics': 'Électronique', 'shop=computer': 'Informatique', 'shop=books': 'Librairie', 'shop=stationery': 'Papeterie',
+  'shop=florist': 'Fleuriste', 'shop=toys': 'Jouets', 'shop=gift': 'Cadeaux', 'shop=houseware': 'Maison', 'shop=interior_decoration': 'Décoration', 'shop=furniture': 'Ameublement', 'shop=hardware': 'Bricolage', 'shop=doityourself': 'Bricolage',
+  'shop=travel_agency': 'Agence de voyages', 'shop=estate_agent': 'Agence immobilière', 'office=estate_agent': 'Agence immobilière', 'office=insurance': 'Assurance', 'shop=insurance': 'Assurance',
+  'shop=tobacco': 'Tabac', 'shop=newsagent': 'Presse', 'shop=pet': 'Animalerie', 'shop=variety_store': 'Bazar', 'shop=department_store': 'Grand magasin', 'shop=car_repair': 'Automobile', 'shop=car': 'Automobile',
+  'amenity=bank': 'Banque', 'amenity=pharmacy': 'Pharmacie', 'amenity=fast_food': 'Restauration rapide', 'amenity=restaurant': 'Restauration', 'amenity=cafe': 'Café', 'amenity=bar': 'Bar',
+  'amenity=bureau_de_change': 'Bureau de change', 'amenity=post_office': 'Poste', 'amenity=fuel': 'Station-service', 'leisure=fitness_centre': 'Salle de sport', 'amenity=cinema': 'Cinéma',
+};
+/** Pure : le secteur d'un élément OSM, d'après ses étiquettes. */
+export function secteurOsm(tags = {}) {
+  for (const cle of ['shop', 'amenity', 'office', 'leisure']) {
+    const v = tags[cle];
+    if (v && SECTEURS_OSM[`${cle}=${v}`]) return SECTEURS_OSM[`${cle}=${v}`];
+  }
+  return tags.shop ? 'Commerce' : null;
+}
+
 // Enseignes autour du local : marques relevées dans OpenStreetMap (Overpass),
-// logos officiels tirés de Wikidata (propriété P154 → Wikimedia Commons).
+// logos officiels tirés de Wikidata (propriété P154 → Wikimedia Commons). Les
+// six retenues sont d'abord celles qui ont un logo, avec leur secteur.
 async function enseignesDuSecteur(coords) {
   if (!coords) return { logos: [], noms: [] };
   try {
@@ -198,15 +221,17 @@ async function enseignesDuSecteur(coords) {
       await new Promise((f) => setTimeout(f, 1500));
       r = await appeler().catch(() => null);
     }
-    if (!r?.ok) return { logos: [], noms: [] };
+    if (!r?.ok) return { logos: [], noms: [], secteurs: new Map() };
     const marques = new Map(); // marque -> QID wikidata (ou null)
+    const secteurs = new Map();
     for (const el of (await r.json()).elements || []) {
       const t = el.tags || {};
       if (t.brand && !marques.has(t.brand)) marques.set(t.brand, t['brand:wikidata'] || null);
+      if (t.brand && !secteurs.has(t.brand) && secteurOsm(t)) secteurs.set(t.brand, secteurOsm(t));
     }
-    const noms = [...marques.keys()].slice(0, 10);
     const logos = [];
-    for (const [marque, qid] of marques) {
+    // Les marques nationales (avec Wikidata) d'abord : ce sont elles qui ont un logo.
+    for (const [marque, qid] of [...marques].sort((a, b) => (b[1] ? 1 : 0) - (a[1] ? 1 : 0))) {
       if (logos.length >= 6) break;
       if (!qid) continue;
       try {
@@ -225,9 +250,11 @@ async function enseignesDuSecteur(coords) {
         }
       } catch { /* marque suivante */ }
     }
-    return { logos, noms };
+    const avecLogo = new Set(logos.map((l) => l.marque));
+    const noms = [...avecLogo, ...[...marques.keys()].filter((m) => !avecLogo.has(m))].slice(0, 10);
+    return { logos, noms, secteurs };
   } catch {
-    return { logos: [], noms: [] };
+    return { logos: [], noms: [], secteurs: new Map() };
   }
 }
 
@@ -307,6 +334,8 @@ export async function construireDiapos(project, photos = {}) {
   const pointsVille = (analyse.ville?.points || []).filter(Boolean).map(String);
   const pointsSecteur = (analyse.secteur?.points || []).filter(Boolean).map(String);
   const trois = (ps) => [0, 1, 2].map((i) => ps[i] || '[Atout à compléter]');
+  // La ville : deux atouts, A et B (12 oct. 2026) ; le troisième débordait de la carte.
+  const deux = (ps) => [0, 1].map((i) => ps[i] || '[Atout à compléter]');
 
   // La projection, avec les règles du simulateur : loyers indexés (et
   // revalorisés le cas échéant), charges et taxe foncière seulement si elles
@@ -376,7 +405,7 @@ export async function construireDiapos(project, photos = {}) {
           { label: 'Taux de chômage, zone d’emploi', valeur: chiffreDe(cv, /chômage|chomage/i) || '[—]' },
           { label: 'Prix médian du logement ancien', valeur: chiffreDe(cv, /prix|logement|m²/i) || '[—]' },
         ],
-        atouts: trois(pointsVille),
+        atouts: deux(pointsVille),
       }),
     diapo('emplacement', 'Un emplacement stratégique',
       { titre: 'Un emplacement stratégique', accroche: pointsSecteur[0] || `Au cœur de ${nomSecteur}.`, note: adresse },
@@ -432,11 +461,11 @@ export async function construireDiapos(project, photos = {}) {
         ].map(([titre, valeur]) => ({ titre, valeur })),
       }),
     diapo('enseignes', 'Enseignes du secteur',
-      { titre: 'Des enseignes nationales sur le secteur', accroche: enseignes.noms.length ? `${enseignes.noms.slice(0, 3).join(', ')} : le secteur attire les réseaux.` : '[Ce que disent les enseignes du secteur]' },
+      { titre: 'Des enseignes nationales sur le secteur', accroche: enseignes.noms.length ? `${[...new Set(enseignes.noms.slice(0, 6).map((n) => enseignes.secteurs?.get(n)).filter(Boolean))].slice(0, 4).join(', ') || enseignes.noms.slice(0, 3).join(', ')} : le secteur attire les réseaux.` : '[Ce que disent les enseignes du secteur]' },
       {
         enseignes: [0, 1, 2, 3, 4, 5].map((i) => {
           const nom = enseignes.noms[i];
-          return nom ? { nom, secteur: '[Secteur]', logo: logos.get(nom) || null } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
+          return nom ? { nom, secteur: enseignes.secteurs?.get(nom) || '[Secteur]', logo: logos.get(nom) || null } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
         }),
       }),
     (() => {
@@ -973,4 +1002,18 @@ const DESSINS = {
 export async function genererPresentationProjet(project, photos = {}) {
   const diapos = await construireDiapos(project, photos);
   return rendrePptx(diapos, { titre: project.titre || project.adresse_complete || '' });
+}
+
+/** Refait la seule diapositive des enseignes d'une présentation (logos, noms, secteurs), sans toucher au reste. */
+export async function enseignesPourDiapo(project) {
+  const coords = await geocoder(project);
+  const enseignes = await enseignesDuSecteur(coords);
+  const logos = garderLogos(enseignes.logos);
+  return {
+    accroche: enseignes.noms.length ? `${[...new Set(enseignes.noms.slice(0, 6).map((n) => enseignes.secteurs?.get(n)).filter(Boolean))].slice(0, 4).join(', ') || enseignes.noms.slice(0, 3).join(', ')} : le secteur attire les réseaux.` : null,
+    enseignes: [0, 1, 2, 3, 4, 5].map((i) => {
+      const nom = enseignes.noms[i];
+      return nom ? { nom, secteur: enseignes.secteurs?.get(nom) || '[Secteur]', logo: logos.get(nom) || null } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
+    }),
+  };
 }

@@ -159,7 +159,8 @@ export function liste(id) {
   // Chaque ligne porte son statut croisé (Monday et nos appels) et sa
   // pertinence ; l'ordre est celui du mode appel : relance due d'abord, le
   // commerce avant le résidentiel, les mortes à la fin.
-  const lignes = MA.annoter(agencesDe(id).map((a) => ({ ...a, en_appel_par: enAppel(a) })));
+  // L'ordre fixe (12 oct. 2026) : la liste ne se réordonne pas après un appel.
+  const lignes = MA.ordreStable(MA.annoter(agencesDe(id).map((a) => ({ ...a, en_appel_par: enAppel(a) }))));
   return { ...resumeListe(l), lignes, chiffres: MA.chiffresDeLaVille(lignes) };
 }
 

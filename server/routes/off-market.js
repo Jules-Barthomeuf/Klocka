@@ -67,12 +67,12 @@ export function monterOffMarket(app) {
     if (!lecture.ok) return res.status(400).json({ error: lecture.error });
     if (!lecture.deja || S2.etatDe(req.params.id).a_faire) S2.demarrerFond(req.params.id);
     S2.demarrerPrix(req.params.id);
-    ok(res, { commerces: S2.commercesDe(req.params.id), etat: S2.etatDe(req.params.id), lecture });
+    ok(res, { commerces: S2.commercesDe(req.params.id, { moi: String(user.email || '').toLowerCase() }), etat: S2.etatDe(req.params.id), lecture });
   }));
   app.get('/api/off-market/simple/villes/:id/etat', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
     const S2 = await Si();
-    ok(res, { commerces: S2.commercesDe(req.params.id), etat: S2.etatDe(req.params.id) });
+    ok(res, { commerces: S2.commercesDe(req.params.id, { moi: String(user.email || '').toLowerCase() }), etat: S2.etatDe(req.params.id) });
   }));
   app.get('/api/off-market/simple/commerces/:id', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
@@ -81,14 +81,14 @@ export function monterOffMarket(app) {
     let c = Records.get(S2.COMMERCE, req.params.id);
     if (!c) return res.status(404).json({ error: 'Commerce introuvable.' });
     if (!c.contact_le) c = await S2.coordonnees(c.id);
-    ok(res, { commerce: S2.fiche(c) });
+    ok(res, { commerce: S2.fiche(c, { moi: String(user.email || '').toLowerCase() }) });
   }));
   app.post('/api/off-market/simple/commerces/:id/approfondir', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
     const S2 = await Si();
     const { ouvrirFlux } = await import('../flux.js');
     const flux = ouvrirFlux(res);
-    try { const c = await S2.resoudreCommerce(req.params.id, { complet: true, surEtape: flux.etape }); flux.fin({ commerce: c ? S2.fiche(c) : null }); } catch (e) { flux.erreur(e); }
+    try { const c = await S2.resoudreCommerce(req.params.id, { complet: true, surEtape: flux.etape }); flux.fin({ commerce: c ? S2.fiche(c, { moi: String(user.email || '').toLowerCase() }) : null }); } catch (e) { flux.erreur(e); }
   }));
   app.post('/api/off-market/simple/adresse', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
@@ -130,11 +130,11 @@ export function monterOffMarket(app) {
   }));
   app.get('/api/off-market/simple/listes', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
-    ok(res, { listes: (await Si()).listesDeCommerces() });
+    ok(res, { listes: await (await Si()).listesDeCommerces(user) });
   }));
   app.post('/api/off-market/simple/listes/envoyer', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
-    rendre(res, (await Si()).envoyerVersListe(Array.isArray(req.body?.ids) ? req.body.ids : [], { liste_id: req.body?.liste_id || null, nom: req.body?.nom || null, user }));
+    rendre(res, await (await Si()).envoyerVersListe(Array.isArray(req.body?.ids) ? req.body.ids : [], { liste_id: req.body?.liste_id || null, nom: req.body?.nom || null, user }));
   }));
   app.get('/api/off-market/simple/appels', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;

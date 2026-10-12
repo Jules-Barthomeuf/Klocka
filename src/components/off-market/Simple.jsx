@@ -177,12 +177,13 @@ const Source = ({ source, date }) => (source || date ? <span className="text-[11
 const REPONSES = { proprietaire_ouvert: "Propriétaire, ouvert à en parler", proprietaire_non: "Propriétaire, mais non", pas_proprietaire: "Pas propriétaire", pas_joint: "Pas joint" };
 
 /** La liste dans la Prospection, partie Listes, dans une autre fenêtre. */
-const ouvrirListe = (id) => window.open(`/Prospection?partie=listes&liste=${encodeURIComponent(id)}`, "_blank", "noopener");
+// Les listes de l'Off-market sont celles de l'espace mandataire (12 oct. 2026), jamais celles de la Prospection admin.
+const ouvrirListe = (id) => window.open(`/MandataireProspection?onglet=listes&liste=${encodeURIComponent(id)}`, "_blank", "noopener");
 
 /**
- * La fenêtre « Envoyer vers une liste » : les listes de commerces de la
- * Prospection, ou une nouvelle. Les commerces envoyés s'appellent ensuite
- * depuis Prospection > Listes, en mode appel.
+ * La fenêtre « Envoyer vers une liste » : les listes de la personne dans son
+ * espace mandataire, ou une nouvelle. Chaque commerce y devient une fiche de
+ * propriétaire à appeler (Prospection > Listes du mandataire).
  */
 export function FenetreListe({ ids, onFermer, onFait }) {
   const qc = useQueryClient();
@@ -191,7 +192,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
   const envoyer = useMutation({
     mutationFn: (body) => req("POST", "/simple/listes/envoyer", { ids, ...body }),
     onSuccess: (r) => {
-      if (r.ajoutes) toast.success(`${pl(r.ajoutes, "commerce")} dans la liste « ${r.liste.nom} »`, { description: "À appeler depuis Prospection, en mode appel.", duration: 9000, action: { mot: "Voir la liste", faire: () => ouvrirListe(r.liste.id) } });
+      if (r.ajoutes) toast.success(`${pl(r.ajoutes, "commerce")} dans la liste « ${r.liste.nom} »`, { description: "Dans vos listes de mandataire, onglet Prospection > Listes.", duration: 9000, action: { mot: "Voir la liste", faire: () => ouvrirListe(r.liste.id) } });
       if (r.deja?.length) toast.error(r.deja.length === 1 ? `${r.deja[0].enseigne} est déjà dans la liste « ${r.deja[0].liste} ».` : `${pl(r.deja.length, "établissement")} déjà dans une liste : laissés de côté.`);
       qc.invalidateQueries({ queryKey: ["off-market", "simple"] });
       onFait?.(r);
@@ -206,7 +207,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="m-0 text-[20px] font-normal text-encre">Envoyer vers une liste</h2>
-            <p className="m-0 mt-1 text-[13px] text-ardoise">{pl(ids.length, "commerce")} · la liste s'appelle ensuite depuis Prospection, en mode appel.</p>
+            <p className="m-0 mt-1 text-[13px] text-ardoise">{pl(ids.length, "commerce")} · dans vos listes de mandataire (Prospection, onglet Listes).</p>
           </div>
           <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>
@@ -338,7 +339,7 @@ function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = n
         </div>
         {enCours && <p className="m-0 mt-2 inline-flex items-center gap-2 text-[12.5px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Recherche du propriétaire en cours</p>}
         <div className="mt-4">
-          {c.liste ? <span className="inline-flex flex-wrap items-center gap-2"><span className="inline-flex h-10 items-center rounded-full border border-bleu/60 px-4 text-[13.5px] text-encre" title="Un établissement ne va que dans une liste">Dans la liste « {c.liste.nom} »</span><button type="button" onClick={() => ouvrirListe(c.liste.id)} className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[13.5px] text-bleu underline-offset-4 hover:underline" style={{ background: "transparent" }}>Voir la liste<ExternalLink className="h-3.5 w-3.5" /></button></span>
+          {c.liste ? <span className="inline-flex flex-wrap items-center gap-2"><span className="inline-flex h-10 items-center rounded-full border border-bleu/60 px-4 text-[13.5px] text-encre" title="Un établissement ne va que dans une de vos listes">Dans la liste « {c.liste.nom} »</span><button type="button" onClick={() => ouvrirListe(c.liste.id)} className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[13.5px] text-bleu underline-offset-4 hover:underline" style={{ background: "transparent" }}>Voir la liste<ExternalLink className="h-3.5 w-3.5" /></button></span>
             : <button type="button" onClick={() => setVersListe(true)} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-bleu px-5 text-[14px] text-fond transition-opacity hover:opacity-90"><ListPlus className="h-4 w-4" />Ajouter à une liste</button>}
         </div>
         {versListe && <FenetreListe ids={[c.id]} onFermer={() => setVersListe(false)} onFait={() => { setVersListe(false); qc.invalidateQueries({ queryKey: ["off-market", "simple", "commerce", id] }); onMaj?.(); }} />}

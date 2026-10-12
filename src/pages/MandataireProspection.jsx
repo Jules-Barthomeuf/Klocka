@@ -24,6 +24,13 @@ import { J, JL, alpha } from "@/design/jetons";
 
 const API = "/api/mandataire";
 
+// L'onglet Agent IA est caché pour l'instant (12 oct. 2026, demande de Jules) :
+// l'agent tourne toujours côté serveur, seul l'onglet disparaît. Le remettre à
+// true le rend de nouveau visible.
+const AGENT_IA_VISIBLE = false;
+// K Prospective masqué de la Prospection (12 oct. 2026, Jules) : le code reste, l'onglet ne s'affiche plus.
+const K_PROSPECTIVE_VISIBLE = false;
+
 export default function MandataireProspection() {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
@@ -42,7 +49,7 @@ export default function MandataireProspection() {
   // La notification « liste du jour » ouvre la liste par l'adresse.
   useEffect(() => {
     const o = params.get("onglet");
-    if (o !== "listes" && o !== "agent") return;
+    if (o !== "listes" && !(o === "agent" && AGENT_IA_VISIBLE)) return;
     setOnglet(o);
     if (params.get("liste")) setListeDemandee(params.get("liste"));
     setParams((p) => { const n = new URLSearchParams(p); n.delete("onglet"); n.delete("liste"); return n; }, { replace: true });
@@ -82,7 +89,7 @@ export default function MandataireProspection() {
         // Au téléphone, les quatre onglets ne tiennent pas : le sélecteur défile de côté.
         <div className="flex justify-center pt-2 max-md:-mx-5 max-md:justify-start max-md:overflow-x-auto max-md:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1 max-md:mx-auto">
-            {[["prospecter", "Prospecter"], ["agent", "Agent IA"], ["listes", "Listes"], ["kprospective", "K Prospective"]].map(([k, mot]) => {
+            {[["prospecter", "Prospecter"], ["agent", "Agent IA"], ["listes", "Listes"], ["kprospective", "K Prospective"]].filter(([k]) => (k !== "agent" || AGENT_IA_VISIBLE) && (k !== "kprospective" || K_PROSPECTIVE_VISIBLE)).map(([k, mot]) => {
               const actif = onglet === k;
               // L'agent se distingue : un liseré multicolore, léger, qui tourne doucement.
               if (k === "agent") {
@@ -108,10 +115,10 @@ export default function MandataireProspection() {
         </div>
       )}
       {!vueId && !conversation && onglet === "listes" && <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} />}
-      {!vueId && !conversation && onglet === "agent" && <AgentIA />}
+      {!vueId && !conversation && onglet === "agent" && AGENT_IA_VISIBLE && <AgentIA />}
       {/* K Prospective : le formulaire de Data Prospective. On remplit les
           champs, la prospective se lance dans Data-B (6 oct. 2026). */}
-      {!vueId && !vueDataB && !conversation && onglet === "kprospective" && <KProspectiveDataB onOuvrir={setVueDataB} />}
+      {!vueId && !vueDataB && !conversation && onglet === "kprospective" && K_PROSPECTIVE_VISIBLE && <KProspectiveDataB onOuvrir={setVueDataB} />}
 
       {/* Les résultats d'une prospective Data-B, en pleine page. */}
       {vueDataB && !vueId && (
@@ -296,7 +303,7 @@ function Listes({ demandee = null, onDemandeVue = null }) {
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
         <ChiffresListe l={l} />
-        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} onRenommer={() => renommer(l)} agent={!!(l.suggeree || l.agent)} />
+        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
       </div>
       <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">

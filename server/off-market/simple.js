@@ -257,12 +257,13 @@ export function centreVille(liste, ville = null) {
 }
 
 /** Pure : la forme compacte d'un commerce, pour la carte et la liste. */
-export function compact(c, { centre = null, densite = null, zoneDe = null } = {}) {
+export function compact(c, { centre = null, densite = null, zoneDe = null, moi = null } = {}) {
   return {
     id: c.id, ville_id: c.ville_id || null, siret: c.siret, nom: nomLisible(c.exploitant?.nom || c.nom, { forme: c.exploitant?.forme }), enseigne: c.enseigne ? societeLisible(c.enseigne) : null, activite: c.activite, adresse: rueLisible(c.adresse), adresse_brute: c.adresse, lat: c.lat, lon: c.lon, actif: c.actif !== false,
     lien: c.lien || (c.etat_recherche === 'fait' ? 'inconnu' : null), etat: c.etat_recherche || 'a_faire',
     proprietaire: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null, drapeaux: (c.drapeaux || []).map((d) => d.cle), reponse: c.reponse?.choix || null,
-    liste: c.liste_prospection ? { id: c.liste_prospection.id, nom: c.liste_prospection.nom } : null, appel_prospection: c.appel_prospection?.titre || null,
+    // La liste est celle de la personne connectée, dans son espace mandataire (12 oct. 2026).
+    liste: moi && c.listes_mandataires?.[moi] ? { id: c.listes_mandataires[moi].id, nom: c.listes_mandataires[moi].nom } : null, appel_prospection: c.appel_prospection?.titre || null,
     chaine: !!c.chaine, depuis: c.depuis || null, nom_google: c.nom_google || null, prix: c.estimation?.prix || null, epingle: !!c.epingle, proprietaire_type: typeDeProprietaire(c.proprietaire), source: c.source || 'SIRENE', google: !!c.place_id, centre: c.epingle ? true : centre == null ? null : centre.has(c.id), densite: densite?.get(c.id) ?? null, zone: zoneDe?.get(c.id) || null,
   };
 }
@@ -277,10 +278,10 @@ export function typeDeProprietaire(pr) {
 
 const ORDRE_LIEN = { exploitant_certain: 0, exploitant_probable: 1, tiers: 2, inconnu: 3, null: 4 };
 /** Les commerces d'une ville, exploitants propriétaires et signaux d'abord. */
-export function commercesDe(villeId) {
+export function commercesDe(villeId, { moi = null } = {}) {
   const liste = Records.filter(COMMERCE, { ville_id: villeId });
   const zone = centreVille(liste, Records.get(VILLE, villeId));
-  return liste.map((c) => compact(c, zone)).sort((a, b) => (ORDRE_LIEN[a.lien] ?? 4) - (ORDRE_LIEN[b.lien] ?? 4) || b.drapeaux.length - a.drapeaux.length || String(a.enseigne || a.nom).localeCompare(String(b.enseigne || b.nom)));
+  return liste.map((c) => compact(c, { ...zone, moi })).sort((a, b) => (ORDRE_LIEN[a.lien] ?? 4) - (ORDRE_LIEN[b.lien] ?? 4) || b.drapeaux.length - a.drapeaux.length || String(a.enseigne || a.nom).localeCompare(String(b.enseigne || b.nom)));
 }
 
 export function etatDe(villeId) {
@@ -485,20 +486,20 @@ const adresseSiege = (s) => [rueLisible(s.adresse), s.code_postal, s.ville ? nom
 const nomLisibleVille = (v) => String(v).toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (_, a, l) => a + l.toUpperCase());
 
 /** La fiche d'un commerce : les six lignes de la spec, chaque fait avec sa source et sa date. */
-export function fiche(c) {
+export function fiche(c, { moi = null } = {}) {
   const ex = c.exploitant || null;
   const pr = c.proprietaire || null;
   const gerants = (ex?.gerants || []).filter((g) => !g.personne_morale);
   const age = (g) => (g?.tranche_age === '70+' ? '70 ans et plus' : g?.tranche_age === '50-70' ? '50 à 70 ans' : g?.tranche_age === '-50' ? 'moins de 50 ans' : null);
   return {
-    ...compact(c),
+    ...compact(c, { moi }),
     code_postal: c.code_postal, ville: c.ville, depuis: c.depuis, chaine: c.chaine, etat_recherche: c.etat_recherche || 'a_faire', erreur: c.erreur || null, complet: !!c.complet, lu_le: c.lu_le || null, adresse_exacte: !!c.adresse_exacte,
     exploitant: ex ? { nom: nomLisible(ex.nom, { forme: ex.forme }), forme: ex.forme, siren: ex.siren, creation: ex.creation, active: ex.active, gerants: gerants.map((g) => ({ nom: personneLisible(g.nom, { nom_famille: g.nom_famille }), qualite: g.qualite, age: age(g) })), source: 'Registre des entreprises', date: ex.lu_le || null } : { nom: nomLisible(c.nom), siren: c.siren, gerants: [], source: 'SIRENE', date: c.lu_le || null, non_lu: true },
     proprietaire: pr ? { nom: nomLisible(pr.nom, { forme: pr.forme }), forme: pr.forme, siren: pr.siren, siege: pr.siege ? adresseSiege(pr.siege) : null, gerants: (pr.gerants || []).filter((g) => !g.personne_morale).map((g) => ({ nom: personneLisible(g.nom, { nom_famille: g.nom_famille }), age: age(g) })), creation: pr.creation || null, parcelle: pr.parcelle || null, surface_batiment: pr.surface_batiment || c.foncier?.surface_batiment || null, source: pr.source, date: pr.lu_le || null } : null,
     lien: c.lien || (c.etat_recherche === 'fait' ? 'inconnu' : null), lien_motif: c.lien_motif || null,
     drapeaux: c.drapeaux || [],
     contact: { telephone: c.telephone || null, site: c.site || null, courrier: pr?.siege ? adresseSiege(pr.siege) : null, source: c.contact_source || null, date: c.contact_le || null },
-    reponse: c.reponse || null, proprietaire_declare: c.proprietaire_declare || null, liste: c.liste_prospection || null, appel_prospection: c.appel_prospection || null, estimation: c.estimation || null,
+    reponse: c.reponse || null, proprietaire_declare: c.proprietaire_declare || null, liste: (moi && c.listes_mandataires?.[moi]) || null, appel_prospection: c.appel_prospection || null, estimation: c.estimation || null,
     foncier: c.foncier || null,
   };
 }
@@ -547,45 +548,55 @@ export const listerAppels = (espace) => Records.filter(APPEL, { espace }).sort((
 // agents. Un commerce ne va que dans une liste : la seconde fois, on le dit.
 // ---------------------------------------------------------------------------
 
-export const LISTE_PROSPECTION = 'ListeAgences';
-const AGENCE_PROSPECTION = 'AgenceProspect';
+// Les listes (12 oct. 2026, Jules) : l'Off-market n'envoie que dans les listes
+// de l'espace mandataire de la personne connectée (Prospection > Listes du
+// mandataire), jamais dans les listes de la Prospection admin. Chaque commerce
+// devient une fiche de propriétaire ; le propriétaire des murs est déjà connu,
+// rien n'est relancé à sa recherche, et rien ne part vers Monday d'ici.
+const LISTE_MANDATAIRE = 'ListeMandataire';
+const moiDe = (user) => String(user?.email || '').trim().toLowerCase();
 
-/** Les listes de commerces de la Prospection, avec leur effectif. */
-export function listesDeCommerces() {
-  const membres = {};
-  for (const a of Records.list(AGENCE_PROSPECTION)) if (a.liste_id) membres[a.liste_id] = (membres[a.liste_id] || 0) + 1;
-  return Records.list(LISTE_PROSPECTION).filter((l) => l.type === 'commerces' && !l.essai).map((l) => ({ id: l.id, nom: l.ville, n: membres[l.id] || 0, lancee_le: l.lancee_le || null })).sort((a, b) => String(b.lancee_le).localeCompare(String(a.lancee_le)));
+/** Les listes de la personne, dans son espace mandataire, avec leur effectif. */
+export async function listesDeCommerces(user) {
+  const { mesListes } = await import('../mandataire-lancement.js');
+  return mesListes(user).map((l) => ({ id: l.id, nom: l.nom, n: l.total, lancee_le: l.cree_le || null }));
 }
 
-/** Envoie des commerces dans une liste (existante, ou créée par son nom). */
-export function envoyerVersListe(ids = [], { liste_id = null, nom = null, user = null } = {}) {
-  let l = liste_id ? Records.get(LISTE_PROSPECTION, liste_id) : null;
-  if (liste_id && (!l || l.type !== 'commerces')) return { ok: false, error: 'Liste introuvable.' };
+/** Envoie des commerces dans une liste du mandataire (existante, ou créée par son nom). */
+export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, user = null } = {}) {
+  const moi = moiDe(user);
+  if (!moi) return { ok: false, error: 'Connectez-vous pour faire une liste.' };
+  let l = liste_id ? Records.get(LISTE_MANDATAIRE, liste_id) : null;
+  if (liste_id && (!l || l.mandataire_email !== moi)) return { ok: false, error: 'Liste introuvable.' };
   if (!l) {
-    const propre = String(nom || '').replace(/\s+/g, ' ').trim();
+    const propre = String(nom || '').replace(/\s+/g, ' ').trim().slice(0, 80);
     if (!propre) return { ok: false, error: 'Donnez un nom à la liste.' };
-    l = Records.list(LISTE_PROSPECTION).find((x) => x.type === 'commerces' && norm(x.ville) === norm(propre))
-      || Records.create(LISTE_PROSPECTION, { ville: propre, type: 'commerces', etat: 'fini', etape: 'Commerces envoyés depuis Off-market', lancee_par: user?.email || null, lancee_le: maintenant(), journal: [] });
+    l = Records.list(LISTE_MANDATAIRE).find((x) => x.mandataire_email === moi && norm(x.nom) === norm(propre))
+      || Records.create(LISTE_MANDATAIRE, { mandataire_email: moi, nom: propre, source: 'Off-market', cree_le: maintenant() });
   }
+  const { creerProprietaire } = await import('../mandataire-espace.js');
   const ajoutes = [];
   const deja = [];
+  const refuses = [];
   for (const id of [...new Set(ids)].slice(0, 500)) {
     const c = Records.get(COMMERCE, id);
     if (!c) continue;
-    if (c.liste_prospection) { deja.push({ id, enseigne: c.enseigne || c.nom, liste: c.liste_prospection.nom }); continue; }
+    if (c.listes_mandataires?.[moi]) { deja.push({ id, enseigne: c.enseigne || c.nom, liste: c.listes_mandataires[moi].nom }); continue; }
     const ex = c.exploitant || {};
-    const gerants = [...new Map((ex.gerants || []).filter((g) => !g.personne_morale).map((g) => { const nom = personneLisible(g.nom, { nom_famille: g.nom_famille }); return [nom, { nom, qualite: g.qualite || 'Gérant' }]; })).values()];
-    const a = Records.create(AGENCE_PROSPECTION, {
-      liste_id: l.id, nom: c.enseigne ? societeLisible(c.enseigne) : nomLisible(c.nom, { forme: ex.forme }), raison_sociale: nomLisible(ex.nom || c.nom, { forme: ex.forme }), siren: c.siren, siret: c.siret,
-      telephone: c.telephone || null, site: c.site || null, adresse: rueLisible(c.adresse), ville: c.ville || null, code_postal: c.code_postal || null,
-      gerants, agents: [], sources: ['Off-market'], genre: 'proprietaire', commerce_id: c.id, activite: c.activite || null,
-      proprietaire_murs: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null, lien: c.lien || null,
-      cree_le: maintenant(),
-    });
-    Records.update(COMMERCE, id, { liste_prospection: { id: l.id, nom: l.ville, ligne_id: a.id, le: maintenant(), par: user?.email || null } });
+    const pr = c.proprietaire || null;
+    // Le numéro du commerce n'est celui du propriétaire que si l'exploitant possède les murs.
+    const telephone = String(c.lien || '').startsWith('exploitant') ? (c.contact?.telephone || c.telephone || null) : null;
+    const r = creerProprietaire({
+      nom: pr?.nom ? nomLisible(pr.nom, { forme: pr.forme }) : null,
+      commerce: c.enseigne ? societeLisible(c.enseigne) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
+      activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone, email: null,
+    }, user);
+    if (!r.ok) { refuses.push(`${c.enseigne || c.nom} : ${r.error}`); continue; }
+    Records.update('ProprietaireMandataire', r.proprietaire.id, { liste_id: l.id, commerce_simple_id: c.id, source: 'Off-market' });
+    Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: r.proprietaire.id, le: maintenant() } } });
     ajoutes.push(id);
   }
-  return { ok: true, liste: { id: l.id, nom: l.ville }, ajoutes: ajoutes.length, deja };
+  return { ok: true, liste: { id: l.id, nom: l.nom }, ajoutes: ajoutes.length, deja, refuses };
 }
 
 // ---------------------------------------------------------------------------

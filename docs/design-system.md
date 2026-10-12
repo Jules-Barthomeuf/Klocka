@@ -242,6 +242,11 @@ repliable à droite, qui propose et n'applique qu'au clic. Une campagne se crée
 en quatre étapes visibles en haut ; une séquence se lit en timeline verticale
 (déclencheur, puis une carte par email, « + » entre deux cartes), le chat
 d'AK en panneau repliable à gauche. Le module suit le thème et le halo.
+Les newsletters, à gauche de leur page, se rangent en lignes et non en cartes :
+filets `border-t border-trait`, titre 15 px (`encre` pour la choisie, `craie`
+sinon), détail 13 px `ardoise`, prochain envoi 12,5 px `brume`, la choisie
+marquée d'un trait menthe de 2 px à gauche, la corbeille au survol. Décision
+du 12 oct. 2026 (« les petites cases ne vont pas avec le reste »).
 
 **Mode appel** (décision du 7 oct. 2026, qui remplace les boutons d'issue de la
 spec du même jour) : pendant l'appel avec notes, la transcription s'affiche en

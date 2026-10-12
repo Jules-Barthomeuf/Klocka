@@ -574,6 +574,14 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const recap = useQuery({ queryKey: ["mode-appel-recap", session?.id], queryFn: () => base44.request("GET", `${API}/sessions/${session.id}`), enabled: !!session?.id, refetchInterval: ecran === "fin" ? 5000 : false });
   const agences = useMemo(() => (file.data?.file || []).filter((x) => relances || !passees.has(x.id)), [file.data, passees]);
   const a0 = rappel || agences[0] || null;
+  // La file reprend après mon dernier appel de cette liste (12 oct. 2026) : on le dit une fois, à l'ouverture.
+  const repriseDite = useRef(null);
+  useEffect(() => {
+    const r = file.data?.reprise;
+    if (!r || relances || repriseDite.current === session?.liste_id) return;
+    repriseDite.current = session?.liste_id;
+    toast(`Reprise après « ${r.apres} »`, { description: "Votre dernier appel de cette liste : la file repart à la ligne suivante." });
+  }, [file.data, relances, session?.liste_id]);
   // En essai, un cas joué comme une relance (ou l'essai de la page Relances) : la fiche porte son motif, comme une vraie relance.
   const scJoue = session?.essai ? scenarioEssai(scenario) : null;
   const motifEssai = session?.essai && a0 && !a0.relance ? (scJoue?.motif || (essaiSeul ? "point_mensuel" : null)) : null;

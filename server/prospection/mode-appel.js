@@ -155,6 +155,34 @@ export function ordreDeLaVille(lignes) {
     || String(x.nom).localeCompare(String(y.nom), 'fr'));
 }
 
+/**
+ * Pure : l'ordre fixe d'une liste (12 oct. 2026, Jules : « la liste ne change
+ * pas d'ordre en fonction des appels ») : le genre, la pertinence, les
+ * annonces, le nom. Rien qui dépende d'un appel passé.
+ */
+export function ordreStable(lignes) {
+  const genre = (x) => ({ agence: 0, societe: 1, independant: 2, annonceur: 3 })[x.genre || 'agence'] ?? 0;
+  return [...lignes].sort((x, y) => genre(x) - genre(y)
+    || (y.pertinence?.score || 0) - (x.pertinence?.score || 0)
+    || (y.annonces || 0) - (x.annonces || 0)
+    || String(x.nom).localeCompare(String(y.nom), 'fr')
+    || String(x.id).localeCompare(String(y.id)));
+}
+
+/**
+ * Pure : la file qui reprend juste après la dernière ligne que j'ai appelée,
+ * dans l'ordre fixe de la liste ; on fait le tour, rien n'est perdu.
+ * `dernierId` : l'agence de mon dernier appel ; sans lui, la file ne bouge pas.
+ */
+export function reprendreApres(file, ordre, dernierId) {
+  const rang = new Map(ordre.map((a, i) => [a.id, i]));
+  if (!dernierId || !rang.has(dernierId)) return file;
+  const n = ordre.length;
+  const d = rang.get(dernierId);
+  const cle = (x) => { const r = rang.get(x.id); return r == null ? n : (r - d - 1 + n) % n; };
+  return [...file].sort((x, y) => cle(x) - cle(y));
+}
+
 /** Les fiches du carnet et les appels d'une liste, lus une fois. */
 function contexte(agences) {
   const ids = new Set(agences.map((a) => a.carnet_id).filter(Boolean));
@@ -385,7 +413,13 @@ export function fileDAppel(listeId, user, { maintenantD = new Date() } = {}) {
     .filter((x, i, t) => t.findIndex((y) => R.normTel(numeroDe(y.a)) === R.normTel(numeroDe(x.a))) === i)
     .map(({ a, place }) => elementDeFile(a, { place, fiche: fiches.get(a.carnet_id) || null, ville: l.ville, lignes, maintenantD }));
   const chiffres = chiffresDeLaVille(lignes);
-  return { ok: true, ville: l.ville, chiffres, recherches, file };
+  // Reprendre juste après mon dernier appel dans cette liste (12 oct. 2026) : Maxime retrouve la ligne qui suit.
+  const ids = new Set(agences.map((a) => a.id));
+  const dernier = Records.list(APPEL).filter((x) => x.agence_id && ids.has(x.agence_id) && String(x.par || '').toLowerCase() === moi && !x.essai && !x.essai_archive)
+    .sort((x, y) => String(y.le).localeCompare(String(x.le)))[0] || null;
+  const ordre = ordreStable(lignes);
+  const repriseDe = dernier ? agences.find((a) => a.id === dernier.agence_id) : null;
+  return { ok: true, ville: l.ville, chiffres, recherches, file: reprendreApres(file, ordre, dernier?.agence_id || null), reprise: repriseDe ? { apres: repriseDe.nom, le: dernier.le } : null };
 }
 
 /**

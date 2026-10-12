@@ -247,7 +247,7 @@ const FILTRES = [
   ["inconnu", "Propriétaire inconnu", (p) => !(p.nom || "").trim() && !p.cible?.proprietaire],
 ];
 
-export default function TableauListe({ fiches, libelles, listeId = null, onRenommer = null, agent = false }) {
+export default function TableauListe({ fiches, libelles, listeId = null, onRenommer = null, onSupprimer = null, agent = false }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState("toutes");
@@ -321,6 +321,12 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
           <button type="button" onClick={onRenommer}
             className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
             <Pencil className="h-3.5 w-3.5" />Renommer
+          </button>
+        )}
+        {onSupprimer && (
+          <button type="button" onClick={onSupprimer}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-alerte hover:border-alerte" style={{ background: "transparent" }}>
+            <Trash2 className="h-3.5 w-3.5" />Supprimer la liste
           </button>
         )}
       </div>

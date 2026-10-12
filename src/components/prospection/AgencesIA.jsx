@@ -207,6 +207,48 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
   );
 }
 
+const CHOIX_LISTE = [
+  ["toutes", "Tout", "La liste dans son ordre fixe"],
+  ["inconnues", "À appeler", "Jamais contactées"],
+  ["connues", "Agences connues", "Déjà en contact (Monday, carnet, appel)"],
+  ["appelees", "Appelées", "La plus récemment appelée en tête"],
+  ["relance", "Relance due", null],
+  ["agences", "Agences", null],
+  ["independants", "Indépendants", null],
+  ["telephone", "Avec un numéro", null],
+  ["agents", "Avec des agents", null],
+  ["supprimees", "Supprimées", null],
+];
+
+/** La pilule « Trier par » et son menu déroulant. */
+function TrierPar({ valeur, onChange }) {
+  const [ouvert, setOuvert] = useState(false);
+  const choix = CHOIX_LISTE.find(([k]) => k === valeur) || CHOIX_LISTE[0];
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="listbox"
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-vif px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
+        <span className="text-ardoise">Trier par</span><span className="text-encre">{choix[1]}</span><ChevronDown className={`h-4 w-4 transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
+      {ouvert && (<>
+        <div className="fixed inset-0 z-30" onClick={() => setOuvert(false)} aria-hidden />
+        <div role="listbox" className="absolute left-0 top-12 z-40 w-[290px] rounded-bloc border border-bord-doux bg-surface-pleine p-1.5 shadow-xl">
+          {CHOIX_LISTE.map(([k, mot, aide], i) => (
+            <React.Fragment key={k}>
+              {i === 4 && <div className="my-1 border-t border-trait" />}
+              <button type="button" role="option" aria-selected={valeur === k} onClick={() => { onChange(k); setOuvert(false); }}
+                className={`flex w-full items-start gap-2 rounded-champ px-3 py-2 text-left hover:bg-relief ${valeur === k ? "text-encre" : "text-craie"}`} style={{ background: "transparent" }}>
+                <Check className={`mt-0.5 h-3.5 w-3.5 flex-none ${valeur === k ? "text-menthe" : "opacity-0"}`} />
+                <span className="min-w-0"><span className="block text-[13.5px]">{mot}</span>{aide && <span className="block text-[12px] text-brume">{aide}</span>}</span>
+              </button>
+            </React.Fragment>
+          ))}
+        </div>
+      </>)}
+    </div>
+  );
+}
+
 function TableauAgences({ id, onAppeler }) {
   // L'agent d'un collègue (le premier qui l'a joint) : absent de ma file, signalé ici.
   const { data: equipeDonnees } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
@@ -294,9 +336,11 @@ function TableauAgences({ id, onAppeler }) {
   });
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return (data?.lignes || []).filter((a) => !a.fermee)
-      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? a.statut?.etat === "jamais" : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
+    const base = (data?.lignes || []).filter((a) => !a.fermee)
+      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? a.statut?.etat === "jamais" : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
       .filter((a) => !t || [a.nom, a.adresse, a.telephone, a.email, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email])].filter(Boolean).join(" ").toLowerCase().includes(t));
+    // « Appelées » : la plus récemment appelée en tête. Ailleurs, l'ordre fixe de la liste.
+    return filtre === "appelees" ? [...base].sort((x, y) => String(y.statut?.quand || "").localeCompare(String(x.statut?.quand || ""))) : base;
   }, [data, q, filtre]);
   if (isLoading || !data) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
 
@@ -309,14 +353,8 @@ function TableauAgences({ id, onAppeler }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agence, gérant, agent, numéro"
             className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
-        {/* Six filtres : au téléphone, la pilule défile sur une ligne. */}
-        <div className="flex gap-1 rounded-full bg-rail-actif p-1 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
-          {[["toutes", "Toutes"], ["relance", "Relance due"], ["inconnues", "Jamais contactées"], ["agences", "Agences"], ["independants", "Indépendants"], ["telephone", "Avec un numéro"], ["agents", "Avec des agents"], ["supprimees", "Supprimées"]].map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => setFiltre(k)}
-              className={`rounded-full px-3 py-1 text-[12.5px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
-              style={filtre === k ? undefined : { background: "transparent" }}>{mot}</button>
-          ))}
-        </div>
+        {/* « Trier par » : une pilule, les choix dans un menu (12 oct. 2026). */}
+        <TrierPar valeur={filtre} onChange={setFiltre} />
         <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
           {data.etat === "en_cours" ? <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span> : `${lignes.length} agence${lignes.length > 1 ? "s" : ""}${data.deja_monday ? ` · ${data.deja_monday} déjà en contact` : ""}${data.fini_le ? ` · mise à jour ${ilYa(data.fini_le)}` : ""}`}
         </span>

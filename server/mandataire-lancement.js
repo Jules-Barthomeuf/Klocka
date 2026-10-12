@@ -592,8 +592,10 @@ export function completerProprietairesListe(listeId, user) {
 
 export function mesListes(user) {
   const fiches = Records.list('ProprietaireMandataire').filter((p) => p.mandataire_email === moi(user));
+  // Seules les listes faites à la main se voient : celles de l'agent IA et de
+  // la veille (agent, suggeree) sont écartées depuis le 12 oct. 2026.
   return Records.list('ListeMandataire')
-    .filter((l) => l.mandataire_email === moi(user))
+    .filter((l) => l.mandataire_email === moi(user) && !l.agent && !l.suggeree)
     .sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)))
     .map((l) => {
       const dedans = fiches

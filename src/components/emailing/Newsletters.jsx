@@ -483,17 +483,29 @@ export default function Newsletters({ demande = null }) {
   return (
     <div className="grid grid-cols-[280px_minmax(0,1fr)] items-start gap-7 px-10 pb-20 pt-7 max-lg:grid-cols-1 max-md:px-4 max-md:pt-5">
       {vueAtelier}
-      <div className="flex flex-col gap-2 max-lg:flex-row max-lg:overflow-x-auto max-lg:pb-1">
-        {liste.map((n) => (
-          <div key={n.id} role="button" tabIndex={0} onClick={() => setChoisie(n.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisie(n.id); }}
-            className={`group relative flex cursor-pointer flex-col gap-2 rounded-[12px] border p-3.5 text-left transition-colors max-lg:min-w-[240px] ${n.id === choisie ? "border-bord-vif bg-relief" : "border-trait bg-rail hover:border-bord-doux"}`}>
-            <span className="flex items-center justify-between gap-2"><span className="min-w-0 truncate text-[14px] text-encre">{n.nom}</span><Pastille statut={n.statut} /></span>
-            <span className="text-[12.5px] text-ardoise">{pluriel(n.mails?.length || 0, "mail")} · {pluriel(n.inscrits || 0, "inscrit")} · {pluriel(n.calls || 0, "call")}</span>
-            {n.prochain?.instant && n.statut === "active" && <span className="text-[12px] text-craie">Prochain : {jourLong(String(n.prochain.instant).slice(0, 10))}{n.prochain.statut !== "pret" ? <span className="text-ambre"> · pas prêt</span> : null}</span>}
-            <button type="button" onClick={(e) => { e.stopPropagation(); if (window.confirm(`Supprimer « ${n.nom} » ? Les mails partis restent partis ; les suivants ne partiront pas.`)) supprimer.mutate(n.id); }} aria-label={`Supprimer ${n.nom}`} title="Supprimer"
-              className="absolute bottom-2.5 right-2.5 grid h-7 w-7 place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}><Trash2 className="h-3.5 w-3.5" /></button>
-          </div>
-        ))}
+      {/* Les newsletters en lignes, comme toute liste d'objets (design system,
+          « Listes d'objets ») : pas de carte, des filets ; la choisie en encre,
+          marquée d'un trait menthe à gauche, les autres en craie. */}
+      <div className="flex flex-col border-y border-trait">
+        {liste.map((n) => {
+          const active = n.id === choisie;
+          return (
+            <div key={n.id} role="button" tabIndex={0} onClick={() => setChoisie(n.id)} onKeyDown={(e) => { if (e.key === "Enter") setChoisie(n.id); }} aria-current={active || undefined}
+              className="group relative flex cursor-pointer items-start gap-3 border-t border-trait py-4 pl-4 pr-2 text-left first:border-t-0 hover:bg-encre/[0.02]">
+              <span aria-hidden className={`absolute bottom-4 left-0 top-4 w-[2px] rounded-full ${active ? "bg-menthe" : "bg-transparent"}`} />
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className={`min-w-0 truncate text-[15px] ${active ? "text-encre" : "text-craie group-hover:text-encre"}`}>{n.nom}</span>
+                  <Pastille statut={n.statut} />
+                </span>
+                <span className="text-[13px] tabular-nums text-ardoise">{pluriel(n.mails?.length || 0, "mail")} · {pluriel(n.inscrits || 0, "inscrit")} · {pluriel(n.calls || 0, "call")}</span>
+                {n.prochain?.instant && n.statut === "active" && <span className="text-[12.5px] text-brume">Prochain : {jourLong(String(n.prochain.instant).slice(0, 10))}{n.prochain.statut !== "pret" ? <span className="text-ambre"> · pas prêt</span> : null}</span>}
+              </span>
+              <button type="button" onClick={(e) => { e.stopPropagation(); if (window.confirm(`Supprimer « ${n.nom} » ? Les mails partis restent partis ; les suivants ne partiront pas.`)) supprimer.mutate(n.id); }} aria-label={`Supprimer ${n.nom}`} title="Supprimer"
+                className="mt-6 grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}><Trash2 className="h-3.5 w-3.5" /></button>
+            </div>
+          );
+        })}
       </div>
       {choisie && <VueNewsletter key={choisie} id={choisie} onAtelier={() => setAtelier({ id: choisie, mailId: null })} onMail={(nl, mailId) => setAtelier({ id: nl.id, mailId })} onSupprimee={() => { setChoisie(null); rafraichir(); }} />}
     </div>

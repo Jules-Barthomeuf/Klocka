@@ -13,7 +13,7 @@
 // La veille ne dépense rien d'IA ni de crédits : parcours ALX (un par
 // mandataire et par jour au plus), lectures ouvertes (BAN, cadastre, DGFiP,
 // Data-B), Pages Blanches. Apollo, qui coûte un crédit par gérant, reste
-// réservé aux listes ouvertes à la main. VEILLE_MANDATAIRE=0 coupe tout.
+// réservé aux listes ouvertes à la main. Coupée par défaut ; VEILLE_MANDATAIRE=1 la rallume.
 
 import { Records, Meta } from './db.js';
 
@@ -361,7 +361,9 @@ async function poserListeDuJour(secteur, user, etat) {
 let tourEnCours = false;
 
 export async function tourDeVeille() {
-  if (process.env.VEILLE_MANDATAIRE === '0') return { ok: true, coupee: true };
+  // Coupée par défaut depuis le 12 oct. 2026 (demande de Jules) : l'agent IA et
+  // la veille ne créent plus de listes. VEILLE_MANDATAIRE=1 pour la rallumer.
+  if (process.env.VEILLE_MANDATAIRE !== '1') return { ok: true, coupee: true };
   if (tourEnCours) return { ok: true, deja: true };
   tourEnCours = true;
   try {

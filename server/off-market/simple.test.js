@@ -110,24 +110,32 @@ test('la casse : adresses, personnes, sociétés et enseignes', async () => {
   assert.equal(C.nomLisible('LARA REY (NOEL)', { forme: 'Entrepreneur individuel' }), 'Lara REY (NOEL)');
 });
 
-test('vers une liste de la Prospection : créée par son nom, un commerce une seule fois', () => {
+test('vers une liste du mandataire : créée par son nom, un commerce une fois par personne, rien côté admin', async () => {
   const ids = Records.filter(S.COMMERCE, { ville_id: ville.id }).map((c) => c.id);
-  const r = S.envoyerVersListe(ids, { nom: 'Antibes', user: { email: 'j@k' } });
+  const jules = { email: 'J@k' };
+  const r = await S.envoyerVersListe(ids, { nom: 'Antibes', user: jules });
   assert.ok(r.ok);
   assert.equal(r.ajoutes, ids.length);
-  const l = Records.get('ListeAgences', r.liste.id);
-  assert.equal(l.type, 'commerces');
-  assert.equal(l.ville, 'Antibes');
-  const lignes = Records.filter('AgenceProspect', { liste_id: l.id });
-  assert.equal(lignes.length, ids.length);
-  assert.ok(lignes.every((a) => a.commerce_id && a.genre === 'proprietaire'));
-  const r2 = S.envoyerVersListe([ids[0]], { nom: 'antibes' });
+  const l = Records.get('ListeMandataire', r.liste.id);
+  assert.equal(l.mandataire_email, 'j@k');
+  assert.equal(l.nom, 'Antibes');
+  const fiches = Records.filter('ProprietaireMandataire', { liste_id: l.id });
+  assert.equal(fiches.length, ids.length);
+  assert.ok(fiches.every((p) => p.commerce_simple_id && p.source === 'Off-market' && p.mandataire_email === 'j@k' && p.statut === 'a_appeler'));
+  assert.equal(Records.list('ListeAgences').length, 0, 'rien dans les listes de la Prospection admin');
+  assert.equal(Records.list('AgenceProspect').length, 0);
+  const r2 = await S.envoyerVersListe([ids[0]], { nom: 'antibes', user: jules });
   assert.equal(r2.liste.id, l.id, 'même nom, même liste');
   assert.equal(r2.ajoutes, 0);
   assert.equal(r2.deja.length, 1);
-  assert.equal(S.compact(Records.get(S.COMMERCE, ids[0])).liste.nom, 'Antibes');
-  assert.deepEqual(S.listesDeCommerces().map((x) => [x.nom, x.n]), [['Antibes', ids.length]]);
-  assert.equal(S.envoyerVersListe(ids, {}).ok, false, 'sans nom ni liste');
+  assert.equal(S.compact(Records.get(S.COMMERCE, ids[0]), { moi: 'j@k' }).liste.nom, 'Antibes');
+  assert.equal(S.compact(Records.get(S.COMMERCE, ids[0]), { moi: 'autre@k' }).liste, null, 'la liste de Jules n\'est pas celle d\'un autre');
+  assert.deepEqual((await S.listesDeCommerces(jules)).map((x) => [x.nom, x.n]), [['Antibes', ids.length]]);
+  // Un autre mandataire met le même commerce dans sa propre liste.
+  const r3 = await S.envoyerVersListe([ids[0]], { nom: 'Ma liste', user: { email: 'autre@k' } });
+  assert.equal(r3.ajoutes, 1);
+  assert.equal((await S.envoyerVersListe(ids, { user: jules })).ok, false, 'sans nom ni liste');
+  assert.equal((await S.envoyerVersListe(ids, { nom: 'X' })).ok, false, 'sans personne connectée');
 });
 
 test('la barre du bas : une phrase devient des filtres', async () => {

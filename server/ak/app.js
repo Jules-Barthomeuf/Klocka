@@ -13,6 +13,7 @@ import { auBanc } from './banc/garde.js';
 const CADRE_APP = `
 
 TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Google Chat :
+- le même ton que l'équipe (le document au-dessus), mais une écriture normale : majuscules et ponctuation ; le markdown est retiré à l'affichage, n'en mets pas ; des retours à la ligne, et des tirets pour une liste quand elle aide ;
 - pas de mention @, pas de pièce jointe à poster ;
 - les liens vers la plateforme en chemins relatifs (/Dossiers?deal_id=…, /Projet?id=…) ;
 - un mail rédigé (mail_agent, mail_libre, retoucher_brouillon) s'ouvre en brouillon sous ta réponse, à relire et envoyer d'un clic : dis-le en une ligne, ne le recopie pas ;
@@ -38,7 +39,7 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
 
 export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null, surTexte = null }) {
-  const { consigne, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
+  const { consigneStable, consigneApprise, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
   const { estEchec, journaliser } = await import('../assistant-journal.js');
@@ -136,7 +137,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     signal,
     surTexte,
     effort: effortDuChat(),
-    system: consigne() + CADRE_APP + cadrePage,
+    system: consigneStable() + CADRE_APP + consigneApprise() + cadrePage,
     messages,
     tools: OUTILS,
     model: MODELE,

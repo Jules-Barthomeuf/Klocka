@@ -164,3 +164,16 @@ test("le PDF : un jeton d'impression court, et le fichier refait seulement aprè
   assert.equal(PDF.pdfAJour({ pdf_url: '/x.pdf', pdf_le: '2026-10-12T09:00:00Z', maj_le: '2026-10-12T10:00:00Z' }), false, 'retouchée depuis : à refaire');
   assert.equal(PDF.pdfAJour({ pdf_url: '/x.pdf', pdf_le: '2026-10-12T11:00:00Z', maj_le: '2026-10-12T10:00:00Z' }, false), false, 'fichier disparu : à refaire');
 });
+
+test("chaque diapositive dit d'où viennent ses chiffres ; une estimation de l'IA est signalée", async () => {
+  const { sourcesDesDiapos } = await import('./presentation-projet.js');
+  const S = sourcesDesDiapos({ origine: { ville: 'donnees', secteur: 'ia' }, indexation: 2, rendementRevente: 6.5 });
+  assert.match(S.ville.chiffres, /jeu de données/);
+  assert.match(S.quartier.chiffres, /estimation de l'IA[\s\S]*non vérifiée/);
+  assert.match(S.projection.chiffres, /2 % par an[\s\S]*6\.5 %/);
+  assert.match(S.emplacement.carte, /Google Maps/);
+  const P = await import('./presentation-bancaire.js');
+  const { Records } = await import('./db.js');
+  const p = Records.create('PresentationBancaire', { titre: 'x', diapos: [{ id: 'quartier', type: 'quartier', sources: S.quartier }] });
+  assert.match(P.presentationPourAK(p.id), /D'OÙ VIENNENT LES CHIFFRES[\s\S]*estimation de l'IA/);
+});

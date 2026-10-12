@@ -35,6 +35,9 @@ function resume(p) {
     adresse: projet?.adresse_complete || p.adresse || '',
     diapos: (p.diapos || []).filter((d) => !d.masquee).length,
     conversation_id: p.conversation_id || null,
+    cree_par: p.cree_par || null,
+    // L'aperçu de la liste : la photo de couverture.
+    photo: (p.diapos || []).find((d) => d.id === 'couverture')?.photo || null,
     cree_le: p.cree_le,
     maj_le: p.maj_le,
     exporte_le: p.exporte_le || null,
@@ -147,7 +150,7 @@ export function poserChemin(diapo, chemin, valeur) {
     else o[i] = valeur;
     return { ok: true, diapo: copie };
   }
-  if (!(dernier in o) && !['masquee', 'photo', 'styles'].includes(dernier)) return { ok: false, error: `Champ inconnu : ${chemin}` };
+  if (!(dernier in o) && !['masquee', 'photo', 'styles', 'sources'].includes(dernier)) return { ok: false, error: `Champ inconnu : ${chemin}` };
   o[dernier] = valeur;
   return { ok: true, diapo: copie };
 }
@@ -175,7 +178,9 @@ export function presentationPourAK(id) {
   const p = Records.get(ENTITE, id);
   if (!p) return null;
   const lignes = (p.diapos || []).map((d, i) => {
-    const { id: cle, type, styles, ...champs } = d;
+    const { id: cle, type, styles, sources, ...champs } = d;
+    // D'où viennent les chiffres : posés à la création ; une présentation plus ancienne reçoit les sources du modèle.
+    champs.sources = sources || null;
     // Les mises en forme de l'éditeur ne regardent pas AK ; ce qui est masqué, si.
     const masques = Object.entries(styles || {}).filter(([, st]) => st?.masque).map(([c]) => c);
     if (masques.length) champs.elements_masques = masques;
@@ -184,7 +189,7 @@ export function presentationPourAK(id) {
     if (type === 'projection') champs.barres = `${(champs.barres || []).length} barres`;
     return `${i + 1}. [${cle}] (${type}) ${JSON.stringify(champs)}`;
   });
-  return `PRÉSENTATION BANCAIRE OUVERTE À DROITE (presentation_id ${p.id}, « ${p.titre} ») — l'équipe a pu la retoucher, c'est la version à jour :\n${lignes.join('\n')}`;
+  return `PRÉSENTATION BANCAIRE OUVERTE À DROITE (presentation_id ${p.id}, « ${p.titre} ») — l'équipe a pu la retoucher, c'est la version à jour :\n${lignes.join('\n')}\nD'OÙ VIENNENT LES CHIFFRES : le champ « sources » de chaque diapositive. Une question sur l'origine d'un chiffre (« d'où vient le loyer du quartier ? ») : réponds avec cette source, sans rien inventer ; si c'est une estimation de l'IA, dis-le clairement et propose de la vérifier (data_b pour un loyer ou une valeur locative). Un chiffre retouché à la main par l'équipe (différent du projet) : dis qu'il a été saisi à la main.`;
 }
 
 /** Le PPTX de la présentation telle qu'elle est, et sa version Google Slides si un compte est donné. */

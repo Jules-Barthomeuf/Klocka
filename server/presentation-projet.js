@@ -25,6 +25,7 @@ import { invokeLLM, llmEnabled } from './llm.js';
 import { trouverVille, trouverSecteur } from '../src/data/villes.js';
 import { secteurGarde } from './projet-secteur.js';
 import { TAILLES, CARTE, HEROS, BARRE, LARGEUR, HAUTEUR } from '../src/lib/presentation-modele.js';
+import { communeParNom, chiffresSources } from './chiffres-commune.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = CHEMIN_UPLOADS;
@@ -93,6 +94,8 @@ async function analyseVilleSecteur(p) {
 
   let ville = trouverVille(p.adresse_complete) || null;
   let secteur = trouverSecteur(ville, p.adresse_complete) || null;
+  // D'où viennent les chiffres (12 oct. 2026, Jules : « qu'on puisse demander au chat d'où viennent les chiffres »).
+  const origine = { ville: ville ? 'donnees' : null, secteur: secteur ? 'donnees' : null };
 
   if ((!ville || !secteur) && llmEnabled) {
     try {
@@ -125,16 +128,44 @@ async function analyseVilleSecteur(p) {
           },
         },
       });
-      if (!ville && r?.ville?.nom) ville = r.ville;
-      if (!secteur && (r?.secteur?.chiffres?.length || r?.secteur?.points?.length)) secteur = r.secteur;
+      if (!ville && r?.ville?.nom) { ville = r.ville; origine.ville = 'ia'; }
+      if (!secteur && (r?.secteur?.chiffres?.length || r?.secteur?.points?.length)) { secteur = r.secteur; origine.secteur = 'ia'; }
     } catch (e) {
       console.warn('[presentation projet] analyse LLM indisponible :', e?.message || e);
     }
   }
 
-  if (!ville && rempli(p.description_ville)) ville = { nom: null, chiffres: [], points: enPoints(p.description_ville) };
-  if (!secteur && rempli(p.description_secteur)) secteur = { nom: p.marche_quartier_nom, chiffres: [], points: enPoints(p.description_secteur) };
-  return { ville, secteur };
+  // Les chiffres clés de la ville viennent de leurs sources (API Géo, INSEE,
+  // Le Figaro) et remplacent ceux du jeu de données ou du modèle ; une source
+  // muette laisse le chiffre d'avant (12 oct. 2026, Jules : AK ne savait pas
+  // remplir revenu médian, chômage et prix du logement de Libourne).
+  const nomCommune = ville?.nom || p.ville || null;
+  if (nomCommune) {
+    try {
+      const c = await communeParNom(String(nomCommune).replace(/\s*\(.*\)\s*$/, ''));
+      if (c) {
+        const s = await chiffresSources(c);
+        const nb = (n, d = 0) => Number(n).toLocaleString('fr-FR', { maximumFractionDigits: d }).replace(/\u202f/g, ' ');
+        const sources = [
+          c.population && { label: 'Habitants (INSEE)', valeur: nb(c.population) },
+          s.revenu_median_uc && { label: `Revenu médian par UC (INSEE ${s.revenu_median_uc.annee})`, valeur: `${nb(s.revenu_median_uc.valeur_euros_an)} €` },
+          s.chomage_zone_emploi && { label: `Taux de chômage, zone d'emploi (INSEE, ${s.chomage_zone_emploi.periode})`, valeur: `${nb(s.chomage_zone_emploi.taux_pct, 1)} %` },
+          s.logement && { label: 'Prix médian du logement au m² (Le Figaro)', valeur: `${nb(s.logement.prix_median_m2)} €/m²` },
+        ].filter(Boolean);
+        if (sources.length) {
+          const garde = (ville?.chiffres || []).filter((x) => !sources.some((n) => [/habitant|population/i, /revenu/i, /chômage|chomage/i, /prix|logement|m²/i].some((re) => re.test(n.label) && re.test(String(x?.label || '')))));
+          ville = { nom: c.nom, points: [], ...(ville || {}), chiffres: [...sources, ...garde] };
+          origine.ville_chiffres = 'sources';
+        }
+      }
+    } catch (e) {
+      console.warn('[presentation projet] chiffres de la commune indisponibles :', e?.message || e);
+    }
+  }
+
+  if (!ville && rempli(p.description_ville)) { ville = { nom: null, chiffres: [], points: enPoints(p.description_ville) }; origine.ville = 'description'; }
+  if (!secteur && rempli(p.description_secteur)) { secteur = { nom: p.marche_quartier_nom, chiffres: [], points: enPoints(p.description_secteur) }; origine.secteur = 'description'; }
+  return { ville, secteur, origine };
 }
 
 // Carte de l'emplacement : grille de tuiles Plan IGN assemblée dans la diapo.
@@ -199,6 +230,42 @@ export function secteurOsm(tags = {}) {
     if (v && SECTEURS_OSM[`${cle}=${v}`]) return SECTEURS_OSM[`${cle}=${v}`];
   }
   return tags.shop ? 'Commerce' : null;
+}
+
+// --- D'où viennent les chiffres ---------------------------------------------
+
+const ORIGINE = {
+  donnees: 'le jeu de données des villes de la plateforme (INSEE et observatoires)',
+  ia: 'une estimation de l\'IA faite à la création de la présentation, non vérifiée : à confirmer avant d\'envoyer',
+  description: 'la description saisie sur la fiche du projet',
+};
+/**
+ * Pure : la source des chiffres de chaque diapositive, en clair, pour qu'AK sache répondre à « d'où vient ce chiffre ? ».
+ * `origine` dit si la ville et le secteur viennent des données de la plateforme, de l'IA ou de la fiche.
+ */
+export function sourcesDesDiapos({ origine = {}, indexation = 2, rendementRevente = 6.5, avecTravaux = false } = {}) {
+  const fiche = 'la fiche du projet sur la plateforme (onglet Simulateur : prix négocié, loyer initial, surface, échéance du bail, locataire)';
+  const ville = origine.ville_chiffres === 'sources'
+    ? `population : API Géo (INSEE) ; revenu médian par UC : INSEE Filosofi ; chômage : INSEE, taux localisés par zone d'emploi ; prix du logement : Le Figaro Immobilier${origine.ville && origine.ville !== 'donnees' ? ` ; points : ${ORIGINE[origine.ville]}` : ''}`
+    : origine.ville ? ORIGINE[origine.ville] : 'aucune source : à compléter';
+  const secteur = origine.secteur ? ORIGINE[origine.secteur] : 'aucune source : à compléter';
+  return {
+    couverture: { chiffres: fiche, photo: 'les photos du projet' },
+    ville: { chiffres: ville, atouts: ville, photo: 'les photos du projet' },
+    emplacement: { carte: 'Google Maps, centrée sur les coordonnées du projet (ou l\'adresse géocodée par la Base adresse nationale)' },
+    quartier: { chiffres: secteur, atouts: secteur, photo: 'les photos du projet' },
+    local: { chiffres: `${fiche} ; le loyer au m² est le loyer annuel divisé par la surface` },
+    photos: { photos: 'les photos du projet' },
+    bail: { chiffres: `${fiche} ; loyer mensuel = loyer annuel / 12 ; indexation de ${indexation} % par an (réglage du simulateur)` },
+    enseignes: { enseignes: 'OpenStreetMap : les marques relevées à moins de 400 m du local ; logos de Wikidata ; secteur d\'après le type de commerce' },
+    marche: { local: `${fiche} ; prix et loyer au m² rapportés à la surface`, marche: 'loyer : l\'onglet Marché du projet (correction de l\'équipe, sinon Equimmox, Data-B en repli) ; prix des murs du secteur : aucune source fiable, à compléter' },
+    projection: { chiffres: `calcul de la plateforme sur 20 ans : loyer du simulateur indexé de ${indexation} % par an${avecTravaux ? ', travaux article 606 du simulateur déduits' : ''} ; revente = loyer de l'année 20 / ${rendementRevente} % (rendement de sortie du simulateur)` },
+    revenus: { chiffres: `le même calcul, année par année ; charges et taxe foncière déduites seulement si elles ne sont pas refacturées au locataire (simulateur)` },
+    conditions: { chiffres: 'le simulateur du projet : durée du crédit et apport ; montant à financer = prix - apport' },
+    porteur: { chiffres: 'à remplir par le porteur du projet' },
+    structuration: { chiffres: 'exemple de structuration, à adapter' },
+    merci: { contact: 'à remplir' },
+  };
 }
 
 // Enseignes autour du local : marques relevées dans OpenStreetMap (Overpass),
@@ -368,7 +435,8 @@ export async function construireDiapos(project, photos = {}) {
   }
   const hypothese = `Loyer actuel indexé de ${virgule(indexation, Number.isInteger(indexation) ? 0 : 1)} % par an. ${projection?.charges ? 'Charges de copropriété et taxe foncière non refacturées déduites.' : 'Charges de copropriété et taxe foncière à la charge du locataire.'}`;
 
-  const diapo = (id, etape, heros, carte) => ({ id, type: id, chapitre: CHAPITRES[id], etape, heros, ...carte });
+  const sources = sourcesDesDiapos({ origine: analyse.origine || {}, indexation, rendementRevente, avecTravaux: !!projection?.avecTravaux });
+  const diapo = (id, etape, heros, carte) => ({ id, type: id, chapitre: CHAPITRES[id], etape, heros, ...carte, sources: sources[id] || null });
   const logos = garderLogos(enseignes.logos);
 
   return [

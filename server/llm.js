@@ -53,6 +53,10 @@ const anthropic =
       new Anthropic({ apiKey: ANTHROPIC_KEY, maxRetries: 4, timeout: 10 * 60 * 1000 })
     : null;
 
+// Les tests de la boucle d'outils remplacent le client (12 oct. 2026) : seulement sous `node --test`.
+let clientAgentDeTest = null;
+export function brancherClientAgentPourTests(client) { clientAgentDeTest = process.env.NODE_TEST_CONTEXT ? client : null; }
+
 // ---------------------------------------------------------------------------
 // Utilitaires communs
 // ---------------------------------------------------------------------------
@@ -629,7 +633,10 @@ export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {
 // Agent (boucle d'appel d'outils)
 // ---------------------------------------------------------------------------
 
-const MAX_TOOL_ROUNDS = 6;
+// 20 tours de modèle (12 oct. 2026 ; 6 coupaient les demandes en plusieurs étapes). Au-delà, un dernier tour sans
+// outil fait dire au modèle ce qui est fait et ce qui reste, au lieu d'un message fixe.
+const MAX_TOOL_ROUNDS = 20;
+const MAX_REPRISES = 2;
 
 /**
  * Runs a tool-use loop for the local agents implementation.
@@ -643,7 +650,7 @@ const MAX_TOOL_ROUNDS = 6;
  *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
 export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null, effort = null }) {
-  if (!llmEnabled) {
+  if (!llmEnabled && !clientAgentDeTest) {
     return {
       text:
         "L'assistant IA n'est pas configuré (aucune clé API). " +
@@ -671,7 +678,7 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
   let res = null;
   let erreur = null;
   try {
-    res = provider === 'gemini'
+    res = provider === 'gemini' && !clientAgentDeTest
       ? await runAgentGemini({ system, messages, tools, onTool: onToolNote })
       : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort });
   } catch (e) { erreur = e; }
@@ -735,6 +742,7 @@ const REFLEXION = { type: 'adaptive', display: 'summarized' };
 const MAX_TOKENS_AGENT = 32000;
 
 async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null }) {
+  const client = clientAgentDeTest || anthropic;
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   const modele = model || ANTHROPIC_MODEL;
   // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
@@ -743,10 +751,11 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
   const systeme = cache && system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system;
   const outils = cache && tools.length ? tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)) : tools;
 
+  let reprises = 0;
   for (let i = 0; i < MAX_TOOL_ROUNDS; i++) {
     // Stop (12 oct. 2026) : la personne est partie, on ne relance pas le modèle et la requête en cours est coupée.
     if (signal?.aborted) return { text: 'Arrêté.', tours: i, arrete: true };
-    const resp = await anthropic.messages.create({
+    const resp = await client.messages.create({
       model: modele,
       max_tokens: MAX_TOKENS_AGENT,
       thinking: REFLEXION,
@@ -767,6 +776,23 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
         outils: (resp.content || []).filter((b) => b.type === 'tool_use').map((b) => b.name),
         jetons: { entree: u.input_tokens || 0, sortie: u.output_tokens || 0, reflexion: u.output_tokens_details?.thinking_tokens || 0, cache_lecture: u.cache_read_input_tokens || 0, cache_ecriture: u.cache_creation_input_tokens || 0 },
       });
+    }
+
+    // Une pause côté serveur (outils d'Anthropic) : on renvoie le tour tel quel, il reprend où il en était.
+    if (resp.stop_reason === 'pause_turn') {
+      convo.push({ role: 'assistant', content: resp.content });
+      continue;
+    }
+    // Coupé par la limite de longueur : le tour repart tel quel (la doc d'Anthropic), chaque appel d'outil inachevé
+    // reçoit un refus, et le modèle est prié de continuer, plus court. Deux reprises au plus.
+    if (resp.stop_reason === 'max_tokens' && reprises < MAX_REPRISES) {
+      reprises += 1;
+      convo.push({ role: 'assistant', content: resp.content });
+      convo.push({ role: 'user', content: [
+        ...(resp.content || []).filter((b) => b.type === 'tool_use').map((b) => ({ type: 'tool_result', tool_use_id: b.id, is_error: true, content: 'Non exécuté : ta réponse a été coupée avant la fin de cet appel.' })),
+        { type: 'text', text: 'Ta réponse a été coupée par la limite de longueur. Continue là où tu t’es arrêté, plus court.' },
+      ] });
+      continue;
     }
 
     if (resp.stop_reason === 'tool_use') {
@@ -801,7 +827,22 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
     };
   }
 
-  return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).', tours: MAX_TOOL_ROUNDS, limite: true };
+  // La limite atteinte : un dernier tour, sans outil, pour dire où on en est.
+  const derniere = convo[convo.length - 1];
+  const consigneFin = { type: 'text', text: 'Limite d’étapes atteinte : n’appelle plus aucun outil. Dis en quelques lignes ce qui est fait, ce qui ne l’est pas encore, et ce qu’il faut te redemander pour finir.' };
+  if (derniere?.role === 'user' && Array.isArray(derniere.content)) derniere.content = [...derniere.content, consigneFin];
+  else convo.push({ role: 'user', content: [consigneFin] });
+  try {
+    const fin = await client.messages.create({
+      model: modele, max_tokens: 8000, thinking: REFLEXION, ...(effort ? { output_config: { effort } } : {}),
+      ...(systeme ? { system: systeme } : {}), ...(outils.length ? { tools: outils, tool_choice: { type: 'none' } } : {}), messages: convo,
+    }, signal ? { signal } : undefined);
+    compter(modele, fin.usage);
+    const texte = (fin.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+    if (notes) notes.tours.push({ stop_reason: fin.stop_reason || null, texte: texte.slice(0, 4000), outils: [], jetons: { entree: fin.usage?.input_tokens || 0, sortie: fin.usage?.output_tokens || 0 } });
+    if (texte) return { text: texte, tours: MAX_TOOL_ROUNDS + 1, limite: true };
+  } catch (e) { if (signal?.aborted) throw e; }
+  return { text: 'Je me suis arrêté à la limite d’étapes sans avoir pu conclure : redemande-moi la suite, en plus petit.', tours: MAX_TOOL_ROUNDS, limite: true };
 }
 
 /**

@@ -524,9 +524,29 @@ const texte = (v) => String(v ?? '');
 const pouces = (v) => v / 96; // 1280 px = 13,33 pouces
 const points = (v) => v * 0.75; // une taille en pixels, en points
 
-/** Un texte posé à des coordonnées de la diapositive (pixels). */
-function ecrire(s, t, { x, y, w, h, taille = 15, couleur = C.ivoire, ...o }) {
-  s.addText(texte(t), { x: pouces(x), y: pouces(y), w: pouces(w), h: pouces(h), fontFace: POLICE, fontSize: points(taille), color: couleur, margin: 0, valign: 'middle', ...o });
+// La palette du deck, par nom : l'écran (components/presentations/Deck.jsx, PALETTE) lit les mêmes.
+const COULEURS = { ivoire: C.ivoire, sauge: C.sauge, clair: C.clair, gris: C.gris, encre: C.encre };
+const couleurDe = (c) => (!c ? null : /^#/.test(c) ? c.slice(1).toUpperCase() : COULEURS[c] || null);
+// Les mises en forme de la diapositive en cours de dessin (diapo.styles).
+let stylesCourants = {};
+/** Pure : les options pptxgenjs d'une mise en forme ; null si l'élément est masqué. */
+export function optionsDeStyle(st) {
+  if (!st) return {};
+  if (st.masque) return null;
+  return {
+    ...(st.taille ? { fontSize: points(st.taille) } : {}),
+    ...(st.gras ? { bold: true } : {}),
+    ...(st.italique ? { italic: true } : {}),
+    ...(couleurDe(st.couleur) ? { color: couleurDe(st.couleur) } : {}),
+    ...(st.aligner ? { align: st.aligner } : {}),
+    ...(st.opacite != null ? { transparency: 100 - st.opacite } : {}),
+  };
+}
+/** Un texte posé à des coordonnées de la diapositive (pixels) ; `chemin` lui applique sa mise en forme. */
+function ecrire(s, t, { x, y, w, h, taille = 15, couleur = C.ivoire, chemin = null, ...o }) {
+  const st = chemin ? optionsDeStyle(stylesCourants[chemin]) : {};
+  if (st === null) return;
+  s.addText(texte(t), { x: pouces(x), y: pouces(y), w: pouces(w), h: pouces(h), fontFace: POLICE, fontSize: points(taille), color: couleur, margin: 0, valign: 'middle', ...o, ...st });
 }
 function filet(s, x, y, w, transparence = 84) {
   s.addShape('line', { x: pouces(x), y: pouces(y), w: pouces(w), h: 0, line: { color: C.filet, width: 0.75, transparency: transparence } });
@@ -539,7 +559,9 @@ function boite(s, { x, y, w, h, fond = null, bord = null, rayon = 20, pointille 
   });
 }
 /** Une photo, ou sa case vide en pointillé. */
-function photo(s, b64, { x, y, w, h }, vide = '[Photo]') {
+function photo(s, b64, { x, y, w, h }, vide = '[Photo]', chemin = null) {
+  const st = chemin ? optionsDeStyle(stylesCourants[chemin]) : {};
+  if (st === null) return;
   if (b64) {
     s.addImage({ data: `data:image/jpeg;base64,${b64}`, x: pouces(x), y: pouces(y), w: pouces(w), h: pouces(h), sizing: { type: 'cover', w: pouces(w), h: pouces(h) } });
   } else {
@@ -580,6 +602,7 @@ export async function rendrePptx(diapos, { titre = '' } = {}) {
   visibles.forEach((d, i) => {
     const s = pptx.addSlide();
     s.background = { color: C.sauge };
+    stylesCourants = d.styles || {};
     // Le numéro en filigrane, sous tout le reste : 390 px, gras, encre à 10 %.
     ecrire(s, String(i + 1).padStart(2, '0'), { x: 34, y: 64, w: 600, h: 390, taille: 390, couleur: C.encre, bold: true, transparency: 90, charSpacing: -24, valign: 'top' });
     heros(s, d, i, total);
@@ -594,25 +617,32 @@ export async function rendrePptx(diapos, { titre = '' } = {}) {
 function heros(s, d, i, total) {
   const h = d.heros || {};
   const t = TAILLES[d.type] || {};
-  ecrire(s, texte(d.chapitre).toUpperCase(), { x: HEROS.x, y: 40, w: 300, h: 18, taille: 13, couleur: C.encre, charSpacing: 1.8 });
+  ecrire(s, texte(d.chapitre).toUpperCase(), { x: HEROS.x, y: 40, w: 300, h: 18, taille: 13, couleur: C.encre, charSpacing: 1.8, chemin: 'chapitre' });
   ecrire(s, `${String(i + 1).padStart(2, '0')} — ${total}`, { x: HEROS.x + 200, y: 40, w: HEROS.w - 200, h: 18, taille: 13, couleur: C.encre, align: 'right', charSpacing: 1.8 });
   const bas = HAUTEUR - BARRE - HEROS.bas;
   let fin = bas;
   // La couverture : porteur et banque, sous l'adresse.
   if (d.type === 'couverture') {
-    [['Porteur du projet', h.porteur], ['À l’attention de', h.banque]].forEach(([l, v], k) => {
+    [['Porteur du projet', h.porteur, 'heros.porteur'], ['À l’attention de', h.banque, 'heros.banque']].forEach(([l, v, chemin], k) => {
       ecrire(s, l.toUpperCase(), { x: HEROS.x + k * 190, y: bas - 40, w: 180, h: 16, taille: 11, couleur: C.encre, charSpacing: 1.8 });
-      ecrire(s, v, { x: HEROS.x + k * 190, y: bas - 20, w: 180, h: 20, taille: 14, couleur: C.encre });
+      ecrire(s, v, { x: HEROS.x + k * 190, y: bas - 20, w: 180, h: 20, taille: 14, couleur: C.encre, chemin });
     });
     fin = bas - 56;
   }
+  // Chaque ligne du panneau garde sa mise en forme (taille, gras, couleur…) ; masquée, elle saute.
   const runs = [];
+  const run = (texteRun, chemin, options) => {
+    const st = optionsDeStyle(stylesCourants[chemin]);
+    if (st === null) return;
+    runs.push({ text: texte(texteRun), options: { ...options, ...st } });
+  };
   const grand = h.grand ?? h.titre;
-  if (grand != null) runs.push({ text: texte(grand), options: { fontSize: points(t.grand || t.titre || 60), breakLine: true, paraSpaceAfter: 10 } });
-  if (h.accroche) runs.push({ text: texte(h.accroche), options: { fontSize: points(t.accroche || 24), breakLine: true, paraSpaceAfter: 10 } });
-  if (h.note) runs.push({ text: texte(h.note), options: { fontSize: points(13.5) } });
+  if (grand != null) run(grand, h.grand !== undefined ? 'heros.grand' : 'heros.titre', { fontSize: points(t.grand || t.titre || 60), breakLine: true, paraSpaceAfter: 10 });
+  if (h.accroche) run(h.accroche, 'heros.accroche', { fontSize: points(t.accroche || 24), breakLine: true, paraSpaceAfter: 10 });
+  if (h.note) run(h.note, 'heros.note', { fontSize: points(13.5) });
+  if (runs.length) runs.at(-1).options.breakLine = false;
   const haut = d.type === 'porteur' ? 260 : 90;
-  s.addText(runs, { x: pouces(HEROS.x), y: pouces(haut), w: pouces(HEROS.w), h: pouces(fin - haut), fontFace: POLICE, color: C.encre, valign: 'bottom', margin: 0, lineSpacingMultiple: 0.95 });
+  if (runs.length) s.addText(runs, { x: pouces(HEROS.x), y: pouces(haut), w: pouces(HEROS.w), h: pouces(fin - haut), fontFace: POLICE, color: C.encre, valign: 'bottom', margin: 0, lineSpacingMultiple: 0.95 });
   // Le porteur : sa photo en rond au-dessus de son nom (posée par DESSINS.porteur), ou la case vide.
   if (d.type === 'porteur' && !h.photo) {
     s.addShape('ellipse', { x: pouces(HEROS.x), y: pouces(110), w: pouces(140), h: pouces(140), fill: { type: 'none' }, line: { color: C.encre, width: 1.1, dashType: 'dash' } });
@@ -625,7 +655,7 @@ function barre(s, d, i, total, logo) {
   const y = HAUTEUR - BARRE;
   s.addShape('rect', { x: 0, y: pouces(y), w: pouces(LARGEUR), h: pouces(BARRE), fill: { color: C.noir }, line: { type: 'none' } });
   if (logo) s.addImage({ data: `data:image/png;base64,${logo}`, x: pouces(48), y: pouces(y + 27.5), w: pouces(108), h: pouces(17) });
-  ecrire(s, texte(d.etape).toUpperCase(), { x: 184, y: y + 26, w: 230, h: 20, taille: 12.5, couleur: C.clair, charSpacing: 1.2 });
+  ecrire(s, texte(d.etape).toUpperCase(), { x: 184, y: y + 26, w: 230, h: 20, taille: 12.5, couleur: C.clair, charSpacing: 1.2, chemin: 'etape' });
   const x0 = 442;
   const x1 = 1090;
   const part = (i + 0.5) / total;

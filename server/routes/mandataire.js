@@ -106,11 +106,12 @@ export function monterMandataire(app) {
       const flux = ouvrirFlux(res);
       // Stop côté client : le serveur arrête d'écrire, au lieu de finir en silence.
       let coupe = false;
-      res.on('close', () => { if (!res.writableEnded) coupe = true; });
+      const arret = new AbortController();
+      res.on('close', () => { if (!res.writableEnded) { coupe = true; arret.abort(); } });
       try {
         const piece = await chargerPiece(flux.etape);
         const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, prospection_id: req.body?.prospection_id || null })
+          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, prospection_id: req.body?.prospection_id || null })
         );
         flux.fin(resultat);
       } catch (e) {

@@ -240,9 +240,13 @@ export function monterAssistant(app) {
     if (req.query.flux === '1') {
       const { ouvrirFlux } = await import('../flux.js');
       const flux = ouvrirFlux(res);
+      // Stop côté client (12 oct. 2026) : plus aucun outil ne s'exécute, et la requête en cours au modèle est coupée.
+      let coupe = false;
+      const arret = new AbortController();
+      res.on('close', () => { if (!res.writableEnded) { coupe = true; arret.abort(); } });
       try {
         const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null, pieces })
+          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null, pieces, estAnnule: () => coupe, signal: arret.signal })
         );
         flux.fin(resultat);
       } catch (e) {

@@ -99,11 +99,11 @@ export async function classer(texte) {
  * La boîte, d'un bout à l'autre : on classe, on fait. `historique` porte les
  * échanges précédents pour l'assistant, qui a besoin du fil.
  */
-export async function traiterBoite({ texte, historique = [], user, type: force = null, surEtape = null, contexte = null, pieces = [] }) {
+export async function traiterBoite({ texte, historique = [], user, type: force = null, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null }) {
   // Une pièce jointe et une phrase : AK lit les deux et choisit (relire une préz, créer un dossier, ranger au Drive…).
   if (pieces.length) {
     const { repondreApp } = await import('./ak/app.js');
-    return { type: 'assistant', tri: 'piece', ...(await repondreApp({ texte, historique, user, surEtape, contexte, pieces })) };
+    return { type: 'assistant', tri: 'piece', ...(await repondreApp({ texte, historique, user, surEtape, contexte, pieces, estAnnule, signal })) };
   }
   if (!force) surEtape?.('Lecture du message');
   const tri = force && TYPES.includes(force) ? { type: force, par: 'force' } : await classer(texte);
@@ -153,6 +153,6 @@ export async function traiterBoite({ texte, historique = [], user, type: force =
   // Tout le reste passe par AK : le chat du tableau de bord fait tout ce qu'AK
   // faisait dans Google Chat, avec les mêmes outils.
   const { repondreApp } = await import('./ak/app.js');
-  const r = await repondreApp({ texte, historique, user, surEtape, contexte });
+  const r = await repondreApp({ texte, historique, user, surEtape, contexte, estAnnule, signal });
   return { ...base, ...r };
 }

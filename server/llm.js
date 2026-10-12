@@ -642,7 +642,7 @@ const MAX_TOOL_ROUNDS = 6;
  * @param {boolean} [opts.cache] - mettre la consigne et les outils en cache chez Anthropic : ils sont identiques
  *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
-export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null }) {
+export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null }) {
   if (!llmEnabled) {
     return {
       text:
@@ -673,7 +673,7 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
   try {
     res = provider === 'gemini'
       ? await runAgentGemini({ system, messages, tools, onTool: onToolNote })
-      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes });
+      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal });
   } catch (e) { erreur = e; }
   if (journal) {
     const { noterEchange } = await import('./ak/journal-echanges.js');
@@ -727,7 +727,7 @@ async function runAgentGemini({ system, messages, tools, onTool }) {
   return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).' };
 }
 
-async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null }) {
+async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null }) {
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   const modele = model || ANTHROPIC_MODEL;
   // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
@@ -737,13 +737,15 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
   const outils = cache && tools.length ? tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)) : tools;
 
   for (let i = 0; i < MAX_TOOL_ROUNDS; i++) {
+    // Stop (12 oct. 2026) : la personne est partie, on ne relance pas le modèle et la requête en cours est coupée.
+    if (signal?.aborted) return { text: 'Arrêté.', tours: i, arrete: true };
     const resp = await anthropic.messages.create({
       model: modele,
       max_tokens: 16000,
       ...(systeme ? { system: systeme } : {}),
       ...(outils.length ? { tools: outils } : {}),
       messages: convo,
-    });
+    }, signal ? { signal } : undefined);
     compter(modele, resp.usage);
     if (notes) {
       const u = resp.usage || {};

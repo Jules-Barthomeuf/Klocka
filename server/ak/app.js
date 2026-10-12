@@ -37,7 +37,7 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Un plan de mails : une liste, une ligne par mail, « Mail 1 · mardi 13 octobre · Le vrai rendement d'un local : un chiffre type, puis le simulateur pour faire le calcul. » Le jour, le sujet, ce qu'apporte le mail, l'asset s'il y en a un, nommé en toutes lettres.
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
 
-export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [] }) {
+export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null }) {
   const { consigne, OUTILS, executerOutil, MODELE } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
@@ -133,12 +133,15 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   const trace = [];
   const { text, tours = null, limite = false } = await runAgent({
     journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
+    signal,
     system: consigne() + CADRE_APP + cadrePage,
     messages,
     tools: OUTILS,
     model: MODELE,
     cache: true,
     onTool: tracer(async (appel) => {
+      // Stop : plus rien ne s'exécute, le modèle est prié de conclure sur ce qui est fait.
+      if (estAnnule?.()) return { ok: false, error: "La personne a arrêté la demande : ne fais plus rien, dis en une ligne ce qui a déjà été fait." };
       outils.push(appel.name);
       surEtape?.(libelleOutil(appel.name, appel.input));
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });

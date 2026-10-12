@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import BottomTabs from "@/components/mobile/BottomTabs";
 import NotificationsApp from "@/components/NotificationsApp";
 import AccueilMandataire from "@/components/mandataire/AccueilMandataire";
+import InstallerApp from "@/components/InstallerApp";
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -805,6 +806,8 @@ function LayoutContent({ children, currentPageName }) {
         </>
       )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}
+      {/* « Klocka arrive sur vos téléphones » (12 oct. 2026) : le tuto d'installation, pour tout le monde, une fois. */}
+      {!hideNavbar && <InstallerApp />}
       {/* L'accueil du mandataire : ses réglages à l'arrivée, tant qu'ils ne sont pas validés. */}
       {vue === "mandataire" && !hideNavbar && <AccueilMandataire />}
 

@@ -197,6 +197,16 @@ réglage se retrouve ensuite dans Compte, où chaque case s'enregistre aussitôt
 Première étape : « Où cherche votre agent » (villes Klocka verrouillées en
 pastilles menthe, les autres communes du secteur en cases). 5 oct. 2026.
 
+**Installer l'application** (`InstallerApp.jsx`, 12 oct. 2026) : pour tout le
+monde, un instant après l'arrivée, tant que l'application n'est pas ouverte
+depuis l'écran d'accueil. Une quête : le téléphone reconnu (pilule iPhone ·
+iPad / Android), une carte par geste qui se coche (pastille menthe, « Fait »,
+la prochaine marquée « À vous »), la barre à segments des listes et `i/n` ;
+la fin se fête (trophée menthe, confettis aux couleurs des jetons, « Badge
+débloqué »). Sous Chrome Android, « Installer en un geste ». « Plus tard » la
+repousse d'une semaine ; finie, elle ne revient plus. Au téléphone, elle
+monte du bas de l'écran.
+
 **Plein écran** (éditeur ouvert sur téléphone) : rendu par
 `createPortal(…, document.body)`, `fixed inset-0 z-[70]`, fond opaque, la page
 derrière ne défile plus. Jamais dans un conteneur animé : il s'y calerait.

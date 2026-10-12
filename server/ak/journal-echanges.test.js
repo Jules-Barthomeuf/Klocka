@@ -35,3 +35,15 @@ test('le journal ne garde que les plus récents', () => {
   J.elaguer(3);
   assert.equal(Records.list(J.ECHANGE).length, 3);
 });
+
+test('hors des tests, un modèle absent est une erreur dite et gardée, plus un bouche-trou', async () => {
+  const avant = process.env.NODE_TEST_CONTEXT;
+  process.env.ANTHROPIC_API_KEY = ''; process.env.GEMINI_API_KEY = ''; process.env.GOOGLE_AI_API_KEY = '';
+  const L = await import('../llm.js');
+  if (L.llmEnabled) return; // une clé chargée ailleurs : le cas ne se joue pas ici
+  delete process.env.NODE_TEST_CONTEXT;
+  try {
+    await assert.rejects(L.invokeLLM({ prompt: 'x', response_json_schema: { type: 'object', properties: { a: { type: 'string' } } } }), /Aucune clé IA/);
+  } finally { process.env.NODE_TEST_CONTEXT = avant; }
+  assert.ok(J.lister({ chat: 'modele' }).some((e) => /Aucune clé IA/.test(e.erreur)));
+});

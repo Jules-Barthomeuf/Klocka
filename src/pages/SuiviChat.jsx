@@ -14,7 +14,7 @@ const req = (chemin) => base44.request("GET", `/api/monitoring/chat${chemin}`);
 const quand = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const euros = (usd) => (usd == null ? "—" : `${(usd * 0.92).toFixed(3).replace(".", ",")} €`);
 const secondes = (ms) => (ms == null ? "—" : `${Math.round(ms / 100) / 10} s`);
-const CHATS = [["", "Tous"], ["admin", "AK · application"], ["google-chat", "AK · Google Chat"], ["mandataire", "Mandataire"], ["mandataire-estimation", "Estimation"], ["mandataire-mandat", "Mandat"], ["mandataire-prospection", "Prospection"]];
+const CHATS = [["", "Tous"], ["admin", "AK · application"], ["google-chat", "AK · Google Chat"], ["mandataire", "Mandataire"], ["mandataire-estimation", "Estimation"], ["mandataire-mandat", "Mandat"], ["mandataire-prospection", "Prospection"], ["modele", "Appels directs"]];
 const nomDuChat = Object.fromEntries(CHATS);
 const titreCase = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
 const bouton = "inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-vif px-3.5 text-[13px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50";

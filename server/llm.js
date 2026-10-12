@@ -308,11 +308,31 @@ function toGeminiTools(tools = []) {
  * @param {string[]} [opts.file_urls] - resolved to text and appended to the prompt
  * @param {function} [opts.resolveFileText] - async (url) => string
  */
+/**
+ * Une réponse du modèle inutilisable (12 oct. 2026, phase 0) : plus de valeurs
+ * vides rendues en silence (« [IA non configurée] », 0, []) ; l'erreur est
+ * dite, gardée dans le journal des échanges (Suivi > Chat, « Appels directs »),
+ * et l'appelant la reçoit.
+ */
+export class ErreurIA extends Error {
+  constructor(message, details = {}) { super(message); this.name = 'ErreurIA'; Object.assign(this, details); }
+}
+async function signalerErreurIA(message, { prompt = '', texte = '', modele = null } = {}) {
+  console.error(`[ia] ${message}`);
+  try {
+    const { noterEchange } = await import('./ak/journal-echanges.js');
+    noterEchange({ chat: 'modele', messages: [{ role: 'user', content: String(prompt || '').slice(0, 6000) }], reponse: String(texte || '').slice(0, 4000), erreur: message, modele });
+  } catch { /* le journal ne doit pas masquer l'erreur */ }
+  return new ErreurIA(message);
+}
+
 export async function invokeLLM({ prompt, response_json_schema, file_urls, resolveFileText, effort = null, modele = null, max_tokens = 16000 } = {}) {
   const wantsJson = !!response_json_schema;
 
   if (!llmEnabled) {
-    return wantsJson ? stubFromSchema(response_json_schema) : stubFromSchema(null);
+    // Les tests tournent sans clé et lisent ces valeurs de remplissage ; ailleurs, c'est une configuration manquante.
+    if (process.env.NODE_TEST_CONTEXT) return wantsJson ? stubFromSchema(response_json_schema) : stubFromSchema(null);
+    throw await signalerErreurIA("Aucune clé IA configurée (ANTHROPIC_API_KEY ou GEMINI_API_KEY) : rien n'a été demandé au modèle.", { prompt });
   }
 
   let fullPrompt = prompt || '';
@@ -341,10 +361,10 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
   } else {
     // `modele` : un modèle plus rapide pour une lecture courte où l'attente se voit (le mode appel).
     const choisi = modele || ANTHROPIC_MODEL;
-    const message = await anthropic.messages.create({
+    const demander = (plafond) => anthropic.messages.create({
       model: choisi,
       // `max_tokens` : 16 000 d'ordinaire ; plus pour une longue synthèse, où la réflexion seule peut tout prendre (le récap du matin).
-      max_tokens,
+      max_tokens: plafond,
       // `effort` règle la profondeur de réflexion du modèle, donc les jetons de
       // sortie — les plus chers. « low » sur un geste mécanique : mettre en
       // forme une valeur déjà lue, trier un mail, ranger une phrase. Jamais sur
@@ -353,17 +373,25 @@ export async function invokeLLM({ prompt, response_json_schema, file_urls, resol
       ...(system ? { system } : {}),
       messages: [{ role: 'user', content: fullPrompt }],
     });
+    const lireTexte = (m) => (m.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+    let message = await demander(max_tokens);
     compter(choisi, message.usage);
-    text = (message.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim();
+    text = lireTexte(message);
+    // Coupé au plafond avant d'avoir fini son JSON (la réflexion a tout pris) : une seconde fois, avec deux fois plus de place.
+    if (wantsJson && message.stop_reason === 'max_tokens' && parseJsonLoose(text) == null) {
+      message = await demander(Math.min(64000, max_tokens * 2));
+      compter(choisi, message.usage);
+      text = lireTexte(message);
+    }
+    if (wantsJson && parseJsonLoose(text) == null) {
+      throw await signalerErreurIA(`Le modèle n'a pas rendu de JSON lisible${message.stop_reason === 'max_tokens' ? ` : coupé à ${Math.min(64000, max_tokens * 2)} jetons` : message.stop_reason ? ` (arrêt : ${message.stop_reason})` : ''}.`, { prompt: fullPrompt, texte: text, modele: choisi });
+    }
   }
 
   if (wantsJson) {
     const parsed = parseJsonLoose(text);
-    return parsed != null ? parsed : stubFromSchema(response_json_schema);
+    if (parsed != null) return parsed;
+    throw await signalerErreurIA("Le modèle n'a pas rendu de JSON lisible.", { prompt: fullPrompt, texte: text, modele: provider === 'gemini' ? GEMINI_MODEL : modele || ANTHROPIC_MODEL });
   }
   return text;
 }

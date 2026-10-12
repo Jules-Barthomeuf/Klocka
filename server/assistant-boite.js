@@ -62,7 +62,9 @@ export function classerParRegles(texte) {
 export async function classerParModele(texte) {
   const { invokeLLM } = await import('./llm.js');
   const { mesurer } = await import('./llm-couts.js');
-  const { resultat } = await mesurer({ operation: 'boîte : tri' }, () =>
+  // Une réponse illisible ne range plus le message en « note » (le premier choix de la liste) : il va à AK.
+  let resultat = null;
+  try { ({ resultat } = await mesurer({ operation: 'boîte : tri' }, () =>
     invokeLLM({
       prompt: `Tu tries ce qu'un conseiller Klocka (investissement en murs commerciaux) vient de coller ou dicter dans son chat. Réponds par la famille :
 - "note" : une note dictée après un appel avec un agent immobilier ou un contact (« j'ai eu Marc, il me rappelle jeudi… »)
@@ -82,7 +84,7 @@ ${String(texte || '').slice(0, 6000)}
       // Ranger un texte dans cinq familles : une décision, pas une analyse.
       effort: 'low',
     })
-  );
+  )); } catch (e) { console.warn('[boîte] tri impossible, AK décide :', e?.message || e); }
   return TYPES.includes(resultat?.type) ? resultat.type : 'assistant';
 }
 

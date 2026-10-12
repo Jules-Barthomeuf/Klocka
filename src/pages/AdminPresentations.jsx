@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, Loader2, MoreHorizontal, Plus, Search, Trash2, X } from "lucide-react";
+import { FileText, Loader2, MoreHorizontal, Plus, Search, Trash2, X, AlertCircle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
+import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 import ApercuPdf from "@/components/presentations/ApercuPdf";
 
@@ -122,25 +124,32 @@ export default function AdminPresentations() {
 
   const liste = (
     <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[1100px]"}>
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-        <div className="flex items-baseline gap-3">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
           <h2 className="m-0 text-[20px] font-normal tracking-[-0.01em] text-encre">Vos présentations</h2>
-          {presentations.length > 0 && <span className="text-[13.5px] text-ardoise">{presentations.length}</span>}
+          {!isLoading && presentations.length > 0 && (
+            <p className="m-0 mt-1 text-[13.5px] text-ardoise">{presentations.length} présentation{presentations.length > 1 ? "s" : ""}</p>
+          )}
         </div>
         <button type="button" onClick={() => setChoixProjet(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
-          <Plus className="h-3.5 w-3.5" />Depuis un projet
+          className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol max-md:w-full max-md:justify-center">
+          <Plus className="h-3.5 w-3.5" />Nouvelle présentation
         </button>
       </div>
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
       ) : !presentations.length ? (
-        <p className="py-12 text-center text-[14px] text-brume">Aucune présentation encore : nommez un projet au chat, ou partez de la liste des projets.</p>
+        <div className="rounded-[14px] border border-trait bg-surface/40 px-6 py-10 text-center">
+          <FileText className="mx-auto mb-3 h-8 w-8 text-ardoise" />
+          <p className="m-0 text-[14px] text-ardoise">Aucune présentation encore.</p>
+          <p className="m-0 mt-2 max-w-[48ch] text-[13.5px] text-brume">Dites au chat le nom d'un projet pour créer une présentation bancaire, ou choisissez un projet dans la liste ci-dessus.</p>
+        </div>
       ) : (
         <div className="border-y border-trait">
+          <EnTeteListe droite="PDF" />
           {presentations.map((p) => (
             <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)} onPdf={() => setPdfDe(p)}
-              onSupprimer={() => { if (window.confirm(`Supprimer la présentation « ${p.titre} » ? Les PPTX déjà sortis restent.`)) supprimer.mutate(p.id); }} />
+              onSupprimer={() => supprimer.mutate(p.id)} />
           ))}
         </div>
       )}
@@ -153,7 +162,7 @@ export default function AdminPresentations() {
     <div className="h-full bg-fond"><MiseAJourDocument surtitre="Présentation bancaire" titre="La présentation se construit" etapes={travail.etapes?.length ? travail.etapes : ["Lecture du projet", "La ville et le quartier", "La carte et les enseignes", "Les seize diapositives"]} enCours /></div>
   ) : (
     <div className="grid h-full place-items-center bg-fond px-10 text-center">
-      <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">La présentation se construit ici dès que le chat a le projet. Tout s'y retouche sur place : un texte au clic, une photo au clic, une diapositive se masque ou se déplace. Elle part en PPTX ou en Google Slides.</p>
+      <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">La présentation se construit ici dès que le chat a le projet. Tout s'y retouche sur place : un texte au clic, une photo au clic, une diapositive se masque ou se déplace. Elle part en PDF.</p>
     </div>
   );
 
@@ -218,36 +227,50 @@ export default function AdminPresentations() {
 /** Une présentation de la liste : le projet, l'adresse, la date. */
 function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
   const [menu, setMenu] = useState(false);
+  const [confirmSuppr, setConfirmSuppr] = useState(false);
   const zone = useFermerAuClicAilleurs(menu, () => setMenu(false));
   const detail = [p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`, p.exporte_le ? `exportée le ${quand(p.exporte_le)}` : null].filter(Boolean).join(" · ");
   return (
-    <div className={`relative border-t border-trait px-2 py-4 pr-[120px] first:border-t-0 ${active ? "bg-surface" : ""}`}>
-      <button type="button" onClick={onOuvrir} className="flex w-full items-center gap-6 text-left" style={{ background: "transparent" }}>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15.5px] text-encre">{p.titre}</span>
-          {detail && <span className="mt-1 block truncate text-[13.5px] text-ardoise">{detail}</span>}
-        </span>
-        <span className="flex-none text-[13px] tabular-nums text-brume">{quand(p.maj_le)}</span>
-      </button>
-      {/* Le PDF d'un clic, depuis la liste : l'aperçu, puis le téléchargement. */}
-      <button type="button" onClick={onPdf} title="Aperçu et téléchargement du PDF"
-        className="absolute right-10 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-menthe hover:text-encre max-md:right-12" style={{ background: "transparent" }}>
-        <FileText className="h-3.5 w-3.5" />PDF
-      </button>
-      <div ref={zone} className="contents">
-        <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-        {menu && (
-          <div className="absolute right-1 top-[calc(50%+14px)] z-20 min-w-[170px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
-            <button type="button" onClick={() => { setMenu(false); onSupprimer(); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08]" style={{ background: "transparent" }}>
-              <Trash2 className="h-3.5 w-3.5" /> Supprimer
+    <>
+      <LigneDocument active={active} onOuvrir={onOuvrir} reserve={176} titre={p.titre} detail={detail} modifie={p.maj_le}
+        vignette={<Vignette photo={p.photo} titre={p.titre} />} auteur={<Auteur email={p.cree_par} />}
+        menu={(
+          <>
+            {/* Le PDF d'un clic, depuis la liste : l'aperçu, puis le téléchargement. */}
+            <button type="button" onClick={onPdf} title="Aperçu et téléchargement du PDF"
+              className="absolute right-12 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-encre hover:border-menthe opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
+              <FileText className="h-3.5 w-3.5" />PDF
             </button>
+            <div ref={zone} className="contents">
+              <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              {menu && (
+                <div className="absolute right-1 top-[calc(50%+14px)] z-20 min-w-[170px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+                  <button type="button" onClick={() => { setMenu(false); setConfirmSuppr(true); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08]" style={{ background: "transparent" }}>
+                    <Trash2 className="h-3.5 w-3.5" /> Supprimer
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )} />
+      <AlertDialog open={confirmSuppr} onOpenChange={setConfirmSuppr}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Supprimer la présentation ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            La présentation « {p.titre} » sera supprimée. Les PDF déjà téléchargés restent inchangés.
+          </AlertDialogDescription>
+          <div className="flex justify-end gap-3">
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onSupprimer()} className="bg-alerte hover:bg-alerte text-sur-menthe">
+              Supprimer
+            </AlertDialogAction>
           </div>
-        )}
-      </div>
-    </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

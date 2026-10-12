@@ -15,7 +15,10 @@ const contexte = new AsyncLocalStorage();
 
 // Tarifs publics, en dollars par million de jetons. Une lecture de cache coûte
 // un dixième d'une entrée neuve, une écriture un quart de plus.
+// La lecture et l'écriture du cache, quand le tarif public s'écarte de la règle (12 oct. 2026 : un vingtième pour les 5.5).
 const TARIFS = {
+  'claude-opus-5-5': { entree: 4, sortie: 20, lecture: 0.2, ecriture: 5 },
+  'claude-sonnet-5-5': { entree: 2, sortie: 10, lecture: 0.1, ecriture: 2.5 },
   'claude-opus-5': { entree: 5, sortie: 25 },
   'claude-opus-4-8': { entree: 5, sortie: 25 },
   'claude-sonnet-5': { entree: 2, sortie: 10 },
@@ -43,8 +46,8 @@ export function coutDe(modele, u) {
   const t = TARIFS[modele];
   if (!t || !u) return null;
   const entree = (u.entree || 0) * t.entree;
-  const lecture = (u.cache_lecture || 0) * t.entree * PART_CACHE_LECTURE;
-  const ecriture = (u.cache_ecriture || 0) * t.entree * PART_CACHE_ECRITURE;
+  const lecture = (u.cache_lecture || 0) * (t.lecture ?? t.entree * PART_CACHE_LECTURE);
+  const ecriture = (u.cache_ecriture || 0) * (t.ecriture ?? t.entree * PART_CACHE_ECRITURE);
   const sortie = (u.sortie || 0) * t.sortie;
   return (entree + lecture + ecriture + sortie) / 1_000_000;
 }
@@ -394,10 +397,10 @@ export const LEVIERS = [
   {
     cle: 'modele_moins_cher',
     etat: 'pose',
-    titre: 'Sonnet à la place d\'Opus',
-    effet: 'deux fois et demie moins cher au jeton',
-    ou: `Posé le 24 septembre · variable ANTHROPIC_MODEL · ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'} aujourd'hui`,
-    texte: "Opus consommait trop de crédits : tout part désormais sur Sonnet 5, à 2 $ et 10 $ le million de jetons au lieu de 5 $ et 25 $. Si une lecture de bail ou une préanalyse perd en justesse, c'est ici qu'on le verra, et qu'on remettra Opus sur ce seul geste plutôt que partout.",
+    titre: 'Sonnet partout, Opus pour le chat',
+    effet: 'Sonnet 5.5 au prix de Sonnet 5 ; Opus 5.5 deux fois Sonnet, sur le chat seul',
+    ou: `Posé le 24 septembre, revu le 12 octobre · ANTHROPIC_MODEL ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'} · AK_MODELE ${process.env.AK_MODELE || 'le même'}`,
+    texte: "Le 24 septembre, tout est passé sur Sonnet 5 : Opus 5 consommait trop. Le 12 octobre, Jules met le chat (AK et le chat des mandataires) sur Opus 5.5, à 4 $ et 20 $ le million de jetons, pour le rapprocher de Claude ; le reste passe sur Sonnet 5.5, au prix de Sonnet 5. Estimé sur septembre : environ 2 € de plus par mois pour le chat d'AK, un peu plus avec les mandataires. C'est ici que se lira l'écart réel.",
   },
 ];
 

@@ -56,6 +56,7 @@ export const ENTREES_MANDATAIRE = [
   { cle: "MandataireMarche", label: "Mise en marché" },
   { cle: "MandataireOffMarket", label: "Off-market" },
   { cle: "MandataireProjets", label: "Projets" },
+  { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "Feedback", label: "Feedback" },
   { cle: "Personnalisation", label: "Compte" },
 ];

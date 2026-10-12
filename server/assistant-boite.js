@@ -97,7 +97,12 @@ export async function classer(texte) {
  * La boîte, d'un bout à l'autre : on classe, on fait. `historique` porte les
  * échanges précédents pour l'assistant, qui a besoin du fil.
  */
-export async function traiterBoite({ texte, historique = [], user, type: force = null, surEtape = null, contexte = null }) {
+export async function traiterBoite({ texte, historique = [], user, type: force = null, surEtape = null, contexte = null, pieces = [] }) {
+  // Une pièce jointe et une phrase : AK lit les deux et choisit (relire une préz, créer un dossier, ranger au Drive…).
+  if (pieces.length) {
+    const { repondreApp } = await import('./ak/app.js');
+    return { type: 'assistant', tri: 'piece', ...(await repondreApp({ texte, historique, user, surEtape, contexte, pieces })) };
+  }
   if (!force) surEtape?.('Lecture du message');
   const tri = force && TYPES.includes(force) ? { type: force, par: 'force' } : await classer(texte);
   const base = { type: tri.type, tri: tri.par };

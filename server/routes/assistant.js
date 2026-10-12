@@ -5,7 +5,7 @@
 
 import { Records } from '../db.js';
 import { listAccounts } from '../email.js';
-import { APP_URL_PROD, PORT, compteAutorise, currentUser, ok, wrap } from '../contexte.js';
+import { APP_URL_PROD, PORT, compteAutorise, currentUser, ok, wrap, upload } from '../contexte.js';
 
 /** Monte les routes « assistant / journal / monitoring » sur l'application. */
 export function monterAssistant(app) {
@@ -225,10 +225,14 @@ export function monterAssistant(app) {
   // Les échéances : nos mails sans réponse, les promesses, les dossiers qui
   // dorment — les cartes du mode « Échéances » du chat du tableau de bord.
   // La boîte : un seul chat, ce qu'on y met est trié et fait.
-  app.post('/api/assistant/boite', wrap(async (req, res) => {
+  app.post('/api/assistant/boite', upload.single('fichier'), wrap(async (req, res) => {
     const texte = String(req.body?.texte || '').trim();
     if (!texte) return res.status(400).json({ error: 'Rien à traiter.' });
     const user = currentUser(req);
+    // Une pièce jointe avec une phrase (12 oct. 2026, « vérifie ma préz ») : elle part à AK avec le message.
+    if (typeof req.body?.historique === 'string') { try { req.body.historique = JSON.parse(req.body.historique); } catch { req.body.historique = []; } }
+    if (typeof req.body?.contexte === 'string') { try { req.body.contexte = JSON.parse(req.body.contexte); } catch { req.body.contexte = null; } }
+    const pieces = req.file ? [{ nom: req.file.originalname, type: req.file.mimetype, chemin: req.file.path, url: `/uploads/${req.file.filename}` }] : [];
     const { traiterBoite } = await import('../assistant-boite.js');
     const { mesurer } = await import('../llm-couts.js');
     // `?flux=1` : chaque étape part au moment où elle se fait (une ligne JSON
@@ -238,7 +242,7 @@ export function monterAssistant(app) {
       const flux = ouvrirFlux(res);
       try {
         const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null })
+          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null, pieces })
         );
         flux.fin(resultat);
       } catch (e) {
@@ -247,7 +251,7 @@ export function monterAssistant(app) {
       return;
     }
     const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-      traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, contexte: req.body?.contexte || null })
+      traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, contexte: req.body?.contexte || null, pieces })
     );
     ok(res, resultat);
   }));

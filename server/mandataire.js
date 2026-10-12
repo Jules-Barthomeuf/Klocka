@@ -802,7 +802,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     ? `\n\nLe mandataire regarde sa prospection « ${ouverte.nom} » (${ouverte.criteres?.ville || 'son secteur'} ; activités : ${(ouverte.criteres?.activites || []).join(', ') || 'toutes'} ; emplacement : ${ouverte.criteres?.emplacement == null ? 'tous' : ouverte.criteres.emplacement === 1.5 ? '1 bis' : `n°${ouverte.criteres.emplacement}`}). Une demande qui change ce qu'on cherche (activité, emplacement) passe par affiner_prospection ; réponds ensuite en une phrase ce qui a changé.`
     : '';
   let prospectionModifiee = false;
-  const { text } = await runAgent({
+  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null,
     system: consigne() + cadre + surPage,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,

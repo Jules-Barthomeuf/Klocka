@@ -113,6 +113,9 @@ const ESPACES = {
   // Les offres (équipe) : le chat d'AK, qui rédige et corrige les lettres
   // d'intention de la page Offres ; la lettre ouverte lui est donnée.
   offre: { api: "/api/assistant", page: "offres", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Pour qui, sur quel bien ? « Fais l'offre d'Olivier Luccioni sur le dossier du 1 avenue Mirabeau, 200 000 €, apport 40 000 € »" },
+  // Les présentations bancaires (équipe, 12 oct. 2026) : le chat d'AK crée la
+  // présentation d'un projet et retouche celle ouverte à droite.
+  presentation: { api: "/api/assistant", page: "presentations", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quel projet ? « Fais la présentation bancaire du projet de Dieppe, à l'attention du Crédit Agricole »" },
   prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
 };
 
@@ -1147,6 +1150,17 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       // Le serveur dit ce qu'il fait au moment où il le fait : les étapes arrivent une à une.
       setEnFlux(true);
       actionsVives.current = [];
+      // Une pièce jointe avec une phrase (12 oct. 2026, « vérifie ma préz ») : AK reçoit les deux, au lieu d'en faire d'office un dossier.
+      if (!mandataire && piece) {
+        const form = new FormData();
+        form.append("fichier", piece);
+        form.append("texte", t);
+        form.append("historique", JSON.stringify(historique()));
+        if (E.page) form.append("contexte", JSON.stringify({ page: E.page, ...(contexte || {}) }));
+        const r = await base44.flux("/api/assistant/boite?flux=1", { body: form, isForm: true, signal: controleur.current.signal, surEtape });
+        await vider();
+        return r;
+      }
       const r = mandataire
         ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surAction: (a) => actionsVives.current.push(a) })
         : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: { page: E.page, ...(contexte || {}) } } : {}) }, signal: controleur.current.signal, surEtape });
@@ -1454,6 +1468,18 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     }
     if (fichier && mandataire && !prospection) {
       pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
+      setTexte("");
+      setSuites([]);
+      setEnCoursTexte("Je lis la pièce…");
+      annoncer("piece");
+      const piece = fichier;
+      setFichier(null);
+      boite.mutate({ t, type: null, piece });
+      return;
+    }
+    // Une pièce et une phrase : AK lit les deux (vérifier une préz, ranger au Drive…). La pièce seule reste une fiche à analyser.
+    if (fichier && t && !prospection) {
+      pousser({ role: "user", contenu: `📎 ${fichier.name} — ${t}` });
       setTexte("");
       setSuites([]);
       setEnCoursTexte("Je lis la pièce…");

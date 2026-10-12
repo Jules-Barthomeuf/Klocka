@@ -248,6 +248,22 @@ sinon), détail 13 px `ardoise`, prochain envoi 12,5 px `brume`, la choisie
 marquée d'un trait menthe de 2 px à gauche, la corbeille au survol. Décision
 du 12 oct. 2026 (« les petites cases ne vont pas avec le reste »).
 
+**Présentations bancaires** (12 oct. 2026) : la page Présentations prend
+l'écran scindé d'Offres et du Mandat, avec le chat d'AK à gauche et la
+présentation à droite (`components/presentations/`). Le modèle est le « Deck
+complet » de Jules (artefact « Présentation bancaire Klocka », 12 oct.) :
+seize diapositives de 1280 × 720, un panneau sauge à gauche (le chiffre ou le
+titre qui porte la diapositive, l'accroche, la note, calés en bas), une carte
+sombre à droite (le détail), une barre noire en bas (logo, étape, frise). Sa
+palette est celle du dossier, dans `presentation-bancaire.css`, comme un
+document imprimé ; les mesures communes à l'écran et au PPTX sont dans
+`src/lib/presentation-modele.js`. Les animations du modèle (travelling, 3D)
+ne sont pas reprises : l'éditeur et le PPTX sont à plat. Ce qui reste à
+remplir s'écrit entre crochets (« [Prénom NOM] »). Tout s'y modifie : un
+texte au clic, une photo au clic, une liste par « + » et « × ». Au-dessus de
+chaque diapositive, son numéro et son nom, puis monter, descendre et masquer
+au survol. Une diapositive masquée reste visible, pâlie, et ne part pas.
+
 **Mode appel** (décision du 7 oct. 2026, qui remplace les boutons d'issue de la
 spec du même jour) : pendant l'appel avec notes, la transcription s'affiche en
 direct à droite, par morceaux de huit secondes ; pas de chronomètre (il

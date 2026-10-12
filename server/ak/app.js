@@ -16,7 +16,7 @@ TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Goo
 - un mail rédigé (mail_agent, mail_libre, retoucher_brouillon) s'ouvre en brouillon sous ta réponse, à relire et envoyer d'un clic : dis-le en une ligne, ne le recopie pas ;
 - une tâche de fond finie sera annoncée par une notification de l'application : dis « je te préviens quand c'est prêt ».`;
 
-const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'chercher_cible', 'chercher_agents', 'version']);
+const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
 /**
@@ -35,7 +35,7 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Un plan de mails : une liste, une ligne par mail, « Mail 1 · mardi 13 octobre · Le vrai rendement d'un local : un chiffre type, puis le simulateur pour faire le calcul. » Le jour, le sujet, ce qu'apporte le mail, l'asset s'il y en a un, nommé en toutes lettres.
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
 
-export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null }) {
+export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [] }) {
   const { consigne, OUTILS, executerOutil, MODELE } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
@@ -44,13 +44,14 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
   const espace = `app:${String(user?.email || 'inconnu').toLowerCase()}`;
   const prenom = String(user?.full_name || user?.email || 'Quelqu’un').split(/[ @]/)[0];
   const aujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
-  const message = { espace, auteur: { nom: user?.email || null, affiche: prenom }, texte, pieces: [], groupe: false, page: contexte?.page || null };
+  const message = { espace, auteur: { nom: user?.email || null, affiche: prenom }, texte, pieces, groupe: false, page: contexte?.page || null };
+  const joints = pieces.map((p) => `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})`);
   const messages = [
     ...(Array.isArray(historique) ? historique : [])
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
       .slice(-20)
       .map((m) => ({ role: m.role, content: m.contenu })),
-    { role: 'user', content: `${prenom} (compte ${user?.email || '?'}, ${aujourdhui}, depuis l'application) : ${texte}` },
+    { role: 'user', content: `${prenom} (compte ${user?.email || '?'}, ${aujourdhui}, depuis l'application) : ${texte}${joints.length ? `\n(pièces jointes : ${joints.join(' ; ')})` : ''}` },
   ];
 
   // Une réaction à la réponse d'avant (« non, pas celui-là », « nickel ») :
@@ -65,6 +66,15 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
       const { contexteLettre } = await import('../offres.js');
       const ctx = await contexteLettre(String(contexte.loi_id));
       if (ctx) cadrePage += `\n${ctx}\nUne correction (« le prix à 190 000 », « enlève la clause de substitution », « ajoute que… ») porte sur CETTE lettre : rediger_loi avec loi_id et seulement ce qui change (champs, ou textes par clé). Une offre pour un autre bien ou un autre acquéreur : une nouvelle lettre, sans loi_id.`;
+    }
+  }
+  // La page Présentations : le chat y crée et retouche les présentations bancaires.
+  if (contexte?.page === 'presentations') {
+    cadrePage = `\n\nTU ES SUR LA PAGE PRÉSENTATIONS (les dossiers bancaires « Projet de Financement », seize diapositives : un panneau à gauche, une carte à droite). Une présentation part d'un PROJET de la plateforme : « fais la préz du projet de Dieppe » = trouver_bien (par ville, titre, adresse ou locataire). Plusieurs résultats : liste-les numérotés, une ligne chacun, et demande lequel. Un seul : creer_presentation_bancaire avec son projet_id (jamais generer_prez_bancaire ici). Ensuite, une remarque (« mets Jules Barthomeuf en porteur », « à l'attention du Crédit Agricole », « enlève le point 3 du sommaire », « cache la diapo enseignes » ; le porteur et la banque se reportent partout où ils apparaissent : couverture, porteur, merci) = modifier_presentation sur la présentation ouverte, avec tous les changements d'un coup ; réponds en une ligne ce qui a changé. Tu peux réécrire un texte entier (une phrase, un point) quand on te le demande ; ne touche jamais un chiffre qu'on ne t'a pas donné.`;
+    if (contexte.presentation_id) {
+      const { presentationPourAK } = await import('../presentation-bancaire.js');
+      const ctx = presentationPourAK(String(contexte.presentation_id));
+      if (ctx) cadrePage += `\n${ctx}\nUne correction porte sur CETTE présentation : modifier_presentation avec presentation_id ${contexte.presentation_id}. Une présentation pour un autre projet : creer_presentation_bancaire.`;
     }
   }
   // La page Emailing : le chat y conçoit les séquences d'emails, avec l'équipe.

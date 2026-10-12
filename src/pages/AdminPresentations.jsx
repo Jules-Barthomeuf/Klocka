@@ -1,443 +1,275 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileText, Loader2, MoreHorizontal, Plus, Search, Trash2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FolderSearch, Loader2, Building2, ChevronLeft, ChevronRight, Download, ExternalLink, Briefcase, Upload, ImageOff } from "lucide-react";
 import { toast } from "@/components/ui/avis";
-import { motion } from "framer-motion";
-import { J } from "@/design/jetons";
+import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
+import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
+import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
+import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 
-// Page Présentations : on choisit un projet, six photos (suggérées depuis le
-// projet, remplaçables), puis Générer construit le dossier « Projet de
-// Financement » en quinze diapositives et l'ouvre dans Google Slides.
+// Présentations — les dossiers bancaires « Projet de Financement » (12 oct.
+// 2026). Comme Offres et le Mandat : le chat à gauche, la présentation à
+// droite. On nomme un projet (« fais la préz du projet de Dieppe ») ou on le
+// choisit dans la liste : les seize diapositives se construisent depuis ses
+// données, puis se retouchent sur place ou en parlant au chat. Elles partent
+// en PPTX ou en Google Slides.
 
-const EMPLACEMENTS = [
-  { cle: "sommaire", label: "1 · Sommaire" },
-  { cle: "ville", label: "2 · La ville" },
-  { cle: "quartier", label: "3 · Zoom sur le quartier" },
-  { cle: "local1", label: "4 · Local — photo A" },
-  { cle: "local2", label: "5 · Local — photo B" },
-  { cle: "conditions", label: "6 · Conditions souhaitées (fixe)" },
-];
-
-function CasePhoto({ label, url, suggestions, onChange }) {
-  const fichierRef = useRef(null);
-  const [envoi, setEnvoi] = useState(false);
-
-  const index = suggestions.indexOf(url);
-  const naviguer = (sens) => {
-    if (!suggestions.length) return;
-    const suivant = index === -1 ? 0 : (index + sens + suggestions.length) % suggestions.length;
-    onChange(suggestions[suivant]);
-  };
-
-  const importer = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setEnvoi(true);
-    try {
-      const r = await base44.integrations.Core.UploadFile({ file });
-      if (r?.file_url) onChange(r.file_url);
-    } catch (err) {
-      toast.error(err?.message || "Import impossible");
-    }
-    setEnvoi(false);
-  };
-
-  return (
-    <div className="bg-surface border border-trait">
-      <div className="relative aspect-video bg-fond overflow-hidden">
-        {url ? (
-          <img src={url} alt={label} className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <ImageOff className="w-6 h-6 text-bord" />
-          </div>
-        )}
-        {envoi && (
-          <div className="absolute inset-0 bg-fond/70 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 text-menthe-clair animate-spin" />
-          </div>
-        )}
-      </div>
-      <div className="flex items-center justify-between px-2.5 py-2 max-md:py-1">
-        <span className="text-[11px] tracking-[0.06em] uppercase text-ardoise truncate">{label}</span>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {suggestions.length > 1 && (
-            <>
-              <button onClick={() => naviguer(-1)} aria-label="Photo précédente du projet" title="Photo précédente du projet"
-                className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors max-md:w-9 max-md:h-9">
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => naviguer(1)} aria-label="Photo suivante du projet" title="Photo suivante du projet"
-                className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-encre transition-colors max-md:w-9 max-md:h-9">
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </>
-          )}
-          <button onClick={() => fichierRef.current?.click()} aria-label="Importer une image" title="Importer une image"
-            className="w-6 h-6 flex items-center justify-center text-ardoise hover:text-menthe-clair transition-colors max-md:w-9 max-md:h-9">
-            <Upload className="w-3.5 h-3.5" />
-          </button>
-          <input ref={fichierRef} type="file" accept="image/*" className="hidden" onChange={importer} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PanneauGeneration({ project }) {
-  const queryClient = useQueryClient();
-  const [resultat, setResultat] = useState(null);
-  const [photos, setPhotos] = useState({});
-
-  const { data: statutMail } = useQuery({
-    queryKey: ["mail-status"],
-    queryFn: () => base44.functions.invoke("getMailStatus", {}),
-  });
-  const compteDrive = (statutMail?.accounts || []).find((c) => c.peut_drive)?.id || null;
-
-  // La photo « conditions » est la même pour tous les dossiers : mémorisée
-  // dans les réglages, resservie à chaque génération.
-  const { data: reglages } = useQuery({
-    queryKey: ["app-settings-global"],
-    queryFn: async () => (await base44.entities.AppSettings.filter({ setting_key: "global" }))?.[0] || null,
-  });
-
-  const suggestions = useMemo(
-    () => (project.photos || []).filter((u) => typeof u === "string" && u),
-    [project.photos]
-  );
-
-  useEffect(() => {
-    setResultat(null);
-    setPhotos({
-      sommaire: suggestions[0] || null,
-      ville: suggestions[1] || suggestions[0] || null,
-      quartier: suggestions[2] || suggestions[0] || null,
-      local1: suggestions[3] || suggestions[0] || null,
-      local2: suggestions[4] || suggestions[1] || null,
-      conditions: reglages?.presentation_conditions_photo || null,
-    });
-  }, [project.id, suggestions, reglages?.presentation_conditions_photo]);
-
-  const generer = useMutation({
-    mutationFn: () =>
-      base44.request("POST", `/api/admin/projets/${project.id}/presentation`, {
-        body: { compte: compteDrive, photos },
-      }),
-    onSuccess: (r) => {
-      setResultat(r);
-      queryClient.invalidateQueries({ queryKey: ["all-projects-presentations"] });
-      queryClient.invalidateQueries({ queryKey: ["app-settings-global"] });
-      if (r.slides_url) {
-        toast.success("Présentation générée — ouverture dans Google Slides");
-        window.open(r.slides_url, "_blank", "noopener");
-      } else if (r.erreur_slides) {
-        toast.error(`PPTX généré, mais conversion Slides impossible : ${r.erreur_slides}`);
-      } else {
-        toast.success("Présentation générée (PPTX)");
-      }
-    },
-    onError: (e) => toast.error(e?.message || "Génération impossible"),
-  });
-
-  const slidesUrl = resultat?.slides_url || project.presentation_google_slides || null;
-  const pptxUrl = resultat?.pptx_url || project.presentation_pptx_url || null;
-
-  return (
-    <div className="space-y-5">
-      {/* Les six photos du dossier */}
-      <div className="bg-surface border border-trait p-5 max-md:p-4">
-        <p className="text-encre text-sm font-medium mb-1">Les six photos du dossier</p>
-        <p className="text-ardoise text-xs mb-4">
-          Suggérées depuis les photos du projet — utilisez les flèches pour en changer ou importez
-          la vôtre. La photo des conditions souhaitées est commune à tous les dossiers.
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-sm:grid-cols-1">
-          {EMPLACEMENTS.map(({ cle, label }) => (
-            <CasePhoto
-              key={cle}
-              label={label}
-              url={photos[cle] || null}
-              suggestions={suggestions}
-              onChange={(u) => setPhotos((prev) => ({ ...prev, [cle]: u }))}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Génération */}
-      <div className="bg-surface border border-trait p-5 space-y-4 max-md:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-encre text-sm font-medium mb-1">Présentation de financement</p>
-            <p className="text-ardoise text-xs max-w-xl">
-              Quinze diapositives : couverture, sommaire, ville, carte de l'emplacement, quartier,
-              local, bail, enseignes du secteur, prix vs marché, projection, conditions,
-              CV et structuration — puis retouchables dans Google Slides.
-            </p>
-          </div>
-          <button
-            onClick={() => generer.mutate()}
-            disabled={generer.isPending}
-            className="inline-flex items-center justify-center gap-2 text-surface px-6 py-3 text-[13.5px] font-bold hover:brightness-95 transition-all disabled:opacity-60"
-            style={{ background: J["encre"] }}
-          >
-            {generer.isPending ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Génération…</>
-            ) : (
-              <><Briefcase className="w-4 h-4" /> {slidesUrl || pptxUrl ? "Regénérer" : "Générer"}</>
-            )}
-          </button>
-        </div>
-
-        {generer.isPending && (
-          <p className="text-ardoise text-xs">
-            Analyse, carte, enseignes et photos en cours d'assemblage — comptez une quinzaine de secondes.
-          </p>
-        )}
-
-        {(slidesUrl || pptxUrl) && (
-          <div className="flex flex-wrap items-center gap-4">
-            {slidesUrl && (
-              <a href={slidesUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs px-4 py-2 border border-bord-doux bg-encre/[0.06] hover:bg-encre/[0.1] text-encre transition-colors">
-                <ExternalLink className="w-3.5 h-3.5" />
-                Ouvrir dans Google Slides
-              </a>
-            )}
-            {pptxUrl && (
-              <a href={pptxUrl} download
-                className="inline-flex items-center gap-2 text-xs text-ardoise hover:text-encre transition-colors">
-                <Download className="w-3.5 h-3.5" />
-                Télécharger le PPTX
-              </a>
-            )}
-            {project.presentation_generee_le && !resultat && (
-              <span className="text-brume text-xs">
-                Dernière génération le {new Date(project.presentation_generee_le).toLocaleDateString("fr-FR")}
-              </span>
-            )}
-          </div>
-        )}
-
-        {statutMail && !compteDrive && (
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              onClick={() => {
-                window.location.href = "/api/auth/google/login?returnTo=" + encodeURIComponent("/Presentations");
-              }}
-              className="inline-flex items-center gap-2 text-xs px-4 py-2.5 border border-bord-doux bg-encre/[0.06] hover:bg-encre/[0.1] text-encre transition-colors"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Connecter Google Slides
-            </button>
-            <p className="text-ardoise text-xs max-w-md">
-              Une autorisation Google unique pour que les présentations s'ouvrent directement dans
-              Google Slides. Sans elle, le dossier reste un PPTX à télécharger.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// La ville d'un projet, lue dans son adresse : ce qui suit le code postal
-// quand il y en a un, sinon le dernier segment (en sautant « France »). La
-// casse est harmonisée pour que NICE et Nice ne fassent qu'une ville.
-// « Autres » regroupe les adresses inexploitables.
-function villeDe(p) {
-  const adresse = String(p.adresse_complete || "");
-  let brut = "";
-  const apresCp = adresse.match(/\b\d{5}\b[\s,]*([^,\d]+)/);
-  if (apresCp) {
-    brut = apresCp[1];
-  } else {
-    const segments = adresse.split(",").map((s) => s.trim()).filter(Boolean);
-    brut = segments.pop() || "";
-    if (/^france$/i.test(brut)) brut = segments.pop() || "";
-  }
-  brut = brut.replace(/\b\d{5}\b/g, "").replace(/\bfrance\b/gi, "").trim();
-  if (!brut || /\d/.test(brut) || brut.length > 30) return "Autres";
-  return brut.toLowerCase().replace(/(^|[\s\-'])\p{L}/gu, (c) => c.toUpperCase());
-}
-
-function LigneProjet({ p, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 text-left bg-surface border border-trait px-4 py-3.5 hover:border-bord-vif hover:bg-encre/[0.04] transition-all"
-    >
-      <div className="w-9 h-9 rounded-lg bg-encre/[0.05] flex items-center justify-center flex-shrink-0">
-        <Building2 className="w-4 h-4 text-ardoise" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-encre text-[13.5px] font-medium truncate">{p.titre || "Sans titre"}</p>
-        {p.adresse_complete && <p className="text-brume text-[12.5px] truncate">{p.adresse_complete}</p>}
-      </div>
-      {p.presentation_google_slides && (
-        <span className="text-[11px] tracking-[0.12em] uppercase text-menthe-clair flex-shrink-0">Générée</span>
-      )}
-    </button>
-  );
-}
+const API = "/api/admin/presentations-bancaires";
+const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "");
 
 export default function AdminPresentations() {
-  const [selectedId, setSelectedId] = useState("");
-  const [ville, setVille] = useState("");
-  const [recherche, setRecherche] = useState("");
+  const queryClient = useQueryClient();
+  const [conversation, setConversation] = useState(false);
+  const [historique, setHistorique] = useState(false);
+  const [courante, setCourante] = useState(null);
+  const [travail, setTravail] = useState({ enCours: false, etapes: [] });
+  const [choixProjet, setChoixProjet] = useState(false);
+  const large = useEcranLarge();
+  const [ouverteTel, setOuverteTel] = useState(true);
+  useEffect(() => { if (courante) setOuverteTel(true); }, [courante]);
 
-  const { data: projects = [], isLoading } = useQuery({
-    queryKey: ["all-projects-presentations"],
-    queryFn: () => base44.entities.Project.list("-created_date"),
+  const { data, isLoading } = useQuery({ queryKey: ["presentations-bancaires"], queryFn: () => base44.request("GET", API) });
+  const presentations = data?.presentations || [];
+  const rafraichir = () => queryClient.invalidateQueries({ queryKey: ["presentations-bancaires"] });
+
+  // Une présentation ouverte : sa conversation reprend à gauche, elle à droite.
+  const ouvrir = useCallback((p) => {
+    setCourante(p.id);
+    const reprise = { role: "assistant", reprise: true, contenu: `La présentation ${p.titre ? `« ${p.titre} »` : ""} est ouverte à droite. Retouchez-la directement, ou dites-moi ci-dessous ce qu'il faut changer.`.replace(/\s+/g, " ") };
+    window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: p.conversation_id || null, api: "/api/assistant", qs: "", secours: [reprise] } }));
+  }, []);
+
+  // La présentation créée ou retouchée par le chat se relie à la conversation en cours.
+  const [conversationId, setConversationId] = useState(null);
+  const aLier = useRef(null);
+  useEffect(() => {
+    const id = aLier.current;
+    if (!id || !conversationId || !data) return;
+    const p = presentations.find((x) => x.id === id);
+    if (!p) return;
+    aLier.current = null;
+    if (p.conversation_id) return;
+    base44.request("PATCH", `${API}/${id}`, { body: { conversation_id: conversationId } }).then(rafraichir).catch(() => { /* elle reste ouvrable, sans sa conversation */ });
+  }, [conversationId, data]);
+
+  const surReponse = useCallback((r) => {
+    const id = (r?.actions || []).map((a) => a?.resultat?.presentation_id).filter(Boolean).at(-1);
+    if (id) {
+      setCourante(id);
+      aLier.current = id;
+      queryClient.invalidateQueries({ queryKey: ["presentation-bancaire", id] });
+    }
+    rafraichir();
+  }, [queryClient]);
+
+  const ouverteAvant = useRef(false);
+  const surConversation = useCallback((ouverte) => {
+    if (!ouverte && ouverteAvant.current) setCourante(null);
+    ouverteAvant.current = ouverte;
+    setConversation(ouverte);
+  }, []);
+
+  // Depuis la liste des projets, sans passer par le chat.
+  const creer = useMutation({
+    mutationFn: (projet_id) => base44.request("POST", API, { body: { projet_id } }),
+    onSuccess: (r) => { setChoixProjet(false); rafraichir(); ouvrir({ id: r.presentation_id }); },
+    onError: (e) => toast.error(e?.message || "Création impossible"),
   });
 
-  const selectedProject = useMemo(
-    () => projects.find((p) => p.id === selectedId) || null,
-    [projects, selectedId]
+  const supprimer = useMutation({
+    mutationFn: (id) => base44.request("DELETE", `${API}/${id}`),
+    onSuccess: (_, id) => { if (courante === id) setCourante(null); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Suppression impossible"),
+  });
+
+  // La colonne de droite s'ouvre dès qu'une présentation se construit.
+  const enConstruction = creer.isPending || (travail.enCours && !courante);
+  const scinde = large && (conversation || !!courante || creer.isPending);
+  useEffect(() => {
+    if (!scinde) return undefined;
+    document.documentElement.classList.add("k-sans-barre");
+    window.scrollTo(0, 0);
+    return () => document.documentElement.classList.remove("k-sans-barre");
+  }, [scinde]);
+
+  const liste = (
+    <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[1100px]"}>
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+        <div className="flex items-baseline gap-3">
+          <h2 className="m-0 text-[20px] font-normal tracking-[-0.01em] text-encre">Vos présentations</h2>
+          {presentations.length > 0 && <span className="text-[13.5px] text-ardoise">{presentations.length}</span>}
+        </div>
+        <button type="button" onClick={() => setChoixProjet(true)}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
+          <Plus className="h-3.5 w-3.5" />Depuis un projet
+        </button>
+      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+      ) : !presentations.length ? (
+        <p className="py-12 text-center text-[14px] text-brume">Aucune présentation encore : nommez un projet au chat, ou partez de la liste des projets.</p>
+      ) : (
+        <div className="border-y border-trait">
+          {presentations.map((p) => (
+            <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)}
+              onSupprimer={() => { if (window.confirm(`Supprimer la présentation « ${p.titre} » ? Les PPTX déjà sortis restent.`)) supprimer.mutate(p.id); }} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 
-  // Villes triées alphabétiquement, avec leur nombre de dossiers.
-  const villes = useMemo(() => {
-    const compte = new Map();
-    for (const p of projects) {
-      const v = villeDe(p);
-      compte.set(v, (compte.get(v) || 0) + 1);
-    }
-    return [...compte.entries()].sort((a, b) =>
-      a[0] === "Autres" ? 1 : b[0] === "Autres" ? -1 : a[0].localeCompare(b[0], "fr")
-    );
-  }, [projects]);
-
-  // La recherche court-circuite le tri par ville : elle mène droit au dossier.
-  const resultats = useMemo(() => {
-    const q = recherche.trim().toLowerCase();
-    if (!q) return null;
-    return projects.filter(
-      (p) =>
-        p.titre?.toLowerCase().includes(q) ||
-        p.adresse_complete?.toLowerCase().includes(q) ||
-        p.client_email?.toLowerCase().includes(q) ||
-        villeDe(p).toLowerCase().includes(q)
-    );
-  }, [projects, recherche]);
-
-  const projetsDeLaVille = useMemo(
-    () => (ville ? projects.filter((p) => villeDe(p) === ville) : []),
-    [projects, ville]
+  const droite = courante ? (
+    <EditeurPresentation key={courante} id={courante} travail={travail} onFermer={() => setCourante(null)} />
+  ) : enConstruction ? (
+    <div className="h-full bg-fond"><MiseAJourDocument surtitre="Présentation bancaire" titre="La présentation se construit" etapes={travail.etapes?.length ? travail.etapes : ["Lecture du projet", "La ville et le quartier", "La carte et les enseignes", "Les seize diapositives"]} enCours /></div>
+  ) : (
+    <div className="grid h-full place-items-center bg-fond px-10 text-center">
+      <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">La présentation se construit ici dès que le chat a le projet. Tout s'y retouche sur place : un texte au clic, une photo au clic, une diapositive se masque ou se déplace. Elle part en PPTX ou en Google Slides.</p>
+    </div>
   );
-
-  const ouvrirProjet = (id) => { setSelectedId(id); setRecherche(""); };
 
   return (
-    <div className="min-h-screen text-encre p-4 md:p-10" style={{ background: "rgb(var(--k-fond-rgb))" }}>
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-9 text-center max-md:mb-6">
-          <h1 className="text-[24px] md:text-[34px] font-light leading-[1.08] -tracking-[0.02em] m-0">Présentations</h1>
-          <p className="text-ardoise text-[13.5px] leading-[1.5] mt-2 max-w-[460px] mx-auto">
-            Une ville, un dossier : générez la présentation de financement.
-          </p>
+    <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
+      {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
+      <div className={scinde ? "grid h-[100dvh] grid-cols-[minmax(360px,440px)_minmax(0,1fr)] overflow-hidden" : ""}>
+        <div className={scinde ? (conversation ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8") : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
+          <div className={`mx-auto ${scinde ? "max-w-none" : conversation ? "max-w-[1100px]" : "max-w-[1400px]"}`}>
+            <header className={conversation ? "flex flex-col" : `flex flex-col items-center text-center ${scinde ? "pt-10" : "pt-[6vh] max-md:pt-4"}`}>
+              {!conversation && (
+                <>
+                  <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Quelle présentation préparez-vous ?</h1>
+                  <p className="m-0 mt-2 max-w-[56ch] text-[14px] text-ardoise">Nommez le projet : la présentation bancaire se construit depuis ses données, puis se retouche sur place ou en parlant.</p>
+                </>
+              )}
+              <div className={conversation ? "w-full" : `w-full ${scinde ? "mt-6" : "mt-8 max-w-[660px] max-md:mt-6"}`}>
+                <ChatDashboard espace="presentation" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
+                  barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { presentation_id: courante } : null} onConversationId={setConversationId} />
+              </div>
+            </header>
+          </div>
+          {!conversation && (historique ? (
+            <div className="mx-auto mt-[6vh] max-w-[1400px]"><HistoriqueColonne espace="admin" /></div>
+          ) : liste)}
         </div>
+        {scinde && <div className="h-[100dvh] min-h-0 min-w-0 border-l border-bord-doux">{droite}</div>}
+      </div>
 
-        {isLoading && (
-          <div className="flex justify-center py-16">
-            <Loader2 className="w-6 h-6 text-ardoise animate-spin" />
-          </div>
-        )}
+      {/* Au téléphone : la présentation par-dessus tout, on la ferme pour revenir au chat. */}
+      {!large && courante && ouverteTel && createPortal(
+        <div className="fixed inset-0 z-[70]" style={{ background: "rgb(var(--k-fond-rgb))" }}>
+          <EditeurPresentation key={courante} id={courante} travail={travail} onFermer={() => { if (conversation) setOuverteTel(false); else setCourante(null); }} />
+        </div>,
+        document.body,
+      )}
+      {!large && courante && !ouverteTel && conversation && (
+        <button type="button" onClick={() => setOuverteTel(true)}
+          className="fixed left-1/2 top-[calc(var(--k-haut-mobile,3.5rem)+3.75rem)] z-30 inline-flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-bord-vif bg-surface-pleine px-4 text-[13px] text-encre shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:hidden">
+          <FileText className="h-4 w-4 text-menthe" /> Voir la présentation
+        </button>
+      )}
+      {choixProjet && <ChoixProjet enCours={creer.isPending} onChoisir={(id) => creer.mutate(id)} onFermer={() => { if (!creer.isPending) setChoixProjet(false); }} />}
+    </div>
+  );
+}
 
-        {/* Villes / recherche / projets d'une ville */}
-        {!selectedProject && !isLoading && (
-          <div className="w-full">
-            <div className="bg-surface border border-trait px-[18px] flex items-center focus-within:border-bord-vif focus-within:shadow-[0_0_0_3px_rgba(86,91,89,0.2)] transition-all mb-6">
-              <FolderSearch className="w-4 h-4 text-brume flex-shrink-0" />
-              <input
-                autoFocus
-                placeholder="Rechercher une ville, un dossier, une adresse, un client…"
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-                className="w-full bg-transparent border-none text-encre outline-none placeholder:text-brume py-3.5 px-3 text-[15px] max-md:text-[16px]"
-              />
-            </div>
-
-            {resultats ? (
-              // Résultats de recherche : directement les dossiers.
-              resultats.length === 0 ? (
-                <div className="text-center py-16">
-                  <Building2 className="w-8 h-8 text-bord mx-auto mb-4" />
-                  <p className="text-brume text-sm">Aucun dossier ne correspond à votre recherche.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {resultats.slice(0, 30).map((p) => (
-                    <LigneProjet key={p.id} p={p} onClick={() => ouvrirProjet(p.id)} />
-                  ))}
-                  {resultats.length > 30 && (
-                    <p className="text-brume text-xs text-center pt-2">
-                      {resultats.length - 30} autres résultats — précisez la recherche.
-                    </p>
-                  )}
-                </div>
-              )
-            ) : ville ? (
-              // Les dossiers d'une ville.
-              <div>
-                <button
-                  onClick={() => setVille("")}
-                  className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre text-[13.5px] mb-4 transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Toutes les villes
-                </button>
-                <h2 className="text-[18px] font-light text-encre mb-4">
-                  {ville}
-                  <span className="text-brume text-[12.5px] ml-2">
-                    {projetsDeLaVille.length} dossier{projetsDeLaVille.length > 1 ? "s" : ""}
-                  </span>
-                </h2>
-                <div className="space-y-2">
-                  {projetsDeLaVille.map((p) => (
-                    <LigneProjet key={p.id} p={p} onClick={() => ouvrirProjet(p.id)} />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              // L'entrée : les villes, triées, avec leur nombre de dossiers.
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {villes.map(([nom, n]) => (
-                  <button
-                    key={nom}
-                    onClick={() => setVille(nom)}
-                    className="text-left bg-surface border border-trait px-4 py-4 hover:border-menthe/60 hover:bg-encre/[0.03] transition-all"
-                  >
-                    <p className="text-encre text-[15px] font-medium truncate">{nom}</p>
-                    <p className="text-brume text-[12.5px] mt-1">
-                      {n} dossier{n > 1 ? "s" : ""}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {selectedProject && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <button
-              onClick={() => setSelectedId("")}
-              className="inline-flex items-center gap-1.5 text-ardoise hover:text-encre text-[13.5px] mb-5 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              {ville || "Retour"}
+/** Une présentation de la liste : le projet, l'adresse, la date. */
+function LignePresentation({ p, active, onOuvrir, onSupprimer }) {
+  const [menu, setMenu] = useState(false);
+  const zone = useFermerAuClicAilleurs(menu, () => setMenu(false));
+  const detail = [p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`, p.exporte_le ? `exportée le ${quand(p.exporte_le)}` : null].filter(Boolean).join(" · ");
+  return (
+    <div className={`relative border-t border-trait px-2 py-4 pr-12 first:border-t-0 ${active ? "bg-surface" : ""}`}>
+      <button type="button" onClick={onOuvrir} className="flex w-full items-center gap-6 text-left" style={{ background: "transparent" }}>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15.5px] text-encre">{p.titre}</span>
+          {detail && <span className="mt-1 block truncate text-[13.5px] text-ardoise">{detail}</span>}
+        </span>
+        <span className="flex-none text-[13px] tabular-nums text-brume">{quand(p.maj_le)}</span>
+      </button>
+      <div ref={zone} className="contents">
+        <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+        {menu && (
+          <div className="absolute right-1 top-[calc(50%+14px)] z-20 min-w-[170px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+            <button type="button" onClick={() => { setMenu(false); onSupprimer(); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08]" style={{ background: "transparent" }}>
+              <Trash2 className="h-3.5 w-3.5" /> Supprimer
             </button>
-            <h2 className="text-[18px] font-light text-encre mb-1">{selectedProject.titre || "Sans titre"}</h2>
-            {selectedProject.adresse_complete && <p className="text-brume text-[12.5px] mb-6">{selectedProject.adresse_complete}</p>}
-
-            <PanneauGeneration project={selectedProject} />
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
   );
+}
+
+/** Choisir le projet d'une nouvelle présentation : une recherche, des lignes. */
+function ChoixProjet({ enCours, onChoisir, onFermer }) {
+  const [recherche, setRecherche] = useState("");
+  const [choisi, setChoisi] = useState(null);
+  const { data: projets = [], isLoading } = useQuery({ queryKey: ["all-projects-presentations"], queryFn: () => base44.entities.Project.list("-created_date") });
+  const trouves = useMemo(() => {
+    const q = recherche.trim().toLowerCase();
+    return projets.filter((p) => !q || [p.titre, p.adresse_complete, p.nom_locataire, p.client_email].filter(Boolean).join(" ").toLowerCase().includes(q)).slice(0, 40);
+  }, [projets, recherche]);
+  useEffect(() => {
+    const echap = (e) => { if (e.key === "Escape") onFermer(); };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [onFermer]);
+  return createPortal(
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-fond/70 p-4 backdrop-blur-sm" onMouseDown={onFermer}>
+      <div className="flex max-h-[80vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[14px] border border-bord-vif bg-surface-pleine shadow-[0_18px_40px_rgb(0_0_0/0.18)]" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 border-b border-trait px-5 py-3.5">
+          <span className="text-[14.5px] text-encre">Nouvelle présentation</span>
+          <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+        </div>
+        <div className="px-5 pt-4">
+          <div className="flex items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux">
+            <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
+            <input autoFocus value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Projet, adresse, locataire, client"
+              className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+          {isLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+          ) : !trouves.length ? (
+            <p className="py-10 text-center text-[13.5px] text-brume">Aucun projet ne correspond.</p>
+          ) : (
+            <div className="border-y border-trait">
+              {trouves.map((p) => (
+                <button key={p.id} type="button" disabled={enCours} onClick={() => { setChoisi(p.id); onChoisir(p.id); }}
+                  className="flex w-full items-center gap-4 border-t border-trait px-2 py-3.5 text-left first:border-t-0 hover:bg-encre/[0.02] disabled:opacity-60" style={{ background: "transparent" }}>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] text-encre">{p.titre || "Sans titre"}</span>
+                    <span className="mt-0.5 block truncate text-[13px] text-ardoise">{[p.adresse_complete, p.nom_locataire].filter(Boolean).join(" · ")}</span>
+                  </span>
+                  {enCours && choisi === p.id && <Loader2 className="h-4 w-4 flex-none animate-spin text-ardoise" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {enCours && <p className="m-0 border-t border-trait px-5 py-3 text-[12.5px] text-ardoise">La ville, le quartier, la carte et les enseignes se lisent : une quinzaine de secondes.</p>}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Un écran assez large pour le chat et la présentation côte à côte. */
+function useEcranLarge() {
+  const requete = "(min-width: 1024px)";
+  const [large, setLarge] = useState(() => typeof window !== "undefined" && window.matchMedia(requete).matches);
+  useEffect(() => {
+    const m = window.matchMedia(requete);
+    const changer = () => setLarge(m.matches);
+    m.addEventListener("change", changer);
+    return () => m.removeEventListener("change", changer);
+  }, []);
+  return large;
 }

@@ -295,6 +295,11 @@ const OUTILS_AK = [
     input_schema: { type: 'object', properties: { ville: { type: 'string' }, prix_max: { type: 'number' }, prix_min: { type: 'number' }, rendement_min: { type: 'number' }, bail_min_ans: { type: 'number' }, surface_min: { type: 'number' }, activite: { type: 'string' } } },
   },
   {
+    name: 'verifier_presentation',
+    description: "Relit une présentation jointe au message (projet de financement, préz bancaire, PDF ou Word) contre le projet de la plateforme (et son dossier) : chaque chiffre comparé, les calculs refaits (loyer au m², mensuel, indexation, cumuls, rendement), les cases restées vides. Ne crée rien. trouver_bien d'abord pour le projet_id (ou le deal_id).",
+    input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné dans le message' }, projet_id: { type: 'string' }, deal_id: { type: 'string' } }, required: ['chemin'] },
+  },
+  {
     name: 'lire_piece',
     description: "Lit le texte d'une pièce jointe (PDF ou texte) sans rien créer, pour la résumer ou répondre dessus (« c'est quoi ce truc ? »).",
     input_schema: { type: 'object', properties: { chemin: { type: 'string' } }, required: ['chemin'] },
@@ -416,6 +421,34 @@ const OUTILS_AK = [
         deal_id: { type: 'string', description: 'le dossier où ranger les analyses, si connu' },
       },
       required: ['adresse', 'outils'],
+    },
+  },
+  {
+    name: 'creer_presentation_bancaire',
+    description: "Crée la présentation bancaire (dossier « Projet de Financement », seize diapositives) d'un projet de la plateforme, dans la page Présentations : elle s'ouvre à droite, éditable, puis part en PPTX ou en Google Slides. Nécessite le projet_id rendu par trouver_bien ou chercher_projet. Une quinzaine de secondes (ville, quartier, carte, enseignes).",
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
+  },
+  {
+    name: 'modifier_presentation',
+    description: "Retouche la présentation bancaire ouverte à droite (page Présentations) : chaque changement pose une valeur à un champ d'une diapositive, par son id et un chemin pointé, tels que la présentation ouverte te les montre. le panneau de gauche est « heros » (« heros.grand », « heros.titre », « heros.accroche », « heros.note » ; « heros.porteur » et « heros.banque » sur la couverture), la carte de droite a ses propres champs (« points.2.valeur », « chiffres.0.valeur », « stats.1.valeur »), « items.+ » pour ajouter un élément à une liste, valeur null sur un élément de liste pour le retirer, « masquee » à true pour cacher une diapositive. Les textes s'écrivent tels qu'ils doivent s'afficher ; une case encore à remplir est entre crochets (« [Prénom NOM] »).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        presentation_id: { type: 'string' },
+        changements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              diapo: { type: 'string', description: "l'id de la diapositive (couverture, sommaire, ville, emplacement, quartier, local, photos, bail, enseignes, marche, projection, revenus, conditions, porteur, structuration, merci)" },
+              chemin: { type: 'string' },
+              valeur: { description: 'texte, nombre, booléen, objet ou null' },
+            },
+            required: ['diapo', 'chemin'],
+          },
+        },
+      },
+      required: ['presentation_id', 'changements'],
     },
   },
   {
@@ -545,7 +578,7 @@ export function ajouterPhotos(projetId, urls) {
   return nouvelles.length;
 }
 
-export const GESTES_COUTEUX = new Set(['rediger_loi', 'lancer_kdata', 'preanalyser_mail', 'analyser_fiche', 'faire_tout', 'creer_dossier', 'creer_projet_depuis_dossier', 'generer_prez_bancaire', 'lancer_alx']);
+export const GESTES_COUTEUX = new Set(['rediger_loi', 'creer_presentation_bancaire', 'lancer_kdata', 'preanalyser_mail', 'analyser_fiche', 'faire_tout', 'creer_dossier', 'creer_projet_depuis_dossier', 'generer_prez_bancaire', 'lancer_alx']);
 const CLE_GESTES = 'ak.gestes';
 const DOUBLON_MS = 60 * 60 * 1000;
 
@@ -880,6 +913,12 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   if (name === 'souvenirs') return { souvenirs: souvenirs(200).filter((s) => !s.pour || s.pour === String(user?.email || '').toLowerCase()).map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait, personnelle: !!s.pour })) };
   if (name === 'verifier_renta') return verifierRenta(input);
   if (name === 'chercher_biens') { const biens = chercherBiens(input); return { biens, nombre: biens.length }; }
+  if (name === 'verifier_presentation') {
+    const chemin = String(input.chemin || '');
+    if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
+    const { verifierPresentation } = await import('./verifier-presentation.js');
+    return verifierPresentation({ chemin, projet_id: input.projet_id || null, deal_id: input.deal_id || null }, { user });
+  }
   if (name === 'lire_piece') {
     const chemin = String(input.chemin || '');
     if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
@@ -1081,6 +1120,17 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     fond({ genre: 'kdata', libelle: `K-Data sur ${input.adresse} : ${input.outils.map((o) => NOMS_KDATA[o] || o).join(', ')}`, ids: r.ids, deal_id: input.deal_id || null });
     return { ok: true, lancees: input.outils.length, lot: r.lot, note: 'Les analyses tournent ; AK préviendra dans le chat quand elles seront finies.' };
   }
+  if (name === 'creer_presentation_bancaire') {
+    const P = await import('../presentation-bancaire.js');
+    const r = await P.creerPresentation(String(input.projet_id || ''), user);
+    if (!r.ok) return r;
+    return { ...r, note: "La présentation est ouverte à droite, éditable. Dis-le en une ligne, puis ce qui reste à compléter (le porteur, le destinataire, le CV, la structuration)." };
+  }
+  if (name === 'modifier_presentation') {
+    const P = await import('../presentation-bancaire.js');
+    const r = P.appliquerChangements(String(input.presentation_id || ''), input.changements || []);
+    return r.ok ? { ...r, presentation_id: String(input.presentation_id) } : r;
+  }
   if (name === 'generer_prez_bancaire') {
     const projet = Records.get('Project', input.projet_id);
     if (!projet) return { ok: false, error: 'Projet introuvable.' };
@@ -1190,7 +1240,7 @@ RÈGLES :
 5. Un mail à l'agent d'un dossier (« fais un mail de feedback à l'agent, l'emplacement est nul », « refuse-le », « demande les docs », « prépare la relance pour l'agent de Dieppe ») : chercher_dossier si le dossier n'est pas celui dont on parle, puis mail_agent avec les raisons dans les mots de la personne. Le brouillon est posté en entier juste après ta réponse : ne le recopie pas, dis juste en une ligne que voilà le mail. Tu ne l'envoies jamais : c'est le « envoie » de la personne qui le fait partir. Un autre mail (à un client, sans dossier) : preparer_mail, et tu colles l'objet et le corps tels quels. Le brouillon au propriétaire d'une cible ALX (chercher_cible puis brouillon_proprietaire) se colle pareil.
 5ter-mail. Un mail à quelqu'un sans dossier (présentation, demande de fiche, un mot à un agent) : mail_libre, jamais un texte que tu écrirais toi-même dans ta réponse. Il te faut l'adresse : sans elle, demande-la. Une retouche demandée sur un mail qui attend (« objet Klocka », « mets le site », « dis qu'on a un mandat ») : retoucher_brouillon avec toute la retouche, dans ses mots. Dans les deux cas le mail est posté en entier par le code juste après ta réponse : tu dis en une ligne « voilà le mail » ou ce qui a changé, tu ne le recopies pas, tu ne parles jamais d'« aperçu » ni de « fenêtre de relecture », et tu ne dis jamais qu'un mail est prêt ou modifié si l'outil ne l'a pas fait dans CETTE réponse.
 5bis. « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends le couperet en une ligne, cash, sur le rendement GLOBAL (net moyen sur la durée du projet, celui de la fiche) contre le seuil de la grille : « ça tourne, 6,9 % de rendement global pour 6,5 % visés » ou « c'est dead, 4,8 % global et le bail finit dans 14 mois ». L'AEM de la première année se cite entre parenthèses, il ne tranche pas. Les seuils sont ceux de l'équipe, tu ne les discutes pas.
-5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
+5ter. « Où en est X ? » : etat_dossier ou etat_projet, puis UNE ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes maximum, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends. « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une préz jointe (projet de financement, présentation bancaire) avec « vérifie », « relis », « c'est juste ? » : trouver_bien pour le projet (ou le dossier) dont elle parle, puis verifier_presentation, jamais analyser_fiche ; réponds par la synthèse, puis les écarts bloquants et à corriger, une ligne chacun (page, ce qui est écrit, ce qui est juste), puis les cases à remplir ; les conformes en une ligne à la fin. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche.
 5sexies. « Crée une LOI », « fais la lettre d'intention pour X » : chercher_dossier si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.
 5septies. « Prends ce mail, fais tout », « prends ces deux mails et fais tout », « traite le mail de Paul », « fais tout avec ça » (avec des pièces jointes) : boite_recue pour trouver le ou les mails (les derniers du même expéditeur, ou du même sujet), puis faire_tout avec tous leurs identifiants dans mail_ids, sans poser de question. Ne mets ensemble que des mails qui parlent du MÊME bien (même adresse, même enseigne) ; un mail de compléments pour un bien qui a déjà son dossier (« doc complémentaire pour … ») se dépose avec deposer_mail sur ce dossier, il ne crée pas de doublon : dossier, Drive, marché Data-B, tout part. Une ligne pour dire ce qui est fait et ce qui tourne. Si le mail n'est pas dans la boîte (il a été reçu par quelqu'un d'autre), dis-le : il faut le transférer à ${COMPTE} ou le coller dans le chat avec ses pièces.
 5quinquies. Les mails : « y'a quoi dans la boîte ? » : boite_recue, une ligne par mail (qui, quoi, pièce ou pas). « Pré-analyse le mail de Marc », « préanalyse le dossier du glacier que je viens de recevoir » : boite_recue avec tous à vrai (la fiche a pu être préanalysée à son arrivée), le mail qui correspond, puis preanalyser_mail. Réponds en une ligne que c'est parti (ou que le dossier existe déjà) : l'avis est posté par le code, tu ne l'écris pas. « T'en penses quoi du dossier X ? » : chercher_dossier puis avis_dossier, même règle. Une question sur les agents (« les agents à Paris », « les agentes », « l'agent de chez X ») : chercher_agents, puis une ligne par agent (nom, agence, mail, nombre de dossiers) ; le genre est déduit du prénom, dis-le en une demi-phrase. « Qu'est-ce qu'il dit l'agent de X ? » : chercher_dossier puis mails_du_dossier, et tu résumes. Le Drive : chercher_drive pour retrouver un fichier, ranger_drive pour y mettre une pièce jointe du message. L'agenda : bloquer_rdv avec la date exacte en ISO (la date du jour t'est donnée), agenda pour lire un jour. Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.

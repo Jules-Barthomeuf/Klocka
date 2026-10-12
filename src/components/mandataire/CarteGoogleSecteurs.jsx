@@ -9,26 +9,83 @@ import { JL } from "@/design/jetons";
 //
 // Couleurs en JL (littérales) : Google dessine en SVG, où une variable CSS
 // ne se résout pas.
+//
+// Chaque secteur a sa couleur et son motif (9 oct. 2026, demande de Jules) :
+// le premier en hachures, les suivants en points, quadrillage, croisillons…
+// et aucun nom posé sur la carte. Google ne remplit pas un polygone d'un
+// motif : les motifs se dessinent dans une couche SVG (OverlayView) posée sur
+// la carte ; les polygones de Google gardent le contour et le clic.
 
 const CLE = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
-const centreDe = (pts) => ({ lat: pts.reduce((s, p) => s + p[0], 0) / pts.length, lng: pts.reduce((s, p) => s + p[1], 0) / pts.length });
 // Un secteur peut être fait de plusieurs morceaux (une région, des communes).
 const anneauxDe = (s) => (s?.polygones?.length ? s.polygones : s?.points?.length >= 3 ? [s.points] : []);
-const plusGrand = (anneaux) => anneaux.reduce((a, b) => (b.length > a.length ? b : a), []);
 const chemins = (anneaux) => anneaux.map((a) => a.map(([lat, lng]) => ({ lat, lng })));
 
+/** Les motifs, un par secteur dans l'ordre : le contenu d'une tuile de 10 px, dans la couleur c. */
+export const MOTIFS = [
+  (c) => `<path d="M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2" stroke="${c}" stroke-width="2.1"/>`,
+  (c) => `<circle cx="5" cy="5" r="2" fill="${c}"/>`,
+  (c) => `<path d="M0,0.5 H10 M0.5,0 V10" stroke="${c}" stroke-width="1.5"/>`,
+  (c) => `<path d="M-1,9 l2,2 M0,0 l10,10 M9,-1 l2,2" stroke="${c}" stroke-width="2.1"/>`,
+  (c) => `<path d="M0,0 l10,10 M10,0 l-10,10" stroke="${c}" stroke-width="1.5"/>`,
+  (c) => `<path d="M0,5 H10" stroke="${c}" stroke-width="2.2"/>`,
+  (c) => `<path d="M5,0 V10" stroke="${c}" stroke-width="2.2"/>`,
+  (c) => `<circle cx="5" cy="5" r="2.6" fill="none" stroke="${c}" stroke-width="1.5"/>`,
+];
+const motifDe = (i) => MOTIFS[((Number(i) || 0) % MOTIFS.length + MOTIFS.length) % MOTIFS.length];
+const tuile = (id, c, motif, fond) => `<pattern id="${id}" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="${c}" fill-opacity="${fond}"/>${motifDe(motif)(c)}</pattern>`;
+
+/** La pastille d'un secteur dans une liste : sa couleur et son motif, comme sur la carte. */
+export function MotifSecteur({ teinte, motif = 0, taille = 16, className = "" }) {
+  const id = `pastille-${motif}-${String(teinte).replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg width={taille} height={taille} className={`flex-none rounded-[4px] ${className}`} aria-hidden="true"
+      dangerouslySetInnerHTML={{ __html: `<defs>${tuile(id, teinte, motif, 0.16)}</defs><rect width="100%" height="100%" fill="url(#${id})"/>` }} />
+  );
+}
+
+/** La couche des motifs : un SVG dans le calque de la carte, redessiné à chaque zoom ou déplacement. */
+function creerCalque(g) {
+  class Calque extends g.OverlayView {
+    constructor() {
+      super();
+      this.formes = [];
+      this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      Object.assign(this.svg.style, { position: "absolute", left: "0", top: "0", width: "1px", height: "1px", overflow: "visible", pointerEvents: "none" });
+    }
+    onAdd() { this.getPanes().overlayLayer.appendChild(this.svg); }
+    onRemove() { this.svg.remove(); }
+    poser(formes) { this.formes = formes; this.draw(); }
+    draw() {
+      const p = this.getProjection();
+      if (!p) return;
+      const px = ([lat, lng]) => { const q = p.fromLatLngToDivPixel(new g.LatLng(lat, lng)); return `${q.x.toFixed(1)},${q.y.toFixed(1)}`; };
+      const defs = [];
+      const chemins = [];
+      this.formes.forEach((f, i) => {
+        const id = `motif-secteur-${i}`;
+        defs.push(tuile(id, f.teinte, f.motif, f.actif ? 0.22 : 0.1));
+        const d = f.anneaux.map((a) => `M${a.map(px).join("L")}Z`).join("");
+        chemins.push(`<path d="${d}" fill="url(#${id})" fill-rule="evenodd" opacity="${f.actif ? 1 : 0.9}"/>`);
+      });
+      this.svg.innerHTML = `<defs>${defs.join("")}</defs>${chemins.join("")}`;
+    }
+  }
+  return new Calque();
+}
+
 /**
- * @param {Array<{id, nom, points, teinte}>} secteurs  à dessiner
+ * @param {Array<{id, nom, points, teinte, motif}>} secteurs  à dessiner (motif : son rang dans MOTIFS)
  * @param {string|null} choisi   le secteur ouvert : remplissage plus franc
  * @param {boolean} trace        on pose les points d'un contour
  * @param {Array} points         le contour en cours
  * @param {string} type          roadmap | satellite | hybrid | terrain
- * @param {boolean} etiquettes   le nom du secteur au centre (non : la zone seule, côté mandataire)
  */
-export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trace = false, points = [], apercu = [], villes = [], villeActive = null, type = "roadmap", etiquettes = true, onSecteur, onPoint, onVille, onErreur }) {
+export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trace = false, points = [], apercu = [], villes = [], villeActive = null, type = "roadmap", onSecteur, onPoint, onVille, onErreur }) {
   const conteneur = useRef(null);
   const carte = useRef(null);
   const traces = useRef([]);
+  const calque = useRef(null);
   const brouillon = useRef([]);
   const traceApercu = useRef([]);
   const tracesVilles = useRef([]);
@@ -54,6 +111,8 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
           gestureHandling: "greedy",
           clickableIcons: false,
         });
+        calque.current = creerCalque(g);
+        calque.current.setMap(carte.current);
         carte.current.addListener("click", (e) => {
           if (rappels.current.trace) rappels.current.onPoint?.([Number(e.latLng.lat().toFixed(5)), Number(e.latLng.lng().toFixed(5))]);
         });
@@ -68,12 +127,14 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
   useEffect(() => { carte.current?.setMapTypeId(type); }, [type, pret]);
   useEffect(() => { carte.current?.setOptions({ draggableCursor: trace ? "crosshair" : null }); }, [trace, pret]);
 
-  // Les secteurs enregistrés, et leur nom posé au centre.
+  // Les secteurs enregistrés : le contour et le clic par Google, le motif dans la couche SVG.
   useEffect(() => {
     const g = window.google?.maps;
     if (!g || !carte.current) return;
     for (const t of traces.current) t.setMap(null);
-    traces.current = secteurs.filter((s) => anneauxDe(s).length).flatMap((s) => {
+    const dessines = secteurs.filter((s) => anneauxDe(s).length);
+    calque.current?.poser(dessines.map((s) => ({ anneaux: anneauxDe(s), teinte: s.teinte, motif: s.motif ?? 0, actif: s.id === choisi })));
+    traces.current = dessines.map((s) => {
       const actif = s.id === choisi;
       const poly = new g.Polygon({
         map: carte.current,
@@ -81,8 +142,9 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
         strokeColor: JL.fond,
         strokeOpacity: 1,
         strokeWeight: actif ? 3 : 2,
+        // Presque transparent : le motif est dessous, le polygone ne garde que le clic.
         fillColor: s.teinte,
-        fillOpacity: actif ? 0.38 : 0.22,
+        fillOpacity: 0.01,
         zIndex: actif ? 20 : 10,
       });
       // Un clic sur un secteur pendant un tracé pose un point, comme ailleurs.
@@ -90,18 +152,9 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
         if (rappels.current.trace) rappels.current.onPoint?.([Number(e.latLng.lat().toFixed(5)), Number(e.latLng.lng().toFixed(5))]);
         else rappels.current.onSecteur?.(s.id);
       });
-      if (!etiquettes) return [poly];
-      const etiquette = new g.Marker({
-        map: carte.current,
-        position: centreDe(plusGrand(anneauxDe(s))),
-        clickable: false,
-        zIndex: 30,
-        icon: { path: g.SymbolPath.CIRCLE, scale: 0 },
-        label: { text: s.nom, color: JL.fond, fontSize: "12px", fontWeight: "600" },
-      });
-      return [poly, etiquette];
+      return poly;
     });
-  }, [secteurs, choisi, pret, etiquettes]);
+  }, [secteurs, choisi, pret]);
 
   // Le contour en cours : le trait, et ses points.
   useEffect(() => {
@@ -196,6 +249,7 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
       for (const t of lot.current) t.setMap(null);
       lot.current = [];
     }
+    calque.current?.setMap(null);
   }, []);
 
   if (!CLE) {

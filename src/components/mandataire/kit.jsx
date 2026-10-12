@@ -1,4 +1,7 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { toast } from "@/components/ui/avis";
 import { Check, Loader2, Paperclip } from "lucide-react";
 import { J, alpha } from "@/design/jetons";
 
@@ -120,3 +123,34 @@ export const LienFichier = ({ f }) =>
       <Paperclip className="h-3 w-3 flex-none" /> <span className="truncate">{f.nom || "Fichier"}</span>
     </a>
   ) : null;
+
+/** La pastille d'une fiche d'exemple (posée à l'arrivée du mandataire, server/mandataire-exemples.js). */
+export function PastilleExemple({ x }) {
+  return x?.exemple ? <span className="ml-2 inline-flex flex-none rounded-full bg-ambre/15 px-2 py-0.5 align-middle text-[11.5px] font-normal text-ambre">Exemple</span> : null;
+}
+
+/**
+ * Le bandeau des exemples (10 oct. 2026) : tant qu'il en reste dans la liste,
+ * il dit à quoi ils servent, et un clic les retire tous, de toutes les pages.
+ */
+export function BandeauExemples({ liste = [] }) {
+  const queryClient = useQueryClient();
+  const [enCours, setEnCours] = useState(false);
+  if (!liste.some((x) => x?.exemple)) return null;
+  const retirer = async () => {
+    if (!window.confirm("Retirer toutes les fiches d'exemple (estimation, mandat, dossiers, mise en marché) ? Elles ne reviendront pas.")) return;
+    setEnCours(true);
+    try {
+      await base44.request("POST", "/api/mandataire/exemples/retirer");
+      await queryClient.invalidateQueries();
+      toast.success("Exemples retirés");
+    } catch (e) { toast.error(e?.message || "Impossible de retirer les exemples"); }
+    setEnCours(false);
+  };
+  return (
+    <div className="my-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-ambre/30 bg-ambre/[0.06] px-4 py-3">
+      <p className="m-0 max-w-[70ch] text-[13.5px] leading-[1.5] text-craie">Les fiches marquées <span className="text-ambre">Exemple</span> montrent comment ça marche : ouvrez-les, essayez. Elles ne partent jamais chez Klocka ni chez le notaire.</p>
+      <button type="button" onClick={retirer} disabled={enCours} className="h-8 flex-none rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>{enCours ? "Retrait…" : "Retirer les exemples"}</button>
+    </div>
+  );
+}

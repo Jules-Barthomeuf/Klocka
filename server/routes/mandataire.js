@@ -681,7 +681,8 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/admin/mandataires', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const { listerMandataires } = await E();
-    ok(res, { mandataires: listerMandataires() });
+    const { ANALYSTES } = await import('../fil-dossier.js');
+    ok(res, { mandataires: listerMandataires(), analystes: ANALYSTES });
   }));
 
   // Les projets de la plateforme, tels que les clients les voient : les siens
@@ -736,6 +737,7 @@ export function monterMandataire(app) {
     const user = currentUser(req);
     if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à Klocka.' });
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu.' });
+    if (!/^image\//.test(req.file.mimetype || '')) return res.status(400).json({ error: 'Une image : photo ou scan de la signature.' });
     const champ = req.query.type === 'signature' ? 'signature_url' : 'photo_url';
     const { poserFicheMandataire } = await E();
     ok(res, poserFicheMandataire(req.params.email, { [champ]: `/uploads/${req.file.filename}` }, user));
@@ -789,7 +791,10 @@ export function monterMandataire(app) {
     const { avancementProspection } = await E();
     const { Records } = await import('../db.js');
     const fiches = Records.list('ProprietaireMandataire');
+    const auteurs = new Set(Records.list('ProspectionMandataire').map((p) => String(p.mandataire_email || '').toLowerCase()));
+    const noms = Object.fromEntries(Records.list('User').filter((u) => auteurs.has(String(u.email || '').toLowerCase())).map((u) => [String(u.email).toLowerCase(), u.full_name || null]));
     ok(res, {
+      noms,
       prospections: Records.list('ProspectionMandataire')
         .sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')))
         .map((p) => ({ id: p.id, nom: p.nom, mandataire: p.mandataire_email, criteres: p.criteres, cree_le: p.cree_le, trouves: p.trouves || 0, ...avancementProspection(p, fiches) })),

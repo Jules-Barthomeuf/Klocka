@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, ChevronDown, GripVertical, Layers, Loader2, Plus, Send, Sparkles, Trash2, X } from "lucide-react";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import { toast } from "@/components/ui/avis";
@@ -105,6 +105,83 @@ function MailOuvert({ n, mail, index, onChange, onFermer, avecAK = true }) {
   );
 }
 
+const TYPE_ASSET = "application/x-klocka-asset";
+
+/**
+ * Les listes de la newsletter en menu déroulant (9 oct. 2026) : « Listes » à
+ * gauche, une flèche ; on coche les listes visées, chacune avec ses abonnés.
+ */
+function ChoixListes({ options, valeur, onChange }) {
+  const [ouvert, setOuvert] = useState(false);
+  const boite = useRef(null);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const fermer = (e) => { if (boite.current && !boite.current.contains(e.target)) setOuvert(false); };
+    document.addEventListener("mousedown", fermer);
+    return () => document.removeEventListener("mousedown", fermer);
+  }, [ouvert]);
+  const choisies = options.filter(([id]) => valeur.includes(id));
+  const resume = !choisies.length ? "aucune" : choisies.length === 1 ? choisies[0][1] : `${choisies.length} listes`;
+  return (
+    <span className="relative inline-flex" ref={boite}>
+      <button type="button" onClick={() => setOuvert((x) => !x)} aria-expanded={ouvert}
+        className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors ${ouvert ? "border-bord-vif text-encre" : "border-bord-doux text-craie hover:text-encre"}`} style={{ background: "transparent" }}>
+        <Layers className="h-3.5 w-3.5 text-ardoise" />Listes
+        <span className={`max-w-[180px] truncate ${choisies.length ? "text-encre" : "text-brume"}`}>{resume}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
+      </button>
+      {ouvert && (
+        <span className="absolute left-0 top-10 z-30 flex w-[280px] flex-col rounded-[12px] border border-bord-doux bg-surface-pleine p-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.25)] duration-150 animate-in fade-in-0 slide-in-from-top-1">
+          {!options.length && <span className="px-2.5 py-2 text-[12.5px] text-brume">Aucune liste : importez-en une dans Contacts.</span>}
+          {options.map(([id, mot, abonnes]) => {
+            const coche = valeur.includes(id);
+            return (
+              <button key={id} type="button" onClick={() => onChange(coche ? valeur.filter((x) => x !== id) : [...valeur, id])} aria-pressed={coche}
+                className="flex items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left hover:bg-relief" style={{ background: "transparent" }}>
+                <span className={`grid h-4 w-4 flex-none place-items-center rounded-[4px] border ${coche ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-vif"}`}>{coche && <Check className="h-3 w-3" strokeWidth={3} />}</span>
+                <span className="min-w-0 flex-1 truncate text-[13.5px] text-encre">{mot}</span>
+                {abonnes != null && <span className="flex-none text-[12px] tabular-nums text-ardoise">{abonnes}</span>}
+              </button>
+            );
+          })}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Les assets à glisser (9 oct. 2026) : un panneau qui reste à l'écran pendant
+ * qu'on fait défiler les mails ; on prend le simulateur, on le lâche sur le
+ * mail 2, il y entre avant la signature.
+ */
+function PanneauAssets({ onFermer }) {
+  const { data } = useQuery({ queryKey: ["emailing-assets"], queryFn: () => req("GET", "/assets") });
+  return (
+    <div className="fixed right-5 top-24 z-[65] flex max-h-[70vh] w-[280px] flex-col overflow-hidden rounded-[16px] border border-bord-vif bg-surface-pleine shadow-[0_18px_40px_rgb(0_0_0/0.25)] duration-200 animate-in fade-in-0 slide-in-from-right-2 max-md:left-4 max-md:right-4 max-md:top-auto max-md:bottom-4 max-md:w-auto">
+      <div className="flex items-center justify-between gap-2 border-b border-trait px-4 py-3">
+        <span className="text-[13.5px] text-encre">Assets</span>
+        <button type="button" onClick={onFermer} aria-label="Fermer les assets" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+      </div>
+      <p className="m-0 px-4 pt-2.5 text-[12px] text-ardoise">Glissez un asset sur un mail : il s'ajoute avant la signature.</p>
+      <div className="flex min-h-0 flex-col gap-1.5 overflow-y-auto p-3">
+        {!data && <span className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-ardoise" /></span>}
+        {(data?.assets || []).map((a) => (
+          <div key={a.id} draggable onDragStart={(e) => { e.dataTransfer.setData(TYPE_ASSET, a.id); e.dataTransfer.setData("text/plain", a.nom); e.dataTransfer.effectAllowed = "copy"; }}
+            className="flex cursor-grab items-start gap-2 rounded-[10px] border border-trait px-3 py-2.5 transition-colors hover:border-bord-vif active:cursor-grabbing" title="Glisser sur un mail">
+            <GripVertical className="mt-0.5 h-3.5 w-3.5 flex-none text-brume" />
+            <span className="flex min-w-0 flex-col">
+              <span className="text-[13px] text-encre">{a.nom}</span>
+              {a.description && <span className="line-clamp-2 text-[11.5px] text-ardoise">{a.description}</span>}
+            </span>
+          </div>
+        ))}
+        {data && !(data.assets || []).length && <span className="px-1 py-2 text-[12.5px] text-brume">Aucun asset : créez-en dans l'onglet Assets.</span>}
+      </div>
+    </div>
+  );
+}
+
 function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["emailing-newsletter", id], queryFn: () => req("GET", `/newsletters/${id}`) });
@@ -137,6 +214,13 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
   });
   const ajouter = useMutation({ mutationFn: (template_id) => req("POST", `/newsletters/${id}/mails`, { template_id }), onSuccess: (r) => { setN(r.newsletter); rafraichir(); } });
   const retirer = useMutation({ mutationFn: (mid) => req("DELETE", `/newsletters/${id}/mails/${mid}`), onSuccess: (r) => { setN(r.newsletter); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
+  const [assetsOuverts, setAssetsOuverts] = useState(false);
+  const [survol, setSurvol] = useState(null);
+  const deposer = useMutation({
+    mutationFn: ({ mid, asset }) => req("POST", `/newsletters/${id}/mails/${mid}/asset`, { asset }),
+    onSuccess: (r) => { setN(r.newsletter); rafraichir(); toast.success(`« ${r.asset} » ajouté au mail ${r.rang}`); },
+    onError: (e) => toast.error(e?.message || "Ajout impossible"),
+  });
   const supprimer = useMutation({ mutationFn: () => req("DELETE", `/newsletters/${id}`), onSuccess: () => { toast.success("Newsletter supprimée"); onSupprimee(); }, onError: (e) => toast.error(e?.message || "Impossible") });
   if (!n) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
   const statsMail = Object.fromEntries((stats?.mails || []).map((m) => [m.id, m]));
@@ -146,7 +230,7 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
     statut.mutate(on ? "active" : "pause");
   };
   return (
-    <div className="max-w-[720px] min-w-0">
+    <div className="w-full min-w-0">
       <div className="flex items-center justify-between gap-4">
         <input value={n.nom} onChange={(e) => changer({ nom: e.target.value })} aria-label="Nom de la newsletter" className="min-w-0 flex-1 bg-transparent text-[20px] tracking-[-0.01em] text-encre outline-none" />
         {onAtelier && <button type="button" onClick={onAtelier} className="inline-flex h-9 flex-none items-center gap-1.5 rounded-[8px] bg-encre px-3.5 text-[13.5px] font-medium text-fond hover:opacity-90"><Sparkles className="h-3.5 w-3.5" />Ouvrir l'éditeur</button>}
@@ -165,20 +249,21 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
 
       {/* Les réglages : la cohorte et le calendrier. */}
       <div className="mt-4 flex flex-col gap-4 rounded-[14px] border border-trait bg-rail px-[18px] py-4">
-        <div>
-          <p className="m-0 mb-2 text-[11.5px] uppercase tracking-[.04em] text-ardoise">Listes</p>
-          <Pastilles options={listes} valeur={n.listes || []} onChange={(v) => changer({ listes: v })} vide="Aucune liste : importez-en une dans Contacts." />
-        </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-craie">
+          <ChoixListes options={listes} valeur={n.listes || []} onChange={(v) => changer({ listes: v })} />
           <span className="flex items-center gap-2">Départ
             <ChoixDate valeur={n.depart} onChoisir={(d) => changer({ depart: d })} label="Date de départ">
               <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-bord-doux px-3 text-[13px] text-encre"><CalendarDays className="h-3.5 w-3.5 text-ardoise" />{jourLong(n.depart)}</span>
             </ChoixDate>
           </span>
           <label className="flex items-center gap-2">Rythme
-            <select value={n.rythme_jours} onChange={(e) => changer({ rythme_jours: Number(e.target.value) })} className="h-8 rounded-full border border-bord-doux bg-surface px-2.5 text-[13px] text-encre outline-none max-md:h-9 max-md:text-[16px]">
-              {[...new Set([...RYTHMES, n.rythme_jours])].sort((a, b) => a - b).map((j) => <option key={j} value={j}>tous les {j} jours</option>)}
-            </select>
+            {/* La flèche dessinée, à distance du bord : celle du système collait au contour arrondi. */}
+            <span className="relative inline-flex">
+              <select value={n.rythme_jours} onChange={(e) => changer({ rythme_jours: Number(e.target.value) })} className="h-8 appearance-none rounded-full border border-bord-doux bg-surface pl-3 pr-9 text-[13px] text-encre outline-none max-md:h-9 max-md:text-[16px]">
+                {[...new Set([...RYTHMES, n.rythme_jours])].sort((a, b) => a - b).map((j) => <option key={j} value={j}>tous les {j} jours</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ardoise" />
+            </span>
           </label>
           <label className="flex items-center gap-2">à
             <input type="time" value={n.heure} onChange={(e) => e.target.value && changer({ heure: e.target.value })} className="h-8 rounded-full border border-bord-doux bg-surface px-2.5 text-[13px] text-encre outline-none [color-scheme:dark] max-md:h-9 max-md:text-[16px]" />
@@ -186,6 +271,12 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
           </label>
         </div>
       </div>
+
+      {/* Les assets à glisser sur un mail. */}
+      <div className="mt-4 flex justify-end">
+        <button type="button" onClick={() => setAssetsOuverts((x) => !x)} aria-pressed={assetsOuverts} className={`${boutonLigne} ${assetsOuverts ? "border-menthe/50 text-menthe" : ""}`}><Layers className="mr-1.5 h-3.5 w-3.5" />Assets</button>
+      </div>
+      {assetsOuverts && <PanneauAssets onFermer={() => setAssetsOuverts(false)} />}
 
       {/* Les mails : la date à droite du trait, la carte dessous. */}
       {n.mails.map((m, i) => {
@@ -204,9 +295,13 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
                 {!envoye && m.date && <button type="button" onClick={() => changer({ mails: n.mails.map((x) => (x.id === m.id ? { ...x, date: null } : x)) })} className="p-0 text-[12px] text-ardoise underline-offset-2 hover:text-encre hover:underline" style={{ background: "transparent" }}>date fixée à la main · revenir au rythme</button>}
               </span>
             </div>
-            <div className={`flex items-center justify-between gap-4 rounded-[14px] border bg-rail px-[18px] py-4 ${m.en_retard ? "border-ambre/50" : "border-trait"}`}>
+            <div
+              onDragOver={envoye ? undefined : (e) => { if (!e.dataTransfer.types.includes(TYPE_ASSET)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; if (survol !== m.id) setSurvol(m.id); }}
+              onDragLeave={envoye ? undefined : (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setSurvol((x) => (x === m.id ? null : x)); }}
+              onDrop={envoye ? undefined : (e) => { const asset = e.dataTransfer.getData(TYPE_ASSET); setSurvol(null); if (!asset) return; e.preventDefault(); deposer.mutate({ mid: m.id, asset }); }}
+              className={`flex items-center justify-between gap-4 rounded-[14px] border bg-rail px-[18px] py-4 transition-colors ${survol === m.id ? "border-menthe ring-2 ring-menthe/30" : m.en_retard ? "border-ambre/50" : "border-trait"}`}>
               <div className="min-w-0">
-                <p className="m-0 flex items-center gap-2 text-[12px] text-ardoise">Mail {i + 1}<StatutMail statut={m.statut} /></p>
+                <p className="m-0 flex items-center gap-2 text-[12px] text-ardoise">Mail {i + 1}<StatutMail statut={m.statut} />{survol === m.id && <span className="text-menthe">Lâchez pour ajouter l'asset</span>}{deposer.isPending && deposer.variables?.mid === m.id && <Loader2 className="h-3 w-3 animate-spin text-menthe" />}</p>
                 <p className={`m-0 mt-1 truncate text-[14.5px] ${m.objet ? "text-encre" : "text-brume"}`}>{m.objet || "Sans objet"}</p>
                 {envoye && st && (
                   <p className="m-0 mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-craie">
@@ -287,11 +382,22 @@ function Atelier({ id: id0 = null, mailId: mail0 = null, onFermer }) {
     const t = setTimeout(() => setMaj(false), 700);
     return () => clearTimeout(t);
   }, [enCours]);
-  // AK a écrit ou réécrit une newsletter : c'est elle qu'on montre.
-  const surReponse = useCallback((r) => {
+  // AK a écrit ou réécrit une newsletter : c'est elle qu'on montre. Un mail ouvert le reste,
+  // relu tel qu'AK l'a réécrit : on parle à gauche, la modification se voit à droite (9 oct. 2026).
+  const mailOuvert = useRef(null);
+  mailOuvert.current = mail;
+  const surReponse = useCallback(async (r) => {
     const nid = (r?.actions || []).map((a) => a?.resultat?.newsletter_id).filter(Boolean).at(-1);
     if (!nid) return;
     rafraichir(nid);
+    const m = mailOuvert.current;
+    if (m && m.n.id === nid) {
+      try {
+        // Lu directement : un fetchQuery serait annulé par l'invalidation de rafraichir, juste au-dessus.
+        const n = await req("GET", `/newsletters/${nid}`);
+        if (n?.mails?.some((x) => x.id === m.mailId)) { setMail({ n, mailId: m.mailId }); return; }
+      } catch { /* illisible : on montre la newsletter */ }
+    }
     setMail(null);
     setId(nid);
     setVersion((v) => v + 1);
@@ -304,7 +410,7 @@ function Atelier({ id: id0 = null, mailId: mail0 = null, onFermer }) {
     } catch (e) { toast.error(e?.message || "Enregistrement impossible"); }
   });
   const fermerMail = () => { queryClient.setQueryData(["emailing-newsletter", mail.n.id], (d) => (d ? { ...d, mails: mail.n.mails } : d)); rafraichir(mail.n.id); setMail(null); setVersion((v) => v + 1); };
-  const contexte = useMemo(() => ({ mode: "newsletter", newsletter_id: id || null }), [id]);
+  const contexte = useMemo(() => ({ mode: "newsletter", newsletter_id: id || null, mail_id: mail?.mailId || null }), [id, mail?.mailId]);
   return (
     <div className="fixed inset-0 z-[60] grid h-[100dvh] grid-cols-[minmax(360px,440px)_minmax(0,1fr)] overflow-hidden bg-fond duration-300 animate-in fade-in-0 max-md:flex max-md:flex-col">
       {/* Le chat, comme dans Offres : la barre sombre en haut (« ← Emailing », sur la ligne du nom de la

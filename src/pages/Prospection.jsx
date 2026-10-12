@@ -994,10 +994,12 @@ export default function Prospection() {
   const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"]];
   // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
   const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
-  const [partie, setPartie] = useState(() => { try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
+  // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
+  const depuisAdresse = new URLSearchParams(window.location.search);
+  const [partie, setPartie] = useState(() => { const u = depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
   const [aAppeler, setAAppeler] = useState(0);
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
-  const [listeOuverte, setListeOuverte] = useState(null);
+  const [listeOuverte, setListeOuverte] = useState(() => depuisAdresse.get("liste") || null);
   const [appel, setAppel] = useState(null);
   const [carte, setCarte] = useState(null);
   const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: 60000 });

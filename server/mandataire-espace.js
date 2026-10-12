@@ -13,6 +13,7 @@
 
 import { Records, Meta } from './db.js';
 import { dansNJoursParis } from './rappels.js';
+import { ANALYSTES } from './fil-dossier.js';
 
 const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const aMidi = (d) => { const x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
@@ -272,6 +273,10 @@ export function poserFicheMandataire(email, patch, user) {
   for (const c of ['rsac', 'rc_pro_expire_le', 'attestation_expire_le', 'arrivee_le', 'analyste_email', 'telephone', 'notes',
     'nom_avis', 'qualite_avis', 'ville_rsac', 'carte_t', 'email_avis', 'ville_signature', 'photo_url', 'signature_url']) {
     if (c in patch) champs[c] = patch[c] === '' ? null : patch[c];
+  }
+  if (champs.analyste_email) {
+    champs.analyste_email = String(champs.analyste_email).trim().toLowerCase();
+    if (!ANALYSTES.some((a) => a.email === champs.analyste_email)) return { ok: false, error: "Cet analyste ne fait pas partie de l'équipe." };
   }
   const existante = Records.list('FicheMandataire').find((f) => f.email === propre);
   const fiche = existante
@@ -776,7 +781,9 @@ export function avancementProspection(prospection, proprietaires) {
   return {
     ajoutes: lies.length,
     a_appeler: lies.filter((p) => p.statut === 'a_appeler').length,
-    contactes: lies.filter((p) => ['contacte', 'en_discussion'].includes(p.statut)).length,
-    rdv: lies.filter((p) => p.statut === 'rdv_pris').length,
+    // Un entonnoir : un RDV ou un mandat a aussi été contacté.
+    contactes: lies.filter((p) => p.statut && p.statut !== 'a_appeler').length,
+    rdv: lies.filter((p) => ['rdv_pris', 'mandat_signe'].includes(p.statut)).length,
+    mandats: lies.filter((p) => p.statut === 'mandat_signe').length,
   };
 }

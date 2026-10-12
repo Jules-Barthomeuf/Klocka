@@ -284,6 +284,12 @@ function regrouper(lignes) {
 const ACTIONS = [
   { cle: 'lecture_piece', libelle: 'Lire une pièce du dossier', unite: 'par document', parAppel: true, operations: ['matrice', 'lecture des pièces'], ou: "Étape Analyse, à l'arrivée d'une pièce ou sur « Relancer l'analyse »" },
   { cle: 'extraction', libelle: 'Extraire un document déposé', unite: 'par document', parAppel: true, operations: ['extraction'], ou: 'Au dépôt dans l’espace du dossier' },
+  { cle: 'relances_mail', libelle: 'Préparer des relances par mail', unite: 'par lot', parAppel: false, operations: ['relances par mail'], ou: 'Relances, onglet Par mail : « Préparer les mails »' },
+  { cle: 'courrier_off_market', libelle: 'Rédiger un courrier off-market', unite: 'par courrier', parAppel: true, operations: ['courrier off-market'], ou: 'Off-market : « Préparer le courrier » depuis une fiche, une liste ou la table des propriétaires' },
+  { cle: 'zones_commerciales', libelle: 'Trouver les zones commerçantes d\'une ville', unite: 'par ville', parAppel: false, operations: ['zones commerciales'], ou: 'Off-market, mode Simple : une fois par ville, à la première ouverture' },
+  { cle: 'jugement_zone', libelle: 'Lire le pourquoi d\'un jugement Zone', unite: 'par jugement', parAppel: true, operations: ['jugement zone'], ou: 'Off-market, mode Simple : « Intéressant » ou « Pas intéressant » sur un point, avec son explication (équipe)' },
+  { cle: 'revue_rue', libelle: 'Noter une rue sur Street View', unite: 'par point', parAppel: true, operations: ['revue de rue'], ou: 'Off-market, mode Simple : « Noter la rue » dans la fiche d\'un point (équipe)' },
+  { cle: 'agent_testeur', libelle: 'Auditer une page avec l\'agent testeur', unite: 'par audit', parAppel: false, operations: ['agent testeur'], ou: 'Le bouton Testeur en haut à droite (équipe) ; le rapport dans Suivi > Agent testeur' },
   { cle: 'recap_matin', libelle: 'Faire le récap du matin', unite: 'par récap', parAppel: false, operations: ['récap du matin'], ou: 'Chaque matin à 5 h 30, depuis le Mac de Jules (npm run recap)' },
   { cle: 'preanalyse', libelle: 'Analyser une fiche commerciale', unite: 'par fiche', parAppel: false, operations: ['pré-analyse'], ou: 'Étape Pré-analyse, ou fiche collée dans un chat' },
   { cle: 'grille', libelle: 'Mettre en forme une grille', unite: 'par grille', parAppel: false, prefixe: 'grille ', ou: 'Onglets Bail, Quittances, Copropriété, Diagnostics' },

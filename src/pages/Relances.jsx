@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import TableauDeBordRelances from "@/components/prospection/TableauDeBordRelances";
 import ListeRelances from "@/components/prospection/ListeRelances";
 import ModeAppel from "@/components/prospection/ModeAppel";
+import RelancesParMail from "@/components/prospection/RelancesParMail";
 
 // La page Relances (spec du 8 oct. 2026) : une seule page partagée par toute
 // l'équipe, en trois onglets comme la Prospection : Tableau de bord (mails à
@@ -17,7 +18,7 @@ import ModeAppel from "@/components/prospection/ModeAppel";
 // prend la prochaine ligne libre dans l'ordre de la liste, ou « Retour à la liste ».
 
 const API = "/api/prospection/relances";
-const PARTIES = [["bord", "Tableau de bord"], ["liste", "Liste"], ["appel", "Mode appel"]];
+const PARTIES = [["bord", "Tableau de bord"], ["liste", "Liste"], ["appel", "Mode appel"], ["mail", "Par mail"]];
 const pl = (n, mot, mots = `${mot}s`) => `${n} ${n > 1 ? mots : mot}`;
 
 export default function Relances() {
@@ -198,6 +199,8 @@ export default function Relances() {
           {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
           {q.isError && !/403|réservé/i.test(q.error?.message || "") && <p className="py-12 text-center text-[14px] text-alerte">Les relances n'ont pas pu être lues : {q.error?.message || "erreur"}.</p>}
           {data && partie === "bord" && <TableauDeBordRelances data={data} />}
+          {/* Par mail (10 oct. 2026) : l'IA prépare, on valide ; validé, c'est une relance. */}
+          {partie === "mail" && <RelancesParMail onFait={rafraichir} />}
 
           {data && partie === "appel" && !courante && (
             <p className="m-0 py-12 text-center text-[15px] text-craie">{aucuneLibre ? (data.total ? "Toutes les relances sont déjà ouvertes par un collègue." : `Tout est à jour. Prochaines relances demain : ${data.demain}.`) : <Loader2 className="mx-auto h-5 w-5 animate-spin text-ardoise" />}</p>

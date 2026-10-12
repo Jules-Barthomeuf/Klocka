@@ -30,7 +30,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail } from "lucide-react";
+  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -48,6 +48,7 @@ import VeilleAlx from "@/components/alx/VeilleAlx";
 import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
+import { BoutonTesteur } from "@/components/AgentTesteur";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -299,6 +300,8 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
 // Pages that are "child" pages (show back button on mobile)
 const CHILD_PAGES = ['ProjetDetail', 'MonCompte', 'Questionnaire', 'Vision', 'SimulateurRentabilite', 'Comparateur', 'Ressources'];
 
+const PAGES_PLEINE_LARGEUR = ["OffMarket", "MandataireOffMarket"];
+
 function LayoutContent({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -310,7 +313,9 @@ function LayoutContent({ children, currentPageName }) {
   // La barre latérale s'ouvre comme Personnalisation le dit ; le bouton du
   // haut la replie en rail d'icônes, le temps de la session.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => prefs.barre === "repliee");
-  useEffect(() => { setSidebarCollapsed(prefs.barre === "repliee"); }, [prefs.barre]);
+  // Off-market (10 oct. 2026) : la carte et la liste veulent toute la largeur,
+  // la barre se replie en arrivant et reprend le réglage en partant.
+  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || prefs.barre === "repliee"); }, [prefs.barre, currentPageName]);
   // La recherche (⌘K) : projets et dossiers, de n'importe quelle page.
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   useEffect(() => {
@@ -334,15 +339,7 @@ function LayoutContent({ children, currentPageName }) {
   const pagesWithoutNavbar = ['Questionnaire', 'Home', 'Alexis'];
 
   useEffect(() => { choisirApercu(apercu); }, [apercu]);
-  // Passer en vue mandataire, c'est aussi le devenir : l'admin cumule les deux
-  // rôles, reçoit un secteur et prospecte pour de vrai. Idempotent.
-  const queryClientVue = useQueryClient();
-  useEffect(() => {
-    if (apercu !== "mandataire" || user?.role !== "admin") return;
-    base44.request("POST", "/api/mandataire/admin/moi", { body: { actif: true } })
-      .then(() => queryClientVue.invalidateQueries({ queryKey: ["admin-mandataires"] }))
-      .catch(() => { /* la vue s'affiche quand même ; l'onglet Mandataires permet de réessayer */ });
-  }, [apercu, user?.role, queryClientVue]);
+  // La vue mandataire est un aperçu : être mandataire se décide sur la page Équipe (10 oct. 2026), plus par ce menu.
 
   const isAdmin = user?.role === "admin";
   // Les pages que Jules n'a pas ouvertes à ce compte (acces-pages.js côté serveur).
@@ -475,9 +472,10 @@ function LayoutContent({ children, currentPageName }) {
     FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
+    OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
-    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") },
+    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
@@ -490,6 +488,7 @@ function LayoutContent({ children, currentPageName }) {
     AdminLeadMagnets: { to: createPageUrl("AdminLeadMagnets"), icon: Magnet, actif: isActivePage("AdminLeadMagnets") },
     AdminRessources: { to: createPageUrl("AdminRessources"), icon: BookOpen, actif: isActivePage("AdminRessources") },
     AdminPortail: { to: createPageUrl("AdminPortail"), icon: UserPlus, actif: isActivePage("AdminPortail") },
+    AdminEquipe: { to: createPageUrl("AdminEquipe"), icon: Users, actif: isActivePage("AdminEquipe") },
     AdminMandataires: { to: createPageUrl("AdminMandataires"), icon: MapPin, actif: isActivePage("AdminMandataires") },
     MandataireProspection: { to: createPageUrl("MandataireProspection"), icon: MapPin, actif: isActivePage("MandataireProspection") },
     MandataireClients: { to: createPageUrl("MandataireClients"), icon: Users, actif: isActivePage("MandataireClients") },
@@ -498,6 +497,7 @@ function LayoutContent({ children, currentPageName }) {
     MandataireDossier: { to: createPageUrl("MandataireDossier"), icon: Folder, actif: isActivePage("MandataireDossier"), badge: nonLusMandataire || null, badgeColor: "bg-menthe text-sur-menthe" },
     ConversationsMandataires: { to: createPageUrl("ConversationsMandataires"), icon: MessagesSquare, actif: isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     MandataireMarche: { to: createPageUrl("MandataireMarche"), icon: Presentation, actif: isActivePage("MandataireMarche") },
+    MandataireOffMarket: { to: createPageUrl("MandataireOffMarket"), icon: Radar, actif: isActivePage("MandataireOffMarket") },
     MandataireProjets: { to: createPageUrl("MandataireProjets"), icon: Building2, actif: isActivePage("MandataireProjets") },
     AdminValidations: { to: createPageUrl("AdminValidations"), icon: ClipboardCheck, actif: isActivePage("AdminValidations") },
     Personnalisation: { to: createPageUrl("Personnalisation"), icon: user?.role === "admin" || user?.role === "mandataire" ? CircleUser : Palette, actif: isActivePage("Personnalisation") },
@@ -731,6 +731,7 @@ function LayoutContent({ children, currentPageName }) {
                 </Link>
               )}
               <div className="flex items-center gap-1">
+                {vueAdmin && <BoutonTesteur compact vue={vue} />}
                 {rappelOuvert && <BoutonRappel compact />}
                 {/* La recherche : ⌘K n'existe pas au téléphone. */}
                 {vueAdmin && (
@@ -797,7 +798,9 @@ function LayoutContent({ children, currentPageName }) {
       {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
         <>
-          <div id="k-haut-droite" className={`fixed ${rappelOuvert ? "right-[68px]" : "right-5"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          <div id="k-haut-droite" className={`fixed ${rappelOuvert ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
+          <div className={`fixed ${rappelOuvert ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>
           {rappelOuvert && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
         </>
       )}

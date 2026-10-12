@@ -107,6 +107,8 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
       agent_email: agent?.email || null,
       agent_corrige: !!agent?.corrige,
       boite: mail?.compte || null,
+      // Arrivée par mail : seule une fiche reçue a un expéditeur à rattacher (11 oct. 2026).
+      par_mail: !!mail,
       titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || 'Dossier',
       ville,
       verdict: d.lots?.[0]?.evaluation?.verdict || null,
@@ -122,7 +124,7 @@ export function listerFiches({ deals = [], mails = [], projets = [] } = {}, { de
     const agent = agentDeLaFiche({ corrige: m.fiche_agent, mail: m }, estInterne);
     // Un mail interne sans expéditeur d'origine n'est pas une fiche reçue : c'est un échange d'équipe.
     if (m.interne && !agent) continue;
-    fiches.push({ id: `mail:${m.id}`, le: m.date || null, agent: agent?.nom || null, agent_email: agent?.email || null, agent_corrige: !!agent?.corrige, boite: m.compte || null, titre: m.objet || '(sans objet)', ville: null, verdict: null, etape: 'recue', deal_id: null, projet_id: null, a_preanalyser: true });
+    fiches.push({ id: `mail:${m.id}`, le: m.date || null, agent: agent?.nom || null, agent_email: agent?.email || null, agent_corrige: !!agent?.corrige, boite: m.compte || null, par_mail: true, titre: m.objet || '(sans objet)', ville: null, verdict: null, etape: 'recue', deal_id: null, projet_id: null, a_preanalyser: true });
   }
   return fiches
     .filter((f) => !depuis || String(f.le || '') >= depuis)

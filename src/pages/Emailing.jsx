@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { req, boutonContour, boutonPrincipal } from "@/components/emailing/commun";
 import Newsletters from "@/components/emailing/Newsletters";
 import Assets from "@/components/emailing/Assets";
+import Templates from "@/components/emailing/Templates";
 import Contacts from "@/components/emailing/Contacts";
 import Statistiques from "@/components/emailing/Statistiques";
 
@@ -16,10 +17,11 @@ import Statistiques from "@/components/emailing/Statistiques";
 // le garde-fou : hors Render, rien ne part chez un vrai contact. Un mail
 // ouvert prend toute la page.
 
-const ONGLETS = [["newsletters", "Newsletters"], ["assets", "Assets"], ["contacts", "Contacts"], ["statistiques", "Statistiques"]];
+const ONGLETS = [["newsletters", "Newsletters"], ["templates", "Templates"], ["assets", "Assets"], ["contacts", "Contacts"], ["statistiques", "Statistiques"]];
 // L'action de l'en-tête, par onglet : [libellé, demande] ; Contacts en a deux.
 const ACTIONS = {
   newsletters: [["Nouvelle newsletter", "nouvelle", true]],
+  templates: [["Nouveau template", "nouveau", true]],
   assets: [["Nouvel asset", "nouveau", true]],
   contacts: [["Importer", "importer", false], ["Ajouter un contact", "ajouter", true]],
 };
@@ -77,6 +79,7 @@ export default function Emailing() {
         </div>
       )}
       {onglet === "newsletters" && <Newsletters {...commun} />}
+      {onglet === "templates" && <Templates {...commun} />}
       {onglet === "assets" && <Assets {...commun} />}
       {onglet === "contacts" && <Contacts {...commun} />}
       {onglet === "statistiques" && <Statistiques />}

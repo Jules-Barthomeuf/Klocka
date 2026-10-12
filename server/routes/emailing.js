@@ -80,6 +80,9 @@ export function monterEmailing(app) {
 
   // --- Listes, segments, champs ---
   route('post', '/api/emailing/listes', async (req, user) => (await K()).creerListe(req.body?.nom, user.email));
+  // Les listes tirées de Monday (9 oct. 2026) : lecture seule de Monday, listes recalculées.
+  route('get', '/api/emailing/listes/monday', async () => (await import('../emailing/listes-monday.js')).etat());
+  route('post', '/api/emailing/listes/monday', async (req, user) => (await import('../emailing/listes-monday.js')).synchroniser({ par: user.email }));
   route('patch', '/api/emailing/listes/:id', async (req) => (await K()).renommerListe(req.params.id, req.body?.nom));
   route('delete', '/api/emailing/listes/:id', async (req) => (await K()).supprimerListe(req.params.id), { code: 404 });
   route('post', '/api/emailing/segments', async (req, user) => (await K()).enregistrerSegment(req.body || {}, user.email));
@@ -175,6 +178,8 @@ export function monterEmailing(app) {
   });
   route('delete', '/api/emailing/newsletters/:id/mails/:mid', async (req) => (await N()).retirerMail(req.params.id, req.params.mid));
   route('post', '/api/emailing/newsletters/:id/mails/:mid/statut', async (req) => (await N()).statutDuMail(req.params.id, req.params.mid, req.body?.statut));
+  // Un asset glissé sur un mail (9 oct. 2026).
+  route('post', '/api/emailing/newsletters/:id/mails/:mid/asset', async (req) => (await N()).insererAsset(req.params.id, req.params.mid, req.body?.asset));
   // Le test d'un mail : rendu pour le premier inscrit (ou un exemple), envoyé à soi-même.
   route('post', '/api/emailing/newsletters/:id/mails/:mid/test', async (req, user) => {
     const Nm = await N();
@@ -187,6 +192,17 @@ export function monterEmailing(app) {
     const r = rendrePour({ id: 'test', origine: { newsletter_id: n.id, mail_id: m.id }, objet: m.objet, apercu: m.apercu, design: m.design }, contact);
     const e = await envoyerResend({ a: user.email, objet: `[Test] ${r.objet}`, html: r.html, texte: r.texte, repondreA: n.repondre_a || null });
     return e.ok ? { ok: true, a: user.email } : e;
+  });
+  // Tester le mail en cours d'écriture (9 oct. 2026) : à l'adresse choisie, rendu pour un exemple à son nom.
+  route('post', '/api/emailing/test', async (req, user) => {
+    const a = String(req.body?.a || user.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a)) return { ok: false, error: 'Adresse invalide.' };
+    const { rendrePour } = await C();
+    const { envoyerResend } = await import('../emailing/resend.js');
+    const prenom = String(user.full_name || '').split(' ')[0] || 'Jules';
+    const r = rendrePour({ id: 'test', objet: req.body?.objet || '', apercu: req.body?.apercu || '', design: req.body?.design || { blocs: [] } }, { email: a, prenom, nom: '', jeton: 'exemple', tags: [], champs: {} });
+    const e = await envoyerResend({ a, objet: `[Test] ${r.objet || 'Sans objet'}`, html: r.html, texte: r.texte, repondreA: user.email || null });
+    return e.ok ? { ok: true, a } : e;
   });
   // --- Les assets (9 oct. 2026) : ce qu'on glisse dans un mail en un clic ---
   route('get', '/api/emailing/assets', async () => ({ assets: (await A()).assets() }));

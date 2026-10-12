@@ -149,10 +149,16 @@ points et l'espacement séparent ; seuls les tableaux gardent leurs lignes. La
 force des points se règle dans Compte (curseur Intensité, `--k-grid-force`).
 Les blocs de Compte défilent avec la page, aucun n'est collant. Décisions du
 2 oct. 2026.
-Les listes de prospection (mandataire, onglet Listes) : la liste ouverte et
-son intercalaire prennent le fond du sélecteur Prospecter / Agent IA / Listes
-(`bg-rail-actif`), les autres intercalaires le voile `bg-surface` ; plus clair
-qu'avant, jugé trop sombre. Décision du 5 oct. 2026.
+Les listes de prospection du mandataire (onglet Listes) prennent le dessin des
+Listes de la Prospection de l'admin (décision du 9 oct. 2026, qui remplace
+celle du 5 oct.) : classeur sur `bg-rail` (intercalaires `bg-surface`, l'ouvert
+raccordé, le compte sur chaque intercalaire, la croix de suppression sur
+l'ouvert, en fenêtre de confirmation), quatre blocs de chiffres
+(propriétaires, % fait, RDV, à appeler), la recherche en pilule et les filtres
+en pilule segmentée, le compte et les actions à droite, la barre des cochées
+encadrée, le tableau sans traits verticaux, la ligne cochée `bg-menthe/[0.05]`,
+l'aide sous le tableau avec sa flèche. Pas de corbeille par ligne : on coche,
+puis « Retirer de la liste ».
 
 **Carte de dossier** (« Vos dossiers » du mandataire, et le haut d'un dossier
 ouvert) : le dessin de la carte de Klocka (Analyse, `CarteDossierAdmin`).
@@ -165,6 +171,17 @@ de bouton. Grille de trois colonnes, écart 18 px. Décisions du 3 oct. 2026.
 Côté admin (Dossiers), même carte avec un bandeau de 112 px dont les points
 restent toujours visibles derrière la pastille d'étape, quel que soit le réglage
 de grille dans Compte (`.k-grid-toujours`). Décision du 3 oct. 2026.
+
+**Secteurs sur une carte** (mandataires) : chaque secteur a sa couleur et son
+motif (hachures pour le premier, puis points, quadrillage, hachures inverses,
+croisillons, horizontales, verticales, cercles), dessinés en SVG sous le
+contour noir ; jamais de nom posé sur la carte. La liste montre la même
+pastille (`MotifSecteur`). Décision du 9 oct. 2026.
+
+**Supprimer** : toujours une fenêtre de l'application (`ui/alert-dialog`),
+jamais `window.confirm` : titre « Supprimer … ? », ce que la suppression
+retire, « Annuler » et le bouton d'action en `bg-alerte`. Décision du
+9 oct. 2026.
 
 **État vide** : une phrase `text-brume` centrée qui dit quoi faire
 (« Aucun mandat encore : dites au chat quel mandat vous préparez. »).
@@ -197,6 +214,11 @@ information, ambre, alerte), la phrase sur une ligne, une précision
 éventuelle dessous, et « Voir » à droite quand il y a quelque chose à ouvrir.
 Pas de croix : un clic sur la pilule la referme. Phrases courtes :
 « Dossier transféré à Nora ».
+Depuis le 9 oct. 2026 : en haut au centre, la pilule des boîtes connectées,
+précision à la suite sur la même ligne, petite croix en haut à gauche.
+Le 10 oct. 2026 : toutes de la même largeur (`min(520px, 100vw - 32px)`),
+sur une ligne ; un texte trop long finit par « … » et passe sur deux lignes
+au survol, la pile faisant place à la seconde ligne.
 
 **Éditeur de projet** (décision du 5 oct. 2026) : tout chiffre de la page de
 gauche se modifie au clic (`ValeurEditable` pour un champ du projet,
@@ -381,6 +403,35 @@ le recopie pas.
   la LOI rédigée sur Offres (`offres/SourcesLoi.jsx`, 5 oct. 2026).
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
+
+### L'écran de recherche (Off-market, 10 oct. 2026)
+
+Décision prise avec Jules d'après PropStream, en gardant nos jetons et nos
+motifs : de haut en bas, la barre de contexte (territoire en menu, champ de
+recherche, « Filtrer » avec le nombre de critères actifs, « Sauvegarder »,
+« Tout effacer »), un bandeau de compteurs cliquables (les listes rapides,
+chacune avec son effectif en direct : un clic, et la liste est filtrée), puis
+la carte et la liste côte à côte. Les cartes de bien portent toutes la même
+grille (photo, adresse, référence cadastrale, valeur, occupant, propriétaire,
+depuis quand, dernière mutation, scores) et leur numéro est celui de leur
+point sur la carte. Le panneau de filtres s'ouvre plein écran : familles à
+gauche avec une pastille menthe du nombre de critères actifs, critères de la
+famille ouverte à droite (bouton à trois positions Indifférent / Oui / Non,
+plages Min à Max, puces avec « Tout »), et en haut le compteur « Voir N
+locaux » recalculé à chaque geste. Une recherche sauvegardée est une liste
+dynamique. On ne simule jamais un filtre dont la source n'existe pas.
+
+### Le jugement d'un point (Off-market Simple, 11 oct. 2026)
+
+Décision de Jules : on juge en un clic, puis on dit pourquoi **librement**,
+au clavier ou à la voix, jamais en cochant des puces de raisons. Dans la
+fiche, sous la façade, un bloc `bg-surface/40` : « Zone : 72/100 » et les trois
+raisons (« + » en menthe, « − » en ardoise), deux pilules « Intéressant » et
+« Pas intéressant » (choisie : `bg-menthe text-sur-menthe`), « À revoir » en
+lien discret `text-brume`. Le choix ouvre le champ de « Déjà appelé ? »
+(textarea, micro de dictée, « Enregistrer » en pilule menthe). Sur la carte,
+la couleur reste celle du propriétaire ; le score règle l'opacité, un point
+jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 ## 7. Les documents imprimés
 

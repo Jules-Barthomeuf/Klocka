@@ -26,6 +26,7 @@ import { Records } from '../db.js';
 import { E, audience, envoyable } from './schema.js';
 import { aParis } from './envoi.js';
 import { designNewsletter } from './modeles.js';
+import { policesPropres } from '../../src/lib/email-design.js';
 
 export const NEWSLETTER = 'EmailingNewsletter';
 export const ACTIVITE = 'EmailingActivite';
@@ -84,14 +85,14 @@ export const lienSimulateur = (contact, source = null) => `${base()}/SimulateurP
 // --- La newsletter --------------------------------------------------------------------------
 
 const idMail = () => `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-const mailNeuf = (design = null, objet = '') => ({ id: idMail(), objet, apercu: '', design: design || designNewsletter(), statut: 'brouillon', date: null });
+const mailNeuf = (design = null, objet = '', apercu = '') => ({ id: idMail(), objet, apercu, design: design || designNewsletter(), statut: 'brouillon', date: null });
 
 export function creerNewsletter({ nom = '', listes = [], template = null } = {}, user = null) {
   return Records.create(NEWSLETTER, {
     nom: String(nom).trim() || 'Nouvelle newsletter', statut: 'brouillon', listes: (listes || []).slice(0, 20),
     depart: prochainMardi(), rythme_jours: 14, heure: '08:30',
     expediteur_nom: 'L\'équipe Klocka', repondre_a: user?.email || null,
-    mails: [mailNeuf(template?.design || null, template?.objet || '')], alertes: {},
+    mails: [mailNeuf(template?.design || null, template?.objet || '', template?.apercu || '')], alertes: {},
     cree_par: user?.email || null, cree_le: maintenant(),
   });
 }
@@ -116,7 +117,7 @@ export const newsletters = () => Records.list(NEWSLETTER).sort((a, b) => String(
 });
 export const newsletter = (id) => vue(Records.get(NEWSLETTER, id));
 
-const designPropre = (d) => ({ theme: d?.theme || 'clair', logo: d?.logo !== false, blocs: Array.isArray(d?.blocs) ? d.blocs.slice(0, 60) : [] });
+const designPropre = (d) => ({ theme: d?.theme || 'clair', logo: d?.logo !== false, ...policesPropres(d), blocs: Array.isArray(d?.blocs) ? d.blocs.slice(0, 60) : [] });
 
 /** Les réglages et le contenu des mails non partis. Un mail envoyé ne change plus ; le statut a sa route. */
 export function modifierNewsletter(id, patch) {
@@ -161,7 +162,7 @@ export function supprimerNewsletter(id) {
 export function ajouterMail(id, { template = null } = {}) {
   const n = Records.get(NEWSLETTER, id);
   if (!n) return { ok: false, error: 'Newsletter introuvable.' };
-  const m = mailNeuf(template?.design || (n.mails || []).at(-1)?.design || null, template?.objet || '');
+  const m = mailNeuf(template?.design || (n.mails || []).at(-1)?.design || null, template?.objet || '', template?.apercu || '');
   return { ok: true, mail: m, newsletter: vue(Records.update(NEWSLETTER, id, { mails: [...(n.mails || []), m] })) };
 }
 
@@ -171,6 +172,34 @@ export function retirerMail(id, mailId) {
   if (!m) return { ok: false, error: 'Mail introuvable.' };
   if (m.statut === 'envoye') return { ok: false, error: 'Un mail envoyé reste dans la newsletter.' };
   return { ok: true, newsletter: vue(Records.update(NEWSLETTER, id, { mails: n.mails.filter((x) => x.id !== mailId) })) };
+}
+
+/**
+ * Glisse un asset dans un mail (9 oct. 2026) : depuis le chat (« mets le
+ * simulateur dans le mail 2 ») ou en le faisant glisser sur la carte du mail.
+ * Ses blocs sont recopiés avec des identifiants neufs, juste avant la
+ * signature (ou à la fin). `asset` : son id, ou son nom (même partiel).
+ * `mail` : son id, ou son rang à partir de 1. Un mail parti ne change plus.
+ */
+export async function insererAsset(id, mail, asset) {
+  const n = Records.get(NEWSLETTER, id);
+  if (!n) return { ok: false, error: 'Newsletter introuvable.' };
+  const rang = Number(mail);
+  const m = (n.mails || []).find((x) => x.id === mail) || (Number.isInteger(rang) && rang >= 1 ? n.mails[rang - 1] : null);
+  if (!m) return { ok: false, error: 'Mail introuvable.' };
+  if (m.statut === 'envoye') return { ok: false, error: 'Ce mail est déjà parti.' };
+  const { assets } = await import('./assets.js');
+  const tous = assets();
+  const cherche = String(asset || '').trim().toLowerCase();
+  const a = tous.find((x) => x.id === asset) || tous.find((x) => x.nom.toLowerCase() === cherche) || tous.find((x) => cherche && x.nom.toLowerCase().includes(cherche));
+  if (!a) return { ok: false, error: `Asset introuvable. Les assets : ${tous.map((x) => `« ${x.nom} »`).join(', ')}.` };
+  const neufs = (a.blocs || []).map((b, k) => ({ ...b, id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}${k}` }));
+  const blocs = [...(m.design?.blocs || [])];
+  const sig = blocs.findIndex((b) => b.type === 'signature');
+  blocs.splice(sig >= 0 ? sig : blocs.length, 0, ...neufs);
+  const mails = n.mails.map((x) => (x.id === m.id ? { ...x, design: { ...(x.design || {}), blocs } } : x));
+  const rangMail = n.mails.findIndex((x) => x.id === m.id) + 1;
+  return { ok: true, asset: a.nom, mail_id: m.id, rang: rangMail, newsletter: vue(Records.update(NEWSLETTER, id, { mails })) };
 }
 
 /** Pure : ce qui empêche un mail d'être prêt. */
@@ -305,6 +334,38 @@ export async function signalerReponses(recus) {
 const contactDuJeton = (k) => (k && k !== 'exemple' ? Records.list(E.CONTACT).find((c) => c.jeton && c.jeton === String(k)) : null);
 const SOURCE = /^(newsletter|campagne|sequence):[\w-]+(:[\w-]+)?$/;
 const VALEURS = ['prixBienFAI', 'loyerInitialHTHC', 'surface', 'apport', 'dureeCredit', 'tauxInteret', 'sansCredit', 'rendement_brut', 'cashflow_mensuel'];
+// Les outils publics (9 oct. 2026) : ce qu'on garde de chacun, et le champ de la fiche qu'il remplit.
+const VALEURS_OUTIL = {
+  quiz: ['profil', 'prudent', 'rendement', 'patrimonial'],
+  vision: ['revenu_mensuel', 'horizon', 'commerce', 'epargne_mensuelle', 'apport_initial', 'murs', 'annee_libre'],
+  // Les dix lead magnets (OutilInvestisseur) : lequel, et son résultat chiffré.
+  outil: ['outil', 'resultat'],
+};
+const PROFILS_QUIZ = ['prudent', 'rendement', 'patrimonial'];
+const CHAMPS_OUTIL = {
+  type_investisseur: { libelle: 'Type investisseur', type: 'choix', options: PROFILS_QUIZ },
+  objectif_revenu: { libelle: 'Objectif revenu', type: 'nombre', options: [] },
+  horizon: { libelle: 'Horizon', type: 'nombre', options: [] },
+};
+
+/** Pure : les valeurs gardées d'une activité (nombres, booléens, textes courts), rien d'autre. */
+export function valeursPropres(type, valeurs) {
+  if (!valeurs || typeof valeurs !== 'object') return null;
+  const cles = VALEURS_OUTIL[type] || VALEURS;
+  const ok = (v) => ['number', 'boolean'].includes(typeof v) || (VALEURS_OUTIL[type] && typeof v === 'string' && v.length <= 40);
+  return Object.fromEntries(cles.filter((x) => valeurs[x] != null && ok(valeurs[x])).map((x) => [x, valeurs[x]]));
+}
+
+/** Le quiz remplit type_investisseur, Vision l'objectif de revenu et l'horizon ; le champ se crée au premier usage. */
+function remplirFiche(c, type, v) {
+  if (!v) return;
+  const a = type === 'quiz' && PROFILS_QUIZ.includes(v.profil) ? { type_investisseur: v.profil }
+    : type === 'vision' ? Object.fromEntries([['objectif_revenu', v.revenu_mensuel], ['horizon', v.horizon]].filter(([, x]) => typeof x === 'number'))
+      : {};
+  if (!Object.keys(a).length) return;
+  for (const cle of Object.keys(a)) if (!Records.list(E.CHAMP).some((x) => x.cle === cle)) Records.create(E.CHAMP, { cle, ...CHAMPS_OUTIL[cle] });
+  Records.update(E.CONTACT, c.id, { champs: { ...(Records.get(E.CONTACT, c.id)?.champs || {}), ...a } });
+}
 
 /** Pour la page publique : qui la visite, sans rien d'autre que le prénom et l'adresse (pour préremplir le rendez-vous). */
 export function visiteur(k) {
@@ -313,19 +374,21 @@ export function visiteur(k) {
 }
 
 /**
- * Ce qu'un contact fait depuis son lien : « simulateur » (ses valeurs, une
- * session par demi-heure), « clic_call » (le bouton « Parler au fondateur »),
+ * Ce qu'un contact fait depuis son lien : « simulateur » et « vision » (ses
+ * valeurs, une session par demi-heure), « quiz » (son profil, qui remplit
+ * type_investisseur), « clic_call » (le bouton « Parler au fondateur »),
  * « call_pris » (le rendez-vous réservé dans la fenêtre Calendly).
  */
 export async function noterActivite({ k, type, valeurs = null, source = null, quand = new Date() }) {
   const c = contactDuJeton(k);
   if (!c) return { ok: false, error: 'Lien inconnu.' };
-  if (!['simulateur', 'clic_call', 'call_pris', 'lead_magnet'].includes(type)) return { ok: false, error: 'Type inconnu.' };
+  if (!['simulateur', 'clic_call', 'call_pris', 'lead_magnet', 'quiz', 'vision', 'outil'].includes(type)) return { ok: false, error: 'Type inconnu.' };
   const src = SOURCE.test(String(source || '')) ? String(source) : null;
   if (type === 'call_pris') return marquerCallPris(c, { via: 'simulateur', source: src, quand });
-  const propres = valeurs && typeof valeurs === 'object' ? Object.fromEntries(VALEURS.filter((x) => valeurs[x] != null && ['number', 'boolean'].includes(typeof valeurs[x])).map((x) => [x, valeurs[x]])) : null;
-  if (type === 'simulateur') {
-    const derniere = Records.list(ACTIVITE).filter((a) => a.contact_id === c.id && a.type === 'simulateur').sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+  const propres = valeursPropres(type, valeurs);
+  remplirFiche(c, type, propres);
+  if (type === 'simulateur' || type === 'vision' || type === 'outil') {
+    const derniere = Records.list(ACTIVITE).filter((a) => a.contact_id === c.id && a.type === type).sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
     if (derniere && quand.getTime() - Date.parse(derniere.le) < 30 * 60000) {
       Records.update(ACTIVITE, derniere.id, { valeurs: propres || derniere.valeurs, le: quand.toISOString(), changements: (derniere.changements || 0) + 1 });
       return { ok: true };

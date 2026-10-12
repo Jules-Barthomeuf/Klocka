@@ -55,7 +55,7 @@ export default [
     // `page.evaluate()` s'exécute dans la page, pas dans Node. `document` y est
     // légitime. Le déclarer ici plutôt que partout dans le serveur garde
     // l'avertissement utile dans les fichiers qui, eux, n'ont pas de DOM.
-    files: ["server/data-b-implantation.js", "server/equimmox.js", "server/marche/navigateur.js", "server/mynotary-eclaireur.js"],
+    files: ["server/data-b-implantation.js", "server/equimmox.js", "server/marche/navigateur.js", "server/mynotary-eclaireur.js", "server/testeur/navigateur.js"],
     languageOptions: { globals: { ...globals.browser } },
   },
   {

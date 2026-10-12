@@ -427,7 +427,8 @@ const MOTS_VIDES = new Set(['rue', 'avenue', 'boulevard', 'place', 'quai', 'chem
 
 function trouverParBien(entite, bien, user) {
   const mots = norme(bien).split(/[^a-z0-9]+/).filter((m) => m.length > 2 && !MOTS_VIDES.has(m));
-  const miens = Records.list(entite).filter((x) => x.mandataire_email === String(user?.email || '').toLowerCase());
+  // Les fiches d'exemple ne reçoivent jamais une vraie pièce ni une vraie demande (mandataire-exemples.js).
+  const miens = Records.list(entite).filter((x) => !x.exemple && x.mandataire_email === String(user?.email || '').toLowerCase());
   const score = (x) => mots.filter((m) => norme(`${x.bien} ${x.adresse || ''}`).includes(m)).length;
   const tri = miens.map((x) => [x, score(x)]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   return tri.length && (tri.length === 1 || tri[0][1] > tri[1][1]) ? tri[0][0] : tri.length ? 'ambigu' : null;
@@ -466,7 +467,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece =
     const { candidats } = input.bien ? retrouverProprietaire(input.bien, user) : { candidats: [] };
     const cherche = candidats.length === 1 ? `${input.bien} ${candidats[0].commerce || ''}` : input.bien || '';
     const mots = norme(cherche).split(/[^a-z0-9]+/).filter((m) => m.length > 2 && !MOTS_VIDES.has(m));
-    const garde = (x) => !mots.length || mots.some((m) => norme(`${x.bien} ${x.adresse || ''} ${x.vendeur || ''}`).includes(m));
+    const garde = (x) => !x.exemple && (!mots.length || mots.some((m) => norme(`${x.bien} ${x.adresse || ''} ${x.vendeur || ''}`).includes(m)));
     const depuis = (x) => { const cles = Object.keys(x).filter((k) => k.endsWith('_le') && x[k]); const d = cles.map((k) => x[k]).sort().at(-1) || x.cree_le; return d ? `${Math.max(0, Math.round((Date.now() - Date.parse(d)) / 86400000))} j` : null; };
     return {
       estimations: P.listerEstimations(user).filter(garde).map((e) => ({ bien: e.bien, statut: e.statut, depuis: depuis(e), prix: e.rapport?.prix_bas ? `${e.rapport.prix_bas}-${e.rapport.prix_haut} €` : null, mot_de_klocka: e.commentaire || null })),

@@ -6,7 +6,8 @@ import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDas
 import VueProspection from "@/components/mandataire/VueProspection";
 import TableauListe from "@/components/mandataire/TableauListe";
 import { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
-import { Pencil, Sparkles, Trash2 } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ResultatsProspective } from "@/components/mandataire/ProspecterDataB";
@@ -160,7 +161,6 @@ export default function MandataireProspection() {
           {/* La zone du secteur, rien d'autre : ni nom, ni point de ville. */}
           <CarteGoogleSecteurs
             secteurs={[{ ...secteur, teinte: JL["menthe"] }]}
-            etiquettes={false}
             type={typeCarte}
             onVille={() => {}}
             onSecteur={() => {}}
@@ -252,51 +252,86 @@ function Listes({ demandee = null, onDemandeVue = null }) {
     const nom = window.prompt("Nom de la liste", x.nom);
     if (nom?.trim()) base44.request("PATCH", `${API}/listes/${x.id}`, { body: { nom } }).then(rafraichir).catch((e) => toast.error(e?.message || "Impossible"));
   };
-  const supprimer = (x) => {
-    if (!window.confirm(`Supprimer la liste « ${x.nom} » ? Ses propriétaires et leurs relances restent.`)) return;
-    base44.request("DELETE", `${API}/listes/${x.id}`).then(() => { setChoisie(null); rafraichir(); }).catch((e) => toast.error(e?.message || "Impossible"));
-  };
+  const [aSupprimer, setASupprimer] = useState(null);
+  const supprimer = useMutation({
+    mutationFn: (x) => base44.request("DELETE", `${API}/listes/${x.id}`),
+    onSuccess: () => { setASupprimer(null); setChoisie(null); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
 
   if (isLoading) return <SqueletteListes />;
   if (!l) {
     return <p className="m-0 mt-10 text-center text-[14px] text-brume">Aucune liste encore. Lancez une prospection, cochez les commerces à garder, puis « Exporter vers une nouvelle liste ».</p>;
   }
   return (
-    <div className="mt-6 w-full">
-      {/* Les intercalaires, sans trait : l'onglet ouvert a le fond de la page
-          de la liste, celui du sélecteur Prospecter / Agent IA / Listes
-          (rail-actif, plus clair, décision du 5 oct. 2026) ; les autres, le
-          voile de surface. */}
+    <div className="mt-6 w-full pb-16">
+      {/* Le classeur de la Prospection de l'admin (9 oct. 2026) : intercalaires
+          sur le voile de surface, l'ouvert raccordé à la page à points (rail),
+          le compte de chaque liste, la croix de suppression sur l'ouvert. */}
       <div ref={ongletsRef} role="tablist" aria-label="Vos listes" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <span aria-hidden className="w-2 flex-none" />
+        <span aria-hidden className="w-3 flex-none" />
         {listes.map((x, i) => {
           const actif = x.id === l.id;
           return (
             <React.Fragment key={x.id}>
               {i > 0 && <span aria-hidden className="w-1 flex-none" />}
               <button type="button" role="tab" aria-selected={actif} onClick={() => setChoisie(x.id)} title={x.nom}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail-actif pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail-actif hover:text-encre"}`}>
+                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
                 {(x.suggeree || x.agent) && <Sparkles className={`h-3 w-3 flex-none ${actif ? "text-menthe" : "text-brume"}`} aria-label="Liste de votre agent IA" />}
                 <span className="truncate">{x.nom}</span>
-                {x.a_appeler > 0 && <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.a_appeler}</span>}
+                <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{x.total}</span>
+                {actif && (
+                  <span role="button" tabIndex={0} aria-label={`Supprimer la liste ${x.nom}`} title={`Supprimer la liste ${x.nom}`}
+                    onClick={(e) => { e.stopPropagation(); setASupprimer(x); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); setASupprimer(x); } }}
+                    className="-mr-1.5 grid h-5 w-5 flex-none place-items-center rounded-full text-brume transition-colors hover:bg-relief hover:text-alerte max-md:-my-1.5 max-md:h-8 max-md:w-8">
+                    <X className="h-3.5 w-3.5" />
+                  </span>
+                )}
               </button>
             </React.Fragment>
           );
         })}
-        <span aria-hidden className="min-w-2 flex-1" />
+        <span aria-hidden className="min-w-3 flex-1" />
       </div>
-      <div data-zone="listes" className="k-points relative rounded-b-md bg-rail-actif px-5 pb-5 pt-4 max-md:px-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="m-0 min-w-0 flex-1 truncate text-[15px] text-encre">{l.nom}</p>
-          <button type="button" onClick={() => renommer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] max-md:min-h-9 text-ardoise hover:text-encre" style={{ background: "transparent" }}><Pencil className="h-3.5 w-3.5" /> Renommer</button>
-          <button type="button" onClick={() => supprimer(l)} className="inline-flex items-center gap-1.5 text-[12.5px] max-md:min-h-9 text-brume hover:text-alerte" style={{ background: "transparent" }}><Trash2 className="h-3.5 w-3.5" /> Supprimer</button>
-        </div>
-        <p className="m-0 mt-1 text-[13px] text-ardoise">
-          {(l.suggeree || l.agent) ? "Remplie par votre agent IA · " : ""}
-          {l.total} propriétaire{l.total > 1 ? "s" : ""} · {l.a_appeler} à appeler · {l.contactes} contacté{l.contactes > 1 ? "s" : ""} · {l.rdv} RDV
-        </p>
-        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} />
+      <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+        <ChiffresListe l={l} />
+        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} onRenommer={() => renommer(l)} agent={!!(l.suggeree || l.agent)} />
       </div>
+      <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
+        <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-encre">Supprimer la liste « {aSupprimer?.nom} » ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-ardoise">Ses propriétaires et leurs relances restent : seule la liste disparaît.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={supprimer.isPending}>Annuler</AlertDialogCancel>
+            <AlertDialogAction disabled={supprimer.isPending} onClick={(e) => { e.preventDefault(); supprimer.mutate(aSupprimer); }} className="bg-alerte text-fond hover:bg-alerte/90">
+              {supprimer.isPending ? "Suppression…" : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/** Les chiffres de la liste ouverte, en blocs, comme ceux d'une ville de la Prospection de l'admin. */
+function ChiffresListe({ l }) {
+  const total = l.total || 0;
+  const pc = total ? Math.round(((total - (l.a_appeler || 0)) / total) * 100) : 0;
+  const bloc = "rounded-[16px] border border-trait bg-surface px-4 py-3";
+  const nombre = (n, ton = "text-encre") => <p className={`m-0 text-[24px] leading-none ${ton}`} style={{ fontVariantNumeric: "tabular-nums" }}>{n}</p>;
+  return (
+    <div className="mb-5 grid grid-cols-2 gap-2.5 md:grid-cols-4">
+      <div className={bloc}>{nombre(total)}<p className="m-0 mt-1.5 text-[12.5px] text-ardoise">propriétaire{total > 1 ? "s" : ""}</p></div>
+      <div className={bloc}>
+        {nombre(`${pc} %`, "text-menthe")}
+        <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">fait</p>
+        <div className="mt-2 h-[5px] overflow-hidden rounded-full bg-encre/[0.10]"><div className="h-full rounded-full bg-menthe transition-[width] duration-500" style={{ width: `${pc}%` }} /></div>
+      </div>
+      <div className={bloc}>{nombre(l.rdv || 0)}<p className="m-0 mt-1.5 text-[12.5px] text-ardoise">RDV</p></div>
+      <div className={bloc}>{nombre(l.a_appeler || 0)}<p className="m-0 mt-1.5 text-[12.5px] text-ardoise">à appeler</p></div>
     </div>
   );
 }

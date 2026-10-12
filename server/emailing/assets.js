@@ -8,11 +8,12 @@
 // magnet) et se retouchent comme les autres ; supprimés, ils ne reviennent pas.
 
 import { Records, Meta } from '../db.js';
+import { LEAD_MAGNETS } from '../../src/lib/lead-magnets.js';
 
 export const ASSET = 'EmailingAsset';
 const maintenant = () => new Date().toISOString();
 const base = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').replace(/\/$/, '');
-const GENRES = ['simulateur', 'lead_magnet', 'lien', 'bloc'];
+const GENRES = ['simulateur', 'outil', 'lead_magnet', 'lien', 'bloc'];
 const TYPES = new Set(['titre', 'texte', 'bouton', 'image', 'separateur']);
 const idBloc = (k = 0) => `a${Date.now().toString(36)}${k}${Math.random().toString(36).slice(2, 5)}`;
 
@@ -25,6 +26,28 @@ export function blocsPropres(blocs) {
     ...(b.src ? { src: String(b.src).slice(0, 500) } : {}),
   }));
 }
+
+/** Les outils publics posés d'office : le quiz remplit type_investisseur, Vision l'objectif de revenu et l'horizon. */
+const OUTILS = [
+  {
+    cle: 'quiz', nom: 'Quiz · Quel investisseur en murs êtes-vous ?',
+    description: 'Cinq questions situent le contact : prudent, rendement ou patrimonial. Le résultat remplit le champ type_investisseur de sa fiche.',
+    blocs: [
+      { type: 'titre', texte: 'Quel investisseur en murs êtes-vous ?' },
+      { type: 'texte', texte: 'Cinq questions, une minute : prudent, rendement ou patrimonial, et les commerces qui vous correspondent.' },
+      { type: 'bouton', texte: 'Faire le quiz', lien: `${base()}/QuizInvestisseur?k={{k}}` },
+    ],
+  },
+  {
+    cle: 'vision', nom: 'Vision · Bâtissez votre retraite',
+    description: 'Le contact dit combien il veut toucher par mois et choisit un type de commerce ; la page dit combien de murs acheter et en combien de temps. Garde l\'objectif de revenu et l\'horizon dans sa fiche.',
+    blocs: [
+      { type: 'titre', texte: 'Combien voulez-vous toucher par mois à la retraite ?' },
+      { type: 'texte', texte: 'Choisissez un type de commerce : la page vous dit combien de murs acheter, et en combien de temps.' },
+      { type: 'bouton', texte: 'Construire mon plan', lien: `${base()}/VisionRetraite?k={{k}}` },
+    ],
+  },
+];
 
 /** Les assets d'office, une seule fois chacun (Meta). */
 function semer() {
@@ -42,6 +65,28 @@ function semer() {
       cree_le: maintenant(),
     });
     ajout.simulateur = true;
+  }
+  // Les outils publics (9 oct. 2026) : chacun sa page, le jeton du contact dans le lien.
+  for (const o of OUTILS) {
+    if (fait[o.cle]) continue;
+    Records.create(ASSET, { nom: o.nom, genre: 'outil', systeme: true, description: o.description, blocs: blocsPropres(o.blocs), cree_le: maintenant() });
+    ajout[o.cle] = true;
+  }
+  // Les dix lead magnets (9 oct. 2026) : une page chacun, OutilInvestisseur?o=…
+  for (const o of LEAD_MAGNETS) {
+    const cle = `outil:${o.cle}`;
+    if (fait[cle]) continue;
+    Records.create(ASSET, {
+      nom: `Lead magnet · ${o.nom}`, genre: 'lead_magnet', systeme: true, slug: o.cle,
+      description: `${o.titre} ${o.accroche}`.slice(0, 600),
+      blocs: blocsPropres([
+        { type: 'titre', texte: o.titre },
+        { type: 'texte', texte: o.accroche },
+        { type: 'bouton', texte: o.champs.every((c) => c.type) ? 'Répondre aux questions' : 'Faire le calcul', lien: `${base()}/OutilInvestisseur?o=${o.cle}&k={{k}}` },
+      ]),
+      cree_le: maintenant(),
+    });
+    ajout[cle] = true;
   }
   for (const lm of Records.list('LeadMagnet')) {
     const cle = `lm:${lm.slug}`;

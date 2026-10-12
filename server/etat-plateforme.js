@@ -132,6 +132,9 @@ export function enMarkdown(etat) {
 /** Écrit le digest, et renvoie son chemin. Ne fait rien hors d'un dépôt git. */
 export function ecrireEtat(jours = 30) {
   if (!fs.existsSync(path.join(RACINE, '.git'))) return null;
+  // Une base déclarée ailleurs (KLOCKA_DATA_DIR) est une copie d'essai ou un test :
+  // elle ne dit pas l'usage réel et ne réécrit pas le fichier (9 oct. 2026).
+  if ((process.env.KLOCKA_DATA_DIR || '').trim()) return null;
   const texte = enMarkdown(etatPlateforme(jours));
   fs.mkdirSync(path.dirname(CHEMIN), { recursive: true });
   fs.writeFileSync(CHEMIN, `${texte}\n`);

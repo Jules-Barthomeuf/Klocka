@@ -97,3 +97,15 @@ test('remettre à zéro : le suivi compte à partir de ce moment, rien ne s\'eff
   S.toutAfficher();
   assert.equal(S.suiviAppels({ jours: 7, maintenantD: MAINTENANT }).equipe.appels, tout);
 });
+
+test("les relances par mail ne comptent pas comme des appels : à part, et seules sous leur filtre", async () => {
+  const S = await import('./suivi-appels.js');
+  const le = new Date().toISOString();
+  Records.create('AppelAgent', { agent_id: 'mail-1', par: 'nora.l@klocka.immo', le, valide_le: le, etat: 'valide', issue: 'relance_mail', canal: 'mail', source: 'relances_mail' });
+  const tout = S.suiviAppels({ jours: 7 });
+  assert.ok(tout.relances_mail >= 1);
+  assert.ok(!tout.journal.some((x) => x.issue_cle === "relance_mail"), "pas dans le journal des appels");
+  assert.ok(tout.sources.some((x) => x.cle === 'relances_mail' && x.libelle === 'Relances par mail'));
+  const seules = S.suiviAppels({ jours: 7, source: 'relances_mail' });
+  assert.ok(seules.equipe.appels >= 1 && seules.journal.every((x) => x.issue_cle === "relance_mail"));
+});

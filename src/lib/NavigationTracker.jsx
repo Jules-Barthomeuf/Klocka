@@ -18,6 +18,9 @@ const PAGE_TITLES = {
     AdminBanque: "Gestion Bancaire",
     SimulateurRentabilite: "Simulateur de Rentabilité",
     SimulateurPublic: "Simulateur Public",
+    QuizInvestisseur: "Quiz investisseur",
+    VisionRetraite: "Vision retraite",
+    OutilInvestisseur: "Outils de l'investisseur",
     Comparateur: "Comparateur de Projets",
     Ressources: "Ressources & Formation",
     Vision: "Vision Patrimoniale",
@@ -34,6 +37,20 @@ const PAGE_TITLES = {
     TableauProjection: "Tableau de Projection",
     QuizImmo: "Quiz Immobilier",
 };
+
+// Les dernières erreurs de la page (exceptions, promesses rejetées, console.error),
+// gardées en mémoire pour l'agent testeur : il part de ce que Jules a vu.
+const ERREURS = [];
+const noterErreur = (type, texte) => { ERREURS.push({ le: new Date().toISOString(), type, texte: String(texte || '').slice(0, 300) }); if (ERREURS.length > 40) ERREURS.shift(); };
+if (typeof window !== 'undefined' && !window.__klockaErreursBranchees) {
+    window.__klockaErreursBranchees = true;
+    window.addEventListener('error', (e) => noterErreur('exception', e?.message || e?.error?.message));
+    window.addEventListener('unhandledrejection', (e) => noterErreur('promesse', e?.reason?.message || e?.reason));
+    const original = console.error.bind(console);
+    console.error = (...args) => { noterErreur('console', args.map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a)?.slice(0, 120))).join(' ')); original(...args); };
+}
+/** Les erreurs des dernières minutes, pour le contexte d'un audit. */
+export const erreursRecentes = (minutes = 10) => ERREURS.filter((e) => Date.now() - Date.parse(e.le) < minutes * 60000);
 
 export default function NavigationTracker() {
     const location = useLocation();

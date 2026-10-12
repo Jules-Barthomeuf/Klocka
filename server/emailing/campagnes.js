@@ -12,7 +12,7 @@
 // l'adresse de test (ou à son auteur), les autres sont seulement notés.
 
 import { Records } from '../db.js';
-import { rendreEmail, remplir, variablesDeLEmail } from '../../src/lib/email-design.js';
+import { policesPropres, rendreEmail, remplir, variablesDeLEmail } from '../../src/lib/email-design.js';
 import { E, audience, envoyable, cleEnvoi } from './schema.js';
 import { envoyerLot, envoyerResend, resendConfigure, TAILLE_LOT } from './resend.js';
 import { envoiReel, expedier, adresseDeTest } from './envoi.js';
@@ -75,7 +75,7 @@ export function modifierCampagne(id, patch) {
   if (patch.expediteur_nom != null) champs.expediteur_nom = String(patch.expediteur_nom).trim().slice(0, 80) || 'L\'équipe Klocka';
   if (patch.repondre_a !== undefined) champs.repondre_a = String(patch.repondre_a || '').trim().toLowerCase() || null;
   if (patch.audience) champs.audience = { listes: (patch.audience.listes || []).slice(0, 50), segments: (patch.audience.segments || []).slice(0, 50), tags: (patch.audience.tags || []).slice(0, 50) };
-  if (patch.design?.blocs) champs.design = { theme: patch.design.theme || 'clair', logo: patch.design.logo !== false, blocs: patch.design.blocs.slice(0, 60) };
+  if (patch.design?.blocs) champs.design = { theme: patch.design.theme || 'clair', logo: patch.design.logo !== false, ...policesPropres(patch.design), blocs: patch.design.blocs.slice(0, 60) };
   // Un contenu modifié après le test : le test n'en dit plus rien.
   if (champs.design || champs.objet != null) champs.test_envoye_le = null;
   return { ok: true, campagne: Records.update(E.CAMPAGNE, id, champs) };
@@ -127,7 +127,8 @@ export function verification(id) {
 /** Le rendu de la campagne pour un contact (ou un exemple). */
 export function rendrePour(c, contact) {
   const vars = { ...varsDuContact(contact), lien_simulateur: lienSimulateur(contact, sourceDe(c)), k: contact.jeton || 'exemple' };
-  const { html, texte } = rendreEmail(c.design, vars, { desinscription: lienDesinscription(contact, `campagne:${c.id}`), logo: logo(), apercu: c.apercu, contact });
+  // L'adresse postale du pied (La Note, La Lettre) : obligatoire dans un mail de prospection, réglée par EMAILING_ADRESSE_POSTALE.
+  const { html, texte } = rendreEmail(c.design, vars, { desinscription: lienDesinscription(contact, `campagne:${c.id}`), logo: logo(), apercu: c.apercu, contact, adresse: process.env.EMAILING_ADRESSE_POSTALE || null });
   return { objet: remplir(c.objet, vars).trim(), html, texte };
 }
 

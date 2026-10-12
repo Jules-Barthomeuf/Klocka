@@ -138,7 +138,7 @@ const agencesDe = (listeId, { toutes = false } = {}) => Records.list(AGENCE).fil
 function resumeListe(l) {
   const a = agencesDe(l.id);
   return {
-    id: l.id, ville: l.ville, etat: l.etat, etape: l.etape || null, lancee_par: l.lancee_par || null, lancee_le: l.lancee_le || null, fini_le: l.fini_le || null,
+    id: l.id, ville: l.ville, type: l.type || 'agences', etat: l.etat, etape: l.etape || null, lancee_par: l.lancee_par || null, lancee_le: l.lancee_le || null, fini_le: l.fini_le || null,
     agences: a.length, agences_seules: a.filter((x) => MA.genreDe(x) === 'agence').length, avec_telephone: a.filter((x) => x.telephone).length, agents: a.reduce((n, x) => n + (x.agents || []).length, 0),
     au_carnet: a.filter((x) => x.carnet_id).length, deja_monday: a.filter((x) => x.monday_connu).length, journal: (l.journal || []).slice(0, 12),
   };

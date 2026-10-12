@@ -45,6 +45,12 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     ok(res, { estimations: (await P()).listerEstimations(vue(req, user)) });
   }));
+  // Les fiches d'exemple posées à l'arrivée : un clic les retire toutes (10 oct. 2026).
+  app.post('/api/mandataire/exemples/retirer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { retirerExemples } = await import('../mandataire-exemples.js');
+    ok(res, retirerExemples(vue(req, user)));
+  }));
   app.post('/api/mandataire/estimations', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).creerEstimation(req.body || {}, user));
@@ -303,6 +309,8 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     const d = (await P()).lireDossier(req.params.id, vue(req, user));
     if (!d) return res.status(404).json({ error: 'Dossier introuvable.' });
+    // Un dossier d'exemple n'a pas d'analyste : rien ne part de son fil.
+    if (d.exemple) return res.status(400).json({ error: (await import('../mandataire-exemples.js')).REFUS_EXEMPLE });
     const pieces = req.file ? [{ nom: req.file.originalname, url: `/uploads/${req.file.filename}` }] : [];
     rendre(res, await (await F()).ecrireMandataire(d.id, { ...user, email: d.mandataire_email }, { texte: req.body?.texte, pieces }));
   }));
@@ -346,7 +354,7 @@ export function monterMandatairePortes(app) {
     const f = await F();
     const moi = String(user.email || '').toLowerCase();
     const { estTransfere } = await P();
-    const visibles = Records.list('DossierMandataire').filter((d) => estTransfere(d) || f.filDe(d.id).some((m) => m.cote === 'mandataire'));
+    const visibles = Records.list('DossierMandataire').filter((d) => !d.exemple && (estTransfere(d) || f.filDe(d.id).some((m) => m.cote === 'mandataire')));
     const conversations = visibles.map((d) => {
       const fil = f.filDe(d.id, { pourKlocka: true }).filter((m) => m.genre !== 'briefing');
       const dernier = fil[fil.length - 1] || null;
@@ -394,6 +402,10 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     const f = await fichierDe(req); if (!f) return sansFichier(res);
     await rendreMarche(res, user, (await P()).deposerVideo(req.params.id, f, user));
+  }));
+  app.post('/api/mandataire/marches/:id/publication', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    await rendreMarche(res, user, (await P()).validerPublication(req.params.id, user));
   }));
   app.post('/api/mandataire/marches/:id/offres/:offre/reponse', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

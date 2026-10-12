@@ -40,6 +40,8 @@ export const ISSUES = {
   invalide: 'Mauvais numéro',
   // Relances (8 oct. 2026) : l'agent sait ce qu'on pense de son bien.
   agent_prevenu: 'Agent prévenu',
+  // Les relances par mail (10 oct. 2026) : validées, elles comptent comme un appel abouti.
+  relance_mail: 'Relance par mail',
   // « Il me rappelle » (8 oct. 2026) : un appel entrant sans contenu.
   rien_de_nouveau: 'Rien de nouveau',
   // Les issues du mode appel, tapées par l'analyste en raccrochant (6 oct. 2026).

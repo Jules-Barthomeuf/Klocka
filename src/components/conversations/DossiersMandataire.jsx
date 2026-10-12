@@ -8,6 +8,7 @@ import { base44 } from "@/api/base44Client";
 import {
   ChoixAnalyste, Conversation, FicheDossier, NouveauDossier, Pieces, STATUTS, ajoutPossible, court, depuisMandataire, euros, quand, teinteStatut, useGestes,
 } from "@/components/conversations/EspaceConversations";
+import { BandeauExemples, PastilleExemple } from "@/components/mandataire/kit";
 
 // Les dossiers du mandataire. Ce sont les siens : Klocka ne les voit qu'une
 // fois transférés, d'un bouton (ou quand il écrit à son analyste). On arrive
@@ -125,6 +126,7 @@ export default function DossiersMandataire() {
         {!isLoading && !tous.length && <p className="m-0 mt-16 text-center text-[14px] text-brume">Aucun dossier encore : il s'ouvre seul quand un mandat est signé, ou avec « Nouveau dossier ».</p>}
         {!!tous.length && !liste.length && <p className="m-0 mt-10 text-center text-[13.5px] text-brume">Rien ne correspond.</p>}
 
+        <BandeauExemples liste={tous} />
         {!!liste.length && (
           <div className="mt-[26px] grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-3">
             {liste.map((c) => <CarteDossier key={c.id} c={c} nonLus={aLire(c)} onOuvrir={() => ouvrir(c.id, aLire(c) > 0)} />)}
@@ -216,7 +218,7 @@ function CarteDossier({ c, nonLus, onOuvrir }) {
       </div>
       <div className="flex flex-1 flex-col gap-3.5 px-5 pb-5 pt-[18px]">
         <div className="flex min-w-0 flex-col gap-2">
-          <p className="m-0 truncate text-[17px] font-medium text-encre" title={c.bien}>{c.bien}</p>
+          <p className="m-0 flex min-w-0 items-center text-[17px] font-medium text-encre" title={c.bien}><span className="truncate">{c.bien}</span><PastilleExemple x={c} /></p>
           <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
             {c.transfere && <span className="flex-none rounded-full border border-menthe/40 px-2.5 py-[3px] text-[12px] text-menthe">Chez {c.analyste_nom || "Klocka"}</span>}
             <span className="truncate text-[13px] text-ardoise">{lieu}</span>

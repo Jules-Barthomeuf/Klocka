@@ -5,7 +5,7 @@
 
 import { randomBytes } from 'crypto';
 import { Records } from '../db.js';
-import { rendreEmail, remplir } from '../../src/lib/email-design.js';
+import { policesPropres, rendreEmail, remplir } from '../../src/lib/email-design.js';
 import { envoyerResend, resendConfigure } from './resend.js';
 import { MAILS_PLATEFORME, sequenceWebinaire } from './modeles.js';
 import { E as ENT, cleEnvoi, listeDuNom, audience, envoyable, HEURE_PAR_DEFAUT } from './schema.js';
@@ -161,7 +161,7 @@ export function listes() {
   const tous = Records.list(CONTACT);
   return Records.list(ENT.LISTE).map((l) => {
     const dedans = tous.filter((c) => (c.listes || []).includes(l.id));
-    return { id: l.id, nom: l.nom, total: dedans.length, abonnes: dedans.filter(envoyable).length };
+    return { id: l.id, nom: l.nom, total: dedans.length, abonnes: dedans.filter(envoyable).length, monday: l.monday || null };
   }).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
 }
 
@@ -253,7 +253,7 @@ const ETAPE = (e, i) => ({
   apercu: String(e.apercu || '').slice(0, 200),
   // L'heure d'envoi de cet email (« 09:00 », Paris) ; sans elle, celle de la séquence.
   heure: /^([01]?\d|2[0-3]):[0-5]\d$/.test(String(e.heure || '')) ? String(e.heure).padStart(5, '0') : null,
-  design: { theme: e.design?.theme || 'clair', logo: e.design?.logo !== false, blocs: Array.isArray(e.design?.blocs) ? e.design.blocs.slice(0, 40) : [] },
+  design: { theme: e.design?.theme || 'clair', logo: e.design?.logo !== false, ...policesPropres(e.design), blocs: Array.isArray(e.design?.blocs) ? e.design.blocs.slice(0, 40) : [] },
 });
 const TYPES_DECLENCHEUR = new Set(['liste', 'segment', 'tag', 'manuel']);
 

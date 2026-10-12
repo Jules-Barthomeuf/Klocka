@@ -119,6 +119,12 @@ export function monterProspection(app) {
     const source = SOURCES[req.query.source] ? String(req.query.source) : null;
     ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source }));
   }));
+  // Le Suivi des mandataires : ce que chaque mandataire K Partners fait de son espace (9 oct. 2026).
+  app.get('/api/monitoring/mandataires', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { suiviMandataires } = await import('../suivi-mandataires.js');
+    ok(res, suiviMandataires({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)) }));
+  }));
   // Remettre le Suivi des appels à zéro, ou tout réafficher : rien ne s'efface.
   app.post('/api/monitoring/appels/remettre-a-zero', wrap(async (req, res) => {
     const user = admin(req, res);
@@ -266,6 +272,38 @@ export function monterProspection(app) {
     const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String).slice(0, 500) : [];
     if (!ids.length) return res.status(400).json({ error: 'Cochez au moins une agence.' });
     ok(res, await (await RL()).envoyer(ids, user));
+  }));
+  // Les relances par mail (10 oct. 2026) : l'IA prépare, l'analyste valide ; validé, c'est une relance.
+  const RM = () => import('../prospection/relances-mail.js');
+  app.get('/api/prospection/relances/par-mail', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const M = await RM();
+    const { candidats, sans_adresse } = await M.candidats();
+    ok(res, { mails: M.relancesMailAValider(), a_preparer: candidats.length, sans_adresse });
+  }));
+  app.post('/api/prospection/relances/par-mail/preparer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, await (await RM()).preparerRelancesMail({ user }));
+  }));
+  app.post('/api/prospection/relances/par-mail/valider-tout', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, await (await RM()).validerTout(Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [], user));
+  }));
+  app.post('/api/prospection/relances/par-mail/:id/valider', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = await (await RM()).validerRelanceMail(req.params.id, { objet: req.body?.objet ?? null, corps: req.body?.corps ?? null, a: req.body?.a ?? null }, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
+  }));
+  app.post('/api/prospection/relances/par-mail/:id/ignorer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await RM()).ignorerRelanceMail(req.params.id, user);
+    if (!r.ok) return refus(res, r);
+    ok(res, r);
   }));
   // Les mails de relance à valider : Envoyer, Modifier, Ignorer. Rien ne part sans un clic.
   const mailDeRelance = async (id) => (await RL()).mailsAValider().some((m) => m.id === id);

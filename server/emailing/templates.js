@@ -43,3 +43,4 @@ export function supprimer(id) {
   Records.delete(E.TEMPLATE, id);
   return { ok: true };
 }
+

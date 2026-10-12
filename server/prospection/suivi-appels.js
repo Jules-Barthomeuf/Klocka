@@ -16,7 +16,7 @@ import { prenomDe, EQUIPE } from './equipe.js';
 
 const APPEL = 'AppelAgent';
 const SANS_REPONSE = ['pas_de_reponse', 'repondeur'];
-export const SOURCES = { prospection: 'Prospection', relances: 'Relances', rappel: 'Rappel', essai: 'Essai', carnet: 'Ancien carnet' };
+export const SOURCES = { prospection: 'Prospection', relances: 'Relances', rappel: 'Rappel', relances_mail: 'Relances par mail', essai: 'Essai', carnet: 'Ancien carnet' };
 
 /** Pure : d'où vient un appel. Les appels d'avant le 9 oct. se déduisent de leur session ou de leur forme. */
 export function sourceDe(x, sessions = new Map()) {
@@ -100,10 +100,14 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   const agences = new Map(Records.list('AgenceProspect').map((a) => [a.id, a]));
   const listes = new Map(Records.list('ListeAgences').map((l) => [l.id, l]));
   const fiches = new Map(Records.list('AgentImmo').map((f) => [f.id, f]));
-  const tous = Records.list(APPEL)
+  const bruts = Records.list(APPEL)
     .filter((x) => String(x.le) >= depuis && !x.essai_archive && !['remplace', 'abandonne'].includes(x.etat))
     .map((x) => ({ ...x, _source: sourceDe(x, sessions) }));
-  const appels = tous.filter((x) => (source ? x._source === source : x._source !== 'essai'));
+  // Les relances par mail (10 oct. 2026) sont des contacts, pas des appels : elles se comptent à part,
+  // et seulement elles quand on filtre sur « Relances par mail ».
+  const mailsRelance = bruts.filter((x) => x.canal === 'mail');
+  const tous = bruts.filter((x) => x.canal !== 'mail');
+  const appels = source === 'relances_mail' ? mailsRelance : tous.filter((x) => (source ? x._source === source : x._source !== 'essai'));
   const sessionsFen = [...sessions.values()].filter((s) => String(s.debut) >= depuis && !s.essai);
 
   // Par analyste : toute l'équipe nommée, même ceux qui n'ont pas appelé (c'est aussi une information).
@@ -121,6 +125,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     dernier: t.map((x) => x.le).sort().at(-1) || null,
     nouvelles_agences: new Set(t.filter((x) => x._source === 'prospection').map((x) => x.agent_id)).size,
     envoyees_en_relance: [...agences.values()].filter((a) => a.en_relance?.par === email && String(a.en_relance.le) >= depuis.slice(0, 10)).length,
+    relances_mail: mailsRelance.filter((x) => String(x.par || '').toLowerCase() === email).length,
   })).sort((a, b) => b.appels - a.appels);
 
   // La courbe par jour (chaque analyste), les heures, les sources.
@@ -131,7 +136,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
   });
   const heures = Array.from({ length: 24 }, (_, h) => ({ heure: h, appels: appels.filter((x) => heureParis(x.le) === h).length }));
-  const sources = Object.keys(SOURCES).map((k) => ({ cle: k, libelle: SOURCES[k], appels: tous.filter((x) => x._source === k).length })).filter((x) => x.appels);
+  const sources = Object.keys(SOURCES).map((k) => ({ cle: k, libelle: SOURCES[k], appels: k === 'relances_mail' ? mailsRelance.length : tous.filter((x) => x._source === k).length })).filter((x) => x.appels);
 
   // Le journal : chaque appel, avec ce qu'on en garde.
   const lignes = [...appels].sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, journal).map((x) => {
@@ -164,6 +169,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     remise_a_zero: zero?.le && zero.le > fenetre ? zero : null,
     depuis_mesures: '2026-10-09',
     equipe: chiffres(appels, { sessions: sessionsFen, maintenantD }),
+    relances_mail: mailsRelance.length,
     analystes,
     par_jour: parJour,
     heures,

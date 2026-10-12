@@ -36,10 +36,16 @@ const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
 const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));
 const ProjetPublic = lazy(() => import('@/pages/ProjetPublic'));
 const FeuilleDeRoute = lazy(() => import('@/pages/FeuilleDeRoute'));
+const QuizInvestisseur = lazy(() => import('@/pages/QuizInvestisseur'));
+const VisionRetraite = lazy(() => import('@/pages/VisionRetraite'));
+const OutilInvestisseur = lazy(() => import('@/pages/OutilInvestisseur'));
 const Analyse = lazy(() => import('@/pages/Analyse'));
 const Monitoring = lazy(() => import('@/pages/Monitoring'));
 const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
 const SuiviAppels = lazy(() => import('@/pages/SuiviAppels'));
+const SuiviMandataires = lazy(() => import('@/pages/SuiviMandataires'));
+const SuiviTesteur = lazy(() => import('@/pages/SuiviTesteur'));
+const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
@@ -93,10 +99,13 @@ const PAGES_PUBLIQUES = {
   SimulateurPublic: <SimulateurPublic />,
   ProjetPublic: <ProjetPublic />,
   FeuilleDeRoute: <FeuilleDeRoute />,
+  QuizInvestisseur: <QuizInvestisseur />,
+  VisionRetraite: <VisionRetraite />,
+  OutilInvestisseur: <OutilInvestisseur />,
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, Alexis, AdminPresentations };
+const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviTesteur, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

@@ -44,6 +44,8 @@ test('la remise à zéro : seules les fiches arrivées depuis comptent, une fois
   assert.equal(f[1].le, '2026-09-25T11:07:00Z', 'la date d\'arrivée du mail, pas celle du dossier');
   assert.equal(f[1].agent, 'Laurent Sebban');
   assert.equal(f[0].a_preanalyser, true);
+  assert.equal(f[0].par_mail, true);
+  assert.equal(f[1].par_mail, true);
 });
 
 test('les semaines et le record', () => {

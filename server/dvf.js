@@ -236,6 +236,8 @@ export async function mutationsDeLaParcelle(codeInsee, parcelle) {
         lots: lot.length,
         prix: nombre(lot[0].valeur_fonciere),
         commercial_pur: types.length === 1 && types[0] === TYPE_COMMERCIAL,
+        // La surface réelle bâtie des locaux commerciaux de l'acte (11 oct. 2026 : le prix des murs d'Off-market s'en sert).
+        surface_commerciale: lot.filter((l) => l.type_local === TYPE_COMMERCIAL).reduce((t, l) => t + (nombre(l.surface_reelle_bati) || 0), 0) || null,
       };
     })
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));

@@ -126,6 +126,8 @@ const PERSONNE = /^(monsieur|madame|mademoiselle|m\.|mme)\s+/i;
 
 /** Pure : ce qu'est une ligne : une agence, un agent indépendant, une société sans vitrine, ou un nom d'annonce. */
 export function genreDe(a) {
+  // Un commerce envoyé depuis Off-market : on appelle son propriétaire, il compte comme une ligne à appeler.
+  if (a?.genre === 'proprietaire' || a?.commerce_id) return 'agence';
   if (PERSONNE.test(String(a?.raison_sociale || '')) || PERSONNE.test(String(a?.nom || ''))) return 'independant';
   if (!a?.telephone && !a?.site && !(a?.agents || []).some((x) => x.telephone) && (a?.sources || []).every((x) => x === 'Equimmox')) return 'annonceur';
   // Une agence a une vitrine : une fiche Google Maps, ou des annonces publiées
@@ -589,7 +591,7 @@ export async function prendre(agenceId, user) {
   const a = Records.get(AGENCE, agenceId);
   if (!a) return { ok: false, error: 'Agence introuvable.' };
   // Le mode essai : une fiche fictive, hors du carnet, sans verrou.
-  if (Records.get(LISTE, a.liste_id)?.essai) return { ok: true, agent_id: ficheEssai(a).id, essai: true };
+  if (Records.get(LISTE, a.liste_id)?.essai || estCommerces(a)) return { ok: true, agent_id: ficheEssai(a).id, essai: true };
   const IA = await import('./agent-ia.js');
   const parAgent = !a.telephone ? (a.agents || []).find((x) => x.telephone) : null;
   const p = await IA.pourAppeler(agenceId, { agent: parAgent ? parAgent.telephone : null }, user);
@@ -616,7 +618,7 @@ const valeurSure = (compris, cle, corrige = {}) => {
 export const marquerEssai = (d) => ({ ...d, agence: /^\(Essai\)/.test(d.agence || '') ? d.agence : `(Essai) ${d.agence || ''}`.trim(), remarque: d.remarque ? `Essai · ${d.remarque}` : 'Essai' });
 
 /** Ce que la ligne Monday doit recevoir pour cet appel. */
-function donneesMonday({ appel, agence, fiche, issue, user, relance, note = '', corrige = {}, email = null, diffusion = null }) {
+export function donneesMonday({ appel, agence, fiche, issue, user, relance, note = '', corrige = {}, email = null, diffusion = null }) {
   const compris = appel.compris || {};
   const ville = Records.get(LISTE, agence.liste_id)?.ville || fiche?.ville || null;
   const resumeAppel = [appel.resume && !/^(pas de réponse|pas de bien|a un bien|pas intéressé)[^:]*\.$/i.test(appel.resume) ? appel.resume : null, note ? `Note : ${note}` : null].filter(Boolean).join(' ');
@@ -636,7 +638,7 @@ function donneesMonday({ appel, agence, fiche, issue, user, relance, note = '', 
   };
 }
 
-const cibleMonday = (d, agence, fiche) => ({
+export const cibleMonday = (d, agence, fiche) => ({
   telephones: [d.telephone, numeroDe(agence), ...(fiche?.telephones || [])].filter(Boolean),
   emails: [d.email, ...(fiche?.emails || [])].filter(Boolean),
   agence: agence.nom, ville: d.ville, contact: d.contact,
@@ -677,10 +679,10 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const def = ISSUES_APPEL[issue];
   const essai = estEssai(a);
   // En essai, Monday peut être écrit pour de vrai (8 oct. 2026, Jules : « ça doit impacter Monday ») : ligne marquée « (Essai) ».
-  const ecrireEssai = essai && !!mondayEssai;
+  const ecrireEssai = essai && !estCommerces(a) && !!mondayEssai;
   // Ce que le Suivi lit de chaque appel (9 oct. 2026) : d'où il vient, sa durée, s'il a été enregistré, les notes tapées, le temps de lecture d'AK.
   const usage = {
-    source: essai ? 'essai' : source || (entrant ? 'rappel' : Records.get(SESSION, session_id || '')?.relances ? 'relances' : 'prospection'),
+    source: estCommerces(a) ? 'off-market' : essai ? 'essai' : source || (entrant ? 'rappel' : Records.get(SESSION, session_id || '')?.relances ? 'relances' : 'prospection'),
     duree_s: Number.isFinite(Number(dureeS)) && Number(dureeS) > 0 ? Math.round(Number(dureeS)) : lu.appel.duree_s || null,
     enregistre: !!(String(transcription || '').trim() || audio?.length),
     notes: notes ? String(notes).slice(0, 2000) : null,
@@ -711,7 +713,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if (releve.length && !def.simple) etape(`Je relève ${releve.length > 1 ? `${releve.slice(0, -1).join(', ')} et ${releve.at(-1)}` : releve[0]}${notes ? ', notes comprises' : ''}`);
   if (!def.simple && (!essai || ecrireEssai)) etape('Je cherche sa ligne dans Monday');
   // En essai, Monday n'est pas lu ni écrit, mais l'aperçu montre ce qui serait écrit sur une nouvelle ligne.
-  const monday = def.simple ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Monday. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
+  const monday = def.simple || estCommerces(a) ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Monday. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
   if (monday && (!essai || ecrireEssai)) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Monday : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Monday : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Monday' : 'Je prépare les champs pour Monday');
   if (monday) actions.push({ id: 'monday', type: 'monday', titre: 'Contact Monday', coche: true, toujours: true, ligne: monday });
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
@@ -927,6 +929,8 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
 
   // La page Relances : l'agent joint est prévenu de ses biens jugés, et la ligne prise se libère.
   if (!essai) (await import('./relances.js')).apresAppel({ agent_id: appel.agent_id, agence_id: agenceId, issue: issueTapee, user, maintenantD });
+  // Un commerce d'Off-market : la réponse revient sur sa ligne du mode Simple.
+  if (estCommerces(ag) && ag.commerce_id && Records.get('CommerceSimple', ag.commerce_id)) Records.update('CommerceSimple', ag.commerce_id, { appel_prospection: { issue: issueTapee, titre: def.titre || issueTapee, le: maintenantD.toISOString(), par: moi } });
 
   const suivantes = (a?.relances_suivantes || []).map((x) => `puis ${jourLong(x.le)} pour faire le point`).join(', ');
   const relance = a?.prochaine?.le ? { etat: 'ok', texte: `Relance ${jourLong(a.prochaine.le)}${a.prochaine.moment ? `, ${a.prochaine.moment}` : ''}${a.prochaine.si_fiche ? ', si la fiche n\'est pas arrivée' : ''}${suivantes ? ` ; ${suivantes}` : ''}` } : issueTapee === 'pas_interesse' ? { etat: 'ok', texte: 'Ne plus appeler : aucune relance' } : null;
@@ -966,7 +970,8 @@ const mailtoDe = (m, user) => {
 };
 
 /** Écrit dans Monday, relit ; un échec se met en attente (avec ce qu'il faut pour réessayer) et reste orange. */
-async function ecrireMonday({ appel_id, cible, donnees, ligne_id = null, item_cree = null }) {
+// Exportée pour les relances par mail (relances-mail.js), qui écrivent la même ligne qu'un appel.
+export async function ecrireMonday({ appel_id, cible, donnees, ligne_id = null, item_cree = null }) {
   const MA2 = await import('./monday-agents.js');
   let r;
   try {
@@ -1160,15 +1165,18 @@ const AGENCES_ESSAI = [
   { nom: 'Agence Fictive du Port', telephone: '01 00 00 00 04', email: null, adresse: '4 quai Imaginaire', gerants: [], sources: ['Essai'] },
 ];
 
-const estEssai = (agence) => !!agence && !!Records.get(LISTE, agence.liste_id)?.essai;
+// Une liste de commerces (Off-market, 11 oct. 2026) : on appelle des propriétaires de murs, pas des agents.
+// Comme l'essai, elle ne touche ni Monday, ni le carnet des agents, ni leurs mails ; la réponse revient sur le commerce.
+const estCommerces = (agence) => !!agence && Records.get(LISTE, agence.liste_id)?.type === 'commerces';
+const estEssai = (agence) => !!agence && (!!Records.get(LISTE, agence.liste_id)?.essai || estCommerces(agence));
 
 /** La fiche fictive d'une agence d'essai : créée la première fois, hors du carnet. */
 function ficheEssai(a) {
   const deja = a.carnet_id ? Records.get('AgentImmo', a.carnet_id) : null;
   if (deja) return deja;
   const fiche = Records.create('AgentImmo', {
-    essai: true, nom: a.gerants?.[0]?.nom || a.nom, agence: a.nom, ville: 'Essai', telephones: [a.telephone].filter(Boolean),
-    emails: [a.email].filter(Boolean), statut: 'nouveau', tentatives: 0, secteurs: [], journal: [], source: 'Mode essai', cree_le: maintenant(),
+    essai: true, nom: a.gerants?.[0]?.nom || a.nom, agence: a.nom, ville: estCommerces(a) ? (a.ville || 'Off-market') : 'Essai', telephones: [a.telephone].filter(Boolean),
+    emails: [a.email].filter(Boolean), statut: 'nouveau', tentatives: 0, secteurs: [], journal: [], source: estCommerces(a) ? 'Off-market' : 'Mode essai', cree_le: maintenant(),
   });
   Records.update(AGENCE, a.id, { carnet_id: fiche.id });
   return fiche;

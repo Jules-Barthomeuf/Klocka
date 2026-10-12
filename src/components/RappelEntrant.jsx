@@ -337,7 +337,7 @@ export default function RappelEntrant() {
 
   // --- Rendu -----------------------------------------------------------------------------------------
   const bandeau = !ouvert && enAttente && createPortal(
-    <div className="fixed bottom-[calc(16px+var(--k-bas-mobile,0px))] left-1/2 z-[60] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-3 rounded-full border border-ambre/50 bg-surface-pleine px-4 py-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:left-[calc(50%+var(--k-barre-largeur,0px)/2)]">
+    <div className="fixed bottom-[calc(16px+var(--k-bas-mobile,0px)+var(--k-bas-chat,0px))] left-1/2 z-[60] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-3 rounded-full border border-ambre/50 bg-surface-pleine px-4 py-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:left-[calc(50%+var(--k-barre-largeur,0px)/2)]">
       <PhoneIncoming className="h-4 w-4 flex-none text-ambre" />
       <span className="min-w-0 truncate text-[14px] text-encre">Rappel à terminer · {enAttente.agent || "agent à identifier"}</span>
       <button type="button" onClick={() => reprendre.mutate(enAttente.id)} disabled={reprendre.isPending} className="h-8 flex-none rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Reprendre</button>

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { FileText, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { BoutonFichier, LienFichier, dateCourte, euros, formDe } from "@/components/mandataire/kit";
+import { BandeauExemples, BoutonFichier, LienFichier, PastilleExemple, dateCourte, euros, formDe } from "@/components/mandataire/kit";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
 import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
@@ -141,6 +141,8 @@ export default function MandataireMandat() {
                 <p className="py-16 text-center text-sm text-brume">Aucun mandat encore : dites au chat quel mandat vous préparez.</p>
               ) : (
                 // Des lignes, pas des cartes : le mandat à gauche, son avancement à droite.
+                <>
+                <BandeauExemples liste={mandats} />
                 <div className="border-y border-trait">
                   {mandats.map((m) => {
                     const i = Math.max(0, ETAPES.findIndex(([cle]) => cle === m.statut));
@@ -148,7 +150,7 @@ export default function MandataireMandat() {
                       <div key={m.id} className="border-t border-trait px-2 py-5 first:border-t-0">
                         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
                           <button onClick={() => reprendre(m)} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
-                            <p className="m-0 truncate text-[16px] text-encre">{m.bien}{m.numero_registre && <span className="ml-2 text-[12.5px] tabular-nums text-menthe">Registre n° {m.numero_registre}</span>}</p>
+                            <p className="m-0 truncate text-[16px] text-encre">{m.bien}<PastilleExemple x={m} />{m.numero_registre && <span className="ml-2 text-[12.5px] tabular-nums text-menthe">Registre n° {m.numero_registre}</span>}</p>
                             <p className="m-0 mt-1 truncate text-[13.5px] text-ardoise">
                               {[m.vendeur, m.prix ? euros(m.prix) : null, m.honoraires != null ? `honoraires ${m.honoraires}${m.honoraires <= 100 ? " %" : " €"}` : null, m.type, m.duree_mois ? `${m.duree_mois} mois` : null, dateCourte(m.cree_le)].filter(Boolean).join(" · ")}
                             </p>
@@ -180,6 +182,7 @@ export default function MandataireMandat() {
                     );
                   })}
                 </div>
+                </>
               )}
             </div>
           ))}

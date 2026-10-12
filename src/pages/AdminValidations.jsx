@@ -15,7 +15,7 @@ import { ETAPES_MARCHE } from "@/pages/MandataireMarche";
 const M = "/api/mandataire";
 const A = "/api/mandataire/admin";
 const ONGLETS = [["file", "À décider"], ["marches", "Mises en marché"], ["registre", "Registre des mandats"]];
-const GENRES = { mandat: "Mandat", dossier: "Dossier", offre: "Offre" };
+const GENRES = { mandat: "Mandat", dossier: "Dossier", offre: "Offre", marche: "Publication" };
 const attente = (h) => (h == null ? "" : h < 1 ? "à l'instant" : h < 48 ? `depuis ${h} h` : `depuis ${Math.round(h / 24)} j`);
 
 export default function AdminValidations() {
@@ -81,7 +81,7 @@ function File() {
               <div className="mt-2 rounded-[16px] border border-trait px-5 py-4 max-md:px-4">
                 {l.genre === "mandat" && <PanneauMandat m={d.mandats.find((x) => x.id === l.id)} />}
                 {l.genre === "dossier" && <PanneauDossier d={d.dossiers.find((x) => x.id === l.id)} />}
-                {l.genre === "offre" && <PanneauMarche m={d.marches?.marches?.find((x) => x.id === l.id)} types={d.marches?.types_activite || {}} />}
+                {["offre", "marche"].includes(l.genre) && <PanneauMarche m={d.marches?.marches?.find((x) => x.id === l.id)} types={d.marches?.types_activite || {}} />}
               </div>
             )}
           </div>
@@ -175,7 +175,9 @@ function PanneauMarche({ m, types }) {
   return (
     <div className="space-y-5">
       <Frise etapes={ETAPES_MARCHE} statut={m.statut} />
-      {suivante && (
+      {suivante?.[0] === "presente" && !m.publication_validee_le ? (
+        <p className="m-0 text-[13px] text-ardoise">En attente du mandataire : il relit le teaser, la fiche et la data room, puis valide la publication. Le bien se présente ensuite aux clients.</p>
+      ) : suivante && (
         <div className="flex flex-wrap items-end gap-3">
           {suivante[0] === "commission_payee" && <div className="w-48"><Champ mot="Commission (€)" type="number" value={commission} onChange={(ev) => setCommission(ev.target.value)} /></div>}
           <Bouton principal onClick={() => faire("avancer", { statut: suivante[0], ...(suivante[0] === "commission_payee" ? { commission } : {}) }, `→ ${suivante[1]}`)}>

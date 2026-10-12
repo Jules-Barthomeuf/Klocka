@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, ExternalLink, Loader2, PhoneCall, Search, Trash2, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, Pencil, PhoneCall, Search, Trash2, X } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import PanneauAppelFiche from "@/components/mandataire/PanneauAppelFiche";
@@ -236,9 +237,21 @@ function Cellule({ p, col, onEnregistrer }) {
   );
 }
 
-export default function TableauListe({ fiches, libelles, listeId = null }) {
+// Les filtres de la liste, en pilule, comme ceux d'une ville de la Prospection de l'admin.
+const FILTRES = [
+  ["toutes", "Toutes", () => true],
+  ["a_appeler", "À appeler", (p) => p.statut === "a_appeler"],
+  ["en_cours", "En cours", (p) => ["contacte", "en_discussion", "a_recontacter"].includes(p.statut)],
+  ["rdv", "RDV et mandats", (p) => ["rdv_pris", "mandat_signe"].includes(p.statut)],
+  ["numero", "Avec un numéro", (p) => !!(p.telephone || p.telephone_commerce || p.cible?.telephone)],
+  ["inconnu", "Propriétaire inconnu", (p) => !(p.nom || "").trim() && !p.cible?.proprietaire],
+];
+
+export default function TableauListe({ fiches, libelles, listeId = null, onRenommer = null, agent = false }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
+  const [filtre, setFiltre] = useState("toutes");
+  const [retirer, setRetirer] = useState(false);
   // Les lignes cochées, pour agir en lot.
   const [coches, setCoches] = useState(() => new Set());
   const [ouvert, setOuvert] = useState(null); // la fiche ouverte en panneau Street View
@@ -276,40 +289,56 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
 
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return (fiches || []).filter((p) => !t || `${p.commerce || ""} ${p.nom || ""} ${p.cible?.proprietaire || ""} ${p.cible?.societe?.nom || ""} ${p.adresse || p.cible?.adresse || ""} ${p.telephone || ""}`.toLowerCase().includes(t));
-  }, [fiches, q]);
+    const garde = (FILTRES.find(([k]) => k === filtre) || FILTRES[0])[2];
+    return (fiches || []).filter(garde).filter((p) => !t || `${p.commerce || ""} ${p.nom || ""} ${p.cible?.proprietaire || ""} ${p.cible?.societe?.nom || ""} ${p.adresse || p.cible?.adresse || ""} ${p.telephone || ""}`.toLowerCase().includes(t));
+  }, [fiches, q, filtre]);
   // Les cases suivent la liste : une fiche partie n'est plus cochée.
   useEffect(() => { setCoches((c) => new Set([...c].filter((id) => (fiches || []).some((p) => p.id === id)))); }, [fiches]);
   const tout = lignes.length > 0 && lignes.every((p) => coches.has(p.id));
 
   return (
-    <div className="mt-4 flex flex-col gap-3">
+    <div className="flex flex-col">
       <div className="flex flex-wrap items-center gap-3">
-      <label className="flex h-10 min-w-[260px] max-w-[360px] flex-1 items-center max-md:min-w-0 max-md:max-w-none max-md:basis-full gap-2.5 rounded-full border border-trait bg-rail px-4 focus-within:border-bord-vif">
-        <Search className="h-4 w-4 flex-none text-brume" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un commerce, un nom, un numéro" className="w-full border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
-      </label>
-      {coches.size > 0 && (
-        <span className="inline-flex items-center gap-2.5 text-[12.5px] text-craie">
-          <span className="tabular-nums">{coches.size} cochée{coches.size > 1 ? "s" : ""}</span>
-          <button type="button"
-            onClick={() => { if (window.confirm(`Retirer ${coches.size} fiche${coches.size > 1 ? "s" : ""} de la liste ?`)) { for (const id of coches) supprimer.mutate(id); setCoches(new Set()); } }}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-alerte hover:text-alerte" style={{ background: "transparent" }}>
-            <Trash2 className="h-3.5 w-3.5" /> Retirer de la liste
+        <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
+          <Search className="h-3.5 w-3.5 flex-none text-ardoise" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Commerce, propriétaire, numéro"
+            className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+        </div>
+        {/* Au téléphone, la pilule défile sur une ligne. */}
+        <div className="flex gap-1 rounded-full bg-rail-actif p-1 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+          {FILTRES.map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setFiltre(k)}
+              className={`rounded-full px-3 py-1 text-[12.5px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+              style={filtre === k ? undefined : { background: "transparent" }}>{mot}</button>
+          ))}
+        </div>
+        <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
+          {recherche && (sansProprio > 0 || sansNumero > 0) ? (
+            <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{sansProprio > 0 ? `Propriétaires au cadastre : ${sansProprio} restant${sansProprio > 1 ? "s" : ""}` : `Numéros des propriétaires : ${sansNumero} restant${sansNumero > 1 ? "s" : ""}`}</span>
+          ) : `${lignes.length} commerce${lignes.length > 1 ? "s" : ""}${agent ? " · remplie par votre agent IA" : ""}`}
+        </span>
+        {onRenommer && (
+          <button type="button" onClick={onRenommer}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+            <Pencil className="h-3.5 w-3.5" />Renommer
           </button>
-        </span>
-      )}
-      {recherche && (sansProprio > 0 || sansNumero > 0) && (
-        <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />
-          {sansProprio > 0 ? `Recherche des propriétaires au cadastre : ${sansProprio} restant${sansProprio > 1 ? "s" : ""}` : `Recherche des numéros des propriétaires (Apollo) : ${sansNumero} restant${sansNumero > 1 ? "s" : ""}`}
-        </span>
-      )}
+        )}
       </div>
+
+      {coches.size > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border border-trait bg-surface-pleine px-4 py-2.5">
+          <span className="text-[13.5px] text-encre">{coches.size} commerce{coches.size > 1 ? "s" : ""} coché{coches.size > 1 ? "s" : ""}</span>
+          <button type="button" onClick={() => setRetirer(true)} disabled={supprimer.isPending}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-alerte hover:border-alerte disabled:opacity-50" style={{ background: "transparent" }}>
+            {supprimer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Retirer de la liste
+          </button>
+          <button type="button" onClick={() => setCoches(new Set())} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
+        </div>
+      )}
 
       {/* Pas de hauteur fixe : le tableau s'allonge avec ses lignes, la page défile.
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
-      <div className="overflow-x-auto rounded-[16px] border border-trait bg-rail">
+      <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait bg-rail">
         <table className="min-w-full border-collapse text-[13.5px]">
           <thead>
             <tr>
@@ -320,11 +349,10 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                   <Case oui={tout} />
                 </button>
               </th>
-              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-trait bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
+              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-trait bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
               {COLONNES.map((c) => (
-                <th key={c.cle} className="border-b border-r border-trait bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
+                <th key={c.cle} className="border-b border-trait bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
               ))}
-              <th className="border-b border-trait bg-rail px-3 py-3.5" aria-label="Supprimer" />
             </tr>
           </thead>
           <tbody>
@@ -334,21 +362,21 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
               const tel = p.telephone || (p.cible?.proprietaire_occupant ? p.cible?.telephone : null) || null;
               const enregistrer = (champs) => modifier.mutate({ id: p.id, champs });
               return (
-                <tr key={p.id} className="group">
+                <tr key={p.id} className={`group transition-colors ${coches.has(p.id) ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
                   <td className="sticky left-0 z-10 border-b border-trait bg-rail py-4 pl-4 pr-1 align-middle" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                     <button type="button" onClick={() => basculer(p.id)} aria-label={`Cocher ${p.commerce || p.cible?.enseigne || "la ligne"}`}
                       className="grid place-items-center" style={{ background: "transparent" }}>
                       <Case oui={coches.has(p.id)} />
                     </button>
                   </td>
-                  <td className="sticky left-[44px] z-10 border-b border-r border-trait bg-rail py-4 pl-2 pr-4 align-middle">
+                  <td className="sticky left-[44px] z-10 border-b border-trait bg-rail py-4 pl-2 pr-4 align-middle">
                     <button type="button" onClick={() => setOuvert(p.id)} title="Voir la vitrine (Street View)"
                       className="block max-w-[220px] truncate border-0 p-0 text-left text-[13.5px] font-medium max-md:max-w-[124px] text-encre hover:text-menthe" style={{ background: "transparent" }}>
                       {p.commerce || p.cible?.enseigne || "Commerce"}
                     </button>
                   </td>
                   {COLONNES.map((c) => (
-                    <td key={c.cle} className="border-b border-r border-trait px-4 py-4 align-middle last:border-r-0 group-hover:bg-encre/[0.02]" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
+                    <td key={c.cle} className="border-b border-trait px-4 py-4 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
                       {c.cle === "appel" ? (
                         <span className="inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
                           {tel ? (
@@ -395,17 +423,10 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
                       )}
                     </td>
                   ))}
-                  <td className="border-b border-trait px-3 py-4 align-middle">
-                    <button type="button" onClick={() => { if (window.confirm("Retirer cette fiche de la liste ?")) supprimer.mutate(p.id); }}
-                      aria-label="Supprimer la fiche" title="Supprimer la fiche"
-                      className="grid h-8 w-8 place-items-center rounded-full text-brume opacity-0 transition-opacity hover:text-alerte group-hover:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
                 </tr>
               );
             })}
-            {!lignes.length && <tr><td colSpan={COLONNES.length + 3} className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : "Cette liste est vide."}</td></tr>}
+            {!lignes.length && <tr><td colSpan={COLONNES.length + 2} className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : "Cette liste est vide."}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -416,7 +437,21 @@ export default function TableauListe({ fiches, libelles, listeId = null }) {
         <PanneauCommerce p={(fiches || []).find((p) => p.id === ouvert)} libelles={libelles} onFermer={() => setOuvert(null)}
           onSansReponse={(id) => sansReponse.mutate(id)} onAppeler={(id) => { setOuvert(null); setAppelFiche(id); }} />
       )}
-      <p className="m-0 text-[12.5px] text-brume">{lignes.length} ligne{lignes.length > 1 ? "s" : ""} · clic sur une cellule claire pour la modifier · « Sans rép. » pose la relance suivante (J+2 appel, J+5 mail, J+10 dernier appel).</p>
+      <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-brume">
+        <ArrowRight className="h-3 w-3" />Le nom du commerce ouvre sa vitrine ; une cellule claire se modifie au clic ; « Sans rép. » pose la relance suivante (J+2 appel, J+5 mail, J+10 dernier appel).
+      </p>
+      <AlertDialog open={retirer} onOpenChange={(o) => { if (!o) setRetirer(false); }}>
+        <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-encre">Retirer {coches.size} commerce{coches.size > 1 ? "s" : ""} de la liste ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-ardoise">Leurs fiches et leurs relances sont supprimées avec eux.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { for (const id of coches) supprimer.mutate(id); setCoches(new Set()); setRetirer(false); }} className="bg-alerte text-fond hover:bg-alerte/90">Retirer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

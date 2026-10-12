@@ -60,6 +60,10 @@ import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
 import { monterAlx } from './routes/alx.js';
+import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.js';
+import { monterTesteur } from './routes/testeur.js';
+import { monterEquipe } from './routes/equipe.js';
+import { amorcerBacASable } from './testeur/bac-a-sable.js';
 import { monterKZoning } from './routes/kzoning.js';
 import { monterKExpertise } from './routes/kexpertise.js';
 import { monterKEstimation } from './routes/kestimation.js';
@@ -1249,6 +1253,14 @@ monterProspection(app);
 monterMandataire(app);
 monterMandatairePortes(app);
 monterAlx(app);
+// Off-market (10 oct. 2026) : l'équipe et les mandataires, le rôle décide de l'espace.
+monterOffMarket(app);
+planifierVeilleOffMarket();
+// L'agent testeur (10 oct. 2026) : un audit par page, dans un bac à sable ; ici, le compte testeur si on EST le bac à sable.
+monterTesteur(app);
+amorcerBacASable();
+// L'équipe (10 oct. 2026) : admins et mandataires, à part des clients.
+monterEquipe(app);
 monterKZoning(app);
 monterKExpertise(app);
 monterKEstimation(app);
@@ -1270,6 +1282,11 @@ import('./etat-plateforme.js')
 import('./prospection/controles.js')
   .then((m) => m.planifier())
   .catch((e) => console.error('[contrôles] module absent :', e.message));
+
+// Le score « Zone » de l'Off-market Simple, réentraîné chaque nuit à 3 h (Render seulement).
+import('./off-market/zone/modele.js')
+  .then((m) => m.planifier())
+  .catch((e) => console.error('[zone] module absent :', e.message));
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
@@ -1378,6 +1395,8 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
       const sorties = await M.reponsesRecues();
       const s = await M.tourEmailing();
       // Les newsletters d'abord : un mail prêt dont l'heure est venue devient une campagne, envoyée dans la foulée.
+      // Les listes tirées de Monday se relisent une fois par jour, avant que les newsletters partent.
+      await (await import('./emailing/listes-monday.js')).tourMonday().catch((e) => console.warn('[emailing] listes Monday :', e?.message || e));
       const nl = await N.tourNewsletters();
       const c = await C.tourCampagnes();
       if (sorties || s?.envoyes || c?.envoyes || nl?.lances || nl?.alertes) console.log(`[emailing] ${nl?.lances || 0} mail(s) de newsletter lancé(s), ${nl?.alertes || 0} alerte(s), ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);

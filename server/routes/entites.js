@@ -93,7 +93,7 @@ export function monterEntites(app) {
       }
       // Le mot de passe ne passe jamais par ici. Le rôle, seulement entre admins.
       patch = retirerChampsProteges(patch);
-      if (estAdmin && (req.body?.role === 'admin' || req.body?.role === 'user')) patch.role = req.body.role;
+      if (estAdmin && ['admin', 'user', 'mandataire'].includes(req.body?.role)) { patch.role = req.body.role; if (req.body.role !== 'admin') patch.aussi_mandataire = false; }
     }
 
     // Un non-admin ne modifie que ce qui le concerne — un projet où il figure,

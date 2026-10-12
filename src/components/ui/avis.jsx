@@ -8,7 +8,9 @@ import { J } from "@/design/jetons";
 // reçu, une notification). Depuis le 9 oct. 2026, exactement la pilule des
 // « boîtes connectées » du Dashboard : même hauteur, même texte, le petit
 // point à gauche (vert, ambre ou rouge selon le ton), la phrase à droite,
-// et une petite croix en haut à gauche pour la fermer.
+// et une petite croix en haut à gauche pour la fermer. Depuis le 10 oct.,
+// toutes de la même largeur, sur une ligne : un texte trop long finit par
+// « … » et se lit sur deux lignes au survol.
 //
 // Tout passe par sonner pour l'empilement et les minuteurs ; le dessin est à
 // nous. Les pages importent `toast` depuis ce fichier, pas depuis sonner :
@@ -39,7 +41,7 @@ const dureeDe = (ton, d) => (d != null ? d : DUREES[ton] != null ? DUREES[ton] :
  * `poser` accepte aussi `surFermeture` : appelé quand la personne ferme
  * l'avis, pour qu'un suivi en cours ne le repose pas aussitôt.
  */
-export function Avis({ ton = "information", titre, description = null, action = null, progression = null, onFermer = null }) {
+export function Avis({ ton = "information", titre, description = null, action = null, progression = null, onFermer = null, ouvert = false, onSurvol = null }) {
   const { teinte, mot } = TONS[ton] || TONS.information;
   return (
     <div className="relative flex w-full justify-center">
@@ -47,7 +49,9 @@ export function Avis({ ton = "information", titre, description = null, action = 
         role="status"
         aria-label={typeof titre === "string" ? `${mot} : ${titre}` : mot}
         onClick={() => onFermer?.()}
-        className="relative inline-flex max-w-full cursor-default items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 py-2 text-[13.5px] text-encre"
+        onMouseEnter={() => onSurvol?.(true)}
+        onMouseLeave={() => onSurvol?.(false)}
+        className="relative flex w-[min(520px,calc(100vw-32px))] cursor-default items-center gap-2 rounded-[20px] border border-trait bg-surface-pleine px-3.5 py-2 text-[13.5px] leading-[1.45] text-encre"
       >
         <button
           type="button"
@@ -60,7 +64,7 @@ export function Avis({ ton = "information", titre, description = null, action = 
         {ton === "en_cours"
           ? <LoaderCircle className="h-[11px] w-[11px] flex-none animate-spin text-ardoise" />
           : <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: teinte }} />}
-        <span className="min-w-0 truncate">
+        <span className={`min-w-0 flex-1 ${ouvert ? "line-clamp-2" : "truncate"}`}>
           {titre}
           {description && <span className="text-ardoise"> · {description}</span>}
         </span>
@@ -87,10 +91,21 @@ export function Avis({ ton = "information", titre, description = null, action = 
 // deux.
 const boutonDe = (a) => (a ? { mot: a.mot || a.label, faire: a.faire || a.onClick } : null);
 
-/** Pose un avis. Rend l'identifiant sonner, pour le remplacer ou le fermer. */
+let compteur = 0;
+
+/**
+ * Pose un avis. Rend l'identifiant sonner, pour le remplacer ou le fermer.
+ * Au survol, l'avis est reposé ouvert (deux lignes) sous le même identifiant :
+ * sonner ne remesure une hauteur que quand le contenu change, et la pile fait
+ * ainsi place à la seconde ligne au lieu de la chevaucher.
+ */
 export function poser(ton, titre, o = {}) {
   const duree = dureeDe(ton, o.duration);
-  return sonner.custom(
+  const cle = o.id ?? `avis-${(compteur += 1)}`;
+  // Un avis qui se referme (croix, clic, minuteur) ne revient pas parce que la souris le quitte.
+  let ferme = false;
+  const clore = () => { ferme = true; };
+  const rendre = (ouvert) => (ferme ? cle : sonner.custom(
     (id) => (
       <Avis
         ton={ton}
@@ -99,11 +114,14 @@ export function poser(ton, titre, o = {}) {
         action={boutonDe(o.action)}
         duree={duree}
         progression={o.progression}
-        onFermer={() => { o.surFermeture?.(); sonner.dismiss(id); }}
+        ouvert={ouvert}
+        onSurvol={(v) => { if (v !== ouvert) rendre(v); }}
+        onFermer={() => { clore(); o.surFermeture?.(); sonner.dismiss(id); }}
       />
     ),
-    { id: o.id, duration: duree, className: o.className, position: o.position },
-  );
+    { id: cle, duration: duree, className: o.className, position: o.position, onDismiss: clore, onAutoClose: clore },
+  ));
+  return rendre(false);
 }
 
 /** Les cinq tons, nommés en français. */

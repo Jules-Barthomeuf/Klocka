@@ -127,7 +127,7 @@ function enCours(user, conv) {
     if (lie) return lie;
   }
   // Le mandat commencé au premier message, avant que la conversation ait son identifiant.
-  return miens.filter((m) => !m.conversation_id && m.statut === 'brouillon' && Date.now() - Date.parse(m.cree_le) < 10 * 60000)
+  return miens.filter((m) => !m.exemple && !m.conversation_id && m.statut === 'brouillon' && Date.now() - Date.parse(m.cree_le) < 10 * 60000)
     .sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)))[0] || null;
 }
 
@@ -174,6 +174,8 @@ export function noterMandat(reponses, user, conv = null) {
 export async function envoyerMandat(user, conv = null, { surEtape = null } = {}) {
   const m = enCours(user, conv);
   if (!m) return { ok: false, error: 'Aucun mandat en cours.' };
+  // Le mandat d'exemple se remplit dans le chat, mais ne part pas chez MyNotary.
+  if (m.exemple) return { ok: false, exemple: true, error: "C'est le mandat d'exemple : il montre comment ça marche, mais il ne part pas chez MyNotary. Dis-le en une ligne et propose de commencer un vrai mandat." };
   if (m.statut !== 'brouillon') return { ok: true, deja: true, mandat_id: m.id, statut: m.statut };
   const q = m.questionnaire || {};
   const reste = manquantsMandat(q);

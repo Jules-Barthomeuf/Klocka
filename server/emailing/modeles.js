@@ -37,6 +37,31 @@ export const MAILS_PLATEFORME = {
       ],
     },
   },
+  rapport_testeur: {
+    nom: 'Rapport de l\'agent testeur',
+    description: 'Part à Jules quand l\'agent a fini d\'auditer une page : résumé, notes, les problèmes à corriger d\'abord, les tâches jouées, la couverture, un prompt pour Claude Code.',
+    variables: ['titre', 'resume', 'notes', 'problemes', 'autres', 'taches', 'reussi', 'couverture', 'details', 'lien', 'prompt'],
+    objet: '{{objet}}',
+    apercu: '{{resume}}',
+    design: {
+      theme: 'clair',
+      blocs: [
+        b('titre', { texte: '{{titre}}' }, 'titre'),
+        b('texte', { texte: '{{resume}}' }, 'resume'),
+        b('texte', { texte: '**Notes sur 10**\n{{notes}}' }, 'notes'),
+        b('separateur', {}, 'sep1'),
+        b('texte', { texte: '**À corriger d\'abord**\n{{problemes}}' }, 'problemes'),
+        b('texte', { texte: '**Les autres problèmes**\n{{autres}}' }, 'autres'),
+        b('texte', { texte: '**Les tâches jouées**\n{{taches}}' }, 'taches'),
+        b('texte', { texte: '**Ce qui est réussi**\n{{reussi}}' }, 'reussi'),
+        b('texte', { texte: '**Couverture**\n{{couverture}}' }, 'couverture'),
+        b('texte', { texte: '{{details}}' }, 'details'),
+        b('bouton', { texte: 'Ouvrir le rapport et les captures', lien: '{{lien}}' }, 'bouton'),
+        b('separateur', {}, 'sep2'),
+        b('texte', { texte: '**À coller dans Claude Code**\n{{prompt}}' }, 'prompt'),
+      ],
+    },
+  },
   recap_du_matin: {
     nom: 'Récap du matin',
     description: 'Part chaque matin à 5 h 30 à Jules, depuis son Mac : ce qu\'il y a à finir, ce qui attend sa décision, ce qui a été fait la veille, un court diagnostic et des idées.',
@@ -125,8 +150,106 @@ export function designNewsletter(theme = 'clair') {
   };
 }
 
-/** Les templates de base, toujours là : le template Klocka dans ses trois designs. */
+/**
+ * La Note et La Lettre (9 oct. 2026, maquettes de Jules) : le même sujet,
+ * « le chiffre qu'on vous annonce n'est pas celui que vous touchez », dans
+ * ses deux mises en page.
+ */
+const CALENDLY = 'https://calendly.com/paul-dezulueta-klocka/definition-de-la-strategie-45';
+const TITRE_RENDEMENT = 'Le chiffre qu\'on vous annonce n\'est pas celui que vous touchez';
+export function designNote() {
+  return {
+    theme: 'clair', gabarit: 'note', marque: 'La Note', police: 'manrope', police_titres: 'manrope',
+    blocs: [
+      b('surtitre', { texte: '3 points à vérifier avant d\'acheter' }),
+      b('titre', { texte: TITRE_RENDEMENT }),
+      b('texte', { texte: 'Le rendement affiché dans une annonce de murs commerciaux se calcule sur le prix d\'achat seul. Avant de comparer deux biens, passez-les à ces trois questions.' }),
+      b('points', { items: [
+        { titre: 'Ai-je ajouté les frais de notaire ?', texte: 'Le rendement réel se calcule sur le prix réellement payé, pas sur celui de l\'annonce.' },
+        { titre: 'Quelles charges restent pour moi ?', texte: 'Lisez le bail : taxe foncière, assurance du bâtiment, copropriété peuvent rester à votre charge.' },
+        { titre: 'Ai-je prévu des mois sans loyer ?', texte: 'Vacance entre deux locataires, commerce en difficulté : sur 10 ou 15 ans, ça arrive.' },
+      ] }),
+      b('encadre', { texte: 'C\'est le rendement net, pas celui de l\'annonce, qui doit guider votre décision.' }),
+      b('bouton', { texte: 'Calculer mon rendement net', lien: '{{lien_simulateur}}' }),
+      b('legende', { texte: 'Prix, loyer, apport, crédit · cash-flow année par année' }),
+      b('rdv', { initiale: 'J', titre: 'Un bien en vue ?', texte: 'Jules et l\'équipe Klocka le passent au crible avec vous, en 20 minutes.', lien_texte: 'Réserver', lien: CALENDLY }),
+    ],
+  };
+}
+export function designLettre() {
+  return {
+    theme: 'clair', gabarit: 'lettre', marque: 'La Note', police: 'manrope', police_titres: 'newsreader',
+    blocs: [
+      b('titre', { texte: TITRE_RENDEMENT }),
+      b('texte', { texte: 'Bonjour {{prenom | "à vous"}},\n\nQuand on vous propose des murs commerciaux, le rendement affiché se calcule sur le prix d\'achat seul. Mais ce que vous payez vraiment, c\'est un peu plus : il faut ajouter les frais de notaire. Votre rendement réel se calcule sur ce total.\n\nEnsuite, le loyer annoncé n\'est pas ce que vous gardez. Selon le bail, une partie de la taxe foncière, l\'assurance du bâtiment, parfois la copropriété restent à votre charge.\n\nEnfin, le local peut rester vide quelques mois entre deux locataires. Un calcul sérieux prévoit cette marge sur 10 ou 15 ans.' }),
+      b('citation', { texte: 'Ne comparez jamais un investissement à son rendement affiché. C\'est le chiffre net qui doit guider votre décision.', auteur: '' }),
+      b('texte', { texte: 'Si vous voulez faire le calcul sur votre projet (prix, loyer, apport, crédit), le simulateur vous montre le rendement et le cash-flow, année par année.' }),
+      b('bouton', { texte: 'Ouvrir le simulateur', lien: '{{lien_simulateur}}' }),
+      b('texte', { texte: 'Et si vous avez un bien en vue, répondez simplement à ce mail : je le regarde avec vous.' }),
+      b('signature', { texte: 'Jules', sous_titre: 'Klocka · Murs de commerce', initiale: 'J' }),
+    ],
+  };
+}
+
+/**
+ * Idée reçue et Cas réel (9 oct. 2026, maquettes de Jules) : la Note claire
+ * (le bandeau vert sauge, « Réalité », un tableau annonce / réalité) et le
+ * Dossier (un cas décortiqué : les chiffres en tuiles, les étapes, le
+ * verdict). Les [X], [VILLE]… sont à remplir mail par mail.
+ */
+const SAUGE = '#94ab9f';
+export function designIdee() {
+  return {
+    theme: 'clair', gabarit: 'note_claire', accent: SAUGE, marque: 'La Note', police: 'manrope', police_titres: 'manrope',
+    blocs: [
+      b('surtitre', { texte: 'Idée reçue' }),
+      b('titre', { texte: '« Ce bien rapporte [X] %, c\'est écrit dans l\'annonce. »' }),
+      b('etiquette', { texte: 'Réalité' }),
+      b('chapo', { texte: 'Le chiffre de l\'annonce est un brut, calculé sur le prix seul. Ce que vous touchez est plus bas.' }),
+      b('tableau', { entetes: ['L\'annonce dit', 'Vous payez / touchez'], lignes: [
+        { a: 'Prix d\'achat', b: 'Prix + frais de notaire' },
+        { a: 'Loyer brut', b: 'Loyer moins taxe foncière, assurance, copro selon le bail' },
+        { a: '12 mois de loyer par an', b: 'Une marge pour la vacance sur 10 à 15 ans' },
+      ] }),
+      b('encadre', { ton: 'accent', texte: 'Comparez deux biens sur leur rendement net, jamais sur celui de l\'annonce.' }),
+      b('bouton', { texte: 'Calculer mon rendement net →', lien: '{{lien_simulateur}}' }),
+      b('legende', { texte: 'Prix, loyer, apport, crédit · cash-flow année par année' }),
+      b('rdv', { initiale: 'J', titre: 'Une autre idée reçue à démonter ?', texte: 'Répondez à ce mail, Jules en fera la prochaine Note.', lien_texte: '', lien: '' }),
+    ],
+  };
+}
+export function designCas() {
+  return {
+    theme: 'clair', gabarit: 'dossier', accent: SAUGE, marque: 'Cas réel', police: 'manrope', police_titres: 'manrope',
+    blocs: [
+      b('surtitre', { texte: 'Dossier décortiqué' }),
+      b('titre', { texte: 'Annoncé à [X] %, rapportait [Y] % : on a refait le calcul' }),
+      b('texte', { texte: 'Chaque mois, un dossier reçu par l\'équipe, anonymisé, passé au crible.' }),
+      b('image', { src: '', lien: '', vide: 'Photo de la façade' }),
+      b('chiffres', { items: [
+        { label: 'Ville', valeur: '[VILLE]' }, { label: 'Activité', valeur: '[ACTIVITÉ]' }, { label: 'Bail', valeur: '[TYPE · DURÉE]' },
+        { label: 'Prix affiché', valeur: '[PRIX] €' }, { label: 'Loyer annuel', valeur: '[LOYER] €' }, { label: 'Rendement net', valeur: '[Y] %', fort: true },
+      ] }),
+      b('intertitre', { texte: 'Ce qui a fait la différence' }),
+      b('etapes', { items: [
+        { titre: 'Frais de notaire', texte: '[ce que ça a changé sur ce dossier].' },
+        { titre: 'Charges non refacturées', texte: '[ce que le bail laissait au propriétaire].' },
+        { titre: 'Risque de vacance', texte: '[ce qu\'on a observé sur le locataire ou l\'emplacement].' },
+      ] }),
+      b('verdict', { titre: 'Notre verdict', texte: '[Retenu / écarté / renégocié], parce que [raison en une phrase].' }),
+      b('bouton', { texte: 'Refaire le calcul sur mon projet', lien: '{{lien_simulateur}}' }),
+      b('legende', { texte: 'Le simulateur Klocka · rendement et cash-flow année par année' }),
+      b('rdv', { initiale: 'J', titre: '', texte: '**Jules, Klocka.** Vous voulez qu\'on décortique votre dossier ?', lien_texte: 'Réserver', lien: CALENDLY }),
+    ],
+  };
+}
+
+/** Les templates de base, toujours là : La Note, La Lettre, Idée reçue, Cas réel, puis le template Klocka dans ses trois designs. */
 export const TEMPLATES_BASE = [
+  { id: 'base-note', nom: 'La Note · 3 points à vérifier', base: true, objet: TITRE_RENDEMENT, apercu: '3 points à vérifier avant d\'acheter des murs commerciaux.', design: designNote() },
+  { id: 'base-lettre', nom: 'La Lettre · Le rendement affiché', base: true, objet: TITRE_RENDEMENT, apercu: 'Ce que vous payez vraiment, ce que vous gardez vraiment.', design: designLettre() },
+  { id: 'base-idee', nom: 'Idée reçue · « Ce bien rapporte [X] % »', base: true, objet: '« Ce bien rapporte [X] %, c\'est écrit dans l\'annonce »', apercu: 'Le chiffre de l\'annonce est un brut. Ce que vous touchez est plus bas.', design: designIdee() },
+  { id: 'base-cas', nom: 'Cas réel · Un dossier décortiqué', base: true, objet: 'Annoncé à [X] %, rapportait [Y] % : on a refait le calcul', apercu: 'Chaque mois, un dossier reçu par l\'équipe, passé au crible.', design: designCas() },
   { id: 'base-clair', nom: 'Klocka · Clair', base: true, objet: '', apercu: '', design: designNewsletter('clair') },
   { id: 'base-menthe', nom: 'Klocka · Menthe', base: true, objet: '', apercu: '', design: designNewsletter('menthe') },
   { id: 'base-sombre', nom: 'Klocka · Sombre', base: true, objet: '', apercu: '', design: designNewsletter('sombre') },

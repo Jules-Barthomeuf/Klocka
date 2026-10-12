@@ -67,12 +67,14 @@ const AdminRessources = lazy(() => import('./pages/AdminRessources'));
 const AdminSignup = lazy(() => import('./pages/AdminSignup'));
 const AdminSuggestions = lazy(() => import('./pages/AdminSuggestions'));
 const AdminMandataires = lazy(() => import('./pages/AdminMandataires'));
+const AdminEquipe = lazy(() => import('./pages/AdminEquipe'));
 const MandataireProspection = lazy(() => import('./pages/MandataireProspection'));
 const MandataireClients = lazy(() => import('./pages/MandataireClients'));
 const MandataireEstimation = lazy(() => import('./pages/MandataireEstimation'));
 const MandataireMandat = lazy(() => import('./pages/MandataireMandat'));
 const MandataireDossier = lazy(() => import('./pages/MandataireDossier'));
 const MandataireMarche = lazy(() => import('./pages/MandataireMarche'));
+const MandataireOffMarket = lazy(() => import('./pages/MandataireOffMarket'));
 const MandataireProjets = lazy(() => import('./pages/MandataireProjets'));
 const ConversationsMandataires = lazy(() => import('./pages/ConversationsMandataires'));
 const AdminValidations = lazy(() => import('./pages/AdminValidations'));
@@ -89,6 +91,7 @@ const ImportProjets = lazy(() => import('./pages/ImportProjets'));
 const FichesCommerciales = lazy(() => import('./pages/FichesCommerciales'));
 const Prospection = lazy(() => import('./pages/Prospection'));
 const Relances = lazy(() => import('./pages/Relances'));
+const OffMarket = lazy(() => import('./pages/OffMarket'));
 const KData = lazy(() => import('./pages/KData'));
 const KZoning = lazy(() => import('./pages/KZoning'));
 const KExpertise = lazy(() => import('./pages/KExpertise'));
@@ -125,12 +128,14 @@ export const PAGES = {
     "AdminSignup": AdminSignup,
     "AdminSuggestions": AdminSuggestions,
     "AdminMandataires": AdminMandataires,
+    "AdminEquipe": AdminEquipe,
     "MandataireProspection": MandataireProspection,
     "MandataireClients": MandataireClients,
     "MandataireEstimation": MandataireEstimation,
     "MandataireMandat": MandataireMandat,
     "MandataireDossier": MandataireDossier,
     "MandataireMarche": MandataireMarche,
+    "MandataireOffMarket": MandataireOffMarket,
     "MandataireProjets": MandataireProjets,
     "ConversationsMandataires": ConversationsMandataires,
     "AdminValidations": AdminValidations,
@@ -147,6 +152,7 @@ export const PAGES = {
     "FichesCommerciales": FichesCommerciales,
     "Prospection": Prospection,
     "Relances": Relances,
+    "OffMarket": OffMarket,
     "KData": KData,
     "KZoning": KZoning,
     "KExpertise": KExpertise,

@@ -24,6 +24,17 @@ const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
  * @param {{texte: string, historique?: Array<{role, contenu}>, user: object, surEtape?: Function}} p
  * @returns {Promise<{texte, actions, outils, brouillon, taches}>}
  */
+// Comment AK parle à Jules dans les ateliers d'emailing (9 oct. 2026) : « structure c (deux relances
+// actives, le reste pédagogique sec) : j1 chiffre réel… » lui a déplu. Le tac au tac de la consigne
+// générale ne vaut pas ici : on présente un plan à un client, pas une note entre collègues.
+const STYLE_ATELIER = `
+COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
+- Des phrases complètes, avec majuscules et ponctuation, comme un rédacteur qui présente un plan à son client. Pas de style télégraphique.
+- Aucune abréviation ni étiquette interne : pas de « j1 », « J+3 », « CTA », « relance active », « pédagogique sec », « structure C ». Écris « le premier mail, mardi 13 octobre », « un appel à l'action vers le simulateur ».
+- Plusieurs options : donne à chacune un nom parlant (« Deux temps forts, le reste en conseils ») et décris-la en une phrase claire ; jamais de lettre ni de numéro seul.
+- Un plan de mails : une liste, une ligne par mail, « Mail 1 · mardi 13 octobre · Le vrai rendement d'un local : un chiffre type, puis le simulateur pour faire le calcul. » Le jour, le sujet, ce qu'apporte le mail, l'asset s'il y en a un, nommé en toutes lettres.
+- Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
+
 export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null }) {
   const { consigne, OUTILS, executerOutil, MODELE } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
@@ -67,7 +78,7 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
 - Style des emails : vouvoiement, phrases courtes, concret, chaleureux sans emphase ; pas de tiret cadratin, pas d'emoji, pas de jargon creux (« n'hésitez pas », « solution innovante »). Objets courts et précis (pas de MAJUSCULES, pas de « Re: » trompeur). Un bloc texte = un ou deux paragraphes ; signature « L'équipe Klocka » sauf demande contraire. {{prenom}} pour personnaliser, avec parcimonie. Un lien inconnu : https://klocka.immo, et signale-le.
 - Jours : chaque email a son jour d'envoi compté depuis l'inscription (0, 7, 14… pour un rythme hebdomadaire). Le rythme et le nombre d'emails sont ceux que l'équipe demande ; sans indication, propose-les (12 emails au plus par séquence).
 - Jamais de chiffre ni de cas inventé présenté comme réel (« un cas réel », « un client a gagné ») : un exemple chiffré s'annonce comme un exemple type, et un témoignage ou un dossier réel se demande à l'équipe.
-- Après rediger_sequence : résume chaque email en une ligne (jour, idée), propose une ou deux améliorations. Une remarque (« le 2 est trop long », « ajoute un témoignage », « plus direct ») : réécris avec sequence_id, la liste complète des emails.
+- Après rediger_sequence : résume chaque email en une ligne (jour, idée), propose une ou deux améliorations. Une remarque (« le 2 est trop long », « ajoute un témoignage », « plus direct ») : réécris avec sequence_id, la liste complète des emails.${STYLE_ATELIER}
 Listes de contacts existantes : ${listes.length ? listes.map((l) => `« ${l.nom} » (${l.total})`).join(', ') : 'aucune encore (l\'équipe importe les inscrits dans Contacts)'}.`;
     // Les newsletters (9 oct. 2026) : l'atelier en plein écran, le chat à gauche, la newsletter à droite.
     if (contexte.mode === 'newsletter') {
@@ -78,9 +89,10 @@ Listes de contacts existantes : ${listes.length ? listes.map((l) => `« ${l.nom}
 - Chaque mail APPORTE DE LA VALEUR : une idée, un chiffre type annoncé comme tel, une erreur à éviter, une méthode, un outil. Au plus un appel à l'action, et le plus souvent vers un ASSET : le simulateur (lien personnel {{lien_simulateur}}, qui permet ensuite de parler au fondateur) ou un lead magnet. Ne vends rien ; le call vient du simulateur.
 - Avant d'écrire, si le sujet du webinaire, le nombre de mails ou l'angle manquent, pose en UNE fois les deux ou trois questions qui comptent ; sinon écris tout de suite une première version complète (4 mails par défaut) et dis ce que tu as supposé.
 - Style : vouvoiement, phrases courtes, concret, chaleureux sans emphase ; pas de tiret cadratin, pas d'emoji, pas de jargon creux. Objets courts et précis. Signature « L'équipe Klocka ». {{prenom}} avec parcimonie.
-- Un asset s'insère en recopiant ses blocs tels quels dans le mail (mêmes textes, même lien).
+- Un asset existant (« mets le simulateur dans le mail 2 ») : inserer_asset, avec le rang du mail et le nom de l'asset. En rédigeant un mail neuf, tu peux aussi recopier ses blocs tels quels (mêmes textes, même lien).
 - Jamais de chiffre ni de cas inventé présenté comme réel.
 - Après rediger_newsletter : résume chaque mail en une ligne (date, idée), propose une ou deux améliorations. Une remarque : réécris avec newsletter_id, la liste complète des mails non envoyés.
+${STYLE_ATELIER}
 Listes existantes : ${E.listes().map((l) => `« ${l.nom} » (${l.abonnes} abonnés)`).join(', ') || 'aucune encore'}.
 ASSETS DISPONIBLES :\n${resumeAssets()}`;
       const n = contexte.newsletter_id ? N.newsletter(String(contexte.newsletter_id)) : null;
@@ -88,6 +100,9 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
         const noms = new Map(E.listes().map((l) => [l.id, l.nom]));
         const resume = n.mails.map((m, i) => `Mail ${i + 1} (${m.jour || '?'}, ${m.statut}) objet « ${m.objet} », aperçu « ${m.apercu || ''} » : ${JSON.stringify((m.design?.blocs || []).map((b) => ({ type: b.type, ...(b.texte ? { texte: b.texte } : {}), ...(b.lien ? { lien: b.lien } : {}) })))}`).join('\n');
         cadrePage += `\nLA NEWSLETTER OUVERTE À DROITE (newsletter_id ${n.id}, « ${n.nom} », ${n.statut}, listes ${(n.listes || []).map((x) => noms.get(x)).filter(Boolean).join(', ') || 'aucune'}, départ ${n.depart}, tous les ${n.rythme_jours} jours à ${n.heure}) ; l'équipe a pu la retoucher, c'est la version à jour :\n${resume}\nUne correction porte sur CETTE newsletter : rediger_newsletter avec newsletter_id. Les mails envoyés ne se réécrivent pas.`;
+        // Le mail ouvert dans l'éditeur, à droite : « change le titre », « plus court » portent sur lui (9 oct. 2026).
+        const k = contexte.mail_id ? n.mails.findIndex((m) => m.id === String(contexte.mail_id)) : -1;
+        if (k >= 0) cadrePage += `\nLE MAIL OUVERT À DROITE est le Mail ${k + 1} (« ${n.mails[k].objet} ») : une remarque sans autre précision porte sur lui. Réécris-le, et recopie les autres mails à l'identique.`;
       }
     }
     if (contexte.sequence_id) {

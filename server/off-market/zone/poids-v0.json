@@ -1,0 +1,22 @@
+{
+  "_lire": "Score Zone, version à règles (11 oct. 2026). Chaque poids est en points sur une échelle où la somme des poids présents est ramenée de 0 à 100. Les poids bougent après chaque jugement (+1 % si le jugement confirme, -2 % s'il contredit, entre 0 et deux fois la valeur de départ) ; ce fichier garde les valeurs de départ. Une caractéristique inconnue (null) ne compte pas : son poids se répartit sur les autres.",
+  "poids": {
+    "flux_pieton": { "poids": 25, "raison": "Le passage devant la vitrine fait la valeur des murs. Approché par la zone commerçante et la densité tant que le flux mesuré manque." },
+    "touristes": { "poids": 15, "raison": "Une zone touristique tient les loyers, même hors saison." },
+    "densite_commerces_300m": { "poids": 15, "raison": "Un commerce entouré d'autres commerces est dans une rue qui vit." },
+    "part_commerces_fermes_300m": { "poids": -15, "raison": "Des vitrines vides autour : la rue décline." },
+    "distance_rue_commercante_principale_m": { "poids": -10, "raison": "Plus on s'éloigne de la grande rue commerçante, moins il passe de monde." },
+    "impasse": { "poids": -10, "raison": "Une impasse n'a pas de passage." },
+    "place": { "poids": 5, "raison": "Une place concentre le passage et les terrasses." },
+    "naf_hors_cible": { "poids": -20, "raison": "Banque, assurance, agence immobilière ou activité hors commerce : ce ne sont pas les murs que cherchent nos investisseurs." },
+    "enseigne_nationale": { "poids": 5, "raison": "Une enseigne nationale a choisi l'emplacement avec ses propres études." },
+    "note_streetview_ia": { "poids": 10, "raison": "La rue telle qu'on la voit : vitrines soignées ou dégradées." }
+  },
+  "naf_exclus": ["64.19Z", "66.22Z", "68.31Z"],
+  "sections_cible": ["G", "I", "S", "C", "R"],
+  "_sections_cible": "Sections de la NAF tenues pour du commerce de pied d'immeuble : commerce (G), restauration (I), services aux particuliers comme la coiffure (S), boulangerie et métiers de bouche (C), salles de sport (R). Le reste est hors cible.",
+  "_naf_exclus": "Codes de la liste commerce du mode Simple qu'on ne veut pas pour autant : banques, courtiers en assurance, agences immobilières.",
+  "seuil_faible": 40,
+  "jugements_pour_apprendre": 150,
+  "gain_auc_minimum": 0.02
+}

@@ -6,7 +6,7 @@ import { Loader2, MoreHorizontal, Pencil, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
-import { dateCourte, euros } from "@/components/mandataire/kit";
+import { BandeauExemples, PastilleExemple, dateCourte, euros } from "@/components/mandataire/kit";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import EditeurAvis from "@/components/mandataire/EditeurAvis";
 import GenerationDocument, { DocumentTelephone, MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
@@ -210,6 +210,8 @@ export default function MandataireEstimation() {
               <p className="py-16 text-center text-sm text-brume">Aucune estimation encore : dites au chat quel bien vous estimez.</p>
             ) : (
               // Des lignes, comme les mandats : le bien à gauche, son avancement à droite.
+              <>
+              <BandeauExemples liste={estimations} />
               <div className="border-y border-trait">
                 {estimations.map((e) => {
                   const i = Math.max(0, ETAPES_LISTE.findIndex(([cle]) => cle === statutDe(e)));
@@ -219,7 +221,7 @@ export default function MandataireEstimation() {
                     <div key={e.id} className="relative border-t border-trait px-2 py-5 pr-12 first:border-t-0">
                       <button onClick={() => reprendre(e)} className="flex w-full flex-wrap items-center gap-x-8 gap-y-3 text-left" style={{ background: "transparent" }}>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[16px] text-encre">{e.bien}</span>
+                          <span className="block truncate text-[16px] text-encre">{e.bien}<PastilleExemple x={e} /></span>
                           {detail && <span className="mt-1 block truncate text-[13.5px] text-ardoise">{detail}</span>}
                         </span>
                         <span className="block w-[260px] flex-none max-md:w-full" aria-label={`Étape ${i + 1} sur ${ETAPES_LISTE.length} : ${ETAPES_LISTE[i][1]}`}>
@@ -239,6 +241,7 @@ export default function MandataireEstimation() {
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         ))}

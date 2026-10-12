@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Download, Loader2, Plus, Tag, Trash2, Upload, X } from "lucide-react";
+import { Check, Download, Loader2, Plus, RefreshCw, Tag, Trash2, Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { API, Avatar, Etat, Fenetre, req, useReferentiel, bouton, boutonContour, boutonLigne, boutonPlein, champ, etiquette, date, dateHeure, pluriel } from "./commun";
@@ -151,9 +151,9 @@ function EditeurSegment({ segment, onFermer }) {
 }
 
 // L'historique d'un contact, en mots (9 oct. 2026) : les mails, puis le simulateur et le call.
-const MOT_HISTO = { envoye: "Mail reçu", delivre: "Délivré", ouvert: "Ouvert", clique: "Cliqué", bounce: "Bounce", plainte: "Plainte", echec: "Échec d'envoi", retarde: "Retardé", supprime: "Adresse supprimée", simulateur: "Simulateur utilisé", clic_call: "Bouton « Parler au fondateur »", call_pris: "Call pris", reponse: "A répondu", lead_magnet: "Lead magnet ouvert" };
+const MOT_HISTO = { envoye: "Mail reçu", delivre: "Délivré", ouvert: "Ouvert", clique: "Cliqué", bounce: "Bounce", plainte: "Plainte", echec: "Échec d'envoi", retarde: "Retardé", supprime: "Adresse supprimée", simulateur: "Simulateur utilisé", clic_call: "Bouton « Parler au fondateur »", call_pris: "Call pris", reponse: "A répondu", lead_magnet: "Lead magnet ouvert", quiz: "Quiz investisseur", vision: "Vision retraite" };
 const euros = (v) => `${Math.round(Number(v) / 1000).toLocaleString("fr-FR")} k€`;
-const valeursLisibles = (v) => [v.prixBienFAI != null && `prix ${euros(v.prixBienFAI)}`, v.loyerInitialHTHC != null && `loyer ${euros(v.loyerInitialHTHC)}/an`, v.apport != null && `apport ${euros(v.apport)}`, v.sansCredit ? "sans crédit" : v.dureeCredit != null && `crédit ${v.dureeCredit} ans`].filter(Boolean).join(", ");
+const valeursLisibles = (v) => [v.profil && `profil ${v.profil}`, v.revenu_mensuel != null && `objectif ${Math.round(v.revenu_mensuel).toLocaleString("fr-FR")} €/mois`, v.horizon != null && `dans ${v.horizon} ans`, v.murs != null && pluriel(v.murs, "mur", "murs"), v.prixBienFAI != null && `prix ${euros(v.prixBienFAI)}`, v.loyerInitialHTHC != null && `loyer ${euros(v.loyerInitialHTHC)}/an`, v.apport != null && `apport ${euros(v.apport)}`, v.sansCredit ? "sans crédit" : v.dureeCredit != null && `crédit ${v.dureeCredit} ans`].filter(Boolean).join(", ");
 
 function Fiche({ id, onFermer }) {
   const queryClient = useQueryClient();
@@ -246,6 +246,28 @@ function AjoutContact({ onFermer, onAjoute }) {
 
 const TYPES = [["", "Tous"], ["lead", "Lead"], ["client", "Client"], ["mandataire", "Mandataire"], ["partenaire", "Partenaire"]];
 const MOT_TYPE = Object.fromEntries(TYPES);
+/**
+ * Les listes tirées de Monday (9 oct. 2026) : agents, clients, prospects, lus
+ * dans les tableaux de l'équipe, relus chaque jour et à la demande.
+ */
+function BandeauMonday({ onFait }) {
+  const { data, refetch } = useQuery({ queryKey: ["emailing-listes-monday"], queryFn: () => req("GET", "/listes/monday") });
+  const relire = useMutation({
+    mutationFn: () => req("POST", "/listes/monday"),
+    onSuccess: (r) => { toast.success("Listes relues dans Monday", { description: `${pluriel(r.nouveaux, "nouveau contact", "nouveaux contacts")}, ${pluriel(r.mis_a_jour, "mis à jour", "mis à jour")}.` }); refetch(); onFait(); },
+    onError: (e) => toast.error(e?.message || "Lecture de Monday impossible"),
+  });
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <span className="text-[13.5px] text-craie">Listes tirées de Monday</span>
+      <span className="text-[12.5px] text-ardoise">{data?.le ? `lues le ${dateHeure(data.le)}, relues chaque jour` : "jamais lues"}</span>
+      <button type="button" onClick={() => relire.mutate()} disabled={relire.isPending} className={`${bouton} ml-auto`}>
+        {relire.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}{data?.le ? "Relire Monday" : "Créer les listes depuis Monday"}
+      </button>
+    </div>
+  );
+}
+
 const SOUS_ONGLETS = [["tous", "Tous les contacts"], ["listes", "Listes"], ["segments", "Segments"], ["champs", "Champs personnalisés"]];
 const STATUT = { abonne: ["Abonné", "bg-menthe"], desinscrit: ["Désinscrit", "bg-brume"], bounce: ["Bounce", "bg-alerte"], plainte: ["Plainte", "bg-alerte"] };
 const COLONNES = "grid-cols-[28px_minmax(0,2.4fr)_100px_100px_minmax(0,1.4fr)_100px_64px_minmax(0,1.8fr)]";
@@ -376,6 +398,7 @@ export default function Contacts({ demande = null }) {
         </>
       )}
 
+      {sous === "listes" && <BandeauMonday onFait={raf} />}
       {sous === "listes" && (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
           {(ref?.listes || []).map((l) => (
@@ -385,6 +408,7 @@ export default function Contacts({ demande = null }) {
               </button>
               <div className="mt-1.5 flex items-center gap-3 text-[12.5px] text-ardoise">
                 <span>{pluriel(l.abonnes ?? l.total, "abonné")}</span>
+                {l.monday && <span className="rounded-full border border-trait px-2 text-[11px] text-ardoise">Monday</span>}
                 <span className="ml-auto flex gap-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
                   <button type="button" onClick={() => { const n = window.prompt("Nouveau nom :", l.nom); if (n) appel.mutate(["PATCH", `/listes/${l.id}`, { nom: n }]); }} className="hover:text-encre" style={{ background: "transparent" }}>Renommer</button>
                   <button type="button" onClick={() => { if (window.confirm(`Supprimer la liste « ${l.nom} » ? Ses contacts restent.`)) appel.mutate(["DELETE", `/listes/${l.id}`]); }} className="hover:text-alerte" style={{ background: "transparent" }}>Supprimer</button>

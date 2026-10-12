@@ -52,6 +52,7 @@ export const depuisMandataire = (d) => ({
   mandataire_nom: "Vous", analyste_nom: d.analyste_nom || null, non_lus: d.fil_non_lus || 0,
   dernier: d.dernier || null, activite: d.activite || d.cree_le || null, checklist: d.checklist, relance: d.relance || null,
   transfere: !!d.transfere, carte: d.carte || {}, estimation: d.estimation || null, mandat: d.mandat || null, photos: d.photos || [], en_etude_le: d.en_etude_le || null,
+  exemple: !!d.exemple,
 });
 
 export default function EspaceConversations({ cote = "klocka" }) {

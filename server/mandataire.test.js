@@ -376,3 +376,17 @@ test('page Compte : le mandataire tient ses mentions, jamais ses habilitations',
   assert.equal(poserCompteMandataire(QUI, { email_avis: 'pas-un-mail' }).ok, false, 'un e-mail illisible est refusé');
   assert.equal(compteMandataire({ email: 'autre@kpartners.fr' }).modifiable.telephone, null, 'chacun sa fiche');
 });
+
+test('fiche mandataire : l’analyste binôme se choisit dans l’équipe', async () => {
+  const { poserFicheMandataire } = await import('./mandataire-espace.js');
+  const admin = { email: 'jules.b@klocka.immo', role: 'admin' };
+  assert.equal(poserFicheMandataire('binome@kpartners.fr', { analyste_email: 'inconnu@ailleurs.fr' }, admin).ok, false);
+  assert.equal(poserFicheMandataire('binome@kpartners.fr', { analyste_email: ' Nora.L@klocka.immo ' }, admin).fiche.analyste_email, 'nora.l@klocka.immo');
+  assert.equal(poserFicheMandataire('binome@kpartners.fr', { analyste_email: '' }, admin).fiche.analyste_email, null, 'aucun analyste');
+});
+
+test('avancement d’une prospection : un entonnoir, un RDV a aussi été contacté', async () => {
+  const { avancementProspection } = await import('./mandataire-espace.js');
+  const fiches = ['a_appeler', 'a_appeler', 'contacte', 'pas_vendeur', 'rdv_pris', 'mandat_signe'].map((statut) => ({ prospection_id: 'p1', statut }));
+  assert.deepEqual(avancementProspection({ id: 'p1' }, [...fiches, { prospection_id: 'p2', statut: 'rdv_pris' }]), { ajoutes: 6, a_appeler: 2, contactes: 4, rdv: 2, mandats: 1 });
+});

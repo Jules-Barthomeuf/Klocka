@@ -156,3 +156,54 @@ test('AK rédige une newsletter : mails en brouillon, datés, listes par leur no
   const n2 = N.newsletter(n.id);
   assert.deepEqual(n2.mails.map((m) => [m.objet, m.statut]), [['Mail 1', 'envoye'], ['Réécrit', 'brouillon']]);
 });
+
+test('les outils publics : le quiz remplit type_investisseur, Vision l\'objectif et l\'horizon ; les deux assets sont posés', async () => {
+  const O = await import('../../src/lib/outils-investisseur.js');
+  assert.equal(O.profilDuQuiz(['rendement', 'rendement', 'prudent', 'patrimonial', 'rendement']).profil, 'rendement');
+  assert.equal(O.profilDuQuiz(['prudent', 'rendement', 'rendement', 'patrimonial', 'prudent']).profil, 'prudent', 'à égalité, la dernière réponse tranche');
+  const p = O.planRetraite({ revenuMensuel: 2000, commerce: 'service', epargneMensuelle: 800, apportInitial: 30000, horizon: 25 });
+  assert.equal(p.murs, 3, '3 × 720 € couvrent 2 000 €');
+  assert.deepEqual(p.achats, [0, 1, 3]);
+  assert.equal(p.anneeLibre, 24);
+  assert.equal(p.atteint, true);
+  assert.equal(O.planRetraite({ revenuMensuel: 2000, commerce: 'service', epargneMensuelle: 800, apportInitial: 30000, horizon: 10 }).atteint, false, 'un crédit de 20 ans ne se solde pas en 10');
+  assert.equal(O.planRetraite({ revenuMensuel: 20000, commerce: 'mixte', epargneMensuelle: 0, apportInitial: 0 }).complet, false, 'sans épargne ni apport, hors d\'atteinte');
+
+  const lea = contact('lea@test.invalid');
+  await N.noterActivite({ k: lea.jeton, type: 'quiz', valeurs: { profil: 'patrimonial', prudent: 1, rendement: 1, patrimonial: 3, pirate: 'x' } });
+  await N.noterActivite({ k: lea.jeton, type: 'vision', valeurs: { revenu_mensuel: 2500, horizon: 20, commerce: 'proximite', murs: 3 } });
+  await N.noterActivite({ k: lea.jeton, type: 'vision', valeurs: { revenu_mensuel: 3000, horizon: 25, commerce: 'proximite', murs: 3 } });
+  const c = Records.get(E.CONTACT, lea.id);
+  assert.equal(c.champs.type_investisseur, 'patrimonial');
+  assert.equal(c.champs.objectif_revenu, 3000);
+  assert.equal(c.champs.horizon, 25);
+  assert.ok(Records.list(E.CHAMP).some((x) => x.cle === 'type_investisseur' && x.type === 'choix'), 'le champ existe');
+  const a = N.activitesDe(lea.id);
+  assert.equal(a.filter((x) => x.type === 'vision').length, 1, 'la même session');
+  assert.equal(a.find((x) => x.type === 'quiz').valeurs.pirate, undefined);
+  assert.equal(N.valeursPropres('simulateur', { prixBienFAI: 'beaucoup' }).prixBienFAI, undefined, 'le simulateur ne garde que des nombres');
+
+  const A = await import('./assets.js');
+  const outils = A.assets().filter((x) => x.genre === 'outil');
+  assert.deepEqual(outils.map((x) => x.blocs.find((b) => b.type === 'bouton').lien.replace(/^.*\//, '')), ['QuizInvestisseur?k={{k}}', 'VisionRetraite?k={{k}}']);
+});
+
+test("un asset glissé dans un mail : ses blocs avant la signature, par nom ou par rang, jamais dans un mail parti", async () => {
+  const { creerAsset } = await import('./assets.js');
+  const simu = creerAsset({ nom: 'Simulateur de test', genre: 'simulateur', blocs: [{ type: 'texte', texte: 'Faites le calcul.' }, { type: 'bouton', texte: 'Ouvrir', lien: '{{lien_simulateur}}' }] }).asset;
+  const n = N.creerNewsletter({ nom: 'Assets' });
+  N.ajouterMail(n.id);
+  const avant = N.newsletter(n.id).mails[1].design.blocs;
+  const r = await N.insererAsset(n.id, 2, 'simulateur de test');
+  assert.equal(r.ok, true);
+  assert.equal(r.rang, 2);
+  const blocs = N.newsletter(n.id).mails[1].design.blocs;
+  assert.equal(blocs.length, avant.length + simu.blocs.length);
+  assert.equal(blocs.at(-1).type, 'signature');
+  assert.ok(blocs.some((b) => String(b.lien || '').includes('{{lien_simulateur}}')));
+  assert.equal(new Set(blocs.map((b) => b.id)).size, blocs.length);
+  assert.equal((await N.insererAsset(n.id, 2, 'n’existe pas')).ok, false);
+  const m1 = N.newsletter(n.id).mails[0];
+  Records.update('EmailingNewsletter', n.id, { mails: N.newsletter(n.id).mails.map((x) => (x.id === m1.id ? { ...x, statut: 'envoye' } : x)) });
+  assert.equal((await N.insererAsset(n.id, m1.id, simu.id)).ok, false);
+});

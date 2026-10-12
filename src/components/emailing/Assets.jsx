@@ -10,7 +10,7 @@ import { Fenetre, req, bouton, boutonLigne, boutonPlein, champ } from "./commun"
 // lead magnets, un lien, un encadré. On les décrit à AK, qui les crée ; on les
 // renomme, retouche ou supprime ici.
 
-const GENRES = { simulateur: "Simulateur", lead_magnet: "Lead magnet", lien: "Lien", bloc: "Encadré" };
+const GENRES = { simulateur: "Simulateur", outil: "Outil", lead_magnet: "Lead magnet", lien: "Lien", bloc: "Encadré" };
 const MOTS_BLOC = { titre: "Titre", texte: "Texte", bouton: "Bouton", image: "Image", separateur: "Séparateur" };
 
 /** L'aperçu d'un asset : ses blocs, à peu près comme dans le mail. */
@@ -35,7 +35,7 @@ function Apercu({ blocs }) {
  */
 export const lienDApercu = (asset) => {
   const lien = (asset?.blocs || []).find((b) => b.type === "bouton" && b.lien)?.lien || "";
-  return lien.replace(/\{\{\s*lien_simulateur\s*\}\}/g, "/SimulateurPublic?k=exemple").replace(/\{\{\s*k\s*\}\}/g, "exemple").replace(/^https?:\/\/[^/]+(?=\/(SimulateurPublic|FeuilleDeRoute)\b)/, "");
+  return lien.replace(/\{\{\s*lien_simulateur\s*\}\}/g, "/SimulateurPublic?k=exemple").replace(/\{\{\s*k\s*\}\}/g, "exemple").replace(/^https?:\/\/[^/]+(?=\/(SimulateurPublic|FeuilleDeRoute|QuizInvestisseur|VisionRetraite)\b)/, "");
 };
 
 /** Ce que voit le contact en cliquant : la page dans une fenêtre, sur ordinateur ou au téléphone. */

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
+import CarteGoogleSecteurs, { MotifSecteur } from "@/components/mandataire/CarteGoogleSecteurs";
 import VillesKlocka from "@/components/mandataire/VillesKlocka";
 import { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
 import { AlertTriangle, Check, ChevronDown, Eye, EyeOff, PenLine, Plus, RefreshCw, Search, Trash2, Undo2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useUser } from "@/components/providers/UserProvider";
 // Les couleurs des secteurs passent en JL (littérales) : Google dessine en SVG.
 import { J, JL, alpha } from "@/design/jetons";
@@ -23,9 +24,9 @@ export default function AdminMandataires() {
   const [onglet, setOnglet] = useState("secteurs");
   return (
     <div className="mx-auto max-w-[1100px] px-5 pb-16 pt-6 md:px-8">
-      <h1 className="m-0 text-[22px] font-medium tracking-[-0.01em] text-encre">Mandataires</h1>
-      <p className="m-0 mt-1 text-[13.5px] text-ardoise">K Partners : les secteurs, les fiches, les demandes clients et leurs prospections.</p>
-      <div className="mt-5 flex gap-1 rounded-full bg-rail-actif p-1 w-fit max-md:flex-wrap max-md:rounded-[14px]">
+      <h1 className="m-0 text-center text-[22px] font-medium tracking-[-0.01em] text-encre">Mandataires</h1>
+      <p className="m-0 mt-1 text-center text-[13.5px] text-ardoise">K Partners : les secteurs, les fiches, les demandes clients et leurs prospections.</p>
+      <div className="mt-5 mx-auto flex gap-1 rounded-full bg-rail-actif p-1 w-fit max-md:flex-wrap max-md:rounded-[14px]">
         {ONGLETS.map(([k, mot]) => (
           <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={onglet === k}
             className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${onglet === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
@@ -123,6 +124,7 @@ function Secteurs() {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [enEdition, setEnEdition] = useState(null); // l'id du secteur redessiné
+  const [aSupprimer, setASupprimer] = useState(null); // le secteur dont on confirme la suppression
   const [choisi, setChoisi] = useState(null); // le secteur ouvert
   const [modeTrace, setModeTrace] = useState("dessin");
   const [unites, setUnites] = useState([]); // [{niveau, code, nom}]
@@ -163,7 +165,7 @@ function Secteurs() {
   });
   const supprimer = useMutation({
     mutationFn: (id) => base44.request("DELETE", `${API}/secteurs/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-secteurs"] }); setChoisi(null); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-secteurs"] }); setChoisi(null); setASupprimer(null); toast.success("Secteur supprimé"); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
@@ -204,7 +206,7 @@ function Secteurs() {
     <div className="relative mt-5 h-[calc(100vh-13rem)] min-h-[520px] overflow-hidden rounded-[16px] border border-bord max-md:h-[calc(100dvh-13rem)] max-md:min-h-[460px]">
       <div className="absolute inset-0">
         <CarteGoogleSecteurs
-          secteurs={secteurs.filter((s) => s.id !== enEdition && !masques.has(s.id)).map((s) => ({ ...s, teinte: teinteDe(indexDe(s.id)) }))}
+          secteurs={secteurs.filter((s) => s.id !== enEdition && !masques.has(s.id)).map((s) => ({ ...s, teinte: teinteDe(indexDe(s.id)), motif: indexDe(s.id) }))}
           choisi={choisi}
           trace={trace && modeTrace === "dessin"}
           points={points}
@@ -260,12 +262,16 @@ function Secteurs() {
                   onKeyDown={(e) => { if (e.key === "Enter" && !trace) setChoisi(s.id); }}
                   className={`group relative cursor-pointer overflow-hidden rounded-[12px] border bg-surface px-3.5 py-3 transition-colors ${actif ? "border-menthe/60" : "border-trait hover:border-bord"} ${visible ? "" : "opacity-50"}`}
                 >
-                  <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: teinte }} />
                   <div className="flex items-start gap-2">
+                    <MotifSecteur teinte={teinte} motif={indexDe(s.id)} />
                     <p className="alx-mont m-0 min-w-0 flex-1 truncate text-[12px] font-medium uppercase tracking-[.08em] text-encre">{s.nom}</p>
                     <button type="button" onClick={(e) => { e.stopPropagation(); setMasques((m) => { const n = new Set(m); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; }); }}
                       className="flex-shrink-0 text-brume hover:text-encre" title={visible ? "Masquer sur la carte" : "Montrer sur la carte"} style={{ background: "transparent" }}>
                       {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                    </button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setASupprimer(s); }} aria-label={`Supprimer le secteur ${s.nom}`} title="Supprimer le secteur"
+                      className="flex-shrink-0 text-brume opacity-0 transition-opacity hover:text-alerte focus:opacity-100 group-hover:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <div className="mt-2.5 flex items-center gap-2">
@@ -282,7 +288,7 @@ function Secteurs() {
                         className="inline-flex items-center gap-1.5 text-[12px] text-craie hover:text-menthe" style={{ background: "transparent" }}>
                         <PenLine className="h-3.5 w-3.5" /> Redessiner
                       </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); if (window.confirm(`Supprimer le secteur « ${s.nom} » ?`)) supprimer.mutate(s.id); }}
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setASupprimer(s); }}
                         className="ml-auto inline-flex items-center gap-1.5 text-[12px] text-brume hover:text-alerte" style={{ background: "transparent" }}>
                         <Trash2 className="h-3.5 w-3.5" /> Supprimer
                       </button>
@@ -436,7 +442,7 @@ function Secteurs() {
                     className="inline-flex items-center gap-1.5 rounded-full border border-bord px-3 py-1.5 text-[12px] text-craie hover:border-menthe/40 hover:text-encre" style={{ background: "transparent" }}>
                     <PenLine className="h-3.5 w-3.5" /> Redessiner
                   </button>
-                  <button type="button" onClick={() => { if (window.confirm(`Supprimer le secteur « ${ouvert.nom} » ?`)) supprimer.mutate(ouvert.id); }}
+                  <button type="button" onClick={() => setASupprimer(ouvert)}
                     className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] text-brume hover:text-alerte" style={{ background: "transparent" }}>
                     <Trash2 className="h-3.5 w-3.5" /> Supprimer
                   </button>
@@ -447,6 +453,24 @@ function Secteurs() {
         </div>
       )}
 
+      <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
+        <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[20px] font-normal text-encre">Supprimer le secteur « {aSupprimer?.nom} » ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[14px] leading-[1.6] text-ardoise">
+              {aSupprimer?.mandataire_email ? `${nomDe(aSupprimer.mandataire_email)} ne verra plus ce secteur` : "Ce secteur n'est attribué à personne"}
+              {` ; ses ${aSupprimer?.villes?.length || 0} ville${(aSupprimer?.villes?.length || 0) > 1 ? "s" : ""} sortent de la carte. Cette suppression est définitive.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={supprimer.isPending} className="rounded-full border-trait bg-transparent text-craie hover:border-menthe hover:bg-transparent hover:text-encre">Annuler</AlertDialogCancel>
+            <AlertDialogAction disabled={supprimer.isPending} onClick={(e) => { e.preventDefault(); supprimer.mutate(aSupprimer.id); }}
+              className="rounded-full bg-alerte text-fond hover:bg-alerte/85">
+              {supprimer.isPending ? "Suppression…" : "Supprimer le secteur"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -461,13 +485,13 @@ const CHAMPS_FICHE = [
   ["arrivee_le", "Arrivé le", "date"],
   ["rc_pro_expire_le", "RC pro expire le", "date"],
   ["attestation_expire_le", "Attestation expire le", "date"],
-  ["analyste_email", "Analyste binôme", "text"],
+  ["analyste_email", "Analyste binôme", "analyste"],
 ];
 // Ce qui figure sur chacun de ses avis de valeur : saisi une fois ici, le
 // mandataire ne le retape jamais.
 const CHAMPS_AVIS = [
   ["nom_avis", "Nom sur les avis", "text"],
-  ["qualite_avis", "Qualité (agent commercial…)", "text"],
+  ["qualite_avis", "Qualité", "text", "Agent commercial"],
   ["ville_rsac", "Ville du RSAC", "text"],
   ["carte_t", "Carte T : structure et n° CPI", "text"],
   ["email_avis", "Email sur les avis", "text"],
@@ -493,6 +517,7 @@ function Mandataires() {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const mandataires = data?.mandataires || [];
+  const analystes = data?.analystes || [];
   const utilisateur = useUser();
   const dejaMoi = mandataires.some((m) => m.email === String(utilisateur?.email || "").toLowerCase());
   return (
@@ -513,7 +538,27 @@ function Mandataires() {
         {mandataires.map((m) => {
           const b = brouillons[m.email] || {};
           // Un champ date veut « AAAA-MM-JJ » : une valeur ISO complète se coupe.
-          const valeur = (c, type) => (b[c] !== undefined ? b[c] : type === "date" ? String(m[c] || "").slice(0, 10) : m[c] || "");
+          const enregistree = (c, type) => (type === "date" ? String(m[c] || "").slice(0, 10) : m[c] || "");
+          const valeur = (c, type) => (b[c] !== undefined ? b[c] : enregistree(c, type));
+          // Enregistrer n'apparaît que si une valeur diffère de la fiche : retaper l'ancienne ne compte pas.
+          const modifies = Object.fromEntries([...CHAMPS_FICHE, ...CHAMPS_AVIS].filter(([c, , type]) => b[c] !== undefined && b[c] !== enregistree(c, type)).map(([c]) => [c, b[c]]));
+          const champSaisi = ([c, mot, type, indice]) => (
+            <label key={c} className="text-[11.5px] uppercase tracking-[.1em] text-brume">
+              {mot}
+              {type === "analyste" ? (
+                <select value={valeur(c, type)} onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
+                  className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none max-md:text-[16px]">
+                  <option value="">Aucun</option>
+                  {analystes.map((a) => <option key={a.email} value={a.email}>{a.nom}</option>)}
+                  {m[c] && !analystes.some((a) => a.email === m[c]) && <option value={m[c]}>{m[c]}</option>}
+                </select>
+              ) : (
+                <input type={type} value={valeur(c, type)} placeholder={indice}
+                  onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
+                  className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+              )}
+            </label>
+          );
           return (
             <div key={m.email} className="rounded-[16px] border border-trait bg-surface px-5 py-4">
               <p className="m-0 text-[15px] text-encre">{m.nom || m.email}{m.admin && <span className="ml-2 text-[11px] uppercase tracking-[.14em] text-brume">admin</span>}</p>
@@ -525,27 +570,9 @@ function Mandataires() {
                   ))}
                 </div>
               )}
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {CHAMPS_FICHE.map(([c, mot, type]) => (
-                  <label key={c} className="text-[11.5px] uppercase tracking-[.1em] text-brume">
-                    {mot}
-                    <input type={type} value={valeur(c, type)}
-                      onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
-                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none max-md:text-[16px]" />
-                  </label>
-                ))}
-              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">{CHAMPS_FICHE.map(champSaisi)}</div>
               <p className="m-0 mt-4 text-[11.5px] uppercase tracking-[.1em] text-menthe">Sur ses avis de valeur</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {CHAMPS_AVIS.map(([c, mot, type]) => (
-                  <label key={c} className="text-[11.5px] uppercase tracking-[.1em] text-brume">
-                    {mot}
-                    <input type={type} value={valeur(c, type)}
-                      onChange={(e) => setBrouillons((x) => ({ ...x, [m.email]: { ...b, [c]: e.target.value } }))}
-                      className="mt-1 w-full rounded-champ border border-trait bg-surface px-2.5 py-1.5 text-[13.5px] normal-case tracking-normal text-encre outline-none max-md:text-[16px]" />
-                  </label>
-                ))}
-              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">{CHAMPS_AVIS.map(champSaisi)}</div>
               <div className="mt-3 flex flex-wrap items-center gap-4">
                 {[["photo", "photo_url", "Photo"], ["signature", "signature_url", "Signature"]].map(([type, champ, mot]) => (
                   <label key={type} className="inline-flex cursor-pointer items-center gap-2.5 text-[12.5px] text-craie hover:text-encre">
@@ -563,8 +590,8 @@ function Mandataires() {
                   </label>
                 ))}
               </div>
-              {brouillons[m.email] && (
-                <button type="button" onClick={() => poser.mutate({ email: m.email, champs: brouillons[m.email] })} disabled={poser.isPending}
+              {Object.keys(modifies).length > 0 && (
+                <button type="button" onClick={() => poser.mutate({ email: m.email, champs: modifies })} disabled={poser.isPending}
                   className="mt-3 rounded-full bg-menthe px-4 py-1.5 text-[12px] font-semibold text-fond hover:bg-menthe-survol disabled:opacity-50">
                   Enregistrer
                 </button>
@@ -587,6 +614,7 @@ function Demandes() {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["admin-demandes"], queryFn: () => base44.request("GET", `${API}/demandes`) });
   const [forme, setForme] = useState(DEMANDE_VIDE);
+  const [aSupprimer, setASupprimer] = useState(null);
   const rafraichir = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-demandes"] });
     queryClient.invalidateQueries({ queryKey: ["mandataire-demandes"] });
@@ -617,7 +645,7 @@ function Demandes() {
     <div className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="m-0 max-w-[70ch] text-[13px] text-ardoise">
-          Les clients Monday en « Recherche » ou « Def Strategie » arrivent seuls, un peu anonymisés : sans nom, sans fonds propres ni revenus, le budget en fourchette.
+          Les clients Monday en « Recherche » ou « Def Strategie » arrivent seuls, anonymisés : sans nom (ses initiales), sans revenus, le budget en fourchette ; l'apport et les remarques suivent, le nom masqué.
           Le mandataire les lit sous « Client A », « Client B »… Une demande retouchée ici n'est plus réécrite par l'import.
         </p>
         <div className="flex items-center gap-3">
@@ -627,20 +655,6 @@ function Demandes() {
             <RefreshCw className={`h-3.5 w-3.5 ${synchroniser.isPending ? "animate-spin" : ""}`} /> Synchroniser Monday
           </button>
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {champ("profil", "Profil (SCI familiale…)", "text", "w-44")}
-        {champ("type_commerce", "Type (boulangerie…)", "text", "w-44")}
-        {champ("zones", "Zones, séparées par des virgules", "text", "w-56")}
-        {champ("budget_min", "Budget min €", "number", "w-32")}
-        {champ("budget_max", "Budget max €", "number", "w-32")}
-        {champ("rendement_min", "Rdt min %", "number", "w-24")}
-        {champ("bail", "Bail accepté", "text", "w-32")}
-        {champ("client_email", "Client (jamais montré)", "text", "w-52")}
-        <button type="button" onClick={() => poser.mutate(forme)} disabled={poser.isPending}
-          className="rounded-full bg-menthe px-4 py-2 text-[12px] font-semibold text-fond hover:bg-menthe-survol disabled:opacity-50">
-          Ajouter
-        </button>
       </div>
       <div className="mt-5">
         {demandes.map((d) => (
@@ -662,13 +676,30 @@ function Demandes() {
               title={d.visible === false ? "Cachée aux mandataires : cliquer pour la montrer" : "Visible des mandataires : cliquer pour la cacher"}>
               {d.visible === false ? "Cachée" : "Visible"}
             </button>
-            <button type="button" onClick={() => { if (window.confirm("Supprimer cette demande ?")) supprimer.mutate(d.id); }}
+            <button type="button" onClick={() => setASupprimer(d)}
               aria-label="Supprimer" title="Supprimer" className="grid h-9 w-9 place-items-center rounded-full text-brume hover:text-alerte" style={{ background: "transparent" }}>
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
         ))}
       </div>
+      <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
+        <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[20px] font-normal text-encre">Supprimer cette demande ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[14px] leading-[1.6] text-ardoise">
+              {aSupprimer && [aSupprimer.profil, aSupprimer.type_commerce, aSupprimer.zones?.length ? aSupprimer.zones.join(", ") : aSupprimer.zone_libre].filter(Boolean).join(" · ")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={supprimer.isPending} className="rounded-full border-trait bg-transparent text-craie hover:border-menthe hover:bg-transparent hover:text-encre">Annuler</AlertDialogCancel>
+            <AlertDialogAction disabled={supprimer.isPending} onClick={(e) => { e.preventDefault(); supprimer.mutate(aSupprimer.id); }}
+              className="rounded-full bg-alerte text-fond hover:bg-alerte/85">
+              {supprimer.isPending ? "Suppression…" : "Supprimer"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -681,16 +712,34 @@ function Prospections() {
   const { data } = useQuery({ queryKey: ["admin-prospections"], queryFn: () => base44.request("GET", `${API}/prospections`) });
   const prospections = data?.prospections || [];
   if (!prospections.length) return <p className="m-0 mt-6 text-[13.5px] text-brume">Aucune prospection lancée pour l'instant.</p>;
+  // Par mandataire : l'entonnoir trouvés → ajoutés → contactés → RDV, puis chacune de ses prospections.
+  const groupes = new Map();
+  for (const p of prospections) groupes.set(p.mandataire, [...(groupes.get(p.mandataire) || []), p]);
+  const ETAPES = [["trouves", "trouvés"], ["ajoutes", "ajoutés"], ["contactes", "contactés"], ["rdv", "RDV"], ["mandats", "mandats"]];
+  const somme = (liste, k) => liste.reduce((t, p) => t + (p[k] || 0), 0);
+  const entonnoir = (x) => ETAPES.map(([k, mot]) => `${x[k] || 0} ${mot}`).join(" · ");
   return (
-    <div className="mt-5">
-      {prospections.map((p) => (
-        <div key={p.id} className="border-t border-trait py-3 first:border-t-0">
-          <p className="m-0 text-[14px] text-encre">{p.nom} <span className="text-ardoise">· {p.mandataire}</span></p>
-          <p className="m-0 mt-0.5 text-[12.5px] text-ardoise">
-            {new Date(p.cree_le).toLocaleDateString("fr-FR")} · {p.trouves} trouvés · {p.ajoutes} ajoutés · {p.contactes} contactés · {p.rdv} RDV
-          </p>
-        </div>
-      ))}
+    <div className="mt-5 flex flex-col gap-6">
+      <p className="m-0 text-[13px] text-ardoise">Ce que chaque mandataire cherche, et où il en est. « Contactés » compte tous ceux qu'il a joints, RDV et mandats compris.</p>
+      {[...groupes.entries()].map(([email, liste]) => {
+        const total = Object.fromEntries(ETAPES.map(([k]) => [k, somme(liste, k)]));
+        return (
+          <div key={email}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-bord pb-2">
+              <p className="m-0 text-[15px] text-encre">{data.noms?.[email] || email}</p>
+              <p className="m-0 text-[12.5px] tabular-nums text-craie">{liste.length} prospection{liste.length > 1 ? "s" : ""} · {entonnoir(total)}</p>
+            </div>
+            {liste.map((p) => (
+              <div key={p.id} className="border-t border-trait py-3 first:border-t-0">
+                <p className="m-0 text-[14px] text-encre">{p.nom}</p>
+                <p className="m-0 mt-0.5 text-[12.5px] tabular-nums text-ardoise">
+                  {new Date(p.cree_le).toLocaleDateString("fr-FR")} · {entonnoir(p)}{p.a_appeler ? ` · ${p.a_appeler} à appeler` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

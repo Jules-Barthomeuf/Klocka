@@ -110,7 +110,12 @@ test('mise en marché : une étape à la fois, offres anonymes et validées avan
   const m = Records.list('MiseEnMarche')[0];
   assert.equal(P.avancerMarche(m.id, 'offre', ADMIN).ok, false, 'pas de saut');
   assert.equal(P.avancerMarche(m.id, 'presente', MOI).ok, false, 'Klocka avance');
+  assert.match(P.avancerMarche(m.id, 'presente', ADMIN).error, /mandataire valide/, 'pas présenté sans son accord');
+  assert.equal(P.validerPublication(m.id, AUTRE).ok, false, 'un autre mandataire ne valide pas');
+  assert.ok(P.validerPublication(m.id, MOI).marche.publication_validee_le);
+  assert.ok(P.fileDeValidation().some((l) => l.genre === 'marche' && l.id === m.id), 'Klocka voit qu’il peut présenter');
   assert.equal(P.avancerMarche(m.id, 'presente', ADMIN).marche.statut, 'presente');
+  assert.equal(P.validerPublication(m.id, MOI).ok, false, 'déjà présenté');
   P.noterActivite(m.id, { type: 'dossier_ouvert', client_nom: 'Yann Jaffré' }, ADMIN);
   P.poserOffre(m.id, { montant: 420000, client_nom: 'Yann Jaffré' }, ADMIN);
   let vu = P.marcheVuParMandataire(P.lireMarche(m.id, MOI));
@@ -147,7 +152,8 @@ test("une pièce jointe au chat se range dans le dossier du bien, ou sur l'estim
   assert.match(r.pour, /il manque/);
   const r2 = await executerOutilMandataire({ name: 'ranger_piece', input: { bien: 'la boulangerie martin', categorie: 'quittances' } }, MOI2, { piece: { nom: 'q.pdf', url: '/uploads/q.pdf' } });
   assert.equal(r2.ok, true, 'le même dossier, retrouvé par ses mots');
-  const d = P.listerDossiers(MOI2);
+  // Les deux dossiers d'exemple posés à l'arrivée ne reçoivent jamais la pièce.
+  const d = P.listerDossiers(MOI2).filter((x) => !x.exemple);
   assert.equal(d.length, 1);
   assert.deepEqual(Object.keys(d[0].documents).sort(), ['bail', 'quittances']);
   assert.equal((await executerOutilMandataire({ name: 'ranger_piece', input: { bien: 'X', categorie: 'bail' } }, MOI2, {})).ok, false, 'sans pièce jointe');
@@ -163,6 +169,14 @@ test("une offre ne se pose ni ne se transmet avant que le bien soit présenté",
   deciderDossier(d.id, { decision: 'go' }, admin);
   const m = Records.list('MiseEnMarche').find((x) => x.dossier_id === d.id);
   assert.equal(poserOffre(m.id, { montant: 100000, valider: true, argumentaire: 'x', client_nom: 'S' }, admin).ok, false, 'pas d\'offre en préparation');
+  P.validerPublication(m.id, moi);
   avancerMarche(m.id, 'presente', admin);
   assert.equal(poserOffre(m.id, { montant: 100000, valider: true, argumentaire: 'x' }, admin).ok, true, 'une fois présenté, oui');
+});
+
+test('un compte d’essai n’écrit pas dans le Monday de l’équipe', () => {
+  assert.equal(P.compteEssai('test.mandataire@kpartners.fr'), true);
+  assert.equal(P.compteEssai('Test-2@kpartners.fr'), true);
+  assert.equal(P.compteEssai('marc@kpartners.fr'), false);
+  assert.equal(P.compteEssai('attestation@kpartners.fr'), false);
 });

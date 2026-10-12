@@ -208,3 +208,54 @@ test('06/10 · segments : règles ET / OU sur les champs, les tags et les listes
   const r = await E.envoyerPlateforme('invitation_client', { a: 'rebond@exemple.fr', vars: {} }, { envoyer: async () => ({ ok: true }) });
   assert.equal(r.bloque, true, 'une adresse en bounce n\'est servie par aucune voie, même la plateforme');
 });
+
+test("les polices d'un email : titres et texte dans le HTML, le lien Google seulement s'il en faut un, une police inconnue écartée", () => {
+  const { html } = D.rendreEmail({ theme: 'clair', police: 'georgia', police_titres: 'playfair', blocs: [{ id: 't', type: 'titre', texte: 'Bonjour' }, { id: 'x', type: 'texte', texte: 'Corps' }] });
+  assert.match(html, /<h1 style="[^"]*font-family:'Playfair Display',Georgia,serif/);
+  assert.match(html, /<p style="[^"]*font-family:Georgia,'Times New Roman',serif/);
+  assert.match(html, /fonts\.googleapis\.com\/css2\?family=Playfair\+Display/);
+  assert.equal(D.lienPolices({ police: 'arial' }), null);
+  assert.ok(!D.rendreEmail({ theme: 'clair', blocs: [] }).html.includes('googleapis'));
+  assert.deepEqual(D.policesPropres({ police: 'comic', police_titres: 'lora' }), { police: null, police_titres: 'lora' });
+});
+
+test("La Note et La Lettre : le bandeau, les points, l'encadré, la carte de rendez-vous, la signature à initiale, et le texte brut", async () => {
+  const M = await import('./modeles.js');
+  const note = D.rendreEmail(M.designNote(), { prenom: 'Marie', lien_simulateur: 'https://s/x' }, { desinscription: 'https://d', logo: 'https://l.png' });
+  assert.match(note.html, /LA NOTE|La Note/);
+  assert.match(note.html, /linear-gradient/);
+  assert.match(note.html, /Ai-je ajouté les frais de notaire/);
+  assert.match(note.html, /Réserver &rarr;/);
+  assert.match(note.html, /participé à un webinaire Klocka/);
+  assert.match(note.texte, /- Ai-je prévu des mois sans loyer \?/);
+  assert.ok(note.html.indexOf('3 points à vérifier') < note.html.indexOf('Le rendement affiché'), 'le surtitre est dans le bandeau, avant la carte');
+  const lettre = D.rendreEmail({ ...M.designLettre(), numero: '12' }, { prenom: 'Marie', lien_simulateur: 'https://s/x' }, { desinscription: 'https://d', adresse: '1 rue de Klocka, Paris' });
+  assert.match(lettre.html, /Klocka · La Note · N°12/);
+  assert.match(lettre.html, /Bonjour Marie,/);
+  assert.match(lettre.html, /Klocka · Murs de commerce/);
+  assert.match(lettre.html, /1 rue de Klocka, Paris/);
+  assert.match(lettre.html, /family=Newsreader/);
+  assert.deepEqual(D.policesPropres({ gabarit: 'note', numero: ' 3 ', marque: 'La Note' }).gabarit, 'note');
+  assert.equal(D.policesPropres({ gabarit: 'inconnu' }).gabarit, undefined);
+});
+
+
+test("Idée reçue et Cas réel : la Note claire (pastille, tableau, encadré teinté) et le Dossier (tuiles, étapes, verdict, pied de carte)", async () => {
+  const M = await import('./modeles.js');
+  const idee = D.rendreEmail(M.designIdee(), {}, { desinscription: 'https://d', logo: 'https://l.png' });
+  assert.match(idee.html, /border-radius:999px;padding:5px 10px">La Note</);
+  assert.match(idee.html, /L'annonce dit/);
+  assert.match(idee.html, /Loyer moins taxe foncière/);
+  assert.match(idee.html, /Réalité/);
+  assert.match(idee.html, /background-color:#94ab9f/);
+  assert.match(idee.texte, /Prix d'achat \| Prix \+ frais de notaire/);
+  const cas = D.rendreEmail(M.designCas(), {}, { desinscription: 'https://d' });
+  assert.match(cas.html, /Cas réel/);
+  assert.match(cas.html, /\[ACTIVITÉ\]/);
+  assert.match(cas.html, /Notre verdict/);
+  assert.match(cas.html, /Charges non refacturées :/);
+  assert.match(cas.html, /border-top:1px solid/);
+  assert.match(cas.texte, /3\. Risque de vacance :/);
+  assert.equal(D.melange('#000000', '#ffffff', 0.5), '#808080');
+  assert.equal(D.policesPropres({ gabarit: 'dossier', accent: '#94AB9F' }).accent, '#94ab9f');
+});

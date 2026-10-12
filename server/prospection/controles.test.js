@@ -47,6 +47,12 @@ test("le contrôle de la nuit : agent suivi sans date, doublon et désaccord Mon
     { id: '42', nom: 'Sophie Monday', telephone: '06 22 22 22 22', relance: '2026-11-10' },
     { id: '43', nom: 'Sophie bis', telephone: '0622222222', relance: '' },
     { id: '44', nom: 'Autre', telephone: '0633333333', relance: '' },
+    // Le standard d'une agence : deux personnes, un numéro, pas un doublon.
+    { id: '45', nom: 'Clément Boyer', telephone: '0644444444', relance: '' },
+    { id: '46', nom: 'François', telephone: '0644444444', relance: '' },
+    // Le même, casse et accents mis à part : un doublon.
+    { id: '47', nom: 'Benoît TORDO', telephone: '0655555555', relance: '' },
+    { id: '48', nom: 'Benoit Tordo', telephone: '0655555555', relance: '' },
   ];
   const r = await C.controler({ maintenantD: MAINTENANT, lireMonday });
   const de = (cle) => r.regles.find((x) => x.cle === cle);
@@ -54,8 +60,9 @@ test("le contrôle de la nuit : agent suivi sans date, doublon et désaccord Mon
   assert.match(de('relance_pour_tous').details[0], /Marc Sansdate/);
   assert.equal(de('monday_accord').n, 1);
   assert.match(de('monday_accord').details[0], /08\/11 ici, 10\/11 dans Monday/);
-  assert.equal(de('doublons_monday').n, 1);
+  assert.equal(de('doublons_monday').n, 2);
   assert.match(de('doublons_monday').details[0], /2 lignes \(Sophie Monday, Sophie bis\)/);
+  assert.match(de('doublons_monday').details[1], /Benoît TORDO, Benoit Tordo/);
   assert.equal(de('un_seul_endroit').ok, true);
   assert.equal(r.conforme, false);
   assert.equal(r.regles.length, 9);

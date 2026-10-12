@@ -11,6 +11,7 @@ export const ENTREES_ADMIN = [
   { cle: "FichesCommerciales", label: "Fiches" },
   { cle: "Prospection", label: "Prospection" },
   { cle: "Relances", label: "Relances" },
+  { cle: "OffMarket", label: "Off-market" },
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },
   { cle: "Monitoring", label: "Suivi" },
@@ -25,6 +26,7 @@ export const ENTREES_AUTRE = [
   { cle: "AdminLeadMagnets", label: "Lead magnets" },
   { cle: "AdminRessources", label: "Ressources" },
   { cle: "AdminPortail", label: "Portails" },
+  { cle: "AdminEquipe", label: "Équipe" },
   { cle: "AdminMandataires", label: "Mandataires" },
   { cle: "AdminValidations", label: "Validations" },
   { cle: "ImportProjets", label: "Import de projets" },
@@ -52,6 +54,7 @@ export const ENTREES_MANDATAIRE = [
   { cle: "MandataireMandat", label: "Mandat" },
   { cle: "MandataireDossier", label: "Dossiers" },
   { cle: "MandataireMarche", label: "Mise en marché" },
+  { cle: "MandataireOffMarket", label: "Off-market" },
   { cle: "MandataireProjets", label: "Projets" },
   { cle: "Feedback", label: "Feedback" },
   { cle: "Personnalisation", label: "Compte" },
@@ -60,7 +63,7 @@ export const ENTREES_MANDATAIRE = [
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [
   ["Dashboard", "Dashboard"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"], ["FichesCommerciales", "Fiches"],
-  ["Prospection", "Prospection"], ["Relances", "Relances"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["SimulateurRentabilite", "Simulateur"],
+  ["Prospection", "Prospection"], ["Relances", "Relances"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["SimulateurRentabilite", "Simulateur"],
 ];
 export const PAGES_OUVERTURE_CLIENT = [
   ["Dashboard", "Dashboard"], ["MesProjets", "Mes projets"], ["SimulateurRentabilite", "Simulateur"], ["Ressources", "Ressources"],

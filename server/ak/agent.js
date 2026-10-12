@@ -160,6 +160,19 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'inserer_asset',
+    description: "Met un ASSET (simulateur, quiz, lead magnet, lien, encadré : la liste ASSETS DISPONIBLES) dans un mail de la newsletter ouverte, tel quel, juste avant la signature. Pour « mets le simulateur dans le mail 2 », « ajoute le quiz au premier mail ». Plus sûr que de recopier ses blocs avec rediger_newsletter : le lien personnel reste exact.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        newsletter_id: { type: 'string', description: 'la newsletter ouverte' },
+        mail: { type: 'number', description: 'le rang du mail, à partir de 1' },
+        asset: { type: 'string', description: 'le nom de l\'asset, tel que dans la liste' },
+      },
+      required: ['newsletter_id', 'mail', 'asset'],
+    },
+  },
+  {
     name: 'rediger_newsletter',
     description: "Crée ou réécrit une NEWSLETTER (page Emailing) : une cohorte fixe (les listes d'un webinaire), une date de départ, un rythme (14 jours par défaut) et une heure fixe ; ses mails sont datés au calendrier (départ + rang × rythme), et chacun reste en BROUILLON : l'équipe le retouche puis le marque Prêt, rien ne part avant. Pour la newsletter ouverte à droite : newsletter_id et la liste COMPLÈTE des mails NON ENVOYÉS telle qu'elle doit être (ceux qu'on ne touche pas, recopiés à l'identique) ; les mails déjà partis ne changent jamais.",
     input_schema: {
@@ -184,10 +197,17 @@ const OUTILS_AK = [
                 items: {
                   type: 'object',
                   properties: {
-                    type: { type: 'string', enum: ['titre', 'texte', 'bouton', 'image', 'separateur', 'signature'] },
+                    type: { type: 'string', enum: ['surtitre', 'etiquette', 'titre', 'chapo', 'intertitre', 'texte', 'points', 'etapes', 'tableau', 'chiffres', 'encadre', 'verdict', 'bouton', 'legende', 'image', 'citation', 'separateur', 'signature', 'rdv'] },
                     texte: { type: 'string', description: '**gras** et retours à la ligne permis ; {{prenom}}' },
-                    lien: { type: 'string', description: 'pour un bouton ou une image ; {{lien_simulateur}} pour le simulateur' },
+                    lien: { type: 'string', description: 'pour un bouton, une image ou une carte de rendez-vous ; {{lien_simulateur}} pour le simulateur' },
                     src: { type: 'string' },
+                    items: { type: 'array', items: { type: 'object', properties: { titre: { type: 'string' }, texte: { type: 'string' }, label: { type: 'string' }, valeur: { type: 'string' }, fort: { type: 'boolean' } } }, description: 'points et etapes : { titre, texte } ; chiffres : { label, valeur, fort } (fort : la tuile mise en avant)' },
+                    entetes: { type: 'array', items: { type: 'string' }, description: 'tableau : les deux en-têtes' },
+                    lignes: { type: 'array', items: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' } } }, description: 'tableau : chaque ligne, colonne gauche a et droite b' },
+                    titre: { type: 'string', description: 'rdv : le titre de la carte (« Un bien en vue ? »)' },
+                    lien_texte: { type: 'string', description: 'rdv : le texte du lien (« Réserver »)' },
+                    sous_titre: { type: 'string', description: 'signature : la ligne sous le nom' },
+                    initiale: { type: 'string', description: 'signature ou rdv : l\'initiale dans le rond' },
                   },
                   required: ['type'],
                 },
@@ -773,6 +793,12 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     fond({ genre: 'loi', libelle: `la LOI pour ${champs.adresse_bien}`, champs, format: input.format === 'pdf' ? 'pdf' : 'docx', deal_id: dealId });
     return { ok: true, loi_id: l.id, note: 'La lettre se rédige ; AK la pose dans le chat dans une minute, à relire avant envoi.' };
   }
+  if (name === 'inserer_asset') {
+    const N = await import('../emailing/newsletters.js');
+    const r = await N.insererAsset(String(input.newsletter_id || ''), Number(input.mail), input.asset);
+    if (!r.ok) return r;
+    return { ok: true, newsletter_id: input.newsletter_id, note: `« ${r.asset} » est dans le mail ${r.rang}, avant la signature, visible à droite. Dis-le en une ligne.` };
+  }
   if (name === 'rediger_newsletter') {
     const N = await import('../emailing/newsletters.js');
     const E = await import('../emailing/index.js');
@@ -782,6 +808,10 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
         id: `b${Date.now().toString(36)}${i}${k}`, type: b.type,
         ...(b.type === 'signature' ? { texte: String(b.texte || '').trim() || "L'équipe Klocka" } : b.texte != null ? { texte: b.texte } : {}),
         ...(b.lien ? { lien: b.lien } : {}), ...(b.src ? { src: b.src } : {}),
+        ...(Array.isArray(b.items) ? { items: b.items.slice(0, 9).map((x) => (b.type === 'chiffres' ? { label: String(x?.label || ''), valeur: String(x?.valeur || ''), ...(x?.fort ? { fort: true } : {}) } : { titre: String(x?.titre || ''), texte: String(x?.texte || '') })) } : {}),
+        ...(Array.isArray(b.entetes) ? { entetes: b.entetes.slice(0, 2).map(String) } : {}),
+        ...(Array.isArray(b.lignes) ? { lignes: b.lignes.slice(0, 10).map((x) => ({ a: String(x?.a || ''), b: String(x?.b || '') })) } : {}),
+        ...Object.fromEntries(['titre', 'lien_texte', 'sous_titre', 'initiale', 'auteur', 'ton', 'vide'].filter((k) => b[k] != null).map((k) => [k, String(b[k])])),
       })) },
     }));
     if (!nouveaux.length) return { ok: false, error: 'Une newsletter a au moins un mail.' };
@@ -795,7 +825,9 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     // Les mails partis restent ; les autres sont remplacés, dans l'ordre, et repassent en brouillon.
     const partis = (n.mails || []).filter((m) => m.statut === 'envoye');
     const restants = (n.mails || []).filter((m) => m.statut !== 'envoye');
-    const mails = [...partis, ...nouveaux.map((m, i) => ({ ...(restants[i] || {}), id: restants[i]?.id || `m${Date.now().toString(36)}${i}`, ...m, statut: 'brouillon', date: restants[i]?.date || null }))];
+    // Les polices, la mise en page, le numéro et la marque choisis dans l'éditeur restent : AK réécrit les textes, pas le dessin.
+    const polices = (d) => (d ? Object.fromEntries(['police', 'police_titres', 'gabarit', 'numero', 'marque', 'logo', 'accent'].filter((k) => d[k] != null).map((k) => [k, d[k]])) : {});
+    const mails = [...partis, ...nouveaux.map((m, i) => ({ ...(restants[i] || {}), id: restants[i]?.id || `m${Date.now().toString(36)}${i}`, ...m, ...(m.design ? { design: { ...polices(restants[i]?.design), ...m.design } } : {}), statut: 'brouillon', date: restants[i]?.date || null }))];
     Records.update(N.NEWSLETTER, n.id, { mails });
     const r = N.modifierNewsletter(n.id, reglages);
     if (!r.ok) return r;

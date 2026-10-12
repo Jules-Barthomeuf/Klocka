@@ -4,7 +4,7 @@ import { Check, ChevronDown, Clapperboard, ExternalLink, Plus } from "lucide-rea
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J, alpha } from "@/design/jetons";
-import { Bouton, BoutonFichier, Carte, EnTete, Frise, LienFichier, dateCourte, euros, formDe } from "@/components/mandataire/kit";
+import { BandeauExemples, Bouton, BoutonFichier, Carte, EnTete, Frise, LienFichier, PastilleExemple, dateCourte, euros, formDe } from "@/components/mandataire/kit";
 
 // Mise en marché, porte 3 (spécification V1, section 10). Après le go :
 // Klocka produit le dossier investisseur, le mandataire tourne la vidéo,
@@ -55,6 +55,7 @@ export default function MandataireMarche() {
         </Carte>
       )}
 
+      <BandeauExemples liste={marches} />
       <div className="mt-6 space-y-3">
         {isLoading && <p className="m-0 text-[13.5px] text-brume">Lecture…</p>}
         {!isLoading && !marches.length && <p className="m-0 text-[13.5px] text-brume">Aucun bien en mise en marché : ils arrivent ici quand un analyste donne le go à un dossier.</p>}
@@ -62,7 +63,7 @@ export default function MandataireMarche() {
           <div key={m.id}>
             <Carte actif={ouvert === m.id} onClick={() => setOuvert(ouvert === m.id ? null : m.id)}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="m-0 text-[15.5px] text-encre">{m.bien}</p>
+                <p className="m-0 text-[15.5px] text-encre">{m.bien}<PastilleExemple x={m} /></p>
                 <span className="text-[12.5px] text-ardoise">{(m.activite || []).length} signe{(m.activite || []).length > 1 ? "s" : ""} d'intérêt · {(m.offres || []).length} offre{(m.offres || []).length > 1 ? "s" : ""}</span>
               </div>
               <div className="mt-3"><Frise etapes={ETAPES_MARCHE} statut={m.statut} /></div>
@@ -81,6 +82,7 @@ function Detail({ m, types, rafraichir }) {
   const video = useMutation({ mutationFn: (f) => base44.request("POST", `${API}/${m.id}/video`, { body: formDe(f), isForm: true }), onSuccess: () => { rafraichir(); toast.success("Vidéo déposée"); }, onError: onErr });
   const repondre = useMutation({ mutationFn: ({ offre, reponse }) => base44.request("POST", `${API}/${m.id}/offres/${offre}/reponse`, { body: { reponse } }), onSuccess: rafraichir, onError: onErr });
   const noter = useMutation({ mutationFn: () => base44.request("POST", `${API}/${m.id}/suivi`, { body: { texte: note } }), onSuccess: () => { setNote(""); rafraichir(); }, onError: onErr });
+  const publier = useMutation({ mutationFn: () => base44.request("POST", `${API}/${m.id}/publication`), onSuccess: () => { rafraichir(); toast.success("Publication validée : Klocka présente le bien"); }, onError: onErr });
   const cocher = useMutation({ mutationFn: (i) => base44.request("POST", `${API}/${m.id}/suivi/${i}`), onSuccess: rafraichir, onError: onErr });
   const avance = ["compromis", "acte", "commission_payee"].includes(m.statut) || m.statut === "offre";
 
@@ -96,6 +98,14 @@ function Detail({ m, types, rafraichir }) {
             <span key={k} className="rounded-full border border-trait px-3 py-1.5 text-[12.5px] text-brume">{mot} · en préparation</span>
           )))}
         </div>
+        {m.statut === "preparation" && (m.publication_validee_le ? (
+          <p className="m-0 mt-3 text-[13px] text-ardoise">Publication validée le {dateCourte(m.publication_validee_le)} : Klocka présente le bien aux clients.</p>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p className="m-0 flex-1 text-[13px] text-ardoise">Relisez ce que Klocka a préparé. Rien n'est présenté aux clients sans votre accord, et le client n'est jamais nommé.</p>
+            <Bouton principal onClick={() => publier.mutate()} disabled={publier.isPending}>Valider la publication</Bouton>
+          </div>
+        ))}
       </Section>
 
       <Section mot="La vidéo">

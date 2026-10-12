@@ -124,7 +124,7 @@ export function OngletAgentIA({ onOuvrirListe }) {
                       </span>
                     </span>
                     <span className="mt-1 block text-[13px] text-ardoise">
-                      {l.agences} agence{l.agences > 1 ? "s" : ""} · {l.avec_telephone} avec un numéro{l.au_carnet ? ` · ${l.au_carnet} au carnet` : ""}
+                      {l.type === "commerces" ? `${l.agences} commerce${l.agences > 1 ? "s" : ""} d'Off-market · propriétaires de murs` : `${l.agences} agence${l.agences > 1 ? "s" : ""}`} · {l.avec_telephone} avec un numéro{l.au_carnet && l.type !== "commerces" ? ` · ${l.au_carnet} au carnet` : ""}
                     </span>
                   </span>
                   <span className="flex-none text-[12.5px] text-brume">{ilYa(l.fini_le || l.lancee_le)}</span>

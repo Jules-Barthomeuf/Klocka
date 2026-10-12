@@ -785,6 +785,22 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
   @page { margin: 12mm; }
 }
 
+/* La barre de recherche du mode Simple d'Off-market (11 oct. 2026) : un
+   liseré dégradé, ambre, corail, bleu, menthe, autour d'un fond sombre. */
+.k-barre-degrade { position: relative; }
+.k-barre-degrade::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(90deg, rgb(var(--k-ambre-rgb)) 0%, rgb(var(--k-alerte-rgb)) 32%, rgb(var(--k-bleu-rgb)) 66%, rgb(var(--k-menthe-rgb)) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 /* L'onglet Agent IA : son liseré multicolore tourne doucement. */
 @property --agent-angle { syntax: "<angle>"; initial-value: 90deg; inherits: false; }
 @keyframes agent-tourne { to { --agent-angle: 450deg; } }

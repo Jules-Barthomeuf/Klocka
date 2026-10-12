@@ -30,11 +30,12 @@ const noter = (visite, type, valeurs = null) => {
 };
 
 /**
- * Le suivi du simulateur : les valeurs au premier affichage, puis six secondes
- * après chaque changement. Rend le visiteur (prénom, adresse) pour préremplir
+ * Le suivi du simulateur, ou d'un autre outil public (`type` : quiz, vision) :
+ * les valeurs au premier affichage, puis six secondes après chaque changement ;
+ * rien tant qu'elles sont nulles. Rend le visiteur (prénom, adresse) pour préremplir
  * le rendez-vous.
  */
-export function useVisiteSimulateur(valeurs) {
+export function useVisiteSimulateur(valeurs, type = "simulateur") {
   const visite = useRef(lireVisite());
   const [qui, setQui] = useState(null);
   const minuteur = useRef(null);
@@ -45,9 +46,9 @@ export function useVisiteSimulateur(valeurs) {
   }, []);
   const cle = JSON.stringify(valeurs);
   useEffect(() => {
-    if (!visite.current?.k) return undefined;
+    if (!visite.current?.k || !valeurs) return undefined;
     clearTimeout(minuteur.current);
-    minuteur.current = setTimeout(() => { noter(visite.current, "simulateur", valeurs); }, premier.current ? 1500 : 6000);
+    minuteur.current = setTimeout(() => { noter(visite.current, type, valeurs); }, premier.current ? 1500 : 6000);
     premier.current = false;
     return () => clearTimeout(minuteur.current);
   }, [cle]);
@@ -55,7 +56,7 @@ export function useVisiteSimulateur(valeurs) {
 }
 
 /** Le bouton « Parler au fondateur » et sa fenêtre Calendly. */
-export default function RendezVousFondateur({ visite, qui }) {
+export default function RendezVousFondateur({ visite, qui, libelle = "Parler au fondateur" }) {
   const [ouvert, setOuvert] = useState(false);
   const [pris, setPris] = useState(!!qui?.call_pris);
   useEffect(() => { if (qui?.call_pris) setPris(true); }, [qui?.call_pris]);
@@ -79,7 +80,7 @@ export default function RendezVousFondateur({ visite, qui }) {
     <>
       <button type="button" onClick={() => { setOuvert(true); noter(visite, "clic_call"); }}
         className="flex h-8 flex-none items-center gap-1.5 rounded-full bg-menthe px-3.5 text-xs font-medium text-sur-menthe transition-colors hover:bg-menthe-survol">
-        {pris ? <Check className="h-3.5 w-3.5" /> : <PhoneCall className="h-3.5 w-3.5" />}{pris ? "Call réservé" : "Parler au fondateur"}
+        {pris ? <Check className="h-3.5 w-3.5" /> : <PhoneCall className="h-3.5 w-3.5" />}{pris ? "Call réservé" : libelle}
       </button>
       {ouvert && createPortal(
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 duration-200 animate-in fade-in max-md:p-0" onClick={() => setOuvert(false)}>

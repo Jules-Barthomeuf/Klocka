@@ -12,6 +12,7 @@
 // relance du propriétaire se préparent ; le mandataire les envoie lui-même.
 
 import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
+import { semerExemples, REFUS_EXEMPLE } from './mandataire-exemples.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (user) => String(user?.email || '').toLowerCase();
@@ -24,10 +25,14 @@ function lire(entite, id, user) {
   if (!x) return null;
   return estAdmin(user) || x.mandataire_email === emailDe(user) ? x : null;
 }
-const lister = (entite, user) =>
-  Records.list(entite)
-    .filter((x) => estAdmin(user) || x.mandataire_email === emailDe(user))
+// À sa première visite, un mandataire reçoit des fiches d'exemple (mandataire-exemples.js) ;
+// l'admin ne voit jamais celles des autres.
+const lister = (entite, user) => {
+  if (!estAdmin(user)) semerExemples(user);
+  return Records.list(entite)
+    .filter((x) => (estAdmin(user) ? !x.exemple || x.mandataire_email === emailDe(user) : x.mandataire_email === emailDe(user)))
     .sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
+};
 
 /** Une transition : l'état de départ doit être l'un des attendus. */
 function passer(entite, x, attendus, statut, user, action, extra = {}) {
@@ -310,7 +315,7 @@ export function enregistrerMandat(id, user) {
 /** Le registre : les mandats inscrits, dans l'ordre des numéros. */
 export function registreMandats() {
   return Records.list('MandatMandataire')
-    .filter((m) => m.numero_registre)
+    .filter((m) => m.numero_registre && !m.exemple)
     .sort((a, b) => a.numero_registre.localeCompare(b.numero_registre));
 }
 
@@ -587,6 +592,7 @@ async function deposerSurDeal(id, dealId, user, uploadDir) {
     const fichiers = aDeposer.map((f) => ({ nom: f.nom, chemin: path.basename(f.url), mime: /\.pdf$/i.test(f.nom || '') ? 'application/pdf' : undefined }));
     const r = await classerDansDrive(compte, `${d.bien}${d.proprietaire ? ` — ${d.proprietaire}` : ''} (K Partners)`, fichiers, uploadDir);
     Records.update('DossierMandataire', d.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
+    await pousserDossierMonday(d.id);
     if (r.erreurs.length) console.warn(`[dossier mandataire] Drive : ${r.erreurs.join(' ; ')}`);
   } catch (e) {
     console.warn(`[dossier mandataire] Drive indisponible : ${e?.message || e}`);
@@ -597,9 +603,37 @@ async function deposerSurDeal(id, dealId, user, uploadDir) {
  * Le dossier part chez Klocka, dès une pièce : un dossier naît côté admin (origine
  * mandataire), les pièces y sont déposées et lues, un analyste le prend.
  */
+/** Pure : un compte d'essai (test.mandataire@…) n'écrit jamais dans le Monday de l'équipe. */
+export const compteEssai = (email) => /^test[._-]/i.test(String(email || '').trim());
+
+/**
+ * Le dossier envoyé devient un bien du tableau « Propriétés » de Monday, comme
+ * ceux de l'équipe : prix, loyer, statut, lien Drive des pièces. `creer` :
+ * seule la fin de la pré-analyse pose l'élément ; le classement Drive, qui
+ * tourne en même temps, ne fait que compléter un élément déjà posé (sinon deux
+ * éléments naîtraient).
+ */
+export async function pousserDossierMonday(dossierId, { creer = false } = {}) {
+  const d = Records.get('DossierMandataire', dossierId);
+  if (d?.exemple) return { ok: false, error: REFUS_EXEMPLE };
+  const deal = d?.deal_id ? Records.findBy('Deal', 'deal_id', d.deal_id) : null;
+  if (!deal || deal.test || compteEssai(d.mandataire_email)) return { ignore: true };
+  if (!creer && !deal.monday_item_id) return { ignore: true };
+  if (d.drive_folder_url && !deal.drive_folder_url) Records.update('Deal', deal.id, { drive_folder_url: d.drive_folder_url });
+  const { pousserBien } = await import('./deal/monday-sync.js');
+  try {
+    return await pousserBien(Records.findBy('Deal', 'deal_id', d.deal_id), { motif: `Dossier K Partners, apporté par ${d.mandataire_email}` });
+  } catch (e) {
+    const frais = Records.findBy('Deal', 'deal_id', d.deal_id);
+    Records.update('Deal', frais.id, { suivi: [...(frais.suivi || []), { le: maintenant(), par: null, type: 'monday_echec', detail: `Monday non mis à jour : ${e?.message || e}` }] });
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
 export async function soumettreDossier(id, user, { uploadDir, analyste = null } = {}) {
   const d = lireDossier(id, user);
   if (!d) return { ok: false, error: 'Dossier introuvable.' };
+  if (d.exemple) return { ok: false, error: REFUS_EXEMPLE };
   if (!['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est déjà chez Klocka.' };
   const c = checklist(d);
   if (!c.envoyable) {
@@ -710,6 +744,7 @@ export async function preanalyserDossierMandataire(dossierId, dealId, user, { up
     });
   }
   const verdict = resultat?.lots?.[0]?.evaluation?.verdict || null;
+  await pousserDossierMonday(d.id, { creer: true });
   try {
     const F = await import('./fil-dossier.js');
     F.poserMessage(d.id, { cote: 'systeme', genre: 'note', interne: true, texte: `Pré-analyse faite${verdict ? ` : ${verdict}` : ''}. Le dossier est à l'étape Analyse.` });
@@ -820,7 +855,23 @@ export function avancerMarche(id, statut, user, extra = {}) {
   if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
   const i = STATUTS_MARCHE.indexOf(m.statut);
   if (STATUTS_MARCHE.indexOf(statut) !== i + 1) return { ok: false, error: 'On avance d’une étape à la fois.' };
+  if (statut === 'presente' && !m.publication_validee_le) return { ok: false, error: 'Le mandataire valide d’abord la publication du bien.' };
   return passer('MiseEnMarche', m, [m.statut], statut, user, `→ ${statut}`, extra);
+}
+
+/**
+ * Le mandataire relit ce que Klocka a préparé (teaser, fiche, data room) et
+ * valide la publication : sans elle, le bien n'est pas présenté aux clients.
+ */
+export function validerPublication(id, user) {
+  const m = lireMarche(id, user);
+  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (String(m.mandataire_email || '').toLowerCase() !== String(user?.email || '').toLowerCase()) return { ok: false, error: 'Seul le mandataire du bien valide sa publication.' };
+  if (m.statut !== 'preparation') return { ok: false, error: 'Le bien est déjà présenté.' };
+  if (m.publication_validee_le) return { ok: true, marche: m };
+  const marche = Records.update('MiseEnMarche', m.id, { publication_validee_le: maintenant(), publication_validee_par: user.email, historique: trace(m, 'publication validée par le mandataire', user) });
+  import('./fil-dossier.js').then((F) => F.evenement(m.dossier_id, 'Le mandataire a validé la publication : Klocka peut présenter le bien aux clients.')).catch(() => {});
+  return { ok: true, marche };
 }
 
 export function poserLivrable(id, cle, lien, user) {
@@ -920,14 +971,17 @@ const HEURES = (iso) => (iso ? Math.round((Date.now() - Date.parse(iso)) / 36000
 
 export function fileDeValidation() {
   const lignes = [];
-  for (const m of Records.list('MandatMandataire').filter((x) => ['demande_envoyee', 'signe'].includes(x.statut))) {
+  for (const m of Records.list('MandatMandataire').filter((x) => !x.exemple && ['demande_envoyee', 'signe'].includes(x.statut))) {
     const depuis = m.statut === 'signe' ? m.signe_le : m.demande_envoyee_le;
     lignes.push({ genre: 'mandat', id: m.id, titre: `${m.bien} · ${m.vendeur}`, mandataire: m.mandataire_email, depuis, heures: HEURES(depuis), delai_h: m.statut === 'signe' ? 48 : 48, statut: m.statut, action: m.statut === 'signe' ? 'Inscrire au registre' : 'Vérifier prix et honoraires, rédiger sur MyNotary' });
   }
-  for (const d of Records.list('DossierMandataire').filter((x) => x.statut === 'en_etude')) {
+  for (const d of Records.list('DossierMandataire').filter((x) => !x.exemple && x.statut === 'en_etude')) {
     lignes.push({ genre: 'dossier', id: d.id, titre: d.bien, mandataire: d.mandataire_email, depuis: d.en_etude_le, heures: HEURES(d.en_etude_le), delai_h: 72, deal_id: d.deal_id, action: 'Analyser, décider go / compléments / no-go' });
   }
-  for (const m of Records.list('MiseEnMarche')) {
+  for (const m of Records.list('MiseEnMarche').filter((x) => !x.exemple && x.statut === 'preparation' && x.publication_validee_le)) {
+    lignes.push({ genre: 'marche', id: m.id, titre: m.bien, mandataire: m.mandataire_email, depuis: m.publication_validee_le, heures: HEURES(m.publication_validee_le), delai_h: 48, action: 'Publication validée par le mandataire : présenter le bien aux clients' });
+  }
+  for (const m of Records.list('MiseEnMarche').filter((x) => !x.exemple)) {
     const aValider = (m.offres || []).filter((o) => !o.validee);
     if (aValider.length) lignes.push({ genre: 'offre', id: m.id, titre: `${m.bien} · ${aValider.length} offre${aValider.length > 1 ? 's' : ''}`, mandataire: m.mandataire_email, depuis: aValider[0].le, heures: HEURES(aValider[0].le), delai_h: 24, action: 'Valider l’offre et son argumentaire' });
   }

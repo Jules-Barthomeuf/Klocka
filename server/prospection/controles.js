@@ -86,7 +86,11 @@ export async function controler({ maintenantD = new Date(), lireMonday = null } 
       if (!parTel.has(t)) parTel.set(t, []);
       parTel.get(t).push(l);
     }
-    const doublons = [...parTel.entries()].filter(([, t]) => t.length > 1).map(([tel, t]) => `${R.telAffiche(tel)} : ${t.length} lignes (${t.map((l) => String(l.nom || l.entreprise || l.id).replace(/\u200b/g, '').trim() || 'sans nom').slice(0, 3).join(', ')})`);
+    // Un même numéro sous deux noms sans un mot commun (« Clément Boyer », « François ») est le standard
+    // d'une agence, pas un doublon (10 oct. 2026). Un nom en commun, casse et accents mis à part, en est un.
+    const mots = (l) => new Set(R.norm(String(l.nom || l.entreprise || '').replace(/\u200b/g, '')).split(' ').filter((m) => m.length >= 3));
+    const memePersonne = (t) => t.some((a, i) => t.slice(i + 1).some((b) => { const ma = mots(a); return [...mots(b)].some((m) => ma.has(m)); }));
+    const doublons = [...parTel.entries()].filter(([, t]) => t.length > 1 && memePersonne(t)).map(([tel, t]) => `${R.telAffiche(tel)} : ${t.length} lignes (${t.map((l) => String(l.nom || l.entreprise || l.id).replace(/\u200b/g, '').trim() || 'sans nom').slice(0, 3).join(', ')})`);
     regles.push(regle('doublons_monday', 'Pas de doublon dans Monday', doublons));
   } else {
     regles.push(regle('monday_accord', 'Monday et la plateforme sont d\'accord', [], { non_verifie: raisonMonday }));
@@ -113,11 +117,12 @@ export async function controler({ maintenantD = new Date(), lireMonday = null } 
   const sansValidation = partis.filter((m) => (m.appel_id ? Records.get(APPEL, m.appel_id)?.etat !== 'valide' : !m.par)).map((m) => `« ${m.objet} » à ${m.a} (${R.dateCourte(String(m.envoye_le).slice(0, 10))}) : aucune validation`);
   regles.push(regle('sans_validation', 'Rien ne part sans validation', sansValidation));
 
-  // 9. Les fiches reçues sont rattachées à un agent (30 derniers jours).
+  // 9. Les fiches reçues sont rattachées à un agent (30 derniers jours). Seules celles arrivées
+  // par mail : un dossier déposé à la main (mandataire, essai, Off-market) n'a pas d'expéditeur (11 oct. 2026).
   let fichesRecues = [];
   try { fichesRecues = await (await import('./index.js')).fiches(); } catch { fichesRecues = []; }
   const emails = new Set(fiches.flatMap((f) => f.emails || []));
-  const orphelines = fichesRecues.filter((f) => String(f.le || '') >= depuis30 && (!f.agent_email || !emails.has(String(f.agent_email).toLowerCase())))
+  const orphelines = fichesRecues.filter((f) => f.par_mail && String(f.le || '') >= depuis30 && (!f.agent_email || !emails.has(String(f.agent_email).toLowerCase())))
     .map((f) => `« ${f.titre} »${f.agent_email ? ` de ${f.agent_email}` : ' (expéditeur inconnu)'} : aucun agent`);
   regles.push(regle('fiches_rattachees', 'Les fiches reçues sont rattachées', orphelines));
 

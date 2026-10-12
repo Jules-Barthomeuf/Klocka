@@ -29,6 +29,9 @@ const TITRES = {
 };
 
 export const CONTACT_VIDE = '\u200b';
+// Une fiche sans contact sûr (12 oct. 2026, analystes : « je ne peux pas mettre le nom ») : un nom visible, que l'on renomme dans Monday ou que Klocka remplace dès qu'il entend un nom.
+export const aPreciser = (agence) => `À préciser · ${String(agence || 'agence').trim()}`.slice(0, 250);
+const nomProvisoire = (nom) => { const n = R.norm(nom); return n === '' || n === 'accueil' || n.startsWith('a preciser'); };
 export const tableauAgents = () => (fauxMonday ? 'faux-tableau' : (process.env.MONDAY_BOARD_AGENTS || '').trim());
 export const lienLigne = (id, tableau = tableauAgents()) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
 
@@ -142,12 +145,14 @@ export function valeursPour(ligne, cols, d) {
     attendus.push({ cle, titre, colonne: cols[cle].id, attendu, mode });
     apercu.push({ titre, avant: avant[cle] ?? '', apres: montre ?? attendu });
   };
-  // Le nom de la ligne : l'interlocuteur, rien s'il n'est pas sûr (7 oct. 2026 : Jules ne veut pas
-  // « Accueil »). Monday refuse un nom vide : un espace de largeur nulle laisse la case blanche.
-  // Une ligne existante garde le sien, sauf s'il est vide ou « Accueil ».
+  // Le nom de la ligne : l'interlocuteur, sinon « À préciser · <agence> » (12 oct. 2026 ; l'espace invisible
+  // d'avant ne se laissait pas compléter). Une ligne existante garde le sien, sauf s'il est provisoire
+  // (vide, « Accueil », « À préciser ») et qu'un nom sûr arrive.
   const contact = d.contact || null;
-  const nom = !ligne ? contact || CONTACT_VIDE : (['', 'accueil'].includes(R.norm(ligne.nom)) && contact ? contact : null);
+  const nom = !ligne ? contact || aPreciser(d.agence) : (nomProvisoire(ligne.nom) && contact ? contact : null);
   if (nom) { valeurs.name = nom; attendus.push({ cle: 'nom', titre: 'Contact', colonne: 'name', attendu: nom }); apercu.push({ titre: 'Contact', avant: ligne?.nom || '', apres: nom }); }
+  // Une ligne au nom provisoire, sans nom sûr cette fois : la case Contact se montre quand même, pour qu'on y tape le nom.
+  else if (ligne && nomProvisoire(ligne.nom)) apercu.push({ titre: 'Contact', avant: ligne.nom || '', apres: '' });
   if (d.ville && R.norm(avant.ville) !== R.norm(d.ville)) poser('ville', 'Ville', String(d.ville), String(d.ville));
   if (d.agence && !avant.entreprise) poser('entreprise', 'Entreprise', cols.entreprise?.type === 'dropdown' ? { labels: [String(d.agence).slice(0, 100)] } : String(d.agence), String(d.agence).slice(0, 100));
   if (d.remarque && !String(avant.remarques || '').includes(d.remarque)) {
@@ -163,7 +168,8 @@ export function valeursPour(ligne, cols, d) {
   if (email && !(avant.emails || []).length) poser('email', 'E-mail', cols.email?.type === 'email' ? { email, text: email } : email, email, email, 'contient');
   if (d.analyste_monday_id && !avant.spoc) poser('spoc', 'SPOC', { personsAndTeams: [{ id: Number(d.analyste_monday_id), kind: 'person' }] }, d.analyste_nom || '', d.analyste_nom || '', 'non_vide');
   const prenom = contact ? String(contact).replace(/^(madame|monsieur)\s+/i, '').split(/\s+/)[0] : null;
-  if (prenom && !avant.prenom && !ligne) poser('prenom', 'Prénom', prenom, prenom);
+  // Le prénom se complète aussi plus tard, quand le nom arrive sur une ligne qui n'en avait pas.
+  if (prenom && !avant.prenom && (!ligne || nom)) poser('prenom', 'Prénom', prenom, prenom);
   const jourFr = d.dernier_contact ? `${d.dernier_contact.slice(8, 10)}/${d.dernier_contact.slice(5, 7)}/${d.dernier_contact.slice(0, 4)}` : null;
   // « Date » sur le tableau, « Dernier contact » à l'écran (8 oct. 2026) : c'est le jour du dernier contact.
   if (d.dernier_contact && cols.date_contact) poser('date_contact', 'Dernier contact', cols.date_contact.type === 'date' ? { date: d.dernier_contact } : jourFr, cols.date_contact.type === 'date' ? d.dernier_contact : jourFr);
@@ -318,7 +324,8 @@ export async function ecrire({ cible, donnees: donnees0, ligne_id = null, item_c
   const M = fonctions || (await api());
   const tableau = tableauAgents();
   const cols = fonctions?.cols || (await colonnes());
-  const toutes = fonctions?.lignes || (await lignes({ frais: true }));
+  // Le tableau lu il y a moins d'une minute suffit (12 oct. 2026) : le relire en entier à chaque validation la faisait tourner ; la ligne visée est relue juste après.
+  const toutes = fonctions?.lignes || (await lignes({ ageMax: 60000 }));
   // Un nouvel essai après une création dont la relecture a échoué : on reprend la ligne créée.
   let id = item_cree || (ligne_id && ligne_id !== 'nouvelle' ? String(ligne_id) : null);
   if (!id && ligne_id !== 'nouvelle') {

@@ -82,10 +82,9 @@ function ChoixScenario({ choisi, onJouer, relancesDabord = false, monday = true,
     </div>
   );
 }
-const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse"], ["repondeur", "Répondeur, message laissé"]];
+const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse"], ["repondeur", "Répondeur, message laissé"], ["invalide", "Mauvais numéro"]];
 const CHAMPS_COMPRIS = [["interlocuteur", "Interlocuteur"], ["fonction", "Fonction"], ["telephone", "Téléphone"], ["email", "Email"], ["biens", "Biens évoqués"], ["mandat", "Mandat à venir"], ["prochaine_etape", "Prochaine étape"], ["date", "Date dite"]];
 const MODIFIABLES = ["interlocuteur", "telephone", "email"];
-const ISSUES_TOUTES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé" };
 // Relances « Bien retenu » et « Bien refusé » : les quatre issues de la spec du 8 oct. 2026.
 const ISSUES_BIEN = [["agent_prevenu", "Agent prévenu", true], ["pas_de_reponse", "Pas de réponse", true], ["a_des_murs", "A un autre bien", false], ["pas_interesse", "Pas intéressé", false]];
 const RELANCES = "relances";
@@ -573,7 +572,12 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     : { queryKey: ["mode-appel-file", session?.liste_id], queryFn: () => base44.request("GET", `${API}/file?liste=${session.liste_id}`), enabled: !!session?.liste_id, staleTime: 30_000 });
   const recap = useQuery({ queryKey: ["mode-appel-recap", session?.id], queryFn: () => base44.request("GET", `${API}/sessions/${session.id}`), enabled: !!session?.id, refetchInterval: ecran === "fin" ? 5000 : false });
   const agences = useMemo(() => (file.data?.file || []).filter((x) => relances || !passees.has(x.id)), [file.data, passees]);
-  const a0 = rappel || agences[0] || null;
+  // L'agence de l'appel en cours est figée dès qu'on quitte la fiche (12 oct. 2026) : une file rechargée pendant
+  // l'appel ne la décale plus, et c'est bien elle qui passe à la validation, pas la suivante.
+  const [figee, setFigee] = useState(null);
+  const enTete = agences[0] || null;
+  useEffect(() => { if (ecran === "fiche") setFigee(null); else if (enTete) setFigee((f) => f || enTete.id); }, [ecran, enTete?.id]);
+  const a0 = rappel || (figee && (file.data?.file || []).find((x) => x.id === figee)) || enTete;
   // La file reprend après mon dernier appel de cette liste (12 oct. 2026) : on le dit une fois, à l'ouverture.
   const repriseDite = useRef(null);
   useEffect(() => {
@@ -624,6 +628,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     queryClient.invalidateQueries({ queryKey: ["mode-appel-recap", session?.id] });
     queryClient.invalidateQueries({ queryKey: ["agent-ia-liste"] });
     queryClient.invalidateQueries({ queryKey: ["relances"] });
+    queryClient.invalidateQueries({ queryKey: ["mode-appel-file", session?.liste_id] });
   };
 
   // Relances : une nouvelle ligne prise, l'écran repart de la fiche.
@@ -904,6 +909,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const corpsValidation = () => ({
     choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: note.trim(), cle,
     session_id: session?.id || null, issue, depuis_fenetre: depuisFenetre.current, etapes_vues: etapesVues.current,
+    passe: edits.passe ?? null,
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
   // Valider depuis la fenêtre des actions (8 oct. 2026) : elle reste ouverte et suit l'envoi, puis « Tout préparé ».
@@ -913,7 +919,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     mutationFn: async () => {
       const url = `${API}/appels/${appel.id}/valider`;
       const body = corpsValidation();
-      try { return await base44.request("POST", url, { body }); } catch (e) {
+      // Plafond de 30 s (12 oct. 2026, « Validation… » qui tournait) : le serveur finit seul, une seule fois (même clé).
+      const lente = new Promise((ok) => setTimeout(() => ok({ lente: true }), 30000));
+      try { return await Promise.race([base44.request("POST", url, { body }), lente]); } catch (e) {
         if (!erreurReseau(e)) throw e;
         await garder({ id: body.cle, genre: "valider", url, champs: body });
         setHorsLigne((n) => n + 1);
@@ -922,6 +930,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     },
     onSuccess: (r) => {
       if (r.hors_ligne) return suivante("Hors ligne : la validation est gardée et partira une seule fois au retour du réseau");
+      if (r.lente) return suivante("La validation est enregistrée, Monday suit : le reçu sera dans le Suivi");
       setRecu(r.recu);
       if (!depuisFenetre.current) setEcran("recu");
       queryClient.invalidateQueries({ queryKey: ["mode-appel-suspens"] });
@@ -1072,6 +1081,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     <p className="m-0 break-words text-[20px] leading-[1.25] text-encre">{a.nom}</p>
                     {contactChoisi && !contactChoisi.standard && <p className="m-0 text-[14px] text-craie">{contactChoisi.nom}</p>}
                     <span className="select-all font-mono text-[15px] tracking-[.04em] text-ardoise">{numeroAppel}</span>
+                    {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit avant d'appeler. */}
+                    {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro d'une autre région · ${a.telephone_source}` : a.telephone_source}</span>}
                   </div>
                   {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
                   {(autresNumeros.length > 0 || a.site) && (

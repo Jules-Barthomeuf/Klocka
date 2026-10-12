@@ -71,6 +71,8 @@ const CONFIANCE = { type: 'string', enum: ['haute', 'moyenne', 'basse'] };
 const SCHEMA = {
   type: 'object',
   properties: {
+    // Ce qui s'est passé, en une phrase libre (12 oct. 2026, analystes : « chaque appel est différent ») : c'est elle qu'on lit, la case n'est qu'en coulisse.
+    ce_qui_s_est_passe: { type: 'string', description: "Une phrase courte et libre, au présent, qui dit ce qui s'est passé et la suite, sans case toute faite : « Le secrétariat transmet notre demande à la direction, rappeler jeudi », « Pas de commerce en ce moment, en rentre un dans un mois », « Veut un mail avant d'en parler ». Jamais « pas de bien » si on n'a pas parlé à quelqu'un qui le sait." },
     resume: { type: 'string', description: "Deux à trois phrases, ce qui part dans Monday : ce que l'agent a dit et les informations clés (biens qu'il a ou n'a pas, mandats à venir et leur échéance, ce que chacun a promis, avec la date si dite). Sujet « L'agent », au présent. Jamais qui a appelé qui, ni l'issue, ni le nom de l'agence. Exemple : « L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines. Jules a promis de lui envoyer une présentation de notre activité. »" },
     pourquoi_relance: { type: 'string', description: "Une ou deux phrases qui expliquent la suite et sa date, avec le contexte de l'appel (« Il n'avait pas de bien, mais il rentrera un commerce en mandat dans deux à trois semaines : on le rappelle à ce moment-là. ») ; vide si rien n'a été dit sur la suite" },
     issue: { type: 'string', enum: Object.keys(R.ISSUES) },
@@ -144,7 +146,9 @@ async function lire(a, texte, { par, maintenant, issueTapee = null, entrant = fa
 L'issue, une seule :
 - pas_de_reponse : personne n'a décroché ;
 - repondeur : on est tombé sur la messagerie et un message a été laissé ;
-- pas_de_murs : il n'a pas de bien pour nous en ce moment (même s'il en aura peut-être un plus tard) ;
+- pas_de_murs : la personne qui sait nous a dit qu'il n'a pas de bien pour nous en ce moment (même s'il en aura peut-être un plus tard) ;
+- a_rappeler : on n'a pas pu parler à la bonne personne, ou la demande est transmise (secrétariat, standard, collègue absent, « je transmets à mon responsable ») : on rappelle ;
+- interesse : il est partant pour travailler avec nous, sans bien précis aujourd'hui ;
 - a_des_murs : il a un bien qui peut nous intéresser ;
 - veut_mail : il veut d'abord un mail avant d'aller plus loin ;
 - pas_interesse : il ne veut pas travailler avec nous ;
@@ -274,11 +278,12 @@ export function messagePasDeReponse(a, props) {
   return `Pas de réponse chez ${a.nom}. Je te le remets ${relance ? `le ${R.dateCourte(relance.le)}, ${relance.moment ? `plutôt ${relance.moment}` : ''}`.trim() : 'plus tard'}. Ça te va ? (dis-moi « 1 » et je le note, ou une autre date)`;
 }
 
-/** Pure : l'issue lue par AK ramenée aux cinq du mode appel. « Veut d'abord un mail » et « autre » : on s'est parlé, sans bien. */
+/** Pure : l'issue lue par AK, ramenée à celles du mode appel ; ce qui ne rentre dans aucune reste « autre ». */
 export function issueDuModeAppel(issue) {
-  if (['pas_de_reponse', 'repondeur', 'pas_de_murs', 'a_des_murs', 'pas_interesse'].includes(issue)) return issue;
+  // Plus de repli sur « Pas de bien » (12 oct. 2026) : un secrétariat qui transmet n'est pas un agent sans bien.
+  if (['pas_de_reponse', 'repondeur', 'pas_de_murs', 'a_des_murs', 'pas_interesse', 'a_rappeler', 'interesse', 'veut_mail'].includes(issue)) return issue;
   if (issue === 'invalide') return 'pas_de_reponse';
-  return 'pas_de_murs';
+  return 'autre';
 }
 
 // ---------------------------------------------------------------------------
@@ -402,7 +407,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
   // prise de notes. Ils repartent une fois vers l'écran, pour relecture.
   const appel = Records.create(ENTITE, {
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
-    transcription: null, recit: null, resume: lu.resume || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
+    transcription: null, recit: null, resume: lu.resume || null, passe: String(lu.ce_qui_s_est_passe || '').trim().slice(0, 300) || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null, pourquoi_relance: lu.pourquoi_relance || null,
     compris, transcription_echec: transcriptionEchec,
     propositions: props, message, etat: 'a_valider',

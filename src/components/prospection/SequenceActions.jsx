@@ -12,7 +12,8 @@ import Calendrier from "@/components/ui/calendrier";
 // tracé se dessine une fois à l'ouverture.
 
 const MAILS = { "presentation-cahier": "Présentation + cahier des charges", presentation: "Présentation seule", "demande-fiche": "Murs commerciaux · fiche commerciale", "demande-documents": "Murs commerciaux · documents du dossier" };
-const ISSUES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé" };
+// Les cases ne servent plus qu'à régler les actions (12 oct. 2026) : on lit d'abord la phrase libre d'AK, « Ce qui s'est passé ».
+const ISSUES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", a_rappeler: "À rappeler", interesse: "Intéressé", veut_mail: "Veut d'abord un mail", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé", autre: "Autre" };
 const jourLong = (j) => (j ? new Date(`${String(j).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
 const lenteur = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -448,6 +449,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const [ouverte, setOuverte] = useState(null);
   const vues = useRef(new Set());
   const [choixIssue, setChoixIssue] = useState(false);
+  const passe = edits?.passe ?? appel.passe ?? "";
   const [debut] = useState(() => performance.now());
   const [t, setT] = useState(() => (lenteur() ? 99 : 0));
   const ligne = pmo?.ligne || null;
@@ -505,7 +507,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       const apres = String(x.apres ?? "").replace(/\u200b/g, "").trim();
       const cle = CLE_MONDAY[x.titre];
       if (x.titre === "Prochaine relance" && pr) return { label: x.titre, statut, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
-      if (cle && setEdits) return { label: x.titre, statut, edit: { type: "texte", valeur: edits?.[cle] ?? apres, changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
+      if (cle && setEdits) return { label: x.titre, statut, edit: { type: "texte", valeur: edits?.[cle] ?? (cle === "interlocuteur" && /^À préciser/.test(apres) ? "" : apres), changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       if (x.titre === "Remarques") return { label: x.titre, statut: String(x.avant || "").trim() ? "ajout" : "nouveau", valeur: apres.replace(/^\+\s*/, ""), large: true };
       // « 8 octobre 2026 », comme sur la maquette.
       if (x.titre === "Dernier contact" && /^\d{4}-\d{2}-\d{2}$/.test(apres)) return { label: x.titre, statut, valeur: new Date(`${apres}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) };
@@ -521,7 +523,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
       const apres = String(x.apres ?? "").replace(/\u200b/g, "").trim();
       const cle = CLE_MONDAY[x.titre];
       if (x.titre === "Prochaine relance" && pr) return { titre, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
-      if (cle && setEdits) return { titre, edit: { type: "texte", valeur: edits?.[cle] ?? apres, changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
+      if (cle && setEdits) return { titre, edit: { type: "texte", valeur: edits?.[cle] ?? (cle === "interlocuteur" && /^À préciser/.test(apres) ? "" : apres), changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
       return { titre, valeur: x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres };
     });
   };
@@ -691,17 +693,31 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
     <div className="flex flex-col">
       <div className="mb-1 flex items-center justify-between px-1">
         <span className="text-[12px] tracking-[.14em] text-ardoise">ACTIONS PROPOSÉES</span>
-        <span className="flex items-center gap-2">
-          <span className={`text-[13px] ${issue === "pas_interesse" ? "text-ardoise" : "text-menthe"}`}>{ISS[issue] || ""}</span>
-          {/* AK s'est trompé d'issue : on la change, les actions se refont sur la même transcription. */}
-          {onChangerIssue && <button type="button" onClick={() => setChoixIssue((x) => !x)} disabled={changementEnCours} className="p-0 text-[13px] text-ardoise underline hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>changer</button>}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={`truncate text-[13px] ${issue === "pas_interesse" ? "text-ardoise" : "text-menthe"}`} title={passe || ISS[issue] || ""}>{passe || ISS[issue] || ""}</span>
+          {/* AK a mal lu : on réécrit la phrase, et on peut réorienter les actions sur la même transcription. */}
+          {(onChangerIssue || setEdits) && <button type="button" onClick={() => setChoixIssue((x) => !x)} disabled={changementEnCours} className="shrink-0 p-0 text-[13px] text-ardoise underline hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>changer</button>}
         </span>
       </div>
-      {choixIssue && onChangerIssue && (
-        <div className="mb-3 flex flex-wrap justify-end gap-1.5 px-1">
-          {Object.entries(ISS).filter(([k]) => k !== issue).map(([k, l]) => (
-            <button key={k} type="button" onClick={() => { setChoixIssue(false); onChangerIssue(k); }} className="h-8 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l}</button>
-          ))}
+      {choixIssue && (
+        <div className="mb-3 flex flex-col gap-2 px-1">
+          {setEdits && (
+            <label className="flex flex-col gap-1">
+              <span className="text-[12px] text-ardoise">Ce qui s'est passé (part dans Monday)</span>
+              <textarea rows={2} value={passe} onChange={(e) => setEdits((x) => ({ ...x, passe: e.target.value }))} placeholder="Le secrétariat transmet à la direction, rappeler jeudi"
+                className="w-full resize-none rounded-xl border border-trait bg-transparent px-3 py-2 text-[13.5px] text-encre outline-none focus:border-menthe" />
+            </label>
+          )}
+          {onChangerIssue && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[12px] text-ardoise">Refaire les actions pour</span>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(ISS).filter(([k]) => k !== issue).map(([k, l]) => (
+                  <button key={k} type="button" onClick={() => { setChoixIssue(false); onChangerIssue(k); }} className="h-8 rounded-full border border-trait px-3 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

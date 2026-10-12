@@ -174,7 +174,8 @@ test('scénario 8 : sans enregistrement ni note, l\'écran d\'actions s\'ouvre s
 
 test("sans boutons : AK déduit l'issue de la transcription faite en direct, l'écran d'actions s'ouvre toujours, l'issue se change d'un geste", async () => {
   const { issueDuModeAppel } = await import('./appel.js');
-  assert.deepEqual(['veut_mail', 'autre', 'invalide', 'a_des_murs'].map(issueDuModeAppel), ['pas_de_murs', 'pas_de_murs', 'pas_de_reponse', 'a_des_murs']);
+  // 12 oct. 2026 : plus de repli sur « Pas de bien » ; un secrétariat qui transmet reste « à rappeler ».
+  assert.deepEqual(['veut_mail', 'autre', 'invalide', 'a_des_murs', 'a_rappeler', 'n_importe'].map(issueDuModeAppel), ['veut_mail', 'autre', 'pas_de_reponse', 'a_des_murs', 'a_rappeler', 'autre']);
   const { ag } = ville('Mougins');
   // Rien d'entendu : pas de réponse, mais l'écran s'ouvre (relance seule, pas de Monday).
   const vide = await MA.noterIssue({ agence_id: ag.id, issue: 'auto', transcription: '', user: nora });

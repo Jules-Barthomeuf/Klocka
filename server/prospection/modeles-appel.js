@@ -10,6 +10,9 @@ export const MODELES_DE_L_ISSUE = {
   pas_de_murs: { defaut: 'presentation-cahier', variante: 'presentation' },
   // A un bien : la fiche commerciale seule d'abord ; les pièces du dossier si elles ont été demandées.
   a_des_murs: { defaut: 'demande-fiche', variante: 'demande-documents', si_documents: 'demande-documents' },
+  // Il veut un mail, ou il est partant sans bien aujourd'hui : notre présentation (12 oct. 2026).
+  veut_mail: { defaut: 'presentation-cahier', variante: 'presentation' },
+  interesse: { defaut: 'presentation-cahier', variante: 'presentation' },
 };
 
 /** Le modèle d'un slug : celui de la base (modifiable depuis la page Mails), sinon celui livré. */

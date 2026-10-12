@@ -180,7 +180,10 @@ export function reprendreApres(file, ordre, dernierId) {
   const n = ordre.length;
   const d = rang.get(dernierId);
   const cle = (x) => { const r = rang.get(x.id); return r == null ? n : (r - d - 1 + n) % n; };
-  return [...file].sort((x, y) => cle(x) - cle(y));
+  // Seules les jamais appelées tournent (12 oct. 2026) : le contact donné et les relances dues gardent la tête de file.
+  const tournent = (x) => x.place == null || x.place === 3;
+  const devant = file.filter((x) => !tournent(x));
+  return [...devant, ...file.filter(tournent).sort((x, y) => cle(x) - cle(y))];
 }
 
 /** Les fiches du carnet et les appels d'une liste, lus une fois. */
@@ -338,7 +341,37 @@ export function reseauDe(a, lignes, maintenantD = new Date(), ville = null) {
 }
 
 /** Le numéro à appeler : celui de l'agence, sinon celui d'un de ses agents. */
-export const numeroDe = (a) => a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
+// Les numéros d'une agence (12 oct. 2026, « mauvais numéro » chez Lamotte à Lyon : un 02 pris sur une annonce) :
+// le standard d'abord, puis ceux des agents ; un numéro écarté ne revient plus, et un fixe d'une autre région
+// passe après les autres.
+const ZONES_FIXES = {
+  '01': ['75', '77', '78', '91', '92', '93', '94', '95'],
+  '02': ['14', '18', '22', '27', '28', '29', '35', '36', '37', '41', '44', '45', '49', '50', '53', '56', '61', '72', '76', '85'],
+  '03': ['02', '08', '10', '21', '25', '39', '51', '52', '54', '55', '57', '58', '59', '60', '62', '67', '68', '70', '71', '80', '88', '89', '90'],
+  '04': ['01', '03', '04', '05', '06', '07', '11', '13', '15', '26', '30', '34', '38', '42', '43', '48', '63', '66', '69', '73', '74', '83', '84', '2A', '2B'],
+  '05': ['09', '12', '16', '17', '19', '23', '24', '31', '32', '33', '40', '46', '47', '64', '65', '79', '81', '82', '86', '87'],
+};
+const enNational = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.startsWith('33') && d.length === 11 ? `0${d.slice(2)}` : d; };
+/** Pure : un fixe (01 à 05) est-il de la région du département ? Portables et numéros spéciaux passent partout. */
+export function indicatifCoherent(tel, dep) {
+  const n = enNational(tel);
+  const zone = n.slice(0, 2);
+  if (!dep || !ZONES_FIXES[zone]) return true;
+  return ZONES_FIXES[zone].includes(String(dep).padStart(2, '0'));
+}
+const depDe = (a) => { const cp = String(a?.code_postal || String(a?.adresse || '').match(/\b\d{5}\b/)?.[0] || ''); return /^\d{5}$/.test(cp) ? (cp.startsWith('20') ? (Number(cp) < 20200 ? '2A' : '2B') : cp.slice(0, 2)) : null; };
+/** Pure : les numéros d'une agence, dans l'ordre où on les appelle, chacun avec sa source. */
+export function numerosDe(a) {
+  const ecartes = new Set((a?.numeros_ecartes || []).map((x) => R.normTel(x.telephone || x)));
+  const dep = depDe(a);
+  const tous = [
+    ...(a?.telephone ? [{ telephone: a.telephone, source: "standard de l'agence" }] : []),
+    ...(a?.agents || []).filter((x) => x.telephone).map((x) => ({ telephone: x.telephone, source: `${x.nom ? `${x.nom}, ` : ''}${x.source || "numéro d'une annonce Equimmox"}` })),
+  ].filter((x, i, t) => !ecartes.has(R.normTel(x.telephone)) && t.findIndex((y) => R.normTel(y.telephone) === R.normTel(x.telephone)) === i)
+    .map((x) => ({ ...x, autre_region: !indicatifCoherent(x.telephone, dep) }));
+  return [...tous.filter((x) => !x.autre_region), ...tous.filter((x) => x.autre_region)];
+}
+export const numeroDe = (a) => numerosDe(a)[0]?.telephone || null;
 
 const SANS_REPONSE = ['pas_de_reponse', 'repondeur'];
 const RESERVATION_MS = 5 * 60 * 1000;
@@ -365,7 +398,9 @@ export function placeDansLaFile(a, moi, { jour, fiche = null, maintenantD = new 
   if (proprietaire && proprietaire !== moi) return null;
   if (reserveeParUnAutre(a, moi, maintenantD)) return null;
   if (fiche && R.verrouTenu(fiche.verrou) && fiche.verrou.par !== moi) return null;
-  if (a.prioritaire?.le === jour && (!a.prioritaire.par || a.prioritaire.par === moi)) return 0;
+  // Le contact donné revient en tête à partir du lendemain (12 oct. 2026 : il revenait juste après l'appel), jusqu'à ce qu'on l'appelle.
+  const appeleeDepuis = a.statut.quand && String(a.statut.quand).slice(0, 10) >= String(a.prioritaire?.le || '');
+  if (a.prioritaire?.le && a.prioritaire.le <= jour && !appeleeDepuis && (!a.prioritaire.par || a.prioritaire.par === moi)) return 0;
   if (a.passee?.le === jour && a.passee.par === moi) return null;
   if (a.statut.quand && String(a.statut.quand).slice(0, 10) === jour) return null;
   // Envoyée dans Relances à la main : c'est là qu'elle s'appelle désormais.
@@ -461,7 +496,10 @@ export function elementDeFile(a, { place, badge = null, fiche: f = null, ville =
   const telephone = place === 0 && a.prioritaire?.telephone ? a.prioritaire.telephone : numeroDe(a);
   return {
     id: a.id, nom: a.nom, adresse: a.adresse || null, telephone, place, badge: badge || badgeDe(place, a.statut?.tentatives),
-    autres_numeros: [...new Set((a.agents || []).map((x) => x.telephone).filter((t) => t && R.normTel(t) !== R.normTel(telephone)))].slice(0, 3),
+    autres_numeros: numerosDe(a).map((x) => x.telephone).filter((t) => R.normTel(t) !== R.normTel(telephone)).slice(0, 3),
+    // D'où vient le numéro, et s'il est d'une autre région que l'agence.
+    telephone_source: place === 0 && a.prioritaire?.telephone ? 'contact donné pendant un appel' : numerosDe(a)[0]?.source || null,
+    telephone_autre_region: place === 0 && a.prioritaire?.telephone ? false : !!numerosDe(a)[0]?.autre_region,
     email: a.email || (a.agents || []).find((x) => x.email)?.email || (f?.emails || [])[0] || null,
     interlocuteurs: [
       ...(place === 0 && a.prioritaire?.nom ? [`${a.prioritaire.nom}${a.prioritaire.telephone ? ` · ${a.prioritaire.telephone}` : ''} (contact donné)`] : []),
@@ -616,6 +654,13 @@ export const ISSUES_APPEL = {
   pas_de_murs: { cle: 'pas_de_murs', titre: "Pas de bien pour l'instant", groupe: 'abouti', principal: true },
   a_des_murs: { cle: 'a_des_murs', titre: 'A un bien intéressant', groupe: 'abouti' },
   pas_interesse: { cle: 'pas_interesse', titre: 'Pas intéressé', groupe: 'abouti' },
+  // Mauvais numéro (12 oct. 2026) : ce numéro est écarté ; l'agence reste à appeler sur un autre, et ne meurt que sans aucun.
+  invalide: { cle: 'invalide', titre: 'Mauvais numéro', groupe: 'non_abouti', simple: true },
+  // Des issues qui n'enferment plus l'appel (12 oct. 2026) : la phrase libre d'AK se lit d'abord, ces cases servent aux relances.
+  a_rappeler: { cle: 'a_rappeler', titre: 'À rappeler', groupe: 'abouti', statut: 'À rappeler' },
+  interesse: { cle: 'interesse', titre: 'Intéressé', groupe: 'abouti', statut: 'Intéressé' },
+  veut_mail: { cle: 'veut_mail', titre: "Veut d'abord un mail", groupe: 'abouti', statut: 'Intéressé' },
+  autre: { cle: 'autre', titre: 'Autre', groupe: 'abouti', statut: 'À rappeler' },
   // Relances (8 oct. 2026) : on a dit à l'agent ce qu'on pense de son bien (retenu ou refusé).
   agent_prevenu: { cle: 'agent_prevenu', titre: 'Agent prévenu', groupe: 'abouti', simple: true },
 };
@@ -658,7 +703,7 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
   const resumeAppel = [appel.resume && !/^(pas de réponse|pas de bien|a un bien|pas intéressé)[^:]*\.$/i.test(appel.resume) ? appel.resume : null, note ? `Note : ${note}` : null].filter(Boolean).join(' ');
   return {
     contact: contactSur(compris, corrige), ville, agence: agence.nom,
-    remarque: ligneDeRemarque({ jour: R.jourDe(new Date(appel.le || Date.now())), analyste: prenom(user?.email) || user?.full_name || '', issue: ISSUES_APPEL[issue]?.titre || R.ISSUES[issue], resume: [resumeAppel, (fiche?.relances_suivantes || []).length ? `Relances : ${[fiche?.prochaine?.le, ...fiche.relances_suivantes.map((x) => x.le)].filter(Boolean).map(R.dateCourte).join(' puis ')}` : null].filter(Boolean).join(' '), ne_plus_appeler: issue === 'pas_interesse' }),
+    remarque: ligneDeRemarque({ jour: R.jourDe(new Date(appel.le || Date.now())), analyste: prenom(user?.email) || user?.full_name || '', issue: ISSUES_APPEL[issue]?.titre || R.ISSUES[issue], resume: [appel.passe ? `${String(appel.passe).replace(/\.$/, '')}.` : null, resumeAppel, (fiche?.relances_suivantes || []).length ? `Relances : ${[fiche?.prochaine?.le, ...fiche.relances_suivantes.map((x) => x.le)].filter(Boolean).map(R.dateCourte).join(' puis ')}` : null].filter(Boolean).join(' '), ne_plus_appeler: issue === 'pas_interesse' }),
     relance: issue === 'pas_interesse' ? null : relance || null,
     telephone: valeurSure(compris, 'telephone', corrige) || appel.numero || numeroDe(agence),
     // L'adresse dite pendant l'appel, sinon celle à qui part le mail ou qui entre dans la liste.
@@ -667,7 +712,7 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
     analyste_nom: prenom(user?.email) || null,
     diffusion,
     issue: ISSUES_APPEL[issue]?.titre || null,
-    statut: issue === 'pas_interesse' ? 'Ne plus appeler' : ISSUES_APPEL[issue]?.titre || null,
+    statut: issue === 'pas_interesse' ? 'Ne plus appeler' : ISSUES_APPEL[issue]?.statut || ISSUES_APPEL[issue]?.titre || null,
     dernier_contact: R.jourDe(new Date(appel.le || Date.now())),
   };
 }
@@ -696,10 +741,16 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Une issue changée à la main après coup garde l'écran d'actions, sur la même transcription.
   const surActions = auto || !!remplace;
   let issue = issueDemandee;
-  const def0 = auto ? null : ISSUES_APPEL[issue];
+  let def0 = auto ? null : ISSUES_APPEL[issue];
   if (!auto && !def0) return { ok: false, error: 'Issue inconnue.' };
-  const a = Records.get(AGENCE, agence_id);
+  let a = Records.get(AGENCE, agence_id);
   if (!a) return { ok: false, error: 'Agence introuvable.' };
+  if (issue === 'invalide') {
+    const ecarte = numero || numeroDe(a);
+    if (ecarte) a = Records.update(AGENCE, a.id, { numeros_ecartes: [...(a.numeros_ecartes || []), { telephone: ecarte, le: new Date().toISOString(), par: String(user?.email || '').toLowerCase() }] }) || Records.get(AGENCE, a.id);
+    // Un autre numéro reste : l'agence repasse comme un sans-réponse, sur ce numéro-là.
+    if (numeroDe(a)) { issue = 'pas_de_reponse'; def0 = ISSUES_APPEL.pas_de_reponse; }
+  }
   let agentId = agent_id;
   if (!agentId) { const p = await prendre(agence_id, user); if (!p.ok) return p; agentId = p.agent_id; }
   const A = await import('./appel.js');
@@ -792,7 +843,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const fiche = base.find((p) => p.type === 'fiche');
   if (fiche) actions.push({ ...fiche, coche: true, toujours: true, cache: true });
   // Un bon contact donné pendant l'appel : proposé, et mis en tête de file.
-  if (compris.nouveau_contact) actions.push({ id: 'nouveau_contact', type: 'nouveau_contact', titre: `Ajouter ${compris.nouveau_contact.nom || 'ce contact'}${compris.nouveau_contact.telephone ? ` (${compris.nouveau_contact.telephone})` : ''} et l'appeler en tête de file`, contact: compris.nouveau_contact, source: compris.nouveau_contact.source, ...(compris.nouveau_contact.incertain ? { incertain: compris.nouveau_contact.incertain } : {}), coche: !compris.nouveau_contact.incertain });
+  if (compris.nouveau_contact) actions.push({ id: 'nouveau_contact', type: 'nouveau_contact', titre: `Ajouter ${compris.nouveau_contact.nom || 'ce contact'}${compris.nouveau_contact.telephone ? ` (${compris.nouveau_contact.telephone})` : ''} et l'appeler demain en tête de file`, contact: compris.nouveau_contact, source: compris.nouveau_contact.source, ...(compris.nouveau_contact.incertain ? { incertain: compris.nouveau_contact.incertain } : {}), coche: false });
   const autres = (a.pour || []).filter((e) => e !== moi);
   if (autres.length) actions.push({ id: 'prevenir', type: 'prevenir', titre: `Prévenir ${autres.map(prenom).join(', ')} : la ligne est aussi à eux`, pour: autres, coche: false });
   if ((lu.appel.biens || []).length && issue === 'a_des_murs') actions.push({ id: 'signaler_bien', type: 'signaler_bien', titre: `Noter le bien évoqué : ${lu.appel.biens[0]}`, biens: lu.appel.biens, coche: false, ...(lu.appel.citations?.biens ? { source: lu.appel.citations.biens } : {}) });
@@ -812,7 +863,8 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
 // ---------------------------------------------------------------------------
 
 export const LISTE_DIFFUSION = 'Agents immobiliers';
-export const DELAI_ANNULER_MS = 10000;
+export const DELAI_MONDAY_MS = Number(process.env.DELAI_MONDAY_MS) || 15000;
+const DELAI_ANNULER_MS = 10000;
 const enCours = new Map();
 
 /** Valider : une validation par appel, quel que soit le nombre de taps ou de nouveaux essais (identifiant unique). */
@@ -826,7 +878,10 @@ export async function validerIssue(x) {
   return p;
 }
 
-async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
+async function validerUneFois({ appel_id, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
+  // « Ce qui s'est passé », réécrit par l'analyste : c'est sa phrase qui part dans Monday et le journal.
+  const passeTapee = passe != null ? String(passe).trim() : null;
+  if (passeTapee != null && passeTapee !== String(Records.get(APPEL, appel_id)?.passe || '')) Records.update(APPEL, appel_id, { passe: passeTapee || null, passe_corrigee: true });
   const appel = Records.get(APPEL, appel_id);
   const A = await import('./appel.js');
   const agenceId = agence_id || appel.agence_id || null;
@@ -840,6 +895,8 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
   const action = (id) => (pris.has(id) || actions.find((p) => p.id === id)?.toujours ? actions.find((p) => p.id === id) : null);
   const corrige = {};
   for (const c of Array.isArray(corrections) ? corrections : []) if (c?.cle && ['interlocuteur', 'telephone', 'email'].includes(c.cle)) corrige[c.cle] = String(c.valeur ?? '').trim();
+  // Gardé sur l'appel : « choisir la ligne Monday » après coup reprend le nom tapé (12 oct. 2026).
+  if (Object.keys(corrige).length) Records.update(APPEL, appel_id, { corrige });
   // De quoi tout remettre comme avant (« Annuler ») : la fiche et l'agence telles qu'elles étaient.
   const ficheAvant = Records.get('AgentImmo', appel.agent_id);
   const agenceAvant = ag ? { morte: ag.morte ?? null, ne_plus_appeler: ag.ne_plus_appeler ?? null, prioritaire: ag.prioritaire ?? null, agents: ag.agents || [] } : null;
@@ -847,7 +904,8 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
   // La fiche : statut, relance (à la date choisie), secteurs ; aucun mail par ce chemin.
   const choixFiche = [...pris, ...actions.filter((p) => p.toujours).map((p) => p.id)].filter((id, i, t) => t.indexOf(id) === i && ['statut', 'relance', 'fiche'].includes(actions.find((p) => p.id === id)?.type));
   if (!choixFiche.includes('statut') && actions.some((p) => p.type === 'statut')) choixFiche.push(actions.find((p) => p.type === 'statut').id);
-  const v = await A.validerAppel({ appel_id, choix: choixFiche, envoyer: false, user, maintenant: maintenantD });
+  // Un appel resté « validé » sans reçu (une suite coupée en route) se termine au lieu de répondre « déjà validé ».
+  const v = appel.etat === 'valide' ? { ok: true, reprise: true } : await A.validerAppel({ appel_id, choix: choixFiche, envoyer: false, user, maintenant: maintenantD });
   if (!v.ok) return v;
   const { majAgent, journal, agentDe } = await import('./carnet.js');
   const rel = actions.find((p) => p.type === 'relance');
@@ -877,12 +935,12 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
   const a = agentDe(appel.agent_id);
 
   const extras = [];
-  // Le nouveau contact : ajouté à l'agence, en tête de file aujourd'hui.
+  // Le nouveau contact : ajouté à l'agence, en tête de file dès demain.
   const nc = action('nouveau_contact');
   if (nc && ag) {
     const agents = [...(ag.agents || []).filter((x) => !(nc.contact.telephone && R.normTel(x.telephone) === R.normTel(nc.contact.telephone))), { nom: nc.contact.nom || null, telephone: nc.contact.telephone || null, email: nc.contact.email || null, source: 'donné pendant un appel' }];
-    Records.update(AGENCE, ag.id, { agents, prioritaire: { le: R.jourDe(maintenantD), par: moi, nom: nc.contact.nom || null, telephone: nc.contact.telephone || null } });
-    extras.push({ quoi: 'contact', etat: 'ok', texte: `${nc.contact.nom || 'Le contact'} ajouté, en tête de file` });
+    Records.update(AGENCE, ag.id, { agents, prioritaire: { le: R.jourDe(new Date(maintenantD.getTime() + 86400000)), par: moi, nom: nc.contact.nom || null, telephone: nc.contact.telephone || null } });
+    extras.push({ quoi: 'contact', etat: 'ok', texte: `${nc.contact.nom || 'Le contact'} ajouté, en tête de file demain` });
   }
   const bien = action('signaler_bien');
   if (bien && !essai) {
@@ -912,9 +970,18 @@ async function validerUneFois({ appel_id, choix = [], mail = null, relance_le = 
     const d = essai && appel.monday_essai ? marquerEssai(d0) : d0;
     if (essai && !appel.monday_essai) monday = { etat: 'info', texte: `Essai : Monday n'est pas touché (on y aurait écrit « ${[d.agence, d.contact || 'contact sans nom', d.issue].join(' · ')} »)` };
     else {
-      const r = await ecrireMonday({ appel_id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: monday_ligne });
-      monday = r.monday;
-      ecriture = r.ecriture;
+      // Monday ne retient plus la validation (12 oct. 2026, « Validation… » qui tournait) : au-delà de 15 s, on rend la main
+      // avec « Monday : écriture en cours » ; l'écriture continue et pose son résultat sur le reçu quand elle finit.
+      const ecrit = ecrireMonday({ appel_id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: monday_ligne });
+      const r = await Promise.race([ecrit, new Promise((ok) => setTimeout(() => ok(null), DELAI_MONDAY_MS).unref?.())]);
+      if (r) { monday = r.monday; ecriture = r.ecriture; }
+      else {
+        monday = { etat: 'attente', texte: 'Monday : écriture en cours, le reçu se met à jour' };
+        ecrit.then((fin) => {
+          const ap = Records.get(APPEL, appel_id);
+          if (ap?.recu) Records.update(APPEL, appel_id, { recu: { ...ap.recu, monday: fin.monday }, annuler: { ...(ap.annuler || {}), ecriture: fin.ecriture } });
+        }).catch(() => {});
+      }
     }
   }
 
@@ -1039,7 +1106,7 @@ export async function choisirLigneMonday(appelId, ligneId) {
   const { agentDe } = await import('./carnet.js');
   const a = agentDe(appel.agent_id);
   const user = { email: appel.par };
-  const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: appel.issue_tapee, user, relance: a?.prochaine?.le || null, email: appel.recu.mail?.detail?.a || null, diffusion: appel.recu.diffusion ? appel.recu.diffusion.etat === 'ok' : appel.issue_tapee === 'pas_interesse' ? false : null });
+  const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: appel.issue_tapee, user, relance: a?.prochaine?.le || null, corrige: appel.corrige || {}, email: appel.recu.mail?.detail?.a || null, diffusion: appel.recu.diffusion ? appel.recu.diffusion.etat === 'ok' : appel.issue_tapee === 'pas_interesse' ? false : null });
   const d = appel.essai ? marquerEssai(d0) : d0;
   const r = await ecrireMonday({ appel_id: appel.id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: ligneId || 'nouvelle' });
   const recu = { ...appel.recu, monday: r.monday };

@@ -417,7 +417,7 @@ function TableauAgences({ id, onAppeler }) {
                     </td>
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}><CellulePour agence={a} listeId={id} /></td>
                     <td className="max-w-[260px] px-4 py-4">
-                      <p className="m-0 text-encre">{nomPropre(a)}{a.en_appel_par && <Lock className="ml-1.5 inline h-3 w-3 text-ardoise" aria-label={`En appel par ${a.en_appel_par}`} />}</p>
+                      <p className="m-0 text-encre">{nomPropre(a)}{(a.agents || []).length > 1 && <span className="ml-1.5 text-[12.5px] text-ardoise">· {a.agents.length} agents</span>}{a.en_appel_par && <Lock className="ml-1.5 inline h-3 w-3 text-ardoise" aria-label={`En appel par ${a.en_appel_par}`} />}</p>
                       {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
                       {contactDe(a) ? <p className="m-0 mt-1"><span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">Contact de {contactDe(a)}</span></p>
                         : dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}

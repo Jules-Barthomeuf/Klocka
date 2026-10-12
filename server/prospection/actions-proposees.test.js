@@ -134,7 +134,7 @@ test("Pas de bien : nouvelle ligne Monday complète et relue, mail Présentation
   assert.equal(v.recu.monday.etat, 'ok', v.recu.monday.erreur);
   const l = ligneDe(faux, ag);
   assert.ok(l, 'la ligne existe dans Monday');
-  assert.equal(l.nom, MON.CONTACT_VIDE, 'Contact vide : le nom n\'a pas été dit');
+  assert.equal(l.nom, MON.aPreciser(ag.nom), 'nom pas dit : « À préciser · agence », visible et renommable (12 oct. 2026)');
   assert.equal(l.colonnes.ville, 'Nice');
   assert.equal(l.colonnes.entreprise, ag.nom);
   assert.equal(l.colonnes.email, 'contact@agence-test.fr', "l'adresse du mail dans E-mail");

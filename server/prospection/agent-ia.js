@@ -49,6 +49,24 @@ const casse = (t) => String(t || '').toLowerCase().replace(/(^|[\s'’(-])([a-z�
 const VIDES = new Set(['agence', 'immobilier', 'immobiliere', 'immo', 'sarl', 'sas', 'sasu', 'eurl', 'sa', 'sci', 'groupe', 'cabinet', 'transaction', 'transactions', 'conseil', 'conseils', 'et', 'de', 'des', 'du', 'la', 'le', 'les', 'l', 'd']);
 /** Pure : la clé d'un nom d'agence (« Agence Century 21 Cce SARL » → « century 21 cce »). */
 export const cleAgence = (nom) => norm(nom).split(' ').filter((m) => m && !VIDES.has(m)).join(' ');
+
+// « Yasmina Zabar - Arthur Loyd » (12 oct. 2026, analystes : « est-ce la même agence ? ») : Equimmox nomme
+// l'annonce d'un agent « Prénom Nom - Agence ». La partie gauche est une personne si elle a deux ou trois mots
+// à majuscule, sans chiffre ni mot d'agence, et n'est pas un réseau au nom de personne (Guy Hoquet, Stéphane Plaza).
+const MOT_D_AGENCE = /\b(immo\w*|agence|conseil|transactions?|groupe|cabinet|r[ée]seau|patrimoine|entreprises?|commerces?|bureaux|expertise|gestion|sarl|sas|sci|conciergerie|location|services?|signature|propri[ée]t[ée]s?|house|home|riviera|habitat|invest\w*)\b/i;
+const RESEAUX_AU_NOM = /^(guy hoquet|st[ée]phane plaza)$/i;
+const estPersonne = (x) => { const mots = x.split(' '); return mots.length >= 2 && mots.length <= 3 && mots.every((m) => /^[A-ZÀ-Ý][a-zà-ÿ'’-]{1,}$/.test(m)) && !MOT_D_AGENCE.test(x) && !RESEAUX_AU_NOM.test(x); };
+/** Pure : l'agence et l'agent d'un libellé d'annonce Equimmox. L'agence est la dernière partie, l'agent celle d'avant ; `ville` écarte « Ft Riviera - Nice Massena ». */
+export function agenceDuLibelle(libelle, { ville = null } = {}) {
+  const t = String(libelle || '').replace(/\s+/g, ' ').trim();
+  const parts = t.split(/\s+[-–—]\s+/);
+  if (parts.length < 2) return { agence: t, agent: null };
+  const droite = parts.at(-1);
+  const gauche = parts.at(-2);
+  const motsVille = new Set(cleAgence(ville || '').split(' ').filter((m) => m.length >= 3));
+  const surLaVille = [droite, gauche].some((x) => cleAgence(x).split(' ').some((m) => motsVille.has(m)));
+  return estPersonne(gauche) && !surLaVille && cleAgence(droite).length >= 3 ? { agence: droite.trim(), agent: gauche.trim() } : { agence: t, agent: null };
+}
 /** Pure : le domaine d'un site ou d'un mail, sans les messageries grand public. */
 export function domaineDe(x) {
   const d = String(x || '').toLowerCase().replace(/^.*@/, '').replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[/?#]/)[0].trim();
@@ -328,6 +346,9 @@ async function parEquimmox(l) {
     // Equimmox ne nomme pas l'agent : son mail le dit souvent (« jean.dupont@… » → Jean Dupont).
     const agent = { nom: nomDuMail(ag.email), email: ag.email || null, telephone: ag.telephone ? telAffiche(ag.telephone) : null, annonces: ag.annonces || 0, annonces_commerce: commerce.get(normEmail(ag.email) || normTel(ag.telephone)) || 0 };
     ag.agence = String(ag.agence || '').replace(/\s*\([^)]*\)\s*$/, '');
+    // « Prénom Nom - Agence » : l'agent rejoint son agence au lieu d'en faire une ligne.
+    const lib = agenceDuLibelle(ag.agence, { ville: l.ville });
+    if (lib.agent) { ag.agence = lib.agence; agent.nom = lib.agent; }
     if (!agent.email && !agent.telephone) continue;
     if (PAS_UNE_AGENCE.test(String(ag.agence || '').replace(/\s*\([^)]*\)\s*$/, '').trim())) continue;
     // Le nom de l'annonce ne suffit plus : sur un co-mandat, il rangeait un
@@ -398,14 +419,23 @@ export function reparerListe(listeId) {
   // celle dont le nom commence pareil (« Bnp » → « Bnppre Nice »), si une seule.
   const coquille = (a) => !a.telephone && !a.site && (a.sources || []).every((x) => x === 'Equimmox');
   const motsVille = new Set(cleAgence(ville || '').split(' ').filter(Boolean));
+  // « Prénom Nom - Arthur Loyd » (12 oct. 2026) : les coquilles d'une même agence se fondent, chacune apporte son agent nommé.
+  const parLibelle = new Map();
+  for (const a of tout.filter(coquille)) {
+    const lib = agenceDuLibelle(a.nom, { ville });
+    if (!lib.agent) continue;
+    if ((a.agents || []).some((x) => !x.nom)) Records.update(AGENCE, a.id, { agents: (a.agents || []).map((x) => (x.nom ? x : { ...x, nom: lib.agent })) });
+    const k = cleAgence(lib.agence);
+    if (parLibelle.has(k)) unir(parLibelle.get(k), a.id); else parLibelle.set(k, a.id);
+  }
   for (const a of tout.filter(coquille)) {
     const autres = tout.filter((x) => x.id !== a.id && !coquille(x));
     const parDomaine = (a.agents || []).map((x) => agenceDuDomaine(x, autres, ville)).find(Boolean);
-    const cle = cleAgence(a.nom).replace(/\s+/g, '');
+    const cle = cleAgence(agenceDuLibelle(a.nom, { ville }).agence).replace(/\s+/g, '');
     // Le premier mot d'un nom d'annonce et celui d'une agence qui commencent
     // pareil (« Bnppre High Street » et « BNP Paribas Real Estate »).
     const premier = (n) => cleAgence(n).split(' ').filter((m) => m.length >= 3 && !motsVille.has(m))[0] || '';
-    const pa = premier(a.nom);
+    const pa = premier(agenceDuLibelle(a.nom, { ville }).agence);
     const parNom = cle.length >= 3 ? autres.filter((x) => {
       const px = premier(x.nom);
       return cleAgence(x.nom).replace(/\s+/g, '').startsWith(cle) || (pa && px && (pa.startsWith(px) || px.startsWith(pa)));
@@ -428,7 +458,7 @@ export function reparerListe(listeId) {
         if (v != null && v !== '' && (g[k] == null || g[k] === '')) champs[k] = v;
       }
       const agents = [...(g.agents || [])];
-      for (const x of d.agents || []) {
+      for (const x of Records.get(AGENCE, d.id)?.agents || d.agents || []) {
         if (!agents.some((y) => (x.email && normEmail(y.email) === normEmail(x.email)) || (x.telephone && normTel(y.telephone) === normTel(x.telephone)))) agents.push(x);
       }
       Records.update(AGENCE, g.id, {
@@ -440,6 +470,11 @@ export function reparerListe(listeId) {
       Records.update(AGENCE, d.id, { hors_cible: true, fusionnee_dans: g.id });
       fusions += 1;
     }
+  }
+  // Le nom d'agence, sans l'agent devant (« Yasmina Zabar - Arthur Loyd » → « Arthur Loyd »).
+  for (const a of actives().filter(coquille)) {
+    const lib = agenceDuLibelle(a.nom, { ville });
+    if (lib.agent) Records.update(AGENCE, a.id, { nom: lib.agence, nom_avant: a.nom });
   }
   // 1 bis. Une ligne d'un autre département (Data-B rend parfois des homonymes
   // lointains : Saint-Barthélemy dans la liste de Nice) sort de la liste.

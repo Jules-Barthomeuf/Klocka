@@ -160,7 +160,7 @@ test("Monday « Agents immobiliers » : la bonne ligne, Remarques allongées san
   // Une ligne créée pour un inconnu a un Contact vide (Monday refuse le vide : espace de largeur nulle) ; Annuler la retire.
   const n = await M.ecrire({ cible: { telephones: ['0700000000'], agence: 'Autre Agence', ville: 'Nice' }, donnees: { ...d, contact: null, agence: 'Autre Agence', telephone: '0700000000', email: null } }, { fonctions });
   assert.equal(n.cree, true);
-  assert.equal(etat[n.item_id].nom, M.CONTACT_VIDE);
+  assert.equal(etat[n.item_id].nom, M.aPreciser('Autre Agence'));
   await M.restaurer(n, { fonctions });
   assert.ok(!etat[n.item_id]);
   // Monday garde une autre valeur : le reçu reste orange.

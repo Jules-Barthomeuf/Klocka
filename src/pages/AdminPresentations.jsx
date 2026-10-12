@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, Loader2, MoreHorizontal, Plus, Search, Trash2, X, AlertCircle } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Download, FileText, Loader2, Monitor, MoreHorizontal, Search, Trash2, X } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
-import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
+import { EnTeteListe, LigneDocument, Vignette, depuisCourt } from "@/components/ui/liste-documents";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 import ApercuPdf from "@/components/presentations/ApercuPdf";
 
@@ -30,11 +30,18 @@ export default function AdminPresentations() {
   const [travail, setTravail] = useState({ enCours: false, etapes: [] });
   const [choixProjet, setChoixProjet] = useState(false);
   const [pdfDe, setPdfDe] = useState(null);
+  const pdfDeRef = useRef(null);
+  pdfDeRef.current = pdfDe;
+  const [toutes, setToutes] = useState(false);
   const large = useEcranLarge();
   const [ouverteTel, setOuverteTel] = useState(true);
   useEffect(() => { if (courante) setOuverteTel(true); }, [courante]);
 
-  const { data, isLoading } = useQuery({ queryKey: ["presentations-bancaires"], queryFn: () => base44.request("GET", API) });
+  // Pendant un export, la liste se relit chaque seconde : « Génération 9/14 » avance.
+  const { data, isLoading } = useQuery({
+    queryKey: ["presentations-bancaires"], queryFn: () => base44.request("GET", API),
+    refetchInterval: (q) => ((q.state.data?.presentations || []).some((p) => p.pdf_en_cours) || pdfDeRef.current ? 1000 : false),
+  });
   const presentations = data?.presentations || [];
   const rafraichir = () => queryClient.invalidateQueries({ queryKey: ["presentations-bancaires"] });
 
@@ -122,34 +129,32 @@ export default function AdminPresentations() {
   };
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
 
+  // La liste (maquette de Jules, 12 oct. 2026) : Nom, Modifié, PDF, et les cinq dernières tant qu'on n'a pas tout affiché.
+  const LIMITE = 5;
+  const affichees = toutes ? presentations : presentations.slice(0, LIMITE);
   const liste = (
     <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[1100px]"}>
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3 pb-4">
+        <div className="flex items-baseline gap-3">
           <h2 className="m-0 text-[20px] font-normal tracking-[-0.01em] text-encre">Vos présentations</h2>
-          {!isLoading && presentations.length > 0 && (
-            <p className="m-0 mt-1 text-[13.5px] text-ardoise">{presentations.length} présentation{presentations.length > 1 ? "s" : ""}</p>
+          {presentations.length > 0 && <span className="text-[15px] text-ardoise tabular-nums">{presentations.length}</span>}
+        </div>
+        <div className="flex items-center gap-5">
+          <button type="button" onClick={() => setChoixProjet(true)} className="text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Depuis un projet</button>
+          {presentations.length > LIMITE && (
+            <button type="button" onClick={() => setToutes(!toutes)} className="text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{toutes ? "Réduire" : "Tout afficher"}</button>
           )}
         </div>
-        <button type="button" onClick={() => setChoixProjet(true)}
-          className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol max-md:w-full max-md:justify-center">
-          <Plus className="h-3.5 w-3.5" />Nouvelle présentation
-        </button>
       </div>
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
       ) : !presentations.length ? (
-        <div className="rounded-[14px] border border-trait bg-surface/40 px-6 py-10 text-center">
-          <FileText className="mx-auto mb-3 h-8 w-8 text-ardoise" />
-          <p className="m-0 text-[14px] text-ardoise">Aucune présentation encore.</p>
-          <p className="m-0 mt-2 max-w-[48ch] text-[13.5px] text-brume">Dites au chat le nom d'un projet pour créer une présentation bancaire, ou choisissez un projet dans la liste ci-dessus.</p>
-        </div>
+        <p className="py-12 text-center text-[14px] text-brume">Aucune présentation encore : nommez un projet au chat, ou partez de la liste des projets.</p>
       ) : (
         <div className="border-y border-trait">
-          <EnTeteListe droite="PDF" />
-          {presentations.map((p) => (
-            <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)} onPdf={() => setPdfDe(p)}
-              onSupprimer={() => supprimer.mutate(p.id)} />
+          <EnTeteListe auteur={false} droite="PDF" largeurDroite={170} />
+          {affichees.map((p) => (
+            <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)} onPdf={() => setPdfDe(p)} onSupprimer={() => supprimer.mutate(p.id)} />
           ))}
         </div>
       )}
@@ -224,50 +229,70 @@ export default function AdminPresentations() {
   );
 }
 
-/** Une présentation de la liste : le projet, l'adresse, la date. */
+/** L'état du PDF d'une présentation : en génération, à télécharger (avec sa date), ou pas encore exporté. */
+function EtatPdf({ p }) {
+  if (p.pdf_en_cours) {
+    return <span className="text-[13.5px] text-bleu tabular-nums">Génération {Math.min(p.pdf_en_cours.fait + 1, p.pdf_en_cours.total)}/{p.pdf_en_cours.total}</span>;
+  }
+  if (p.pdf_url && p.pdf_le) {
+    const date = new Date(p.pdf_le).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return (
+      <a href={p.pdf_url} download={`${p.titre || "presentation"}.pdf`} title={`Télécharger le PDF du ${quand(p.pdf_le)}`}
+        className="inline-flex h-9 items-center gap-2 rounded-[10px] border border-bord-doux px-3.5 text-[13.5px] text-encre no-underline hover:border-menthe">
+        <Download className="h-3.5 w-3.5" />{date}
+      </a>
+    );
+  }
+  return <span className="text-[13.5px] text-brume">Non exporté</span>;
+}
+
+/** Une présentation de la liste : la couverture, le titre et son détail, la date, le PDF, le menu. */
 function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
   const [menu, setMenu] = useState(false);
-  const [confirmSuppr, setConfirmSuppr] = useState(false);
+  const [confirmer, setConfirmer] = useState(false);
   const zone = useFermerAuClicAilleurs(menu, () => setMenu(false));
-  const detail = [p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`, p.exporte_le ? `exportée le ${quand(p.exporte_le)}` : null].filter(Boolean).join(" · ");
+  const detail = [p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`].filter(Boolean).join(" · ");
+  // « Chocolaterie - 10 Place Abel Surchamp… » : l'adresse est dans le détail, le titre garde le nom.
+  const titre = String(p.titre || "").split(/\s[-–]\s(?=\d)/)[0] || p.titre;
+  const action = "flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px]";
   return (
     <>
-      <LigneDocument active={active} onOuvrir={onOuvrir} reserve={176} titre={p.titre} detail={detail} modifie={p.maj_le}
-        vignette={<Vignette photo={p.photo} titre={p.titre} />} auteur={<Auteur email={p.cree_par} />}
+      <LigneDocument active={active} onOuvrir={onOuvrir} reserve={48} colonneAuteur={false} largeurDroite={170}
+        titre={titre} detail={detail} modifie={p.maj_le} modifieLibelle={depuisCourt(p.maj_le)}
+        vignette={<Vignette photo={p.photo} titre={p.titre} icone={Monitor} />}
+        droite={<span aria-hidden className="block h-9 max-md:hidden" />}
         menu={(
-          <>
-            {/* Le PDF d'un clic, depuis la liste : l'aperçu, puis le téléchargement. */}
-            <button type="button" onClick={onPdf} title="Aperçu et téléchargement du PDF"
-              className="absolute right-12 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-encre hover:border-menthe opacity-0 group-hover:opacity-100 focus-within:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}>
-              <FileText className="h-3.5 w-3.5" />PDF
-            </button>
-            <div ref={zone} className="contents">
-              <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-              {menu && (
-                <div className="absolute right-1 top-[calc(50%+14px)] z-20 min-w-[170px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
-                  <button type="button" onClick={() => { setMenu(false); setConfirmSuppr(true); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08]" style={{ background: "transparent" }}>
-                    <Trash2 className="h-3.5 w-3.5" /> Supprimer
-                  </button>
-                </div>
-              )}
+          <div ref={zone} className="contents">
+            {/* Le PDF, posé sur sa colonne hors du bouton de la ligne : son lien se clique seul. */}
+            <div className="pointer-events-none absolute right-12 top-1/2 flex w-[170px] -translate-y-1/2 items-center max-md:static max-md:mt-2 max-md:w-auto max-md:translate-y-0 max-md:pl-[102px]">
+              <span className="pointer-events-auto"><EtatPdf p={p} /></span>
             </div>
-          </>
-        )} />
-      <AlertDialog open={confirmSuppr} onOpenChange={setConfirmSuppr}>
-        <AlertDialogContent>
-          <AlertDialogTitle>Supprimer la présentation ?</AlertDialogTitle>
-          <AlertDialogDescription>
-            La présentation « {p.titre} » sera supprimée. Les PDF déjà téléchargés restent inchangés.
-          </AlertDialogDescription>
-          <div className="flex justify-end gap-3">
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => onSupprimer()} className="bg-alerte hover:bg-alerte text-sur-menthe">
-              Supprimer
-            </AlertDialogAction>
+            <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
+              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-ardoise transition-colors hover:text-encre max-md:top-3 max-md:h-10 max-md:w-10 max-md:translate-y-0" style={{ background: "transparent" }}>
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {menu && (
+              <div className="absolute right-1 top-[calc(50%+16px)] z-20 min-w-[190px] max-md:top-14 rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+                <button type="button" onClick={() => { setMenu(false); onPdf(); }} className={`${action} text-encre hover:bg-encre/[0.04]`} style={{ background: "transparent" }}>
+                  <FileText className="h-3.5 w-3.5" /> {p.pdf_url ? "Aperçu du PDF" : "Exporter en PDF"}
+                </button>
+                <button type="button" onClick={() => { setMenu(false); setConfirmer(true); }} className={`${action} text-alerte hover:bg-alerte/[0.08]`} style={{ background: "transparent" }}>
+                  <Trash2 className="h-3.5 w-3.5" /> Supprimer
+                </button>
+              </div>
+            )}
           </div>
+        )} />
+      <AlertDialog open={confirmer} onOpenChange={setConfirmer}>
+        <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-encre">Supprimer la présentation « {p.titre} » ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-ardoise">Ses diapositives et ses retouches disparaissent. Les PDF déjà téléchargés restent.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={onSupprimer} className="bg-alerte text-fond hover:bg-alerte/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>

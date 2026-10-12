@@ -40,6 +40,11 @@ export function lireParJeton(jeton, maintenant = Date.now()) {
 /** Pure : le PDF gardé est-il encore celui de la présentation (rien retouché depuis) ? */
 export const pdfAJour = (p, existe = true) => !!(p?.pdf_url && p.pdf_le && existe && String(p.pdf_le) >= String(p.maj_le || p.cree_le || ''));
 
+// Les exports en cours, diapositive par diapositive : la liste affiche « Génération 9/14 » (12 oct. 2026, Jules).
+const PROGRESSION = new Map();
+/** { fait, total } d'un export en cours, ou null. */
+export const progressionPdf = (id) => PROGRESSION.get(id) || null;
+
 /** Le PDF de la présentation : refait seulement si elle a changé depuis le dernier. */
 export async function exporterPdf(id, { base, forcer = false } = {}) {
   const p = Records.get(ENTITE, id);
@@ -55,6 +60,7 @@ export async function exporterPdf(id, { base, forcer = false } = {}) {
   // posées une par page. L'impression directe du deck, essayée d'abord, le réduisait aux deux tiers de la page.
   const contexte = await nav.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2, locale: 'fr-FR' });
   try {
+    PROGRESSION.set(id, { fait: 0, total: (p.diapos || []).filter((d) => !d.masquee).length });
     const page = await contexte.newPage();
     const jeton = jetonImpression(id);
     // Les photos déposées et la carte demandent une session : le jeton d'impression en tient lieu, le temps de l'impression.
@@ -67,13 +73,18 @@ export async function exporterPdf(id, { base, forcer = false } = {}) {
     const n = await pages.count();
     if (!n) return { ok: false, error: 'Aucune diapositive à imprimer.' };
     const images = [];
-    for (let k = 0; k < n; k++) images.push((await pages.nth(k).screenshot({ type: 'jpeg', quality: 95 })).toString('base64'));
+    for (let k = 0; k < n; k++) {
+      PROGRESSION.set(id, { fait: k, total: n });
+      images.push((await pages.nth(k).screenshot({ type: 'jpeg', quality: 95 })).toString('base64'));
+    }
+    PROGRESSION.set(id, { fait: n, total: n });
     const feuille = await contexte.newPage();
     await feuille.setContent(`<!doctype html><html><head><style>@page{size:1280px 720px;margin:0}html,body{margin:0;padding:0;background:#000}img{display:block;width:1280px;height:720px;break-after:page;page-break-after:always}img:last-child{break-after:auto;page-break-after:auto}</style></head><body>${images.map((b) => `<img src="data:image/jpeg;base64,${b}">`).join('')}</body></html>`, { waitUntil: 'load' });
     const pdf = await feuille.pdf({ width: '1280px', height: '720px', printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
     fs.mkdirSync(dossier, { recursive: true });
     fs.writeFileSync(fichier, pdf);
   } finally {
+    PROGRESSION.delete(id);
     await contexte.close().catch(() => {});
   }
   const pdf_url = `/uploads/presentations/${nom}`;

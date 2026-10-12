@@ -42,7 +42,8 @@ export function monterPresentations(app) {
 
   app.get(base, wrap(async (req, res) => {
     if (!admin(req, res)) return;
-    ok(res, { presentations: (await P()).listerPresentations() });
+    const { progressionPdf } = await import('../presentation-pdf.js');
+    ok(res, { presentations: (await P()).listerPresentations().map((p) => ({ ...p, pdf_en_cours: progressionPdf(p.id) })) });
   }));
 
   app.post(base, wrap(async (req, res) => {

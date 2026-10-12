@@ -43,6 +43,7 @@ function resume(p) {
     exporte_le: p.exporte_le || null,
     slides_url: p.slides_url || null,
     pdf_url: p.pdf_url || null,
+    pdf_le: p.pdf_le || null,
   };
 }
 

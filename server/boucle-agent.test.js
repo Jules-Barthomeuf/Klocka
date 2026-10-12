@@ -62,7 +62,7 @@ test('à la limite de 20 tours, un dernier tour sans outil dit ce qui est fait',
   assert.match(derniere.messages.at(-1).content.at(-1).text, /Limite d’étapes/);
 });
 
-test.todo('un outil en échec revient au modèle marqué is_error', async () => {
+test('un outil en échec revient au modèle marqué is_error', async () => {
   const c = fauxClient([{ stop_reason: 'tool_use', content: [outil('a'), outil('b')] }, { stop_reason: 'end_turn', content: [texte('fini')] }]);
   L.brancherClientAgentPourTests(c);
   await L.runAgent({ system: 's', messages: [{ role: 'user', content: 'q' }], tools: [{ name: 'chercher', description: 'd', input_schema: { type: 'object' } }], onTool: async ({ name }, n = 0) => (c.requetes.length === 1 && n === 0 ? { ok: false, error: 'introuvable' } : { ok: true }) });

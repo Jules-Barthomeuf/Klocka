@@ -53,6 +53,9 @@ const anthropic =
       new Anthropic({ apiKey: ANTHROPIC_KEY, maxRetries: 4, timeout: 10 * 60 * 1000 })
     : null;
 
+/** Pure : un résultat d'outil qui est un échec (refus ok:false, erreur levée, champ error ou erreur). */
+const estResultatEnEchec = (r) => !!(r && typeof r === 'object' && (r.ok === false || r.error || r.erreur));
+
 // Les tests de la boucle d'outils remplacent le client (12 oct. 2026) : seulement sous `node --test`.
 let clientAgentDeTest = null;
 export function brancherClientAgentPourTests(client) { clientAgentDeTest = process.env.NODE_TEST_CONTEXT ? client : null; }
@@ -810,6 +813,8 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
             type: 'tool_result',
             tool_use_id: block.id,
             content: typeof result === 'string' ? result : JSON.stringify(result),
+            // Un refus ou une erreur se dit comme tel au modèle (12 oct. 2026) : il ne le lit plus comme un résultat.
+            ...(estResultatEnEchec(result) ? { is_error: true } : {}),
           });
         }
       }

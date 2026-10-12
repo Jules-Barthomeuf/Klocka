@@ -34,3 +34,13 @@ test('le bilan d’AK compte les actions notées par canal', () => {
   const b = bilanDe({ actions: [{ outil: 'creer_dossier', par: 'jules.b@klocka.immo', via: "AK dans l'application", le: new Date().toISOString(), resultat: { ok: true } }] });
   assert.equal(b.actions, 1);
 });
+
+test('la garde anti-doublon est par personne', async () => {
+  const { cleGeste, dejaFait } = await import('./ak/agent.js');
+  const jules = cleGeste('rediger_loi', { projet_id: 'p1' }, 'Jules.B@klocka.immo');
+  const coralie = cleGeste('rediger_loi', { projet_id: 'p1' }, 'coralie.g@klocka.immo');
+  assert.notEqual(jules, coralie);
+  const gestes = { [jules]: Date.now() - 5 * 60000 };
+  assert.equal(dejaFait(jules, gestes), 5, 'Jules qui refait sa LOI : bloqué');
+  assert.equal(dejaFait(coralie, gestes), null, 'Coralie qui fait la sienne : passe');
+});

@@ -583,10 +583,13 @@ export const GESTES_COUTEUX = new Set(['rediger_loi', 'creer_presentation_bancai
 const CLE_GESTES = 'ak.gestes';
 const DOUBLON_MS = 60 * 60 * 1000;
 
-/** Pure : la clé d'un geste, arguments triés, pour reconnaître le même geste. */
-export function cleGeste(name, input = {}) {
+/**
+ * Pure : la clé d'un geste, arguments triés, pour reconnaître le même geste.
+ * Par personne (12 oct. 2026) : la LOI que Jules vient de faire ne bloque plus celle de Coralie.
+ */
+export function cleGeste(name, input = {}, qui = null) {
   const trie = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, trie(v[k])])) : v);
-  return `${name}:${JSON.stringify(trie(input || {}))}`;
+  return `${qui ? `${String(qui).toLowerCase()}|` : ''}${name}:${JSON.stringify(trie(input || {}))}`;
 }
 
 /** Pure : ce geste a-t-il déjà été fait dans l'heure ? Rend depuis combien de minutes, ou null. */
@@ -633,7 +636,7 @@ async function executerOutilSansFilet(appelBrut, user, options = {}) {
   const appel = completerIdentifiants(appelBrut);
   if (!GESTES_COUTEUX.has(appel.name)) return executerOutilBrut(appel, user, options);
   // Des photos différentes font un autre geste : les ajouter n'est pas refaire le projet.
-  const cle = cleGeste(appel.name, { ...(appel.input || {}), photos_jointes: photosDuMessage(options.message) });
+  const cle = cleGeste(appel.name, { ...(appel.input || {}), photos_jointes: photosDuMessage(options.message) }, user?.email || null);
   const gestes = (() => { try { return JSON.parse(Meta.get(CLE_GESTES) || '{}'); } catch { return {}; } })();
   const minutes = dejaFait(cle, gestes);
   if (minutes != null) return { ok: false, deja_fait: true, error: `Déjà fait il y a ${minutes} min, pas relancé : dis-le en une ligne, sans le refaire.` };

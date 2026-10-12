@@ -144,7 +144,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
       if (!LECTURES.has(appel.name)) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
-        try { journaliser({ outil: appel.name, args: appel.input, resultat, user: { ...user, email: `${user?.email} (AK dans l'application)` } }); } catch (e) { console.warn('[ak app] journalisation impossible :', e?.message || e); }
+        try { journaliser({ outil: appel.name, args: appel.input, resultat, user, via: "AK dans l'application" }); } catch (e) { console.warn('[ak app] journalisation impossible :', e?.message || e); }
       }
       return resultat;
     }, trace),

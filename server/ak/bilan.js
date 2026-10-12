@@ -12,14 +12,15 @@ export function bilanDe({ actions = [], couts = [], taches = [], lecons = [], jo
   const depuis = depuisJours(jours);
   // AK dans Google Chat (« (AK pour Jules) ») et dans le chat de l'application
   // (« jules.b@… (AK dans l'application) ») : les deux comptent.
-  const parAk = actions.filter((a) => /\(AK (pour |dans l'application)/.test(String(a.par || '')) && String(a.le || a.created_date || '') >= depuis);
+  // Depuis le 12 oct. 2026, l'adresse seule dans `par` et le canal dans `via`.
+  const parAk = actions.filter((a) => (/^AK /.test(String(a.via || '')) || /\(AK (pour |dans l'application)/.test(String(a.par || ''))) && String(a.le || a.created_date || '') >= depuis);
   const parOutil = {};
   const parPersonne = {};
   const issues = { reussite: 0, question: 0, doublon: 0, echec: 0 };
   for (const a of parAk) {
     parOutil[a.outil] = (parOutil[a.outil] || 0) + 1;
-    const p = String(a.par);
-    const qui = (p.match(/\(AK pour ([^)]+)\)/) || [])[1] || (/AK dans l'application/.test(p) ? (p.split('@')[0].split('.')[0].replace(/^./, (x) => x.toUpperCase()) || '?') : '?');
+    const p = `${a.par || ''} (${a.via || ''})`;
+    const qui = (p.match(/\(AK pour ([^)]+)\)/) || [])[1] || (/AK dans l'application/.test(p) ? (String(a.par || '').split('@')[0].split('.')[0].replace(/^./, (x) => x.toUpperCase()) || '?') : '?');
     parPersonne[qui] = (parPersonne[qui] || 0) + 1;
     // Relu depuis le résultat : les actions consignées avant la règle actuelle
     // comptaient une lecture sans « ok » comme ratée.

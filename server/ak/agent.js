@@ -1365,7 +1365,7 @@ export async function repondre(message) {
       const agissant = !['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
-        try { journaliser({ outil: appel.name, args: appel.input, resultat, user: { ...user, email: `${user.email} (AK pour ${prenom})` } }); } catch (e) { console.warn('[ak] journalisation impossible :', e?.message || e); }
+        try { journaliser({ outil: appel.name, args: appel.input, resultat, user, via: `AK pour ${prenom}` }); } catch (e) { console.warn('[ak] journalisation impossible :', e?.message || e); }
       }
       return resultat;
     },

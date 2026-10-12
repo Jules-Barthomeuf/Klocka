@@ -635,6 +635,7 @@ export async function executerOutil({ name, input }, user) {
     return {
       ok: true,
       cree: r.cree,
+      id: r.id || null,
       agent: agent.email,
       nom: agent.nom || agent.email,
       titre: agent.nom || agent.email,
@@ -854,6 +855,8 @@ export async function executerOutil({ name, input }, user) {
       ok: true,
       titre: titreDeal(deal),
       cree: r.cree,
+      // L'élément Monday : c'est lui qu'« annule » supprime (12 oct. 2026, il manquait).
+      id: r.id || null,
       url: `https://klocka-company.monday.com/boards/${process.env.MONDAY_BOARD_PROPRIETES || ''}/pulses/${r.id}`,
     };
   }
@@ -1003,6 +1006,8 @@ export async function executerOutil({ name, input }, user) {
       ok: true,
       titre: projet.titre,
       cree: r.cree,
+      // L'élément Monday : c'est lui qu'« annule » supprime (12 oct. 2026, il manquait).
+      id: r.id || null,
       url: `https://klocka-company.monday.com/boards/${process.env.MONDAY_BOARD_PROPRIETES || ''}/pulses/${r.id}`,
     };
   }

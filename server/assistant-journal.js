@@ -50,7 +50,7 @@ export function issueDe(resultat) {
  * Consigne une action exécutée.
  * @returns {object} l'entrée du journal
  */
-export function journaliser({ outil, args, resultat, user }) {
+export function journaliser({ outil, args, resultat, user, via = null }) {
   // Une mise à jour n'est pas annulable : on ne connaît pas l'état d'avant.
   const creation = resultat?.cree === true;
   const annulable = !!REVERSIBLES[outil] && creation;
@@ -63,7 +63,9 @@ export function journaliser({ outil, args, resultat, user }) {
     outil,
     arguments: args || {},
     resultat: resultat || {},
+    // L'adresse seule (12 oct. 2026) : « jules.b@… (AK dans l'application) » empêchait d'annuler ce qu'AK avait fait.
     par: user?.email || null,
+    via,
     le: new Date().toISOString(),
     deal_id: args?.deal_id || null,
     projet_id: args?.projet_id || null,
@@ -79,7 +81,8 @@ export function journaliser({ outil, args, resultat, user }) {
 /** Les dernières actions, la plus récente d'abord. */
 export function dernieresActions(limite = 10, user = null) {
   return Records.list('AssistantAction')
-    .filter((a) => !user || a.par === user)
+    // Les actions d'avant le 12 oct. 2026 portent « adresse (AK …) » : elles sont aussi à leur auteur.
+    .filter((a) => !user || a.par === user || String(a.par || '').startsWith(`${user} (`))
     .sort((a, b) => String(b.le || '').localeCompare(String(a.le || '')))
     .slice(0, limite);
 }
@@ -110,6 +113,7 @@ export async function annuler(action) {
   const id = action.resultat?.id;
 
   if (action.outil.startsWith('pousser_') || action.outil === 'creer_agent_monday') {
+    if (!id) return { ok: false, message: "L'élément Monday n'a pas été noté au moment de sa création : à supprimer à la main dans Monday." };
     const { supprimerElement } = await import('./monday.js');
     await supprimerElement(id);
     // Le dossier ou le projet ne doit plus pointer vers un élément disparu.

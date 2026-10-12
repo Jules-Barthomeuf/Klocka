@@ -44,3 +44,16 @@ test('la garde anti-doublon est par personne', async () => {
   assert.equal(dejaFait(jules, gestes), 5, 'Jules qui refait sa LOI : bloqué');
   assert.equal(dejaFait(coralie, gestes), null, 'Coralie qui fait la sienne : passe');
 });
+
+test('l’agenda : celui de la personne qui parle, sinon un compte de l’équipe qui l’a autorisé, sinon rien', async () => {
+  const { compteAgendaPour } = await import('./ak/outils.js');
+  const comptes = [{ email: 'coralie.g@klocka.immo', peut_agenda: true }, { email: 'jules.b@klocka.immo', peut_agenda: false }];
+  assert.equal(compteAgendaPour('Coralie.G@klocka.immo', { lire: () => comptes }), 'coralie.g@klocka.immo');
+  assert.equal(compteAgendaPour('jules.b@klocka.immo', { lire: () => comptes }), 'coralie.g@klocka.immo', 'Jules sans agenda : celui de l’équipe');
+  assert.equal(compteAgendaPour('jules.b@klocka.immo', { lire: () => [] }), null);
+});
+
+test('lancer_design n’est pas proposé sans AK_DESIGN', async () => {
+  const { OUTILS } = await import('./ak/agent.js');
+  if (!/^(1|true|oui|yes)$/i.test(process.env.AK_DESIGN || '')) assert.ok(!OUTILS.some((o) => o.name === 'lancer_design'));
+});

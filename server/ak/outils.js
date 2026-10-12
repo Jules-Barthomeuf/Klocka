@@ -350,16 +350,33 @@ export async function rangerSurLeDrive({ deal_id, chemin, nom = null }) {
   return { ok: true, envoyes: r.envoyes, erreurs: r.erreurs, dossier_url: r.folder_url, chemin: r.chemin };
 }
 
+/**
+ * Le compte Google qui tient l'agenda d'équipe (12 oct. 2026) : celui de la
+ * personne qui parle s'il a autorisé l'agenda, sinon celui d'AK, sinon le
+ * premier compte de l'équipe qui l'a fait. Aucun : null, et l'outil le dit.
+ */
+export function compteAgendaPour(email, { lire = null } = {}) {
+  const lister = lire || (() => Records.list('MailAccount'));
+  const comptes = lister().filter((a) => a.peut_agenda);
+  const de = (x) => comptes.find((a) => a.email === String(x || '').toLowerCase());
+  return (de(email) || de(COMPTE) || comptes[0])?.email || null;
+}
+const SANS_AGENDA = { ok: false, error: "Aucun compte Google de l'équipe n'a autorisé l'agenda : connectez le vôtre depuis le tableau de bord (Google, avec l'agenda), puis redemandez." };
+
 /** Un rendez-vous dans l'agenda d'équipe. */
-export async function bloquerRendezVous({ titre, debut, fin = null, lieu = null, description = null }) {
+export async function bloquerRendezVous({ titre, debut, fin = null, lieu = null, description = null }, user = null) {
+  const compte = compteAgendaPour(user?.email);
+  if (!compte) return SANS_AGENDA;
   const { poserRendezVous } = await import('../google-calendar.js');
-  return { ok: true, ...(await poserRendezVous(COMPTE, { titre, debut, fin, lieu, description })) };
+  return { ok: true, agenda_de: compte, ...(await poserRendezVous(compte, { titre, debut, fin, lieu, description })) };
 }
 
 /** Les rendez-vous d'un jour (AAAA-MM-JJ), pour le mot du matin ou une question. */
-export async function agendaDuJour(jour) {
+export async function agendaDuJour(jour, user = null) {
+  const compte = compteAgendaPour(user?.email);
+  if (!compte) return SANS_AGENDA;
   const { evenementsDuJour } = await import('../google-calendar.js');
-  return evenementsDuJour(COMPTE, jour);
+  return evenementsDuJour(compte, jour);
 }
 
 

@@ -12,6 +12,7 @@
 // chat répond « envoie » ; c'est la veille qui l'envoie, pas le modèle.
 // L'outil d'envoi de l'assistant reste exclu : rien ne part sans avoir été lu.
 
+import { designActif } from './design.js';
 import { auBanc, SIMULES_AK, simule } from './banc/garde.js';
 import fs from 'fs';
 import path from 'path';
@@ -533,7 +534,8 @@ const OUTILS_AK = [
   },
 ];
 
-export const OUTILS = [...OUTILS_ASSISTANT.filter((o) => !EXCLUS.has(o.name)), ...OUTILS_AK];
+// lancer_design n'est proposé que là où il tourne (AK_DESIGN) : ailleurs, le modèle l'appelait pour rien (12 oct. 2026).
+export const OUTILS = [...OUTILS_ASSISTANT.filter((o) => !EXCLUS.has(o.name)), ...OUTILS_AK].filter((o) => o.name !== 'lancer_design' || designActif());
 
 const lien = (chemin) => `${APP_URL}${chemin}`;
 
@@ -788,8 +790,8 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (!chemin.startsWith(CHEMIN_UPLOADS) || !fs.existsSync(chemin)) return { ok: false, error: 'Pièce jointe introuvable : elle doit venir du message.' };
     return rangerSurLeDrive({ deal_id: input.deal_id, chemin, nom: input.nom || null });
   }
-  if (name === 'bloquer_rdv') return bloquerRendezVous(input);
-  if (name === 'agenda') return { jour: input.jour, rendez_vous: await agendaDuJour(input.jour) };
+  if (name === 'bloquer_rdv') return bloquerRendezVous(input, user);
+  if (name === 'agenda') { const r = await agendaDuJour(input.jour, user); return Array.isArray(r) ? { jour: input.jour, rendez_vous: r } : r; }
   if (name === 'rediger_loi') {
     const { manquants, champsDepuisDeal, champsDepuisProjet } = await import('./loi.js');
     const O = await import('../offres.js');

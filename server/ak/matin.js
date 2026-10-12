@@ -33,7 +33,7 @@ export async function matiere() {
   const propositions = await construirePropositions({}).catch(() => []);
   const engagements = engagementsOuverts();
   let rendez_vous = [];
-  try { const { agendaDuJour } = await import('./outils.js'); rendez_vous = await agendaDuJour(new Date().toISOString().slice(0, 10)); } catch { rendez_vous = []; }
+  try { const { agendaDuJour } = await import('./outils.js'); const r = await agendaDuJour(new Date().toISOString().slice(0, 10)); rendez_vous = Array.isArray(r) ? r : []; } catch { rendez_vous = []; }
   let mails = [];
   try { const { boiteRecue } = await import('./outils.js'); mails = (await boiteRecue(null, { limite: 5, relever: false })).map((m) => ({ de: m.de, objet: m.objet, pieces: m.pieces_jointes.length })); } catch { mails = []; }
   const sansAgent = Records.list('Deal').filter((d) => !d.archived && !d.test && !d.contact_agent_email && ['analyse', 'documents_demandes'].includes(d.statut || 'analyse')).map(titreDeal);

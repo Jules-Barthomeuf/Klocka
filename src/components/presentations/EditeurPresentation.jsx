@@ -149,7 +149,7 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
   const edition = mode === "edition";
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-fond">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-rail">
       <div className="k-barre-apercu flex h-14 flex-none items-center gap-3 border-b border-trait px-5 md:pr-[120px] max-md:gap-2 max-md:px-3">
         <div className="flex min-w-0 flex-1 items-baseline gap-3 max-md:flex-col max-md:gap-0">
           <span className="truncate text-[14.5px] text-encre max-md:max-w-full">{data?.titre || "Présentation bancaire"}</span>

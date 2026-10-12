@@ -203,8 +203,12 @@ cliqué en édition ouvre son menu « Styles » flottant en haut à droite de la
 scène (`bg-rail`, 14 px, `border-trait`, ombre douce), comme celui de l'avis
 de valeur ; la croix, Échap ou un clic dans le vide le ferment. Le panneau des
 diapositives est fermé par défaut, il s'ouvre et se ferme par son bouton, sans
-phrase d'aide. Couleurs de la page : les barres du haut (chat et éditeur), le
-panneau et le menu en `rail` ; le chat et la scène du deck sur le fond.
+phrase d'aide. L'éditeur est un écran dans l'écran : une carte
+(`rounded-[14px] border-bord-doux bg-rail`, 8 px de marge) posée sur le fond de
+la page, d'une seule teinte, sa barre du haut et sa scène comprises (le fond
+choisi dans Personnalisation n'y entre pas) ; le chat garde le fond de la page.
+La poignée entre les deux se tire pour régler la largeur du chat (300 px au
+moins, gardée dans le navigateur ; double-clic pour revenir à 420 px).
 
 **Installer l'application** (`InstallerApp.jsx`, 12 oct. 2026) : pour tout le
 monde, un instant après l'arrivée, tant que l'application n'est pas ouverte

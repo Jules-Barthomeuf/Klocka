@@ -834,7 +834,9 @@ html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
 /* La page Présentations (12 oct. 2026, Jules : « plus en accord ») : ses barres du haut, celle du chat
    et celle de l'éditeur, prennent la teinte de la barre latérale, comme le panneau des diapositives et
    le menu de mise en forme ; le chat et la scène du deck restent sur le fond de la page. */
+/* L'éditeur est une carte d'une seule teinte, sa barre comprise ; le chat garde le fond de la page, sa barre aussi. */
 :root .k-page-presentation .k-barre-apercu, :root .k-presentation-tel .k-barre-apercu { background-color: rgb(var(--k-rail-rgb)); }
+:root .k-page-presentation .k-colonne-chat .k-barre-apercu { background-color: transparent; }
 
 /* La grille de points des panneaux secondaires (fiches, cartes de détail,
    fenêtres) : des points de 1 px, au pas de 14 px, arrêtés à une marge des

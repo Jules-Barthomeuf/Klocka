@@ -41,3 +41,18 @@ export const NOMS = {
   projection: "Projection", revenus: "Revenus fonciers", conditions: "Conditions", porteur: "Porteur du projet",
   structuration: "Structuration", merci: "Merci",
 };
+
+/** L'ordre du modèle : celui des seize diapositives, la couverture d'abord. */
+export const ORDRE = Object.keys(NOMS);
+
+/** Pure : les diapositives remises dans l'ordre du modèle ; une diapositive inconnue du modèle reste à la fin, dans son ordre. */
+export function ordreDuModele(diapos = []) {
+  const rang = (d) => { const i = ORDRE.indexOf(d.type || d.id); return i < 0 ? ORDRE.length : i; };
+  return [...diapos].map((d, i) => ({ d, i })).sort((a, b) => rang(a.d) - rang(b.d) || a.i - b.i).map((x) => x.d);
+}
+
+/** Pure : la présentation est-elle dans l'ordre du modèle ? */
+export const dansLOrdreDuModele = (diapos = []) => ordreDuModele(diapos).every((d, i) => d.id === diapos[i]?.id);
+
+/** Les chapitres du sommaire, dans l'ordre : la diapositive où chacun commence. */
+export const CIBLES_SOMMAIRE = ["ville", "emplacement", "quartier", "local", "bail", "projection", "conditions", "porteur"];

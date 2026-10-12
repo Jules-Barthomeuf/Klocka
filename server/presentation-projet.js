@@ -272,7 +272,8 @@ export async function construireDiapos(project, photos = {}) {
   const [coords, analyse] = await Promise.all([geocoder(p), analyseVilleSecteur(p)]);
   const enseignes = await enseignesDuSecteur(coords);
 
-  const nomVille = analyse.ville?.nom ||
+  // Le nom seul (« Libourne », pas « Libourne (Gironde, 33500) ») : la parenthèse de l'analyse n'a rien à faire sur une couverture.
+  const nomVille = String(analyse.ville?.nom || '').replace(/\s*\(.*?\)\s*$/, '').trim() ||
     (p.adresse_complete || '').split(',').pop()?.replace(/\b\d{5}\b/, '').trim() || '[Ville]';
   const nomSecteur = analyse.secteur?.nom || p.marche_quartier_nom ||
     (p.adresse_complete || '').split(',')[0] || '[Secteur]';
@@ -419,7 +420,7 @@ export async function construireDiapos(project, photos = {}) {
       {
         points: [
           ['Activité', activite],
-          ['Statut du bail', rempli(p.statut_bail) ? p.statut_bail : 'En cours'],
+          ['Statut du bail', { en_cours: 'En cours', renouvele: 'Renouvelé', a_renouveler: 'À renouveler', tacite: 'Tacite reconduction', echu: 'Échu' }[String(p.statut_bail || '').toLowerCase()] || (rempli(p.statut_bail) ? String(p.statut_bail).replace(/_/g, ' ') : 'En cours')],
           ['Date d’échéance', echeanceLongue],
           ['Loyer annuel HT', eur(loyer)],
           ['Loyer mensuel HT', loyer ? euros(loyer / 12) : '[Montant]'],

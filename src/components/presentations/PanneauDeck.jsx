@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Eye, EyeOff, Italic, Minus, Plus, RotateCcw } from "lucide-react";
-import { NOMS } from "@/lib/presentation-modele";
+import { NOMS, dansLOrdreDuModele } from "@/lib/presentation-modele";
 import { PALETTE, lire } from "./Deck";
 
 // Le panneau à droite du deck, comme l'atelier de l'avis de valeur : les
@@ -89,6 +89,11 @@ export default function PanneauDeck({ diapos, courante, selection, onAller, onCh
         {ongletVu === "diapos" ? (
           <>
             <p className="m-0 px-1 pb-2 text-[12.5px] text-ardoise">Un clic y va ; l'œil la masque, les flèches la déplacent.</p>
+            {!dansLOrdreDuModele(diapos) && (
+              <button type="button" onClick={() => onOrdre("modele")} className="mb-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-ambre/50 px-3 text-[12.5px] text-encre hover:border-ambre" style={{ background: "transparent" }}>
+                <ArrowUp className="h-3.5 w-3.5 text-ambre" />Remettre dans l'ordre du modèle
+              </button>
+            )}
             {diapos.map((d, i) => {
               const active = d.id === courante;
               const rang = d.masquee ? null : diapos.slice(0, i + 1).filter((x) => !x.masquee).length;

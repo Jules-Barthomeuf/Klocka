@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CARTE, HAUTEUR, LARGEUR, TAILLES } from "@/lib/presentation-modele";
+import { CARTE, CIBLES_SOMMAIRE, HAUTEUR, LARGEUR, TAILLES } from "@/lib/presentation-modele";
 import "./presentation-bancaire.css";
 
 // Le deck de la présentation bancaire, sur le « Deck complet » de Jules
@@ -159,10 +159,12 @@ const CARTES = {
       </div>
     </div>
   ),
-  sommaire: ({ d, set }) => (
+  // En lecture, chaque chapitre du sommaire mène à la diapositive où il commence (la spec de Jules : « cliquables »).
+  sommaire: ({ d, set, edition, aller }) => (
     <div style={{ height: "100%", padding: "28px 36px", display: "flex", flexDirection: "column" }}>
       {(d.items || []).map((it, k) => (
-        <div key={k} className="pb-item" style={{ flex: "1 1 0", display: "flex", alignItems: "center", gap: 22, borderTop: k ? "1px solid rgba(242,243,245,.11)" : undefined, fontSize: 21, letterSpacing: "-0.01em" }}>
+        <div key={k} className="pb-item" onClick={edition ? undefined : () => CIBLES_SOMMAIRE[k] && aller(CIBLES_SOMMAIRE[k])} role={edition ? undefined : "button"} tabIndex={edition ? undefined : 0} onKeyDown={edition ? undefined : (e) => { if (e.key === "Enter" && CIBLES_SOMMAIRE[k]) aller(CIBLES_SOMMAIRE[k]); }}
+          style={{ flex: "1 1 0", display: "flex", alignItems: "center", gap: 22, borderTop: k ? "1px solid rgba(242,243,245,.11)" : undefined, fontSize: 21, letterSpacing: "-0.01em", cursor: edition ? undefined : "pointer" }}>
           <span className="pb-sauge" style={{ flex: "0 0 32px", fontSize: 14 }}>{String(k + 1).padStart(2, "0")}</span>
           <Champ chemin={`items.${k}.titre`} style={{ flex: 1 }} />
           <Champ chemin={`items.${k}.page`} style={{ fontSize: 14, color: "var(--pb-gris-fonce)" }} />
@@ -567,10 +569,10 @@ export default function Deck({ diapos, courante, onCourante, mode = "edition", s
                   const Contenu = CARTES[d.type];
                   const transform = delta === 0 ? "translateZ(0px) rotateY(0deg) scale(1)" : delta > 0 ? "translateZ(-140px) rotateY(-22deg) scale(.9)" : "translateX(-180px) translateZ(-200px) rotateY(24deg) scale(.84)";
                   return (
-                    <Diapo.Provider key={d.id} value={contexteDe(d)}>
+                    <Diapo.Provider key={d.id} value={contexteDe(d)}>{/* la carte reçoit aussi le contexte en props : set, edition, aller (12 oct. 2026) */}
                       <div className={`pb-carte f-carte ${delta === 0 ? "f-on" : "f-s"} ${d.masquee ? "pb-carte-masquee" : ""} ${delta === 0 ? "" : "pb-carte-loin"}`}
                         style={{ left: CARTE.x + k * PAS_CARTES, top: CARTE.y, transform, opacity: d.masquee && delta === 0 ? 0.35 : delta < 0 ? 0 : delta === 0 ? 1 : 0.6, background: d.type === "merci" ? "var(--pb-noir)" : undefined }}>
-                        <div className="pb-carte-corps">{Contenu ? <Contenu d={d} /> : null}</div>
+                        <div className="pb-carte-corps">{Contenu ? <Contenu {...contexteDe(d)} /> : null}</div>
                       </div>
                     </Diapo.Provider>
                   );

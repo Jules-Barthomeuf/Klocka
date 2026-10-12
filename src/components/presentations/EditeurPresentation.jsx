@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import Deck, { poser } from "./Deck";
 import PanneauDeck from "./PanneauDeck";
+import { ordreDuModele } from "@/lib/presentation-modele";
 
 // La présentation bancaire ouverte, à droite du chat de la page Présentations
 // (12 oct. 2026) : un seul deck de seize diapositives, qu'on feuillette, et à
@@ -39,7 +40,8 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
     onMutate: (corps) => {
       const avant = queryClient.getQueryData(cle);
       if (avant && corps.diapo) queryClient.setQueryData(cle, { ...avant, diapos: avant.diapos.map((d) => (d.id === corps.diapo.id ? corps.diapo : d)) });
-      if (avant && corps.ordre) { const par = new Map(avant.diapos.map((d) => [d.id, d])); queryClient.setQueryData(cle, { ...avant, diapos: corps.ordre.map((x) => par.get(x)) }); }
+      if (avant && corps.ordre === "modele") queryClient.setQueryData(cle, { ...avant, diapos: ordreDuModele(avant.diapos) });
+      else if (avant && corps.ordre) { const par = new Map(avant.diapos.map((d) => [d.id, d])); queryClient.setQueryData(cle, { ...avant, diapos: corps.ordre.map((x) => par.get(x)) }); }
       return { avant };
     },
     onSuccess: (d) => { queryClient.setQueryData(cle, d); queryClient.invalidateQueries({ queryKey: ["presentations-bancaires"] }); },

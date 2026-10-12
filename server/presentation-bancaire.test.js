@@ -134,3 +134,20 @@ test("ce qu'AK lit de la présentation ouverte : les ids et les champs", async (
   assert.match(ctx, /20 lignes/);
   assert.equal(P.presentationPourAK('inconnue'), null);
 });
+
+test("« ordre: modele » remet la couverture devant le sommaire, même après un déplacement (12 oct. 2026)", async () => {
+  const { ordreDuModele, dansLOrdreDuModele, ORDRE, CIBLES_SOMMAIRE } = await import('../src/lib/presentation-modele.js');
+  assert.equal(ORDRE[0], 'couverture');
+  assert.equal(ORDRE[1], 'sommaire');
+  assert.equal(ORDRE.length, 16);
+  const melange = [{ id: 'sommaire', type: 'sommaire' }, { id: 'couverture', type: 'couverture' }, { id: 'merci', type: 'merci' }, { id: 'ville', type: 'ville' }];
+  assert.equal(dansLOrdreDuModele(melange), false);
+  assert.deepEqual(ordreDuModele(melange).map((d) => d.id), ['couverture', 'sommaire', 'ville', 'merci']);
+  assert.equal(dansLOrdreDuModele(ordreDuModele(melange)), true);
+  assert.equal(CIBLES_SOMMAIRE.length, 8, 'huit chapitres cliquables');
+  const P = await import('./presentation-bancaire.js');
+  const { Records } = await import('./db.js');
+  const p = Records.create('PresentationBancaire', { diapos: melange, titre: 'x' });
+  assert.equal(P.modifierPresentation(p.id, { ordre: 'modele' }).ok, true);
+  assert.deepEqual(Records.get('PresentationBancaire', p.id).diapos.map((d) => d.id), ['couverture', 'sommaire', 'ville', 'merci']);
+});

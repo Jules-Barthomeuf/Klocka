@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, CHEMIN_UPLOADS } from './db.js';
+import { ordreDuModele } from '../src/lib/presentation-modele.js';
 
 const ENTITE = 'PresentationBancaire';
 const maintenant = () => new Date().toISOString();
@@ -95,7 +96,7 @@ export function diapoValide(avant, apres) {
 
 /**
  * Les retouches de l'éditeur : une diapositive remplacée entière (`diapo`),
- * l'ordre changé (`ordre`, les ids), ou le titre de la présentation.
+ * l'ordre changé (`ordre`, les ids, ou « modele » pour revenir à celui du modèle), ou le titre de la présentation.
  */
 export function modifierPresentation(id, { diapo = null, ordre = null, titre = null, conversation_id = null } = {}) {
   const p = Records.get(ENTITE, id);
@@ -107,7 +108,9 @@ export function modifierPresentation(id, { diapo = null, ordre = null, titre = n
     if (i < 0 || !diapoValide(diapos[i], diapo)) return { ok: false, error: 'Diapositive inconnue.' };
     diapos[i] = diapo;
   }
-  if (Array.isArray(ordre)) {
+  // « Remettre dans l'ordre du modèle » (12 oct. 2026, Jules : la couverture d'abord, jamais le sommaire).
+  if (ordre === 'modele') diapos = ordreDuModele(diapos);
+  else if (Array.isArray(ordre)) {
     const par = new Map(diapos.map((d) => [d.id, d]));
     if (ordre.length !== diapos.length || ordre.some((x) => !par.has(x))) return { ok: false, error: 'Ordre incomplet.' };
     diapos = ordre.map((x) => par.get(x));

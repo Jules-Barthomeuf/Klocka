@@ -1,8 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap");
 
 /* La présentation bancaire, sur le « Deck complet » de Jules (12 oct. 2026) :
-   des diapositives de 1280 × 720, dessinées comme le PPTX qui en sort
-   (server/presentation-projet.js), mesures dans src/lib/presentation-modele.js.
+   un seul cadre de 1280 × 720 qui contient les seize diapositives sur trois
+   bandes (cartes, textes de gauche, filigranes), dessiné comme le PPTX qui en
+   sort (server/presentation-projet.js), mesures dans src/lib/presentation-modele.js.
    Ces couleurs sont celles du dossier envoyé à la banque, pas de
    l'application : elles ne suivent pas le thème. */
 
@@ -21,22 +22,35 @@
   --pb-filet-doux: rgba(242, 243, 245, 0.08);
   --pb-pointille: rgba(242, 243, 245, 0.24);
   --pb-verre: rgba(242, 243, 245, 0.045);
+  --pb-glisse: 1.3s cubic-bezier(.7, 0, .2, 1);
 }
 
-.pb-cadre { position: relative; width: 100%; aspect-ratio: 1280 / 720; overflow: hidden; border-radius: 6px; box-shadow: 0 18px 40px rgb(0 0 0 / 0.25); }
+/* La scène : le cadre y tient, centré ; en plein écran, sur fond noir. */
+.pb-scene { position: relative; width: 100%; height: 100%; display: grid; place-items: center; overflow: hidden; }
+.pb-scene:fullscreen { background: var(--pb-noir); }
+.pb-cadre { position: relative; overflow: hidden; border-radius: 6px; box-shadow: 0 18px 40px rgb(0 0 0 / 0.25); }
+.pb-scene:fullscreen .pb-cadre { border-radius: 0; box-shadow: none; }
 .pb-diapo {
   position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0;
   background: var(--pb-sauge); color: var(--pb-ivoire); overflow: hidden;
   font-family: "Instrument Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
 }
 .pb-diapo * { box-sizing: border-box; }
-.pb-masquee .pb-cadre { opacity: 0.35; }
+
+/* L'étage des bandes : tout ce qui glisse. */
+.pb-etage { position: absolute; left: 0; top: 0; width: 1280px; height: 648px; overflow: hidden; perspective: 1700px; }
+.pb-bande { position: absolute; left: 0; top: 0; height: 648px; transition: transform var(--pb-glisse); }
+.pb-cartes-3d { position: absolute; left: 0; top: 0; width: 1280px; height: 648px; transform-style: preserve-3d; transition: transform .25s ease-out; }
+.pb-cartes-3d .pb-bande { transform-style: preserve-3d; }
 
 /* Le numéro en filigrane, sous tout le reste. */
-.pb-filigrane { position: absolute; left: 34px; top: 64px; font-size: 390px; line-height: 390px; font-weight: 600; letter-spacing: -0.06em; color: rgba(8, 19, 13, 0.1); white-space: nowrap; pointer-events: none; user-select: none; }
+.pb-filigrane { position: absolute; top: 64px; font-size: 390px; line-height: 390px; font-weight: 600; letter-spacing: -0.06em; color: rgba(8, 19, 13, 0.1); white-space: nowrap; pointer-events: none; user-select: none; transition: opacity .6s ease; }
 
-/* Le panneau de gauche. */
-.pb-heros { position: absolute; left: 0; top: 0; width: 500px; height: 648px; color: var(--pb-encre); }
+/* Les textes de gauche : une bande de blocs de 500 px, calés en bas. */
+.pb-heros { position: absolute; left: 0; top: 0; width: 500px; height: 648px; overflow: hidden; color: var(--pb-encre); }
+.pb-heros-bloc { position: absolute; top: 0; width: 500px; height: 648px; }
+.pb-heros-corps { position: absolute; inset: 0; }
+.pb-heros-loin { pointer-events: none; }
 .pb-heros-haut { position: absolute; left: 48px; right: 44px; top: 40px; display: flex; justify-content: space-between; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
 .pb-heros-bas { position: absolute; left: 48px; right: 44px; bottom: 56px; display: flex; flex-direction: column; gap: 18px; }
 .pb-grand { line-height: .95; letter-spacing: -0.045em; font-weight: 400; }
@@ -44,8 +58,10 @@
 .pb-note { font-size: 13.5px; }
 .pb-etiquette { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
 
-/* La carte de droite. */
-.pb-carte { position: absolute; left: 536px; top: 40px; width: 700px; height: 568px; border-radius: 28px; background: var(--pb-carte); border: 1px solid var(--pb-filet); box-shadow: 0 30px 60px rgb(0 0 0 / 0.25); overflow: hidden; }
+/* Les cartes sombres : une par diapositive, tous les 740 px, en profondeur. */
+.pb-carte { position: absolute; width: 700px; height: 568px; border-radius: 28px; background: var(--pb-carte); border: 1px solid var(--pb-filet); box-shadow: 0 30px 60px rgb(0 0 0 / 0.25); overflow: hidden; transition: transform var(--pb-glisse), opacity .7s ease; }
+.pb-carte-corps { position: absolute; inset: 0; }
+.pb-carte-loin { pointer-events: none; }
 .pb-filet-haut { border-top: 1px solid var(--pb-filet); }
 .pb-gris { color: var(--pb-gris); }
 .pb-sauge { color: var(--pb-sauge); }
@@ -56,40 +72,78 @@
 .pb-ligne:first-of-type { border-top-color: var(--pb-filet); }
 .pb-ligne > :last-child { text-align: right; }
 
-/* La barre noire du bas. */
+/* La barre noire du bas : logo, étape, frise à repères, compteur, flèches. */
 .pb-barre { position: absolute; left: 0; bottom: 0; width: 1280px; height: 72px; background: var(--pb-noir); display: flex; align-items: center; gap: 28px; padding: 0 12px 0 48px; }
 .pb-barre-etape { flex: 0 0 230px; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--pb-clair); white-space: nowrap; overflow: hidden; }
 .pb-frise { position: relative; flex: 1 1 0; height: 72px; }
 .pb-frise::before { content: ""; position: absolute; left: 0; right: 0; top: 35px; height: 2px; background: var(--pb-filet); }
+.pb-repere { position: absolute; top: 0; width: 24px; height: 72px; margin-left: -12px; padding: 0; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; }
+.pb-repere span { display: block; width: 2px; height: 8px; border-radius: 2px; transition: height .3s ease, background-color .4s ease; }
+.pb-repere:hover span { height: 14px; }
+.pb-fleche { width: 44px; height: 44px; border-radius: 9999px; border: 0; padding: 0; display: grid; place-items: center; font: 18px "Instrument Sans", system-ui, sans-serif; cursor: pointer; transition: transform .2s ease; }
+.pb-fleche:hover { transform: scale(1.07); }
+.pb-touche { position: absolute; right: 12px; bottom: 76px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: rgba(8, 19, 13, 0.45); }
 
-/* Photos : la photo, ou sa case en pointillé ; un clic la change. */
-.pb-photo { position: relative; overflow: hidden; border-radius: 20px; background: var(--pb-case); cursor: pointer; }
+/* Photos : la photo, ou sa case en pointillé ; en édition, un clic la change. */
+.pb-photo { position: relative; overflow: hidden; border-radius: 20px; background: var(--pb-case); }
 .pb-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pb-photo-vide { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; border: 1px dashed var(--pb-pointille); border-radius: inherit; color: var(--pb-gris); font-size: 14px; }
-.pb-photo:hover::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--pb-sauge); pointer-events: none; }
+.pb-heros .pb-photo-vide { color: var(--pb-encre); border-color: transparent; }
+.pb-photo-edit { cursor: pointer; }
+.pb-photo-edit:hover::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 3px var(--pb-sauge); pointer-events: none; }
+.pb-logo-libre .pb-photo-vide { border-style: dashed; }
+.pb-logo-libre img { background: var(--pb-ivoire); }
 
-/* Ce qui se modifie : un filet au survol, plein à l'édition. */
-.pb-champ { outline: 1px dashed transparent; outline-offset: 3px; border-radius: 2px; white-space: pre-wrap; cursor: text; min-width: 12px; }
-.pb-diapo:hover .pb-champ { outline-color: rgba(150, 192, 184, 0.35); }
-.pb-heros .pb-champ { outline-color: transparent; }
-.pb-diapo:hover .pb-heros .pb-champ { outline-color: rgba(8, 19, 13, 0.3); }
-.pb-champ:hover { outline-color: var(--pb-sauge) !important; }
-.pb-heros .pb-champ:hover { outline-color: var(--pb-encre) !important; }
-.pb-champ:focus { outline: 2px solid var(--pb-sauge); outline-offset: 3px; }
-.pb-heros .pb-champ:focus { outline-color: var(--pb-encre); }
+/* En édition : ce qui se modifie porte un filet au survol, un cadre plein une fois choisi. */
+.pb-champ { outline: 1px dashed transparent; outline-offset: 3px; border-radius: 2px; white-space: pre-wrap; min-width: 12px; }
+.pb-mode-edition .pb-champ { cursor: text; }
+.pb-mode-edition .pb-carte:hover .pb-champ, .pb-mode-edition .pb-barre:hover .pb-champ { outline-color: rgba(150, 192, 184, 0.35); }
+.pb-mode-edition .pb-heros-bloc:hover .pb-champ { outline-color: rgba(8, 19, 13, 0.3); }
+.pb-mode-edition .pb-champ:hover { outline-color: var(--pb-sauge) !important; }
+.pb-mode-edition .pb-heros .pb-champ:hover { outline-color: var(--pb-encre) !important; }
+.pb-choisi, .pb-mode-edition .pb-champ:focus { outline: 2px solid var(--pb-sauge) !important; outline-offset: 3px; }
+.pb-heros .pb-choisi, .pb-mode-edition .pb-heros .pb-champ:focus { outline-color: var(--pb-encre) !important; }
+.pb-photo.pb-choisi { outline-offset: 0; }
 
 /* Les gestes de l'écran (ajouter, retirer) : jamais dans le document. */
 .pb-geste {
   position: absolute; z-index: 5; display: none; align-items: center; gap: 6px; height: 34px; padding: 0 14px;
   border-radius: 999px; border: 0; background: rgba(255, 255, 255, 0.92); color: #111; font: 500 15px "Instrument Sans", system-ui, sans-serif; cursor: pointer;
 }
-.pb-diapo:hover .pb-geste { display: inline-flex; }
+.pb-carte:hover .pb-geste { display: inline-flex; }
 .pb-retirer {
   position: absolute; z-index: 5; display: none; width: 26px; height: 26px; border-radius: 999px; border: 0; padding: 0;
   background: rgba(255, 255, 255, 0.92); color: #111; font: 600 16px/26px system-ui, sans-serif; text-align: center; cursor: pointer;
 }
 .pb-item { position: relative; }
 .pb-item:hover > .pb-retirer { display: block; }
-.pb-heros .pb-photo-vide { color: var(--pb-encre); border-color: transparent; }
-.pb-logo-libre .pb-photo-vide { border-style: dashed; }
-.pb-logo-libre img { background: var(--pb-ivoire); }
+
+/* La lecture : la diapositive courante (.f-on) fait arriver ses éléments en cascade ;
+   les autres (.f-s) attendent, éléments masqués. En édition, tout est posé. */
+.pb-mode-lecture .f-s .pb-carte-corps > * > *, .pb-mode-lecture .f-s .pb-heros-bas > * { opacity: 0; transform: translateY(30px); transition: opacity .7s ease, transform .9s cubic-bezier(.2, .7, .2, 1); }
+.pb-mode-lecture .f-on .pb-carte-corps > * > *, .pb-mode-lecture .f-on .pb-heros-bas > * { opacity: 1; transform: none; transition: opacity .7s ease, transform .9s cubic-bezier(.2, .7, .2, 1); }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(1), .pb-mode-lecture .f-on .pb-heros-bas > :nth-child(1) { transition-delay: .5s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(2), .pb-mode-lecture .f-on .pb-heros-bas > :nth-child(2) { transition-delay: .6s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(3), .pb-mode-lecture .f-on .pb-heros-bas > :nth-child(3) { transition-delay: .7s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(4), .pb-mode-lecture .f-on .pb-heros-bas > :nth-child(4) { transition-delay: .8s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(5) { transition-delay: .9s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(6) { transition-delay: 1s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(7) { transition-delay: 1.1s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(8) { transition-delay: 1.2s; }
+.pb-mode-lecture .f-on .pb-carte-corps > * > :nth-child(n+9) { transition-delay: 1.3s; }
+.pb-mode-lecture .f-s .f-img { transform: scale(1.25); transition: transform 2.2s cubic-bezier(.2, .7, .2, 1); }
+.pb-mode-lecture .f-on .f-img { transform: scale(1); transition: transform 2.2s cubic-bezier(.2, .7, .2, 1); }
+.pb-mode-lecture .f-s .f-bar { transform: scaleY(0); transform-origin: bottom; transition: transform .8s cubic-bezier(.2, .7, .2, 1); }
+.pb-mode-lecture .f-on .f-bar { transform: scaleY(1); transition: transform .8s cubic-bezier(.2, .7, .2, 1); transition-delay: 1s; }
+.pb-mode-lecture .f-s .f-pin { opacity: 0; transform: translateY(-40px); transition: opacity .4s ease, transform .7s cubic-bezier(.3, 1.4, .5, 1); }
+.pb-mode-lecture .f-on .f-pin { opacity: 1; transform: none; transition: opacity .4s ease, transform .7s cubic-bezier(.3, 1.4, .5, 1); transition-delay: 1.3s; }
+@keyframes pbPulse { 0% { transform: scale(1); opacity: .5; } 100% { transform: scale(5); opacity: 0; } }
+.pb-mode-lecture .f-on .f-pulse { animation: pbPulse 2.2s ease-out infinite; }
+.pb-mode-edition .f-pulse { display: none; }
+.pb-mode-lecture .pb-champ { pointer-events: none; }
+.pb-mode-lecture .pb-geste, .pb-mode-lecture .pb-retirer { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .pb-bande, .pb-carte, .pb-cartes-3d, .pb-mode-lecture .f-s .pb-carte-corps > * > *, .pb-mode-lecture .f-s .pb-heros-bas > *, .pb-mode-lecture .f-s .f-img, .pb-mode-lecture .f-s .f-bar, .pb-mode-lecture .f-s .f-pin { transition: none; }
+  .pb-mode-lecture .f-s .pb-carte-corps > * > *, .pb-mode-lecture .f-s .pb-heros-bas > *, .pb-mode-lecture .f-s .f-img, .pb-mode-lecture .f-s .f-bar, .pb-mode-lecture .f-s .f-pin { opacity: 1; transform: none; }
+  .pb-mode-lecture .f-on .f-pulse { animation: none; }
+}

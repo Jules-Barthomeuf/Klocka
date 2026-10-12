@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Eye, EyeOff, Italic, Minus, Plus, RotateCcw } from "lucide-react";
 import { NOMS } from "@/lib/presentation-modele";
 import { PALETTE, lire } from "./Deck";
@@ -46,8 +46,10 @@ function Pastilles({ valeur, onChoisir }) {
  * @param {"lecture"|"edition"} mode
  */
 export default function PanneauDeck({ diapos, courante, selection, onAller, onChange, onOrdre, onSelection, mode }) {
+  // Un élément choisi ouvre son onglet ; on peut revenir aux diapositives sans le désélectionner.
   const [onglet, setOnglet] = useState("diapos");
-  const ongletVu = selection && mode === "edition" ? "element" : onglet === "element" && !selection ? "diapos" : onglet;
+  useEffect(() => { if (selection && mode === "edition") setOnglet("element"); }, [selection?.diapo, selection?.chemin, mode]);
+  const ongletVu = onglet;
   const dSel = selection ? diapos.find((x) => x.id === selection.diapo) : null;
   const st = dSel?.styles?.[selection.chemin] || {};
   const poserStyle = (patch) => {

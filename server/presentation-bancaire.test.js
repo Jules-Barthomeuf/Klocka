@@ -110,6 +110,22 @@ test('le PPTX dessine le modèle retouché et saute les diapositives masquées',
   assert.ok(buffer.length > 10000);
 });
 
+test('une mise en forme de l\'éditeur (diapo.styles) sort dans le PPTX : masqué, gras, couleur', async () => {
+  const { presentation_id: id } = await P.creerPresentation(projet.id, JULES);
+  const avant = (await rendrePptx(P.lirePresentation(id).diapos, { titre: 'Essai' })).toString('latin1');
+  assert.match(avant, /Nous restons/, "l'accroche de la dernière diapositive est là");
+  const merci = P.lirePresentation(id).diapos.at(-1);
+  P.modifierPresentation(id, { diapo: { ...merci, styles: { 'heros.accroche': { masque: true }, 'heros.titre': { gras: true, couleur: '#ABCDEF', taille: 90 } } } });
+  const apres = (await rendrePptx(P.lirePresentation(id).diapos, { titre: 'Essai' })).toString('latin1');
+  assert.doesNotMatch(apres, /Nous restons/, "l'accroche masquée ne sort pas");
+  assert.match(apres, /ABCDEF/, 'la couleur libre est posée');
+  // Le chat peut poser des styles d'un bloc ; AK voit ce qui est masqué, pas la mise en forme.
+  assert.equal(P.appliquerChangements(id, [{ diapo: 'couverture', chemin: 'styles', valeur: { 'heros.banque': { masque: true } } }]).ok, true);
+  const ctx = P.presentationPourAK(id);
+  assert.match(ctx, /elements_masques.*heros\.banque/);
+  assert.doesNotMatch(ctx, /ABCDEF/);
+});
+
 test("ce qu'AK lit de la présentation ouverte : les ids et les champs", async () => {
   const { presentation_id: id } = await P.creerPresentation(projet.id, JULES);
   const ctx = P.presentationPourAK(id);

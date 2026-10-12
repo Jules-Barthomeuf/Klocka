@@ -254,18 +254,28 @@ présentation à droite (`components/presentations/`). Le modèle est le « Deck
 complet » de Jules (artefact « Présentation bancaire Klocka », 12 oct.) :
 seize diapositives de 1280 × 720, un panneau sauge à gauche (le chiffre ou le
 titre qui porte la diapositive, l'accroche, la note, calés en bas), une carte
-sombre à droite (le détail), une barre noire en bas (logo, étape, frise). Sa
-palette est celle du dossier, dans `presentation-bancaire.css`, comme un
-document imprimé ; les mesures communes à l'écran et au PPTX sont dans
-`src/lib/presentation-modele.js`. Le numéro de la diapositive en filigrane (390 px, encre à 10 %), les seize
-repères de la frise et les deux flèches rondes sont repris en image ; les
-animations du modèle (travelling, 3D, cascade) ne le sont pas : l'éditeur et
-le PPTX sont à plat. La sixième tuile d'enseigne reste en pointillé tant
-qu'elle est libre. Ce qui reste à
-remplir s'écrit entre crochets (« [Prénom NOM] »). Tout s'y modifie : un
-texte au clic, une photo au clic, une liste par « + » et « × ». Au-dessus de
-chaque diapositive, son numéro et son nom, puis monter, descendre et masquer
-au survol. Une diapositive masquée reste visible, pâlie, et ne part pas.
+sombre à droite (le détail), une barre noire en bas (logo, étape, frise à
+seize repères, compteur, deux flèches rondes), le numéro en filigrane (390 px,
+encre à 10 %). Sa palette est celle du dossier, dans
+`presentation-bancaire.css`, comme un document imprimé ; les mesures communes
+à l'écran et au PPTX sont dans `src/lib/presentation-modele.js`.
+
+Comme dans l'artefact, le deck est **un seul cadre** (`Deck.jsx`) qui
+contient les seize diapositives sur trois bandes (cartes tous les 740 px,
+textes de gauche tous les 500 px, filigranes) et une seule variable d'état,
+le numéro courant : changer de diapositive fait glisser les bandes (1,3 s).
+Deux modes, en pilule dans la barre : **édition** (un clic sur un élément le
+choisit, cadre sauge ou encre, le texte se retape sur place, « + » et « × »
+sur les listes, une photo se change au clic) et **lecture** (flèches,
+repères, sommaire et ← → naviguent ; cascade des éléments, dézoom des photos,
+barres qui poussent, repère qui pulse, inclinaison 3D à la souris ; plein
+écran). À droite du deck, le panneau de l'atelier, comme pour l'avis de
+valeur (`PanneauDeck.jsx`, `bg-rail`, 300 px) : onglet Diapositives (aller,
+masquer, monter, descendre, éléments masqués) et onglet Élément (taille en
+px, gras, italique, alignement, couleur de la palette du deck ou libre,
+opacité, masquer, revenir au modèle). Une mise en forme se garde dans
+`diapo.styles[chemin]` et sort dans le PPTX. Annuler et rétablir (⌘Z) dans la
+barre. La sixième tuile d'enseigne reste en pointillé tant qu'elle est libre.
 
 **Mode appel** (décision du 7 oct. 2026, qui remplace les boutons d'issue de la
 spec du même jour) : pendant l'appel avec notes, la transcription s'affiche en

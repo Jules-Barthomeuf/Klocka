@@ -155,7 +155,7 @@ const CARTES = {
       <div style={{ display: "flex", justifyContent: "flex-end" }}><img src="/logo-klocka-presentation.png" alt="Klocka" style={{ height: 24 }} draggable={false} /></div>
       <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo de couverture]" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 24 }}>
-        {(d.stats || []).slice(0, 3).map((c, k) => <Chiffre key={k} c={c} chemin={`stats.${k}`} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
+        {(d.stats || []).slice(0, 3).map((c, k) => <Chiffre key={k} chemin={`stats.${k}`} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
       </div>
     </div>
   ),
@@ -192,7 +192,7 @@ const CARTES = {
       <Photo chemin={"photo"} style={{ flex: "0 0 190px" }} vide="[Photo du quartier]" />
       <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "18px 22px" }}>
-          {(d.chiffres || []).slice(0, 4).map((c, k) => <Chiffre key={k} c={c} chemin={`chiffres.${k}`} taille={23} labelTaille={12.5} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
+          {(d.chiffres || []).slice(0, 4).map((c, k) => <Chiffre key={k} chemin={`chiffres.${k}`} taille={23} labelTaille={12.5} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
         </div>
         <div style={{ fontSize: 14.5, lineHeight: 1.4 }}><Atouts as={d.atouts} padding="10px 0" filets /></div>
       </div>

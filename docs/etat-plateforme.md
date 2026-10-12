@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-15 personnes, 3 565 pages ouvertes, 3 demandes à l'assistant, 91 actions exécutées.
+15 personnes, 3 562 pages ouvertes, 3 demandes à l'assistant, 91 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 489 | 3 | 2 | 12/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 486 | 3 | 2 | 12/10/2026 |
 | admin@klocka.local (équipe) | 487 | 0 | 0 | 11/10/2026 |
 | jules.btmf@gmail.com (équipe) | 281 | 0 | 0 | 21/09/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
@@ -27,10 +27,10 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 577 (16 %)
+- **Analyse** — 575 (16 %)
 - **ALX** — 480 (13 %)
 - **Dashboard** — 369 (10 %)
-- **AdminProjets** — 283 (8 %)
+- **AdminProjets** — 282 (8 %)
 - **Prospection** — 154 (4 %)
 - **Emailing** — 137 (4 %)
 - **Personnalisation** — 113 (3 %)
@@ -39,15 +39,15 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **ALXCible** — 95 (3 %)
 - **KZoning** — 82 (2 %)
 - **KData** — 78 (2 %)
-- Le reste, sous 2 % : MandataireEstimation, MandataireDossier, Monitoring, KExpertise, SimulateurRentabilite, MandataireMandat, AdminSuggestions, AdminMandataires, Home, AdminClients, OffMarket, ConversationsMandataires, SimulateurPublic, Relances, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, MesProjets, AdminLeadMagnets, Offres, KVacance, FeuilleDeRoute, ALXVilles, ALXBilan, FichesCommerciales, ValeurLocative, ALXEntrainement, CoutsIA, ALXAtelier, KProspective, ApercuEchelle, AdminPresentations, MonAssistant, MandataireMarche, Feedback, Vision, MonCompte, KTransactions, Ressources, MandataireProjets, analyse, SuiviMandataires, AdminEquipe, SuiviAppels, Comparateur, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
+- Le reste, sous 2 % : MandataireEstimation, MandataireDossier, Monitoring, KExpertise, SimulateurRentabilite, MandataireMandat, AdminMandataires, AdminSuggestions, Home, AdminClients, OffMarket, ConversationsMandataires, SimulateurPublic, Relances, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, MesProjets, AdminLeadMagnets, Offres, KVacance, FeuilleDeRoute, ALXVilles, ALXBilan, FichesCommerciales, ValeurLocative, ALXEntrainement, AdminPresentations, CoutsIA, ALXAtelier, KProspective, ApercuEchelle, MonAssistant, MandataireMarche, Feedback, Vision, MonCompte, KTransactions, Ressources, MandataireProjets, analyse, SuiviMandataires, AdminEquipe, SuiviAppels, Comparateur, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
 
 ## Ce que l'IA coûte
 
-28,89 € sur la période, 1 350 appels, 7 560 k jetons. 36 % part en tâche de fond, sans que personne clique. 44 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+28,90 € sur la période, 1 352 appels, 7 561 k jetons. 36 % part en tâche de fond, sans que personne clique. 45 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,0089 € par appel | 551 | 7,50 € | — |
+| Non attribué (fond) | 0,0088 € par appel | 553 | 7,51 € | — |
 | Demander quelque chose à AK | 0,06 € par demande | 42 | 4,27 € | 14 s |
 | Demander quelque chose à l'assistant (mandataire) | 0,01 € par demande | 107 | 2,53 € | 22 s |
 | Retrouver l’annonce en ligne (fond) | 0,18 € par bien | 8 | 2,40 € | 1 min |

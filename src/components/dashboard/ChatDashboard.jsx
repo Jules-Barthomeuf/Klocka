@@ -1449,9 +1449,12 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     : ouvrirLienExterne(lien);
   const ouvrirLienExterne = (lien) => (/^https?:/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
 
+  const envoiEnVol = useRef(false);
+  useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending]);
   const lancer = (contenu, type = null) => {
     const t = (contenu ?? texte).trim();
-    if (enCours || rappeler.isPending) return;
+    // Une garde qui ne dépend pas du rendu (12 oct. 2026) : deux Entrée rapides partaient deux fois.
+    if (enCours || rappeler.isPending || envoiEnVol.current) return;
     // Envoyer clôt la dictée : sinon le micro reste ouvert et la suite de ce
     // qu'on dit s'écrit dans la question suivante. On note l'envoi : arrêter la
     // dictée déclenche `onFin`, qui sans cela renverrait le même texte.
@@ -1463,7 +1466,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       annoncer("rappel");
       pousser({ role: "user", contenu: t });
       setTexte("");
-      rappeler.mutate(t);
+      envoiEnVol.current = true; rappeler.mutate(t);
       return;
     }
     if (fichier && mandataire && !prospection) {
@@ -1474,7 +1477,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       annoncer("piece");
       const piece = fichier;
       setFichier(null);
-      boite.mutate({ t, type: null, piece });
+      envoiEnVol.current = true; boite.mutate({ t, type: null, piece });
       return;
     }
     // Une pièce et une phrase : AK lit les deux (vérifier une préz, ranger au Drive…). La pièce seule reste une fiche à analyser.
@@ -1486,7 +1489,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       annoncer("piece");
       const piece = fichier;
       setFichier(null);
-      boite.mutate({ t, type: null, piece });
+      envoiEnVol.current = true; boite.mutate({ t, type: null, piece });
       return;
     }
     if (fichier) {
@@ -1494,7 +1497,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       setTexte("");
       setEnCoursTexte("Je lis la fiche et passe le bien à la grille…");
       annoncer("fiche");
-      analyser.mutate(fichier);
+      envoiEnVol.current = true; analyser.mutate(fichier);
       return;
     }
     if (!t) return;
@@ -1510,7 +1513,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     // disant que la demande se contredisait. Le refus d'envoyer sans accord est
     // déjà une règle du serveur, sa place est là-bas.
     const premierDuFil = !fil.some((m) => m.role === "user");
-    boite.mutate({ t: mode === "mail" && premierDuFil ? `Écris un mail : ${t}` : t, type: type || choisi?.type || null });
+    envoiEnVol.current = true; boite.mutate({ t: mode === "mail" && premierDuFil ? `Écris un mail : ${t}` : t, type: type || choisi?.type || null });
   };
 
   // Le micro : la dictée remplit le champ, et part quand on se tait si la

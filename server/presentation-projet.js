@@ -682,33 +682,33 @@ const W = CARTE.w;
 const H = CARTE.h;
 
 /** Une liste libellé / valeur, une ligne chacune, séparées d'un filet. */
-function lignes(s, ls, { x, y, w, pas = 40, taille = 15, couleurValeur = () => C.ivoire }) {
+function lignes(s, ls, { x, y, w, pas = 40, taille = 15, couleurValeur = () => C.ivoire, chemin = null }) {
   ls.forEach((l, k) => {
     filet(s, x, y + k * pas, w, k === 0 ? 84 : 92);
-    ecrire(s, l.label, { x, y: y + k * pas, w: w * 0.45, h: pas, taille, couleur: C.gris });
-    ecrire(s, l.valeur, { x: x + w * 0.4, y: y + k * pas, w: w * 0.6, h: pas, taille, couleur: couleurValeur(k), align: 'right' });
+    ecrire(s, l.label, { x, y: y + k * pas, w: w * 0.45, h: pas, taille, couleur: C.gris, chemin: chemin && `${chemin}.${k}.label` });
+    ecrire(s, l.valeur, { x: x + w * 0.4, y: y + k * pas, w: w * 0.6, h: pas, taille, couleur: couleurValeur(k), align: 'right', chemin: chemin && `${chemin}.${k}.valeur` });
   });
 }
 /** Trois atouts : A, B, C. */
 function atouts(s, as, { x, y, w, pas = 34 }) {
   (as || []).slice(0, 3).forEach((a, k) => {
     ecrire(s, 'ABC'[k], { x, y: y + k * pas, w: 16, h: pas, taille: 13, couleur: C.sauge });
-    ecrire(s, a, { x: x + 32, y: y + k * pas, w: w - 32, h: pas, taille: 14.5, couleur: C.clair });
+    ecrire(s, a, { x: x + 32, y: y + k * pas, w: w - 32, h: pas, taille: 14.5, couleur: C.clair, chemin: `atouts.${k}` });
   });
 }
 /** Un chiffre et son libellé sous un filet. */
-function chiffre(s, c, { x, y, w, taille = 30, couleur = C.ivoire, labelTaille = 13 }) {
+function chiffre(s, c, { x, y, w, taille = 30, couleur = C.ivoire, labelTaille = 13, chemin = null }) {
   filet(s, x, y, w);
-  ecrire(s, c?.valeur, { x, y: y + 10, w, h: taille * 1.25, taille, couleur });
-  ecrire(s, c?.label, { x, y: y + 10 + taille * 1.25, w, h: 18, taille: labelTaille, couleur: C.gris });
+  ecrire(s, c?.valeur, { x, y: y + 10, w, h: taille * 1.25, taille, couleur, chemin: chemin && `${chemin}.valeur` });
+  ecrire(s, c?.label, { x, y: y + 10 + taille * 1.25, w, h: 18, taille: labelTaille, couleur: C.gris, chemin: chemin && `${chemin}.label` });
 }
 
 const DESSINS = {
   couverture(s, d, { img, logo }) {
     if (logo) s.addImage({ data: `data:image/png;base64,${logo}`, x: pouces(X + W - 36 - 152), y: pouces(Y + 36), w: pouces(152), h: pouces(24) });
-    photo(s, img(d.photo), { x: X + 36, y: Y + 82, w: W - 72, h: 330 }, '[Photo de couverture]');
+    photo(s, img(d.photo), { x: X + 36, y: Y + 82, w: W - 72, h: 330 }, '[Photo de couverture]', 'photo');
     const w = (W - 72 - 48) / 3;
-    (d.stats || []).slice(0, 3).forEach((c, k) => chiffre(s, c, { x: X + 36 + k * (w + 24), y: Y + 440, w, couleur: k === 1 ? C.sauge : C.ivoire }));
+    (d.stats || []).slice(0, 3).forEach((c, k) => chiffre(s, c, { x: X + 36 + k * (w + 24), y: Y + 440, w, couleur: k === 1 ? C.sauge : C.ivoire, chemin: `stats.${k}` }));
   },
   sommaire(s, d) {
     const items = d.items || [];
@@ -717,17 +717,17 @@ const DESSINS = {
       const y = Y + 28 + k * pas;
       if (k > 0) filet(s, X + 36, y, W - 72, 89);
       ecrire(s, String(k + 1).padStart(2, '0'), { x: X + 36, y, w: 32, h: pas, taille: 14, couleur: C.sauge });
-      ecrire(s, it.titre, { x: X + 90, y, w: W - 220, h: pas, taille: 21 });
-      ecrire(s, it.page, { x: X + W - 136, y, w: 100, h: pas, taille: 14, couleur: C.grisFonce, align: 'right' });
+      ecrire(s, it.titre, { x: X + 90, y, w: W - 220, h: pas, taille: 21, chemin: `items.${k}.titre` });
+      ecrire(s, it.page, { x: X + W - 136, y, w: 100, h: pas, taille: 14, couleur: C.grisFonce, align: 'right', chemin: `items.${k}.page` });
     });
   },
   ville(s, d, { img }) {
-    photo(s, img(d.photo), { x: X + 36, y: Y + 36, w: W - 72, h: 130 }, '[Photo de la ville]');
+    photo(s, img(d.photo), { x: X + 36, y: Y + 36, w: W - 72, h: 130 }, '[Photo de la ville]', 'photo');
     (d.chiffres || []).slice(0, 3).forEach((c, k) => {
       const y = Y + 200 + k * 62;
       filet(s, X + 36, y, W - 72);
-      ecrire(s, c.label, { x: X + 36, y, w: 380, h: 62, taille: 14, couleur: C.gris });
-      ecrire(s, c.valeur, { x: X + 300, y, w: W - 336, h: 62, taille: 34, align: 'right' });
+      ecrire(s, c.label, { x: X + 36, y, w: 380, h: 62, taille: 14, couleur: C.gris, chemin: `chiffres.${k}.label` });
+      ecrire(s, c.valeur, { x: X + 300, y, w: W - 336, h: 62, taille: 34, align: 'right', chemin: `chiffres.${k}.valeur` });
     });
     filet(s, X + 36, Y + 386, W - 72);
     atouts(s, d.atouts, { x: X + 36, y: Y + 418, w: W - 72 });
@@ -741,7 +741,7 @@ const DESSINS = {
       const py = Y + carte.fy * H;
       s.addShape('ellipse', { x: pouces(px - 9), y: pouces(py - 9), w: pouces(18), h: pouces(18), fill: { color: C.sauge }, line: { color: C.encre, width: 2.2 } });
       boite(s, { x: px + 20, y: py - 40, w: Math.max(150, texte(d.legende).length * 9 + 40), h: 40, fond: C.encre, rayon: 20 });
-      ecrire(s, d.legende, { x: px + 20, y: py - 40, w: Math.max(150, texte(d.legende).length * 9 + 40), h: 40, taille: 15, align: 'center' });
+      ecrire(s, d.legende, { x: px + 20, y: py - 40, w: Math.max(150, texte(d.legende).length * 9 + 40), h: 40, taille: 15, align: 'center', chemin: 'legende' });
       ecrire(s, '© IGN', { x: X + W - 90, y: Y + H - 26, w: 70, h: 18, taille: 10, couleur: C.encre, align: 'right' });
     } else {
       boite(s, { ...CARTE, fond: C.case, bord: 76, rayon: 28, pointille: true });
@@ -749,16 +749,16 @@ const DESSINS = {
     }
   },
   quartier(s, d, { img }) {
-    photo(s, img(d.photo), { x: X + 36, y: Y + 36, w: 190, h: H - 72 }, '[Photo du quartier]');
+    photo(s, img(d.photo), { x: X + 36, y: Y + 36, w: 190, h: H - 72 }, '[Photo du quartier]', 'photo');
     const x = X + 36 + 190 + 24;
     const w = W - 36 - (x - X);
     const cw = (w - 22) / 2;
-    (d.chiffres || []).slice(0, 4).forEach((c, k) => chiffre(s, c, { x: x + (k % 2) * (cw + 22), y: Y + 36 + Math.floor(k / 2) * 100, w: cw, taille: 23, couleur: k === 1 ? C.sauge : C.ivoire, labelTaille: 12.5 }));
+    (d.chiffres || []).slice(0, 4).forEach((c, k) => chiffre(s, c, { x: x + (k % 2) * (cw + 22), y: Y + 36 + Math.floor(k / 2) * 100, w: cw, taille: 23, couleur: k === 1 ? C.sauge : C.ivoire, labelTaille: 12.5, chemin: `chiffres.${k}` }));
     (d.atouts || []).slice(0, 3).forEach((a, k) => {
       const y = Y + 290 + k * 80;
       filet(s, x, y, w, k === 0 ? 84 : 92);
       ecrire(s, 'ABC'[k], { x, y, w: 16, h: 80, taille: 13, couleur: C.sauge });
-      ecrire(s, a, { x: x + 32, y, w: w - 32, h: 80, taille: 14.5 });
+      ecrire(s, a, { x: x + 32, y, w: w - 32, h: 80, taille: 14.5, chemin: `atouts.${k}` });
     });
   },
   local(s, d) {
@@ -766,13 +766,13 @@ const DESSINS = {
     (d.stats || []).slice(0, 3).forEach((c, k) => {
       const x = X + 36 + k * (w + 12);
       boite(s, { x, y: Y + 32, w, h: 96, fond: k === 0 ? C.sauge : null, bord: k === 0 ? null : 84 });
-      ecrire(s, c.valeur, { x: x + 20, y: Y + 46, w: w - 40, h: 42, taille: 36, couleur: k === 0 ? C.encre : C.ivoire });
-      ecrire(s, c.label, { x: x + 20, y: Y + 92, w: w - 40, h: 20, taille: 13, couleur: k === 0 ? C.encre : C.gris });
+      ecrire(s, c.valeur, { x: x + 20, y: Y + 46, w: w - 40, h: 42, taille: 36, couleur: k === 0 ? C.encre : C.ivoire, chemin: `stats.${k}.valeur` });
+      ecrire(s, c.label, { x: x + 20, y: Y + 92, w: w - 40, h: 20, taille: 13, couleur: k === 0 ? C.encre : C.gris, chemin: `stats.${k}.label` });
     });
     ecrire(s, 'IDENTITÉ', { x: X + 36, y: Y + 160, w: 300, h: 18, taille: 11, couleur: C.sauge, charSpacing: 1.8 });
-    lignes(s, d.identite || [], { x: X + 36, y: Y + 186, w: W - 72 });
+    lignes(s, d.identite || [], { x: X + 36, y: Y + 186, w: W - 72, chemin: 'identite' });
     ecrire(s, 'ÉCONOMIE DE LA SIGNATURE', { x: X + 36, y: Y + 330, w: 300, h: 18, taille: 11, couleur: C.sauge, charSpacing: 1.8 });
-    lignes(s, d.economie || [], { x: X + 36, y: Y + 356, w: W - 72, couleurValeur: (k) => (k === 1 ? C.sauge : C.ivoire) });
+    lignes(s, d.economie || [], { x: X + 36, y: Y + 356, w: W - 72, couleurValeur: (k) => (k === 1 ? C.sauge : C.ivoire), chemin: 'economie' });
   },
   photos(s, d, { img }) {
     const [a, b, c] = (d.photos || []).map(img);
@@ -780,9 +780,9 @@ const DESSINS = {
     const wg = (W - 2 * g - g) * (1.7 / 2.7);
     const wd = W - 2 * g - g - wg;
     const hd = (H - 2 * g - g) / 2;
-    photo(s, a, { x: X + g, y: Y + g, w: wg, h: H - 2 * g }, '[Photo 1]');
-    photo(s, b, { x: X + g + wg + g, y: Y + g, w: wd, h: hd }, '[Photo 2]');
-    photo(s, c, { x: X + g + wg + g, y: Y + g + hd + g, w: wd, h: hd }, '[Photo 3]');
+    photo(s, a, { x: X + g, y: Y + g, w: wg, h: H - 2 * g }, '[Photo 1]', 'photos.0');
+    photo(s, b, { x: X + g + wg + g, y: Y + g, w: wd, h: hd }, '[Photo 2]', 'photos.1');
+    photo(s, c, { x: X + g + wg + g, y: Y + g + hd + g, w: wd, h: hd }, '[Photo 3]', 'photos.2');
   },
   bail(s, d) {
     const ps = d.points || [];
@@ -791,8 +791,8 @@ const DESSINS = {
       const y = Y + 26 + k * pas;
       if (k > 0) filet(s, X + 36, y, W - 72, 92);
       ecrire(s, String(k + 1).padStart(2, '0'), { x: X + 36, y, w: 34, h: pas, taille: 13, couleur: C.sauge });
-      ecrire(s, pt.titre, { x: X + 70, y, w: 220, h: pas, taille: 15, couleur: C.gris });
-      ecrire(s, pt.valeur, { x: X + 290, y, w: W - 326, h: pas, taille: 15 });
+      ecrire(s, pt.titre, { x: X + 70, y, w: 220, h: pas, taille: 15, couleur: C.gris, chemin: `points.${k}.titre` });
+      ecrire(s, pt.valeur, { x: X + 290, y, w: W - 326, h: pas, taille: 15, chemin: `points.${k}.valeur` });
     });
   },
   enseignes(s, d, { img }) {
@@ -815,8 +815,8 @@ const DESSINS = {
         if (b64) s.addImage({ data: `data:image/png;base64,${b64}`, x: pouces(x + 34), y: pouces(y + 24), w: pouces(cw - 68), h: pouces(ch - 110), sizing: { type: 'contain', w: pouces(cw - 68), h: pouces(ch - 110) } });
         else ecrire(s, '[Logo]', { x: x + 14, y: y + 14, w: cw - 28, h: ch - 90, taille: 13, couleur: '6F716E', align: 'center' });
       }
-      ecrire(s, e.nom, { x: x + 14, y: y + ch - 66, w: cw - 28, h: 24, taille: 17, couleur: libre ? C.clair : C.ivoire });
-      ecrire(s, e.secteur, { x: x + 14, y: y + ch - 40, w: cw - 28, h: 20, taille: 13, couleur: C.gris });
+      ecrire(s, e.nom, { x: x + 14, y: y + ch - 66, w: cw - 28, h: 24, taille: 17, couleur: libre ? C.clair : C.ivoire, chemin: `enseignes.${k}.nom` });
+      ecrire(s, e.secteur, { x: x + 14, y: y + ch - 40, w: cw - 28, h: 20, taille: 13, couleur: C.gris, chemin: `enseignes.${k}.secteur` });
     });
   },
   marche(s, d) {
@@ -824,11 +824,11 @@ const DESSINS = {
     const l = d.local || {};
     const hb = (H - 64 - 12 - 22 - 12) / 2;
     boite(s, { x: X + 32, y: Y + 32, w: W - 64, h: hb, bord: 84 });
-    ecrire(s, texte(m.titre).toUpperCase(), { x: X + 58, y: Y + 54, w: 400, h: 16, taille: 11, couleur: C.grisFonce, charSpacing: 1.8 });
+    ecrire(s, texte(m.titre).toUpperCase(), { x: X + 58, y: Y + 54, w: 400, h: 16, taille: 11, couleur: C.grisFonce, charSpacing: 1.8, chemin: 'marche.titre' });
     const cw = (W - 64 - 52 - 24) / 2;
-    [[m.murs, m.murs_label], [m.loyer, m.loyer_label]].forEach(([v, lb], k) => {
-      ecrire(s, v, { x: X + 58 + k * (cw + 24), y: Y + 32 + hb - 90, w: cw, h: 46, taille: 36, couleur: C.gris });
-      ecrire(s, lb, { x: X + 58 + k * (cw + 24), y: Y + 32 + hb - 42, w: cw, h: 20, taille: 13.5, couleur: C.gris });
+    [[m.murs, m.murs_label, 'murs', 'murs_label'], [m.loyer, m.loyer_label, 'loyer', 'loyer_label']].forEach(([v, lb, cv, cl], k) => {
+      ecrire(s, v, { x: X + 58 + k * (cw + 24), y: Y + 32 + hb - 90, w: cw, h: 46, taille: 36, couleur: C.gris, chemin: `marche.${cv}` });
+      ecrire(s, lb, { x: X + 58 + k * (cw + 24), y: Y + 32 + hb - 42, w: cw, h: 20, taille: 13.5, couleur: C.gris, chemin: `marche.${cl}` });
     });
     const yc = Y + 32 + hb + 12;
     filet(s, X + 32, yc + 11, (W - 64) / 2 - 50);
@@ -836,18 +836,18 @@ const DESSINS = {
     filet(s, X + W / 2 + 50, yc + 11, (W - 64) / 2 - 50);
     const yl = yc + 22 + 12;
     boite(s, { x: X + 32, y: yl, w: W - 64, h: hb, fond: C.sauge });
-    ecrire(s, texte(l.titre).toUpperCase(), { x: X + 58, y: yl + 22, w: 500, h: 16, taille: 11, couleur: C.encre, charSpacing: 1.8 });
-    [[l.prix_m2, l.prix_label], [l.loyer_m2, l.loyer_label]].forEach(([v, lb], k) => {
-      ecrire(s, v, { x: X + 58 + k * (cw + 24), y: yl + hb - 90, w: cw, h: 46, taille: 36, couleur: C.encre });
-      ecrire(s, lb, { x: X + 58 + k * (cw + 24), y: yl + hb - 42, w: cw, h: 34, taille: 13.5, couleur: C.encre, valign: 'top' });
+    ecrire(s, texte(l.titre).toUpperCase(), { x: X + 58, y: yl + 22, w: 500, h: 16, taille: 11, couleur: C.encre, charSpacing: 1.8, chemin: 'local.titre' });
+    [[l.prix_m2, l.prix_label, 'prix_m2', 'prix_label'], [l.loyer_m2, l.loyer_label, 'loyer_m2', 'loyer_label']].forEach(([v, lb, cv, cl], k) => {
+      ecrire(s, v, { x: X + 58 + k * (cw + 24), y: yl + hb - 90, w: cw, h: 46, taille: 36, couleur: C.encre, chemin: `local.${cv}` });
+      ecrire(s, lb, { x: X + 58 + k * (cw + 24), y: yl + hb - 42, w: cw, h: 34, taille: 13.5, couleur: C.encre, valign: 'top', chemin: `local.${cl}` });
     });
   },
   projection(s, d) {
     (d.lignes || []).slice(0, 4).forEach((l, k) => {
       const y = Y + 28 + k * 62;
       if (k > 0) filet(s, X + 36, y, W - 72, 89);
-      ecrire(s, l.label, { x: X + 36, y, w: 380, h: 62, taille: 14, couleur: C.gris });
-      ecrire(s, l.valeur, { x: X + 330, y, w: W - 366, h: 62, taille: 34, couleur: k === 3 ? C.sauge : C.ivoire, align: 'right' });
+      ecrire(s, l.label, { x: X + 36, y, w: 380, h: 62, taille: 14, couleur: C.gris, chemin: `lignes.${k}.label` });
+      ecrire(s, l.valeur, { x: X + 330, y, w: W - 366, h: 62, taille: 34, couleur: k === 3 ? C.sauge : C.ivoire, align: 'right', chemin: `lignes.${k}.valeur` });
     });
     filet(s, X + 36, Y + 28 + 4 * 62, W - 72);
     const barres = d.barres || [];
@@ -860,7 +860,7 @@ const DESSINS = {
       s.addShape('rect', { x: pouces(X + 36 + k * (bw + g)), y: pouces(bas - h), w: pouces(bw), h: pouces(h), fill: k === barres.length - 1 ? { color: C.sauge } : { color: C.filet, transparency: 80 }, line: { type: 'none' } });
     });
     ecrire(s, 'Année 1', { x: X + 36, y: bas + 6, w: 120, h: 18, taille: 12.5, couleur: C.grisFonce });
-    ecrire(s, d.legende, { x: X + 160, y: bas + 6, w: W - 320, h: 18, taille: 12.5, couleur: C.grisFonce, align: 'center' });
+    ecrire(s, d.legende, { x: X + 160, y: bas + 6, w: W - 320, h: 18, taille: 12.5, couleur: C.grisFonce, align: 'center', chemin: 'legende' });
     ecrire(s, `Année ${barres.length || 20}`, { x: X + W - 156, y: bas + 6, w: 120, h: 18, taille: 12.5, couleur: C.grisFonce, align: 'right' });
   },
   revenus(s, d) {
@@ -895,8 +895,8 @@ const DESSINS = {
       const y = Y + 32 + Math.floor(k / 2) * (ch + g);
       const plein = k === 1;
       boite(s, { x, y, w: cw, h: ch, fond: plein ? C.sauge : null, bord: plein ? null : k < 2 ? 84 : 76, pointille: k >= 2 });
-      ecrire(s, texte(b.titre).toUpperCase(), { x: x + 26, y: y + 22, w: cw - 52, h: 18, taille: 13, couleur: plein ? C.encre : C.gris, charSpacing: 1.8 });
-      ecrire(s, b.valeur, { x: x + 26, y: y + ch - 22 - 64, w: cw - 52, h: 64, taille: k < 2 ? 62 : 46, couleur: plein ? C.encre : k < 2 ? C.ivoire : C.gris, valign: 'bottom' });
+      ecrire(s, texte(b.titre).toUpperCase(), { x: x + 26, y: y + 22, w: cw - 52, h: 18, taille: 13, couleur: plein ? C.encre : C.gris, charSpacing: 1.8, chemin: `blocs.${k}.titre` });
+      ecrire(s, b.valeur, { x: x + 26, y: y + ch - 22 - 64, w: cw - 52, h: 64, taille: k < 2 ? 62 : 46, couleur: plein ? C.encre : k < 2 ? C.ivoire : C.gris, valign: 'bottom', chemin: `blocs.${k}.valeur` });
     });
   },
   porteur(s, d, { img }) {
@@ -904,21 +904,21 @@ const DESSINS = {
     if (b64) s.addImage({ data: `data:image/jpeg;base64,${b64}`, x: pouces(HEROS.x), y: pouces(110), w: pouces(140), h: pouces(140), sizing: { type: 'cover', w: pouces(140), h: pouces(140) }, rounding: true });
     filet(s, X + 36, Y + 32, W - 72);
     ecrire(s, 'PRINCIPALES EXPÉRIENCES', { x: X + 36, y: Y + 46, w: 400, h: 16, taille: 11, couleur: C.sauge, charSpacing: 1.8 });
-    ecrire(s, d.experiences, { x: X + 36, y: Y + 70, w: W - 72, h: 110, taille: 16, couleur: C.clair, valign: 'top' });
+    ecrire(s, d.experiences, { x: X + 36, y: Y + 70, w: W - 72, h: 110, taille: 16, couleur: C.clair, valign: 'top', chemin: 'experiences' });
     filet(s, X + 36, Y + 196, W - 72);
     ecrire(s, 'SITUATION PROFESSIONNELLE', { x: X + 36, y: Y + 210, w: 400, h: 16, taille: 11, couleur: C.sauge, charSpacing: 1.8 });
     const cw = (W - 72 - 40) / 3;
     (d.situation || []).slice(0, 3).forEach((c, k) => {
-      ecrire(s, c.valeur, { x: X + 36 + k * (cw + 20), y: Y + 234, w: cw, h: 28, taille: 20 });
-      ecrire(s, c.label, { x: X + 36 + k * (cw + 20), y: Y + 262, w: cw, h: 18, taille: 13, couleur: C.gris });
+      ecrire(s, c.valeur, { x: X + 36 + k * (cw + 20), y: Y + 234, w: cw, h: 28, taille: 20, chemin: `situation.${k}.valeur` });
+      ecrire(s, c.label, { x: X + 36 + k * (cw + 20), y: Y + 262, w: cw, h: 18, taille: 13, couleur: C.gris, chemin: `situation.${k}.label` });
     });
     filet(s, X + 36, Y + 300, W - 72);
     ecrire(s, 'REVENUS ET ÉPARGNE', { x: X + 36, y: Y + 314, w: 400, h: 16, taille: 11, couleur: C.sauge, charSpacing: 1.8 });
     (d.revenus || []).slice(0, 4).forEach((l, k) => {
       const y = Y + 338 + k * 46;
       if (k > 0) filet(s, X + 36, y, W - 72, 92);
-      ecrire(s, l.label, { x: X + 36, y, w: 300, h: 46, taille: 15, couleur: C.gris });
-      ecrire(s, l.valeur, { x: X + 300, y, w: W - 336, h: 46, taille: 15, align: 'right' });
+      ecrire(s, l.label, { x: X + 36, y, w: 300, h: 46, taille: 15, couleur: C.gris, chemin: `revenus.${k}.label` });
+      ecrire(s, l.valeur, { x: X + 300, y, w: W - 336, h: 46, taille: 15, align: 'right', chemin: `revenus.${k}.valeur` });
     });
   },
   structuration(s, d) {
@@ -928,21 +928,21 @@ const DESSINS = {
       const x = X + 36 + k * (cw + 12);
       boite(s, { x, y: Y + 70, w: cw, h: 84, bord: 84, fond: C.case });
       ecrire(s, 'ASSOCIÉ', { x: x + 22, y: Y + 86, w: 200, h: 16, taille: 11, couleur: C.grisFonce, charSpacing: 1.8 });
-      ecrire(s, a.nom, { x: x + 22, y: Y + 108, w: cw - 120, h: 28, taille: 20 });
-      ecrire(s, a.part, { x: x + cw - 120, y: Y + 108, w: 98, h: 28, taille: 20, couleur: C.sauge, align: 'right' });
+      ecrire(s, a.nom, { x: x + 22, y: Y + 108, w: cw - 120, h: 28, taille: 20, chemin: `associes.${k}.nom` });
+      ecrire(s, a.part, { x: x + cw - 120, y: Y + 108, w: 98, h: 28, taille: 20, couleur: C.sauge, align: 'right', chemin: `associes.${k}.part` });
     });
     s.addShape('line', { x: pouces(X + W / 2), y: pouces(Y + 154), w: 0, h: pouces(52), line: { color: C.filet, width: 0.75, transparency: 76 } });
     const st = d.structure || {};
     boite(s, { x: X + W / 2 - 200, y: Y + 206, w: 400, h: 116, fond: C.sauge });
-    ecrire(s, texte(st.type).toUpperCase(), { x: X + W / 2 - 200, y: Y + 222, w: 400, h: 16, taille: 11, couleur: C.encre, align: 'center', charSpacing: 1.8 });
-    ecrire(s, st.nom, { x: X + W / 2 - 200, y: Y + 244, w: 400, h: 36, taille: 28, couleur: C.encre, align: 'center' });
-    ecrire(s, st.statut, { x: X + W / 2 - 200, y: Y + 284, w: 400, h: 22, taille: 13.5, couleur: C.encre, align: 'center' });
+    ecrire(s, texte(st.type).toUpperCase(), { x: X + W / 2 - 200, y: Y + 222, w: 400, h: 16, taille: 11, couleur: C.encre, align: 'center', charSpacing: 1.8, chemin: 'structure.type' });
+    ecrire(s, st.nom, { x: X + W / 2 - 200, y: Y + 244, w: 400, h: 36, taille: 28, couleur: C.encre, align: 'center', chemin: 'structure.nom' });
+    ecrire(s, st.statut, { x: X + W / 2 - 200, y: Y + 284, w: 400, h: 22, taille: 13.5, couleur: C.encre, align: 'center', chemin: 'structure.statut' });
     s.addShape('line', { x: pouces(X + W / 2), y: pouces(Y + 322), w: 0, h: pouces(32), line: { color: C.filet, width: 0.75, transparency: 76 } });
     const de = d.detient || {};
     boite(s, { x: X + W / 2 - 200, y: Y + 354, w: 400, h: 104, bord: 84 });
-    ecrire(s, texte(de.titre).toUpperCase(), { x: X + W / 2 - 200, y: Y + 370, w: 400, h: 16, taille: 11, couleur: C.grisFonce, align: 'center', charSpacing: 1.8 });
-    ecrire(s, de.adresse, { x: X + W / 2 - 190, y: Y + 390, w: 380, h: 28, taille: 18, align: 'center' });
-    ecrire(s, de.loue, { x: X + W / 2 - 190, y: Y + 420, w: 380, h: 22, taille: 13.5, couleur: C.gris, align: 'center' });
+    ecrire(s, texte(de.titre).toUpperCase(), { x: X + W / 2 - 200, y: Y + 370, w: 400, h: 16, taille: 11, couleur: C.grisFonce, align: 'center', charSpacing: 1.8, chemin: 'detient.titre' });
+    ecrire(s, de.adresse, { x: X + W / 2 - 190, y: Y + 390, w: 380, h: 28, taille: 18, align: 'center', chemin: 'detient.adresse' });
+    ecrire(s, de.loue, { x: X + W / 2 - 190, y: Y + 420, w: 380, h: 22, taille: 13.5, couleur: C.gris, align: 'center', chemin: 'detient.loue' });
   },
   merci(s, d, { img, logo }) {
     if (logo) s.addImage({ data: `data:image/png;base64,${logo}`, x: pouces(X + 36), y: pouces(Y + 36), w: pouces(260), h: pouces(41) });
@@ -953,8 +953,13 @@ const DESSINS = {
       ecrire(s, '[Photo]', { x: X + 36, y: Y + 220, w: 120, h: 120, taille: 13, couleur: C.gris, align: 'center' });
     }
     ecrire(s, 'CONTACT', { x: X + 180, y: Y + 246, w: 300, h: 16, taille: 11, couleur: C.sauge, charSpacing: 1.8 });
-    ecrire(s, d.porteur, { x: X + 180, y: Y + 266, w: W - 216, h: 46, taille: 36 });
-    lignes(s, [{ label: 'Téléphone', valeur: d.telephone }, { label: 'E-mail', valeur: d.email }], { x: X + 36, y: Y + H - 36 - 96, w: W - 72, pas: 48, taille: 17 });
+    ecrire(s, d.porteur, { x: X + 180, y: Y + 266, w: W - 216, h: 46, taille: 36, chemin: 'porteur' });
+    [['Téléphone', d.telephone, 'telephone'], ['E-mail', d.email, 'email']].forEach(([l, v, chemin], k) => {
+      const y = Y + H - 36 - 96 + k * 48;
+      filet(s, X + 36, y, W - 72, k === 0 ? 84 : 92);
+      ecrire(s, l, { x: X + 36, y, w: 300, h: 48, taille: 17, couleur: C.gris });
+      ecrire(s, v, { x: X + 300, y, w: W - 336, h: 48, taille: 17, align: 'right', chemin });
+    });
   },
 };
 

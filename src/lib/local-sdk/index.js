@@ -189,7 +189,9 @@ class ErreurHttp extends Error {
       reste = done ? '' : lignes.pop();
       for (const ligne of lignes) {
         if (!ligne.trim()) continue;
-        const evt = JSON.parse(ligne);
+        // Une ligne illisible (un proxy qui insère autre chose) ne fait plus tomber toute la réponse.
+        let evt;
+        try { evt = JSON.parse(ligne); } catch { continue; }
         if (evt.etape) surEtape?.(evt.etape);
         if (evt.action) surAction?.(evt.action);
         if (evt.erreur) throw new ErreurHttp(evt.erreur, 500);

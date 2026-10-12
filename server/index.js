@@ -1477,6 +1477,17 @@ process.on('uncaughtException', (e) => {
   process.exit(1);
 });
 
+// Les erreurs qui échappent aux routes (12 oct. 2026) : un message lisible en JSON au lieu de la page HTML d'Express.
+// Un fichier trop lourd ou trop nombreux (multer) se dit tel quel.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return;
+  const multer = { LIMIT_FILE_SIZE: 'Fichier trop lourd : 50 Mo au plus.', LIMIT_FILE_COUNT: 'Trop de fichiers à la fois : 20 au plus.', LIMIT_UNEXPECTED_FILE: 'Pièce jointe inattendue pour cette action.' };
+  if (err?.code && multer[err.code]) return res.status(413).json({ error: multer[err.code] });
+  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'Envoi trop volumineux.' });
+  console.error('[serveur] erreur non rattrapée :', req.method, req.originalUrl, err?.stack || err);
+  res.status(err?.status || 500).json({ error: err?.expose ? err.message : `Erreur du serveur : ${String(err?.message || err).slice(0, 200)}` });
+});
+
 app.listen(PORT, () => {
   // Un démarrage est un incident comme un autre : c'est lui qui date les
   // redémarrages, et donc les 502 qu'ils ont provoqués.

@@ -143,7 +143,7 @@ export function poserChemin(diapo, chemin, valeur) {
     else o[i] = valeur;
     return { ok: true, diapo: copie };
   }
-  if (!(dernier in o) && !['masquee', 'photo'].includes(dernier)) return { ok: false, error: `Champ inconnu : ${chemin}` };
+  if (!(dernier in o) && !['masquee', 'photo', 'styles'].includes(dernier)) return { ok: false, error: `Champ inconnu : ${chemin}` };
   o[dernier] = valeur;
   return { ok: true, diapo: copie };
 }
@@ -171,7 +171,10 @@ export function presentationPourAK(id) {
   const p = Records.get(ENTITE, id);
   if (!p) return null;
   const lignes = (p.diapos || []).map((d, i) => {
-    const { id: cle, type, ...champs } = d;
+    const { id: cle, type, styles, ...champs } = d;
+    // Les mises en forme de l'éditeur ne regardent pas AK ; ce qui est masqué, si.
+    const masques = Object.entries(styles || {}).filter(([, st]) => st?.masque).map(([c]) => c);
+    if (masques.length) champs.elements_masques = masques;
     // Le tableau des revenus et les barres : abrégés, ils se recalculent depuis le simulateur.
     if (type === 'revenus') champs.lignes = `${(champs.lignes || []).length} lignes (année, brut, travaux, net, cumul)`;
     if (type === 'projection') champs.barres = `${(champs.barres || []).length} barres`;

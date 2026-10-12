@@ -47,3 +47,15 @@ test('hors des tests, un modèle absent est une erreur dite et gardée, plus un 
   } finally { process.env.NODE_TEST_CONTEXT = avant; }
   assert.ok(J.lister({ chat: 'modele' }).some((e) => /Aucune clé IA/.test(e.erreur)));
 });
+
+test('une leçon est proposée, pas apprise : elle n’entre dans la consigne qu’une fois gardée', async () => {
+  const L = await import('./lecons.js');
+  L.noterEchange({ espace: 'app:x', auteur: { nom: 'x@k.fr', affiche: 'X' }, demande: 'crée un dossier', reponse: 'Dossier créé.' });
+  const l = L.apprendre({ espace: 'app:x', auteur: { nom: 'x@k.fr' }, texte: 'non, trop corporate' });
+  assert.equal(l.etat, 'proposee');
+  assert.doesNotMatch(L.leconsPourConsigne(), /trop corporate/);
+  L.trancherLecon(l.id, { garder: true, par: 'jules.b@klocka.immo' });
+  assert.match(L.leconsPourConsigne(), /trop corporate/);
+  L.trancherLecon(l.id, { garder: false });
+  assert.doesNotMatch(L.leconsPourConsigne(), /trop corporate/);
+});

@@ -55,13 +55,24 @@ export function apprendre({ espace, auteur, texte }) {
   const verdict = estUneCorrection(texte) ? 'correction' : estUnCompliment(texte) ? 'bien' : null;
   if (!verdict) return null;
   Meta.set(CLE_DERNIER, JSON.stringify({ ...derniers(), [espace]: null }));
-  return Records.create(ENTITE_LECON, { verdict, demande: d.demande, reponse: d.reponse, retour: texte, par: d.affiche || d.auteur, espace, le: new Date().toISOString() });
+  // Proposée, pas apprise (12 oct. 2026) : un « non » à autre chose que la réponse d'AK devenait une règle pour tous.
+  // L'équipe la garde ou l'écarte dans Suivi > Chat ; seules les gardées entrent dans la consigne.
+  return Records.create(ENTITE_LECON, { verdict, demande: d.demande, reponse: d.reponse, retour: texte, par: d.affiche || d.auteur, espace, le: new Date().toISOString(), etat: 'proposee' });
 }
 
 export const lecons = (limite = 50) => Records.list(ENTITE_LECON).sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, limite);
+/** Pure : une leçon qui compte. Celles d'avant le 12 oct. 2026, sans état, ont été vues à l'époque. */
+export const leconGardee = (l) => !l.etat || l.etat === 'validee';
+
+/** L'équipe tranche une leçon proposée : `garder` vrai la fait entrer dans la consigne. */
+export function trancherLecon(id, { garder, par = null }) {
+  const l = Records.get(ENTITE_LECON, id);
+  if (!l) return { ok: false, error: 'Leçon introuvable.' };
+  return { ok: true, lecon: Records.update(ENTITE_LECON, id, { etat: garder ? 'validee' : 'ecartee', tranchee_par: par, tranchee_le: new Date().toISOString() }) };
+}
 
 /** Le bloc d'exemples appris, pour la consigne. Pure sur `liste`. */
-export function leconsPourConsigne(liste = lecons()) {
+export function leconsPourConsigne(liste = lecons(200).filter(leconGardee)) {
   const corrections = liste.filter((l) => l.verdict === 'correction').slice(0, MAX_CORRECTIONS);
   const biens = liste.filter((l) => l.verdict === 'bien').slice(0, MAX_BIEN);
   if (!corrections.length && !biens.length) return '';

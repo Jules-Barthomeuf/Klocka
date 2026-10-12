@@ -55,6 +55,16 @@ export function monterAk(app) {
     const { lecons, souvenirs } = await import('../ak/lecons.js');
     ok(res, { lecons: lecons(100), souvenirs: souvenirs(100) });
   }));
+  // Une leçon proposée : gardée (elle entre dans la consigne d'AK) ou écartée.
+  app.post('/api/ak/lecons/:id/:choix', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    if (!['garder', 'ecarter'].includes(req.params.choix)) return res.status(400).json({ error: 'Choix inconnu.' });
+    const { trancherLecon } = await import('../ak/lecons.js');
+    const r = trancherLecon(req.params.id, { garder: req.params.choix === 'garder', par: user.email });
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
 
   // L'oreille : le navigateur envoie ce qu'il entend, AK relit toutes les
   // quelques minutes. Réservé à l'équipe : personne d'autre n'a de micro ici.

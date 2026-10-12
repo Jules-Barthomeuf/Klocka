@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import { toast } from "@/components/ui/avis";
 
 // Suivi > Chat (12 oct. 2026) : chaque échange des chats (AK dans
 // l'application et dans Google Chat, les quatre chats des mandataires), ce
@@ -85,6 +86,41 @@ function Echange({ id, onFerme }) {
   );
 }
 
+// Les leçons proposées (12 oct. 2026) : un « non » ou un « nickel » juste après une réponse d'AK
+// n'entre plus seul dans sa consigne ; l'équipe garde ce qui est une vraie leçon et écarte le reste.
+function LeconsProposees() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["ak-lecons"], queryFn: () => base44.request("GET", "/api/ak/lecons") });
+  const trancher = useMutation({
+    mutationFn: ({ id, choix }) => base44.request("POST", `/api/ak/lecons/${id}/${choix}`),
+    onSuccess: (_, { choix }) => { toast.success(choix === "garder" ? "Leçon gardée : AK la suivra" : "Leçon écartée"); qc.invalidateQueries({ queryKey: ["ak-lecons"] }); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+  const proposees = (q.data?.lecons || []).filter((l) => l.etat === "proposee");
+  if (!proposees.length) return null;
+  return (
+    <section className="rounded-bloc border border-trait px-5 py-4">
+      <h3 className={titreCase}>Leçons proposées ({proposees.length})</h3>
+      <div className="flex flex-col">
+        {proposees.map((l) => (
+          <article key={l.id} className="flex flex-wrap items-start justify-between gap-3 border-t border-trait py-3 first:border-t-0">
+            <div className="min-w-0 flex-1 text-[13.5px]">
+              <p className="m-0 text-encre"><span className={l.verdict === "correction" ? "text-ambre" : "text-menthe"}>{l.verdict === "correction" ? "Correction" : "Compliment"}</span> de {l.par} · {quand(l.le)}</p>
+              <p className="m-0 mt-1 text-craie"><span className="text-ardoise">Demande : </span>{l.demande}</p>
+              <p className="m-0 mt-0.5 line-clamp-2 text-craie"><span className="text-ardoise">AK : </span>{l.reponse}</p>
+              <p className="m-0 mt-0.5 text-encre"><span className="text-ardoise">Retour : </span>« {l.retour} »</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" disabled={trancher.isPending} onClick={() => trancher.mutate({ id: l.id, choix: "garder" })} className={bouton}>Garder</button>
+              <button type="button" disabled={trancher.isPending} onClick={() => trancher.mutate({ id: l.id, choix: "ecarter" })} className={bouton}>Écarter</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function SuiviChat() {
   const { search } = useLocation();
   const [ouvert, setOuvert] = useState(() => new URLSearchParams(search).get("echange"));
@@ -99,6 +135,7 @@ export default function SuiviChat() {
       <OngletsSuivi className="mt-4 mb-6" />
       {ouvert ? <Echange id={ouvert} onFerme={() => setOuvert(null)} /> : (
         <div className="flex flex-col gap-4">
+          <LeconsProposees />
           <div className="flex flex-wrap items-center gap-2">
             {CHATS.map(([k, mot]) => (
               <button key={k} type="button" onClick={() => setChat(k)} className={`h-8 rounded-full border px-3 text-[13px] ${chat === k ? "border-menthe text-encre" : "border-trait text-craie hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>

@@ -404,16 +404,20 @@ function Carte({ d }) {
   const lat = Number(d.lat);
   const lon = Number(d.lon);
   const ok = d.lat != null && d.lon != null && Number.isFinite(lat) && Number.isFinite(lon);
-  const [rate, setRate] = useState(false);
+  // Un échec (serveur qui redémarre, réseau) n'est pas définitif : deux nouveaux essais, espacés, avant d'abandonner.
+  const [essai, setEssai] = useState(0);
+  useEffect(() => { setEssai(0); }, [lat, lon]);
   if (!ok) return <div className="pb-photo-vide" style={{ alignItems: "end", paddingBottom: 40 }}>Adresse non géolocalisable : carte à insérer.</div>;
   // La carte est centrée sur le point : le repère est au milieu.
   const px = CARTE.w / 2;
   const py = CARTE.h / 2;
+  const rate = essai > 2;
+  const rater = () => setTimeout(() => setEssai((n) => n + 1), 1500 * (essai + 1));
   return (
     <>
       {rate
         ? <div className="pb-photo-vide" style={{ position: "absolute", inset: 0 }}>Carte Google Maps indisponible</div>
-        : <img src={`/api/presentations-carte?lat=${lat}&lon=${lon}`} alt="Plan du quartier" draggable={false} onError={() => setRate(true)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+        : <img key={essai} src={`/api/presentations-carte?lat=${lat}&lon=${lon}${essai ? `&essai=${essai}` : ""}`} alt="Plan du quartier" draggable={false} onError={rater} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       <span className="f-pulse" style={{ position: "absolute", left: px - 12, top: py - 12, width: 24, height: 24, borderRadius: 9999, background: "var(--pb-encre)" }} />
       <span style={{ position: "absolute", left: px - 9, top: py - 9, width: 18, height: 18, borderRadius: 9999, background: "var(--pb-sauge)", border: "3px solid var(--pb-encre)" }} />
       <Champ chemin="legende" className="f-pin" style={{ position: "absolute", left: px + 20, top: py - 40, padding: "10px 20px", borderRadius: 9999, background: "var(--pb-encre)", fontSize: 15, fontWeight: 500, whiteSpace: "nowrap" }} />
@@ -496,7 +500,9 @@ export default function Deck({ diapos, courante, onCourante, mode = "edition", s
     // À l'impression, la diapositive est à sa taille : Chrome remesure la page en imprimant, et la réduisait aux deux tiers.
     if (!el || impression) return undefined;
     // Le cadre tient dans la scène : à la largeur, ou à la hauteur en plein écran.
-    const mesurer = () => setEchelle(Math.min(el.clientWidth / LARGEUR, el.clientHeight ? el.clientHeight / HAUTEUR : 10));
+    // L'échelle va par pas de 1/80 : le cadre mesure alors 16 x 9 pixels entiers par pas. À une taille fractionnaire,
+    // les bandes en 3D (calques à part, découpés au pixel entier) dépassaient sous la barre en un trait fin.
+    const mesurer = () => setEchelle(Math.max(1, Math.floor(80 * Math.min(el.clientWidth / LARGEUR, el.clientHeight ? el.clientHeight / HAUTEUR : 10))) / 80);
     mesurer();
     const ro = new ResizeObserver(mesurer);
     ro.observe(el);

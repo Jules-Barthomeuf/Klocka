@@ -30,7 +30,7 @@ export default function FondHalo() {
   // sous la barre latérale, sinon la nav translucide n'a rien à laisser voir et
   // le dégradé s'arrête net au bord du menu.
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div aria-hidden="true" className="k-fond-halo pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <div className="absolute inset-0" style={{ background: FOND_BASE }} />
       <div
         className="absolute left-1/2 -translate-x-1/2"

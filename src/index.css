@@ -836,7 +836,17 @@ html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
    le menu de mise en forme ; le chat et la scène du deck restent sur le fond de la page. */
 /* L'éditeur est une carte d'une seule teinte, sa barre comprise ; le chat garde le fond de la page, sa barre aussi. */
 :root .k-page-presentation .k-barre-apercu, :root .k-presentation-tel .k-barre-apercu { background-color: rgb(var(--k-rail-rgb)); }
-:root .k-page-presentation .k-colonne-chat .k-barre-apercu { background-color: transparent; }
+/* La barre du chat (Dashboard, Historique) : de la couleur du fond, sans trait ; un fondu sous elle, le texte qui
+   remonte semble passer dessous (12 oct. 2026, Jules : « pas délimitée, le même bloc »). */
+:root .k-page-presentation .k-colonne-chat .k-barre-apercu { background-color: rgb(var(--k-fond-rgb)); border-bottom-color: transparent; position: relative; z-index: 2; }
+:root .k-page-presentation .k-colonne-chat .k-barre-apercu::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 20px; pointer-events: none; background: linear-gradient(rgb(var(--k-fond-rgb)), rgb(var(--k-fond-rgb) / 0)); }
+/* Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points. */
+html.k-sobre body::after,
+html.k-sobre .k-halo,
+html.k-sobre .k-fond-halo,
+html.k-sobre .accueil-halo-a,
+html.k-sobre .accueil-halo-b,
+html.k-sobre .k-points[data-zone="fond"]::before { display: none !important; }
 
 /* La grille de points des panneaux secondaires (fiches, cartes de détail,
    fenêtres) : des points de 1 px, au pas de 14 px, arrêtés à une marge des

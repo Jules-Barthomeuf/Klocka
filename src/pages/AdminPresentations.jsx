@@ -91,9 +91,10 @@ export default function AdminPresentations() {
   const scinde = large && (conversation || !!courante || creer.isPending);
   useEffect(() => {
     if (!scinde) return undefined;
-    document.documentElement.classList.add("k-sans-barre");
+    // Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points (12 oct. 2026, Jules).
+    document.documentElement.classList.add("k-sans-barre", "k-sobre");
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre");
+    return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre");
   }, [scinde]);
 
   // La largeur du chat (12 oct. 2026, Jules) : la poignée entre les deux se tire de gauche à droite ; un double-clic la remet.

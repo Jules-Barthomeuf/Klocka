@@ -198,6 +198,8 @@ const AuthenticatedApp = () => {
       {Object.entries(PAGES_PUBLIQUES).flatMap(([page, element]) => routesDe(page, element))}
       {/* Préanalyse est devenue Dossiers. */}
       <Route path="/Preanalyse" element={<VersAdresse page="Analyse" />} />
+      {/* Tapée à la main, avec ou sans accent, au singulier : la page des présentations. */}
+      {["/presentation", "/présentation", "/présentations"].map((p) => <Route key={p} path={p} element={<VersAdresse page="AdminPresentations" />} />)}
 
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -8,6 +8,7 @@ import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres"
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
+import ApercuPdf from "@/components/presentations/ApercuPdf";
 
 // Présentations — les dossiers bancaires « Projet de Financement » (12 oct.
 // 2026). Comme Offres et le Mandat : le chat à gauche, la présentation à
@@ -26,6 +27,7 @@ export default function AdminPresentations() {
   const [courante, setCourante] = useState(null);
   const [travail, setTravail] = useState({ enCours: false, etapes: [] });
   const [choixProjet, setChoixProjet] = useState(false);
+  const [pdfDe, setPdfDe] = useState(null);
   const large = useEcranLarge();
   const [ouverteTel, setOuverteTel] = useState(true);
   useEffect(() => { if (courante) setOuverteTel(true); }, [courante]);
@@ -136,7 +138,7 @@ export default function AdminPresentations() {
       ) : (
         <div className="border-y border-trait">
           {presentations.map((p) => (
-            <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)}
+            <LignePresentation key={p.id} p={p} active={p.id === courante} onOuvrir={() => ouvrir(p)} onPdf={() => setPdfDe(p)}
               onSupprimer={() => { if (window.confirm(`Supprimer la présentation « ${p.titre} » ? Les PPTX déjà sortis restent.`)) supprimer.mutate(p.id); }} />
           ))}
         </div>
@@ -193,6 +195,7 @@ export default function AdminPresentations() {
         )}
       </div>
 
+      {pdfDe && <ApercuPdf id={pdfDe.id} titre={pdfDe.titre} onFermer={() => setPdfDe(null)} />}
       {/* Au téléphone : la présentation par-dessus tout, on la ferme pour revenir au chat. */}
       {!large && courante && ouverteTel && createPortal(
         <div className="k-presentation-tel fixed inset-0 z-[70]" style={{ background: "rgb(var(--k-fond-rgb))" }}>
@@ -212,18 +215,23 @@ export default function AdminPresentations() {
 }
 
 /** Une présentation de la liste : le projet, l'adresse, la date. */
-function LignePresentation({ p, active, onOuvrir, onSupprimer }) {
+function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
   const [menu, setMenu] = useState(false);
   const zone = useFermerAuClicAilleurs(menu, () => setMenu(false));
   const detail = [p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`, p.exporte_le ? `exportée le ${quand(p.exporte_le)}` : null].filter(Boolean).join(" · ");
   return (
-    <div className={`relative border-t border-trait px-2 py-4 pr-12 first:border-t-0 ${active ? "bg-surface" : ""}`}>
+    <div className={`relative border-t border-trait px-2 py-4 pr-[120px] first:border-t-0 ${active ? "bg-surface" : ""}`}>
       <button type="button" onClick={onOuvrir} className="flex w-full items-center gap-6 text-left" style={{ background: "transparent" }}>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15.5px] text-encre">{p.titre}</span>
           {detail && <span className="mt-1 block truncate text-[13.5px] text-ardoise">{detail}</span>}
         </span>
         <span className="flex-none text-[13px] tabular-nums text-brume">{quand(p.maj_le)}</span>
+      </button>
+      {/* Le PDF d'un clic, depuis la liste : l'aperçu, puis le téléchargement. */}
+      <button type="button" onClick={onPdf} title="Aperçu et téléchargement du PDF"
+        className="absolute right-10 top-1/2 inline-flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-menthe hover:text-encre max-md:right-12" style={{ background: "transparent" }}>
+        <FileText className="h-3.5 w-3.5" />PDF
       </button>
       <div ref={zone} className="contents">
         <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"

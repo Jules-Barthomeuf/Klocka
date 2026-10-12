@@ -45,6 +45,7 @@ const CoutsIA = lazy(() => import('@/pages/CoutsIA'));
 const SuiviAppels = lazy(() => import('@/pages/SuiviAppels'));
 const SuiviMandataires = lazy(() => import('@/pages/SuiviMandataires'));
 const SuiviTesteur = lazy(() => import('@/pages/SuiviTesteur'));
+const ImpressionPresentation = lazy(() => import('@/pages/ImpressionPresentation'));
 const SuiviChat = lazy(() => import('@/pages/SuiviChat'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
@@ -103,6 +104,8 @@ const PAGES_PUBLIQUES = {
   QuizInvestisseur: <QuizInvestisseur />,
   VisionRetraite: <VisionRetraite />,
   OutilInvestisseur: <OutilInvestisseur />,
+  // Ouverte par le navigateur du serveur pour tirer le PDF d'une présentation (12 oct. 2026).
+  ImpressionPresentation: <ImpressionPresentation />,
 };
 
 // Les pages déclarées à la main, hors de pages.config.

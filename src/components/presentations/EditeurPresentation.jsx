@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, ExternalLink, Loader2, Maximize2, PanelRight, Redo2, Undo2, Upload, X } from "lucide-react";
+import { Download, ExternalLink, Loader2, Maximize2, PanelRight, Redo2, Undo2, Upload, X, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import Deck, { poser } from "./Deck";
 import PanneauDeck, { StylesElement } from "./PanneauDeck";
+import ApercuPdf from "./ApercuPdf";
 import { ordreDuModele } from "@/lib/presentation-modele";
 
 // La présentation bancaire ouverte, à droite du chat de la page Présentations
@@ -117,6 +118,7 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
     }
   };
 
+  const [pdf, setPdf] = useState(false);
   // Une photo à changer : la diapositive et le chemin de la photo.
   const [photoDe, setPhotoDe] = useState(null);
   const poserPhoto = (url) => {
@@ -173,9 +175,10 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
             {export_ === "pptx" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}PPTX
           </button>
-          <button type="button" onClick={() => exporter("slides")} disabled={!data || !!export_} title={compteDrive ? "Ouvrir dans Google Slides" : "Connecter Google pour ouvrir dans Slides"}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
-            {export_ === "slides" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}<span className="max-md:hidden">Google Slides</span><span className="md:hidden">Slides</span>
+          {/* Le PDF, tiré du deck lui-même : l'aperçu, puis le téléchargement (12 oct. 2026 ; Google Slides retiré, il déformait tout). */}
+          <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
+            <FileText className="h-3.5 w-3.5" />PDF
           </button>
           {onFermer && (
             <button type="button" onClick={onFermer} aria-label="Fermer la présentation" title="Fermer"
@@ -219,6 +222,7 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
           <PanneauDeck diapos={diapos} courante={courantId} onAller={(x) => { setCourante(x); setSelection(null); }} onChange={changer} onOrdre={ordonner} onFermer={() => setPanneau(false)} />
         )}
       </div>
+      {pdf && data && <ApercuPdf id={id} titre={data.titre} onFermer={() => setPdf(false)} />}
       {photoDe && data && <ChoixPhoto photos={data.photos_projet || []} onChoisir={poserPhoto} onFermer={() => setPhotoDe(null)} />}
     </div>
   );

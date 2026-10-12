@@ -147,3 +147,9 @@
   .pb-mode-lecture .f-s .pb-carte-corps > * > *, .pb-mode-lecture .f-s .pb-heros-bas > *, .pb-mode-lecture .f-s .f-img, .pb-mode-lecture .f-s .f-bar, .pb-mode-lecture .f-s .f-pin { opacity: 1; transform: none; }
   .pb-mode-lecture .f-on .f-pulse { animation: none; }
 }
+
+/* L'impression (le PDF, 12 oct. 2026) : la diapositive en lecture, figée. Rien ne glisse ni n'arrive,
+   le cadre prend la page entière, sans arrondi ni ombre ; l'aide « au clavier » n'a rien à faire sur papier. */
+.pb-impression, .pb-impression * { transition: none !important; animation: none !important; }
+.pb-impression .pb-cadre { border-radius: 0; box-shadow: none; }
+.pb-impression .pb-touche { display: none; }

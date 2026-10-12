@@ -151,3 +151,16 @@ test("« ordre: modele » remet la couverture devant le sommaire, même après u
   assert.equal(P.modifierPresentation(p.id, { ordre: 'modele' }).ok, true);
   assert.deepEqual(Records.get('PresentationBancaire', p.id).diapos.map((d) => d.id), ['couverture', 'sommaire', 'ville', 'merci']);
 });
+
+test("le PDF : un jeton d'impression court, et le fichier refait seulement après une retouche", async () => {
+  const PDF = await import('./presentation-pdf.js');
+  const { Records } = await import('./db.js');
+  const p = Records.create('PresentationBancaire', { titre: 'Essai', diapos: [{ id: 'couverture', type: 'couverture' }], maj_le: '2026-10-12T10:00:00Z' });
+  const j = PDF.jetonImpression(p.id, 1000);
+  assert.equal(PDF.lireParJeton(j, 2000).titre, 'Essai');
+  assert.equal(PDF.lireParJeton(j, 1000 + 3 * 60 * 1000), null, 'expiré après deux minutes');
+  assert.equal(PDF.lireParJeton('faux'), null);
+  assert.equal(PDF.pdfAJour({ pdf_url: '/x.pdf', pdf_le: '2026-10-12T11:00:00Z', maj_le: '2026-10-12T10:00:00Z' }), true);
+  assert.equal(PDF.pdfAJour({ pdf_url: '/x.pdf', pdf_le: '2026-10-12T09:00:00Z', maj_le: '2026-10-12T10:00:00Z' }), false, 'retouchée depuis : à refaire');
+  assert.equal(PDF.pdfAJour({ pdf_url: '/x.pdf', pdf_le: '2026-10-12T11:00:00Z', maj_le: '2026-10-12T10:00:00Z' }, false), false, 'fichier disparu : à refaire');
+});

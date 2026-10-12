@@ -490,14 +490,16 @@ function Barre({ d, rang, total, visibles, onAller, onPrecedente, onSuivante }) 
  * @param {(d: object) => void} onChange une diapositive retouchée
  * @param {(diapoId: string, chemin: string) => void} onPhoto ouvre le choix d'une photo
  * @param {number} relief l'inclinaison 3D à la souris, 0 à 12 (6 par défaut)
+ * @param {boolean} impression la diapositive figée pour le PDF : rien ne bouge, tout est posé
  */
-export default function Deck({ diapos, courante, onCourante, mode = "edition", selection = null, onSelection = () => {}, onChange, onPhoto, relief = 6, sceneRef = null }) {
+export default function Deck({ diapos, courante, onCourante, mode = "edition", selection = null, onSelection = () => {}, onChange, onPhoto, relief = 6, sceneRef = null, impression = false }) {
   const edition = mode === "edition";
   const scene = useRef(null);
-  const [echelle, setEchelle] = useState(0.5);
+  const [echelle, setEchelle] = useState(impression ? 1 : 0.5);
   useLayoutEffect(() => {
     const el = scene.current;
-    if (!el) return undefined;
+    // À l'impression, la diapositive est à sa taille : Chrome remesure la page en imprimant, et la réduisait aux deux tiers.
+    if (!el || impression) return undefined;
     // Le cadre tient dans la scène : à la largeur, ou à la hauteur en plein écran.
     const mesurer = () => setEchelle(Math.min(el.clientWidth / LARGEUR, el.clientHeight ? el.clientHeight / HAUTEUR : 10));
     mesurer();
@@ -553,7 +555,7 @@ export default function Deck({ diapos, courante, onCourante, mode = "edition", s
   });
 
   return (
-    <div ref={scene} className={`pb pb-scene ${edition ? "pb-mode-edition" : "pb-mode-lecture"}`} onClick={() => { if (edition) onSelection(null); }}>
+    <div ref={scene} className={`pb pb-scene ${edition ? "pb-mode-edition" : "pb-mode-lecture"} ${impression ? "pb-impression" : ""}`} onClick={() => { if (edition) onSelection(null); }}>
       <div className="pb-cadre" style={{ width: LARGEUR * echelle, height: HAUTEUR * echelle }}>
         <div className="pb-diapo" style={{ transform: `scale(${echelle})` }} onMouseMove={bouge} onMouseLeave={() => setSouris({ mx: 0, my: 0 })}>
           <div className="pb-etage">

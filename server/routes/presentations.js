@@ -1,7 +1,7 @@
 // Les présentations bancaires : la page Présentations les crée depuis un
 // projet, les ouvre, les retouche et les exporte. Réservé à l'équipe.
 
-import { ok, wrap, currentUser, compteAutorise } from '../contexte.js';
+import { ok, wrap, currentUser, compteAutorise, PORT } from '../contexte.js';
 
 /** Monte les routes « présentations bancaires » sur l'application. */
 export function monterPresentations(app) {
@@ -12,6 +12,23 @@ export function monterPresentations(app) {
   };
   const P = () => import('../presentation-bancaire.js');
   const base = '/api/admin/presentations-bancaires';
+
+  // La page d'impression (publique) lit la présentation avec un jeton court, posé par le serveur pour son navigateur.
+  app.get('/api/presentations-impression/:jeton', wrap(async (req, res) => {
+    const { lireParJeton } = await import('../presentation-pdf.js');
+    const d = lireParJeton(req.params.jeton);
+    if (!d) return res.status(404).json({ error: 'Lien d’impression expiré.' });
+    ok(res, d);
+  }));
+
+  // Le PDF, tiré du deck lui-même : identique à l'écran.
+  app.post(`${base}/:id/pdf`, wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { exporterPdf } = await import('../presentation-pdf.js');
+    const r = await exporterPdf(req.params.id, { base: `http://127.0.0.1:${PORT}`, forcer: !!req.body?.forcer });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
 
   app.get(base, wrap(async (req, res) => {
     if (!admin(req, res)) return;

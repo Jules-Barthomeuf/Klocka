@@ -652,7 +652,7 @@ const MAX_REPRISES = 2;
  * @param {boolean} [opts.cache] - mettre la consigne et les outils en cache chez Anthropic : ils sont identiques
  *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
-export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null, effort = null }) {
+export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null, effort = null, surTexte = null }) {
   if (!llmEnabled && !clientAgentDeTest) {
     return {
       text:
@@ -683,7 +683,7 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
   try {
     res = provider === 'gemini' && !clientAgentDeTest
       ? await runAgentGemini({ system, messages, tools, onTool: onToolNote })
-      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort });
+      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort, surTexte });
   } catch (e) { erreur = e; }
   if (journal) {
     const { noterEchange } = await import('./ak/journal-echanges.js');
@@ -744,7 +744,7 @@ async function runAgentGemini({ system, messages, tools, onTool }) {
 const REFLEXION = { type: 'adaptive', display: 'summarized' };
 const MAX_TOKENS_AGENT = 32000;
 
-async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null }) {
+async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null, surTexte = null }) {
   const client = clientAgentDeTest || anthropic;
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   const modele = model || ANTHROPIC_MODEL;
@@ -758,7 +758,7 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
   for (let i = 0; i < MAX_TOOL_ROUNDS; i++) {
     // Stop (12 oct. 2026) : la personne est partie, on ne relance pas le modèle et la requête en cours est coupée.
     if (signal?.aborted) return { text: 'Arrêté.', tours: i, arrete: true };
-    const resp = await client.messages.create({
+    const corps = {
       model: modele,
       max_tokens: MAX_TOKENS_AGENT,
       thinking: REFLEXION,
@@ -766,7 +766,12 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
       ...(systeme ? { system: systeme } : {}),
       ...(outils.length ? { tools: outils } : {}),
       messages: convo,
-    }, signal ? { signal } : undefined);
+    };
+    // Quelqu'un lit la réponse au fil de l'eau : le texte part morceau par morceau, la réponse entière arrive à la fin.
+    const tour = i;
+    const resp = surTexte && client.messages.stream
+      ? await (() => { const flot = client.messages.stream(corps, signal ? { signal } : undefined); flot.on('text', (morceau) => { try { surTexte(morceau, tour); } catch { /* l'écran est parti */ } }); return flot.finalMessage(); })()
+      : await client.messages.create(corps, signal ? { signal } : undefined);
     compter(modele, resp.usage);
     if (notes) {
       const u = resp.usage || {};

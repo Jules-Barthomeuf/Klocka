@@ -17,6 +17,8 @@ export function ouvrirFlux(res) {
     // Une action déjà faite (rappel créé, fiche posée) : envoyée au moment où
     // elle est faite, pour qu'un Stop n'efface pas ce qui est acquis.
     action: (a) => { if (a) ecrire({ action: a }); },
+    // Le texte du modèle au fil de l'eau (12 oct. 2026) : un morceau, et le tour de la boucle où il est écrit.
+    texte: (morceau, tour = 0) => { if (morceau) ecrire({ texte: String(morceau), tour }); },
     fin: (resultat) => { ecrire({ resultat }); res.end(); },
     erreur: (e) => { ecrire({ erreur: String(e?.message || e || 'Erreur') }); res.end(); },
   };

@@ -779,7 +779,7 @@ const OUTIL_AFFINER = {
   input_schema: { type: 'object', properties: { demande: { type: 'string', description: 'La demande du mandataire, telle quelle' } }, required: ['demande'] },
 };
 
-export async function discuter({ historique = [], texte, user, surEtape = null, surAction = null, estAnnule = null, signal = null, piece = null, prospection_id = null }) {
+export async function discuter({ historique = [], texte, user, surEtape = null, surAction = null, estAnnule = null, signal = null, surTexte = null, piece = null, prospection_id = null }) {
   // Une pièce jointe : son nom et ce qu'on y a lu accompagnent le message.
   if (piece) {
     surEtape?.(`Lecture de ${piece.nom}`);
@@ -807,7 +807,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     : '';
   let prospectionModifiee = false;
   const trace = [];
-  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal,
+  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal, surTexte,
     system: consigne() + cadre + surPage,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,

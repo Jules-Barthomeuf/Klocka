@@ -164,7 +164,7 @@ class ErreurHttp extends Error {
    * @param {string} url
    * @param {{body?: any, signal?: AbortSignal, surEtape?: (texte: string) => void}} [options]
    */
-  async function flux(url, { body, signal, surEtape, surAction, isForm = false } = {}) {
+  async function flux(url, { body, signal, surEtape, surAction, surTexte, isForm = false } = {}) {
     /** @type {Record<string, string>} */
     // Un FormData porte sa propre frontière multipart : pas de Content-Type à la main.
     const headers = isForm ? {} : { 'Content-Type': 'application/json' };
@@ -194,6 +194,7 @@ class ErreurHttp extends Error {
         try { evt = JSON.parse(ligne); } catch { continue; }
         if (evt.etape) surEtape?.(evt.etape);
         if (evt.action) surAction?.(evt.action);
+        if (evt.texte) surTexte?.(evt.texte, evt.tour || 0);
         if (evt.erreur) throw new ErreurHttp(evt.erreur, 500);
         if ('resultat' in evt) resultat = evt.resultat;
       }

@@ -37,7 +37,7 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Un plan de mails : une liste, une ligne par mail, « Mail 1 · mardi 13 octobre · Le vrai rendement d'un local : un chiffre type, puis le simulateur pour faire le calcul. » Le jour, le sujet, ce qu'apporte le mail, l'asset s'il y en a un, nommé en toutes lettres.
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
 
-export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null }) {
+export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null, surTexte = null }) {
   const { consigne, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
@@ -134,6 +134,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   const { text, tours = null, limite = false } = await runAgent({
     journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
     signal,
+    surTexte,
     effort: effortDuChat(),
     system: consigne() + CADRE_APP + cadrePage,
     messages,

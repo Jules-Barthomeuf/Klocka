@@ -70,4 +70,18 @@ test('un outil en échec revient au modèle marqué is_error', async () => {
   assert.equal(resultats[0].is_error, true);
 });
 
+test('quelqu’un lit au fil de l’eau : le texte arrive par morceaux, avec son tour', async () => {
+  const morceaux = [];
+  const reponses = [{ stop_reason: 'tool_use', content: [texte('Je cherche.'), outil('t1')] }, { stop_reason: 'end_turn', content: [texte('Trouvé.')] }];
+  const client = { messages: { create: async () => { throw new Error('create ne doit pas servir'); }, stream: () => {
+    const r = { usage: { input_tokens: 1, output_tokens: 1 }, ...reponses.shift() };
+    const ecoute = {};
+    return { on: (evt, f) => { ecoute[evt] = f; }, finalMessage: async () => { for (const b of r.content) if (b.type === 'text') ecoute.text?.(b.text); return r; } };
+  } } };
+  L.brancherClientAgentPourTests(client);
+  const r = await L.runAgent({ system: 's', messages: [{ role: 'user', content: 'q' }], tools: [{ name: 'chercher', description: 'd', input_schema: { type: 'object' } }], onTool: async () => ({ ok: true }), surTexte: (m, tour) => morceaux.push([tour, m]) });
+  assert.equal(r.text, 'Trouvé.');
+  assert.deepEqual(morceaux, [[0, 'Je cherche.'], [1, 'Trouvé.']]);
+});
+
 test.after(() => L.brancherClientAgentPourTests(null));

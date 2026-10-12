@@ -246,7 +246,7 @@ export function monterAssistant(app) {
       res.on('close', () => { if (!res.writableEnded) { coupe = true; arret.abort(); } });
       try {
         const { resultat } = await mesurer({ operation: 'boîte', par: user?.email || null }, () =>
-          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null, pieces, estAnnule: () => coupe, signal: arret.signal })
+          traiterBoite({ texte, historique: req.body?.historique, user, type: req.body?.type || null, surEtape: flux.etape, contexte: req.body?.contexte || null, pieces, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte })
         );
         flux.fin(resultat);
       } catch (e) {

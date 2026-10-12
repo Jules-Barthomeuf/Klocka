@@ -989,6 +989,10 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   // les révèle une à une, jamais plus vite qu'une toutes les 0,45 s.
   const fileRef = useRef([]);
   const surEtape = (t) => { fileRef.current.push(t); };
+  // Le texte du modèle au fil de l'eau (12 oct. 2026) : on montre celui du tour en cours ; un nouveau tour repart de zéro.
+  const [texteVif, setTexteVif] = useState("");
+  const tourVif = useRef(-1);
+  const surTexte = (morceau, tour) => { if (tour !== tourVif.current) { tourVif.current = tour; setTexteVif(morceau); } else setTexteVif((t) => t + morceau); };
   const vider = () => new Promise((fini) => {
     const t = setInterval(() => { if (!fileRef.current.length) { clearInterval(t); fini(); } }, 80);
     setTimeout(() => { clearInterval(t); fini(); }, 5000);
@@ -1117,7 +1121,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         setEnFlux(true);
         actionsVives.current = [];
         const r = await base44.flux(`${E.api}/chat?flux=1${estimation ? "&espace=estimation" : mandatEspace ? "&espace=mandat" : ""}`, {
-          body: form, isForm: true, signal: controleur.current.signal, surEtape,
+          body: form, isForm: true, signal: controleur.current.signal, surEtape, surTexte,
           surAction: (a) => actionsVives.current.push(a),
         });
         await vider();
@@ -1157,18 +1161,18 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         form.append("texte", t);
         form.append("historique", JSON.stringify(historique()));
         if (E.page) form.append("contexte", JSON.stringify({ page: E.page, ...(contexte || {}) }));
-        const r = await base44.flux("/api/assistant/boite?flux=1", { body: form, isForm: true, signal: controleur.current.signal, surEtape });
+        const r = await base44.flux("/api/assistant/boite?flux=1", { body: form, isForm: true, signal: controleur.current.signal, surEtape, surTexte });
         await vider();
         return r;
       }
       const r = mandataire
-        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surAction: (a) => actionsVives.current.push(a) })
-        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: { page: E.page, ...(contexte || {}) } } : {}) }, signal: controleur.current.signal, surEtape });
+        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
+        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: { page: E.page, ...(contexte || {}) } } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
       return r;
     },
-    onSettled: () => setEnFlux(false),
+    onSettled: () => { setEnFlux(false); setTexteVif(); tourVif.current = -1; },
     onSuccess: (r) => {
       rafraichir();
       const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r) };
@@ -1846,6 +1850,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 {enFlux
                   ? <Etapes etapes={etapesVives.length ? etapesVives : ["Réflexion…"]} courante={Math.max(0, etapesVives.length - 1)} />
                   : <Etapes etapes={etapesPrevues} courante={etapeCourante} />}
+                {texteVif && <p className="m-0 mt-3 whitespace-pre-wrap text-[15px] leading-[1.65] text-encre">{texteVif}</p>}
               </div>
             </motion.div>
           )}
@@ -1911,6 +1916,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           {enCours && (
             <PenseeIA etat={/lis la fiche/i.test(enCoursTexte) ? "searching" : "working"} taille={64} texte={enCoursTexte} />
           )}
+          {enCours && texteVif && <p className="m-0 whitespace-pre-wrap text-[15px] leading-[1.65] text-encre">{texteVif}</p>}
           {suites.length > 0 && !enCours && (
             <div className="flex flex-wrap gap-2">
               {suites.map((s) => (

@@ -806,7 +806,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
     : '';
   let prospectionModifiee = false;
   const trace = [];
-  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null,
+  const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, journal: { chat: 'mandataire', par: user?.email || null },
     system: consigne() + cadre + surPage,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,

@@ -537,7 +537,7 @@ export async function discuterEstimation({ historique = [], texte, user, surEtap
     .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
     .slice(-24)
     .map((m) => ({ role: m.role, content: m.contenu }));
-  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null,
+  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, journal: { chat: 'mandataire-estimation', par: user?.email || null },
     system: CONSIGNE + facon + contexte,
     messages,
     tools: OUTILS,

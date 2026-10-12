@@ -1353,6 +1353,7 @@ export async function repondre(message) {
   const actions = [];
   const outils = [];
   const { text } = await runAgent({
+    journal: { chat: 'google-chat', par: user?.email || message?.auteur?.nom || null },
     system: consigne(),
     messages: historique,
     tools: OUTILS,

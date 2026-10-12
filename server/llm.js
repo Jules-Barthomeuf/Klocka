@@ -612,7 +612,7 @@ const MAX_TOOL_ROUNDS = 6;
  * @param {boolean} [opts.cache] - mettre la consigne et les outils en cache chez Anthropic : ils sont identiques
  *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
-export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false }) {
+export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null }) {
   if (!llmEnabled) {
     return {
       text:
@@ -620,10 +620,42 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
         'Ajoutez GEMINI_API_KEY (ou ANTHROPIC_API_KEY) dans .env pour activer les réponses.',
     };
   }
-
-  return provider === 'gemini'
-    ? runAgentGemini({ system, messages, tools, onTool })
-    : runAgentAnthropic({ system, messages, tools, onTool, model, cache });
+  // Le journal des échanges (12 oct. 2026) : `journal` = { chat, par, page }. Chaque outil appelé,
+  // chaque tour du modèle et l'erreur éventuelle sont gardés, et lus dans Suivi > Chat.
+  const debut = Date.now();
+  const appels = [];
+  const notes = { tours: [], usage: { entree: 0, sortie: 0, cache_lecture: 0, cache_ecriture: 0 } };
+  const { resultatGarde, enEchec } = await import('./ak/trace.js');
+  const onToolNote = onTool ? async (appel) => {
+    const t0 = Date.now();
+    try {
+      const r = await onTool(appel);
+      appels.push({ outil: appel.name, arguments: appel.input || {}, resultat: resultatGarde(r), echec: enEchec(r), duree_ms: Date.now() - t0 });
+      return r;
+    } catch (e) {
+      appels.push({ outil: appel.name, arguments: appel.input || {}, resultat: null, echec: true, erreur: String(e?.message || e).slice(0, 500), duree_ms: Date.now() - t0 });
+      throw e;
+    }
+  } : onTool;
+  const modele = model || (provider === 'gemini' ? GEMINI_MODEL : ANTHROPIC_MODEL);
+  let res = null;
+  let erreur = null;
+  try {
+    res = provider === 'gemini'
+      ? await runAgentGemini({ system, messages, tools, onTool: onToolNote })
+      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes });
+  } catch (e) { erreur = e; }
+  if (journal) {
+    const { noterEchange } = await import('./ak/journal-echanges.js');
+    const { coutDe } = await import('./llm-couts.js');
+    noterEchange({
+      ...journal, systeme: system || '', messages, outils_declares: tools.length, tours: notes.tours, appels,
+      reponse: res?.text || '', erreur: erreur ? erreur?.message || String(erreur) : null, limite: !!res?.limite,
+      cout_usd: coutDe(modele, notes.usage), modele, duree_ms: Date.now() - debut,
+    });
+  }
+  if (erreur) throw erreur;
+  return res;
 }
 
 async function runAgentGemini({ system, messages, tools, onTool }) {
@@ -665,7 +697,7 @@ async function runAgentGemini({ system, messages, tools, onTool }) {
   return { text: 'Désolé, je n’ai pas pu terminer l’analyse (trop d’étapes).' };
 }
 
-async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false }) {
+async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null }) {
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   const modele = model || ANTHROPIC_MODEL;
   // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
@@ -683,6 +715,17 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
       messages: convo,
     });
     compter(modele, resp.usage);
+    if (notes) {
+      const u = resp.usage || {};
+      notes.usage.entree += u.input_tokens || 0; notes.usage.sortie += u.output_tokens || 0;
+      notes.usage.cache_lecture += u.cache_read_input_tokens || 0; notes.usage.cache_ecriture += u.cache_creation_input_tokens || 0;
+      notes.tours.push({
+        stop_reason: resp.stop_reason || null,
+        texte: (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').slice(0, 4000),
+        outils: (resp.content || []).filter((b) => b.type === 'tool_use').map((b) => b.name),
+        jetons: { entree: u.input_tokens || 0, sortie: u.output_tokens || 0, cache_lecture: u.cache_read_input_tokens || 0, cache_ecriture: u.cache_creation_input_tokens || 0 },
+      });
+    }
 
     if (resp.stop_reason === 'tool_use') {
       convo.push({ role: 'assistant', content: resp.content });

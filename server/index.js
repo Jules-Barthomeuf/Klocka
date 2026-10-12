@@ -63,6 +63,7 @@ import { monterMandatairePortes } from './routes/mandataire-portes.js';
 import { monterAlx } from './routes/alx.js';
 import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.js';
 import { monterTesteur } from './routes/testeur.js';
+import { monterSuiviChat } from './routes/suivi-chat.js';
 import { monterEquipe } from './routes/equipe.js';
 import { amorcerBacASable } from './testeur/bac-a-sable.js';
 import { monterKZoning } from './routes/kzoning.js';
@@ -1260,6 +1261,7 @@ monterOffMarket(app);
 planifierVeilleOffMarket();
 // L'agent testeur (10 oct. 2026) : un audit par page, dans un bac à sable ; ici, le compte testeur si on EST le bac à sable.
 monterTesteur(app);
+monterSuiviChat(app);
 amorcerBacASable();
 // L'équipe (10 oct. 2026) : admins et mandataires, à part des clients.
 monterEquipe(app);

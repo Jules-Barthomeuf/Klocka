@@ -14,6 +14,7 @@ const PAGES = [
   { to: "/SuiviAppels", mot: "Appels" },
   { to: "/SuiviMandataires", mot: "Mandataires" },
   { to: "/CoutsIA", mot: "Coûts IA" },
+  { to: "/SuiviChat", mot: "Chat" },
   { to: "/SuiviTesteur", mot: "Agent testeur" },
 ];
 

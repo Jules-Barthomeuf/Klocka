@@ -443,7 +443,7 @@ Raccourcis : s'il dit tout d'un coup (« les boulangeries indépendantes à Mâc
     .slice(-16)
     .map((m) => ({ role: m.role, content: m.contenu }));
 
-  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null,
+  const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, journal: { chat: 'mandataire-prospection', par: user?.email || null },
     system: consigne,
     messages,
     tools: OUTILS_PROSPECTIVE,

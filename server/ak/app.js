@@ -132,6 +132,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   const outils = [];
   const trace = [];
   const { text, tours = null, limite = false } = await runAgent({
+    journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
     system: consigne() + CADRE_APP + cadrePage,
     messages,
     tools: OUTILS,

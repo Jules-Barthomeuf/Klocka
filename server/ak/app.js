@@ -137,7 +137,8 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     signal,
     surTexte,
     effort: effortDuChat(),
-    system: consigneStable() + CADRE_APP + consigneApprise() + cadrePage,
+    // Du plus stable au plus changeant (1.7) : le document de Jules et le cadre, puis ce que l'équipe lui a appris, puis la page ouverte.
+    system: [{ texte: consigneStable() + CADRE_APP, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage }],
     messages,
     tools: OUTILS,
     model: MODELE,

@@ -1409,7 +1409,7 @@ export async function repondre(message) {
   const { text } = await runAgent({
     journal: { chat: 'google-chat', par: user?.email || message?.auteur?.nom || null },
     effort: effortDuChat(),
-    system: consigne(),
+    system: [{ texte: consigneStable() + CADRE_GOOGLE_CHAT, cache: true }, { texte: consigneApprise(), cache: true }],
     messages: historique,
     tools: OUTILS,
     model: MODELE,

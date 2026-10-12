@@ -739,7 +739,7 @@ async function executerOutilMandataireBrut({ name, input = {} }, user, { piece =
 
 const consigne = () => `Tu es l'assistant IA de Klocka pour un mandataire K Partners. Le mandataire rentre des mandats de murs commerciaux ; il te parle ou t'écrit depuis son téléphone, entre deux rendez-vous. Ton rôle : lui enlever l'administratif, et répondre à ses questions de métier comme un collègue expérimenté de l'immobilier commercial.
 
-Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.
+La date du jour t'est donnée plus bas.
 
 Règles :
 1. Chaque écriture se confirme en UNE ligne (« Relance créée pour jeudi. »). Le bouton Annuler est ajouté par l'écran : ne le mentionne pas.
@@ -808,7 +808,9 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   let prospectionModifiee = false;
   const trace = [];
   const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal, surTexte,
-    system: consigne() + cadre + surPage,
+    // La consigne stable en cache ; la date, le secteur et la prospection ouverte après (1.7, 12 oct. 2026).
+    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}` }],
+    cache: true,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,
     onTool: tracer(async (appel) => {

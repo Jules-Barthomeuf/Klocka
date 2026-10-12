@@ -678,18 +678,19 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
     }
   } : onTool;
   const modele = model || (provider === 'gemini' ? GEMINI_MODEL : ANTHROPIC_MODEL);
+  const systemeTexte = Array.isArray(system) ? system.map((b) => b?.texte || '').join('') : system || '';
   let res = null;
   let erreur = null;
   try {
     res = provider === 'gemini' && !clientAgentDeTest
-      ? await runAgentGemini({ system, messages, tools, onTool: onToolNote })
+      ? await runAgentGemini({ system: systemeTexte, messages, tools, onTool: onToolNote })
       : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort, surTexte });
   } catch (e) { erreur = e; }
   if (journal) {
     const { noterEchange } = await import('./ak/journal-echanges.js');
     const { coutDe } = await import('./llm-couts.js');
     noterEchange({
-      ...journal, systeme: system || '', messages, outils_declares: tools.length, tours: notes.tours, appels,
+      ...journal, systeme: systemeTexte, messages, outils_declares: tools.length, tours: notes.tours, appels,
       reponse: res?.text || '', erreur: erreur ? erreur?.message || String(erreur) : null, limite: !!res?.limite,
       cout_usd: coutDe(modele, notes.usage), modele, duree_ms: Date.now() - debut,
     });
@@ -751,7 +752,12 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
   // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
   // outils, puis la consigne) est relu au dixième du prix pendant cinq
   // minutes. Les messages, eux, changent à chaque tour.
-  const systeme = cache && system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system;
+  // La consigne peut venir en blocs (12 oct. 2026) : [{ texte, cache }], la partie stable d'abord. Chaque bloc
+  // marqué `cache` pose un point de cache : changer de page ou ajouter une leçon ne refait plus payer le reste.
+  const blocs = Array.isArray(system) ? system.filter((b) => b && String(b.texte || '').trim()) : null;
+  const systeme = blocs
+    ? blocs.map((b) => ({ type: 'text', text: b.texte, ...(cache && b.cache ? { cache_control: { type: 'ephemeral' } } : {}) }))
+    : cache && system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system;
   const outils = cache && tools.length ? tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)) : tools;
 
   let reprises = 0;

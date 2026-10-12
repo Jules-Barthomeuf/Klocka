@@ -84,4 +84,11 @@ test('quelqu’un lit au fil de l’eau : le texte arrive par morceaux, avec son
   assert.deepEqual(morceaux, [[0, 'Je cherche.'], [1, 'Trouvé.']]);
 });
 
+test('la consigne en blocs : un point de cache sur chaque bloc stable, aucun sur la page ouverte, les vides retirés', async () => {
+  const c = fauxClient([{ stop_reason: 'end_turn', content: [texte('ok')] }]);
+  L.brancherClientAgentPourTests(c);
+  await L.runAgent({ system: [{ texte: 'stable', cache: true }, { texte: '', cache: true }, { texte: 'page offres' }], messages: [{ role: 'user', content: 'q' }], tools: [], onTool: async () => ({}), cache: true });
+  assert.deepEqual(c.requetes[0].system, [{ type: 'text', text: 'stable', cache_control: { type: 'ephemeral' } }, { type: 'text', text: 'page offres' }]);
+});
+
 test.after(() => L.brancherClientAgentPourTests(null));

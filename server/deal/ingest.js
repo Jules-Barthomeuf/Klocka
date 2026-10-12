@@ -14,7 +14,7 @@ import { simpleParser } from 'mailparser';
 import { transcribeDocument } from './vision.js';
 
 const TEXT_EXTS = new Set(['.txt', '.md', '.csv']);
-const IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic']);
+const IMAGE_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
 // Un PDF « natif » embarque une couche texte. En dessous de ce seuil de
 // caractères utiles par page, on considère qu'il s'agit d'un scan.
@@ -134,6 +134,13 @@ export async function ingerer({ buffer, filename, mimetype, texte } = {}) {
 
   const ext = path.extname(filename || '').toLowerCase();
   const mime = (mimetype || '').toLowerCase();
+
+  // --- HEIC (photo d'iPhone) -------------------------------------------------
+  // Ni le modèle ni le serveur ne la lisent : elle partait en boucle entre la
+  // transcription et ce convertisseur (12 oct. 2026). Un refus clair, avec la marche à suivre.
+  if (/^image\/hei[cf]/.test(mime) || ['.heic', '.heif'].includes(ext)) {
+    throw new Error("Les photos HEIC de l'iPhone ne se lisent pas encore : envoyez-la en JPEG (sur l'iPhone, Réglages > Appareil photo > Formats > « Le plus compatible »), ou faites-en une capture d'écran.");
+  }
 
   // --- .eml -----------------------------------------------------------------
   if (ext === '.eml' || mime === 'message/rfc822') {

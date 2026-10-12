@@ -554,6 +554,8 @@ export async function generateFromDocument({ buffer, mimetype, prompt, nom } = {
   if (!buffer?.length) throw new Error('Document vide.');
 
   if (!LISIBLE_NATIF(mimetype)) {
+    // Une image que le modèle ne lit pas ne repart pas au convertisseur, qui la renverrait ici : c'était une boucle sans fin.
+    if (/^image\//i.test(String(mimetype || ''))) throw new Error(`Format d'image non lu (${mimetype}) : envoyez-la en JPEG ou en PNG.`);
     const texte = await texteDeLaPiece({ buffer, mimetype, nom });
     if (provider === 'gemini') {
       const corps = `Document${nom ? ` « ${nom} »` : ''} :\n${texte.slice(0, 120000)}\n\n${prompt}`;

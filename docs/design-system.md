@@ -546,6 +546,34 @@ plages Min à Max, puces avec « Tout »), et en haut le compteur « Voir N
 locaux » recalculé à chaque geste. Une recherche sauvegardée est une liste
 dynamique. On ne simule jamais un filtre dont la source n'existe pas.
 
+### Vacance, le premier des Outils (13 oct. 2026)
+
+Spec de Jules du 13 oct. 2026 (« Signaux de vacance »), posée dans un nouveau
+menu **Outils** (icône clé, après Off-market), qui porte un onglet par outil
+sur le dessin des onglets du Suivi (`components/outils/OngletsOutils.jsx`).
+L'écran prend toute la hauteur : en tête les onglets, le titre et sa phrase
+d'état, puis la barre de recherche sur une ligne (le champ d'adresse, qui
+devient un libellé menthe avec sa croix une fois l'adresse choisie dans les
+propositions ; le rayon en curseur et champ synchronisés ; les types de bien en
+puces menthe avec leur croix et une flèche vers la liste à cases ; « + de
+filtres » qui déplie les types de signal et les deux dates ; « Lancer » en
+pilule menthe, grise tant qu'aucune adresse n'est choisie). Rien ne part sans
+« Lancer » ; un paramètre changé après coup pose un bandeau ambre « Filtres
+modifiés : relancez la recherche » et cerne le bouton. Les bandeaux (chargement
+de la commune, erreur avec « Réessayer », aucun résultat, troncature, données
+anciennes) sont des lignes `bg-surface` sous la barre, jamais des fenêtres.
+La carte est Leaflet sur le fond IGN sombre (`.k-carte-rues`), le cercle du
+rayon en menthe translucide, une épingle `encre` sur l'adresse, un rond de 7 px
+à contour `encre` par local : `menthe-fonce` pour un signal de moins de douze
+mois, `menthe-clair` au-delà ; au-delà de deux cents locaux, des grappes
+chiffrées qui s'éclatent au zoom. Les bulles de Leaflet prennent les jetons
+(`.k-vacance` dans `index.css`). À droite, la liste repliable sur `bg-rail`
+(360 px ; au téléphone, le bas de l'écran) : une ligne par local, titre 15 px
+`encre`, détail 13,5 px `ardoise` (signal · date · type de bien), la distance en
+`brume` à droite ; survol = rond mis en avant, clic = carte centrée et fiche
+ouverte. Les filtres ne montrent que les huit signaux dont la source est
+branchée (BODACC, SIRENE) : les permis Sitadel attendent leur source.
+
 ### Le jugement d'un point (Off-market Simple, 11 oct. 2026)
 
 Décision de Jules : on juge en un clic, puis on dit pourquoi **librement**,

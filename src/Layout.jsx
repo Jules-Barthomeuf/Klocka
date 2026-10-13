@@ -31,7 +31,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar } from "lucide-react";
+  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, Wrench } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -476,6 +476,7 @@ function LayoutContent({ children, currentPageName }) {
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
+    Outils: { to: createPageUrl("Outils"), icon: Wrench, actif: isActivePage("Outils") },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") },

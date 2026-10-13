@@ -77,6 +77,7 @@ import { monterLeadMagnet } from './routes/leadmagnet.js';
 import { monterKTransactions } from './routes/ktransactions.js';
 import { monterKVacance } from './routes/kvacance.js';
 import { monterKData } from './routes/kdata.js';
+import { monterOutils } from './routes/outils.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -1278,6 +1279,9 @@ monterLeadMagnet(app);
 monterKTransactions(app);
 monterKVacance(app);
 monterKData(app);
+// Outils (13 oct. 2026) : Vacance, les signaux publics autour d'une adresse ; les communes chargées se rafraîchissent la nuit.
+monterOutils(app);
+import('./outils/vacance.js').then((m) => m.planifier()).catch((e) => console.error('[vacance] module absent :', e.message));
 
 // L'état de la plateforme, écrit dans docs/etat-plateforme.md : une session de
 // travail le lit et connaît l'usage réel au lieu de repartir de zéro.

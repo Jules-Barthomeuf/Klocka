@@ -13,6 +13,7 @@
 
 import { Records } from '../db.js';
 import { chargerPiece, extraireUnePiece, enregistrerExtraction } from './espace.js';
+import { remplirMatrice } from './matrice.js';
 import { CATEGORIE_PAR_TYPE } from './grille.js';
 import { generateFromDocument } from '../llm.js';
 
@@ -88,12 +89,38 @@ async function traiter({ dealId, docId, uploadDir, user }) {
 
   const resultat = await extraireUnePiece(piece, user);
   enregistrerExtraction(dealId, resultat);
+
+  // La fiche du bien et les étapes de l'analyse lisent la matrice, pas les
+  // tables : une pièce déposée sur un dossier déjà pré-analysé y entre aussi,
+  // sinon ses champs restent vides jusqu'à une relance à la main. Avant la
+  // pré-analyse, c'est elle qui lira toutes les pièces d'un coup.
+  const matrice = dealDe(dealId)?.lots?.length ? await lireDansMatrice(dealId, docId, { uploadDir, user }) : null;
+
   marquer(dealId, docId, {
-    statut: resultat.erreur ? 'erreur' : 'fait',
+    statut: resultat.erreur || matrice?.erreur ? 'erreur' : 'fait',
     le: new Date().toISOString(),
-    erreur: resultat.erreur || null,
+    erreur: resultat.erreur || matrice?.erreur || null,
     lignes: (resultat.lignes || []).filter((l) => l.constat).length,
+    matrice: matrice ? !matrice.erreur : null,
   });
+}
+
+/** Lit une seule pièce dans la matrice du dossier ; ne jette jamais. */
+export async function lireDansMatrice(dealId, docId, { uploadDir, user } = {}) {
+  try {
+    // La file tourne hors de toute requête : sans mesure à elle, la lecture
+    // retomberait « hors contexte ».
+    const { mesurer } = await import('../llm-couts.js');
+    const { resultat: r } = await mesurer(
+      { operation: 'lecture des pièces', par: user?.email || null, sur: dealId },
+      () => remplirMatrice(dealId, { uploadDir, user, seulementDocuments: [docId] })
+    );
+    if (!r.ok) return { erreur: r.error || 'Lecture impossible' };
+    const ligne = (r.matrice?.lignes || []).find((l) => l.document_id === docId);
+    return { erreur: ligne?.erreur || null };
+  } catch (e) {
+    return { erreur: e?.message || 'Lecture impossible' };
+  }
 }
 
 async function tourner() {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide-react";
@@ -45,6 +45,7 @@ const typeLisible = (mime) => {
 // ce qui est déjà là. Jamais bloquant : on peut refuser et le proposer plus tard.
 export default function DocumentsDossier({ dossier, coches = [], onCocher, onRefresh, apercu = false, proposerDrive = false }) {
   const inputRef = useRef(null);
+  const queryClient = useQueryClient();
   const [menu, setMenu] = useState(null);
   const [renommage, setRenommage] = useState(null);
   const [recherche, setRecherche] = useState("");
@@ -123,6 +124,17 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     const t = setInterval(() => refRefresh.current?.(), 4000);
     return () => clearInterval(t);
   }, [enTraitement, apercu]);
+
+  // Quand la dernière pièce est analysée, la fiche du bien et les étapes ont
+  // de nouvelles valeurs : on les redemande, sinon elles resteraient vides
+  // jusqu'au prochain passage sur la page.
+  const etaitEnTraitement = useRef(false);
+  useEffect(() => {
+    if (etaitEnTraitement.current && !enTraitement && dossier?.deal_id) {
+      ["fiche", "matrice", "etape1", "etape2", "etape3", "etape4", "carte"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dossier.deal_id] }));
+    }
+    etaitEnTraitement.current = enTraitement;
+  }, [enTraitement, dossier?.deal_id, queryClient]);
 
   const basculer = (id) => onCocher?.(coches.includes(id) ? coches.filter((c) => c !== id) : [...coches, id]);
   const tousCoches = documents.length > 0 && coches.length === documents.length;

@@ -12,7 +12,7 @@ const {
   PARAMETRES, CLES_TYPES, CLES_CATEGORIES,
 } = await import('./vacance-regles.js');
 const { lireEtablissementVacance } = await import('./vacance-sources.js');
-const { chargerZone, rechercher, zone, etat, supprimerSignal, poserNaf } = await import('./vacance.js');
+const { chargerZone, rechercher, zone, etat, supprimerSignal, poserNaf, utiliserSources } = await import('./vacance.js');
 
 test('vacance : le type de bien se déduit du code NAF, le préfixe le plus long l\'emporte', () => {
   assert.equal(categorieDe('47.11F'), 'commerce');
@@ -211,6 +211,8 @@ const FAUSSES = {
 };
 
 test('vacance : l\'ingestion d\'une commune est rejouable sans doublon, et la recherche lit la base', async () => {
+  // Rien ne sort sur le réseau pendant un test : les sources sont fausses, pour la demande de fond aussi.
+  utiliserSources(FAUSSES);
   const z = { code_commune: '33243', code_postal: '33500', nom: 'Libourne' };
   const r1 = await chargerZone(z, { sources: FAUSSES });
   assert.equal(r1.ok, true, r1.error);
@@ -263,9 +265,10 @@ test('vacance : une demande de suppression retire le signal et l\'empêche de re
   const boulangerie = tout.features.find((f) => f.properties.siret === '11111111100011');
   assert.deepEqual(boulangerie.properties.signaux.map((s) => s.type), ['redressement']);
 
-  assert.equal(poserNaf('1071', 'commerce', 'une boulangerie est une devanture').ok, true);
+  const naf = poserNaf('1071', 'commerce', 'une boulangerie est une devanture');
+  assert.equal(naf.ok, true);
+  assert.ok(naf.reclasses >= 2, 'l\'établissement et ses signaux sont reclassés sur-le-champ');
   assert.equal(poserNaf('10', 'inexistante').ok, false);
-  await chargerZone({ code_commune: '33243', code_postal: '33500', nom: 'Libourne' }, { sources: FAUSSES, delta: true });
   const apres = rechercher({ lon: '-0.244462', lat: '44.914668', rayon_m: '500', commune: '33243', categories: 'commerce' });
   assert.equal(apres.features.length, 1, 'la boulangerie est désormais un commerce');
 });

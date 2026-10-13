@@ -20,6 +20,10 @@ import {
 } from './vacance-regles.js';
 import { SOURCES } from './vacance-sources.js';
 
+// Les sources réseau, remplaçables d'un bloc : un test en passe de fausses.
+let sourcesCourantes = SOURCES;
+export function utiliserSources(s) { sourcesCourantes = s || SOURCES; }
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS vacance_etablissement (
     siret          TEXT PRIMARY KEY,
@@ -206,7 +210,7 @@ const avancer = (code, texte) => db.prepare('UPDATE vacance_zone SET progression
  * @param {{code_commune: string, code_postal: string, nom?: string}} z
  * @param {{sources?: object, delta?: boolean}} [o]  `delta` : seulement ce qui a paru depuis le dernier passage
  */
-export async function chargerZone(z, { sources = SOURCES, delta = false, P = PARAMETRES } = {}) {
+export async function chargerZone(z, { sources = sourcesCourantes, delta = false, P = PARAMETRES } = {}) {
   const code = String(z.code_commune);
   const existante = zone(code);
   poserZone({ code_commune: code, code_postal: z.code_postal || null, nom: z.nom || null, etat: 'chargement', progression: 'Démarrage', erreur: null });
@@ -402,12 +406,29 @@ export function supprimerSignal(sourceId, { par = null, motif = null } = {}) {
   return { ok: true, supprimes: n };
 }
 
-/** La correspondance NAF, modifiable sans déploiement : un préfixe, une catégorie. */
+/**
+ * Reclasse tout ce qui est en base d'après la table NAF du moment : la table
+ * se corrige sans déploiement, et les signaux déjà écrits doivent suivre.
+ */
+export const reclasser = db.transaction(() => {
+  const table = tableNaf();
+  let changes = 0;
+  for (const t of ['vacance_etablissement', 'vacance_signal']) {
+    const maj = db.prepare(`UPDATE ${t} SET categorie_bien = ? WHERE rowid = ?`);
+    for (const r of db.prepare(`SELECT rowid, code_naf, categorie_bien FROM ${t} WHERE code_naf IS NOT NULL`).all()) {
+      const c = categorieDe(r.code_naf, table);
+      if (c !== r.categorie_bien) { maj.run(c, r.rowid); changes++; }
+    }
+  }
+  return changes;
+});
+
+/** La correspondance NAF, modifiable sans déploiement : un préfixe, une catégorie. Tout est reclassé aussitôt. */
 export function poserNaf(prefixe, categorie, raison = null) {
   const p = String(prefixe || '').replace(/\./g, '').trim();
   if (!p || !CATEGORIES.some((c) => c.cle === categorie)) return { ok: false, error: 'Préfixe ou catégorie invalide.' };
   db.prepare('INSERT OR REPLACE INTO vacance_naf_categorie (prefixe, categorie, raison) VALUES (?, ?, ?)').run(p, categorie, raison);
-  return { ok: true, naf: tableNaf() };
+  return { ok: true, reclasses: reclasser(), naf: tableNaf() };
 }
 
 /** Chaque nuit vers 6 h (Paris), sur Render ou si VACANCE_NUIT=true : les communes déjà chargées sont rafraîchies. */

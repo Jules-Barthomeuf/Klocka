@@ -26,6 +26,8 @@ export const API_DES_PAGES = {
   // Off-market (10 oct. 2026) : sa page et son API, pour l'équipe ; les mandataires passent par la même API, hors de ce cadenas.
   OffMarket: ['/api/off-market'],
   AdminEquipe: ['/api/admin/equipe'],
+  // Outils (13 oct. 2026) : la page et son API (adresses, signaux de vacance).
+  Outils: ['/api/outils'],
 };
 
 // Ce qui ne se ferme jamais : sans elles, plus moyen de travailler ni de revenir.

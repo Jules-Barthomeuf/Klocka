@@ -26,33 +26,9 @@ export const PARAMETRES = {
   limite_resultats: 2000,
 };
 
-/** Les six types de bien, dans l'ordre d'affichage. */
-export const CATEGORIES = [
-  { cle: 'commerce', mot: 'Commerce' },
-  { cle: 'bureau', mot: 'Bureau' },
-  { cle: 'industrie', mot: 'Industrie / atelier' },
-  { cle: 'entrepot', mot: 'Entrepôt / gros' },
-  { cle: 'sante', mot: 'Santé / cabinet' },
-  { cle: 'autre', mot: 'Autre' },
-];
-
-/**
- * Les types de signal que les sources branchées produisent. Les permis de
- * construire (Sitadel) ne sont pas branchés : on ne montre pas un filtre dont
- * la source n'existe pas (design-system, écran de recherche).
- */
-export const TYPES_SIGNAL = [
-  { cle: 'liquidation', mot: 'Liquidation judiciaire', source: 'bodacc', sens: 'Fin d\'activité quasi certaine, local libéré à court terme' },
-  { cle: 'redressement', mot: 'Redressement judiciaire', source: 'bodacc', sens: 'Entreprise en difficulté, risque de fermeture' },
-  { cle: 'sauvegarde', mot: 'Sauvegarde', source: 'bodacc', sens: 'Difficultés anticipées, risque plus faible' },
-  { cle: 'autre_procedure', mot: 'Autre procédure collective', source: 'bodacc', sens: 'Plans, conversions, clôtures, rétablissement professionnel' },
-  { cle: 'transfert_siege', mot: 'Transfert de siège', source: 'bodacc', sens: 'L\'entreprise quitte l\'adresse de son siège' },
-  { cle: 'radiation', mot: 'Radiation', source: 'bodacc', sens: 'L\'entreprise disparaît du registre' },
-  { cle: 'dissolution', mot: 'Dissolution', source: 'bodacc', sens: 'Décision de cesser l\'activité, liquidation amiable' },
-  { cle: 'fermeture', mot: 'Fermeture d\'établissement', source: 'sirene', sens: 'Un établissement précis passe à l\'état « fermé »' },
-];
-export const CLES_TYPES = TYPES_SIGNAL.map((t) => t.cle);
-export const CLES_CATEGORIES = CATEGORIES.map((c) => c.cle);
+// Les types de bien et de signal : les mêmes mots que l'écran (src/lib/vacance-signaux.js).
+export { CATEGORIES, TYPES_SIGNAL, CLES_TYPES, CLES_CATEGORIES } from '../../src/lib/vacance-signaux.js';
+import { CLES_TYPES, CLES_CATEGORIES } from '../../src/lib/vacance-signaux.js';
 
 /**
  * La table NAF → type de bien de la spec, telle qu'elle est posée en base la

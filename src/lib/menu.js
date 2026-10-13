@@ -12,6 +12,8 @@ export const ENTREES_ADMIN = [
   { cle: "Prospection", label: "Prospection" },
   { cle: "Relances", label: "Relances" },
   { cle: "OffMarket", label: "Off-market" },
+  // Outils (13 oct. 2026) : les outils de terrain ; le premier est Vacance.
+  { cle: "Outils", label: "Outils" },
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },
   { cle: "Monitoring", label: "Suivi" },

@@ -19,6 +19,7 @@ export const ADRESSES = {
   Prospection: "Prospection",
   Relances: "Relances",
   OffMarket: "OffMarket",
+  Outils: "Outils",
   SuiviTesteur: "SuiviTesteur",
   SuiviChat: "SuiviChat",
   ImpressionPresentation: "ImpressionPresentation",

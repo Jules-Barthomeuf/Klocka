@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
+import { PanneauTranscription } from "@/components/prospection/ModeAppel";
 import MicroEcoute from "@/components/prospection/MicroEcoute";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
@@ -112,7 +113,10 @@ export default function RappelEntrant() {
   const morceaux = useRef([]);
   // La transcription en direct (13 oct. 2026, Jules) : chaque morceau s'affiche dès qu'il est transcrit.
   const [direct, setDirect] = useState([]);
-  const montrerDirect = () => setDirect(morceaux.current.filter((x) => x.etat === "ok" && x.texte).map((x) => x.texte));
+  // Les morceaux comme au mode appel : en cours, transcrits, ratés ; le panneau les tape au fil de l'eau.
+  const montrerDirect = () => setDirect(morceaux.current.map((x) => ({ i: x.i, texte: x.texte, etat: x.etat })));
+  const finDirect = useRef(null);
+  useEffect(() => { finDirect.current?.scrollIntoView({ block: "nearest" }); }, [direct.length, direct.filter((x) => x.texte).length]);
   const minuteur = useRef(null);
   const compte = useRef(null);
   const idRef = useRef(null);
@@ -133,7 +137,7 @@ export default function RappelEntrant() {
       const r = await base44.request("POST", `${MA}/morceau`, { body: f, isForm: true });
       x.texte = r.texte || ""; x.etat = "ok"; x.wav = null;
       montrerDirect();
-    } catch { x.etat = "echec"; }
+    } catch { x.etat = "echec"; montrerDirect(); }
   };
   const enregistrer = (flux) => {
     const r0 = { flux, actif: true, m: null, minuterie: null };
@@ -148,8 +152,8 @@ export default function RappelEntrant() {
         if (r0.actif) tour(); else flux.getTracks().forEach((t) => t.stop());
         if (!bouts.length) return;
         const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi" };
-        morceaux.current.push(x);
-        try { x.wav = await versWav(new Blob(bouts, { type: m.mimeType || "audio/webm" }), 16000); } catch { x.etat = "echec"; return; }
+        morceaux.current.push(x); montrerDirect();
+        try { x.wav = await versWav(new Blob(bouts, { type: m.mimeType || "audio/webm" }), 16000); } catch { x.etat = "echec"; montrerDirect(); return; }
         transcrire(x);
       };
       m.start();
@@ -375,15 +379,14 @@ export default function RappelEntrant() {
       {(rappel?.notes_avertissements || []).map((x) => <span key={x} className="text-[12.5px] text-ambre">{x}</span>)}
     </label>
   );
-  const transcription = (
+  // Pendant l'appel : le panneau du mode appel, à l'identique (13 oct. 2026). Après : la transcription finale.
+  const transcription = ecran === "enregistrement" || ecran === "transcription" ? (
+    <PanneauTranscription direct={direct} notes={!microKo} fin={finDirect} enDirect tape />
+  ) : (
     <div className="flex min-h-[120px] flex-col gap-2 rounded-[16px] border border-trait p-4">
       <span className={etiquette}>TRANSCRIPTION</span>
-      {ecran === "enregistrement" || ecran === "transcription" ? (
-        direct.length ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{direct.join("\n")}{ecran === "enregistrement" && <span className="text-brume"> …</span>}</p>
-          : <p className="m-0 text-[14px] text-brume">{ecran === "transcription" ? "Transcription en cours" : microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Elle s'écrit ici pendant l'appel, toutes les huit secondes."}</p>
-      )
-          : rappel?.transcription ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{rappel.transcription}</p>
-            : <p className="m-0 text-[14px] text-brume">{microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Rien n'a été entendu."}</p>}
+      {rappel?.transcription ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{rappel.transcription}</p>
+        : <p className="m-0 text-[14px] text-brume">{microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Rien n'a été entendu."}</p>}
       {rappel?.transcription_echec && <p className="m-0 text-[12.5px] text-ambre">Une partie n'a pas pu être transcrite.</p>}
     </div>
   );

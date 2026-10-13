@@ -172,7 +172,8 @@ function useTape(paragraphes, actif) {
 }
 
 /** La transcription : en direct pendant l'appel, puis relue à côté des actions. Jamais gardée sur le serveur. */
-function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false, tape = false, nu = false }) {
+// Partagé avec « Il me rappelle » (13 oct. 2026, Jules : « comme dans l'appel normal »).
+export function PanneauTranscription({ direct, notes, fin, enDirect = false, replie = false, tape = false, nu = false }) {
   const [ouvert, setOuvert] = useState(!replie);
   const textes = direct.filter((x) => x.texte);
   const tapes = useTape(textes.map((x) => x.texte), tape);
@@ -496,15 +497,9 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
           {/* En relances, on quitte sans appeler : la ligne se libère pour les autres. */}
           {onRetour
             ? <button type="button" onClick={onRetour} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
-            : <button type="button" onClick={() => setPasserOuvert((x) => !x)} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Passer</button>}
+            // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
+            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
         </div>
-        {passerOuvert && !onRetour && (
-          <div className="mt-3 flex flex-wrap justify-end gap-1.5">
-            {Object.entries(raisons || { fermee: "Fermée", pas_pertinente: "Pas pertinente", plus_tard: "Plus tard" }).map(([k, l]) => (
-              <button key={k} type="button" disabled={passerEnCours} onClick={() => onPasser(k)} className="h-8 rounded-full border border-trait px-3 text-[13px] text-encre hover:border-menthe disabled:opacity-50" style={{ background: "transparent" }}>{l}</button>
-            ))}
-          </div>
-        )}
         <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 max-md:py-8">
           <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
             className="group grid h-[220px] w-[220px] place-items-center rounded-full border border-menthe/20 max-md:h-[184px] max-md:w-[184px]" style={{ background: "transparent" }}>

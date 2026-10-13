@@ -131,18 +131,13 @@ export function monterProspection(app) {
     if (!user) return;
     ok(res, { ok: true, remise_a_zero: (await import('../prospection/suivi-appels.js')).remettreAZero(user.email) });
   }));
-  // Le journal des appels, ouvert à toute l'équipe de la Prospection (13 oct. 2026, Jules : « on doit pouvoir
-  // tous le consulter ») : chaque appel, par analyste, avec ses notes et sa transcription. Le Suivi garde ses chiffres.
-  app.get('/api/prospection/journal-appels', wrap(async (req, res) => {
+  // Prospection > Suivi (13 oct. 2026, Jules) : les mêmes chiffres que Suivi > Appels (vue d'ensemble,
+  // par analyste, journal), ouverts à qui a la Prospection.
+  app.get('/api/prospection/suivi-appels', wrap(async (req, res) => {
     if (!admin(req, res)) return;
-    const { suiviAppels } = await import('../prospection/suivi-appels.js');
-    const s = suiviAppels({ jours: Math.min(90, Math.max(1, Number(req.query.jours) || 14)), journal: 600 });
-    const champs = ['id', 'rappel', 'le', 'par', 'source', 'etat', 'agence', 'ville', 'interlocuteur', 'issue', 'duree_s', 'notes', 'resume', 'transcription', 'recu'];
-    ok(res, {
-      // Les pastilles comptent les lignes du journal, rappels non aboutis compris.
-      analystes: [...s.journal.reduce((m, x) => m.set(x.par, (m.get(x.par) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]).map(([prenom, appels]) => ({ prenom, appels })),
-      journal: s.journal.map((x) => Object.fromEntries(champs.map((k) => [k, x[k] ?? null]))),
-    });
+    const { suiviAppels, SOURCES } = await import('../prospection/suivi-appels.js');
+    const source = SOURCES[req.query.source] ? String(req.query.source) : null;
+    ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source }));
   }));
   // Compte > Mails (13 oct. 2026) : les mails de chacun, à partir de ceux de l'équipe.
   app.get('/api/mes-mails', wrap(async (req, res) => {

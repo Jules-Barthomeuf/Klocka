@@ -59,7 +59,7 @@ const COLONNES = [
 /** « 42 s », « 2 min 05 ». */
 const secondesLisibles = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}`; };
 
-function DetailAppel({ x }) {
+function DetailAppel({ x, modifiable = true }) {
   // Validé ou non, à la main (13 oct. 2026, Jules) : seul l'état change, rien n'est envoyé ni écrit ailleurs.
   const queryClient = useQueryClient();
   const marquer = useMutation({
@@ -77,11 +77,11 @@ function DetailAppel({ x }) {
       ) : <div className={ligne}><span className="text-ardoise">État</span>
         <span className="flex flex-wrap items-center gap-3">
           <span className={valide ? "text-craie" : "text-ambre"}>{valide ? "Validé" : "Pas validé"}{x.validation_main ? <span className="text-brume"> · à la main par {String(x.validation_main.par || "").split("@")[0]} le {new Date(x.validation_main.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span> : null}</span>
-          <button type="button" onClick={() => marquer.mutate(!valide)} disabled={marquer.isPending}
+          {modifiable && <button type="button" onClick={() => marquer.mutate(!valide)} disabled={marquer.isPending}
             className="inline-flex h-7 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
             {marquer.isPending && <Loader2 className="h-3 w-3 animate-spin" />}{valide ? "Marquer non validé" : "Marquer validé"}
-          </button>
-          <span className="text-[12px] text-brume">Seul l'état change : rien n'est envoyé ni écrit dans Monday.</span>
+          </button>}
+          {modifiable && <span className="text-[12px] text-brume">Seul l'état change : rien n'est envoyé ni écrit dans Monday.</span>}
         </span>
       </div>}
       <div className={ligne}><span className="text-ardoise">Résumé</span><span className="text-encre">{x.resume || "—"}</span></div>
@@ -186,7 +186,10 @@ function CourbeJours({ parJour, analystes }) {
   );
 }
 
-export default function SuiviAppels() {
+// `dansProspection` (13 oct. 2026, Jules) : la même page dans l'onglet Suivi de la Prospection, ouverte à
+// toute l'équipe : les trois vues, sans le titre ni la remise à zéro ni la validation à la main (réservées au Suivi).
+export default function SuiviAppels({ dansProspection = false }) {
+  const base = dansProspection ? "/api/prospection/suivi-appels" : "/api/monitoring/appels";
   const [jours, setJours] = useState(30);
   const [mode, setMode] = useState("");
   const [ouvert, setOuvert] = useState(null);
@@ -200,8 +203,8 @@ export default function SuiviAppels() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["suivi-appels"] }),
   });
   const { data, isLoading, error } = useQuery({
-    queryKey: ["suivi-appels", jours, mode],
-    queryFn: () => base44.request("GET", `/api/monitoring/appels?jours=${jours}${mode ? `&source=${mode}` : ""}`),
+    queryKey: ["suivi-appels", jours, mode, dansProspection],
+    queryFn: () => base44.request("GET", `${base}?jours=${jours}${mode ? `&source=${mode}` : ""}`),
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: true,
   });
@@ -213,19 +216,19 @@ export default function SuiviAppels() {
   const journal = (data?.journal || []).filter((x) => !qui || x.par === qui);
 
   return (
-    <div className="min-h-screen text-encre">
-      <div className="mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10">
+    <div className={dansProspection ? "text-encre" : "min-h-screen text-encre"}>
+      <div className={dansProspection ? "" : "mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10"}>
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-          <div>
+          {!dansProspection && <div>
             <OngletsSuivi className="mb-3.5" />
             <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Appels et relances</h1>
-          </div>
+          </div>}
           {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin. */}
-          <div className="flex flex-col items-end gap-2 md:pr-14">
+          <div className={`flex flex-col items-end gap-2 ${dansProspection ? "ml-auto" : "md:pr-14"}`}>
             <div className="flex flex-wrap gap-1.5">{PERIODES.map(([j, mot]) => <button key={j} type="button" onClick={() => setJours(j)} className={filtre(jours === j)}>{mot}</button>)}</div>
             <div className="flex flex-wrap gap-1.5">{MODES.map(([k, mot]) => <button key={k || "tout"} type="button" onClick={() => setMode(k)} className={filtre(mode === k)}>{mot}</button>)}</div>
-            <button type="button" disabled={zero.isPending} onClick={() => { if (window.confirm("Remettre le suivi des appels à zéro ? Il comptera à partir de maintenant. Rien n'est effacé : « Tout afficher » revient en arrière.")) zero.mutate("remettre-a-zero"); }}
-              className="h-8 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Remettre à zéro</button>
+            {!dansProspection && <button type="button" disabled={zero.isPending} onClick={() => { if (window.confirm("Remettre le suivi des appels à zéro ? Il comptera à partir de maintenant. Rien n'est effacé : « Tout afficher » revient en arrière.")) zero.mutate("remettre-a-zero"); }}
+              className="h-8 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Remettre à zéro</button>}
           </div>
         </div>
 
@@ -348,7 +351,7 @@ export default function SuiviAppels() {
                         <span className="text-ardoise">{!x.mesure_ak ? "—" : !x.mesure_ak.propose_par_ak ? "Tapée" : x.mesure_ak.corrige ? <span className="text-ambre">Corrigé</span> : "Juste"}</span>
                         <ChevronDown className={`h-3.5 w-3.5 text-brume transition-transform ${ouvert === x.id ? "rotate-180" : ""}`} />
                       </button>
-                      {ouvert === x.id && <DetailAppel x={x} />}
+                      {ouvert === x.id && <DetailAppel x={x} modifiable={!dansProspection} />}
                     </div>
                   ))}
                   {!journal.length && <p className="m-0 py-8 text-center text-[13px] text-brume">Aucun appel sur la période.</p>}

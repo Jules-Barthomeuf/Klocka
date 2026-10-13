@@ -7,7 +7,7 @@ import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
-import JournalAppels from "@/components/prospection/JournalAppels";
+import SuiviAppels from "@/pages/SuiviAppels";
 import ModeAppel from "@/components/prospection/ModeAppel";
 import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
 import AvatarAK from "@/components/AvatarAK";
@@ -993,8 +993,8 @@ export default function Prospection() {
   // carnet complet) est caché depuis le 5 oct. 2026 et tourne en coulisse.
   // « Mode appel » (6 oct. 2026) : la file d'une ville, une agence à la fois, pensée pour le téléphone.
   // Les relances (7 oct. 2026) ont leur propre page : Relances.
-  // « Journal » (13 oct. 2026) : les appels de toute l'équipe, avec notes et transcriptions.
-  const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"], ["journal", "Journal"]];
+  // « Suivi » (13 oct. 2026, Jules) : la page Suivi des appels, ouverte à l'équipe : vue d'ensemble, par analyste, journal.
+  const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"], ["suivi", "Suivi"]];
   // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
   const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
@@ -1050,7 +1050,7 @@ export default function Prospection() {
       <div key={partie} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
       {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} />}
       {partie === "appel" && <ModeAppel />}
-      {partie === "journal" && <JournalAppels />}
+      {partie === "suivi" && <SuiviAppels dansProspection />}
       {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
       {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
       </div>

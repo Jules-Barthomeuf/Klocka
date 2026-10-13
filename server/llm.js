@@ -803,6 +803,18 @@ export async function deposerPourCode(chemin, nom, type = 'application/octet-str
 async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null, surTexte = null, serveurs = [] }) {
   const client = clientAgentDeTest || anthropic;
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
+  // La demande elle-même en cache (13 oct. 2026) : un PDF joint de seize pages était renvoyé plein tarif à
+  // chaque tour de la boucle ; avec ce point (le quatrième, après les outils et les deux blocs de consigne),
+  // les tours suivants le relisent au dixième du prix.
+  if (cache && convo.length) {
+    const d = convo[convo.length - 1];
+    const blocs = typeof d.content === 'string' ? [{ type: 'text', text: d.content }] : Array.isArray(d.content) ? [...d.content] : null;
+    if (blocs?.length) {
+      const i = blocs.length - 1;
+      if (blocs[i] && typeof blocs[i] === 'object' && String(blocs[i].text ?? 'x').length) blocs[i] = { ...blocs[i], cache_control: { type: 'ephemeral' } };
+      d.content = blocs;
+    }
+  }
   const modele = model || ANTHROPIC_MODEL;
   // Le cache se pose sur le dernier bloc stable : tout ce qui précède (les
   // outils, puis la consigne) est relu au dixième du prix pendant cinq

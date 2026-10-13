@@ -1,10 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
-import { createPageUrl } from "@/utils";
 import { vueDe } from "@/lib/vue";
-import { Check, Eye, EyeOff, Grip, Loader2, Pipette, RotateCcw } from "lucide-react";
+import { Check, Eye, EyeOff, Grip, Pipette, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
@@ -293,12 +289,6 @@ function EditeurMenu({ principales, autres, prefs, changer }) {
   );
 }
 
-// L'assistant Klocka (AK), réglé par chacun pour lui : s'il le prévient en
-// privé quand une fiche arrive, et sa façon de lui répondre (le questionnaire
-// de la page Mon assistant, en entier ici). Réservé à l'équipe : un client n'a
-// pas AK.
-const AVIS = [["oui", "Oui"], ["non", "Non"], ["", "Sans avis"]];
-
 /** La bannière en bas des mails (8 oct. 2026) : celle de son adresse Klocka, telle qu'elle part. */
 function SignatureMails({ email }) {
   const [absente, setAbsente] = useState(false);
@@ -311,93 +301,6 @@ function SignatureMails({ email }) {
           ? <img src={`/signatures/${local}.jpg`} alt="Votre bannière de signature" onError={() => setAbsente(true)} className="block w-full max-w-[500px] rounded-[8px]" />
           : <p className="m-0 text-[13.5px] text-ardoise">Pas encore de bannière pour {email || "cette adresse"} : demandez-la à Jules.</p>}
       </Reglage>
-    </section>
-  );
-}
-
-function ReglagesAssistant() {
-  const queryClient = useQueryClient();
-  const { data, isLoading, isError } = useQuery({ queryKey: ["ak-questionnaire"], queryFn: () => base44.request("GET", "/api/ak/questionnaire") });
-  const [reponses, setReponses] = useState(null);
-  const [prevenir, setPrevenir] = useState(null);
-  const [etat, setEtat] = useState("ok");
-  const dernier = useRef(null);
-  const minuteur = useRef(null);
-  useEffect(() => {
-    if (!data || reponses) return;
-    setReponses(data.reponses || {});
-    setPrevenir(!!data.prevenir_fiches);
-  }, [data, reponses]);
-
-  // Chaque choix part après une courte pause, avec l'état complet : le serveur
-  // remplace les réponses d'un bloc.
-  const sauver = (suiteReponses, suitePrevenir) => {
-    dernier.current = { reponses: suiteReponses, prevenir_fiches: suitePrevenir };
-    setEtat("enregistrement");
-    clearTimeout(minuteur.current);
-    minuteur.current = setTimeout(async () => {
-      try {
-        const r = await base44.request("POST", "/api/ak/questionnaire", { body: dernier.current });
-        queryClient.setQueryData(["ak-questionnaire"], (d) => ({ ...d, reponses: r.reponses, consignes: r.consignes, prevenir_fiches: r.prevenir_fiches }));
-        setEtat("ok");
-      } catch {
-        setEtat("erreur");
-      }
-    }, 500);
-  };
-  const choisir = (id, v) => {
-    const suite = { ...reponses };
-    if (v) suite[id] = v; else delete suite[id];
-    setReponses(suite);
-    sauver(suite, prevenir);
-  };
-
-  const themes = [];
-  for (const q of data?.questions || []) {
-    let t = themes.find((x) => x.nom === q.theme);
-    if (!t) themes.push((t = { nom: q.theme, questions: [] }));
-    t.questions.push(q);
-  }
-
-  return (
-    <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
-      <div className="flex items-baseline justify-between gap-3 pt-4">
-        <p className={etiq}>Assistant Klocka</p>
-        <span className={`text-[11.5px] ${etat === "erreur" ? "text-alerte" : "text-brume"}`}>{etat === "enregistrement" ? "Enregistrement…" : etat === "erreur" ? "Pas enregistré" : ""}</span>
-      </div>
-      {isLoading || (!reponses && !isError) ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
-      ) : isError ? (
-        <p className="m-0 py-5 text-[13px] text-ardoise">Réglages de l'assistant indisponibles.</p>
-      ) : (
-        <>
-          <div className="border-b border-trait py-5">
-            <p className="m-0 text-[14px] font-medium text-encre">Me prévenir quand une fiche arrive</p>
-            <p className="m-0 mt-1 text-[12.5px] leading-[1.5] text-ardoise">AK t'écrit en privé dans Google Chat : qui l'envoie, les pièces, et s'il la préanalyse. Tu réponds oui ou non.</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Pilules valeur={prevenir} options={[[true, "Oui"], [false, "Non"]]} onChoisir={(v) => { setPrevenir(v); sauver(reponses, v); }} />
-            </div>
-          </div>
-          {themes.map((t) => (
-            <div key={t.nom} className="border-b border-trait py-4 last:border-b-0">
-              <p className="m-0 mb-3 text-[12.5px] text-brume">{t.nom}</p>
-              <div className="flex flex-col gap-4">
-                {t.questions.map((q) => (
-                  <div key={q.id}>
-                    <p className="m-0 text-[13.5px] text-encre" title={q.exemple || undefined}>{q.titre}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <Pilules valeur={reponses[q.id] || ""} options={AVIS} onChoisir={(v) => choisir(q.id, v)} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          <p className="m-0 pb-4 pt-3 text-[12px] text-brume">
-            Des exemples pour chaque réglage dans <Link to={createPageUrl("MonAssistant")} className="text-craie underline underline-offset-2 hover:text-encre">Mon assistant</Link>.
-          </p>
-        </>
-      )}
     </section>
   );
 }
@@ -433,7 +336,6 @@ export default function Personnalisation() {
     ["signature", "Signature", admin && !vueClient],
     // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
     ["mails", "Mails", admin && !vueClient],
-    ["assistant", "Assistant", !vueClient],
     ["habilitations", "Habilitations", vueMandataire],
   ].filter((x) => x[2]);
   const [sectionBrute, setSection] = useState(() => { try { return (typeof window !== "undefined" && window.location.hash === "#agent") ? "agent" : localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
@@ -574,7 +476,6 @@ export default function Personnalisation() {
 
       {section === "signature" && <SignatureMails email={user?.email} />}
       {section === "mails" && <MesMails />}
-      {section === "assistant" && <ReglagesAssistant />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       </div>
     </div>

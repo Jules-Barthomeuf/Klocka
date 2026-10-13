@@ -491,7 +491,7 @@ le recopie pas.
 - **Fil** : bulles envoyées en `J.barre`, réponses avec le portrait d'AK, les
   étapes de raisonnement affichées, la dictée disponible partout.
 - **Portrait d'AK** (12 oct. 2026, décidé avec Jules) : partout où AK parle
-  (chats admin et mandataire, Mon assistant, Prospection), le composant
+  (chats admin et mandataire, Prospection), le composant
   `AvatarAK` (`public/avatars/ak.png`, rond, 36 px). Il remplace la pastille K
   et la pastille « AK » ; ne pas en dessiner d'autre.
 - **Aperçu d'un PDF** (12 oct. 2026, décidé avec Jules) : il prend toute la

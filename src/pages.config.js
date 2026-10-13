@@ -85,7 +85,6 @@ const Famille = lazy(() => import('./pages/Famille'));
 const Familles = lazy(() => import('./pages/Familles'));
 const Feedback = lazy(() => import('./pages/Feedback'));
 const Home = lazy(() => import('./pages/Home'));
-const MonAssistant = lazy(() => import('./pages/MonAssistant'));
 const Personnalisation = lazy(() => import('./pages/Personnalisation'));
 const ImportProjets = lazy(() => import('./pages/ImportProjets'));
 const FichesCommerciales = lazy(() => import('./pages/FichesCommerciales'));
@@ -148,7 +147,6 @@ export const PAGES = {
     "Familles": Familles,
     "Feedback": Feedback,
     "Home": Home,
-    "MonAssistant": MonAssistant,
     "Personnalisation": Personnalisation,
     "ImportProjets": ImportProjets,
     "FichesCommerciales": FichesCommerciales,

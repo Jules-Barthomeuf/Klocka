@@ -70,7 +70,6 @@ export const ADRESSES = {
   BaseDonneesMarche: "DonneesMarche",
   Famille: "Famille",
   Familles: "Familles",
-  MonAssistant: "MonAssistant",
   MonCompte: "MonCompte",
   Questionnaire: "Questionnaire",
   Vision: "Vision",

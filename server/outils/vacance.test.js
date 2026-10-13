@@ -12,6 +12,7 @@ const {
   PARAMETRES, CLES_TYPES, CLES_CATEGORIES,
 } = await import('./vacance-regles.js');
 const { lireEtablissementVacance } = await import('./vacance-sources.js');
+const { default: db } = await import('../db.js');
 const { chargerZone, rechercher, zone, etat, supprimerSignal, poserNaf, utiliserSources } = await import('./vacance.js');
 
 test('vacance : le type de bien se déduit du code NAF, le préfixe le plus long l\'emporte', () => {
@@ -255,6 +256,13 @@ test('vacance : l\'ingestion d\'une commune est rejouable sans doublon, et la re
   const attente = rechercher({ lon: '2.35', lat: '48.85', commune: '75101', cp: '75001', nom: 'Paris' }, { par: 'test' });
   assert.equal(attente.statut, 202);
   assert.equal(attente.etat, 'chargement');
+  // Un chargement interrompu par un redémarrage (la commune reste « en chargement », rien ne tourne) repart à la recherche suivante.
+  await new Promise((ok) => setTimeout(ok, 50));
+  db.prepare("UPDATE vacance_zone SET etat = 'chargement', chargee_le = NULL WHERE code_commune = '33243'").run();
+  const relance = rechercher({ lon: '-0.244462', lat: '44.914668', commune: '33243' });
+  assert.equal(relance.statut, 202);
+  await new Promise((ok) => setTimeout(ok, 50));
+  assert.equal(zone('33243').etat, 'prete', 'la commune a été rechargée au lieu de rester bloquée');
 });
 
 test('vacance : une demande de suppression retire le signal et l\'empêche de revenir ; la table NAF se corrige en base', async () => {

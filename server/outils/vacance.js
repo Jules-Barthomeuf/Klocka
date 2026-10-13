@@ -369,6 +369,9 @@ export function rechercher(q, { par = null } = {}) {
     if (z?.etat === 'erreur' && !q.relancer) return { ok: false, statut: 502, error: z.erreur || 'Le chargement de la commune a échoué.', zone: z };
     z = demanderZone({ code_commune: code, code_postal: q.cp, nom: q.nom }, { par });
   }
+  // Un chargement que rien ne fait tourner : le serveur a redémarré pendant qu'il se faisait.
+  // Sans cette relance, la commune resterait « en chargement » pour toujours.
+  if (z.etat === 'chargement' && !enCours.has(code)) z = demanderZone({ code_commune: code, code_postal: q.cp || z.code_postal, nom: q.nom || z.nom }, { par, delta: !!z.chargee_le });
   if (z.etat === 'chargement' && !z.chargee_le) return { ok: true, statut: 202, etat: 'chargement', zone: z };
 
   const b = boite(p.lat, p.lon, p.rayon_m);

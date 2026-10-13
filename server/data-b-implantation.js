@@ -27,7 +27,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, DATA_DIR } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse, enExclusifDataB } from './data-b.js';
 import { ErreurSource, DEFINITIVE, SANS_DONNEE } from './marche/erreurs.js';
 import { lancerNavigateur, aller, texteDe } from './marche/navigateur.js';
 
@@ -297,6 +297,13 @@ export function parseImplantation(html, lignes = null) {
 
 // ── Le parcours dans le navigateur ─────────────────────────────────────────
 
+/** Data-B a fermé la session : le compte vient d'être ouvert ailleurs (un navigateur, un autre serveur). */
+async function deconnecte(p) {
+  if (/\/login/.test(p.url())) return true;
+  return p.evaluate(() => /déconnecté automatiquement|utilisé par quelqu'un d'autre|Veuillez vous connecter pour accéder/i.test(document.body?.innerText || '')).catch(() => false);
+}
+const ErreurDeconnexion = () => new ErreurSource('Data-B a fermé la session pendant l\'étude : le compte Data-B vient d\'être ouvert ailleurs (un navigateur, ou un autre serveur comme Render). Réessayez quand il est libre.', { service: 'Data-B' });
+
 async function seConnecter(p) {
   await aller(p, 'https://data-b.com/login', { service: 'Data-B', timeout: 90000 });
   await p.waitForTimeout(1500);
@@ -336,6 +343,7 @@ async function declencherFlux(p) {
     let vu = false;
     while (Date.now() - debut < FLUX_ATTENTE_MS) {
       await p.waitForTimeout(5000);
+      if (await deconnecte(p)) throw ErreurDeconnexion();
       const n = await p.evaluate(() => document.querySelectorAll('.dbFlowCard__scoreStars').length);
       if (n > rang) { vu = true; break; }
     }
@@ -402,6 +410,16 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
     if (recent) return { ok: true, resultat: { ...recent.resultat, du_cache: true } };
   }
 
+  return enExclusifDataB(() => parcours(adresse, cle, { activite, user }));
+}
+
+/** Le parcours dans le navigateur, seul sur le compte Data-B. Chaque étape est chronométrée. */
+async function parcours(adresse, cle, { activite, user }) {
+  const t0 = Date.now();
+  let tEtape = t0;
+  const durees = [];
+  const etape = (nom) => { const t = Date.now(); durees.push(`${nom} ${Math.round((t - tEtape) / 1000)} s`); tEtape = t; };
+  const resume = () => `${durees.join(' · ')} · total ${Math.round((Date.now() - t0) / 1000)} s`;
   let ctx = null;
   try {
     const b = await lancerNavigateur('Data-B');
@@ -414,10 +432,12 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
     p.on('dialog', (d) => d.accept().catch(() => {}));
 
     await seConnecter(p);
+    etape('connexion');
     await aller(p, 'https://expertise.data-b.com/board', { service: 'Data-B', timeout: 90000 });
     await p.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
     await p.waitForTimeout(2500);
     if (/\/login/.test(p.url())) { await seConnecter(p); await aller(p, 'https://expertise.data-b.com/board', { service: 'Data-B', timeout: 90000 }); await p.waitForTimeout(2500); }
+    etape('tableau de bord');
 
     // Étude d'implantation → Projet d'implantation (une adresse postale).
     const lanceur = p.locator('button.actionBtn.type_etude').first();
@@ -428,6 +448,7 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
     await p.waitForTimeout(2500);
 
     const activiteChoisie = await choisirActivite(p, activite);
+    etape('activité');
 
     // L'adresse, dans l'autocomplétion Google Places, puis sa suggestion.
     const champ = p.locator('#autocomplete');
@@ -445,11 +466,19 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
     // C'est ici que le crédit part. La page de résultat est longue à se
     // construire : on attend son adresse, puis le premier flux.
     await p.locator('text=Lancer la recherche de l\'adresse').first().click({ force: true, timeout: 10000 });
-    await p.waitForURL((u) => /\/edition/.test(u.pathname) && /etude_implantation/.test(u.search), { timeout: 120000 })
-      .catch(() => { throw new ErreurSource('Data-B n\'a pas ouvert l\'étude : l\'adresse n\'a peut-être pas été reconnue.', { service: 'Data-B', classe: SANS_DONNEE }); });
+    // Jusqu'à deux minutes, en regardant toutes les deux secondes si Data-B n'a pas fermé la session entre-temps.
+    const ouverte = () => { const u = new URL(p.url()); return /\/edition/.test(u.pathname) && /etude_implantation/.test(u.search); };
+    for (const fin = Date.now() + 120000; !ouverte(); ) {
+      if (await deconnecte(p)) throw ErreurDeconnexion();
+      if (Date.now() > fin) throw new ErreurSource('Data-B n\'a pas ouvert l\'étude : l\'adresse n\'a peut-être pas été reconnue.', { service: 'Data-B', classe: SANS_DONNEE });
+      await p.waitForTimeout(2000);
+    }
+    etape('ouverture de l\'étude');
     await p.waitForLoadState('networkidle', { timeout: 120000 }).catch(() => {});
     await p.waitForTimeout(6000);
+    if (await deconnecte(p)) throw ErreurDeconnexion();
     for (let y = 0; y < 14; y++) { await p.mouse.wheel(0, 1500); await p.waitForTimeout(350); }
+    etape('chargement de la page');
     // Les flux, à la demande. Sans eux, deux notes sur trois manquent.
     const flux = FLUX_AUTO ? await declencherFlux(p) : [];
     if (FLUX_AUTO && flux.length < 2) {
@@ -459,6 +488,8 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
       for (let y = 0; y < 16; y++) { await p.mouse.wheel(0, 1500); await p.waitForTimeout(250); }
       await p.waitForTimeout(2500);
     }
+    etape(`flux (${flux.length ? flux.join(', ') : 'aucun'})`);
+    if (await deconnecte(p)) throw ErreurDeconnexion();
 
     const html = await p.content();
     const lignes = await texteDe(p);
@@ -483,6 +514,7 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
       // autrement selon que le flux n'a pas été demandé ou n'a pas répondu.
       flux_demandes: FLUX_AUTO ? ['pedestrian', 'motorized'] : [],
       ...lecture,
+      durees: resume(),
       le: new Date().toISOString(),
       par: user?.email || null,
     };
@@ -492,10 +524,11 @@ export async function etudeImplantation(texteAdresse, { activite = null, forcer 
       `[data-b] étude d'implantation lue pour « ${adresse.label} » (${activiteChoisie})` +
       ` · flux piéton ${lecture.flux_pieton?.note ? `${lecture.flux_pieton.note.note}/5` : 'absent'}` +
       ` · flux voiture ${lecture.flux_voiture?.note ? `${lecture.flux_voiture.note.note}/5` : 'absent'}` +
-      `${user?.email ? ` — ${user.email}` : ''}`
+      `${user?.email ? ` — ${user.email}` : ''} · ${resultat.durees}`
     );
     return { ok: true, resultat };
   } catch (e) {
+    console.warn(`[data-b] étude d'implantation interrompue pour « ${adresse.label} » : ${e?.message || e} · ${resume()}`);
     return { ok: false, error: e?.message || String(e), statut: e?.statut ?? null, classe: e?.classe ?? null };
   } finally {
     await ctx?.close().catch(() => {});

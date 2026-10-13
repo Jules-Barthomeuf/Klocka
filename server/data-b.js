@@ -27,6 +27,49 @@ const CACHE_JOURS = 30;
 // --- La session ---------------------------------------------------------------------------
 let session = { cookie: null, depuis: 0 };
 
+// Une seule session par compte chez Data-B : une connexion ferme la précédente
+// (« votre compte est utilisé par quelqu'un d'autre »). Les parcours dans le
+// navigateur (étude d'implantation, rendement des murs) passent donc seuls :
+// ils attendent la fin des appels en cours, et les appels qui arrivent pendant
+// attendent qu'ils finissent (13 oct. 2026 : un appel de loyer lancé par AK en
+// même temps qu'une étude la déconnectait, et l'étude attendait dix minutes).
+let tourExclusif = Promise.resolve();
+let appelsEnCours = 0;
+let quandLibres = [];
+
+/** Un appel HTTP à Data-B : plusieurs à la fois, jamais pendant un parcours du navigateur. */
+export async function enPartage(fn) {
+  await tourExclusif;
+  appelsEnCours++;
+  try {
+    return await fn();
+  } finally {
+    appelsEnCours--;
+    if (!appelsEnCours) quandLibres.splice(0).forEach((r) => r());
+  }
+}
+
+/**
+ * Un parcours du navigateur dans Data-B, seul sur le compte. Sa connexion
+ * ferme la session HTTP : elle est oubliée à la fin, le prochain appel se reconnecte.
+ */
+export function enExclusifDataB(fn) {
+  const avant = tourExclusif;
+  let liberer;
+  const tour = new Promise((r) => { liberer = r; });
+  tourExclusif = avant.then(() => tour);
+  return (async () => {
+    await avant;
+    if (appelsEnCours) await new Promise((r) => quandLibres.push(r));
+    try {
+      return await fn();
+    } finally {
+      session = { cookie: null, depuis: 0 };
+      liberer();
+    }
+  })();
+}
+
 async function appel(url, { method = 'GET', form = null, cookie = null, referer = null, corps = null } = {}) {
   const headers = { 'user-agent': UA, accept: 'text/html,*/*' };
   if (cookie) headers.cookie = cookie;
@@ -93,14 +136,16 @@ async function cookieValide() {
  * @returns {Promise<string|null>} le HTML, ou null si la session est refusée
  */
 export async function pageDataB(url) {
-  for (let essai = 0; essai < 2; essai++) {
-    const cookie = essai === 0 ? await cookieValide() : await connecter();
-    const r = await appel(url, { cookie });
-    if (r.status === 302 || r.status === 301) continue;
-    if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
-    return r.text();
-  }
-  return null;
+  return enPartage(async () => {
+    for (let essai = 0; essai < 2; essai++) {
+      const cookie = essai === 0 ? await cookieValide() : await connecter();
+      const r = await appel(url, { cookie });
+      if (r.status === 302 || r.status === 301) continue;
+      if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
+      return r.text();
+    }
+    return null;
+  });
 }
 
 /**
@@ -108,14 +153,16 @@ export async function pageDataB(url) {
  * résultats ainsi, une fois la page de recherche obtenue.
  */
 export async function postDataB(url, form) {
-  for (let essai = 0; essai < 2; essai++) {
-    const cookie = essai === 0 ? await cookieValide() : await connecter();
-    const r = await appel(url, { method: 'POST', cookie, form, referer: url });
-    if (r.status === 302 || r.status === 301) continue;
-    if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
-    return r.text();
-  }
-  return null;
+  return enPartage(async () => {
+    for (let essai = 0; essai < 2; essai++) {
+      const cookie = essai === 0 ? await cookieValide() : await connecter();
+      const r = await appel(url, { method: 'POST', cookie, form, referer: url });
+      if (r.status === 302 || r.status === 301) continue;
+      if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
+      return r.text();
+    }
+    return null;
+  });
 }
 
 /**
@@ -123,14 +170,16 @@ export async function postDataB(url, form) {
  * même session que postDataB.
  */
 export async function postDataBCorps(url, corps) {
-  for (let essai = 0; essai < 2; essai++) {
-    const cookie = essai === 0 ? await cookieValide() : await connecter();
-    const r = await appel(url, { method: 'POST', cookie, form: null, referer: url, corps: String(corps) });
-    if (r.status === 302 || r.status === 301) continue;
-    if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
-    return r.text();
-  }
-  return null;
+  return enPartage(async () => {
+    for (let essai = 0; essai < 2; essai++) {
+      const cookie = essai === 0 ? await cookieValide() : await connecter();
+      const r = await appel(url, { method: 'POST', cookie, form: null, referer: url, corps: String(corps) });
+      if (r.status === 302 || r.status === 301) continue;
+      if (!r.ok) throw new ErreurSource(`Data-B a répondu ${r.status}.`, { service: 'Data-B', statut: r.status });
+      return r.text();
+    }
+    return null;
+  });
 }
 
 /**

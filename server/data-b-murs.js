@@ -20,7 +20,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, DATA_DIR } from './db.js';
-import { resoudreAdresse } from './data-b.js';
+import { resoudreAdresse, enExclusifDataB } from './data-b.js';
 import { ErreurSource, DEFINITIVE, SANS_DONNEE } from './marche/erreurs.js';
 import { lancerNavigateur, aller } from './marche/navigateur.js';
 
@@ -191,54 +191,57 @@ export async function rendementDeBase(texteAdresse, { activite = null, forcer = 
     if (recent) return { ok: true, resultat: { ...recent.resultat, du_cache: true } };
   }
 
-  let ctx = null;
-  try {
-    const b = await lancerNavigateur('Data-B');
-    ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
-    const p = await ctx.newPage();
-    p.on('dialog', (d) => d.accept().catch(() => {}));
-    await seConnecter(p);
-    await aller(p, 'https://expertise.data-b.com/board', { service: 'Data-B', timeout: 90000 });
-    await p.waitForTimeout(2500);
-    if (/\/login/.test(p.url())) { await seConnecter(p); await aller(p, 'https://expertise.data-b.com/board', { service: 'Data-B', timeout: 90000 }); await p.waitForTimeout(2500); }
-    await fermerCookies(p);
+  // Seul sur le compte Data-B : une connexion ailleurs fermerait celle-ci (voir enExclusifDataB).
+  return enExclusifDataB(async () => {
+    let ctx = null;
+    try {
+      const b = await lancerNavigateur('Data-B');
+      ctx = await b.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'fr-FR', ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}) });
+      const p = await ctx.newPage();
+      p.on('dialog', (d) => d.accept().catch(() => {}));
+      await seConnecter(p);
+      await aller(p, 'https://expertise.data-b.com/board', { service: 'Data-B', timeout: 90000 });
+      await p.waitForTimeout(2500);
+      if (/\/login/.test(p.url())) { await seConnecter(p); await aller(p, 'https://expertise.data-b.com/board', { service: 'Data-B', timeout: 90000 }); await p.waitForTimeout(2500); }
+      await fermerCookies(p);
 
-    const lanceur = p.locator('button.type_etude', { hasText: 'Estimation des murs commerciaux' }).first();
-    await lanceur.waitFor({ state: 'visible', timeout: 20000 }).catch(() => { throw new ErreurSource('Data-B : l\'estimation des murs est introuvable (abonnement ?).', { service: 'Data-B', classe: DEFINITIVE }); });
-    await lanceur.click();
-    await p.waitForTimeout(2500);
-    const activiteChoisie = await choisirActivite(p, activite);
+      const lanceur = p.locator('button.type_etude', { hasText: 'Estimation des murs commerciaux' }).first();
+      await lanceur.waitFor({ state: 'visible', timeout: 20000 }).catch(() => { throw new ErreurSource('Data-B : l\'estimation des murs est introuvable (abonnement ?).', { service: 'Data-B', classe: DEFINITIVE }); });
+      await lanceur.click();
+      await p.waitForTimeout(2500);
+      const activiteChoisie = await choisirActivite(p, activite);
 
-    const champ = p.locator('#autocomplete');
-    await champ.waitFor({ state: 'visible', timeout: 15000 });
-    await champ.click();
-    await champ.fill('');
-    await champ.type(`${adresse.numero ? adresse.numero + ' ' : ''}${adresse.rue}, ${adresse.code_postal} ${adresse.ville}`, { delay: 50 });
-    await p.locator('.pac-item').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-    await p.waitForTimeout(600);
-    const suggestion = p.locator('.pac-item').first();
-    if (await suggestion.isVisible().catch(() => false)) await suggestion.click({ force: true });
-    else await champ.press('ArrowDown').then(() => champ.press('Enter'));
-    await p.waitForTimeout(1500);
+      const champ = p.locator('#autocomplete');
+      await champ.waitFor({ state: 'visible', timeout: 15000 });
+      await champ.click();
+      await champ.fill('');
+      await champ.type(`${adresse.numero ? adresse.numero + ' ' : ''}${adresse.rue}, ${adresse.code_postal} ${adresse.ville}`, { delay: 50 });
+      await p.locator('.pac-item').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+      await p.waitForTimeout(600);
+      const suggestion = p.locator('.pac-item').first();
+      if (await suggestion.isVisible().catch(() => false)) await suggestion.click({ force: true });
+      else await champ.press('ArrowDown').then(() => champ.press('Enter'));
+      await p.waitForTimeout(1500);
 
-    // C'est ici que le crédit part.
-    await p.locator('text=Lancer la recherche de l\'adresse').first().click({ force: true, timeout: 10000 });
-    await p.waitForURL((u) => /\/edition/.test(u.pathname) && /estimation_murs/.test(u.search), { timeout: 120000 })
-      .catch(() => { throw new ErreurSource('Data-B n\'a pas ouvert l\'estimation : l\'adresse n\'a peut-être pas été reconnue.', { service: 'Data-B', classe: SANS_DONNEE }); });
-    await p.waitForLoadState('networkidle', { timeout: 120000 }).catch(() => {});
-    await p.locator('#rendement__ratio_metier_moy').waitFor({ state: 'attached', timeout: 60000 }).catch(() => {});
-    const brut = await p.locator('#rendement__ratio_metier_moy').inputValue().catch(() => '');
-    const taux = Number(String(brut).replace(',', '.'));
-    if (!(taux > 0)) throw new ErreurSource('Data-B a ouvert l\'estimation sans taux de rendement : l\'interface a peut-être changé.', { service: 'Data-B' });
+      // C'est ici que le crédit part.
+      await p.locator('text=Lancer la recherche de l\'adresse').first().click({ force: true, timeout: 10000 });
+      await p.waitForURL((u) => /\/edition/.test(u.pathname) && /estimation_murs/.test(u.search), { timeout: 120000 })
+        .catch(() => { throw new ErreurSource('Data-B n\'a pas ouvert l\'estimation : l\'adresse n\'a peut-être pas été reconnue.', { service: 'Data-B', classe: SANS_DONNEE }); });
+      await p.waitForLoadState('networkidle', { timeout: 120000 }).catch(() => {});
+      await p.locator('#rendement__ratio_metier_moy').waitFor({ state: 'attached', timeout: 60000 }).catch(() => {});
+      const brut = await p.locator('#rendement__ratio_metier_moy').inputValue().catch(() => '');
+      const taux = Number(String(brut).replace(',', '.'));
+      if (!(taux > 0)) throw new ErreurSource('Data-B a ouvert l\'estimation sans taux de rendement : l\'interface a peut-être changé.', { service: 'Data-B' });
 
-    const resultat = { source: 'Data-B · Estimation des murs commerciaux', taux_base: taux, activite: activiteChoisie, adresse: adresse.label, lien: p.url(), le: new Date().toISOString(), par: user?.email || null };
-    await ctx.storageState({ path: SESSION }).catch(() => {});
-    Records.create('DataBMurs', { cle, adresse: adresse.label, activite: activiteChoisie, resultat, le: resultat.le, par: resultat.par });
-    console.log(`[data-b] taux de rendement des murs lu pour « ${adresse.label} » (${activiteChoisie}) : ${taux} %${user?.email ? ` — ${user.email}` : ''}`);
-    return { ok: true, resultat };
-  } catch (e) {
-    return { ok: false, error: e?.message || String(e), classe: e?.classe ?? null };
-  } finally {
-    await ctx?.close().catch(() => {});
-  }
+      const resultat = { source: 'Data-B · Estimation des murs commerciaux', taux_base: taux, activite: activiteChoisie, adresse: adresse.label, lien: p.url(), le: new Date().toISOString(), par: user?.email || null };
+      await ctx.storageState({ path: SESSION }).catch(() => {});
+      Records.create('DataBMurs', { cle, adresse: adresse.label, activite: activiteChoisie, resultat, le: resultat.le, par: resultat.par });
+      console.log(`[data-b] taux de rendement des murs lu pour « ${adresse.label} » (${activiteChoisie}) : ${taux} %${user?.email ? ` — ${user.email}` : ''}`);
+      return { ok: true, resultat };
+    } catch (e) {
+      return { ok: false, error: e?.message || String(e), classe: e?.classe ?? null };
+    } finally {
+      await ctx?.close().catch(() => {});
+    }
+  });
 }

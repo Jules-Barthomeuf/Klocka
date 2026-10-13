@@ -9,8 +9,9 @@ import { rapport, comparatif } from './rejouer.js';
 
 const CAS = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'cas.json'), 'utf8'));
 
-test('vingt cas, chacun avec sa demande, son chat et ce qu’on teste', () => {
-  assert.equal(CAS.length, 20);
+test('trente cas (vingt du 12 oct., dix du journal du 13 oct.), chacun avec sa demande, son chat et ce qu’on teste', () => {
+  assert.equal(CAS.length, 30);
+  assert.equal(new Set(CAS.map((c) => c.id)).size, 30);
   for (const c of CAS) { assert.ok(c.texte && c.note && ['admin', 'mandataire'].includes(c.chat), c.id); }
   assert.ok(CAS.filter((c) => /Échec connu/.test(c.note)).length >= 4);
 });

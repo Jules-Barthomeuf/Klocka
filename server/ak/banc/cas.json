@@ -361,5 +361,151 @@
   "piece": null,
   "reponse_d_origine": "Je te propose jeudi 8 octobre à 9h pour le rappeler, ça te va ?",
   "source": "e1f27fd0-4fca-4584-9872-810e92766839"
+ },
+ {
+  "id": "21",
+  "note": "Journal 13 oct. : loyers autour dans Equimmox (l'ancien AK disait ne pas avoir accès)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "presentations",
+  "historique": [],
+  "texte": "Va chercher les loyers commerciaux moyens autour dans equimmox pour le projet de Libourne.",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules",
+  "contexte": {
+   "page": "presentations",
+   "presentation_id": "282475b0-e061-4dda-b88a-32514974f87c"
+  }
+ },
+ {
+  "id": "22",
+  "note": "Journal 13 oct. : compléter la slide 5 avec Equimmox et Data-B (8 min, étude lancée pour rien)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "presentations",
+  "historique": [],
+  "texte": "Complète la slide 5 avec Equimmox et Data-B.",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules",
+  "contexte": {
+   "page": "presentations",
+   "presentation_id": "282475b0-e061-4dda-b88a-32514974f87c"
+  }
+ },
+ {
+  "id": "23",
+  "note": "Jules 13 oct. : le prix des murs, qu'AK disait introuvable",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "presentations",
+  "historique": [],
+  "texte": "Estime le prix des murs commerciaux au m² autour du projet de Libourne avec Equimmox.",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules",
+  "contexte": {
+   "page": "presentations",
+   "presentation_id": "282475b0-e061-4dda-b88a-32514974f87c"
+  }
+ },
+ {
+  "id": "24",
+  "note": "Jules 12 oct. : d'où vient un chiffre de la présentation",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": "presentations",
+  "historique": [],
+  "texte": "D'où vient le loyer au m² de la diapositive du local, dans la présentation de Libourne ?",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules",
+  "contexte": {
+   "page": "presentations",
+   "presentation_id": "282475b0-e061-4dda-b88a-32514974f87c"
+  }
+ },
+ {
+  "id": "25",
+  "note": "Nouveau : un export Excel de projets (impossible avant la partie 2)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Fais-moi un fichier Excel de tous les projets en financement ou en négociation : titre, adresse, prix, loyer annuel et rendement brut.",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules"
+ },
+ {
+  "id": "26",
+  "note": "Nouveau : compter des dossiers par statut (aucun outil ne le faisait)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Combien de dossiers ont été abandonnés, et lesquels ?",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules"
+ },
+ {
+  "id": "27",
+  "note": "Nouveau : un réglage du simulateur qu'etat_projet ne montrait pas",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Dans le simulateur du projet de Libourne, quelle indexation et quelle durée de crédit sont réglées ?",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules"
+ },
+ {
+  "id": "28",
+  "note": "Nouveau : calcul exact par le code (indexation sur 9 ans)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Loyer de 30 693 € HT indexé de 2 % par an : quel loyer cumulé sur 9 ans, et quel loyer la 9e année ?",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules"
+ },
+ {
+  "id": "29",
+  "note": "Nouveau : une question sur la prospection (agences notées sous 4)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [],
+  "texte": "Combien d'agences de la prospection ont une note Google sous 4 ?",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules"
+ },
+ {
+  "id": "30",
+  "note": "Nouveau : suite d'un échange, la mémoire des outils (bloc 3)",
+  "chat": "admin",
+  "user": "jules.b@klocka.immo",
+  "page": null,
+  "historique": [
+   {
+    "role": "user",
+    "contenu": "Quel est le rendement brut du projet de Libourne (la chocolaterie) ?"
+   },
+   {
+    "role": "assistant",
+    "contenu": "Le rendement brut du projet de Libourne est de 9,16 % : 30 693 € de loyer annuel HT pour un prix de 335 000 €.",
+    "memoire": "- trouver_bien({\"recherche\":\"Libourne\"}) → {\"candidats\":[{\"projet_id\":\"6a4617e5dc17465d98d65bd9\",\"titre\":\"Chocolaterie - 10 Place Abel Surchamp, 33500 Libourne\"}]}\n- etat_projet({\"projet_id\":\"6a4617e5dc17465d98d65bd9\"}) → {\"loyer_annuel_ht\":30693,\"prix\":335000,\"surface_m2\":55}"
+   }
+  ],
+  "texte": "Et son loyer au m² ?",
+  "piece": null,
+  "reponse_d_origine": null,
+  "source": "journal du 12-13 oct. 2026 et demandes de Jules"
  }
 ]

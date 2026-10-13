@@ -1,4 +1,4 @@
-// Le banc d'essai d'AK (12 oct. 2026). Vingt demandes réelles, tirées des
+// Le banc d'essai d'AK (12 oct. 2026). Trente demandes réelles (vingt le 12 oct., dix du journal le 13), tirées des
 // conversations sauvegardées (dont les échecs connus), rejouées sur une copie
 // de la base : rien n'est écrit dans la vraie base, rien ne sort (Monday,
 // mails, Drive, agenda, crédits Data-B, K-Data, Apollo, MyNotary : coupés ou
@@ -93,7 +93,7 @@ async function rejouerDansLaCopie(label, ids) {
         }
         const { traiterBoite } = await import('../../assistant-boite.js');
         const pieces = c.piece ? [{ nom: c.piece.nom, type: c.piece.type, chemin: path.join(CHEMIN_UPLOADS, path.basename(c.piece.chemin)), url: null }] : [];
-        return traiterBoite({ texte: c.texte, historique: c.historique, user, contexte: c.page ? { page: c.page } : null, pieces });
+        return traiterBoite({ texte: c.texte, historique: c.historique, user, contexte: c.contexte || (c.page ? { page: c.page } : null), pieces });
       });
       r = resultat;
     } catch (e) { erreur = String(e?.message || e).slice(0, 500); }

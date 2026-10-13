@@ -23,6 +23,27 @@ export const TYPES = {
   proprietaire_mandataire: { entite: 'ProprietaireMandataire', resume: ['nom', 'commerce', 'adresse', 'ville', 'statut', 'telephone', 'prochaine_action', 'mandataire_email'] },
 };
 
+// Les droits (13 oct. 2026), dans le code et non dans la consigne : dans l'espace de l'équipe, un admin lit
+// tout ; dans l'espace mandataire (et pour un mandataire où qu'il soit), seuls ses propres dossiers et
+// propriétaires ; sans compte reconnu, rien. Une fiche d'un autre se dit « introuvable », comme une fiche qui
+// n'existe pas. La règle du mandataire est celle de mandataire-espace.js (estMandataire).
+const TYPES_MANDATAIRE = new Set(['dossier_mandataire', 'proprietaire_mandataire']);
+const email = (u) => String(u?.email || '').trim().toLowerCase();
+const estAdmin = (u) => u?.role === 'admin';
+const estMandataire = (u) => u?.role === 'mandataire' || (u?.role === 'admin' && u?.aussi_mandataire === true);
+
+/** Pure : ce que `user` peut lire dans `espace` : { tout } ou { types, filtre(fiche) }, ou null. */
+export function droitsDe(user, espace = 'admin') {
+  if (espace === 'admin' && estAdmin(user)) return { tout: true };
+  if ((espace === 'mandataire' || !estAdmin(user)) && estMandataire(user) && email(user)) {
+    const moi = email(user);
+    return { types: TYPES_MANDATAIRE, filtre: (r) => String(r?.mandataire_email || '').trim().toLowerCase() === moi };
+  }
+  return null;
+}
+const permis = (droits, type) => !!droits && (droits.tout || droits.types.has(type));
+const visible = (droits, r) => !!droits && (droits.tout || droits.filtre(r));
+
 // Ce qui ne sort jamais d'une fiche : secrets, et le lourd qui n'apprend rien (images en base64).
 const SECRET = /mot_de_passe|password|token|secret|cookie|b64|base64|api_?key|cle_api|jeton/i;
 const norme = (t) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -46,14 +67,16 @@ export function nettoyer(r, { plafond = 40000 } = {}) {
   return passe(80, 2);
 }
 
-/** Une fiche entière par son type et son identifiant. */
-export function lireEntite({ type, id } = {}, { records = Records } = {}) {
+/** Une fiche entière par son type et son identifiant, dans les droits de `user`. */
+export function lireEntite({ type, id } = {}, { records = Records, user = null, espace = 'admin' } = {}) {
   const t = TYPES[type];
   if (!t) return { ok: false, error: `Type inconnu : « ${type} ». Types : ${Object.keys(TYPES).join(', ')}.` };
+  const droits = droitsDe(user, espace);
+  if (!permis(droits, type)) return { ok: false, error: `Tu n'as pas accès aux fiches « ${type} » depuis cet espace.` };
   const cle = String(id || '').trim();
   if (!cle) return { ok: false, error: 'Il faut l\'identifiant (rendu par chercher_entites ou un autre outil).' };
   const r = records.get(t.entite, cle) || (t.cle ? records.findBy(t.entite, t.cle, cle) : null);
-  if (!r) return { ok: false, error: `Aucun ${type} « ${cle} ».` };
+  if (!r || !visible(droits, r)) return { ok: false, error: `Aucun ${type} « ${cle} ».` };
   return { ok: true, type, fiche: nettoyer(r) };
 }
 
@@ -75,12 +98,14 @@ export function respecte(v, f) {
  * Chercher dans un type : texte libre (partout dans la fiche), filtres par champ, tri, pages de 20 au plus.
  * `champs` choisit ce que rend chaque ligne (pour un export) ; sinon le résumé du type.
  */
-export function chercherEntites({ type, texte = '', filtres = {}, tri = null, ordre = 'desc', page = 1, limite = 20, champs = null, archives = false } = {}, { records = Records } = {}) {
+export function chercherEntites({ type, texte = '', filtres = {}, tri = null, ordre = 'desc', page = 1, limite = 20, champs = null, archives = false } = {}, { records = Records, user = null, espace = 'admin' } = {}) {
   const t = TYPES[type];
   if (!t) return { ok: false, error: `Type inconnu : « ${type} ». Types : ${Object.keys(TYPES).join(', ')}.` };
+  const droits = droitsDe(user, espace);
+  if (!permis(droits, type)) return { ok: false, error: `Tu n'as pas accès aux fiches « ${type} » depuis cet espace.` };
   const mots = norme(texte).split(/\s+/).filter(Boolean);
   // Les fiches archivées (un dossier abandonné l'est) ne viennent que sur demande, et leur nombre est dit.
-  const tous = records.list(t.entite);
+  const tous = records.list(t.entite).filter((r) => visible(droits, r));
   let l = archives ? tous : tous.filter((r) => !r.archived);
   const ecartees = tous.length - l.length;
   if (mots.length) l = l.filter((r) => { const tout = norme(JSON.stringify(r)); return mots.every((m) => tout.includes(m)); });

@@ -1074,7 +1074,8 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   }
   if (name === 'lire_entite' || name === 'chercher_entites') {
     const L = await import('./lecture-generique.js');
-    return name === 'lire_entite' ? L.lireEntite(input) : L.chercherEntites(input);
+    // Les droits sont dans l'outil : AK parle pour l'équipe (espace admin), le compte qui demande est vérifié.
+    return name === 'lire_entite' ? L.lireEntite(input, { user, espace: 'admin' }) : L.chercherEntites(input, { user, espace: 'admin' });
   }
   if (name === 'lire_fiche_monday') {
     const { mondayConfigure, TABLEAUX, lireTableau, lireFiche } = await import('../monday.js');

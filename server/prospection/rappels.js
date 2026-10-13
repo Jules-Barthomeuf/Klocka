@@ -148,8 +148,12 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
   const auj = R.jourDe(maintenantD);
   sansReponse.forEach((x, i) => {
     const a = agents.find((y) => y.id === x.agent_id);
-    if (!a) return;
-    const base = { cle: a.id, agent_id: a.id, agence_id: x.agence_id || a.agence_id || null, nom: a.nom, agence: a.agence || null, ville: a.ville || null, telephone: (a.telephones || [])[0] || null, ne_plus_appeler: !!a.ne_plus_appeler || a.statut === 'archive' };
+    // Un appel sans fiche au carnet (une agence appelée pour la première fois) reste candidat par son agence (13 oct. 2026).
+    const g = !a && x.agence_id ? agences.find((y) => y.id === x.agence_id) : null;
+    if (!a && !g) return;
+    const base = a
+      ? { cle: a.id, agent_id: a.id, agence_id: x.agence_id || a.agence_id || null, nom: a.nom, agence: a.agence || null, ville: a.ville || null, telephone: (a.telephones || [])[0] || null, ne_plus_appeler: !!a.ne_plus_appeler || a.statut === 'archive' }
+      : { cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: g.monday_connu?.nom || x.agent || null, agence: g.nom, ville: g.ville || null, telephone: x.numero || g.telephone || null, ne_plus_appeler: !!g.ne_plus_appeler };
     let points = 40 - i;
     let raison = `appelé ${quandDit(x.le, maintenantD)}`;
     if (dit.minutes != null) {
@@ -161,7 +165,7 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
       const attendu = dit.jour === 'hier' ? R.plusJours(auj, -1) : auj;
       if (j === attendu) points += 10; else points -= 30;
     }
-    ajouter(a.id, base, points, raison);
+    ajouter(base.cle, base, points, raison);
   });
   for (const g of agences) {
     if (g.carnet_id && scores.has(g.carnet_id)) continue;
@@ -200,24 +204,68 @@ export function chercher(q, { max = 8 } = {}) {
   const t = R.norm(brut);
   if (chiffres.length < 4 && t.length < 2) return [];
   const finit = (x) => chiffres.length >= 4 && R.normTel(x || '').endsWith(chiffres.slice(-Math.min(chiffres.length, 10)));
+  // Plusieurs mots (« Valoris immobilier ») : chacun doit s'y trouver, les mots du métier (« immobilier », « agence ») ne comptent pas (13 oct. 2026).
+  const voulus = t.split(' ').filter((m) => m.length >= 2 && !MOTS_VIDES.has(m));
+  const contient = (...xs) => { const h = R.norm(xs.filter(Boolean).join(' ')); return (voulus.length ? voulus : [t]).every((m) => h.includes(m)); };
   const listes = new Map(Records.list(LISTE).filter((l) => !l.essai).map((l) => [l.id, l]));
   const out = [];
   const vus = new Set();
   for (const a of Records.list('AgentImmo')) {
     if (a.essai) continue;
-    if ((a.telephones || []).some(finit) || (!chiffres.length && t.length >= 2 && (R.norm(a.nom).includes(t) || R.norm(a.agence).includes(t)))) {
+    if ((a.telephones || []).some(finit) || (!chiffres.length && t.length >= 2 && contient(a.nom, a.agence))) {
       out.push({ cle: a.id, agent_id: a.id, agence_id: null, nom: a.nom, agence: a.agence || null, ville: a.ville || null, telephone: (a.telephones || [])[0] || null, ne_plus_appeler: !!a.ne_plus_appeler || a.statut === 'archive' });
       vus.add(a.id);
     }
   }
   for (const g of Records.list(AGENCE)) {
     if (!(g.liste_id ? listes.has(g.liste_id) : g.hors_liste) || (g.carnet_id && vus.has(g.carnet_id))) continue;
-    if ([g.telephone, ...(g.agents || []).map((x) => x.telephone)].some(finit) || (!chiffres.length && t.length >= 2 && R.norm(g.nom).includes(t))) {
+    if ([g.telephone, ...(g.agents || []).map((x) => x.telephone)].some(finit) || (!chiffres.length && t.length >= 2 && contient(g.nom, g.monday_connu?.nom))) {
       out.push({ cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: g.monday_connu?.nom || null, agence: g.nom, ville: g.liste_id ? listes.get(g.liste_id)?.ville : g.ville || null, telephone: g.telephone || null, ne_plus_appeler: !!g.ne_plus_appeler });
     }
     if (out.length >= max * 3) break;
   }
   return out.slice(0, max);
+}
+
+/**
+ * Les appels déjà faits par l'équipe (13 oct. 2026, Jules : « une recherche
+ * d'appel qu'on a fait déjà ») : les trente derniers jours, le plus récent
+ * d'abord, un par agent ou agence, avec qui a appelé, quand et l'issue. Une
+ * recherche par nom (agent, agence, ville) ou par les derniers chiffres du
+ * numéro. Un clic identifie celui qui rappelle.
+ */
+export function appelsFaits(q = '', { maintenantD = new Date(), max = 12 } = {}) {
+  const brut = String(q || '').trim();
+  const chiffres = brut.replace(/\D/g, '');
+  const voulus = R.norm(brut).split(' ').filter((m) => m.length >= 2 && !MOTS_VIDES.has(m));
+  const depuis = new Date(maintenantD.getTime() - 30 * 86400000).toISOString();
+  const listes = new Map(Records.list(LISTE).map((l) => [l.id, l]));
+  const vus = new Set();
+  const out = [];
+  const appels = Records.list(APPEL).filter((x) => !x.essai && String(x.le) >= depuis && !['remplace', 'abandonne'].includes(x.etat) && x.source !== 'rappel' && !x.rappel_entrant)
+    .sort((x, y) => String(y.le).localeCompare(String(x.le)));
+  for (const x of appels) {
+    const cle = x.agent_id || `ag:${x.agence_id}`;
+    if (vus.has(cle)) continue;
+    const a = x.agent_id ? Records.get('AgentImmo', x.agent_id) : null;
+    const g = x.agence_id ? Records.get(AGENCE, x.agence_id) : null;
+    if (!a && !g) continue;
+    const ville = a?.ville || (g?.liste_id ? listes.get(g.liste_id)?.ville : g?.ville) || null;
+    const nom = a?.nom || x.agent || g?.monday_connu?.nom || null;
+    const agence = a?.agence || g?.nom || null;
+    const tels = [x.numero, ...(a?.telephones || []), g?.telephone].filter(Boolean);
+    const ok = chiffres.length >= 4 ? tels.some((t) => R.normTel(t).endsWith(chiffres.slice(-10)))
+      : !voulus.length || voulus.every((m) => R.norm(`${nom || ''} ${agence || ''} ${ville || ''}`).includes(m));
+    if (!ok) continue;
+    vus.add(cle);
+    out.push({
+      cle: a?.id || g?.carnet_id || `ag:${g.id}`, agent_id: a?.id || g?.carnet_id || null, agence_id: g?.id || null,
+      nom, agence, ville, telephone: x.numero || tels[0] || null, ne_plus_appeler: !!a?.ne_plus_appeler || a?.statut === 'archive' || !!g?.ne_plus_appeler,
+      raison: [`appelé par ${prenomDe(x.par) || 'l\'équipe'} ${quandDit(x.le, maintenantD)}`, R.ISSUES[x.issue] ? R.ISSUES[x.issue].toLowerCase() : null].filter(Boolean).join(' · '),
+    });
+    if (out.length >= max) break;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

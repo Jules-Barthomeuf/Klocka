@@ -191,10 +191,14 @@ function contexte(agences) {
   const ids = new Set(agences.map((a) => a.carnet_id).filter(Boolean));
   const fiches = new Map(Records.list('AgentImmo').filter((x) => ids.has(x.id)).map((x) => [x.id, x]));
   const appels = new Map();
+  // Un appel compte pour sa fiche, et pour son agence (13 oct. 2026 : une agence appelée par un de ses
+  // agents, ou sans fiche reliée, restait « À appeler »).
+  const agencesIds = new Set(agences.map((a) => a.id));
+  const ranger = (cle, x) => { if (!appels.has(cle)) appels.set(cle, []); if (!appels.get(cle).includes(x)) appels.get(cle).push(x); };
   for (const x of Records.list(APPEL)) {
-    if (!ids.has(x.agent_id) || x.essai_archive) continue;
-    if (!appels.has(x.agent_id)) appels.set(x.agent_id, []);
-    appels.get(x.agent_id).push(x);
+    if (x.essai_archive || ['remplace', 'abandonne'].includes(x.etat)) continue;
+    if (ids.has(x.agent_id)) ranger(x.agent_id, x);
+    if (x.agence_id && agencesIds.has(x.agence_id)) ranger(`ag:${x.agence_id}`, x);
   }
   return { fiches, appels };
 }
@@ -204,7 +208,7 @@ export function annoter(agences, maintenantD = new Date()) {
   const { fiches, appels } = contexte(agences);
   return ordreDeLaVille(agences.map((a) => ({
     ...a,
-    statut: statutDeLAgence(a, { fiche: fiches.get(a.carnet_id) || null, appels: appels.get(a.carnet_id) || [], maintenantD }),
+    statut: statutDeLAgence(a, { fiche: fiches.get(a.carnet_id) || null, appels: [...new Set([...(appels.get(a.carnet_id) || []), ...(appels.get(`ag:${a.id}`) || [])])], maintenantD }),
     pertinence: pertinence(a),
     genre: genreDe(a),
   })));
@@ -714,6 +718,9 @@ export function donneesMonday({ appel, agence, fiche, issue, user, relance, note
     issue: ISSUES_APPEL[issue]?.titre || null,
     statut: issue === 'pas_interesse' ? 'Ne plus appeler' : ISSUES_APPEL[issue]?.statut || ISSUES_APPEL[issue]?.titre || null,
     dernier_contact: R.jourDe(new Date(appel.le || Date.now())),
+    // Un rappel entrant (13 oct. 2026, Jules) : celui qui rappelle n'est pas toujours celui qu'on avait
+    // appelé. Son nom, son numéro et son email, sûrs (entendus ou notés), remplacent ceux de la ligne.
+    ...(appel.rappel_entrant ? { remplacer: { contact: contactSur(compris, corrige), telephone: compris.champs?.telephone?.appele && corrige.telephone == null ? null : valeurSure(compris, 'telephone', corrige), email: valeurSure(compris, 'email', corrige) } } : {}),
   };
 }
 
@@ -775,7 +782,8 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   };
   Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }
-  if (def.simple && !surActions) {
+  // « Message laissé » (13 oct. 2026, Jules) : pas de lecture, l'écran des actions proposées s'ouvre aussitôt.
+  if (def.simple && !surActions && issue !== 'repondeur') {
     const choix = lu.appel.propositions.filter((p) => p.coche !== false && ['statut', 'relance'].includes(p.type)).map((p) => p.id);
     return validerIssue({ appel_id: lu.appel.id, choix, session_id, agence_id, user, issue });
   }
@@ -800,7 +808,8 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // En essai, Monday n'est pas lu ni écrit, mais l'aperçu montre ce qui serait écrit sur une nouvelle ligne.
   const monday = def.simple || estCommerces(a) ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Monday. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
   if (monday && (!essai || ecrireEssai)) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Monday : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Monday : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Monday' : 'Je prépare les champs pour Monday');
-  if (monday) actions.push({ id: 'monday', type: 'monday', titre: 'Contact Monday', coche: true, toujours: true, ligne: monday });
+  // « Contact modifié » : un rappel d'un autre interlocuteur, ses cases remplacent celles de la ligne.
+  if (monday) actions.push({ id: 'monday', type: 'monday', titre: monday.contact_modifie ? 'Contact modifié' : 'Contact Monday', coche: true, toujours: true, ligne: monday });
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
   const MO = await import('./modeles-appel.js');
   const choixModele = MO.MODELES_DE_L_ISSUE[issue];

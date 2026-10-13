@@ -209,7 +209,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
 
 const CHOIX_LISTE = [
   ["toutes", "Tout", "La liste dans son ordre fixe"],
-  ["inconnues", "À appeler", "Jamais contactées"],
+  ["inconnues", "À appeler", "Jamais appelées, et qu'aucun collègue ne tient"],
   ["connues", "Agences connues", "Déjà en contact (Monday, carnet, appel)"],
   ["appelees", "Appelées", "La plus récemment appelée en tête"],
   ["relance", "Relance due", null],
@@ -266,7 +266,8 @@ function TableauAgences({ id, onAppeler }) {
   const { data, isLoading } = useQuery({
     queryKey: ["agent-ia-liste", id],
     queryFn: () => base44.request("GET", `${API}/listes/${id}`),
-    refetchInterval: (x) => (x.state.data?.etat === "en_cours" ? 5000 : false),
+    // Relue toutes les trente secondes : on voit qui appelle quoi sans recharger (13 oct. 2026).
+    refetchInterval: (x) => (x.state.data?.etat === "en_cours" ? 5000 : 30000),
   });
   const carnet = useMutation({
     mutationFn: ({ agence, agent }) => base44.request("POST", `${API}/agences/${agence}/carnet`, { body: { agent: agent ?? null } }),
@@ -334,14 +335,18 @@ function TableauAgences({ id, onAppeler }) {
     onSuccess: (r) => { onAppeler?.(r.agent_id); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
     onError: (e) => toast.error(e?.message || "Appel impossible"),
   });
+  // « À appeler » (13 oct. 2026, Jules) : jamais appelée (même sans réponse), ni en relance, ni tenue ou en appel chez un collègue.
+  const prenomDe = (email) => { const m = (equipeDonnees?.equipe || []).find((x) => x.email === email); const n = (m?.nom || String(email || "").split("@")[0].split(".")[0]).split(" ")[0]; return n ? n.charAt(0).toUpperCase() + n.slice(1) : ""; };
+  const aAppeler = (a) => a.statut?.etat === "jamais" && !a.statut?.appelee && !a.en_relance && !a.ne_plus_appeler
+    && !(a.en_appel_par && a.en_appel_par !== moiEmail) && !((a.pour || []).length && moiEmail && !(a.pour || []).includes(moiEmail));
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
     const base = (data?.lignes || []).filter((a) => !a.fermee)
-      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? a.statut?.etat === "jamais" : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
+      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? aAppeler(a) : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
       .filter((a) => !t || [a.nom, a.adresse, a.telephone, a.email, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email])].filter(Boolean).join(" ").toLowerCase().includes(t));
     // « Appelées » : la plus récemment appelée en tête. Ailleurs, l'ordre fixe de la liste.
     return filtre === "appelees" ? [...base].sort((x, y) => String(y.statut?.quand || "").localeCompare(String(x.statut?.quand || ""))) : base;
-  }, [data, q, filtre]);
+  }, [data, q, filtre, moiEmail]);
   if (isLoading || !data) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
 
   return (
@@ -417,7 +422,9 @@ function TableauAgences({ id, onAppeler }) {
                     </td>
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}><CellulePour agence={a} listeId={id} /></td>
                     <td className="max-w-[260px] px-4 py-4">
-                      <p className="m-0 text-encre">{nomPropre(a)}{(a.agents || []).length > 1 && <span className="ml-1.5 text-[12.5px] text-ardoise">· {a.agents.length} agents</span>}{a.en_appel_par && <Lock className="ml-1.5 inline h-3 w-3 text-ardoise" aria-label={`En appel par ${a.en_appel_par}`} />}</p>
+                      <p className="m-0 text-encre">{nomPropre(a)}{(a.agents || []).length > 1 && <span className="ml-1.5 text-[12.5px] text-ardoise">· {a.agents.length} agents</span>}</p>
+                      {/* Qui est dessus en ce moment (13 oct. 2026) : pour ne pas se croiser. */}
+                      {a.en_appel_par && <p className="m-0 mt-1"><span className="inline-flex items-center gap-1 rounded-[6px] bg-menthe/15 px-1.5 py-px text-[11.5px] text-menthe"><Lock className="h-3 w-3" />{a.en_appel_par === moiEmail ? "Vous l'appelez" : `En appel · ${prenomDe(a.en_appel_par)}`}</span></p>}
                       {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
                       {contactDe(a) ? <p className="m-0 mt-1"><span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">Contact de {contactDe(a)}</span></p>
                         : dejaEnContact(a) && <p className="m-0 mt-1"><span className="rounded-[6px] bg-ambre/15 px-1.5 py-px text-[11.5px] text-ambre">Déjà en contact</span></p>}

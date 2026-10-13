@@ -7,10 +7,14 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, CHEMIN_UPLOADS } from './db.js';
-import { ordreDuModele } from '../src/lib/presentation-modele.js';
+import { ordreDuModele, PARTIES, partiesDe } from '../src/lib/presentation-modele.js';
 import { sourcesDesChamps, sourcesEnTexte } from './presentation-sources.js';
 import { secteurGarde } from './projet-secteur.js';
 import { analysePrixEnCache } from './equimmox.js';
+import { simulationDuProjet, simulationEnTexte } from './simulation-projet.js';
+
+/** Pure : la valeur à un chemin pointé. */
+const lireChemin = (o, chemin) => String(chemin).split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
 
 /** Le prix des murs qu'Equimmox a déjà lu pour ce projet (Analyse de prix), ou null. */
 function prixDesMurs(projet) {
@@ -170,6 +174,18 @@ export function modifierPresentation(id, { diapo = null, ordre = null, titre = n
  */
 export function poserChemin(diapo, chemin, valeur) {
   const copie = JSON.parse(JSON.stringify(diapo));
+  // Masquer ou réafficher une partie entière (13 oct. 2026) : « styles.<partie>.masque »,
+  // la partie pouvant porter des points (« styles.flux.voiture.masque »).
+  const masquage = String(chemin || '').match(/^styles\.(.+)\.masque$/);
+  if (masquage) {
+    const partie = masquage[1];
+    if (lireChemin(copie, partie) === undefined && !partiesDe(copie.type, partie).length) return { ok: false, error: `Partie inconnue : ${partie}. Parties de cette diapositive : ${(PARTIES[copie.type] || []).map(([c]) => c).join(', ')}.` };
+    const styles = { ...(copie.styles || {}) };
+    const st = { ...(styles[partie] || {}) };
+    if (valeur) st.masque = true; else delete st.masque;
+    if (Object.keys(st).length) styles[partie] = st; else delete styles[partie];
+    return { ok: true, diapo: { ...copie, styles } };
+  }
   const morceaux = String(chemin || '').split('.').filter(Boolean);
   if (!morceaux.length || ['id', 'type'].includes(morceaux[0])) return { ok: false, error: `Chemin interdit : ${chemin}` };
   let o = copie;
@@ -225,6 +241,7 @@ export function presentationPourAK(id, { ouverte = true } = {}) {
     // Les mises en forme de l'éditeur ne regardent pas AK ; ce qui est masqué, si.
     const masques = Object.entries(styles || {}).filter(([, st]) => st?.masque).map(([c]) => c);
     if (masques.length) champs.elements_masques = masques;
+    if (PARTIES[type]) champs.parties = PARTIES[type].map(([c, nom]) => `${c} (${nom})`);
     // Le tableau des revenus et les barres : abrégés, ils se recalculent depuis le simulateur.
     if (type === 'revenus') champs.lignes = `${(champs.lignes || []).length} lignes (année, brut, travaux, net, cumul)`;
     if (type === 'projection') champs.barres = `${(champs.barres || []).length} barres`;
@@ -234,7 +251,8 @@ export function presentationPourAK(id, { ouverte = true } = {}) {
   const projet = p.projet_id ? Records.get('Project', p.projet_id) : null;
   const parChamp = sourcesDesChamps(projet, p.diapos || [], { loyerSecteur: loyerDuSecteur(projet), prixMurs: prixDesMurs(projet) });
   if (parChamp.revenus) parChamp.revenus = Object.fromEntries(Object.entries(parChamp.revenus).filter(([c]) => !/^lignes\.([1-9]\d*)\./.test(c)));
-  return `${ouverte ? 'PRÉSENTATION BANCAIRE OUVERTE À DROITE' : 'PRÉSENTATION BANCAIRE'} (presentation_id ${p.id}, « ${p.titre} ») — l'équipe a pu la retoucher, c'est la version à jour :\n${lignes.join('\n')}\nSOURCES CHAMP PAR CHAMP (chemin = valeur affichée : origine, détail, calcul, lien) :\n${sourcesEnTexte(parChamp, p.diapos || [])}\nD'OÙ VIENNENT LES CHIFFRES : la liste ci-dessus d'abord, puis le champ « sources » de chaque diapositive. Une question sur l'origine d'un chiffre (« d'où vient le loyer du quartier ? ») : réponds avec cette source, sans rien inventer ; si c'est une estimation de l'IA, dis-le clairement et propose de la vérifier (data_b pour un loyer ou une valeur locative). Un chiffre retouché à la main par l'équipe (différent du projet) : dis qu'il a été saisi à la main ; une ligne marquée ATTENTION le dit. Donne le lien de la source quand il y en a un.`;
+  return `${ouverte ? 'PRÉSENTATION BANCAIRE OUVERTE À DROITE' : 'PRÉSENTATION BANCAIRE'} (presentation_id ${p.id}, « ${p.titre} ») — l'équipe a pu la retoucher, c'est la version à jour :\n${lignes.join('\n')}\nSOURCES CHAMP PAR CHAMP (chemin = valeur affichée : origine, détail, calcul, lien) :\n${sourcesEnTexte(parChamp, p.diapos || [])}\nSIMULATEUR DU PROJET (les chiffres que sa page affiche, recalculés à l'instant depuis l'onglet Simulateur) :\n${simulationEnTexte(projet ? simulationDuProjet(projet) : null)}\nLe simulateur fait foi pour l'apport, le crédit, la mensualité, le cash-flow et la rentabilité : sers-t'en pour compléter ou corriger la présentation (source « Simulateur du projet »), sans demander ces chiffres à l'utilisateur ni lancer de simulation. Si l'apport n'est pas enregistré, dis que c'est celui que le simulateur propose par défaut (15 %).\nMASQUER UNE PARTIE (« masque », « cache », « enlève », « retire », « je ne veux plus voir… ») : cache la partie entière, pas seulement ses chiffres : un changement { diapo, chemin: « styles.<partie>.masque », valeur: true }, la partie prise dans « parties » de la diapositive (« styles.flux.masque » pour les deux flux, « styles.flux.voiture.masque » pour le seul flux voiture, « styles.chiffres.2.masque » pour un seul chiffre). Elle disparaît avec son cadre et ses libellés, le reste prend la place ; rien n'est effacé. Valeur false pour la réafficher (« elements_masques » dit ce qui l'est). Ne vide jamais les valeurs pour cacher, et ne masque pas toute la diapositive (« masquee ») quand on te parle d'une partie.
+D'OÙ VIENNENT LES CHIFFRES : la liste ci-dessus d'abord, puis le champ « sources » de chaque diapositive. Une question sur l'origine d'un chiffre (« d'où vient le loyer du quartier ? ») : réponds avec cette source, sans rien inventer ; si c'est une estimation de l'IA, dis-le clairement et propose de la vérifier (data_b pour un loyer ou une valeur locative). Un chiffre retouché à la main par l'équipe (différent du projet) : dis qu'il a été saisi à la main ; une ligne marquée ATTENTION le dit. Donne le lien de la source quand il y en a un.`;
 }
 
 /** Le PPTX de la présentation telle qu'elle est, et sa version Google Slides si un compte est donné. */
@@ -334,7 +352,8 @@ export function presentationsDuClient(user) {
   return Records.list(ENTITE)
     .filter((p) => (user?.role === 'admin' ? true : envoyeeA(p).length > 0) && accesClient(p, user))
     .sort((a, b) => String(b.maj_le || b.cree_le || '').localeCompare(String(a.maj_le || a.cree_le || '')))
-    .map((p) => ({ ...resume(p), envoye_a: envoyeeA(p), envoye_le: p.envoye_le || null }));
+    // La première diapositive visible, pour l'aperçu en grand de la page client (13 oct. 2026, Jules).
+    .map((p) => ({ ...resume(p), envoye_a: envoyeeA(p), envoye_le: p.envoye_le || null, premiere: (p.diapos || []).find((d) => !d.masquee) || null }));
 }
 
 /**

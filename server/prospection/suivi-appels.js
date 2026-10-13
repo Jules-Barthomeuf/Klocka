@@ -158,6 +158,8 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
       validation: x.validation_ui || null, mesure_ak: x.mesure_ak || null, annulations: x.annulations || 0,
       recu: x.recu ? { monday: x.recu.monday ? { etat: x.recu.monday.etat, texte: x.recu.monday.texte } : null, mail: x.recu.mail ? { etat: x.recu.mail.etat, texte: x.recu.mail.texte } : null, relance: x.recu.relance?.texte || null } : null,
       valide_le: x.valide_le || null,
+      // Validé ou non à la main dans le Suivi : la dernière fois, par qui.
+      validation_main: (x.validation_main || []).at(-1) || null,
     };
   });
 
@@ -177,4 +179,18 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     rappels: { total: rappels.length, termines: rappels.filter((r) => r.etat === 'valide').length, abandonnes: rappels.filter((r) => r.etat === 'abandonne').length, en_cours: rappels.filter((r) => ['enregistrement', 'a_identifier', 'identifie'].includes(r.etat)).length },
     journal: lignes,
   };
+}
+
+/**
+ * Côté admin (13 oct. 2026, Jules) : un appel marqué validé ou non à la main,
+ * dans le journal du Suivi. Seul l'état change : rien n'est envoyé ni écrit
+ * ailleurs (ni mail, ni Monday) ; la main est notée sur l'appel.
+ */
+export function marquerValidation(id, valide, user) {
+  const x = Records.get('AppelAgent', id);
+  if (!x) return { ok: false, error: 'Appel introuvable.' };
+  const le = new Date().toISOString();
+  const main = { par: String(user?.email || '').toLowerCase() || null, le, de: x.etat, a: valide ? 'valide' : 'a_valider' };
+  Records.update('AppelAgent', id, { etat: valide ? 'valide' : 'a_valider', valide_le: valide ? x.valide_le || le : null, validation_main: [...(x.validation_main || []), main] });
+  return { ok: true, etat: valide ? 'valide' : 'a_valider' };
 }

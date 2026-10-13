@@ -29,9 +29,10 @@ const TITRES = {
 };
 
 export const CONTACT_VIDE = '\u200b';
-// Une fiche sans contact sûr (12 oct. 2026, analystes : « je ne peux pas mettre le nom ») : un nom visible, que l'on renomme dans Monday ou que Klocka remplace dès qu'il entend un nom.
-export const aPreciser = (agence) => `À préciser · ${String(agence || 'agence').trim()}`.slice(0, 250);
-const nomProvisoire = (nom) => { const n = R.norm(nom); return n === '' || n === 'accueil' || n.startsWith('a preciser'); };
+// Une fiche sans contact sûr : le nom de l'agence (13 oct. 2026, Jules ; avant, « À préciser · <agence> »),
+// que l'on renomme dans Monday ou que Klocka remplace dès qu'il entend un nom.
+export const aPreciser = (agence) => String(agence || 'Agence').trim().slice(0, 250);
+const nomProvisoire = (nom, agence = null) => { const n = R.norm(nom); return n === '' || n === 'accueil' || n.startsWith('a preciser') || (!!agence && n === R.norm(agence)); };
 export const tableauAgents = () => (fauxMonday ? 'faux-tableau' : (process.env.MONDAY_BOARD_AGENTS || '').trim());
 export const lienLigne = (id, tableau = tableauAgents()) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
 
@@ -149,10 +150,14 @@ export function valeursPour(ligne, cols, d) {
   // d'avant ne se laissait pas compléter). Une ligne existante garde le sien, sauf s'il est provisoire
   // (vide, « Accueil », « À préciser ») et qu'un nom sûr arrive.
   const contact = d.contact || null;
-  const nom = !ligne ? contact || aPreciser(d.agence) : (nomProvisoire(ligne.nom) && contact ? contact : null);
+  // Un rappel entrant d'un autre interlocuteur : son nom remplace celui de la ligne (13 oct. 2026).
+  const rp = ligne && d.remplacer ? d.remplacer : null;
+  const provisoire = ligne ? nomProvisoire(ligne.nom, ligne.entreprise || d.agence) : false;
+  const autreNom = !!(rp?.contact && !provisoire && R.norm(rp.contact) !== R.norm(ligne.nom));
+  const nom = !ligne ? contact || aPreciser(d.agence) : ((provisoire && contact) || autreNom ? contact || rp.contact : null);
   if (nom) { valeurs.name = nom; attendus.push({ cle: 'nom', titre: 'Contact', colonne: 'name', attendu: nom }); apercu.push({ titre: 'Contact', avant: ligne?.nom || '', apres: nom }); }
   // Une ligne au nom provisoire, sans nom sûr cette fois : la case Contact se montre quand même, pour qu'on y tape le nom.
-  else if (ligne && nomProvisoire(ligne.nom)) apercu.push({ titre: 'Contact', avant: ligne.nom || '', apres: '' });
+  else if (ligne && provisoire) apercu.push({ titre: 'Contact', avant: ligne.nom || '', apres: '' });
   if (d.ville && R.norm(avant.ville) !== R.norm(d.ville)) poser('ville', 'Ville', String(d.ville), String(d.ville));
   if (d.agence && !avant.entreprise) poser('entreprise', 'Entreprise', cols.entreprise?.type === 'dropdown' ? { labels: [String(d.agence).slice(0, 100)] } : String(d.agence), String(d.agence).slice(0, 100));
   if (d.remarque && !String(avant.remarques || '').includes(d.remarque)) {
@@ -163,13 +168,19 @@ export function valeursPour(ligne, cols, d) {
   const relance = d.relance || '';
   if (String(avant.relance || '').slice(0, 10) !== relance) poser('relance', 'Prochaine relance', relance ? { date: relance } : '', relance);
   const tel = telephoneInternational(d.telephone);
-  if (tel && !avant.telephone) poser('telephone', 'Téléphone', cols.telephone?.type === 'phone' ? { phone: tel, countryShortName: 'FR' } : tel, tel, d.telephone, 'telephone');
+  const telNouveau = rp?.telephone ? telephoneInternational(rp.telephone) : null;
+  const autreTel = !!(telNouveau && avant.telephone && R.normTel(avant.telephone) !== R.normTel(telNouveau));
+  if (autreTel) poser('telephone', 'Téléphone', cols.telephone?.type === 'phone' ? { phone: telNouveau, countryShortName: 'FR' } : telNouveau, telNouveau, rp.telephone, 'telephone');
+  else if (tel && !avant.telephone) poser('telephone', 'Téléphone', cols.telephone?.type === 'phone' ? { phone: tel, countryShortName: 'FR' } : tel, tel, d.telephone, 'telephone');
   const email = R.normEmail(d.email);
-  if (email && !(avant.emails || []).length) poser('email', 'E-mail', cols.email?.type === 'email' ? { email, text: email } : email, email, email, 'contient');
+  const emailNouveau = rp?.email ? R.normEmail(rp.email) : null;
+  const autreEmail = !!(emailNouveau && (avant.emails || []).length && !(avant.emails || []).map(R.normEmail).includes(emailNouveau));
+  if (autreEmail) poser('email', 'E-mail', cols.email?.type === 'email' ? { email: emailNouveau, text: emailNouveau } : emailNouveau, emailNouveau, emailNouveau, 'contient');
+  else if (email && !(avant.emails || []).length) poser('email', 'E-mail', cols.email?.type === 'email' ? { email, text: email } : email, email, email, 'contient');
   if (d.analyste_monday_id && !avant.spoc) poser('spoc', 'SPOC', { personsAndTeams: [{ id: Number(d.analyste_monday_id), kind: 'person' }] }, d.analyste_nom || '', d.analyste_nom || '', 'non_vide');
   const prenom = contact ? String(contact).replace(/^(madame|monsieur)\s+/i, '').split(/\s+/)[0] : null;
   // Le prénom se complète aussi plus tard, quand le nom arrive sur une ligne qui n'en avait pas.
-  if (prenom && !avant.prenom && (!ligne || nom)) poser('prenom', 'Prénom', prenom, prenom);
+  if (prenom && (!avant.prenom || autreNom) && (!ligne || nom) && R.norm(prenom) !== R.norm(avant.prenom)) poser('prenom', 'Prénom', prenom, prenom);
   const jourFr = d.dernier_contact ? `${d.dernier_contact.slice(8, 10)}/${d.dernier_contact.slice(5, 7)}/${d.dernier_contact.slice(0, 4)}` : null;
   // « Date » sur le tableau, « Dernier contact » à l'écran (8 oct. 2026) : c'est le jour du dernier contact.
   if (d.dernier_contact && cols.date_contact) poser('date_contact', 'Dernier contact', cols.date_contact.type === 'date' ? { date: d.dernier_contact } : jourFr, cols.date_contact.type === 'date' ? d.dernier_contact : jourFr);
@@ -185,7 +196,7 @@ export function valeursPour(ligne, cols, d) {
     if (t === 'checkbox') poser('diffusion', 'Liste de diffusion', d.diffusion ? { checked: 'true' } : '', d.diffusion ? 'v' : '', null, 'non_vide');
     else poser('diffusion', 'Liste de diffusion', t === 'status' ? { label: oui } : t === 'dropdown' ? { labels: [oui] } : oui, oui);
   }
-  return { valeurs, attendus, apercu };
+  return { valeurs, attendus, apercu, contact_modifie: autreNom || autreTel || autreEmail };
 }
 
 /** Pure : les écarts entre la ligne relue et ce qu'on voulait y lire. */
@@ -308,7 +319,8 @@ export async function preparer(cible, donnees) {
     if (spoc?.id) donnees = { ...donnees, analyste_monday_id: spoc.id, analyste_nom: donnees.analyste_nom || spoc.name };
     const m = trouverLigne(toutes, cible);
     const ligne = m.etat === 'trouvee' ? toutes.find((l) => l.id === m.ligne.id) : null;
-    return { ...m, apercu: valeursPour(ligne, cols, donnees).apercu };
+    const v = valeursPour(ligne, cols, donnees);
+    return { ...m, apercu: v.apercu, contact_modifie: v.contact_modifie };
   } catch (e) {
     return { etat: 'indisponible', texte: 'Monday ne répond pas : la ligne sera retrouvée à la validation. Voici ce qui serait écrit sur une nouvelle ligne', erreur: String(e?.message || e).slice(0, 200), apercu: apercuSansMonday(donnees) };
   }

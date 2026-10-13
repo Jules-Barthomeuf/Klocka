@@ -157,6 +157,8 @@
 .pb-impression, .pb-impression * { transition: none !important; animation: none !important; }
 .pb-impression .pb-cadre { border-radius: 0; box-shadow: none; }
 .pb-impression .pb-touche { display: none; }
+/* L'aperçu de la page client (13 oct. 2026) : la première diapositive seule, sans de quoi naviguer. */
+.pb-apercu .pb-frise, .pb-apercu .pb-fleche, .pb-apercu .pb-touche, .pb-apercu .pb-compteur, .pb-apercu .pb-heros-rang { visibility: hidden; }
 
 /* Le mode Sources (13 oct. 2026) : ce qui a une source porte un filet pointillé, à la couleur de sa confiance ;
    au survol, la fiche de sa source s'ouvre à côté (EditeurPresentation, FicheSource). */

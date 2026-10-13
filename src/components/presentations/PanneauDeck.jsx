@@ -1,6 +1,6 @@
 import React from "react";
 import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Eye, EyeOff, Italic, Minus, Plus, RotateCcw, X } from "lucide-react";
-import { NOMS, dansLOrdreDuModele } from "@/lib/presentation-modele";
+import { NOMS, PARTIES, dansLOrdreDuModele, partiesDe } from "@/lib/presentation-modele";
 import { PALETTE, lire } from "./Deck";
 
 // Autour du deck (refait le 12 oct. 2026, Jules : « comme dans l'estimation ») :
@@ -54,6 +54,24 @@ function retoucheur(dSel, chemin, onChange, onSelection) {
     onChange({ ...dSel, styles });
     if (patch?.masque) onSelection(null);
   };
+}
+
+/** Masque une partie entière d'une diapositive : diapo.styles[chemin].masque. */
+function masquerPartie(d, chemin, onChange, onSelection) {
+  onChange({ ...d, styles: { ...(d.styles || {}), [chemin]: { ...(d.styles?.[chemin] || {}), masque: true } } });
+  onSelection(null);
+}
+
+/** Le nom d'une partie masquée : celui du modèle, sinon son chemin en clair. */
+export const nomDePartie = (type, chemin) => new Map(PARTIES[type] || []).get(chemin) || libelleChemin(chemin).replace(/ › /g, " ");
+
+/** Réaffiche une partie masquée. */
+export function afficherPartie(d, chemin) {
+  const styles = { ...(d.styles || {}) };
+  const s = { ...styles[chemin] };
+  delete s.masque;
+  if (Object.keys(s).length) styles[chemin] = s; else delete styles[chemin];
+  return { ...d, styles };
 }
 
 /**
@@ -115,6 +133,12 @@ export function StylesElement({ diapos, selection, onChange, onSelection }) {
                 <button type="button" onClick={() => poserStyle({ masque: true })} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
                   <EyeOff className="h-3 w-3" /> Masquer l'élément
                 </button>
+                {/* Toute la partie qui le contient, cadre et libellés compris (13 oct. 2026, Jules). */}
+                {partiesDe(dSel.type, selection.chemin).filter(([c]) => c !== selection.chemin).reverse().map(([c, nom]) => (
+                  <button key={c} type="button" onClick={() => masquerPartie(dSel, c, onChange, onSelection)} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+                    <EyeOff className="h-3 w-3" /> Masquer {nom ? nom.charAt(0).toLowerCase() + nom.slice(1) : libelleChemin(c).replace(/ › /g, " ").toLowerCase()}
+                  </button>
+                ))}
                 {Object.keys(st).length > 0 && (
                   <button type="button" onClick={() => poserStyle(null)} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
                     <RotateCcw className="h-3 w-3" /> Revenir au modèle

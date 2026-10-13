@@ -26,6 +26,7 @@ import { trouverVille, trouverSecteur } from '../src/data/villes.js';
 import { secteurGarde, lotDuProjet, implantationEnCache } from './projet-secteur.js';
 import { TAILLES, CARTE, HEROS, BARRE, LARGEUR, HAUTEUR } from '../src/lib/presentation-modele.js';
 import { calculerTableauAnnuel, parametresDuProjet } from '../src/components/simulator/CalculFinancier.js';
+import { simulationDuProjet } from './simulation-projet.js';
 import { communeParNom, chiffresSources } from './chiffres-commune.js';
 import { analysePrixEnCache } from './equimmox.js';
 
@@ -332,7 +333,7 @@ export function sourcesDesDiapos({ origine = {}, indexation = 2, rendementRevent
     marche: { local: `${fiche} ; prix et loyer au m² rapportés à la surface`, marche: 'loyer : l\'onglet Marché du projet (correction de l\'équipe, sinon Equimmox, Data-B en repli) ; prix des murs du secteur : Equimmox, Analyse de prix (offres de vente de commerces, surface à ±20 %), demandée à AK' },
     projection: { chiffres: `calcul de la plateforme sur 20 ans : loyer du simulateur indexé de ${indexation} % par an${avecTravaux ? ', travaux article 606 du simulateur déduits' : ''} ; revente = loyer de l'année 20 / ${rendementRevente} % (rendement de sortie du simulateur)` },
     revenus: { chiffres: `le même calcul, année par année ; charges et taxe foncière déduites seulement si elles ne sont pas refacturées au locataire (simulateur)` },
-    conditions: { chiffres: 'le simulateur du projet : durée du crédit et apport ; montant à financer = prix - apport' },
+    conditions: { chiffres: 'le simulateur du projet : taux, durée du crédit, apport (15 % du prix de revient tant qu\'aucun n\'est enregistré, comme le simulateur l\'affiche) ; montant à financer = prix de revient - apport' },
     porteur: { chiffres: 'à remplir par le porteur du projet' },
     structuration: { chiffres: 'exemple de structuration, à adapter' },
     merci: { contact: 'à remplir' },
@@ -442,8 +443,10 @@ export async function construireDiapos(project, photos = {}) {
   // « Acquisition droits inclus » : le prix de revient du simulateur, pas le prix négocié FAI (13 oct. 2026).
   const revient = prixDeRevient(p)?.total || prix;
   const indexation = positif(p.sim_indexation_loyers) ?? 2;
-  const dureeCredit = positif(p.sim_duree_credit) || 20;
-  const apport = positif(p.sim_apport);
+  // Le crédit et l'apport : ceux que le simulateur montre (apport par défaut compris), pas les seuls champs enregistrés.
+  const sim = simulationDuProjet(p);
+  const dureeCredit = sim?.duree_credit || positif(p.sim_duree_credit) || 20;
+  const apport = sim?.apport || positif(p.sim_apport);
   const echeance = p.bail_date_echeance || p.echeance_bail;
   const echeanceValide = echeance && !isNaN(new Date(echeance));
   const anneesRestantes = echeanceValide
@@ -644,9 +647,9 @@ export async function construireDiapos(project, photos = {}) {
       { titre: 'Conditions souhaitées', accroche: 'Elles s’inscrivent pleinement dans les projections et objectifs de rentabilité de l’opération.' },
       {
         blocs: [
-          { titre: 'Taux', valeur: 'Fixe' },
+          sim?.taux_interet ? { titre: 'Taux fixe', valeur: `${virgule(sim.taux_interet, Number.isInteger(sim.taux_interet) ? 0 : 2)} %` } : { titre: 'Taux', valeur: 'Fixe' },
           { titre: 'Durée du crédit', valeur: `${dureeCredit} ans` },
-          { titre: 'Montant à financer', valeur: revient && apport ? euros(revient - apport) : '[Montant]' },
+          { titre: 'Montant à financer', valeur: sim?.emprunt ? euros(sim.emprunt) : revient && apport ? euros(revient - apport) : '[Montant]' },
           { titre: 'Apport', valeur: apport ? euros(apport) : '[À définir]' },
         ],
       }),

@@ -43,6 +43,7 @@ const CHAMPS = {
   sim_indexation_loyers: 'Indexation des loyers, onglet Simulateur',
   sim_duree_credit: 'Durée du crédit, onglet Simulateur',
   sim_apport: 'Apport, onglet Simulateur',
+  sim_taux_interet: 'Taux d\'intérêt, onglet Simulateur',
   sim_prix_revient: 'Prix de revient, onglet Simulateur',
   sim_rendement_capital: 'Rendement de sortie, onglet Simulateur',
   marche_loyer_autour: 'Loyer autour, onglet Marché (correction de l\'équipe)',
@@ -339,16 +340,28 @@ function sourcesDeLaDiapo(p, d, { loyerSecteur, prixMurs }) {
       }));
       (d.entetes || []).forEach((_, k) => modele(`entetes.${k}`, 'L\'intitulé de la colonne.'));
       break;
-    case 'conditions':
+    case 'conditions': {
+      // Le simulateur tel que sa page l'affiche (13 oct. 2026) : sans apport enregistré, 15 % du prix de revient.
+      let sim = null;
+      try { const params = parametresDuProjet(p || {}); sim = { params, r: calculerTableauAnnuel(params) }; } catch { /* rien à calculer */ }
+      const apportSim = Math.round(sim?.params?.apport || 0);
+      const parDefaut = !positif(p?.sim_apport);
       (d.blocs || []).forEach((b, k) => {
         const c = `blocs.${k}.valeur`;
         const t = String(b?.titre || '');
         if (/Durée/i.test(t)) duProjet(c, ['sim_duree_credit'], { format: (v) => `${v} ans` }) ?? modele(c, 'Le simulateur n\'a pas de durée de crédit : 20 ans par défaut.');
-        else if (/Apport/i.test(t)) duProjet(c, ['sim_apport'], { format: eur });
-        else if (/Montant/i.test(t)) (revient && positif(p.sim_apport)) ? calcul(c, `Le prix de revient (acquisition droits inclus) moins l'apport (${CHAMPS.sim_apport}).`, `${eur(revient)} - ${eur(positif(p.sim_apport))} = ${eur(revient - positif(p.sim_apport))}`, eur(revient - positif(p.sim_apport))) : aRemplir(c, 'Le montant à financer se calcule avec le prix de revient et l\'apport : l\'apport manque au simulateur.');
+        else if (/Apport/i.test(t)) {
+          if (!parDefaut) duProjet(c, ['sim_apport'], { format: eur });
+          else if (apportSim) calcul(c, 'L\'apport que le simulateur affiche : aucun n\'est enregistré, il pose 15 % du prix de revient (hors travaux). À confirmer avec le client.', `15 % de ${eur(Math.round(apportSim / 0.15))} = ${eur(apportSim)}`, eur(apportSim));
+          else aRemplir(c, 'Le simulateur n\'a ni apport ni prix.');
+        } else if (/Montant/i.test(t)) {
+          if (sim?.r?.montantEmprunt) calcul(c, `Le prix de revient du simulateur moins l'apport${parDefaut ? ' (15 % du prix de revient, aucun apport enregistré)' : ` (${CHAMPS.sim_apport})`}.`, `${eur(sim.r.prixRevient)} - ${eur(apportSim)} = ${eur(sim.r.montantEmprunt)}`, eur(sim.r.montantEmprunt));
+          else aRemplir(c, 'Le montant à financer se calcule avec le prix de revient et l\'apport : le simulateur n\'a pas de prix.');
+        } else if (/Taux/i.test(t) && /\d/.test(String(b?.valeur || ''))) duProjet(c, ['sim_taux_interet'], { format: (v) => `${nb(v, 2)} %` }) ?? modele(c, 'Le simulateur n\'a pas de taux enregistré : 3,9 % par défaut.');
         else modele(c, 'Le type de taux demandé, à ajuster avec la banque.');
       });
       break;
+    }
     case 'porteur': case 'structuration': case 'merci':
       break;
     default:

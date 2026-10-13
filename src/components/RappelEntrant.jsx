@@ -83,6 +83,7 @@ export default function RappelEntrant() {
   const [microKo, setMicroKo] = useState(false);
   const [erreur, setErreur] = useState(null);
   const [recherche, setRecherche] = useState("");
+  const [rechercheAppels, setRechercheAppels] = useState("");
   const [nouveau, setNouveau] = useState(null); // { agence_id, agence, ville, nom, telephone, email }
   const [confirmerLever, setConfirmerLever] = useState(false);
   const [appel, setAppel] = useState(null);
@@ -109,6 +110,9 @@ export default function RappelEntrant() {
   };
   const rec = useRef(null);
   const morceaux = useRef([]);
+  // La transcription en direct (13 oct. 2026, Jules) : chaque morceau s'affiche dès qu'il est transcrit.
+  const [direct, setDirect] = useState([]);
+  const montrerDirect = () => setDirect(morceaux.current.filter((x) => x.etat === "ok" && x.texte).map((x) => x.texte));
   const minuteur = useRef(null);
   const compte = useRef(null);
   const idRef = useRef(null);
@@ -124,6 +128,7 @@ export default function RappelEntrant() {
       f.append("audio", x.wav, `m${x.i}.wav`);
       const r = await base44.request("POST", `${MA}/morceau`, { body: f, isForm: true });
       x.texte = r.texte || ""; x.etat = "ok"; x.wav = null;
+      montrerDirect();
     } catch { x.etat = "echec"; }
   };
   const enregistrer = (flux) => {
@@ -157,7 +162,7 @@ export default function RappelEntrant() {
     rec.current = null;
   };
   const reinitialiser = () => {
-    morceaux.current = []; setNotes(""); setSecondes(0); setMicroKo(false); setErreur(null); setRecherche(""); setNouveau(null); setConfirmerLever(false);
+    morceaux.current = []; setDirect([]); setNotes(""); setSecondes(0); setMicroKo(false); setErreur(null); setRecherche(""); setNouveau(null); setConfirmerLever(false);
     setAppel(null); setTitre(""); setIssue(null); setCoches(new Set()); setMail(null); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setEdits({}); setCle(null); setRecu(null);
   };
 
@@ -216,6 +221,9 @@ export default function RappelEntrant() {
 
   // --- L'agent ---------------------------------------------------------------------------------------
   const trouves = useQuery({ queryKey: ["rappel-chercher", recherche], queryFn: () => base44.request("GET", `${API}/chercher?q=${encodeURIComponent(recherche)}`), enabled: ecran === "identification" && recherche.trim().length >= 2 });
+  // Les appels déjà faits par l'équipe (13 oct. 2026, Jules) : les derniers d'abord, à chercher par nom ou numéro.
+  const appelsFaits = useQuery({ queryKey: ["rappel-appels", rechercheAppels], queryFn: () => base44.request("GET", `${API}/appels?q=${encodeURIComponent(rechercheAppels)}`), enabled: ecran === "identification" });
+  const [tousLesAppels, setTousLesAppels] = useState(false);
   const ouvrirActions = (ap) => {
     const props = ap.propositions || [];
     setAppel(ap); setIssue(ap.issue_tapee || ap.issue); setTitre(ap.resume || ""); setCle(nouvelleCle());
@@ -236,7 +244,7 @@ export default function RappelEntrant() {
       if (notes !== (rappel.notes || "")) await base44.request("POST", `${API}/${rappel.id}/notes`, { body: { notes } });
       return base44.request("POST", `${API}/${rappel.id}/identifier`, { body: corps });
     },
-    onSuccess: (r) => { setRappel(r.rappel); setNouveau(null); setRecherche(""); analyser.mutate({}); },
+    onSuccess: (r) => { setRappel(r.rappel); setNouveau(null); setRecherche(""); setRechercheAppels(""); analyser.mutate({}); },
     onError: (e) => toast.error(e?.message || "Identification impossible"),
   });
   const confirmer = (c) => identifier.mutate({ agent_id: c.agent_id, agence_id: c.agence_id });
@@ -358,8 +366,10 @@ export default function RappelEntrant() {
   const transcription = (
     <div className="flex min-h-[120px] flex-col gap-2 rounded-[16px] border border-trait p-4">
       <span className={etiquette}>TRANSCRIPTION</span>
-      {ecran === "enregistrement" ? <p className="m-0 text-[14px] text-brume">La transcription s'affiche à la fin de l'appel.</p>
-        : ecran === "transcription" ? <span className="text-[14px] text-ardoise">Transcription en cours</span>
+      {ecran === "enregistrement" || ecran === "transcription" ? (
+        direct.length ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{direct.join("\n")}{ecran === "enregistrement" && <span className="text-brume"> …</span>}</p>
+          : <p className="m-0 text-[14px] text-brume">{ecran === "transcription" ? "Transcription en cours" : microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Elle s'écrit ici pendant l'appel, toutes les huit secondes."}</p>
+      )
           : rappel?.transcription ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{rappel.transcription}</p>
             : <p className="m-0 text-[14px] text-brume">{microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Rien n'a été entendu."}</p>}
       {rappel?.transcription_echec && <p className="m-0 text-[12.5px] text-ambre">Une partie n'a pas pu être transcrite.</p>}
@@ -422,7 +432,19 @@ export default function RappelEntrant() {
                 {candidats.length ? candidats.map((c, i) => <Candidat key={c.cle} c={c} premier={i === 0} onConfirmer={confirmer} occupe={identifier.isPending} />)
                   : <p className="m-0 text-[14px] text-brume">Aucun candidat : cherchez-le, ou créez le contact.</p>}
               </div>
+              {/* Un appel déjà fait : celui qu'il rappelle, retrouvé en un clic, même passé par un collègue. */}
               <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+                <span className={etiquette}>APPELS DÉJÀ FAITS</span>
+                <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
+                  <Search className="h-4 w-4 flex-none text-ardoise" />
+                  <input value={rechercheAppels} onChange={(e) => setRechercheAppels(e.target.value)} placeholder="Agence, agent, ville ou 4 derniers chiffres" aria-label="Chercher dans les appels déjà faits" className="w-full border-0 bg-transparent text-[15px] text-encre outline-none max-md:text-[16px]" />
+                </span>
+                {(appelsFaits.data?.resultats || []).slice(0, tousLesAppels || rechercheAppels.trim() ? 12 : 4).map((c) => <Candidat key={c.cle} c={c} onConfirmer={confirmer} occupe={identifier.isPending} />)}
+                {!rechercheAppels.trim() && !tousLesAppels && (appelsFaits.data?.resultats || []).length > 4 && <button type="button" onClick={() => setTousLesAppels(true)} className="self-start p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Voir plus d'appels</button>}
+                {appelsFaits.data && !appelsFaits.data.resultats.length && <span className="text-[13px] text-brume">{rechercheAppels.trim() ? "Aucun appel à ce nom ou ce numéro sur les trente derniers jours." : "Aucun appel sur les trente derniers jours."}</span>}
+              </div>
+              <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+                <span className={etiquette}>TOUT LE CARNET</span>
                 <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
                   <Search className="h-4 w-4 flex-none text-ardoise" />
                   <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="4 derniers chiffres, nom de l'agent ou de l'agence" aria-label="Chercher l'agent" className="w-full border-0 bg-transparent text-[15px] text-encre outline-none max-md:text-[16px]" />

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
-import { EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
+import Deck from "@/components/presentations/Deck";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 
 // Présentations, côté client (13 oct. 2026, Jules) : les dossiers bancaires
@@ -12,7 +12,8 @@ import EditeurPresentation from "@/components/presentations/EditeurPresentation"
 // page : l'éditeur seul, sans le chat (édition, lecture, sources, plein écran),
 // ses retouches enregistrées d'elles-mêmes, et « Une question » qui arrive dans
 // le Feedback de l'équipe. L'équipe, en vue client, les voit toutes dès leur
-// création, avec leurs destinataires ou « pas encore envoyée ».
+// création, avec leurs destinataires ou « pas encore envoyée ». La liste : la
+// première diapositive en grand, un clic l'ouvre (13 oct. 2026, Jules).
 
 export default function MesPresentations() {
   const [params, setParams] = useSearchParams();
@@ -50,12 +51,24 @@ export default function MesPresentations() {
         ) : !presentations.length ? (
           <p className="py-16 text-center text-[14px] text-brume">{equipe ? "Aucune présentation pour l'instant : elles apparaissent ici dès leur création." : "Aucune présentation pour l'instant : Klocka vous l'enverra ici dès qu'elle sera prête."}</p>
         ) : (
-          <div className="border-y border-trait">
-            <EnTeteListe auteur={false} />
+          <div className="mx-auto flex max-w-[960px] flex-col gap-10">
             {presentations.map((p) => (
-              <LigneDocument key={p.id} onOuvrir={() => ouvrir(p.id)} colonneAuteur={false} titre={p.titre} modifie={p.maj_le}
-                detail={[p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`, equipe ? (p.envoye_a?.length ? `envoyée à ${p.envoye_a.join(", ")}` : "pas encore envoyée") : null].filter(Boolean).join(" · ")}
-                vignette={<Vignette photo={p.photo} titre={p.titre} />} />
+              <div key={p.id}>
+                <button type="button" onClick={() => ouvrir(p.id)} aria-label={`Ouvrir ${p.titre}`}
+                  className="group relative block aspect-[16/9] w-full overflow-hidden rounded-[18px] border border-trait bg-rail text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-bord-vif" style={{ padding: 0 }}>
+                  {p.premiere ? (
+                    <div className="pb-apercu pointer-events-none absolute inset-0">
+                      <Deck diapos={[p.premiere]} courante={p.premiere.id} onCourante={() => {}} mode="lecture" relief={0} onChange={() => {}} onPhoto={() => {}} />
+                    </div>
+                  ) : (
+                    <span className="grid h-full place-items-center text-[14px] text-brume">{p.titre}</span>
+                  )}
+                </button>
+                <div className="mt-3 flex items-baseline justify-between gap-4 px-1">
+                  <span className="min-w-0 truncate text-[15px] text-encre">{p.titre}</span>
+                  <span className="flex-none text-[12.5px] text-ardoise">{equipe ? (p.envoye_a?.length ? `envoyée à ${p.envoye_a.join(", ")}` : "pas encore envoyée") : `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`}</span>
+                </div>
+              </div>
             ))}
           </div>
         )}

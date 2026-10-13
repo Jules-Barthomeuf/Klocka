@@ -82,7 +82,8 @@ function ChoixScenario({ choisi, onJouer, relancesDabord = false, monday = true,
     </div>
   );
 }
-const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse"], ["repondeur", "Répondeur, message laissé"], ["invalide", "Mauvais numéro"]];
+// « Message laissé » ouvre les actions proposées (13 oct. 2026, Jules) ; les deux autres se valident d'office.
+const ISSUES_NON_ABOUTIES = [["pas_de_reponse", "Pas de réponse", true], ["repondeur", "Message laissé", false], ["invalide", "Mauvais numéro", true]];
 const CHAMPS_COMPRIS = [["interlocuteur", "Interlocuteur"], ["fonction", "Fonction"], ["telephone", "Téléphone"], ["email", "Email"], ["biens", "Biens évoqués"], ["mandat", "Mandat à venir"], ["prochaine_etape", "Prochaine étape"], ["date", "Date dite"]];
 const MODIFIABLES = ["interlocuteur", "telephone", "email"];
 // Relances « Bien retenu » et « Bien refusé » : les quatre issues de la spec du 8 oct. 2026.
@@ -800,6 +801,14 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setTimeout(() => setEcran((e) => (e === "raccroche" ? "analyse" : e)), 1100);
     noter.mutate({ issue: "auto" });
   };
+  // Message laissé (13 oct. 2026, Jules) : rien à lire, l'issue est posée et les actions proposées s'ouvrent.
+  const messageLaisse = () => {
+    clearInterval(chrono.current);
+    couperMicro(false);
+    setIssue("repondeur");
+    setEcran("analyse");
+    noter.mutate({ issue: "repondeur", simple: false });
+  };
   const annulerAppel = () => { arreterTout(); retenirEnCours(null); setNotes(true); setSimule(false); setEcran("fiche"); };
   const rappeler = () => { setEcran("appel"); lancerChrono(secondes); if (notes && !simule) enregistrer(); };
   // L'appel simulé : la conversation d'exemple défile phrase par phrase, comme une vraie transcription.
@@ -1117,6 +1126,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
                     <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
                     <button type="button" onClick={raccrocher} className="h-10 rounded-full bg-alerte px-5 text-[14px] text-white hover:opacity-90">Raccrocher</button>
+                    <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
                     {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
                     <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
                       className="grid h-10 w-10 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
@@ -1143,7 +1153,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   ) : (<>
                   <span className={`${etiquette} mt-3`}>PERSONNE AU BOUT DU FIL</span>
                   <div className="grid grid-cols-2 gap-2">
-                    {ISSUES_NON_ABOUTIES.map(([k, l]) => <button key={k} type="button" disabled={noter.isPending} onClick={() => choisirIssue(k, true)} className={bouton} style={{ background: "transparent" }}>{l}</button>)}
+                    {ISSUES_NON_ABOUTIES.map(([k, l, simple]) => <button key={k} type="button" disabled={noter.isPending} onClick={() => choisirIssue(k, simple)} className={bouton} style={{ background: "transparent" }}>{l}</button>)}
                   </div>
                   <span className={`${etiquette} mt-3`}>ON S'EST PARLÉ</span>
                   <button type="button" disabled={noter.isPending} onClick={() => choisirIssue("pas_de_murs", false)} className="h-[72px] rounded-full bg-menthe text-[18px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Pas de bien pour l'instant</button>

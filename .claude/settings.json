@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm test *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'Redesign de la section '\\\\''Vos présentations'\\\\'' : bouton principal menthe, état vide amélioré avec icône et instructions claires, suppression via dialog au lieu de window.confirm, PDF et menu cachés au repos et visibles au survol. *)"
     ]
   }
 }

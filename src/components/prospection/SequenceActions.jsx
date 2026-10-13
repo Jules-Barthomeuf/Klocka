@@ -539,6 +539,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         haut: (
           <>
             {ligne?.etat === "trouvee" && <p className="m-0 text-[13.5px] text-ardoise">Retrouvé par {ligne.par}</p>}
+            {ligne?.contact_modifie && <p className="m-0 text-[13.5px] text-ambre">Contact modifié : celui qui a rappelé remplace l'ancien contact sur la ligne (nom, numéro, email).</p>}
             {["info", "indisponible"].includes(ligne?.etat) && ligne.apercu?.length > 0 && <p className={`m-0 text-[13.5px] ${ligne.etat === "indisponible" ? "text-ambre" : "text-ardoise"}`}>{ligne.texte}</p>}
             {ligne?.etat === "nouvelle" && <p className="m-0 text-[13.5px] text-ardoise">Nouvelle ligne</p>}
             {ligne?.etat === "doute" && (
@@ -665,7 +666,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const maintenant = [];
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
-    maintenant.push(etape(pmo, { label: "Contact Monday", detail, warn: doute || ligne?.etat === "indisponible" }));
+    // Un rappel d'un autre interlocuteur (13 oct. 2026) : « Contact modifié », ses cases remplacent celles de la ligne.
+    maintenant.push(etape(pmo, { label: ligne?.contact_modifie ? "Contact modifié" : "Contact Monday", detail, warn: doute || ligne?.etat === "indisponible" }));
   }
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
   if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
@@ -681,7 +683,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (pv) ensuite.push(etape(pv, { label: "Prévenir un collègue", detail: pv.pour.map((e) => e.split("@")[0].split(".")[0]).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(", ") }));
   const n = [...maintenant, ...ensuite].filter((e) => e.on).length;
   // Les étapes de la fenêtre, rangées par moment : maintenant, puis chaque date de relance dans l'ordre.
-  const COURT = { monday: "Contact Monday", ne_plus_appeler: "Ne plus appeler", mail: "Email", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
+  const COURT = { monday: ligne?.contact_modifie ? "Contact modifié" : "Contact Monday", ne_plus_appeler: "Ne plus appeler", mail: "Email", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
   const dateDe = (e) => (e.q.type === "relance" ? dateRelance : e.q.type === "relance_suivante" ? relance2Le || pr2?.prochaine?.le : null);
   const datees = ensuite.filter((e) => dateDe(e)).sort((x, y) => String(dateDe(x)).localeCompare(String(dateDe(y))));
   const pas = [

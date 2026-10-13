@@ -131,6 +131,13 @@ export function monterProspection(app) {
     if (!user) return;
     ok(res, { ok: true, remise_a_zero: (await import('../prospection/suivi-appels.js')).remettreAZero(user.email) });
   }));
+  app.post('/api/monitoring/appels/:id/validation', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await import('../prospection/suivi-appels.js')).marquerValidation(req.params.id, !!req.body?.valide, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/monitoring/appels/tout-afficher', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     (await import('../prospection/suivi-appels.js')).toutAfficher();
@@ -157,6 +164,10 @@ export function monterProspection(app) {
   app.get('/api/prospection/rappels/chercher', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     ok(res, { resultats: (await RP()).chercher(String(req.query.q || '')) });
+  }));
+  app.get('/api/prospection/rappels/appels', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { resultats: (await RP()).appelsFaits(String(req.query.q || '').slice(0, 80)) });
   }));
   app.get('/api/prospection/rappels/:id', wrap(async (req, res) => {
     const user = admin(req, res);

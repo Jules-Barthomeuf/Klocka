@@ -56,3 +56,51 @@ export const dansLOrdreDuModele = (diapos = []) => ordreDuModele(diapos).every((
 
 /** Les chapitres du sommaire, dans l'ordre : la diapositive où chacun commence. */
 export const CIBLES_SOMMAIRE = ["ville", "emplacement", "quartier", "local", "bail", "projection", "conditions", "porteur"];
+
+/**
+ * Les parties qu'on peut masquer d'un coup, par diapositive (13 oct. 2026, Jules :
+ * « masquer toute une partie, pas seulement les chiffres ») : la partie
+ * disparaît avec son cadre, ses libellés et ses filets, et ce qui reste prend
+ * la place. Un élément d'une liste (« chiffres.2 ») se masque de la même façon.
+ * Masquer, c'est poser diapo.styles[chemin].masque ; rien n'est effacé.
+ */
+export const PARTIES = {
+  couverture: [["photo", "La photo"], ["stats", "Les trois chiffres"]],
+  sommaire: [["items", "Les chapitres"]],
+  ville: [["photo", "La photo"], ["chiffres", "Les chiffres"], ["atouts", "Les atouts"]],
+  emplacement: [["carte", "La carte"], ["flux", "Les flux"], ["flux.pieton", "Le flux piéton"], ["flux.voiture", "Le flux voiture"]],
+  quartier: [["photo", "La photo"], ["chiffres", "Les indicateurs"], ["atouts", "Les atouts"]],
+  local: [["stats", "Les trois chiffres"], ["identite", "L'identité"], ["economie", "L'économie de la signature"]],
+  photos: [["photos.0", "La grande photo"], ["photos.1", "La photo 2"], ["photos.2", "La photo 3"]],
+  bail: [["points", "Les points du bail"]],
+  enseignes: [["enseignes", "Les enseignes"]],
+  marche: [["marche.murs", "Le prix des murs"], ["marche.loyer", "Le loyer"], ["legende", "La légende"]],
+  projection: [["lignes", "Les chiffres"], ["barres", "Le graphique"]],
+  revenus: [["lignes", "Le tableau"]],
+  conditions: [["blocs", "Les conditions"]],
+  porteur: [["experiences", "Les expériences"], ["situation", "La situation professionnelle"], ["revenus", "Les revenus et l'épargne"]],
+  structuration: [["associes", "Les associés"], ["structure", "La structure"], ["detient", "Le bien détenu"]],
+  merci: [["photo", "La photo"], ["porteur", "Le contact"], ["coordonnees", "Le téléphone et l'e-mail"]],
+};
+
+/** Pure : ce chemin est-il masqué, lui ou une partie qui le contient (« flux » masque « flux.voiture.densite ») ? */
+export function estMasque(styles, chemin) {
+  if (!styles || !chemin) return false;
+  const m = String(chemin).split(".");
+  for (let k = 1; k <= m.length; k++) if (styles[m.slice(0, k).join(".")]?.masque) return true;
+  return false;
+}
+
+/** Pure : les parties d'une diapositive qui contiennent ce chemin, de la plus large à la plus fine, avec un élément de liste (nom null : à nommer par son chemin). */
+export function partiesDe(type, chemin) {
+  const m = String(chemin || "").split(".");
+  const connues = new Map(PARTIES[type] || []);
+  const r = [];
+  for (let k = 1; k <= m.length; k++) {
+    const c = m.slice(0, k).join(".");
+    if (connues.has(c)) r.push([c, connues.get(c)]);
+    // Un élément de liste (« chiffres.2 ») : le chiffre entier, libellé compris.
+    else if (/^\d+$/.test(m[k - 1]) && k < m.length) r.push([c, null]);
+  }
+  return r;
+}

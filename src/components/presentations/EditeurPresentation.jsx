@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleHelp, Loader2, Maximize2, Redo2, Send, Undo2, Upload, X, FileText } from "lucide-react";
+import { CircleHelp, Eye, Loader2, Maximize2, Redo2, Send, Undo2, Upload, X, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import Deck, { poser } from "./Deck";
-import { StylesElement } from "./PanneauDeck";
+import { StylesElement, afficherPartie, nomDePartie } from "./PanneauDeck";
 import ApercuPdf from "./ApercuPdf";
 import FicheSource from "./FicheSource";
 import { ordreDuModele } from "@/lib/presentation-modele";
@@ -247,6 +247,23 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
                 {modeSources && sourceSurvolee && <FicheSource source={sourceSurvolee} ancre={survol.ancre} cadre={survol.cadre} onEntrer={() => clearTimeout(attente.current)} />}
                 {/* L'élément cliqué : son menu « Styles » flotte en haut à droite, comme dans l'avis de valeur. */}
                 {edition && selection && <StylesElement diapos={diapos} selection={selection} onChange={changer} onSelection={setSelection} />}
+                {/* En édition, ce qui est masqué sur cette diapositive, pour le réafficher d'un clic. */}
+                {edition && (() => {
+                  const d = diapos.find((x) => x.id === courantId);
+                  const masques = Object.entries(d?.styles || {}).filter(([, st]) => st?.masque).map(([c]) => c);
+                  if (!masques.length) return null;
+                  return (
+                    <div className="absolute bottom-3 left-1/2 z-10 flex max-w-[calc(100%-2rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 rounded-full border border-trait bg-rail px-3 py-1.5 shadow-[0_8px_24px_rgb(0_0_0/0.18)]">
+                      <span className="text-[12px] text-brume">Masqué :</span>
+                      {masques.map((c) => (
+                        <button key={c} type="button" onClick={() => changer(afficherPartie(d, c))} title="Réafficher"
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+                          <Eye className="h-3 w-3" />{nomDePartie(d.type, c)}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}

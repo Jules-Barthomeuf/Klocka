@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-16 personnes, 3 513 pages ouvertes, 3 demandes à l'assistant, 123 actions exécutées.
+16 personnes, 3 525 pages ouvertes, 3 demandes à l'assistant, 125 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 437 | 3 | 33 | 13/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 449 | 3 | 35 | 13/10/2026 |
 | admin@klocka.local (équipe) | 487 | 0 | 0 | 11/10/2026 |
 | jules.btmf@gmail.com (équipe) | 281 | 0 | 0 | 21/09/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
@@ -29,26 +29,26 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 - **Analyse** — 560 (16 %)
 - **ALX** — 449 (13 %)
-- **Dashboard** — 370 (11 %)
+- **Dashboard** — 370 (10 %)
 - **AdminProjets** — 280 (8 %)
 - **Prospection** — 162 (5 %)
 - **Emailing** — 139 (4 %)
 - **Personnalisation** — 120 (3 %)
+- **ProjetDetail** — 100 (3 %)
 - **MandataireProspection** — 100 (3 %)
-- **ProjetDetail** — 99 (3 %)
 - **ALXCible** — 86 (2 %)
 - **KZoning** — 82 (2 %)
 - **KData** — 78 (2 %)
-- Le reste, sous 2 % : MandataireEstimation, MandataireDossier, Monitoring, KExpertise, SimulateurRentabilite, MandataireMandat, AdminMandataires, AdminPresentations, Home, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, AdminSuggestions, Relances, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, FichesCommerciales, ValeurLocative, ALXEntrainement, CoutsIA, ALXAtelier, KProspective, ALXBilan, MonAssistant, MandataireMarche, Vision, MonCompte, KTransactions, Ressources, MesPresentations, MandataireProjets, Feedback, analyse, SuiviMandataires, ALXVilles, AdminEquipe, SuiviAppels, Comparateur, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
+- Le reste, sous 2 % : MandataireEstimation, MandataireDossier, Monitoring, KExpertise, SimulateurRentabilite, MandataireMandat, AdminMandataires, AdminPresentations, Home, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, AdminSuggestions, Relances, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, MesPresentations, FichesCommerciales, ValeurLocative, ALXEntrainement, CoutsIA, ALXAtelier, KProspective, ALXBilan, MonAssistant, MandataireMarche, Vision, MonCompte, KTransactions, Ressources, MandataireProjets, Feedback, analyse, SuiviMandataires, ALXVilles, AdminEquipe, SuiviAppels, Comparateur, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
 
 ## Ce que l'IA coûte
 
-36,14 € sur la période, 1 422 appels, 8 648 k jetons. 31 % part en tâche de fond, sans que personne clique. 47 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+38,42 € sur la période, 1 463 appels, 8 945 k jetons. 33 % part en tâche de fond, sans que personne clique. 51 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Trier ce qu’on colle dans la boîte | 0,06 € par dépôt | 73 | 8,41 € | 24 s |
-| Non attribué (fond) | 0,0090 € par appel | 569 | 8,22 € | — |
+| Non attribué (fond) | 0,01 € par appel | 603 | 9,70 € | — |
+| Trier ce qu’on colle dans la boîte | 0,06 € par dépôt | 76 | 9,19 € | 24 s |
 | Demander quelque chose à AK | 0,06 € par demande | 42 | 4,27 € | 14 s |
 | Demander quelque chose à l'assistant (mandataire) | 0,01 € par demande | 107 | 2,53 € | 22 s |
 | Retrouver l’annonce en ligne (fond) | 0,18 € par bien | 8 | 2,40 € | 1 min |
@@ -75,19 +75,19 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## AK, l'assistant dans le chat
 
-105 demandes, 13.76 € en tout soit 0.131 € la demande.
+108 demandes, 14.62 € en tout soit 0.135 € la demande.
 
-121 actions : 105 réussies, 5 questions posées (il manquait une information), 0 doublons évités, 11 vraiment ratées.
+123 actions : 107 réussies, 5 questions posées (il manquait une information), 0 doublons évités, 11 vraiment ratées.
 Les ratées, à corriger : simuler_dossier ×3 · analyser_fiche ×2 · data_b ×1 · lancer_design ×1 · bloquer_rdv ×1 · modifier_dossier ×1 · annuler_derniere_action ×1 · creer_projet_depuis_dossier ×1.
-Repris par l'équipe : 3 corrections (« non, pas ça »), 0 compliment, soit 2.9 % des demandes corrigées. C'est le chiffre à faire baisser.
+Repris par l'équipe : 3 corrections (« non, pas ça »), 0 compliment, soit 2.8 % des demandes corrigées. C'est le chiffre à faire baisser.
 
-Ce qu'il a fait : modifier_presentation ×16 · rediger_loi ×12 · donnees_commune ×9 · creer_dossier ×9 · data_b ×6 · simuler_dossier ×6 · noter_engagement ×6 · modifier_dossier ×6.
-Pour qui : Jules 111 · Admin 4 · Coralie 4 · Sourcing 1 · Nora 1.
+Ce qu'il a fait : modifier_presentation ×17 · rediger_loi ×12 · donnees_commune ×9 · creer_dossier ×9 · data_b ×6 · simuler_dossier ×6 · noter_engagement ×6 · modifier_dossier ×6.
+Pour qui : Jules 113 · Admin 4 · Coralie 4 · Sourcing 1 · Nora 1.
 Tâches de fond : 7 lancées, 7 finies, 0 ratées (loi 5, kdata 2).
 
 ## Ce qu'il faut en retenir
 
 - L'écran de travail, c'est **Analyse** : 16 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,06 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 31 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 33 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

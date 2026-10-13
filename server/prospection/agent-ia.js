@@ -942,5 +942,10 @@ export async function pourAppeler(agenceId, { agent = null } = {}, user = null) 
   const fiche = r.crees[0] || C.agents().find((y) => (y.telephones || []).map(R.normTel).includes(tel) || (c.email && (y.emails || []).includes(normEmail(c.email))));
   if (!fiche) return { ok: false, error: "L'agence n'a pas pu entrer au carnet." };
   if (!a.carnet_id) Records.update(AGENCE, a.id, { carnet_id: fiche.id, au_carnet_le: maintenant(), au_carnet_par: user?.email || null });
+  // Qui appelle quoi (13 oct. 2026, Jules) : l'agence qu'on appelle s'associe d'elle-même à celui qui
+  // appelle, si personne ne la tient ; les files des collègues passent alors par-dessus.
+  const moi = normEmail(user?.email || '');
+  const pour = Records.get(AGENCE, a.id)?.pour || [];
+  if (moi && !pour.length && !Records.get(LISTE, a.liste_id)?.essai) Records.update(AGENCE, a.id, { pour: [moi] });
   return { ok: true, agent_id: fiche.id };
 }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CARTE, CIBLES_SOMMAIRE, HAUTEUR, LARGEUR, TAILLES } from "@/lib/presentation-modele";
+import { CARTE, CIBLES_SOMMAIRE, HAUTEUR, LARGEUR, TAILLES, estMasque } from "@/lib/presentation-modele";
 import "./presentation-bancaire.css";
 
 // Le deck de la présentation bancaire, sur le « Deck complet » de Jules
@@ -24,6 +24,12 @@ const PAS_FILIGRANE = 1600;
 
 /** Pure : la valeur à un chemin pointé. */
 export const lire = (o, chemin) => chemin.split(".").reduce((x, k) => x?.[k], o);
+
+// Une partie masquée (13 oct. 2026, Jules : « masquer toute la partie ») part avec
+// son cadre, ses libellés et ses filets ; ce qui reste prend la place.
+const cache = (styles, chemin) => estMasque(styles, chemin);
+/** Les rangs encore visibles d'une liste : aucun si la liste entière est masquée. */
+const rangs = (styles, liste, chemin, max = Infinity) => (estMasque(styles, chemin) ? [] : (liste || []).slice(0, max).map((_, k) => k).filter((k) => !estMasque(styles, `${chemin}.${k}`)));
 
 /** Pure : pose une valeur à un chemin pointé ; null sur un élément de liste le retire, « + » ajoute. */
 export function poser(diapo, chemin, valeur) {
@@ -89,7 +95,7 @@ function Champ({ chemin, className = "", style = undefined, multiligne = false, 
   useLayoutEffect(() => {
     if (ref.current && document.activeElement !== ref.current) ref.current.innerText = texte;
   }, [texte]);
-  if (st?.masque) return null;
+  if (cache(styles, chemin)) return null;
   const choisi = selection?.diapo === d.id && selection?.chemin === chemin;
   const sortir = () => {
     const t = (ref.current?.innerText || "").replace(/\u00a0/g, " ").replace(/\n+$/, "");
@@ -116,7 +122,7 @@ function Photo({ chemin, style, className = "", vide = "[Photo]" }) {
   const { d, styles, selection, choisir, edition, onPhoto } = ctx;
   const url = lire(d, chemin);
   const st = styles?.[chemin];
-  if (st?.masque) return null;
+  if (cache(styles, chemin)) return null;
   const choisi = selection?.diapo === d.id && selection?.chemin === chemin;
   const ouvrir = () => { if (!edition) return; choisir({ diapo: d.id, chemin, taille: null }); onPhoto(d.id, chemin); };
   return (
@@ -147,7 +153,8 @@ function Chiffre({ chemin, taille = 30, couleur, labelTaille = 13 }) {
 }
 /** Une liste libellé / valeur. */
 function Lignes({ ls, chemin, taille = 15, valeurCouleur = () => undefined }) {
-  return (ls || []).map((l, k) => (
+  const { styles } = useContext(Diapo);
+  return rangs(styles, ls, chemin).map((k) => (
     <div key={k} className="pb-ligne" style={{ fontSize: taille }}>
       <Champ chemin={`${chemin}.${k}.label`} className="pb-gris" />
       <Champ chemin={`${chemin}.${k}.valeur`} style={{ color: valeurCouleur(k) }} />
@@ -155,9 +162,10 @@ function Lignes({ ls, chemin, taille = 15, valeurCouleur = () => undefined }) {
   ));
 }
 function Atouts({ as, padding = "4px 0", filets = false, max = 3, lignes = null }) {
-  return (as || []).slice(0, max).map((a, k) => (
-    <div key={k} style={{ display: "flex", gap: 16, padding, borderTop: filets ? `1px solid var(${k === 0 ? "--pb-filet" : "--pb-filet-doux"})` : undefined }}>
-      <span className="pb-sauge" style={{ flex: "0 0 16px", fontSize: 13 }}>{"ABC"[k]}</span>
+  const { styles } = useContext(Diapo);
+  return rangs(styles, as, "atouts", max).map((k, n) => (
+    <div key={k} style={{ display: "flex", gap: 16, padding, borderTop: filets ? `1px solid var(${n === 0 ? "--pb-filet" : "--pb-filet-doux"})` : undefined }}>
+      <span className="pb-sauge" style={{ flex: "0 0 16px", fontSize: 13 }}>{"ABC"[n]}</span>
       <Champ chemin={`atouts.${k}`} style={{ flex: 1, minWidth: 0, ...(lignes ? { display: "-webkit-box", WebkitLineClamp: lignes, WebkitBoxOrient: "vertical", overflow: "hidden" } : {}) }} multiligne />
     </div>
   ));
@@ -166,21 +174,26 @@ function Atouts({ as, padding = "4px 0", filets = false, max = 3, lignes = null 
 // --- Les cartes de droite --------------------------------------------------
 
 const CARTES = {
-  couverture: ({ d }) => (
-    <div style={{ height: "100%", padding: 36, display: "flex", flexDirection: "column", gap: 22 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}><img src="/logo-klocka-presentation.png" alt="Klocka" style={{ height: 24 }} draggable={false} /></div>
-      <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo de couverture]" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 24 }}>
-        {(d.stats || []).slice(0, 3).map((c, k) => <Chiffre key={k} chemin={`stats.${k}`} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
+  couverture: ({ d, styles }) => {
+    const ks = rangs(styles, d.stats, "stats", 3);
+    return (
+      <div style={{ height: "100%", padding: 36, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 22 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}><img src="/logo-klocka-presentation.png" alt="Klocka" style={{ height: 24 }} draggable={false} /></div>
+        <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo de couverture]" />
+        {ks.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${ks.length}, minmax(0, 1fr))`, gap: 24 }}>
+            {ks.map((k) => <Chiffre key={k} chemin={`stats.${k}`} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
+          </div>
+        )}
       </div>
-    </div>
-  ),
+    );
+  },
   // En lecture, chaque chapitre du sommaire mène à la diapositive où il commence (la spec de Jules : « cliquables »).
-  sommaire: ({ d, set, edition, aller }) => (
+  sommaire: ({ d, set, edition, aller, styles }) => (
     <div style={{ height: "100%", padding: "28px 36px", display: "flex", flexDirection: "column" }}>
-      {(d.items || []).map((it, k) => (
+      {rangs(styles, d.items, "items").map((k, n) => (
         <div key={k} className="pb-item" onClick={edition ? undefined : () => CIBLES_SOMMAIRE[k] && aller(CIBLES_SOMMAIRE[k])} role={edition ? undefined : "button"} tabIndex={edition ? undefined : 0} onKeyDown={edition ? undefined : (e) => { if (e.key === "Enter" && CIBLES_SOMMAIRE[k]) aller(CIBLES_SOMMAIRE[k]); }}
-          style={{ flex: "1 1 0", display: "flex", alignItems: "center", gap: 22, borderTop: k ? "1px solid rgba(242,243,245,.11)" : undefined, fontSize: 21, letterSpacing: "-0.01em", cursor: edition ? undefined : "pointer" }}>
+          style={{ flex: "1 1 0", display: "flex", alignItems: "center", gap: 22, borderTop: n ? "1px solid rgba(242,243,245,.11)" : undefined, fontSize: 21, letterSpacing: "-0.01em", cursor: edition ? undefined : "pointer" }}>
           <span className="pb-sauge" style={{ flex: "0 0 32px", fontSize: 14 }}>{String(k + 1).padStart(2, "0")}</span>
           <Champ chemin={`items.${k}.titre`} style={{ flex: 1 }} />
           <Champ chemin={`items.${k}.page`} style={{ fontSize: 14, color: "var(--pb-gris-fonce)" }} />
@@ -192,12 +205,12 @@ const CARTES = {
   ),
   // La ville (refaite le 12 oct. 2026, Jules : « la photo est trop petite », deux atouts au lieu de trois) :
   // la photo prend la moitié de la carte ; libellé et chiffre sur une grille, ils ne peuvent plus se chevaucher.
-  ville: ({ d }) => (
-    <div style={{ height: "100%", padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+  ville: ({ d, styles }) => (
+    <div style={{ height: "100%", padding: 32, display: "flex", flexDirection: "column", justifyContent: "center", gap: 16 }}>
       <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo de la ville]" />
       <div style={{ flex: "none" }}>
-        {(d.chiffres || []).slice(0, 3).map((c, k) => (
-          <div key={k} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", columnGap: 24, padding: "9px 0", borderTop: "1px solid var(--pb-filet)", borderBottom: k === 2 ? "1px solid var(--pb-filet)" : undefined }}>
+        {rangs(styles, d.chiffres, "chiffres", 3).map((k, n, ks) => (
+          <div key={k} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", columnGap: 24, padding: "9px 0", borderTop: "1px solid var(--pb-filet)", borderBottom: n === ks.length - 1 ? "1px solid var(--pb-filet)" : undefined }}>
             <Champ chemin={`chiffres.${k}.label`} className="pb-gris" style={{ fontSize: 13.5, minWidth: 0 }} />
             <Champ chemin={`chiffres.${k}.valeur`} style={{ fontSize: 28, letterSpacing: "-0.03em", whiteSpace: "nowrap", textAlign: "right" }} />
           </div>
@@ -207,55 +220,59 @@ const CARTES = {
     </div>
   ),
   // L'emplacement : la carte, et en bas les flux autour du local (13 oct. 2026, Jules).
-  emplacement: ({ d }) => (
+  // Sans la carte, les flux prennent la place, au milieu de la carte sombre.
+  emplacement: ({ d, styles }) => (
     <>
-      <Carte d={d} />
-      {d.flux && <Flux />}
+      {!cache(styles, "carte") && <Carte d={d} />}
+      {d.flux && !cache(styles, "flux") && <Flux seul={cache(styles, "carte")} />}
     </>
   ),
   // Le quartier (13 oct. 2026, maquette de Jules) : la photo en haut, sur toute
   // la largeur ; dessous, les quatre indicateurs en tuiles côte à côte ; puis
   // les trois atouts A, B, C, séparés d'un filet.
-  quartier: ({ d }) => (
-    <div style={{ height: "100%", padding: 26, display: "flex", flexDirection: "column", gap: 18 }}>
+  quartier: ({ d, styles }) => (
+    <div style={{ height: "100%", padding: 26, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18 }}>
       <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo du quartier]" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-        {(d.chiffres || []).slice(0, 4).map((c, k) => (
+      {rangs(styles, d.chiffres, "chiffres", 4).length > 0 && <div style={{ display: "grid", gridTemplateColumns: `repeat(${rangs(styles, d.chiffres, "chiffres", 4).length}, minmax(0, 1fr))`, gap: 10 }}>
+        {rangs(styles, d.chiffres, "chiffres", 4).map((k) => (
           <div key={k} className="pb-boite" style={{ borderRadius: 14, padding: "14px 16px", minHeight: 108, display: "flex", flexDirection: "column", gap: 4 }}>
             <Champ chemin={`chiffres.${k}.valeur`} style={{ fontSize: 21, lineHeight: 1.18, letterSpacing: "-0.02em", color: k === 1 ? "var(--pb-sauge)" : undefined }} />
             <Champ chemin={`chiffres.${k}.label`} className="pb-gris" style={{ fontSize: 12, lineHeight: 1.3 }} />
           </div>
         ))}
-      </div>
+      </div>}
       <div style={{ fontSize: 14.5, lineHeight: 1.35 }}><Atouts as={d.atouts} padding="9px 0" filets /></div>
     </div>
   ),
-  local: ({ d }) => (
-    <div style={{ height: "100%", padding: "32px 36px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-        {(d.stats || []).slice(0, 3).map((c, k) => (
+  local: ({ d, styles }) => (
+    <div style={{ height: "100%", padding: "32px 36px", display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
+      {rangs(styles, d.stats, "stats", 3).length > 0 && <div style={{ display: "grid", gridTemplateColumns: `repeat(${rangs(styles, d.stats, "stats", 3).length}, minmax(0, 1fr))`, gap: 12 }}>
+        {rangs(styles, d.stats, "stats", 3).map((k) => (
           <div key={k} className={k === 0 ? "pb-pleine" : "pb-boite"} style={{ padding: "16px 20px" }}>
             <Champ chemin={`stats.${k}.valeur`} style={{ fontSize: 36, lineHeight: 1, letterSpacing: "-0.03em" }} />
             <Champ chemin={`stats.${k}.label`} className={k === 0 ? "" : "pb-gris"} style={{ marginTop: 6, fontSize: 13 }} />
           </div>
         ))}
+      </div>}
+      {rangs(styles, d.identite, "identite").length > 0 && <div><div className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }}>Identité</div><Lignes ls={d.identite} chemin="identite" /></div>}
+      {rangs(styles, d.economie, "economie").length > 0 && <div><div className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }}>Économie de la signature</div><Lignes ls={d.economie} chemin="economie" valeurCouleur={(k) => (k === 1 ? "var(--pb-sauge)" : undefined)} /></div>}
+    </div>
+  ),
+  // Trois photos : la grande à gauche, deux à droite ; deux : côte à côte ; une : toute la carte.
+  photos: ({ styles }) => {
+    const ks = [0, 1, 2].filter((k) => !cache(styles, `photos.${k}`));
+    const grille = ks.length === 3 ? { gridTemplateColumns: "1.7fr 1fr", gridTemplateRows: "repeat(2, minmax(0, 1fr))" } : { gridTemplateColumns: `repeat(${Math.max(1, ks.length)}, minmax(0, 1fr))`, gridTemplateRows: "minmax(0, 1fr)" };
+    return (
+      <div style={{ height: "100%", padding: 12, display: "grid", ...grille, gap: 12 }}>
+        {ks.map((k, n) => <Photo key={k} chemin={`photos.${k}`} style={{ gridRow: ks.length === 3 && n === 0 ? "1 / 3" : undefined, borderRadius: 18 }} vide={`[Photo ${k + 1}]`} />)}
       </div>
-      <div><div className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }}>Identité</div><Lignes ls={d.identite} chemin="identite" /></div>
-      <div><div className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }}>Économie de la signature</div><Lignes ls={d.economie} chemin="economie" valeurCouleur={(k) => (k === 1 ? "var(--pb-sauge)" : undefined)} /></div>
-    </div>
-  ),
-  photos: () => (
-    <div style={{ height: "100%", padding: 12, display: "grid", gridTemplateColumns: "1.7fr 1fr", gridTemplateRows: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-      <Photo chemin={"photos.0"} style={{ gridRow: "1 / 3", borderRadius: 18 }} vide="[Photo 1]" />
-      <Photo chemin={"photos.1"} style={{ borderRadius: 18 }} vide="[Photo 2]" />
-      <Photo chemin={"photos.2"} style={{ borderRadius: 18 }} vide="[Photo 3]" />
-    </div>
-  ),
-  bail: ({ d, set }) => (
+    );
+  },
+  bail: ({ d, set, styles }) => (
     <div style={{ height: "100%", padding: "26px 36px", display: "flex", flexDirection: "column", fontSize: 15 }}>
-      {(d.points || []).map((p, k) => (
-        <div key={k} className="pb-item" style={{ flex: "1 1 0", display: "grid", gridTemplateColumns: "34px 220px 1fr", alignItems: "center", borderTop: k ? "1px solid var(--pb-filet-doux)" : undefined }}>
-          <span className="pb-sauge" style={{ fontSize: 13 }}>{String(k + 1).padStart(2, "0")}</span>
+      {rangs(styles, d.points, "points").map((k, n) => (
+        <div key={k} className="pb-item" style={{ flex: "1 1 0", display: "grid", gridTemplateColumns: "34px 220px 1fr", alignItems: "center", borderTop: n ? "1px solid var(--pb-filet-doux)" : undefined }}>
+          <span className="pb-sauge" style={{ fontSize: 13 }}>{String(n + 1).padStart(2, "0")}</span>
           <Champ chemin={`points.${k}.titre`} className="pb-gris" />
           <Champ chemin={`points.${k}.valeur`} />
           <Retirer onClick={() => set(`points.${k}`, null)} style={{ right: -30, top: "calc(50% - 13px)" }} />
@@ -264,9 +281,13 @@ const CARTES = {
       <Ajouter onClick={() => set("points.+", { titre: "Nouveau point", valeur: "[À compléter]" })} style={{ left: 36, bottom: 6 }} mot="Point" />
     </div>
   ),
-  enseignes: ({ d }) => (
-    <div style={{ height: "100%", padding: 32, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gridTemplateRows: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-      {(d.enseignes || []).slice(0, 6).map((e, k) => {
+  enseignes: ({ d, styles }) => {
+    const ks = rangs(styles, d.enseignes, "enseignes", 6);
+    const colonnes = Math.min(3, Math.max(1, ks.length));
+    return (
+    <div style={{ height: "100%", padding: 32, display: "grid", gridTemplateColumns: `repeat(${colonnes}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${Math.max(1, Math.ceil(ks.length / colonnes))}, minmax(0, 1fr))`, gap: 12 }}>
+      {ks.map((k) => {
+        const e = d.enseignes[k];
         // La sixième tuile reste un emplacement libre, en pointillé, tant qu'elle n'a pas d'enseigne.
         const libre = k === 5 && /^\[/.test(String(e.nom || "")) && !e.logo;
         return (
@@ -280,10 +301,11 @@ const CARTES = {
         );
       })}
     </div>
-  ),
+    );
+  },
   // Le marché face au local (maquette de Jules, 13 oct. 2026) : pour le prix des murs et pour le loyer, une barre grise
   // (le marché du secteur) et une barre sauge (le local), la valeur au bout, l'écart à droite du titre.
-  marche: ({ d }) => {
+  marche: ({ d, styles }) => {
     // « 2 816 €/m² » → 2816 ; une fourchette (« 387 – 580 €/m²/an ») → son milieu ; une case à remplir → rien.
     const chiffre = (v) => {
       const t = String(v ?? "");
@@ -320,15 +342,15 @@ const CARTES = {
         </div>
       );
     };
-    const murs = bloc("Prix des murs au m²", "marche.murs", "local.prix_m2");
-    const loyer = bloc("Loyer au m² par an", "marche.loyer", "local.loyer_m2");
+    const murs = cache(styles, "marche.murs") ? null : bloc("Prix des murs au m²", "marche.murs", "local.prix_m2");
+    const loyer = cache(styles, "marche.loyer") ? null : bloc("Loyer au m² par an", "marche.loyer", "local.loyer_m2");
     const pastille = (fond) => <span style={{ width: 14, height: 14, borderRadius: 3, background: fond, flex: "none" }} />;
     return (
       <div style={{ height: "100%", padding: "28px 30px 26px", display: "flex", flexDirection: "column" }}>
-        <div className="pb-gris" style={{ display: "flex", alignItems: "center", gap: 26, fontSize: 14.5 }}>
+        {!cache(styles, "legende") && <div className="pb-gris" style={{ display: "flex", alignItems: "center", gap: 26, fontSize: 14.5 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-barre-marche)")}Marché du secteur</span>
           <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-sauge)")}Le local</span>
-        </div>
+        </div>}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-evenly" }}>
           {murs}
           {loyer}
@@ -339,28 +361,32 @@ const CARTES = {
       </div>
     );
   },
-  projection: ({ d }) => {
+  projection: ({ d, styles }) => {
     const barres = d.barres || [];
+    const ks = rangs(styles, d.lignes, "lignes", 4);
     return (
       <div style={{ height: "100%", padding: "28px 36px 32px", display: "flex", flexDirection: "column", gap: 18 }}>
         <div>
-          {(d.lignes || []).slice(0, 4).map((l, k) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, padding: "12px 0", borderTop: k ? "1px solid rgba(242,243,245,.11)" : undefined, borderBottom: k === 3 ? "1px solid var(--pb-filet)" : undefined }}>
+          {ks.map((k, n) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, padding: "12px 0", borderTop: n ? "1px solid rgba(242,243,245,.11)" : undefined, borderBottom: n === ks.length - 1 ? "1px solid var(--pb-filet)" : undefined }}>
               <Champ chemin={`lignes.${k}.label`} className="pb-gris" style={{ fontSize: 14 }} />
               <Champ chemin={`lignes.${k}.valeur`} style={{ fontSize: 34, letterSpacing: "-0.025em", color: k === 3 ? "var(--pb-sauge)" : undefined }} />
             </div>
           ))}
         </div>
-        <div style={{ flex: "1 1 0", minHeight: 0, display: "flex", alignItems: "flex-end", gap: 5 }}>
-          {barres.map((v, k) => <div key={k} className="f-bar" title={`Année ${k + 1}`} style={{ flex: "1 1 0", height: `${Math.max(2, Math.min(100, Number(v) || 0))}%`, borderRadius: "9999px 9999px 0 0", background: k === barres.length - 1 ? "var(--pb-sauge)" : "rgba(242,243,245,.2)" }} />)}
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--pb-gris-fonce)" }}>
-          <span>Année 1</span><Champ chemin={"legende"} /><span>Année {barres.length || 20}</span>
-        </div>
+        {!cache(styles, "barres") && <>
+          <div style={{ flex: "1 1 0", minHeight: 0, display: "flex", alignItems: "flex-end", gap: 5 }}>
+            {barres.map((v, k) => <div key={k} className="f-bar" title={`Année ${k + 1}`} style={{ flex: "1 1 0", height: `${Math.max(2, Math.min(100, Number(v) || 0))}%`, borderRadius: "9999px 9999px 0 0", background: k === barres.length - 1 ? "var(--pb-sauge)" : "rgba(242,243,245,.2)" }} />)}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--pb-gris-fonce)" }}>
+            <span>Année 1</span><Champ chemin={"legende"} /><span>Année {barres.length || 20}</span>
+          </div>
+        </>}
       </div>
     );
   },
-  revenus: ({ d }) => {
+  revenus: ({ d, styles }) => {
+    if (cache(styles, "lignes")) return null;
     const grille = { display: "grid", gridTemplateColumns: ".5fr 1fr 1fr 1fr 1.1fr", alignItems: "center", textAlign: "right" };
     if (!(d.lignes || []).length) return <p className="pb-gris" style={{ margin: 0, padding: 36, fontSize: 14 }}>Loyer ou prix d’acquisition manquant : le tableau se remplit depuis le simulateur du projet.</p>;
     return (
@@ -376,46 +402,50 @@ const CARTES = {
       </div>
     );
   },
-  conditions: ({ d }) => (
-    <div style={{ height: "100%", padding: 32, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gridTemplateRows: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-      {(d.blocs || []).slice(0, 4).map((b, k) => (
+  conditions: ({ d, styles }) => {
+    const ks = rangs(styles, d.blocs, "blocs", 4);
+    return (
+    <div style={{ height: "100%", padding: 32, display: "grid", gridTemplateColumns: `repeat(${ks.length > 1 ? 2 : 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${Math.max(1, Math.ceil(ks.length / 2))}, minmax(0, 1fr))`, gap: 12 }}>
+      {ks.map((k) => (
         <div key={k} className={k === 1 ? "pb-pleine" : k === 0 ? "pb-boite" : "pb-pointillee"} style={{ padding: "22px 26px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <Champ chemin={`blocs.${k}.titre`} style={{ fontSize: 13, letterSpacing: ".14em", textTransform: "uppercase", color: k === 1 ? undefined : "var(--pb-gris)" }} />
           <Champ chemin={`blocs.${k}.valeur`} style={{ fontSize: k < 2 ? 62 : 46, lineHeight: 0.95, letterSpacing: "-0.04em", color: k >= 2 ? "var(--pb-gris)" : undefined }} />
         </div>
       ))}
     </div>
-  ),
-  porteur: ({ d }) => (
-    <div style={{ height: "100%", padding: "32px 36px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-      <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
+    );
+  },
+  porteur: ({ d, styles }) => (
+    <div style={{ height: "100%", padding: "32px 36px", display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
+      {!cache(styles, "experiences") && <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
         <div className="pb-etiquette pb-sauge">Principales expériences</div>
         <Champ chemin={"experiences"} multiligne style={{ marginTop: 8, fontSize: 16, lineHeight: 1.45, color: "var(--pb-clair)" }} />
-      </div>
-      <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
+      </div>}
+      {rangs(styles, d.situation, "situation", 3).length > 0 && <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
         <div className="pb-etiquette pb-sauge">Situation professionnelle</div>
-        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 20 }}>
-          {(d.situation || []).slice(0, 3).map((c, k) => (
+        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: `repeat(${rangs(styles, d.situation, "situation", 3).length}, minmax(0, 1fr))`, gap: 20 }}>
+          {rangs(styles, d.situation, "situation", 3).map((k) => (
             <div key={k}>
               <Champ chemin={`situation.${k}.valeur`} style={{ fontSize: 20, letterSpacing: "-0.015em" }} />
               <Champ chemin={`situation.${k}.label`} className="pb-gris" style={{ marginTop: 2, fontSize: 13 }} />
             </div>
           ))}
         </div>
-      </div>
-      <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
+      </div>}
+      {rangs(styles, d.revenus, "revenus").length > 0 && <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
         <div className="pb-etiquette pb-sauge">Revenus et épargne</div>
         <div style={{ marginTop: 6 }}><Lignes ls={d.revenus} chemin="revenus" /></div>
-      </div>
+      </div>}
     </div>
   ),
-  structuration: ({ d }) => {
+  structuration: ({ d, styles }) => {
     const st = d.structure || {};
     const de = d.detient || {};
     return (
       <div style={{ height: "100%", padding: "32px 36px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ alignSelf: "stretch", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-          {(d.associes || []).slice(0, 2).map((a, k) => (
+        {rangs(styles, d.associes, "associes", 2).length > 0 && <>
+        <div style={{ alignSelf: "stretch", display: "grid", gridTemplateColumns: `repeat(${rangs(styles, d.associes, "associes", 2).length}, minmax(0, 1fr))`, gap: 12 }}>
+          {rangs(styles, d.associes, "associes", 2).map((k) => (
             <div key={k} className="pb-boite" style={{ padding: "18px 22px" }}>
               <div className="pb-etiquette" style={{ color: "var(--pb-gris-fonce)" }}>Associé</div>
               <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, fontSize: 20 }}>
@@ -425,36 +455,39 @@ const CARTES = {
             </div>
           ))}
         </div>
-        <div style={{ alignSelf: "stretch", height: 26, margin: "0 25%", border: "1px solid var(--pb-pointille)", borderTop: 0, borderRadius: "0 0 14px 14px" }} />
-        <div style={{ width: 1, height: 26, background: "var(--pb-pointille)" }} />
-        <div className="pb-pleine" style={{ width: 400, padding: "22px 26px", textAlign: "center" }}>
+        {!cache(styles, "structure") && <>
+          {rangs(styles, d.associes, "associes", 2).length > 1 && <div style={{ alignSelf: "stretch", height: 26, margin: "0 25%", border: "1px solid var(--pb-pointille)", borderTop: 0, borderRadius: "0 0 14px 14px" }} />}
+          <div style={{ width: 1, height: 26, background: "var(--pb-pointille)" }} />
+        </>}
+        </>}
+        {!cache(styles, "structure") && <div className="pb-pleine" style={{ width: 400, padding: "22px 26px", textAlign: "center" }}>
           <Champ chemin={"structure.type"} className="pb-etiquette" />
           <Champ chemin={"structure.nom"} style={{ marginTop: 6, fontSize: 28, letterSpacing: "-0.02em" }} />
           <Champ chemin={"structure.statut"} style={{ marginTop: 4, fontSize: 13.5 }} />
-        </div>
-        <div style={{ width: 1, height: 32, background: "var(--pb-pointille)" }} />
-        <div style={{ width: 400, padding: "18px 22px", borderRadius: 20, border: "1px solid var(--pb-filet)", textAlign: "center" }}>
+        </div>}
+        {!cache(styles, "structure") && !cache(styles, "detient") && <div style={{ width: 1, height: 32, background: "var(--pb-pointille)" }} />}
+        {!cache(styles, "detient") && <div style={{ width: 400, padding: "18px 22px", borderRadius: 20, border: "1px solid var(--pb-filet)", textAlign: "center" }}>
           <Champ chemin={"detient.titre"} className="pb-etiquette" style={{ color: "var(--pb-gris-fonce)" }} />
           <Champ chemin={"detient.adresse"} style={{ marginTop: 6, fontSize: 18 }} />
           <Champ chemin={"detient.loue"} className="pb-gris" style={{ marginTop: 4, fontSize: 13.5 }} />
-        </div>
+        </div>}
       </div>
     );
   },
-  merci: ({ d }) => (
+  merci: ({ styles }) => (
     <div style={{ height: "100%", padding: 36, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
       <img src="/logo-klocka-presentation.png" alt="Klocka" style={{ width: 260 }} draggable={false} />
       <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
         <Photo chemin={"photo"} style={{ flex: "0 0 120px", height: 120, borderRadius: 9999 }} vide="[Photo]" />
-        <div><div className="pb-etiquette pb-sauge">Contact</div><Champ chemin={"porteur"} style={{ marginTop: 6, fontSize: 36, letterSpacing: "-0.025em" }} /></div>
+        {!cache(styles, "porteur") && <div><div className="pb-etiquette pb-sauge">Contact</div><Champ chemin={"porteur"} style={{ marginTop: 6, fontSize: 36, letterSpacing: "-0.025em" }} /></div>}
       </div>
-      <div style={{ fontSize: 17 }}>
+      {!cache(styles, "coordonnees") && <div style={{ fontSize: 17 }}>
         {[["telephone", "Téléphone"], ["email", "E-mail"]].map(([cle, mot]) => (
           <div key={cle} style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderTop: "1px solid var(--pb-filet)" }}>
             <span className="pb-gris">{mot}</span><Champ chemin={cle} />
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   ),
 };
@@ -472,8 +505,10 @@ function Etoiles({ n, sur = 5 }) {
   );
 }
 
-function Flux() {
-  const { d } = useContext(Diapo);
+function Flux({ seul = false }) {
+  const { d, styles } = useContext(Diapo);
+  const colonnes = [["pieton", "Flux piéton"], ["voiture", "Flux voiture"]].filter(([cle]) => !cache(styles, `flux.${cle}`));
+  if (!colonnes.length) return null;
   const colonne = (cle, titre) => (
     <div style={{ minWidth: 0 }}>
       <div className="pb-etiquette pb-sauge">{titre}</div>
@@ -490,9 +525,8 @@ function Flux() {
     </div>
   );
   return (
-    <div style={{ position: "absolute", left: 18, right: 18, bottom: 18, zIndex: 2, borderRadius: 18, padding: "14px 20px", background: "rgba(18, 19, 18, 0.9)", border: "1px solid var(--pb-filet)", backdropFilter: "blur(8px)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
-      {colonne("pieton", "Flux piéton")}
-      {colonne("voiture", "Flux voiture")}
+    <div style={{ position: "absolute", left: 18, right: 18, ...(seul ? { top: "50%", transform: "translateY(-50%)" } : { bottom: 18 }), zIndex: 2, borderRadius: 18, padding: "14px 20px", background: "rgba(18, 19, 18, 0.9)", border: "1px solid var(--pb-filet)", backdropFilter: "blur(8px)", display: "grid", gridTemplateColumns: `repeat(${colonnes.length}, minmax(0, 1fr))`, gap: 28 }}>
+      {colonnes.map(([cle, titre]) => <React.Fragment key={cle}>{colonne(cle, titre)}</React.Fragment>)}
     </div>
   );
 }
@@ -532,7 +566,7 @@ function Heros({ d, rang, total }) {
     <div className="pb-heros-corps">
       <div className="pb-heros-haut">
         <Champ chemin="chapitre" />
-        <span>{rang ? `${String(rang).padStart(2, "0")} — ${total}` : "masquée"}</span>
+        <span className="pb-heros-rang">{rang ? `${String(rang).padStart(2, "0")} — ${total}` : "masquée"}</span>
       </div>
       <div className="pb-heros-bas">
         {d.type === "porteur" && <Photo chemin="heros.photo" style={{ width: 140, height: 140, borderRadius: 9999, background: "transparent", border: "1.5px dashed var(--pb-encre)" }} vide="[Photo]" />}
@@ -568,7 +602,7 @@ function Barre({ d, rang, total, visibles, onAller, onPrecedente, onSuivante }) 
           </button>
         ))}
       </div>
-      <span style={{ fontSize: 13, letterSpacing: ".08em", color: "var(--pb-clair)", whiteSpace: "nowrap" }}>{rang ? `${String(rang).padStart(2, "0")} / ${total}` : "—"}</span>
+      <span className="pb-compteur" style={{ fontSize: 13, letterSpacing: ".08em", color: "var(--pb-clair)", whiteSpace: "nowrap" }}>{rang ? `${String(rang).padStart(2, "0")} / ${total}` : "—"}</span>
       <button type="button" className="pb-fleche" onClick={(e) => { e.stopPropagation(); onPrecedente(); }} aria-label="Diapositive précédente" title="Précédente" style={{ border: "1px solid var(--pb-pointille)", background: "transparent", color: "var(--pb-ivoire)" }}>←</button>
       <button type="button" className="pb-fleche" onClick={(e) => { e.stopPropagation(); onSuivante(); }} aria-label="Diapositive suivante" title="Suivante" style={{ background: "var(--pb-sauge)", color: "var(--pb-encre)", marginLeft: -20 }}>→</button>
       {edition ? null : <span className="pb-touche" aria-hidden>← → au clavier</span>}

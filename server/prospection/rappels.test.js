@@ -153,3 +153,44 @@ test('la remarque Monday : la date et ce que l\'agent a dit, ni qui a appelé ni
     "08/10/2026 · L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines.");
   assert.equal(ligneDeRemarque({ jour: '2026-10-08', issue: 'Pas intéressé', ne_plus_appeler: true }), '08/10/2026 · Ne plus appeler · Pas intéressé');
 });
+
+test("rappel d'un autre interlocuteur : « Contact modifié », son nom, son numéro et son email remplacent ceux de la ligne Monday", async () => {
+  const MO = await import('./monday-agents.js');
+  const cols = MO.colonnesParTitre(MO.COLONNES_DU_TABLEAU);
+  const ligne = { id: '1', nom: 'Sophie Martin', prenom: 'Sophie', telephone: '+33611111111', emails: ['sophie@valoris.fr'], entreprise: 'Valoris Real Estate' };
+  const base = { agence: 'Valoris Real Estate', contact: 'Florian Donzel', telephone: '06 22 33 44 55', email: 'florian@valoris.fr', dernier_contact: '2026-10-13' };
+  const v = MO.valeursPour(ligne, cols, { ...base, remplacer: { contact: 'Florian Donzel', telephone: '06 22 33 44 55', email: 'florian@valoris.fr' } });
+  assert.equal(v.contact_modifie, true);
+  assert.equal(v.valeurs.name, 'Florian Donzel');
+  const titres = Object.fromEntries(v.apercu.map((x) => [x.titre, x]));
+  assert.equal(titres.Contact.avant, 'Sophie Martin');
+  assert.equal(titres['Prénom'].apres, 'Florian');
+  assert.equal(R_norm(titres['Téléphone'].apres), '0622334455');
+  assert.equal(titres['E-mail'].apres, 'florian@valoris.fr');
+  // Un appel sortant ordinaire ne touche pas un contact déjà là.
+  const s = MO.valeursPour(ligne, cols, base);
+  assert.equal(s.contact_modifie, false);
+  assert.equal(s.valeurs.name, undefined);
+  // Le même interlocuteur qui rappelle : rien ne change.
+  assert.equal(MO.valeursPour(ligne, cols, { ...base, remplacer: { contact: 'Sophie Martin', telephone: '06 11 11 11 11', email: 'sophie@valoris.fr' } }).contact_modifie, false);
+});
+
+test("le numéro appelé ne remplace jamais celui de la ligne : seul un numéro entendu ou noté compte", async () => {
+  const MA = await import('./mode-appel.js');
+  const d = MA.donneesMonday({ appel: { le: '2026-10-13T10:00:00Z', rappel_entrant: true, compris: { champs: { interlocuteur: { valeur: 'Florian Donzel' }, telephone: { valeur: '05 57 00 00 00', appele: true } } } }, agence: { nom: 'Valoris Real Estate' }, fiche: null, issue: 'pas_de_murs', user: MAXIME });
+  assert.equal(d.remplacer.contact, 'Florian Donzel');
+  assert.equal(d.remplacer.telephone, null);
+  assert.equal(MA.donneesMonday({ appel: { le: '2026-10-13T10:00:00Z', compris: {} }, agence: { nom: 'X' }, fiche: null, issue: 'pas_de_murs', user: MAXIME }).remplacer, undefined, 'un appel sortant ne remplace rien');
+});
+
+test("chercher à plusieurs mots, et les appels déjà faits par l'équipe : un clic retrouve l'agence qu'il rappelle", () => {
+  const f = Records.create('AgentImmo', { nom: 'Sophie Martin', agence: 'Valoris Real Estate', ville: 'Antibes', telephones: ['0493112233'] });
+  assert.ok(RP.chercher('Valoris immobilier').some((x) => x.agent_id === f.id), '« immobilier » ne compte pas, « Valoris » suffit');
+  const quand = new Date(MAINTENANT.getTime() - 3600000).toISOString();
+  Records.create('AppelAgent', { agent_id: f.id, agent: f.nom, par: MAXIME.email, le: quand, issue: 'pas_de_reponse', numero: '04 93 11 22 33', etat: 'valide' });
+  const faits = RP.appelsFaits('valoris', { maintenantD: MAINTENANT });
+  assert.equal(faits[0].agent_id, f.id);
+  assert.match(faits[0].raison, /appelé par .* aujourd'hui à .*pas de réponse/i);
+  assert.equal(RP.appelsFaits('2233', { maintenantD: MAINTENANT })[0].agent_id, f.id, 'par les derniers chiffres');
+  assert.equal(RP.appelsFaits('inconnue', { maintenantD: MAINTENANT }).length, 0);
+});

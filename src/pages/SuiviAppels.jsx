@@ -57,11 +57,28 @@ const COLONNES = [
 ];
 
 function DetailAppel({ x }) {
+  // Validé ou non, à la main (13 oct. 2026, Jules) : seul l'état change, rien n'est envoyé ni écrit ailleurs.
+  const queryClient = useQueryClient();
+  const marquer = useMutation({
+    mutationFn: (valide) => base44.request("POST", `/api/monitoring/appels/${x.id}/validation`, { body: { valide } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["suivi-appels"] }),
+  });
+  const valide = x.etat === "valide";
   const ligne = "grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] gap-4 border-t border-trait py-2.5 text-[13px] max-md:grid-cols-1 max-md:gap-1";
   const v = x.validation;
   const m = x.mesure_ak;
   return (
     <div className="flex flex-col bg-relief/30 px-4 pb-3 pt-1">
+      <div className={ligne}><span className="text-ardoise">État</span>
+        <span className="flex flex-wrap items-center gap-3">
+          <span className={valide ? "text-craie" : "text-ambre"}>{valide ? "Validé" : "Pas validé"}{x.validation_main ? <span className="text-brume"> · à la main par {String(x.validation_main.par || "").split("@")[0]} le {new Date(x.validation_main.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span> : null}</span>
+          <button type="button" onClick={() => marquer.mutate(!valide)} disabled={marquer.isPending}
+            className="inline-flex h-7 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+            {marquer.isPending && <Loader2 className="h-3 w-3 animate-spin" />}{valide ? "Marquer non validé" : "Marquer validé"}
+          </button>
+          <span className="text-[12px] text-brume">Seul l'état change : rien n'est envoyé ni écrit dans Monday.</span>
+        </span>
+      </div>
       <div className={ligne}><span className="text-ardoise">Résumé</span><span className="text-encre">{x.resume || "—"}</span></div>
       {x.issue_proposee && x.issue_proposee !== x.issue && <div className={ligne}><span className="text-ardoise">Issue</span><span className="text-encre">AK proposait « {x.issue_proposee} », changée en « {x.issue} »</span></div>}
       {x.citations.length > 0 && (
@@ -308,7 +325,7 @@ export default function SuiviAppels() {
                         <span className="min-w-0 truncate text-craie">{x.issue}{x.issue_proposee && x.issue_proposee !== x.issue ? <span className="text-ambre"> (changée)</span> : null}</span>
                         <span className="tabular-nums text-ardoise">{x.duree_s ? dureeLisible(x.duree_s) : "—"}</span>
                         <span className="text-ardoise">{x.enregistre == null ? "—" : x.enregistre ? "Oui" : "Non"}{x.notes ? " · notes" : ""}</span>
-                        <span className={x.etat === "valide" ? "text-craie" : "text-ambre"}>{x.etat === "valide" ? (x.validation ? (x.validation.depuis_fenetre ? "Fenêtre" : "Page") : "Validé") : "Pas validé"}</span>
+                        <span className={x.etat === "valide" ? "text-craie" : "text-ambre"}>{x.etat === "valide" ? (x.validation_main?.a === "valide" ? "À la main" : x.validation ? (x.validation.depuis_fenetre ? "Fenêtre" : "Page") : "Validé") : "Pas validé"}</span>
                         <span className="text-ardoise">{!x.mesure_ak ? "—" : !x.mesure_ak.propose_par_ak ? "Tapée" : x.mesure_ak.corrige ? <span className="text-ambre">Corrigé</span> : "Juste"}</span>
                         <ChevronDown className={`h-3.5 w-3.5 text-brume transition-transform ${ouvert === x.id ? "rotate-180" : ""}`} />
                       </button>

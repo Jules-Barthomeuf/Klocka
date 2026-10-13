@@ -215,3 +215,37 @@ test("un bien et un mandat annoncé : la fiche commerciale seule, et deux relanc
   assert.equal(comprisDe({ ...lu, demande_documents: 'documents' }, { issue: 'a_des_murs', maintenant: MERCREDI }).demande, 'documents');
   assert.equal(comprisDe({ ...lu, citations: { biens: lu.citations.biens } }, { issue: 'a_des_murs' }).champs.mandat, undefined, 'sans phrase, pas de mandat');
 });
+
+test("13 oct. : appeler associe l'agence à celui qui appelle ; un appel compte par son agence ; « Message laissé » ouvre les actions", async () => {
+  const { ag } = ville('Menton');
+  const IA = await import('./agent-ia.js');
+  const p = await IA.pourAppeler(ag.id, {}, nora);
+  assert.equal(p.ok, true);
+  assert.deepEqual(Records.get('AgenceProspect', ag.id).pour, [nora.email], 'qui appelle quoi : la ligne est à Nora');
+  // Un appel posé sur l'agence, sans la fiche du carnet : elle n'est plus « jamais contactée ».
+  const { ag: autre } = ville('Monaco');
+  Records.create('AppelAgent', { agence_id: autre.id, agent_id: 'fiche-inconnue', par: nora.email, le: MERCREDI.toISOString(), issue: 'pas_de_reponse', etat: 'valide' });
+  const [lu] = MA.annoter([Records.get('AgenceProspect', autre.id)], MERCREDI);
+  assert.equal(lu.statut.appelee, true);
+  assert.notEqual(lu.statut.etat, 'jamais');
+  const r = await MA.noterIssue({ agence_id: ag.id, agent_id: p.agent_id, issue: 'repondeur', user: nora });
+  assert.equal(r.ok, true);
+  assert.equal(r.simple, false, 'message laissé : les actions proposées, pas une validation d\'office');
+});
+
+test("13 oct. : sans nom, la case Contact de Monday prend le nom de l'agence, remplacé dès qu'un nom arrive", async () => {
+  const MO = await import('./monday-agents.js');
+  const cols = MO.colonnesParTitre(MO.COLONNES_DU_TABLEAU);
+  assert.equal(MO.valeursPour(null, cols, { agence: 'Riviera Commerce' }).valeurs.name, 'Riviera Commerce');
+  const v = MO.valeursPour({ id: '1', nom: 'Riviera Commerce', entreprise: 'Riviera Commerce' }, cols, { agence: 'Riviera Commerce', contact: 'Paul Durand' });
+  assert.equal(v.valeurs.name, 'Paul Durand');
+});
+
+test("13 oct. : le Suivi marque un appel validé ou non à la main, sans rien envoyer", async () => {
+  const S = await import('./suivi-appels.js');
+  const x = Records.create('AppelAgent', { agence_id: null, agent_id: null, par: nora.email, le: MERCREDI.toISOString(), issue: 'pas_de_murs', etat: 'a_valider' });
+  assert.equal(S.marquerValidation(x.id, true, nora).etat, 'valide');
+  assert.equal(Records.get('AppelAgent', x.id).validation_main.at(-1).par, nora.email);
+  assert.equal(S.marquerValidation(x.id, false, nora).etat, 'a_valider');
+  assert.equal(S.marquerValidation('rien', true, nora).ok, false);
+});

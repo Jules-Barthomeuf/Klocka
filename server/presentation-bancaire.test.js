@@ -105,6 +105,20 @@ test("l'éditeur remplace une diapositive et change l'ordre, sans changer son ty
   assert.equal(P.modifierPresentation(id, { tout: [] }).ok, false);
 });
 
+test('masquer une partie entière : styles.<partie>.masque, puis la réafficher', async () => {
+  const { estMasque } = await import('../src/lib/presentation-modele.js');
+  const d = { id: 'emplacement', type: 'emplacement', flux: { pieton: { densite: 'Élevée' }, voiture: { densite: 'Faible' } } };
+  const r = P.poserChemin(d, 'styles.flux.voiture.masque', true);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.diapo.styles, { 'flux.voiture': { masque: true } });
+  assert.equal(r.diapo.flux.voiture.densite, 'Faible', 'rien n\'est effacé');
+  assert.equal(estMasque(r.diapo.styles, 'flux.voiture.basse'), true, 'la partie emporte ses champs');
+  assert.equal(estMasque(r.diapo.styles, 'flux.pieton.basse'), false);
+  assert.equal(P.poserChemin(d, 'styles.carte.masque', true).ok, true, 'la carte est une partie, même sans champ');
+  assert.deepEqual(P.poserChemin(r.diapo, 'styles.flux.voiture.masque', false).diapo.styles, {}, 'réaffichée');
+  assert.match(P.poserChemin(d, 'styles.nulle.masque', true).error, /Partie inconnue.*flux\.voiture/);
+});
+
 test('le PPTX dessine le modèle retouché et saute les diapositives masquées', async () => {
   const { presentation_id: id } = await P.creerPresentation(projet.id, JULES);
   const toutes = await rendrePptx(P.lirePresentation(id).diapos, { titre: 'Essai' });

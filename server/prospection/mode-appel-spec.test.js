@@ -11,6 +11,12 @@ import path from 'path';
 // Jamais le vrai Monday ni la vraie boîte : dotenv ne remplace pas une variable déjà posée.
 process.env.MONDAY_TOKEN = '';
 process.env.MONDAY_BOARD_AGENTS = '';
+// Jamais de vrai modèle non plus (13 oct. 2026) : avec le .env chargé, ce fichier appelait l'IA, et son
+// résultat dépendait de la machine (« pas_de_murs » avec une clé, « autre » sans).
+process.env.LLM_PROVIDER = 'aucun';
+process.env.ANTHROPIC_API_KEY = '';
+process.env.GEMINI_API_KEY = '';
+process.env.GOOGLE_AI_API_KEY = '';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-mode-appel-spec-'));
 const MA = await import('./mode-appel.js');
 const { comprisDe, telephoneValide } = await import('./compris.js');
@@ -190,10 +196,11 @@ test("sans boutons : AK déduit l'issue de la transcription faite en direct, l'�
   assert.equal(vide.appel.issue_tapee, 'pas_de_reponse');
   assert.equal(vide.appel.issue_deduite, true);
   assert.ok(!vide.appel.propositions.some((p) => p.id === 'monday'));
-  // Une conversation : sans modèle ici, AK rend « autre », qui devient « Pas de bien pour l'instant ».
+  // Une conversation : sans modèle ici, AK rend « autre » (plus de repli sur « Pas de bien » depuis le 12 oct.) ;
+  // l'écran des actions s'ouvre quand même, l'issue s'y choisit.
   const parle = await MA.noterIssue({ agence_id: ag.id, issue: 'auto', transcription: "Bonjour, je n'ai rien en murs commerciaux pour le moment, rappelez-moi plus tard dans l'année.", user: nora });
-  assert.equal(parle.appel.issue_tapee, 'pas_de_murs');
-  assert.ok(parle.appel.propositions.some((p) => p.id === 'mail'));
+  assert.equal(parle.simple, false);
+  assert.equal(parle.appel.issue_tapee, 'autre');
   // Changée à la main : l'ancien appel est remplacé, l'écran reste celui des actions.
   const change = await MA.noterIssue({ agence_id: ag.id, issue: 'a_des_murs', remplace: parle.appel.id, transcription: 'Il a un local à vendre.', user: nora });
   assert.equal(change.simple, false);

@@ -131,6 +131,18 @@ export function monterProspection(app) {
     if (!user) return;
     ok(res, { ok: true, remise_a_zero: (await import('../prospection/suivi-appels.js')).remettreAZero(user.email) });
   }));
+  // Le journal des appels, ouvert à toute l'équipe de la Prospection (13 oct. 2026, Jules : « on doit pouvoir
+  // tous le consulter ») : chaque appel, par analyste, avec ses notes et sa transcription. Le Suivi garde ses chiffres.
+  app.get('/api/prospection/journal-appels', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { suiviAppels } = await import('../prospection/suivi-appels.js');
+    const s = suiviAppels({ jours: Math.min(90, Math.max(1, Number(req.query.jours) || 14)), journal: 600 });
+    const champs = ['id', 'le', 'par', 'source', 'etat', 'agence', 'ville', 'interlocuteur', 'issue', 'duree_s', 'notes', 'resume', 'transcription', 'recu'];
+    ok(res, {
+      analystes: s.analystes.filter((a) => a.appels).map((a) => ({ prenom: a.prenom, appels: a.appels })),
+      journal: s.journal.map((x) => Object.fromEntries(champs.map((k) => [k, x[k] ?? null]))),
+    });
+  }));
   // Compte > Mails (13 oct. 2026) : les mails de chacun, à partir de ceux de l'équipe.
   app.get('/api/mes-mails', wrap(async (req, res) => {
     const user = admin(req, res);
@@ -554,6 +566,13 @@ export function monterProspection(app) {
     if (!user) return;
     const r = await (await MA()).renvoyerMail(req.params.id, user);
     if (!r.recu) return refus(res, r);
+    ok(res, r);
+  }));
+  // Le temps après l'appel, mesuré par l'écran (13 oct. 2026).
+  app.post('/api/prospection/mode-appel/appels/:id/temps', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await import('../prospection/suivi-appels.js')).noterTemps(req.params.id, String(req.body?.etape || ''), req.body?.ms);
+    if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
   app.get('/api/prospection/mode-appel/appels/:id/recu', wrap(async (req, res) => {

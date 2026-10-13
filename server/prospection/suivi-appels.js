@@ -70,6 +70,8 @@ export function chiffres(appels, { sessions = [], maintenantD = new Date() } = {
     mails_partis: valides.filter((x) => x.recu?.mail?.etat === 'ok').length,
     monday_ok: valides.filter((x) => x.recu?.monday?.etat === 'ok').length,
     lecture_moyenne_ms: moyenne(appels.map((x) => Number(x.lecture_ms)).filter((n) => n > 0)),
+    // Le temps après l'appel, depuis le raccrochage (13 oct. 2026) : la médiane, et sur combien d'appels.
+    apres_appel: Object.fromEntries(ETAPES_TEMPS.map((k) => { const t = appels.map((x) => x.temps?.[`${k}_ms`]).filter((n) => Number.isFinite(n)); return [k, { mediane_ms: mediane(t), n: t.length }]; })),
     biens: appels.filter((x) => x.issue === 'a_des_murs').length,
     pas_interesses: appels.filter((x) => x.issue === 'pas_interesse').length,
     issues,
@@ -161,6 +163,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
       // Validé ou non à la main dans le Suivi : la dernière fois, par qui.
       validation_main: (x.validation_main || []).at(-1) || null,
       transcription: x.transcription_gardee || null,
+      temps: x.temps || null,
     };
   });
 
@@ -194,4 +197,30 @@ export function marquerValidation(id, valide, user) {
   const main = { par: String(user?.email || '').toLowerCase() || null, le, de: x.etat, a: valide ? 'valide' : 'a_valider' };
   Records.update('AppelAgent', id, { etat: valide ? 'valide' : 'a_valider', valide_le: valide ? x.valide_le || le : null, validation_main: [...(x.validation_main || []), main] });
   return { ok: true, etat: valide ? 'valide' : 'a_valider' };
+}
+
+/**
+ * Le temps après l'appel (13 oct. 2026, Jules : « de raccrocher jusqu'à tout
+ * est préparé ») : mesuré par l'écran, à trois moments depuis le raccrochage :
+ * les actions prêtes, la validation, « Tout est préparé ». Chaque moment se
+ * note une fois ; une mesure hors de 0 à 2 h est ignorée.
+ */
+export const ETAPES_TEMPS = ['pret', 'valide', 'prepare'];
+export function noterTemps(id, etape, ms) {
+  const x = Records.get('AppelAgent', id);
+  if (!x) return { ok: false, error: 'Appel introuvable.' };
+  const n = Math.round(Number(ms));
+  if (!ETAPES_TEMPS.includes(etape) || !Number.isFinite(n) || n < 0 || n > 2 * 3600000) return { ok: false, error: 'Mesure invalide.' };
+  const temps = { ...(x.temps || {}) };
+  if (temps[`${etape}_ms`] == null) temps[`${etape}_ms`] = n;
+  Records.update('AppelAgent', id, { temps });
+  return { ok: true, temps };
+}
+
+/** Pure : la médiane d'une liste de nombres, ou null. */
+export function mediane(xs) {
+  const t = xs.filter((x) => Number.isFinite(x)).sort((a, b) => a - b);
+  if (!t.length) return null;
+  const m = Math.floor(t.length / 2);
+  return t.length % 2 ? t[m] : Math.round((t[m - 1] + t[m]) / 2);
 }

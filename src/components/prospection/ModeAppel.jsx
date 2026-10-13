@@ -824,8 +824,15 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     preLecture.current = { dernier: 0, sig: "", enCours: false };
     setNotes(true); setSimule(false); setEcran("appel"); lancerChrono(); enregistrer();
   };
+  // Le temps après l'appel (13 oct. 2026, Jules) : depuis le raccrochage jusqu'aux actions prêtes, à la validation, à « Tout est préparé ».
+  const finAppel = useRef(null);
+  const noterTemps = (etape, id) => {
+    if (!finAppel.current || !id) return;
+    base44.request("POST", `${API}/appels/${id}/temps`, { body: { etape, ms: Date.now() - finAppel.current } }).catch(() => {});
+  };
   // Au raccrochage : avec la transcription, AK lit l'appel et l'écran d'actions s'ouvre ; sans notes, l'issue se tape.
   const raccrocher = () => {
+    finAppel.current = Date.now();
     clearInterval(chrono.current);
     couperMicro(false);
     if (!notes) { setEcran("issue"); return; }
@@ -836,6 +843,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
   // Message laissé (13 oct. 2026, Jules) : rien à lire, l'issue est posée et les actions proposées s'ouvrent.
   const messageLaisse = () => {
+    finAppel.current = Date.now();
     clearInterval(chrono.current);
     couperMicro(false);
     setIssue("repondeur");
@@ -874,6 +882,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
 
   // --- L'issue -------------------------------------------------------------
   const ouvrirActions = (ap, is) => {
+    noterTemps("pret", ap.id);
     const props = ap.propositions || [];
     setAppel(ap); setIssue(is); setCle(nouvelleCle());
     setCoches(new Set(props.filter((p) => p.coche !== false).map((p) => p.id)));
@@ -931,6 +940,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   };
   // Sans transcription (appel sans notes), l'issue se tape encore.
   const choisirIssue = (is, simple) => {
+    if (!finAppel.current) finAppel.current = Date.now();
     setIssue(is);
     if (!simple) setEcran("analyse");
     noter.mutate({ issue: is, simple });
@@ -970,6 +980,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         return { hors_ligne: true };
       }
     },
+    onMutate: () => noterTemps("valide", appel?.id),
     onSuccess: (r) => {
       if (r.hors_ligne) return suivante("Hors ligne : la validation est gardée et partira une seule fois au retour du réseau");
       if (r.lente) return suivante("La validation est enregistrée, Monday suit : le reçu sera dans le Suivi");
@@ -1007,6 +1018,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     clearInterval(compte.current);
     const ok = [r.monday, r.mail, r.diffusion, r.relance].filter(Boolean);
     setBilan(ok.map((x) => x.texte).join(" · "));
+    noterTemps("prepare", appel?.id);
+    finAppel.current = null;
     setEcran("prepare");
   }, [annulerDans, ecran, aFaire, mailEnRoute]);
   const apresPrepare = () => { if (relances) onSuivante?.(); else suivante(bilan); };

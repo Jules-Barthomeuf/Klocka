@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, Mic, PhoneIncoming, Search, X } from "lucide-react";
+import { ExternalLink, Loader2, Mic, PhoneIncoming, Search, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { versWav } from "@/lib/dictee";
+import { useDictee, versWav } from "@/lib/dictee";
 import { erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
 import MicroEcoute from "@/components/prospection/MicroEcoute";
@@ -118,6 +118,10 @@ export default function RappelEntrant() {
   const idRef = useRef(null);
   const debut = useRef(0);
 
+  // Dicter les notes (13 oct. 2026, Jules), une fois l'appel fini : pendant l'appel, le micro enregistre.
+  const baseDictee = useRef("");
+  const dictee = useDictee({ onTexte: (t) => setNotes([baseDictee.current, t].filter(Boolean).join(baseDictee.current ? " " : "")) });
+  const dicter = () => { if (dictee.ecoute) { dictee.arreter(); return; } baseDictee.current = notes.trim(); dictee.demarrer(); };
   const enCours = useQuery({ queryKey: ["rappels-en-cours"], queryFn: () => base44.request("GET", `${API}/en-cours`), refetchInterval: 60_000, enabled: !ouvert });
 
   // --- L'enregistrement : des morceaux de huit secondes, transcrits pendant l'appel ---------------
@@ -357,7 +361,15 @@ export default function RappelEntrant() {
 
   const zoneNotes = (
     <label className="flex flex-col gap-1.5">
-      <span className={etiquette}>NOTES</span>
+      <span className="flex items-center justify-between gap-2">
+        <span className={etiquette}>NOTES</span>
+        {dictee.supporte && ecran !== "enregistrement" && ecran !== "transcription" && (
+          <button type="button" onClick={(e) => { e.preventDefault(); dicter(); }} aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter les notes"} title={dictee.ecoute ? "Arrêter la dictée" : "Dicter les notes"}
+            className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${dictee.ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={dictee.ecoute ? undefined : { background: "transparent" }}>
+            {dictee.ecoute ? <Square className="h-3 w-3" fill="currentColor" /> : dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+          </button>
+        )}
+      </span>
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => { if (rappel?.id && ecran !== "enregistrement" && notes !== (rappel.notes || "")) garderNotes.mutate(); }} rows={4}
         placeholder="Ce que le micro capte mal : email, numéro, orthographe d'un nom, une précision" className={champ} />
       {(rappel?.notes_avertissements || []).map((x) => <span key={x} className="text-[12.5px] text-ambre">{x}</span>)}

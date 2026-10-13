@@ -686,11 +686,13 @@ export async function prendre(agenceId, user) {
   return { ok: true, agent_id: p.agent_id };
 }
 
-/** Le nom à mettre sur la ligne Monday : l'interlocuteur s'il est sûr (ou corrigé à la main), sinon rien : la case Contact reste vide. */
+/** Le nom à mettre sur la ligne Monday : l'interlocuteur dit pendant l'appel (ou corrigé à la main), sinon rien : la ligne prend le nom de l'agence. */
 const contactSur = (compris, corrige = {}) => {
   if (corrige.interlocuteur != null) return String(corrige.interlocuteur).trim() || null;
   const c = compris?.champs?.interlocuteur;
-  return c && !c.incertain ? String(c.valeur).replace(/^(madame|monsieur)\s+/i, '').trim() : null;
+  // Un nom dit pendant l'appel l'emporte sur le nom de l'agence, même si son orthographe reste à vérifier
+  // (13 oct. 2026, Jules) : il s'affiche dans la case Contact, corrigeable avant de valider.
+  return c?.valeur ? String(c.valeur).split(/[,·(]/)[0].replace(/^(madame|monsieur|mme|m\.)\s+/i, '').trim() || null : null;
 };
 const valeurSure = (compris, cle, corrige = {}) => {
   if (corrige[cle] != null) return String(corrige[cle]).trim() || null;

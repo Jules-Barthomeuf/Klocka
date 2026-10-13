@@ -56,6 +56,9 @@ const COLONNES = [
   ["dernier", "Dernier appel", quand],
 ];
 
+/** « 42 s », « 2 min 05 ». */
+const secondesLisibles = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}`; };
+
 function DetailAppel({ x }) {
   // Validé ou non, à la main (13 oct. 2026, Jules) : seul l'état change, rien n'est envoyé ni écrit ailleurs.
   const queryClient = useQueryClient();
@@ -100,6 +103,7 @@ function DetailAppel({ x }) {
       <div className={ligne}><span className="text-ardoise">Transcription</span>
         {x.transcription ? <span className="max-h-[320px] overflow-y-auto whitespace-pre-line text-craie">{x.transcription}</span> : <span className="text-brume">{x.enregistre ? "Pas gardée (appel d'avant le 13 octobre)" : "Pas d'enregistrement"}</span>}
       </div>
+      {x.temps && <div className={ligne}><span className="text-ardoise">Après l'appel</span><span className="text-craie">{[["pret_ms", "actions prêtes"], ["valide_ms", "validé"], ["prepare_ms", "tout préparé"]].filter(([k]) => x.temps[k] != null).map(([k, t]) => `${t} en ${secondesLisibles(x.temps[k])}`).join(" · ")}, depuis le raccrochage</span></div>}
       {v && <div className={ligne}><span className="text-ardoise">Validation</span><span className="text-craie">{v.depuis_fenetre ? "Depuis la fenêtre des actions" : "Depuis la page"} · {v.vues ?? "?"} étape{(v.vues || 0) > 1 ? "s" : ""} ouverte{(v.vues || 0) > 1 ? "s" : ""} sur {v.etapes}{v.retirees?.length ? ` · retirées : ${v.retirees.join(", ")}` : ""}{v.ajoutees?.length ? ` · ajoutées : ${v.ajoutees.join(", ")}` : ""}{x.annulations ? ` · annulé ${x.annulations} fois` : ""}</span></div>}
       {m && <div className={ligne}><span className="text-ardoise">Corrections d'AK</span><span className="text-craie">{!m.propose_par_ak ? "Issue tapée à la main : AK n'a rien proposé" : !m.corrige ? "Aucune" : [m.issue && "issue changée", m.champs?.length && `champs : ${m.champs.join(", ")}`, m.date && "date retouchée", m.mail && "mail retouché"].filter(Boolean).join(" · ")}</span></div>}
       {x.recu && <div className={ligne}><span className="text-ardoise">Reçu</span><span className="flex flex-col gap-0.5 text-craie">{x.recu.monday && <span>Monday : {x.recu.monday.texte}</span>}{x.recu.mail && <span>Mail : {x.recu.mail.texte}</span>}{x.recu.relance && <span>{x.recu.relance}</span>}</span></div>}
@@ -290,7 +294,7 @@ export default function SuiviAppels() {
               </div>
             </div>
 
-            <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
+            <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-md border border-trait p-4">
                 <h2 className={titreCase}>Issues</h2>
                 {issues.length ? issues.map(([k, n]) => <div key={k} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{({ pas_de_reponse: "Pas de réponse", repondeur: "Répondeur", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien", pas_interesse: "Pas intéressé", agent_prevenu: "Agent prévenu", rien_de_nouveau: "Rien de nouveau" })[k] || k}</span><span className="tabular-nums text-encre">{n}</span></div>) : <p className="m-0 text-[12.5px] text-brume">Aucun appel sur la période.</p>}
@@ -298,6 +302,15 @@ export default function SuiviAppels() {
               <div className="rounded-md border border-trait p-4">
                 <h2 className={titreCase}>Par mode</h2>
                 {data.sources.map((s0) => <div key={s0.cle} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{s0.libelle}</span><span className="tabular-nums text-encre">{s0.appels}</span></div>)}
+              </div>
+              {/* De raccrocher à « Tout est préparé » (13 oct. 2026) : la médiane de chaque moment. */}
+              <div className="rounded-md border border-trait p-4">
+                <h2 className={titreCase}>Après l'appel</h2>
+                {[["pret", "Raccroché → actions prêtes"], ["valide", "Raccroché → validé"], ["prepare", "Raccroché → tout préparé"]].map(([k, t]) => {
+                  const x = e.apres_appel?.[k];
+                  return <div key={k} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{t}</span><span className="tabular-nums text-encre">{x?.mediane_ms != null ? secondesLisibles(x.mediane_ms) : "—"}{x?.n ? <span className="text-brume"> · {x.n}</span> : null}</span></div>;
+                })}
+                <p className="m-0 mt-2 text-[12px] text-brume">Médianes, mesurées depuis le 13 octobre ; le chiffre gris : sur combien d'appels.</p>
               </div>
               <div className="rounded-md border border-trait p-4">
                 <h2 className={titreCase}>Rappels entrants</h2>

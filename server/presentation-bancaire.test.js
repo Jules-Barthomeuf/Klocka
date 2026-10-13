@@ -334,3 +334,13 @@ test('flux autour du local : densité et fourchettes par heure du piéton, densi
   assert.equal(s['flux.voiture.basse'].nature, 'a_remplir');
   assert.equal(f.voiture.haute, undefined, 'pas d\'heure de pointe pour les voitures');
 });
+
+test("tout se modifie : les libellés du modèle (« Associé », « Identité ») se réécrivent ou se vident", () => {
+  const d = { id: 'structuration', type: 'structuration', associes: [{ nom: 'Raphaël BELLIARDO', part: '100 %' }] };
+  const r = P.poserChemin(d, 'associes.0.titre', '');
+  assert.equal(r.ok, true);
+  assert.equal(r.diapo.associes[0].titre, '', 'vidé : « Associé » ne s\'affiche plus');
+  const l = P.poserChemin({ id: 'local', type: 'local' }, 'libelles.identite', 'Le bien');
+  assert.deepEqual(l.diapo.libelles, { identite: 'Le bien' });
+  assert.match(P.poserChemin({ id: 'local', type: 'local' }, 'libelles.nulle', 'x').error, /Libellé inconnu.*libelles\.identite/);
+});

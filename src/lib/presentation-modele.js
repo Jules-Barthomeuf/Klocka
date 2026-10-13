@@ -104,3 +104,19 @@ export function partiesDe(type, chemin) {
   }
   return r;
 }
+
+/**
+ * Les libellés fixes du modèle, modifiables comme le reste (13 oct. 2026,
+ * Jules : « on doit tout pouvoir modifier ») : chacun se garde dans
+ * diapo.libelles[cle] ; absent, c'est le texte du modèle ; vide, il ne
+ * s'affiche plus. Les associés ont le leur, un par tuile (associes.N.titre).
+ */
+export const LIBELLES = {
+  couverture: { porteur: "Porteur du projet", attention: "À l’attention de" },
+  emplacement: { flux_pieton: "Flux piéton", flux_voiture: "Flux voiture", heure_creuse: "Heure creuse", heure_pointe: "Heure de pointe" },
+  local: { identite: "Identité", economie: "Économie de la signature" },
+  marche: { marche_secteur: "Marché du secteur", le_local: "Le local", murs: "Prix des murs au m²", loyer: "Loyer au m² par an", ecart: "Écart :" },
+  porteur: { experiences: "Principales expériences", situation: "Situation professionnelle", revenus: "Revenus et épargne" },
+  structuration: { associe: "Associé" },
+  merci: { contact: "Contact", telephone: "Téléphone", email: "E-mail" },
+};

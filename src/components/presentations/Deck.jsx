@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CARTE, CIBLES_SOMMAIRE, HAUTEUR, LARGEUR, TAILLES, estMasque } from "@/lib/presentation-modele";
+import { CARTE, CIBLES_SOMMAIRE, HAUTEUR, LARGEUR, LIBELLES, TAILLES, estMasque } from "@/lib/presentation-modele";
 import "./presentation-bancaire.css";
 
 // Le deck de la présentation bancaire, sur le « Deck complet » de Jules
@@ -85,12 +85,13 @@ function propsSource(ctx, chemin) {
 }
 
 /** Un texte de la diapositive. En édition : un clic le sélectionne, il se retape sur place ; gardé quand on en sort. */
-function Champ({ chemin, className = "", style = undefined, multiligne = false, as: Balise = "div" }) {
+function Champ({ chemin, className = "", style = undefined, multiligne = false, as: Balise = "div", defaut = null }) {
   const ref = useRef(null);
   const ctx = useContext(Diapo);
   const { d, set, styles, selection, choisir, edition } = ctx;
   const valeur = lire(d, chemin);
-  const texte = String(valeur ?? "");
+  // Un libellé du modèle (`defaut`) tant qu'on ne l'a pas réécrit ; vidé, il disparaît.
+  const texte = String(valeur ?? defaut ?? "");
   const st = styles?.[chemin];
   useLayoutEffect(() => {
     if (ref.current && document.activeElement !== ref.current) ref.current.innerText = texte;
@@ -141,6 +142,14 @@ const Retirer = ({ onClick, style }) => {
   const { edition } = useContext(Diapo);
   return edition ? <button type="button" className="pb-retirer" style={style} onClick={(e) => { e.stopPropagation(); onClick(); }} aria-label="Retirer" title="Retirer">×</button> : null;
 };
+
+/** Un libellé fixe du modèle, modifiable (diapo.libelles[cle]) : vide, il ne s'affiche plus qu'en édition. */
+function Libelle({ cle, className = "", style = undefined, as = "div" }) {
+  const { d, edition } = useContext(Diapo);
+  const defaut = LIBELLES[d.type]?.[cle] ?? "";
+  if (!edition && lire(d, `libelles.${cle}`) === "") return null;
+  return <Champ chemin={`libelles.${cle}`} defaut={defaut} className={className} style={style} as={as} />;
+}
 
 /** Un chiffre et son libellé sous un filet. */
 function Chiffre({ chemin, taille = 30, couleur, labelTaille = 13 }) {
@@ -254,8 +263,8 @@ const CARTES = {
           </div>
         ))}
       </div>}
-      {rangs(styles, d.identite, "identite").length > 0 && <div><div className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }}>Identité</div><Lignes ls={d.identite} chemin="identite" /></div>}
-      {rangs(styles, d.economie, "economie").length > 0 && <div><div className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }}>Économie de la signature</div><Lignes ls={d.economie} chemin="economie" valeurCouleur={(k) => (k === 1 ? "var(--pb-sauge)" : undefined)} /></div>}
+      {rangs(styles, d.identite, "identite").length > 0 && <div><Libelle cle="identite" className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }} /><Lignes ls={d.identite} chemin="identite" /></div>}
+      {rangs(styles, d.economie, "economie").length > 0 && <div><Libelle cle="economie" className="pb-etiquette pb-sauge" style={{ paddingBottom: 8 }} /><Lignes ls={d.economie} chemin="economie" valeurCouleur={(k) => (k === 1 ? "var(--pb-sauge)" : undefined)} /></div>}
     </div>
   ),
   // Trois photos : la grande à gauche, deux à droite ; deux : côte à côte ; une : toute la carte.
@@ -332,8 +341,8 @@ const CARTES = {
       return (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
-            <span style={{ fontSize: 19, letterSpacing: "-0.01em" }}>{titre}</span>
-            <span className="pb-gris" style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>Écart : {ecart}</span>
+            <Libelle cle={titre} as="span" style={{ fontSize: 19, letterSpacing: "-0.01em" }} />
+            <span className="pb-gris" style={{ fontSize: 13.5, whiteSpace: "nowrap", display: "inline-flex", gap: 5 }}><Libelle cle="ecart" as="span" />{ecart}</span>
           </div>
           <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 14 }}>
             {barre(lm, "var(--pb-barre-marche)", cMarche, "var(--pb-clair)")}
@@ -342,14 +351,14 @@ const CARTES = {
         </div>
       );
     };
-    const murs = cache(styles, "marche.murs") ? null : bloc("Prix des murs au m²", "marche.murs", "local.prix_m2");
-    const loyer = cache(styles, "marche.loyer") ? null : bloc("Loyer au m² par an", "marche.loyer", "local.loyer_m2");
+    const murs = cache(styles, "marche.murs") ? null : bloc("murs", "marche.murs", "local.prix_m2");
+    const loyer = cache(styles, "marche.loyer") ? null : bloc("loyer", "marche.loyer", "local.loyer_m2");
     const pastille = (fond) => <span style={{ width: 14, height: 14, borderRadius: 3, background: fond, flex: "none" }} />;
     return (
       <div style={{ height: "100%", padding: "28px 30px 26px", display: "flex", flexDirection: "column" }}>
         {!cache(styles, "legende") && <div className="pb-gris" style={{ display: "flex", alignItems: "center", gap: 26, fontSize: 14.5 }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-barre-marche)")}Marché du secteur</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-sauge)")}Le local</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-barre-marche)")}<Libelle cle="marche_secteur" as="span" /></span>
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-sauge)")}<Libelle cle="le_local" as="span" /></span>
         </div>}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-evenly" }}>
           {murs}
@@ -418,11 +427,11 @@ const CARTES = {
   porteur: ({ d, styles }) => (
     <div style={{ height: "100%", padding: "32px 36px", display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
       {!cache(styles, "experiences") && <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
-        <div className="pb-etiquette pb-sauge">Principales expériences</div>
+        <Libelle cle="experiences" className="pb-etiquette pb-sauge" />
         <Champ chemin={"experiences"} multiligne style={{ marginTop: 8, fontSize: 16, lineHeight: 1.45, color: "var(--pb-clair)" }} />
       </div>}
       {rangs(styles, d.situation, "situation", 3).length > 0 && <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
-        <div className="pb-etiquette pb-sauge">Situation professionnelle</div>
+        <Libelle cle="situation" className="pb-etiquette pb-sauge" />
         <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: `repeat(${rangs(styles, d.situation, "situation", 3).length}, minmax(0, 1fr))`, gap: 20 }}>
           {rangs(styles, d.situation, "situation", 3).map((k) => (
             <div key={k}>
@@ -433,7 +442,7 @@ const CARTES = {
         </div>
       </div>}
       {rangs(styles, d.revenus, "revenus").length > 0 && <div className="pb-filet-haut" style={{ paddingTop: 14 }}>
-        <div className="pb-etiquette pb-sauge">Revenus et épargne</div>
+        <Libelle cle="revenus" className="pb-etiquette pb-sauge" />
         <div style={{ marginTop: 6 }}><Lignes ls={d.revenus} chemin="revenus" /></div>
       </div>}
     </div>
@@ -447,7 +456,7 @@ const CARTES = {
         <div style={{ alignSelf: "stretch", display: "grid", gridTemplateColumns: `repeat(${rangs(styles, d.associes, "associes", 2).length}, minmax(0, 1fr))`, gap: 12 }}>
           {rangs(styles, d.associes, "associes", 2).map((k) => (
             <div key={k} className="pb-boite" style={{ padding: "18px 22px" }}>
-              <div className="pb-etiquette" style={{ color: "var(--pb-gris-fonce)" }}>Associé</div>
+              <Champ chemin={`associes.${k}.titre`} defaut={LIBELLES.structuration.associe} className="pb-etiquette" style={{ color: "var(--pb-gris-fonce)" }} />
               <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, fontSize: 20 }}>
                 <Champ chemin={`associes.${k}.nom`} />
                 <Champ chemin={`associes.${k}.part`} className="pb-sauge" />
@@ -479,12 +488,12 @@ const CARTES = {
       <img src="/logo-klocka-presentation.png" alt="Klocka" style={{ width: 260 }} draggable={false} />
       <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
         <Photo chemin={"photo"} style={{ flex: "0 0 120px", height: 120, borderRadius: 9999 }} vide="[Photo]" />
-        {!cache(styles, "porteur") && <div><div className="pb-etiquette pb-sauge">Contact</div><Champ chemin={"porteur"} style={{ marginTop: 6, fontSize: 36, letterSpacing: "-0.025em" }} /></div>}
+        {!cache(styles, "porteur") && <div><Libelle cle="contact" className="pb-etiquette pb-sauge" /><Champ chemin={"porteur"} style={{ marginTop: 6, fontSize: 36, letterSpacing: "-0.025em" }} /></div>}
       </div>
       {!cache(styles, "coordonnees") && <div style={{ fontSize: 17 }}>
-        {[["telephone", "Téléphone"], ["email", "E-mail"]].map(([cle, mot]) => (
+        {["telephone", "email"].map((cle) => (
           <div key={cle} style={{ display: "flex", justifyContent: "space-between", padding: "13px 0", borderTop: "1px solid var(--pb-filet)" }}>
-            <span className="pb-gris">{mot}</span><Champ chemin={cle} />
+            <Libelle cle={cle} as="span" className="pb-gris" /><Champ chemin={cle} />
           </div>
         ))}
       </div>}
@@ -507,20 +516,20 @@ function Etoiles({ n, sur = 5 }) {
 
 function Flux({ seul = false }) {
   const { d, styles } = useContext(Diapo);
-  const colonnes = [["pieton", "Flux piéton"], ["voiture", "Flux voiture"]].filter(([cle]) => !cache(styles, `flux.${cle}`));
+  const colonnes = [["pieton", "flux_pieton"], ["voiture", "flux_voiture"]].filter(([cle]) => !cache(styles, `flux.${cle}`));
   if (!colonnes.length) return null;
   const colonne = (cle, titre) => (
     <div style={{ minWidth: 0 }}>
-      <div className="pb-etiquette pb-sauge">{titre}</div>
+      <Libelle cle={titre} className="pb-etiquette pb-sauge" />
       {/* La densité à gauche, la note en étoiles jaunes alignée à droite du cadre (13 oct. 2026, Jules). */}
       <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
         <Champ chemin={`flux.${cle}.densite`} style={{ fontSize: 20, letterSpacing: "-0.015em" }} />
         <Etoiles n={d.flux?.[cle]?.etoiles?.note} sur={d.flux?.[cle]?.etoiles?.sur} />
       </div>
       <div style={{ marginTop: 8, fontSize: 13 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderTop: "1px solid var(--pb-filet)" }}><span className="pb-gris">Heure creuse</span><Champ chemin={`flux.${cle}.basse`} /></div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderTop: "1px solid var(--pb-filet)" }}><Libelle cle="heure_creuse" as="span" className="pb-gris" /><Champ chemin={`flux.${cle}.basse`} /></div>
         {/* Pas d'heure de pointe pour le flux voiture (13 oct. 2026, Jules). */}
-        {cle !== "voiture" && <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderTop: "1px solid var(--pb-filet-doux)" }}><span className="pb-gris">Heure de pointe</span><Champ chemin={`flux.${cle}.haute`} /></div>}
+        {cle !== "voiture" && <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderTop: "1px solid var(--pb-filet-doux)" }}><Libelle cle="heure_pointe" as="span" className="pb-gris" /><Champ chemin={`flux.${cle}.haute`} /></div>}
       </div>
     </div>
   );
@@ -575,8 +584,8 @@ function Heros({ d, rang, total }) {
         {h.note !== undefined && <Champ chemin="heros.note" className="pb-note" />}
         {d.type === "couverture" && (
           <div style={{ display: "flex", gap: 28, fontSize: 14, paddingTop: 8 }}>
-            <div><div className="pb-etiquette">Porteur du projet</div><Champ chemin="heros.porteur" style={{ marginTop: 4 }} /></div>
-            <div><div className="pb-etiquette">À l’attention de</div><Champ chemin="heros.banque" style={{ marginTop: 4 }} /></div>
+            <div><Libelle cle="porteur" className="pb-etiquette" /><Champ chemin="heros.porteur" style={{ marginTop: 4 }} /></div>
+            <div><Libelle cle="attention" className="pb-etiquette" /><Champ chemin="heros.banque" style={{ marginTop: 4 }} /></div>
           </div>
         )}
       </div>

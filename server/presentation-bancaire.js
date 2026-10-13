@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records, CHEMIN_UPLOADS } from './db.js';
-import { ordreDuModele, PARTIES, partiesDe } from '../src/lib/presentation-modele.js';
+import { LIBELLES, ordreDuModele, PARTIES, partiesDe } from '../src/lib/presentation-modele.js';
 import { sourcesDesChamps, sourcesEnTexte } from './presentation-sources.js';
 import { secteurGarde } from './projet-secteur.js';
 import { analysePrixEnCache } from './equimmox.js';
@@ -188,6 +188,12 @@ export function poserChemin(diapo, chemin, valeur) {
   }
   const morceaux = String(chemin || '').split('.').filter(Boolean);
   if (!morceaux.length || ['id', 'type'].includes(morceaux[0])) return { ok: false, error: `Chemin interdit : ${chemin}` };
+  // Un libellé du modèle (« libelles.associe », 13 oct. 2026) : il se crée au premier changement.
+  if (morceaux[0] === 'libelles') {
+    if (morceaux.length !== 2 || !(morceaux[1] in (LIBELLES[copie.type] || {}))) return { ok: false, error: `Libellé inconnu : ${chemin}. Libellés de cette diapositive : ${Object.keys(LIBELLES[copie.type] || {}).map((c) => `libelles.${c}`).join(', ') || 'aucun'}.` };
+    copie.libelles = { ...(copie.libelles || {}), [morceaux[1]]: valeur == null ? '' : String(valeur) };
+    return { ok: true, diapo: copie };
+  }
   let o = copie;
   for (let k = 0; k < morceaux.length - 1; k++) {
     const m = Array.isArray(o) ? Number(morceaux[k]) : morceaux[k];
@@ -203,7 +209,8 @@ export function poserChemin(diapo, chemin, valeur) {
     else o[i] = valeur;
     return { ok: true, diapo: copie };
   }
-  if (!(dernier in o) && !['masquee', 'photo', 'styles', 'sources'].includes(dernier)) return { ok: false, error: `Champ inconnu : ${chemin}` };
+  // « titre » : le libellé d'une tuile d'associé (« Associé » par défaut), qui se crée au premier changement.
+  if (!(dernier in o) && !['masquee', 'photo', 'styles', 'sources', 'titre'].includes(dernier)) return { ok: false, error: `Champ inconnu : ${chemin}` };
   o[dernier] = valeur;
   return { ok: true, diapo: copie };
 }
@@ -242,6 +249,8 @@ export function presentationPourAK(id, { ouverte = true } = {}) {
     const masques = Object.entries(styles || {}).filter(([, st]) => st?.masque).map(([c]) => c);
     if (masques.length) champs.elements_masques = masques;
     if (PARTIES[type]) champs.parties = PARTIES[type].map(([c, nom]) => `${c} (${nom})`);
+    // Les libellés fixes du modèle, modifiables comme le reste : le texte affiché, le modèle s'il n'a pas été changé.
+    if (LIBELLES[type]) champs.libelles = Object.fromEntries(Object.entries(LIBELLES[type]).map(([c, def]) => [`libelles.${c}`, champs.libelles?.[c] ?? def]));
     // Le tableau des revenus et les barres : abrégés, ils se recalculent depuis le simulateur.
     if (type === 'revenus') champs.lignes = `${(champs.lignes || []).length} lignes (année, brut, travaux, net, cumul)`;
     if (type === 'projection') champs.barres = `${(champs.barres || []).length} barres`;
@@ -251,7 +260,8 @@ export function presentationPourAK(id, { ouverte = true } = {}) {
   const projet = p.projet_id ? Records.get('Project', p.projet_id) : null;
   const parChamp = sourcesDesChamps(projet, p.diapos || [], { loyerSecteur: loyerDuSecteur(projet), prixMurs: prixDesMurs(projet) });
   if (parChamp.revenus) parChamp.revenus = Object.fromEntries(Object.entries(parChamp.revenus).filter(([c]) => !/^lignes\.([1-9]\d*)\./.test(c)));
-  return `${ouverte ? 'PRÉSENTATION BANCAIRE OUVERTE À DROITE' : 'PRÉSENTATION BANCAIRE'} (presentation_id ${p.id}, « ${p.titre} ») — l'équipe a pu la retoucher, c'est la version à jour :\n${lignes.join('\n')}\nSOURCES CHAMP PAR CHAMP (chemin = valeur affichée : origine, détail, calcul, lien) :\n${sourcesEnTexte(parChamp, p.diapos || [])}\nSIMULATEUR DU PROJET (les chiffres que sa page affiche, recalculés à l'instant depuis l'onglet Simulateur) :\n${simulationEnTexte(projet ? simulationDuProjet(projet) : null)}\nLe simulateur fait foi pour l'apport, le crédit, la mensualité, le cash-flow et la rentabilité : sers-t'en pour compléter ou corriger la présentation (source « Simulateur du projet »), sans demander ces chiffres à l'utilisateur ni lancer de simulation. Si l'apport n'est pas enregistré, dis que c'est celui que le simulateur propose par défaut (15 %).\nMASQUER UNE PARTIE (« masque », « cache », « enlève », « retire », « je ne veux plus voir… ») : cache la partie entière, pas seulement ses chiffres : un changement { diapo, chemin: « styles.<partie>.masque », valeur: true }, la partie prise dans « parties » de la diapositive (« styles.flux.masque » pour les deux flux, « styles.flux.voiture.masque » pour le seul flux voiture, « styles.chiffres.2.masque » pour un seul chiffre). Elle disparaît avec son cadre et ses libellés, le reste prend la place ; rien n'est effacé. Valeur false pour la réafficher (« elements_masques » dit ce qui l'est). Ne vide jamais les valeurs pour cacher, et ne masque pas toute la diapositive (« masquee ») quand on te parle d'une partie.
+  return `${ouverte ? 'PRÉSENTATION BANCAIRE OUVERTE À DROITE' : 'PRÉSENTATION BANCAIRE'} (presentation_id ${p.id}, « ${p.titre} ») — l'équipe a pu la retoucher, c'est la version à jour :\n${lignes.join('\n')}\nSOURCES CHAMP PAR CHAMP (chemin = valeur affichée : origine, détail, calcul, lien) :\n${sourcesEnTexte(parChamp, p.diapos || [])}\nSIMULATEUR DU PROJET (les chiffres que sa page affiche, recalculés à l'instant depuis l'onglet Simulateur) :\n${simulationEnTexte(projet ? simulationDuProjet(projet) : null)}\nLe simulateur fait foi pour l'apport, le crédit, la mensualité, le cash-flow et la rentabilité : sers-t'en pour compléter ou corriger la présentation (source « Simulateur du projet »), sans demander ces chiffres à l'utilisateur ni lancer de simulation. Si l'apport n'est pas enregistré, dis que c'est celui que le simulateur propose par défaut (15 %).\nTOUT SE MODIFIE, LIBELLÉS COMPRIS : un titre ou une étiquette du modèle (« Associé », « Identité », « Contact », « Heure creuse »…) est un champ comme un autre : « libelles.<clé> » de la diapositive (la liste est dans « libelles »), et pour chaque tuile d'associé « associes.N.titre ». Valeur "" pour ne plus l'afficher. Ne réponds jamais qu'un libellé n'est pas modifiable.
+MASQUER UNE PARTIE (« masque », « cache », « enlève », « retire », « je ne veux plus voir… ») : cache la partie entière, pas seulement ses chiffres : un changement { diapo, chemin: « styles.<partie>.masque », valeur: true }, la partie prise dans « parties » de la diapositive (« styles.flux.masque » pour les deux flux, « styles.flux.voiture.masque » pour le seul flux voiture, « styles.chiffres.2.masque » pour un seul chiffre). Elle disparaît avec son cadre et ses libellés, le reste prend la place ; rien n'est effacé. Valeur false pour la réafficher (« elements_masques » dit ce qui l'est). Ne vide jamais les valeurs pour cacher, et ne masque pas toute la diapositive (« masquee ») quand on te parle d'une partie.
 D'OÙ VIENNENT LES CHIFFRES : la liste ci-dessus d'abord, puis le champ « sources » de chaque diapositive. Une question sur l'origine d'un chiffre (« d'où vient le loyer du quartier ? ») : réponds avec cette source, sans rien inventer ; si c'est une estimation de l'IA, dis-le clairement et propose de la vérifier (data_b pour un loyer ou une valeur locative). Un chiffre retouché à la main par l'équipe (différent du projet) : dis qu'il a été saisi à la main ; une ligne marquée ATTENTION le dit. Donne le lien de la source quand il y en a un.`;
 }
 

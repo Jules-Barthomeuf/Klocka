@@ -12,6 +12,7 @@ import jetons from "@/design/jetons.json";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import AccesAdmins from "@/components/compte/AccesAdmins";
+import MesMails from "@/components/compte/MesMails";
 import CommunesAgent from "@/components/mandataire/CommunesAgent";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
@@ -430,6 +431,8 @@ export default function Personnalisation() {
     ["affichage", "Affichage", true],
     ["navigation", "Navigation", !vueClient],
     ["signature", "Signature", admin && !vueClient],
+    // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
+    ["mails", "Mails", admin && !vueClient],
     ["assistant", "Assistant", !vueClient],
     ["habilitations", "Habilitations", vueMandataire],
   ].filter((x) => x[2]);
@@ -570,6 +573,7 @@ export default function Personnalisation() {
       )}
 
       {section === "signature" && <SignatureMails email={user?.email} />}
+      {section === "mails" && <MesMails />}
       {section === "assistant" && <ReglagesAssistant />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       </div>

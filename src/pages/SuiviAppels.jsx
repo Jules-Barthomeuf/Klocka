@@ -94,7 +94,11 @@ function DetailAppel({ x }) {
       {x.pourquoi_relance && <div className={ligne}><span className="text-ardoise">Pourquoi la relance</span><span className="text-craie">{x.pourquoi_relance}</span></div>}
       {x.notes && <div className={ligne}><span className="text-ardoise">Notes tapées</span><span className="whitespace-pre-line text-craie">{x.notes}</span></div>}
       <div className={ligne}><span className="text-ardoise">Enregistrement</span>
-        <span className="text-craie">{x.enregistre == null ? "Non mesuré (avant le 9 oct.)" : x.enregistre ? "Enregistré" : "Sans enregistrement"}{x.duree_s ? ` · ${dureeLisible(x.duree_s)}` : ""}{x.lecture_ms ? ` · lu par AK en ${(x.lecture_ms / 1000).toFixed(1)} s` : ""}. La transcription n'est pas gardée (RGPD).</span>
+        <span className="text-craie">{x.enregistre == null ? "Non mesuré (avant le 9 oct.)" : x.enregistre ? "Enregistré" : "Sans enregistrement"}{x.duree_s ? ` · ${dureeLisible(x.duree_s)}` : ""}{x.lecture_ms ? ` · lu par AK en ${(x.lecture_ms / 1000).toFixed(1)} s` : ""}.</span>
+      </div>
+      {/* La transcription, gardée avec l'appel depuis le 13 oct. 2026 (avant, elle ne l'était pas). */}
+      <div className={ligne}><span className="text-ardoise">Transcription</span>
+        {x.transcription ? <span className="max-h-[320px] overflow-y-auto whitespace-pre-line text-craie">{x.transcription}</span> : <span className="text-brume">{x.enregistre ? "Pas gardée (appel d'avant le 13 octobre)" : "Pas d'enregistrement"}</span>}
       </div>
       {v && <div className={ligne}><span className="text-ardoise">Validation</span><span className="text-craie">{v.depuis_fenetre ? "Depuis la fenêtre des actions" : "Depuis la page"} · {v.vues ?? "?"} étape{(v.vues || 0) > 1 ? "s" : ""} ouverte{(v.vues || 0) > 1 ? "s" : ""} sur {v.etapes}{v.retirees?.length ? ` · retirées : ${v.retirees.join(", ")}` : ""}{v.ajoutees?.length ? ` · ajoutées : ${v.ajoutees.join(", ")}` : ""}{x.annulations ? ` · annulé ${x.annulations} fois` : ""}</span></div>}
       {m && <div className={ligne}><span className="text-ardoise">Corrections d'AK</span><span className="text-craie">{!m.propose_par_ak ? "Issue tapée à la main : AK n'a rien proposé" : !m.corrige ? "Aucune" : [m.issue && "issue changée", m.champs?.length && `champs : ${m.champs.join(", ")}`, m.date && "date retouchée", m.mail && "mail retouché"].filter(Boolean).join(" · ")}</span></div>}

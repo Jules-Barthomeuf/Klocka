@@ -131,6 +131,24 @@ export function monterProspection(app) {
     if (!user) return;
     ok(res, { ok: true, remise_a_zero: (await import('../prospection/suivi-appels.js')).remettreAZero(user.email) });
   }));
+  // Compte > Mails (13 oct. 2026) : les mails de chacun, à partir de ceux de l'équipe.
+  app.get('/api/mes-mails', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, { mails: await (await import('../mails-perso.js')).mesMails(user) });
+  }));
+  app.put('/api/mes-mails/:slug', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await import('../mails-perso.js')).enregistrer(user, req.params.slug, req.body || {});
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.delete('/api/mes-mails/:slug', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await import('../mails-perso.js')).revenir(user, req.params.slug));
+  }));
   app.post('/api/monitoring/appels/:id/validation', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;

@@ -17,8 +17,13 @@ export const MODELES_DE_L_ISSUE = {
   interesse: { defaut: 'presentation-cahier' },
 };
 
-/** Le modèle d'un slug : celui de la base (modifiable depuis la page Mails), sinon celui livré. */
-export async function modele(slug) {
+/** Le modèle d'un slug : la version de la personne (Compte > Mails, 13 oct. 2026), sinon celui de la base (page Mails), sinon celui livré. */
+export async function modele(slug, { par = null } = {}) {
+  if (par) {
+    const { versionDe } = await import('../mails-perso.js');
+    const v = versionDe(par, slug);
+    if (v) { const base = await modele(slug); return { ...(base || { slug }), objet: v.objet, contenu: v.contenu, perso: true }; }
+  }
   const enBase = Records.list('MailTemplate').find((t) => t.slug === slug && !t.archived);
   if (enBase) return enBase;
   const { DEFAULT_TEMPLATES } = await import('../mail.js');

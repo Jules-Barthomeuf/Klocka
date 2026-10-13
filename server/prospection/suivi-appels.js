@@ -160,6 +160,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
       valide_le: x.valide_le || null,
       // Validé ou non à la main dans le Suivi : la dernière fois, par qui.
       validation_main: (x.validation_main || []).at(-1) || null,
+      transcription: x.transcription_gardee || null,
     };
   });
 

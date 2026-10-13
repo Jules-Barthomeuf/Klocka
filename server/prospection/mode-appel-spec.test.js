@@ -54,20 +54,18 @@ test('ce qui a été compris : rien sans sa phrase, les formats vérifiés, la d
 
 test('les modèles : texte fixe, variables remplies, corrections de la spec', () => {
   const murs = DEFAULT_TEMPLATES.find((t) => t.slug === 'demande-documents');
-  // Le canevas de Jules (7 oct. 2026), mot pour mot.
-  assert.match(murs.contenu, /- Diagnostiques \(si déjà faits\)/);
-  assert.match(murs.contenu, /Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés\./);
+  // Réécrite le 13 oct. 2026 dans le ton des canevas : les pièces, puis qui nous sommes.
+  assert.match(murs.contenu, /• Bail commercial/);
   // « Présentation seule » n'est plus livrée (12 oct. 2026) : un seul mail de présentation.
   assert.equal(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation'), undefined);
-  const m = remplirModele(murs, { analyste: 'Nora Lorinquer', salutation: 'Bonjour Madame Martin,', contexte: 'Comme évoqué, le local de la rue de France nous intéresse.' });
-  assert.equal(m.objet, 'Murs commerciaux - Klocka');
-  assert.match(m.corps, /^Bonjour Madame Martin,\n\nComme évoqué, le local de la rue de France nous intéresse\.\n\nPour faire suite/);
-  assert.match(m.corps, /Bien à vous,\n\{signature\}$/);
-  assert.match(m.corps, /\{signature\}$/, "la signature se pose à l'envoi");
+  const m = remplirModele(murs, { analyste: 'Nora Lorinquer', salutation: 'Bonjour Madame Martin,', type_bien: 'les murs d\'une boulangerie', ville: 'Antibes' });
+  assert.equal(m.objet, 'Suite à notre échange – Documents du dossier Antibes');
+  assert.match(m.corps, /^Bonjour Madame Martin,\n\nMerci pour votre temps lors de notre échange téléphonique\.\n\nComme évoqué, afin d'étudier le dossier concernant les murs d'une boulangerie situé à Antibes/);
+  assert.match(m.corps, /Au plaisir de travailler ensemble,\n\{signature\}$/, "la signature se pose à l'envoi");
   // Les deux canevas de Jules du 12 oct. 2026, mot pour mot.
   const pres = remplirModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation-cahier'), { analyste: 'Nora Lorinquer' });
   assert.match(pres.corps, /^Bonjour,\n\nMerci pour votre temps lors de notre échange téléphonique\./);
-  assert.match(pres.corps, /- 70 % : autour de 300 000 €\n- 20 % : entre 300 000 € et 800 000 €\n- 10 % : de 800 000 € à environ 2 M€/);
+  assert.match(pres.corps, /• 70 % : autour de 300 000 €\n• 20 % : entre 300 000 € et 800 000 €\n• 10 % : de 800 000 € à environ 2 M€/);
   assert.match(pres.corps, /Au plaisir de travailler ensemble,\n\{signature\}$/);
   assert.equal(pres.objet, 'Suite à notre échange – Murs commerciaux occupés');
   assert.deepEqual(cahierDuModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation-cahier')), ['70 % : autour de 300 000 €', '20 % : entre 300 000 € et 800 000 €', '10 % : de 800 000 € à environ 2 M€']);
@@ -248,4 +246,37 @@ test("13 oct. : le Suivi marque un appel validé ou non à la main, sans rien en
   assert.equal(Records.get('AppelAgent', x.id).validation_main.at(-1).par, nora.email);
   assert.equal(S.marquerValidation(x.id, false, nora).etat, 'a_valider');
   assert.equal(S.marquerValidation('rien', true, nora).ok, false);
+});
+
+test("13 oct. : ses propres mails (Compte > Mails) passent devant ceux de l'équipe ; revenir efface sa version", async () => {
+  const MP = await import('../mails-perso.js');
+  const { modele } = await import('./modeles-appel.js');
+  const liste = await MP.mesMails(nora);
+  assert.deepEqual(liste.map((m) => m.slug), ['presentation-cahier', 'demande-fiche', 'demande-documents']);
+  assert.equal(liste[0].perso, null);
+  assert.equal(MP.enregistrer(nora, 'presentation-cahier', { objet: 'Notre échange', contenu: '{{salutation}}\n\nMa version.\n{{signature}}' }).ok, true);
+  assert.equal((await modele('presentation-cahier', { par: nora.email })).objet, 'Notre échange');
+  assert.notEqual((await modele('presentation-cahier', { par: 'paul@klocka.immo' })).objet, 'Notre échange', 'chacun la sienne');
+  assert.equal(MP.enregistrer(nora, 'loi', { objet: 'x', contenu: 'y' }).ok, false);
+  MP.revenir(nora, 'presentation-cahier');
+  assert.equal((await modele('presentation-cahier', { par: nora.email })).objet, 'Suite à notre échange – Murs commerciaux occupés');
+});
+
+test("13 oct. : « dernier interlocuteur » seulement si on lui a parlé ; les Remarques Monday sans lignes vides en tête", async () => {
+  const a = { nom: 'Riviera Commerce', telephone: '0493000000' };
+  assert.equal(MA.contactsDe(a, { nom: 'Jean Gérant', telephones: [] }).some((c) => c.source === 'Dernier interlocuteur'), false);
+  assert.equal(MA.contactsDe(a, { nom: 'Jean Gérant', telephones: [], dernier_contact_le: '2026-10-01' }).some((c) => c.source === 'Dernier interlocuteur'), true);
+  const MO = await import('./monday-agents.js');
+  const cols = MO.colonnesParTitre(MO.COLONNES_DU_TABLEAU);
+  const v = MO.valeursPour({ id: '1', nom: 'Paul', remarques: '\n\n​\n01/10/2026 · ancien' }, cols, { agence: 'X', remarque: '13/10/2026 · nouveau' });
+  assert.equal(v.valeurs[cols.remarques.id], '01/10/2026 · ancien\n13/10/2026 · nouveau');
+});
+
+test("13 oct. : « envoyer un mail » dans les notes propose le mail, même après un message laissé", async () => {
+  const { ag } = ville('Cagnes');
+  const r = await MA.noterIssue({ agence_id: ag.id, issue: 'repondeur', notes: 'Message laissé, lui envoyer un mail de présentation', user: nora });
+  assert.equal(r.ok, true);
+  assert.ok(r.appel.propositions.some((p) => p.type === 'mail'), 'le mail de présentation est proposé');
+  const r2 = await MA.noterIssue({ agence_id: ag.id, issue: 'repondeur', notes: 'pas de mail pour lui', user: nora });
+  assert.equal(r2.appel.propositions.some((p) => p.type === 'mail'), false);
 });

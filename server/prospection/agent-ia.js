@@ -166,8 +166,13 @@ function resumeListe(l) {
 export const listes = () => Records.list(LISTE).filter((l) => !l.essai).sort((a, b) => a.ville.localeCompare(b.ville, 'fr')).map(resumeListe);
 
 export function liste(id) {
-  const l = Records.get(LISTE, id);
+  let l = Records.get(LISTE, id);
   if (!l) return null;
+  // Les doublons par numéro se retirent d'eux-mêmes (13 oct. 2026, Jules), au plus toutes les dix minutes par liste.
+  if (l.etat !== 'en_cours' && (!l.doublons_le || Date.now() - Date.parse(l.doublons_le) > 10 * 60000)) {
+    try { reparerListe(id); } catch (e) { console.warn('[agent-ia] doublons :', e?.message || e); }
+    l = Records.update(LISTE, id, { doublons_le: new Date().toISOString() }) || Records.get(LISTE, id);
+  }
   // Un agent du carnet en cours d'appel (verrou tenu) : son agence porte un cadenas.
   const carnet = new Map(Records.list('AgentImmo').map((x) => [x.id, x]));
   const enAppel = (a) => {
@@ -406,6 +411,20 @@ export function reparerListe(listeId) {
   for (const a of tout) {
     const t = normTel(a.telephone);
     if (t) { if (parTel.has(t)) unir(parTel.get(t), a.id); else parTel.set(t, a.id); }
+  }
+  // Le numéro d'une agence qui est celui d'un agent d'une autre ligne : la même agence (13 oct. 2026).
+  for (const a of tout) {
+    for (const x of a.agents || []) {
+      const t = normTel(x.telephone);
+      if (t && parTel.has(t) && parTel.get(t) !== a.id && (!a.telephone || normTel(a.telephone) !== t)) {
+        const autre = tout.find((y) => y.id === parTel.get(t));
+        // Un mobile d'agent partagé par deux vraies agences ne les fond pas : il faut aussi un mot du nom en commun.
+        const mots = new Set(motsDuNom(a.nom, ville));
+        if (autre && motsDuNom(autre.nom, ville).some((m) => mots.has(m))) unir(parTel.get(t), a.id);
+      }
+    }
+  }
+  for (const a of tout) {
     const k = siteComplet(a.site);
     if (k) { if (!parSite.has(k)) parSite.set(k, []); parSite.get(k).push(a); }
   }

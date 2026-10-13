@@ -16,29 +16,34 @@ import { listAccounts } from './email.js';
 
 export const DEFAULT_TEMPLATES = [
   {
+    // Réécrit le 13 oct. 2026 (Jules : « dans les autres cas, le même ton ») : les pièces du dossier, dans le ton des deux canevas du 12 oct.
     slug: 'demande-documents',
-    titre: "Suite d'appel – Demande de documents",
-    description: "Demander les pièces d'un dossier (bail, RCP, PV d'AG, quittances) après un appel.",
-    objet: 'Murs commerciaux - Klocka',
+    titre: "Suite à notre échange – Documents du dossier",
+    description: "Après un appel où l'agent a un bien : les pièces du dossier, dans le ton des canevas.",
+    objet: 'Suite à notre échange – Documents du dossier {{ville}}',
     contenu: `{{salutation}}
 
-Pour faire suite à notre échange téléphonique de ce jour, afin d'approfondir notre analyse nous avons besoin des éléments suivants :
+Merci pour votre temps lors de notre échange téléphonique.
 
-- Bail
-- RCP
-- PV d'AG
-- Quittances
-- Diagnostiques (si déjà faits)
+Comme évoqué, afin d'étudier le dossier concernant {{type_bien}} situé à {{ville}}, pourriez-vous me transmettre les éléments suivants :
 
-Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.
-De plus je vous transmets le cahier des charges de nos clients :
+• Bail commercial
+• Règlement de copropriété
+• Derniers PV d'assemblée générale
+• Dernières quittances de loyer
+• Diagnostics, s'ils sont déjà réalisés
 
-- Type de bien : Murs commerciaux occupés
-- Rendement : 5-7% AEM
-- Budget : 100K-3M
-- Emplacement : N°1 ou n°1 bis
+Il sera étudié rapidement et en toute confidentialité.
 
-Bien à vous,
+Pour rappel, Klocka représente un portefeuille d'investisseurs à la recherche d'actifs en immobilier commercial, exclusivement des murs occupés :
+
+• 70 % : autour de 300 000 €
+• 20 % : entre 300 000 € et 800 000 €
+• 10 % : de 800 000 € à environ 2 M€
+
+Nous intervenons sur mandat de recherche et sommes rémunérés directement par nos clients, sans aucun impact sur vos mandats de vente.
+
+Au plaisir de travailler ensemble,
 {{signature}}`,
   },
   {
@@ -53,7 +58,8 @@ Bien à vous,
 
 Ravi d'avoir échangé avec vous et d'entamer cette collaboration.
 
-Comme évoqué ensemble, je serais ravi de découvrir le dossier concernant {{type_bien}} situé à {{ville}}, lorsque vous aurez un moment pour me le transmettre. Il sera étudié rapidement et en toute confidentialité.
+Comme évoqué ensemble, je serais ravi de découvrir le dossier concernant {{type_bien}} situé à {{ville}}, lorsque vous aurez un moment pour me le transmettre.
+Il sera étudié rapidement et en toute confidentialité.
 
 Pour rappel, Klocka représente un portefeuille d'investisseurs à la recherche d'actifs en immobilier commercial, exclusivement des murs occupés :
 
@@ -61,8 +67,8 @@ Pour rappel, Klocka représente un portefeuille d'investisseurs à la recherche 
 • 20 % : entre 300 000 € et 800 000 €
 • 10 % : de 800 000 € à environ 2 M€
 
-Nous intervenons sur mandat de recherche et sommes rémunérés directement par nos clients, sans aucun impact sur vos mandats de vente. N'hésitez donc pas à nous adresser d'autres biens correspondant à ces critères.
-
+Nous intervenons sur mandat de recherche et sommes rémunérés directement par nos clients, sans aucun impact sur vos mandats de vente.
+N'hésitez donc pas à nous adresser d'autres biens correspondant à ces critères.
 Au plaisir de travailler ensemble,
 {{signature}}`,
   },
@@ -80,13 +86,14 @@ Merci pour votre temps lors de notre échange téléphonique.
 
 Comme évoqué, Klocka représente un portefeuille d'investisseurs à la recherche d'actifs en immobilier commercial, exclusivement des murs occupés. Leurs budgets se répartissent ainsi :
 
-- 70 % : autour de 300 000 €
-- 20 % : entre 300 000 € et 800 000 €
-- 10 % : de 800 000 € à environ 2 M€
+• 70 % : autour de 300 000 €
+• 20 % : entre 300 000 € et 800 000 €
+• 10 % : de 800 000 € à environ 2 M€
 
 Notre fonctionnement est simple : nous intervenons sur mandat de recherche et sommes rémunérés directement par nos clients, sans aucun impact sur vos mandats de vente.
 
-Si vous avez des biens correspondant à ces critères, en portefeuille ou à venir, transmettez-les-moi par retour de mail. Chaque dossier sera étudié rapidement et en toute confidentialité.
+Si vous avez des biens correspondant à ces critères, en portefeuille ou à venir, transmettez-les-moi par retour de mail.
+Chaque dossier sera étudié rapidement et en toute confidentialité.
 
 Au plaisir de travailler ensemble,
 {{signature}}`,
@@ -176,11 +183,30 @@ export function poserCanevas12Oct(liste = Records.list('MailTemplate')) {
   return n;
 }
 
+// Le 13 oct. 2026 (Jules : « templates pas conformes pour Paul ») : les deux canevas remis mot pour mot
+// (puces, retours à la ligne), et la demande de documents réécrite dans leur ton. Une fois.
+const CANEVAS_DU_13_OCT = ['presentation-cahier', 'demande-fiche', 'demande-documents'];
+export function poserCanevas13Oct(liste = Records.list('MailTemplate')) {
+  if (Meta.get('mail.canevas_13_oct')) return 0;
+  let n = 0;
+  for (const slug of CANEVAS_DU_13_OCT) {
+    const modele = DEFAULT_TEMPLATES.find((t) => t.slug === slug);
+    const memes = liste.filter((t) => t.slug === slug && !t.archived).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+    if (!memes.length) { Records.create('MailTemplate', { ...modele, ordre: DEFAULT_TEMPLATES.indexOf(modele), archived: false }); n += 1; continue; }
+    Records.update('MailTemplate', memes[0].id, { titre: modele.titre, description: modele.description, objet: modele.objet, contenu: modele.contenu });
+    for (const x of memes.slice(1)) Records.update('MailTemplate', x.id, { archived: true, archive_pourquoi: 'doublon' });
+    n += 1;
+  }
+  Meta.set('mail.canevas_13_oct', new Date().toISOString());
+  return n;
+}
+
 // Populate the entity on first boot. Safe to call on every start.
 export function ensureMailTemplates() {
   if (Records.count('MailTemplate')) {
     poserCanevas();
     poserCanevas12Oct();
+    poserCanevas13Oct();
     // Un modèle livré après coup (la demande de fiche, 7 oct. 2026) entre une fois.
     const presents = new Set(Records.list('MailTemplate').map((t) => t.slug));
     DEFAULT_TEMPLATES.forEach((t, i) => { if (!presents.has(t.slug)) Records.create('MailTemplate', { ...t, ordre: i, archived: false }); });

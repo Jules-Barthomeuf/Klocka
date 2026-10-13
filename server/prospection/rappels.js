@@ -450,7 +450,7 @@ export async function analyser(id, { remplace = null, titre = null, issue = 'aut
   });
   if (!lu.ok) return lu;
   const propositions = (lu.appel.propositions || []).map((p) => (p.type === 'ne_plus_appeler' ? { ...p, coche: false, toujours: false } : p));
-  Records.update(APPEL, lu.appel.id, { propositions, rappel_id: id, rappel_entrant: true, ...(titre ? { resume: String(titre).slice(0, 600) } : {}) });
+  Records.update(APPEL, lu.appel.id, { propositions, rappel_id: id, rappel_entrant: true, transcription_gardee: String(r.transcription || '').trim().slice(0, 30000) || null, ...(titre ? { resume: String(titre).slice(0, 600) } : {}) });
   Records.update(ENTITE, id, { appel_id: lu.appel.id, notes_analysees: r.notes || '', rien_de_nouveau: false });
   return { ok: true, appel: { ...lu.appel, propositions, rappel_entrant: true }, rappel: vue(Records.get(ENTITE, id)) };
 }
@@ -478,7 +478,7 @@ export async function rienDeNouveau(id, user, { maintenantD = new Date() } = {})
   const retentative = f.prochaine && (/essai \d|sans réponse|message laissé/i.test(f.prochaine.quoi || '') || ['a_rappeler', 'nouveau'].includes(f.statut));
   C.majAgent(f.id, { dernier_contact_le: iso, tentatives: 0, ...(retentative ? { prochaine: { quoi: 'point du mois : a-t-il rentré des murs ?', le: R.ouvre(R.plusJours(R.jourDe(maintenantD), 30)) } } : {}), ...(['a_rappeler', 'nouveau'].includes(f.statut) ? { statut: 'en_discussion' } : {}) });
   C.journal(f.id, { type: 'appel', texte: 'Rappel entrant : rien de nouveau', par: moiDe(user), le: iso });
-  const appel = Records.create(APPEL, { agent_id: f.id, agence_id: r.agence_id, agent: f.nom, par: moiDe(user), le: iso, issue: 'rien_de_nouveau', issue_tapee: 'rien_de_nouveau', resume: 'Rappel entrant : rien de nouveau.', etat: 'valide', valide_le: iso, rappel_id: id, rappel_entrant: true, source: 'rappel', duree_s: r.duree_s || null, enregistre: !!String(r.transcription || '').trim(), notes: r.notes || null });
+  const appel = Records.create(APPEL, { transcription_gardee: String(r.transcription || '').trim().slice(0, 30000) || null, agent_id: f.id, agence_id: r.agence_id, agent: f.nom, par: moiDe(user), le: iso, issue: 'rien_de_nouveau', issue_tapee: 'rien_de_nouveau', resume: 'Rappel entrant : rien de nouveau.', etat: 'valide', valide_le: iso, rappel_id: id, rappel_entrant: true, source: 'rappel', duree_s: r.duree_s || null, enregistre: !!String(r.transcription || '').trim(), notes: r.notes || null });
   await (await import('./relances.js')).apresAppel({ agent_id: f.id, agence_id: r.agence_id, issue: 'rien_de_nouveau', user, maintenantD });
   if (r.appel_id) { const a = Records.get(APPEL, r.appel_id); if (a?.etat === 'a_valider') Records.update(APPEL, a.id, { etat: 'remplace', remplace_par: appel.id }); }
   Records.update(ENTITE, id, { etat: 'valide', appel_id: appel.id, transcription: null, termine_le: iso });

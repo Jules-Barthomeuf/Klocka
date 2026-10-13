@@ -161,7 +161,8 @@ export function valeursPour(ligne, cols, d) {
   if (d.ville && R.norm(avant.ville) !== R.norm(d.ville)) poser('ville', 'Ville', String(d.ville), String(d.ville));
   if (d.agence && !avant.entreprise) poser('entreprise', 'Entreprise', cols.entreprise?.type === 'dropdown' ? { labels: [String(d.agence).slice(0, 100)] } : String(d.agence), String(d.agence).slice(0, 100));
   if (d.remarque && !String(avant.remarques || '').includes(d.remarque)) {
-    const texte = [avant.remarques, d.remarque].filter(Boolean).join('\n');
+    // Les lignes vides en tête (13 oct. 2026, Jules : « des lignes blanches en haut ») ne se recopient plus.
+    const texte = [String(avant.remarques || '').replace(/\u200b/g, '').trim(), d.remarque].filter(Boolean).join('\n');
     poser('remarques', 'Remarques', cols.remarques?.type === 'long_text' ? { text: texte } : texte, d.remarque, `+ ${d.remarque}`, 'contient');
   }
   // Prochaine relance : la date, ou vide pour « Pas intéressé ».

@@ -482,7 +482,8 @@ export function contactsDe(a, fiche = null, place = null) {
   };
   if (place === 0 && a.prioritaire?.nom) ajouter({ nom: a.prioritaire.nom, source: 'Contact donné', telephone: a.prioritaire.telephone });
   if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Monday', telephone: a.monday_connu.telephone || null });
-  if (fiche?.nom && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
+  // « Dernier interlocuteur » seulement si on lui a parlé (13 oct. 2026) : une fiche créée au premier appel porte le nom du gérant.
+  if (fiche?.nom && fiche.dernier_contact_le && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
   for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
   for (const x of (a.agents || []).filter((y) => y.nom).slice(0, 3)) ajouter({ nom: x.nom, source: x.source === 'donné pendant un appel' ? 'Contact donné' : 'Agent', telephone: x.telephone || null });
   const standard = a.telephone || (a.agents || []).find((x) => x.telephone)?.telephone || null;
@@ -507,7 +508,7 @@ export function elementDeFile(a, { place, badge = null, fiche: f = null, ville =
     email: a.email || (a.agents || []).find((x) => x.email)?.email || (f?.emails || [])[0] || null,
     interlocuteurs: [
       ...(place === 0 && a.prioritaire?.nom ? [`${a.prioritaire.nom}${a.prioritaire.telephone ? ` · ${a.prioritaire.telephone}` : ''} (contact donné)`] : []),
-      ...(f?.nom && f.nom !== a.nom ? [`${f.nom} (dernier interlocuteur)`] : []),
+      ...(f?.nom && f.dernier_contact_le && f.nom !== a.nom ? [`${f.nom} (dernier interlocuteur)`] : []),
       ...(a.gerants || []).slice(0, 2).map((g) => `${g.nom}${g.qualite ? `, ${String(g.qualite).toLowerCase()}` : ''}`),
       ...(a.agents || []).filter((x) => x.nom).slice(0, 3).map((x) => `${x.nom}${x.telephone ? ` · ${x.telephone}` : ''}`),
       a.monday_connu?.nom ? `${a.monday_connu.nom} (dans Monday)` : null,
@@ -764,7 +765,10 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Une relance « Bien retenu » ou « Bien refusé » : un appel abouti sans nouveau bien, c'est l'agent prévenu.
   const surUnBien = ['bien_retenu', 'bien_refuse'].includes(motif);
   etape(auto ? "Je lis l'appel et j'en déduis l'issue" : "Je lis l'appel");
-  const lu = await A.analyserAppel({ agent_id: agentId, audio: def0?.simple && !surActions ? null : audio, recit: recit || null, transcription_texte: transcription, issue: auto ? 'auto' : def0.cle, par: user?.email, sans_reponse: !!def0?.simple && !transcription && def0.cle !== 'agent_prevenu', sur_un_bien: surUnBien, entrant });
+  // Les notes tapées se lisent avec la transcription, et l'emportent (13 oct. 2026 : la ligne Monday se créait sans elles).
+  const RP = await import('./rappels.js');
+  const texteLu = !entrant && notes && String(notes).trim() ? RP.texteAAnalyser(transcription, notes) : transcription;
+  const lu = await A.analyserAppel({ agent_id: agentId, audio: def0?.simple && !surActions ? null : audio, recit: recit || null, transcription_texte: texteLu, issue: auto ? 'auto' : def0.cle, par: user?.email, sans_reponse: !!def0?.simple && !transcription && def0.cle !== 'agent_prevenu', sur_un_bien: surUnBien, entrant });
   if (!lu.ok) return lu;
   if (auto) issue = lu.appel.issue;
   etape(`Issue : ${(ISSUES_APPEL[issue]?.titre || R.ISSUES[issue] || issue).toLowerCase()}`);
@@ -780,7 +784,9 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     notes: notes ? String(notes).slice(0, 2000) : null,
     lecture_ms: Date.now() - debutLecture,
   };
-  Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
+  // La transcription se garde avec l'appel (13 oct. 2026, Jules : « un journal d'appels par analyste, les notes, les transcriptions »).
+  const transcriptionGardee = String(transcription || lu.appel.transcription || '').trim().slice(0, 30000) || null;
+  Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, transcription_gardee: transcriptionGardee, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }
   // « Message laissé » (13 oct. 2026, Jules) : pas de lecture, l'écran des actions proposées s'ouvre aussitôt.
   if (def.simple && !surActions && issue !== 'repondeur') {
@@ -812,7 +818,9 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if (monday) actions.push({ id: 'monday', type: 'monday', titre: monday.contact_modifie ? 'Contact modifié' : 'Contact Monday', coche: true, toujours: true, ligne: monday });
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
   const MO = await import('./modeles-appel.js');
-  const choixModele = MO.MODELES_DE_L_ISSUE[issue];
+  // Un mail demandé dans les notes (« envoyer un mail ») : le mail de présentation est proposé, quelle que soit l'issue (13 oct. 2026).
+  const mailDemande = /\b(e-?mail|mail|courriel)\b/i.test(String(notes || '')) && !/\b(pas|ne|sans)\b[^.]{0,20}\b(e-?mail|mail|courriel)/i.test(String(notes || ''));
+  const choixModele = MO.MODELES_DE_L_ISSUE[issue] || (mailDemande && issue !== 'pas_interesse' ? { defaut: 'presentation-cahier' } : null);
   const emailSur = valeurSure(compris, 'email');
   const emailIncertain = !emailSur && compris.champs?.email ? compris.champs.email.valeur : null;
   const destinataire = emailSur || (f?.emails || [])[0] || a.email || emailIncertain || null;
@@ -822,11 +830,12 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     // A un bien : la fiche commerciale seule, sauf si les pièces du dossier ont été demandées.
     const ordre = compris.demande === 'documents' && choixModele.si_documents ? [choixModele.si_documents, choixModele.defaut] : [choixModele.defaut, choixModele.variante];
     for (const slug of [...new Set(ordre.filter(Boolean))]) {
-      const t = await MO.modele(slug);
+      // Ses propres mails d'abord (Compte > Mails, 13 oct. 2026), sinon ceux de l'équipe.
+      const t = await MO.modele(slug, { par: moi });
       // La signature se voit dès l'aperçu : nom, Klocka, adresse.
       // Le mail s'arrête à la formule de politesse (8 oct. 2026) : la signature (la bannière de la boîte) s'ajoute à l'envoi.
-      // La phrase de contexte (« Comme évoqué, le local… ») ne se glisse que dans la demande de documents : le mail Dossier dit déjà le bien.
-      if (t) { const m = MO.remplirModele(t, slug === 'demande-documents' ? vars : { ...vars, contexte: null }); variantes.push({ ...m, corps: sansJetonSignature(m.corps) }); }
+      // Plus de phrase de contexte glissée (13 oct. 2026) : les trois modèles disent le bien par {{type_bien}} et {{ville}}.
+      if (t) { const m = MO.remplirModele(t, { ...vars, contexte: null }); variantes.push({ ...m, corps: sansJetonSignature(m.corps) }); }
     }
     if (variantes.length) {
       const m = variantes[0];

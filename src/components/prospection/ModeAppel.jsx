@@ -242,6 +242,39 @@ function ZoneNotes({ valeur, onChange, nu = false }) {
   );
 }
 
+/**
+ * Les notes après l'appel, sur l'écran des actions (13 oct. 2026, Jules) :
+ * toujours là, à taper ou à dicter ; changées, « Ré-analyser » relance la
+ * lecture d'AK avec elles (un mail demandé dans les notes est proposé).
+ */
+function NotesApres({ valeur, onChange, change, onReanalyser, occupe }) {
+  const base = useRef("");
+  const { supporte, ecoute, demarrer, arreter, finalisation } = useDictee({ onTexte: (t) => onChange([base.current, t].filter(Boolean).join(base.current ? " " : "")) });
+  const dicter = () => { if (ecoute) { arreter(); return; } base.current = String(valeur || "").trim(); demarrer(); };
+  return (
+    <div className={`flex flex-col rounded-[14px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
+      <span className="px-3.5 pt-3 text-[11px] tracking-[.16em] text-brume">NOTES</span>
+      <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={2} aria-label="Notes de l'appel"
+        placeholder="Une précision, « envoyer un mail », un email, une date : AK relit l'appel avec"
+        className="resize-y bg-transparent px-3.5 pt-1.5 text-[14.5px] leading-[1.5] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+      <div className="flex items-center justify-between gap-2 px-2 pb-2">
+        {supporte ? (
+          <button type="button" onClick={dicter} aria-label={ecoute ? "Arrêter la dictée" : "Dicter"} title={ecoute ? "Arrêter la dictée" : "Dicter les notes"}
+            className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={ecoute ? undefined : { background: "transparent" }}>
+            {ecoute ? <Square className="h-3 w-3" fill="currentColor" /> : finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+          </button>
+        ) : <span />}
+        {change && (
+          <button type="button" onClick={onReanalyser} disabled={occupe || ecoute || finalisation}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
+            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Ré-analyser avec les notes
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Le micro : il appelle et prend les notes. */
 function IconeMicro({ taille = 34 }) {
   return (
@@ -1192,11 +1225,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 {voirTranscription && (<>
                 <ChaineRepliee etapes={etapesFinies} />
                 <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} tape />
-                {/* Les notes seulement s'il y en a eu pendant l'appel (9 oct. 2026). */}
-                {String(notesLues || "").trim() && <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} />}
-                {String(notesLues || "").trim() && notesAppel !== notesLues && (
-                  <button type="button" onClick={() => changerIssue("auto")} disabled={noter.isPending} className="self-start rounded-full border border-trait px-4 py-2 text-[14px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Ré-analyser avec les notes</button>
-                )}
                 </>)}
                 </div>
                 <div className="mx-auto flex w-full min-w-0 max-w-[680px] flex-col gap-3">
@@ -1204,6 +1232,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     className={`inline-flex h-8 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] transition-colors ${voirTranscription ? "border-menthe/60 text-menthe" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>
                     <AudioLines className="h-3.5 w-3.5" />Transcription
                   </button>
+                  {/* Les notes, toujours là après l'appel, à taper ou à dicter (13 oct. 2026). */}
+                  <NotesApres valeur={notesAppel} onChange={setNotesAppel} change={String(notesAppel || "").trim() !== String(notesLues || "").trim()} onReanalyser={() => changerIssue("auto")} occupe={noter.isPending} />
                   <SequenceActions appel={appel} agence={a} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
                     relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
                     edits={edits} setEdits={setEdits} onChangerIssue={changerIssue} changementEnCours={noter.isPending} issuesEnPlus={surUnBien ? { agent_prevenu: "Agent prévenu" } : null}

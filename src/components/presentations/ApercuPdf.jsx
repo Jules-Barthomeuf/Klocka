@@ -29,8 +29,9 @@ export default function ApercuPdf({ id, titre = "", onFermer }) {
   }, [onFermer]);
   const nom = `Projet de financement ${titre}`.trim().replace(/[\\/:*?"<>|]/g, "-");
   return createPortal(
-    <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm md:left-[var(--k-barre-largeur,0px)]" onMouseDown={onFermer} role="dialog" aria-modal="true" aria-label="Aperçu du PDF">
-      <div className="flex h-[min(88vh,900px)] w-full max-w-[1200px] flex-col overflow-hidden rounded-[14px] border border-bord-vif bg-rail shadow-[0_18px_40px_rgb(0_0_0/0.22)]" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[85] flex bg-fond md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Aperçu du PDF">
+      {/* Toute la page à droite de la barre latérale : rien du chat ne dépasse (12 oct. 2026, Jules). */}
+      <div className="flex h-full w-full flex-col overflow-hidden bg-rail">
         <div className="flex h-14 flex-none items-center gap-3 border-b border-trait px-5">
           <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">Aperçu du PDF{titre ? <span className="text-ardoise"> · {titre}</span> : null}</span>
           <button type="button" onClick={() => preparer(true)} disabled={etat.charge} title="Refaire le PDF" aria-label="Refaire le PDF"

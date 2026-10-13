@@ -6,7 +6,8 @@ import { Loader2, MoreHorizontal, Pencil, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
-import { BandeauExemples, PastilleExemple, dateCourte, euros } from "@/components/mandataire/kit";
+import { BandeauExemples, PastilleExemple, euros } from "@/components/mandataire/kit";
+import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import EditeurAvis from "@/components/mandataire/EditeurAvis";
 import GenerationDocument, { DocumentTelephone, MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
@@ -213,18 +214,16 @@ export default function MandataireEstimation() {
               <>
               <BandeauExemples liste={estimations} />
               <div className="border-y border-trait">
+                <EnTeteListe droite="Avancement" />
                 {estimations.map((e) => {
                   const i = Math.max(0, ETAPES_LISTE.findIndex(([cle]) => cle === statutDe(e)));
                   const demandeur = e.avis?.demandeur || e.questionnaire?.demandeur;
-                  const detail = [demandeur && !/compléter/.test(demandeur) ? demandeur : null, e.rapport?.prix_bas ? `${euros(e.rapport.prix_bas)} – ${euros(e.rapport.prix_haut)}` : null, dateCourte(majDe(e))].filter(Boolean).join(" · ");
+                  const detail = [demandeur && !/compléter/.test(demandeur) ? demandeur : null, e.rapport?.prix_bas ? `${euros(e.rapport.prix_bas)} – ${euros(e.rapport.prix_haut)}` : null].filter(Boolean).join(" · ");
                   return (
-                    <div key={e.id} className="relative border-t border-trait px-2 py-5 pr-12 first:border-t-0">
-                      <button onClick={() => reprendre(e)} className="flex w-full flex-wrap items-center gap-x-8 gap-y-3 text-left" style={{ background: "transparent" }}>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[16px] text-encre">{e.bien}<PastilleExemple x={e} /></span>
-                          {detail && <span className="mt-1 block truncate text-[13.5px] text-ardoise">{detail}</span>}
-                        </span>
-                        <span className="block w-[260px] flex-none max-md:w-full" aria-label={`Étape ${i + 1} sur ${ETAPES_LISTE.length} : ${ETAPES_LISTE[i][1]}`}>
+                    <LigneDocument key={e.id} onOuvrir={() => reprendre(e)} titre={<>{e.bien}<PastilleExemple x={e} /></>} detail={detail} modifie={majDe(e)}
+                      vignette={<Vignette page bandeau="bg-menthe" titre={e.bien} />} auteur={<Auteur moi />}
+                      droite={(
+                        <span className="block" aria-label={`Étape ${i + 1} sur ${ETAPES_LISTE.length} : ${ETAPES_LISTE[i][1]}`}>
                           <span className="flex items-baseline justify-between text-[14px]">
                             <span className="text-encre">{ETAPES_LISTE[i][1]}</span>
                             <span className="tabular-nums text-ardoise">{i + 1}/{ETAPES_LISTE.length}</span>
@@ -235,9 +234,8 @@ export default function MandataireEstimation() {
                             ))}
                           </span>
                         </span>
-                      </button>
-                      <MenuEstimation e={e} bouton="top-1/2 -translate-y-1/2 right-2" place="top-[calc(50%+14px)] right-1" />
-                    </div>
+                      )}
+                      menu={<MenuEstimation e={e} bouton="top-1/2 -translate-y-1/2 right-2" place="top-[calc(50%+14px)] right-1" />} />
                   );
                 })}
               </div>

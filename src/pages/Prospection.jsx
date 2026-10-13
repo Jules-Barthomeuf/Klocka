@@ -9,6 +9,7 @@ import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/Age
 import MaJournee from "@/components/prospection/MaJournee";
 import ModeAppel from "@/components/prospection/ModeAppel";
 import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
+import AvatarAK from "@/components/AvatarAK";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
 // un agent (il se verrouille à son nom), on enregistre l'appel, et à la fin
@@ -32,7 +33,7 @@ function Pastille({ children, ton = "neutre" }) {
 function Bulle({ children }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="grid h-9 w-9 flex-none place-items-center rounded-full border border-menthe/40 text-[11px] font-semibold tracking-[.06em] text-menthe">AK</span>
+      <AvatarAK />
       <div className="min-w-0 flex-1 whitespace-pre-line rounded-[18px] rounded-tl-[6px] border border-trait bg-fond px-4 py-3 text-[14px] leading-[1.6] text-encre">{children}</div>
     </div>
   );

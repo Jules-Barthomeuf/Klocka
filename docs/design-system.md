@@ -56,6 +56,32 @@ derrière un aperçu (jeton `barre`) prennent la teinte de la barre de
 navigation (`rail`), sinon ils se confondent avec le fond. Posé dans
 `appliquerPrefs` (`src/lib/personnalisation.js`). Décision du 3 oct. 2026.
 
+**Présentation côté client** (13 oct. 2026) : l'équipe l'envoie depuis l'éditeur
+(« Envoyer au client », le client du projet pré-coché, cases à cocher en
+lignes) ; elle apparaît dans la page Présentations du client
+(`MesPresentations`). Ouverte, elle prend tout l'écran : l'éditeur seul, sans
+chat, avec la même pilule Édition / Lecture / Sources, le plein écran,
+« Enregistré automatiquement » sous le titre, un « ? » qui rouvre
+l'explication des modes (montrée une fois à la première visite) et le bouton
+plein menthe « Une question », qui range la question dans le Feedback. Ni PDF
+ni envoi côté client ; ses sources n'ont ni liens internes ni écarts de retouche.
+
+**Flux sur la diapositive Emplacement** (13 oct. 2026) : en bas de la carte,
+un bandeau sombre (`rgba` du fond de carte à 90 %, rayon 18, filet) en deux
+colonnes, Flux piéton et Flux voiture : étiquette sauge, densité en 20 px
+(« Très élevée (5/5) »), puis Heure creuse et Heure de pointe en lignes à filets.
+Une valeur qu'aucune source ne donne s'écrit « Non estimé ».
+
+**Contraste de la barre de chat** (12 oct. 2026) : dans l'écran scindé (chat à
+côté d'un document : `html.k-sans-barre`), la barre de chat et les bulles
+envoyées se posent sur le fond de la page ; avec le noir chaud d'origine elles
+tombaient à 1,10 du fond. Elles prennent alors `--k-barre-ecart-rgb`, la teinte
+de barre écartée du fond jusqu'à un rapport de 1,3 (`ecarterDuFond`,
+`src/lib/personnalisation.js`) : plus claire sur fond sombre, plus foncée sur
+fond clair. Ailleurs (dashboard, accueil d'une page, listes), la barre de chat
+garde la teinte de la barre latérale, telle quelle ; les panneaux en `bg-rail`
+aussi.
+
 **Couleur de la barre** : chacun choisit, dans Compte, la teinte de la barre
 latérale par mode (teintes de `barres` dans `jetons.json`, ou n'importe quelle
 couleur au sélecteur). Tout panneau posé en `bg-rail` la suit : listes de la
@@ -289,6 +315,19 @@ sinon), détail 13 px `ardoise`, prochain envoi 12,5 px `brume`, la choisie
 marquée d'un trait menthe de 2 px à gauche, la corbeille au survol. Décision
 du 12 oct. 2026 (« les petites cases ne vont pas avec le reste »).
 
+**Liste des documents d'une page d'éditeur** (12 oct. 2026, d'après la liste des
+projets de Claude Design) : Présentations, Offres, Estimation et Mandat
+partagent `components/ui/liste-documents.jsx`. Une ligne par document, sous
+des titres de colonnes en 12,5 px `text-brume` (Nom, Modifié, Auteur, et
+Avancement quand la page en a un) : à gauche l'aperçu de 86 × 54 px
+(`Vignette` : la photo de couverture pour une présentation, une page blanche
+à lignes et bandeau pour une lettre, un avis ou un mandat), le titre en 16 px
+`text-encre` et son détail en 13,5 px `text-ardoise`, la date relative (« il y
+a 4 jours », puis « 4 oct. » au-delà de huit jours), l'auteur (`Auteur` :
+pastille d'initiale, « Vous » pour soi), l'avancement à 260 px, le menu ⋯.
+Pas de carte : filets `border-t border-trait`. Une page qui met un bouton de
+plus à droite (le PDF des présentations) donne `reserve` en pixels.
+
 **Présentations bancaires** (12 oct. 2026) : la page Présentations prend
 l'écran scindé d'Offres et du Mandat, avec le chat d'AK à gauche et la
 présentation à droite (`components/presentations/`). Le modèle est le « Deck
@@ -317,6 +356,10 @@ px, gras, italique, alignement, couleur de la palette du deck ou libre,
 opacité, masquer, revenir au modèle). Une mise en forme se garde dans
 `diapo.styles[chemin]` et sort dans le PPTX. Annuler et rétablir (⌘Z) dans la
 barre. La sixième tuile d'enseigne reste en pointillé tant qu'elle est libre.
+Revu le 12 oct. 2026 avec Jules : plus de bouton PPTX (la présentation sort en
+PDF seulement), plus de bouton ni de panneau des diapositives (on feuillette
+dans le deck, l'élément cliqué garde son menu « Styles »), et rien sous le
+titre de la barre, sauf « Enregistrement… » pendant un enregistrement.
 
 **Mode appel** (décision du 7 oct. 2026, qui remplace les boutons d'issue de la
 spec du même jour) : pendant l'appel avec notes, la transcription s'affiche en
@@ -445,8 +488,15 @@ le recopie pas.
 - **Modes** (« Avec le bail », « Sans document ») : pilule à gauche de la
   barre, masquée une fois la conversation lancée. Les skills : un simple lien
   « Connecter un skill » sous le chat, qui ouvre la fenêtre des skills.
-- **Fil** : bulles envoyées en `J.barre`, réponses avec la pastille K, les
+- **Fil** : bulles envoyées en `J.barre`, réponses avec le portrait d'AK, les
   étapes de raisonnement affichées, la dictée disponible partout.
+- **Portrait d'AK** (12 oct. 2026, décidé avec Jules) : partout où AK parle
+  (chats admin et mandataire, Mon assistant, Prospection), le composant
+  `AvatarAK` (`public/avatars/ak.png`, rond, 36 px). Il remplace la pastille K
+  et la pastille « AK » ; ne pas en dessiner d'autre.
+- **Aperçu d'un PDF** (12 oct. 2026, décidé avec Jules) : il prend toute la
+  page à droite de la barre latérale (`ApercuPdf`), sans marge ni fond flouté ;
+  rien du chat ne doit dépasser. Fermer : la croix ou Échap.
 - **Écran scindé** (Estimation, Mandat, Offres), à partir de 1024 px :
   - grille `grid-cols-[minmax(360px,440px)_minmax(0,1fr)]`, `h-[100dvh]` ;
   - la barre latérale s'efface (`html.k-sans-barre`), la page ne défile plus,

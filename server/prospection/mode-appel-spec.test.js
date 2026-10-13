@@ -57,20 +57,28 @@ test('les modèles : texte fixe, variables remplies, corrections de la spec', ()
   // Le canevas de Jules (7 oct. 2026), mot pour mot.
   assert.match(murs.contenu, /- Diagnostiques \(si déjà faits\)/);
   assert.match(murs.contenu, /Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés\./);
-  const seule = remplirModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation'), { analyste: 'Nora Lorinquer' });
-  assert.equal(seule.objet, 'Présentation de notre activité – Klocka');
-  assert.match(seule.corps, /Je suis Nora Lorinquer, analyste/);
-  assert.match(seule.corps, /Je vous souhaite une excellente journée\.\n\nBien cordialement\n\{signature\}$/);
+  // « Présentation seule » n'est plus livrée (12 oct. 2026) : un seul mail de présentation.
+  assert.equal(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation'), undefined);
   const m = remplirModele(murs, { analyste: 'Nora Lorinquer', salutation: 'Bonjour Madame Martin,', contexte: 'Comme évoqué, le local de la rue de France nous intéresse.' });
   assert.equal(m.objet, 'Murs commerciaux - Klocka');
   assert.match(m.corps, /^Bonjour Madame Martin,\n\nComme évoqué, le local de la rue de France nous intéresse\.\n\nPour faire suite/);
   assert.match(m.corps, /Bien à vous,\n\{signature\}$/);
   assert.match(m.corps, /\{signature\}$/, "la signature se pose à l'envoi");
+  // Les deux canevas de Jules du 12 oct. 2026, mot pour mot.
   const pres = remplirModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation-cahier'), { analyste: 'Nora Lorinquer' });
-  assert.match(pres.corps, /^Bonjour,\n/);
-  assert.match(pres.corps, /Je suis Nora Lorinquer, analyste/);
-  assert.equal(pres.objet, 'Présentation de notre activité et cahier des charges – Klocka');
-  assert.deepEqual(cahierDuModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation-cahier')).slice(0, 2), ['Type de bien : murs commerciaux occupés', 'Rendement : 5 % à 7 % AEM']);
+  assert.match(pres.corps, /^Bonjour,\n\nMerci pour votre temps lors de notre échange téléphonique\./);
+  assert.match(pres.corps, /- 70 % : autour de 300 000 €\n- 20 % : entre 300 000 € et 800 000 €\n- 10 % : de 800 000 € à environ 2 M€/);
+  assert.match(pres.corps, /Au plaisir de travailler ensemble,\n\{signature\}$/);
+  assert.equal(pres.objet, 'Suite à notre échange – Murs commerciaux occupés');
+  assert.deepEqual(cahierDuModele(DEFAULT_TEMPLATES.find((t) => t.slug === 'presentation-cahier')), ['70 % : autour de 300 000 €', '20 % : entre 300 000 € et 800 000 €', '10 % : de 800 000 € à environ 2 M€']);
+  const dossier = DEFAULT_TEMPLATES.find((t) => t.slug === 'demande-fiche');
+  const d1 = remplirModele(dossier, { salutation: 'Bonjour Madame Martin,', type_bien: "les murs d'une boulangerie", ville: 'Antibes', contexte: null });
+  assert.equal(d1.objet, 'Suite à notre échange – Dossier Antibes');
+  assert.match(d1.corps, /^Bonjour Madame Martin,\n\nRavi d'avoir échangé avec vous et d'entamer cette collaboration\.\n\nComme évoqué ensemble, je serais ravi de découvrir le dossier concernant les murs d'une boulangerie situé à Antibes, lorsque/);
+  assert.match(d1.corps, /• 70 % : autour de 300 000 €/);
+  const d2 = remplirModele(dossier, {});
+  assert.equal(d2.objet, 'Suite à notre échange – Dossier', 'sans ville, un objet propre');
+  assert.match(d2.corps, /concernant \[type de bien\] situé à \[ville\]/, 'non dits, à compléter');
 });
 
 test("scénarios 2 et 11 : « Pas de bien pour l'instant », un double tap ne fait qu'une validation ; rien d'affirmé sans vérification", async () => {
@@ -82,7 +90,8 @@ test("scénarios 2 et 11 : « Pas de bien pour l'instant », un double tap ne fa
   assert.deepEqual(ids.slice(0, 4), ['monday', 'mail', 'diffusion', 'relance']);
   const mail = r.appel.propositions.find((p) => p.id === 'mail');
   assert.equal(mail.modele, 'presentation-cahier');
-  assert.equal(mail.variantes[1].slug, 'presentation', 'Présentation seule en un clic');
+  assert.equal(mail.variantes.length, 1, 'un seul mail de présentation depuis le 12 oct. 2026');
+  assert.equal(mail.objet, 'Suite à notre échange – Murs commerciaux occupés');
   const choix = r.appel.propositions.filter((p) => p.coche !== false).map((p) => p.id);
   const [v1, v2] = await Promise.all([
     MA.validerIssue({ appel_id: r.appel.id, choix, cle: 'v-1', session_id: s.id, user: nora, issue: 'pas_de_murs' }),

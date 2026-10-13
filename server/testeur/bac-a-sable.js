@@ -8,7 +8,7 @@ import net from 'net';
 import { spawn } from 'child_process';
 import { randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
-import db, { DATA_DIR, Records } from '../db.js';
+import db, { CHEMIN_UPLOADS, DATA_DIR, Records } from '../db.js';
 import { PAGES_EQUIPE } from '../acces-pages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +33,7 @@ export async function copierBase(dossier) {
   fs.mkdirSync(dossier, { recursive: true });
   await db.backup(path.join(dossier, 'klocka.db'));
   // Les uploads sont lus par les pages (photos, pièces) : un lien symbolique suffit, rien n'y sera écrit d'important.
-  const uploads = path.join(DATA_DIR, 'uploads');
+  const uploads = CHEMIN_UPLOADS;
   if (fs.existsSync(uploads)) { try { fs.symlinkSync(uploads, path.join(dossier, 'uploads'), 'dir'); } catch { /* déjà là */ } }
 }
 

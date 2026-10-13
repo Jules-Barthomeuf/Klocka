@@ -1,35 +1,44 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, ExternalLink, Loader2, Maximize2, PanelRight, Redo2, Undo2, Upload, X, FileText } from "lucide-react";
+import { CircleHelp, Loader2, Maximize2, Redo2, Send, Undo2, Upload, X, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import Deck, { poser } from "./Deck";
-import PanneauDeck, { StylesElement } from "./PanneauDeck";
+import { StylesElement } from "./PanneauDeck";
 import ApercuPdf from "./ApercuPdf";
+import FicheSource from "./FicheSource";
 import { ordreDuModele } from "@/lib/presentation-modele";
+import EnvoiClient from "./EnvoiClient";
+import QuestionClient from "./QuestionClient";
+import VisitePresentation, { visiteVue } from "./VisitePresentation";
 
 // La présentation bancaire ouverte, à droite du chat de la page Présentations
 // (12 oct. 2026) : un seul deck de seize diapositives, qu'on feuillette, et à
-// sa droite le panneau de l'atelier, comme pour l'avis de valeur. Deux
-// modes : édition (un clic sur un élément le choisit, le texte se retape sur
-// place, le panneau règle sa mise en forme) et lecture (navigation, cascade,
-// 3D à la souris, plein écran). Le chat retouche la même présentation.
-// Annuler et rétablir reviennent sur chaque geste. PPTX et Google Slides
-// sortent du serveur, mises en forme comprises.
+// l'élément cliqué ouvre son menu « Styles ». Deux modes : édition (un clic
+// sur un élément le choisit, le texte se retape sur place) et lecture
+// (navigation, cascade, 3D à la souris, plein écran). Le chat retouche la même
+// présentation. Annuler et rétablir reviennent sur chaque geste. Elle sort en
+// PDF seulement (12 oct. 2026 : plus de PPTX ni de panneau des diapositives).
 
 const API = "/api/admin/presentations-bancaires";
 
-export default function EditeurPresentation({ id, onFermer, travail = null }) {
+// `client` (13 oct. 2026) : la même présentation ouverte par le client à qui
+// l'équipe l'a envoyée (page Présentations de l'espace client) : sans le chat,
+// les trois modes, le plein écran, « Une question ? » ; ni PDF, ni envoi.
+export default function EditeurPresentation({ id, onFermer, travail = null, client = false }) {
+  const api = client ? "/api/client/presentations" : API;
   const queryClient = useQueryClient();
-  const cle = ["presentation-bancaire", id];
-  const { data, isLoading, error } = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${API}/${id}`), enabled: !!id });
+  const cle = ["presentation-bancaire", id, client ? "client" : "equipe"];
+  const { data, isLoading, error } = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${api}/${id}`), enabled: !!id });
+  const [envoi, setEnvoi] = useState(false);
+  const [question, setQuestion] = useState(false);
+  // La première visite d'un client : l'explication des modes, une fois.
+  const [visite, setVisite] = useState(() => client && !visiteVue());
   const [mode, setMode] = useState("edition");
   const [courante, setCourante] = useState(null);
   const [selection, setSelection] = useState(null);
-  // Le panneau des diapositives est fermé par défaut : la diapositive prend la place, on l'ouvre si on veut (12 oct. 2026).
-  const [panneau, setPanneau] = useState(false);
   const scene = useRef(null);
   // Les gestes faits, pour annuler : chacun garde l'état d'avant (une diapositive, ou l'ordre).
   const passe = useRef([]);
@@ -37,16 +46,17 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
   const [, forcer] = useState(0);
 
   const modifier = useMutation({
-    mutationFn: (corps) => base44.request("PATCH", `${API}/${id}`, { body: corps }),
+    mutationFn: (corps) => base44.request("PATCH", `${api}/${id}`, { body: corps }),
     // La retouche s'affiche tout de suite ; le serveur confirme derrière.
     onMutate: (corps) => {
       const avant = queryClient.getQueryData(cle);
+      if (avant && corps.tout) queryClient.setQueryData(cle, { ...avant, diapos: corps.tout });
       if (avant && corps.diapo) queryClient.setQueryData(cle, { ...avant, diapos: avant.diapos.map((d) => (d.id === corps.diapo.id ? corps.diapo : d)) });
       if (avant && corps.ordre === "modele") queryClient.setQueryData(cle, { ...avant, diapos: ordreDuModele(avant.diapos) });
       else if (avant && corps.ordre) { const par = new Map(avant.diapos.map((d) => [d.id, d])); queryClient.setQueryData(cle, { ...avant, diapos: corps.ordre.map((x) => par.get(x)) }); }
       return { avant };
     },
-    onSuccess: (d) => { queryClient.setQueryData(cle, d); queryClient.invalidateQueries({ queryKey: ["presentations-bancaires"] }); },
+    onSuccess: (d) => { queryClient.setQueryData(cle, d); queryClient.invalidateQueries({ queryKey: ["presentations-bancaires"] }); queryClient.invalidateQueries({ queryKey: ["presentations-client"] }); },
     onError: (e, _c, ctx) => { if (ctx?.avant) queryClient.setQueryData(cle, ctx.avant); toast.error(e?.message || "La retouche n'a pas été gardée"); },
   });
   const changer = (diapo, { memoriser = true } = {}) => {
@@ -56,16 +66,14 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
     }
     modifier.mutate({ diapo });
   };
-  const ordonner = (ordre, { memoriser = true } = {}) => {
-    if (memoriser && data) { passe.current = [...passe.current.slice(-60), { ordre: data.diapos.map((d) => d.id) }]; futur.current = []; forcer((n) => n + 1); }
-    modifier.mutate({ ordre });
-  };
   const rejouer = (geste) => {
     if (geste.diapo) { const actuelle = data?.diapos.find((d) => d.id === geste.diapo.id); modifier.mutate({ diapo: geste.diapo }); return actuelle ? { diapo: actuelle } : null; }
+    // Une retouche d'AK : toute la présentation d'avant, remise d'un coup.
+    if (geste.tout) { const actuelles = data?.diapos; modifier.mutate({ tout: geste.tout }); return actuelles ? { tout: actuelles } : null; }
     if (geste.ordre) { const actuel = data?.diapos.map((d) => d.id); modifier.mutate({ ordre: geste.ordre }); return actuel ? { ordre: actuel } : null; }
     return null;
   };
-  const annuler = () => { const g = passe.current.pop(); if (!g) return; const inverse = rejouer(g); if (inverse) futur.current.push(inverse); forcer((n) => n + 1); };
+  const annuler = () => { const g = passe.current.pop(); if (!g) return; if (g.tout) toast.success("La retouche d'AK est annulée."); const inverse = rejouer(g); if (inverse) futur.current.push(inverse); forcer((n) => n + 1); };
   const retablir = () => { const g = futur.current.pop(); if (!g) return; const inverse = rejouer(g); if (inverse) passe.current.push(inverse); forcer((n) => n + 1); };
   useEffect(() => {
     const clavier = (e) => {
@@ -89,35 +97,6 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
     onError: (e) => toast.error(e?.message || "Reconstruction impossible"),
   });
 
-  // Google Slides : le premier compte Google qui a le Drive.
-  const { data: statutMail } = useQuery({ queryKey: ["mail-status"], queryFn: () => base44.functions.invoke("getMailStatus", {}) });
-  const compteDrive = (statutMail?.accounts || []).find((c) => c.peut_drive)?.id || null;
-  const [export_, setExport] = useState(null);
-  const exporter = async (format) => {
-    if (format === "slides" && !compteDrive) {
-      window.location.href = "/api/auth/google/login?returnTo=" + encodeURIComponent("/Presentations");
-      return;
-    }
-    setExport(format);
-    try {
-      const r = await base44.request("POST", `${API}/${id}/export`, { body: { compte: format === "slides" ? compteDrive : null } });
-      queryClient.invalidateQueries({ queryKey: ["presentations-bancaires"] });
-      if (format === "slides") {
-        if (r.slides_url) window.open(r.slides_url, "_blank", "noopener");
-        else toast.error(`Conversion Slides impossible${r.erreur_slides ? ` : ${r.erreur_slides}` : ""}`);
-      } else {
-        const a = document.createElement("a");
-        a.href = r.pptx_url;
-        a.download = `Projet de financement ${data?.titre || ""}.pptx`.trim();
-        a.click();
-      }
-    } catch (e) {
-      toast.error(e?.message || "Export impossible");
-    } finally {
-      setExport(null);
-    }
-  };
-
   const [pdf, setPdf] = useState(false);
   // Une photo à changer : la diapositive et le chemin de la photo.
   const [photoDe, setPhotoDe] = useState(null);
@@ -137,9 +116,16 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
   // Pendant que le chat travaille, ses étapes à la place du deck, puis il revient.
   const [maj, setMaj] = useState(false);
   const enCours = !!travail?.enCours;
+  // La présentation telle qu'AK l'a trouvée : s'il la change, Annuler (⌘Z) y revient (13 oct. 2026, Jules).
+  const avantAK = useRef(null);
   useEffect(() => {
-    if (enCours) { setMaj(true); return undefined; }
-    queryClient.invalidateQueries({ queryKey: cle });
+    if (enCours) { setMaj(true); avantAK.current = queryClient.getQueryData(cle)?.diapos || null; return undefined; }
+    queryClient.refetchQueries({ queryKey: cle }).then(() => {
+      const avant = avantAK.current;
+      avantAK.current = null;
+      const apres = queryClient.getQueryData(cle)?.diapos;
+      if (avant && apres && JSON.stringify(avant) !== JSON.stringify(apres)) { passe.current = [...passe.current.slice(-60), { tout: avant }]; futur.current = []; forcer((n) => n + 1); }
+    });
     const t = setTimeout(() => setMaj(false), 700);
     return () => clearTimeout(t);
   }, [enCours]);
@@ -147,8 +133,35 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
   const diapos = data?.diapos || [];
   const courantId = diapos.some((d) => d.id === courante) ? courante : diapos.find((d) => !d.masquee)?.id || diapos[0]?.id || null;
   const visibles = diapos.filter((d) => !d.masquee).length;
-  const statut = modifier.isPending ? "Enregistrement…" : data ? `${visibles} diapositive${visibles > 1 ? "s" : ""} · vos retouches sont gardées` : "";
+  // Rien sous le titre, sauf pendant un enregistrement (12 oct. 2026, Jules : plus de « 16 diapositives · vos retouches sont gardées »).
+  const statut = modifier.isPending ? "Enregistrement…" : client ? "Enregistré automatiquement" : "";
   const edition = mode === "edition";
+  // Le mode Sources (13 oct. 2026) : le deck en lecture, sans inclinaison ; le survol d'un champ ouvre la fiche de sa source.
+  const modeSources = mode === "sources";
+  const [survol, setSurvol] = useState(null);
+  const zoneDeck = useRef(null);
+  const actif = useRef(null);
+  // Un court délai avant de changer de fiche : la souris qui va du champ à sa fiche (pour un lien) ne la remplace pas en chemin.
+  const attente = useRef(null);
+  const surSource = (s) => {
+    clearTimeout(attente.current);
+    attente.current = setTimeout(() => {
+      actif.current?.classList.remove("pb-source-active");
+      s.el.classList.add("pb-source-active");
+      actif.current = s.el;
+      setSurvol({ ...s, ancre: s.el.getBoundingClientRect(), cadre: zoneDeck.current?.getBoundingClientRect() });
+    }, actif.current ? 160 : 0);
+  };
+  useEffect(() => {
+    clearTimeout(attente.current);
+    actif.current?.classList.remove("pb-source-active");
+    actif.current = null;
+    setSurvol(null);
+  }, [modeSources, courantId]);
+  const sourceSurvolee = survol && data?.sources_champs ? (() => {
+    const s = data.sources_champs[survol.diapo] || {};
+    return s[survol.chemin] || s[String(survol.chemin).replace(/\.(label|titre|page)$/, ".valeur")] || null;
+  })() : null;
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-rail">
@@ -159,27 +172,42 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
         </div>
         {/* Édition ou lecture : la pilule, comme les onglets de la plateforme. */}
         <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1">
-          {[["edition", "Édition"], ["lecture", "Lecture"]].map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => { setMode(k); if (k === "lecture") setSelection(null); }} aria-pressed={mode === k}
+          {[["edition", "Édition"], ["lecture", "Lecture"], ["sources", "Sources"]].map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => { setMode(k); if (k !== "edition") setSelection(null); }} aria-pressed={mode === k}
+              title={k === "sources" ? "Passez la souris sur un chiffre ou une ligne : sa source s'affiche" : undefined}
               className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${mode === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={mode === k ? undefined : { background: "transparent" }}>{mot}</button>
           ))}
         </div>
         <div className="flex flex-none items-center gap-0.5 max-md:hidden">
-          <button type="button" onClick={annuler} disabled={!passe.current.length} aria-label="Annuler" title="Annuler (⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
+          <button type="button" onClick={annuler} disabled={!passe.current.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
           <button type="button" onClick={retablir} disabled={!futur.current.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
           <button type="button" onClick={pleinEcran} aria-label="Plein écran" title="Plein écran (lecture)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Maximize2 className="h-4 w-4" /></button>
-          <button type="button" onClick={() => setPanneau((v) => !v)} aria-pressed={panneau} aria-label="Diapositives" title="Diapositives" className={`grid h-8 w-8 place-items-center rounded-full ${panneau ? "bg-encre/[0.08] text-encre" : "text-ardoise hover:text-encre"}`} style={panneau ? undefined : { background: "transparent" }}><PanelRight className="h-4 w-4" /></button>
         </div>
         <div className="flex flex-none items-center gap-1.5 max-md:gap-1">
-          <button type="button" onClick={() => exporter("pptx")} disabled={!data || !!export_}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
-            {export_ === "pptx" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}PPTX
-          </button>
+          {/* Côté client : l'explication des modes, et une question à l'équipe (dans son Feedback). */}
+          {client && (
+            <>
+              <button type="button" onClick={() => setVisite(true)} aria-label="Comment ça marche" title="Comment ça marche" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><CircleHelp className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setQuestion(true)} disabled={!data}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
+                <CircleHelp className="h-3.5 w-3.5" />Une question
+              </button>
+            </>
+          )}
+          {/* L'équipe l'envoie à un ou plusieurs clients : elle apparaît dans leur page Présentations. */}
+          {!client && (
+            <button type="button" onClick={() => setEnvoi(true)} disabled={!data || data.ancienne} title={data?.envoye_a?.length ? `Envoyée à ${data.envoye_a.join(", ")}` : "Envoyer au client"}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
+              <Send className="h-3.5 w-3.5" /><span className="max-md:hidden">{data?.envoye_a?.length ? `Envoyée (${data.envoye_a.length})` : "Envoyer au client"}</span>
+            </button>
+          )}
           {/* Le PDF, tiré du deck lui-même : l'aperçu, puis le téléchargement (12 oct. 2026 ; Google Slides retiré, il déformait tout). */}
-          <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
-            <FileText className="h-3.5 w-3.5" />PDF
-          </button>
+          {!client && (
+            <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
+              <FileText className="h-3.5 w-3.5" />PDF
+            </button>
+          )}
           {onFermer && (
             <button type="button" onClick={onFermer} aria-label="Fermer la présentation" title="Fermer"
               className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:ml-0" style={{ background: "transparent" }}>
@@ -191,7 +219,10 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
       <div className="flex min-h-0 flex-1">
         <div className="min-h-0 min-w-0 flex-1">
           {maj && data ? (
-            <MiseAJourDocument surtitre="Mise à jour de la présentation" titre="La présentation s'adapte" etapes={travail?.etapes || []} enCours={enCours} />
+            <MiseAJourDocument surtitre="Mise à jour de la présentation"
+              // Le titre dit ce qu'AK fait vraiment : « rassemble les chiffres » seulement s'il lit une source chiffrée (13 oct. 2026, Jules).
+              titre={titreTravail(travail?.etapes)}
+              etapes={travail?.etapes || []} enCours={enCours} />
           ) : isLoading ? (
             <div className="grid h-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
           ) : error || !data ? (
@@ -200,32 +231,41 @@ export default function EditeurPresentation({ id, onFermer, travail = null }) {
             <div className="grid h-full place-items-center px-10 text-center">
               <div className="max-w-[46ch]">
                 <p className="m-0 text-[15px] text-encre">Cette présentation est sur l'ancien modèle.</p>
-                <p className="m-0 mt-2 text-[13.5px] leading-[1.6] text-ardoise">Le modèle a changé le 12 octobre. Reconstruisez-la depuis son projet : ses retouches à la main ne seront pas reprises.</p>
-                <button type="button" onClick={() => reconstruire.mutate()} disabled={reconstruire.isPending}
+                <p className="m-0 mt-2 text-[13.5px] leading-[1.6] text-ardoise">{client ? "L'équipe Klocka la met à jour : elle revient ici dès qu'elle est prête." : "Le modèle a changé le 12 octobre. Reconstruisez-la depuis son projet : ses retouches à la main ne seront pas reprises."}</p>
+                {!client && <button type="button" onClick={() => reconstruire.mutate()} disabled={reconstruire.isPending}
                   className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
                   {reconstruire.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Reconstruire sur le nouveau modèle
-                </button>
+                </button>}
               </div>
             </div>
           ) : (
             <div className="flex h-full flex-col">
-              <div className="relative min-h-0 flex-1 p-5 max-md:p-3">
-                <Deck diapos={diapos} courante={courantId} onCourante={(x) => { setCourante(x); setSelection(null); }} mode={mode}
+              <div ref={zoneDeck} className="relative min-h-0 flex-1 p-5 max-md:p-3">
+                <Deck diapos={diapos} courante={courantId} onCourante={(x) => { setCourante(x); setSelection(null); }} mode={modeSources ? "lecture" : mode}
+                  relief={modeSources ? 0 : 6} sources={modeSources ? data.sources_champs || {} : null} onSource={surSource}
                   selection={selection} onSelection={setSelection} onChange={changer} onPhoto={(diapo, chemin) => setPhotoDe({ diapo, chemin })} sceneRef={scene} />
+                {modeSources && sourceSurvolee && <FicheSource source={sourceSurvolee} ancre={survol.ancre} cadre={survol.cadre} onEntrer={() => clearTimeout(attente.current)} />}
                 {/* L'élément cliqué : son menu « Styles » flotte en haut à droite, comme dans l'avis de valeur. */}
                 {edition && selection && <StylesElement diapos={diapos} selection={selection} onChange={changer} onSelection={setSelection} />}
               </div>
             </div>
           )}
         </div>
-        {panneau && data && !data.ancienne && (
-          <PanneauDeck diapos={diapos} courante={courantId} onAller={(x) => { setCourante(x); setSelection(null); }} onChange={changer} onOrdre={ordonner} onFermer={() => setPanneau(false)} />
-        )}
       </div>
       {pdf && data && <ApercuPdf id={id} titre={data.titre} onFermer={() => setPdf(false)} />}
+      {envoi && data && <EnvoiClient id={id} titre={data.titre} onFermer={() => setEnvoi(false)} />}
+      {question && data && <QuestionClient id={id} titre={data.titre} onFermer={() => setQuestion(false)} />}
+      {visite && <VisitePresentation onFermer={() => setVisite(false)} />}
       {photoDe && data && <ChoixPhoto photos={data.photos_projet || []} onChoisir={poserPhoto} onFermer={() => setPhotoDe(null)} />}
     </div>
   );
+}
+
+/** Pure : le titre de l'écran d'attente, d'après les étapes d'AK. */
+function titreTravail(etapes = []) {
+  if (etapes.some((e) => /^(Retouche|Construction) de la présentation/i.test(e))) return "La présentation s'adapte";
+  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "AK rassemble les chiffres";
+  return "AK lit votre demande";
 }
 
 /** Changer une photo : celles du projet, une à importer, ou aucune. */

@@ -9,6 +9,7 @@ const PAGE_TITLES = {
     Dashboard: "Tableau de Bord",
     ProjetDetail: "Détail de votre Projet",
     MesProjets: "Mes Projets",
+    MesPresentations: "Mes Présentations",
     AdminProjets: "Gestion des Projets",
     AdminClients: "Gestion des Clients",
     AdminRessources: "Gestion des Ressources",

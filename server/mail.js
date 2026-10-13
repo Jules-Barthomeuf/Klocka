@@ -16,24 +16,6 @@ import { listAccounts } from './email.js';
 
 export const DEFAULT_TEMPLATES = [
   {
-    slug: 'presentation',
-    titre: 'Présentation seule',
-    description: "Présenter l'activité Klocka à un agent / apporteur d'affaires rencontré au téléphone.",
-    objet: 'Présentation de notre activité – Klocka',
-    contenu: `{{salutation}}
-
-Comme convenu, je vous prie de trouver ci-dessous une brève présentation de notre activité.
-
-Je suis {{analyste}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis dans toute la France. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne seront pas impactés.
-
-Concernant notre méthodologie, nous analysons principalement des murs commerciaux occupés. Les documents relatifs aux dossiers restent confidentiels dans notre base de données et ne sont transmis que lorsque le client souhaite approfondir une opportunité précise.
-
-Je vous souhaite une excellente journée.
-
-Bien cordialement
-{{signature}}`,
-  },
-  {
     slug: 'demande-documents',
     titre: "Suite d'appel – Demande de documents",
     description: "Demander les pièces d'un dossier (bail, RCP, PV d'AG, quittances) après un appel.",
@@ -60,54 +42,53 @@ Bien à vous,
 {{signature}}`,
   },
   {
-    // Dérivé du canevas Murs commerciaux (7 oct. 2026) : au premier échange
-    // sur un bien, on ne demande que la fiche commerciale.
+    // Le canevas de Jules du 12 oct. 2026 : l'agent a un bien, on attend son
+    // dossier. {{type_bien}} et {{ville}} viennent de l'appel ; non dits, ils
+    // restent entre crochets pour que l'analyste les complète.
     slug: 'demande-fiche',
-    titre: 'Murs commerciaux (fiche commerciale seule)',
-    description: "Demander seulement la fiche commerciale d'un bien évoqué au téléphone.",
-    objet: 'Murs commerciaux - Klocka',
+    titre: 'Suite à notre échange – Dossier',
+    description: "Après un appel où l'agent a un bien : on attend son dossier, et on rappelle qui nous sommes.",
+    objet: 'Suite à notre échange – Dossier {{ville}}',
     contenu: `{{salutation}}
 
-Pour faire suite à notre échange téléphonique de ce jour, afin d'étudier ce bien nous avons besoin de sa fiche commerciale.
+Ravi d'avoir échangé avec vous et d'entamer cette collaboration.
 
-Pour rappel nous travaillons avec des mandats de recherche vos honoraires resteront inchangés.
-De plus je vous transmets le cahier des charges de nos clients :
+Comme évoqué ensemble, je serais ravi de découvrir le dossier concernant {{type_bien}} situé à {{ville}}, lorsque vous aurez un moment pour me le transmettre. Il sera étudié rapidement et en toute confidentialité.
 
-- Type de bien : Murs commerciaux occupés
-- Rendement : 5-7% AEM
-- Budget : 100K-3M
-- Emplacement : N°1 ou n°1 bis
+Pour rappel, Klocka représente un portefeuille d'investisseurs à la recherche d'actifs en immobilier commercial, exclusivement des murs occupés :
 
-Bien à vous,
+• 70 % : autour de 300 000 €
+• 20 % : entre 300 000 € et 800 000 €
+• 10 % : de 800 000 € à environ 2 M€
+
+Nous intervenons sur mandat de recherche et sommes rémunérés directement par nos clients, sans aucun impact sur vos mandats de vente. N'hésitez donc pas à nous adresser d'autres biens correspondant à ces critères.
+
+Au plaisir de travailler ensemble,
 {{signature}}`,
   },
   {
+    // Le canevas de Jules du 12 oct. 2026 : après un appel, un seul mail de
+    // présentation (il remplace « Présentation seule » et « Présentation +
+    // cahier des charges »). Mot pour mot, seules les variables en plus.
     slug: 'presentation-cahier',
-    titre: 'Présentation + cahier des charges',
-    description: "Présentation complète de l'activité accompagnée du cahier des charges clients.",
-    objet: 'Présentation de notre activité et cahier des charges – Klocka',
+    titre: 'Suite à notre échange – Murs commerciaux occupés',
+    description: "Après un appel de prospection : qui nous sommes, les budgets de nos investisseurs, ce qu'on attend de l'agent.",
+    objet: 'Suite à notre échange – Murs commerciaux occupés',
     contenu: `{{salutation}}
 
-Suite à notre échange, je me permets de vous adresser une brève présentation de notre activité ainsi que le cahier des charges de nos clients.
+Merci pour votre temps lors de notre échange téléphonique.
 
-Je suis {{analyste}}, analyste en immobilier commercial chez Klocka. Notre société, fondée en décembre 2024, est spécialisée dans l'investissement clé en main pour une clientèle de cadres supérieurs répartis sur l'ensemble du territoire français. Nous sommes rémunérés directement par nos clients, ce qui garantit que vos honoraires ne sont pas impactés.
+Comme évoqué, Klocka représente un portefeuille d'investisseurs à la recherche d'actifs en immobilier commercial, exclusivement des murs occupés. Leurs budgets se répartissent ainsi :
 
-Dans le cadre de notre méthodologie, nous analysons principalement des murs commerciaux occupés. L'ensemble des documents relatifs aux dossiers reste confidentiel au sein de notre base de données et n'est transmis qu'en cas d'intérêt confirmé pour une opportunité spécifique.
+- 70 % : autour de 300 000 €
+- 20 % : entre 300 000 € et 800 000 €
+- 10 % : de 800 000 € à environ 2 M€
 
-À ce titre, voici le cahier des charges correspondant à la majorité de notre clientèle :
+Notre fonctionnement est simple : nous intervenons sur mandat de recherche et sommes rémunérés directement par nos clients, sans aucun impact sur vos mandats de vente.
 
-- Type de bien : murs commerciaux occupés
-- Rendement : 5 % à 7 % AEM
-- Budget : 100 K€ à 3 M€
-- Emplacement : n°1 ou n°1 bis
+Si vous avez des biens correspondant à ces critères, en portefeuille ou à venir, transmettez-les-moi par retour de mail. Chaque dossier sera étudié rapidement et en toute confidentialité.
 
-Nous accompagnons également certains clients sur des opérations spécifiques avec des budgets supérieurs à 2 M€, incluant d'autres typologies d'actifs (immeubles, entrepôts, murs vacants, hôtels, etc.).
-
-Je reste bien entendu à votre disposition pour toute opportunité correspondant à ces critères.
-
-Je vous souhaite une excellente journée.
-
-Bien cordialement,
+Au plaisir de travailler ensemble,
 {{signature}}`,
   },
   {
@@ -158,6 +139,8 @@ export function poserCanevas(liste = Records.list('MailTemplate')) {
   let n = 0;
   for (const slug of CANEVAS_DU_7_OCT) {
     const modele = DEFAULT_TEMPLATES.find((t) => t.slug === slug);
+    // Un canevas du 7 oct. qui n'est plus livré (« Présentation seule », retirée le 12 oct.) : rien à poser.
+    if (!modele) continue;
     const memes = liste.filter((t) => t.slug === slug && !t.archived).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
     if (!memes.length) { Records.create('MailTemplate', { ...modele, ordre: DEFAULT_TEMPLATES.indexOf(modele), archived: false }); n += 1; continue; }
     Records.update('MailTemplate', memes[0].id, { titre: modele.titre, objet: modele.objet, contenu: modele.contenu });
@@ -172,10 +155,32 @@ export function poserCanevas(liste = Records.list('MailTemplate')) {
   return n;
 }
 
+// Les canevas du 12 oct. 2026 (deux mails après un appel, voir
+// DEFAULT_TEMPLATES) : posés une fois sur les modèles en base ; « Présentation
+// seule » est archivée, plus proposée. Une retouche faite ensuite depuis la
+// page Mails reste.
+const CANEVAS_DU_12_OCT = ['presentation-cahier', 'demande-fiche'];
+export function poserCanevas12Oct(liste = Records.list('MailTemplate')) {
+  if (Meta.get('mail.canevas_12_oct')) return 0;
+  let n = 0;
+  for (const slug of CANEVAS_DU_12_OCT) {
+    const modele = DEFAULT_TEMPLATES.find((t) => t.slug === slug);
+    const memes = liste.filter((t) => t.slug === slug && !t.archived).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+    if (!memes.length) { Records.create('MailTemplate', { ...modele, ordre: DEFAULT_TEMPLATES.indexOf(modele), archived: false }); n += 1; continue; }
+    Records.update('MailTemplate', memes[0].id, { titre: modele.titre, description: modele.description, objet: modele.objet, contenu: modele.contenu });
+    for (const x of memes.slice(1)) Records.update('MailTemplate', x.id, { archived: true, archive_pourquoi: 'doublon' });
+    n += 1;
+  }
+  for (const x of liste.filter((t) => t.slug === 'presentation' && !t.archived)) Records.update('MailTemplate', x.id, { archived: true, archive_pourquoi: 'remplacé le 12 oct. 2026 par « Suite à notre échange – Murs commerciaux occupés »' });
+  Meta.set('mail.canevas_12_oct', new Date().toISOString());
+  return n;
+}
+
 // Populate the entity on first boot. Safe to call on every start.
 export function ensureMailTemplates() {
   if (Records.count('MailTemplate')) {
     poserCanevas();
+    poserCanevas12Oct();
     // Un modèle livré après coup (la demande de fiche, 7 oct. 2026) entre une fois.
     const presents = new Set(Records.list('MailTemplate').map((t) => t.slug));
     DEFAULT_TEMPLATES.forEach((t, i) => { if (!presents.has(t.slug)) Records.create('MailTemplate', { ...t, ordre: i, archived: false }); });

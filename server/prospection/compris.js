@@ -127,5 +127,7 @@ export function comprisDe(lu, { issue, connus = [], maintenant = new Date() } = 
 
   // Pour un bien : la fiche commerciale seule, sauf si les pièces du dossier ont été demandées.
   const demande = issue === 'a_des_murs' ? (lu?.demande_documents === 'documents' ? 'documents' : 'fiche_commerciale') : null;
-  return { champs, salutation, date_dite: champs.date?.valeur || null, avertissement, nouveau_contact: nouveau, contexte, demande };
+  // Le bien évoqué, pour le mail « Suite à notre échange – Dossier » (12 oct. 2026) : seulement s'il a été cité.
+  const bien = issue === 'a_des_murs' && champs.biens ? { type: String(lu?.bien_type || '').trim().slice(0, 80) || null, ville: String(lu?.bien_ville || '').trim().slice(0, 60) || null } : null;
+  return { champs, salutation, date_dite: champs.date?.valeur || null, avertissement, nouveau_contact: nouveau, contexte, demande, bien };
 }

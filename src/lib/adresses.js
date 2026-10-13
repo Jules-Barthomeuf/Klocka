@@ -11,6 +11,7 @@ export const ADRESSES = {
   Dashboard: "TableauDeBord",
   AdminProjets: "Projets",
   MesProjets: "MesProjets",
+  MesPresentations: "MesPresentations",
   ProjetDetail: "Projet",
   ProjetPublic: "ProjetPublic",
   Analyse: "Dossiers",

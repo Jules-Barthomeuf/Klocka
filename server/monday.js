@@ -251,6 +251,29 @@ export async function lireElement(itemId) {
   return { id: String(it.id), nom: it.name, tableau: it.board?.id ? String(it.board.id) : null, colonnes: Object.fromEntries((it.column_values || []).map((c) => [c.id, c.text])) };
 }
 
+/**
+ * Une fiche lue pour être racontée : chaque colonne sous son titre (les vides
+ * écartées) et les dernières notes du fil, plus récentes d'abord. Null si
+ * l'élément n'existe pas (ou plus).
+ */
+export async function lireFiche(itemId, { notes = 5 } = {}) {
+  const d = await graphql(
+    `query ($ids: [ID!], $notes: Int!) { items(ids: $ids) { id name state created_at board { id name } group { title }
+      column_values { text column { title } }
+      updates(limit: $notes) { text_body created_at creator { name } } } }`,
+    { ids: [String(itemId)], notes }
+  );
+  const it = d?.items?.[0];
+  if (!it || it.state === 'deleted') return null;
+  return {
+    id: String(it.id), nom: it.name, cree_le: it.created_at || null,
+    tableau: it.board?.name || null, groupe: it.group?.title || null,
+    colonnes: Object.fromEntries((it.column_values || []).filter((c) => String(c.text || '').trim()).map((c) => [c.column?.title || '?', c.text])),
+    notes: (it.updates || []).map((u) => ({ le: u.created_at, par: u.creator?.name || null, texte: String(u.text_body || '').slice(0, 2000) })),
+    lien: it.board?.id ? `https://klocka-company.monday.com/boards/${it.board.id}/pulses/${it.id}` : null,
+  };
+}
+
 /** Supprime un élément. Réservé au nettoyage de ce qu'on a soi-même créé. */
 export async function supprimerElement(itemId) {
   return graphql(`mutation ($item: ID!) { delete_item(item_id: $item) { id } }`, { item: String(itemId) });

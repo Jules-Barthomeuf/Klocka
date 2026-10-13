@@ -11,7 +11,7 @@ import Calendrier from "@/components/ui/calendrier";
 // et son interrupteur ; Monday ne se décoche pas pour un appel abouti. Le
 // tracé se dessine une fois à l'ouverture.
 
-const MAILS = { "presentation-cahier": "Présentation + cahier des charges", presentation: "Présentation seule", "demande-fiche": "Murs commerciaux · fiche commerciale", "demande-documents": "Murs commerciaux · documents du dossier" };
+const MAILS = { "presentation-cahier": "Suite à notre échange · murs commerciaux occupés", presentation: "Présentation seule", "demande-fiche": "Suite à notre échange · dossier", "demande-documents": "Murs commerciaux · documents du dossier" };
 // Les cases ne servent plus qu'à régler les actions (12 oct. 2026) : on lit d'abord la phrase libre d'AK, « Ce qui s'est passé ».
 const ISSUES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", a_rappeler: "À rappeler", interesse: "Intéressé", veut_mail: "Veut d'abord un mail", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé", autre: "Autre" };
 const jourLong = (j) => (j ? new Date(`${String(j).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");

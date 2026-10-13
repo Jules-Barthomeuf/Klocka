@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, Loader2, Monitor, MoreHorizontal, Search, Trash2, X } from "lucide-react";
+import { Download, FileText, Loader2, Monitor, MoreHorizontal, Search, Send, Trash2, X } from "lucide-react";
+import EnvoiClient from "@/components/presentations/EnvoiClient";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -256,6 +257,8 @@ const COLONNES = "grid grid-cols-[minmax(0,1fr)_137px_170px_43px] items-center m
 function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
   const [menu, setMenu] = useState(false);
   const [confirmer, setConfirmer] = useState(false);
+  const [envoi, setEnvoi] = useState(false);
+  const envoyee = (p.envoye_a || []).length > 0;
   const zone = useFermerAuClicAilleurs(menu, () => setMenu(false));
   const detail = [p.adresse, `${p.diapos} diapositive${p.diapos > 1 ? "s" : ""}`].filter(Boolean).join(" · ");
   // « Chocolaterie - 10 Place Abel Surchamp… » : l'adresse est dans le détail, le titre garde le nom.
@@ -274,7 +277,15 @@ function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
             <span className="mt-[3px] block truncate text-[13px] text-ardoise">{detail}</span>
           </span>
         </span>
-        <span className="text-[14px] text-craie max-md:hidden">{depuisCourt(p.maj_le)}</span>
+        {/* La date, et à sa droite l'avion en papier : « Envoyer au client » (13 oct. 2026, Jules). Envoyée, il passe en menthe. */}
+        <span className="flex items-center gap-1.5 max-md:hidden" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
+          <span className="text-[14px] text-craie">{depuisCourt(p.maj_le)}</span>
+          <button type="button" onClick={() => setEnvoi(true)} aria-label={envoyee ? `Envoyée à ${p.envoye_a.join(", ")} : modifier l'envoi` : "Envoyer au client"}
+            title={envoyee ? `Envoyée à ${p.envoye_a.join(", ")}` : "Envoyer au client"}
+            className={`grid h-8 w-8 flex-none place-items-center rounded-full transition-colors ${envoyee ? "text-menthe hover:bg-relief" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={{ background: "transparent" }}>
+            <Send className="h-3.5 w-3.5" />
+          </button>
+        </span>
         <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation"><EtatPdf p={p} /></span>
         <span ref={zone} className="relative flex justify-center" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
           <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
@@ -286,6 +297,9 @@ function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
               <button type="button" onClick={() => { setMenu(false); onPdf(); }} className={`${action} text-encre hover:bg-encre/[0.04]`} style={{ background: "transparent" }}>
                 <FileText className="h-3.5 w-3.5" /> {p.pdf_url ? "Aperçu du PDF" : "Exporter en PDF"}
               </button>
+              <button type="button" onClick={() => { setMenu(false); setEnvoi(true); }} className={`${action} text-encre hover:bg-encre/[0.04]`} style={{ background: "transparent" }}>
+                <Send className="h-3.5 w-3.5" /> {envoyee ? "Modifier l'envoi" : "Envoyer au client"}
+              </button>
               <button type="button" onClick={() => { setMenu(false); setConfirmer(true); }} className={`${action} text-alerte hover:bg-alerte/[0.08]`} style={{ background: "transparent" }}>
                 <Trash2 className="h-3.5 w-3.5" /> Supprimer
               </button>
@@ -293,6 +307,7 @@ function LignePresentation({ p, active, onOuvrir, onPdf, onSupprimer }) {
           )}
         </span>
       </div>
+      {envoi && <EnvoiClient id={p.id} titre={titre} onFermer={() => setEnvoi(false)} />}
       <AlertDialog open={confirmer} onOpenChange={setConfirmer}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>

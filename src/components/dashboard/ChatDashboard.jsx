@@ -15,6 +15,7 @@ import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
 import PenseeIA from "@/components/PenseeIA";
+import AvatarAK from "@/components/AvatarAK";
 import Message from "@/components/MessageIA";
 import SourcesLoi from "@/components/offres/SourcesLoi";
 import { J, alpha } from "@/design/jetons";
@@ -846,10 +847,6 @@ function CarteAction({ c, onOuvrir }) {
     </motion.div>
   );
 }
-
-const PastilleK = () => (
-  <span className="grid h-9 w-9 flex-none place-items-center rounded-[10px] border border-trait text-[14px] text-craie" style={{ background: J["surface-pleine"] }}>K</span>
-);
 
 /**
  * « Pour un client » : les demandes des clients Klocka, anonymes, en tableau.
@@ -1844,7 +1841,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               </div>
             ) : (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex gap-4">
-                <PastilleK />
+                <AvatarAK />
                 <div className="min-w-0 flex-1 pt-1.5 text-[16px]">
                   <Etapes etapes={m.etapes} />
                   <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} />
@@ -1859,7 +1856,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           )}
           {travaille && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="flex gap-4">
-              <PastilleK />
+              <AvatarAK />
               <div className="min-w-0 flex-1 pt-2">
                 {enFlux
                   ? <Etapes etapes={etapesVives.length ? etapesVives : ["Réflexion…"]} courante={Math.max(0, etapesVives.length - 1)} />

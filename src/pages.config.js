@@ -103,6 +103,7 @@ const AdminLeadMagnets = lazy(() => import('./pages/AdminLeadMagnets'));
 const KTransactions = lazy(() => import('./pages/KTransactions'));
 const KVacance = lazy(() => import('./pages/KVacance'));
 const MesProjets = lazy(() => import('./pages/MesProjets'));
+const MesPresentations = lazy(() => import('./pages/MesPresentations'));
 const MonCompte = lazy(() => import('./pages/MonCompte'));
 const ProjetDetail = lazy(() => import('./pages/ProjetDetail'));
 const Questionnaire = lazy(() => import('./pages/Questionnaire'));
@@ -164,6 +165,7 @@ export const PAGES = {
     "KTransactions": KTransactions,
     "KVacance": KVacance,
     "MesProjets": MesProjets,
+    "MesPresentations": MesPresentations,
     "MonCompte": MonCompte,
     "ProjetDetail": ProjetDetail,
     "Questionnaire": Questionnaire,

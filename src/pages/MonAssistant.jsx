@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, RotateCcw, ThumbsDown, ThumbsUp } from "lucide-react";
 import { toast } from "@/components/ui/avis";
+import AvatarAK from "@/components/AvatarAK";
 
 // Le questionnaire de l'assistant, en propositions : AK montre une façon de
 // faire, comme un message qu'il écrirait dans le chat, et on dit si on aime
@@ -13,7 +14,7 @@ import { toast } from "@/components/ui/avis";
 function Bulle({ texte }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="grid h-9 w-9 flex-none place-items-center rounded-full border border-menthe/40 text-[11px] font-semibold tracking-[.06em] text-menthe">AK</span>
+      <AvatarAK />
       <div className="min-w-0 rounded-[18px] rounded-tl-[6px] border border-trait bg-fond px-4 py-3 text-[14.5px] leading-[1.6] text-encre">{texte}</div>
     </div>
   );

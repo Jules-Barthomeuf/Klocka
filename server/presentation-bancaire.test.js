@@ -97,6 +97,12 @@ test("l'éditeur remplace une diapositive et change l'ordre, sans changer son ty
   assert.equal(P.modifierPresentation(id, { ordre }).ok, true);
   assert.equal(P.lirePresentation(id).diapos[1].id, 'ville');
   assert.equal(P.modifierPresentation(id, { ordre: ordre.slice(1) }).ok, false);
+  // Annuler une retouche d'AK : toutes les diapositives d'avant, d'un coup.
+  assert.equal(P.modifierPresentation(id, { tout: avant }).ok, true);
+  assert.equal(P.lirePresentation(id).diapos.at(-1).heros.titre, avant.at(-1).heros.titre);
+  assert.equal(P.lirePresentation(id).diapos[1].id, avant[1].id);
+  assert.equal(P.modifierPresentation(id, { tout: [avant[0], avant[0]] }).ok, false, 'deux fois la même diapositive');
+  assert.equal(P.modifierPresentation(id, { tout: [] }).ok, false);
 });
 
 test('le PPTX dessine le modèle retouché et saute les diapositives masquées', async () => {
@@ -176,4 +182,141 @@ test("chaque diapositive dit d'où viennent ses chiffres ; une estimation de l'I
   const { Records } = await import('./db.js');
   const p = Records.create('PresentationBancaire', { titre: 'x', diapos: [{ id: 'quartier', type: 'quartier', sources: S.quartier }] });
   assert.match(P.presentationPourAK(p.id), /D'OÙ VIENNENT LES CHIFFRES[\s\S]*estimation de l'IA/);
+});
+
+test("loyers_equimmox : AK lit le loyer Equimmox du projet, sans dire qu'il n'y a pas accès", async () => {
+  const S = await import('./projet-secteur.js');
+  const p = Records.create('Project', { titre: 'Chocolaterie', adresse_complete: '10 Place Abel Surchamp, 33500 Libourne', surface_m2: 55 });
+  // Une lecture de moins de trente jours : reprise telle quelle, sans appeler Equimmox.
+  S.lireSecteur(p, { calculer: async () => ({ rue: { nom: 'Place Abel Surchamp', loyer_m2_an: 480, loyer_bas: 387, loyer_haut: 580, loyer_source: 'Equimmox', rayon: 500, surface_min: 44, surface_max: 66, le: '2026-10-12T10:00:00Z' } }) });
+  await S.attendreSecteur(p.id);
+  const r = await executerOutil({ name: 'loyers_equimmox', input: { projet_id: p.id } }, JULES);
+  assert.equal(r.ok, true);
+  assert.equal(r.source, 'Equimmox');
+  assert.deepEqual([r.loyer_bas, r.loyer_m2_an, r.loyer_haut, r.rayon_m], [387, 480, 580, 500]);
+  assert.match(r.note, /Equimmox/);
+  assert.equal(r.coherent, true);
+  assert.equal((await executerOutil({ name: 'loyers_equimmox', input: { projet_id: 'inconnu' } }, JULES)).ok, false);
+  // Un repli Data-B se dit comme tel.
+  const q = Records.create('Project', { titre: 'Autre', adresse_complete: '1 rue du Marché, 74000 Annecy' });
+  S.lireSecteur(q, { calculer: async () => ({ rue: { loyer_m2_an: 300, loyer_bas: 240, loyer_haut: 360, loyer_source: 'Data-B' } }) });
+  await S.attendreSecteur(q.id);
+  const d = await executerOutil({ name: 'loyers_equimmox', input: { projet_id: q.id } }, JULES);
+  assert.equal(d.source, 'Data-B');
+  assert.match(d.note, /Equimmox n'a rien constaté/);
+});
+
+test('loyers_equimmox : une moyenne hors de sa fourchette est signalée, pas posée en silence', async () => {
+  const S = await import('./projet-secteur.js');
+  const p = Records.create('Project', { titre: 'Suspect', adresse_complete: '10 Place Abel Surchamp, 33500 Libourne' });
+  S.lireSecteur(p, { calculer: async () => ({ rue: { loyer_m2_an: 199, loyer_bas: 182, loyer_haut: 190, loyer_source: 'Equimmox' } }) });
+  await S.attendreSecteur(p.id);
+  const r = await executerOutil({ name: 'loyers_equimmox', input: { projet_id: p.id } }, JULES);
+  assert.equal(r.coherent, false);
+  assert.match(r.note, /ATTENTION : la moyenne est hors de la fourchette/);
+});
+
+test("côté client : l'équipe envoie, le client ouvre et retouche la sienne seulement, sa question part dans le Feedback", async () => {
+  const raphael = Records.create('User', { email: 'raphael@exemple.fr', full_name: 'Raphaël Test', role: 'user' });
+  const autre = { email: 'autre@exemple.fr', role: 'user' };
+  Records.create('User', { email: 'mandataire@exemple.fr', role: 'mandataire' });
+  const { presentation_id: id } = await P.creerPresentation(projet.id, JULES);
+
+  // Un compte qui n'est pas client est refusé ; un client est accepté, et la liste remplace la précédente.
+  assert.equal(P.envoyerAuxClients(id, ['mandataire@exemple.fr'], JULES).ok, false);
+  const e = P.envoyerAuxClients(id, ['Raphael@Exemple.fr'], JULES);
+  assert.deepEqual(e.envoye_a, ['raphael@exemple.fr']);
+  assert.equal(P.clientsPossibles(id).find((c) => c.email === 'raphael@exemple.fr').envoyee, true);
+  assert.equal(P.clientsPossibles(id).some((c) => c.email === 'mandataire@exemple.fr'), false, 'les mandataires ne sont pas des clients');
+
+  // Raphaël la voit ; un autre client non ; l'équipe toujours.
+  assert.deepEqual(P.presentationsDuClient(raphael).map((x) => x.id), [id]);
+  assert.equal(P.presentationsDuClient(autre).length, 0);
+  assert.equal(P.lirePourClient(id, autre), null);
+  assert.ok(P.presentationsDuClient(JULES).some((x) => x.id === id));
+
+  // Les sources restent, sans liens internes ni écarts de retouche.
+  const d = P.lirePourClient(id, raphael);
+  const toutes = Object.values(d.sources_champs).flatMap((c) => Object.values(c));
+  assert.ok(toutes.length > 0);
+  assert.ok(toutes.every((s) => !('ecart' in s) && (s.liens || []).every((l) => /^https?:\/\//.test(l.href))));
+
+  // Sa question : une remarque du Feedback, rien de plus.
+  assert.equal(P.poserQuestion(id, raphael, '  ').ok, false);
+  assert.equal(P.poserQuestion(id, autre, 'Bonjour').ok, false);
+  const q = P.poserQuestion(id, raphael, 'Le loyer de la diapo 6 est-il hors charges ?');
+  const s = Records.get('Suggestion', q.id);
+  assert.equal(s.statut, 'nouveau');
+  assert.equal(s.client_email, 'raphael@exemple.fr');
+  assert.match(s.contenu, /^Question sur la présentation « .+ » : Le loyer de la diapo 6/);
+
+  // Retirer l'envoi : elle disparaît de sa page, mais l'équipe (vue client) la voit toujours.
+  P.envoyerAuxClients(id, [], JULES);
+  assert.equal(P.presentationsDuClient(raphael).length, 0);
+  assert.ok(P.presentationsDuClient(JULES).some((x) => x.id === id), "l'équipe la voit dès sa création, envoyée ou non");
+});
+
+test("mode Sources : la source donnée par AK passe avant l'estimation de la création, et une retouche à la main l'efface", async () => {
+  const { sourcesDesChamps } = await import('./presentation-sources.js');
+  const { presentation_id: id } = await P.creerPresentation(projet.id, JULES);
+  // Une ville estimée par l'IA à la création, dont le libellé cite Le Figaro.
+  const ville = P.lirePresentation(id).diapos.find((d) => d.id === 'ville');
+  P.modifierPresentation(id, { diapo: { ...ville, sources: { chiffres: "une estimation de l'IA faite à la création de la présentation, non vérifiée" }, chiffres: [{ label: 'Prix médian du logement (Le Figaro)', valeur: '2 300 €/m²' }, ...ville.chiffres.slice(1)] } });
+  let v = P.lirePresentation(id).diapos.find((d) => d.id === 'ville');
+  let s = sourcesDesChamps(projet, [v])[v.id]['chiffres.0.valeur'];
+  assert.equal(s.nature, 'ia');
+  assert.match(s.detail, /de mémoire : sans recherche web/);
+  assert.match(s.detail, /Le libellé cite Le Figaro, mais la valeur n'a pas été relue/);
+
+  // AK la pose avec sa source : la fiche la montre, avec son lien.
+  const r = await executerOutil({ name: 'modifier_presentation', input: { presentation_id: id, changements: [{ diapo: 'ville', chemin: 'chiffres.0.valeur', valeur: '2 412 €/m²', source: 'Le Figaro Immobilier, prix au m² de Libourne', lien: 'https://immobilier.lefigaro.fr/prix-immobilier/libourne/ville-33243' }] } }, JULES);
+  assert.equal(r.ok, true);
+  v = P.lirePresentation(id).diapos.find((d) => d.id === 'ville');
+  s = P.lirePresentation(id).sources_champs.ville['chiffres.0.valeur'];
+  assert.equal(s.nature, 'donnee');
+  assert.equal(s.origine, 'Le Figaro Immobilier, prix au m² de Libourne');
+  assert.equal(s.liens[0].href, 'https://immobilier.lefigaro.fr/prix-immobilier/libourne/ville-33243');
+
+  // Retouchée à la main, la valeur perd la source d'AK.
+  P.modifierPresentation(id, { diapo: { ...v, chiffres: [{ ...v.chiffres[0], valeur: '2 500 €/m²' }, ...v.chiffres.slice(1)] } });
+  assert.equal(P.lirePresentation(id).sources_champs.ville['chiffres.0.valeur'].nature, 'ia');
+});
+
+test("acquisition droits inclus : le prix de revient du simulateur, pas le prix négocié ni le FAI", async () => {
+  const { calculerTableauAnnuel, parametresDuProjet } = await import('../src/components/simulator/CalculFinancier.js');
+  const p = Records.create('Project', { titre: 'Revient', sim_loyer_initial_ht: 24000, sim_prix_bien_negocie: 300000, sim_prix_bien_fai: 320000, sim_apport: 60000, surface_m2: 80 });
+  const attendu = calculerTableauAnnuel(parametresDuProjet(p)).prixRevient;
+  assert.ok(attendu > 300000, 'droits et frais en plus du prix négocié');
+  const { presentation_id: id } = await P.creerPresentation(p.id, JULES);
+  const d = P.lirePresentation(id);
+  const eur = (n) => `${new Intl.NumberFormat('fr-FR').format(Math.round(n))} €`;
+  assert.equal(d.diapos.find((x) => x.id === 'couverture').stats[0].valeur, eur(attendu));
+  assert.equal(d.diapos.find((x) => x.id === 'projection').lignes[0].valeur, eur(attendu));
+  assert.equal(d.diapos.find((x) => x.id === 'conditions').blocs[2].valeur, eur(attendu - 60000), 'montant à financer = prix de revient - apport');
+  const s = d.sources_champs.couverture['stats.0.valeur'];
+  assert.equal(s.nature, 'calcul');
+  assert.match(s.detail, /prix de revient du simulateur/);
+  assert.match(s.calcul, /de droits .* de frais Klocka/);
+});
+
+test('flux autour du local : densité et fourchettes par heure du piéton, densité seule du voiture, avec leur source', async () => {
+  const { fluxDeLEtude } = await import('./presentation-projet.js');
+  assert.equal(fluxDeLEtude(null), null);
+  const f = fluxDeLEtude({
+    source: 'Étude Klocka', le: '2026-10-13T10:00:00Z',
+    flux_pieton: { note: { note: 4, sur: 5 }, par_heure: { basse: { min: 500, max: 750 }, haute: { min: 1000, max: 1500 } }, methode: 'Estimation Klocka. Pas un comptage.' },
+    flux_voiture: { note: { note: 3, sur: 5 }, methode: 'Classe de la voie (tertiary).' },
+  });
+  assert.equal(f.pieton.densite, 'Élevée');
+  assert.deepEqual(f.pieton.etoiles, { note: 4, sur: 5 });
+  assert.equal(f.pieton.basse, '500 à 750 piétons/h');
+  assert.equal(f.pieton.haute, '1 000 à 1 500 piétons/h');
+  assert.equal(f.voiture.densite, 'Moyenne');
+  assert.deepEqual(f.voiture.etoiles, { note: 3, sur: 5 });
+  assert.equal(f.voiture.basse, 'Non estimé', 'aucune source ne donne les voitures par heure');
+  const { sourcesDesChamps } = await import('./presentation-sources.js');
+  const s = sourcesDesChamps({}, [{ id: 'emplacement', type: 'emplacement', heros: {}, flux: f }]).emplacement;
+  assert.match(s['flux.pieton.basse'].detail, /Pas un comptage.*heure creuse/);
+  assert.equal(s['flux.voiture.basse'].nature, 'a_remplir');
+  assert.equal(f.voiture.haute, undefined, 'pas d\'heure de pointe pour les voitures');
 });

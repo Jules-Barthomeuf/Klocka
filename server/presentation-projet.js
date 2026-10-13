@@ -16,16 +16,18 @@
 // Les chiffres de la ville et du secteur viennent du dataset des grandes villes
 // (sinon du LLM serveur, comme la page projet) ; les photos sont des URLs.
 
-import { CHEMIN_UPLOADS } from './db.js';
+import { CHEMIN_UPLOADS, Records } from './db.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import PptxGenJS from 'pptxgenjs';
 import { invokeLLM, llmEnabled } from './llm.js';
 import { trouverVille, trouverSecteur } from '../src/data/villes.js';
-import { secteurGarde } from './projet-secteur.js';
+import { secteurGarde, lotDuProjet, implantationEnCache } from './projet-secteur.js';
 import { TAILLES, CARTE, HEROS, BARRE, LARGEUR, HAUTEUR } from '../src/lib/presentation-modele.js';
+import { calculerTableauAnnuel, parametresDuProjet } from '../src/components/simulator/CalculFinancier.js';
 import { communeParNom, chiffresSources } from './chiffres-commune.js';
+import { analysePrixEnCache } from './equimmox.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = CHEMIN_UPLOADS;
@@ -80,6 +82,68 @@ async function geocoder(project) {
 
 function loyerInitial(p) {
   return positif(p.sim_loyer_initial_ht) || positif(p.loyer_annuel_ht) || positif(p.bail_loyer_actuel) || null;
+}
+
+/**
+ * Le prix de revient (« acquisition droits inclus », 13 oct. 2026, Jules) : celui
+ * du simulateur du projet, calculé par le même moteur (prix négocié, droits
+ * d'enregistrement, frais Klocka, frais divers, travaux de l'année 1, honoraires
+ * s'ils sont en sus). Sans simulateur exploitable, le prix de revient gardé sur la fiche.
+ */
+export function prixDeRevient(p) {
+  try {
+    const r = calculerTableauAnnuel(parametresDuProjet(p));
+    if (positif(r?.prixRevient)) return { total: r.prixRevient, negocie: parametresDuProjet(p).prixBienNegocie, droits: r.droitsEnregistrement, frais_klocka: r.totalFraisKlocka, frais_divers: r.fraisDivers, travaux: Math.max(0, r.prixRevient - parametresDuProjet(p).prixBienNegocie - r.droitsEnregistrement - r.totalFraisKlocka - r.fraisDivers) };
+  } catch { /* le simulateur n'a pas de quoi calculer */ }
+  return positif(p.sim_prix_revient) ? { total: p.sim_prix_revient } : null;
+}
+
+// Les flux autour du local (13 oct. 2026, Jules : « la densité du flux piéton
+// et du flux voiture, et l'estimation basse et haute par heure »). L'étude
+// d'implantation déjà faite (celle du dossier, sinon une étude gardée pour
+// l'adresse, Data-B ou Klocka) ; à défaut, l'étude Klocka, gratuite (Sirene,
+// OpenStreetMap, IGN, INSEE). Ni Data-B ni Klocka n'estiment les voitures par
+// heure : seulement leur densité, d'après la classe de la voie.
+const DENSITE = { 1: 'Faible', 2: 'Modérée', 3: 'Moyenne', 4: 'Élevée', 5: 'Très élevée' };
+
+/** L'étude d'implantation du local : gardée, ou lancée (Klocka, gratuite). Null sans adresse ni étude. */
+export async function etudeDuLocal(p, { lancer = true } = {}) {
+  if (!p?.adresse_complete) return null;
+  try {
+    const deal = p.deal_id ? Records.findBy('Deal', 'deal_id', p.deal_id) : null;
+    const duDossier = lotDuProjet(p, deal)?.implantation;
+    if (duDossier?.flux_pieton || duDossier?.flux_voiture) return duDossier;
+    const { resoudreAdresse } = await import('./adresse-ban.js');
+    const a = await resoudreAdresse(p.adresse_complete).catch(() => null);
+    const gardee = a?.rue ? implantationEnCache(a, [...Records.list('EtudeImplantation'), ...Records.list('DataBImplantation')]) : null;
+    if (gardee) return gardee;
+    if (!lancer) return null;
+    const e = await (await import('./implantation/etude.js')).etudeImplantation(p.adresse_complete);
+    return e.ok ? e.resultat : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Pure : les flux de l'étude, tels que la diapositive Emplacement les montre. */
+export function fluxDeLEtude(etude) {
+  const fp = etude?.flux_pieton && !etude.flux_pieton.indisponible ? etude.flux_pieton : null;
+  const fv = etude?.flux_voiture && !etude.flux_voiture.indisponible ? etude.flux_voiture : null;
+  if (!fp && !fv) return null;
+  // Le mot de densité, et la note à part : l'écran la dessine en étoiles jaunes, à droite (13 oct. 2026, Jules).
+  const densite = (f) => { const n = f?.note?.note; return Number.isFinite(n) ? DENSITE[n] || '' : '[—]'; };
+  const note = (f) => (Number.isFinite(f?.note?.note) ? { note: f.note.note, sur: f.note.sur || 5 } : null);
+  const heure = (x, qui) => (x && Number.isFinite(x.min) && Number.isFinite(x.max) ? `${nombre(x.min)} à ${nombre(x.max)} ${qui}/h` : '[—]');
+  return {
+    pieton: { densite: densite(fp), etoiles: note(fp), basse: heure(fp?.par_heure?.basse, 'piétons'), haute: heure(fp?.par_heure?.haute, 'piétons') },
+    voiture: { densite: densite(fv), etoiles: note(fv), basse: 'Non estimé' },
+    // D'où ils viennent, pour le mode Sources (non affiché).
+    origine: {
+      etude: /data-?b/i.test(String(etude.source || '')) ? 'Data-B, étude d\'implantation' : 'Étude d\'implantation Klocka',
+      lien: etude.lien || null, le: etude.le || null,
+      pieton: fp?.methode || null, voiture: fv?.methode || null,
+    },
+  };
 }
 
 function prixAcquisition(p) {
@@ -156,6 +220,13 @@ async function analyseVilleSecteur(p) {
           const garde = (ville?.chiffres || []).filter((x) => !sources.some((n) => [/habitant|population/i, /revenu/i, /chômage|chomage/i, /prix|logement|m²/i].some((re) => re.test(n.label) && re.test(String(x?.label || '')))));
           ville = { nom: c.nom, points: [], ...(ville || {}), chiffres: [...sources, ...garde] };
           origine.ville_chiffres = 'sources';
+          // Les pages des sources, pour le mode Sources de l'éditeur (presentation-sources.js).
+          origine.liens = {
+            commune_code: c.code, commune_nom: c.nom,
+            filosofi_annee: s.revenu_median_uc?.annee || null,
+            zone_emploi: s.chomage_zone_emploi?.zone_emploi || null, chomage_periode: s.chomage_zone_emploi?.periode || null,
+            figaro: s.logement?.lien || null,
+          };
         }
       }
     } catch (e) {
@@ -258,7 +329,7 @@ export function sourcesDesDiapos({ origine = {}, indexation = 2, rendementRevent
     photos: { photos: 'les photos du projet' },
     bail: { chiffres: `${fiche} ; loyer mensuel = loyer annuel / 12 ; indexation de ${indexation} % par an (réglage du simulateur)` },
     enseignes: { enseignes: 'OpenStreetMap : les marques relevées à moins de 400 m du local ; logos de Wikidata ; secteur d\'après le type de commerce' },
-    marche: { local: `${fiche} ; prix et loyer au m² rapportés à la surface`, marche: 'loyer : l\'onglet Marché du projet (correction de l\'équipe, sinon Equimmox, Data-B en repli) ; prix des murs du secteur : aucune source fiable, à compléter' },
+    marche: { local: `${fiche} ; prix et loyer au m² rapportés à la surface`, marche: 'loyer : l\'onglet Marché du projet (correction de l\'équipe, sinon Equimmox, Data-B en repli) ; prix des murs du secteur : Equimmox, Analyse de prix (offres de vente de commerces, surface à ±20 %), demandée à AK' },
     projection: { chiffres: `calcul de la plateforme sur 20 ans : loyer du simulateur indexé de ${indexation} % par an${avecTravaux ? ', travaux article 606 du simulateur déduits' : ''} ; revente = loyer de l'année 20 / ${rendementRevente} % (rendement de sortie du simulateur)` },
     revenus: { chiffres: `le même calcul, année par année ; charges et taxe foncière déduites seulement si elles ne sont pas refacturées au locataire (simulateur)` },
     conditions: { chiffres: 'le simulateur du projet : durée du crédit et apport ; montant à financer = prix - apport' },
@@ -268,63 +339,52 @@ export function sourcesDesDiapos({ origine = {}, indexation = 2, rendementRevent
   };
 }
 
-// Enseignes autour du local : marques relevées dans OpenStreetMap (Overpass),
-// logos officiels tirés de Wikidata (propriété P154 → Wikimedia Commons). Les
-// six retenues sont d'abord celles qui ont un logo, avec leur secteur.
-async function enseignesDuSecteur(coords) {
-  if (!coords) return { logos: [], noms: [] };
+// Enseignes autour du local (13 oct. 2026, Jules : « la partie enseignes
+// nationales est fausse ») : les commerces ouverts à moins de 300 m sur Google
+// Maps, retenus seulement si leur nom est celui d'une marque présente en France
+// (name-suggestion-index d'OpenStreetMap), les plus proches d'abord ; le logo
+// officiel tiré de Wikidata (propriété P154 → Wikimedia Commons). Voir
+// server/enseignes-autour.js. Plus de marques OpenStreetMap à 400 m, souvent
+// périmées ou régionales.
+
+/** Le logo officiel d'une marque sur Wikidata, en base64 ; null s'il n'y en a pas. */
+async function logoWikidata(qid) {
   try {
-    const requete = `[out:json][timeout:8];(nwr(around:400,${coords.lat},${coords.lon})[brand];);out tags 60;`;
-    const appeler = () =>
-      fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Klocka/1.0' },
-        body: 'data=' + encodeURIComponent(requete),
-        signal: AbortSignal.timeout(12000),
-      });
-    let r = await appeler().catch(() => null);
-    if (!r?.ok) {
-      // Overpass limite volontiers les rafales : une pause puis un second essai.
-      await new Promise((f) => setTimeout(f, 1500));
-      r = await appeler().catch(() => null);
-    }
-    if (!r?.ok) return { logos: [], noms: [], secteurs: new Map() };
-    const marques = new Map(); // marque -> QID wikidata (ou null)
-    const secteurs = new Map();
-    for (const el of (await r.json()).elements || []) {
-      const t = el.tags || {};
-      if (t.brand && !marques.has(t.brand)) marques.set(t.brand, t['brand:wikidata'] || null);
-      if (t.brand && !secteurs.has(t.brand) && secteurOsm(t)) secteurs.set(t.brand, secteurOsm(t));
-    }
-    const logos = [];
-    // Les marques nationales (avec Wikidata) d'abord : ce sont elles qui ont un logo.
-    for (const [marque, qid] of [...marques].sort((a, b) => (b[1] ? 1 : 0) - (a[1] ? 1 : 0))) {
-      if (logos.length >= 6) break;
-      if (!qid) continue;
-      try {
-        const entetes = { 'User-Agent': 'Klocka/1.0 (presentation)' };
-        const wd = await (await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`, {
-          signal: AbortSignal.timeout(8000), headers: entetes,
-        })).json();
-        const fichier = wd.entities?.[qid]?.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
-        if (!fichier) continue;
-        const img = await fetch(
-          `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fichier)}?width=400`,
-          { signal: AbortSignal.timeout(10000), headers: entetes }
-        );
-        if (img.ok && (img.headers.get('content-type') || '').startsWith('image/')) {
-          logos.push({ marque, b64: Buffer.from(await img.arrayBuffer()).toString('base64') });
-        }
-      } catch { /* marque suivante */ }
-    }
-    const avecLogo = new Set(logos.map((l) => l.marque));
-    const noms = [...avecLogo, ...[...marques.keys()].filter((m) => !avecLogo.has(m))].slice(0, 10);
-    return { logos, noms, secteurs };
+    const entetes = { 'User-Agent': 'Klocka/1.0 (presentation)' };
+    const wd = await (await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`, { signal: AbortSignal.timeout(8000), headers: entetes })).json();
+    const fichier = wd.entities?.[qid]?.claims?.P154?.[0]?.mainsnak?.datavalue?.value;
+    if (!fichier) return null;
+    const img = await fetch(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fichier)}?width=400`, { signal: AbortSignal.timeout(10000), headers: entetes });
+    return img.ok && (img.headers.get('content-type') || '').startsWith('image/') ? Buffer.from(await img.arrayBuffer()).toString('base64') : null;
   } catch {
-    return { logos: [], noms: [], secteurs: new Map() };
+    return null;
   }
 }
 
+async function enseignesDuSecteur(coords) {
+  const vide = { logos: [], noms: [], secteurs: new Map(), details: new Map() };
+  if (!coords) return vide;
+  try {
+    const { enseignesAutour } = await import('./enseignes-autour.js');
+    const r = await enseignesAutour(coords);
+    if (!r.ok) { console.warn('[presentation projet] enseignes :', r.error); return vide; }
+    // Les vingt plus proches, leur logo cherché en même temps ; celles qui en ont un
+    // passent devant (une diapositive pour une banque se lit aux logos), puis les autres.
+    const proches = r.enseignes.slice(0, 20);
+    const images = await Promise.all(proches.map((e) => (e.wikidata ? logoWikidata(e.wikidata) : null)));
+    const logos = proches.map((e, i) => (images[i] ? { marque: e.nom, b64: images[i] } : null)).filter(Boolean);
+    const avecLogo = new Set(logos.map((l) => l.marque));
+    return {
+      logos,
+      noms: [...proches.filter((e) => avecLogo.has(e.nom)), ...r.enseignes.filter((e) => !avecLogo.has(e.nom))].slice(0, 10).map((e) => e.nom),
+      secteurs: new Map(r.enseignes.filter((e) => e.secteur).map((e) => [e.nom, e.secteur])),
+      details: new Map(r.enseignes.map((e) => [e.nom, { distance_m: e.distance_m, maps: e.maps, nom_google: e.nom_google }])),
+    };
+  } catch (e) {
+    console.warn('[presentation projet] enseignes :', e?.message || e);
+    return vide;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Le modèle des diapositives
@@ -363,7 +423,7 @@ const CHAPITRES = {
  */
 export async function construireDiapos(project, photos = {}) {
   const p = project;
-  const [coords, analyse] = await Promise.all([geocoder(p), analyseVilleSecteur(p)]);
+  const [coords, analyse, etude] = await Promise.all([geocoder(p), analyseVilleSecteur(p), etudeDuLocal(p)]);
   const enseignes = await enseignesDuSecteur(coords);
 
   // Le nom seul (« Libourne », pas « Libourne (Gironde, 33500) ») : la parenthèse de l'analyse n'a rien à faire sur une couverture.
@@ -379,6 +439,8 @@ export async function construireDiapos(project, photos = {}) {
   const loyerM2 = positif(p.loyer_m2_an) || (surface && loyer ? Math.round(loyer / surface) : null);
   const prix = prixAcquisition(p);
   const prixM2 = surface && prix ? Math.round(prix / surface) : null;
+  // « Acquisition droits inclus » : le prix de revient du simulateur, pas le prix négocié FAI (13 oct. 2026).
+  const revient = prixDeRevient(p)?.total || prix;
   const indexation = positif(p.sim_indexation_loyers) ?? 2;
   const dureeCredit = positif(p.sim_duree_credit) || 20;
   const apport = positif(p.sim_apport);
@@ -392,6 +454,9 @@ export async function construireDiapos(project, photos = {}) {
   const echeanceCourte = echeanceValide ? `${String(new Date(echeance).getMonth() + 1).padStart(2, '0')}/${new Date(echeance).getFullYear()}` : '[—]';
   const echeanceLongue = echeanceValide ? new Date(echeance).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '[date]';
   const eur = (n) => (n ? euros(n) : '[Montant]');
+  // Le prix des murs du secteur, si Equimmox l'a déjà lu (Analyse de prix, offres de commerces ; 13 oct. 2026).
+  const prixMurs = p.adresse_complete ? analysePrixEnCache(p.adresse_complete, surface) : null;
+  const mursM2 = prixMurs?.moyenne ? `${nombre(Math.round(prixMurs.moyenne))} €/m²` : null;
   const m2an = (n) => (n ? `${nombre(Math.round(n))} €/m²/an` : '[— €/m²/an]');
 
   // Les chiffres de la ville et du secteur, rangés par ce qu'ils disent.
@@ -436,7 +501,7 @@ export async function construireDiapos(project, photos = {}) {
   const hypothese = `Loyer actuel indexé de ${virgule(indexation, Number.isInteger(indexation) ? 0 : 1)} % par an. ${projection?.charges ? 'Charges de copropriété et taxe foncière non refacturées déduites.' : 'Charges de copropriété et taxe foncière à la charge du locataire.'}`;
 
   const sources = sourcesDesDiapos({ origine: analyse.origine || {}, indexation, rendementRevente, avecTravaux: !!projection?.avecTravaux });
-  const diapo = (id, etape, heros, carte) => ({ id, type: id, chapitre: CHAPITRES[id], etape, heros, ...carte, sources: sources[id] || null });
+  const diapo = (id, etape, heros, carte) => ({ id, type: id, chapitre: CHAPITRES[id], etape, heros, ...carte, sources: sources[id] || null, ...(id === 'ville' && analyse.origine?.liens ? { sources_liens: analyse.origine.liens } : {}) });
   const logos = garderLogos(enseignes.logos);
 
   return [
@@ -445,7 +510,7 @@ export async function construireDiapos(project, photos = {}) {
       {
         photo: photos.couverture || null,
         stats: [
-          { valeur: eur(prix), label: 'Acquisition droits inclus' },
+          { valeur: eur(revient), label: 'Acquisition droits inclus' },
           { valeur: eur(loyer), label: 'Loyer annuel HT/HC' },
           { valeur: bail, label: 'Bail restant à courir' },
         ],
@@ -471,13 +536,13 @@ export async function construireDiapos(project, photos = {}) {
         chiffres: [
           { label: 'Revenu médian disponible par UC', valeur: chiffreDe(cv, /revenu/i) || '[—]' },
           { label: 'Taux de chômage, zone d’emploi', valeur: chiffreDe(cv, /chômage|chomage/i) || '[—]' },
-          { label: 'Prix médian du logement ancien', valeur: chiffreDe(cv, /prix|logement|m²/i) || '[—]' },
+          { label: 'Prix médian du logement au m²', valeur: chiffreDe(cv, /prix|logement|m²/i) || '[—]' },
         ],
         atouts: deux(pointsVille),
       }),
     diapo('emplacement', 'Un emplacement stratégique',
       { titre: 'Un emplacement stratégique', accroche: pointsSecteur[0] || `Au cœur de ${nomSecteur}.`, note: adresse },
-      { lat: coords?.lat ?? null, lon: coords?.lon ?? null, legende: 'Local commercial' }),
+      { lat: coords?.lat ?? null, lon: coords?.lon ?? null, legende: 'Local commercial', flux: fluxDeLEtude(etude) }),
     diapo('quartier', 'Zoom sur le quartier',
       { grand: cs[0]?.valeur ? String(cs[0].valeur) : '[Chiffre clé]', accroche: pointsSecteur[1] || pointsSecteur[0] || '[Ce qui fait le quartier]', note: `Le secteur · ${nomSecteur}` },
       {
@@ -485,7 +550,7 @@ export async function construireDiapos(project, photos = {}) {
         chiffres: [
           { valeur: chiffreDe(cs, /zone|piéton|pieton/i) || '[—]', label: 'Type de zone' },
           { valeur: chiffreDe(cs, /loyer/i) || '[— €/m²/an]', label: 'Loyer commercial moyen' },
-          { valeur: chiffreDe(cs, /murs|prix/i) || '[— €/m²]', label: 'Prix des murs commerciaux' },
+          { valeur: chiffreDe(cs, /murs|prix/i) || mursM2 || '[— €/m²]', label: 'Prix des murs commerciaux' },
           { valeur: chiffreDe(cs, /vacance/i) || '[—]', label: 'Vacance commerciale' },
         ],
         atouts: trois(pointsSecteur),
@@ -533,19 +598,19 @@ export async function construireDiapos(project, photos = {}) {
       {
         enseignes: [0, 1, 2, 3, 4, 5].map((i) => {
           const nom = enseignes.noms[i];
-          return nom ? { nom, secteur: enseignes.secteurs?.get(nom) || '[Secteur]', logo: logos.get(nom) || null } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
+          return nom ? { nom, secteur: enseignes.secteurs?.get(nom) || '[Secteur]', logo: logos.get(nom) || null, ...(enseignes.details?.get(nom) || {}) } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
         }),
       }),
     (() => {
-      // Le loyer autour seul, comme l'onglet Marché : la correction de
-      // l'équipe, sinon Equimmox (Data-B en repli). Pas de prix des murs du
-      // secteur, faute de source fiable (6 oct. 2026) : la case reste à remplir.
+      // Le loyer autour, comme l'onglet Marché : la correction de l'équipe,
+      // sinon Equimmox (Data-B en repli). Le prix des murs : l'analyse de prix
+      // d'Equimmox si elle a été lue (13 oct. 2026), sinon la case reste à remplir.
       const lu = secteurGarde(p.id)?.rue || null;
       const locatifSecteur = positif(p.marche_loyer_autour) || positif(lu?.loyer_m2_an);
       return diapo('marche', 'Prix et loyers vs marché',
         { grand: eur(prix), accroche: 'Prix d’acquisition et loyer du local, comparés au marché du secteur.', note: 'Prix d’acquisition des murs' },
         {
-          marche: { titre: 'Marché du secteur', murs: '[— €/m²]', murs_label: 'Valeur moyenne des murs', loyer: m2an(locatifSecteur), loyer_label: 'Valeur locative moyenne' },
+          marche: { titre: 'Marché du secteur', murs: mursM2 || '[— €/m²]', murs_label: 'Valeur moyenne des murs', loyer: m2an(locatifSecteur), loyer_label: 'Valeur locative moyenne' },
           local: {
             titre: `Local · ${nomSecteur}`,
             prix_m2: prixM2 ? `${nombre(prixM2)} €/m²` : '[— €/m²]', prix_label: `Valeur d’acquisition des murs · prix : ${eur(prix)}`,
@@ -555,14 +620,14 @@ export async function construireDiapos(project, photos = {}) {
     })(),
     diapo('projection', 'Projection financière',
       projection
-        ? { grand: `× ${virgule(projection.cumul / prix, 2)}`, accroche: `Les loyers nets cumulés sur ${N} ans rapportés au prix d’acquisition.`, note: `Hypothèse : bail maintenu, indexation de ${virgule(indexation, Number.isInteger(indexation) ? 0 : 1)} % par an` }
+        ? { grand: `× ${virgule(projection.cumul / revient, 2)}`, accroche: `Les loyers nets cumulés sur ${N} ans rapportés au prix d’acquisition.`, note: `Hypothèse : bail maintenu, indexation de ${virgule(indexation, Number.isInteger(indexation) ? 0 : 1)} % par an` }
         : { grand: '[× —]', accroche: 'Loyer ou prix d’acquisition manquant : renseignez le simulateur du projet.', note: '' },
       {
         lignes: [
-          { label: 'Acquisition droits inclus', valeur: eur(prix) },
+          { label: 'Acquisition droits inclus', valeur: eur(revient) },
           { label: `Loyers nets HT cumulés sur ${N} ans`, valeur: projection ? euros(projection.cumul) : '[Montant]' },
           { label: `Revente à ${N} ans, rendement ${virgule(rendementRevente, Number.isInteger(rendementRevente) ? 0 : 1)} %`, valeur: projection ? euros(projection.revente) : '[Montant]' },
-          { label: `Plus-value, hypothèse${projection ? ` · × ${virgule(projection.revente / prix, 2)} le prix` : ''}`, valeur: projection ? euros(projection.revente - prix) : '[Montant]' },
+          { label: `Plus-value, hypothèse${projection ? ` · × ${virgule(projection.revente / revient, 2)} le prix` : ''}`, valeur: projection ? euros(projection.revente - revient) : '[Montant]' },
         ],
         barres: projection ? projection.lignes.map((l) => Math.round((l.cumul / projection.cumul) * 100)) : [],
         legende: projection?.avecTravaux ? 'Loyers nets HT cumulés, travaux art. 606 déduits' : 'Loyers nets HT cumulés',
@@ -581,7 +646,7 @@ export async function construireDiapos(project, photos = {}) {
         blocs: [
           { titre: 'Taux', valeur: 'Fixe' },
           { titre: 'Durée du crédit', valeur: `${dureeCredit} ans` },
-          { titre: 'Montant à financer', valeur: prix && apport ? euros(prix - apport) : '[Montant]' },
+          { titre: 'Montant à financer', valeur: revient && apport ? euros(revient - apport) : '[Montant]' },
           { titre: 'Apport', valeur: apport ? euros(apport) : '[À définir]' },
         ],
       }),
@@ -846,17 +911,33 @@ const DESSINS = {
       ecrire(s, 'Adresse non géolocalisable : carte à insérer.', { x: X, y: Y + H - 80, w: W, h: 30, taille: 14, couleur: C.gris, align: 'center' });
     }
   },
+  // Le quartier (13 oct. 2026, maquette de Jules) : la photo en haut sur toute la
+  // largeur, les quatre indicateurs en tuiles dessous, puis les atouts A, B, C.
   quartier(s, d, { img }) {
-    photo(s, img(d.photo), { x: X + 36, y: Y + 36, w: 190, h: H - 72 }, '[Photo du quartier]', 'photo');
-    const x = X + 36 + 190 + 24;
-    const w = W - 36 - (x - X);
-    const cw = (w - 22) / 2;
-    (d.chiffres || []).slice(0, 4).forEach((c, k) => chiffre(s, c, { x: x + (k % 2) * (cw + 22), y: Y + 36 + Math.floor(k / 2) * 100, w: cw, taille: 23, couleur: k === 1 ? C.sauge : C.ivoire, labelTaille: 12.5, chemin: `chiffres.${k}` }));
-    (d.atouts || []).slice(0, 3).forEach((a, k) => {
-      const y = Y + 290 + k * 80;
-      filet(s, x, y, w, k === 0 ? 84 : 92);
-      ecrire(s, 'ABC'[k], { x, y, w: 16, h: 80, taille: 13, couleur: C.sauge });
-      ecrire(s, a, { x: x + 32, y, w: w - 32, h: 80, taille: 14.5, chemin: `atouts.${k}` });
+    const m = 26;
+    const largeur = W - 2 * m;
+    // Un atout prend la hauteur de son texte (environ 85 signes par ligne à 14,5 px) : la photo prend le reste.
+    const atouts = (d.atouts || []).slice(0, 3);
+    const hauteurs = atouts.map((a) => 18 + 20 * Math.max(1, Math.ceil(texte(a).length / 85)));
+    const hAtouts = hauteurs.reduce((x, y) => x + y, 0);
+    const hTuiles = 108;
+    const yAtouts = Y + H - m - hAtouts;
+    const yTuiles = yAtouts - 18 - hTuiles;
+    photo(s, img(d.photo), { x: X + m, y: Y + m, w: largeur, h: yTuiles - 18 - (Y + m) }, '[Photo du quartier]', 'photo');
+    const g = 10;
+    const tw = (largeur - 3 * g) / 4;
+    (d.chiffres || []).slice(0, 4).forEach((c, k) => {
+      const x = X + m + k * (tw + g);
+      boite(s, { x, y: yTuiles, w: tw, h: hTuiles, rayon: 14, fond: C.case, bord: 84 });
+      ecrire(s, c.valeur, { x: x + 16, y: yTuiles + 14, w: tw - 32, h: 52, taille: 21, couleur: k === 1 ? C.sauge : C.ivoire, valign: 'top', chemin: `chiffres.${k}.valeur` });
+      ecrire(s, c.label, { x: x + 16, y: yTuiles + 66, w: tw - 32, h: 32, taille: 12, couleur: C.gris, valign: 'top', chemin: `chiffres.${k}.label` });
+    });
+    let y = yAtouts;
+    atouts.forEach((a, k) => {
+      filet(s, X + m, y, largeur, k === 0 ? 84 : 92);
+      ecrire(s, 'ABC'[k], { x: X + m + 6, y: y + 9, w: 16, h: 20, taille: 13, couleur: C.sauge, valign: 'top' });
+      ecrire(s, a, { x: X + m + 38, y: y + 9, w: largeur - 38, h: hauteurs[k] - 9, taille: 14.5, valign: 'top', chemin: `atouts.${k}` });
+      y += hauteurs[k];
     });
   },
   local(s, d) {
@@ -1081,7 +1162,7 @@ export async function enseignesPourDiapo(project) {
     accroche: enseignes.noms.length ? `${[...new Set(enseignes.noms.slice(0, 6).map((n) => enseignes.secteurs?.get(n)).filter(Boolean))].slice(0, 4).join(', ') || enseignes.noms.slice(0, 3).join(', ')} : le secteur attire les réseaux.` : null,
     enseignes: [0, 1, 2, 3, 4, 5].map((i) => {
       const nom = enseignes.noms[i];
-      return nom ? { nom, secteur: enseignes.secteurs?.get(nom) || '[Secteur]', logo: logos.get(nom) || null } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
+      return nom ? { nom, secteur: enseignes.secteurs?.get(nom) || '[Secteur]', logo: logos.get(nom) || null, ...(enseignes.details?.get(nom) || {}) } : { nom: '[Enseigne à compléter]', secteur: '[Secteur]', logo: null };
     }),
   };
 }

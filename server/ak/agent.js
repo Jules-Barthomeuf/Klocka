@@ -374,6 +374,17 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'lire_fiche_monday',
+    description: "Lit la fiche Monday d'une personne : client (tableau Clients), prospect (Prospects) ou agent (Agents). Rend chaque colonne remplie sous son titre (e-mail, téléphone, revenu, fonction, patrimoine, fonds propres, budget, localisation, statut…) et les dernières notes du fil. Par nom (même partiel, sans accents), par mail, ou par monday_id. Plusieurs fiches possibles : la liste revient, choisis d'après le contexte ou demande laquelle. Pour « qu'est-ce qu'on a sur Raphaël ? », pour remplir la diapo porteur ou la diapo de fin d'une présentation.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nom: { type: 'string' }, email: { type: 'string' }, monday_id: { type: 'string' },
+        tableau: { type: 'string', enum: ['clients', 'prospects', 'agents', 'tous'], description: 'où chercher ; par défaut clients et prospects' },
+      },
+    },
+  },
+  {
     name: 'modifier_dossier',
     description:
       "Modifie un fait d'un dossier de préanalyse — loyer annuel HT HC, prix FAI, surface, honoraires, occupé, locataire, activité, type et échéance de bail, type d'actif, adresse — par la même voie que l'écran Analyse : le verdict, les rendements et le simulateur se recalculent. Chercher le dossier d'abord (chercher_biens) ; un doute sur lequel : demander.",
@@ -401,7 +412,7 @@ const OUTILS_AK = [
   {
     name: 'donnees_commune',
     description:
-      "Les chiffres d'une commune : population et densité (API Géo), et, quand une étude d'implantation Data-B existe déjà pour une adresse de cette commune, sa démographie (habitants, évolution), son revenu moyen et sa zone de chalandise. Pour « la population de Mâcon », « le revenu moyen ». Dis la source de chaque chiffre ; ce qui manque se dit manquant (l'étude d'implantation l'apporterait).",
+      "Les chiffres d'une commune : population et densité (API Géo) ; revenu disponible médian par UC (INSEE Filosofi) ; taux de chômage de sa zone d'emploi, dernier trimestre (INSEE, taux localisés) ; prix médian du logement au m² et loyer résidentiel (Le Figaro Immobilier) ; et, quand une étude d'implantation Data-B existe déjà pour une adresse de cette commune, sa démographie (évolution), son revenu moyen et sa zone de chalandise. Pour « la population de Mâcon », « le revenu médian », « le taux de chômage », « le prix du logement ancien », la page Ville d'une présentation bancaire. Dis la source et la période de chaque chiffre ; ce qui manque se dit manquant, avec la raison rendue.",
     input_schema: { type: 'object', properties: { commune: { type: 'string' } }, required: ['commune'] },
   },
   {
@@ -445,12 +456,17 @@ const OUTILS_AK = [
   },
   {
     name: 'creer_presentation_bancaire',
-    description: "Crée la présentation bancaire (dossier « Projet de Financement », seize diapositives) d'un projet de la plateforme, dans la page Présentations : elle s'ouvre à droite, éditable, puis part en PPTX ou en Google Slides. Nécessite le projet_id rendu par trouver_bien ou chercher_projet. Une quinzaine de secondes (ville, quartier, carte, enseignes).",
+    description: "Crée la présentation bancaire (dossier « Projet de Financement », seize diapositives) d'un projet de la plateforme, dans la page Présentations : elle s'ouvre à droite, éditable, puis part en PDF. Nécessite le projet_id rendu par trouver_bien ou chercher_projet. Une quinzaine de secondes (ville, quartier, carte, enseignes).",
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' } }, required: ['projet_id'] },
   },
   {
+    name: 'lire_presentation',
+    description: "Retrouve une présentation bancaire de la page Présentations (par le nom du projet, la ville ou l'adresse, ou par presentation_id) et la montre comme si elle était ouverte : son presentation_id et chaque diapositive avec ses champs et leurs sources. À utiliser quand on te demande de remplir ou corriger une présentation qui n'est pas ouverte à droite, avant modifier_presentation. Sans recherche : les dernières présentations.",
+    input_schema: { type: 'object', properties: { recherche: { type: 'string' }, presentation_id: { type: 'string' } } },
+  },
+  {
     name: 'modifier_presentation',
-    description: "Retouche la présentation bancaire ouverte à droite (page Présentations) : chaque changement pose une valeur à un champ d'une diapositive, par son id et un chemin pointé, tels que la présentation ouverte te les montre. le panneau de gauche est « heros » (« heros.grand », « heros.titre », « heros.accroche », « heros.note » ; « heros.porteur » et « heros.banque » sur la couverture), la carte de droite a ses propres champs (« points.2.valeur », « chiffres.0.valeur », « stats.1.valeur »), « items.+ » pour ajouter un élément à une liste, valeur null sur un élément de liste pour le retirer, « masquee » à true pour cacher une diapositive. Les textes s'écrivent tels qu'ils doivent s'afficher ; une case encore à remplir est entre crochets (« [Prénom NOM] »).",
+    description: "Retouche une présentation bancaire, celle ouverte à droite (page Présentations) ou celle que lire_presentation t'a montrée : chaque changement pose une valeur à un champ d'une diapositive, par son id et un chemin pointé, tels que la présentation ouverte te les montre. le panneau de gauche est « heros » (« heros.grand », « heros.titre », « heros.accroche », « heros.note » ; « heros.porteur » et « heros.banque » sur la couverture), la carte de droite a ses propres champs (« points.2.valeur », « chiffres.0.valeur », « stats.1.valeur »), « items.+ » pour ajouter un élément à une liste, valeur null sur un élément de liste pour le retirer, « masquee » à true pour cacher une diapositive. Les textes s'écrivent tels qu'ils doivent s'afficher ; une case encore à remplir est entre crochets (« [Prénom NOM] »).",
     input_schema: {
       type: 'object',
       properties: {
@@ -463,6 +479,9 @@ const OUTILS_AK = [
               diapo: { type: 'string', description: "l'id de la diapositive (couverture, sommaire, ville, emplacement, quartier, local, photos, bail, enseignes, marche, projection, revenus, conditions, porteur, structuration, merci)" },
               chemin: { type: 'string' },
               valeur: { description: 'texte, nombre, booléen, objet ou null' },
+              // 13 oct. 2026 (Jules) : le mode Sources dit d'où vient chaque chiffre posé par AK.
+              source: { type: 'string', description: "OBLIGATOIRE pour un chiffre ou un fait : d'où il vient, tel que tu l'as lu (« Le Figaro Immobilier, prix au m² de Libourne », « INSEE Filosofi 2021 », « Equimmox, baux à 500 m », « Data-B, valeur locative du quartier », « recherche web : … »). Jamais une source que tu n'as pas lue : sans source, n'écris pas le chiffre." },
+              lien: { type: 'string', description: "la page exacte de la source, si tu l'as (https://…)" },
             },
             required: ['diapo', 'chemin'],
           },
@@ -470,6 +489,16 @@ const OUTILS_AK = [
       },
       required: ['presentation_id', 'changements'],
     },
+  },
+  {
+    name: 'loyers_equimmox',
+    description: "Les loyers commerciaux moyens autour d'un projet, lus sur Equimmox (les baux existants de la classe Commerces, à 500 m, surface du bien à ±20 %) : « va chercher les loyers autour dans Equimmox », « le loyer du secteur ». Nécessite le projet_id (trouver_bien ou chercher_projet). Rend la fourchette et la moyenne en €/m²/an avec leur source. Une lecture de moins de trente jours est reprise ; sinon Equimmox est interrogé, ce qui prend une à deux minutes (forcer relit). Si Equimmox n'a rien constaté, le projet retombe sur Data-B : la source rendue le dit, répète-la telle quelle. Ne dis jamais que tu n'as pas accès à Equimmox : c'est cet outil.",
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande ; jamais juste après une lecture, qui rendrait le même chiffre' } }, required: ['projet_id'] },
+  },
+  {
+    name: 'prix_murs_equimmox',
+    description: "Le prix des murs commerciaux au m² autour d'un projet, lu sur Equimmox (Analyse → Analyse de prix : les offres de vente de la classe Commerce, surface du bien à ±20 %, dans le rayon qu'Equimmox propose) : « estime le prix des murs avec Equimmox », « la valeur des murs du secteur », la case « Prix des murs commerciaux » ou « Valeur moyenne des murs » d'une présentation. Nécessite le projet_id. Rend Bas, Moyenne et Haut en €/m², le nombre d'offres, le rayon et la date. Ce sont des prix demandés (des annonces), pas des ventes signées : dis-le. Une lecture de moins de trente jours est reprise ; sinon une quarantaine de secondes.",
+    input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande' } }, required: ['projet_id'] },
   },
   {
     name: 'generer_prez_bancaire',
@@ -1016,6 +1045,33 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (r.erreur) return { ok: false, error: r.erreur };
     return { ok: true, cree: r.cree, monday_id: r.id, statut_ignore: r.statut_ignore || null };
   }
+  if (name === 'lire_fiche_monday') {
+    const { mondayConfigure, TABLEAUX, lireTableau, lireFiche } = await import('../monday.js');
+    if (!mondayConfigure()) return { ok: false, error: 'Monday non configuré sur ce serveur (MONDAY_TOKEN).' };
+    if (input.monday_id) {
+      const f = await lireFiche(input.monday_id);
+      return f ? { ok: true, fiche: f } : { ok: false, error: `Aucune fiche Monday ${input.monday_id}.` };
+    }
+    const norme = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const mots = norme(input.nom).split(' ').filter(Boolean);
+    const mail = norme(input.email);
+    if (!mots.length && !mail) return { ok: false, error: 'Il faut un nom, un mail ou un monday_id.' };
+    const ou = { clients: ['investisseurs'], prospects: ['prospects'], agents: ['agents'], tous: ['investisseurs', 'prospects', 'agents'] }[input.tableau] || ['investisseurs', 'prospects'];
+    const nomTableau = { investisseurs: 'Clients', prospects: 'Prospects', agents: 'Agents' };
+    const trouves = [];
+    for (const k of ou.filter((x) => TABLEAUX[x])) {
+      for (const l of await lireTableau(TABLEAUX[k])) {
+        const parMail = mail && Object.values(l.colonnes).some((v) => norme(v) === mail);
+        const parNom = mots.length && mots.every((m) => norme(l.nom).includes(m));
+        if (parMail || parNom) trouves.push({ monday_id: l.id, nom: l.nom, tableau: nomTableau[k], par_mail: !!parMail });
+      }
+    }
+    if (!trouves.length) return { ok: false, error: `Aucune fiche ${input.nom || input.email} dans ${ou.map((k) => nomTableau[k]).join(' ni ')}.` };
+    const exacts = trouves.filter((t) => t.par_mail);
+    const choix = exacts.length === 1 ? exacts : trouves;
+    if (choix.length > 1) return { ok: true, plusieurs: choix.slice(0, 10), note: 'Plusieurs fiches : choisis d\'après le contexte (rappelle lire_fiche_monday avec monday_id) ou demande laquelle.' };
+    return { ok: true, fiche: await lireFiche(choix[0].monday_id) };
+  }
   if (name === 'modifier_dossier') {
     // Un id recopié à la main arrive souvent tronqué : un préfixe qui ne
     // désigne qu'un seul dossier suffit, l'ambiguïté se redemande.
@@ -1074,8 +1130,8 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   if (name === 'donnees_commune') {
     const nom = String(input.commune || '').trim();
     if (!nom) return { ok: false, error: 'Quelle commune ?' };
-    const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(nom)}&fields=nom,code,population,surface,departement,region&boost=population&limit=1`, { signal: AbortSignal.timeout(10000) });
-    const c = r.ok ? (await r.json())[0] : null;
+    const { communeParNom } = await import('../chiffres-commune.js');
+    const c = await communeParNom(nom);
     if (!c) return { ok: false, error: `L'API Géo ne connaît pas « ${nom} ».` };
     const reponse = {
       ok: true,
@@ -1087,6 +1143,12 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
       densite_hab_km2: c.population && c.surface ? Math.round(c.population / (c.surface / 100)) : null,
       source: 'API Géo (population légale INSEE la plus récente)',
     };
+    // INSEE et Figaro en même temps ; une source qui ne répond pas laisse sa
+    // case manquante avec sa raison, les autres restent.
+    const { chiffresSources } = await import('../chiffres-commune.js');
+    const { manquants, ...chiffres } = await chiffresSources(c, { user });
+    Object.assign(reponse, chiffres);
+    if (manquants.length) reponse.manquants = manquants;
     // Une étude d'implantation Data-B déjà payée pour cette commune : sa
     // démographie et ses revenus se resservent, on ne relance rien.
     try {
@@ -1165,10 +1227,66 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (!r.ok) return r;
     return { ...r, note: "La présentation est ouverte à droite, éditable. Dis-le en une ligne, puis ce qui reste à compléter (le porteur, le destinataire, le CV, la structuration)." };
   }
+  if (name === 'lire_presentation') {
+    const P = await import('../presentation-bancaire.js');
+    let id = input.presentation_id ? String(input.presentation_id) : null;
+    if (!id) {
+      const norme = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const mots = norme(input.recherche).split(/[^a-z0-9]+/).filter((m) => m.length > 1);
+      const toutes = P.listerPresentations();
+      const trouvees = mots.length ? toutes.filter((x) => mots.every((m) => norme(JSON.stringify(x)).includes(m))) : toutes;
+      if (!trouvees.length) return { ok: false, error: `Aucune présentation pour « ${input.recherche} ». Dernières : ${toutes.slice(0, 5).map((x) => x.titre).join(' ; ') || 'aucune'}.` };
+      if (trouvees.length > 1) return { ok: true, plusieurs: trouvees.slice(0, 8).map((x) => ({ presentation_id: x.id, titre: x.titre, maj_le: x.maj_le || x.cree_le || null })), note: 'Choisis d\'après le contexte (la plus récente si c\'est le même projet), puis rappelle lire_presentation avec presentation_id.' };
+      id = trouvees[0].id;
+    }
+    const texte = P.presentationPourAK(id, { ouverte: false });
+    return texte ? { ok: true, presentation_id: id, presentation: texte, lien: lien("/Presentations") } : { ok: false, error: 'Présentation introuvable.' };
+  }
   if (name === 'modifier_presentation') {
     const P = await import('../presentation-bancaire.js');
     const r = P.appliquerChangements(String(input.presentation_id || ''), input.changements || []);
     return r.ok ? { ...r, presentation_id: String(input.presentation_id) } : r;
+  }
+  if (name === 'loyers_equimmox') {
+    const projet = Records.get('Project', String(input.projet_id || ''));
+    if (!projet) return { ok: false, error: 'Projet introuvable.' };
+    if (!projet.adresse_complete) return { ok: false, error: "Ce projet n'a pas d'adresse : sans elle, Equimmox ne peut rien chercher." };
+    const S = await import('../projet-secteur.js');
+    // Le loyer « autour » du projet, tel que l'onglet Marché et la présentation le lisent.
+    const lu = () => S.secteurGarde(projet.id)?.rue || null;
+    let r = input.forcer ? null : lu();
+    if (!r) {
+      S.lireSecteur(projet, { forcerLoyer: true });
+      // Equimmox met une à deux minutes : on l'attend, et la lecture continue seule si elle dépasse.
+      await Promise.race([S.attendreSecteur(projet.id), new Promise((f) => setTimeout(f, 120000))]);
+      r = lu();
+    }
+    if (!r || !Number.isFinite(r.loyer_m2_an)) return { ok: false, error: "Equimmox n'a rien rendu pour l'instant. La lecture continue en fond : redemande dans deux ou trois minutes, ou dis-moi de passer par Data-B." };
+    return {
+      ok: true, projet_id: projet.id, source: r.loyer_source || 'Equimmox', loyer_m2_an: r.loyer_m2_an, loyer_bas: r.loyer_bas ?? null, loyer_haut: r.loyer_haut ?? null,
+      rayon_m: r.rayon ?? null, surface_min: r.surface_min ?? null, surface_max: r.surface_max ?? null, lu_le: r.le || null,
+      // Une moyenne hors de sa fourchette ne se pose pas sur une présentation : on le dit avant.
+      coherent: !(Number.isFinite(r.loyer_bas) && Number.isFinite(r.loyer_haut)) || (r.loyer_m2_an >= r.loyer_bas && r.loyer_m2_an <= r.loyer_haut),
+      note: r.loyer_source === 'Data-B' ? "Equimmox n'a rien constaté autour : ces chiffres sont ceux de Data-B (quartier), à dire comme tels."
+        : (Number.isFinite(r.loyer_bas) && Number.isFinite(r.loyer_haut) && (r.loyer_m2_an < r.loyer_bas || r.loyer_m2_an > r.loyer_haut)) ? "ATTENTION : la moyenne est hors de la fourchette Equimmox, la lecture est suspecte. Ne pose rien sur la présentation sans le dire, et propose de relire (forcer) ou de passer par Data-B."
+        : 'Baux existants de la classe Commerces, Equimmox.',
+    };
+  }
+  if (name === 'prix_murs_equimmox') {
+    const projet = Records.get('Project', String(input.projet_id || ''));
+    if (!projet) return { ok: false, error: 'Projet introuvable.' };
+    if (!projet.adresse_complete) return { ok: false, error: "Ce projet n'a pas d'adresse : sans elle, Equimmox ne peut rien chercher." };
+    const surface = Number(projet.surface_m2) > 0 ? Number(projet.surface_m2) : Number(projet.sim_surface) > 0 ? Number(projet.sim_surface) : null;
+    const { analysePrix } = await import('../equimmox.js');
+    const r = await analysePrix(projet.adresse_complete, { surface, forcer: !!input.forcer, user });
+    if (!r.ok) return { ok: false, error: `Equimmox : ${r.error}` };
+    const x = r.resultat;
+    return {
+      ok: true, projet_id: projet.id, source: x.source, prix_m2_moyen: x.moyenne, prix_m2_bas: x.bas, prix_m2_haut: x.haut,
+      offres: x.offres, rayon: x.rayon, surface_min: x.surface_min, surface_max: x.surface_max, lu_le: x.le, du_cache: !!x.du_cache,
+      valeur_du_local: surface && x.moyenne ? Math.round(surface * x.moyenne) : null,
+      note: `Offres de vente de commerces (prix demandés), ${x.offres ?? '?'} annonces dans un rayon de ${x.rayon || '?'}, de ${x.surface_min ?? '?'} à ${x.surface_max ?? '?'} m². Sur la présentation : la moyenne en €/m², et la source « Equimmox, offres ».`,
+    };
   }
   if (name === 'generer_prez_bancaire') {
     const projet = Records.get('Project', input.projet_id);
@@ -1293,6 +1411,7 @@ DOSSIERS ET PROJETS
 - Changer un chiffre d'un dossier (loyer, prix, surface, bail) : modifier_dossier, après trouver_bien pour le bon dossier.
 - « Où en est X ? » : etat_dossier ou etat_projet, puis une ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes au plus, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends.
 - « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une préz jointe (projet de financement, présentation bancaire) avec « vérifie », « relis », « c'est juste ? » : trouver_bien pour le projet (ou le dossier) dont elle parle, puis verifier_presentation, jamais analyser_fiche ; réponds par la synthèse, puis les écarts bloquants et à corriger, une ligne chacun (page, ce qui est écrit, ce qui est juste), puis les cases à remplir ; les conformes en une ligne à la fin.
+- Remplir une présentation ou une fiche : va chercher toi-même avant de demander. Le porteur, un client, son téléphone ou ses revenus : lire_fiche_monday. Les chiffres d'une ville (population, revenu médian, chômage, prix du logement) : donnees_commune. Tu ne demandes à la personne que ce qu'aucun outil n'a rendu, en disant où tu as cherché.
 - « Vérifie la renta », « ça tourne ? », « c'est dead ? » : verifier_renta, et tu rends une conclusion nette en une phrase, sur le rendement GLOBAL (net moyen sur la durée du projet, celui de la fiche) contre le seuil de la grille : « Le projet tient : 6,9 % de rendement global pour 6,5 % visés. » ou « Le projet ne tient pas : 4,8 % de rendement global, et le bail se termine dans 14 mois. » L'AEM de la première année se cite entre parenthèses, il ne tranche pas. Les seuils sont ceux de l'équipe, tu ne les discutes pas.
 - Le simulateur : « et si on négocie à 120 k avec 30 % d'apport ? » : simuler_dossier avec prix_negocie, apport_pourcent, taux, duree, et tu rends renta, mensualité et cash-flow en une ligne avec les hypothèses.
 - « Crée une LOI », « fais la lettre d'intention pour X » : trouver_bien si un bien de la plateforme est nommé, puis rediger_loi. Il te manque forcément l'acquéreur (nom, société, adresse), le vendeur (société, représentant, adresse), le prix et l'apport si on ne te les a pas donnés : demande TOUT ce qui manque en UNE ligne, puis rédige. Ne devine jamais un nom ou un prix.

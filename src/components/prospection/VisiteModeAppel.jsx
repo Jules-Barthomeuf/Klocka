@@ -133,7 +133,7 @@ function Actions() {
         <div className="rounded-[18px] border border-trait px-[18px] pb-1.5 pt-3.5">
           <span className="text-[12px] tracking-[.14em] text-menthe">MAINTENANT</span>
           {ligne("Contact Monday", "Sophie Martin, retrouvée par téléphone")}
-          {ligne("Email", "Présentation + cahier des charges · à s.martin@riviera-commerce.fr")}
+          {ligne("Email", "Suite à notre échange · murs commerciaux occupés · à s.martin@riviera-commerce.fr")}
           {ligne("Ajouter à la liste de diffusion agents", "s.martin@riviera-commerce.fr")}
         </div>
         <div className="mx-auto h-5 w-[2px] bg-trait" />

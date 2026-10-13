@@ -7,6 +7,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
+import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import EditeurLoi from "@/components/offres/EditeurLoi";
 
 // Offres — les lettres d'intention d'achat (LOI) de l'équipe. Comme
@@ -136,6 +137,7 @@ export default function Offres() {
         <p className="py-12 text-center text-[14px] text-brume">{recherche ? "Aucune offre ne correspond." : "Aucune offre encore : décrivez la situation au chat, il rédige la lettre."}</p>
       ) : (
         <div className="border-y border-trait">
+          <EnTeteListe />
           {offres.map((o) => (
             <LigneOffre key={o.id} o={o} active={o.id === courante} onOuvrir={() => ouvrirOffre(o)}
               onSupprimer={() => { if (window.confirm(`Supprimer la LOI « ${o.adresse || "sans adresse"} » ?`)) supprimer.mutate(o.id); }} />
@@ -198,34 +200,29 @@ export default function Offres() {
   );
 }
 
-/** Une offre de l'historique : le bien, l'acquéreur, le prix, la date. */
+/** Une offre de l'historique : l'aperçu de la lettre, le bien, l'acquéreur, le prix, la date. */
 function LigneOffre({ o, active, onOuvrir, onSupprimer }) {
   const [menu, setMenu] = useState(false);
   const zone = useFermerAuClicAilleurs(menu, () => setMenu(false));
   const detail = [o.acquereur, euros(o.prix), o.vendeur ? `à ${o.vendeur}` : null].filter(Boolean).join(" · ");
   return (
-    <div className={`relative border-t border-trait px-2 py-4 pr-12 first:border-t-0 ${active ? "bg-surface" : ""}`}>
-      <button type="button" onClick={onOuvrir} className="flex w-full items-center gap-6 text-left" style={{ background: "transparent" }}>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15.5px] text-encre">{o.adresse || "Sans adresse"}</span>
-          {detail && <span className="mt-1 block truncate text-[13.5px] text-ardoise">{detail}</span>}
-        </span>
-        <span className="flex-none text-[13px] tabular-nums text-brume">{quand(o.maj_le)}</span>
-      </button>
-      <div ref={zone} className="contents">
-        <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-        {menu && (
-          <div className="absolute right-1 top-[calc(50%+14px)] z-20 min-w-[170px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
-            <button type="button" onClick={() => { setMenu(false); onSupprimer(); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08]" style={{ background: "transparent" }}>
-              <Trash2 className="h-3.5 w-3.5" /> Supprimer
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+    <LigneDocument active={active} onOuvrir={onOuvrir} titre={o.adresse || "Sans adresse"} detail={detail} modifie={o.maj_le}
+      vignette={<Vignette page bandeau="bg-menthe" titre={o.adresse || "Sans adresse"} />} auteur={<Auteur email={o.cree_par} />}
+      menu={(
+        <div ref={zone} className="contents">
+          <button type="button" onClick={() => setMenu(!menu)} aria-label="Actions" title="Actions"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-ardoise transition-colors hover:text-encre max-md:grid max-md:h-10 max-md:w-10 max-md:place-items-center" style={{ background: "transparent" }}>
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+          {menu && (
+            <div className="absolute right-1 top-[calc(50%+14px)] z-20 min-w-[170px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+              <button type="button" onClick={() => { setMenu(false); onSupprimer(); }} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-[12.5px] text-alerte hover:bg-alerte/[0.08]" style={{ background: "transparent" }}>
+                <Trash2 className="h-3.5 w-3.5" /> Supprimer
+              </button>
+            </div>
+          )}
+        </div>
+      )} />
   );
 }
 

@@ -506,6 +506,7 @@ function LayoutContent({ children, currentPageName }) {
     Personnalisation: { to: createPageUrl("Personnalisation"), icon: user?.role === "admin" || user?.role === "mandataire" ? CircleUser : Palette, actif: isActivePage("Personnalisation") },
     ImportProjets: { to: createPageUrl("ImportProjets"), icon: Upload, actif: isActivePage("ImportProjets") },
     MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
+    MesPresentations: { to: createPageUrl("MesPresentations"), icon: Presentation, actif: isActivePage("MesPresentations") },
     Vision: { to: createPageUrl("Vision"), icon: Eye, actif: isActivePage("Vision") },
     Ressources: { to: createPageUrl("Ressources"), icon: BookOpen, actif: isActivePage("Ressources") },
   };

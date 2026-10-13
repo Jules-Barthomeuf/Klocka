@@ -37,6 +37,7 @@ export const ENTREES_AUTRE = [
 export const ENTREES_CLIENT = [
   { cle: "Dashboard", label: "Dashboard" },
   { cle: "MesProjets", label: "Mes projets" },
+  { cle: "MesPresentations", label: "Présentations" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "Vision", label: "Vision" },
   { cle: "Ressources", label: "Ressources" },

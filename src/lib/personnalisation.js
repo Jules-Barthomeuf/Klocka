@@ -170,6 +170,21 @@ const luminosite = (rgb, delta) => {
   return hslVersRgb([h, s, Math.max(0, Math.min(1, l + delta))]);
 };
 const triplet = (rgb) => rgb.join(" ");
+/** Le rapport de contraste (WCAG) entre deux couleurs : 1 les confond, 21 est le noir sur blanc. */
+const rapport = (a, b) => { const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+/**
+ * 12 oct. 2026 : dans l'écran scindé (chat à côté d'un document), la barre de
+ * chat et les bulles envoyées (jeton `barre`) se posent sur le fond de la page ;
+ * avec un noir chaud près du fond, on ne les voyait plus (éditeur de présentation). Quelle que soit la teinte choisie,
+ * elles s'écartent du fond jusqu'à un rapport de 1,3 : plus claires sur un fond
+ * sombre, plus foncées sur un fond clair. Une teinte déjà assez nette ne bouge pas.
+ */
+export function ecarterDuFond(rgb, fondRgb, rapportMin = 1.3) {
+  const sens = luminance(fondRgb) > 0.35 ? -1 : 1;
+  let r = rgb;
+  for (let i = 0; i < 60 && rapport(r, fondRgb) < rapportMin; i += 1) r = luminosite(rgb, sens * 0.005 * (i + 1));
+  return r;
+}
 // La luminance relative (WCAG), pour savoir si un texte clair reste lisible sur une teinte.
 const luminance = (rgb) => {
   const [r, g, b] = rgb.map((c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
@@ -297,7 +312,12 @@ export function appliquerPrefs(brut) {
   const barreChoisie = choixBarre !== "origine";
   poser("--k-rail-rgb", barreChoisie ? triplet(barre) : null);
   poser("--k-rail-actif", barreChoisie ? (luminance(barre) > 0.35 ? "rgba(28, 29, 28, 0.08)" : "rgba(242, 243, 245, 0.08)") : null);
-  poser("--k-barre-rgb", barreChoisie || (!clair && choixFond === "anthracite") ? triplet(barreChoisie ? barre : hexVersRgb(jetons.couleurs.rail)) : null);
+  const fondPage = hexVersRgb(fond?.fond || (clair ? jetons.couleurs_clair : jetons.couleurs).fond);
+  const baseBarre = barreChoisie ? barre : !clair && choixFond === "anthracite" ? hexVersRgb(jetons.couleurs.rail) : hexVersRgb((clair ? jetons.couleurs_clair : jetons.couleurs).barre);
+  // Hors éditeur, la barre de chat reprend la teinte de la barre latérale, telle quelle ;
+  // dans l'écran scindé (html.k-sans-barre, voir index.css), elle prend la version écartée du fond.
+  poser("--k-barre-rgb", barreChoisie || (!clair && choixFond === "anthracite") ? triplet(baseBarre) : null);
+  poser("--k-barre-ecart-rgb", triplet(ecarterDuFond(baseBarre, fondPage)));
 
   // Le fond des cartes à grille, des tableaux et des champs de recherche : la
   // teinte d'un onglet au repos, la surface à 60 % sur le fond choisi. Calculé

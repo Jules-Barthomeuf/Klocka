@@ -206,12 +206,15 @@ export function contoursCommune(codeInsee) {
 /**
  * Les prix et loyers du résidentiel autour d'une adresse, d'après Le Figaro.
  * @param {string} texteAdresse
- * @param {{forcer?: boolean, user?: object}} opts
+ * @param {{forcer?: boolean, user?: object, commune?: {code: string, nom: string}}} opts
  * @returns {Promise<{ok: true, resultat: object} | {ok: false, error: string}>}
  */
-export async function prixResidentiel(texteAdresse, { forcer = false, user = null } = {}) {
+export async function prixResidentiel(texteAdresse, { forcer = false, user = null, commune = null } = {}) {
   let adresse;
-  try {
+  // Une commune déjà identifiée ({ code, nom }) ne repasse pas par la BAN, qui
+  // lit « Libourne » seul comme une rue de Saint-Caprais-de-Bordeaux.
+  if (commune?.code) adresse = { code_insee: commune.code, ville: commune.nom, label: commune.nom, lat: null, lon: null };
+  else try {
     adresse = await resoudreAdresse(texteAdresse);
   } catch (e) {
     return { ok: false, error: e.message, statut: e.statut ?? null, classe: e.classe ?? null };
@@ -247,7 +250,7 @@ export async function prixResidentiel(texteAdresse, { forcer = false, user = nul
   try {
     carteDesPrix = await lireCarte(html, url);
   } catch { /* la commune n'a pas de découpage par quartier */ }
-  const trouve = carteDesPrix ? quartierDuPoint(carteDesPrix.quartiers, adresse.lat, adresse.lon) : null;
+  const trouve = carteDesPrix && adresse.lat != null ? quartierDuPoint(carteDesPrix.quartiers, adresse.lat, adresse.lon) : null;
 
   // La moyenne d'une commune ne dit rien d'une rue : Paris entier est à
   // 10 726 €/m², Clignancourt-Jules Joffrin à 9 383. On va donc lire la page du

@@ -64,8 +64,8 @@ export function monterPresentations(app) {
   app.patch(`${base}/:id`, wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const M = await P();
-    const { diapo = null, ordre = null, titre = null, conversation_id = null } = req.body || {};
-    const r = M.modifierPresentation(req.params.id, { diapo, ordre, titre, conversation_id });
+    const { diapo = null, ordre = null, titre = null, conversation_id = null, tout = null } = req.body || {};
+    const r = M.modifierPresentation(req.params.id, { diapo, ordre, titre, conversation_id, tout });
     if (!r.ok) return res.status(r.error === 'Présentation introuvable.' ? 404 : 400).json({ error: r.error });
     ok(res, M.lirePresentation(req.params.id));
   }));
@@ -83,6 +83,60 @@ export function monterPresentations(app) {
     if (!admin(req, res)) return;
     const r = await (await P()).reconstruirePresentation(req.params.id);
     if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  // L'envoi aux clients (13 oct. 2026) : la liste des comptes clients, puis l'envoi.
+  app.get(`${base}/:id/clients`, wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const c = (await P()).clientsPossibles(req.params.id);
+    if (!c) return res.status(404).json({ error: 'Présentation introuvable.' });
+    ok(res, { clients: c });
+  }));
+
+  app.post(`${base}/:id/envoyer`, wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await P()).envoyerAuxClients(req.params.id, req.body?.emails || [], user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+
+  // Côté client : ses présentations, éditables ; une question part dans le Feedback.
+  const connecte = (req, res) => {
+    const user = currentUser(req);
+    if (!user) { res.status(401).json({ error: 'Not authenticated' }); return null; }
+    return user;
+  };
+  const client = '/api/client/presentations';
+  app.get(client, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    ok(res, { presentations: (await P()).presentationsDuClient(user) });
+  }));
+  app.get(`${client}/:id`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const d = (await P()).lirePourClient(req.params.id, user);
+    if (!d) return res.status(404).json({ error: 'Présentation introuvable.' });
+    ok(res, d);
+  }));
+  app.patch(`${client}/:id`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const M = await P();
+    if (!M.lirePourClient(req.params.id, user)) return res.status(404).json({ error: 'Présentation introuvable.' });
+    // Un client retouche les diapositives et leur ordre ; le titre, la conversation et l'envoi restent à l'équipe.
+    const { diapo = null, ordre = null } = req.body || {};
+    const r = M.modifierPresentation(req.params.id, { diapo, ordre });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, M.lirePourClient(req.params.id, user));
+  }));
+  app.post(`${client}/:id/question`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const r = (await P()).poserQuestion(req.params.id, user, req.body?.texte);
+    if (!r.ok) return res.status(r.error === 'Présentation introuvable.' ? 404 : 400).json({ error: r.error });
     ok(res, r);
   }));
 

@@ -6,13 +6,15 @@
 import { Records } from '../db.js';
 
 /** L'issue et son modèle : le choix par défaut, et la variante d'un clic. */
+// Depuis le 12 oct. 2026, deux canevas de Jules : « Suite à notre échange –
+// Murs commerciaux occupés » (sans bien : présentation et budgets, un seul
+// mail) et « Suite à notre échange – Dossier » (il a un bien : on attend son
+// dossier). Les pièces du dossier ne se demandent que si elles l'ont été.
 export const MODELES_DE_L_ISSUE = {
-  pas_de_murs: { defaut: 'presentation-cahier', variante: 'presentation' },
-  // A un bien : la fiche commerciale seule d'abord ; les pièces du dossier si elles ont été demandées.
-  a_des_murs: { defaut: 'demande-fiche', variante: 'demande-documents', si_documents: 'demande-documents' },
-  // Il veut un mail, ou il est partant sans bien aujourd'hui : notre présentation (12 oct. 2026).
-  veut_mail: { defaut: 'presentation-cahier', variante: 'presentation' },
-  interesse: { defaut: 'presentation-cahier', variante: 'presentation' },
+  pas_de_murs: { defaut: 'presentation-cahier' },
+  a_des_murs: { defaut: 'demande-fiche', si_documents: 'demande-documents' },
+  veut_mail: { defaut: 'presentation-cahier' },
+  interesse: { defaut: 'presentation-cahier' },
 };
 
 /** Le modèle d'un slug : celui de la base (modifiable depuis la page Mails), sinon celui livré. */
@@ -28,8 +30,11 @@ export async function modele(slug) {
  * {signature} : elle se pose à l'envoi, avec le nom de qui envoie. La phrase de
  * contexte se place sous la salutation quand le modèle n'a pas sa variable.
  */
-export function remplirModele(t, { analyste = '', salutation = 'Bonjour,', contexte = null } = {}) {
+export function remplirModele(t, { analyste = '', salutation = 'Bonjour,', contexte = null, type_bien = null, ville = null } = {}) {
   let corps = String(t?.contenu || '');
+  // Le bien de l'appel ({{type_bien}}, {{ville}}) : non dit, il reste entre crochets, à compléter.
+  corps = corps.replace(/\{\{\s*type_bien\s*\}\}/g, type_bien || '[type de bien]').replace(/\{\{\s*ville\s*\}\}/g, ville || '[ville]');
+  const objet = String(t?.objet || '').replace(/\s*\{\{\s*ville\s*\}\}/g, ville ? ` ${ville}` : '').replace(/\{\{\s*\w+\s*\}\}/g, '').trim();
   if (contexte && !/\{\{\s*contexte\s*\}\}/.test(corps)) corps = corps.replace(/^([^\n]*)\n\n/, `$1\n\n{{contexte}}\n\n`);
   corps = corps
     .replace(/\n?\{\{\s*contexte\s*\}\}\n?/g, (full) => (contexte ? full.replace(/\{\{\s*contexte\s*\}\}/, contexte) : '\n'))
@@ -39,15 +44,13 @@ export function remplirModele(t, { analyste = '', salutation = 'Bonjour,', conte
     .replace(/Je suis \{\{\s*signature\s*\}\}/g, `Je suis ${analyste || '{signature}'}`)
     .replace(/\{\{\s*signature\s*\}\}/g, '{signature}')
     .replace(/\n{3,}/g, '\n\n');
-  return { slug: t?.slug || null, titre: t?.titre || null, objet: String(t?.objet || '').replace(/\{\{\s*\w+\s*\}\}/g, '').trim(), corps, contexte: contexte || null };
+  return { slug: t?.slug || null, titre: t?.titre || null, objet, corps, contexte: contexte || null };
 }
 
-/** Pure : le cahier des charges d'un modèle, ses lignes « - Type de bien : … ». */
+/** Pure : ce qu'un modèle liste (les budgets des investisseurs, ou l'ancien cahier des charges) : ses lignes « - … » ou « • … ». */
 export function cahierDuModele(t) {
   const texte = String(t?.contenu || '');
-  const debut = texte.search(/cahier des charges/i);
-  if (debut < 0) return [];
-  return texte.slice(debut).split('\n').filter((l) => /^\s*-\s+\S/.test(l)).map((l) => l.replace(/^\s*-\s+/, '').trim()).slice(0, 6);
+  return texte.split('\n').filter((l) => /^\s*[-•]\s+\S/.test(l)).map((l) => l.replace(/^\s*[-•]\s+/, '').trim()).slice(0, 6);
 }
 
 /** Le cahier des charges clients, à avoir sous les yeux avant d'appeler. */

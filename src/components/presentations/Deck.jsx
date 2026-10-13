@@ -62,12 +62,27 @@ export const styleCss = (st) => (st ? {
 
 // Ce qu'une diapositive donne à ses éléments : ses données, la retouche, la
 // sélection et le mode.
-const Diapo = createContext({ d: {}, set: () => {}, styles: {}, selection: null, choisir: () => {}, edition: false, onPhoto: () => {}, aller: () => {} });
+const Diapo = createContext({ d: {}, set: () => {}, styles: {}, selection: null, choisir: () => {}, edition: false, onPhoto: () => {}, aller: () => {}, sources: null, surSource: null });
+
+/** En mode Sources : la classe et le survol d'un champ qui a une source (13 oct. 2026). */
+function propsSource(ctx, chemin) {
+  if (!ctx.sources) return {};
+  const propre = ctx.sources[chemin];
+  const src = propre || ctx.sources[String(chemin).replace(/\.(label|titre|page)$/, ".valeur")];
+  if (!src) return {};
+  return {
+    "data-source": src.nature,
+    // Le libellé d'un chiffre prend sa source sans porter de cadre : une ligne, un seul cadre.
+    ...(propre ? {} : { "data-source-libelle": "" }),
+    onMouseEnter: (e) => ctx.surSource?.({ diapo: ctx.d.id, chemin, el: e.currentTarget }),
+  };
+}
 
 /** Un texte de la diapositive. En édition : un clic le sélectionne, il se retape sur place ; gardé quand on en sort. */
 function Champ({ chemin, className = "", style = undefined, multiligne = false, as: Balise = "div" }) {
   const ref = useRef(null);
-  const { d, set, styles, selection, choisir, edition } = useContext(Diapo);
+  const ctx = useContext(Diapo);
+  const { d, set, styles, selection, choisir, edition } = ctx;
   const valeur = lire(d, chemin);
   const texte = String(valeur ?? "");
   const st = styles?.[chemin];
@@ -81,7 +96,7 @@ function Champ({ chemin, className = "", style = undefined, multiligne = false, 
     if (t !== texte) set(chemin, t);
   };
   return (
-    <Balise ref={ref} className={`pb-champ ${choisi ? "pb-choisi" : ""} ${className}`} style={{ ...style, ...styleCss(st) }}
+    <Balise ref={ref} className={`pb-champ ${choisi ? "pb-choisi" : ""} ${className}`} style={{ ...style, ...styleCss(st) }} {...propsSource(ctx, chemin)}
       contentEditable={edition} suppressContentEditableWarning spellCheck
       onClick={(e) => { if (!edition) return; e.stopPropagation(); }}
       onFocus={() => { if (edition) choisir({ diapo: d.id, chemin, taille: ref.current ? Math.round(parseFloat(getComputedStyle(ref.current).fontSize)) : null }); }}
@@ -97,14 +112,15 @@ function Champ({ chemin, className = "", style = undefined, multiligne = false, 
 
 /** Une photo : en édition, un clic la change (photos du projet, import, ou rien). En lecture, elle dézoome à l'arrivée. */
 function Photo({ chemin, style, className = "", vide = "[Photo]" }) {
-  const { d, styles, selection, choisir, edition, onPhoto } = useContext(Diapo);
+  const ctx = useContext(Diapo);
+  const { d, styles, selection, choisir, edition, onPhoto } = ctx;
   const url = lire(d, chemin);
   const st = styles?.[chemin];
   if (st?.masque) return null;
   const choisi = selection?.diapo === d.id && selection?.chemin === chemin;
   const ouvrir = () => { if (!edition) return; choisir({ diapo: d.id, chemin, taille: null }); onPhoto(d.id, chemin); };
   return (
-    <div className={`pb-photo ${edition ? "pb-photo-edit" : ""} ${choisi ? "pb-choisi" : ""} ${className}`} style={{ ...style, ...styleCss(st) }} role={edition ? "button" : undefined} tabIndex={edition ? 0 : -1}
+    <div className={`pb-photo ${edition ? "pb-photo-edit" : ""} ${choisi ? "pb-choisi" : ""} ${className}`} style={{ ...style, ...styleCss(st) }} {...propsSource(ctx, chemin)} role={edition ? "button" : undefined} tabIndex={edition ? 0 : -1}
       onClick={(e) => { if (edition) { e.stopPropagation(); ouvrir(); } }} onKeyDown={(e) => { if (e.key === "Enter") ouvrir(); }} title={edition ? "Changer la photo" : undefined}>
       {url ? <img className="f-img" src={url} alt="" draggable={false} style={className.includes("pb-logo") ? { objectFit: "contain", padding: 14 } : undefined} /> : <span className="pb-photo-vide">{vide}</span>}
     </div>
@@ -190,16 +206,28 @@ const CARTES = {
       <div style={{ flex: "none", fontSize: 14, lineHeight: 1.4, color: "var(--pb-clair)" }}><Atouts as={d.atouts} max={2} lignes={2} /></div>
     </div>
   ),
-  emplacement: ({ d }) => <Carte d={d} />,
+  // L'emplacement : la carte, et en bas les flux autour du local (13 oct. 2026, Jules).
+  emplacement: ({ d }) => (
+    <>
+      <Carte d={d} />
+      {d.flux && <Flux />}
+    </>
+  ),
+  // Le quartier (13 oct. 2026, maquette de Jules) : la photo en haut, sur toute
+  // la largeur ; dessous, les quatre indicateurs en tuiles côte à côte ; puis
+  // les trois atouts A, B, C, séparés d'un filet.
   quartier: ({ d }) => (
-    <div style={{ height: "100%", padding: 36, display: "flex", gap: 24 }}>
-      <Photo chemin={"photo"} style={{ flex: "0 0 190px" }} vide="[Photo du quartier]" />
-      <div style={{ flex: "1 1 0", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "18px 22px" }}>
-          {(d.chiffres || []).slice(0, 4).map((c, k) => <Chiffre key={k} chemin={`chiffres.${k}`} taille={23} labelTaille={12.5} couleur={k === 1 ? "var(--pb-sauge)" : undefined} />)}
-        </div>
-        <div style={{ fontSize: 14.5, lineHeight: 1.4 }}><Atouts as={d.atouts} padding="10px 0" filets /></div>
+    <div style={{ height: "100%", padding: 26, display: "flex", flexDirection: "column", gap: 18 }}>
+      <Photo chemin={"photo"} style={{ flex: "1 1 0", minHeight: 0 }} vide="[Photo du quartier]" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+        {(d.chiffres || []).slice(0, 4).map((c, k) => (
+          <div key={k} className="pb-boite" style={{ borderRadius: 14, padding: "14px 16px", minHeight: 108, display: "flex", flexDirection: "column", gap: 4 }}>
+            <Champ chemin={`chiffres.${k}.valeur`} style={{ fontSize: 21, lineHeight: 1.18, letterSpacing: "-0.02em", color: k === 1 ? "var(--pb-sauge)" : undefined }} />
+            <Champ chemin={`chiffres.${k}.label`} className="pb-gris" style={{ fontSize: 12, lineHeight: 1.3 }} />
+          </div>
+        ))}
       </div>
+      <div style={{ fontSize: 14.5, lineHeight: 1.35 }}><Atouts as={d.atouts} padding="9px 0" filets /></div>
     </div>
   ),
   local: ({ d }) => (
@@ -253,28 +281,61 @@ const CARTES = {
       })}
     </div>
   ),
+  // Le marché face au local (maquette de Jules, 13 oct. 2026) : pour le prix des murs et pour le loyer, une barre grise
+  // (le marché du secteur) et une barre sauge (le local), la valeur au bout, l'écart à droite du titre.
   marche: ({ d }) => {
-    const deux = (cle, champs) => (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 24 }}>
-        {champs.map(([v, lb]) => (
-          <div key={v}>
-            <Champ chemin={`${cle}.${v}`} style={{ fontSize: 36, letterSpacing: "-0.025em", color: cle === "marche" ? "var(--pb-gris)" : undefined }} />
-            <Champ chemin={`${cle}.${lb}`} style={{ marginTop: 4, fontSize: 13.5, color: cle === "marche" ? "var(--pb-gris)" : undefined }} />
+    // « 2 816 €/m² » → 2816 ; une fourchette (« 387 – 580 €/m²/an ») → son milieu ; une case à remplir → rien.
+    const chiffre = (v) => {
+      const t = String(v ?? "");
+      if (/^\s*\[/.test(t)) return null;
+      const ns = (t.match(/\d{1,3}(?:[\s\u202f\u00a0]\d{3})+(?:,\d+)?|\d+(?:,\d+)?/g) || []).map((x) => Number(x.replace(/[\s\u202f\u00a0]/g, "").replace(",", "."))).filter((n) => n > 0);
+      return ns.length ? (ns.length > 1 ? (ns[0] + ns[1]) / 2 : ns[0]) : null;
+    };
+    const illustratif = [];
+    const bloc = (titre, cMarche, cLocal) => {
+      const m = chiffre(lire(d, cMarche));
+      const l = chiffre(lire(d, cLocal));
+      // Les longueurs : la plus grande valeur prend toute la piste ; un marché sans chiffre, une longueur d'exemple.
+      const haut = Math.max(m || 0, l || 0) || 1;
+      const lm = m ? m / haut : 0.47;
+      const ll = l ? l / haut : 1;
+      if (!m) illustratif.push(titre);
+      const ecart = m && l ? `${l >= m ? "+" : "−"}${Math.round(Math.abs((l - m) / m) * 100)} %` : "[écart]";
+      const barre = (part, fond, chemin, couleur) => (
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <div style={{ width: `${Math.max(0.08, part) * 66}%`, height: 42, borderRadius: 8, background: fond, flex: "none" }} />
+          <Champ chemin={chemin} style={{ fontSize: 22, letterSpacing: "-0.02em", whiteSpace: "nowrap", color: couleur }} />
+        </div>
+      );
+      return (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
+            <span style={{ fontSize: 19, letterSpacing: "-0.01em" }}>{titre}</span>
+            <span className="pb-gris" style={{ fontSize: 13.5, whiteSpace: "nowrap" }}>Écart : {ecart}</span>
           </div>
-        ))}
-      </div>
-    );
+          <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+            {barre(lm, "var(--pb-barre-marche)", cMarche, "var(--pb-clair)")}
+            {barre(ll, "var(--pb-sauge)", cLocal, "var(--pb-sauge)")}
+          </div>
+        </div>
+      );
+    };
+    const murs = bloc("Prix des murs au m²", "marche.murs", "local.prix_m2");
+    const loyer = bloc("Loyer au m² par an", "marche.loyer", "local.loyer_m2");
+    const pastille = (fond) => <span style={{ width: 14, height: 14, borderRadius: 3, background: fond, flex: "none" }} />;
     return (
-      <div style={{ height: "100%", padding: 32, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ flex: "1 1 0", borderRadius: 20, border: "1px solid var(--pb-filet)", padding: "22px 26px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <Champ chemin={"marche.titre"} className="pb-etiquette" style={{ color: "var(--pb-gris-fonce)" }} />
-          {deux("marche", [["murs", "murs_label"], ["loyer", "loyer_label"]])}
+      <div style={{ height: "100%", padding: "28px 30px 26px", display: "flex", flexDirection: "column" }}>
+        <div className="pb-gris" style={{ display: "flex", alignItems: "center", gap: 26, fontSize: 14.5 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-barre-marche)")}Marché du secteur</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>{pastille("var(--pb-sauge)")}Le local</span>
         </div>
-        <div className="pb-gris" style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 13.5 }}><div style={{ flex: 1, height: 1, background: "var(--pb-filet)" }} /><span>comparé à</span><div style={{ flex: 1, height: 1, background: "var(--pb-filet)" }} /></div>
-        <div className="pb-pleine" style={{ flex: "1 1 0", padding: "22px 26px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <Champ chemin={"local.titre"} className="pb-etiquette" />
-          {deux("local", [["prix_m2", "prix_label"], ["loyer_m2", "loyer_label"]])}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-evenly" }}>
+          {murs}
+          {loyer}
         </div>
+        {illustratif.length > 0 && (
+          <div className="pb-gris" style={{ borderTop: "1px solid var(--pb-filet-doux)", paddingTop: 16, fontSize: 13 }}>Longueurs des barres marché illustratives tant que les valeurs ne sont pas renseignées</div>
+        )}
       </div>
     );
   },
@@ -400,7 +461,44 @@ const CARTES = {
 
 
 /** La carte de l'emplacement : Google Maps (12 oct. 2026, à la place des tuiles IGN), centrée sur le local ; le repère pulse en lecture. */
+/** Les flux piéton et voiture, posés en bas de la carte : la densité, puis l'estimation basse (heure creuse) et haute (heure de pointe). */
+/** Une note en étoiles jaunes : pleines jusqu'à la note, éteintes ensuite. */
+function Etoiles({ n, sur = 5 }) {
+  if (!Number.isFinite(n)) return null;
+  return (
+    <span aria-label={`${n} sur ${sur}`} title={`${n} sur ${sur}`} style={{ flex: "none", fontSize: 17, letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
+      <span style={{ color: "var(--pb-etoile)" }}>{"★".repeat(n)}</span><span style={{ color: "var(--pb-etoile-eteinte)" }}>{"★".repeat(Math.max(0, sur - n))}</span>
+    </span>
+  );
+}
+
+function Flux() {
+  const { d } = useContext(Diapo);
+  const colonne = (cle, titre) => (
+    <div style={{ minWidth: 0 }}>
+      <div className="pb-etiquette pb-sauge">{titre}</div>
+      {/* La densité à gauche, la note en étoiles jaunes alignée à droite du cadre (13 oct. 2026, Jules). */}
+      <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+        <Champ chemin={`flux.${cle}.densite`} style={{ fontSize: 20, letterSpacing: "-0.015em" }} />
+        <Etoiles n={d.flux?.[cle]?.etoiles?.note} sur={d.flux?.[cle]?.etoiles?.sur} />
+      </div>
+      <div style={{ marginTop: 8, fontSize: 13 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderTop: "1px solid var(--pb-filet)" }}><span className="pb-gris">Heure creuse</span><Champ chemin={`flux.${cle}.basse`} /></div>
+        {/* Pas d'heure de pointe pour le flux voiture (13 oct. 2026, Jules). */}
+        {cle !== "voiture" && <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", borderTop: "1px solid var(--pb-filet-doux)" }}><span className="pb-gris">Heure de pointe</span><Champ chemin={`flux.${cle}.haute`} /></div>}
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ position: "absolute", left: 18, right: 18, bottom: 18, zIndex: 2, borderRadius: 18, padding: "14px 20px", background: "rgba(18, 19, 18, 0.9)", border: "1px solid var(--pb-filet)", backdropFilter: "blur(8px)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+      {colonne("pieton", "Flux piéton")}
+      {colonne("voiture", "Flux voiture")}
+    </div>
+  );
+}
+
 function Carte({ d }) {
+  const ctx = useContext(Diapo);
   const lat = Number(d.lat);
   const lon = Number(d.lon);
   const ok = d.lat != null && d.lon != null && Number.isFinite(lat) && Number.isFinite(lon);
@@ -417,7 +515,7 @@ function Carte({ d }) {
     <>
       {rate
         ? <div className="pb-photo-vide" style={{ position: "absolute", inset: 0 }}>Carte Google Maps indisponible</div>
-        : <img key={essai} src={`/api/presentations-carte?lat=${lat}&lon=${lon}${essai ? `&essai=${essai}` : ""}`} alt="Plan du quartier" draggable={false} onError={rater} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+        : <img key={essai} src={`/api/presentations-carte?lat=${lat}&lon=${lon}${essai ? `&essai=${essai}` : ""}`} alt="Plan du quartier" draggable={false} onError={rater} {...propsSource(ctx, "carte")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
       <span className="f-pulse" style={{ position: "absolute", left: px - 12, top: py - 12, width: 24, height: 24, borderRadius: 9999, background: "var(--pb-encre)" }} />
       <span style={{ position: "absolute", left: px - 9, top: py - 9, width: 18, height: 18, borderRadius: 9999, background: "var(--pb-sauge)", border: "3px solid var(--pb-encre)" }} />
       <Champ chemin="legende" className="f-pin" style={{ position: "absolute", left: px + 20, top: py - 40, padding: "10px 20px", borderRadius: 9999, background: "var(--pb-encre)", fontSize: 15, fontWeight: 500, whiteSpace: "nowrap" }} />
@@ -491,7 +589,7 @@ function Barre({ d, rang, total, visibles, onAller, onPrecedente, onSuivante }) 
  * @param {number} relief l'inclinaison 3D à la souris, 0 à 12 (6 par défaut)
  * @param {boolean} impression la diapositive figée pour le PDF : rien ne bouge, tout est posé
  */
-export default function Deck({ diapos, courante, onCourante, mode = "edition", selection = null, onSelection = () => {}, onChange, onPhoto, relief = 6, sceneRef = null, impression = false }) {
+export default function Deck({ diapos, courante, onCourante, mode = "edition", selection = null, onSelection = () => {}, onChange, onPhoto, relief = 6, sceneRef = null, impression = false, sources = null, onSource = null }) {
   const edition = mode === "edition";
   const scene = useRef(null);
   const [echelle, setEchelle] = useState(impression ? 1 : 0.5);
@@ -550,13 +648,14 @@ export default function Deck({ diapos, courante, onCourante, mode = "edition", s
 
   const contexteDe = (d) => ({
     d, styles: d.styles || {}, selection, edition, onPhoto,
+    sources: sources ? sources[d.id] || {} : null, surSource: onSource,
     set: (chemin, valeur) => onChange(poser(d, chemin, valeur)),
     choisir: onSelection,
     aller: onCourante,
   });
 
   return (
-    <div ref={scene} className={`pb pb-scene ${edition ? "pb-mode-edition" : "pb-mode-lecture"} ${impression ? "pb-impression" : ""}`} onClick={() => { if (edition) onSelection(null); }}>
+    <div ref={scene} className={`pb pb-scene ${edition ? "pb-mode-edition" : "pb-mode-lecture"} ${impression ? "pb-impression" : ""} ${sources ? "pb-mode-sources" : ""}`} onClick={() => { if (edition) onSelection(null); }}>
       <div className="pb-cadre" style={{ width: LARGEUR * echelle, height: HAUTEUR * echelle }}>
         <div className="pb-diapo" style={{ transform: `scale(${echelle})` }} onMouseMove={bouge} onMouseLeave={() => setSouris({ mx: 0, my: 0 })}>
           <div className="pb-etage">

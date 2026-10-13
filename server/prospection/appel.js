@@ -101,6 +101,8 @@ const SCHEMA = {
         echeance_en_mots: { type: 'string', description: "son échéance en toutes lettres, telle que dite (« dans deux semaines »), jamais calculée ; vide si non dite" },
       },
     },
+    bien_type: { type: 'string', description: "le type du bien évoqué, en deux ou trois mots, tel qu'on l'écrirait dans un mail (« les murs d'une boulangerie », « un local commercial loué ») ; vide si aucun bien précis" },
+    bien_ville: { type: 'string', description: "la ville du bien évoqué (« Antibes ») ; vide si non dite" },
     contexte: { type: 'string', description: "une seule phrase pour le mail de demande de documents, qui rappelle le bien évoqué (« Comme évoqué, le local de la rue de France nous intéresse. ») ; vide si aucun bien précis n'a été cité" },
     nouveau_contact: {
       type: 'object',

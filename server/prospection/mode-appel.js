@@ -808,7 +808,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   const emailIncertain = !emailSur && compris.champs?.email ? compris.champs.email.valeur : null;
   const destinataire = emailSur || (f?.emails || [])[0] || a.email || emailIncertain || null;
   if (choixModele) {
-    const vars = { analyste, salutation: compris.salutation || 'Bonjour,', contexte: compris.contexte || null };
+    const vars = { analyste, salutation: compris.salutation || 'Bonjour,', contexte: compris.contexte || null, type_bien: compris.bien?.type || null, ville: compris.bien?.ville || null };
     const variantes = [];
     // A un bien : la fiche commerciale seule, sauf si les pièces du dossier ont été demandées.
     const ordre = compris.demande === 'documents' && choixModele.si_documents ? [choixModele.si_documents, choixModele.defaut] : [choixModele.defaut, choixModele.variante];
@@ -816,7 +816,8 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
       const t = await MO.modele(slug);
       // La signature se voit dès l'aperçu : nom, Klocka, adresse.
       // Le mail s'arrête à la formule de politesse (8 oct. 2026) : la signature (la bannière de la boîte) s'ajoute à l'envoi.
-      if (t) { const m = MO.remplirModele(t, vars); variantes.push({ ...m, corps: sansJetonSignature(m.corps) }); }
+      // La phrase de contexte (« Comme évoqué, le local… ») ne se glisse que dans la demande de documents : le mail Dossier dit déjà le bien.
+      if (t) { const m = MO.remplirModele(t, slug === 'demande-documents' ? vars : { ...vars, contexte: null }); variantes.push({ ...m, corps: sansJetonSignature(m.corps) }); }
     }
     if (variantes.length) {
       const m = variantes[0];

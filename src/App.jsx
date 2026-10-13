@@ -30,7 +30,7 @@ const Alexis = lazy(() => import('@/pages/Alexis'));
 const PAGES_CLIENT = new Set([
   'Home', 'Dashboard', 'Questionnaire', 'MesProjets', 'ProjetDetail',
   'SimulateurRentabilite', 'TableauProjection', 'Ressources', 'Vision', 'Comparateur',
-  'MonCompte', 'Feedback', 'Famille', 'Familles', 'Personnalisation',
+  'MonCompte', 'Feedback', 'Famille', 'Familles', 'Personnalisation', 'MesPresentations',
 ]);
 const Portail2Fois = lazy(() => import('@/pages/Portail2Fois'));
 const SimulateurPublic = lazy(() => import('@/pages/SimulateurPublic'));

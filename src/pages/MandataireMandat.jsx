@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { FileText, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { BandeauExemples, BoutonFichier, LienFichier, PastilleExemple, dateCourte, euros, formDe } from "@/components/mandataire/kit";
+import { BandeauExemples, BoutonFichier, LienFichier, PastilleExemple, euros, formDe } from "@/components/mandataire/kit";
+import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
 import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
@@ -144,31 +145,30 @@ export default function MandataireMandat() {
                 <>
                 <BandeauExemples liste={mandats} />
                 <div className="border-y border-trait">
+                  <EnTeteListe droite="Avancement" />
                   {mandats.map((m) => {
                     const i = Math.max(0, ETAPES.findIndex(([cle]) => cle === m.statut));
+                    const detail = [m.vendeur, m.prix ? euros(m.prix) : null, m.honoraires != null ? `honoraires ${m.honoraires}${m.honoraires <= 100 ? " %" : " €"}` : null, m.type, m.duree_mois ? `${m.duree_mois} mois` : null].filter(Boolean).join(" · ");
                     return (
-                      <div key={m.id} className="border-t border-trait px-2 py-5 first:border-t-0">
-                        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-                          <button onClick={() => reprendre(m)} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
-                            <p className="m-0 truncate text-[16px] text-encre">{m.bien}<PastilleExemple x={m} />{m.numero_registre && <span className="ml-2 text-[12.5px] tabular-nums text-menthe">Registre n° {m.numero_registre}</span>}</p>
-                            <p className="m-0 mt-1 truncate text-[13.5px] text-ardoise">
-                              {[m.vendeur, m.prix ? euros(m.prix) : null, m.honoraires != null ? `honoraires ${m.honoraires}${m.honoraires <= 100 ? " %" : " €"}` : null, m.type, m.duree_mois ? `${m.duree_mois} mois` : null, dateCourte(m.cree_le)].filter(Boolean).join(" · ")}
-                            </p>
-                          </button>
-                          <button onClick={() => reprendre(m)} className="w-[260px] flex-none text-left max-md:w-full" style={{ background: "transparent" }} aria-label={`Étape ${i + 1} sur ${ETAPES.length} : ${ETAPES[i][1]}`}>
-                            <span className="flex items-baseline justify-between text-[14px]">
-                              <span className="text-encre">{ETAPES[i][1]}</span>
-                              <span className="tabular-nums text-ardoise">{i + 1}/{ETAPES.length}</span>
+                      <div key={m.id}>
+                        <LigneDocument onOuvrir={() => reprendre(m)} modifie={m.maj_le || m.cree_le}
+                          titre={<>{m.bien}<PastilleExemple x={m} />{m.numero_registre && <span className="ml-2 text-[12.5px] tabular-nums text-menthe">Registre n° {m.numero_registre}</span>}</>}
+                          detail={detail} vignette={<Vignette page bandeau="bg-ardoise" titre={m.bien} />} auteur={<Auteur moi />}
+                          droite={(
+                            <span className="block" aria-label={`Étape ${i + 1} sur ${ETAPES.length} : ${ETAPES[i][1]}`}>
+                              <span className="flex items-baseline justify-between text-[14px]">
+                                <span className="text-encre">{ETAPES[i][1]}</span>
+                                <span className="tabular-nums text-ardoise">{i + 1}/{ETAPES.length}</span>
+                              </span>
+                              <span className="mt-2 flex gap-1">
+                                {ETAPES.map(([cle], n) => (
+                                  <span key={cle} className={`h-[5px] flex-1 rounded-full ${n < i || (n === i && i === ETAPES.length - 1) ? "bg-menthe" : n === i ? "bg-menthe/45" : "bg-encre/[0.12]"}`} />
+                                ))}
+                              </span>
                             </span>
-                            <span className="mt-2 flex gap-1">
-                              {ETAPES.map(([cle], n) => (
-                                <span key={cle} className={`h-[5px] flex-1 rounded-full ${n < i || (n === i && i === ETAPES.length - 1) ? "bg-menthe" : n === i ? "bg-menthe/45" : "bg-encre/[0.12]"}`} />
-                              ))}
-                            </span>
-                          </button>
-                        </div>
+                          )} />
                         {((m.document || m.mynotary_url) || m.statut === "pret" || m.document_signe) && (
-                          <div className="mt-3 flex flex-wrap items-center gap-3">
+                          <div className="-mt-1 mb-3 flex flex-wrap items-center gap-3 px-2 pl-[114px] max-md:pl-2">
                             {(m.document || m.mynotary_url) && (
                               <button onClick={() => setFenetre(m.id)} className="flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
                                 <FileText className="h-3.5 w-3.5" /> Le mandat MyNotary

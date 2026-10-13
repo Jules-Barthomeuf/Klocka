@@ -152,10 +152,9 @@ test("Pas de bien : nouvelle ligne Monday complète et relue, mail Présentation
   assert.equal(d.mail.etat, 'ok');
   const m = envoyes.at(-1);
   assert.equal(m.to, 'contact@agence-test.fr');
-  assert.equal(m.subject, 'Présentation de notre activité et cahier des charges – Klocka');
-  assert.match(m.body, /^Bonjour,\n\nSuite à notre échange/);
-  assert.match(m.body, /Je suis Nora Lorinquer, analyste/);
-  assert.match(m.body, /Bien cordialement,\nNora Lorinquer\nKlocka · klocka\.immo\nnora\.l@klocka\.immo$/);
+  assert.equal(m.subject, 'Suite à notre échange – Murs commerciaux occupés');
+  assert.match(m.body, /^Bonjour,\n\nMerci pour votre temps lors de notre échange téléphonique\./);
+  assert.match(m.body, /Au plaisir de travailler ensemble,\nNora Lorinquer\nKlocka · klocka\.immo\nnora\.l@klocka\.immo$/, 'la signature se pose sous la formule du canevas');
   assert.ok(!/\{\w+\}/.test(m.body), 'aucune variable laissée');
   assert.equal(v.recu.diffusion.etat, 'ok');
   assert.match(v.recu.relance.texte, /^Relance /);
@@ -180,8 +179,8 @@ test("A un bien : la ligne existante est retrouvée par le téléphone et mise �
   assert.equal(l.colonnes.relance, R.plusJoursOuvres(auj, 3));
   assert.equal(r.appel.propositions.find((p) => p.id === 'mail').modele, 'demande-fiche');
   await MA.envoyerMailDiffere(r.appel.id);
-  assert.match(envoyes.at(-1).body, /nous avons besoin de sa fiche commerciale/);
-  assert.equal(envoyes.at(-1).subject, 'Murs commerciaux - Klocka');
+  assert.match(envoyes.at(-1).body, /je serais ravi de découvrir le dossier concernant/);
+  assert.match(envoyes.at(-1).subject, /^Suite à notre échange – Dossier/);
 });
 
 test("Pas intéressé : Monday « Ne plus appeler », relance vidée, liste de diffusion Non, ni mail ni liste", async () => {

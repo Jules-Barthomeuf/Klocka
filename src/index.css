@@ -100,6 +100,7 @@ button:focus-visible {
     --k-menthe-pale-rgb: 156 195 188;
     --k-sur-menthe-pale-rgb: 11 18 17;
     --k-barre-rgb: 28 30 29;
+    --k-barre-ecart-rgb: 40 43 42;
     --k-barre-relief-rgb: 42 44 43;
     --k-rail-rgb: 25 26 25;
     --k-rail-actif: rgba(242, 243, 245, 0.08);
@@ -146,6 +147,7 @@ button:focus-visible {
     --k-menthe-pale-rgb: 185 207 200;
     --k-sur-menthe-pale-rgb: 255 255 255;
     --k-barre-rgb: 253 253 253;
+    --k-barre-ecart-rgb: 253 253 253;
     --k-barre-relief-rgb: 231 231 229;
     --k-rail-rgb: 244 244 242;
     --k-rail-actif: rgba(28, 29, 28, 0.08);
@@ -747,6 +749,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-menthe-pale-rgb: 185 207 200;
     --k-sur-menthe-pale-rgb: 255 255 255;
     --k-barre-rgb: 253 253 253;
+    --k-barre-ecart-rgb: 253 253 253;
     --k-barre-relief-rgb: 231 231 229;
     --k-rail-rgb: 244 244 242;
     --k-rail-actif: rgba(28, 29, 28, 0.08);
@@ -959,3 +962,8 @@ html.k-sobre .k-points[data-zone="fond"]::before { display: none !important; }
 }
 /* Le texte garde sa taille quand le téléphone pivote. */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* L'écran scindé (chat à côté d'un document) : la barre de chat et les bulles
+   se détachent du fond (--k-barre-ecart-rgb, posé par personnalisation.js).
+   Ailleurs, elles gardent la teinte de la barre latérale. */
+html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }

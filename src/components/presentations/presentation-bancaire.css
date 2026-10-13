@@ -18,10 +18,13 @@
   --pb-gris-fonce: #808280;
   --pb-clair: #c9cbc7;
   --pb-logo-vide: #6f716e;
+  --pb-barre-marche: #5a5b5a;
   --pb-filet: rgba(242, 243, 245, 0.16);
   --pb-filet-doux: rgba(242, 243, 245, 0.08);
   --pb-pointille: rgba(242, 243, 245, 0.24);
   --pb-verre: rgba(242, 243, 245, 0.045);
+  --pb-etoile: #f5c542;
+  --pb-etoile-eteinte: rgba(242, 243, 245, 0.18);
   --pb-glisse: 1.3s cubic-bezier(.7, 0, .2, 1);
 }
 
@@ -154,3 +157,20 @@
 .pb-impression, .pb-impression * { transition: none !important; animation: none !important; }
 .pb-impression .pb-cadre { border-radius: 0; box-shadow: none; }
 .pb-impression .pb-touche { display: none; }
+
+/* Le mode Sources (13 oct. 2026) : ce qui a une source porte un filet pointillé, à la couleur de sa confiance ;
+   au survol, la fiche de sa source s'ouvre à côté (EditeurPresentation, FicheSource). */
+.pb { --pb-ambre: #e3b866; --pb-rouge: #e59a8c; }
+.pb-mode-sources [data-source] { outline: 1px dashed rgba(150, 192, 184, 0.55); outline-offset: 3px; border-radius: 2px; cursor: help; }
+.pb-mode-sources .pb-photo[data-source], .pb-mode-sources img[data-source] { outline-offset: -3px; border-radius: 20px; }
+.pb-mode-sources [data-source="calcul"] { outline-color: rgba(242, 242, 240, 0.45); }
+.pb-mode-sources [data-source="ia"] { outline-color: var(--pb-ambre); }
+.pb-mode-sources [data-source="a_remplir"] { outline-color: var(--pb-rouge); }
+.pb-mode-sources [data-source="modele"] { outline-color: rgba(242, 242, 240, 0.18); }
+.pb-mode-sources .pb-heros [data-source] { outline-color: rgba(8, 19, 13, 0.4); }
+.pb-mode-sources .pb-heros [data-source="ia"] { outline-color: #9a6a12; }
+.pb-mode-sources .pb-heros [data-source="a_remplir"] { outline-color: #a3412f; }
+.pb-mode-sources [data-source]:hover, .pb-mode-sources .pb-source-active { outline-style: solid; outline-width: 2px; }
+.pb-mode-sources [data-source-libelle]:not(:hover):not(.pb-source-active) { outline-color: transparent; }
+/* En lecture, les textes laissent passer la souris (le sommaire se clique dessous) : en mode Sources, ceux qui ont une source la reprennent. */
+.pb-mode-sources .pb-champ[data-source] { pointer-events: auto; }

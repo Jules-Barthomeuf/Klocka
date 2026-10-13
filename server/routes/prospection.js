@@ -137,9 +137,10 @@ export function monterProspection(app) {
     if (!admin(req, res)) return;
     const { suiviAppels } = await import('../prospection/suivi-appels.js');
     const s = suiviAppels({ jours: Math.min(90, Math.max(1, Number(req.query.jours) || 14)), journal: 600 });
-    const champs = ['id', 'le', 'par', 'source', 'etat', 'agence', 'ville', 'interlocuteur', 'issue', 'duree_s', 'notes', 'resume', 'transcription', 'recu'];
+    const champs = ['id', 'rappel', 'le', 'par', 'source', 'etat', 'agence', 'ville', 'interlocuteur', 'issue', 'duree_s', 'notes', 'resume', 'transcription', 'recu'];
     ok(res, {
-      analystes: s.analystes.filter((a) => a.appels).map((a) => ({ prenom: a.prenom, appels: a.appels })),
+      // Les pastilles comptent les lignes du journal, rappels non aboutis compris.
+      analystes: [...s.journal.reduce((m, x) => m.set(x.par, (m.get(x.par) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]).map(([prenom, appels]) => ({ prenom, appels })),
       journal: s.journal.map((x) => Object.fromEntries(champs.map((k) => [k, x[k] ?? null]))),
     });
   }));

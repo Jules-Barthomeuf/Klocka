@@ -109,3 +109,25 @@ test("les relances par mail ne comptent pas comme des appels : à part, et seule
   const seules = S.suiviAppels({ jours: 7, source: 'relances_mail' });
   assert.ok(seules.equipe.appels >= 1 && seules.journal.every((x) => x.issue_cle === "relance_mail"));
 });
+
+test("le journal montre aussi les rappels entrants qui n'ont pas abouti à un appel, sans doublon des rappels validés", () => {
+  const le = new Date().toISOString();
+  const valide = Records.create('AppelAgent', { le, par: 'jules.b@klocka.immo', issue: 'rien_de_nouveau', etat: 'valide', source: 'rappel', rappel_entrant: true, agent: 'Agent A' });
+  Records.create('RappelEntrant', { par: 'jules.b@klocka.immo', debut: le, etat: 'valide', appel_id: valide.id });
+  const abandonne = Records.create('RappelEntrant', { par: 'jules.b@klocka.immo', debut: le, etat: 'abandonne', notes: 'Il rappelle pour le local de la rue Gambetta', duree_s: 95 });
+  Records.create('RappelEntrant', { par: 'jules.b@klocka.immo', debut: le, etat: 'a_identifier', transcription: 'Bonjour, je vous rappelle', duree_s: 40 });
+
+  const r = S.suiviAppels({ jours: 7 });
+  const rappels = r.journal.filter((x) => x.source === 'rappel');
+  assert.equal(rappels.length, 3, 'le rappel validé (par son appel), l\'abandonné et celui à identifier');
+  assert.equal(rappels.filter((x) => x.rappel).length, 2, 'le rappel validé ne revient pas une seconde fois');
+  const ab = r.journal.find((x) => x.id === `rappel:${abandonne.id}`);
+  assert.equal(ab.issue, 'Rappel abandonné');
+  assert.equal(ab.agence, 'Agent non identifié');
+  assert.equal(ab.notes, 'Il rappelle pour le local de la rue Gambetta');
+  assert.equal(ab.duree_s, 95);
+  assert.equal(r.journal.find((x) => x.issue === 'Agent à identifier').transcription, 'Bonjour, je vous rappelle');
+  // Filtré sur un autre mode, les rappels ne s'y glissent pas ; filtré sur le Rappel, ils y sont tous.
+  assert.equal(S.suiviAppels({ jours: 7, source: 'prospection' }).journal.filter((x) => x.rappel).length, 0);
+  assert.equal(S.suiviAppels({ jours: 7, source: 'rappel' }).journal.length, 3);
+});

@@ -72,7 +72,9 @@ function DetailAppel({ x }) {
   const m = x.mesure_ak;
   return (
     <div className="flex flex-col bg-relief/30 px-4 pb-3 pt-1">
-      <div className={ligne}><span className="text-ardoise">État</span>
+      {x.rappel ? (
+        <div className={ligne}><span className="text-ardoise">État</span><span className="text-ambre">{x.issue} · aucun appel n'a été créé, donc rien à valider</span></div>
+      ) : <div className={ligne}><span className="text-ardoise">État</span>
         <span className="flex flex-wrap items-center gap-3">
           <span className={valide ? "text-craie" : "text-ambre"}>{valide ? "Validé" : "Pas validé"}{x.validation_main ? <span className="text-brume"> · à la main par {String(x.validation_main.par || "").split("@")[0]} le {new Date(x.validation_main.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span> : null}</span>
           <button type="button" onClick={() => marquer.mutate(!valide)} disabled={marquer.isPending}
@@ -81,7 +83,7 @@ function DetailAppel({ x }) {
           </button>
           <span className="text-[12px] text-brume">Seul l'état change : rien n'est envoyé ni écrit dans Monday.</span>
         </span>
-      </div>
+      </div>}
       <div className={ligne}><span className="text-ardoise">Résumé</span><span className="text-encre">{x.resume || "—"}</span></div>
       {x.issue_proposee && x.issue_proposee !== x.issue && <div className={ligne}><span className="text-ardoise">Issue</span><span className="text-encre">AK proposait « {x.issue_proposee} », changée en « {x.issue} »</span></div>}
       {x.citations.length > 0 && (
@@ -97,7 +99,7 @@ function DetailAppel({ x }) {
       {x.pourquoi_relance && <div className={ligne}><span className="text-ardoise">Pourquoi la relance</span><span className="text-craie">{x.pourquoi_relance}</span></div>}
       {x.notes && <div className={ligne}><span className="text-ardoise">Notes tapées</span><span className="whitespace-pre-line text-craie">{x.notes}</span></div>}
       <div className={ligne}><span className="text-ardoise">Enregistrement</span>
-        <span className="text-craie">{x.enregistre == null ? "Non mesuré (avant le 9 oct.)" : x.enregistre ? "Enregistré" : "Sans enregistrement"}{x.duree_s ? ` · ${dureeLisible(x.duree_s)}` : ""}{x.lecture_ms ? ` · lu par AK en ${(x.lecture_ms / 1000).toFixed(1)} s` : ""}.</span>
+        <span className="text-craie">{x.rappel ? (x.enregistre ? "Enregistré" : "Pas de transcription gardée") : x.enregistre == null ? "Non mesuré (avant le 9 oct.)" : x.enregistre ? "Enregistré" : "Sans enregistrement"}{x.duree_s ? ` · ${dureeLisible(x.duree_s)}` : ""}{x.lecture_ms ? ` · lu par AK en ${(x.lecture_ms / 1000).toFixed(1)} s` : ""}.</span>
       </div>
       {/* La transcription, gardée avec l'appel depuis le 13 oct. 2026 (avant, elle ne l'était pas). */}
       <div className={ligne}><span className="text-ardoise">Transcription</span>
@@ -342,7 +344,7 @@ export default function SuiviAppels() {
                         <span className="min-w-0 truncate text-craie">{x.issue}{x.issue_proposee && x.issue_proposee !== x.issue ? <span className="text-ambre"> (changée)</span> : null}</span>
                         <span className="tabular-nums text-ardoise">{x.duree_s ? dureeLisible(x.duree_s) : "—"}</span>
                         <span className="text-ardoise">{x.enregistre == null ? "—" : x.enregistre ? "Oui" : "Non"}{x.notes ? " · notes" : ""}</span>
-                        <span className={x.etat === "valide" ? "text-craie" : "text-ambre"}>{x.etat === "valide" ? (x.validation_main?.a === "valide" ? "À la main" : x.validation ? (x.validation.depuis_fenetre ? "Fenêtre" : "Page") : "Validé") : "Pas validé"}</span>
+                        <span className={x.etat === "valide" ? "text-craie" : "text-ambre"}>{x.rappel ? "Sans appel" : x.etat === "valide" ? (x.validation_main?.a === "valide" ? "À la main" : x.validation ? (x.validation.depuis_fenetre ? "Fenêtre" : "Page") : "Validé") : "Pas validé"}</span>
                         <span className="text-ardoise">{!x.mesure_ak ? "—" : !x.mesure_ak.propose_par_ak ? "Tapée" : x.mesure_ak.corrige ? <span className="text-ambre">Corrigé</span> : "Juste"}</span>
                         <ChevronDown className={`h-3.5 w-3.5 text-brume transition-transform ${ouvert === x.id ? "rotate-180" : ""}`} />
                       </button>

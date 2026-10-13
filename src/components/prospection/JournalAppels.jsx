@@ -7,7 +7,9 @@ import { base44 } from "@/api/base44Client";
 // analyste, on doit pouvoir tous le consulter, voir les notes qu'on a prises,
 // les transcriptions ») : chaque appel de l'équipe, le plus récent d'abord,
 // par analyste ; un clic ouvre le résumé, les notes et la transcription. Les
-// transcriptions sont gardées depuis le 13 octobre.
+// transcriptions sont gardées depuis le 13 octobre. Les rappels entrants y
+// sont aussi, marqués « Rappel », y compris ceux qui n'ont pas abouti
+// (à identifier, abandonnés).
 
 const quand = (iso) => new Date(iso).toLocaleString("fr-FR", { timeZone: "Europe/Paris", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const duree = (s) => (s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}` : `${s} s`);
@@ -54,7 +56,7 @@ export default function JournalAppels() {
                       <span className="tabular-nums text-ardoise max-md:hidden">{quand(x.le)}</span>
                       <span className="text-craie max-md:hidden">{x.par}</span>
                       <span className="min-w-0 truncate text-encre">{x.agence || "—"}{x.ville ? <span className="text-brume"> · {x.ville}</span> : null}<span className="text-brume md:hidden"> · {x.par} · {quand(x.le)}</span></span>
-                      <span className="min-w-0 truncate text-craie max-md:hidden">{x.issue}{x.notes ? <span className="text-brume"> · notes</span> : null}{x.transcription ? <span className="text-brume"> · transcription</span> : null}</span>
+                      <span className="min-w-0 truncate text-craie max-md:hidden">{x.source === "rappel" && <span className="mr-1.5 rounded-full border border-trait px-2 py-px text-[11px] uppercase tracking-[.1em] text-ardoise">Rappel</span>}<span className={x.rappel ? "text-ambre" : undefined}>{x.issue}</span>{x.notes ? <span className="text-brume"> · notes</span> : null}{x.transcription ? <span className="text-brume"> · transcription</span> : null}</span>
                       <ChevronDown className={`h-3.5 w-3.5 text-brume transition-transform ${on ? "rotate-180" : ""}`} />
                     </button>
                     {on && (
@@ -62,7 +64,7 @@ export default function JournalAppels() {
                         <div className={ligne}><span className="text-ardoise">Issue</span><span className="text-encre">{x.issue}{x.interlocuteur ? ` · ${x.interlocuteur}` : ""}{x.duree_s ? ` · ${duree(x.duree_s)}` : ""}</span></div>
                         <div className={ligne}><span className="text-ardoise">Résumé</span><span className="text-encre">{x.resume || "—"}</span></div>
                         <div className={ligne}><span className="text-ardoise">Notes</span><span className="whitespace-pre-line text-craie">{x.notes || "—"}</span></div>
-                        <div className={ligne}><span className="text-ardoise">Transcription</span>{x.transcription ? <span className="max-h-[360px] overflow-y-auto whitespace-pre-line text-craie">{x.transcription}</span> : <span className="text-brume">Pas de transcription (appel non enregistré, ou d'avant le 13 octobre)</span>}</div>
+                        <div className={ligne}><span className="text-ardoise">Transcription</span>{x.transcription ? <span className="max-h-[360px] overflow-y-auto whitespace-pre-line text-craie">{x.transcription}</span> : <span className="text-brume">{x.rappel && x.etat === "abandonne" ? "Pas de transcription : un rappel abandonné ne la garde pas" : "Pas de transcription (appel non enregistré, ou d'avant le 13 octobre)"}</span>}</div>
                         {x.recu && <div className={ligne}><span className="text-ardoise">Fait</span><span className="flex flex-col gap-0.5 text-craie">{x.recu.monday && <span>Monday : {x.recu.monday.texte}</span>}{x.recu.mail && <span>Mail : {x.recu.mail.texte}</span>}{x.recu.relance && <span>{x.recu.relance}</span>}</span></div>}
                       </div>
                     )}

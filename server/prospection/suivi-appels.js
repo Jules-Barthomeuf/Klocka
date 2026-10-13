@@ -168,6 +168,11 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   });
 
   const rappels = Records.list('RappelEntrant').filter((r) => String(r.debut) >= depuis);
+  // Les rappels entrants qui n'ont pas abouti à un appel du journal (13 oct. 2026, Jules : « dans les
+  // journaux d'appels on doit voir aussi les rappels qui ont été faits ») : en cours, à identifier,
+  // abandonnés. Un rappel validé y est déjà, par l'appel qu'il a créé ; on ne le met pas deux fois.
+  const lignesRappels = source && source !== 'rappel' ? [] : lignesDeRappels(rappels, new Set(appels.map((x) => x.id)), agences, fiches);
+  const journalComplet = [...lignes, ...lignesRappels].sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, journal);
   return {
     ok: true,
     jours,
@@ -181,8 +186,36 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     heures,
     sources,
     rappels: { total: rappels.length, termines: rappels.filter((r) => r.etat === 'valide').length, abandonnes: rappels.filter((r) => r.etat === 'abandonne').length, en_cours: rappels.filter((r) => ['enregistrement', 'a_identifier', 'identifie'].includes(r.etat)).length },
-    journal: lignes,
+    journal: journalComplet,
   };
+}
+
+const ETATS_RAPPEL = { enregistrement: 'Rappel en cours', a_identifier: 'Agent à identifier', identifie: 'Identifié, pas validé', abandonne: 'Rappel abandonné' };
+
+/**
+ * Pure : une ligne du journal par rappel entrant qui n'a pas d'appel au
+ * journal. Même forme qu'un appel, avec `rappel: true` : l'écran n'y propose
+ * ni validation à la main ni mesure d'AK, qui n'existent pas sans appel.
+ */
+export function lignesDeRappels(rappels, idsAuJournal, agences = new Map(), fiches = new Map()) {
+  return rappels
+    .filter((r) => r.etat !== 'valide' && !(r.appel_id && idsAuJournal.has(r.appel_id)))
+    .map((r) => {
+      const f = r.agent_id ? fiches.get(r.agent_id) : null;
+      const ag = r.agence_id ? agences.get(r.agence_id) : null;
+      return {
+        id: `rappel:${r.id}`, rappel: true, le: r.debut, par: prenomDe(r.par) || r.par, source: 'rappel', etat: r.etat,
+        agence: f ? [f.nom, ag?.nom || f.agence].filter(Boolean).join(' · ') : 'Agent non identifié', ville: ag?.ville || f?.ville || null,
+        interlocuteur: f?.nom || null,
+        issue: ETATS_RAPPEL[r.etat] || r.etat, issue_cle: null, issue_proposee: null, deduite: false,
+        duree_s: r.duree_s || null, enregistre: r.transcription ? true : null, notes: r.notes || null, lecture_ms: null,
+        resume: null, citations: [], champs: {}, biens: [], pourquoi_relance: null,
+        validation: null, mesure_ak: null, annulations: 0, recu: null, valide_le: null, validation_main: null,
+        // Un rappel abandonné perd sa transcription (rappels.js, abandonner) : il ne reste que les notes et la durée.
+        transcription: r.transcription || null,
+        temps: null,
+      };
+    });
 }
 
 /**

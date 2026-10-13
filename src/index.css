@@ -647,6 +647,9 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 .k-carte-rues.k-carte-claire .leaflet-container { background: #e9e9e6; }
 .k-carte-rues.k-carte-claire .leaflet-tile-pane { filter: saturate(.55) contrast(.95) brightness(1.02); }
 .k-carte-rues .leaflet-interactive { cursor: pointer; }
+/* Le plan Google Maps (13 oct. 2026) : affiché tel quel, en clair, quel que soit le thème. */
+.k-carte-rues.k-carte-google .leaflet-container { background: #f8f9fa !important; }
+.k-carte-rues.k-carte-google .leaflet-tile-pane { filter: none !important; }
 
 
 /* ALX, le registre de la maquette : Figtree pour le texte, Montserrat en

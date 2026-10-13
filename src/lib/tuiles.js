@@ -50,6 +50,20 @@ export const FONDS = [
   },
 ];
 
+/**
+ * Le plan Google Maps, en clair (13 oct. 2026, Jules, pour les signaux de
+ * vacance) : les tuiles de la Map Tiles API, servies par le serveur
+ * (/api/tuiles-google), qui garde la clé. Affiché tel quel, sans filtre.
+ */
+export const FOND_GOOGLE = {
+  cle: "google",
+  nom: "Google Maps",
+  url: "/api/tuiles-google/{z}/{x}/{y}",
+  attribution: "© Google",
+  zoom_max: 21,
+  google: true,
+};
+
 // Une tuile manquante arrive : un trou au bord de la zone, un réseau qui
 // hoquette. C'est la rafale qui dit qu'un fond est tombé, pas l'unité.
 const ERREURS_AVANT_BASCULE = 6;
@@ -61,18 +75,20 @@ const ERREURS_AVANT_BASCULE = 6;
  *
  * @returns {{fond: object, surErreur: Function, replis: number}}
  */
-export function useFondDeCarte() {
+export function useFondDeCarte({ google = false } = {}) {
+  const liste = useMemo(() => (google ? [FOND_GOOGLE, ...FONDS] : FONDS), [google]);
   const [rang, setRang] = useState(0);
   const [erreurs, setErreurs] = useState(0);
 
   const surErreur = useCallback(() => {
     setErreurs((n) => {
-      if (n + 1 < ERREURS_AVANT_BASCULE) return n + 1;
-      setRang((r) => Math.min(FONDS.length - 1, r + 1));
+      // Google (servi par notre serveur) tolère davantage de ratés avant de céder la place : une rafale au premier affichage n'est pas une panne.
+      if (n + 1 < (liste[rang]?.google ? ERREURS_AVANT_BASCULE * 5 : ERREURS_AVANT_BASCULE)) return n + 1;
+      setRang((r) => Math.min(liste.length - 1, r + 1));
       return 0;
     });
-  }, []);
+  }, [liste, rang]);
 
-  const fond = useMemo(() => FONDS[Math.min(rang, FONDS.length - 1)], [rang]);
+  const fond = useMemo(() => liste[Math.min(rang, liste.length - 1)], [rang, liste]);
   return { fond, surErreur, replis: rang };
 }

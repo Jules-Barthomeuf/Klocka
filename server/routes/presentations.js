@@ -31,6 +31,16 @@ export function monterPresentations(app) {
     res.sendFile(f);
   }));
 
+  // Le fond Google Maps des cartes (13 oct. 2026) : les tuiles par le serveur, la clé reste chez lui.
+  app.get('/api/tuiles-google/:z/:x/:y', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    const r = await (await import('../tuiles-google.js')).tuile(req.params.z, req.params.x, String(req.params.y).replace(/\.png$/, ''));
+    if (!r.ok) return res.status(r.statut || 502).end();
+    res.set('Content-Type', r.type);
+    res.set('Cache-Control', r.cache.replace(/\bpublic\b/, 'private'));
+    res.send(r.contenu);
+  }));
+
   // Le PDF, tiré du deck lui-même : identique à l'écran.
   app.post(`${base}/:id/pdf`, wrap(async (req, res) => {
     if (!admin(req, res)) return;

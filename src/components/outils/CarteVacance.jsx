@@ -163,9 +163,10 @@ function Fiche({ l }) {
  *   choisi: object|null, onChoisir: Function, survol: string|null, onSurvol: Function, cible: object|null}} p
  */
 export default function CarteVacance({ point, rayonM, locaux = [], choisi, onChoisir, survol, onSurvol, cible }) {
-  const { fond, surErreur } = useFondDeCarte();
+  // Le plan Google Maps en clair (13 oct. 2026, Jules), l'IGN en repli s'il ne répond pas.
+  const { fond, surErreur } = useFondDeCarte({ google: true });
   return (
-    <div className="k-carte-rues k-vacance absolute inset-0">
+    <div className={`k-carte-rues k-vacance absolute inset-0 ${fond.google ? "k-carte-google" : ""}`}>
       <MapContainer center={FRANCE.centre} zoom={FRANCE.zoom} zoomControl className="h-full w-full" attributionControl={false} preferCanvas>
         <TileLayer key={fond.cle} url={fond.url} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
         <Cadrage point={point} rayonM={rayonM} />

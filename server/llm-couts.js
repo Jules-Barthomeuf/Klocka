@@ -397,10 +397,10 @@ export const LEVIERS = [
   {
     cle: 'modele_moins_cher',
     etat: 'pose',
-    titre: 'Sonnet partout, Opus pour le chat',
-    effet: 'Sonnet 5.5 au prix de Sonnet 5 ; Opus 5.5 deux fois Sonnet, sur le chat seul',
-    ou: `Posé le 24 septembre, revu le 12 octobre · ANTHROPIC_MODEL ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'} · AK_MODELE ${process.env.AK_MODELE || 'le même'}`,
-    texte: "Le 24 septembre, tout est passé sur Sonnet 5 : Opus 5 consommait trop. Le 12 octobre, Jules met le chat (AK et le chat des mandataires) sur Opus 5.5, à 4 $ et 20 $ le million de jetons, pour le rapprocher de Claude ; le reste passe sur Sonnet 5.5, au prix de Sonnet 5. Estimé sur septembre : environ 2 € de plus par mois pour le chat d'AK, un peu plus avec les mandataires. C'est ici que se lira l'écart réel.",
+    titre: 'Sonnet partout, le chat compris',
+    effet: 'Sonnet 5.5 au prix de Sonnet 5 ; le chat repassé sur Sonnet 5 le 13 octobre',
+    ou: `Posé le 24 septembre, revu les 12 et 13 octobre · ANTHROPIC_MODEL ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'} · AK_MODELE ${process.env.AK_MODELE || 'le même'}`,
+    texte: "Le 24 septembre, tout est passé sur Sonnet 5 : Opus 5 consommait trop. Le 12 octobre, Jules met le chat (AK et le chat des mandataires) sur Opus 5.5, à 4 $ et 20 $ le million de jetons, pour le rapprocher de Claude ; le reste passe sur Sonnet 5.5, au prix de Sonnet 5. Estimé sur septembre : environ 2 € de plus par mois pour le chat d'AK, un peu plus avec les mandataires. C'est ici que se lira l'écart réel. Le 13 octobre, Jules repasse le chat sur Sonnet 5 (AK_MODELE=claude-sonnet-5, sur Render aussi).",
   },
 ];
 

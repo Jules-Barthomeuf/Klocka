@@ -29,6 +29,32 @@ TU AS UN BAC À SABLE PYTHON (l'outil code_execution : pandas, openpyxl, matplot
 // Le modèle de données (partie 2, 13 oct. 2026) : lu une fois, dans la partie stable de la consigne (en cache).
 const MODELE_DONNEES = (() => { try { return `\n\n${fs.readFileSync(new URL('../../docs/ak/modele-donnees.md', import.meta.url), 'utf8')}`; } catch { return ''; } })();
 
+// La version 2 (partie 3, 13 oct. 2026), derrière AK_CONSIGNE=v2 : la consigne réécrite (docs/ak/consigne-v2.md, le
+// modèle de données dedans), 28 outils regroupés (outils-v2.js), les fiches métier à la demande (procedures.js), la
+// recherche web et la recherche d'outils d'Anthropic. Sans la variable, rien ne change.
+export const enV2 = () => (process.env.AK_CONSIGNE || '').trim().toLowerCase() === 'v2';
+let consigneV2Cache = null;
+async function consigneV2() {
+  if (consigneV2Cache) return consigneV2Cache;
+  const { listeProcedures } = await import('./procedures.js');
+  const brut = fs.readFileSync(new URL('../../docs/ak/consigne-v2.md', import.meta.url), 'utf8');
+  const corps = brut.slice(brut.indexOf('═══ 1.'), brut.indexOf('═══ 6.'))
+    .replace(/^\[docs\/ak\/modele-donnees\.md[^\n]*\]$/m, MODELE_DONNEES.trim())
+    .replace(/Les fiches : [^\n]*/, `Les fiches : ${listeProcedures()}.`);
+  consigneV2Cache = corps.trim();
+  return consigneV2Cache;
+}
+/** Pure : un texte qui cite les anciens outils, réécrit avec les noms v2 (« modifier_presentation » → « presentation (action modifier) »). */
+export function nomsV2(texte, groupes) {
+  const table = new Map();
+  for (const g of groupes) {
+    if (g.seul) { const o = typeof g.seul === 'string' ? g.seul : g.seul.outil; if (o !== g.nom && !table.has(o)) table.set(o, g.nom); continue; }
+    for (const [action, a] of Object.entries(g.actions)) { const o = typeof a === 'string' ? a : a.outil; if (!table.has(o) || typeof a === 'string') table.set(o, `${g.nom} (action ${action})`); }
+  }
+  table.delete('trouver_bien');
+  return String(texte || '').replace(/\b[a-z][a-z_]+_[a-z_]+\b/g, (m) => table.get(m) || m);
+}
+
 const LECTURES = new Set(['lire_entite', 'chercher_entites', 'lire_fiche_monday', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
@@ -215,21 +241,34 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     if (nom === 'echeances' && r?.ok && !blocs.some((b) => b.type === 'echeances')) blocs.push({ type: 'echeances' });
     if (nom === 'note_d_appel' && r) blocs.push({ type: 'note', dossier: r.dossier?.lien || null, agent: r.agent?.url || null });
   };
+  // La v2 : la consigne, les outils regroupés et la traduction des appels vers les anciens outils.
+  const v2 = enV2() ? await (async () => {
+    const O = await import('./outils-v2.js');
+    const { listeProcedures, lireProcedure } = await import('./procedures.js');
+    return { consigne: await consigneV2(), outils: O.outilsV2(OUTILS, { listeProcedures: listeProcedures() }), serveurs: O.SERVEURS_V2, groupes: O.GROUPES, versAncien: O.versAncien, lireProcedure };
+  })() : null;
   const { text, tours = null, limite = false, fichiers = [] } = await runAgent({
     journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
     signal,
     surTexte,
     effort: effortDuChat(),
     // Du plus stable au plus changeant (1.7) : le document de Jules et le cadre, puis ce que l'équipe lui a appris, puis la page ouverte.
-    system: [{ texte: consigneStable() + CADRE_APP + MODELE_DONNEES, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage + preferences }],
+    system: v2
+      ? [{ texte: v2.consigne, cache: true }, { texte: consigneApprise(), cache: true }, { texte: nomsV2(cadrePage, v2.groupes) + preferences }]
+      : [{ texte: consigneStable() + CADRE_APP + MODELE_DONNEES, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage + preferences }],
     messages,
-    tools: OUTILS,
-    serveurs: [OUTIL_CODE],
+    tools: v2 ? v2.outils : OUTILS,
+    serveurs: v2 ? v2.serveurs : [OUTIL_CODE],
     model: MODELE,
     cache: true,
-    onTool: tracer(async (appel) => {
+    onTool: tracer(async (appelRecu) => {
       // Stop : plus rien ne s'exécute, le modèle est prié de conclure sur ce qui est fait.
       if (estAnnule?.()) return { ok: false, error: "La personne a arrêté la demande : ne fais plus rien, dis en une ligne ce qui a déjà été fait." };
+      // En v2, une fiche métier se lit directement ; un outil regroupé redevient l'ancien outil, qui s'exécute tel quel.
+      if (v2 && appelRecu.name === 'lire_procedure') return v2.lireProcedure(appelRecu.input);
+      const traduit = v2 ? v2.versAncien(appelRecu) : null;
+      if (traduit?.erreur) return { ok: false, error: traduit.erreur };
+      const appel = traduit || appelRecu;
       outils.push(appel.name);
       surEtape?.(libelleOutil(appel.name, appel.input));
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });

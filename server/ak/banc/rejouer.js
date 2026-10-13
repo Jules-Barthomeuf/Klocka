@@ -57,7 +57,8 @@ export function comparatif(a, b) {
     ligne('Modèle d’AK', (p) => p.modele_ak), ligne('Coût total', (p) => euros(somme(p, 'cout_usd'))), ligne('Durée totale', (p) => `${Math.round(somme(p, 'duree_ms') / 1000)} s`),
     ligne('Tours de modèle', (p) => somme(p, 'tours')), ligne('Appels d’outils', (p) => p.resultats.reduce((n, r) => n + r.outils.length, 0)),
     ligne('Outils en échec', (p) => p.resultats.reduce((n, r) => n + r.outils.filter((o) => o.echec).length, 0)),
-    ligne('Arrêts à la limite de tours', (p) => p.resultats.filter((r) => r.limite).length), ligne('Erreurs', (p) => p.resultats.filter((r) => r.erreur).length), '');
+    ligne('Arrêts à la limite de tours', (p) => p.resultats.filter((r) => r.limite).length), ligne('Erreurs', (p) => p.resultats.filter((r) => r.erreur).length),
+    ligne('Premier mot (médiane)', (p) => { const t = p.resultats.map((r) => r.premier_mot_ms).filter((x) => x != null).sort((x, y) => x - y); return t.length ? `${(t[Math.floor(t.length / 2)] / 1000).toFixed(1).replace('.', ',')} s` : '—'; }), '');
   l.push('| Cas | Tours | Outils | Coût | Durée |', '| --- | --- | --- | --- | --- |');
   for (const ra of a.resultats) {
     const rb = b.resultats.find((x) => x.id === ra.id);
@@ -83,6 +84,9 @@ async function rejouerDansLaCopie(label, ids) {
     const user = Records.findBy('User', 'email', c.user) || { email: c.user, full_name: c.user.split('@')[0], role: c.chat === 'mandataire' ? 'mandataire' : 'admin' };
     const avant = new Set(Records.list('CoutIA').map((x) => x.id));
     const debut = Date.now();
+    // Le temps avant le premier mot : le texte arrive en flux, comme à l'écran.
+    let premier = null;
+    const surTexte = () => { if (!premier) premier = Date.now(); };
     let r = null;
     let erreur = null;
     try {
@@ -93,7 +97,7 @@ async function rejouerDansLaCopie(label, ids) {
         }
         const { traiterBoite } = await import('../../assistant-boite.js');
         const pieces = c.piece ? [{ nom: c.piece.nom, type: c.piece.type, chemin: path.join(CHEMIN_UPLOADS, path.basename(c.piece.chemin)), url: null }] : [];
-        return traiterBoite({ texte: c.texte, historique: c.historique, user, contexte: c.contexte || (c.page ? { page: c.page } : null), pieces });
+        return traiterBoite({ texte: c.texte, historique: c.historique, user, contexte: c.contexte || (c.page ? { page: c.page } : null), pieces, surTexte });
       });
       r = resultat;
     } catch (e) { erreur = String(e?.message || e).slice(0, 500); }
@@ -104,6 +108,7 @@ async function rejouerDansLaCopie(label, ids) {
       tri: r?.type || null, outils: r?.trace || (r?.outils || []).map((o) => ({ outil: o })),
       tours: r?.tours ?? null, limite: !!r?.limite, erreur,
       cout_usd: lignes.reduce((n, x) => n + (x.cout || 0), 0), appels_modele: lignes.reduce((n, x) => n + (x.appels || 0), 0), duree_ms: Date.now() - debut,
+      premier_mot_ms: premier ? premier - debut : null,
     };
     resultats.push(res);
     console.log(`${c.id} ${res.erreur ? 'ERREUR' : 'ok'} · ${res.tours ?? '—'} tours · ${res.outils.length} outils · ${euros(res.cout_usd)} · ${Math.round(res.duree_ms / 1000)} s · ${court(res.erreur || res.reponse, 90)}`);

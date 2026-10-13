@@ -18,7 +18,13 @@ TU RÉPONDS DANS L'APPLICATION KLOCKA (le chat du tableau de bord), pas dans Goo
 - pas de mention @, pas de pièce jointe à poster ;
 - les liens vers la plateforme en chemins relatifs (/Dossiers?deal_id=…, /Projet?id=…) ;
 - un mail rédigé (mail_agent, mail_libre, retoucher_brouillon) s'ouvre en brouillon sous ta réponse, à relire et envoyer d'un clic : dis-le en une ligne, ne le recopie pas ;
-- une tâche de fond finie sera annoncée par une notification de l'application : dis « je te préviens quand c'est prêt ».`;
+- une tâche de fond finie sera annoncée par une notification de l'application : dis « je te préviens quand c'est prêt ».
+
+TU AS UN BAC À SABLE PYTHON (l'outil code_execution : pandas, openpyxl, matplotlib, sans internet) :
+- tout calcul chiffré passe par le code, jamais de tête : rendement, loyer au m², indexation, simulation, cumul, écart, conversion ; tu donnes le résultat, pas le code ;
+- les données viennent d'abord de tes outils (projet, dossier, simulateur) : tu les recopies dans le code telles qu'ils les rendent ;
+- un fichier joint qui n'est ni une image ni un PDF (Excel, CSV, Word, PowerPoint) est déposé dans le bac à sable : tu l'y lis avec le code ;
+- un fichier demandé (un Excel, un CSV, un graphique) : tu l'écris dans le bac à sable ; il s'affiche sous ta réponse, à télécharger d'un clic. Dis-le en une ligne, sans recopier le contenu.`;
 
 const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
@@ -97,7 +103,15 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
   const aujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
   const message = { espace, auteur: { nom: user?.email || null, affiche: prenom }, texte, pieces, groupe: false, page: contexte?.page || null };
   const { blocs: natifs, lues } = blocsNatifs(pieces);
-  const joints = pieces.map((p) => `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin}${lues.has(p) ? ' ; jointe ci-dessus, tu la vois directement' : ''})`);
+  // Les autres pièces (Excel, CSV, Word, PowerPoint…) vont dans le bac à sable du code (13 oct. 2026).
+  const { deposerPourCode, OUTIL_CODE } = await import('../llm.js');
+  const deposees = new Set();
+  for (const p of pieces) {
+    if (lues.has(p)) continue;
+    const bloc = await deposerPourCode(p.chemin, p.nom || 'piece', p.type || 'application/octet-stream');
+    if (bloc) { natifs.push(bloc); deposees.add(p); }
+  }
+  const joints = pieces.map((p) => `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin}${lues.has(p) ? ' ; jointe ci-dessus, tu la vois directement' : deposees.has(p) ? ` ; déposée dans le bac à sable du code sous le nom ${p.nom}` : ''})`);
   const messages = [
     ...(Array.isArray(historique) ? historique : [])
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
@@ -193,7 +207,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     if (nom === 'echeances' && r?.ok && !blocs.some((b) => b.type === 'echeances')) blocs.push({ type: 'echeances' });
     if (nom === 'note_d_appel' && r) blocs.push({ type: 'note', dossier: r.dossier?.lien || null, agent: r.agent?.url || null });
   };
-  const { text, tours = null, limite = false } = await runAgent({
+  const { text, tours = null, limite = false, fichiers = [] } = await runAgent({
     journal: { chat: 'admin', par: user?.email || null, page: contexte?.page || null },
     signal,
     surTexte,
@@ -202,6 +216,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     system: [{ texte: consigneStable() + CADRE_APP, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage }],
     messages,
     tools: OUTILS,
+    serveurs: [OUTIL_CODE],
     model: MODELE,
     cache: true,
     onTool: tracer(async (appel) => {
@@ -246,5 +261,5 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     } catch (e) { console.warn('[ak app] sources de la LOI :', e?.message || e); }
   }
   try { noterEchange({ espace, auteur: message.auteur, demande: texte, reponse }); } catch { /* la mesure ne bloque pas la réponse */ }
-  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, blocs, memoire: memoireDesOutils(souvenirs) || null, ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
+  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, blocs, memoire: memoireDesOutils(souvenirs) || null, ...(fichiers.length ? { fichiers } : {}), ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
 }

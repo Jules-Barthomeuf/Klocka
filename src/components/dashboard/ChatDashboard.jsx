@@ -744,7 +744,10 @@ function cartesDe(r) {
     ];
   }
   const taches = (r?.taches || []).map((t) => ({ titre: `En cours : ${t}`, detail: "Une notification arrivera quand ce sera prêt.", etat: "fait" }));
-  return [...taches, ...(r?.actions || [])
+  // Les fichiers qu'AK a écrits dans son bac à sable (un Excel, un CSV, un graphique) : à télécharger d'un clic (13 oct. 2026).
+  const ko = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
+  const fichiers = (r?.fichiers || []).filter((f) => f?.url && f?.nom).map((f) => ({ titre: f.nom, detail: `Fichier préparé par AK${f.taille ? ` · ${ko(f.taille)}` : ""}`, etat: "fait", lien: `fichier:${f.url}`, action: "Télécharger" }));
+  return [...fichiers, ...taches, ...(r?.actions || [])
     .filter((a) => !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
     .map((a) => ({
       titre: a.titre || ACTIONS_FAITES[a.name],
@@ -1461,7 +1464,17 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     : String(lien).startsWith("datab:") ? onRecherche?.({ datab_jeton: String(lien).slice(6) })
     : String(lien).startsWith("avis:") ? onRecherche?.({ avis_id: String(lien).slice(5) })
     : String(lien).startsWith("mandat:") ? onRecherche?.({ mandat_id: String(lien).slice(7) })
+    : String(lien).startsWith("fichier:") ? telecharger(String(lien).slice(8))
     : ouvrirLienExterne(lien);
+  // Un fichier d'AK : le navigateur le télécharge avec son nom (le serveur l'a rangé dans uploads/ak).
+  const telecharger = (url) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = decodeURIComponent(url.split("/").pop() || "fichier").replace(/^[^-]+-/, "");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
   const ouvrirLienExterne = (lien) => (/^https?:/.test(lien) ? window.open(lien, "_blank", "noopener") : navigate(lien));
 
   const envoiEnVol = useRef(false);

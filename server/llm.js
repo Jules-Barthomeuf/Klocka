@@ -652,7 +652,7 @@ const MAX_REPRISES = 2;
  * @param {boolean} [opts.cache] - mettre la consigne et les outils en cache chez Anthropic : ils sont identiques
  *   d'un appel à l'autre, et un jeton relu du cache coûte un dixième
  */
-export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null, effort = null, surTexte = null }) {
+export async function runAgent({ system, messages, tools = [], onTool, model = null, cache = false, journal = null, signal = null, effort = null, surTexte = null, serveurs = [] }) {
   if (!llmEnabled && !clientAgentDeTest) {
     return {
       text:
@@ -684,7 +684,7 @@ export async function runAgent({ system, messages, tools = [], onTool, model = n
   try {
     res = provider === 'gemini' && !clientAgentDeTest
       ? await runAgentGemini({ system: systemeTexte, messages, tools, onTool: onToolNote })
-      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort, surTexte });
+      : await runAgentAnthropic({ system, messages, tools, onTool: onToolNote, model, cache, notes, signal, effort, surTexte, serveurs });
   } catch (e) { erreur = e; }
   if (journal) {
     const { noterEchange } = await import('./ak/journal-echanges.js');
@@ -745,7 +745,62 @@ async function runAgentGemini({ system, messages, tools, onTool }) {
 const REFLEXION = { type: 'adaptive', display: 'summarized' };
 const MAX_TOKENS_AGENT = 32000;
 
-async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null, surTexte = null }) {
+// --- L'exécution de code d'Anthropic (13 oct. 2026) ------------------------------------
+// Le bac à sable est chez Anthropic (Python, pandas, openpyxl, matplotlib…, sans internet) :
+// rien à héberger. Gratuit jusqu'à 1 550 heures par mois et par organisation, puis 0,05 $ l'heure.
+
+/** L'outil à déclarer dans `serveurs` pour donner l'exécution de code à un chat. */
+export const OUTIL_CODE = { type: 'code_execution_20260521', name: 'code_execution' };
+
+/** Pure : les fichiers qu'une réponse a écrits dans le bac à sable (leurs file_id). */
+export function fichiersProduits(contenu = []) {
+  const ids = [];
+  for (const b of contenu || []) {
+    if (b?.type !== 'bash_code_execution_tool_result') continue;
+    for (const f of b.content?.content || []) if (f?.type === 'bash_code_execution_output' && f.file_id) ids.push(f.file_id);
+  }
+  return ids;
+}
+
+/** Les fichiers produits, rapatriés dans uploads/ak : [{ nom, url, taille }]. Un fichier illisible est passé. */
+async function recupererFichiers(client, ids) {
+  const fs = await import('fs');
+  const path = await import('path');
+  const { CHEMIN_UPLOADS } = await import('./db.js');
+  const dossier = path.join(CHEMIN_UPLOADS, 'ak');
+  fs.mkdirSync(dossier, { recursive: true });
+  const sortie = [];
+  for (const id of [...new Set(ids)]) {
+    try {
+      const meta = await client.files.retrieveMetadata(id);
+      const nom = path.basename(String(meta?.filename || 'fichier')).replace(/[^\w.\- ]+/g, '_') || 'fichier';
+      if (nom === '.' || nom === '..') continue;
+      const octets = Buffer.from(await (await client.files.download(id)).arrayBuffer());
+      const disque = `${id.slice(-10)}-${nom}`;
+      fs.writeFileSync(path.join(dossier, disque), octets);
+      sortie.push({ nom, url: `/uploads/ak/${encodeURIComponent(disque)}`, taille: octets.length });
+    } catch (e) {
+      console.warn('[code] fichier produit non rapatrié :', e?.message || e);
+    }
+  }
+  return sortie;
+}
+
+/** Dépose un fichier du disque dans le bac à sable : le bloc à mettre dans le message (container_upload), ou null. */
+export async function deposerPourCode(chemin, nom, type = 'application/octet-stream') {
+  if (!anthropic) return null;
+  try {
+    const fs = await import('fs');
+    const { toFile } = await import('@anthropic-ai/sdk');
+    const fichier = await anthropic.files.upload({ file: await toFile(fs.createReadStream(chemin), nom, { type }) });
+    return { type: 'container_upload', file_id: fichier.id };
+  } catch (e) {
+    console.warn('[code] dépôt impossible :', e?.message || e);
+    return null;
+  }
+}
+
+async function runAgentAnthropic({ system, messages, tools, onTool, model = null, cache = false, notes = null, signal = null, effort = null, surTexte = null, serveurs = [] }) {
   const client = clientAgentDeTest || anthropic;
   const convo = messages.map((m) => ({ role: m.role, content: m.content }));
   const modele = model || ANTHROPIC_MODEL;
@@ -760,6 +815,13 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
     : cache && system ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }] : system;
   const outils = cache && tools.length ? tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)) : tools;
 
+  // Les outils d'Anthropic (exécution de code, 13 oct. 2026) passent devant : le point de cache reste sur le dernier outil maison.
+  const tousOutils = [...(serveurs || []), ...outils];
+  // Le bac à sable de l'exécution de code : le même d'un tour à l'autre, ses fichiers et ses variables restent.
+  let bac = null;
+  const produits = [];
+  const conclure = async (r) => ({ ...r, ...(produits.length ? { fichiers: await recupererFichiers(client, produits) } : {}) });
+
   let reprises = 0;
   for (let i = 0; i < MAX_TOOL_ROUNDS; i++) {
     // Stop (12 oct. 2026) : la personne est partie, on ne relance pas le modèle et la requête en cours est coupée.
@@ -770,7 +832,8 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
       thinking: REFLEXION,
       ...(effort ? { output_config: { effort } } : {}),
       ...(systeme ? { system: systeme } : {}),
-      ...(outils.length ? { tools: outils } : {}),
+      ...(tousOutils.length ? { tools: tousOutils } : {}),
+      ...(bac ? { container: bac } : {}),
       messages: convo,
     };
     // Quelqu'un lit la réponse au fil de l'eau : le texte part morceau par morceau, la réponse entière arrive à la fin.
@@ -779,6 +842,8 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
       ? await (() => { const flot = client.messages.stream(corps, signal ? { signal } : undefined); flot.on('text', (morceau) => { try { surTexte(morceau, tour); } catch { /* l'écran est parti */ } }); return flot.finalMessage(); })()
       : await client.messages.create(corps, signal ? { signal } : undefined);
     compter(modele, resp.usage);
+    if (resp.container?.id) bac = resp.container.id;
+    produits.push(...fichiersProduits(resp.content));
     if (notes) {
       const u = resp.usage || {};
       notes.usage.entree += u.input_tokens || 0; notes.usage.sortie += u.output_tokens || 0;
@@ -787,7 +852,8 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
         stop_reason: resp.stop_reason || null,
         texte: (resp.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').slice(0, 4000),
         reflexion: (resp.content || []).filter((b) => b.type === 'thinking' && b.thinking).map((b) => b.thinking).join('\n').slice(0, 4000) || null,
-        outils: (resp.content || []).filter((b) => b.type === 'tool_use').map((b) => b.name),
+        // Les outils maison et ceux d'Anthropic (exécution de code), pour savoir dans Suivi > Chat ce qui a tourné.
+        outils: (resp.content || []).filter((b) => b.type === 'tool_use' || b.type === 'server_tool_use').map((b) => b.name),
         jetons: { entree: u.input_tokens || 0, sortie: u.output_tokens || 0, reflexion: u.output_tokens_details?.thinking_tokens || 0, cache_lecture: u.cache_read_input_tokens || 0, cache_ecriture: u.cache_creation_input_tokens || 0 },
       });
     }
@@ -833,14 +899,14 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
       continue;
     }
 
-    return {
+    return conclure({
       text: (resp.content || [])
         .filter((b) => b.type === 'text')
         .map((b) => b.text)
         .join('\n')
         .trim(),
       tours: i + 1,
-    };
+    });
   }
 
   // La limite atteinte : un dernier tour, sans outil, pour dire où on en est.
@@ -851,14 +917,14 @@ async function runAgentAnthropic({ system, messages, tools, onTool, model = null
   try {
     const fin = await client.messages.create({
       model: modele, max_tokens: 8000, thinking: REFLEXION, ...(effort ? { output_config: { effort } } : {}),
-      ...(systeme ? { system: systeme } : {}), ...(outils.length ? { tools: outils, tool_choice: { type: 'none' } } : {}), messages: convo,
+      ...(systeme ? { system: systeme } : {}), ...(tousOutils.length ? { tools: tousOutils, tool_choice: { type: 'none' } } : {}), ...(bac ? { container: bac } : {}), messages: convo,
     }, signal ? { signal } : undefined);
     compter(modele, fin.usage);
     const texte = (fin.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
     if (notes) notes.tours.push({ stop_reason: fin.stop_reason || null, texte: texte.slice(0, 4000), outils: [], jetons: { entree: fin.usage?.input_tokens || 0, sortie: fin.usage?.output_tokens || 0 } });
-    if (texte) return { text: texte, tours: MAX_TOOL_ROUNDS + 1, limite: true };
+    if (texte) return conclure({ text: texte, tours: MAX_TOOL_ROUNDS + 1, limite: true });
   } catch (e) { if (signal?.aborted) throw e; }
-  return { text: 'Je me suis arrêté à la limite d’étapes sans avoir pu conclure : redemande-moi la suite, en plus petit.', tours: MAX_TOOL_ROUNDS, limite: true };
+  return conclure({ text: 'Je me suis arrêté à la limite d’étapes sans avoir pu conclure : redemande-moi la suite, en plus petit.', tours: MAX_TOOL_ROUNDS, limite: true });
 }
 
 /**

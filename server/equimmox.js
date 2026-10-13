@@ -136,6 +136,75 @@ async function seConnecter(p) {
   if (/connexion/.test(p.url())) throw new Error('Connexion à Equimmox refusée : vérifiez le compte dans .env.');
 }
 
+// Les étapes communes aux deux analyses (loyer, prix).
+
+async function nouveauContexte() {
+  const b = await lancerNavigateur();
+  return b.newContext({
+    viewport: { width: 1400, height: 950 },
+    locale: 'fr-FR',
+    ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}),
+  });
+}
+
+/** La page d'une analyse (« Analyse de loyer », « Analyse de prix »), session ouverte. */
+async function ouvrirAnalyse(ctx, menu) {
+  const p = await ctx.newPage();
+  p.on('dialog', (d) => d.accept().catch(() => {}));
+  await aller(p, 'https://app.equimmox.com');
+  await p.waitForTimeout(4000);
+  if (/connexion/.test(p.url())) {
+    await seConnecter(p);
+    await aller(p, 'https://app.equimmox.com');
+    await p.waitForTimeout(4000);
+  }
+  // Les avertissements d'entrée, s'ils se présentent.
+  await cliquerTexte(p, 'Continuer quand même', 1200);
+  await cliquerTexte(p, 'Je comprends', 1200);
+  // Analyse → l'analyse voulue, et la question « Quitter cette page ».
+  if (!(await cliquerTexte(p, 'Analyse', 2500))) throw new Error('Equimmox : le menu Analyse est introuvable.');
+  if (!(await cliquerTexte(p, menu, 3000))) throw new Error(`Equimmox : « ${menu} » est introuvable (plan Premium ?).`);
+  await cliquerTexte(p, 'Quitter cette page', 2000);
+  return p;
+}
+
+/**
+ * L'adresse, tapée comme l'équipe la tape : « 9 Rue Gazan, Grasse ». Un code
+ * postal dans la saisie laisse leur autocomplétion muette. La Base Adresse
+ * Nationale la remet dans ce format ; à défaut, on tape tel quel. Rend l'adresse BAN (ou null).
+ */
+async function saisirAdresse(p, texteAdresse) {
+  const ban = await resoudreAdresse(texteAdresse).catch(() => null);
+  const saisie = ban ? `${ban.numero ? ban.numero + ' ' : ''}${ban.rue}, ${ban.ville}`.trim() : texteAdresse.replace(/\b\d{5}\b\s*/g, '');
+  const champ = p.locator('#address-search');
+  await champ.waitFor({ state: 'visible', timeout: 15000 });
+  await champ.click();
+  await champ.fill('');
+  await champ.type(saisie, { delay: 60 });
+  // La suggestion est un « .result-name » ; on lui laisse jusqu'à dix
+  // secondes, puis on prend celle qui porte le nom de la rue, la première sinon.
+  await p.locator('.result-name').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+  await p.waitForTimeout(800);
+  const motRue = (ban?.rue || saisie.split(',')[0]).replace(/^\d+\s*(bis|ter)?\s*/i, '').trim().split(/\s+/).slice(-1)[0];
+  const motif = new RegExp(motRue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  let suggestion = p.locator('.result-name').filter({ hasText: motif }).first();
+  if (!(await suggestion.isVisible().catch(() => false))) suggestion = p.locator('.result-name').first();
+  if (!(await suggestion.isVisible().catch(() => false))) throw new Error(`Equimmox ne propose aucune adresse pour « ${saisie} ».`);
+  await suggestion.click({ force: true, timeout: 10000 });
+  await p.waitForTimeout(3000);
+  return ban;
+}
+
+/** La surface à ±20 % autour de celle du local (5 oct. 2026, demande de Jules : avant ±30 %). */
+async function reglerSurface(p, s) {
+  if (!s) return;
+  const min = p.locator('input[placeholder="m² min."]').first();
+  const max = p.locator('input[placeholder="m² max."]').first();
+  await min.click(); await min.fill(String(Math.round(s * (1 - ECART_SURFACE)))); await min.press('Tab');
+  await max.click(); await max.fill(String(Math.round(s * (1 + ECART_SURFACE)))); await max.press('Tab');
+  await p.waitForTimeout(600);
+}
+
 /**
  * La fourchette de loyer autour d'une adresse, d'après Equimmox.
  * @param {string} adresse - « 9 rue Gazan, 06130 Grasse »
@@ -249,51 +318,8 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
   // page reçoit une phrase, pas une trace de Playwright.
   let ctx = null;
   try {
-    const b = await lancerNavigateur();
-    ctx = await b.newContext({
-      viewport: { width: 1400, height: 950 },
-      locale: 'fr-FR',
-      ...(fs.existsSync(SESSION) ? { storageState: SESSION } : {}),
-    });
-    const p = await ctx.newPage();
-    p.on('dialog', (d) => d.accept().catch(() => {}));
-    await aller(p, 'https://app.equimmox.com');
-    await p.waitForTimeout(4000);
-    if (/connexion/.test(p.url())) {
-      await seConnecter(p);
-      await aller(p, 'https://app.equimmox.com');
-      await p.waitForTimeout(4000);
-    }
-    // Les avertissements d'entrée, s'ils se présentent.
-    await cliquerTexte(p, 'Continuer quand même', 1200);
-    await cliquerTexte(p, 'Je comprends', 1200);
-
-    // Analyse → Analyse de loyer, et la question « Quitter cette page ».
-    if (!(await cliquerTexte(p, 'Analyse', 2500))) throw new Error('Equimmox : le menu Analyse est introuvable.');
-    if (!(await cliquerTexte(p, 'Analyse de loyer', 3000))) throw new Error('Equimmox : « Analyse de loyer » est introuvable (plan Premium ?).');
-    await cliquerTexte(p, 'Quitter cette page', 2000);
-
-    // L'adresse, tapée comme l'équipe la tape : « 9 Rue Gazan, Grasse ». Un
-    // code postal dans la saisie laisse leur autocomplétion muette. La Base
-    // Adresse Nationale la remet dans ce format ; à défaut, on tape tel quel.
-    const ban = await resoudreAdresse(texteAdresse).catch(() => null);
-    const saisie = ban ? `${ban.numero ? ban.numero + ' ' : ''}${ban.rue}, ${ban.ville}`.trim() : texteAdresse.replace(/\b\d{5}\b\s*/g, '');
-    const champ = p.locator('#address-search');
-    await champ.waitFor({ state: 'visible', timeout: 15000 });
-    await champ.click();
-    await champ.fill('');
-    await champ.type(saisie, { delay: 60 });
-    // La suggestion est un « .result-name » ; on lui laisse jusqu'à dix
-    // secondes, puis on prend celle qui porte le nom de la rue, la première sinon.
-    await p.locator('.result-name').first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-    await p.waitForTimeout(800);
-    const motRue = (ban?.rue || saisie.split(',')[0]).replace(/^\d+\s*(bis|ter)?\s*/i, '').trim().split(/\s+/).slice(-1)[0];
-    const motif = new RegExp(motRue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    let suggestion = p.locator('.result-name').filter({ hasText: motif }).first();
-    if (!(await suggestion.isVisible().catch(() => false))) suggestion = p.locator('.result-name').first();
-    if (!(await suggestion.isVisible().catch(() => false))) throw new Error(`Equimmox ne propose aucune adresse pour « ${saisie} ».`);
-    await suggestion.click({ force: true, timeout: 10000 });
-    await p.waitForTimeout(3000);
+    const p = await ouvrirAnalyse(ctx = await nouveauContexte(), 'Analyse de loyer');
+    const ban = await saisirAdresse(p, texteAdresse);
 
     // Le rayon : le curseur n'existe qu'une fois l'adresse choisie.
     const curseur = p.locator('input[type="range"]').first();
@@ -301,14 +327,8 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
     const rayonLu = await reglerRayon(p, curseur, r);
     if (!rayonLu) throw new Error(`Equimmox : impossible de régler le rayon à ${r} m.`);
 
-    // La surface : ±20 % autour de celle du local (5 oct. 2026, demande de Jules : avant ±30 %).
-    if (s) {
-      const min = p.locator('input[placeholder="m² min."]').first();
-      const max = p.locator('input[placeholder="m² max."]').first();
-      await min.click(); await min.fill(String(Math.round(s * (1 - ECART_SURFACE)))); await min.press('Tab');
-      await max.click(); await max.fill(String(Math.round(s * (1 + ECART_SURFACE)))); await max.press('Tab');
-      await p.waitForTimeout(600);
-    }
+    // La surface : ±20 % autour de celle du local.
+    await reglerSurface(p, s);
 
     // Les baux signés, pas les offres (6 oct. 2026, demande de Jules) : la page
     // s'ouvre sur « Offres », les annonces en cours.
@@ -372,6 +392,106 @@ async function analyseLoyerSeule(adresse, { surface = null, rayon = RAYON_METRES
     // Le navigateur ne survit pas à la recherche : le garder ouvert immobilisait
     // sa mémoire en permanence, et une petite machine finissait par tomber.
     // Sauf s'il est distant : celui-là ne nous appartient pas.
+    if (!CDP && navigateur) {
+      const n = navigateur;
+      navigateur = null;
+      await n.close().catch(() => {});
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// L'analyse de prix : le prix des murs commerciaux au m²
+// ---------------------------------------------------------------------------
+//
+// Le parcours de l'équipe (13 oct. 2026, Jules) : Analyse → Analyse de prix,
+// « Commerce » seul (on retire « Bureaux »), l'adresse, la surface à ±20 %,
+// Lancer. La page reste sur « Offre » : les annonces de vente de commerces.
+// « Transaction » se calcule sur DVF, que la plateforme n'utilise pas pour le
+// marché (décision du 6 oct. 2026). Le rayon est celui qu'Equimmox propose
+// une fois l'adresse choisie ; il est lu et rendu avec le résultat.
+
+const cleCachePrix = (adresse, surface) => `${String(adresse).toLowerCase().replace(/\s+/g, ' ').trim()}|${surface || 0}`;
+
+/**
+ * Le prix des murs commerciaux au m² autour d'une adresse, d'après les offres d'Equimmox.
+ * @param {string} adresse
+ * @param {{surface?: number, forcer?: boolean, user?: object}} opts
+ */
+export function analysePrix(adresse, opts = {}) {
+  return enFile(() => analysePrixSeule(adresse, opts));
+}
+
+/** Le résultat déjà gardé (moins de trente jours) pour cette adresse et cette surface, ou null. */
+export function analysePrixEnCache(adresse, surface = null) {
+  const s = Number(surface) > 0 ? Math.round(Number(surface)) : null;
+  const recent = Records.filter('EquimmoxPrix', { cle: cleCachePrix(adresse, s) })
+    .filter((r) => Date.now() - Date.parse(r.le) < CACHE_JOURS * 86400000)
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+  return recent ? { ...recent.resultat, du_cache: true } : null;
+}
+
+/** Pure : ce que la page de résultat affiche, lu ligne à ligne. null si elle n'a pas de fourchette. */
+export function lirePrix(lignes) {
+  const bas = lireLigne(lignes, /^Bas\s*:/i);
+  const moyenne = lireLigne(lignes, /^Moyenne\s*:/i);
+  const haut = lireLigne(lignes, /^Haut\s*:/i);
+  if (bas == null && moyenne == null && haut == null) return null;
+  const nb = lignes.find((l) => /^\d[\d\s]*\s+offres?$/i.test(l));
+  const etendue = lignes.find((l) => /^[\d\s]+\s*[–-]\s*[\d\s]+\s*€\/m²$/.test(l));
+  const [min, max] = etendue ? etendue.replace('€/m²', '').split(/[–-]/).map(nombre) : [null, null];
+  const delai = lignes.find((l) => /^\d+\s*jours$/i.test(l));
+  return { bas, moyenne, haut, offres: nb ? nombre(nb) : null, min, max, delai_jours: delai ? nombre(delai) : null };
+}
+
+async function analysePrixSeule(adresse, { surface = null, forcer = false, user = null } = {}) {
+  if (!equimmoxConfigure()) return { ok: false, error: 'Equimmox n\'est pas configuré : EQUIMMOX_EMAIL et EQUIMMOX_MOT_DE_PASSE manquent dans .env.' };
+  const texteAdresse = String(adresse || '').trim();
+  if (texteAdresse.length < 4) return { ok: false, error: 'Adresse trop courte.' };
+  const s = Number(surface) > 0 ? Math.round(Number(surface)) : null;
+  const cle = cleCachePrix(texteAdresse, s);
+  if (!forcer) {
+    const recent = analysePrixEnCache(texteAdresse, s);
+    if (recent) return { ok: true, resultat: recent };
+  }
+  let ctx = null;
+  try {
+    const p = await ouvrirAnalyse(ctx = await nouveauContexte(), 'Analyse de prix');
+    const ban = await saisirAdresse(p, texteAdresse);
+    // Le rayon proposé par Equimmox, lu sur son curseur (« +5km »).
+    const rayon = (await texteDe(p)).find((l) => /^\+?\s*\d+([.,]\d+)?\s*(m|km)$/i.test(l)) || null;
+    await reglerSurface(p, s);
+    await choisirCommerces(p);
+    await capture(p, 'prix-avant-lancer');
+    await p.locator('button, div, a').filter({ hasText: /^Lancer$/ }).first().click({ force: true, timeout: 10000 });
+    await p.locator('text=/^Bas\\s*:/').first().waitFor({ state: 'visible', timeout: 45000 }).catch(() => {});
+    // Le nombre d'offres arrive avec l'histogramme, un peu après.
+    await p.locator('text=/^\\d[\\d\\s]*\\s+offres?$/').first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+    await p.waitForTimeout(1500);
+    const lignes = await texteDe(p);
+    if (process.env.EQUIMMOX_TEXTE) { try { fs.writeFileSync(`${process.env.EQUIMMOX_TEXTE}.prix`, lignes.join('\n')); } catch { /* diagnostic seulement */ } }
+    // Des offres, pas des transactions : la page le dit en tête.
+    if (!lignes.some((l) => /^Offres$/i.test(l))) throw new Error('Equimmox n\'a pas rendu les offres (la page affiche autre chose que « Offres »).');
+    const lu = lirePrix(lignes);
+    if (!lu) throw new Error('Equimmox n\'a rendu aucun prix pour cette adresse : aucune offre de commerce comparable autour.');
+    const resultat = {
+      source: 'Equimmox · Analyse de prix',
+      base: 'offres', classe: 'Commerces', unite: '€ / m²',
+      adresse: ban?.label || texteAdresse,
+      surface: s, surface_min: s ? Math.round(s * (1 - ECART_SURFACE)) : null, surface_max: s ? Math.round(s * (1 + ECART_SURFACE)) : null,
+      rayon: rayon ? rayon.replace(/^\+\s*/, '') : null,
+      ...lu,
+      le: new Date().toISOString(),
+      par: user?.email || null,
+    };
+    await ctx.storageState({ path: SESSION }).catch(() => {});
+    Records.create('EquimmoxPrix', { cle, adresse: texteAdresse, surface: s, resultat, le: resultat.le, par: resultat.par });
+    console.log(`[equimmox] analyse de prix lue pour « ${texteAdresse} »${s ? ` (${s} m²)` : ''} : ${lu.moyenne ?? '?'} €/m² sur ${lu.offres ?? '?'} offres${user?.email ? ` (${user.email})` : ''}`);
+    return { ok: true, resultat };
+  } catch (e) {
+    return { ok: false, error: e?.message || 'Equimmox n\'a pas répondu.', statut: e?.statut ?? null, classe: e?.classe ?? null };
+  } finally {
+    if (ctx) await ctx.close().catch(() => {});
     if (!CDP && navigateur) {
       const n = navigateur;
       navigateur = null;

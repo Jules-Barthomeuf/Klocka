@@ -31,3 +31,20 @@ test('seule une réponse d\'AK récente reprend sa mémoire', () => {
   assert.equal(avecMemoire(r, false), r.contenu);
   assert.equal(avecMemoire({ role: 'user', contenu: 'Et le prix ?', memoire: 'x' }, true), 'Et le prix ?');
 });
+
+const { blocsNatifs } = await import('./app.js');
+
+test('bloc 4 : image et PDF partent tels quels, le reste garde son chemin', () => {
+  const pieces = [
+    { nom: 'facade.jpg', type: 'image/jpeg', chemin: '/u/a.jpg' },
+    { nom: 'bail.pdf', type: 'application/pdf', chemin: '/u/b.pdf' },
+    { nom: 'photo.heic', type: 'image/heic', chemin: '/u/c.heic' },
+    { nom: 'enorme.png', type: 'image/png', chemin: '/u/d.png' },
+  ];
+  const tailles = { '/u/a.jpg': 1000, '/u/b.pdf': 2000, '/u/c.heic': 10, '/u/d.png': 6 * 1024 * 1024 };
+  const { blocs, lues } = blocsNatifs(pieces, { taille: (c) => tailles[c], lire: () => Buffer.from('abc') });
+  assert.deepEqual(blocs.map((b) => b.type), ['image', 'document']);
+  assert.equal(blocs[0].source.media_type, 'image/jpeg');
+  assert.equal(blocs[1].title, 'bail.pdf');
+  assert.ok(lues.has(pieces[0]) && lues.has(pieces[1]) && !lues.has(pieces[2]) && !lues.has(pieces[3]));
+});

@@ -8,6 +8,7 @@
 //  - une tâche de fond (LOI, K-Data, préz, prospection ALX) s'annonce, finie,
 //    par une notification de l'application.
 
+import fs from 'fs';
 import { tracer } from './trace.js';
 import { auBanc } from './banc/garde.js';
 const CADRE_APP = `
@@ -37,6 +38,32 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Plusieurs options : donne à chacune un nom parlant (« Deux temps forts, le reste en conseils ») et décris-la en une phrase claire ; jamais de lettre ni de numéro seul.
 - Un plan de mails : une liste, une ligne par mail, « Mail 1 · mardi 13 octobre · Le vrai rendement d'un local : un chiffre type, puis le simulateur pour faire le calcul. » Le jour, le sujet, ce qu'apporte le mail, l'asset s'il y en a un, nommé en toutes lettres.
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
+
+// Bloc 4 (13 oct. 2026) : une image ou un PDF joint part au modèle tel quel, il le voit et le lit lui-même.
+// Les limites de l'API : 5 Mo par image ; un PDF, on s'arrête à 20 Mo. Le reste (HEIC, Excel, Word…) garde
+// son chemin, et lire_piece le lit.
+const IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const MAX_IMAGE = 5 * 1024 * 1024;
+const MAX_PDF = 20 * 1024 * 1024;
+
+/** Les blocs natifs des pièces (image, document), et les pièces qu'ils couvrent. Lecture du disque injectable. */
+export function blocsNatifs(pieces = [], { taille = (c) => fs.statSync(c).size, lire = (c) => fs.readFileSync(c) } = {}) {
+  const blocs = [];
+  const lues = new Set();
+  for (const p of pieces) {
+    const type = String(p?.type || '').toLowerCase();
+    try {
+      if (IMAGES.has(type) && taille(p.chemin) <= MAX_IMAGE) {
+        blocs.push({ type: 'image', source: { type: 'base64', media_type: type, data: lire(p.chemin).toString('base64') } });
+        lues.add(p);
+      } else if (type === 'application/pdf' && taille(p.chemin) <= MAX_PDF) {
+        blocs.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: lire(p.chemin).toString('base64') }, title: String(p.nom || 'document.pdf').slice(0, 200) });
+        lues.add(p);
+      }
+    } catch { /* illisible : la pièce reste un chemin */ }
+  }
+  return { blocs, lues };
+}
 
 /** Pure : la mémoire des outils d'une réponse, une ligne par appel, tronquée (8 000 signes au plus). */
 export function memoireDesOutils(appels = []) {
@@ -69,14 +96,18 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
   const prenom = String(user?.full_name || user?.email || 'Quelqu’un').split(/[ @]/)[0];
   const aujourdhui = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
   const message = { espace, auteur: { nom: user?.email || null, affiche: prenom }, texte, pieces, groupe: false, page: contexte?.page || null };
-  const joints = pieces.map((p) => `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin})`);
+  const { blocs: natifs, lues } = blocsNatifs(pieces);
+  const joints = pieces.map((p) => `${p.nom} (${p.type || 'type inconnu'}, chemin : ${p.chemin}${lues.has(p) ? ' ; jointe ci-dessus, tu la vois directement' : ''})`);
   const messages = [
     ...(Array.isArray(historique) ? historique : [])
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
       .slice(-20)
       // Ce qu'AK avait lu ou fait pour une réponse d'avant revient avec elle (bloc 3, 13 oct. 2026) : les 4 dernières.
       .map((m, i, liste) => ({ role: m.role, content: avecMemoire(m, i >= liste.length - 8) })),
-    { role: 'user', content: `${prenom} (compte ${user?.email || '?'}, ${aujourdhui}, depuis l'application) : ${texte}${joints.length ? `\n(pièces jointes : ${joints.join(' ; ')})` : ''}` },
+    (() => {
+      const phrase = `${prenom} (compte ${user?.email || '?'}, ${aujourdhui}, depuis l'application) : ${texte}${joints.length ? `\n(pièces jointes : ${joints.join(' ; ')})` : ''}`;
+      return { role: 'user', content: natifs.length ? [...natifs, { type: 'text', text: phrase }] : phrase };
+    })(),
   ];
 
   // Une réaction à la réponse d'avant (« non, pas celui-là », « nickel ») :

@@ -28,7 +28,7 @@ export function noterEchange({ chat, par = null, page = null, systeme = '', mess
   try {
     const cle = systeme ? empreinte(systeme) : null;
     if (cle && !Records.findBy(PROMPT, 'empreinte', cle)) Records.create(PROMPT, { empreinte: cle, texte: systeme, longueur: systeme.length, le: new Date().toISOString() });
-    const derniere = [...messages].reverse().find((m) => m.role === 'user' && typeof m.content === 'string');
+    const derniere = [...messages].reverse().find((m) => m.role === 'user' && (typeof m.content === 'string' || (Array.isArray(m.content) && m.content.some((b) => b?.type === 'text'))));
     const e = Records.create(ECHANGE, {
       le: new Date().toISOString(), chat, par: par ? String(par).toLowerCase() : null, page,
       // Sans l'en-tête que le chat ajoute (« Jules (compte …, lundi 12 octobre 2026, depuis l'application) : »).

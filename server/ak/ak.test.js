@@ -225,7 +225,9 @@ test("AK se propose : ce qui manque à un dossier, la phrase, les heures de bure
 
 test("les corrections et les compliments se reconnaissent, et deviennent des exemples", async () => {
   const { estUneCorrection, estUnCompliment, leconsPourConsigne, souvenirsPourConsigne } = await import('./lecons.js');
-  for (const t of ['non c\'est pas ça', 'Non', 'pas comme ça', 't\'as tout faux', 'trop corporate', 'refais']) assert.equal(estUneCorrection(t), true, t);
+  for (const t of ['non c\'est pas ça', 'Non', 'pas comme ça', 't\'as tout faux', 'trop corporate']) assert.equal(estUneCorrection(t), true, t);
+  // Un « refais… » est une demande (13 oct. 2026) : jamais de leçon, même précédé d'un non.
+  for (const t of ['refais', 'Refais la recherche des enseignes nationales dans le secteur', 'non, refais une recherche pour les enseignes', 'recommence']) assert.equal(estUneCorrection(t), false, t);
   for (const t of ['nickel', 'parfait merci', 'bg', 'c\'est ça']) { assert.equal(estUnCompliment(t), true, t); assert.equal(estUneCorrection(t), false, t); }
   assert.equal(estUneCorrection('crée le projet de nice'), false);
   assert.equal(estUnCompliment('merci de créer le projet de nice stp et de le pousser dans monday avec tout ce qu\'il faut dedans, puis de me faire la préz, et aussi une analyse k-data complète'), false, 'trop long pour un compliment');

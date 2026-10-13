@@ -27,7 +27,9 @@ const bas = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-�
 export function estUneCorrection(texte) {
   const t = bas(texte);
   if (t.length > 400) return false;
-  return /^(non|nan|nope)\b/.test(t) || /\b(pas comme ca|c'?est pas ca|c pas ca|t'?as tout faux|n'?importe quoi|faux|trop long|trop corporate|pas du tout|je t'?ai pas demande|j'?ai pas demande|arrete|c'?est nul|refais|recommence|plutot comme ca|il fallait)\b/.test(t);
+  // « Refais la recherche des enseignes » est une demande, pas une correction (13 oct. 2026, Jules) : jamais de leçon.
+  if (/\b(refai[st]?|refaire|recommence[rz]?)\b/.test(t)) return false;
+  return /^(non|nan|nope)\b/.test(t) || /\b(pas comme ca|c'?est pas ca|c pas ca|t'?as tout faux|n'?importe quoi|faux|trop long|trop corporate|pas du tout|je t'?ai pas demande|j'?ai pas demande|arrete|c'?est nul|plutot comme ca|il fallait)\b/.test(t);
 }
 
 /** Pure : « nickel », « parfait », « bg », « top », « merci c'est ça »… */

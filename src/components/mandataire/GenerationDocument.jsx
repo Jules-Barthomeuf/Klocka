@@ -93,7 +93,9 @@ export default function GenerationDocument({ surtitre, titre, etapes, pret, onFi
  * (« Loyer annuel : 50 000 € »…), cochées à mesure, la dernière qui tourne.
  */
 export function MiseAJourDocument({ surtitre, titre, etapes, enCours }) {
-  const liste = etapes.length ? etapes : ["Lecture de votre message"];
+  // Un outil relancé redonne la même ligne : elle ne s'affiche qu'une fois (13 oct. 2026).
+  const uniques = etapes.filter((e, i) => etapes.indexOf(e) === i);
+  const liste = uniques.length ? uniques : ["Lecture de votre message"];
   const faites = enCours ? liste.length - 1 : liste.length;
   return (
     <div className="grid h-full place-items-center px-10 max-md:px-6">

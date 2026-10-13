@@ -133,7 +133,8 @@ export default function AdminPresentations() {
   const LIMITE = 4;
   const affichees = toutes ? presentations : presentations.slice(0, LIMITE);
   const liste = (
-    <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[750px]"}>
+    // Le fond de la barre de navigation (13 oct. 2026, Jules) : bg-rail suit la teinte choisie dans Compte.
+    <div className={`rounded-[14px] bg-rail px-5 pb-3 pt-5 max-md:px-3 ${scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[790px]"}`}>
       <div className="flex items-center justify-between gap-3 pb-[14px]">
         <div className="flex items-baseline gap-[10px]">
           <h2 className="m-0 text-[19px] font-medium tracking-[-0.01em] text-encre">Vos présentations</h2>
@@ -151,7 +152,7 @@ export default function AdminPresentations() {
           <button type="button" onClick={() => setChoixProjet(true)} className="text-craie underline underline-offset-2 hover:text-encre" style={{ background: "transparent" }}>partez de la liste des projets</button>.
         </p>
       ) : (
-        <div className="border-y border-trait">
+        <div className="border-t border-trait">
           <div className={`${COLONNES} h-[41px] border-b border-trait text-[12.5px] text-brume max-md:hidden`}>
             <span className="pl-3">Nom</span><span>Modifié</span><span>PDF</span><span />
           </div>

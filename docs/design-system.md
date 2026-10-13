@@ -200,6 +200,9 @@ Modifié (137 px), PDF (170 px) et ⋯ (43 px), titres en 12,5 px `brume` sur
 télécharge, ou « Non exporté » en `brume`. L'aperçu et la suppression sont
 dans le menu ⋯ ; « partez de la liste des projets » dans la phrase de la
 liste vide ouvre le choix d'un projet.
+Le 13 oct. 2026 : la liste se pose sur un panneau `bg-rail` (la teinte de la
+barre de navigation, qui suit le choix de Compte), `rounded-[14px]`, 20 px de
+marge, sans filet sous la dernière ligne.
 
 **Fenêtres (pop-up)** : centrées sur la zone de contenu, pas sur l'écran
 (`md:left-[var(--k-barre-largeur)]`) ; voile sombre flouté ; Échap et clic

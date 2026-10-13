@@ -1172,7 +1172,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     onSettled: () => { setEnFlux(false); setTexteVif(); tourVif.current = -1; },
     onSuccess: (r) => {
       rafraichir();
-      const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r) };
+      // La mémoire des outils (ce qu'AK a lu ou fait) part avec le message : au tour suivant, il s'en souvient (13 oct. 2026).
+      const extra = { etapes: vivesRef.current.length ? vivesRef.current : etapesDe(r, etapesRef.current), cartes: cartesDe(r), ...(r.memoire ? { memoire: r.memoire } : {}) };
       if (estimation) {
         pousser({
           role: "assistant",
@@ -1215,7 +1216,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           return;
         }
         // Le chat Data Prospective : une réponse, parfois le formulaire, parfois la prospective lancée.
-        const extra2 = { etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current };
+        const extra2 = { etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current, ...(r.memoire ? { memoire: r.memoire } : {}) };
         pousser({
           role: "assistant",
           contenu: r.texte || "(sans réponse)",

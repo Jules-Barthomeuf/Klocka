@@ -62,3 +62,10 @@ test('renommer une conversation, la sienne seulement, sans la faire remonter', a
   assert.equal(listerConversations(MOI).find((c) => c.id === id).titre, 'Dossier Mâcon');
   assert.deepEqual(lireConversation(MOI, id).messages, avant.messages);
 });
+
+test('la mémoire des outils d\'une réponse d\'AK se range avec la conversation', () => {
+  const [r] = serialisables([{ role: 'assistant', contenu: 'Le loyer est de 30 693 €.', memoire: '- etat_projet({"projet_id":"p1"}) → {"loyer":30693}' }]);
+  assert.match(r.memoire, /etat_projet/);
+  const [u] = serialisables([{ role: 'user', contenu: 'Et le prix ?', memoire: 'forgée' }]);
+  assert.equal(u.memoire, undefined);
+});

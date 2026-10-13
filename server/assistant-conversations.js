@@ -46,6 +46,8 @@ export function serialisables(messages) {
           .slice(0, 8)
           .map((c) => ({ titre: c.titre.slice(0, 160), detail: typeof c.detail === 'string' ? c.detail.slice(0, 400) : null, etat: ['fait', 'annule', 'rate'].includes(c.etat) ? c.etat : 'fait', lien: typeof c.lien === 'string' ? c.lien.slice(0, 400) : null, ...(typeof c.action === 'string' ? { action: c.action.slice(0, 40) } : {}) }));
       }
+      // La mémoire des outils d'une réponse d'AK : elle revient au tour suivant, même dans une conversation rouverte.
+      if (m.role === 'assistant' && typeof m.memoire === 'string' && m.memoire.trim()) propre.memoire = m.memoire.slice(0, 8000);
       // Les sources d'une LOI : la lettre et les titres, la fenêtre relit le reste.
       if (m.sources && typeof m.sources.loi_id === 'string' && Array.isArray(m.sources.liens)) {
         propre.sources = {

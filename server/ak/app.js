@@ -38,10 +38,31 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 - Un plan de mails : une liste, une ligne par mail, « Mail 1 · mardi 13 octobre · Le vrai rendement d'un local : un chiffre type, puis le simulateur pour faire le calcul. » Le jour, le sujet, ce qu'apporte le mail, l'asset s'il y en a un, nommé en toutes lettres.
 - Court : le plan, ce que tu as supposé en une phrase, et au plus une question.`;
 
+/** Pure : la mémoire des outils d'une réponse, une ligne par appel, tronquée (8 000 signes au plus). */
+export function memoireDesOutils(appels = []) {
+  const court = (v, n) => { const t = typeof v === 'string' ? v : JSON.stringify(v ?? null); return t.length > n ? `${t.slice(0, n)}…` : t; };
+  let total = 0;
+  const lignes = [];
+  for (const a of appels) {
+    const l = `- ${a.outil}(${court(a.args || {}, 240)}) → ${court(a.resultat, 1400)}`;
+    if (total + l.length > 8000) { lignes.push(`- … ${appels.length - lignes.length} autre(s) appel(s) non repris`); break; }
+    lignes.push(l);
+    total += l.length;
+  }
+  return lignes.join('\n');
+}
+
+/** Pure : le contenu d'un message d'historique ; une réponse d'AK récente reprend sa mémoire d'outils. */
+export function avecMemoire(m, recent = true) {
+  if (m.role !== 'assistant' || !recent || typeof m.memoire !== 'string' || !m.memoire.trim()) return m.contenu;
+  return `${m.contenu}\n\n[Pour cette réponse, tu avais appelé ces outils ; leurs résultats valent toujours, sauf si la personne dit le contraire :\n${m.memoire.slice(0, 8000)}]`;
+}
+
 export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null, surTexte = null }) {
   const { consigneStable, consigneApprise, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
   const { libelleOutil } = await import('../etapes-libelles.js');
+  const souvenirs = [];
   const { estEchec, journaliser } = await import('../assistant-journal.js');
 
   const espace = `app:${String(user?.email || 'inconnu').toLowerCase()}`;
@@ -53,7 +74,8 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
     ...(Array.isArray(historique) ? historique : [])
       .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.contenu === 'string' && m.contenu.trim())
       .slice(-20)
-      .map((m) => ({ role: m.role, content: m.contenu })),
+      // Ce qu'AK avait lu ou fait pour une réponse d'avant revient avec elle (bloc 3, 13 oct. 2026) : les 4 dernières.
+      .map((m, i, liste) => ({ role: m.role, content: avecMemoire(m, i >= liste.length - 8) })),
     { role: 'user', content: `${prenom} (compte ${user?.email || '?'}, ${aujourdhui}, depuis l'application) : ${texte}${joints.length ? `\n(pièces jointes : ${joints.join(' ; ')})` : ''}` },
   ];
 
@@ -158,6 +180,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       surEtape?.(libelleOutil(appel.name, appel.input));
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
       noterBloc(appel.name, resultat);
+      souvenirs.push({ outil: appel.name, args: appel.input, resultat });
       if (!LECTURES.has(appel.name)) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user, via: "AK dans l'application" }); } catch (e) { console.warn('[ak app] journalisation impossible :', e?.message || e); }
@@ -192,5 +215,5 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     } catch (e) { console.warn('[ak app] sources de la LOI :', e?.message || e); }
   }
   try { noterEchange({ espace, auteur: message.auteur, demande: texte, reponse }); } catch { /* la mesure ne bloque pas la réponse */ }
-  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, blocs, ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
+  return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, blocs, memoire: memoireDesOutils(souvenirs) || null, ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
 }

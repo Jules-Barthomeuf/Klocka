@@ -62,6 +62,9 @@ export function consigneActuelle() {
 const EXCLUS = new Set(['envoyer_mail', 'creer_dossier', 'preparer_mail']);
 const NOMS_KDATA = { kzoning: 'K-Zoning', kexpertise: 'K-Expertise', kestimation: 'Estimation', kprospective: 'K-Prospective', kfoncier: 'K-Foncier', 'valeur-locative': 'Valeur locative', kvacance: 'K-Vacance', ktransactions: 'K-Transactions' };
 
+// Les types que lisent lire_entite et chercher_entites (server/ak/lecture-generique.js, TYPES).
+const TYPES_LECTURE = ['dossier', 'projet', 'presentation', 'loi', 'agent', 'agence', 'liste_agences', 'prospection', 'commerce', 'relance', 'dossier_mandataire', 'proprietaire_mandataire'];
+
 const OUTILS_AK = [
   {
     name: 'creer_dossier',
@@ -380,8 +383,32 @@ const OUTILS_AK = [
       type: 'object',
       properties: {
         nom: { type: 'string' }, email: { type: 'string' }, monday_id: { type: 'string' },
-        tableau: { type: 'string', enum: ['clients', 'prospects', 'agents', 'tous'], description: 'où chercher ; par défaut clients et prospects' },
+        tableau: { type: 'string', enum: ['clients', 'prospects', 'agents', 'proprietes', 'tous'], description: 'où chercher ; par défaut clients et prospects ; proprietes : un bien du tableau Propriétés, par son nom' },
       },
+    },
+  },
+  {
+    name: 'lire_entite',
+    description: "Lit une fiche entière de la plateforme, tous ses champs, en lecture seule : un dossier (par deal_id), un projet, une présentation, une LOI, un agent, une agence, une liste d'agences, une prospection, un commerce off-market, une relance, un dossier ou un propriétaire de mandataire. À utiliser quand l'outil métier ne montre pas le champ cherché (une échéance, un champ du simulateur, l'historique d'une fiche), ou pour vérifier avant d'affirmer. Pas pour chercher : il faut l'identifiant (chercher_entites, trouver_bien ou un autre outil le donne). Rend la fiche nettoyée (secrets retirés, textes très longs raccourcis) ; lis-la avec le modèle de données de la consigne.",
+    input_schema: { type: 'object', properties: { type: { type: 'string', enum: TYPES_LECTURE }, id: { type: 'string', description: "l'identifiant ; pour un dossier, le deal_id" } }, required: ['type', 'id'] },
+  },
+  {
+    name: 'chercher_entites',
+    description: "Cherche dans un type de fiche de la plateforme, en lecture seule : texte libre (partout dans la fiche, sans accents), filtres par champ (égal ou contient ; { min, max } pour un nombre ; chemin pointé possible, ex. lots.0.lot.surface_m2), tri par champ, 20 résultats au plus par page avec le total et la page suivante. À utiliser pour une question qu'aucun outil métier ne couvre (« combien de dossiers abandonnés ce mois-ci », « les projets en financement à Nice », « les relances de Nora »), pour un export (champs : la liste des champs voulus par ligne, puis le code pour écrire le fichier), ou pour retrouver un identifiant. Pour un bien précis par son nom, trouver_bien reste plus direct.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: TYPES_LECTURE },
+        texte: { type: 'string', description: 'mots cherchés partout dans la fiche' },
+        filtres: { type: 'object', description: "{ champ: valeur } ou { champ: { min, max } } ; ex. { statut: 'financement', surface_m2: { min: 50 } }" },
+        tri: { type: 'string', description: 'champ de tri (par défaut la date de mise à jour)' },
+        ordre: { type: 'string', enum: ['asc', 'desc'] },
+        page: { type: 'number' },
+        limite: { type: 'number', description: '20 au plus' },
+        champs: { type: 'array', items: { type: 'string' }, description: 'les champs à rendre par ligne (20 au plus), pour un export ; sinon un résumé du type' },
+        archives: { type: 'boolean', description: 'inclure les fiches archivées (un dossier abandonné est archivé)' },
+      },
+      required: ['type'],
     },
   },
   {
@@ -1045,6 +1072,10 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (r.erreur) return { ok: false, error: r.erreur };
     return { ok: true, cree: r.cree, monday_id: r.id, statut_ignore: r.statut_ignore || null };
   }
+  if (name === 'lire_entite' || name === 'chercher_entites') {
+    const L = await import('./lecture-generique.js');
+    return name === 'lire_entite' ? L.lireEntite(input) : L.chercherEntites(input);
+  }
   if (name === 'lire_fiche_monday') {
     const { mondayConfigure, TABLEAUX, lireTableau, lireFiche } = await import('../monday.js');
     if (!mondayConfigure()) return { ok: false, error: 'Monday non configuré sur ce serveur (MONDAY_TOKEN).' };
@@ -1056,8 +1087,8 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     const mots = norme(input.nom).split(' ').filter(Boolean);
     const mail = norme(input.email);
     if (!mots.length && !mail) return { ok: false, error: 'Il faut un nom, un mail ou un monday_id.' };
-    const ou = { clients: ['investisseurs'], prospects: ['prospects'], agents: ['agents'], tous: ['investisseurs', 'prospects', 'agents'] }[input.tableau] || ['investisseurs', 'prospects'];
-    const nomTableau = { investisseurs: 'Clients', prospects: 'Prospects', agents: 'Agents' };
+    const ou = { clients: ['investisseurs'], prospects: ['prospects'], agents: ['agents'], proprietes: ['proprietes'], tous: ['investisseurs', 'prospects', 'agents', 'proprietes'] }[input.tableau] || ['investisseurs', 'prospects'];
+    const nomTableau = { investisseurs: 'Clients', prospects: 'Prospects', agents: 'Agents', proprietes: 'Propriétés' };
     const trouves = [];
     for (const k of ou.filter((x) => TABLEAUX[x])) {
       for (const l of await lireTableau(TABLEAUX[k])) {

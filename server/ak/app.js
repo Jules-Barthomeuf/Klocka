@@ -26,7 +26,10 @@ TU AS UN BAC À SABLE PYTHON (l'outil code_execution : pandas, openpyxl, matplot
 - un fichier joint qui n'est ni une image ni un PDF (Excel, CSV, Word, PowerPoint) est déposé dans le bac à sable : tu l'y lis avec le code ;
 - un fichier demandé (un Excel, un CSV, un graphique) : tu l'écris dans le bac à sable ; il s'affiche sous ta réponse, à télécharger d'un clic. Dis-le en une ligne, sans recopier le contenu.`;
 
-const LECTURES = new Set(['trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
+// Le modèle de données (partie 2, 13 oct. 2026) : lu une fois, dans la partie stable de la consigne (en cache).
+const MODELE_DONNEES = (() => { try { return `\n\n${fs.readFileSync(new URL('../../docs/ak/modele-donnees.md', import.meta.url), 'utf8')}`; } catch { return ''; } })();
+
+const LECTURES = new Set(['lire_entite', 'chercher_entites', 'lire_fiche_monday', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
 /**
@@ -213,7 +216,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     surTexte,
     effort: effortDuChat(),
     // Du plus stable au plus changeant (1.7) : le document de Jules et le cadre, puis ce que l'équipe lui a appris, puis la page ouverte.
-    system: [{ texte: consigneStable() + CADRE_APP, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage }],
+    system: [{ texte: consigneStable() + CADRE_APP + MODELE_DONNEES, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage }],
     messages,
     tools: OUTILS,
     serveurs: [OUTIL_CODE],

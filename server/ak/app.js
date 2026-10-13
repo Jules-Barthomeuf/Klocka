@@ -131,6 +131,11 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
   // gardée comme leçon, comme dans Google Chat. Le message est traité ensuite.
   const { apprendre, noterEchange } = await import('./lecons.js');
   try { apprendre({ espace, auteur: message.auteur, texte }); } catch (e) { console.warn('[ak app] leçon non gardée :', e?.message || e); }
+  // Les préférences de la personne (questionnaire et ce qu'elle a dit en passant) : comme dans Google Chat, pour elle
+  // seule, dans le bloc qui suit le cache (3d, 13 oct. 2026). Avant, l'application ne les lisait pas.
+  const { preferencesDe } = await import('./lecons.js');
+  const prefs = preferencesDe(user?.email);
+  const preferences = prefs ? `\n\n${prefs}` : '';
   // La page Offres : le chat y rédige et corrige les lettres d'intention.
   let cadrePage = '';
   if (contexte?.page === 'offres') {
@@ -216,7 +221,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     surTexte,
     effort: effortDuChat(),
     // Du plus stable au plus changeant (1.7) : le document de Jules et le cadre, puis ce que l'équipe lui a appris, puis la page ouverte.
-    system: [{ texte: consigneStable() + CADRE_APP + MODELE_DONNEES, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage }],
+    system: [{ texte: consigneStable() + CADRE_APP + MODELE_DONNEES, cache: true }, { texte: consigneApprise(), cache: true }, { texte: cadrePage + preferences }],
     messages,
     tools: OUTILS,
     serveurs: [OUTIL_CODE],

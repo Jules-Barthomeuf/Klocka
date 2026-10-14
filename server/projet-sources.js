@@ -78,7 +78,7 @@ export function sourcesDuProjet(p, { rue = undefined } = {}) {
 
 /** Le projet ouvert dans l'éditeur, tel qu'AK le lit : ses chiffres, d'où ils viennent, ce que les sources ont rendu. */
 export function projetPourAK(projetId) {
-  return import('./db.js').then(({ Records }) => {
+  return import('./db.js').then(async ({ Records }) => {
     const p = Records.get('Project', projetId);
     if (!p) return null;
     const rue = secteurGarde(p.id)?.rue || null;
@@ -93,6 +93,29 @@ ${surface && loyer ? `Loyer du projet au m² : ${Math.round(loyer / surface)} �
 Valeurs forcées : ${JSON.stringify(p.valeurs_forcees || {})}
 Loyer autour lu par la page : ${rue?.loyer_m2_an ? `${rue.loyer_m2_an} €/m²/an (${rue.loyer_source}${rue.loyer_bas ? `, ${rue.loyer_bas} à ${rue.loyer_haut}` : ''}${rue.rayon ? `, ${rue.rayon}` : ''})` : 'aucun'}.
 SOURCES DES CHIFFRES (champ : origine, détail) :
-${Object.entries(sources).map(([c, s]) => `- ${c} : ${s.origine}${s.detail ? `, ${s.detail}` : ''}`).join('\n')}`;
+${Object.entries(sources).map(([c, s]) => `- ${c} : ${s.origine}${s.detail ? `, ${s.detail}` : ''}`).join('\n')}
+${await bailPourAK(p)}`;
   });
+}
+
+/**
+ * Le bail tel que la page le montre (14 oct. 2026 : AK répondait « rien à
+ * modifier » alors que la frise affichait des triennales dans une période
+ * ferme) : les champs qui le pilotent, la frise calculée, la synthèse, les pièces.
+ */
+async function bailPourAK(p) {
+  const { friseDuProjet, friseBornee, jalonsDuBail, fermeDuProjet } = await import('../src/lib/frise-bail.js');
+  const { piecesDeclarees } = await import('./pieces-projet.js');
+  const frise = friseBornee(friseDuProjet(p, null));
+  const ferme = fermeDuProjet(p);
+  const jalons = frise ? jalonsDuBail(frise, { ferme }).jalons.map((j) => `${j.texte} : ${j.label}`).join(' ; ') : 'aucune date';
+  const pieces = (() => { try { return piecesDeclarees(p).map((x) => x.nom); } catch { return []; } })();
+  const synthese = String(p.analyse_bail || '');
+  return `BAIL (ce que la page affiche, et les champs qui le pilotent) :
+- bail_date_debut : ${p.bail_date_debut || '—'} ; bail_date_echeance : ${p.bail_date_echeance || p.echeance_bail || '—'} ; bail_duree_ferme_ans : ${p.bail_duree_ferme_ans ?? '—'} (période ferme lue : ${ferme === Infinity ? 'tout le bail' : ferme ? `${ferme} ans` : 'aucune'}).
+- Frise affichée : ${jalons}.
+- Corrections de l'analyse du bail (bail_analyse.<id>) : ${JSON.stringify(p.bail_analyse || {})}
+- Cases du bail corrigées (cases_forcees) : ${JSON.stringify(Object.fromEntries(Object.entries(p.cases_forcees || {}).filter(([k]) => k.startsWith('bail.'))))}
+- Pièces de l'onglet Documents : ${pieces.length ? pieces.join(', ') : 'aucune'}.
+- Synthèse de l'analyse du bail (analyse_bail)${synthese.length > 6000 ? ', début' : ''} : ${synthese ? synthese.slice(0, 6000) : 'vide'}`;
 }

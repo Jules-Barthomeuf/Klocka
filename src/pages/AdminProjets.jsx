@@ -493,6 +493,7 @@ export default function AdminProjets() {
       activite_locataire: project.activite_locataire || "", locataire_depuis: project.locataire_depuis || "",
       loyer_annuel_ht: project.loyer_annuel_ht || 0, echeance_bail: project.echeance_bail || "",
       bail_date_debut: project.bail_date_debut || "", bail_date_echeance: project.bail_date_echeance || "",
+      bail_duree_ferme_ans: project.bail_duree_ferme_ans ?? null,
       statut_bail: project.statut_bail || "en_cours", vente_fonds_commerce: project.vente_fonds_commerce || false,
       montant_vente_fonds_commerce: project.montant_vente_fonds_commerce || 0,
       date_vente_fonds_commerce: project.date_vente_fonds_commerce || "",

@@ -40,3 +40,21 @@ test('libelleDate : l\'année seule, ou la date en toutes lettres', () => {
   assert.equal(libelleDate({ anneeSeule: true, annee: 2019 }), '2019');
   assert.equal(libelleDate({ anneeSeule: false, iso: '2023-02-01' }), '1 févr. 2023');
 });
+
+test('la période ferme : « 10 ans dont 6 ans ferme », pas de triennale avant six ans, sa fin à la place', async () => {
+  const { periodeFerme, jalonsDuBail } = await import('../src/lib/frise-bail.js');
+  assert.equal(periodeFerme(['Bail commercial de 10 ans dont 6 ans ferme']), 6);
+  assert.equal(periodeFerme(['bail de dix années, dont six années fermes']), 6);
+  assert.equal(periodeFerme(['Le preneur renonce à la faculté de résiliation à l\'issue de la première période triennale']), 6);
+  assert.equal(periodeFerme(['Bail commercial de 9 ans, résiliation triennale']), null);
+  assert.equal(periodeFerme(['Bail ferme']), Infinity);
+  assert.equal(periodeFerme(['Bail ferme'], { saisie: 0 }), null, 'la saisie de l\'éditeur l\'emporte');
+  const { jalons } = jalonsDuBail({ debut: '2026-07-01', fin: '2036-06-30' }, { ferme: 6, maintenant: new Date('2026-10-14') });
+  assert.deepEqual(jalons.map((j) => j.label), ['Prise d\'effet', 'Fin de la période ferme', 'Échéance']);
+  assert.equal(jalons[1].date.toISOString().slice(0, 10), '2032-07-01');
+  const sans = jalonsDuBail({ debut: '2026-07-01', fin: '2036-06-30' }, { maintenant: new Date('2026-10-14') });
+  assert.deepEqual(sans.jalons.map((j) => j.cle), ['debut', 'triennale-1', 'triennale-2', 'fin']);
+  // La chronologie de l'onglet Bien suit la même règle, avec la correction de l'analyse du bail.
+  const ev = evenementsDuBien({ bail_date_debut: '2026-07-01', bail_date_echeance: '2036-06-30', bail_analyse: { type_bail: 'Bail commercial de 10 ans dont 6 ans ferme' } }, null, new Date('2026-10-14T12:00:00Z'));
+  assert.deepEqual(ev.map((e) => e.cle), ['bail-debut', 'fin-ferme', 'triennale-9', 'bail-fin']);
+});

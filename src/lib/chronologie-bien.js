@@ -1,7 +1,7 @@
 // La chronologie du bien (onglet Bien de la page projet) : le calcul, sans
 // l'affichage, pour qu'il se teste hors du navigateur.
 
-import { friseDuProjet } from "./frise-bail.js";
+import { friseDuProjet, fermeDuProjet } from "./frise-bail.js";
 
 // Comme SecteurChiffres : l'espace fine devient insécable ordinaire.
 const format = new Intl.NumberFormat("fr-FR");
@@ -70,16 +70,19 @@ export function evenementsDuBien(project, friseLue = null, aujourdhui = new Date
     if (frise.debutVient !== "arrivee") ajouter("bail-debut", frise.debut, "Début du bail en cours");
     const debut = new Date(`${frise.debut}T12:00:00`);
     const fin = frise.fin ? new Date(`${frise.fin}T12:00:00`) : null;
-    for (let n = 3; n < 30; n += 3) {
+    // Pendant la période ferme, pas de congé possible ; sa fin est la première sortie.
+    const ferme = fermeDuProjet(project);
+    for (let n = 3; n < 30 && ferme !== Infinity; n += 3) {
       const t = new Date(debut);
       t.setFullYear(debut.getFullYear() + n);
       if (fin && t >= fin) break;
       if (!fin && n > 9) break;
-      if (t < aujourdhui) continue;
+      if (t < aujourdhui || (ferme && n < ferme)) continue;
       // Le locataire peut donner congé à chaque échéance triennale : c'est un risque.
-      ajouter(`triennale-${n}`, t.toISOString().slice(0, 10), `Échéance triennale (${n} ans)`, "Le locataire peut donner congé", true);
+      if (ferme && n === ferme) ajouter(`fin-ferme`, t.toISOString().slice(0, 10), `Fin de la période ferme (${n} ans)`, "Premier congé possible du locataire", true);
+      else ajouter(`triennale-${n}`, t.toISOString().slice(0, 10), `Échéance triennale (${n} ans)`, "Le locataire peut donner congé", true);
     }
-  } else if (frise?.fin) {
+  } else if (frise?.fin && !fermeDuProjet(project)) {
     // Sans date de début, on suppose le bail commercial classique de 9 ans :
     // ses échéances tombent 6 et 3 ans avant la fin, et on le dit.
     const fin = new Date(`${frise.fin}T12:00:00`);

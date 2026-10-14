@@ -51,3 +51,18 @@ test('les sources de la page : celle posée, la saisie à la main, sinon la sour
   const vide = S.sourcesDuProjet({ id: 'y' }, { rue: null });
   assert.equal(vide.marche_loyer_autour.nature, 'a_remplir');
 });
+
+test('AK voit le bail comme la page : la frise, la période ferme, la synthèse ; il peut les corriger', async () => {
+  const p = Records.create('Project', { titre: 'Libourne', bail_date_debut: '2026-07-01', bail_date_echeance: '2036-06-30', analyse_bail: 'Échéance non communiquée.' });
+  assert.match(await S.projetPourAK(p.id), /1 juillet 2029 : 1re échéance triennale/);
+  const r = E.modifierChamps(p.id, [
+    { champ: 'bail_duree_ferme_ans', valeur: '6', source: 'Indiqué par Jules dans le chat' },
+    { champ: 'analyse_bail', valeur: 'Bail de 10 ans dont 6 ans ferme.', source: 'Indiqué par Jules dans le chat' },
+  ], { par: 'AK' });
+  assert.equal(r.ok, true);
+  assert.equal(Records.get('Project', p.id).bail_duree_ferme_ans, 6);
+  const ctx = await S.projetPourAK(p.id);
+  assert.match(ctx, /1 juillet 2032 : Fin de la période ferme/);
+  assert.doesNotMatch(ctx, /2029/);
+  assert.match(ctx, /Bail de 10 ans dont 6 ans ferme/);
+});

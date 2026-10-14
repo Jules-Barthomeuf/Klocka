@@ -8,7 +8,7 @@ import { InfoDot, nf } from "./SecteurChiffres";
 import { Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 import { ChiffresStrip } from "./SecteurChiffres";
 import { dureeJusque } from "./durees";
-import { friseDuProjet, friseBornee } from "@/lib/frise-bail";
+import { friseDuProjet, friseBornee, jalonsDuBail, fermeDuProjet } from "@/lib/frise-bail";
 export { friseDuProjet };
 
 // Les cases de la page projet : un titre, une valeur courte, un détail, un
@@ -154,62 +154,12 @@ const dateFr = (valeur, options = { day: "numeric", month: "long", year: "numeri
 };
 export { dateFr };
 
-/**
- * Pure : les jalons de la frise. La prise d'effet, les échéances triennales
- * tant qu'elles tombent avant la fin, puis l'échéance. Un bail ferme n'a pas
- * de sortie triennale : ses jalons se réduisent aux deux bouts.
- *
- * @param {{debut?: string|null, fin?: string|null}} frise
- * @param {{maintenant?: Date, ferme?: boolean, maxi?: number}} [o]
- */
-export function jalonsDuBail(frise, { maintenant = new Date(), ferme = false, maxi = 3 } = {}) {
-  const debut = frise?.debut ? new Date(frise.debut) : null;
-  const fin = frise?.fin ? new Date(frise.fin) : null;
-  const valide = (d) => d && !Number.isNaN(d.getTime());
-  if (!valide(debut) && !valide(fin)) return { jalons: [], part: null };
+// Les jalons et la période ferme vivent dans lib/frise-bail (le serveur les lit aussi, pour AK).
+export { jalonsDuBail };
 
-  const jalons = [];
-  if (valide(debut)) jalons.push({ cle: "debut", date: debut, label: "Prise d'effet" });
-  if (valide(debut) && valide(fin) && !ferme) {
-    for (let n = 1; n <= maxi; n += 1) {
-      const t = new Date(debut);
-      t.setFullYear(t.getFullYear() + 3 * n);
-      // Une triennale à moins d'un an de l'échéance ne se prend pas (six mois
-      // de préavis) et son étiquette chevaucherait celle de la fin.
-      if (t.getTime() >= fin.getTime() - 365 * 86400000) break;
-      jalons.push({ cle: `triennale-${n}`, date: t, label: `${n === 1 ? "1re" : `${n}e`} échéance triennale` });
-    }
-  }
-  if (valide(fin)) jalons.push({ cle: "fin", date: fin, label: "Échéance" });
-
-  const d = valide(debut) ? debut.getTime() : null;
-  const f = valide(fin) ? fin.getTime() : null;
-  const mesurable = d && f && f > d;
-  const part = mesurable ? Math.min(1, Math.max(0, (maintenant.getTime() - d) / (f - d))) : null;
-  return {
-    part,
-    // Une seule date connue : la frise ne mesure rien, elle se contente de
-    // poser ce qu'elle sait, à intervalle régulier.
-    mesurable: !!mesurable,
-    jalons: jalons.map((j, i) => ({
-      ...j,
-      texte: dateFr(j.date.toISOString()),
-      // La position sur la ligne, en part de la durée du bail.
-      // Faute de durée à mesurer, chaque jalon se pose à sa place logique :
-      // la prise d'effet à gauche, l'échéance à droite.
-      position: mesurable
-        ? Math.min(1, Math.max(0, (j.date.getTime() - d) / (f - d)))
-        : jalons.length > 1 ? i / (jalons.length - 1) : (j.cle === "fin" ? 1 : 0),
-      passe: j.date.getTime() <= maintenant.getTime(),
-    })),
-  };
-}
-
-/** Pure : le bail renonce-t-il aux sorties triennales ? */
-export function bailFerme(lignes) {
-  const t = (lignes || []).filter((l) => ["type_bail", "duree", "resiliation"].includes(l.id)).map((l) => l.texte || "").join(" ");
-  if (/triennal/i.test(t) && !/renonc|sans facult[ée]|ferme/i.test(t)) return false;
-  return /\bferme\b|renonc\w*[^.]{0,40}(triennal|r[ée]siliation)|sans facult[ée] de r[ée]siliation/i.test(t);
+/** Pure : le bail renonce-t-il aux sorties triennales ? (la période ferme, en années ; Infinity pour tout le bail) */
+export function bailFerme(lignes, project = null) {
+  return fermeDuProjet(project, lignes);
 }
 
 // L'ancrage suit la place du jalon sur la ligne, pas son rang : une frise qui
@@ -236,7 +186,7 @@ export function CarteBail({ frise, lignes, onSource, project = null }) {
   // Le bout qui manque se déduit d'un bail de neuf ans : sans lui, l'unique
   // date se posait à droite et aujourd'hui n'avait pas de place.
   const bornee = friseBornee(frise);
-  const { jalons, part } = jalonsDuBail(bornee, { ferme: bailFerme(lignes) });
+  const { jalons, part } = jalonsDuBail(bornee, { ferme: bailFerme(lignes, project) });
   const marques = jalons.map((j) => (j.cle === bornee.estime ? { ...j, label: `${j.label} estimée` } : j));
   const restant = forcee(project, "bail_restant") || (frise.fin ? dureeJusque(frise.fin, { court: true }) : null);
 

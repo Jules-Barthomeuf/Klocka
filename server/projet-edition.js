@@ -20,11 +20,13 @@ const CHAMPS = new Set([
   'quote_part_lot', 'charges_copropriete', 'provision_charges', 'taxe_fonciere_an', 'type_construction',
   'prix_acquisition', 'rendement_locatif', 'statut_bail', 'description_bien', 'description_ville', 'description_secteur',
   'adresse_complete', 'transactions_fonds', 'assemblees_generales',
+  // La synthèse de l'analyse du bail (14 oct. 2026) : AK la corrige quand elle dit faux.
+  'analyse_bail',
 ]);
 const INTERDITS = new Set(['id', 'titre', 'client_email', 'client_emails', 'admins', 'admin_principal', 'conversation_id', 'sources_champs', 'champs_masques', 'photos', 'documents', 'fichiers_projet']);
 
 // Les champs texte parmi les familles chiffrées : ils ne se convertissent pas en nombre.
-const TEXTES = /^(marche_quartier_nom|ville_secteur_champ\d|sim_(mode_prix_net_vendeur|honoraires_agent_mode|commission_agent_type|fees_klocka_type|type_detention|type_revente|lien_google_sheets|fichier_excel|fichier_pdf)|bail_date_|bail_analyse\.|cases_forcees\.|valeurs_forcees\.|secteur_points|ville_points|loyer_source)/;
+const TEXTES = /^(marche_quartier_nom|ville_secteur_champ\d|sim_(mode_prix_net_vendeur|honoraires_agent_mode|commission_agent_type|fees_klocka_type|type_detention|type_revente|lien_google_sheets|fichier_excel|fichier_pdf)|bail_date_|bail_analyse\.|cases_forcees\.|valeurs_forcees\.|secteur_points|ville_points|loyer_source|analyse_bail|bail_type|bail_infos_importantes)/;
 const BOOLEENS = /^sim_(loyer_soumis_tva|charges_refacturable|taxe_refacturable|pret_in_fine|commission_agent_active|commission_agent_inclus_fai|no_fees_klocka|loyer_revalorise_tva|mode_prix_net_vendeur)$/;
 
 /** Pure : ce champ se modifie-t-il par l'éditeur ou par AK ? */

@@ -32,6 +32,14 @@ export default function DatesBailPanneau({ formData, setFormData }) {
           <div className="mt-1.5 text-[11px] text-brume">{restant ? `${restant} à courir · ` : ""}la page Locataire la reprend</div>
         </div>
       </div>
+      {/* La période ferme (14 oct. 2026) : « 10 ans dont 6 ans ferme ». Pas de sortie triennale avant sa fin. */}
+      <div className="mt-3 rounded-[12px] border border-trait bg-surface p-3.5">
+        <FField label="Période ferme (années)" className="!border-0 !bg-transparent !p-0">
+          <FInput type="number" min="0" step="1" value={formData.bail_duree_ferme_ans ?? ""} placeholder="Aucune"
+            onChange={(e) => setFormData({ ...formData, bail_duree_ferme_ans: e.target.value === "" ? null : Number(e.target.value) })} />
+        </FField>
+        <div className="mt-1.5 text-[11px] text-brume">le preneur ne peut pas partir avant : la frise n'a pas d'échéance triennale avant sa fin</div>
+      </div>
     </div>
   );
 }

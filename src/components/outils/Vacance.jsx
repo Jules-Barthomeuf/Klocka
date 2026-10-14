@@ -395,9 +395,6 @@ export default function Vacance() {
               <PanelRightOpen className="h-4 w-4" strokeWidth={1.7} />
             </button>
           )}
-          {resultats && !chargement && resultats.zone?.nom && (
-            <p className="pointer-events-none absolute left-3 top-3 z-[400] m-0 rounded-full border border-bord bg-surface px-3 py-1 text-[11px] uppercase tracking-[.14em] text-craie backdrop-blur">Signaux chargés pour {resultats.zone.nom}</p>
-          )}
         </div>
 
         {resultats && listeOuverte && (

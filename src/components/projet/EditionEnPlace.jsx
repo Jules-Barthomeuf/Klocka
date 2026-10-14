@@ -121,6 +121,19 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
   const [ouvert, setOuvert] = useState(false);
   const [brouillon, setBrouillon] = useState("");
 
+  // Le mode Sources de l'éditeur (14 oct. 2026) : au survol, d'où vient le chiffre.
+  if (edition?.sources && champ) {
+    const nom = nomDuChemin(champ);
+    const s = edition.sources[nom];
+    if (!s) return children;
+    return (
+      <span data-source={s.nature} onMouseEnter={(e) => edition.surSource?.({ champ: nom, source: s, el: e.currentTarget })}
+        className={`cursor-help rounded-[4px] outline outline-1 outline-offset-2 ${s.nature === "a_remplir" ? "outline-alerte/60" : s.nature === "calcul" ? "outline-bord-vif" : "outline-menthe/60"}`}>
+        {children}
+      </span>
+    );
+  }
+
   if (!edition?.onChamp || !champ) return children;
 
   // Le champ s'ouvre pré-rempli avec ce qui est affiché : la valeur brute du

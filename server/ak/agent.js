@@ -518,6 +518,32 @@ const OUTILS_AK = [
     },
   },
   {
+    // 14 oct. 2026 (Jules) : l'éditeur de projet avec AK à gauche, comme les présentations.
+    name: 'modifier_projet',
+    description: "Modifie les chiffres d'un projet, celui ouvert à droite (page Projets) : chaque changement pose une valeur à un champ, avec sa source et sa raison, que le mode Sources de l'éditeur montre au survol. Champs : marché (marche_loyer_autour en €/m²/an, marche_rue_prix_m2, marche_evolution_1an, marche_evolution_5ans, marche_quartier_nom, marche_offre_bas/moyenne/haut), ville (ville_habitants_agglo, ville_revenu_median, ville_secteur_champ1), bien (surface_m2, surface_detail, detenu_depuis, derniere_vente_annee, derniere_vente_prix), bail et locataire (bail_date_debut, echeance_bail, locataire_depuis), copropriété (quote_part_lot, charges_copropriete, provision_charges, taxe_fonciere_an), simulateur (sim_loyer_initial_ht, sim_surface, sim_prix_bien_fai, sim_prix_bien_negocie, sim_apport, sim_taux_interet, sim_duree_credit…), et les chiffres calculés forcés : valeurs_forcees.<cle> (prix_revient, rendement_net, commercial_loyer_projet, commercial_ecart, revenu_ecart, loyer_mensuel…). Jamais le titre, les clients ni les admins. Un chiffre sans source vérifiable ne s'écrit pas.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        projet_id: { type: 'string' },
+        changements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              champ: { type: 'string', description: 'le nom du champ, ou un chemin pointé pour une valeur forcée (« valeurs_forcees.prix_revient »)' },
+              valeur: { description: 'nombre, texte ou booléen ; null pour vider' },
+              source: { type: 'string', description: "OBLIGATOIRE pour un chiffre : d'où il vient, tel que tu l'as lu (« Equimmox, baux à 500 m », « Data-B, valeur locative du quartier », « bail, article 3 », « Le Figaro Immobilier »). Jamais une source que tu n'as pas lue." },
+              lien: { type: 'string', description: "la page exacte de la source, si tu l'as (https://…)" },
+              raison: { type: 'string', description: "pourquoi ce changement, en une phrase (« le loyer autour d'Equimmox, plus cohérent que l'ancien chiffre saisi »)" },
+            },
+            required: ['champ', 'valeur'],
+          },
+        },
+      },
+      required: ['projet_id', 'changements'],
+    },
+  },
+  {
     name: 'loyers_equimmox',
     description: "Les loyers commerciaux moyens autour d'un projet, lus sur Equimmox (les baux existants de la classe Commerces, à 500 m, surface du bien à ±20 %) : « va chercher les loyers autour dans Equimmox », « le loyer du secteur ». Nécessite le projet_id (trouver_bien ou chercher_projet). Rend la fourchette et la moyenne en €/m²/an avec leur source. Une lecture de moins de trente jours est reprise ; sinon Equimmox est interrogé, ce qui prend une à deux minutes (forcer relit). Si Equimmox n'a rien constaté, le projet retombe sur Data-B : la source rendue le dit, répète-la telle quelle. Ne dis jamais que tu n'as pas accès à Equimmox : c'est cet outil.",
     input_schema: { type: 'object', properties: { projet_id: { type: 'string' }, forcer: { type: 'boolean', description: 'relire Equimmox même si une lecture récente existe : seulement si la personne le demande ; jamais juste après une lecture, qui rendrait le même chiffre' } }, required: ['projet_id'] },
@@ -1278,6 +1304,14 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     const P = await import('../presentation-bancaire.js');
     const r = P.appliquerChangements(String(input.presentation_id || ''), input.changements || []);
     return r.ok ? { ...r, presentation_id: String(input.presentation_id) } : r;
+  }
+  if (name === 'modifier_projet') {
+    // Un chiffre sans source n'est pas écrit par AK : le mode Sources de l'éditeur doit pouvoir le dire.
+    const sans = (input.changements || []).filter((c) => !/^(surface_detail|marche_quartier_nom|ville_secteur_champ1|activite_locataire|nom_locataire|description_)/.test(String(c?.champ || '')) && c?.valeur != null && c.valeur !== '' && !String(c?.source || '').trim());
+    if (sans.length) return { ok: false, error: `Source manquante pour ${sans.map((c) => c.champ).join(', ')} : dis d'où vient chaque chiffre, ou ne l'écris pas.` };
+    const E = await import('../projet-edition.js');
+    const r = E.modifierChamps(String(input.projet_id || ''), input.changements || [], { par: 'AK' });
+    return r.ok ? { ok: true, projet_id: String(input.projet_id), faits: r.faits } : r;
   }
   if (name === 'loyers_equimmox') {
     const projet = Records.get('Project', String(input.projet_id || ''));

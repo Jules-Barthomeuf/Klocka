@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight } from "lucide-react";
+import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, X as Fermer } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
@@ -35,6 +35,9 @@ import ProjectFormMarcheTab from "../components/admin/ProjectFormMarcheTab";
 import ProjectSimulatorPreview from "../components/admin/ProjectSimulatorPreview";
 import BoutonMonday from "@/components/BoutonMonday";
 import ProjetContent from "../components/projet/ProjetContent";
+import ChatDashboard from "@/components/dashboard/ChatDashboard";
+import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
+import FicheSource from "@/components/presentations/FicheSource";
 
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
@@ -54,6 +57,19 @@ function useTelephone() {
   return oui;
 }
 
+/** Un écran assez large pour le chat et le projet côte à côte (comme Présentations). */
+function useEcranLarge() {
+  const requete = "(min-width: 1024px)";
+  const [large, setLarge] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(requete).matches);
+  useEffect(() => {
+    const m = window.matchMedia(requete);
+    const changer = () => setLarge(m.matches);
+    m.addEventListener("change", changer);
+    return () => m.removeEventListener("change", changer);
+  }, []);
+  return large;
+}
+
 export default function AdminProjets() {
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(() => {
@@ -69,6 +85,20 @@ export default function AdminProjets() {
   const [assignerOuvert, setAssignerOuvert] = useState(false);
   // L'éditeur se fait sur la page elle-même ; le panneau des champs ne s'ouvre qu'à la demande.
   const [champsOuverts, setChampsOuverts] = useState(false);
+  // L'éditeur avec AK (14 oct. 2026, Jules) : le chat à gauche, le projet à droite, comme les présentations.
+  // Trois modes : Édition (retouches au clic), Lecture (la page du client), Sources (d'où vient chaque chiffre).
+  const [vueProjet, setVueProjet] = useState("edition");
+  const [travailAK, setTravailAK] = useState({ enCours: false, etapes: [] });
+  const [sourcesProjet, setSourcesProjet] = useState(null);
+  const [survolSource, setSurvolSource] = useState(null);
+  const zoneApercu = useRef(null);
+  const dernierEnvoye = useRef(null);
+  const avantAK = useRef(null);
+  const [largeurChat, setLargeurChat] = useState(() => { try { return Number(localStorage.getItem("klocka.projets.largeur-chat")) || 420; } catch { return 420; } });
+  const [tireChat, setTireChat] = useState(false);
+  const [majAK, setMajAK] = useState(false);
+  const [conversationAK, setConversationAK] = useState(false);
+  const ecranLarge = useEcranLarge();
   const telephone = useTelephone();
   // Éditeur ouvert au téléphone : la page derrière ne défile plus.
   useEffect(() => {
@@ -938,7 +968,8 @@ export default function AdminProjets() {
     } catch { /* valeur incomplète : la page garde son état précédent */ }
     // Entrée vaut validation : on enregistre avec la valeur explicite, sans
     // attendre que l'état du formulaire soit propagé.
-    if (enregistrer) handleSubmit({}, { source: suivant, discret: true });
+    // Un projet existant s'enregistre seul, champ par champ (voir l'effet plus bas).
+    if (enregistrer && !editingProject) handleSubmit({}, { source: suivant, discret: true });
   };
 
   // `source` explicite : après un enregistrement, `formData` de la fermeture est
@@ -952,7 +983,7 @@ export default function AdminProjets() {
     setRefaits((r) => [...r.slice(-29), formData]);
     setFormData(precedent);
     rafraichirApercu(precedent);
-    if (editingProject) handleSubmit({}, { source: precedent, discret: true });
+    if (editingProject) setModifieDepuis(true);
   };
 
   // Revenir sur une annulation : l'état repart dans l'historique, pour pouvoir
@@ -964,7 +995,7 @@ export default function AdminProjets() {
     setHistorique((h) => [...h.slice(-29), formData]);
     setFormData(suivant);
     rafraichirApercu(suivant);
-    if (editingProject) handleSubmit({}, { source: suivant, discret: true });
+    if (editingProject) setModifieDepuis(true);
   };
 
   // L'assistant traduit une demande en langage naturel (« ajoute Hauteur sous
@@ -1038,6 +1069,127 @@ export default function AdminProjets() {
       setApercuProjet({ ...(editingProject || {}), ...construireDonnees(donnees), id: editingProject?.id || "apercu" });
     } catch { /* formulaire incomplet : on garde l'aperçu précédent */ }
   };
+
+  // L'éditeur avec AK (14 oct. 2026, Jules) : chaque retouche d'un projet existant
+  // s'enregistre seule, une seconde après, et n'envoie que les champs qui ont
+  // changé. Le projet entier n'est plus renvoyé : ce qu'AK vient d'écrire reste.
+  const scindeProjet = ecranLarge && !telephone && isDialogOpen && !!editingProject?.id;
+  useEffect(() => {
+    const id = editingProject?.id;
+    if (!isDialogOpen || !id) return undefined;
+    let donnees;
+    try { donnees = construireDonnees(formData); } catch { return undefined; }
+    if (dernierEnvoye.current?.id !== id) { dernierEnvoye.current = { id, valeurs: JSON.parse(JSON.stringify(donnees)) }; return undefined; }
+    if (!modifieDepuis || travailAK.enCours || !formData.titre) return undefined;
+    const t = setTimeout(async () => {
+      const avant = dernierEnvoye.current?.valeurs || {};
+      const champs = {};
+      for (const [k, v] of Object.entries(donnees)) {
+        if (["id", "created_date", "updated_date", "created_by", "sources_champs"].includes(k)) continue;
+        if (JSON.stringify(v ?? null) !== JSON.stringify(avant[k] ?? null)) champs[k] = v ?? null;
+      }
+      if (!Object.keys(champs).length) { setModifieDepuis(false); return; }
+      try {
+        const r = await base44.request("PATCH", `/api/projets/${id}/champs`, { body: { champs, editeur: true } });
+        dernierEnvoye.current = { id, valeurs: { ...avant, ...JSON.parse(JSON.stringify(champs)) } };
+        setEditingProject((p) => (p?.id === id ? { ...p, ...champs, sources_champs: r?.projet?.sources_champs ?? p.sources_champs } : p));
+        setModifieDepuis(false);
+        setEnregistreLe(new Date());
+        queryClient.invalidateQueries({ queryKey: ["all-projects"] });
+      } catch (e) {
+        toast.error("La retouche n'a pas été enregistrée", { description: e?.message || "Réessayez dans un instant." });
+      }
+    }, 900);
+    return () => clearTimeout(t);
+  }, [formData, travauxList, modifieDepuis, isDialogOpen, editingProject?.id, travailAK.enCours]);
+
+  // Pendant qu'AK travaille, ses étapes à la place de la page ; le projet tel qu'il
+  // l'a trouvé est gardé, pour qu'Annuler (⌘Z) revienne sur tout son geste.
+  useEffect(() => {
+    if (travailAK.enCours) { setMajAK(true); if (!avantAK.current) avantAK.current = formData; return undefined; }
+    const t = setTimeout(() => { setMajAK(false); avantAK.current = null; }, 900);
+    return () => clearTimeout(t);
+  }, [travailAK.enCours]);
+
+  // La réponse d'AK : les champs qu'il a écrits reviennent du serveur dans le formulaire et la page.
+  const surReponseAK = useCallback(async (r) => {
+    const faits = (r?.actions || []).flatMap((a) => a?.resultat?.faits || []);
+    const id = editingProject?.id;
+    if (!faits.length || !id) return;
+    const racines = new Set(faits.map((f) => String(f.champ).split(".")[0]));
+    if (racines.has("echeance_bail") || racines.has("bail_date_echeance")) { racines.add("echeance_bail"); racines.add("bail_date_echeance"); }
+    if (racines.has("loyer_m2_an")) racines.add("sim_loyer_initial_ht");
+    try {
+      const { projet, sources } = await base44.request("GET", `/api/projets/${id}/sources`);
+      if (!projet) return;
+      const maj = Object.fromEntries([...racines].map((k) => [k, projet[k] ?? null]));
+      // L'état d'avant, avec la valeur d'origine de chaque champ touché : le formulaire ne les porte pas tous.
+      const avant = { ...Object.fromEntries([...racines].map((k) => [k, editingProject?.[k] ?? null])), ...(avantAK.current || formData) };
+      setHistorique((h) => [...h.slice(-29), avant]);
+      setRefaits([]);
+      setFormData((f) => ({ ...f, ...maj }));
+      setEditingProject((p) => (p?.id === id ? { ...p, ...maj, sources_champs: projet.sources_champs } : p));
+      setApercuProjet((a) => ({ ...(a || editingProject || {}), ...maj, sources_champs: projet.sources_champs }));
+      if (dernierEnvoye.current?.id === id) dernierEnvoye.current = { id, valeurs: { ...dernierEnvoye.current.valeurs, ...JSON.parse(JSON.stringify(maj)) } };
+      setSourcesProjet(sources || null);
+      setEnregistreLe(new Date());
+      queryClient.invalidateQueries({ queryKey: ["all-projects"] });
+    } catch (e) {
+      toast.error("Le projet n'a pas pu être relu après AK", { description: e?.message || "" });
+    }
+  }, [editingProject, formData, queryClient]);
+
+  // Le mode Sources : d'où vient chaque chiffre, relu après chaque enregistrement.
+  useEffect(() => {
+    const id = editingProject?.id;
+    if (vueProjet !== "sources" || !id) return undefined;
+    let vivant = true;
+    base44.request("GET", `/api/projets/${id}/sources`).then((r) => { if (vivant) setSourcesProjet(r?.sources || {}); }).catch(() => { /* la page reste lisible sans ses sources */ });
+    return () => { vivant = false; };
+  }, [vueProjet, editingProject?.id, enregistreLe]);
+  useEffect(() => { setSurvolSource(null); }, [vueProjet, ongletPage, champsOuverts]);
+  const surSourceProjet = useCallback((s) => {
+    setSurvolSource({ ...s, ancre: s.el.getBoundingClientRect(), cadre: zoneApercu.current?.getBoundingClientRect() });
+  }, []);
+
+  // ⌘Z et ⇧⌘Z hors d'un champ de saisie : la page et les gestes d'AK.
+  useEffect(() => {
+    if (!isDialogOpen) return undefined;
+    const clavier = (e) => {
+      const el = document.activeElement;
+      if (el?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el?.tagName)) return;
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      e.preventDefault();
+      if (e.shiftKey) refaireDerniereModification(); else annulerDerniereModification();
+    };
+    window.addEventListener("keydown", clavier);
+    return () => window.removeEventListener("keydown", clavier);
+  });
+
+  // Le chat à gauche, le projet à droite : le fond uni de Présentations, sans la barre de navigation.
+  useEffect(() => {
+    if (!scindeProjet) return undefined;
+    document.documentElement.classList.add("k-sans-barre", "k-sobre");
+    window.scrollTo(0, 0);
+    return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre");
+  }, [scindeProjet]);
+  const CLE_LARGEUR = "klocka.projets.largeur-chat";
+  const bornerChat = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
+  const tirerChat = (e) => {
+    e.preventDefault();
+    setTireChat(true);
+    let derniere = largeurChat;
+    const bouger = (ev) => { derniere = bornerChat(ev.clientX); setLargeurChat(derniere); };
+    const lacher = () => {
+      setTireChat(false);
+      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", lacher);
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+  };
+
   // Les photos et les pièces ajoutées depuis la page (bouton Photos, onglet
   // Documents) : la page les montre tout de suite, sans attendre l'enregistrement.
   useEffect(() => {
@@ -1066,6 +1218,7 @@ export default function AdminProjets() {
 
       if (editingProject) {
         const maj = await updateProjectMutation.mutateAsync({ id: editingProject.id, data });
+        dernierEnvoye.current = { id: editingProject.id, valeurs: JSON.parse(JSON.stringify(data)) };
         setEditingProject({ ...editingProject, ...data, ...(maj || {}) });
         if (!discret) toast.success("Projet enregistré", { duration: 1800 });
       } else {
@@ -1119,9 +1272,48 @@ export default function AdminProjets() {
     const dossierLie = editingProject?.deal_id || formData.deal_id || null;
     const BOUTON = "inline-flex items-center gap-2 rounded-full border border-trait bg-surface-pleine px-4 py-2 text-[13.5px] text-encre hover:border-bord-vif transition-colors max-md:px-3 max-md:py-1.5 max-md:text-[13px]";
     const FLECHE = "inline-flex items-center justify-center w-9 h-9 rounded-full border border-bord-doux text-craie hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-30 disabled:cursor-not-allowed";
+    const statutAuto = !editingProject ? null
+      : modifieDepuis ? "Enregistrement…"
+        : enregistreLe ? `Enregistré automatiquement à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
+          : "Enregistré automatiquement";
+    const ICONE = "grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30";
+    // La barre de l'aperçu, celle de Présentations : le titre et l'état, la pilule des trois modes, Annuler, les champs.
+    const barreProjet = (
+      <div className="k-barre-apercu flex h-14 flex-none items-center gap-3 border-b border-trait px-5 md:pr-[120px]">
+        <div className="flex min-w-0 flex-1 items-baseline gap-3">
+          <span className="truncate text-[14.5px] text-encre">{formData.titre || "Projet"}</span>
+          <span className="truncate text-[12.5px] text-ardoise">{statutAuto}</span>
+        </div>
+        <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1">
+          {[["edition", "Édition"], ["lecture", "Lecture"], ["sources", "Sources"]].map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setVueProjet(k)} aria-pressed={vueProjet === k}
+              title={k === "sources" ? "Passez la souris sur un chiffre : sa source s'affiche" : k === "lecture" ? "La page telle que le client la voit" : "Un clic sur un chiffre le modifie"}
+              className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${vueProjet === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={vueProjet === k ? undefined : { background: "transparent" }}>{mot}</button>
+          ))}
+        </div>
+        <div className="flex flex-none items-center gap-0.5">
+          <button type="button" onClick={annulerDerniereModification} disabled={!historique.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className={ICONE} style={{ background: "transparent" }}><Annuler className="h-4 w-4" /></button>
+          <button type="button" onClick={refaireDerniereModification} disabled={!refaits.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className={ICONE} style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
+          <button type="button" onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")} aria-label="Ouvrir la page du client" title="Ouvrir la page telle que le client la verra" className={ICONE} style={{ background: "transparent" }}><Eye className="h-4 w-4" /></button>
+        </div>
+        <div className="flex flex-none items-center gap-1.5">
+          <button type="button" onClick={() => setAssignerOuvert(true)}
+            className="inline-flex h-9 items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Assigner</button>
+          <button type="button" onClick={() => setChampsOuverts((x) => !x)} aria-pressed={champsOuverts}
+            className={`inline-flex h-9 items-center rounded-full px-3.5 text-[13px] transition-colors ${champsOuverts ? "bg-encre text-fond" : "bg-menthe text-sur-menthe hover:bg-menthe-survol"}`}>
+            {champsOuverts ? "Masquer les champs" : "Tous les champs"}
+          </button>
+          <button type="button" onClick={goToProjectsList} aria-label="Fermer le projet" title="Retour aux projets"
+            className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+            <Fermer className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
     const editeur = (
-      <div className={`${telephone ? "h-full" : "h-screen"} flex flex-col text-encre overflow-hidden`}>
+      <div className={`${telephone || scindeProjet ? "h-full" : "h-screen"} flex flex-col text-encre overflow-hidden ${scindeProjet ? "bg-rail" : ""}`}>
         {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. */}
+        {scindeProjet ? barreProjet : (
         <div className="flex-shrink-0 px-8 max-md:px-4 pt-6 max-md:pt-3 pb-4 max-md:pb-3 border-b border-trait">
           <div className="flex items-start gap-5 max-md:gap-3">
             <h1
@@ -1154,17 +1346,19 @@ export default function AdminProjets() {
               <span className="max-md:hidden">{champsOuverts ? "Masquer les champs" : "Tous les champs"}</span>
               <span className="md:hidden">{champsOuverts ? "Voir la page" : "Les champs"}</span>
             </button>
-            <button
+            {!editingProject && <button
               onClick={() => handleSubmit()}
               disabled={!formData.titre || isSaving}
               className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-[13.5px] text-sur-menthe bg-menthe hover:bg-menthe-survol transition-colors disabled:opacity-40 disabled:cursor-not-allowed max-md:px-4 max-md:py-1.5 max-md:text-[13px]"
             >
               {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement…</> : "Enregistrer"}
-            </button>
+            </button>}
 
             <div className="ml-auto flex items-center gap-2">
               <span className="text-[11px] max-lg:hidden" title="État de l'enregistrement">
-                {modifieDepuis
+                {statutAuto
+                  ? <span className="text-brume">{statutAuto}</span>
+                  : modifieDepuis
                   ? <span className="text-menthe">Modifications non enregistrées</span>
                   : enregistreLe
                     ? <span className="text-brume">Enregistré à {enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
@@ -1189,6 +1383,7 @@ export default function AdminProjets() {
             </div>
           </div>
         </div>
+        )}
 
         <DialogueAssignerClient
           ouvert={assignerOuvert}
@@ -1206,8 +1401,11 @@ export default function AdminProjets() {
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className={`flex-1 min-h-0 grid ${champsOuverts ? "grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-md:grid-rows-[minmax(0,1fr)]" : "grid-cols-1"} max-lg:grid-cols-1 max-lg:overflow-y-auto overscroll-contain`}>
-        <div className={`min-h-0 overflow-y-auto max-lg:overflow-visible ${champsOuverts ? "max-md:hidden" : ""}`}>
-          {ongletPage === "images" ? (
+        <div ref={zoneApercu} className={`relative min-h-0 ${champsOuverts ? "max-md:hidden" : ""}`}>
+        <div className="h-full min-h-0 overflow-y-auto max-lg:overflow-visible" onScroll={() => survolSource && setSurvolSource(null)}>
+          {majAK ? (
+            <MiseAJourDocument surtitre="Mise à jour du projet" titre={titreTravailAK(travailAK.etapes)} etapes={travailAK.etapes || []} enCours={travailAK.enCours} />
+          ) : ongletPage === "images" ? (
             <GaleriePhotos photos={formData.photos || []} />
           ) : ongletPage === "simulateur" ? (
             <div className="max-w-[1100px] mx-auto px-4 md:px-6 pb-8">
@@ -1238,11 +1436,13 @@ export default function AdminProjets() {
               showAsClient
               ongletDemande={ongletPage}
               onOngletChange={(o) => { setOngletPage(o); const f = FORM_PAR_ONGLET[o]; if (f) setActiveTab(f); }}
-              modeEdition
-              onChamp={modifierChamp}
+              modeEdition={vueProjet === "edition"}
+              onChamp={vueProjet === "edition" ? modifierChamp : null}
+              sources={vueProjet === "sources" ? sourcesProjet || {} : null}
+              onSource={vueProjet === "sources" ? surSourceProjet : null}
               ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
               onPhotos={() => setPhotosOuvertes(true)}
-              editeurDocuments={!champsOuverts && (
+              editeurDocuments={!champsOuverts && vueProjet === "edition" && (
                 <div className="k-sobre mb-6 rounded-[16px] border border-trait bg-rail p-4" onInput={() => setModifieDepuis(true)}>
                   <ProjectFormDocumentsTab formData={formData} setFormData={setFormData} />
                 </div>
@@ -1255,6 +1455,10 @@ export default function AdminProjets() {
               </p>
             </div>
           )}
+        </div>
+        {vueProjet === "sources" && survolSource?.source && survolSource.cadre && (
+          <FicheSource source={survolSource.source} ancre={survolSource.ancre} cadre={survolSource.cadre} />
+        )}
         </div>
 
         {/* Les photos, depuis le bouton du hero. */}
@@ -1354,7 +1558,7 @@ export default function AdminProjets() {
             </Tabs>
           </div>
           <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
-            <span className="text-[12.5px] text-brume">La page de gauche suit ce que vous tapez ; rien n&apos;est enregistré avant Enregistrer.</span>
+            <span className="text-[12.5px] text-brume">{editingProject ? "La page suit ce que vous tapez ; chaque champ s'enregistre seul." : "La page de gauche suit ce que vous tapez ; rien n'est enregistré avant Enregistrer."}</span>
           </div>
         </aside>}
         </div>
@@ -1367,6 +1571,35 @@ export default function AdminProjets() {
       return createPortal(
         <div className="fixed inset-0 z-50 flex flex-col bg-fond pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">{editeur}</div>,
         document.body,
+      );
+    }
+    if (scindeProjet) {
+      return (
+        <div className={`relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+          <div className={`k-colonne-chat h-[100dvh] min-h-0 min-w-0 px-5 ${conversationAK ? "overflow-hidden" : "overflow-y-auto pb-8"}`}>
+            <header className={conversationAK ? "flex flex-col" : "flex flex-col items-center pt-10 text-center"}>
+              {!conversationAK && (
+                <>
+                  <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Que corriger dans ce projet ?</h1>
+                  <p className="m-0 mt-2 max-w-[44ch] text-[14px] text-ardoise">AK va chercher les chiffres chez Equimmox et Data-B, les écrit dans le projet avec leur source et vous dit ce qu'il a changé.</p>
+                </>
+              )}
+              <div className={conversationAK ? "w-full" : "mt-6 w-full"}>
+                <ChatDashboard espace="projet" onConversation={setConversationAK} onReponse={surReponseAK} onTravail={setTravailAK}
+                  barreApercu={conversationAK} contexte={{ projet_id: editingProject.id }} />
+              </div>
+            </header>
+          </div>
+          {/* Le projet, un écran dans l'écran : une carte posée sur le fond, à côté du chat. */}
+          <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
+            <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">{editeur}</div>
+          </div>
+          <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
+            onPointerDown={tirerChat} onDoubleClick={() => { setLargeurChat(420); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } }}
+            className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
+            <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tireChat ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
+          </div>
+        </div>
       );
     }
     return editeur;
@@ -1502,4 +1735,11 @@ export default function AdminProjets() {
       </div>
     </div>
   );
+}
+
+/** Pure : le titre de l'écran d'attente, d'après les étapes d'AK (comme Présentations). */
+function titreTravailAK(etapes = []) {
+  if (etapes.some((e) => /^Retouche du projet/i.test(e))) return "Le projet se met à jour";
+  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "AK rassemble les chiffres";
+  return "AK lit votre demande";
 }

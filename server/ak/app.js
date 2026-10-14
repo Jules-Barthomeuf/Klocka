@@ -181,6 +181,15 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
       if (ctx) cadrePage += `\n${ctx}\nUne correction porte sur CETTE présentation : modifier_presentation avec presentation_id ${contexte.presentation_id}. Une présentation pour un autre projet : creer_presentation_bancaire.`;
     }
   }
+  // La page Projets (14 oct. 2026, Jules) : l'éditeur d'un projet, AK à gauche, le projet à droite.
+  if (contexte?.page === 'projets') {
+    cadrePage = `\n\nTU ES DANS L'ÉDITEUR D'UN PROJET (la fiche que le client voit : marché, bien, locataire, bail, copropriété, simulateur). On te demande de corriger ou d'étayer ses chiffres : « le loyer est trop bas, va chercher des chiffres plus cohérents », « mets le loyer autour d'Equimmox », « la surface du bail est de 82 m² ». Tu cherches, puis tu écris avec modifier_projet, puis tu dis en clair ce qui a changé (avant → après) et pourquoi, en quelques lignes : « J'ai cherché des données plus cohérentes : Equimmox donne 240 €/m²/an à 500 m (avant 180, saisi à la main) ; je l'ai posé en loyer autour. » OÙ CHERCHER : le loyer du marché, loyers_equimmox (baux constatés à 500 m, surface à ±20 %), sinon data_b quoi valeur_locative avec le projet_id (il écrit lui-même la fourchette marche_offre_* du projet) ; le prix des murs, prix_murs_equimmox ; la ville, donnees_commune ; l'étude d'implantation Data-B (un crédit, plusieurs minutes) seulement si on la demande. RÈGLES : chaque chiffre que tu écris porte sa source, telle que tu l'as lue, et sa raison ; tu n'inventes jamais un chiffre et tu ne le changes pas pour qu'il « tombe mieux ». Une surface ne change que pour une surface sourcée (le bail, une surface pondérée, un plan), et tu dis laquelle ; si on te demande de la réduire pour gonfler le loyer au m², tu réponds que tu ne peux le faire qu'avec une source, et tu proposes la surface pondérée ou celle du bail. Le loyer « Le projet » au m² se déduit du loyer et de la surface du simulateur : pour le corriger, corrige l'un d'eux, ou force valeurs_forcees.commercial_loyer_projet avec sa source. Un chiffre calculé (prix de revient, rendement, écarts) se force par valeurs_forcees.<cle> seulement si on le demande. Ne touche jamais un chiffre qu'on ne t'a pas demandé de changer.`;
+    if (contexte.projet_id) {
+      const { projetPourAK } = await import('../projet-sources.js');
+      const ctx = await projetPourAK(String(contexte.projet_id));
+      if (ctx) cadrePage += `\n${ctx}\nUne correction porte sur CE projet : modifier_projet avec projet_id ${contexte.projet_id}, tous les changements d'un coup.`;
+    }
+  }
   // La page Emailing : le chat y conçoit les séquences d'emails, avec l'équipe.
   if (contexte?.page === 'emailing') {
     const E = await import('../emailing/index.js');

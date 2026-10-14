@@ -149,6 +149,27 @@ export function monterMarche(app) {
   // Les chiffres du secteur d'un projet : agglomération, centre-ville,
   // résidentiel, rue, flux. Lus pour le client comme pour l'équipe ; le calcul
   // tourne en arrière-plan et la page repasse tant que `en_cours` est vrai.
+  // L'éditeur de projet enregistre chaque retouche seule, champ par champ (14 oct. 2026) :
+  // il n'envoie que ce qu'il change, pour ne pas écraser ce qu'AK vient d'écrire.
+  app.patch('/api/projets/:id/champs', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const changements = Array.isArray(req.body?.changements) ? req.body.changements
+      : Object.entries(req.body?.champs || {}).map(([champ, valeur]) => ({ champ, valeur }));
+    const r = (await import('../projet-edition.js')).modifierChamps(req.params.id, changements, { par: user.email, editeur: req.body?.editeur === true });
+    if (!r.ok) return res.status(r.error === 'Projet introuvable.' ? 404 : 400).json({ error: r.error });
+    ok(res, { projet: r.projet, faits: r.faits });
+  }));
+
+  // Le mode Sources de l'éditeur : d'où vient chaque chiffre de la page.
+  app.get('/api/projets/:id/sources', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const p = Records.get('Project', req.params.id);
+    if (!p) return res.status(404).json({ error: 'Projet introuvable.' });
+    // Le projet à jour avec ses sources : l'éditeur le relit après un passage d'AK.
+    ok(res, { sources: (await import('../projet-sources.js')).sourcesDuProjet(p), projet: p });
+  }));
+
   app.get('/api/projects/:id/secteur', wrap(async (req, res) => {
     const user = currentUser(req);
     if (!user) return res.status(401).json({ error: 'Not authenticated' });

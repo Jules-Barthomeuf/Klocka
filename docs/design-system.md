@@ -529,6 +529,24 @@ le recopie pas.
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 
+### L'éditeur de projet avec AK (14 oct. 2026)
+
+Décision prise avec Jules : l'édition d'un projet existant reprend l'écran de
+Présentations, à l'identique. Le chat d'AK est à gauche, avec une poignée de
+largeur (`klocka.projets.largeur-chat`). À droite, le projet est dans sa carte
+`bg-rail`, avec la barre `k-barre-apercu` : le titre et « Enregistré
+automatiquement », la pilule Édition / Lecture / Sources, Annuler / Rétablir,
+« Tous les champs ».
+- Les anciens onglets de champs deviennent ce tiroir « Tous les champs », à
+  droite de la page.
+- Plus de bouton Enregistrer : chaque retouche s'enregistre seule, champ par
+  champ, une seconde après. Le bouton ne reste qu'à la création.
+- ⌘Z annule aussi un geste d'AK en entier.
+- AK peut changer tout chiffre, mais avec sa source et sa raison, que le mode
+  Sources montre au survol (la fiche de Présentations). Un chiffre sans source
+  est refusé.
+- Au téléphone et à la création, l'éditeur d'avant reste.
+
 ### L'écran de recherche (Off-market, 10 oct. 2026)
 
 Décision prise avec Jules d'après PropStream, en gardant nos jetons et nos

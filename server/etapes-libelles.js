@@ -52,6 +52,7 @@ const LIBELLES = {
   loyers_equimmox: () => 'Lecture des loyers autour sur Equimmox',
   prix_murs_equimmox: () => 'Lecture du prix des murs sur Equimmox',
   creer_presentation_bancaire: () => 'Construction de la présentation bancaire',
+  modifier_projet: (i) => `Retouche du projet${(i.changements || []).length > 1 ? ` (${i.changements.length} champs)` : ''}`,
   modifier_presentation: (i) => `Retouche de la présentation${(i.changements || []).length > 1 ? ` (${i.changements.length} champs)` : ''}`,
   inserer_asset: (i) => `Ajout de « ${i.asset || 'l\'asset'} » au mail ${i.mail || ''}`.trim(),
   rediger_newsletter: (i) => (i.newsletter_id ? 'Réécriture de la newsletter' : `Rédaction de la newsletter${(i.mails || []).length ? ` (${i.mails.length} mails)` : ''}`),

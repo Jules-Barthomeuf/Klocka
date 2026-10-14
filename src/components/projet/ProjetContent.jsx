@@ -125,7 +125,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -276,8 +276,11 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       onChamp: modeEdition && onChamp ? onChamp : null,
       valeurs: project,
       masques: project?.champs_masques || [],
+      // Le mode Sources de l'éditeur (14 oct. 2026) : chaque chiffre dit d'où il vient au survol.
+      sources: sources || null,
+      surSource: onSource || null,
     }),
-    [modeEdition, onChamp, project]
+    [modeEdition, onChamp, project, sources, onSource]
   );
 
   return (

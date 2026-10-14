@@ -31,6 +31,10 @@ export function sourceDe(x, sessions = new Map()) {
 
 const pct = (n, sur) => (sur ? Math.round((n / sur) * 100) : null);
 const moyenne = (t) => (t.length ? Math.round(t.reduce((a, b) => a + b, 0) / t.length) : null);
+const JOURS_SEMAINE = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+/** Pure : le jour de la semaine à Paris, lundi = 0. */
+export const jourSemaineParis = (iso) => JOURS_SEMAINE[new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short' }).format(new Date(iso))] ?? 0;
+export const TRANCHES_DUREE = [[0, 30, '< 30 s'], [30, 60, '30 s à 1 min'], [60, 120, '1 à 2 min'], [120, 300, '2 à 5 min'], [300, 600, '5 à 10 min'], [600, Infinity, '> 10 min']];
 const heureParis = (iso) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(new Date(iso))) % 24;
 
 /** Pure : les chiffres d'une liste d'appels (une personne, ou l'équipe). */
@@ -71,7 +75,7 @@ export function chiffres(appels, { sessions = [], maintenantD = new Date() } = {
     monday_ok: valides.filter((x) => x.recu?.monday?.etat === 'ok').length,
     lecture_moyenne_ms: moyenne(appels.map((x) => Number(x.lecture_ms)).filter((n) => n > 0)),
     // Le temps après l'appel, depuis le raccrochage (13 oct. 2026) : la médiane, et sur combien d'appels.
-    apres_appel: Object.fromEntries(ETAPES_TEMPS.map((k) => { const t = appels.map((x) => x.temps?.[`${k}_ms`]).filter((n) => Number.isFinite(n)); return [k, { mediane_ms: mediane(t), n: t.length }]; })),
+    apres_appel: Object.fromEntries(ETAPES_TEMPS.map((k) => { const t = appels.map((x) => x.temps?.[`${k}_ms`]).filter((n) => Number.isFinite(n)); return [k, { mediane_ms: mediane(t), moyenne_ms: moyenne(t), n: t.length }]; })),
     biens: appels.filter((x) => x.issue === 'a_des_murs').length,
     pas_interesses: appels.filter((x) => x.issue === 'pas_interesse').length,
     issues,
@@ -145,9 +149,15 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   for (let i = Math.min(jours, 60) - 1; i >= 0; i -= 1) joursListe.push(R.jourDe(new Date(maintenantD.getTime() - i * 86400000)));
   const parJour = joursListe.map((j) => {
     const dans = appels.filter((x) => R.jourDe(new Date(x.le)) === j);
-    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
+    const dj = dans.map((x) => Number(x.duree_s)).filter((n) => n > 0);
+    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
   });
   const heures = Array.from({ length: 24 }, (_, h) => ({ heure: h, appels: appels.filter((x) => heureParis(x.le) === h).length }));
+  // La carte jour × heure (14 oct. 2026) : lundi à dimanche, heure de Paris.
+  const semaine = Array.from({ length: 7 }, (_, j) => ({ jour: j, heures: Array(24).fill(0) }));
+  for (const x of appels) semaine[jourSemaineParis(x.le)].heures[heureParis(x.le)] += 1;
+  // La répartition des durées : combien d'appels de moins de 30 s, de 30 s à 1 min, etc.
+  const durees = TRANCHES_DUREE.map(([de, a, mot]) => ({ mot, appels: appels.filter((x) => Number(x.duree_s) > 0 && x.duree_s >= de && x.duree_s < a).length }));
   const sources = Object.keys(SOURCES).map((k) => ({ cle: k, libelle: SOURCES[k], appels: k === 'relances_mail' ? mailsRelance.length : tous.filter((x) => x._source === k).length })).filter((x) => x.appels);
 
   // Le journal : chaque appel, avec ce qu'on en garde.
@@ -194,6 +204,8 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     analystes,
     par_jour: parJour,
     heures,
+    semaine,
+    durees,
     sources,
     rappels: { total: rappels.length, termines: rappels.filter((r) => r.etat === 'valide').length, abandonnes: rappels.filter((r) => r.etat === 'abandonne').length, en_cours: rappels.filter((r) => ['enregistrement', 'a_identifier', 'identifie'].includes(r.etat)).length },
     journal: journalComplet,

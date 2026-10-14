@@ -144,3 +144,42 @@ test("« Aujourd'hui » compte depuis minuit à Paris, pas sur vingt-quatre heur
   const nora = r.analystes.find((a) => a.email === 'nora.l@klocka.immo');
   assert.equal(nora.appels, 1, "l'appel de 23 h 30 la veille (heure de Paris) n'est pas d'aujourd'hui");
 });
+
+test('le post-appel moyen : la moyenne du raccrochage à la validation, sur les appels mesurés seulement', () => {
+  const c = S.chiffres([
+    { le: '2026-10-14T08:00:00Z', issue: 'a_des_murs', etat: 'valide', temps: { pret_ms: 4000, valide_ms: 30000 } },
+    { le: '2026-10-14T09:00:00Z', issue: 'pas_de_murs', etat: 'valide', temps: { valide_ms: 90000, prepare_ms: 95000 } },
+    { le: '2026-10-14T10:00:00Z', issue: 'repondeur', etat: 'valide' },
+  ]);
+  assert.equal(c.apres_appel.valide.moyenne_ms, 60000);
+  assert.equal(c.apres_appel.valide.n, 2);
+  assert.equal(c.apres_appel.prepare.moyenne_ms, 95000);
+  assert.equal(S.chiffres([]).apres_appel.valide.moyenne_ms, null);
+});
+
+test('le post-appel moyen : la moyenne du raccrochage à la validation, sur les appels mesurés seulement', () => {
+  const c = S.chiffres([
+    { le: '2026-10-14T08:00:00Z', issue: 'a_des_murs', etat: 'valide', temps: { pret_ms: 4000, valide_ms: 30000 } },
+    { le: '2026-10-14T09:00:00Z', issue: 'pas_de_murs', etat: 'valide', temps: { valide_ms: 90000, prepare_ms: 95000 } },
+    { le: '2026-10-14T10:00:00Z', issue: 'repondeur', etat: 'valide' },
+  ]);
+  assert.equal(c.apres_appel.valide.moyenne_ms, 60000);
+  assert.equal(c.apres_appel.valide.n, 2);
+  assert.equal(c.apres_appel.prepare.moyenne_ms, 95000);
+  assert.equal(S.chiffres([]).apres_appel.valide.moyenne_ms, null);
+});
+
+test('les graphiques : la carte jour × heure à Paris et la répartition des durées', () => {
+  assert.equal(S.jourSemaineParis('2026-10-12T08:00:00Z'), 0, 'lundi');
+  assert.equal(S.jourSemaineParis('2026-10-18T21:30:00Z'), 6, 'dimanche 23 h 30 à Paris');
+  assert.equal(S.jourSemaineParis('2026-10-18T22:30:00Z'), 0, 'déjà lundi à Paris');
+  const maintenantD = new Date('2026-10-14T12:00:00Z');
+  Records.create('AppelAgent', { le: '2026-10-14T07:10:00Z', par: 'maxime.p@klocka.immo', issue: 'a_des_murs', etat: 'valide', agence_id: 'a', duree_s: 45 });
+  Records.create('AppelAgent', { le: '2026-10-14T07:40:00Z', par: 'maxime.p@klocka.immo', issue: 'repondeur', etat: 'valide', agence_id: 'a', duree_s: 400 });
+  const r = S.suiviAppels({ jours: 1, maintenantD });
+  assert.equal(r.semaine.length, 7);
+  assert.ok(r.semaine[2].heures[9] >= 2, 'mercredi, 9 h à Paris');
+  assert.ok(r.durees.find((d) => d.mot === '30 s à 1 min').appels >= 1);
+  assert.ok(r.durees.find((d) => d.mot === '5 à 10 min').appels >= 1);
+  assert.ok(r.par_jour.at(-1).duree_moyenne_s > 0);
+});

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import { AppelsParJour, BarresHorizontales, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -20,7 +21,6 @@ const filtre = (actif) => `px-3 py-1.5 rounded-md text-[12.5px] border transitio
 const dureeLisible = (s) => (s == null ? "—" : s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}` : `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`);
 const p100 = (v) => (v == null ? "—" : `${v} %`);
 const quand = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
-const jourCourt = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 const SOURCES = { prospection: "Prospection", relances: "Relances", rappel: "Rappel", essai: "Essai", carnet: "Ancien carnet" };
 
 function Chiffre({ valeur, libelle, note = null }) {
@@ -114,75 +114,83 @@ function DetailAppel({ x, modifiable = true }) {
   );
 }
 
-// La courbe par jour : une colonne par jour, pleine pour les appels joints,
-// pâle pour les sans réponse ; l'échelle arrondie, le chiffre au-dessus de
-// chaque barre, les jours sans appel marqués d'un trait, les week-ends
-// teintés, une date par semaine ; au survol, le détail du jour par personne.
-const echelleRonde = (n) => { const pas = n <= 5 ? 1 : n <= 10 ? 2 : n <= 25 ? 5 : n <= 50 ? 10 : 20; return Math.max(pas * 2, Math.ceil(n / pas) * pas); };
-const jourLong = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+const ISSUES_MOTS = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien", pas_interesse: "Pas intéressé", agent_prevenu: "Agent prévenu", rien_de_nouveau: "Rien de nouveau", interesse: "Intéressé" };
 
-function CourbeJours({ parJour, analystes }) {
-  const [survol, setSurvol] = useState(null);
-  const haut = echelleRonde(Math.max(1, ...parJour.map((j) => j.appels)));
-  const total = parJour.reduce((t, j) => t + j.appels, 0);
-  const actifs = parJour.filter((j) => j.appels);
-  const record = actifs.reduce((m, j) => (!m || j.appels > m.appels ? j : m), null);
-  const aujourdhui = parJour.at(-1)?.jour;
-  const jour = survol ? parJour.find((j) => j.jour === survol) : null;
-  const pas = parJour.length > 31 ? 14 : 7;
+/**
+ * La vue d'ensemble, redessinée en graphiques (14 oct. 2026, Jules : « plein de
+ * courbes, des graphiques »). En tête les chiffres ; puis la période jour par
+ * jour (ou heure par heure sur une seule journée) ; puis les répartitions.
+ */
+function VueEnsemble({ data, jours, c, onChoisir }) {
+  const e = data.equipe;
+  const unJour = jours === 1;
+  const issues = Object.entries(e.issues || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ nom: ISSUES_MOTS[k] || k, valeur: n }));
+  const modes = data.sources.map((x) => ({ nom: x.libelle, valeur: x.appels }));
+  const apres = e.apres_appel || {};
+  const post = apres.valide;
   return (
-    <div className="flex flex-col rounded-md border border-trait p-4">
-      <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
-        <h2 className={`${titreCase} mb-0`}>Appels par jour</h2>
-        <div className="flex items-center gap-4 text-[12px] text-ardoise">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[2px] bg-menthe" />Joints</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[2px] bg-menthe/30" />Sans réponse</span>
-        </div>
+    <div className="k-monte flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <Chiffre valeur={e.appels} libelle="Appels" note={`${e.jours_actifs} jour${e.jours_actifs > 1 ? "s" : ""} actif${e.jours_actifs > 1 ? "s" : ""}`} />
+        <Chiffre valeur={p100(e.joints_pct)} libelle="Joints" note={`${e.aboutis} conversation${e.aboutis > 1 ? "s" : ""}`} />
+        <Chiffre valeur={p100(e.enregistres_pct)} libelle="Enregistrés" note="depuis le 9 oct." />
+        <Chiffre valeur={dureeLisible(e.duree_moyenne_s)} libelle="Durée moyenne" note={`${dureeLisible(e.duree_totale_s)} au téléphone`} />
+        {/* Le post-appel moyen (14 oct. 2026, Jules) : du raccrochage à la validation des actions. */}
+        <Chiffre valeur={post?.moyenne_ms != null ? secondesLisibles(post.moyenne_ms) : "—"} libelle="Post-appel moyen" note={post?.n ? `raccroché → validé · ${post.n} appel${post.n > 1 ? "s" : ""}` : "mesuré depuis le 13 oct."} />
+        <Chiffre valeur={p100(e.sans_correction_pct)} libelle="Sans correction AK" note={`${e.issue_changee} issue${e.issue_changee > 1 ? "s" : ""} changée${e.issue_changee > 1 ? "s" : ""}`} />
+        <Chiffre valeur={e.oublies} libelle="Non validés" note="plus d'une heure après l'appel" />
       </div>
-      <p className="m-0 mb-4 min-h-[19px] text-[13px] text-craie">
-        {jour ? (
-          <><span className="text-encre">{jourLong(jour.jour)}</span> · {jour.appels} appel{jour.appels > 1 ? "s" : ""}{jour.appels ? `, ${jour.aboutis} joint${jour.aboutis > 1 ? "s" : ""}` : ""}{Object.entries(jour.par).filter(([, n]) => n).map(([em, n]) => ` · ${analystes.find((a) => a.email === em)?.prenom || em} ${n}`).join("")}</>
-        ) : total ? (
-          <>{total} appel{total > 1 ? "s" : ""} sur {actifs.length} jour{actifs.length > 1 ? "s" : ""} actif{actifs.length > 1 ? "s" : ""} · {Math.round((total / actifs.length) * 10) / 10} par jour actif · record {record.appels} le {jourCourt(record.jour)}</>
-        ) : <span className="text-brume">Aucun appel sur la période.</span>}
-      </p>
-      <div className="grid min-h-[220px] flex-1 grid-cols-[24px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)_auto] gap-x-2">
-        <div className="relative mt-5 text-right text-[11px] tabular-nums text-brume">
-          {[1, 0.5, 0].map((f) => <span key={f} className="absolute right-0 -translate-y-1/2" style={{ top: `${(1 - f) * 100}%` }}>{Math.round(haut * f)}</span>)}
+
+      {unJour ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ClassementAnalystes analystes={data.analystes} c={c} titre="Appels par analyste aujourd'hui" onChoisir={onChoisir} />
+          <ParHeure heures={data.heures} c={c} titre="Appels heure par heure, aujourd'hui" />
         </div>
-        <div className="relative mt-5" onMouseLeave={() => setSurvol(null)}>
-          {[1, 0.5].map((f) => <div key={f} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-trait" style={{ top: `${(1 - f) * 100}%` }} />)}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-bord" />
-          <div className="absolute inset-0 flex gap-[3px]">
-            {parJour.map((j) => {
-              const d = new Date(`${j.jour}T12:00:00Z`).getUTCDay();
-              const fin = d === 0 || d === 6;
-              const sansRep = j.appels - j.aboutis;
-              return (
-                <div key={j.jour} onMouseEnter={() => setSurvol(j.jour)} className={`relative flex h-full min-w-0 flex-1 flex-col justify-end rounded-t-[3px] transition-colors ${survol === j.jour ? "bg-encre/[0.06]" : fin ? "bg-encre/[0.025]" : ""}`}>
-                  {j.appels > 0 ? (
-                    <div className="relative mx-auto flex w-full max-w-[38px] flex-col" style={{ height: `${(j.appels / haut) * 100}%` }}>
-                      <span className={`absolute inset-x-0 -top-[18px] text-center text-[11px] tabular-nums ${survol === j.jour ? "text-encre" : "text-ardoise"}`}>{j.appels}</span>
-                      {sansRep > 0 && <div className="rounded-t-[3px] bg-menthe/30" style={{ flexGrow: sansRep }} />}
-                      {j.aboutis > 0 && <div className={`bg-menthe ${sansRep ? "" : "rounded-t-[3px]"}`} style={{ flexGrow: j.aboutis }} />}
-                    </div>
-                  ) : <div className="mx-auto h-[2px] w-full max-w-[38px] rounded-full bg-encre/[0.08]" />}
-                </div>
-              );
-            })}
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <AppelsParJour parJour={data.par_jour} c={c} />
+            <ClassementAnalystes analystes={data.analystes} c={c} titre="Appels par analyste" onChoisir={onChoisir} />
           </div>
-        </div>
-        <span />
-        <div className="relative mt-2 flex h-4 gap-[3px] text-[11px] text-brume">
-          {parJour.map((j, i) => (
-            <span key={j.jour} className="relative min-w-0 flex-1">
-              {(j.jour === aujourdhui || (parJour.length - 1 - i) % pas === 0) && (
-                <span className={`absolute whitespace-nowrap ${j.jour === aujourdhui ? "right-0 text-menthe" : "left-1/2 -translate-x-1/2"}`}>{j.jour === aujourdhui ? "Aujourd'hui" : jourCourt(j.jour)}</span>
-              )}
-            </span>
-          ))}
-        </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <CourbesAnalystes parJour={data.par_jour} analystes={data.analystes} c={c} />
+            <TauxJoints parJour={data.par_jour} c={c} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Cumul parJour={data.par_jour} c={c} />
+            <DureeParJour parJour={data.par_jour} c={c} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <CarteSemaine semaine={data.semaine || []} c={c} />
+            <ParHeure heures={data.heures} c={c} />
+          </div>
+        </>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <BarresHorizontales titre="Issues" lignes={issues} c={c} vide="Aucun appel sur la période." />
+        <BarresHorizontales titre="Par mode" lignes={modes} c={c} />
+        <Durees durees={data.durees || []} c={c} />
+        <Cadre titre="Après l'appel" aide="Depuis le raccrochage, mesuré depuis le 13 octobre.">
+          {[["pret", "Actions prêtes"], ["valide", "Validé"], ["prepare", "Tout préparé"]].map(([k, t]) => {
+            const x = apres[k];
+            const max = Math.max(1, ...["pret", "valide", "prepare"].map((y) => apres[y]?.moyenne_ms || 0));
+            return (
+              <div key={k} className="mb-2.5 text-[12.5px] last:mb-0" title={x?.n ? `Médiane ${secondesLisibles(x.mediane_ms)}, moyenne ${secondesLisibles(x.moyenne_ms)}, sur ${x.n} appels` : "Pas encore mesuré"}>
+                <div className="flex justify-between"><span className="text-craie">{t}</span><span className="tabular-nums text-encre">{x?.moyenne_ms != null ? secondesLisibles(x.moyenne_ms) : "—"}{x?.n ? <span className="text-brume"> · médiane {secondesLisibles(x.mediane_ms)}</span> : null}</span></div>
+                <span className="mt-1 block h-1.5 overflow-hidden rounded-full" style={{ background: c.trait }}><span className="block h-full rounded-full" style={{ width: `${((x?.moyenne_ms || 0) / max) * 100}%`, background: c.menthe }} /></span>
+              </div>
+            );
+          })}
+        </Cadre>
       </div>
+
+      <Cadre titre="Rappels entrants">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[["Reçus", data.rappels.total], ["Terminés", data.rappels.termines], ["Abandonnés", data.rappels.abandonnes], ["À terminer", data.rappels.en_cours]].map(([t, n]) => <div key={t}><p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{t}</p><p className="m-0 mt-1 text-[22px] font-light text-encre">{n}</p></div>)}
+        </div>
+        <p className="m-0 mt-3 text-[12px] text-brume">Mails partis : {e.mails_partis} · Monday écrit : {e.monday_ok} · lecture AK moyenne : {e.lecture_moyenne_ms ? `${(e.lecture_moyenne_ms / 1000).toFixed(1)} s` : "—"}</p>
+      </Cadre>
     </div>
   );
 }
@@ -197,6 +205,7 @@ export default function SuiviAppels({ dansProspection = false }) {
   const [qui, setQui] = useState("");
   const [vue, setVue] = useState("ensemble");
   const voirJournalDe = (prenom) => { setQui(prenom); setVue("journal"); };
+  const c = useCouleurs();
   // Remettre à zéro (9 oct. 2026) : le suivi compte à partir de maintenant ; rien ne s'efface, « Tout afficher » revient en arrière.
   const queryClient = useQueryClient();
   const zero = useMutation({
@@ -210,10 +219,6 @@ export default function SuiviAppels({ dansProspection = false }) {
     refetchOnWindowFocus: true,
   });
   if (error) return <div className="p-8"><p className="text-[13.5px] text-ardoise">{error.message || "Accès réservé."}</p></div>;
-  const e = data?.equipe;
-  const heures = (data?.heures || []).filter((h) => h.heure >= 7 && h.heure <= 21);
-  const maxHeure = Math.max(1, ...heures.map((h) => h.appels));
-  const issues = Object.entries(e?.issues || {}).sort((a, b) => b[1] - a[1]);
   const journal = (data?.journal || []).filter((x) => !qui || x.par === qui);
 
   return (
@@ -248,20 +253,11 @@ export default function SuiviAppels({ dansProspection = false }) {
 
         {isLoading || !data ? <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
           <>
-            {vue === "ensemble" && <div className="k-monte">
-            <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-              <Chiffre valeur={e.appels} libelle="Appels" note={`${e.jours_actifs} jour${e.jours_actifs > 1 ? "s" : ""} actif${e.jours_actifs > 1 ? "s" : ""}`} />
-              <Chiffre valeur={p100(e.joints_pct)} libelle="Joints" note={`${e.aboutis} conversation${e.aboutis > 1 ? "s" : ""}`} />
-              <Chiffre valeur={p100(e.enregistres_pct)} libelle="Enregistrés" note="depuis le 9 oct." />
-              <Chiffre valeur={dureeLisible(e.duree_moyenne_s)} libelle="Durée moyenne" note={`${dureeLisible(e.duree_totale_s)} au téléphone`} />
-              <Chiffre valeur={p100(e.sans_correction_pct)} libelle="Sans correction AK" note={`${e.issue_changee} issue${e.issue_changee > 1 ? "s" : ""} changée${e.issue_changee > 1 ? "s" : ""}`} />
-              <Chiffre valeur={e.oublies} libelle="Non validés" note="plus d'une heure après l'appel" />
-            </div>
-
-            </div>}
+            {vue === "ensemble" && <VueEnsemble data={data} jours={jours} c={c} onChoisir={voirJournalDe} />}
 
             {vue === "analystes" && <div className="mb-8 rounded-md border border-trait p-4 k-monte">
               <h2 className={titreCase}>Par analyste</h2>
+              <div className="mb-5"><PetitsMultiples analystes={data.analystes} parJour={data.par_jour} c={c} onChoisir={voirJournalDe} /></div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1500px] border-collapse text-[13px]">
                   <thead>
@@ -281,68 +277,6 @@ export default function SuiviAppels({ dansProspection = false }) {
                 </table>
               </div>
               <p className="m-0 mt-3 text-[12px] text-brume">Durée, enregistrement, notes, validation depuis la fenêtre, étapes ouvertes et corrections d'AK sont mesurés depuis le 9 octobre 2026 : avant, « — ». Un clic sur une personne ouvre ses appels.</p>
-            </div>}
-
-            {vue === "ensemble" && <div className="k-monte">
-            {/* Combien d'appels chacun a passés sur la période (14 oct. 2026, Jules) ; un clic ouvre ses appels. */}
-            <div className="mb-8 rounded-md border border-trait p-4">
-              <h2 className={titreCase}>{jours === 1 ? "Appels par analyste aujourd'hui" : "Appels par analyste"}</h2>
-              <div className="flex flex-col">
-                {data.analystes.map((a) => {
-                  const max = Math.max(1, ...data.analystes.map((x) => x.appels));
-                  return (
-                    <button key={a.email} type="button" onClick={() => voirJournalDe(a.prenom)} title="Voir les appels de cette personne"
-                      className="grid grid-cols-[110px_minmax(0,1fr)_44px_150px] items-center gap-3 border-t border-trait py-2 text-left text-[13px] first:border-t-0 hover:bg-relief/30 max-md:grid-cols-[90px_minmax(0,1fr)_36px]" style={{ background: "transparent" }}>
-                      <span className={a.appels ? "text-encre" : "text-brume"}>{a.prenom}</span>
-                      <span className="h-1.5 overflow-hidden rounded-full bg-encre/[0.06]"><span className="block h-full rounded-full bg-menthe" style={{ width: `${(a.appels / max) * 100}%` }} /></span>
-                      <span className={`text-right tabular-nums ${a.appels ? "text-encre" : "text-brume"}`}>{a.appels}</span>
-                      <span className="text-[12px] text-brume max-md:hidden">{a.appels ? `${a.aboutis} joint${a.aboutis > 1 ? "s" : ""}${a.dernier && jours === 1 ? ` · dernier à ${new Date(a.dernier).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" })}` : ""}` : "aucun appel"}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <CourbeJours parJour={data.par_jour} analystes={data.analystes} />
-              <div className="rounded-md border border-trait p-4">
-                <h2 className={titreCase}>Heures d'appel</h2>
-                <div className="flex flex-col gap-1">
-                  {heures.map((h) => (
-                    <div key={h.heure} className="grid grid-cols-[34px_minmax(0,1fr)_28px] items-center gap-2 text-[12px]">
-                      <span className="text-brume">{h.heure} h</span>
-                      <span className="h-1.5 overflow-hidden rounded-full bg-encre/[0.06]"><span className="block h-full rounded-full bg-menthe" style={{ width: `${(h.appels / maxHeure) * 100}%` }} /></span>
-                      <span className="text-right tabular-nums text-craie">{h.appels}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-md border border-trait p-4">
-                <h2 className={titreCase}>Issues</h2>
-                {issues.length ? issues.map(([k, n]) => <div key={k} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{({ pas_de_reponse: "Pas de réponse", repondeur: "Répondeur", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien", pas_interesse: "Pas intéressé", agent_prevenu: "Agent prévenu", rien_de_nouveau: "Rien de nouveau" })[k] || k}</span><span className="tabular-nums text-encre">{n}</span></div>) : <p className="m-0 text-[12.5px] text-brume">Aucun appel sur la période.</p>}
-              </div>
-              <div className="rounded-md border border-trait p-4">
-                <h2 className={titreCase}>Par mode</h2>
-                {data.sources.map((s0) => <div key={s0.cle} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{s0.libelle}</span><span className="tabular-nums text-encre">{s0.appels}</span></div>)}
-              </div>
-              {/* De raccrocher à « Tout est préparé » (13 oct. 2026) : la médiane de chaque moment. */}
-              <div className="rounded-md border border-trait p-4">
-                <h2 className={titreCase}>Après l'appel</h2>
-                {[["pret", "Raccroché → actions prêtes"], ["valide", "Raccroché → validé"], ["prepare", "Raccroché → tout préparé"]].map(([k, t]) => {
-                  const x = e.apres_appel?.[k];
-                  return <div key={k} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{t}</span><span className="tabular-nums text-encre">{x?.mediane_ms != null ? secondesLisibles(x.mediane_ms) : "—"}{x?.n ? <span className="text-brume"> · {x.n}</span> : null}</span></div>;
-                })}
-                <p className="m-0 mt-2 text-[12px] text-brume">Médianes, mesurées depuis le 13 octobre ; le chiffre gris : sur combien d'appels.</p>
-              </div>
-              <div className="rounded-md border border-trait p-4">
-                <h2 className={titreCase}>Rappels entrants</h2>
-                {[["Reçus", data.rappels.total], ["Terminés", data.rappels.termines], ["Abandonnés", data.rappels.abandonnes], ["À terminer", data.rappels.en_cours]].map(([t, n]) => <div key={t} className="flex justify-between border-t border-trait py-2 text-[13px] first:border-t-0"><span className="text-craie">{t}</span><span className="tabular-nums text-encre">{n}</span></div>)}
-                <p className="m-0 mt-2 text-[12px] text-brume">Mails partis : {e.mails_partis} · Monday écrit : {e.monday_ok} · lecture AK moyenne : {e.lecture_moyenne_ms ? `${(e.lecture_moyenne_ms / 1000).toFixed(1)} s` : "—"}</p>
-              </div>
-            </div>
-
             </div>}
 
             {vue === "journal" && <div className="rounded-md border border-trait p-4 k-monte">

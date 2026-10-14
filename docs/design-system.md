@@ -570,6 +570,24 @@ plages Min à Max, puces avec « Tout »), et en haut le compteur « Voir N
 locaux » recalculé à chaque geste. Une recherche sauvegardée est une liste
 dynamique. On ne simule jamais un filtre dont la source n'existe pas.
 
+### Les graphiques (Suivi > Appels, 14 oct. 2026)
+
+Jules : « plein de courbes, des graphiques ». Les briques sont dans
+`components/monitoring/GraphesAppels.jsx` (recharts) ; on les reprend pour tout
+nouveau graphique. Chaque graphique dans un `Cadre` (`rounded-[14px] border-trait
+bg-surface`, titre en capitales menthe 11 px, une phrase d'aide `brume` au
+besoin). Une seule échelle par graphique, jamais deux axes ; grille en filet
+plein `trait`, horizontale seulement ; traits de 2 px, barres arrondies de 4 px
+en haut ; une infobulle sur chaque marque (`surface-pleine`, filet `bord`) ;
+une légende dès deux séries. Une série seule prend la menthe ; « sans
+réponse » prend `brume`. Plusieurs personnes : les huit teintes de
+`jetons.graphique` (sombre et clair), dans l'ordre, validées pour le
+daltonisme ; la couleur suit la personne (rang de son adresse), jamais son
+classement. Les couleurs sont lues sur le thème courant (`useCouleurs`) :
+recharts écrit en attributs SVG, où une variable CSS ne se résout pas. Une
+carte de chaleur est d'une seule teinte, de `trait` à la menthe, avec son
+échelle dessous. Un libellé long passe en barres couchées.
+
 ### Vacance, le premier des Outils (13 oct. 2026)
 
 Spec de Jules du 13 oct. 2026 (« Signaux de vacance »), posée dans un nouveau

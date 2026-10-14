@@ -311,5 +311,33 @@
     "Le sombre est la même page en négatif : noir chaud, cartes anthracite.",
     "« rail » et « rail-actif » sont le fond du rail et la case de la page ouverte ;",
     "« menthe-pale » le bouton d'envoi du chat, « sur-menthe-pale » ce qu'on écrit dessus."
-  ]
+  ],
+  "_graphique": [
+    "Les séries des graphiques (14 oct. 2026) : huit teintes, dans cet ordre, jamais tournées ni générées au-delà.",
+    "Validées par le contrôle de palette du skill dataviz contre le fond sombre (#121312) et le fond clair (#f0f0ee) :",
+    "écart daltonien ΔE ≥ 8,4 entre voisines, contraste ≥ 3:1 en sombre. En clair, quatre teintes passent sous 3:1 :",
+    "les légendes nommées et le tableau par analyste en tiennent lieu. Une couleur suit la personne, jamais son rang."
+  ],
+  "graphique": {
+    "sombre": [
+      "#3987e5",
+      "#d95926",
+      "#199e70",
+      "#c98500",
+      "#d55181",
+      "#008300",
+      "#9085e9",
+      "#e66767"
+    ],
+    "clair": [
+      "#2a78d6",
+      "#eb6834",
+      "#1baf7a",
+      "#eda100",
+      "#e87ba4",
+      "#008300",
+      "#4a3aa7",
+      "#e34948"
+    ]
+  }
 }

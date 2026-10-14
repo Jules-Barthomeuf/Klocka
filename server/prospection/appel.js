@@ -12,6 +12,7 @@
 // « À envoyer » tant qu'on ne l'a pas envoyé.
 
 import { Records } from '../db.js';
+import { NOTE_KLOCKA } from '../klocka-nom.js';
 import * as R from './regles.js';
 import { agentDe, majAgent, journal, liberer, agents as tousLesAgents } from './carnet.js';
 import { reglages } from './reglages.js';
@@ -143,7 +144,7 @@ async function lire(a, texte, { par, maintenant, issueTapee = null, entrant = fa
   const r = reglages();
   const u = Records.filter('User', { email: par })[0];
   return invokeLLM({
-    prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${entrant ? `Un agent immobilier vient de rappeler ${u?.full_name || par}` : `${u?.full_name || par} vient d'appeler un agent immobilier`}. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
+    prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${NOTE_KLOCKA} ${entrant ? `Un agent immobilier vient de rappeler ${u?.full_name || par}` : `${u?.full_name || par} vient d'appeler un agent immobilier`}. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
 
 L'issue, une seule :
 - pas_de_reponse : personne n'a décroché ;
@@ -250,7 +251,8 @@ async function messageVivant(a, lu, props, par) {
   const prenom = (u?.full_name || '').split(' ')[0] || '';
   try {
     const r = await invokeLLM({
-      prompt: `Tu es l'alternant de Klocka, assis à côté de ${prenom || "l'analyste"} pendant ses appels aux agents immobiliers. C'est lui qui vient d'appeler ${a.nom}${a.agence && a.agence !== a.nom ? ` (${a.agence})` : ''} ; toi, tu as écouté et pris des notes. Écris-lui en privé sur Google Chat, comme un collègue qui parle : tutoiement, naturel, sans jargon ni formule, quatre à sept lignes. Ne dis pas « je viens de raccrocher » : c'est lui qui a appelé. Adresse-toi à lui directement (« ton appel avec Sophie »), jamais à la troisième personne.
+      prompt: `${NOTE_KLOCKA}
+Tu es l'alternant de Klocka, assis à côté de ${prenom || "l'analyste"} pendant ses appels aux agents immobiliers. C'est lui qui vient d'appeler ${a.nom}${a.agence && a.agence !== a.nom ? ` (${a.agence})` : ''} ; toi, tu as écouté et pris des notes. Écris-lui en privé sur Google Chat, comme un collègue qui parle : tutoiement, naturel, sans jargon ni formule, quatre à sept lignes. Ne dis pas « je viens de raccrocher » : c'est lui qui a appelé. Adresse-toi à lui directement (« ton appel avec Sophie »), jamais à la troisième personne.
 
 D'abord en une ou deux phrases ce que tu as retenu (ce qu'il a, ce qu'il cherche, ce qu'il promet, les dates). Puis ce que tu ferais, en reprenant EXACTEMENT ces actions, dans cet ordre, numérotées 1., 2., 3. (une par ligne, reformulées à ta façon mais sans en changer le sens, sans en ajouter, sans en retirer) :
 ${numerotees.map((p, i) => `${i + 1}. ${p.titre}`).join('\n')}

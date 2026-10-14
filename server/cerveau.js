@@ -18,6 +18,7 @@
 import { Records } from './db.js';
 import { estSuperAdmin } from './acces-pages.js';
 import { notifier } from './notifications.js';
+import { corrigerKlocka, NOTE_KLOCKA } from './klocka-nom.js';
 
 export const SOURCE = 'CerveauSource';
 export const FAIT = 'CerveauFait';
@@ -99,7 +100,8 @@ export function candidatsPour(type, nom, { limite = 5 } = {}) {
  * l'agence d'un appel) ; chaque fait extrait s'y rattache d'office.
  */
 export function ajouterSource({ type, auteur = null, date = null, titre = null, contenu, lien_original = null, liens = [], cle = null }) {
-  const texte = String(contenu || '').trim();
+  // Le nom de la startup, que la transcription écorche (« Cloaca ») : corrigé avant d'entrer (14 oct. 2026).
+  const texte = corrigerKlocka(String(contenu || '').trim());
   if (!texte) return { ok: false, error: 'Source vide.' };
   if (!TYPES_SOURCE.includes(type)) return { ok: false, error: `Type de source inconnu : ${type}` };
   // Une même source (le même appel, le même compte rendu) n'entre qu'une fois.
@@ -142,7 +144,7 @@ const SCHEMA = {
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const jourDe = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${JOURS[d.getDay()]} ${d.toISOString().slice(0, 10)}`; };
 
-const consigne = (source) => `Tu tiens la mémoire de Klocka, qui achète et vend des murs commerciaux (dossiers de pré-analyse, projets d'investisseurs, agents et agences immobilières qui apportent des biens).
+const consigne = (source) => `Tu tiens la mémoire de Klocka, qui achète et vend des murs commerciaux (dossiers de pré-analyse, projets d'investisseurs, agents et agences immobilières qui apportent des biens). ${NOTE_KLOCKA}
 Voici une source de type « ${source.type} »${source.titre ? ` (« ${source.titre} »)` : ''}, du ${jourDe(source.date)}${source.auteur ? `, par ${source.auteur}` : ''}. Un jour dit sans date (« jeudi », « mardi prochain », « d'ici vendredi ») se date à partir de ce jour-là.
 Extrais les FAITS qui méritent d'être retrouvés dans une semaine ou un an, et rien d'autre :
 - decision : ce qui a été tranché, avec son motif s'il est dit (« on refuse Libourne : loyer trop haut pour l'emplacement ») ;

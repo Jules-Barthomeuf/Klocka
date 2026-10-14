@@ -9,6 +9,7 @@
 // on ouvre.
 
 import { Records, Meta } from '../db.js';
+import { NOTE_KLOCKA } from '../klocka-nom.js';
 import { runAgent } from '../llm.js';
 
 const ENTITE = 'AkEcoute';
@@ -35,7 +36,7 @@ export function estLeMoment(bouts, { maintenant = Date.now(), dernier = Number(M
   return caracteres >= MIN_CARACTERES * 4 || attente >= MINUTES * 60000;
 }
 
-const CONSIGNE = `Tu écoutes une conversation de bureau chez Klocka (conseil en murs commerciaux), transcrite automatiquement, donc avec des fautes et des mots mal entendus. Tu en extrais UNIQUEMENT ce qui engage ou informe le travail, en JSON strict :
+const CONSIGNE = `Tu écoutes une conversation de bureau chez Klocka (conseil en murs commerciaux), transcrite automatiquement, donc avec des fautes et des mots mal entendus. ${NOTE_KLOCKA} Tu en extrais UNIQUEMENT ce qui engage ou informe le travail, en JSON strict :
 {
   "decisions": ["…"],
   "taches": [{ "qui": "prénom ou vide", "quoi": "…" }],

@@ -11,6 +11,7 @@
 // Chargé ici aussi pour que les modules restent utilisables hors du serveur
 // (scripts, tests) sans dépendre de l'ordre des imports.
 import 'dotenv/config';
+import { corrigerKlocka } from './klocka-nom.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { enregistrerUsage } from './llm-couts.js';
 
@@ -498,7 +499,7 @@ export async function transcrireAudio({ buffer, mimetype = 'audio/wav', rapide =
     for (const attente of [0, 700, 1800]) {
       if (attente) await new Promise((f) => setTimeout(f, attente));
       try {
-        return await voxtralTranscrire({ buffer, mimetype });
+        return corrigerKlocka(await voxtralTranscrire({ buffer, mimetype }));
       } catch (e) {
         console.warn(`[voxtral] ${e?.message || e}`);
         if (!(e?.statut === 429 || e?.statut >= 500 || e?.name === 'TimeoutError')) break;
@@ -514,7 +515,7 @@ export async function transcrireAudio({ buffer, mimetype = 'audio/wav', rapide =
     contents: [{ role: 'user', parts: [{ inline_data: { mime_type: mimetype, data: buffer.toString('base64') } }, { text: 'Transcris.' }] }],
     ...(rapide ? { tentatives: 1 } : {}),
   });
-  return (data?.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('').trim();
+  return corrigerKlocka((data?.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('').trim());
 }
 
 /**

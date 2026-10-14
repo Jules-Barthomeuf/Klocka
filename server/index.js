@@ -223,7 +223,7 @@ app.post('/api/dictee', wrap(async (req, res) => {
   // Sans audio, un texte : la dictée du navigateur, à reponctuer tel quel.
   if (!audio && req.body?.texte) {
     const { ponctuerDictee } = await import('./llm.js');
-    return ok(res, { texte: corrigerDictee(await ponctuerDictee(String(req.body.texte)), lexique) });
+    return ok(res, { texte: (await import('./klocka-nom.js')).corrigerKlocka(corrigerDictee(await ponctuerDictee(String(req.body.texte)), lexique)) });
   }
   if (!audio) return res.status(400).json({ error: 'Aucun son reçu.' });
   const { transcrireAudio } = await import('./llm.js');

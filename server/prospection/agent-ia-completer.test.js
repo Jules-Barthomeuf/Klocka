@@ -67,7 +67,8 @@ test('une ligne se donne à celui qui clique, à un autre de l\'équipe, et se r
   Records.create('User', { email: 'coralie.g@klocka.immo', role: 'admin', full_name: 'Guillaud Coralie' });
   Records.create('User', { email: 'client@exemple.fr', role: 'user' });
   // Les analystes, puis Alexis, l'ancien, en dernier.
-  assert.deepEqual(equipe().map((m) => m.nom), ['Coralie', 'Jules', 'Maxime', 'Nora', 'Alexis']);
+  assert.deepEqual(equipe().map((m) => m.nom), ['Coralie', 'Jules', 'Maxime', 'Nora', 'Paul', 'Alexis']);
+  assert.equal(equipe().find((m) => m.nom === 'Paul').photo, '/equipe/paul.jpg', 'Paul, l\'associé, avec sa photo');
   assert.equal(equipe().find((m) => m.nom === 'Alexis').ancien, true);
   assert.equal(prenomDe('paul.dz@klocka.immo'), 'Paul');
   const a = Records.create('AgenceProspect', { liste_id: 'x', nom: 'Agence Test', agents: [], gerants: [] });

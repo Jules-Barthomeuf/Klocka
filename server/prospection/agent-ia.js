@@ -601,11 +601,14 @@ const photoDe = (u) => {
 // L'équipe de la prospection (6 oct. 2026) : les analystes, puis Alexis, qui
 // n'est plus là mais peut encore tenir une ligne, en dernier.
 const ANCIENS = ['alexis.p@klocka.immo'];
+// Paul, l'associé (14 oct. 2026, Jules) : on peut lui associer une agence dans la Prospection,
+// sans qu'il devienne analyste des dossiers des mandataires (ANALYSTES, fil-dossier.js).
+const ASSOCIES = ['paul.dz@klocka.immo'];
 
 /** L'équipe qu'on peut nommer sur une ligne, avec sa photo : les analystes, puis les anciens. */
 export function equipe() {
   const comptes = new Map(Records.list('User').map((u) => [normEmail(u.email), u]));
-  const emails = [...ANALYSTES.map((x) => normEmail(x.email)).sort((x, y) => prenomDe(x).localeCompare(prenomDe(y), 'fr')), ...ANCIENS];
+  const emails = [...new Set([...ANALYSTES.map((x) => normEmail(x.email)), ...ASSOCIES])].sort((x, y) => prenomDe(x).localeCompare(prenomDe(y), 'fr')).concat(ANCIENS);
   return emails.map((email) => {
     const u = comptes.get(email) || { email };
     return { email, nom: prenomDe(email), photo: photoDe(u), ancien: ANCIENS.includes(email) };

@@ -21,7 +21,11 @@ export default function PanneauTaux({ taux, attente, erreur }) {
       </p>
     );
   }
-  const t = taux.taux;
+  // Les tranchés et le seuil se recalculent ici s'ils manquent : un serveur pas encore relancé
+  // après une mise à jour ne les envoie pas, et l'écran disait alors « moins de dix locaux » à tort.
+  const brut = taux.taux || {};
+  const tranches = brut.tranches ?? ((brut.occupes ?? 0) + (brut.vacants ?? 0));
+  const t = { ...brut, tranches, fiable: brut.fiable ?? tranches >= 10 };
   return (
     <div className="px-4 py-3">
       <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Taux de vacance estimé</p>

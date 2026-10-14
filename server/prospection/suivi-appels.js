@@ -161,6 +161,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   const sources = Object.keys(SOURCES).map((k) => ({ cle: k, libelle: SOURCES[k], appels: k === 'relances_mail' ? mailsRelance.length : tous.filter((x) => x._source === k).length })).filter((x) => x.appels);
 
   // Le journal : chaque appel, avec ce qu'on en garde.
+  const ecrans = new Map(Records.list('EnregistrementEcran').filter((e) => e.appel_id).map((e) => [e.appel_id, e.id]));
   const lignes = [...appels].sort((a, b) => String(b.le).localeCompare(String(a.le))).slice(0, journal).map((x) => {
     const ag = x.agence_id ? agences.get(x.agence_id) : null;
     const f = fiches.get(x.agent_id);
@@ -183,6 +184,8 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
       // Validé ou non à la main dans le Suivi : la dernière fois, par qui.
       validation_main: (x.validation_main || []).at(-1) || null,
       transcription: x.transcription_gardee || null,
+      // L'écran de l'analyste pendant l'appel (14 oct. 2026), gardé 30 jours.
+      ecran_id: ecrans.get(x.id) || null,
       temps: x.temps || null,
     };
   });

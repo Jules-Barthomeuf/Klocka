@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import LecteurEcran from "@/components/monitoring/LecteurEcran";
 import { AppelsParJour, BarresHorizontales, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
@@ -106,6 +107,8 @@ function DetailAppel({ x, modifiable = true }) {
       <div className={ligne}><span className="text-ardoise">Transcription</span>
         {x.transcription ? <span className="max-h-[320px] overflow-y-auto whitespace-pre-line text-craie">{x.transcription}</span> : <span className="text-brume">{x.enregistre ? "Pas gardée (appel d'avant le 13 octobre)" : "Pas d'enregistrement"}</span>}
       </div>
+      {/* L'écran de l'analyste pendant l'appel (14 oct. 2026) : rejoué d'un clic, gardé 30 jours. */}
+      {x.ecran_id && <BoutonEcran id={x.ecran_id} ligne={ligne} titre={`Écran de ${String(x.par || "l'analyste").split("@")[0]} · ${x.agence || x.agent || "appel"}`} />}
       {x.temps && <div className={ligne}><span className="text-ardoise">Après l'appel</span><span className="text-craie">{[["pret_ms", "actions prêtes"], ["valide_ms", "validé"], ["prepare_ms", "tout préparé"]].filter(([k]) => x.temps[k] != null).map(([k, t]) => `${t} en ${secondesLisibles(x.temps[k])}`).join(" · ")}, depuis le raccrochage</span></div>}
       {v && <div className={ligne}><span className="text-ardoise">Validation</span><span className="text-craie">{v.depuis_fenetre ? "Depuis la fenêtre des actions" : "Depuis la page"} · {v.vues ?? "?"} étape{(v.vues || 0) > 1 ? "s" : ""} ouverte{(v.vues || 0) > 1 ? "s" : ""} sur {v.etapes}{v.retirees?.length ? ` · retirées : ${v.retirees.join(", ")}` : ""}{v.ajoutees?.length ? ` · ajoutées : ${v.ajoutees.join(", ")}` : ""}{x.annulations ? ` · annulé ${x.annulations} fois` : ""}</span></div>}
       {m && <div className={ligne}><span className="text-ardoise">Corrections d'AK</span><span className="text-craie">{!m.propose_par_ak ? "Issue tapée à la main : AK n'a rien proposé" : !m.corrige ? "Aucune" : [m.issue && "issue changée", m.champs?.length && `champs : ${m.champs.join(", ")}`, m.date && "date retouchée", m.mail && "mail retouché"].filter(Boolean).join(" · ")}</span></div>}
@@ -369,6 +372,19 @@ export default function SuiviAppels({ dansProspection = false }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/** « Voir l'écran » : la page de l'analyste pendant l'appel, rejouée. */
+function BoutonEcran({ id, ligne, titre }) {
+  const [ouvert, setOuvert] = useState(false);
+  return (
+    <div className={ligne}><span className="text-ardoise">Écran</span>
+      <span>
+        <button type="button" onClick={() => setOuvert(true)} className="inline-flex h-8 items-center rounded-full border border-bord-doux px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Voir l'écran pendant l'appel</button>
+        {ouvert && <LecteurEcran id={id} titre={titre} onFermer={() => setOuvert(false)} />}
+      </span>
     </div>
   );
 }

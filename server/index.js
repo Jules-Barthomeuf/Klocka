@@ -66,6 +66,7 @@ import { jetonValide as jetonImpressionValide } from './presentation-pdf.js';
 import { monterTesteur } from './routes/testeur.js';
 import { monterSuiviChat } from './routes/suivi-chat.js';
 import { monterCerveau } from './routes/cerveau.js';
+import { monterAudience } from './routes/audience.js';
 import { monterEquipe } from './routes/equipe.js';
 import { amorcerBacASable } from './testeur/bac-a-sable.js';
 import { monterKZoning } from './routes/kzoning.js';
@@ -1269,6 +1270,7 @@ planifierVeilleOffMarket();
 monterTesteur(app);
 monterSuiviChat(app);
 monterCerveau(app);
+monterAudience(app);
 amorcerBacASable();
 // L'équipe (10 oct. 2026) : admins et mandataires, à part des clients.
 monterEquipe(app);

@@ -9,6 +9,8 @@ import SequenceActions from "@/components/prospection/SequenceActions";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
+import { useAuth } from "@/lib/AuthContext";
+import * as Ecran from "@/lib/enregistrement-ecran";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -671,6 +673,24 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const activite = useRef(Date.now());
   const ecranRef = useRef(ecran);
   useEffect(() => { ecranRef.current = ecran; }, [ecran]);
+  // L'enregistrement d'écran (14 oct. 2026, Jules) : de l'appel décroché à sa validation, pour l'équipe seulement,
+  // jamais sur un appel simulé. Il part rattaché à l'appel ; un appel annulé ne laisse rien.
+  const { user: moi } = useAuth();
+  const appelRef = useRef(null);
+  useEffect(() => { appelRef.current = appel; }, [appel]);
+  useEffect(() => {
+    if (ecran === "appel" && !simule && moi?.role === "admin") { Ecran.demarrer(); return; }
+    if (!Ecran.enCours()) return;
+    if (["recu", "fait", "prepare"].includes(ecran)) {
+      const a = appelRef.current;
+      Ecran.terminer({ appel_id: a?.id || null, agence_id: a?.agence_id || null, agent: a?.agent || null });
+    } else if (ecran === "fiche") {
+      // Revenu à la fiche : annulé avant toute issue, rien n'est gardé ; sinon l'appel noté garde son écran.
+      const a = appelRef.current;
+      if (a?.id) Ecran.terminer({ appel_id: a.id, agence_id: a.agence_id || null, agent: a.agent || null }); else Ecran.abandonner();
+    }
+  }, [ecran, simule, moi?.role]);
+  useEffect(() => () => { if (Ecran.enCours()) Ecran.abandonner(); }, []);
   useEffect(() => {
     if (!relances || !relance?.cle) return undefined;
     const bouger = () => { activite.current = Date.now(); };
@@ -1162,6 +1182,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       </span>
                     </span>
                     <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
+                    {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
+                    {!simule && moi?.role === "admin" && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
                   </div>
                   <div className="flex items-center gap-2.5">
                     {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}

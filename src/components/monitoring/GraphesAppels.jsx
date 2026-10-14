@@ -368,3 +368,23 @@ export function FaitsParJour({ parJour, c }) {
     </Cadre>
   );
 }
+
+/** L'audience hors équipe (14 oct. 2026) : visites et visiteurs uniques par jour, en aires. */
+export function VisitesParJour({ parJour, c }) {
+  return (
+    <Cadre titre="Visites par jour" droite={<Legende items={[{ nom: "Visites", couleur: c.menthe }, { nom: "Visiteurs uniques", couleur: c.ardoise }]} />}>
+      <div className="h-[230px]">
+        <ResponsiveContainer>
+          <AreaChart data={parJour} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke={c.trait} />
+            <XAxis dataKey="jour" tickFormatter={jourCourt} minTickGap={24} {...axe(c)} />
+            <YAxis allowDecimals={false} {...axe(c)} />
+            <Tooltip content={({ active, payload }) => active && payload?.length ? <Bulle titre={jourLong(payload[0].payload.jour)} lignes={[{ nom: "Visites", valeur: payload[0].payload.visites, couleur: c.menthe }, { nom: "Visiteurs uniques", valeur: payload[0].payload.visiteurs, couleur: c.ardoise }]} /> : null} />
+            <Area type="monotone" dataKey="visites" stroke={c.menthe} fill={c.menthe} fillOpacity={0.14} strokeWidth={2} isAnimationActive={false} />
+            <Area type="monotone" dataKey="visiteurs" stroke={c.ardoise} fill="transparent" strokeWidth={1.5} strokeDasharray="4 3" isAnimationActive={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </Cadre>
+  );
+}

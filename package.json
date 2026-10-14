@@ -70,6 +70,8 @@
     "recharts": "^2.15.4",
     "remark-gfm": "^4.0.1",
     "remotion": "^4.0.512",
+    "rrweb": "^2.1.7",
+    "rrweb-player": "^2.1.7",
     "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",

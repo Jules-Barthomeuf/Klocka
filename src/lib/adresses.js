@@ -33,6 +33,7 @@ export const ADRESSES = {
   Monitoring: "Suivi",
   CoutsIA: "CoutsIA",
   SuiviAppels: "SuiviAppels",
+  SuiviAudience: "SuiviAudience",
   SuiviMandataires: "SuiviMandataires",
   AdminSuggestions: "Feedback",
   Feedback: "MonFeedback",

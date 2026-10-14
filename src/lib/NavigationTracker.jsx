@@ -53,6 +53,37 @@ if (typeof window !== 'undefined' && !window.__klockaErreursBranchees) {
 /** Les erreurs des dernières minutes, pour le contexte d'un audit. */
 export const erreursRecentes = (minutes = 10) => ERREURS.filter((e) => Date.now() - Date.parse(e.le) < minutes * 60000);
 
+// L'audience hors équipe (14 oct. 2026) : chaque page ouverte, connecté ou non (les pages publiques),
+// avec un identifiant de navigateur tiré au hasard, la provenance, la largeur d'écran, le fuseau horaire.
+// Un battement toutes les 30 s tant que la page est visible, et à sa fermeture, mesure la durée de la visite.
+const CLE_VISITEUR = "klocka.visiteur";
+function visiteurId() {
+    try {
+        let v = localStorage.getItem(CLE_VISITEUR);
+        if (!v) { v = (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`); localStorage.setItem(CLE_VISITEUR, v); }
+        return v;
+    } catch { return null; }
+}
+let provenanceEnvoyee = false;
+function signalerPassage(page) {
+    const visiteur = visiteurId();
+    if (!visiteur || !page) return;
+    const corps = {
+        visiteur, page, url: window.location.pathname,
+        // La page d'où l'on vient, une seule fois : les suivantes viennent de la plateforme.
+        referrer: provenanceEnvoyee ? null : document.referrer || null,
+        largeur: window.innerWidth, fuseau: Intl.DateTimeFormat().resolvedOptions().timeZone || null, langue: navigator.language || null,
+    };
+    provenanceEnvoyee = true;
+    fetch("/api/visites/passage", { method: "POST", credentials: "include", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) }).catch(() => {});
+}
+if (typeof window !== "undefined" && !window.__klockaBattement) {
+    window.__klockaBattement = true;
+    const battre = () => { const visiteur = visiteurId(); if (visiteur) navigator.sendBeacon?.("/api/visites/battement", new Blob([JSON.stringify({ visiteur })], { type: "text/plain" })); };
+    setInterval(() => { if (document.visibilityState === "visible") battre(); }, 30000);
+    window.addEventListener("pagehide", battre);
+}
+
 export default function NavigationTracker() {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
@@ -88,6 +119,7 @@ export default function NavigationTracker() {
             pageName = pageDeChemin(pathname) || null;
         }
 
+        signalerPassage(pageName);
         if (isAuthenticated && pageName) {
             base44.appLogs.logUserInApp(pageName).catch(() => {
                 // Silently fail - logging shouldn't break the app

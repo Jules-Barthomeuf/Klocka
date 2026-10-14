@@ -11,6 +11,8 @@ import { J } from "@/design/jetons";
 
 const PAGES = [
   { to: "/Suivi", mot: "Usage" },
+  // L'audience hors équipe : clients, mandataires, pages publiques (14 oct. 2026).
+  { to: "/SuiviAudience", mot: "Audience" },
   { to: "/SuiviAppels", mot: "Appels" },
   // Enregistrer une réunion, qui nourrit le Cerveau (14 oct. 2026).
   { to: "/SuiviReunion", mot: "Réunion" },

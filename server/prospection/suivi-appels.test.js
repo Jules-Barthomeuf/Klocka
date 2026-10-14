@@ -131,3 +131,16 @@ test("le journal montre aussi les rappels entrants qui n'ont pas abouti à un ap
   assert.equal(S.suiviAppels({ jours: 7, source: 'prospection' }).journal.filter((x) => x.rappel).length, 0);
   assert.equal(S.suiviAppels({ jours: 7, source: 'rappel' }).journal.length, 3);
 });
+
+test("« Aujourd'hui » compte depuis minuit à Paris, pas sur vingt-quatre heures glissantes", () => {
+  // 14 oct. 2026 à 9 h 30 à Paris (heure d'été, UTC+2) : minuit était à 22 h UTC la veille.
+  assert.equal(S.minuitParis(new Date('2026-10-14T07:30:00Z')), '2026-10-13T22:00:00.000Z');
+  // En hiver (UTC+1).
+  assert.equal(S.minuitParis(new Date('2026-12-01T10:00:00Z')), '2026-11-30T23:00:00.000Z');
+  const maintenantD = new Date('2026-10-14T07:30:00Z');
+  Records.create('AppelAgent', { le: '2026-10-13T21:30:00Z', par: 'nora.l@klocka.immo', issue: 'pas_de_reponse', etat: 'valide', agence_id: 'a', jour_test: true });
+  Records.create('AppelAgent', { le: '2026-10-14T06:00:00Z', par: 'nora.l@klocka.immo', issue: 'a_des_murs', etat: 'valide', agence_id: 'a', jour_test: true });
+  const r = S.suiviAppels({ jours: 1, maintenantD });
+  const nora = r.analystes.find((a) => a.email === 'nora.l@klocka.immo');
+  assert.equal(nora.appels, 1, "l'appel de 23 h 30 la veille (heure de Paris) n'est pas d'aujourd'hui");
+});

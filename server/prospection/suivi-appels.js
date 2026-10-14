@@ -94,9 +94,19 @@ export function remettreAZero(par, maintenantD = new Date()) {
 }
 export function toutAfficher() { Meta.set(CLE_ZERO, 'null'); return null; }
 
+/** Pure : minuit, heure de Paris, du jour de `d`, en ISO (UTC). « 1 jour » compte depuis là, pas sur vingt-quatre heures glissantes. */
+export function minuitParis(d = new Date()) {
+  const jour = R.jourDe(d);
+  const decalage = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', timeZoneName: 'shortOffset' }).formatToParts(new Date(`${jour}T12:00:00Z`)).find((x) => x.type === 'timeZoneName')?.value || 'GMT+1';
+  const m = decalage.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+  const minutes = m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] || 0)) : 60;
+  return new Date(Date.parse(`${jour}T00:00:00Z`) - minutes * 60000).toISOString();
+}
+
 export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(), journal = 300 } = {}) {
   const zero = remiseAZero();
-  const fenetre = new Date(maintenantD.getTime() - jours * 86400000).toISOString();
+  // « 1 jour » (14 oct. 2026, Jules) : la journée en cours, depuis minuit à Paris.
+  const fenetre = jours === 1 ? minuitParis(maintenantD) : new Date(maintenantD.getTime() - jours * 86400000).toISOString();
   const depuis = zero?.le && zero.le > fenetre ? zero.le : fenetre;
   const sessions = new Map(Records.list('SessionAppel').map((s) => [s.id, s]));
   const agences = new Map(Records.list('AgenceProspect').map((a) => [a.id, a]));

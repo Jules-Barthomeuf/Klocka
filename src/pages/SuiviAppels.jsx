@@ -11,7 +11,8 @@ import OngletsSuivi from "@/components/OngletsSuivi";
 // chaque appel (résumé, phrases exactes, ce qui a été compris, notes,
 // validation, corrections d'AK, reçu).
 
-const PERIODES = [[7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
+// « Aujourd'hui » (14 oct. 2026, Jules) : la journée en cours, depuis minuit.
+const PERIODES = [[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
 const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["journal", "Journal des appels"]];
 const MODES = [["", "Tout"], ["prospection", "Prospection"], ["relances", "Relances"], ["rappel", "Rappel"], ["essai", "Essai"]];
 const titreCase = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
@@ -283,6 +284,24 @@ export default function SuiviAppels({ dansProspection = false }) {
             </div>}
 
             {vue === "ensemble" && <div className="k-monte">
+            {/* Combien d'appels chacun a passés sur la période (14 oct. 2026, Jules) ; un clic ouvre ses appels. */}
+            <div className="mb-8 rounded-md border border-trait p-4">
+              <h2 className={titreCase}>{jours === 1 ? "Appels par analyste aujourd'hui" : "Appels par analyste"}</h2>
+              <div className="flex flex-col">
+                {data.analystes.map((a) => {
+                  const max = Math.max(1, ...data.analystes.map((x) => x.appels));
+                  return (
+                    <button key={a.email} type="button" onClick={() => voirJournalDe(a.prenom)} title="Voir les appels de cette personne"
+                      className="grid grid-cols-[110px_minmax(0,1fr)_44px_150px] items-center gap-3 border-t border-trait py-2 text-left text-[13px] first:border-t-0 hover:bg-relief/30 max-md:grid-cols-[90px_minmax(0,1fr)_36px]" style={{ background: "transparent" }}>
+                      <span className={a.appels ? "text-encre" : "text-brume"}>{a.prenom}</span>
+                      <span className="h-1.5 overflow-hidden rounded-full bg-encre/[0.06]"><span className="block h-full rounded-full bg-menthe" style={{ width: `${(a.appels / max) * 100}%` }} /></span>
+                      <span className={`text-right tabular-nums ${a.appels ? "text-encre" : "text-brume"}`}>{a.appels}</span>
+                      <span className="text-[12px] text-brume max-md:hidden">{a.appels ? `${a.aboutis} joint${a.aboutis > 1 ? "s" : ""}${a.dernier && jours === 1 ? ` · dernier à ${new Date(a.dernier).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" })}` : ""}` : "aucun appel"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <CourbeJours parJour={data.par_jour} analystes={data.analystes} />
               <div className="rounded-md border border-trait p-4">

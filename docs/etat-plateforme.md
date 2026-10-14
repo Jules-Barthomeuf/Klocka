@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-16 personnes, 3 278 pages ouvertes, 3 demandes à l'assistant, 126 actions exécutées.
+16 personnes, 3 281 pages ouvertes, 3 demandes à l'assistant, 126 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 202 | 3 | 36 | 14/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 205 | 3 | 36 | 14/10/2026 |
 | admin@klocka.local (équipe) | 487 | 0 | 0 | 11/10/2026 |
 | jules.btmf@gmail.com (équipe) | 281 | 0 | 0 | 21/09/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
@@ -28,7 +28,7 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
 - **Analyse** — 491 (15 %)
-- **Dashboard** — 356 (11 %)
+- **Dashboard** — 357 (11 %)
 - **ALX** — 276 (8 %)
 - **AdminProjets** — 266 (8 %)
 - **Prospection** — 173 (5 %)
@@ -36,14 +36,14 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **Personnalisation** — 124 (4 %)
 - **MandataireProspection** — 100 (3 %)
 - **ProjetDetail** — 98 (3 %)
-- **KZoning** — 82 (3 %)
+- **KZoning** — 82 (2 %)
 - **KData** — 78 (2 %)
 - **MandataireEstimation** — 77 (2 %)
-- Le reste, sous 2 % : MandataireDossier, Outils, KExpertise, Monitoring, SimulateurRentabilite, AdminPresentations, MandataireMandat, AdminMandataires, Home, ALXCible, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, Relances, AdminSuggestions, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, MesPresentations, FichesCommerciales, ValeurLocative, ALXEntrainement, ALXAtelier, KProspective, ALXBilan, SuiviAppels, CoutsIA, MonAssistant, Validations, MandataireMarche, Vision, KTransactions, Ressources, MandataireProjets, analyse, SuiviMandataires, ALXVilles, AdminEquipe, Feedback, Comparateur, MonCompte, Cerveau, AdminValidations, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
+- Le reste, sous 2 % : MandataireDossier, Outils, KExpertise, Monitoring, SimulateurRentabilite, AdminPresentations, MandataireMandat, AdminMandataires, Home, ALXCible, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, Relances, AdminSuggestions, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, MesPresentations, FichesCommerciales, ValeurLocative, ALXEntrainement, ALXAtelier, KProspective, ALXBilan, SuiviAppels, CoutsIA, MonAssistant, Validations, MandataireMarche, Vision, KTransactions, Ressources, MandataireProjets, analyse, Cerveau, SuiviMandataires, ALXVilles, AdminEquipe, Feedback, Comparateur, MonCompte, AdminValidations, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
 
 ## Ce que l'IA coûte
 
-38,73 € sur la période, 1 451 appels, 8 986 k jetons. 34 % part en tâche de fond, sans que personne clique. 52 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+38,81 € sur la période, 1 452 appels, 9 000 k jetons. 34 % part en tâche de fond, sans que personne clique. 52 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -62,7 +62,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,62 €) · relecture de préz (0,48 €) · POST /api/prospection/mode-appel/pre-lecture (0,07 €) · template depuis une capture (0,03 €) · POST /api/prospection/rappels/:id/analyser (0,02 €) · POST /api/admin/presentations-bancaires/:id/reconstruire (0,01 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,62 €) · relecture de préz (0,48 €) · cerveau (0,08 €) · POST /api/prospection/mode-appel/pre-lecture (0,07 €) · template depuis une capture (0,03 €) · POST /api/prospection/rappels/:id/analyser (0,02 €).
 
 ## Les leviers sur la dépense
 

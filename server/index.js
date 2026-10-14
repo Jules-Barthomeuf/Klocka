@@ -79,6 +79,7 @@ import { monterKTransactions } from './routes/ktransactions.js';
 import { monterKVacance } from './routes/kvacance.js';
 import { monterKData } from './routes/kdata.js';
 import { monterOutils } from './routes/outils.js';
+import { monterReunions } from './routes/reunions.js';
 // Le noyau partagé : qui parle, comment répondre, où se déposent les fichiers.
 import {
   UPLOAD_DIR,
@@ -1283,6 +1284,8 @@ monterKVacance(app);
 monterKData(app);
 // Outils (13 oct. 2026) : Vacance, les signaux publics autour d'une adresse ; les communes chargées se rafraîchissent la nuit.
 monterOutils(app);
+// Suivi > Réunion (14 oct. 2026) : une réunion enregistrée, transcrite au fil de l'eau, qui nourrit le Cerveau.
+monterReunions(app);
 import('./outils/vacance.js').then((m) => m.planifier()).catch((e) => console.error('[vacance] module absent :', e.message));
 
 // L'état de la plateforme, écrit dans docs/etat-plateforme.md : une session de

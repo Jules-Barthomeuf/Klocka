@@ -12,6 +12,8 @@ import { J } from "@/design/jetons";
 const PAGES = [
   { to: "/Suivi", mot: "Usage" },
   { to: "/SuiviAppels", mot: "Appels" },
+  // Enregistrer une réunion, qui nourrit le Cerveau (14 oct. 2026).
+  { to: "/SuiviReunion", mot: "Réunion" },
   { to: "/SuiviMandataires", mot: "Mandataires" },
   { to: "/CoutsIA", mot: "Coûts IA" },
   { to: "/SuiviChat", mot: "Chat" },

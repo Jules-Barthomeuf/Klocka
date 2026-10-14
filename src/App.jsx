@@ -47,6 +47,7 @@ const SuiviMandataires = lazy(() => import('@/pages/SuiviMandataires'));
 const SuiviTesteur = lazy(() => import('@/pages/SuiviTesteur'));
 const ImpressionPresentation = lazy(() => import('@/pages/ImpressionPresentation'));
 const SuiviChat = lazy(() => import('@/pages/SuiviChat'));
+const SuiviReunion = lazy(() => import('@/pages/SuiviReunion'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
@@ -110,7 +111,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviTesteur, SuiviChat, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviMandataires, SuiviTesteur, SuiviChat, SuiviReunion, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

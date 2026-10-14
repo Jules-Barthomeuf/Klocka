@@ -22,6 +22,7 @@ export const ADRESSES = {
   Cerveau: "Cerveau",
   SuiviTesteur: "SuiviTesteur",
   SuiviChat: "SuiviChat",
+  SuiviReunion: "SuiviReunion",
   ImpressionPresentation: "ImpressionPresentation",
   ALX: "ALX",
   ALXAtelier: "ALXAtelier",

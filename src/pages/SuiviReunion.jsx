@@ -194,7 +194,7 @@ export default function SuiviReunion() {
 
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
           {/* À gauche : le micro, les réglages de la réunion, les gestes. */}
-          <section className="flex flex-col gap-4 rounded-[14px] border border-trait bg-surface p-5">
+          <section className="flex flex-col gap-4 rounded-[14px] border border-trait bg-rail p-5">
             <div className="flex flex-col items-center py-2">
               {enregistre ? (
                 <MicroEcoute taille={170} label="Réunion en cours d'enregistrement"><span className="sr-only">Enregistrement</span></MicroEcoute>
@@ -252,7 +252,7 @@ export default function SuiviReunion() {
           </section>
 
           {/* À droite : la transcription, au fil de la parole. */}
-          <section className="flex min-h-[420px] flex-col rounded-[14px] border border-trait bg-surface">
+          <section className="flex min-h-[420px] flex-col rounded-[14px] border border-trait bg-rail">
             <div className="flex items-baseline justify-between gap-3 border-b border-trait px-5 py-3">
               <h2 className="m-0 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">Transcription</h2>
               <span className="text-[12px] text-brume">{signes ? `${signes.toLocaleString("fr-FR")} signes` : ""}</span>

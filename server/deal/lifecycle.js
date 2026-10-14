@@ -111,6 +111,10 @@ export function changerStatut(deal, statut, { user, note } = {}) {
   import('./engagements.js')
     .then((m) => m.surStatut(deal.deal_id, statut, user))
     .catch(() => {});
+  // Le Cerveau (14 oct. 2026) : accepté ou refusé sans motif, une question à la personne qui a tranché.
+  import('../cerveau.js')
+    .then((m) => m.surDecision({ ...deal, ...patch }, statut, { user, note }))
+    .catch(() => {});
   return { ok: true, deal: { ...deal, ...patch } };
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { HistoriqueCerveau } from "@/components/cerveau/FriseFaits";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -503,6 +504,9 @@ function FicheAgent({ id, onFermer }) {
         {(a.journal || []).map((j, i) => <li key={i} className="text-[12.5px] text-craie"><span className="text-brume">{dateCourte(j.le)} · {j.type}</span> {j.texte}</li>)}
         {!a.journal?.length && <li className="text-[12.5px] text-brume">Rien encore.</li>}
       </ul>
+      {/* Le Cerveau (14 oct. 2026) : ce que l'agent a dit, promis, et ce qu'on a décidé à son sujet, validé, avec sa source. */}
+      <p className={`${etiquette} mt-5`}>Au Cerveau</p>
+      <div className="mt-1"><HistoriqueCerveau type="agent" id={a.id} /></div>
     </section>
   );
 }

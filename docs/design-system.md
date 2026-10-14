@@ -529,6 +529,21 @@ le recopie pas.
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 
+### Le Cerveau (14 oct. 2026)
+
+Spec MVP de Jules du 14 oct. 2026. Une page admin **Cerveau** (icône cerveau,
+après Suivi, pastille du nombre de faits à valider) à trois onglets sur le
+dessin des onglets du Suivi : À valider, Savoir, Sources. En tête, une bande
+de trois chiffres (les critères du MVP qui se mesurent seuls). À valider : les
+faits groupés par source, en lignes ; chaque ligne porte le type en petites
+capitales colorées (décision menthe, information craie, engagement ambre,
+savoir bleu), le résumé, la phrase de la source en retrait, les fiches en
+puces ; trois gestes à droite : rejeter (croix), Corriger, Valider (menthe).
+Un fait non validé ne se présente jamais comme acquis. L'onglet Historique
+d'une fiche (étape Analyse d'un dossier, fiche d'un agent) reprend la même
+frise, chaque fait cliquable vers sa source. Le tableau de bord n'en montre
+qu'une ligne : « X éléments à valider au Cerveau ».
+
 ### L'éditeur de projet avec AK (14 oct. 2026)
 
 Décision prise avec Jules : l'édition d'un projet existant reprend l'écran de

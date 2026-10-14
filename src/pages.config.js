@@ -89,6 +89,7 @@ const Prospection = lazy(() => import('./pages/Prospection'));
 const Relances = lazy(() => import('./pages/Relances'));
 const OffMarket = lazy(() => import('./pages/OffMarket'));
 const Outils = lazy(() => import('./pages/Outils'));
+const Cerveau = lazy(() => import('./pages/Cerveau'));
 const KData = lazy(() => import('./pages/KData'));
 const KZoning = lazy(() => import('./pages/KZoning'));
 const KExpertise = lazy(() => import('./pages/KExpertise'));
@@ -148,6 +149,7 @@ export const PAGES = {
     "Relances": Relances,
     "OffMarket": OffMarket,
     "Outils": Outils,
+    "Cerveau": Cerveau,
     "KData": KData,
     "KZoning": KZoning,
     "KExpertise": KExpertise,

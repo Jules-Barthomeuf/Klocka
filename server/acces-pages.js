@@ -16,6 +16,8 @@ export const estSuperAdmin = (u) => !!u && SUPER_ADMINS.includes(norm(u.email));
 
 /** Les API qu'une page possède en propre : fermer la page les ferme aussi. */
 export const API_DES_PAGES = {
+  // Le Cerveau (14 oct. 2026) : la mémoire de l'équipe ; fermé avec sa page.
+  Cerveau: ['/api/cerveau'],
   Prospection: ['/api/prospection'],
   // Relances (7 oct. 2026) : sa page et le mode appel, qu'elle partage avec la Prospection.
   Relances: ['/api/prospection/relances', '/api/prospection/mode-appel', '/api/prospection/rappels'],

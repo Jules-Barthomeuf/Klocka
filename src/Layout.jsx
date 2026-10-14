@@ -373,6 +373,15 @@ function LayoutContent({ children, currentPageName }) {
     staleTime: 60 * 1000,
   });
   const alxAFaire = vueAdmin ? alx?.a_faire?.a_appeler || 0 : 0;
+  // Le Cerveau : les faits qui attendent la validation, en pastille.
+  const { data: cerveau } = useQuery({
+    queryKey: ["cerveau", "etat"],
+    queryFn: () => base44.request("GET", "/api/cerveau/etat"),
+    enabled: vueAdmin,
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+  });
+  const cerveauAValider = vueAdmin ? cerveau?.a_valider || 0 : 0;
   // Les messages des mandataires qui attendent une réponse, et de l'autre
   // côté ceux de Klocka que le mandataire n'a pas lus.
   const { data: conversations } = useQuery({
@@ -477,6 +486,7 @@ function LayoutContent({ children, currentPageName }) {
     Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Outils: { to: createPageUrl("Outils"), icon: Wrench, actif: isActivePage("Outils") },
+    Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: cerveauAValider || null, badgeColor: "bg-rail-actif text-craie" },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
     Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") },

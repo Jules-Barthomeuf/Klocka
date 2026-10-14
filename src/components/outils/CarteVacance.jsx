@@ -164,9 +164,10 @@ function Fiche({ l }) {
  */
 export default function CarteVacance({ point, rayonM, locaux = [], choisi, onChoisir, survol, onSurvol, cible }) {
   // Le plan Google Maps en clair (13 oct. 2026, Jules), l'IGN en repli s'il ne répond pas.
-  const { fond, surErreur } = useFondDeCarte({ google: true });
+  // Toujours en clair (14 oct. 2026, Jules : « la carte Google Maps, pas l'autre design en sombre ») : le repli aussi.
+  const { fond, surErreur, raison } = useFondDeCarte({ google: true });
   return (
-    <div className={`k-carte-rues k-vacance absolute inset-0 ${fond.google ? "k-carte-google" : ""}`}>
+    <div className={`k-carte-rues k-vacance k-carte-claire absolute inset-0 ${fond.google ? "k-carte-google" : ""}`}>
       <MapContainer center={FRANCE.centre} zoom={FRANCE.zoom} zoomControl className="h-full w-full" attributionControl={false} preferCanvas>
         <TileLayer key={fond.cle} url={fond.url} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
         <Cadrage point={point} rayonM={rayonM} />
@@ -184,6 +185,11 @@ export default function CarteVacance({ point, rayonM, locaux = [], choisi, onCho
           </Popup>
         )}
       </MapContainer>
+      {raison && !fond.google && (
+        <p className="pointer-events-none absolute right-3 top-3 z-[400] m-0 max-w-[420px] rounded-[10px] border border-bord bg-surface-pleine px-3 py-2 text-[12px] text-ambre">
+          Fond Google Maps indisponible, plan {fond.nom} à la place. {raison}
+        </p>
+      )}
       <div className="pointer-events-none absolute bottom-3 left-3 z-[400] rounded-[10px] border border-bord bg-surface px-3 py-2 text-[11px] text-craie backdrop-blur">
         <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: JL["menthe-fonce"] }} />Moins de 12 mois</span>
         <span className="ml-3 inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: JL["menthe-clair"] }} />Plus ancien</span>

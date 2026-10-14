@@ -33,6 +33,29 @@ async function jeton() {
   return enCours;
 }
 
+/**
+ * Le fond Google répond-il, et sinon pourquoi (14 oct. 2026) : en ligne, la
+ * carte des signaux restait blanche sans rien dire. Une tuile d'essai, et la
+ * réponse gardée dix minutes. La carte bascule aussitôt sur un fond clair et
+ * affiche la raison, au lieu d'attendre trente tuiles refusées.
+ */
+let etatGarde = null; // { le, disponible, raison }
+export async function etatTuiles() {
+  if (etatGarde && Date.now() - etatGarde.le < 10 * 60000) return { disponible: etatGarde.disponible, raison: etatGarde.raison };
+  let disponible = false; let raison = null;
+  if (!cle()) raison = "La clé GOOGLE_MAPS_SERVEUR n'est pas posée sur ce serveur.";
+  else {
+    try {
+      const r = await tuileUneFois(0, 0, 0);
+      disponible = r.ok;
+      if (!r.ok) raison = `Google refuse les tuiles (réponse ${r.statut}) : vérifiez que la Map Tiles API est activée pour la clé GOOGLE_MAPS_SERVEUR.`;
+    } catch (e) { raison = String(e?.message || e).slice(0, 240); }
+  }
+  if (!disponible) console.warn(`[tuiles-google] indisponible : ${raison}`);
+  etatGarde = { le: Date.now(), disponible, raison };
+  return { disponible, raison };
+}
+
 /** Une tuile : { ok, contenu, type, cache } ou { ok: false, statut }. Une panne passagère se réessaie une fois. */
 export async function tuile(z, x, y) {
   try { return await tuileUneFois(z, x, y); } catch {

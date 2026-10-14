@@ -32,6 +32,10 @@ export function monterPresentations(app) {
   }));
 
   // Le fond Google Maps des cartes (13 oct. 2026) : les tuiles par le serveur, la clé reste chez lui.
+  app.get('/api/tuiles-google/etat', wrap(async (req, res) => {
+    if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
+    ok(res, await (await import('../tuiles-google.js')).etatTuiles());
+  }));
   app.get('/api/tuiles-google/:z/:x/:y', wrap(async (req, res) => {
     if (!currentUser(req)) return res.status(401).json({ error: 'Not authenticated' });
     const r = await (await import('../tuiles-google.js')).tuile(req.params.z, req.params.x, String(req.params.y).replace(/\.png$/, ''));

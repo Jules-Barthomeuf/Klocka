@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { base44 } from "@/api/base44Client";
 
 // Le fond de carte, et pourquoi ce n'est plus OpenStreetMap.
 //
@@ -79,6 +80,16 @@ export function useFondDeCarte({ google = false } = {}) {
   const liste = useMemo(() => (google ? [FOND_GOOGLE, ...FONDS] : FONDS), [google]);
   const [rang, setRang] = useState(0);
   const [erreurs, setErreurs] = useState(0);
+  // Le serveur dit d'emblée si Google répond (14 oct. 2026) : sinon on passe au fond suivant tout de suite, avec la raison.
+  const [raison, setRaison] = useState(null);
+  useEffect(() => {
+    if (!google) return undefined;
+    let vivant = true;
+    base44.request("GET", "/api/tuiles-google/etat")
+      .then((e) => { if (vivant && !e?.disponible) { setRaison(e?.raison || "Le fond Google Maps ne répond pas."); setRang((r) => (r === 0 ? 1 : r)); } })
+      .catch(() => {});
+    return () => { vivant = false; };
+  }, [google]);
 
   const surErreur = useCallback(() => {
     setErreurs((n) => {
@@ -90,5 +101,5 @@ export function useFondDeCarte({ google = false } = {}) {
   }, [liste, rang]);
 
   const fond = useMemo(() => liste[Math.min(rang, liste.length - 1)], [rang, liste]);
-  return { fond, surErreur, replis: rang };
+  return { fond, surErreur, replis: rang, raison };
 }

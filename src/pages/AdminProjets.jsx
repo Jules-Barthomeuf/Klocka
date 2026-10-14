@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, X as Fermer } from "lucide-react";
+import { Search, Building2, Plus, Upload, X, CheckCircle2, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, X as Fermer, Grip, History, UserPlus, PanelRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
@@ -38,6 +38,7 @@ import ProjetContent from "../components/projet/ProjetContent";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import FicheSource from "@/components/presentations/FicheSource";
+import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 
 import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
@@ -110,6 +111,14 @@ export default function AdminProjets() {
     return () => { document.body.style.overflow = avant; };
   }, [telephone, isDialogOpen]);
   const [photosOuvertes, setPhotosOuvertes] = useState(false);
+  // Les photos se réorganisent dans la fenêtre, puis s'enregistrent d'un clic (14 oct. 2026, Jules).
+  const [photosBrouillon, setPhotosBrouillon] = useState([]);
+  // Le menu à neuf points (assigner, les champs, les versions) et l'historique des versions.
+  const [menuProjet, setMenuProjet] = useState(false);
+  const zoneMenuProjet = useFermerAuClicAilleurs(menuProjet, () => setMenuProjet(false));
+  const [versionsOuvertes, setVersionsOuvertes] = useState(false);
+  const [versions, setVersions] = useState(null);
+  const [enregistrement, setEnregistrement] = useState(false);
   const [ongletPage, setOngletPage] = useState("marche");
   // Historique des modifications faites sur la page, pour le retour en arrière.
   const [historique, setHistorique] = useState([]);
@@ -1077,6 +1086,33 @@ export default function AdminProjets() {
   // s'enregistre seule, une seconde après, et n'envoie que les champs qui ont
   // changé. Le projet entier n'est plus renvoyé : ce qu'AK vient d'écrire reste.
   const scindeProjet = ecranLarge && !telephone && isDialogOpen && !!editingProject?.id;
+  // Envoie ce qui a changé depuis le dernier envoi. Rend false si l'envoi a échoué.
+  const envoyerRef = useRef(null);
+  envoyerRef.current = async () => {
+    const id = editingProject?.id;
+    if (!id || !formData.titre) return false;
+    let donnees;
+    try { donnees = construireDonnees(formData); } catch { return false; }
+    const avant = dernierEnvoye.current?.id === id ? dernierEnvoye.current.valeurs || {} : {};
+    const champs = {};
+    for (const [k, v] of Object.entries(donnees)) {
+      if (["id", "created_date", "updated_date", "created_by", "sources_champs", "journal_champs"].includes(k)) continue;
+      if (JSON.stringify(v ?? null) !== JSON.stringify(avant[k] ?? null)) champs[k] = v ?? null;
+    }
+    if (!Object.keys(champs).length) { setModifieDepuis(false); return true; }
+    try {
+      const r = await base44.request("PATCH", `/api/projets/${id}/champs`, { body: { champs, editeur: true } });
+      dernierEnvoye.current = { id, valeurs: { ...avant, ...JSON.parse(JSON.stringify(champs)) } };
+      setEditingProject((p) => (p?.id === id ? { ...p, ...champs, sources_champs: r?.projet?.sources_champs ?? p.sources_champs } : p));
+      setModifieDepuis(false);
+      setEnregistreLe(new Date());
+      queryClient.invalidateQueries({ queryKey: ["all-projects"] });
+      return true;
+    } catch (e) {
+      toast.error("La retouche n'a pas été enregistrée", { description: e?.message || "Réessayez dans un instant." });
+      return false;
+    }
+  };
   useEffect(() => {
     const id = editingProject?.id;
     if (!isDialogOpen || !id) return undefined;
@@ -1084,27 +1120,49 @@ export default function AdminProjets() {
     try { donnees = construireDonnees(formData); } catch { return undefined; }
     if (dernierEnvoye.current?.id !== id) { dernierEnvoye.current = { id, valeurs: JSON.parse(JSON.stringify(donnees)) }; return undefined; }
     if (!modifieDepuis || travailAK.enCours || !formData.titre) return undefined;
-    const t = setTimeout(async () => {
-      const avant = dernierEnvoye.current?.valeurs || {};
-      const champs = {};
-      for (const [k, v] of Object.entries(donnees)) {
-        if (["id", "created_date", "updated_date", "created_by", "sources_champs"].includes(k)) continue;
-        if (JSON.stringify(v ?? null) !== JSON.stringify(avant[k] ?? null)) champs[k] = v ?? null;
-      }
-      if (!Object.keys(champs).length) { setModifieDepuis(false); return; }
-      try {
-        const r = await base44.request("PATCH", `/api/projets/${id}/champs`, { body: { champs, editeur: true } });
-        dernierEnvoye.current = { id, valeurs: { ...avant, ...JSON.parse(JSON.stringify(champs)) } };
-        setEditingProject((p) => (p?.id === id ? { ...p, ...champs, sources_champs: r?.projet?.sources_champs ?? p.sources_champs } : p));
-        setModifieDepuis(false);
-        setEnregistreLe(new Date());
-        queryClient.invalidateQueries({ queryKey: ["all-projects"] });
-      } catch (e) {
-        toast.error("La retouche n'a pas été enregistrée", { description: e?.message || "Réessayez dans un instant." });
-      }
-    }, 900);
+    const t = setTimeout(() => { envoyerRef.current?.(); }, 900);
     return () => clearTimeout(t);
   }, [formData, travauxList, modifieDepuis, isDialogOpen, editingProject?.id, travailAK.enCours]);
+
+  // Le bouton Enregistrer : ce qui attend part tout de suite, puis une version de la fiche entière se pose.
+  const enregistrerVersion = async () => {
+    const id = editingProject?.id;
+    if (!id || enregistrement) return;
+    setEnregistrement(true);
+    try {
+      if (!(await envoyerRef.current?.())) return;
+      await base44.request("POST", `/api/projets/${id}/versions`, { body: {} });
+      setVersions(null);
+      toast.success("Version enregistrée", { duration: 1800 });
+    } catch (e) {
+      toast.error("La version n'a pas été enregistrée", { description: e?.message || "" });
+    } finally {
+      setEnregistrement(false);
+    }
+  };
+  const ouvrirVersions = async () => {
+    setMenuProjet(false);
+    setVersionsOuvertes(true);
+    try { setVersions((await base44.request("GET", `/api/projets/${editingProject.id}/versions`)).versions || []); } catch { setVersions([]); }
+  };
+  const restaurer = async (v) => {
+    try {
+      await envoyerRef.current?.();
+      const r = await base44.request("POST", `/api/projets/${editingProject.id}/versions/${v.id}/restaurer`, { body: {} });
+      if (!r?.projet) return;
+      // La fiche entière change : le formulaire repart de la version, et le prochain envoi aussi.
+      dernierEnvoye.current = null;
+      setHistorique([]);
+      setRefaits([]);
+      handleEdit(r.projet);
+      setVersionsOuvertes(false);
+      setVersions(null);
+      queryClient.invalidateQueries({ queryKey: ["all-projects"] });
+      toast.success("Version restaurée", { description: "L'état d'avant est gardé dans l'historique, en « Avant restauration »." });
+    } catch (e) {
+      toast.error("Restauration impossible", { description: e?.message || "" });
+    }
+  };
 
   // Pendant qu'AK travaille, ses étapes à la place de la page ; le projet tel qu'il
   // l'a trouvé est gardé, pour qu'Annuler (⌘Z) revienne sur tout son geste.
@@ -1185,6 +1243,8 @@ export default function AdminProjets() {
   useEffect(() => {
     if (!isDialogOpen) return undefined;
     const clavier = (e) => {
+      // ⌘S : Enregistrer, comme le bouton (une version se pose).
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s" && editingProject?.id) { e.preventDefault(); enregistrerVersion(); return; }
       const el = document.activeElement;
       if (el?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el?.tagName)) return;
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
@@ -1326,12 +1386,29 @@ export default function AdminProjets() {
           <button type="button" onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")} aria-label="Ouvrir la page du client" title="Ouvrir la page telle que le client la verra" className={ICONE} style={{ background: "transparent" }}><Eye className="h-4 w-4" /></button>
         </div>
         <div className="flex flex-none items-center gap-1.5">
-          <button type="button" onClick={() => setAssignerOuvert(true)}
-            className="inline-flex h-9 items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Assigner</button>
-          <button type="button" onClick={() => setChampsOuverts((x) => !x)} aria-pressed={champsOuverts}
-            className={`inline-flex h-9 items-center rounded-full px-3.5 text-[13px] transition-colors ${champsOuverts ? "bg-encre text-fond" : "bg-menthe text-sur-menthe hover:bg-menthe-survol"}`}>
-            {champsOuverts ? "Masquer les champs" : "Tous les champs"}
+          <button type="button" onClick={enregistrerVersion} disabled={enregistrement} title="Enregistre maintenant et garde une version (l'éditeur enregistre aussi seul, en continu)"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
+            {enregistrement && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Enregistrer
           </button>
+          <div ref={zoneMenuProjet} className="relative">
+            <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Assigner, les champs, les versions"
+              className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${menuProjet ? "bg-relief text-encre" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={menuProjet ? undefined : { background: "transparent" }}>
+              <Grip className="h-4 w-4" />
+            </button>
+            {menuProjet && (
+              <div className="absolute right-0 top-11 z-30 min-w-[230px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+                {[
+                  [UserPlus, "Assigner à un client", () => { setMenuProjet(false); setAssignerOuvert(true); }],
+                  [PanelRight, champsOuverts ? "Masquer les champs" : "Voir tous les champs", () => { setMenuProjet(false); setChampsOuverts((x) => !x); }],
+                  [History, "Historique des versions", ouvrirVersions],
+                ].map(([Icone, mot, faire]) => (
+                  <button key={mot} type="button" onClick={faire} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-encre hover:bg-encre/[0.04]" style={{ background: "transparent" }}>
+                    <Icone className="h-3.5 w-3.5 text-ardoise" />{mot}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button type="button" onClick={goToProjectsList} aria-label="Fermer le projet" title="Retour aux projets"
             className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
             <Fermer className="h-4 w-4" />
@@ -1470,7 +1547,7 @@ export default function AdminProjets() {
               sources={vueProjet === "sources" ? sourcesProjet || {} : null}
               onSource={vueProjet === "sources" ? surSourceProjet : null}
               ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
-              onPhotos={() => setPhotosOuvertes(true)}
+              onPhotos={() => { setPhotosBrouillon([...(formData.photos || [])]); setPhotosOuvertes(true); }}
               editeurDocuments={!champsOuverts && vueProjet === "edition" && (
                 <div className="k-sobre mb-6 rounded-[16px] border border-trait bg-rail p-4" onInput={() => setModifieDepuis(true)}>
                   <ProjectFormDocumentsTab formData={formData} setFormData={setFormData} />
@@ -1492,9 +1569,51 @@ export default function AdminProjets() {
 
         {/* Les photos, depuis le bouton du hero. */}
         <Dialog open={photosOuvertes} onOpenChange={setPhotosOuvertes}>
-          <DialogContent className="max-w-[860px] max-h-[86vh] overflow-y-auto border-bord-vif bg-fond">
-            <DialogHeader><DialogTitle>Photos du projet</DialogTitle></DialogHeader>
-            <div className="k-sobre" onInput={() => setModifieDepuis(true)}><ProjectFormImagesTab formData={formData} setFormData={setFormData} /></div>
+          <DialogContent className="flex max-h-[86vh] max-w-[860px] flex-col border-bord-vif bg-fond">
+            <DialogHeader>
+              <DialogTitle>Photos du projet</DialogTitle>
+              <p className="m-0 text-[13px] text-ardoise">Glissez une photo pour la déplacer : la première est celle du haut de la page.</p>
+            </DialogHeader>
+            <div className="k-sobre min-h-0 flex-1 overflow-y-auto">
+              <ProjectFormImagesTab formData={{ photos: photosBrouillon }}
+                setFormData={(x) => setPhotosBrouillon((b) => (typeof x === "function" ? x({ photos: b }) : x).photos || [])} />
+            </div>
+            <div className="flex flex-none items-center justify-end gap-2 border-t border-trait pt-4">
+              <button type="button" onClick={() => setPhotosOuvertes(false)} className="inline-flex h-9 items-center rounded-full border border-bord-doux px-4 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+              <button type="button" onClick={() => { modifierChamp("photos", photosBrouillon, true); setPhotosOuvertes(false); toast.success("Photos enregistrées", { duration: 1800 }); }}
+                disabled={JSON.stringify(photosBrouillon) === JSON.stringify(formData.photos || [])}
+                className="inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Enregistrer</button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* L'historique des versions : chaque Enregistrer en pose une ; une restauration garde l'état qu'elle remplace. */}
+        <Dialog open={versionsOuvertes} onOpenChange={setVersionsOuvertes}>
+          <DialogContent className="flex max-h-[80vh] max-w-[560px] flex-col border-bord-vif bg-fond">
+            <DialogHeader>
+              <DialogTitle>Historique des versions</DialogTitle>
+              <p className="m-0 text-[13px] text-ardoise">Une version se pose à chaque clic sur Enregistrer. Entre deux, l'éditeur enregistre seul, champ par champ.</p>
+            </DialogHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {versions == null ? (
+                <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+              ) : !versions.length ? (
+                <p className="m-0 py-10 text-center text-[13.5px] text-brume">Aucune version encore : cliquez sur Enregistrer pour en poser une.</p>
+              ) : (
+                <div className="border-y border-trait">
+                  {versions.map((v) => (
+                    <div key={v.id} className="flex items-center gap-4 border-t border-trait py-3 first:border-t-0">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] text-encre">{new Date(v.le).toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}</span>
+                        <span className="mt-0.5 block truncate text-[12.5px] text-ardoise">{[v.nom, v.par ? String(v.par).split("@")[0] : null].filter(Boolean).join(" · ")}</span>
+                      </span>
+                      <button type="button" onClick={() => { if (window.confirm("Remettre le projet dans cet état ? L'état actuel reste dans l'historique.")) restaurer(v); }}
+                        className="inline-flex h-8 flex-none items-center rounded-full border border-bord-doux px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Restaurer</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
 

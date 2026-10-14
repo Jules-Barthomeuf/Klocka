@@ -161,6 +161,26 @@ export function monterMarche(app) {
     ok(res, { projet: r.projet, faits: r.faits });
   }));
 
+  // Les versions d'un projet (14 oct. 2026) : le bouton Enregistrer en pose une ; on les liste et on en restaure une.
+  app.get('/api/projets/:id/versions', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    ok(res, { versions: (await import('../projet-versions.js')).versionsDu(req.params.id) });
+  }));
+  app.post('/api/projets/:id/versions', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const r = (await import('../projet-versions.js')).creerVersion(req.params.id, { par: user.email, nom: req.body?.nom || null });
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/projets/:id/versions/:version/restaurer', wrap(async (req, res) => {
+    const user = currentUser(req);
+    if (user?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });
+    const r = (await import('../projet-versions.js')).restaurerVersion(req.params.id, req.params.version, { par: user.email });
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Le mode Sources de l'éditeur : d'où vient chaque chiffre de la page.
   app.get('/api/projets/:id/sources', wrap(async (req, res) => {
     if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé à l\'équipe.' });

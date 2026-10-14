@@ -536,11 +536,17 @@ Présentations, à l'identique. Le chat d'AK est à gauche, avec une poignée de
 largeur (`klocka.projets.largeur-chat`). À droite, le projet est dans sa carte
 `bg-rail`, avec la barre `k-barre-apercu` : le titre et « Enregistré
 automatiquement », la pilule Édition / Lecture / Sources, Annuler / Rétablir,
-« Tous les champs ».
+Enregistrer et le menu à neuf points.
 - Les anciens onglets de champs deviennent ce tiroir « Tous les champs », à
   droite de la page.
-- Plus de bouton Enregistrer : chaque retouche s'enregistre seule, champ par
-  champ, une seconde après. Le bouton ne reste qu'à la création.
+- Chaque retouche s'enregistre seule, champ par champ, une seconde après. Le
+  bouton Enregistrer (et ⌘S) envoie tout de suite et pose une version de la
+  fiche entière ; « Historique des versions » les liste et en restaure une,
+  l'état remplacé gardé en « Avant restauration » (14 oct. 2026).
+- À droite d'Enregistrer, le menu à neuf points (`Grip`) : Assigner à un
+  client, Voir tous les champs, Historique des versions.
+- Photos (bouton du haut, en édition) : une fenêtre où l'on glisse les photos
+  pour les réordonner, puis Enregistrer ; Annuler ne garde rien.
 - ⌘Z annule aussi un geste d'AK en entier.
 - AK peut changer tout chiffre, mais avec sa source et sa raison, que le mode
   Sources montre au survol (la fiche de Présentations). Un chiffre sans source

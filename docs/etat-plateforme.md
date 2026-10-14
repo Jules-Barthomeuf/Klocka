@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-16 personnes, 3 364 pages ouvertes, 3 demandes à l'assistant, 126 actions exécutées.
+16 personnes, 3 349 pages ouvertes, 3 demandes à l'assistant, 126 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 288 | 3 | 36 | 14/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 273 | 3 | 36 | 14/10/2026 |
 | admin@klocka.local (équipe) | 487 | 0 | 0 | 11/10/2026 |
 | jules.btmf@gmail.com (équipe) | 281 | 0 | 0 | 21/09/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
@@ -27,9 +27,9 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 541 (16 %)
+- **Analyse** — 536 (16 %)
 - **Dashboard** — 365 (11 %)
-- **ALX** — 292 (9 %)
+- **ALX** — 287 (9 %)
 - **AdminProjets** — 283 (8 %)
 - **Prospection** — 169 (5 %)
 - **Emailing** — 139 (4 %)
@@ -39,7 +39,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **KZoning** — 82 (2 %)
 - **KData** — 78 (2 %)
 - **MandataireEstimation** — 77 (2 %)
-- Le reste, sous 2 % : MandataireDossier, KExpertise, Monitoring, Outils, SimulateurRentabilite, AdminPresentations, MandataireMandat, AdminMandataires, Home, ALXCible, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, Relances, AdminSuggestions, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, MesPresentations, FichesCommerciales, ValeurLocative, ALXEntrainement, ALXAtelier, KProspective, ALXBilan, SuiviAppels, CoutsIA, MonAssistant, MandataireMarche, Vision, MonCompte, KTransactions, Ressources, MandataireProjets, Feedback, analyse, SuiviMandataires, ALXVilles, AdminEquipe, Comparateur, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
+- Le reste, sous 2 % : MandataireDossier, KExpertise, Monitoring, Outils, SimulateurRentabilite, AdminPresentations, MandataireMandat, AdminMandataires, Home, ALXCible, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, Relances, AdminSuggestions, MandataireOffMarket, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, MesPresentations, FichesCommerciales, ValeurLocative, ALXEntrainement, ALXAtelier, KProspective, ALXBilan, SuiviAppels, CoutsIA, MonAssistant, MandataireMarche, Vision, KTransactions, Ressources, MandataireProjets, analyse, SuiviMandataires, Feedback, MonCompte, ALXVilles, AdminEquipe, Comparateur, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, ImportProjets, Banque, AdminPortail, AdminRessources
 
 ## Ce que l'IA coûte
 

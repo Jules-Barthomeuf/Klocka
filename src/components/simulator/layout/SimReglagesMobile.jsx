@@ -25,10 +25,10 @@ export default function SimReglagesMobile({ children }) {
         <button
           type="button"
           onClick={() => setOuvert(true)}
-          className="md:hidden fixed left-1/2 z-40 -translate-x-1/2 inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe shadow-[0_18px_40px_rgb(0_0_0/0.18)] hover:bg-menthe-survol"
+          className="md:hidden fixed left-1/2 z-40 -translate-x-1/2 inline-flex h-11 items-center gap-2 whitespace-nowrap rounded-full bg-menthe px-5 text-[14px] text-sur-menthe shadow-[0_18px_40px_rgb(0_0_0/0.18)] hover:bg-menthe-survol"
           style={{ bottom: "calc(16px + env(safe-area-inset-bottom))" }}
         >
-          <SlidersHorizontal className="h-4 w-4" /> Réglages
+          <SlidersHorizontal className="h-4 w-4" /> Modifier les paramètres principaux
         </button>
       )}
       {ouvert && (

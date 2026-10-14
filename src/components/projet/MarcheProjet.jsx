@@ -35,7 +35,9 @@ const pourcent = (v, decimales = 1) => (v == null ? null : `${v > 0 ? "+" : ""}$
  * série année par année : entre deux points connus, la courbe suit un taux
  * constant. Chaque point porte le prix et l'écart, en %, au premier point.
  */
-export function serieResidentielle({ prix, evo1 = null, evo5 = null, annee = new Date().getFullYear() }) {
+// La courbe s'arrête à la dernière année pleine (14 oct. 2026, Jules : « je ne veux pas prendre 2026 ») :
+// le prix du jour y est posé, l'année en cours n'étant pas finie.
+export function serieResidentielle({ prix, evo1 = null, evo5 = null, annee = new Date().getFullYear() - 1 }) {
   if (!(prix > 0)) return [];
   // Les points connus, par année : aujourd'hui, il y a un an, il y a cinq ans.
   const connus = new Map([[annee, prix]]);

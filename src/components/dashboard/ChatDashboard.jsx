@@ -945,7 +945,7 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1822,8 +1822,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       >
         {/* À côté d'un aperçu, la barre du haut est la même des deux côtés : fond et hauteur. */}
         <div className={`flex flex-none items-center gap-3 border-b border-trait ${sansBarreHaut ? "hidden" : ""} ${barreApercu ? "k-barre-apercu -mx-5 h-14 px-5" : "py-3"}`}>
-          <button type="button" onClick={nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
-            <ChevronLeft className="h-4 w-4" /> Dashboard
+          {/* `retour` (14 oct. 2026, éditeur de projet) : « Retour » ramène à la page d'où l'on vient, au lieu de vider le chat. */}
+          <button type="button" onClick={retour ? retour.onClick : nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : "Dashboard"}
           </button>
           {/* À côté d'un aperçu, pas de titre : il collait à « Dashboard » (3 oct. 2026). */}
           {barreApercu ? <span className="flex-1" /> : titreEdite != null ? (

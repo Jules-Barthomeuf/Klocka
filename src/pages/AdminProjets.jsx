@@ -1727,7 +1727,8 @@ export default function AdminProjets() {
           <div className="k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5">
             {/* Le chat s'ouvre en fil (14 oct. 2026, Jules) : Dashboard et Historique en haut, la saisie en bas. */}
             <ChatDashboard espace="projet" onReponse={surReponseAK} onTravail={setTravailAK}
-              barreApercu filVide="Par où commence-t-on ?" contexte={{ projet_id: editingProject.id }} lireEcran={lireEcran} />
+              barreApercu filVide="Par où commence-t-on ?" contexte={{ projet_id: editingProject.id }} lireEcran={lireEcran}
+              retour={{ libelle: "Retour", onClick: () => { envoyerRef.current?.(); setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); } }} />
           </div>
           {/* Le projet, un écran dans l'écran : une carte posée sur le fond, à côté du chat. */}
           <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">

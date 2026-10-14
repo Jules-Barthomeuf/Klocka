@@ -496,7 +496,7 @@ export default function SimulateurRentabilite() {
         </div>
       )}
 
-      <div className={`flex flex-col min-h-screen pt-10 md:pt-14 ${isEtape2 ? 'blur-md' : ''}`}>
+      <div className={`flex flex-col min-h-screen pt-3 md:pt-14 ${isEtape2 ? 'blur-md' : ''}`}>
         <div className="flex flex-1 min-h-0">
           {/* Left control rail */}
           <aside className="hidden md:block w-[260px] flex-shrink-0">
@@ -507,7 +507,7 @@ export default function SimulateurRentabilite() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 max-md:top-[var(--k-haut-mobile,3.5rem)] z-10 max-md:bg-fond/90 max-md:backdrop-blur-xl max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 max-md:static z-10 max-md:bg-fond/90 max-md:backdrop-blur-xl max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-2 min-w-0">
               {/* Venu d'un projet (« Simulateur complet ») : la flèche y ramène.
                   L'historique d'abord, pour retrouver la page telle qu'on l'a
@@ -539,7 +539,8 @@ export default function SimulateurRentabilite() {
                 })}
               </div>
               </div>
-              <div className="flex items-center gap-2">
+              {/* Au téléphone, ni Excel, ni Partager, ni Reset (14 oct. 2026, Jules) : les réglages se font par la pilule du bas. */}
+              <div className="flex items-center gap-2 max-md:hidden">
                 <ExportExcelFullButton params={{ surface, loyerInitialHTHC, loyerSoumisTVA, tauxTVA, chargesCoproRefacturables, chargesCopropriete, taxeFonciereRefacturable, taxeFonciere, loyerRevalorise, anneeRevalorisation, revalorisationActive, gestionLocative, comptabilite, chargesDiverses, assurancePNE, fraisDossierBancaire, fraisCourtage, coutCreationSociete, vacancesLocatives, travauxBailleur, prixBienFAI, prixBienNegocie, tauxCommissionAgent, commissionAgentType, commissionAgentInclusFAI, tauxDroitsEnregistrement, tauxFeesKlocka, feesKlockaType, tauxIncentiveKlocka, apport, dureeCredit, tauxInteret, tauxAssuranceCredit, renegociationActive, anneeRenegociation, nouveauTauxRenegociation, iraRenegociation, indexation, anneeRevente, tauxCommissionAgentRevente, rendementBrutAcheteur, commissionAgentActive: selectedProject?.sim_commission_agent_active || false }} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 {isAdmin && (
                   <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">

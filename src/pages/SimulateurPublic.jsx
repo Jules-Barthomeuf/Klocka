@@ -440,11 +440,14 @@ export default function SimulateurPublic() {
               </div>
               <div className="flex items-center gap-2">
                 <RendezVousFondateur visite={visite} qui={qui} />
+                {/* Au téléphone, ni Excel ni Partager (14 oct. 2026, Jules) : le rendez-vous reste. */}
+                <span className="contents max-md:hidden">
                 <ExportExcelFullButton params={exportParams} calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} />
                 <button onClick={handleCopyShareLink} className="flex items-center gap-1.5 px-3 h-8 rounded-full border border-bord text-craie hover:text-encre hover:border-encre/[0.25] text-xs transition-colors">
                   {linkCopied ? <Check className="w-3.5 h-3.5 text-menthe-clair" /> : <Link2 className="w-3.5 h-3.5" />}
                   {linkCopied ? 'Copié' : 'Partager'}
                 </button>
+                </span>
               </div>
             </div>
 

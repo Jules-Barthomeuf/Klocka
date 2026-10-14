@@ -557,11 +557,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
               <Bloc id="copro-chiffres" titre="Chiffres de la copropriété">
               <KpiStrip items={[
-                project.quote_part_lot > 0 && { value: `${project.quote_part_lot} %`, label: 'Quote-part du lot', champ: 'quote_part_lot' },
-                project.charges_copropriete > 0 && { value: `${fmtNum(project.charges_copropriete)} €`, label: 'Charges annuelles', champ: 'charges_copropriete' },
-                project.provision_charges > 0 && { value: `${fmtNum(project.provision_charges)} €`, label: 'Provision pour charges', champ: 'provision_charges' },
-                project.taxe_fonciere_an > 0 && { value: `${fmtNum(project.taxe_fonciere_an)} €`, label: 'Taxe foncière /an', accent: 'text-menthe', champ: 'taxe_fonciere_an' },
-                project.type_construction && { value: project.type_construction, label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
+                // En édition, chaque case est là même vide, pour être remplie (14 oct. 2026, Jules : « chaque chiffre modifiable »).
+                (modeEdition || project.quote_part_lot > 0) && { value: project.quote_part_lot > 0 ? `${project.quote_part_lot} %` : '—', label: 'Quote-part du lot', champ: 'quote_part_lot' },
+                (modeEdition || project.charges_copropriete > 0) && { value: project.charges_copropriete > 0 ? `${fmtNum(project.charges_copropriete)} €` : '—', label: 'Charges annuelles', champ: 'charges_copropriete' },
+                (modeEdition || project.provision_charges > 0) && { value: project.provision_charges > 0 ? `${fmtNum(project.provision_charges)} €` : '—', label: 'Provision pour charges', champ: 'provision_charges' },
+                (modeEdition || project.taxe_fonciere_an > 0) && { value: project.taxe_fonciere_an > 0 ? `${fmtNum(project.taxe_fonciere_an)} €` : '—', label: 'Taxe foncière /an', accent: 'text-menthe', champ: 'taxe_fonciere_an' },
+                (modeEdition || project.type_construction) && { value: project.type_construction || '—', label: 'Type de construction', champ: 'type_construction', typeChamp: 'text' },
               ]} />
               </Bloc>
 

@@ -134,11 +134,13 @@ function Habitants({ habitants, agglomeration, contexte }) {
 function Revenus({ revenu, nomVille, reference }) {
   // Un projet neuf, en édition : la carte vide, des tirets, aucun écart inventé.
   const ecart = revenu > 0 ? ((revenu / reference) - 1) * 100 : null;
+  const vf = useEdition()?.valeurs;
   const plafond = Math.max(revenu, reference);
   const arrondi = Math.round(revenu / 100) * 100;
   return (
     <CarteMarche id="marche-revenus" titre="Revenus" className="flex-[1_1_300px]">
-      <EnTeteCarte libelle="Revenus" precision={ecart != null ? `${pourcent(ecart)} vs. France` : "vs. France"} />
+      {/* L'écart se force aussi (14 oct. 2026, Jules : « chaque chiffre modifiable »). */}
+      <EnTeteCarte libelle="Revenus" precision={<><ValeurForcee cle="revenu_ecart" type="text">{forcee(vf, "revenu_ecart") || (ecart != null ? pourcent(ecart) : "—")}</ValeurForcee> vs. France</>} />
       <Grand>{revenu > 0 ? "≈" : ""}<ValeurEditable champ="ville_revenu_median">{revenu > 0 ? `${nf.format(arrondi)} €` : "—"}</ValeurEditable></Grand>
       <div className="mt-6 flex flex-col gap-4">
         <Comparaison libelle={<ValeurEditable champ="ville_secteur_champ1" type="text">{nomVille || "Ville"}</ValeurEditable>} valeur={<ValeurEditable champ="ville_revenu_median">{revenu > 0 ? `${nf.format(arrondi)} €` : "—"}</ValeurEditable>} part={revenu / plafond} accent />
@@ -219,6 +221,7 @@ function Evolution({ serie, nom }) {
 }
 
 function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition = false }) {
+  const vf = useEdition()?.valeurs;
   // Le loyer seul : le prix des murs n'a pas de source fiable à l'échelle
   // d'une rue (6 oct. 2026, demande de Jules). En édition, la carte reste,
   // vide, pour être remplie.
@@ -239,7 +242,7 @@ function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition 
       {ecart != null && (
         <div className="mb-6 flex flex-col gap-1.5">
           <span className="text-[13px] text-ardoise">Écart avec le marché</span>
-          <Grand taille="text-[48px] max-md:text-[38px]" teinte="text-menthe">{pourcent(ecart, 0)}</Grand>
+          <Grand taille="text-[48px] max-md:text-[38px]" teinte="text-menthe"><ValeurForcee cle="commercial_ecart" type="text">{forcee(vf, "commercial_ecart") || pourcent(ecart, 0)}</ValeurForcee></Grand>
         </div>
       )}
       <div className="flex flex-col gap-4">
@@ -249,7 +252,7 @@ function Commercial({ loyerAutour, loyerProjet, nom, equimmox = null, enEdition 
       {difference != null && difference !== 0 && (
         <div className="mt-auto pt-8">
           <div className="border-t border-trait pt-4 text-[13px] text-craie" style={CHIFFRES}>
-            {nf.format(Math.abs(difference))} {c.unite} {difference > 0 ? "sous le" : "au-dessus du"} loyer autour
+            <ValeurForcee cle="commercial_difference" type="text">{forcee(vf, "commercial_difference") || `${nf.format(Math.abs(difference))} ${c.unite} ${difference > 0 ? "sous le" : "au-dessus du"} loyer autour`}</ValeurForcee>
           </div>
         </div>
       )}

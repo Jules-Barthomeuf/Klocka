@@ -492,6 +492,10 @@ export function ResumeBail({ cases, project, onSource }) {
   const annuel = nombreDe(loyer?.valeur);
   const mois = annuel > 0 ? Math.round(annuel / 12) : 0;
   const nbMois = moisDeDepot(nombreDe(depot?.valeur), annuel);
+  // Le loyer mensuel et le dépôt en mois se forcent aussi (14 oct. 2026).
+  const vf = useEdition()?.valeurs || project;
+  const moisForce = forcee(vf, "loyer_mensuel");
+  const depotMoisForce = forcee(vf, "depot_mois");
   if (!loyer?.valeur && !signature?.valeur && !depot?.valeur && !fiscalite.length) return null;
 
   const Titre = ({ children }) => (
@@ -503,7 +507,7 @@ export function ResumeBail({ cases, project, onSource }) {
         <ValeurEditable champ={c ? cheminCase("bail", c.id, "valeur") : null} type="text">{c?.valeur || "—"}</ValeurEditable>
       </div>
       <div className="text-[14px] text-ardoise mt-2">
-        <ValeurEditable champ={c ? cheminCase("bail", c.id, "titre") : null} type="text">{c?.titre || ""}</ValeurEditable>{complement ? ` · ${complement}` : ""}
+        <ValeurEditable champ={c ? cheminCase("bail", c.id, "titre") : null} type="text">{c?.titre || ""}</ValeurEditable>{complement ? <> · {complement}</> : ""}
       </div>
     </div>
   );
@@ -521,7 +525,7 @@ export function ResumeBail({ cases, project, onSource }) {
             {loyer?.valeur && <span className="text-[20px] max-md:text-[16px] text-ardoise">HT/an</span>}
           </div>
           <div className="text-[14px] text-ardoise mt-3 flex items-center gap-1.5">
-            {loyer?.titre || "Prix du loyer"}{mois > 0 ? ` · soit ${euros(mois)} HT/mois` : ""}
+            {loyer?.titre || "Prix du loyer"}{(mois > 0 || moisForce) && <> · soit <ValeurForcee cle="loyer_mensuel" type="text">{moisForce || euros(mois)}</ValeurForcee> HT/mois</>}
             <InfoDot texte={loyer?.info || loyer?.detail} />
           </div>
         </div>
@@ -530,7 +534,7 @@ export function ResumeBail({ cases, project, onSource }) {
           // tiennent pas côte à côte sur 280 px.
           <div className="grid grid-cols-2 max-md:grid-cols-1 border-t border-trait pt-6 max-md:pt-5">
             <div className="pr-5 max-md:pr-0"><Sous c={signature} /></div>
-            <div className="pl-5 border-l border-trait max-md:pl-0 max-md:border-l-0 max-md:border-t max-md:mt-5 max-md:pt-5"><Sous c={depot} complement={nbMois ? `${nbMois} mois` : null} /></div>
+            <div className="pl-5 border-l border-trait max-md:pl-0 max-md:border-l-0 max-md:border-t max-md:mt-5 max-md:pt-5"><Sous c={depot} complement={nbMois || depotMoisForce ? <ValeurForcee cle="depot_mois" type="text">{depotMoisForce || `${nbMois} mois`}</ValeurForcee> : null} /></div>
           </div>
         )}
       </div>

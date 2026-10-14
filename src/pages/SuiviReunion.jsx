@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Mic, Square, RotateCcw } from "lucide-react";
+import { ChevronDown, Copy, Loader2, Mic, Square, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import MicroEcoute from "@/components/prospection/MicroEcoute";
@@ -26,6 +26,29 @@ const chrono = (s) => `${Math.floor(s / 3600) ? `${Math.floor(s / 3600)} h ` : "
 const duree = (s) => (s == null ? "—" : s < 60 ? `${s} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.floor(s / 3600)} h ${String(Math.round((s % 3600) / 60)).padStart(2, "0")}`);
 const quand = (iso) => new Date(iso).toLocaleString("fr-FR", { timeZone: "Europe/Paris", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const champ = "w-full rounded-champ border border-trait bg-surface px-3 py-2 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]";
+
+/** La transcription d'une réunion, telle qu'elle part au Cerveau (redites écartées), avec ses participants et ses notes. */
+function Transcription({ id }) {
+  const q = useQuery({ queryKey: ["reunion", id], queryFn: () => base44.request("GET", `${A}/${id}`) });
+  const r = q.data?.reunion;
+  const copier = async () => { try { await navigator.clipboard.writeText(r.texte); toast.success("Transcription copiée"); } catch { toast.error("La copie a échoué."); } };
+  return (
+    <div className="mx-2 mb-4 rounded-[14px] border border-trait bg-rail px-5 py-4">
+      {q.isLoading ? <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+        : q.error ? <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "La transcription ne se charge pas."}</p> : (
+          <>
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+              <p className="m-0 text-[12.5px] text-brume">{r.nb_morceaux} morceau{r.nb_morceaux > 1 ? "x" : ""} · {r.texte.length.toLocaleString("fr-FR")} signes{r.participants ? ` · ${r.participants}` : ""}</p>
+              {r.texte && <button type="button" onClick={copier} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}><Copy className="h-3.5 w-3.5" />Copier</button>}
+            </div>
+            {r.notes && <p className="m-0 mb-3 whitespace-pre-line text-[13.5px] text-craie"><span className="text-brume">Notes · </span>{r.notes}</p>}
+            {r.texte ? <div className="max-h-[480px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.65] text-craie">{r.texte}</div>
+              : <p className="m-0 text-[13.5px] text-brume">Rien n'a été transcrit pour cette réunion.</p>}
+          </>
+        )}
+    </div>
+  );
+}
 
 export default function SuiviReunion() {
   const queryClient = useQueryClient();
@@ -182,6 +205,7 @@ export default function SuiviReunion() {
 
   // Relire une réunion déjà envoyée : redites écartées, lue en entier par le Cerveau (14 oct. 2026).
   const [renvoi, setRenvoi] = useState(null);
+  const [lue, setLue] = useState(null);
   const renvoyer = async (id) => {
     setRenvoi(id);
     try {
@@ -296,11 +320,12 @@ export default function SuiviReunion() {
             : passees.length ? (
               <div className="border-y border-trait">
                 {passees.map((r) => (
-                  <div key={r.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-trait px-2 py-4 first:border-t-0">
-                    <div className="min-w-0">
-                      <p className="m-0 truncate text-[16px] text-encre">{r.titre || "Réunion sans titre"}</p>
+                  <div key={r.id} className="border-t border-trait first:border-t-0">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-2 py-4">
+                    <button type="button" onClick={() => setLue(lue === r.id ? null : r.id)} aria-expanded={lue === r.id} title="Lire la transcription" className="min-w-0 p-0 text-left" style={{ background: "transparent" }}>
+                      <p className="m-0 flex items-center gap-1.5 truncate text-[16px] text-encre"><ChevronDown className={`h-4 w-4 flex-none text-brume transition-transform ${lue === r.id ? "rotate-180" : ""}`} />{r.titre || "Réunion sans titre"}</p>
                       <p className="m-0 mt-0.5 text-[13.5px] text-ardoise">{quand(r.debut)} · {duree(r.duree_s)} · {r.par.split("@")[0].split(".")[0].replace(/^./, (c) => c.toUpperCase())}{r.participants ? ` · ${r.participants}` : ""}</p>
-                    </div>
+                    </button>
                     <div className="text-right text-[13px]">
                       <p className={`m-0 ${r.etat === "envoyee" ? "text-menthe" : r.etat === "enregistrement" ? "text-ambre" : "text-brume"}`}>{ETATS[r.etat] || r.etat}</p>
                       {r.etat === "envoyee" && <p className="m-0 mt-0.5 text-brume">{r.faits ? `${r.faits} fait${r.faits > 1 ? "s" : ""} · ${r.faits_valides} validé${r.faits_valides > 1 ? "s" : ""}` : "extraction en cours"} · <Link to="/Cerveau" className="text-craie underline underline-offset-2 hover:text-encre">Voir les faits à valider</Link></p>}
@@ -311,6 +336,8 @@ export default function SuiviReunion() {
                         </button>
                       )}
                     </div>
+                  </div>
+                  {lue === r.id && <Transcription id={r.id} />}
                   </div>
                 ))}
               </div>

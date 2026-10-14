@@ -174,6 +174,14 @@ export async function renvoyer(id, { C = null } = {}) {
   return { ok: true, reunion: vue(Records.get(REUNION, id)) };
 }
 
+/** Une réunion entière, pour la relire : sa transcription telle qu'elle part au Cerveau (redites écartées). */
+export function lire(id) {
+  const r = Records.get(REUNION, id);
+  if (!r) return { ok: false, error: 'Réunion introuvable.' };
+  const v = vue(r);
+  return { ok: true, reunion: { ...v, morceaux: undefined, texte: texteDe(r.morceaux), nb_morceaux: v.morceaux.length } };
+}
+
 /** Abandonner : la réunion reste dans la liste, marquée, et n'entre pas dans le Cerveau. */
 export function abandonner(id, user) {
   const r = Records.get(REUNION, id);

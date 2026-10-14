@@ -98,3 +98,17 @@ test('renvoyer une réunion déjà envoyée : le texte relu entre comme une nouv
   assert.equal(r.reunion.sources.length, 2);
   assert.equal((await M.renvoyer('inconnue', { C })).ok, false);
 });
+
+test('relire une réunion : sa transcription nettoyée, avec titre, participants et notes', () => {
+  const id = M.demarrer(NORA, { titre: 'Relecture' }).reunion.id;
+  M.ajouterMorceau(id, 0, 'Bredard Commerce vend surtout des fonds de commerce dans le Grand Ouest.', NORA);
+  M.ajouterMorceau(id, 1, 'Bredard Commerce vend surtout des fonds de commerce dans le Grand Ouest, oui.', NORA);
+  M.ajouterMorceau(id, 2, 'Relance prévue début novembre.', NORA);
+  M.noter(id, { participants: 'Paul, Jules' }, NORA);
+  const r = M.lire(id);
+  assert.equal(r.ok, true);
+  assert.equal(r.reunion.texte, 'Bredard Commerce vend surtout des fonds de commerce dans le Grand Ouest, oui.\nRelance prévue début novembre.');
+  assert.equal(r.reunion.participants, 'Paul, Jules');
+  assert.equal(r.reunion.nb_morceaux, 3);
+  assert.equal(M.lire('inconnue').ok, false);
+});

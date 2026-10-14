@@ -39,6 +39,13 @@ export function monterReunions(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, { ok: true, i: r.i, texte });
   }));
+  // La transcription d'une réunion, pour la relire (14 oct. 2026, Jules).
+  app.get(`${A}/:id`, wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    const r = (await R()).lire(req.params.id);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.put(`${A}/:id`, wrap(async (req, res) => {
     const user = equipe(req, res);
     if (!user) return;

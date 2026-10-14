@@ -311,7 +311,7 @@ export async function lancerAgentMandat(mandatId, { surEtape = null } = {}) {
       pour: null, genre: 'erreur',
       titre: `Mandat à saisir à la main · ${m.bien}`,
       texte: `L'agent MyNotary n'a pas pu créer le mandat (${String(e?.message || e).slice(0, 180)}). La demande de ${m.mandataire_email} attend dans la file.`,
-      lien: '/AdminValidations', action: 'Ouvrir la file',
+      lien: '/Mandataires', action: 'Voir les mandataires',
       cle: `mynotary-echec:${mandatId}`,
     });
     return { ok: false, error: String(e?.message || e) };
@@ -345,7 +345,7 @@ export async function corrigerAgentMandat(mandatId, demande, user) {
     pour: null, genre: 'info',
     titre: `Correction de mandat · ${m.bien}`,
     texte: `${user?.email || 'Un mandataire'} demande : « ${texte.slice(0, 240)} »`,
-    lien: '/AdminValidations', action: 'Ouvrir la file',
+    lien: '/Mandataires', action: 'Voir les mandataires',
     cle: `mynotary-correction:${mandatId}:${(m.historique || []).length}`,
   });
   return { ok: true, transmis: 'equipe', note: 'Demande transmise à l’équipe Klocka, trace posée sur le mandat : dis-le en une ligne.' };

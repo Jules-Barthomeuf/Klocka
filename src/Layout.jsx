@@ -31,7 +31,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Upload, Mic, Compass, Smartphone, Lock, Sun, Moon, Home, Inbox, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, Wrench } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, Wrench } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -473,7 +473,6 @@ function LayoutContent({ children, currentPageName }) {
     Dashboard: { to: createPageUrl(vueAdmin ? "AdminProjets" : "Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
-    FichesCommerciales: { to: createPageUrl("FichesCommerciales"), icon: Inbox, actif: isActivePage("FichesCommerciales") },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
@@ -504,9 +503,7 @@ function LayoutContent({ children, currentPageName }) {
     MandataireMarche: { to: createPageUrl("MandataireMarche"), icon: Presentation, actif: isActivePage("MandataireMarche") },
     MandataireOffMarket: { to: createPageUrl("MandataireOffMarket"), icon: Radar, actif: isActivePage("MandataireOffMarket") },
     MandataireProjets: { to: createPageUrl("MandataireProjets"), icon: Building2, actif: isActivePage("MandataireProjets") },
-    AdminValidations: { to: createPageUrl("AdminValidations"), icon: ClipboardCheck, actif: isActivePage("AdminValidations") },
     Personnalisation: { to: createPageUrl("Personnalisation"), icon: user?.role === "admin" || user?.role === "mandataire" ? CircleUser : Palette, actif: isActivePage("Personnalisation") },
-    ImportProjets: { to: createPageUrl("ImportProjets"), icon: Upload, actif: isActivePage("ImportProjets") },
     MesProjets: { to: createPageUrl("MesProjets"), icon: Building2, actif: isActivePage("MesProjets") },
     MesPresentations: { to: createPageUrl("MesPresentations"), icon: Presentation, actif: isActivePage("MesPresentations") },
     Vision: { to: createPageUrl("Vision"), icon: Eye, actif: isActivePage("Vision") },

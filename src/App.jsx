@@ -73,7 +73,8 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 // vers une page reste un lien direct.
 const PageDOuverture = () => {
   const { prefs } = usePersonnalisation();
-  if (prefs.accueil && prefs.accueil !== mainPageKey) return <Navigate to={createPageUrl(prefs.accueil)} replace />;
+  // Une page d'ouverture qui n'existe plus (Fiches, Import de projets, Validations, retirées le 14 oct. 2026) est ignorée.
+  if (prefs.accueil && prefs.accueil !== mainPageKey && (Pages[prefs.accueil] || PAGES_MANUELLES[prefs.accueil])) return <Navigate to={createPageUrl(prefs.accueil)} replace />;
   return <LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>;
 };
 

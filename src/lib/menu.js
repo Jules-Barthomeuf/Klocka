@@ -8,7 +8,6 @@ export const ENTREES_ADMIN = [
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   { cle: "Offres", label: "Offres" },
-  { cle: "FichesCommerciales", label: "Fiches" },
   { cle: "Prospection", label: "Prospection" },
   { cle: "Relances", label: "Relances" },
   { cle: "OffMarket", label: "Off-market" },
@@ -30,8 +29,6 @@ export const ENTREES_AUTRE = [
   { cle: "AdminPortail", label: "Portails" },
   { cle: "AdminEquipe", label: "Équipe" },
   { cle: "AdminMandataires", label: "Mandataires" },
-  { cle: "AdminValidations", label: "Validations" },
-  { cle: "ImportProjets", label: "Import de projets" },
   // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
   { cle: "Personnalisation", label: "Compte" },
 ];
@@ -66,7 +63,7 @@ export const ENTREES_MANDATAIRE = [
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [
-  ["Dashboard", "Dashboard"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"], ["FichesCommerciales", "Fiches"],
+  ["Dashboard", "Dashboard"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
   ["Prospection", "Prospection"], ["Relances", "Relances"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["SimulateurRentabilite", "Simulateur"],
 ];
 export const PAGES_OUVERTURE_CLIENT = [

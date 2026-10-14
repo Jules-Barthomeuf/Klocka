@@ -1574,7 +1574,7 @@ export default function AdminProjets() {
     }
     if (scindeProjet) {
       return (
-        <div className={`relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+        <div className={`k-page-presentation relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
           <div className="k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5">
             {/* Le chat s'ouvre en fil (14 oct. 2026, Jules) : Dashboard et Historique en haut, la saisie en bas. */}
             <ChatDashboard espace="projet" onReponse={surReponseAK} onTravail={setTravailAK}

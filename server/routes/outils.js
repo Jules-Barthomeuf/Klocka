@@ -35,6 +35,14 @@ export function monterOutils(app) {
     res.status(r.statut || 200).json(r);
   }));
 
+  // Le taux de vacance d'une rue ou d'un rayon (14 oct. 2026) : recensement des locaux, état de chacun, taux.
+  app.get('/api/outils/vacance/taux', wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    const r = await (await import('../outils/vacance-taux.js')).tauxDeVacance(req.query);
+    if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+    res.status(r.statut || 200).json(r);
+  }));
+
   app.get('/api/outils/vacance/etat', wrap((req, res) => {
     if (!equipe(req, res)) return;
     ok(res, etat());

@@ -179,6 +179,25 @@ export async function fermeturesCommune(codeCommune, depuis, { surProgres = null
   return brut.map(lireEtablissementVacance).filter(Boolean);
 }
 
+/**
+ * Le recensement des locaux à vitrine d'une commune (taux de vacance, 14 oct.
+ * 2026) : tous les établissements qui ont eu, à un moment, une activité de
+ * vitrine (commerce, restauration, services en boutique), ouverts ou fermés.
+ * Une seule question par commune, quelques pages ; la catégorie juridique en
+ * plus, pour reconnaître l'entrepreneur individuel.
+ * @param {string} codeCommune
+ * @param {string[]} prefixes  codes NAF, avec ou sans point (« 47 », « 95.2 », « 68.31 »)
+ */
+export async function vitrinesCommune(codeCommune, prefixes, { surProgres = null } = {}) {
+  const code = String(codeCommune || '').replace(/[^0-9AB]/gi, '');
+  if (!code || !prefixes?.length) return [];
+  const naf = (p) => { const c = String(p).replace(/\./g, ''); return c.length > 2 ? `${c.slice(0, 2)}.${c.slice(2)}` : c; };
+  const q = `codeCommuneEtablissement:${code} AND periode(etatAdministratifEtablissement:A AND (${prefixes.map((p) => `activitePrincipaleEtablissement:${naf(p)}*`).join(' OR ')}))`;
+  const brut = await pagesSirene(q, { champs: `${CHAMPS},categorieJuridiqueUniteLegale` });
+  surProgres?.(`SIRENE : ${brut.length} établissements à vitrine dans la commune`);
+  return brut.map((e) => { const l = lireEtablissementVacance(e); return l ? { ...l, categorie_juridique: e.uniteLegale?.categorieJuridiqueUniteLegale || null } : null; }).filter(Boolean);
+}
+
 // --- Géoplateforme ------------------------------------------------------------
 
 async function appelerGeocodage(params) {

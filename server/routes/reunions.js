@@ -49,6 +49,11 @@ export function monterReunions(app) {
     if (!user) return;
     rendre(res, await (await R()).terminer(req.params.id, req.body || {}, user));
   }));
+  // Relire une réunion déjà envoyée (redites écartées, lue en entier) et la renvoyer au Cerveau.
+  app.post(`${A}/:id/renvoyer`, wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    rendre(res, await (await R()).renvoyer(req.params.id));
+  }));
   app.post(`${A}/:id/abandonner`, wrap(async (req, res) => {
     const user = equipe(req, res);
     if (!user) return;

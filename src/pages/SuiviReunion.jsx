@@ -138,7 +138,16 @@ export default function SuiviReunion() {
   };
   useEffect(() => () => couper(), []);
 
+  // Un seul enregistrement à la fois (14 oct. 2026) : des clics répétés pendant la demande du micro
+  // lançaient plusieurs enregistreurs sur le même micro, et chaque passage revenait deux ou trois fois.
+  const demarrage = useRef(false);
+  const [demarre, setDemarre] = useState(false);
   const demarrer = async () => {
+    if (demarrage.current || rec.current) return;
+    demarrage.current = true; setDemarre(true);
+    try { await demarrerUneFois(); } finally { demarrage.current = false; setDemarre(false); }
+  };
+  const demarrerUneFois = async () => {
     setMicroKo(false);
     let flux;
     try { flux = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); } catch { setMicroKo(true); return; }
@@ -169,6 +178,17 @@ export default function SuiviReunion() {
     } catch (e) {
       toast.error(e?.message || "La réunion n'est pas partie.");
     } finally { setEnvoi(false); }
+  };
+
+  // Relire une réunion déjà envoyée : redites écartées, lue en entier par le Cerveau (14 oct. 2026).
+  const [renvoi, setRenvoi] = useState(null);
+  const renvoyer = async (id) => {
+    setRenvoi(id);
+    try {
+      await base44.request("POST", `${A}/${id}/renvoyer`);
+      toast.success("Réunion relue et renvoyée : l'extraction tourne", { action: { mot: "Voir", faire: () => navigate("/Cerveau") } });
+      queryClient.invalidateQueries({ queryKey: ["reunions"] });
+    } catch (e) { toast.error(e?.message || "La réunion n'a pas été renvoyée."); } finally { setRenvoi(null); }
   };
 
   const abandonner = async () => {
@@ -224,8 +244,8 @@ export default function SuiviReunion() {
 
             <div className="flex flex-col gap-2">
               {!enregistre ? (
-                <button type="button" onClick={demarrer} disabled={envoi} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-                  {reunion ? <RotateCcw className="h-4 w-4" /> : <Mic className="h-4 w-4" />}{reunion ? "Reprendre l'enregistrement" : "Démarrer l'enregistrement"}
+                <button type="button" onClick={demarrer} disabled={envoi || demarre} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+                  {demarre ? <Loader2 className="h-4 w-4 animate-spin" /> : reunion ? <RotateCcw className="h-4 w-4" /> : <Mic className="h-4 w-4" />}{demarre ? "Ouverture du micro…" : reunion ? "Reprendre l'enregistrement" : "Démarrer l'enregistrement"}
                 </button>
               ) : (
                 <button type="button" onClick={pause} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
@@ -283,7 +303,13 @@ export default function SuiviReunion() {
                     </div>
                     <div className="text-right text-[13px]">
                       <p className={`m-0 ${r.etat === "envoyee" ? "text-menthe" : r.etat === "enregistrement" ? "text-ambre" : "text-brume"}`}>{ETATS[r.etat] || r.etat}</p>
-                      {r.etat === "envoyee" && <p className="m-0 mt-0.5 text-brume">{r.faits ? `${r.faits} fait${r.faits > 1 ? "s" : ""} · ${r.faits_valides} validé${r.faits_valides > 1 ? "s" : ""}` : "extraction en cours"} · <Link to="/Cerveau" className="text-craie underline underline-offset-2 hover:text-encre">Cerveau</Link></p>}
+                      {r.etat === "envoyee" && <p className="m-0 mt-0.5 text-brume">{r.faits ? `${r.faits} fait${r.faits > 1 ? "s" : ""} · ${r.faits_valides} validé${r.faits_valides > 1 ? "s" : ""}` : "extraction en cours"} · <Link to="/Cerveau" className="text-craie underline underline-offset-2 hover:text-encre">Voir les faits à valider</Link></p>}
+                      {r.etat === "envoyee" && (
+                        <button type="button" onClick={() => renvoyer(r.id)} disabled={renvoi === r.id}
+                          className="mt-1 p-0 text-[12.5px] text-menthe underline underline-offset-2 hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+                          {renvoi === r.id ? "Relecture…" : r.renvois ? "Relire à nouveau" : "Relire et renvoyer au Cerveau"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

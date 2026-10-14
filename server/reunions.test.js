@@ -71,3 +71,30 @@ test('une réunion sans rien de transcrit n\'entre pas dans le Cerveau', async (
   assert.equal(Records.get(M.REUNION, id).etat, 'vide');
   assert.ok(M.lister().length >= 2);
 });
+
+test('les redites d\'un même passage (deux enregistrements à la fois) sont écartées, la version la plus complète reste', () => {
+  const a = "Il y a des murs, mais ça, c'est 1,9 million. Ce sont des fonds de tarte qu'il n'arrive pas à faire porter. Oui, mais il essaye. Non, je n'ai pas encore regardé.";
+  const b = `${a} Coralie, toi aussi ? Oui, je vais y aller toute seule.`;
+  const c = 'Tu peux lui proposer demain à 15h. Ah oui, tu as ta visite vendredi après-midi.';
+  assert.ok(M.ressemblance(a, b) >= M.SEUIL_REDITE);
+  assert.ok(M.ressemblance(a, c) < M.SEUIL_REDITE);
+  assert.equal(M.texteDe([{ i: 0, texte: a }, { i: 1, texte: b }, { i: 2, texte: a }, { i: 3, texte: c }]), `${b}\n${c}`);
+});
+
+test('renvoyer une réunion déjà envoyée : le texte relu entre comme une nouvelle source, une seule fois par renvoi', async () => {
+  const ajoutees = [];
+  const C = { ajouterSource: (s) => { const src = { id: `r${ajoutees.length + 1}`, ...s }; ajoutees.push(src); return { ok: true, source: src }; }, extraire: async () => {} };
+  const id = M.demarrer(JULES, { titre: 'Réunion longue' }).reunion.id;
+  M.ajouterMorceau(id, 0, 'On présente Mom Café aux investisseurs de Bordeaux, la renta est bonne.', JULES);
+  M.ajouterMorceau(id, 1, 'On présente Mom Café aux investisseurs de Bordeaux, la renta est bonne, vraiment.', JULES);
+  await M.terminer(id, {}, JULES, { C });
+  assert.equal(ajoutees.length, 1);
+  assert.equal(ajoutees[0].contenu, 'On présente Mom Café aux investisseurs de Bordeaux, la renta est bonne, vraiment.', 'la redite est écartée dès l\'envoi');
+  const r = await M.renvoyer(id, { C });
+  assert.equal(r.ok, true);
+  assert.equal(ajoutees.length, 2);
+  assert.equal(ajoutees[1].cle, `reunion-${id}-v2-1`);
+  assert.match(ajoutees[1].titre, /\(relue\)$/);
+  assert.equal(r.reunion.sources.length, 2);
+  assert.equal((await M.renvoyer('inconnue', { C })).ok, false);
+});

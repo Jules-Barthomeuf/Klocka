@@ -21,9 +21,33 @@ export const SIGNES_PAR_PARTIE = 100000;
 const maintenant = () => new Date().toISOString();
 const bas = (e) => String(e || '').trim().toLowerCase();
 
-/** Pure : le texte d'une réunion, ses morceaux dans l'ordre, les vides écartés. */
+const motsDe = (t) => new Set(String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter((m) => m.length >= 3));
+/** Pure : la part de mots communs à deux textes (0 à 1). */
+export function ressemblance(a, b) {
+  const x = motsDe(a); const y = motsDe(b);
+  if (!x.size || !y.size) return 0;
+  let communs = 0;
+  for (const m of x) if (y.has(m)) communs += 1;
+  return communs / (x.size + y.size - communs);
+}
+// Au-delà, deux morceaux disent la même chose : deux enregistrements du même micro tournaient en même temps (14 oct. 2026).
+export const SEUIL_REDITE = 0.5;
+
+/**
+ * Pure : le texte d'une réunion, ses morceaux dans l'ordre, les vides écartés.
+ * Un morceau presque identique à l'un des trois précédents est une redite
+ * (le même passage capté deux fois) : on garde la version la plus complète.
+ */
 export function texteDe(morceaux = []) {
-  return [...morceaux].filter((m) => m && String(m.texte || '').trim()).sort((a, b) => a.i - b.i).map((m) => String(m.texte).trim()).join('\n');
+  const gardes = [];
+  for (const m of [...morceaux].filter((x) => x && String(x.texte || '').trim()).sort((a, b) => a.i - b.i)) {
+    const t = String(m.texte).trim();
+    const k = gardes.slice(-3).findIndex((g) => ressemblance(g, t) >= SEUIL_REDITE);
+    if (k < 0) { gardes.push(t); continue; }
+    const rang = Math.max(0, gardes.length - 3) + k;
+    if (t.length > gardes[rang].length) gardes[rang] = t;
+  }
+  return gardes.join('\n');
 }
 
 /** Pure : le texte coupé en parties de `max` signes au plus, toujours entre deux morceaux (un morceau trop long est coupé net). */
@@ -52,7 +76,7 @@ export function vue(r) {
     morceaux: morceaux.map((m) => ({ i: m.i, texte: m.texte || '' })),
     prochain: morceaux.length ? Math.max(...morceaux.map((m) => m.i)) + 1 : 0,
     signes: texteDe(morceaux).length,
-    sources: r.sources || [], envoyee_le: r.envoyee_le || null,
+    sources: r.sources || [], envoyee_le: r.envoyee_le || null, renvois: r.renvois || 0,
   };
 }
 
@@ -107,6 +131,14 @@ export async function terminer(id, { titre, participants, notes } = {}, user, { 
     Records.update(REUNION, id, { etat: 'vide', fin, duree_s: Math.round((Date.parse(fin) - Date.parse(a.debut)) / 1000) });
     return { ok: false, error: "Rien n'a été transcrit : la réunion n'entre pas dans le Cerveau." };
   }
+  const sources = await envoyerAuCerveau(a, decoupe, entete, { C, version: null });
+  if (!sources.ok) return sources;
+  Records.update(REUNION, id, { etat: 'envoyee', fin, duree_s: Math.round((Date.parse(fin) - Date.parse(a.debut)) / 1000), sources: sources.ids, envoyee_le: maintenant() });
+  return { ok: true, reunion: vue(Records.get(REUNION, id)) };
+}
+
+/** Les parties d'une réunion, chacune une source du Cerveau, puis l'extraction. `version` distingue un renvoi. */
+async function envoyerAuCerveau(a, decoupe, entete, { C = null, version = null } = {}) {
   const cerveau = C || (await import('./cerveau.js'));
   const nom = a.titre || `Réunion du ${new Date(a.debut).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long' })}`;
   const morceauxTexte = decoupe.length ? decoupe : [''];
@@ -114,12 +146,31 @@ export async function terminer(id, { titre, participants, notes } = {}, user, { 
   for (let k = 0; k < morceauxTexte.length; k += 1) {
     const partie = morceauxTexte.length > 1 ? ` (partie ${k + 1} sur ${morceauxTexte.length})` : '';
     const contenu = [k === 0 ? entete : '', morceauxTexte[k]].filter(Boolean).join('\n\n');
-    const s = cerveau.ajouterSource({ type: 'compte_rendu', auteur: a.par, date: a.debut, titre: `Réunion : ${nom}${partie}`, contenu, lien_original: '/SuiviReunion', cle: `reunion-${a.id}-${k + 1}` });
+    const s = cerveau.ajouterSource({ type: 'compte_rendu', auteur: a.par, date: a.debut, titre: `Réunion : ${nom}${partie}${version ? ' (relue)' : ''}`, contenu, lien_original: '/SuiviReunion', cle: `reunion-${a.id}${version ? `-v${version}` : ''}-${k + 1}` });
     if (!s.ok) return { ok: false, error: s.error };
     sources.push(s.source.id);
     if (!s.deja) cerveau.extraire(s.source.id).catch(() => {});
   }
-  Records.update(REUNION, id, { etat: 'envoyee', fin, duree_s: Math.round((Date.parse(fin) - Date.parse(a.debut)) / 1000), sources, envoyee_le: maintenant() });
+  return { ok: true, ids: sources };
+}
+
+/**
+ * Renvoie au Cerveau une réunion déjà envoyée (14 oct. 2026) : le texte
+ * relu, redites écartées, et lu en entier. Les faits déjà tirés restent ; un
+ * fait redit n'entre pas deux fois (cerveau.js, doublonDe). Toute l'équipe peut
+ * le faire : c'est la même réunion, mieux lue.
+ */
+export async function renvoyer(id, { C = null } = {}) {
+  const a = Records.get(REUNION, id);
+  if (!a) return { ok: false, error: 'Réunion introuvable.' };
+  if (a.etat !== 'envoyee') return { ok: false, error: "Cette réunion n'a pas encore été envoyée au Cerveau." };
+  const decoupe = parties(a.morceaux);
+  if (!decoupe.length) return { ok: false, error: "Rien n'a été transcrit." };
+  const entete = [a.participants && `Participants : ${a.participants}`, a.notes && `Notes prises pendant la réunion : ${a.notes}`].filter(Boolean).join('\n');
+  const version = (a.renvois || 0) + 2;
+  const r = await envoyerAuCerveau(a, decoupe, entete, { C, version });
+  if (!r.ok) return r;
+  Records.update(REUNION, id, { sources: [...(a.sources || []), ...r.ids], renvois: (a.renvois || 0) + 1, renvoyee_le: maintenant() });
   return { ok: true, reunion: vue(Records.get(REUNION, id)) };
 }
 

@@ -144,7 +144,7 @@ const SCHEMA = {
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const jourDe = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${JOURS[d.getDay()]} ${d.toISOString().slice(0, 10)}`; };
 
-const consigne = (source) => `Tu tiens la mémoire de Klocka, qui achète et vend des murs commerciaux (dossiers de pré-analyse, projets d'investisseurs, agents et agences immobilières qui apportent des biens). ${NOTE_KLOCKA}
+const consigne = (source, texte = source.contenu, tranche = null) => `Tu tiens la mémoire de Klocka, qui achète et vend des murs commerciaux (dossiers de pré-analyse, projets d'investisseurs, agents et agences immobilières qui apportent des biens). ${NOTE_KLOCKA}
 Voici une source de type « ${source.type} »${source.titre ? ` (« ${source.titre} »)` : ''}, du ${jourDe(source.date)}${source.auteur ? `, par ${source.auteur}` : ''}. Un jour dit sans date (« jeudi », « mardi prochain », « d'ici vendredi ») se date à partir de ce jour-là.
 Extrais les FAITS qui méritent d'être retrouvés dans une semaine ou un an, et rien d'autre :
 - decision : ce qui a été tranché, avec son motif s'il est dit (« on refuse Libourne : loyer trop haut pour l'emplacement ») ;
@@ -154,9 +154,11 @@ Extrais les FAITS qui méritent d'être retrouvés dans une semaine ou un an, et
 Règles : n'invente rien ; un fait par idée : une information et une promesse dans la même phrase font DEUX faits (« l'agence Durand a deux murs à Antibes, elle envoie les fiches jeudi » : une information, et un engagement de Durand pour jeudi) ; tout « il rappelle », « elle envoie », « je préviens », « on revient vers lui » daté ou non est un engagement ; la citation est recopiée mot pour mot de la source, sans retouche ; le résumé dit la chose en une phrase autonome ; les entités sont nommées comme dans la source (« Libourne », « agence Durand », « Maxime ») ; pas de fait pour une politesse, une logistique de réunion ou une hésitation non tranchée. Une source sans fait utile rend une liste vide.
 Avant de rendre la liste, relis chaque information et chaque décision : si sa phrase contient aussi une promesse (« doit », « va », « envoie », « rappelle », « d'ici », « avant »), ajoute cette promesse comme un engagement à part, avec sa propre citation (la portion de phrase qui la dit), la personne qui promet et son échéance.${source.type === 'decision' ? '\nCette source est la réponse à « pourquoi ce dossier a-t-il été accepté ou refusé ? » : c\'est une décision, avec son motif.' : ''}
 
+${tranche ? `\nC'est la tranche ${tranche.rang} sur ${tranche.total} d'une longue source (une réunion, un long compte rendu) : extrais tout ce qui compte dans CETTE tranche, sans te limiter à quelques faits ; une conversation hors sujet ne donne rien.` : ''}
+
 SOURCE :
 <<<
-${source.contenu.slice(0, 60000)}
+${texte}
 >>>`;
 
 /** Pure : la citation se retrouve-t-elle dans la source (aux espaces et à la casse près) ? */
@@ -213,7 +215,29 @@ export function rangerFaits(source, faits, { valideD_office = null } = {}) {
   return { faits: crees, doublons };
 }
 
-/** Extrait les faits d'une source (l'IA), puis les range. */
+/**
+ * Pure : une longue source en tranches de `max` signes, coupées entre deux
+ * lignes, chacune lue à part (14 oct. 2026 : une réunion d'une heure n'était
+ * lue que sur ses 60 000 premiers signes, et l'IA n'en gardait que quelques faits).
+ */
+export const SIGNES_PAR_TRANCHE = 14000;
+export function tranches(texte, max = SIGNES_PAR_TRANCHE) {
+  const t = String(texte || '');
+  if (t.length <= max) return [t];
+  const sortie = [];
+  let cur = '';
+  for (const ligne of t.split('\n')) {
+    for (let k = 0; k < Math.max(1, ligne.length); k += max) {
+      const bout = ligne.slice(k, k + max);
+      if (cur && cur.length + 1 + bout.length > max) { sortie.push(cur); cur = ''; }
+      cur = cur ? `${cur}\n${bout}` : bout;
+    }
+  }
+  if (cur.trim()) sortie.push(cur);
+  return sortie;
+}
+
+/** Extrait les faits d'une source (l'IA), tranche par tranche si elle est longue, puis les range. */
 export async function extraire(sourceId, { valideD_office = null } = {}) {
   const source = Records.get(SOURCE, sourceId);
   if (!source) return { ok: false, error: 'Source introuvable.' };
@@ -221,8 +245,15 @@ export async function extraire(sourceId, { valideD_office = null } = {}) {
   try {
     const { invokeLLM } = await import('./llm.js');
     const { mesurer } = await import('./llm-couts.js');
-    const { resultat } = await mesurer({ operation: 'cerveau', sur: source.id, par: source.auteur }, () => invokeLLM({ prompt: consigne(source), response_json_schema: SCHEMA }));
-    const r = rangerFaits(source, resultat?.faits || [], { valideD_office });
+    const morceaux = tranches(source.contenu);
+    const faits = [];
+    for (let k = 0; k < morceaux.length; k += 1) {
+      const tranche = morceaux.length > 1 ? { rang: k + 1, total: morceaux.length } : null;
+      const { resultat } = await mesurer({ operation: 'cerveau', sur: source.id, par: source.auteur }, () => invokeLLM({ prompt: consigne(source, morceaux[k], tranche), response_json_schema: SCHEMA }));
+      faits.push(...(resultat?.faits || []));
+    }
+    // Les doublons entre tranches (une même décision redite) sont écartés au rangement.
+    const r = rangerFaits(source, faits, { valideD_office });
     return { ok: true, source_id: source.id, faits: r.faits.map(resumeFait), doublons: r.doublons };
   } catch (e) {
     Records.update(SOURCE, source.id, { statut_extraction: 'echec', erreur: String(e?.message || e).slice(0, 300) });

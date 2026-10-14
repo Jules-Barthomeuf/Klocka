@@ -27,7 +27,12 @@ export const PORT = process.env.PORT || 3001;
 // Chez Render, l'adresse publique est donnée au serveur (RENDER_EXTERNAL_URL) :
 // elle sert quand APP_URL n'a pas été posée, pour que les liens que Klocka
 // écrit (chat, mails) ne pointent pas sur localhost.
-export const APP_URL_PROD = (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+// L'adresse de l'application dans les mails et les liens (14 oct. 2026, Jules) : https://app.klocka.immo, jamais
+// l'adresse technique de Render (klocka-unus….onrender.com). URL_PUBLIQUE la change si le domaine change.
+export const URL_CANONIQUE = (process.env.URL_PUBLIQUE || 'https://app.klocka.immo').replace(/\/$/, '');
+const urlBrute = (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+const estRender = (u) => /\.onrender\.com(:\d+)?$/i.test(String(u || '').replace(/^https?:\/\//, '').split('/')[0]);
+export const APP_URL_PROD = estRender(urlBrute) ? URL_CANONIQUE : urlBrute;
 export const EN_PRODUCTION = APP_URL_PROD.startsWith('https://');
 
 // L'authentification est toujours exigée. AUTH_DESACTIVEE=true rétablit
@@ -78,6 +83,8 @@ export const normEmail = (e) => String(e || '').trim().toLowerCase();
 export function urlPublique(req) {
   const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
   const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  // Une requête arrivée par l'adresse de Render : les liens envoyés portent quand même app.klocka.immo.
+  if (estRender(host)) return URL_CANONIQUE;
   return host ? `${proto}://${host}` : APP_URL_PROD || 'http://localhost:3001';
 }
 

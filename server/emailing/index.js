@@ -11,6 +11,7 @@ import { MAILS_PLATEFORME, sequenceWebinaire } from './modeles.js';
 import { E as ENT, cleEnvoi, listeDuNom, audience, envoyable, HEURE_PAR_DEFAUT } from './schema.js';
 import { expedier, jourParis, aParis } from './envoi.js';
 import { lienSimulateur, signalerReponses } from './newsletters.js';
+import { APP_URL_PROD } from '../contexte.js';
 
 const CONTACT = ENT.CONTACT;
 const SEQUENCE = ENT.SEQUENCE;
@@ -22,7 +23,8 @@ const maintenant = () => new Date().toISOString();
 const normEmail = (e) => String(e || '').trim().toLowerCase();
 const EMAIL = /^[^@\s,;<>"]+@[^@\s,;<>"]+\.[^@\s,;<>"]{2,}$/;
 const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
-const base = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').replace(/\/$/, '');
+// L'adresse des liens et du logo des mails : app.klocka.immo en production (contexte.js).
+const base = () => APP_URL_PROD || 'http://localhost:3001';
 const logo = () => `${base()}/icones/icone-192.png`;
 const ENVOYE = new Set(['envoye', 'redirige', 'simule']);
 /** Le statut d'un envoi d'après la réponse du garde-fou. */

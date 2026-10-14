@@ -19,9 +19,11 @@ import { envoiReel, expedier, adresseDeTest } from './envoi.js';
 import { compterAudience } from './contacts.js';
 import { designNewsletter } from './modeles.js';
 import { lienSimulateur } from './newsletters.js';
+import { APP_URL_PROD } from '../contexte.js';
 
 const maintenant = () => new Date().toISOString();
-const base = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').replace(/\/$/, '');
+// L'adresse des liens et du logo des mails : app.klocka.immo en production (contexte.js).
+const base = () => APP_URL_PROD || 'http://localhost:3001';
 const logo = () => `${base()}/icones/icone-192.png`;
 const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const LOTS_PAR_TOUR = 20;

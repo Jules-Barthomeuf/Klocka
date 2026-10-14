@@ -9,10 +9,12 @@
 
 import { Records, Meta } from '../db.js';
 import { LEAD_MAGNETS } from '../../src/lib/lead-magnets.js';
+import { APP_URL_PROD } from '../contexte.js';
 
 export const ASSET = 'EmailingAsset';
 const maintenant = () => new Date().toISOString();
-const base = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').replace(/\/$/, '');
+// L'adresse des liens et du logo des mails : app.klocka.immo en production (contexte.js).
+const base = () => APP_URL_PROD || 'http://localhost:3001';
 const GENRES = ['simulateur', 'outil', 'lead_magnet', 'lien', 'bloc'];
 const TYPES = new Set(['titre', 'texte', 'bouton', 'image', 'separateur']);
 const idBloc = (k = 0) => `a${Date.now().toString(36)}${k}${Math.random().toString(36).slice(2, 5)}`;

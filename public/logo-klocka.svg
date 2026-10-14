@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Monogramme Klocka : barre et diagonale blanches, jambe vert d'eau. -->
-  <rect width="100" height="100" fill="#050708"/>
-  <rect x="33" y="26.5" width="6.8" height="47" fill="#ffffff"/>
-  <polygon points="66.2,26.5 69.6,26.5 47.1,49.2 43.7,49.2" fill="#ffffff"/>
-  <path d="M40.2 51.2 H52.4 L71.6 73.5 H59.4 L40.2 56.4 Z" fill="#8CCFBE"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 625 625">
+  <!-- Le K de Klocka (« Logo K-1 », 14 oct. 2026) : le fût et la diagonale blancs, la jambe menthe, sur noir. -->
+  <rect width="625" height="625" fill="#000000"/>
+  <rect x="104" y="69" width="82" height="487" fill="#FFFFFF"/>
+  <polygon points="481,69 505,69 256,294 232,294" fill="#FFFFFF"/>
+  <path d="M209 318 H320 C342 318 353 327 361 335 L520 556 H425 L282 355 C276 346 268 336 255 336 H209 Z" fill="#71CCBA"/>
 </svg>

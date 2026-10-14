@@ -27,6 +27,7 @@ import { E, audience, envoyable } from './schema.js';
 import { aParis } from './envoi.js';
 import { designNewsletter } from './modeles.js';
 import { policesPropres } from '../../src/lib/email-design.js';
+import { APP_URL_PROD } from '../contexte.js';
 
 export const NEWSLETTER = 'EmailingNewsletter';
 export const ACTIVITE = 'EmailingActivite';
@@ -36,7 +37,8 @@ const ENVOYE = new Set(['envoye', 'redirige']);
 const RETARD_MAX_MS = 48 * 3600 * 1000;
 const ALERTE_AVANT_MS = 3 * 86400 * 1000;
 const maintenant = () => new Date().toISOString();
-const base = () => (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').replace(/\/$/, '');
+// L'adresse des liens et du logo des mails : app.klocka.immo en production (contexte.js).
+const base = () => APP_URL_PROD || 'http://localhost:3001';
 const JOUR = /^\d{4}-\d{2}-\d{2}$/;
 const HEURE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 const taux = (n, sur) => (sur ? Math.round((n / sur) * 1000) / 10 : 0);

@@ -23,7 +23,7 @@ const CHAMPS = new Set([
   // La synthèse de l'analyse du bail (14 oct. 2026) : AK la corrige quand elle dit faux.
   'analyse_bail',
 ]);
-const INTERDITS = new Set(['id', 'titre', 'client_email', 'client_emails', 'admins', 'admin_principal', 'conversation_id', 'sources_champs', 'champs_masques', 'photos', 'documents', 'fichiers_projet']);
+const INTERDITS = new Set(['id', 'titre', 'client_email', 'client_emails', 'admins', 'admin_principal', 'conversation_id', 'sources_champs', 'champs_masques', 'photos', 'documents', 'fichiers_projet', 'journal_champs']);
 
 // Les champs texte parmi les familles chiffrées : ils ne se convertissent pas en nombre.
 const TEXTES = /^(marche_quartier_nom|ville_secteur_champ\d|sim_(mode_prix_net_vendeur|honoraires_agent_mode|commission_agent_type|fees_klocka_type|type_detention|type_revente|lien_google_sheets|fichier_excel|fichier_pdf)|bail_date_|bail_analyse\.|cases_forcees\.|valeurs_forcees\.|secteur_points|ville_points|loyer_source|analyse_bail|bail_type|bail_infos_importantes)/;
@@ -76,7 +76,7 @@ export function appliquer(projet, changements, { par = null, maintenant = new Da
   for (const ch of changements || []) {
     const champ = String(ch?.champ || '');
     // L'éditeur (un admin) enregistre tous ses champs tels qu'il les a mis en forme ; AK, seulement les chiffres.
-    if (editeur ? !champ || ['id', 'sources_champs'].includes(champ.split('.')[0]) : !champModifiable(champ)) return { ok: false, error: `Champ non modifiable : ${champ || '(vide)'}.` };
+    if (editeur ? !champ || ['id', 'sources_champs', 'journal_champs'].includes(champ.split('.')[0]) : !champModifiable(champ)) return { ok: false, error: `Champ non modifiable : ${champ || '(vide)'}.` };
     const valeur = editeur ? ch.valeur : valeurRangee(champ, ch.valeur);
     const avant = lireChemin(p, champ);
     p = ecrireChemin(p, champ, valeur);
@@ -90,7 +90,10 @@ export function appliquer(projet, changements, { par = null, maintenant = new Da
     else delete sources[champ];
     faits.push({ champ, avant: avant ?? null, apres: valeur ?? null, ...(source ? { source } : {}), ...(ch.raison ? { raison: String(ch.raison).slice(0, 400) } : {}) });
   }
-  return { ok: true, projet: { ...p, sources_champs: sources }, faits };
+  // Le journal des changements (14 oct. 2026) : il dit quels textes générés (synthèse du bail, présentation,
+  // lettre d'intention) ont été écrits avant qu'un chiffre bouge. Les 80 derniers.
+  const journal = [...(projet.journal_champs || []), ...faits.map((f) => ({ champ: f.champ, le: maintenant, par }))].slice(-80);
+  return { ok: true, projet: { ...p, sources_champs: sources, journal_champs: journal }, faits };
 }
 
 /** Modifie le projet en base : seulement les champs touchés, et leurs sources. */
@@ -105,6 +108,7 @@ export function modifierChamps(projetId, changements, { par = null, editeur = fa
   if (racines.has('loyer_m2_an')) racines.add('sim_loyer_initial_ht');
   const maj = Object.fromEntries([...racines].map((k) => [k, r.projet[k]]));
   maj.sources_champs = r.projet.sources_champs;
+  maj.journal_champs = r.projet.journal_champs;
   Records.update('Project', projetId, maj);
   return { ok: true, faits: r.faits, projet: Records.get('Project', projetId) };
 }

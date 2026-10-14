@@ -120,6 +120,26 @@ export function avecMemoire(m, recent = true) {
   return `${m.contenu}\n\n[Pour cette réponse, tu avais appelé ces outils ; leurs résultats valent toujours, sauf si la personne dit le contraire :\n${m.memoire.slice(0, 8000)}]`;
 }
 
+/**
+ * Pure : ce que la personne voit au moment de sa question (14 oct. 2026). AK
+ * lisait la base, pas l'écran : il refaisait les calculs de la page avec ses
+ * hypothèses, ignorait une saisie pas encore enregistrée et ne savait pas ce que
+ * « ça » désignait. La page envoie son texte affiché (unités comprises), l'élément
+ * cliqué et ce qui attend d'être enregistré.
+ */
+export function cadreEcran(ecran) {
+  if (!ecran || typeof ecran !== 'object') return '';
+  const court = (v, n) => String(v ?? '').replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').slice(0, n);
+  const texte = court(ecran.texte, 9000).trim();
+  if (!texte && !ecran.designe) return '';
+  const ou = [ecran.onglet && `onglet ${court(ecran.onglet, 60)}`, ecran.mode && `mode ${court(ecran.mode, 30)}`].filter(Boolean).join(', ');
+  const designe = ecran.designe ? `\nL'ÉLÉMENT QUE LA PERSONNE A CLIQUÉ EN DERNIER : « ${court(ecran.designe.texte, 300)} »${ecran.designe.champ ? ` (champ ${court(ecran.designe.champ, 80)})` : ''}. « Ça », « celui-là », « ce chiffre », « cette ligne » le désignent d'abord ; si la phrase peut viser autre chose (un autre lot, une autre ligne), demande lequel avant de modifier.` : '';
+  const attente = ecran.non_enregistre && Object.keys(ecran.non_enregistre).length
+    ? `\nSAISI À L'ÉCRAN, PAS ENCORE ENREGISTRÉ (la page l'enregistre dans la seconde ; c'est ce que la personne voit) : ${court(JSON.stringify(ecran.non_enregistre), 1500)}`
+    : '';
+  return `\n\nL'ÉCRAN AU MOMENT DE LA QUESTION${ou ? ` (${ou})` : ''}. C'est ce que la personne regarde, avec les unités et les chiffres que la page calcule (rendement, prix de revient, loyer au m², simulateur, frise) : ils font foi. Ne les recalcule pas avec d'autres hypothèses ; si la base dit autre chose que l'écran, dis l'écart au lieu de choisir. Cite toujours l'unité d'un montant (€/an ou €/mois, HT HC ou charges comprises, €/m²/an) et la surface dont tu parles (utile, pondérée, du bail).${designe}${attente}${texte ? `\n<<<ÉCRAN\n${texte}\nÉCRAN>>>` : ''}`;
+}
+
 export async function repondreApp({ texte, historique = [], user, surEtape = null, contexte = null, pieces = [], estAnnule = null, signal = null, surTexte = null }) {
   const { consigneStable, consigneApprise, OUTILS, executerOutil, MODELE, effortDuChat } = await import('./agent.js');
   const { runAgent } = await import('../llm.js');
@@ -237,6 +257,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       }
     }
   }
+  cadrePage += cadreEcran(contexte?.ecran);
   const fond = [];
   const apres = [];
   const actions = [];

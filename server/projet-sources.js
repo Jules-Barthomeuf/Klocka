@@ -12,6 +12,7 @@
 //      (Equimmox ou Data-B pour le loyer autour, Le Figaro, l'INSEE, le simulateur).
 
 import { secteurGarde } from './projet-secteur.js';
+import { Records } from './db.js';
 
 const rempli = (v) => v != null && v !== '' && !(typeof v === 'number' && v === 0);
 const lire = (o, chemin) => String(chemin).split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
@@ -94,6 +95,7 @@ Valeurs forcées : ${JSON.stringify(p.valeurs_forcees || {})}
 Loyer autour lu par la page : ${rue?.loyer_m2_an ? `${rue.loyer_m2_an} €/m²/an (${rue.loyer_source}${rue.loyer_bas ? `, ${rue.loyer_bas} à ${rue.loyer_haut}` : ''}${rue.rayon ? `, ${rue.rayon}` : ''})` : 'aucun'}.
 SOURCES DES CHIFFRES (champ : origine, détail) :
 ${Object.entries(sources).map(([c, s]) => `- ${c} : ${s.origine}${s.detail ? `, ${s.detail}` : ''}`).join('\n')}
+${await simulateurPourAK(p)}
 ${await bailPourAK(p)}`;
   });
 }
@@ -103,19 +105,91 @@ ${await bailPourAK(p)}`;
  * modifier » alors que la frise affichait des triennales dans une période
  * ferme) : les champs qui le pilotent, la frise calculée, la synthèse, les pièces.
  */
+/** Le simulateur calculé comme sa page (les champs sim_* du résultat restent à 0 en base : la page calcule en direct). */
+async function simulateurPourAK(p) {
+  try {
+    const { simulationDuProjet, simulationEnTexte } = await import('./simulation-projet.js');
+    const sim = simulationDuProjet(p);
+    return sim ? `SIMULATEUR, CALCULÉ COMME LA PAGE (poste par poste ; les champs sim_* de résultat valent 0 en base, ne les lis pas) :\n${simulationEnTexte(sim)}` : 'SIMULATEUR : ni prix ni loyer, rien à calculer.';
+  } catch { return ''; }
+}
+
 async function bailPourAK(p) {
   const { friseDuProjet, friseBornee, jalonsDuBail, fermeDuProjet } = await import('../src/lib/frise-bail.js');
   const { piecesDeclarees } = await import('./pieces-projet.js');
-  const frise = friseBornee(friseDuProjet(p, null));
-  const ferme = fermeDuProjet(p);
+  // Les clauses telles que la page les montre : lues dans les pièces du dossier, corrigées à la main, avec leur pièce.
+  let cases = null;
+  try { cases = (await import('./projet-cases.js')).lireCases(p); } catch { cases = null; }
+  const lignes = cases?.analyse || [];
+  const frise = friseBornee(friseDuProjet(p, cases?.frise || null));
+  const ferme = fermeDuProjet(p, lignes);
   const jalons = frise ? jalonsDuBail(frise, { ferme }).jalons.map((j) => `${j.texte} : ${j.label}`).join(' ; ') : 'aucune date';
   const pieces = (() => { try { return piecesDeclarees(p).map((x) => x.nom); } catch { return []; } })();
+  const corrections = p.bail_analyse || {};
+  const ids = [...new Set([...lignes.map((l) => l.id), ...Object.keys(corrections)])];
+  const clauses = ids.map((id) => {
+    const l = lignes.find((x) => x.id === id);
+    const corrige = Object.prototype.hasOwnProperty.call(corrections, id);
+    const texte = corrige ? corrections[id] : l?.texte;
+    const piece = l?.source ? ` [pièce : ${l.source.document_nom}${l.source.page ? `, p. ${l.source.page}` : ''}${l.source.citation ? `, « ${String(l.source.citation).replace(/\s+/g, ' ').slice(0, 160)} »` : ''}]` : corrige ? ' [corrigé à la main]' : ' [sans pièce rattachée]';
+    return `  - ${id} : ${String(texte || '—').replace(/\s+/g, ' ').slice(0, 400)}${piece}`;
+  });
+  const dossier = p.deal_id ? `rattaché au dossier de pré-analyse ${p.deal_id} (ses pièces portent les clauses ci-dessus)` : 'aucun dossier de pré-analyse rattaché';
   const synthese = String(p.analyse_bail || '');
   return `BAIL (ce que la page affiche, et les champs qui le pilotent) :
 - bail_date_debut : ${p.bail_date_debut || '—'} ; bail_date_echeance : ${p.bail_date_echeance || p.echeance_bail || '—'} ; bail_duree_ferme_ans : ${p.bail_duree_ferme_ans ?? '—'} (période ferme lue : ${ferme === Infinity ? 'tout le bail' : ferme ? `${ferme} ans` : 'aucune'}).
 - Frise affichée : ${jalons}.
-- Corrections de l'analyse du bail (bail_analyse.<id>) : ${JSON.stringify(p.bail_analyse || {})}
+- Clauses de l'analyse du bail (bail_analyse.<id> pour les corriger), avec la pièce d'où chacune vient :
+${clauses.length ? clauses.join('\n') : '  aucune'}
 - Cases du bail corrigées (cases_forcees) : ${JSON.stringify(Object.fromEntries(Object.entries(p.cases_forcees || {}).filter(([k]) => k.startsWith('bail.'))))}
-- Pièces de l'onglet Documents : ${pieces.length ? pieces.join(', ') : 'aucune'}.
-- Synthèse de l'analyse du bail (analyse_bail)${synthese.length > 6000 ? ', début' : ''} : ${synthese ? synthese.slice(0, 6000) : 'vide'}`;
+- Pièces : onglet Documents ${pieces.length ? pieces.join(', ') : 'vide'} ; ${dossier}. Avant de dire « pas de bail au dossier », regarde ces deux endroits et la pièce citée par chaque clause.
+- Synthèse de l'analyse du bail (analyse_bail)${synthese.length > 6000 ? ', début' : ''} : ${synthese ? synthese.slice(0, 6000) : 'vide'}
+${controlesPourAK(p)}`;
+}
+
+const CHAMPS_BAIL = /^(bail_|echeance_bail|loyer_|sim_loyer|cases_forcees\.bail|bail_analyse)/;
+const quand = (iso) => (iso ? new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '?');
+
+/**
+ * Les contrôles qui ne se voient pas à l'écran (14 oct. 2026) : les textes
+ * générés écrits avant qu'un chiffre bouge, et ce que le dossier de
+ * pré-analyse dit autrement que le projet.
+ */
+export function controlesPourAK(p) {
+  const lignes = [];
+  const journal = p.journal_champs || [];
+  const depuis = (iso, filtre = () => true) => [...new Set(journal.filter((j) => j.le > (iso || '') && filtre(j.champ)).map((j) => j.champ))];
+  // La synthèse du bail : un champ du bail changé après sa dernière écriture.
+  const derniereSynthese = journal.filter((j) => j.champ === 'analyse_bail').map((j) => j.le).sort().at(-1) || '';
+  const bailBouge = depuis(derniereSynthese, (c) => CHAMPS_BAIL.test(c));
+  if (p.analyse_bail && bailBouge.length) lignes.push(`- La synthèse du bail (analyse_bail) a été écrite avant ces changements : ${bailBouge.join(', ')}. Relis-la : si elle les contredit, dis-le et propose de la réécrire.`);
+  const Rec = Records;
+  {
+    for (const pr of Rec.list('PresentationBancaire').filter((x) => x.projet_id === p.id)) {
+      const c = depuis(pr.maj_le);
+      if (c.length) lignes.push(`- La présentation bancaire « ${pr.titre || pr.id} » (presentation_id ${pr.id}, retouchée le ${quand(pr.maj_le)}) date d'avant ces changements du projet : ${c.join(', ')}. Ses diapositives disent peut-être encore l'ancien chiffre.`);
+    }
+    for (const l of Rec.list('LettreIntention').filter((x) => x.projet_id === p.id || (p.deal_id && x.deal_id === p.deal_id))) {
+      const c = depuis(l.maj_le || l.cree_le);
+      if (c.length) lignes.push(`- La lettre d'intention (loi_id ${l.id}, ${quand(l.maj_le || l.cree_le)}) date d'avant ces changements du projet : ${c.join(', ')}.`);
+    }
+    const deal = p.deal_id ? Rec.findBy('Deal', 'deal_id', p.deal_id) : null;
+    const lot = deal?.lots?.[0]?.lot || null;
+    if (lot) {
+      const v = (k) => lot[k]?.valeur ?? null;
+      const nombre = (x) => Number(x) || 0;
+      const ecart = (a, b) => nombre(a) > 0 && nombre(b) > 0 && Math.abs(nombre(a) - nombre(b)) / Math.max(nombre(a), nombre(b)) > 0.02;
+      const loyerProjet = nombre(p.sim_loyer_initial_ht) || nombre(p.loyer_annuel_ht);
+      const surfaceProjet = nombre(p.sim_surface) || nombre(p.surface_m2);
+      const prixProjet = nombre(p.sim_prix_bien_fai) || nombre(p.prix_acquisition);
+      const diffs = [
+        ecart(v('loyer_annuel_ht_hc'), loyerProjet) && `loyer annuel HT HC : dossier ${v('loyer_annuel_ht_hc')} €, projet ${loyerProjet} €`,
+        ecart(v('surface_m2'), surfaceProjet) && `surface : dossier ${v('surface_m2')} m², projet ${surfaceProjet} m²`,
+        ecart(v('prix_fai'), prixProjet) && `prix FAI : dossier ${v('prix_fai')} €, projet ${prixProjet} €`,
+        v('locataire_nom') && p.nom_locataire && String(v('locataire_nom')).trim().toLowerCase() !== String(p.nom_locataire).trim().toLowerCase() && `locataire : dossier « ${v('locataire_nom')} », projet « ${p.nom_locataire} »`,
+      ].filter(Boolean);
+      if (diffs.length) lignes.push(`- Le dossier de pré-analyse ${p.deal_id} dit autre chose que le projet : ${diffs.join(' ; ')}. Le projet est ce que le client voit ; ne choisis pas seul : dis l'écart, d'où vient chaque chiffre (la pièce du dossier, la saisie du projet) et demande lequel garder.`);
+    }
+  }
+  return lignes.length ? `CONTRÔLES (ce que l'écran ne montre pas) :\n${lignes.join('\n')}` : '';
 }

@@ -945,7 +945,7 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1162,14 +1162,14 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         form.append("fichier", piece);
         form.append("texte", t);
         form.append("historique", JSON.stringify(historique()));
-        if (E.page) form.append("contexte", JSON.stringify({ page: E.page, ...(contexte || {}) }));
+        if (E.page) form.append("contexte", JSON.stringify(contexteEnvoye()));
         const r = await base44.flux("/api/assistant/boite?flux=1", { body: form, isForm: true, signal: controleur.current.signal, surEtape, surTexte });
         await vider();
         return r;
       }
       const r = mandataire
         ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
-        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: { page: E.page, ...(contexte || {}) } } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
+        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: contexteEnvoye() } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
       return r;
@@ -1420,6 +1420,12 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
 
   // Le fil prend l'écran dès le premier message envoyé (tableau de bord seulement).
   // `filVide` (éditeur de projet, 14 oct. 2026, Jules) : le chat s'ouvre déjà en fil, barre du haut et saisie en bas, cette phrase au milieu tant qu'il est vide.
+  // `lireEcran` (14 oct. 2026) : la page dit ce qu'elle affiche au moment de l'envoi (texte, élément cliqué, saisie pas encore enregistrée).
+  const contexteEnvoye = () => {
+    let ecran = null;
+    try { ecran = lireEcran?.() || null; } catch { ecran = null; }
+    return { page: E.page, ...(contexte || {}), ...(ecran ? { ecran } : {}) };
+  };
   const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide;
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
   // « Dashboard » ou « Nouveau chat » dans la barre latérale : retour au départ.

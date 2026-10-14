@@ -57,6 +57,9 @@ function useTelephone() {
   return oui;
 }
 
+/** Le nom des onglets de la page, tels qu'AK doit les entendre. */
+const ONGLETS_ECRAN = { marche: "Marché", bien: "Bien", locataire: "Locataire", bail: "Analyse du bail", copropriete: "Copropriété", documents_projet: "Documents", simulateur: "Simulateur", images: "Photos" };
+
 /** Un écran assez large pour le chat et le projet côte à côte (comme Présentations). */
 function useEcranLarge() {
   const requete = "(min-width: 1024px)";
@@ -1148,6 +1151,32 @@ export default function AdminProjets() {
     return () => { vivant = false; };
   }, [vueProjet, editingProject?.id, enregistreLe]);
   useEffect(() => { setSurvolSource(null); }, [vueProjet, ongletPage, champsOuverts]);
+  // Ce que l'écran montre au moment où l'on parle à AK (14 oct. 2026) : le texte de la page tel qu'affiché
+  // (les calculs du simulateur et de la frise compris), le dernier élément cliqué, la saisie pas encore enregistrée.
+  const designeEcran = useRef(null);
+  const lireEcranRef = useRef(null);
+  lireEcranRef.current = () => {
+    const id = editingProject?.id;
+    let nonEnregistre = null;
+    if (id && modifieDepuis && dernierEnvoye.current?.id === id) {
+      try {
+        const donnees = construireDonnees(formData);
+        const avant = dernierEnvoye.current.valeurs || {};
+        nonEnregistre = Object.fromEntries(Object.entries(donnees).filter(([k, v]) => k !== "sources_champs" && JSON.stringify(v ?? null) !== JSON.stringify(avant[k] ?? null)));
+      } catch { nonEnregistre = null; }
+    }
+    const onglet = ONGLETS_ECRAN[ongletPage] || ongletPage;
+    return { onglet, mode: vueProjet, texte: zoneApercu.current?.innerText || "", designe: designeEcran.current, non_enregistre: nonEnregistre };
+  };
+  const lireEcran = useCallback(() => lireEcranRef.current?.(), []);
+  const noterDesigne = useCallback((e) => {
+    const el = e.target instanceof Element ? e.target.closest("[data-champ], [data-source], button, td, li, p, h2, h3, [class*='k-carte']") : null;
+    if (!el) return;
+    const champ = el.closest("[data-champ]")?.getAttribute("data-champ") || null;
+    const texte = (el.innerText || "").trim().slice(0, 300);
+    if (texte) designeEcran.current = { texte, champ: champ && champ !== texte ? champ : null };
+  }, []);
+
   const surSourceProjet = useCallback((s) => {
     setSurvolSource({ ...s, ancre: s.el.getBoundingClientRect(), cadre: zoneApercu.current?.getBoundingClientRect() });
   }, []);
@@ -1401,7 +1430,7 @@ export default function AdminProjets() {
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className={`flex-1 min-h-0 grid ${champsOuverts ? "grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-md:grid-rows-[minmax(0,1fr)]" : "grid-cols-1"} max-lg:grid-cols-1 max-lg:overflow-y-auto overscroll-contain`}>
-        <div ref={zoneApercu} className={`relative min-h-0 ${champsOuverts ? "max-md:hidden" : ""}`}>
+        <div ref={zoneApercu} onPointerDownCapture={noterDesigne} className={`relative min-h-0 ${champsOuverts ? "max-md:hidden" : ""}`}>
         <div className="h-full min-h-0 overflow-y-auto max-lg:overflow-visible" onScroll={() => survolSource && setSurvolSource(null)}>
           {majAK ? (
             <MiseAJourDocument surtitre="Mise à jour du projet" titre={titreTravailAK(travailAK.etapes)} etapes={travailAK.etapes || []} enCours={travailAK.enCours} />
@@ -1579,7 +1608,7 @@ export default function AdminProjets() {
           <div className="k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5">
             {/* Le chat s'ouvre en fil (14 oct. 2026, Jules) : Dashboard et Historique en haut, la saisie en bas. */}
             <ChatDashboard espace="projet" onReponse={surReponseAK} onTravail={setTravailAK}
-              barreApercu filVide="Par où commence-t-on ?" contexte={{ projet_id: editingProject.id }} />
+              barreApercu filVide="Par où commence-t-on ?" contexte={{ projet_id: editingProject.id }} lireEcran={lireEcran} />
           </div>
           {/* Le projet, un écran dans l'écran : une carte posée sur le fond, à côté du chat. */}
           <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">

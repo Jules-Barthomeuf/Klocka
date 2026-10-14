@@ -66,3 +66,18 @@ test('AK voit le bail comme la page : la frise, la période ferme, la synthèse 
   assert.doesNotMatch(ctx, /2029/);
   assert.match(ctx, /Bail de 10 ans dont 6 ans ferme/);
 });
+
+test('les contrôles : un texte généré avant un changement, un écart avec le dossier de pré-analyse', async () => {
+  const deal = Records.create('Deal', { deal_id: 'd-essai', lots: [{ lot: { loyer_annuel_ht_hc: { valeur: 48000 }, surface_m2: { valeur: 55 }, locataire_nom: { valeur: 'Chocolaterie Tarnaise' } } }] });
+  const p = Records.create('Project', { titre: 'Libourne', deal_id: deal.deal_id, sim_loyer_initial_ht: 30693, sim_surface: 55, nom_locataire: 'Chocolaterie Tarnaise', analyse_bail: 'Bail de 9 ans.' });
+  const pr = Records.create('PresentationBancaire', { projet_id: p.id, titre: 'Préz Libourne', maj_le: '2026-01-01T00:00:00.000Z' });
+  assert.doesNotMatch(S.controlesPourAK(Records.get('Project', p.id)), /présentation/, 'rien n\'a bougé depuis');
+  E.modifierChamps(p.id, [{ champ: 'bail_duree_ferme_ans', valeur: 6, source: 'Indiqué par Jules dans le chat' }], { par: 'AK' });
+  const c = S.controlesPourAK(Records.get('Project', p.id));
+  assert.match(c, /synthèse du bail \(analyse_bail\) a été écrite avant ces changements : bail_duree_ferme_ans/);
+  assert.match(c, new RegExp(`présentation bancaire « Préz Libourne » \\(presentation_id ${pr.id}`));
+  assert.match(c, /loyer annuel HT HC : dossier 48000 €, projet 30693 €/);
+  assert.doesNotMatch(c, /surface :|locataire :/, 'les valeurs égales ne sont pas des écarts');
+  E.modifierChamps(p.id, [{ champ: 'analyse_bail', valeur: 'Bail de 10 ans dont 6 ferme.', source: 'Indiqué par Jules' }], { par: 'AK' });
+  assert.doesNotMatch(S.controlesPourAK(Records.get('Project', p.id)), /synthèse du bail/, 'réécrite depuis : à jour');
+});

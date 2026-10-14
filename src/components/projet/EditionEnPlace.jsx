@@ -127,7 +127,7 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
     const s = edition.sources[nom];
     if (!s) return children;
     return (
-      <span data-source={s.nature} onMouseEnter={(e) => edition.surSource?.({ champ: nom, source: s, el: e.currentTarget })}
+      <span data-source={s.nature} data-champ={nom} onMouseEnter={(e) => edition.surSource?.({ champ: nom, source: s, el: e.currentTarget })}
         className={`cursor-help rounded-[4px] outline outline-1 outline-offset-2 ${s.nature === "a_remplir" ? "outline-alerte/60" : s.nature === "calcul" ? "outline-bord-vif" : "outline-menthe/60"}`}>
         {children}
       </span>
@@ -174,6 +174,7 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
   return (
     <button
       type="button"
+      data-champ={nomDuChemin(champ)}
       aria-label={titre || `Modifier ${nomDuChemin(champ)}`} title={titre || "Modifier"}
       onClick={(e) => {
         e.stopPropagation();

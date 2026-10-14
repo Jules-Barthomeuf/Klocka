@@ -10,10 +10,15 @@
 // Les formes entendues : C ou K, un ou deux o / a, c, k, ck, cc ou q au milieu, a ou ah à la fin ; et « cloaque », le mot français le plus proche.
 const FORMES = /(?<![\p{L}\p{N}])(?:[ck]l+o+a?(?:ck|cc|kk|c|k|q|qu)a+h?|[ck]lo+a+[ck]a+|cloaques?|clo+ c?ka)(?![\p{L}\p{N}])/giu;
 
-/** Pure : toute forme écorchée du nom devient « Klocka ». */
+// Les noms de l'équipe que la transcription écorche aussi (14 oct. 2026) : « Paul de Zulveta », « de Silueta ».
+const NOMS = [[/(?<![\p{L}\p{N}])(?:de\s+)?(?:zulueta|zulv[ée]ta|silu[ée]ta|silv[ée]ta|zuluetta)(?![\p{L}\p{N}])/giu, (m) => (/^de\s/i.test(m) ? 'de Zulueta' : 'Zulueta')]];
+
+/** Pure : toute forme écorchée du nom devient « Klocka » ; les noms de l'équipe aussi. */
 export function corrigerKlocka(texte) {
   if (texte == null) return texte;
-  return String(texte).replace(FORMES, 'Klocka');
+  let t = String(texte).replace(FORMES, 'Klocka');
+  for (const [re, par] of NOMS) t = t.replace(re, par);
+  return t;
 }
 
 /** À glisser dans une consigne qui lit une transcription. */

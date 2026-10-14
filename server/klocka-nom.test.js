@@ -12,3 +12,10 @@ test('les formes écorchées deviennent Klocka, les mots voisins restent', () =>
   assert.equal(corrigerKlocka(null), null);
   assert.match(NOTE_KLOCKA, /Cloaca/);
 });
+
+test("le nom de Paul aussi : « de Zulveta », « de Silueta » deviennent « de Zulueta »", () => {
+  assert.equal(corrigerKlocka("Oui, bonjour, Paul de Zulveta, l'appareil."), "Oui, bonjour, Paul de Zulueta, l'appareil.");
+  assert.equal(corrigerKlocka('Enchanté, Paul de Silueta. Je suis le cofondateur de la société Cloaca'), 'Enchanté, Paul de Zulueta. Je suis le cofondateur de la société Klocka');
+  assert.equal(corrigerKlocka("qui s'appelle CloCA"), "qui s'appelle Klocka");
+  for (const mot of ['petites cloques', 'Sultan', 'statue', 'la suite']) assert.equal(corrigerKlocka(mot), mot);
+});

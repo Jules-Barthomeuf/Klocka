@@ -29,7 +29,7 @@ import db from '../db.js';
 import { distanceM } from './vacance-regles.js';
 
 export const PARAMETRES_TAUX = {
-  version: 'v1.2 du 14 oct. 2026',
+  version: 'v1.3 du 14 oct. 2026',
   // Les activités de vitrine : le commerce de la table NAF de l'outil, et les services en boutique.
   vitrines: ['45', '47', '56', '952', '960', '64.19', '66.22', '68.31', '79.1', '77.2', '74.2', '95.1'],
   // Sans local : marchés, vente à distance, vente hors magasin.
@@ -39,6 +39,8 @@ export const PARAMETRES_TAUX = {
   seuil_adresse_multiple: 8,
   // Une rue entre dans le détail à partir de ce nombre de locaux.
   locaux_min_rue: 4,
+  // En deçà de ce nombre de locaux tranchés, un pourcentage ne veut rien dire (un local = 20 points sur 5) : il n'est pas affiché.
+  locaux_min_taux: 10,
   rayon_min_m: 50,
   rayon_max_m: 1500,
   rayon_defaut_m: 300,
@@ -178,7 +180,11 @@ export function etatsDesLocaux(etablissements, osm, zone, { maintenantD = new Da
     const v = ls.filter((l) => l.etat === 'vacant').length;
     const i = ls.filter((l) => l.etat === 'incertain').length;
     const pct = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : null);
-    return { locaux: ls.length, occupes: o, vacants: v, incertains: i, taux: pct(v, o + v), bas: pct(v, o + v + i), haut: pct(v + i, o + v + i) };
+    // Une seule règle, pour le total comme pour chaque rue : vacants / (vacants + occupés) ; les incertains
+    // sont comptés à part, jamais au dénominateur. Plus de fourchette (14 oct. 2026) : celle des seuls
+    // incertains passait pour une marge d'erreur, que la méthode n'a pas encore mesurée.
+    const confirmes = ls.filter((l) => l.etat === 'vacant' && l.confiance === 'forte').length;
+    return { locaux: ls.length, occupes: o, vacants: v, incertains: i, tranches: o + v, vacants_confirmes: confirmes, taux: pct(v, o + v), fiable: o + v >= P.locaux_min_taux };
   };
   const parVoie = new Map();
   for (const l of locaux) { if (!parVoie.has(l.voie)) parVoie.set(l.voie, []); parVoie.get(l.voie).push(l); }

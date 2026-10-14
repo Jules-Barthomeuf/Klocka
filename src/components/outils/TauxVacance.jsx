@@ -158,8 +158,9 @@ export default function TauxVacance() {
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
               <div>
                 <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Taux de vacance estimé</p>
-                <p className="m-0 mt-1 text-[48px] font-light leading-none tracking-[-0.03em] text-encre tabular-nums">{pct(t.taux)}</p>
-                {t.bas !== t.haut && <p className="m-0 mt-1.5 text-[13px] text-ardoise">entre {pct(t.bas)} et {pct(t.haut)} selon les {t.incertains} incertain{t.incertains > 1 ? "s" : ""}</p>}
+                <p className="m-0 mt-1 text-[48px] font-light leading-none tracking-[-0.03em] text-encre tabular-nums">{t.fiable ? pct(t.taux) : "—"}</p>
+                {!t.fiable && <p className="m-0 mt-1.5 text-[13px] text-ambre">Moins de dix locaux : élargissez le rayon pour un pourcentage qui ait du sens.</p>}
+                <p className="m-0 mt-1.5 text-[13px] text-ardoise">{t.vacants} vacants sur {t.tranches} locaux tranchés{t.incertains ? ` · ${t.incertains} incertain${t.incertains > 1 ? "s" : ""}, compté${t.incertains > 1 ? "s" : ""} à part` : ""}</p>
               </div>
               <div className="grid grid-cols-4 gap-5 text-[13px]">
                 {[["Locaux", t.locaux, "text-encre"], ["Vacants", t.vacants, "text-alerte"], ["Incertains", t.incertains, "text-ambre"], ["Occupés", t.occupes, "text-menthe"]].map(([m, n, c]) => (
@@ -170,19 +171,25 @@ export default function TauxVacance() {
             <p className="m-0 mt-4 max-w-[78ch] text-[12.5px] leading-[1.6] text-brume">
               Méthode {r.parametres.version} : un local par adresse où un commerce ou un service en boutique est ouvert, ou a fermé depuis {r.parametres.annees_historique} ans (SIRENE, recensé le {dateFr(r.recense_le)}) ;
               vacant si plus personne n'y est ouvert, vérifié sur Google Maps ({r.google.verifies} locaux) et OpenStreetMap ({r.osm.commerces} commerces autour). Taux = vacants / (vacants + occupés).
-              {r.exclus.length > 0 && ` ${r.exclus.length} adresses écartées (vente hors magasin, domiciliation, sans numéro).`} Une estimation reproductible, pas un relevé de terrain.
+              {r.exclus.length > 0 && ` ${r.exclus.length} adresses écartées (vente hors magasin, domiciliation, sans numéro).`} {t.vacants_confirmes} des {t.vacants} vacants sont confirmés par une seconde source.
+              Une estimation reproductible, pas un relevé de terrain : sa précision, de l'ordre de quelques points, se mesure en vérifiant un échantillon sur place.
             </p>
 
             {/* Par rue. */}
             {r.rues.length > 0 && (
               <div className="mt-6">
                 <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">Par rue</p>
+                <div className="grid grid-cols-[minmax(0,1fr)_70px_110px_70px] gap-3 pb-1.5 text-[11px] uppercase tracking-[.12em] text-brume">
+                  <span>Rue</span><span className="text-right">Taux</span><span className="text-right">Vacants / tranchés</span><span className="text-right">Incertains</span>
+                </div>
                 <div className="border-y border-trait">
                   {r.rues.map((x) => (
-                    <div key={x.voie} className="grid grid-cols-[minmax(0,1fr)_70px_90px] items-center gap-3 border-t border-trait py-2 text-[13.5px] first:border-t-0">
+                    <div key={x.voie} className="grid grid-cols-[minmax(0,1fr)_70px_110px_70px] items-center gap-3 border-t border-trait py-2 text-[13.5px] first:border-t-0">
                       <span className="min-w-0 truncate text-encre">{x.voie.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())}</span>
-                      <span className="text-right tabular-nums text-encre">{pct(x.taux)}</span>
-                      <span className="text-right tabular-nums text-ardoise">{x.vacants} / {x.vacants + x.occupes}{x.incertains ? ` · ${x.incertains} ?` : ""}</span>
+                      {/* Moins de dix locaux tranchés : pas de pourcentage, seulement le compte (un local y pèse trop). */}
+                      <span className={`text-right tabular-nums ${x.fiable ? "text-encre" : "text-brume"}`} title={x.fiable ? undefined : "Trop peu de locaux pour un pourcentage"}>{x.fiable ? pct(x.taux) : "—"}</span>
+                      <span className="text-right tabular-nums text-ardoise">{x.vacants} / {x.tranches}</span>
+                      <span className="text-right tabular-nums text-ardoise">{x.incertains || ""}</span>
                     </div>
                   ))}
                 </div>

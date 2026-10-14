@@ -39,6 +39,9 @@ test('occupé, vacant, écartés : un local par adresse, le taux et la fourchett
   assert.ok(r.exclus.some((x) => /hors magasin/.test(x.raison)), 'un marché n\'a pas de local');
   assert.ok(r.exclus.some((x) => /domiciliation/.test(x.raison)), 'neuf entreprises à la même adresse : domiciliation');
   assert.deepEqual([r.taux.vacants, r.taux.occupes, r.taux.taux], [1, 1, 50]);
+  assert.equal(r.taux.tranches, 2);
+  assert.equal(r.taux.fiable, false, 'deux locaux : pas de pourcentage affiché');
+  assert.equal(r.taux.bas, undefined, 'plus de fourchette des incertains');
 });
 
 test('Google Maps tranche : un autre commerce ouvert reprend le local ; le même encore affiché, incertain ; personne, vacant confirmé', () => {

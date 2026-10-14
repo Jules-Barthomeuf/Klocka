@@ -4,7 +4,7 @@ import { Search, X, ChevronDown, Loader2, SlidersHorizontal, PanelRightClose, Pa
 import { base44 } from "@/api/base44Client";
 import CarteVacance from "@/components/outils/CarteVacance";
 import PanneauTaux from "@/components/outils/PanneauTaux";
-import { CATEGORIES, TYPES_SIGNAL, CLES_CATEGORIES, CLES_TYPES, RAYON, motType, motCategorie } from "@/lib/vacance-signaux";
+import { CATEGORIES, TYPES_SIGNAL, CLES_CATEGORIES, CLES_TYPES, RAYON, motType, motCategorie, adresseLisible } from "@/lib/vacance-signaux";
 
 // Vacance (spec du 13 oct. 2026) : autour d'une adresse, les événements
 // publics qui annoncent qu'un local va se libérer ou vient de se libérer.
@@ -429,7 +429,7 @@ export default function Vacance() {
                     <tr key={l.cle} id={`point-${l.cle}`} onClick={() => ouvrir(l)} onMouseEnter={() => setSurvol(l.cle)} onMouseLeave={() => setSurvol(null)}
                       className={`cursor-pointer border-b border-trait transition-colors ${actif ? "bg-rail-actif" : survol === l.cle ? "bg-relief/40" : "hover:bg-relief/30"}`}>
                       <td className="max-w-[240px] truncate px-2 py-2 text-encre">{l.enseigne || l.denomination || "Établissement"}</td>
-                      <td className="max-w-[260px] truncate px-2 py-2 text-craie">{l.adresse || "—"}</td>
+                      <td className="max-w-[260px] truncate px-2 py-2 text-craie">{adresseLisible(l.adresse) || "—"}</td>
                       <td className="px-2 py-2 text-craie">{motType(l.signal_principal.type)}</td>
                       <td className="whitespace-nowrap px-2 py-2 tabular-nums text-ardoise">{date(l.signal_principal.date)}</td>
                       <td className="px-2 py-2 text-ardoise">{motCategorie(l.categorie_bien)}</td>

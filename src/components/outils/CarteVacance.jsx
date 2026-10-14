@@ -4,7 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useFondDeCarte } from "@/lib/tuiles";
 import { JL } from "@/design/jetons";
-import { estRecent, motCategorie, motType } from "@/lib/vacance-signaux";
+import { adresseLisible, estRecent, motCategorie, motType } from "@/lib/vacance-signaux";
 
 // La carte des signaux de vacance : le fond de carte de l'application (IGN,
 // passé en sombre par le filtre de `.k-carte-rues`), le cercle du rayon, une
@@ -115,7 +115,7 @@ function Rond({ l, choisi, survol, onChoisir, onSurvol }) {
       pathOptions={{ color: actif ? JL.menthe : JL.encre, weight: 1.5, fillColor: recent ? JL["menthe-fonce"] : JL["menthe-clair"], fillOpacity: 0.95 }}
       eventHandlers={{ click: () => onChoisir(l), mouseover: () => onSurvol?.(l.cle), mouseout: () => onSurvol?.(null) }}
     >
-      <Tooltip direction="top" offset={[0, -8]} opacity={1}>{l.enseigne || l.denomination || l.adresse}</Tooltip>
+      <Tooltip direction="top" offset={[0, -8]} opacity={1}>{l.enseigne || l.denomination || adresseLisible(l.adresse)}</Tooltip>
     </CircleMarker>
   );
 }
@@ -127,7 +127,7 @@ function Fiche({ l }) {
     <div className="k-vacance-fiche">
       <p className="m-0 text-[15px] text-encre">{l.enseigne || l.denomination || "Établissement"}</p>
       {l.enseigne && l.denomination && l.enseigne !== l.denomination && <p className="m-0 text-[12.5px] text-ardoise">{l.denomination}</p>}
-      <p className="m-0 mt-1 text-[13.5px] text-ardoise">{l.adresse || "Adresse non publiée"}</p>
+      <p className="m-0 mt-1 text-[13.5px] text-ardoise">{adresseLisible(l.adresse) || "Adresse non publiée"}</p>
       <p className="m-0 mt-1 text-[12.5px] text-brume">{motCategorie(l.categorie_bien)}{l.activite ? ` · ${l.activite}` : l.code_naf ? ` · NAF ${l.code_naf}` : ""} · à {metres(l.distance_m)}</p>
       {(l.multi_sites || l.demenagement) && (
         <p className="m-0 mt-1 text-[12.5px] text-ambre">{[l.multi_sites && "Entreprise multi-sites : seul le siège est placé", l.demenagement && "Déménagement : l'entreprise a rouvert ailleurs"].filter(Boolean).join(" · ")}</p>

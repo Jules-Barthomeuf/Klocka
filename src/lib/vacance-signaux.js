@@ -43,3 +43,22 @@ export const motCategorie = (cle) => CATEGORIES.find((c) => c.cle === cle)?.mot 
 
 /** Un signal de moins de douze mois est « récent » : la carte le dessine plus sombre. */
 export const estRecent = (dateIso, maintenant = Date.now()) => !!dateIso && maintenant - Date.parse(dateIso) < 365.25 * 86400000;
+
+// Les petits mots qui restent en minuscules dans une adresse (« Rue de la Paix »).
+const PETITS = new Set(["de", "du", "des", "la", "le", "les", "et", "sur", "sous", "en", "aux", "au", "à"]);
+
+/**
+ * Une adresse du registre, écrite en capitales, remise en majuscules et
+ * minuscules (14 oct. 2026, Jules) : « 36 PLACE ABEL SURCHAMP 33500 LIBOURNE »
+ * → « 36 Place Abel Surchamp 33500 Libourne ». Les traits d'union et
+ * apostrophes gardent leur majuscule (« Jean-Jacques », « d'Amade »).
+ */
+export function adresseLisible(adresse) {
+  const t = String(adresse || "").trim();
+  if (!t) return t;
+  return t.toLowerCase().split(/(\s+)/).map((mot, k) => {
+    if (/^\s+$/.test(mot)) return mot;
+    if (k > 0 && PETITS.has(mot)) return mot;
+    return mot.replace(/(^|[-'’])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase()).replace(/^(D|L)(['’])(\p{L})/u, (_, a, ap, c) => `${a.toLowerCase()}${ap}${c.toUpperCase()}`);
+  }).join("");
+}

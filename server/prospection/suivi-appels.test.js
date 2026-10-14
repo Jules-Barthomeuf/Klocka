@@ -183,3 +183,33 @@ test('les graphiques : la carte jour × heure à Paris et la répartition des du
   assert.ok(r.durees.find((d) => d.mot === '5 à 10 min').appels >= 1);
   assert.ok(r.par_jour.at(-1).duree_moyenne_s > 0);
 });
+
+test('le contexte gagné : les appels qui ont nourri le Cerveau, leurs faits par type et statut, les fiches enrichies', () => {
+  const appels = [
+    { id: 'a1', le: '2026-10-14T08:00:00Z', par: 'nora.l@klocka.immo', transcription_gardee: 'Bonjour…' },
+    { id: 'a2', le: '2026-10-14T09:00:00Z', par: 'nora.l@klocka.immo', transcription_gardee: 'Allô…' },
+    { id: 'a3', le: '2026-10-13T09:00:00Z', par: 'maxime.p@klocka.immo', transcription_gardee: '' },
+  ];
+  const sources = [{ id: 's1', cle: 'appel-a1', titre: 'Appel : Durand', statut_extraction: 'fait', doublons: 1 }, { id: 's2', cle: 'appel-a2', titre: 'Appel : Martin', statut_extraction: 'en_cours' }, { id: 's9', cle: 'cr-1' }];
+  const faits = [
+    { id: 'f1', source_id: 's1', type: 'engagement', statut: 'valide', resume: 'Durand rappelle jeudi' },
+    { id: 'f2', source_id: 's1', type: 'information', statut: 'a_valider', resume: 'Deux murs à Antibes' },
+    { id: 'f3', source_id: 's9', type: 'decision', statut: 'valide', resume: 'hors appel' },
+  ];
+  const liens = [{ fait_id: 'f1', type_entite: 'agent', entite_id: 'ag1' }, { fait_id: 'f2', type_entite: 'agent', entite_id: 'ag1' }, { fait_id: 'f2', type_entite: 'agence', entite_id: 'x1' }, { fait_id: 'f3', type_entite: 'agence', entite_id: 'x2' }];
+  const c = S.contexteAppels(appels, { sources, faits, liens });
+  assert.equal(c.transcrits, 2);
+  assert.equal(c.sources, 2);
+  assert.equal(c.nourris_pct, 100);
+  assert.equal(c.faits, 2, 'le fait d\'un compte rendu ne compte pas');
+  assert.equal(c.faits_par_source, 1);
+  assert.equal(c.en_attente_extraction, 1);
+  assert.equal(c.doublons, 1);
+  assert.deepEqual(c.par_type, { engagement: 1, information: 1 });
+  assert.deepEqual(c.par_statut, { valide: 1, a_valider: 1 });
+  assert.deepEqual(c.fiches, { agents: 1, agences: 1, autres: 0 });
+  assert.equal(c.analystes[0].prenom, 'Nora');
+  assert.equal(c.analystes[0].valides, 1);
+  assert.deepEqual(c.par_jour, [{ jour: '2026-10-14', sources: 2, faits: 2 }]);
+  assert.equal(c.derniers[0].titre, 'Appel : Martin');
+});

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
-import { AppelsParJour, BarresHorizontales, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { AppelsParJour, BarresHorizontales, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -14,7 +14,7 @@ import { AppelsParJour, BarresHorizontales, CarteSemaine, ClassementAnalystes, C
 
 // « Aujourd'hui » (14 oct. 2026, Jules) : la journée en cours, depuis minuit.
 const PERIODES = [[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
-const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["journal", "Journal des appels"]];
+const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["contexte", "Contexte"], ["journal", "Journal des appels"]];
 const MODES = [["", "Tout"], ["prospection", "Prospection"], ["relances", "Relances"], ["rappel", "Rappel"], ["essai", "Essai"]];
 const titreCase = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
 const filtre = (actif) => `px-3 py-1.5 rounded-md text-[12.5px] border transition-colors ${actif ? "border-menthe text-menthe bg-menthe/[0.1]" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`;
@@ -110,6 +110,59 @@ function DetailAppel({ x, modifiable = true }) {
       {v && <div className={ligne}><span className="text-ardoise">Validation</span><span className="text-craie">{v.depuis_fenetre ? "Depuis la fenêtre des actions" : "Depuis la page"} · {v.vues ?? "?"} étape{(v.vues || 0) > 1 ? "s" : ""} ouverte{(v.vues || 0) > 1 ? "s" : ""} sur {v.etapes}{v.retirees?.length ? ` · retirées : ${v.retirees.join(", ")}` : ""}{v.ajoutees?.length ? ` · ajoutées : ${v.ajoutees.join(", ")}` : ""}{x.annulations ? ` · annulé ${x.annulations} fois` : ""}</span></div>}
       {m && <div className={ligne}><span className="text-ardoise">Corrections d'AK</span><span className="text-craie">{!m.propose_par_ak ? "Issue tapée à la main : AK n'a rien proposé" : !m.corrige ? "Aucune" : [m.issue && "issue changée", m.champs?.length && `champs : ${m.champs.join(", ")}`, m.date && "date retouchée", m.mail && "mail retouché"].filter(Boolean).join(" · ")}</span></div>}
       {x.recu && <div className={ligne}><span className="text-ardoise">Reçu</span><span className="flex flex-col gap-0.5 text-craie">{x.recu.monday && <span>Monday : {x.recu.monday.texte}</span>}{x.recu.mail && <span>Mail : {x.recu.mail.texte}</span>}{x.recu.relance && <span>{x.recu.relance}</span>}</span></div>}
+    </div>
+  );
+}
+
+const TYPES_FAIT_MOTS = { decision: "Décisions", information: "Informations", engagement: "Engagements", savoir: "Savoir" };
+const STATUTS_FAIT_MOTS = { valide: "Validés", a_valider: "À valider", a_rattacher: "À rattacher", rejete: "Rejetés" };
+
+/**
+ * Le contexte gagné par les appels (14 oct. 2026, Jules) : mesuré dans le
+ * Cerveau. Combien d'appels l'ont nourri, combien de faits il en a tirés, de
+ * quel type, où ils en sont, quelles fiches ils enrichissent, et qui les apporte.
+ */
+function VueContexte({ ctx, c }) {
+  if (!ctx) return <p className="m-0 py-10 text-center text-[13.5px] text-brume">Le Cerveau ne répond pas.</p>;
+  const lignes = (o, mots) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ nom: mots[k] || k, valeur: n }));
+  const valides = ctx.par_statut?.valide || 0;
+  return (
+    <div className="k-monte flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Chiffre valeur={ctx.sources} libelle="Appels entrés" note={`sur ${ctx.transcrits} transcrit${ctx.transcrits > 1 ? "s" : ""}${ctx.nourris_pct != null ? ` · ${ctx.nourris_pct} %` : ""}`} />
+        <Chiffre valeur={ctx.faits} libelle="Faits tirés" note={ctx.faits_par_source != null ? `${String(ctx.faits_par_source).replace(".", ",")} par appel` : "aucun encore"} />
+        <Chiffre valeur={valides} libelle="Validés" note={ctx.faits ? `${Math.round((valides / ctx.faits) * 100)} % des faits` : "par Jules, dans le Cerveau"} />
+        <Chiffre valeur={(ctx.par_statut?.a_valider || 0) + (ctx.par_statut?.a_rattacher || 0)} libelle="À trancher" note="à valider ou à rattacher" />
+        <Chiffre valeur={ctx.fiches.agents + ctx.fiches.agences + ctx.fiches.autres} libelle="Fiches enrichies" note={`${ctx.fiches.agents} agent${ctx.fiches.agents > 1 ? "s" : ""} · ${ctx.fiches.agences} agence${ctx.fiches.agences > 1 ? "s" : ""}`} />
+        <Chiffre valeur={ctx.en_attente_extraction} libelle="En extraction" note={ctx.doublons ? `${ctx.doublons} doublon${ctx.doublons > 1 ? "s" : ""} écarté${ctx.doublons > 1 ? "s" : ""}` : "pas encore lus"} />
+      </div>
+      {ctx.sources === 0 ? (
+        <Cadre titre="Contexte">
+          <p className="m-0 text-[13.5px] text-ardoise">Aucun appel n'a encore nourri le Cerveau sur la période. Un appel y entre quand il est validé avec sa transcription (gardée depuis le 13 octobre) ; « Importer les appels déjà transcrits », dans le Cerveau, reprend les plus anciens.</p>
+        </Cadre>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <FaitsParJour parJour={ctx.par_jour} c={c} />
+            <BarresHorizontales titre="Par analyste" c={c} lignes={ctx.analystes.map((a) => ({ nom: `${a.prenom} · ${a.sources} appel${a.sources > 1 ? "s" : ""}`, valeur: a.faits }))} aide="Faits apportés au Cerveau par les appels de chacun." />
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <BarresHorizontales titre="Types de faits" c={c} lignes={lignes(ctx.par_type, TYPES_FAIT_MOTS)} />
+            <BarresHorizontales titre="Où en sont les faits" c={c} lignes={lignes(ctx.par_statut, STATUTS_FAIT_MOTS)} />
+          </div>
+          <Cadre titre="Derniers appels entrés">
+            <div className="flex flex-col">
+              {ctx.derniers.map((d) => (
+                <div key={d.le + d.titre} className="border-t border-trait py-2.5 text-[13px] first:border-t-0">
+                  <p className="m-0 flex flex-wrap justify-between gap-2"><span className="text-encre">{d.titre}</span><span className="text-brume">{d.par} · {quand(d.le)} · {d.faits} fait{d.faits > 1 ? "s" : ""}</span></p>
+                  {d.resumes.map((f, i) => <p key={i} className="m-0 mt-0.5 text-craie"><span className="text-brume">{TYPES_FAIT_MOTS[f.type] || f.type} · </span>{f.resume}{f.statut !== "valide" ? <span className="text-ambre"> · {STATUTS_FAIT_MOTS[f.statut] || f.statut}</span> : null}</p>)}
+                </div>
+              ))}
+            </div>
+            <p className="m-0 mt-3 text-[12px] text-brume">Les faits se valident dans le Cerveau, page « À valider ».</p>
+          </Cadre>
+        </>
+      )}
     </div>
   );
 }
@@ -278,6 +331,8 @@ export default function SuiviAppels({ dansProspection = false }) {
               </div>
               <p className="m-0 mt-3 text-[12px] text-brume">Durée, enregistrement, notes, validation depuis la fenêtre, étapes ouvertes et corrections d'AK sont mesurés depuis le 9 octobre 2026 : avant, « — ». Un clic sur une personne ouvre ses appels.</p>
             </div>}
+
+            {vue === "contexte" && <VueContexte ctx={data.contexte} c={c} />}
 
             {vue === "journal" && <div className="rounded-md border border-trait p-4 k-monte">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">

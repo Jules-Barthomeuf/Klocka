@@ -188,6 +188,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   });
 
   const rappels = Records.list('RappelEntrant').filter((r) => String(r.debut) >= depuis);
+  const contexte = contexteAppels(appels, { sources: Records.list('CerveauSource'), faits: Records.list('CerveauFait'), liens: Records.list('CerveauLien') });
   // Les rappels entrants qui n'ont pas abouti à un appel du journal (13 oct. 2026, Jules : « dans les
   // journaux d'appels on doit voir aussi les rappels qui ont été faits ») : en cours, à identifier,
   // abandonnés. Un rappel validé y est déjà, par l'appel qu'il a créé ; on ne le met pas deux fois.
@@ -209,6 +210,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     sources,
     rappels: { total: rappels.length, termines: rappels.filter((r) => r.etat === 'valide').length, abandonnes: rappels.filter((r) => r.etat === 'abandonne').length, en_cours: rappels.filter((r) => ['enregistrement', 'a_identifier', 'identifie'].includes(r.etat)).length },
     journal: journalComplet,
+    contexte,
   };
 }
 
@@ -238,6 +240,62 @@ export function lignesDeRappels(rappels, idsAuJournal, agences = new Map(), fich
         temps: null,
       };
     });
+}
+
+/**
+ * Le contexte que les appels apportent au Cerveau (14 oct. 2026, Jules : « dans
+ * Suivi appels, le contexte, avec le gain de sources de contexte, mesuré depuis
+ * le Cerveau »). Un appel validé avec sa transcription entre dans le Cerveau
+ * comme une source (clé « appel-<id> », cerveau.js depuisAppel) ; l'extraction
+ * en tire des faits, que Jules valide. Pure sur ses entrées : testée sans base.
+ *
+ * @param {Array} appels  les appels de la période (avec _source, par, le, transcription_gardee)
+ * @param {{sources: Array, faits: Array, liens: Array}} cerveau
+ */
+export function contexteAppels(appels, { sources = [], faits = [], liens = [] } = {}) {
+  const parCle = new Map(sources.filter((s) => String(s.cle || '').startsWith('appel-')).map((s) => [s.cle.slice(6), s]));
+  const faitsDe = new Map();
+  for (const f of faits) { if (!faitsDe.has(f.source_id)) faitsDe.set(f.source_id, []); faitsDe.get(f.source_id).push(f); }
+  const lignes = appels.map((x) => {
+    const s = parCle.get(x.id) || null;
+    return { x, s, faits: s ? faitsDe.get(s.id) || [] : [] };
+  });
+  const transcrits = lignes.filter((l) => String(l.x.transcription_gardee || '').trim());
+  const nourris = lignes.filter((l) => l.s);
+  const tous = nourris.flatMap((l) => l.faits);
+  const compter = (liste, cle) => liste.reduce((o, f) => ({ ...o, [f[cle]]: (o[f[cle]] || 0) + 1 }), {});
+  const ids = new Set(tous.map((f) => f.id));
+  const fiches = liens.filter((l) => ids.has(l.fait_id));
+  const distinctes = (type) => new Set(fiches.filter((l) => l.type_entite === type).map((l) => l.entite_id)).size;
+  const par = new Map();
+  for (const l of nourris) {
+    const e = String(l.x.par || '').toLowerCase();
+    const a = par.get(e) || { email: e, prenom: prenomDe(e) || e, sources: 0, faits: 0, valides: 0 };
+    a.sources += 1; a.faits += l.faits.length; a.valides += l.faits.filter((f) => f.statut === 'valide').length;
+    par.set(e, a);
+  }
+  const jours = new Map();
+  for (const l of nourris) {
+    const j = R.jourDe(new Date(l.x.le));
+    const d = jours.get(j) || { jour: j, sources: 0, faits: 0 };
+    d.sources += 1; d.faits += l.faits.length; jours.set(j, d);
+  }
+  return {
+    appels: appels.length,
+    transcrits: transcrits.length,
+    sources: nourris.length,
+    en_attente_extraction: nourris.filter((l) => l.s.statut_extraction !== 'fait').length,
+    faits: tous.length,
+    doublons: nourris.reduce((t, l) => t + (l.s.doublons || 0), 0),
+    faits_par_source: nourris.length ? Math.round((tous.length / nourris.length) * 10) / 10 : null,
+    nourris_pct: pct(nourris.length, transcrits.length),
+    par_type: compter(tous, 'type'),
+    par_statut: compter(tous, 'statut'),
+    fiches: { agents: distinctes('agent'), agences: distinctes('agence'), autres: new Set(fiches.filter((l) => !['agent', 'agence'].includes(l.type_entite)).map((l) => `${l.type_entite}:${l.entite_id}`)).size },
+    analystes: [...par.values()].sort((a, b) => b.faits - a.faits),
+    par_jour: [...jours.values()].sort((a, b) => a.jour.localeCompare(b.jour)),
+    derniers: nourris.sort((a, b) => String(b.x.le).localeCompare(String(a.x.le))).slice(0, 8).map((l) => ({ le: l.x.le, par: prenomDe(l.x.par) || l.x.par, titre: l.s.titre, faits: l.faits.length, resumes: l.faits.slice(0, 3).map((f) => ({ type: f.type, resume: f.resume, statut: f.statut })) })),
+  };
 }
 
 /**

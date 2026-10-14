@@ -349,3 +349,22 @@ export function ClassementAnalystes({ analystes, c, titre, onChoisir }) {
     </Cadre>
   );
 }
+
+/** Les faits que les appels ont apportés au Cerveau, jour par jour (14 oct. 2026). */
+export function FaitsParJour({ parJour, c }) {
+  return (
+    <Cadre titre="Faits tirés des appels, par jour" aide="Chaque appel validé avec sa transcription entre dans le Cerveau ; l'extraction en tire des faits.">
+      <div className="h-[220px]">
+        <ResponsiveContainer>
+          <BarChart data={parJour} margin={{ top: 6, right: 4, left: -18, bottom: 0 }} barCategoryGap={4}>
+            <CartesianGrid vertical={false} stroke={c.trait} />
+            <XAxis dataKey="jour" tickFormatter={jourCourt} minTickGap={18} {...axe(c)} />
+            <YAxis allowDecimals={false} {...axe(c)} />
+            <Tooltip cursor={{ fill: c.trait }} content={({ active, payload }) => active && payload?.length ? <Bulle titre={jourLong(payload[0].payload.jour)} lignes={[{ nom: "Faits", valeur: payload[0].payload.faits, couleur: c.menthe }, { nom: "Appels entrés", valeur: payload[0].payload.sources }]} /> : null} />
+            <Bar dataKey="faits" fill={c.menthe} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </Cadre>
+  );
+}

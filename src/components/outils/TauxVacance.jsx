@@ -20,10 +20,18 @@ const COULEUR = { vacant: JL.alerte, incertain: JL.ambre, occupe: JL.menthe };
 const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
 const dateFr = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "");
 
+const FRANCE = { centre: [46.6, 2.4], zoom: 6 };
+
 function Cadrer({ zone }) {
   const map = useMap();
   useEffect(() => {
-    if (!zone) return;
+    // Rien de choisi (14 oct. 2026, Jules) : la France entière.
+    if (!zone) {
+      const france = () => { map.invalidateSize(); map.setView(FRANCE.centre, FRANCE.zoom); };
+      france();
+      const t = setTimeout(france, 250);
+      return () => clearTimeout(t);
+    }
     const d = zone.rayon_m * 1.1;
     const dLat = d / 111320; const dLon = d / (111320 * Math.cos((zone.lat * Math.PI) / 180));
     // La carte connaît sa taille un instant après son premier dessin : on recadre alors.
@@ -39,11 +47,11 @@ function Carte({ zone, locaux, choisi, onChoisir }) {
   const { fond, surErreur } = useFondDeCarte({ google: true });
   return (
     <div className={`k-carte-rues relative h-full min-h-[320px] ${fond.google ? "k-carte-google" : ""}`}>
-      <MapContainer center={[zone.lat, zone.lon]} zoom={16} className="h-full w-full" zoomControl={false} attributionControl={false}>
+      <MapContainer center={zone ? [zone.lat, zone.lon] : FRANCE.centre} zoom={zone ? 16 : FRANCE.zoom} className="h-full w-full" zoomControl={false} attributionControl={false}>
         <TileLayer key={fond.cle} url={fond.url} maxZoom={fond.zoom_max} eventHandlers={{ tileerror: surErreur }} />
         <Cadrer zone={zone} />
-        <Circle center={[zone.lat, zone.lon]} radius={zone.rayon_m} pathOptions={{ color: JL.encre, weight: 1, opacity: 0.5, fillOpacity: 0.03 }} />
-        {locaux.map((l) => (
+        {zone && <Circle center={[zone.lat, zone.lon]} radius={zone.rayon_m} pathOptions={{ color: JL.encre, weight: 1, opacity: 0.5, fillOpacity: 0.03 }} />}
+        {(locaux || []).map((l) => (
           <CircleMarker key={l.cle} center={[l.lat, l.lon]} radius={choisi === l.cle ? 9 : 6}
             pathOptions={{ color: JL.encre, weight: 1, fillColor: COULEUR[l.etat], fillOpacity: 0.95 }} eventHandlers={{ click: () => onChoisir(l.cle) }}>
             <Tooltip direction="top" offset={[0, -6]}>{l.adresse}</Tooltip>
@@ -136,12 +144,15 @@ export default function TauxVacance() {
         </div>
       </div>
 
-      {erreur && <p className="m-0 px-8 py-6 text-[14px] text-alerte">{erreur}</p>}
-      {attente && !r && <p className="m-0 flex items-center gap-2 px-8 py-6 text-[14px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" />Recensement des locaux de la commune (SIRENE), puis vérification sur OpenStreetMap et Google Maps. La première fois dans une commune : une à deux minutes.</p>}
-      {!r && !attente && !erreur && <p className="m-0 px-8 py-6 text-[14px] text-brume">Choisissez une adresse, réglez le rayon, puis « Mesurer ».</p>}
-
-      {r && (
-        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      {/* La carte est toujours là (14 oct. 2026) : la France à l'arrivée, l'adresse une fois choisie, les locaux une fois mesurés. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        {!r ? (
+          <div className="min-w-0 px-5 py-5 md:px-8">
+            {erreur && <p className="m-0 text-[14px] text-alerte">{erreur}</p>}
+            {attente && <p className="m-0 flex items-center gap-2 text-[14px] text-ardoise"><Loader2 className="h-4 w-4 flex-none animate-spin" />Recensement des locaux de la commune (SIRENE), puis vérification sur OpenStreetMap et Google Maps. La première fois dans une commune : une à deux minutes.</p>}
+            {!attente && !erreur && <p className="m-0 text-[14px] text-brume">Choisissez une adresse, réglez le rayon, puis « Mesurer ».</p>}
+          </div>
+        ) : (
           <div className="min-w-0 overflow-y-auto px-5 py-5 md:px-8">
             {/* Le taux, la fourchette, les comptes. */}
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -201,11 +212,12 @@ export default function TauxVacance() {
               </div>
             </div>
           </div>
-          <div className="h-[calc(100dvh-170px)] lg:sticky lg:top-0 border-l border-trait max-lg:order-first max-lg:h-[360px] max-lg:border-l-0 max-lg:border-b">
-            <Carte zone={r.zone} locaux={r.locaux} choisi={choisi} onChoisir={(c) => { setChoisi(c); const l = r.locaux.find((x) => x.cle === c); if (l) setEtat(l.etat); }} />
-          </div>
+        )}
+        <div className="h-[calc(100dvh-170px)] lg:sticky lg:top-0 border-l border-trait max-lg:order-first max-lg:h-[360px] max-lg:border-l-0 max-lg:border-b">
+          <Carte zone={r?.zone || (adresse ? { lat: adresse.lat, lon: adresse.lon, rayon_m: rayon } : null)} locaux={r?.locaux || []} choisi={choisi}
+            onChoisir={(c) => { setChoisi(c); const l = r?.locaux.find((x) => x.cle === c); if (l) setEtat(l.etat); }} />
         </div>
-      )}
+      </div>
     </div>
   );
 }

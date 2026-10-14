@@ -6,10 +6,9 @@ import { J } from "@/design/jetons";
 // le dessin des onglets du Suivi. Le premier est Vacance (13 oct. 2026) ; les
 // suivants s'ajoutent ici.
 
-// Taux de vacance (14 oct. 2026) : le même outil, un autre onglet, par « ?outil=taux ».
+// Le taux de vacance est dans Vacance, panneau de droite (14 oct. 2026, Jules : « un seul onglet »).
 const PAGES = [
   { to: "/Outils", mot: "Vacance", outil: null },
-  { to: "/Outils?outil=taux", mot: "Taux de vacance", outil: "taux" },
 ];
 
 export default function OngletsOutils({ className = "" }) {
@@ -18,7 +17,7 @@ export default function OngletsOutils({ className = "" }) {
   return (
     <div className={`flex items-center gap-6 ${className}`}>
       {PAGES.map((p) => {
-        const actif = pathname.toLowerCase() === "/outils" && (outil || null) === p.outil;
+        const actif = pathname.toLowerCase() === "/outils" && (p.outil == null || outil === p.outil);
         return (
           <Link
             key={p.to}

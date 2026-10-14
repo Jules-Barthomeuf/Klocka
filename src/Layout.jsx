@@ -301,7 +301,7 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
 // Pages that are "child" pages (show back button on mobile)
 const CHILD_PAGES = ['ProjetDetail', 'MonCompte', 'Questionnaire', 'Vision', 'SimulateurRentabilite', 'Comparateur', 'Ressources'];
 
-const PAGES_PLEINE_LARGEUR = ["OffMarket", "MandataireOffMarket"];
+const PAGES_PLEINE_LARGEUR = ["OffMarket", "MandataireOffMarket", "Outils"];
 
 function LayoutContent({ children, currentPageName }) {
   const location = useLocation();

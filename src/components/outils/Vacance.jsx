@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom";
 import { Search, X, ChevronDown, Loader2, SlidersHorizontal, PanelRightClose, PanelRightOpen, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import OngletsOutils from "@/components/outils/OngletsOutils";
 import CarteVacance from "@/components/outils/CarteVacance";
+import PanneauTaux from "@/components/outils/PanneauTaux";
 import { CATEGORIES, TYPES_SIGNAL, CLES_CATEGORIES, CLES_TYPES, RAYON, motType, motCategorie } from "@/lib/vacance-signaux";
 
 // Vacance (spec du 13 oct. 2026) : autour d'une adresse, les événements
@@ -93,6 +93,22 @@ export default function Vacance() {
   const arreterSondage = () => { if (sondage.current) { clearTimeout(sondage.current); sondage.current = null; } };
   useEffect(() => () => arreterSondage(), []);
 
+  // --- Le taux de vacance (14 oct. 2026) : mesuré avec les signaux, montré dans le panneau de droite. ---
+  const [taux, setTaux] = useState(null);
+  const [tauxErreur, setTauxErreur] = useState(null);
+  const [tauxAttente, setTauxAttente] = useState(false);
+  const sondageTaux = useRef(null);
+  useEffect(() => () => clearTimeout(sondageTaux.current), []);
+  const mesurerTaux = useCallback(async (p) => {
+    clearTimeout(sondageTaux.current);
+    if (p.rayon_m > 1500) { setTaux(null); setTauxAttente(false); setTauxErreur("Le taux de vacance se mesure dans un rayon de 1,5 km au plus."); return; }
+    try {
+      const d = await base44.request("GET", `/api/outils/vacance/taux?${new URLSearchParams({ lat: p.lat, lon: p.lon, rayon_m: p.rayon_m, commune: p.commune || "" })}`);
+      if (d.etat === "chargement") { sondageTaux.current = setTimeout(() => mesurerTaux(p), 4000); return; }
+      setTaux(d); setTauxAttente(false);
+    } catch (e) { setTauxErreur(e?.message || "Le taux n'a pas pu être mesuré."); setTauxAttente(false); }
+  }, []);
+
   // --- Autocomplétion : dès trois caractères, 250 ms après la dernière frappe, cinq propositions. ---
   useEffect(() => {
     const q = texte.trim();
@@ -122,6 +138,7 @@ export default function Vacance() {
   const retirerAdresse = () => {
     arreterSondage();
     setAdresse(null); setResultats(null); setParametresLances(null); setChoisi(null); setErreur(null); setChargement(false); setProgression(null);
+    clearTimeout(sondageTaux.current); setTaux(null); setTauxErreur(null); setTauxAttente(false);
     setSp({}, { replace: true });
     setTimeout(() => champ.current?.focus(), 0);
   };
@@ -170,13 +187,15 @@ export default function Vacance() {
     const p = parametres();
     arreterSondage();
     setErreur(null); setChoisi(null); setChargement(true); setProgression(null);
+    setTaux(null); setTauxErreur(null); setTauxAttente(true); setListeOuverte(true);
+    mesurerTaux(p);
     setParametresLances(empreinte(p));
     setSp({
       q: adresse.label, lon: String(adresse.lon), lat: String(adresse.lat), commune: adresse.citycode || "", cp: adresse.postcode || "", ville: adresse.city || "",
       rayon: String(rayon), cat: p.categories, types: p.types, ...(dateMin ? { min: dateMin } : {}), ...(dateMax ? { max: dateMax } : {}),
     }, { replace: true });
     interroger(p);
-  }, [adresse, parametres, rayon, dateMin, dateMax, interroger, setSp]);
+  }, [adresse, parametres, rayon, dateMin, dateMax, interroger, setSp, mesurerTaux]);
 
   // Une adresse de page complète : la recherche part d'elle-même, c'est son sens.
   useEffect(() => { if (initial?.adresse?.lon) lancer(); }, []);
@@ -187,6 +206,8 @@ export default function Vacance() {
   const donneesAnciennes = resultats?.zone?.chargee_le && (Date.now() - Date.parse(resultats.zone.chargee_le) > 48 * 3600 * 1000 || resultats.zone.erreur);
 
   const ouvrir = (l) => { setChoisi(l); setCible(l); };
+  // Le point choisi : sa ligne passe en tête du tableau (14 oct. 2026, Jules), le reste garde son ordre.
+  const lignesTableau = useMemo(() => (choisi ? [...locaux.filter((l) => l.cle === choisi.cle), ...locaux.filter((l) => l.cle !== choisi.cle)] : locaux), [locaux, choisi?.cle]);
 
   const sousTitre = !adresse
     ? "Saisissez une adresse et lancez une recherche pour afficher les signaux."
@@ -195,14 +216,13 @@ export default function Vacance() {
       : null;
 
   return (
-    <div className="flex h-[100dvh] flex-col max-md:h-[calc(100dvh-var(--k-haut-mobile,3.5rem)-var(--k-bas-mobile,0px))]">
+    <div className="flex min-h-[100dvh] flex-col">
       {/* L'en-tête : les onglets des outils, le titre, la barre de recherche. */}
       <div className="flex-none border-b border-trait px-5 pt-4 md:px-8">
-        <OngletsOutils />
-        <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="m-0 text-[clamp(22px,2.1vw,30px)] font-normal tracking-[-0.02em] text-encre">Signaux de vacance</h1>
+        {/* Le titre seul (14 oct. 2026, Jules) : ni onglet « Vacance », ni compte des signaux. */}
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h1 className="m-0 text-[clamp(22px,2.1vw,30px)] font-normal tracking-[-0.02em] text-encre">Vacance locative</h1>
           {sousTitre && <p className="m-0 text-[13.5px] text-ardoise">{sousTitre}</p>}
-          {resultats && !chargement && <p className="m-0 text-[13.5px] text-ardoise"><span className="tabular-nums text-encre">{nombre(nbSignaux)}</span> {nbSignaux > 1 ? "signaux" : "signal"} sur <span className="tabular-nums">{nombre(locaux.length)}</span> {locaux.length > 1 ? "locaux" : "local"} dans un rayon de {metres(rayon)}</p>}
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2.5 pb-3">
@@ -357,8 +377,8 @@ export default function Vacance() {
         </div>
       )}
 
-      {/* La carte et la liste. */}
-      <div className="relative flex min-h-0 flex-1">
+      {/* La carte et le panneau du taux ; dessous, le tableau des points (14 oct. 2026). */}
+      <div className="relative flex h-[62vh] min-h-[420px] flex-none">
         <div className="relative min-w-0 flex-1">
           <CarteVacance
             point={adresse ? { lat: adresse.lat, lon: adresse.lon, label: adresse.label } : null}
@@ -382,48 +402,50 @@ export default function Vacance() {
 
         {resultats && listeOuverte && (
           <aside className="flex w-[360px] flex-none flex-col border-l border-trait bg-rail max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:z-[450] max-md:h-[46%] max-md:w-auto max-md:border-l-0 max-md:border-t">
-            <div className="flex-none border-b border-trait px-4 pt-3 pb-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <p className="m-0 text-[15px] text-encre"><span className="tabular-nums">{nombre(nbSignaux)}</span> {nbSignaux > 1 ? "signaux" : "signal"} dans un rayon de {metres(rayon)}</p>
-                <button type="button" onClick={() => setListeOuverte(false)} aria-label="Replier la liste" title="Replier la liste" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                  <PanelRightClose className="h-4 w-4" strokeWidth={1.7} />
-                </button>
-              </div>
-              {repartition.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12.5px] text-ardoise">
-                  {repartition.map(([t, n]) => <span key={t}>{motType(t)} <span className="tabular-nums text-craie">{n}</span></span>)}
-                </div>
-              )}
+            {/* Le panneau : le taux de vacance seul (14 oct. 2026 : le compte des signaux retiré). */}
+            <div className="flex flex-none justify-end px-2 pt-2">
+              <button type="button" onClick={() => setListeOuverte(false)} aria-label="Replier le panneau" title="Replier le panneau" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+                <PanelRightClose className="h-4 w-4" strokeWidth={1.7} />
+              </button>
             </div>
-            <ul className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0">
-              {locaux.map((l) => {
-                const actif = choisi?.cle === l.cle;
-                return (
-                  <li key={l.cle} className="border-t border-trait first:border-t-0">
-                    <button
-                      type="button"
-                      onClick={() => ouvrir(l)}
-                      onMouseEnter={() => setSurvol(l.cle)}
-                      onMouseLeave={() => setSurvol(null)}
-                      className={`block w-full px-4 py-3 text-left transition-colors hover:bg-rail-actif ${actif ? "bg-rail-actif" : ""}`}
-                      style={actif ? undefined : { background: "transparent" }}
-                    >
-                      <p className="m-0 flex items-baseline justify-between gap-3 text-[15px] text-encre">
-                        <span className="truncate">{l.enseigne || l.denomination || l.adresse || "Établissement"}</span>
-                        <span className="flex-none text-[12.5px] tabular-nums text-brume">{metres(l.distance_m)}</span>
-                      </p>
-                      <p className="m-0 mt-0.5 truncate text-[13.5px] text-ardoise">
-                        {motType(l.signal_principal.type)} · {date(l.signal_principal.date)} · {motCategorie(l.categorie_bien)}
-                        {l.signaux.length > 1 ? ` · ${l.signaux.length} signaux` : ""}
-                      </p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <PanneauTaux taux={taux} attente={tauxAttente} erreur={tauxErreur} />
+            </div>
           </aside>
         )}
       </div>
+
+      {/* Le tableau : une ligne par point de la carte, dans le même ordre ; un clic montre le point. */}
+      {resultats && locaux.length > 0 && (
+        <div className="flex-none border-t border-trait px-5 py-4 md:px-8">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] border-collapse text-left text-[13.5px]">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-[.12em] text-brume">
+                  {["Établissement", "Adresse", "Signal", "Date", "Type de bien", "Distance", "Signaux"].map((h) => <th key={h} className="border-b border-trait px-2 py-2 font-normal">{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {lignesTableau.map((l) => {
+                  const actif = choisi?.cle === l.cle;
+                  return (
+                    <tr key={l.cle} id={`point-${l.cle}`} onClick={() => ouvrir(l)} onMouseEnter={() => setSurvol(l.cle)} onMouseLeave={() => setSurvol(null)}
+                      className={`cursor-pointer border-b border-trait transition-colors ${actif ? "bg-rail-actif" : survol === l.cle ? "bg-relief/40" : "hover:bg-relief/30"}`}>
+                      <td className="max-w-[240px] truncate px-2 py-2 text-encre">{l.enseigne || l.denomination || "Établissement"}</td>
+                      <td className="max-w-[260px] truncate px-2 py-2 text-craie">{l.adresse || "—"}</td>
+                      <td className="px-2 py-2 text-craie">{motType(l.signal_principal.type)}</td>
+                      <td className="whitespace-nowrap px-2 py-2 tabular-nums text-ardoise">{date(l.signal_principal.date)}</td>
+                      <td className="px-2 py-2 text-ardoise">{motCategorie(l.categorie_bien)}</td>
+                      <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-ardoise">{metres(l.distance_m)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-ardoise">{l.signaux.length}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

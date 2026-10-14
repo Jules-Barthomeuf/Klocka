@@ -354,6 +354,15 @@ export function historique(type_entite, entite_id) {
   return Records.list(FAIT).filter((f) => ids.has(f.id) && f.statut === 'valide').map(resumeFait).sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 
+/**
+ * Tous les faits, rejetés exceptés, du plus récent au plus ancien (14 oct. 2026,
+ * Jules : « à droite de Savoir, Informations, et tout le reste au total ») :
+ * les validés et ceux qui attendent, chacun avec son statut.
+ */
+export function tousLesFaits() {
+  return Records.list(FAIT).filter((f) => f.statut !== 'rejete').map(resumeFait).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
 export function savoir() {
   return Records.list(FAIT).filter((f) => f.type === 'savoir' && f.statut === 'valide').map(resumeFait).sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }

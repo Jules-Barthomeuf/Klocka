@@ -21,13 +21,17 @@ export default function Cerveau() {
   const [onglet, setOnglet] = useState("a_valider");
   const etat = useQuery({ queryKey: ["cerveau", "etat"], queryFn: () => base44.request("GET", `${API}/etat`) });
   const e = etat.data;
-  const onglets = [["a_valider", `À valider${e?.a_valider ? ` · ${e.a_valider}` : ""}`], ["savoir", "Savoir"], ["sources", "Sources"]];
+  // À droite de Savoir, chaque type de fait, puis tous les faits (14 oct. 2026, Jules).
+  const tous = useQuery({ queryKey: ["cerveau", "faits"], queryFn: () => base44.request("GET", `${API}/faits`) });
+  const compte = (type) => (tous.data?.faits || []).filter((f) => !type || f.type === type).length;
+  const avec = (mot, n) => (n ? `${mot} · ${n}` : mot);
+  const onglets = [["a_valider", `À valider${e?.a_valider ? ` · ${e.a_valider}` : ""}`], ["savoir", "Savoir"], ["information", avec("Informations", compte("information"))], ["decision", avec("Décisions", compte("decision"))], ["engagement", avec("Engagements", compte("engagement"))], ["tout", avec("Tout", compte(null))], ["sources", "Sources"]];
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 py-8 md:px-6">
       <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre">Cerveau</h1>
       <p className="m-0 mt-2 max-w-[70ch] text-[14px] text-ardoise">Ce qui a été dit, décidé ou promis, tiré des comptes rendus, des appels et des débriefs. Un fait ne répond aux questions d'AK qu'une fois validé.</p>
       {e?.mesures && <Mesures m={e.mesures} />}
-      <div className="mt-6 mb-5 flex items-center gap-6">
+      <div className="mt-6 mb-5 flex flex-wrap items-center gap-x-6 gap-y-2">
         {onglets.map(([k, mot]) => (
           <button key={k} type="button" onClick={() => setOnglet(k)} aria-current={onglet === k ? "page" : undefined}
             className="relative pb-2 text-[11px] uppercase tracking-[.16em] transition-colors" style={{ background: "transparent", color: onglet === k ? J["menthe"] : J["brume"], borderBottom: `1.5px solid ${onglet === k ? J["menthe"] : "transparent"}` }}>
@@ -35,7 +39,7 @@ export default function Cerveau() {
           </button>
         ))}
       </div>
-      {onglet === "a_valider" ? <AValider peutValider={!!e?.peut_valider} /> : onglet === "savoir" ? <Savoir /> : <Sources peutValider={!!e?.peut_valider} />}
+      {onglet === "a_valider" ? <AValider peutValider={!!e?.peut_valider} /> : onglet === "savoir" ? <Savoir /> : onglet === "sources" ? <Sources peutValider={!!e?.peut_valider} /> : <FaitsDuType q={tous} type={onglet === "tout" ? null : onglet} />}
     </div>
   );
 }
@@ -214,6 +218,27 @@ function Fiches({ fiches, candidats = [], edition, onAjouter, onRetirer }) {
         </div>
       )}
     </div>
+  );
+}
+
+const VIDES = {
+  information: "Aucune information encore. Un fait sur un dossier, un agent, une agence ou une ville, dit en appel, en réunion ou en débrief, arrive ici.",
+  decision: "Aucune décision encore. Ce qui est tranché en réunion ou sur un dossier, avec son motif, arrive ici.",
+  engagement: "Aucun engagement encore. Une promesse (« Durand rappelle jeudi ») arrive ici, avec qui et pour quand.",
+  tout: "Le Cerveau est vide pour l'instant : déposez un compte rendu dans Sources, enregistrez une réunion ou validez un appel transcrit.",
+};
+
+/** Les faits d'un type (ou tous) : validés et à valider, les rejetés exceptés, avec leur source. */
+function FaitsDuType({ q, type }) {
+  const faits = (q.data?.faits || []).filter((f) => !type || f.type === type);
+  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!faits.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">{VIDES[type || "tout"]}</p>;
+  const valides = faits.filter((f) => f.statut === "valide").length;
+  return (
+    <>
+      <p className="m-0 mb-3 text-[12.5px] text-brume">{faits.length} fait{faits.length > 1 ? "s" : ""} · {valides} validé{valides > 1 ? "s" : ""}{faits.length - valides ? ` · ${faits.length - valides} à valider` : ""}. Seuls les faits validés répondent aux questions d'AK.</p>
+      <FriseFaits faits={faits} />
+    </>
   );
 }
 

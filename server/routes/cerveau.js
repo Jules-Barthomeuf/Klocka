@@ -25,6 +25,7 @@ export function monterCerveau(app) {
     ok(res, { a_valider: M.nombreAValider(), peut_valider: M.peutValider(user), mesures: M.mesures() });
   }));
   app.get('/api/cerveau/a-valider', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { lots: (await C()).aValider() }); }));
+  app.get('/api/cerveau/faits', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).tousLesFaits() }); }));
   app.get('/api/cerveau/savoir', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).savoir() }); }));
   app.get('/api/cerveau/sources', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { sources: (await C()).sources() }); }));
   app.get('/api/cerveau/sources/:id', wrap(async (req, res) => {

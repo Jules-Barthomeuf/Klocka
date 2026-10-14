@@ -30,6 +30,7 @@ export function FriseFaits({ faits }) {
                   {SOURCES[f.source.type] || f.source.type}{f.source.titre ? ` « ${f.source.titre} »` : ""}
                 </button>
               ) : "source perdue"}
+              {f.statut && f.statut !== "valide" && <span className="text-ambre"> · {f.statut === "a_rattacher" ? "à rattacher" : "à valider"}</span>}
             </p>
           </article>
         ))}

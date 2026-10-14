@@ -529,6 +529,18 @@ le recopie pas.
 - **Panneaux d'outils** (plan, versions, menu de mise en forme) : `bg-rail`,
   `rounded-[14px]`, `border-trait`, comme la barre de navigation.
 
+### AK au travail, dans le panneau de droite (14 oct. 2026)
+
+Décision de Jules : pendant qu'AK retouche un document (projet, présentation,
+LOI, newsletter, avis de valeur), le panneau montre `MiseAJourDocument` :
+trois mini-diapositives qui se relaient sur 6 s (texte, image et texte,
+graphique), un reflet qui les traverse toutes les 2 s, le surtitre en menthe
+(12 px), le titre en 28 px traversé d'une bande de lumière (2,4 s), et une ligne
+d'état qui change toutes les 2 s (« Lecture de votre message », puis l'analyse
+et la mise à jour du document en cours). CSS seul (`.k-pile`, `.k-mini`,
+`.k-titre-metal`, `.k-etats` dans index.css), arrêté si le système demande
+moins d'animations.
+
 ### Le Cerveau (14 oct. 2026)
 
 Spec MVP de Jules du 14 oct. 2026. Une page admin **Cerveau** (icône cerveau,

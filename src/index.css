@@ -985,3 +985,50 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-vacance .leaflet-bar { border: none; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); }
 .k-vacance-epingle, .k-vacance-grappe { background: transparent; border: none; }
 .k-vacance-curseur { accent-color: rgb(var(--k-menthe-rgb)); }
+
+/* AK au travail, dans le panneau de droite (14 oct. 2026, Jules) : trois mini-diapositives qui se relaient
+   (6 s), un reflet sur chacune (2 s), le titre traversé d'une bande de lumière (2,4 s), la ligne d'état qui
+   change toutes les 2 s. CSS seul ; les couleurs viennent des jetons. */
+.k-pile { position: relative; width: 220px; height: 170px; }
+.k-mini {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 124px; overflow: hidden;
+  border-radius: 10px; border: 1px solid var(--k-bord-doux); background: rgb(var(--k-surface-pleine-rgb));
+  transform-origin: 50% 100%; animation: k-mini-tour 6s cubic-bezier(.45,.05,.25,1) infinite;
+}
+.k-mini:nth-child(2) { animation-delay: -4s; }
+.k-mini:nth-child(3) { animation-delay: -2s; }
+.k-mini::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.09) 50%, transparent 65%);
+  transform: translateX(-120%); animation: k-mini-reflet 2s ease-in-out infinite;
+}
+@keyframes k-mini-tour {
+  0%, 26% { transform: translateY(0) scale(1); opacity: 1; z-index: 3; }
+  33% { transform: translateY(26px) scale(.98); opacity: 0; z-index: 3; }
+  34% { transform: translateY(-34px) scale(.8); opacity: 0; z-index: 1; }
+  40%, 60% { transform: translateY(-34px) scale(.8); opacity: .35; z-index: 1; }
+  66.6%, 93% { transform: translateY(-17px) scale(.9); opacity: .65; z-index: 2; }
+  100% { transform: translateY(0) scale(1); opacity: 1; z-index: 3; }
+}
+@keyframes k-mini-reflet { 0% { transform: translateX(-120%); } 60%, 100% { transform: translateX(120%); } }
+.k-titre-metal {
+  background: linear-gradient(100deg, rgb(var(--k-ardoise-rgb)) 0%, rgb(var(--k-ardoise-rgb)) 40%, rgb(var(--k-encre-rgb)) 50%, rgb(var(--k-ardoise-rgb)) 60%, rgb(var(--k-ardoise-rgb)) 100%);
+  background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: k-titre-metal 2.4s linear infinite;
+}
+@keyframes k-titre-metal { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.k-etats { position: relative; height: 22px; }
+.k-etats > span { position: absolute; inset: 0; opacity: 0; animation: k-etat 6s ease-in-out infinite; }
+.k-etats > span:nth-child(2) { animation-delay: 2s; }
+.k-etats > span:nth-child(3) { animation-delay: 4s; }
+@keyframes k-etat {
+  0% { opacity: 0; transform: translateY(7px); }
+  5%, 28% { opacity: 1; transform: translateY(0); }
+  33%, 100% { opacity: 0; transform: translateY(-7px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-mini, .k-mini::after, .k-titre-metal, .k-etats > span { animation: none; }
+  .k-mini:nth-child(2), .k-mini:nth-child(3) { opacity: 0; }
+  .k-etats > span:first-child { opacity: 1; }
+  .k-titre-metal { color: rgb(var(--k-encre-rgb)); background: none; }
+}

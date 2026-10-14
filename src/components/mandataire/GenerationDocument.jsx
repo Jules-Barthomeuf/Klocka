@@ -88,35 +88,57 @@ export default function GenerationDocument({ surtitre, titre, etapes, pret, onFi
   );
 }
 
+/** Les trois lignes d'état, selon le document qu'AK retouche. */
+function lignesPour(surtitre = "") {
+  const t = String(surtitre).toLowerCase();
+  const quoi = /présentation/.test(t) ? ["Analyse des slides", "Mise à jour de la présentation"]
+    : /projet/.test(t) ? ["Analyse du projet", "Mise à jour du projet"]
+      : /lettre|loi/.test(t) ? ["Analyse de la lettre", "Mise à jour de la lettre"]
+        : /newsletter/.test(t) ? ["Analyse des mails", "Mise à jour de la newsletter"]
+          : /avis de valeur/.test(t) ? ["Analyse de l'avis", "Mise à jour de l'avis de valeur"]
+            : ["Analyse du document", "Mise à jour du document"];
+  return ["Lecture de votre message", ...quoi];
+}
+
 /**
- * La mise à jour du document après un message : les étapes réelles du serveur
- * (« Loyer annuel : 50 000 € »…), cochées à mesure, la dernière qui tourne.
+ * AK au travail, dans le panneau de droite (14 oct. 2026, Jules) : trois
+ * mini-diapositives qui se relaient (texte, image et texte, graphique), le
+ * titre traversé d'une bande de lumière, une ligne d'état qui change toutes
+ * les deux secondes. Calme : le titre dit qu'AK travaille, les diapositives
+ * sur quoi, la ligne où il en est. Les animations sont en CSS (index.css).
  */
-export function MiseAJourDocument({ surtitre, titre, etapes, enCours }) {
-  // Un outil relancé redonne la même ligne : elle ne s'affiche qu'une fois (13 oct. 2026).
-  const uniques = etapes.filter((e, i) => etapes.indexOf(e) === i);
-  const liste = uniques.length ? uniques : ["Lecture de votre message"];
-  const faites = enCours ? liste.length - 1 : liste.length;
+export function MiseAJourDocument({ surtitre, titre = "AK lit votre demande", lignes = null }) {
+  const etats = (lignes && lignes.length === 3 ? lignes : lignesPour(surtitre));
+  const ligne = "h-[7px] rounded-full bg-bord-doux";
   return (
-    <div className="grid h-full place-items-center px-10 max-md:px-6">
-      <div className="w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <p className="m-0 text-[12px] uppercase tracking-[.12em] text-menthe">{surtitre}</p>
-        <p className="m-0 mt-1.5 text-[20px] font-normal text-encre">{titre}</p>
-        <ul className="m-0 mt-6 flex list-none flex-col gap-3 p-0">
-          {liste.map((mot, i) => {
-            const fait = i < faites;
-            return (
-              <li key={`${i}-${mot}`} className={`flex items-center gap-3 text-[14px] animate-in fade-in slide-in-from-bottom-1 duration-300 ${fait ? "text-craie" : "text-encre"}`}>
-                {fait ? (
-                  <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-menthe text-sur-menthe animate-in zoom-in-50 duration-300"><Check className="h-3 w-3" strokeWidth={3} /></span>
-                ) : (
-                  <Loader2 className="h-5 w-5 flex-none animate-spin text-menthe" />
-                )}
-                {mot}
-              </li>
-            );
-          })}
-        </ul>
+    <div className="grid h-full place-items-center bg-rail px-10 max-md:px-6">
+      <div className="flex flex-col items-center text-center animate-in fade-in duration-500">
+        <div className="k-pile" aria-hidden>
+          {/* Texte : un titre et deux lignes. */}
+          <div className="k-mini p-4">
+            <div className="h-[9px] w-[58%] rounded-full bg-menthe" />
+            <div className={`${ligne} mt-3 w-[82%]`} />
+            <div className={`${ligne} mt-2 w-[66%]`} />
+          </div>
+          {/* Image et texte : un bloc à gauche, des lignes à droite. */}
+          <div className="k-mini flex gap-3 p-4">
+            <div className="h-full w-[42%] rounded-[6px] bg-menthe-fonce" />
+            <div className="flex flex-1 flex-col gap-2 pt-1">
+              <div className="h-[8px] w-[80%] rounded-full bg-menthe/70" />
+              <div className={`${ligne} w-full`} />
+              <div className={`${ligne} w-[70%]`} />
+            </div>
+          </div>
+          {/* Graphique : quatre barres, une verte. */}
+          <div className="k-mini flex items-end justify-center gap-3 px-6 pb-5 pt-4">
+            {[44, 66, 52, 84].map((h, i) => <div key={i} className={`w-6 rounded-t-[4px] ${i === 3 ? "bg-menthe" : "bg-bord-doux"}`} style={{ height: `${h}%` }} />)}
+          </div>
+        </div>
+        <p className="m-0 mt-10 text-[12px] text-menthe">{surtitre}</p>
+        <p className="k-titre-metal m-0 mt-2 text-[28px] font-medium leading-[1.2] tracking-[-0.01em]">{titre}</p>
+        <div className="k-etats mt-3 w-[320px] max-w-full text-[14px] text-craie" aria-live="polite">
+          {etats.map((e) => <span key={e}>{e}</span>)}
+        </div>
       </div>
     </div>
   );

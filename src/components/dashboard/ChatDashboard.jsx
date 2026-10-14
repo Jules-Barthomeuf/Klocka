@@ -945,7 +945,7 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1419,7 +1419,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   }, [travaille]);
 
   // Le fil prend l'écran dès le premier message envoyé (tableau de bord seulement).
-  const conversation = !!onConversation && fil.some((m) => m.role === "user" || m.reprise);
+  // `filVide` (éditeur de projet, 14 oct. 2026, Jules) : le chat s'ouvre déjà en fil, barre du haut et saisie en bas, cette phrase au milieu tant qu'il est vide.
+  const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide;
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
   // « Dashboard » ou « Nouveau chat » dans la barre latérale : retour au départ.
   const location = useLocation();
@@ -1595,7 +1596,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
-            placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation ? "Répondre ou ajouter une précision…" : modeCourant?.placeholder || E.placeholder || "Collez votre note, ou posez une question…"}
+            placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? "Répondre ou ajouter une précision…" : modeCourant?.placeholder || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
@@ -1841,7 +1842,12 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         {historiqueOuvert && <div className="mx-auto w-full max-w-[760px] flex-none"><HistoriqueConversations api={E.api} qs={qs} actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} /></div>}
 
         <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${barreApercu ? "-mr-5 pr-5" : ""}`}>
-        <div className="mx-auto w-full max-w-[760px] space-y-8 py-8">
+        {filVide && !fil.length && !travaille && (
+          <div className="grid h-full place-items-center px-6 text-center">
+            <p className="m-0 max-w-[30ch] text-[19px] font-medium tracking-[-0.01em] text-encre">{filVide}</p>
+          </div>
+        )}
+        <div className={`mx-auto w-full max-w-[760px] space-y-8 py-8 ${filVide && !fil.length && !travaille ? "hidden" : ""}`}>
           {fil.map((m, i) =>
             m.role === "user" ? (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-end">

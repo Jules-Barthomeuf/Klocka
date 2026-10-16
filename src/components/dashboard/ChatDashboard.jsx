@@ -91,7 +91,8 @@ const COMMANDES_PROSPECTION = [
 // Un espace, c'est une adresse d'API et ce que la barre propose. Le design et
 // les gestes sont les mêmes : un seul composant, pas deux chats à tenir.
 const ESPACES = {
-  admin: { api: "/api/assistant", modes: MODES, commandes: COMMANDES, fichier: true, boiteEnvoi: true, avis: "dashboard", mailsTypes: true },
+  // La boîte d'envoi sort du chat (16 oct. 2026, Jules) : les boîtes connectées se voient en haut à droite.
+  admin: { api: "/api/assistant", modes: MODES, commandes: COMMANDES, fichier: true, boiteEnvoi: false, avis: "dashboard", mailsTypes: true },
   mandataire: { api: "/api/mandataire", modes: MODES_MANDATAIRE, commandes: COMMANDES_MANDATAIRE, fichier: true, boiteEnvoi: false, avis: null, mailsTypes: false },
   // Le chat du mandataire en bas d'une prospection ouverte : le même agent,
   // sans modes ni commandes, rangé dans l'historique de la Prospection.

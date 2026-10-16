@@ -11,7 +11,7 @@
 import { Conversations, Meta, Records } from './db.js';
 
 const AGENT = 'dashboard';
-const TITRE = "Messages d'AK";
+const TITRE = 'Assistant Klocka';
 const cleLu = (email) => `ak-messages:lu:${String(email || '').toLowerCase()}`;
 
 const boite = (email) => Conversations.list(AGENT).find((c) => c.metadata?.utilisateur === email && c.metadata?.messages_ak) || null;
@@ -90,7 +90,7 @@ export async function accueillir() {
     if (dernier) { try { const a = await avisBorne(dernier.deal_id); avis = typeof a === 'string' ? a : a?.texte || null; } catch { avis = null; } }
     const prenom = (Records.filter('User', { email })[0]?.full_name || '').split(/\s+/)[0] || '';
     const texte = [
-      `Bonjour${prenom ? ` ${prenom}` : ''}, c'est AK. Je t'écris désormais ici, en bas à gauche.`,
+      `Bonjour${prenom ? ` ${prenom}` : ''}, c'est l'assistant Klocka. Je t'écris désormais ici, en bas à gauche.`,
       "Dès qu'une fiche commerciale arrive dans une boîte de l'équipe, je la pré-analyse tout seul et je te le dis dans cette discussion : le bien, le prix, le loyer, mon avis. Tu peux me répondre ici, comme dans le chat.",
       dernier ? `Voici ce que ça donne avec le dernier dossier, ${dernier.nom || dernier.deal_id} :\n\n${avis || 'la pré-analyse est prête à relire.'}` : null,
     ].filter(Boolean).join('\n\n');

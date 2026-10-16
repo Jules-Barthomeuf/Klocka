@@ -9,7 +9,7 @@ import ChatDashboard from "@/components/dashboard/ChatDashboard";
 // commerciale arrive, l'agent fait la pré-analyse et nous met un message en
 // bas à gauche ; on clique, c'est une discussion, et on peut discuter avec
 // lui »). Le petit portrait d'AK, le nombre de messages pas vus, l'aperçu du
-// dernier ; au clic, la conversation « Messages d'AK » dans le vrai chat d'AK.
+// dernier ; au clic, la conversation de l'assistant Klocka dans le vrai chat d'AK (nommé « Assistant Klocka » à l'écran).
 
 const CLE_APERCU = "klocka.messages-ak.apercu-vu";
 
@@ -58,7 +58,7 @@ export default function MessagesAK() {
   }, [ouvert]);
 
   const entree = (
-    <button type="button" onClick={() => setOuvert((o) => !o)} aria-label={nonLus ? `Discuter avec AK, ${nonLus} message${nonLus > 1 ? "s" : ""} non lu${nonLus > 1 ? "s" : ""}` : "Discuter avec AK"} title="Discuter avec AK"
+    <button type="button" onClick={() => setOuvert((o) => !o)} aria-label={nonLus ? `Discuter avec l'assistant Klocka, ${nonLus} message${nonLus > 1 ? "s" : ""} non lu${nonLus > 1 ? "s" : ""}` : "Discuter avec l'assistant Klocka"} title="Discuter avec l'assistant Klocka"
       className={`flex min-w-0 items-center gap-2.5 rounded-[12px] py-1.5 text-left text-craie hover:bg-encre/[0.06] hover:text-encre ${replie ? "px-1" : "w-full px-2"}`} style={{ background: "transparent" }}>
       <span className="relative flex-none">
         {nonLus > 0 && <span aria-hidden className="k-ak-anneau absolute -inset-[3px] rounded-full" />}
@@ -66,31 +66,32 @@ export default function MessagesAK() {
         {nonLus > 0 && <span className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-menthe px-1 text-[10.5px] tabular-nums text-sur-menthe">{nonLus}</span>}
       </span>
       <span className={`flex min-w-0 flex-col leading-tight ${replie ? "hidden" : ""}`}>
-        <span className="truncate text-[14px] text-encre">AK</span>
+        <span className="truncate text-[14px] text-encre">Assistant Klocka</span>
         <span className="truncate text-[12px] text-ardoise">{nonLus ? `${nonLus} nouveau${nonLus > 1 ? "x" : ""} message${nonLus > 1 ? "s" : ""}` : "Discuter"}</span>
       </span>
     </button>
   );
-  const position = { left: "calc(var(--k-barre-largeur, 0px) + 12px)" };
+  // Le panneau passe par-dessus la barre, collé à gauche (16 oct. 2026, Jules).
+  const position = { left: "12px" };
   return createPortal(
     <>
       {ouvert && (
-        <div role="dialog" aria-label="Messages d'AK" style={position}
+        <div role="dialog" aria-label="Assistant Klocka" style={position}
           className="fixed bottom-3 z-[75] flex h-[min(640px,calc(100dvh-24px))] w-[420px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[20px] border border-trait bg-fond shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-200 animate-in fade-in-0 slide-in-from-bottom-2 max-md:!left-3">
           <div className="flex flex-none items-center gap-3 border-b border-trait px-4 py-3">
             <img src="/avatars/ak.png" alt="" className="h-9 w-9 rounded-full object-cover" />
-            <div className="flex min-w-0 flex-1 flex-col"><span className="text-[15px] text-encre">AK</span><span className="text-[12.5px] text-ardoise">Ses messages, et ta réponse</span></div>
+            <div className="flex min-w-0 flex-1 flex-col"><span className="text-[15px] text-encre">Assistant Klocka</span><span className="text-[12.5px] text-ardoise">Ses messages, et ta réponse</span></div>
             <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
           </div>
           <div className="min-h-0 flex-1 px-3">
-            <ChatDashboard espace="admin" cible="ak" sansBarreHaut onHistorique={() => {}} onConversation={() => {}} filVide="AK t'écrit ici quand une fiche arrive et qu'il l'a pré-analysée." />
+            <ChatDashboard espace="admin" cible="ak" sansBarreHaut onHistorique={() => {}} onConversation={() => {}} filVide="L'assistant Klocka t'écrit ici quand une fiche arrive et qu'il l'a pré-analysée." />
           </div>
         </div>
       )}
       {slot && createPortal(entree, slot)}
       {!ouvert && !slot && (
         <div style={position} className="fixed bottom-5 z-[75] flex items-end gap-3 max-md:!left-3">
-          <button type="button" onClick={() => setOuvert(true)} aria-label={nonLus ? `Messages d'AK, ${nonLus} non lu${nonLus > 1 ? "s" : ""}` : "Messages d'AK"} title="Messages d'AK"
+          <button type="button" onClick={() => setOuvert(true)} aria-label={nonLus ? `Assistant Klocka, ${nonLus} non lu${nonLus > 1 ? "s" : ""}` : "Assistant Klocka"} title="Assistant Klocka"
             className="relative grid h-[54px] w-[54px] flex-none place-items-center rounded-full border border-trait bg-fond p-0 shadow-[0_18px_40px_rgb(0_0_0/0.18)] transition-transform hover:scale-105">
             {nonLus > 0 && <span aria-hidden className="k-ak-anneau absolute inset-0 rounded-full" />}
             <img src="/avatars/ak.png" alt="" className="h-[44px] w-[44px] rounded-full object-cover" />
@@ -100,7 +101,7 @@ export default function MessagesAK() {
             <div className="relative mb-1 w-[300px] rounded-[16px] rounded-bl-[4px] border border-trait bg-fond px-4 py-3 shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-300 animate-in fade-in-0 slide-in-from-left-2">
               <button type="button" onClick={fermerApercu} aria-label="Masquer l'aperçu" className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={() => setOuvert(true)} className="block w-full p-0 pr-5 text-left" style={{ background: "transparent" }}>
-                <span className="text-[12.5px] text-menthe">AK</span>
+                <span className="text-[12.5px] text-menthe">Assistant Klocka</span>
                 <span className="mt-0.5 line-clamp-3 block text-[14px] leading-[1.45] text-encre">{dernier.contenu}</span>
               </button>
             </div>

@@ -215,6 +215,16 @@ export function monterPresentations(app) {
     if (!(await import('../presentation-client.js')).supprimer(req.params.id, user)) return res.status(404).json({ error: 'Conversation introuvable.' });
     ok(res, { ok: true });
   }));
+  // Le PDF côté client (16 oct. 2026, Jules) : le même, tiré du deck ; seulement d'une présentation qu'on lui a envoyée.
+  app.post(`${client}/:id/pdf`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    if (!(await P()).lirePourClient(req.params.id, user)) return res.status(404).json({ error: 'Présentation introuvable.' });
+    const { exporterPdf } = await import('../presentation-pdf.js');
+    const r = await exporterPdf(req.params.id, { base: `http://127.0.0.1:${PORT}`, forcer: false });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, { ok: true, pdf_url: r.pdf_url });
+  }));
   app.post(`${client}/:id/question`, wrap(async (req, res) => {
     const user = connecte(req, res);
     if (!user) return;

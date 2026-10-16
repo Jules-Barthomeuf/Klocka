@@ -10,12 +10,13 @@ import { base44 } from "@/api/base44Client";
 
 const API = "/api/admin/presentations-bancaires";
 
-export default function ApercuPdf({ id, titre = "", onFermer }) {
+// `api` : la route des présentations de l'équipe, ou celle du client (16 oct. 2026), qui ne refait pas le PDF.
+export default function ApercuPdf({ id, titre = "", onFermer, api = API }) {
   const [etat, setEtat] = useState({ charge: true, url: null, erreur: null });
   const preparer = async (forcer = false) => {
     setEtat({ charge: true, url: null, erreur: null });
     try {
-      const r = await base44.request("POST", `${API}/${id}/pdf`, { body: { forcer } });
+      const r = await base44.request("POST", `${api}/${id}/pdf`, { body: { forcer } });
       setEtat({ charge: false, url: `${r.pdf_url}?v=${Date.now()}`, erreur: null });
     } catch (e) {
       setEtat({ charge: false, url: null, erreur: e?.message || "Le PDF n'a pas pu être préparé." });
@@ -34,8 +35,8 @@ export default function ApercuPdf({ id, titre = "", onFermer }) {
       <div className="flex h-full w-full flex-col overflow-hidden bg-rail">
         <div className="flex h-14 flex-none items-center gap-3 border-b border-trait px-5">
           <span className="min-w-0 flex-1 truncate text-[14.5px] text-encre">Aperçu du PDF{titre ? <span className="text-ardoise"> · {titre}</span> : null}</span>
-          <button type="button" onClick={() => preparer(true)} disabled={etat.charge} title="Refaire le PDF" aria-label="Refaire le PDF"
-            className="grid h-9 w-9 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}><RefreshCw className="h-4 w-4" /></button>
+          {api === API && <button type="button" onClick={() => preparer(true)} disabled={etat.charge} title="Refaire le PDF" aria-label="Refaire le PDF"
+            className="grid h-9 w-9 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}><RefreshCw className="h-4 w-4" /></button>}
           <a href={etat.url || undefined} download={`${nom}.pdf`} aria-disabled={!etat.url}
             className={`inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol ${etat.url ? "" : "pointer-events-none opacity-50"}`}>
             <Download className="h-3.5 w-3.5" />Télécharger le PDF

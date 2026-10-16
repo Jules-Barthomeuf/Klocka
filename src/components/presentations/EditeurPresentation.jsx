@@ -192,6 +192,11 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
                 className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
                 <CircleHelp className="h-3.5 w-3.5" />Une question
               </button>
+              {/* Le PDF, à droite de « Une question » (16 oct. 2026, Jules) : le même que celui de l'équipe. */}
+              <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
+                <FileText className="h-3.5 w-3.5" />PDF
+              </button>
             </>
           )}
           {/* L'équipe l'envoie à un ou plusieurs clients : elle apparaît dans leur page Présentations. */}
@@ -269,7 +274,7 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
           )}
         </div>
       </div>
-      {pdf && data && <ApercuPdf id={id} titre={data.titre} onFermer={() => setPdf(false)} />}
+      {pdf && data && <ApercuPdf id={id} titre={data.titre} onFermer={() => setPdf(false)} {...(client ? { api: "/api/client/presentations" } : {})} />}
       {envoi && data && <EnvoiClient id={id} titre={data.titre} onFermer={() => setEnvoi(false)} />}
       {question && data && <QuestionClient id={id} titre={data.titre} onFermer={() => setQuestion(false)} />}
       {visite && <VisitePresentation onFermer={() => setVisite(false)} />}

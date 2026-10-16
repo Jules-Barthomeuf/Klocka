@@ -14,7 +14,7 @@ const PAGES = [
   // L'audience hors équipe : clients, mandataires, pages publiques (14 oct. 2026).
   { to: "/SuiviAudience", mot: "Audience" },
   { to: "/SuiviAppels", mot: "Appels" },
-  // Enregistrer une réunion, qui nourrit le Cerveau (14 oct. 2026).
+  // Enregistrer une réunion, qui nourrit l'Intelligence (14 oct. 2026).
   { to: "/SuiviReunion", mot: "Réunion" },
   { to: "/SuiviMandataires", mot: "Mandataires" },
   { to: "/CoutsIA", mot: "Coûts IA" },

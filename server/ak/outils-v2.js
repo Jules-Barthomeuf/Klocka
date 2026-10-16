@@ -55,8 +55,8 @@ export const GROUPES = [
     tete: "Le Drive partagé : chercher un fichier, ranger une pièce jointe du message, créer le dossier Drive d'un deal." },
   { nom: 'agenda', differe: true, actions: { lire: 'agenda', bloquer: 'bloquer_rdv' },
     tete: "L'agenda : lire un jour, bloquer un rendez-vous (la date exacte en ISO ; la date du jour t'est donnée)." },
-  { nom: 'cerveau', actions: { chercher: 'chercher_cerveau', historique: 'historique', noter: 'noter' },
-    tete: "Le Cerveau de Klocka : ce qui a été dit, décidé, promis, appris (comptes rendus, appels, débriefs). chercher d'abord pour toute question sur le passé ; historique d'une fiche ; noter un débrief (« retiens que… »)." },
+  { nom: 'layer', actions: { chercher: 'layer_chercher', fiche: 'layer_fiche', noter: 'layer_noter' },
+    tete: "L'Intelligence de Klocka (le Layer) : ce qui a été dit, décidé, promis, appris (comptes rendus, appels, débriefs, réunions). chercher d'abord pour toute question sur le passé ; fiche : ce qu'on sait d'une fiche ; noter un débrief (« retiens que… »)." },
   { nom: 'memoire', differe: true, actions: { retenir: 'retenir', oublier: 'oublier', lire: 'souvenirs' },
     tete: "Ce que tu retiens d'une personne ou de l'équipe : retenir, oublier, lire tes souvenirs." },
 ];

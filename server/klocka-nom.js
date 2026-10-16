@@ -4,7 +4,7 @@
 // Les modèles de transcription ne connaissent pas la startup : ils entendent
 // « Cloaca », « Cloaka », « Kloka »… On corrige APRÈS coup, sans IA, sur un
 // mot entier, à chaque transcription (llm.js, transcrireAudio), à la dictée
-// (index.js) et à l'entrée du Cerveau (cerveau.js, ajouterSource). Les
+// (index.js) et à l'entrée de l'Intelligence (layer.js, ajouterSource). Les
 // consignes de lecture et d'extraction le rappellent aussi (NOTE_KLOCKA).
 
 // Les formes entendues : C ou K, un ou deux o / a, c, k, ck, cc ou q au milieu, a ou ah à la fin ; et « cloaque », le mot français le plus proche.

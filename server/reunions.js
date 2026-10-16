@@ -1,5 +1,5 @@
 // Les réunions enregistrées (14 oct. 2026, Jules : « une page dans Suivi pour
-// enregistrer une réunion, qui va durer longtemps ; ça va nourrir le Cerveau »).
+// enregistrer une réunion, qui va durer longtemps ; ça va nourrir l'Intelligence »).
 //
 // Une réunion dure une heure ou deux : rien ne doit tenir dans la mémoire du
 // navigateur seul. Le micro coupe des morceaux de trente secondes, chacun est
@@ -8,15 +8,15 @@
 // elle en était, rien de ce qui a été transcrit n'est perdu. L'audio n'est
 // jamais gardé (comme pour les appels), seul le texte.
 //
-// À la fin, la transcription entre dans le Cerveau comme un compte rendu
-// (cerveau.js, ajouterSource), l'extraction des faits tourne en fond, et Jules
+// À la fin, la transcription entre dans l'Intelligence comme un compte rendu
+// (layer.js, ajouterSource), l'extraction des faits tourne en fond, et Jules
 // les valide comme les autres. Une réunion très longue entre en plusieurs
-// parties : une source du Cerveau garde au plus 120 000 signes.
+// parties : une source de l'Intelligence garde au plus 120 000 signes.
 
 import { Records } from './db.js';
 
 export const REUNION = 'Reunion';
-// Une partie de compte rendu : sous le plafond d'une source du Cerveau, coupée entre deux morceaux.
+// Une partie de compte rendu : sous le plafond d'une source de l'Intelligence, coupée entre deux morceaux.
 export const SIGNES_PAR_PARTIE = 100000;
 const maintenant = () => new Date().toISOString();
 const bas = (e) => String(e || '').trim().toLowerCase();
@@ -115,7 +115,7 @@ export function noter(id, { titre, participants, notes } = {}, user) {
 }
 
 /**
- * Termine la réunion et l'envoie au Cerveau : une source par partie, de type
+ * Termine la réunion et l'envoie à l'Intelligence : une source par partie, de type
  * compte rendu, puis l'extraction en fond. Rejouable : une partie déjà
  * envoyée n'entre pas deux fois (clé « reunion-<id>-<partie> »).
  */
@@ -129,52 +129,52 @@ export async function terminer(id, { titre, participants, notes } = {}, user, { 
   const entete = [a.participants && `Participants : ${a.participants}`, a.notes && `Notes prises pendant la réunion : ${a.notes}`].filter(Boolean).join('\n');
   if (!decoupe.length && !entete) {
     Records.update(REUNION, id, { etat: 'vide', fin, duree_s: Math.round((Date.parse(fin) - Date.parse(a.debut)) / 1000) });
-    return { ok: false, error: "Rien n'a été transcrit : la réunion n'entre pas dans le Cerveau." };
+    return { ok: false, error: "Rien n'a été transcrit : la réunion n'entre pas dans l'Intelligence." };
   }
-  const sources = await envoyerAuCerveau(a, decoupe, entete, { C, version: null });
+  const sources = await envoyerAuLayer(a, decoupe, entete, { C, version: null });
   if (!sources.ok) return sources;
   Records.update(REUNION, id, { etat: 'envoyee', fin, duree_s: Math.round((Date.parse(fin) - Date.parse(a.debut)) / 1000), sources: sources.ids, envoyee_le: maintenant() });
   return { ok: true, reunion: vue(Records.get(REUNION, id)) };
 }
 
-/** Les parties d'une réunion, chacune une source du Cerveau, puis l'extraction. `version` distingue un renvoi. */
-async function envoyerAuCerveau(a, decoupe, entete, { C = null, version = null } = {}) {
-  const cerveau = C || (await import('./cerveau.js'));
+/** Les parties d'une réunion, chacune une source de l'Intelligence, puis l'extraction. `version` distingue un renvoi. */
+async function envoyerAuLayer(a, decoupe, entete, { C = null, version = null } = {}) {
+  const layer = C || (await import('./layer.js'));
   const nom = a.titre || `Réunion du ${new Date(a.debut).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long' })}`;
   const morceauxTexte = decoupe.length ? decoupe : [''];
   const sources = [];
   for (let k = 0; k < morceauxTexte.length; k += 1) {
     const partie = morceauxTexte.length > 1 ? ` (partie ${k + 1} sur ${morceauxTexte.length})` : '';
     const contenu = [k === 0 ? entete : '', morceauxTexte[k]].filter(Boolean).join('\n\n');
-    const s = cerveau.ajouterSource({ type: 'compte_rendu', auteur: a.par, date: a.debut, titre: `Réunion : ${nom}${partie}${version ? ' (relue)' : ''}`, contenu, lien_original: '/SuiviReunion', cle: `reunion-${a.id}${version ? `-v${version}` : ''}-${k + 1}` });
+    const s = layer.ajouterSource({ type: 'compte_rendu', auteur: a.par, date: a.debut, titre: `Réunion : ${nom}${partie}${version ? ' (relue)' : ''}`, contenu, lien_original: '/SuiviReunion', cle: `reunion-${a.id}${version ? `-v${version}` : ''}-${k + 1}` });
     if (!s.ok) return { ok: false, error: s.error };
     sources.push(s.source.id);
-    if (!s.deja) cerveau.extraire(s.source.id).catch(() => {});
+    if (!s.deja) layer.extraire(s.source.id).catch(() => {});
   }
   return { ok: true, ids: sources };
 }
 
 /**
- * Renvoie au Cerveau une réunion déjà envoyée (14 oct. 2026) : le texte
+ * Renvoie à l'Intelligence une réunion déjà envoyée (14 oct. 2026) : le texte
  * relu, redites écartées, et lu en entier. Les faits déjà tirés restent ; un
- * fait redit n'entre pas deux fois (cerveau.js, doublonDe). Toute l'équipe peut
+ * fait redit n'entre pas deux fois (layer.js, doublonDe). Toute l'équipe peut
  * le faire : c'est la même réunion, mieux lue.
  */
 export async function renvoyer(id, { C = null } = {}) {
   const a = Records.get(REUNION, id);
   if (!a) return { ok: false, error: 'Réunion introuvable.' };
-  if (a.etat !== 'envoyee') return { ok: false, error: "Cette réunion n'a pas encore été envoyée au Cerveau." };
+  if (a.etat !== 'envoyee') return { ok: false, error: "Cette réunion n'a pas encore été envoyée à l'Intelligence." };
   const decoupe = parties(a.morceaux);
   if (!decoupe.length) return { ok: false, error: "Rien n'a été transcrit." };
   const entete = [a.participants && `Participants : ${a.participants}`, a.notes && `Notes prises pendant la réunion : ${a.notes}`].filter(Boolean).join('\n');
   const version = (a.renvois || 0) + 2;
-  const r = await envoyerAuCerveau(a, decoupe, entete, { C, version });
+  const r = await envoyerAuLayer(a, decoupe, entete, { C, version });
   if (!r.ok) return r;
   Records.update(REUNION, id, { sources: [...(a.sources || []), ...r.ids], renvois: (a.renvois || 0) + 1, renvoyee_le: maintenant() });
   return { ok: true, reunion: vue(Records.get(REUNION, id)) };
 }
 
-/** Une réunion entière, pour la relire : sa transcription telle qu'elle part au Cerveau (redites écartées). */
+/** Une réunion entière, pour la relire : sa transcription telle qu'elle part à l'Intelligence (redites écartées). */
 export function lire(id) {
   const r = Records.get(REUNION, id);
   if (!r) return { ok: false, error: 'Réunion introuvable.' };
@@ -182,7 +182,7 @@ export function lire(id) {
   return { ok: true, reunion: { ...v, morceaux: undefined, texte: texteDe(r.morceaux), nb_morceaux: v.morceaux.length } };
 }
 
-/** Abandonner : la réunion reste dans la liste, marquée, et n'entre pas dans le Cerveau. */
+/** Abandonner : la réunion reste dans la liste, marquée, et n'entre pas dans l'Intelligence. */
 export function abandonner(id, user) {
   const r = Records.get(REUNION, id);
   if (!r || r.par !== bas(user?.email)) return { ok: false, error: 'Réunion introuvable.' };
@@ -190,7 +190,7 @@ export function abandonner(id, user) {
   return { ok: true };
 }
 
-/** Les réunions de l'équipe, les plus récentes d'abord, avec ce que le Cerveau en a tiré. */
+/** Les réunions de l'équipe, les plus récentes d'abord, avec ce que l'Intelligence en a tiré. */
 export function lister({ limite = 40 } = {}) {
   const faits = Records.list('CerveauFait');
   return Records.list(REUNION).sort((a, b) => String(b.debut).localeCompare(String(a.debut))).slice(0, limite).map((r) => {

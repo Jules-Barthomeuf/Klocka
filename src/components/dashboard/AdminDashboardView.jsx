@@ -20,14 +20,14 @@ export default function AdminDashboardView() {
   const [coin, setCoin] = useState(null);
   useEffect(() => { setCoin(document.getElementById("k-haut-droite")); }, []);
   const [historique, setHistorique] = useState(false);
-  // Le Cerveau (14 oct. 2026) : un rappel des faits à valider, rien d'autre ; et la question
+  // L'Intelligence (14 oct. 2026) : un rappel des faits à valider, rien d'autre ; et la question
   // d'une décision sans motif, ouverte depuis sa notification, posée dans le chat.
-  const { data: cerveau } = useQuery({ queryKey: ["cerveau", "etat"], queryFn: () => base44.request("GET", "/api/cerveau/etat"), staleTime: 60 * 1000 });
+  const { data: layer } = useQuery({ queryKey: ["layer", "etat"], queryFn: () => base44.request("GET", "/api/layer/etat"), staleTime: 60 * 1000 });
   const { search } = useLocation();
   useEffect(() => {
-    const id = new URLSearchParams(search).get("cerveau_question");
+    const id = new URLSearchParams(search).get("layer_question") || new URLSearchParams(search).get("cerveau_question");
     if (!id) return;
-    base44.request("GET", `/api/cerveau/questions/${id}`).then(({ question }) => {
+    base44.request("GET", `/api/layer/questions/${id}`).then(({ question }) => {
       if (!question || question.etat === "repondue") return;
       window.dispatchEvent(new CustomEvent("klocka:ouvrir-conversation", { detail: { id: null, api: "/api/assistant", qs: "", secours: [{ role: "assistant", reprise: true, contenu: question.texte }] } }));
     }).catch(() => {});
@@ -46,9 +46,9 @@ export default function AdminDashboardView() {
               {coin && createPortal(<BoiteMail />, coin)}
             </>
           )}
-          {!conversation && cerveau?.a_valider > 0 && (
-            <Link to="/Cerveau" className="mb-4 flex items-center justify-between gap-3 rounded-[14px] bg-rail px-5 py-3 text-[14px] text-encre no-underline hover:bg-rail-actif">
-              <span>{cerveau.a_valider} élément{cerveau.a_valider > 1 ? "s" : ""} à valider au Cerveau</span>
+          {!conversation && layer?.a_valider > 0 && (
+            <Link to="/Intelligence" className="mb-4 flex items-center justify-between gap-3 rounded-[14px] bg-rail px-5 py-3 text-[14px] text-encre no-underline hover:bg-rail-actif">
+              <span>{layer.a_valider} élément{layer.a_valider > 1 ? "s" : ""} à valider à l'Intelligence</span>
               <span className="text-[13px] text-menthe">Valider</span>
             </Link>
           )}

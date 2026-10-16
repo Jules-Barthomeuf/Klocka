@@ -16,8 +16,8 @@ export const ENTREES_ADMIN = [
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },
   { cle: "Monitoring", label: "Suivi" },
-  // Le Cerveau (14 oct. 2026) : ce qui a été dit, décidé, promis ; les faits à valider.
-  { cle: "Cerveau", label: "Cerveau" },
+  // L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé, promis ; les faits à valider.
+  { cle: "Cerveau", label: "Intelligence" },
   { cle: "AdminSuggestions", label: "Feedback" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "Vision", label: "Vision" },

@@ -350,10 +350,10 @@ export function ClassementAnalystes({ analystes, c, titre, onChoisir }) {
   );
 }
 
-/** Les faits que les appels ont apportés au Cerveau, jour par jour (14 oct. 2026). */
+/** Les faits que les appels ont apportés à l'Intelligence, jour par jour (14 oct. 2026). */
 export function FaitsParJour({ parJour, c }) {
   return (
-    <Cadre titre="Faits tirés des appels, par jour" aide="Chaque appel validé avec sa transcription entre dans le Cerveau ; l'extraction en tire des faits.">
+    <Cadre titre="Faits tirés des appels, par jour" aide="Chaque appel validé avec sa transcription entre dans l'Intelligence ; l'extraction en tire des faits.">
       <div className="h-[220px]">
         <ResponsiveContainer>
           <BarChart data={parJour} margin={{ top: 6, right: 4, left: -18, bottom: 0 }} barCategoryGap={4}>

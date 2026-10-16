@@ -1,4 +1,4 @@
-// Le Cerveau (spec MVP du 14 oct. 2026) : journal brut, faits, rattachement, validation, recherche, questions.
+// L'Intelligence (spec MVP du 14 oct. 2026) : journal brut, faits, rattachement, validation, recherche, questions.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -6,9 +6,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-cerveau-'));
+process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-layer-'));
 process.env.SUPER_ADMIN_EMAILS = 'jules@klocka.test';
-const C = await import('./cerveau.js');
+const C = await import('./layer.js');
 const { Records } = await import('./db.js');
 
 const JULES = { email: 'jules@klocka.test', role: 'admin' };

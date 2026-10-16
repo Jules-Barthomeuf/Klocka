@@ -4,31 +4,31 @@ import { Check, FileText, Loader2, Pencil, Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
-import { FriseFaits, FenetreSource, TYPES, TEINTES, SOURCES, quand } from "@/components/cerveau/FriseFaits";
+import { FriseFaits, FenetreSource, TYPES, TEINTES, SOURCES, quand } from "@/components/layer/FriseFaits";
 
-// Le Cerveau (spec MVP du 14 oct. 2026) : ce qui a été dit, décidé ou promis,
+// L'Intelligence (spec MVP du 14 oct. 2026) : ce qui a été dit, décidé ou promis,
 // gardé avec sa source. Trois onglets : À valider (Jules valide, corrige ou
 // rejette chaque fait extrait), Savoir (les règles de l'équipe validées),
 // Sources (le journal brut, et l'ajout d'un compte rendu). En tête, les
 // critères du MVP qui se mesurent seuls.
 
-const API = "/api/cerveau";
+const API = "/api/layer";
 const ENTITES = { dossier: "Dossier", projet: "Projet", agent: "Agent", agence: "Agence", investisseur: "Investisseur", ville: "Ville" };
 const bouton = "inline-flex h-8 items-center gap-1.5 rounded-full border border-bord-doux px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40";
 const principal = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50";
 
-export default function Cerveau() {
+export default function Intelligence() {
   const [onglet, setOnglet] = useState("a_valider");
-  const etat = useQuery({ queryKey: ["cerveau", "etat"], queryFn: () => base44.request("GET", `${API}/etat`) });
+  const etat = useQuery({ queryKey: ["layer", "etat"], queryFn: () => base44.request("GET", `${API}/etat`) });
   const e = etat.data;
   // À droite de Savoir, chaque type de fait, puis tous les faits (14 oct. 2026, Jules).
-  const tous = useQuery({ queryKey: ["cerveau", "faits"], queryFn: () => base44.request("GET", `${API}/faits`) });
+  const tous = useQuery({ queryKey: ["layer", "faits"], queryFn: () => base44.request("GET", `${API}/faits`) });
   const compte = (type) => (tous.data?.faits || []).filter((f) => !type || f.type === type).length;
   const avec = (mot, n) => (n ? `${mot} · ${n}` : mot);
   const onglets = [["a_valider", `À valider${e?.a_valider ? ` · ${e.a_valider}` : ""}`], ["savoir", "Savoir"], ["information", avec("Informations", compte("information"))], ["decision", avec("Décisions", compte("decision"))], ["engagement", avec("Engagements", compte("engagement"))], ["tout", avec("Tout", compte(null))], ["sources", "Sources"]];
   return (
     <div className="mx-auto w-full max-w-[1100px] px-4 py-8 md:px-6">
-      <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre">Cerveau</h1>
+      <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre">Intelligence</h1>
       <p className="m-0 mt-2 max-w-[70ch] text-[14px] text-ardoise">Ce qui a été dit, décidé ou promis, tiré des comptes rendus, des appels et des débriefs. Un fait ne répond aux questions d'AK qu'une fois validé.</p>
       {e?.mesures && <Mesures m={e.mesures} />}
       <div className="mt-6 mb-5 flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -67,12 +67,12 @@ function Mesures({ m }) {
 
 function useRafraichir() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: ["cerveau"] });
+  return () => qc.invalidateQueries({ queryKey: ["layer"] });
 }
 
 /** La file À valider : une carte par fait, groupées par source ; un lot se valide d'un coup. */
 function AValider({ peutValider }) {
-  const q = useQuery({ queryKey: ["cerveau", "a-valider"], queryFn: () => base44.request("GET", `${API}/a-valider`) });
+  const q = useQuery({ queryKey: ["layer", "a-valider"], queryFn: () => base44.request("GET", `${API}/a-valider`) });
   const rafraichir = useRafraichir();
   const lot = useMutation({
     mutationFn: (id) => base44.request("POST", `${API}/sources/${id}/valider`, { body: {} }),
@@ -81,7 +81,7 @@ function AValider({ peutValider }) {
   });
   const lots = q.data?.lots || [];
   if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
-  if (!lots.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Rien à valider. Les faits arrivent ici dès qu'un compte rendu, un appel ou un débrief entre dans le Cerveau.</p>;
+  if (!lots.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Rien à valider. Les faits arrivent ici dès qu'un compte rendu, un appel ou un débrief entre dans l'Intelligence.</p>;
   return (
     <div className="flex flex-col gap-6">
       {!peutValider && <p className="m-0 text-[13px] text-ambre">Au MVP, seul Jules valide : vous voyez la file sans pouvoir la trancher.</p>}
@@ -175,7 +175,7 @@ function Fiches({ fiches, candidats = [], edition, onAjouter, onRetirer }) {
   const [type, setType] = useState("dossier");
   const [recherche, setRecherche] = useState("");
   const trouves = useQuery({
-    queryKey: ["cerveau", "candidats", type, recherche],
+    queryKey: ["layer", "candidats", type, recherche],
     queryFn: () => base44.request("GET", `${API}/candidats?${new URLSearchParams({ type, q: recherche })}`),
     enabled: edition && recherche.trim().length > 1,
   });
@@ -225,7 +225,7 @@ const VIDES = {
   information: "Aucune information encore. Un fait sur un dossier, un agent, une agence ou une ville, dit en appel, en réunion ou en débrief, arrive ici.",
   decision: "Aucune décision encore. Ce qui est tranché en réunion ou sur un dossier, avec son motif, arrive ici.",
   engagement: "Aucun engagement encore. Une promesse (« Durand rappelle jeudi ») arrive ici, avec qui et pour quand.",
-  tout: "Le Cerveau est vide pour l'instant : déposez un compte rendu dans Sources, enregistrez une réunion ou validez un appel transcrit.",
+  tout: "L'Intelligence est vide pour l'instant : déposez un compte rendu dans Sources, enregistrez une réunion ou validez un appel transcrit.",
 };
 
 /** Les faits d'un type (ou tous) : validés et à valider, les rejetés exceptés, avec leur source. */
@@ -244,7 +244,7 @@ function FaitsDuType({ q, type }) {
 
 /** Le savoir de l'équipe : les faits « savoir » validés. */
 function Savoir() {
-  const q = useQuery({ queryKey: ["cerveau", "savoir"], queryFn: () => base44.request("GET", `${API}/savoir`) });
+  const q = useQuery({ queryKey: ["layer", "savoir"], queryFn: () => base44.request("GET", `${API}/savoir`) });
   const faits = q.data?.faits || [];
   if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
   if (!faits.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Aucun savoir validé encore. Une règle de l'équipe dite en réunion ou en débrief (« à Antibes, un n°2 se loue sous 300 €/m²/an ») arrive ici une fois validée.</p>;
@@ -253,7 +253,7 @@ function Savoir() {
 
 /** Le journal brut, et l'ajout d'un compte rendu (collé ou déposé). */
 function Sources({ peutValider }) {
-  const q = useQuery({ queryKey: ["cerveau", "sources"], queryFn: () => base44.request("GET", `${API}/sources`) });
+  const q = useQuery({ queryKey: ["layer", "sources"], queryFn: () => base44.request("GET", `${API}/sources`) });
   const rafraichir = useRafraichir();
   const [titre, setTitre] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -270,7 +270,7 @@ function Sources({ peutValider }) {
       return base44.request("POST", `${API}/sources`, { body: form, isForm: true });
     },
     onSuccess: (r) => {
-      if (r.deja) toast.success("Cette source est déjà dans le Cerveau");
+      if (r.deja) toast.success("Cette source est déjà dans l'Intelligence");
       else if (r.ok === false) toast.error(r.error || "Extraction impossible");
       else toast.success(`${(r.faits || []).length} fait${(r.faits || []).length > 1 ? "s" : ""} extrait${(r.faits || []).length > 1 ? "s" : ""}, à valider`);
       setTitre(""); setContenu(""); rafraichir();

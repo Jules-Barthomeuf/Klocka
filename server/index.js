@@ -65,7 +65,7 @@ import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.j
 import { jetonValide as jetonImpressionValide } from './presentation-pdf.js';
 import { monterTesteur } from './routes/testeur.js';
 import { monterSuiviChat } from './routes/suivi-chat.js';
-import { monterCerveau } from './routes/cerveau.js';
+import { monterLayer } from './routes/layer.js';
 import { monterAudience } from './routes/audience.js';
 import { monterEquipe } from './routes/equipe.js';
 import { amorcerBacASable } from './testeur/bac-a-sable.js';
@@ -1269,7 +1269,7 @@ planifierVeilleOffMarket();
 // L'agent testeur (10 oct. 2026) : un audit par page, dans un bac à sable ; ici, le compte testeur si on EST le bac à sable.
 monterTesteur(app);
 monterSuiviChat(app);
-monterCerveau(app);
+monterLayer(app);
 monterAudience(app);
 amorcerBacASable();
 // L'équipe (10 oct. 2026) : admins et mandataires, à part des clients.
@@ -1286,7 +1286,7 @@ monterKVacance(app);
 monterKData(app);
 // Outils (13 oct. 2026) : Vacance, les signaux publics autour d'une adresse ; les communes chargées se rafraîchissent la nuit.
 monterOutils(app);
-// Suivi > Réunion (14 oct. 2026) : une réunion enregistrée, transcrite au fil de l'eau, qui nourrit le Cerveau.
+// Suivi > Réunion (14 oct. 2026) : une réunion enregistrée, transcrite au fil de l'eau, qui nourrit l'Intelligence.
 monterReunions(app);
 import('./outils/vacance.js').then((m) => m.planifier()).catch((e) => console.error('[vacance] module absent :', e.message));
 

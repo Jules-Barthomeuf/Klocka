@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
-// Les faits validés du Cerveau (14 oct. 2026), du plus récent au plus ancien,
-// chacun cliquable vers sa source : la page Cerveau (Savoir) et l'onglet
+// Les faits validés de l'Intelligence (14 oct. 2026), du plus récent au plus ancien,
+// chacun cliquable vers sa source : la page Intelligence (Savoir) et l'onglet
 // Historique des fiches dossier et agent.
 
 export const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
@@ -42,7 +42,7 @@ export function FriseFaits({ faits }) {
 
 /** Le journal brut d'une source, tel qu'il est entré. */
 export function FenetreSource({ id, onFermer }) {
-  const q = useQuery({ queryKey: ["cerveau", "source", id], queryFn: () => base44.request("GET", `/api/cerveau/sources/${id}`) });
+  const q = useQuery({ queryKey: ["layer", "source", id], queryFn: () => base44.request("GET", `/api/layer/sources/${id}`) });
   const s = q.data?.source;
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-fond/70 p-4 backdrop-blur-sm" onMouseDown={onFermer}>
@@ -62,10 +62,10 @@ export function FenetreSource({ id, onFermer }) {
 
 
 /** L'onglet Historique d'une fiche (dossier, agent, agence) : ses faits validés, avec leur source. */
-export function HistoriqueCerveau({ type, id }) {
-  const q = useQuery({ queryKey: ["cerveau", "historique", type, id], queryFn: () => base44.request("GET", `/api/cerveau/historique/${type}/${encodeURIComponent(id)}`), enabled: !!id });
+export function HistoriqueLayer({ type, id }) {
+  const q = useQuery({ queryKey: ["layer", "historique", type, id], queryFn: () => base44.request("GET", `/api/layer/historique/${type}/${encodeURIComponent(id)}`), enabled: !!id });
   if (q.isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
   const faits = q.data?.faits || [];
-  if (!faits.length) return <p className="m-0 py-6 text-[13.5px] text-brume">Rien au Cerveau sur cette fiche pour l'instant : ce qui en sera dit en réunion, en appel ou en débrief arrivera ici une fois validé.</p>;
+  if (!faits.length) return <p className="m-0 py-6 text-[13.5px] text-brume">Rien à l'Intelligence sur cette fiche pour l'instant : ce qui en sera dit en réunion, en appel ou en débrief arrivera ici une fois validé.</p>;
   return <FriseFaits faits={faits} />;
 }

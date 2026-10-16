@@ -541,9 +541,9 @@ et la mise à jour du document en cours). CSS seul (`.k-pile`, `.k-mini`,
 `.k-titre-metal`, `.k-etats` dans index.css), arrêté si le système demande
 moins d'animations.
 
-### Le Cerveau (14 oct. 2026)
+### L'Intelligence (le Layer, 14 oct. 2026)
 
-Spec MVP de Jules du 14 oct. 2026. Une page admin **Cerveau** (icône cerveau,
+Spec MVP de Jules du 14 oct. 2026 (« Cerveau » jusqu'au 15 oct., renommée « Intelligence » ; le nom technique est « le Layer », voir `docs/layer.md`). Une page admin **Intelligence** (icône cerveau,
 après Suivi, pastille du nombre de faits à valider) à trois onglets sur le
 dessin des onglets du Suivi : À valider, Savoir, Sources. En tête, une bande
 de trois chiffres (les critères du MVP qui se mesurent seuls). À valider : les
@@ -554,7 +554,7 @@ puces ; trois gestes à droite : rejeter (croix), Corriger, Valider (menthe).
 Un fait non validé ne se présente jamais comme acquis. L'onglet Historique
 d'une fiche (étape Analyse d'un dossier, fiche d'un agent) reprend la même
 frise, chaque fait cliquable vers sa source. Le tableau de bord n'en montre
-qu'une ligne : « X éléments à valider au Cerveau ».
+qu'une ligne : « X éléments à valider à l'Intelligence ».
 
 ### L'éditeur de projet avec AK (14 oct. 2026)
 

@@ -19,7 +19,7 @@ export const ADRESSES = {
   Relances: "Relances",
   OffMarket: "OffMarket",
   Outils: "Outils",
-  Cerveau: "Cerveau",
+  Cerveau: "Intelligence",
   SuiviTesteur: "SuiviTesteur",
   SuiviChat: "SuiviChat",
   SuiviReunion: "SuiviReunion",

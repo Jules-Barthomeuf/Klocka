@@ -1,4 +1,4 @@
-// Les réunions enregistrées (14 oct. 2026) : morceaux à leur rang, reprise, parties, envoi au Cerveau.
+// Les réunions enregistrées (14 oct. 2026) : morceaux à leur rang, reprise, parties, envoi à l'Intelligence.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
@@ -40,7 +40,7 @@ test('démarrer, garder chaque morceau à son rang, reprendre après une coupure
   assert.equal(M.vue(M.enCoursDe(JULES)).morceaux.map((m) => m.texte).join(' | '), 'premier, renvoyé | deuxième');
 });
 
-test('terminer envoie au Cerveau une source par partie, une seule fois', async () => {
+test('terminer envoie à l’Intelligence une source par partie, une seule fois', async () => {
   const ajoutees = [];
   const extraites = [];
   const C = {
@@ -64,7 +64,7 @@ test('terminer envoie au Cerveau une source par partie, une seule fois', async (
   assert.equal(M.enCoursDe(JULES), null);
 });
 
-test('une réunion sans rien de transcrit n\'entre pas dans le Cerveau', async () => {
+test('une réunion sans rien de transcrit n\'entre pas dans l’Intelligence', async () => {
   const id = M.demarrer(NORA, {}).reunion.id;
   const r = await M.terminer(id, {}, NORA, { C: { ajouterSource: () => { throw new Error('ne doit pas être appelé'); } } });
   assert.equal(r.ok, false);

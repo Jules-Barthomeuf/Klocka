@@ -246,14 +246,14 @@ export function lignesDeRappels(rappels, idsAuJournal, agences = new Map(), fich
 }
 
 /**
- * Le contexte que les appels apportent au Cerveau (14 oct. 2026, Jules : « dans
+ * Le contexte que les appels apportent à l'Intelligence (14 oct. 2026, Jules : « dans
  * Suivi appels, le contexte, avec le gain de sources de contexte, mesuré depuis
- * le Cerveau »). Un appel validé avec sa transcription entre dans le Cerveau
- * comme une source (clé « appel-<id> », cerveau.js depuisAppel) ; l'extraction
+ * l'Intelligence »). Un appel validé avec sa transcription entre dans l'Intelligence
+ * comme une source (clé « appel-<id> », layer.js depuisAppel) ; l'extraction
  * en tire des faits, que Jules valide. Pure sur ses entrées : testée sans base.
  *
  * @param {Array} appels  les appels de la période (avec _source, par, le, transcription_gardee)
- * @param {{sources: Array, faits: Array, liens: Array}} cerveau
+ * @param {{sources: Array, faits: Array, liens: Array}} layer
  */
 export function contexteAppels(appels, { sources = [], faits = [], liens = [] } = {}) {
   const parCle = new Map(sources.filter((s) => String(s.cle || '').startsWith('appel-')).map((s) => [s.cle.slice(6), s]));

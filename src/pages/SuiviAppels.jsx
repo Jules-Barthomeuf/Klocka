@@ -122,11 +122,11 @@ const STATUTS_FAIT_MOTS = { valide: "Validés", a_valider: "À valider", a_ratta
 
 /**
  * Le contexte gagné par les appels (14 oct. 2026, Jules) : mesuré dans le
- * Cerveau. Combien d'appels l'ont nourri, combien de faits il en a tirés, de
+ * l'Intelligence. Combien d'appels l'ont nourri, combien de faits il en a tirés, de
  * quel type, où ils en sont, quelles fiches ils enrichissent, et qui les apporte.
  */
 function VueContexte({ ctx, c }) {
-  if (!ctx) return <p className="m-0 py-10 text-center text-[13.5px] text-brume">Le Cerveau ne répond pas.</p>;
+  if (!ctx) return <p className="m-0 py-10 text-center text-[13.5px] text-brume">L'Intelligence ne répond pas.</p>;
   const lignes = (o, mots) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ nom: mots[k] || k, valeur: n }));
   const valides = ctx.par_statut?.valide || 0;
   return (
@@ -134,20 +134,20 @@ function VueContexte({ ctx, c }) {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Chiffre valeur={ctx.sources} libelle="Appels entrés" note={`sur ${ctx.transcrits} transcrit${ctx.transcrits > 1 ? "s" : ""}${ctx.nourris_pct != null ? ` · ${ctx.nourris_pct} %` : ""}`} />
         <Chiffre valeur={ctx.faits} libelle="Faits tirés" note={ctx.faits_par_source != null ? `${String(ctx.faits_par_source).replace(".", ",")} par appel` : "aucun encore"} />
-        <Chiffre valeur={valides} libelle="Validés" note={ctx.faits ? `${Math.round((valides / ctx.faits) * 100)} % des faits` : "par Jules, dans le Cerveau"} />
+        <Chiffre valeur={valides} libelle="Validés" note={ctx.faits ? `${Math.round((valides / ctx.faits) * 100)} % des faits` : "par Jules, dans l'Intelligence"} />
         <Chiffre valeur={(ctx.par_statut?.a_valider || 0) + (ctx.par_statut?.a_rattacher || 0)} libelle="À trancher" note="à valider ou à rattacher" />
         <Chiffre valeur={ctx.fiches.agents + ctx.fiches.agences + ctx.fiches.autres} libelle="Fiches enrichies" note={`${ctx.fiches.agents} agent${ctx.fiches.agents > 1 ? "s" : ""} · ${ctx.fiches.agences} agence${ctx.fiches.agences > 1 ? "s" : ""}`} />
         <Chiffre valeur={ctx.en_attente_extraction} libelle="En extraction" note={ctx.doublons ? `${ctx.doublons} doublon${ctx.doublons > 1 ? "s" : ""} écarté${ctx.doublons > 1 ? "s" : ""}` : "pas encore lus"} />
       </div>
       {ctx.sources === 0 ? (
         <Cadre titre="Contexte">
-          <p className="m-0 text-[13.5px] text-ardoise">Aucun appel n'a encore nourri le Cerveau sur la période. Un appel y entre quand il est validé avec sa transcription (gardée depuis le 13 octobre) ; « Importer les appels déjà transcrits », dans le Cerveau, reprend les plus anciens.</p>
+          <p className="m-0 text-[13.5px] text-ardoise">Aucun appel n'a encore nourri l'Intelligence sur la période. Un appel y entre quand il est validé avec sa transcription (gardée depuis le 13 octobre) ; « Importer les appels déjà transcrits », dans l'Intelligence, reprend les plus anciens.</p>
         </Cadre>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <FaitsParJour parJour={ctx.par_jour} c={c} />
-            <BarresHorizontales titre="Par analyste" c={c} lignes={ctx.analystes.map((a) => ({ nom: `${a.prenom} · ${a.sources} appel${a.sources > 1 ? "s" : ""}`, valeur: a.faits }))} aide="Faits apportés au Cerveau par les appels de chacun." />
+            <BarresHorizontales titre="Par analyste" c={c} lignes={ctx.analystes.map((a) => ({ nom: `${a.prenom} · ${a.sources} appel${a.sources > 1 ? "s" : ""}`, valeur: a.faits }))} aide="Faits apportés à l'Intelligence par les appels de chacun." />
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <BarresHorizontales titre="Types de faits" c={c} lignes={lignes(ctx.par_type, TYPES_FAIT_MOTS)} />
@@ -162,7 +162,7 @@ function VueContexte({ ctx, c }) {
                 </div>
               ))}
             </div>
-            <p className="m-0 mt-3 text-[12px] text-brume">Les faits se valident dans le Cerveau, page « À valider ».</p>
+            <p className="m-0 mt-3 text-[12px] text-brume">Les faits se valident dans l'Intelligence, page « À valider ».</p>
           </Cadre>
         </>
       )}

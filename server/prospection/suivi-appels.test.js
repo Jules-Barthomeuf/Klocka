@@ -184,7 +184,7 @@ test('les graphiques : la carte jour × heure à Paris et la répartition des du
   assert.ok(r.par_jour.at(-1).duree_moyenne_s > 0);
 });
 
-test('le contexte gagné : les appels qui ont nourri le Cerveau, leurs faits par type et statut, les fiches enrichies', () => {
+test('le contexte gagné : les appels qui ont nourri l’Intelligence, leurs faits par type et statut, les fiches enrichies', () => {
   const appels = [
     { id: 'a1', le: '2026-10-14T08:00:00Z', par: 'nora.l@klocka.immo', transcription_gardee: 'Bonjour…' },
     { id: 'a2', le: '2026-10-14T09:00:00Z', par: 'nora.l@klocka.immo', transcription_gardee: 'Allô…' },

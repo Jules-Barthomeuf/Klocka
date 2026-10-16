@@ -1,4 +1,4 @@
-// Le Cerveau de Klocka (spec MVP du 14 oct. 2026) : ce qui a été dit, décidé
+// L'Intelligence de Klocka, le Layer (spec MVP du 14 oct. 2026 ; « Cerveau » jusqu'au 15 oct.) : ce qui a été dit, décidé
 // ou promis sur un dossier, un agent, une agence, un investisseur, une ville,
 // gardé avec sa source et validé par un humain avant d'être tenu pour acquis.
 //
@@ -10,7 +10,7 @@
 //      information, engagement, savoir ; chacun avec sa phrase exacte ;
 //   3. chaque fait se rattache aux fiches (CerveauLien) ; s'il hésite, il
 //      reste « à rattacher » avec ses candidats ;
-//   4. Jules valide, corrige ou rejette (Cerveau > À valider) ; seuls les
+//   4. Jules valide, corrige ou rejette (Intelligence > À valider) ; seuls les
 //      faits validés répondent aux questions d'AK.
 // Un fait sans source n'existe pas. Les faits rejetés restent, pour mesurer
 // la qualité de l'extraction. Réservé à l'équipe, jamais lu côté mandataire.
@@ -152,9 +152,7 @@ Extrais les FAITS qui méritent d'être retrouvés dans une semaine ou un an, et
 - engagement : une promesse, de qui, quoi, pour quand (« Durand rappelle jeudi ») ;
 - savoir : une règle ou un savoir-faire de l'équipe, valable au-delà de ce dossier (« à Antibes, un emplacement n°2 se loue sous 300 €/m²/an »).
 Règles : n'invente rien ; un fait par idée : une information et une promesse dans la même phrase font DEUX faits (« l'agence Durand a deux murs à Antibes, elle envoie les fiches jeudi » : une information, et un engagement de Durand pour jeudi) ; tout « il rappelle », « elle envoie », « je préviens », « on revient vers lui » daté ou non est un engagement ; la citation est recopiée mot pour mot de la source, sans retouche ; le résumé dit la chose en une phrase autonome ; les entités sont nommées comme dans la source (« Libourne », « agence Durand », « Maxime ») ; pas de fait pour une politesse, une logistique de réunion ou une hésitation non tranchée. Une source sans fait utile rend une liste vide.
-Avant de rendre la liste, relis chaque information et chaque décision : si sa phrase contient aussi une promesse (« doit », « va », « envoie », « rappelle », « d'ici », « avant »), ajoute cette promesse comme un engagement à part, avec sa propre citation (la portion de phrase qui la dit), la personne qui promet et son échéance.${source.type === 'decision' ? '\nCette source est la réponse à « pourquoi ce dossier a-t-il été accepté ou refusé ? » : c\'est une décision, avec son motif.' : ''}
-
-${tranche ? `\nC'est la tranche ${tranche.rang} sur ${tranche.total} d'une longue source (une réunion, un long compte rendu) : extrais tout ce qui compte dans CETTE tranche, sans te limiter à quelques faits ; une conversation hors sujet ne donne rien.` : ''}
+Avant de rendre la liste, relis chaque information et chaque décision : si sa phrase contient aussi une promesse (« doit », « va », « envoie », « rappelle », « d'ici », « avant »), ajoute cette promesse comme un engagement à part, avec sa propre citation (la portion de phrase qui la dit), la personne qui promet et son échéance.${source.type === 'decision' ? '\nCette source est la réponse à « pourquoi ce dossier a-t-il été accepté ou refusé ? » : c\'est une décision, avec son motif.' : ''}${tranche ? `\nC'est la tranche ${tranche.rang} sur ${tranche.total} d'une longue source (une réunion, un long compte rendu) : extrais tout ce qui compte dans CETTE tranche, sans te limiter à quelques faits ; une conversation hors sujet ne donne rien.` : ''}
 
 SOURCE :
 <<<
@@ -439,8 +437,8 @@ export function poserLaSuivante(pour, { maintenantD = new Date() } = {}) {
   Records.update(QUESTION, suivante.id, { etat: 'posee', posee_le: maintenantD.toISOString() });
   try {
     notifier({
-      pour, titre: suivante.texte, texte: 'Répondez dans le chat : la réponse rejoint le Cerveau, rattachée au dossier.',
-      lien: `/TableauDeBord?cerveau_question=${suivante.id}`, action: 'Répondre', genre: 'question', cle: `cerveau-question-${suivante.id}`,
+      pour, titre: suivante.texte, texte: 'Répondez dans le chat : la réponse rejoint l’Intelligence, rattachée au dossier.',
+      lien: `/TableauDeBord?layer_question=${suivante.id}`, action: 'Répondre', genre: 'question', cle: `cerveau-question-${suivante.id}`,
     });
   } catch { /* la question reste posée : AK la repose dans le chat */ }
   return Records.get(QUESTION, suivante.id);
@@ -488,7 +486,7 @@ export async function noter(texte, { user, liens = [] } = {}) {
 // --- Les transcriptions du mode appel -------------------------------------------------------
 
 /**
- * Un appel validé entre dans le Cerveau, sans geste de l'analyste : sa
+ * Un appel validé entre dans l'Intelligence, sans geste de l'analyste : sa
  * transcription (jamais l'audio), rattachée d'office à l'agent et à l'agence.
  * L'extraction tourne en fond ; un essai n'entre pas.
  */

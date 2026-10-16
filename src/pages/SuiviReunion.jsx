@@ -9,25 +9,25 @@ import { versWav } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
 
 // Suivi > Réunion (14 oct. 2026, Jules : « enregistrer une réunion, qui va
-// durer longtemps ; ça va nourrir le Cerveau »).
+// durer longtemps ; ça va nourrir l'Intelligence »).
 //
 // Le micro coupe des morceaux de trente secondes ; chacun part aussitôt être
 // transcrit, et son texte est gardé côté serveur à son rang. Un morceau raté
 // se renvoie, trois fois. La page fermée ou rechargée, la réunion reprend où
 // elle en était. L'écran reste allumé pendant l'enregistrement. À la fin, la
-// transcription entre dans le Cerveau comme un compte rendu, et ses faits
+// transcription entre dans l'Intelligence comme un compte rendu, et ses faits
 // attendent la validation de Jules. L'audio n'est jamais gardé.
 
 const A = "/api/monitoring/reunions";
 const DUREE_MORCEAU_MS = 30000;
 const ESSAIS = 3;
-const ETATS = { enregistrement: "En cours", envoyee: "Dans le Cerveau", abandonnee: "Abandonnée", vide: "Rien de transcrit" };
+const ETATS = { enregistrement: "En cours", envoyee: "Dans l'Intelligence", abandonnee: "Abandonnée", vide: "Rien de transcrit" };
 const chrono = (s) => `${Math.floor(s / 3600) ? `${Math.floor(s / 3600)} h ` : ""}${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} min ${String(s % 60).padStart(2, "0")}`;
 const duree = (s) => (s == null ? "—" : s < 60 ? `${s} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.floor(s / 3600)} h ${String(Math.round((s % 3600) / 60)).padStart(2, "0")}`);
 const quand = (iso) => new Date(iso).toLocaleString("fr-FR", { timeZone: "Europe/Paris", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const champ = "w-full rounded-champ border border-trait bg-surface px-3 py-2 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]";
 
-/** La transcription d'une réunion, telle qu'elle part au Cerveau (redites écartées), avec ses participants et ses notes. */
+/** La transcription d'une réunion, telle qu'elle part à l'Intelligence (redites écartées), avec ses participants et ses notes. */
 function Transcription({ id }) {
   const q = useQuery({ queryKey: ["reunion", id], queryFn: () => base44.request("GET", `${A}/${id}`) });
   const r = q.data?.reunion;
@@ -92,7 +92,7 @@ export default function SuiviReunion() {
   // Le fil défile avec la parole, sauf si on est remonté le lire.
   useEffect(() => { const f = fil.current; if (f && f.scrollHeight - f.scrollTop - f.clientHeight < 120) f.scrollTop = f.scrollHeight; }, [direct]);
 
-  // Titre, participants et notes gardés au fil de l'eau (rien ne part au Cerveau avant la fin).
+  // Titre, participants et notes gardés au fil de l'eau (rien ne part à l'Intelligence avant la fin).
   useEffect(() => {
     if (!reunion || reunion.etat !== "enregistrement") return undefined;
     const t = setTimeout(() => { base44.request("PUT", `${A}/${reunion.id}`, { body: { titre, participants, notes } }).catch(() => {}); }, 900);
@@ -195,7 +195,7 @@ export default function SuiviReunion() {
     for (const x of morceaux.current.filter((y) => y.etat === "echec" && y.wav)) { x.etat = "envoi"; montrer(); await envoyerMorceau(x, reunion.id); }
     try {
       await base44.request("POST", `${A}/${reunion.id}/terminer`, { body: { titre, participants, notes } });
-      toast.success("Réunion envoyée au Cerveau : l'extraction tourne", { action: { mot: "Voir", faire: () => navigate("/Cerveau") } });
+      toast.success("Réunion envoyée à l'Intelligence : l'extraction tourne", { action: { mot: "Voir", faire: () => navigate("/Intelligence") } });
       setReunion(null); setTitre(""); setParticipants(""); setNotes(""); morceaux.current = []; prochain.current = 0; setDirect([]); setSecondes(0);
       queryClient.invalidateQueries({ queryKey: ["reunions"] });
     } catch (e) {
@@ -203,14 +203,14 @@ export default function SuiviReunion() {
     } finally { setEnvoi(false); }
   };
 
-  // Relire une réunion déjà envoyée : redites écartées, lue en entier par le Cerveau (14 oct. 2026).
+  // Relire une réunion déjà envoyée : redites écartées, lue en entier par l'Intelligence (14 oct. 2026).
   const [renvoi, setRenvoi] = useState(null);
   const [lue, setLue] = useState(null);
   const renvoyer = async (id) => {
     setRenvoi(id);
     try {
       await base44.request("POST", `${A}/${id}/renvoyer`);
-      toast.success("Réunion relue et renvoyée : l'extraction tourne", { action: { mot: "Voir", faire: () => navigate("/Cerveau") } });
+      toast.success("Réunion relue et renvoyée : l'extraction tourne", { action: { mot: "Voir", faire: () => navigate("/Intelligence") } });
       queryClient.invalidateQueries({ queryKey: ["reunions"] });
     } catch (e) { toast.error(e?.message || "La réunion n'a pas été renvoyée."); } finally { setRenvoi(null); }
   };
@@ -234,7 +234,7 @@ export default function SuiviReunion() {
       <div className="mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10">
         <OngletsSuivi className="mb-3.5" />
         <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Réunion</h1>
-        <p className="m-0 mt-1.5 max-w-[720px] text-[13.5px] text-ardoise">Enregistrez une réunion, aussi longue qu'elle soit : elle se transcrit pendant qu'on parle, puis entre dans le Cerveau, où ses décisions, informations et engagements attendent votre validation. L'audio n'est pas gardé.</p>
+        <p className="m-0 mt-1.5 max-w-[720px] text-[13.5px] text-ardoise">Enregistrez une réunion, aussi longue qu'elle soit : elle se transcrit pendant qu'on parle, puis entre dans l'Intelligence, où ses décisions, informations et engagements attendent votre validation. L'audio n'est pas gardé.</p>
 
         <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
           {/* À gauche : le micro, les réglages de la réunion, les gestes. */}
@@ -278,7 +278,7 @@ export default function SuiviReunion() {
               )}
               {reunion && (
                 <button type="button" onClick={terminer} disabled={envoi} className={`inline-flex h-10 items-center justify-center gap-2 rounded-full px-5 text-[14px] disabled:opacity-50 ${enregistre ? "border border-menthe text-menthe" : "bg-menthe text-sur-menthe hover:bg-menthe-survol"}`} style={enregistre ? { background: "transparent" } : undefined}>
-                  {envoi && <Loader2 className="h-4 w-4 animate-spin" />}{envoi ? "Envoi au Cerveau…" : "Terminer et envoyer au Cerveau"}
+                  {envoi && <Loader2 className="h-4 w-4 animate-spin" />}{envoi ? "Envoi à l'Intelligence…" : "Terminer et envoyer à l'Intelligence"}
                 </button>
               )}
               {reunion && !envoi && (
@@ -328,11 +328,11 @@ export default function SuiviReunion() {
                     </button>
                     <div className="text-right text-[13px]">
                       <p className={`m-0 ${r.etat === "envoyee" ? "text-menthe" : r.etat === "enregistrement" ? "text-ambre" : "text-brume"}`}>{ETATS[r.etat] || r.etat}</p>
-                      {r.etat === "envoyee" && <p className="m-0 mt-0.5 text-brume">{r.faits ? `${r.faits} fait${r.faits > 1 ? "s" : ""} · ${r.faits_valides} validé${r.faits_valides > 1 ? "s" : ""}` : "extraction en cours"} · <Link to="/Cerveau" className="text-craie underline underline-offset-2 hover:text-encre">Voir les faits à valider</Link></p>}
+                      {r.etat === "envoyee" && <p className="m-0 mt-0.5 text-brume">{r.faits ? `${r.faits} fait${r.faits > 1 ? "s" : ""} · ${r.faits_valides} validé${r.faits_valides > 1 ? "s" : ""}` : "extraction en cours"} · <Link to="/Intelligence" className="text-craie underline underline-offset-2 hover:text-encre">Voir les faits à valider</Link></p>}
                       {r.etat === "envoyee" && (
                         <button type="button" onClick={() => renvoyer(r.id)} disabled={renvoi === r.id}
                           className="mt-1 p-0 text-[12.5px] text-menthe underline underline-offset-2 hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
-                          {renvoi === r.id ? "Relecture…" : r.renvois ? "Relire à nouveau" : "Relire et renvoyer au Cerveau"}
+                          {renvoi === r.id ? "Relecture…" : r.renvois ? "Relire à nouveau" : "Relire et renvoyer à l'Intelligence"}
                         </button>
                       )}
                     </div>

@@ -55,7 +55,7 @@ export function nomsV2(texte, groupes) {
   return String(texte || '').replace(/\b[a-z][a-z_]+_[a-z_]+\b/g, (m) => table.get(m) || m);
 }
 
-const LECTURES = new Set(['chercher_cerveau', 'historique', 'lire_entite', 'chercher_entites', 'lire_fiche_monday', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
+const LECTURES = new Set(['layer_chercher', 'layer_fiche', 'historique', 'lire_entite', 'chercher_entites', 'lire_fiche_monday', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville', 'boite_recue', 'lire_mail', 'mails_du_dossier', 'chercher_drive', 'agenda', 'souvenirs', 'verifier_renta', 'chercher_biens', 'lire_piece', 'verifier_presentation', 'chercher_cible', 'chercher_agents', 'version', 'echeances', 'fiche_client_decouverte', 'note_d_appel']);
 const MAILS = new Set(['mail_agent', 'mail_libre', 'retoucher_brouillon']);
 
 /**
@@ -128,20 +128,20 @@ export function avecMemoire(m, recent = true) {
  * cliqué et ce qui attend d'être enregistré.
  */
 /**
- * Le Cerveau (spec MVP du 14 oct. 2026) : les règles d'AK sur le passé, le
+ * L'Intelligence (spec MVP du 14 oct. 2026) : les règles d'AK sur le passé, le
  * débrief « retiens que… » noté avant qu'il réponde, et la question qu'il a
  * posée à la personne (un dossier accepté ou refusé sans motif).
  */
-async function cadreCerveau(texte, user) {
+async function cadreLayer(texte, user) {
   if (user?.role !== 'admin') return '';
-  const C = await import('../cerveau.js');
-  let cadre = `\n\nLE CERVEAU DE KLOCKA (comptes rendus, appels, débriefs, validés par Jules) : pour toute question sur le passé (ce qui a été dit, décidé, promis, pourquoi), chercher_cerveau d'abord. Cite toujours la date, la personne et la source de chaque fait. Ne présente jamais un fait non validé comme acquis. Rien trouvé : dis-le tel quel, sans inventer, et propose de noter l'information si la personne la connaît.`;
+  const C = await import('../layer.js');
+  let cadre = `\n\nL'INTELLIGENCE DE KLOCKA (le Layer) (comptes rendus, appels, débriefs, validés par Jules) : pour toute question sur le passé (ce qui a été dit, décidé, promis, pourquoi), layer_chercher d'abord. Cite toujours la date, la personne et la source de chaque fait. Ne présente jamais un fait non validé comme acquis. Rien trouvé : dis-le tel quel, sans inventer, et propose de noter l'information si la personne la connaît.`;
   const debrief = C.debriefDe(texte);
   if (debrief) {
     const r = await C.noter(debrief, { user }).catch((e) => ({ ok: false, error: e?.message || String(e) }));
     cadre += r.ok
-      ? `\nCE MESSAGE EST UN DÉBRIEF, DÉJÀ NOTÉ AU CERVEAU (source ${r.source_id}). Faits extraits, en attente de validation : ${JSON.stringify((r.faits || []).map((f) => ({ type: f.type, resume: f.resume, a_rattacher: f.statut === 'a_rattacher' })))}${r.doublons ? ` ; ${r.doublons} déjà connu(s), pas recréé(s)` : ''}. Réponds en une ligne ce que tu as compris (« Noté : une information, … ; un engagement, … »), et dis que Jules le validera. N'appelle ni noter ni retenir pour ce message.`
-      : `\nCE MESSAGE EST UN DÉBRIEF, MAIS IL N'A PAS PU ÊTRE NOTÉ AU CERVEAU (${r.error}). Dis-le, en une ligne.`;
+      ? `\nCE MESSAGE EST UN DÉBRIEF, DÉJÀ NOTÉ DANS L'INTELLIGENCE (source ${r.source_id}). Faits extraits, en attente de validation : ${JSON.stringify((r.faits || []).map((f) => ({ type: f.type, resume: f.resume, a_rattacher: f.statut === 'a_rattacher' })))}${r.doublons ? ` ; ${r.doublons} déjà connu(s), pas recréé(s)` : ''}. Réponds en une ligne ce que tu as compris (« Noté : une information, … ; un engagement, … »), et dis que Jules le validera. N'appelle ni noter ni retenir pour ce message.`
+      : `\nCE MESSAGE EST UN DÉBRIEF, MAIS IL N'A PAS PU ÊTRE NOTÉ DANS L'INTELLIGENCE (${r.error}). Dis-le, en une ligne.`;
   }
   const q = C.questionOuverte(user.email);
   if (q) cadre += `\nTU AS POSÉ CETTE QUESTION À LA PERSONNE (question_id ${q.id}) : « ${q.texte} ». Si son message y répond, appelle noter avec question_id ${q.id} et texte = le motif tel qu'elle le dit, puis remercie en une ligne. Sinon, réponds à son message, et repose la question en une ligne à la fin.`;
@@ -278,7 +278,7 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
       }
     }
   }
-  cadrePage += await cadreCerveau(texte, user);
+  cadrePage += await cadreLayer(texte, user);
   cadrePage += cadreEcran(contexte?.ecran);
   const fond = [];
   const apres = [];

@@ -291,10 +291,10 @@ const OUTILS_AK = [
     description: "La liste de ce qu'AK a retenu, avec les identifiants, pour en effacer un.",
     input_schema: { type: 'object', properties: {} },
   },
-  // Le Cerveau (spec MVP du 14 oct. 2026) : ce qui a été dit, décidé ou promis, avec sa source.
+  // L'Intelligence (spec MVP du 14 oct. 2026) : ce qui a été dit, décidé ou promis, avec sa source.
   {
-    name: 'chercher_cerveau',
-    description: "Cherche dans le Cerveau de Klocka, les faits VALIDÉS tirés des comptes rendus, des appels et des débriefs : ce qui a été dit, décidé, promis ou appris sur un dossier, un projet, un agent, une agence, un investisseur, une ville. À appeler d'abord pour toute question sur le passé (« pourquoi on a refusé Libourne ? », « qu'est-ce que Durand nous a dit ? »). Rend chaque fait avec sa date, la personne, la citation exacte et sa source.",
+    name: 'layer_chercher',
+    description: "Cherche dans l'Intelligence de Klocka (le Layer), les faits VALIDÉS tirés des comptes rendus, des appels et des débriefs : ce qui a été dit, décidé, promis ou appris sur un dossier, un projet, un agent, une agence, un investisseur, une ville. À appeler d'abord pour toute question sur le passé (« pourquoi on a refusé Libourne ? », « qu'est-ce que Durand nous a dit ? »). Rend chaque fait avec sa date, la personne, la citation exacte et sa source.",
     input_schema: { type: 'object', properties: {
       question: { type: 'string', description: 'les mots clés de la question (noms, lieu, sujet)' },
       type: { type: 'string', enum: ['decision', 'information', 'engagement', 'savoir'] },
@@ -306,14 +306,14 @@ const OUTILS_AK = [
     } },
   },
   {
-    name: 'historique',
-    description: "La frise du Cerveau d'une fiche : tous ses faits validés, du plus récent au plus ancien, chacun avec sa source. type_entite : dossier (deal_id), projet, agent, agence, investisseur, ville (son nom).",
+    name: 'layer_fiche',
+    description: "La frise de l'Intelligence d'une fiche : tous ses faits validés, du plus récent au plus ancien, chacun avec sa source. type_entite : dossier (deal_id), projet, agent, agence, investisseur, ville (son nom).",
     input_schema: { type: 'object', properties: { type_entite: { type: 'string', enum: ['dossier', 'projet', 'agent', 'agence', 'investisseur', 'ville'] }, id: { type: 'string' } }, required: ['type_entite', 'id'] },
   },
   {
-    name: 'noter',
-    description: "Garde un débrief dans le Cerveau (« retiens que l'agence Durand a deux murs off-market à Antibes, elle rappelle jeudi ») : il devient une source, ses faits sont extraits et attendent la validation de Jules. Pour un fait sur le travail (dossier, agent, décision, promesse), pas pour une préférence personnelle (celle-là, retenir).",
-    input_schema: { type: 'object', properties: { texte: { type: 'string', description: 'le débrief, tel que dit' }, question_id: { type: 'string', description: 'la réponse à une question du Cerveau que tu as posée (un dossier accepté ou refusé sans motif) : son identifiant ; texte = le motif, tel que dit' } }, required: ['texte'] },
+    name: 'layer_noter',
+    description: "Garde un débrief dans l'Intelligence (« retiens que l'agence Durand a deux murs off-market à Antibes, elle rappelle jeudi ») : il devient une source, ses faits sont extraits et attendent la validation de Jules. Pour un fait sur le travail (dossier, agent, décision, promesse), pas pour une préférence personnelle (celle-là, retenir).",
+    input_schema: { type: 'object', properties: { texte: { type: 'string', description: 'le débrief, tel que dit' }, question_id: { type: 'string', description: 'la réponse à une question de l’Intelligence que tu as posée (un dossier accepté ou refusé sans motif) : son identifiant ; texte = le motif, tel que dit' } }, required: ['texte'] },
   },
   {
     name: 'verifier_renta',
@@ -1042,21 +1042,25 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   }
   if (name === 'retenir') return retenir({ sujet: input.sujet, fait: input.fait, par: message?.auteur?.affiche || null, pour: input.personnelle ? user?.email || null : null });
   if (name === 'oublier') return oublier(input.id);
-  if (name === 'chercher_cerveau' || name === 'historique' || name === 'noter') {
-    const C = await import('../cerveau.js');
-    if (user?.role !== 'admin') return { ok: false, error: 'Le Cerveau est réservé à l\'équipe.' };
+  // L'Intelligence (le Layer) : outils renommés le 15 oct. 2026 ; les anciens noms (chercher_cerveau, historique, noter) restent acceptés.
+  if (name === 'chercher_cerveau') name = 'layer_chercher';
+  if (name === 'historique') name = 'layer_fiche';
+  if (name === 'noter') name = 'layer_noter';
+  if (name === 'layer_chercher' || name === 'layer_fiche' || name === 'layer_noter') {
+    const C = await import('../layer.js');
+    if (user?.role !== 'admin') return { ok: false, error: 'L’Intelligence est réservée à l\'équipe.' };
     const pour = (f) => ({ date: String(f.date).slice(0, 10), type: f.type, resume: f.resume, personne: f.personne, citation: f.citation, echeance: f.echeance, fiches: f.fiches.map((x) => x.libelle), source: f.source ? `${f.source.type}${f.source.titre ? ` « ${f.source.titre} »` : ''}, ${String(f.source.date).slice(0, 10)}${f.source.auteur ? `, par ${f.source.auteur}` : ''}` : null, source_id: f.source?.id || null });
-    if (name === 'chercher_cerveau') {
+    if (name === 'layer_chercher') {
       const faits = C.chercher(input || {}, { par: user?.email });
       return { ok: true, faits: faits.map(pour), nombre: faits.length, ...(faits.length ? {} : { rien: 'Aucun fait validé ne répond. Dis-le tel quel, n\'invente pas, et propose de noter l\'information si la personne la connaît.' }), a_valider: C.nombreAValider() };
     }
-    if (name === 'historique') return { ok: true, faits: C.historique(input.type_entite, input.id).map(pour) };
+    if (name === 'layer_fiche') return { ok: true, faits: C.historique(input.type_entite, input.id).map(pour) };
     if (input.question_id) {
       const q = await C.repondre(String(input.question_id), String(input.texte || ''), { user });
       return q.ok ? { ok: true, decision: q.fait?.resume || null, valide: 'La réponse vient de la personne qui a tranché : validée d\'office, rattachée au dossier.' } : q;
     }
     const r = await C.noter(String(input.texte || ''), { user });
-    return r.ok ? { ok: true, source_id: r.source_id, faits: (r.faits || []).map((f) => ({ type: f.type, resume: f.resume, statut: f.statut })), doublons: r.doublons, en_attente: 'Les faits attendent la validation de Jules (Cerveau > À valider).' } : r;
+    return r.ok ? { ok: true, source_id: r.source_id, faits: (r.faits || []).map((f) => ({ type: f.type, resume: f.resume, statut: f.statut })), doublons: r.doublons, en_attente: 'Les faits attendent la validation de Jules (Intelligence > À valider).' } : r;
   }
   if (name === 'souvenirs') return { souvenirs: souvenirs(200).filter((s) => !s.pour || s.pour === String(user?.email || '').toLowerCase()).map((s) => ({ id: s.id, sujet: s.sujet, fait: s.fait, personnelle: !!s.pour })) };
   if (name === 'verifier_renta') return verifierRenta(input);
@@ -1674,7 +1678,7 @@ export async function repondre(message) {
     onTool: async (appel) => {
       outils.push(appel.name);
       const resultat = await executerOutil(appel, user, { fond: (t) => fond.push(t), apres: (t) => apres.push(t), message });
-      const agissant = !['chercher_cerveau', 'historique', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
+      const agissant = !['layer_chercher', 'layer_fiche', 'historique', 'trouver_bien', 'chercher_dossier', 'chercher_projet', 'etat_dossier', 'etat_projet', 'verifier', 'outils_kdata', 'taches_en_cours', 'historique_actions', 'plan_du_jour', 'registre_engagements', 'interroger_documents', 'marche_ville'].includes(appel.name);
       if (agissant) {
         if (!estEchec(resultat)) actions.push({ ...appel, resultat });
         try { journaliser({ outil: appel.name, args: appel.input, resultat, user, via: `AK pour ${prenom}` }); } catch (e) { console.warn('[ak] journalisation impossible :', e?.message || e); }

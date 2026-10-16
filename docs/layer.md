@@ -9,22 +9,23 @@ validés servent à AK pour répondre. Ancien nom : « le Cerveau » (spec MVP d
 Ce fichier est tenu à jour à chaque phase. Une session qui reprend le Layer le
 lit d'abord, sans relire tout le code.
 
-**État : phase 0 (exploration et plan), en attente de la validation de Jules.
-Aucun code du Layer n'a encore été modifié pour la refonte.**
+**Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
+
+**État : phase 1 faite (15 oct. 2026)** : renommage et re-test de la consigne. Phase suivante : 2 (données).
 
 ---
 
-## 1. L'existant (au 14 oct. 2026, avant refonte)
+## 1. L'existant (chemins à jour après la phase 1)
 
 ### Fichiers
 
 | Rôle | Fichier |
 |---|---|
-| Module (ingestion, extraction, rattachement, validation, recherche, questions, débriefs, appels) | `server/cerveau.js` (517 l.) |
-| Routes HTTP `/api/cerveau/*` (équipe seule) | `server/routes/cerveau.js` |
-| Tests (6) | `server/cerveau.test.js` |
-| Page Cerveau (À valider, Savoir, Informations, Décisions, Engagements, Tout, Sources) | `src/pages/Cerveau.jsx` |
-| Frise de faits, fenêtre de source, onglet Historique | `src/components/cerveau/FriseFaits.jsx` |
+| Module (ingestion, extraction, rattachement, validation, recherche, questions, débriefs, appels) | `server/layer.js` (ex-`cerveau.js`) |
+| Routes HTTP `/api/cerveau/*` (équipe seule) | `server/routes/layer.js` (`/api/layer`, alias `/api/cerveau`) |
+| Tests (6) | `server/layer.test.js` |
+| Page Intelligence (À valider, Savoir, Informations, Décisions, Engagements, Tout, Sources) | `src/pages/Intelligence.jsx` |
+| Frise de faits, fenêtre de source, onglet Historique | `src/components/layer/FriseFaits.jsx` |
 | Correction des noms écorchés (« Cloaca » → Klocka, « de Zulveta » → de Zulueta) et note des consignes | `server/klocka-nom.js` |
 | Réunions enregistrées (Suivi > Réunion), envoyées comme compte rendu | `server/reunions.js`, `server/routes/reunions.js`, `src/pages/SuiviReunion.jsx` |
 
@@ -91,26 +92,49 @@ CETTE tranche ») pour les sources longues. À re-tester en phase 1.
 - `src/pages/SuiviAppels.jsx` : `Chiffre` (carte de KPI), `PERIODES`, `MODES`, `filtre`, structure en vues (Vue d'ensemble, Par analyste, Contexte, Journal). `Chiffre` et les filtres sont locaux à la page : à déplacer dans un module partagé (pas à réécrire).
 - Palette des séries : `jetons.graphique` (sombre et clair, validée daltonisme). Règles : `docs/design-system.md`, « Les graphiques ».
 
-## 3. Correspondance des noms (proposition, à valider)
+## 3. Décisions de Jules (15 oct. 2026)
+
+- SQLite avec les équivalents (FTS5, vecteurs comparés en JavaScript). **Déclencheur du chantier Postgres** : une recherche qui dépasse 300 ms, ou plus de 50 000 faits. Les deux se mesurent dans le journal des recherches (phase 3) et se signalent ici.
+- Embeddings Mistral ; modèle et dimension vérifiés dans la doc ; le nom du modèle est gardé avec chaque vecteur.
+- Noms internes gardés (`CerveauFait`…) ; seuls l'interface, les routes et les outils d'AK changent.
+- Matching investisseur = les demandes des clients (critères de chaque investisseur).
+- Table de tâches reprise au démarrage, sur le modèle de la lecture des pièces.
+
+## 4. Re-test de la consigne d'extraction (15 oct. 2026)
+
+Sur « Comité 7 octobre » (13 536 signes, une seule tranche ; 25 faits en base), deux essais par consigne, sans rien écrire en base (`invokeLLM` direct) :
+
+| Consigne | Essai 1 | Essai 2 |
+|---|---|---|
+| Originale (commit e750b8f) | 33 faits, 24/25 retrouvés | 35 faits, 25/25 |
+| Actuelle (avec `NOTE_KLOCKA`) | 36 faits, 25/25 | 33 faits, 24/25 |
+
+« Retrouvé » : même citation (l'une contient l'autre) ou résumé proche (≥ 45 % de mots communs). Le modèle ne rend jamais deux fois la même liste, même avec la consigne d'origine : « identiques » au sens strict n'est pas atteignable, l'équivalence l'est. La phrase des tranches ne s'applique pas à une source d'une tranche ; un saut de ligne qu'elle ajoutait a été retiré : hors `NOTE_KLOCKA`, la consigne est identique au signe près à l'originale.
+
+## 5. Correspondance des noms
 
 | Avant | Après |
 |---|---|
-| Interface « Cerveau » | « le Layer » |
-| Page `/Cerveau` | `/Layer` (et `/Cerveau` redirige) |
+| Interface « Cerveau » | « l'Intelligence » |
+| Page `/Cerveau` | `/Intelligence` (et `/Cerveau` y mène) ; la clé de page reste `Cerveau` (menus personnalisés, accès ouverts) |
 | API `/api/cerveau/*` | `/api/layer/*` (et `/api/cerveau/*` reste un alias) |
 | `server/cerveau.js`, `routes/cerveau.js`, `cerveau.test.js` | `server/layer.js`, `routes/layer.js`, `layer.test.js` |
-| `src/pages/Cerveau.jsx`, `components/cerveau/` | `src/pages/Layer.jsx`, `components/layer/` |
-| Outils AK `chercher_cerveau`, `historique`, `noter` | `layer_chercher`, `layer_fiche`, `layer_noter` (anciens noms acceptés un temps) |
-| Entités `CerveauSource`, `CerveauFait`, `CerveauLien`, `CerveauQuestion`, `CerveauRecherche` | **gardées** (noms techniques), sauf décision contraire de Jules |
+| `src/pages/Cerveau.jsx`, `components/cerveau/` | `src/pages/Intelligence.jsx`, `components/layer/` (`HistoriqueLayer`) |
+| Outils AK `chercher_cerveau`, `historique`, `noter` | `layer_chercher`, `layer_fiche`, `layer_noter` (anciens noms acceptés, `server/ak/agent.js`) ; groupe v2 `layer` (`chercher`, `fiche`, `noter`) |
+| Entités `CerveauSource`, `CerveauFait`, `CerveauLien`, `CerveauQuestion`, `CerveauRecherche` | **gardées** (décision de Jules) |
+| Opération de coût `cerveau` (`mesurer`) | gardée : l'historique des coûts reste continu |
+| Clé de notification `cerveau-question-<id>` | gardée (déduplication des questions déjà posées) ; le lien devient `?layer_question=`, l'ancien `?cerveau_question=` reste lu |
 
-## 4. Plan (proposé le 14 oct. 2026, en attente de validation)
+Ce qui reste du mot « cerveau » dans le code, et pourquoi : ces noms techniques, les alias des anciennes adresses (`/api/cerveau`, `chercher_cerveau`), et l'icône de la page.
+
+## 6. Plan (validé par Jules le 15 oct. 2026)
 
 Chaque phase : tests verts, lint, build, ce fichier mis à jour, commit. Rien
 n'est supprimé ; tout ajout de données est rejouable et ignorable.
 
 | Phase | Contenu | Fichiers principaux |
 |---|---|---|
-| 1. Renommage | « Cerveau » → « le Layer » dans toute l'interface, routes `/Layer` et `/api/layer` avec redirections, outils AK `layer_*` (anciens noms acceptés), consigne et questions d'AK, fichiers renommés ; re-test de la consigne d'extraction sur le comité du 7 oct. ; recherche globale de « cerveau » rendue à Jules | ceux du tableau des branchements, `server/index.js`, `src/App.jsx`, `src/lib/adresses.js` |
+| 1. Renommage ✓ | « Cerveau » → « l'Intelligence » dans toute l'interface, routes `/Layer` et `/api/layer` avec redirections, outils AK `layer_*` (anciens noms acceptés), consigne et questions d'AK, fichiers renommés ; re-test de la consigne d'extraction sur le comité du 7 oct. ; recherche globale de « cerveau » rendue à Jules | ceux du tableau des branchements, `server/index.js`, `src/App.jsx`, `src/lib/adresses.js` |
 | 2. Données | Champs nouveaux des faits (statut `remplace`, `remplace_par`, `mode_validation`, `motif_rejet`, `confiance`, `statut_engagement`, responsable) ; sources `mail` et `monday`, `id_externe`, coût d'extraction ; tables `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes` (reprend `CerveauRecherche`), `layer_audit`, `layer_taches` ; index SQLite | `server/layer.js`, `server/layer-schema.js` (nouveau) |
 | 3. Recherche hybride | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
 | 4. Cycle de vie et validation | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
@@ -119,10 +143,19 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 7. Page Layer | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
 | 8. Évaluation | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |
 
+### Spec des phases 3 à 9 (reçue le 15 oct. 2026, résumé)
+
+- **Recherche hybride** : FTS5 (résumé + citation) et cosinus (embedding du résumé) sur les faits validés ; filtres déduits par AK (fiche, ville, type, période) appliqués avant ; fusion RRF (k = 60), 10 premiers ; « remplacés » exclus sauf question d'historique ; journal : question, filtres, faits rendus, fait cité.
+- **Cycle de vie** : à valider → validé | rejeté ; validé → remplacé | archivé ; contradiction sur la même fiche et le même sujet → proposition « remplace le fait X ? » ; engagements ouvert | tenu | échu (échu à J+1, dans « Ma journée ») ; archivage quand la fiche est fermée.
+- **Validation sans goulot** : auto si citation mot pour mot, confiance ≥ 0,9, rattachement sans ambiguïté, pas de contradiction (« validé auto », corrigeable) ; sinon au validateur auteur de la source (l'analyste pour ses appels, Jules pour les réunions), Jules voit tout ; objectif : < 20 % de validation manuelle après deux semaines ; audit avant / après.
+- **Synthèses** : par fiche (agent, agence, dossier, investisseur, ville), 10 à 15 lignes, structure fixe (qui/quoi, situation, décisions, engagements ouverts, vigilance, dernier contact), chaque ligne référence ses faits ; au plus une régénération par heure et par fiche ; `layer_fiche` rend la synthèse d'abord.
+- **Branchements** : mode appel (synthèse et engagements ouverts avant l'appel), pré-analyse (« Ce que Klocka sait déjà » sur la carte du lot), matching (faits rattachés à l'investisseur), tableau de bord / Ma journée ; une seule fonction réutilisable fiche → synthèse + faits.
+- **Sources** : mails envoyés ou reçus par la plateforme (Resend, fiches commerciales), rattachés par l'adresse ; Monday (statuts et commentaires des boards agents et propriétés, par webhook), type « événement ».
+- **Page** : 4 indicateurs avec courbe sur 30 jours (faits validés cette semaine, part sans correction, engagements échus, questions de la semaine) ; onglets À valider, Faits, Synthèses, Sources, Évaluation ; vue par fiche depuis la fiche.
+- **Consignes d'AK** : `layer_fiche` puis `layer_chercher` pour le passé ; citer date, personne, source et statut ; zéro fait → « rien dans l'Intelligence » et proposer `layer_noter` ; ne rien inférer.
+- **Évaluation** : banc de 30 questions en base, éditable ; rappel des faits attendus dans les 10 et taux de citation correcte ; une exécution par version, comparaison des deux dernières ; pas de mise en production si le rappel baisse.
+- **Coûts** : par source (extraction, embeddings, synthèses), coût du mois dans l'onglet Évaluation ; prompt caching ; modèle rapide pour extraction et synthèses.
+
 ### Points ouverts
 
-1. Sections 5 à 15 de la spec non reçues (recherche, cycle de vie, validation, synthèses, workflows, sources, page, évaluation, coûts, phases).
-2. Postgres demandé, SQLite en place : équivalents proposés (FTS5, vecteurs en BLOB, tables `CREATE IF NOT EXISTS`). Passer à Postgres serait un autre chantier.
-3. Fournisseur d'embeddings : Mistral recommandé (clé déjà là), Gemini possible ; à confirmer.
-4. Renommer les entités `Cerveau*` en `Layer*` : une mise à jour SQL triviale et réversible, mais elle touche la base de production pendant que d'autres sessions travaillent. Proposition : garder les noms techniques.
-5. « Matching investisseur » : module non identifié avec certitude (`server/deal/propositions.js` ? les demandes des clients ?).
+Aucun à ce stade.

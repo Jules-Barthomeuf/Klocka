@@ -1061,8 +1061,8 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
   if (mailId && mailRecu?.etat === 'attente') setTimeout(() => { envoyerMailDiffere(appel_id).catch(() => {}); }, DELAI_ANNULER_MS + 300).unref?.();
   liberer(agenceId, moi);
   noterDansSession(session_id || appel.session_id, { appel_id, agence_id: agenceId, issue: issueTapee, le: maintenant() });
-  // Le Cerveau (14 oct. 2026) : la transcription de l'appel validé y entre, sans geste de l'analyste.
-  if (!essai) import('../cerveau.js').then((C) => C.depuisAppel(Records.get(APPEL, appel_id), { par: moi, agence: ag })).catch(() => {});
+  // L'Intelligence (14 oct. 2026) : la transcription de l'appel validé y entre, sans geste de l'analyste.
+  if (!essai) import('../layer.js').then((C) => C.depuisAppel(Records.get(APPEL, appel_id), { par: moi, agence: ag })).catch(() => {});
   return { ok: true, simple: !!def.simple, recu };
 }
 

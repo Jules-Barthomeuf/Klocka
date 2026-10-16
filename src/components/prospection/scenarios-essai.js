@@ -151,6 +151,33 @@ export const SCENARIOS_ESSAI = [
     attendu: "Relance au mardi ; la date retenue est la dernière dite.",
   },
   {
+    cle: "residentiel", groupe: "cas", titre: "Que du résidentiel",
+    phrases: [
+      "Bonjour, agence de la Plage, Marie à l'appareil.",
+      "Ah non, nous on ne fait que du résidentiel : des appartements, des maisons, jamais de commerces ni de murs.",
+      "Désolée, je ne pourrai pas vous aider. Bonne journée.",
+    ],
+    attendu: "Issue « Que du résidentiel », validée d'office : ni relance, ni contact Monday, ni mail ; l'agence sort de la file.",
+  },
+  {
+    cle: "rappelle_bientot", groupe: "cas", titre: "Il rappelle dans dix minutes",
+    phrases: [
+      "Allô, oui ?",
+      "Écoutez, je suis en rendez-vous là. Est-ce que je peux vous rappeler dans dix minutes ?",
+      "Merci, à tout de suite.",
+    ],
+    attendu: "Issue « Il rappelle tout de suite », validée d'office : l'appel est noté, rien dans Monday, pas de mail, pas de relance.",
+  },
+  {
+    cle: "veut_sms", groupe: "cas", titre: "Il veut un SMS, pas un mail",
+    phrases: [
+      "Bonjour, oui c'est Sophie Essai.",
+      "Là je n'ai pas de bien en commerce, mais ça peut venir.",
+      "Par contre ne m'envoyez pas de mail, je ne les lis jamais : envoyez-moi plutôt un SMS sur ce numéro.",
+    ],
+    attendu: "Étape « SMS » à la place de l'email, texte prêt, « Ouvrir dans Messages » ; noté au journal à la validation.",
+  },
+  {
     cle: "calcul_chiffres", groupe: "calcul", titre: "Prix, loyer au mois, surface",
     phrases: [
       "Bonjour, Sophie Essai, gérante de l'agence.",

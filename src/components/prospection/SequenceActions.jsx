@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { toast } from "@/components/ui/avis";
 import { createPortal } from "react-dom";
 import { Check, Eye, Info, Loader2, X } from "lucide-react";
 import jetons from "@/design/jetons.json";
@@ -13,7 +14,7 @@ import Calendrier from "@/components/ui/calendrier";
 
 const MAILS = { "presentation-cahier": "Suite à notre échange · murs commerciaux occupés", presentation: "Présentation seule", "demande-fiche": "Suite à notre échange · dossier", "demande-documents": "Murs commerciaux · documents du dossier" };
 // Les cases ne servent plus qu'à régler les actions (12 oct. 2026) : on lit d'abord la phrase libre d'AK, « Ce qui s'est passé ».
-const ISSUES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", a_rappeler: "À rappeler", interesse: "Intéressé", veut_mail: "Veut d'abord un mail", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé", autre: "Autre" };
+const ISSUES = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur, message laissé", a_rappeler: "À rappeler", interesse: "Intéressé", veut_mail: "Veut d'abord un mail", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien intéressant", pas_interesse: "Pas intéressé", autre: "Autre", residentiel: "Que du résidentiel", rappelle_bientot: "Il rappelle tout de suite" };
 const jourLong = (j) => (j ? new Date(`${String(j).slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }) : "");
 const lenteur = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -319,12 +320,13 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
                 <button key={x.k} type="button" onClick={() => ouvrir(x.k)} aria-current={actif ? "step" : undefined}
                   className="flex min-w-[100px] flex-1 flex-col items-stretch gap-2 p-0 text-left" style={{ background: "transparent" }}>
                   <span className="h-4 truncate text-[11px] uppercase tracking-[.16em] text-ardoise">{debut ? x.groupe : ""}</span>
-                  <span ref={(el) => { barres.current[x.k] = el; }} className={`h-[3px] w-full rounded-full transition-colors duration-500 ${(fini || enEnvoi) && x.on ? "bg-menthe" : "bg-relief"}`} />
+                  {/* La barre blanche est portée par l'onglet ouvert lui-même (16 oct. 2026, Jules : elle restait sur « Contact Monday ») : plus de mesure, elle suit toujours. */}
+                  <span ref={(el) => { barres.current[x.k] = el; }} className={`w-full rounded-full transition-all duration-300 ${actif ? "h-[5px] -translate-y-px bg-encre" : `h-[3px] ${(fini || enEnvoi) && x.on ? "bg-menthe" : "bg-relief"}`}`} />
                   <span className={`truncate pt-1 text-[13px] transition-colors ${actif ? "text-encre" : x.on ? "text-craie hover:text-encre" : "text-brume"}`}>{x.court}</span>
                 </button>
               );
             })}
-            {repere && <span aria-hidden className="pointer-events-none absolute h-[5px] rounded-full bg-encre transition-[left,width,top] duration-500 ease-[cubic-bezier(.22,1,.36,1)]" style={{ left: repere.x, top: repere.y - 1, width: repere.w }} />}
+            {/* L'ancien repère glissant, mesuré après coup, retiré : il pouvait rester sur l'onglet d'avant. */}
           </nav>
         </div>
         {enEnvoi ? (
@@ -443,6 +445,9 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const pr2 = par("relance_suivante");
   const pmo = par("monday");
   const pdi = par("diffusion");
+  // Le SMS qu'il a demandé (16 oct. 2026) : il part du téléphone de l'analyste, la plateforme le note.
+  const psms = par("sms");
+  const [sms, setSms] = useState(() => psms?.texte || "");
   const compris = appel.compris?.champs || {};
   // Le nom seul (8 oct. 2026) : ni « président de SAS », ni numéro, ni civilité.
   const nomSeul = (t) => String(t || "").split(/[,·(]/)[0].replace(/^(madame|monsieur)\s+/i, "").trim() || null;
@@ -611,6 +616,24 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         retablir: modifie || m.modele !== pm.modele ? () => setMail({ a: pm.a || "", objet: pm.objet, corps: pm.corps, modele: pm.modele }) : null,
       };
     }
+    if (q.type === "sms") {
+      const lien = `sms:${String(q.a || "").replace(/\s+/g, "")}${/iPhone|iPad|Mac/i.test(navigator.userAgent) ? "&" : "?"}body=${encodeURIComponent(sms)}`;
+      return {
+        kicker: "SMS · DEPUIS VOTRE TÉLÉPHONE", titre: `SMS à ${interlocuteur || agence?.nom || "l'agent"}`,
+        haut: (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <a href={lien} className="inline-flex h-9 items-center rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol">Ouvrir dans Messages</a>
+            <button type="button" onClick={() => { navigator.clipboard?.writeText(sms).then(() => toast("SMS copié")).catch(() => {}); }} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Copier le texte</button>
+          </div>
+        ),
+        cases: [
+          { label: "À", large: true, valeur: q.a || "Numéro inconnu", warn: !q.a },
+          { label: "Message", large: true, statut: sms !== q.texte ? "modifié" : null, edit: { type: "zone", valeur: sms, changer: setSms, lignes: 5 } },
+        ],
+        aide: "Il a demandé un SMS plutôt qu'un mail : envoyez-le depuis votre téléphone, la plateforme le note à la validation.",
+        retablir: sms !== q.texte ? () => setSms(q.texte) : null,
+      };
+    }
     if (q.type === "relance") return {
       kicker: "", titre: `Rappeler ${interlocuteur || agence?.nom || ""}`.trim(),
       cases: [
@@ -687,6 +710,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   }
   if (par("ne_plus_appeler")) maintenant.push(etape(par("ne_plus_appeler"), { label: "Ne plus appeler", detail: "Ni relance ni mail" }));
   if (pm) maintenant.push(etape(pm, { label: "Email", detail: `${MAILS[mail?.modele || pm.modele] || pm.titre} · ${mail?.a ? `à ${mail.a}` : "adresse manquante : il ne part pas"}${pm.a_incertain && mail?.a === pm.a ? " · adresse à vérifier" : ""}${modifie ? " · modifié" : ""}`, warn: !mail?.a || (pm.a_incertain && mail?.a === pm.a) }));
+  if (psms) maintenant.push(etape(psms, { label: "SMS", detail: psms.a ? `au ${psms.a}, depuis votre téléphone` : "numéro manquant", warn: !psms.a }));
   if (pdi) maintenant.push(etape(pdi, { label: "Ajouter à la liste de diffusion agents", detail: pdi.a || mail?.a ? `${mail?.a || pdi.a}` : "il manque l'adresse", warn: !(pdi.a || mail?.a) }));
   for (const q of props.filter((x) => ["fiche", "signaler_bien", "nouveau_contact"].includes(x.type) && !x.cache)) {
     const lib = { fiche: "Compléter sa fiche", signaler_bien: "Noter le bien évoqué", nouveau_contact: "Appeler le contact donné" }[q.type];
@@ -699,7 +723,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   if (pv) ensuite.push(etape(pv, { label: "Prévenir un collègue", detail: pv.pour.map((e) => e.split("@")[0].split(".")[0]).map((x) => x.charAt(0).toUpperCase() + x.slice(1)).join(", ") }));
   const n = [...maintenant, ...ensuite].filter((e) => e.on).length;
   // Les étapes de la fenêtre, rangées par moment : maintenant, puis chaque date de relance dans l'ordre.
-  const COURT = { monday: ligne?.contact_modifie ? "Contact modifié" : "Contact Monday", ne_plus_appeler: "Ne plus appeler", mail: "Email", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
+  const COURT = { monday: ligne?.contact_modifie ? "Contact modifié" : "Contact Monday", ne_plus_appeler: "Ne plus appeler", mail: "Email", sms: "SMS", diffusion: "Liste de diffusion", fiche: "Compléter sa fiche", signaler_bien: "Bien évoqué", nouveau_contact: "Contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
   const dateDe = (e) => (e.q.type === "relance" ? dateRelance : e.q.type === "relance_suivante" ? relance2Le || pr2?.prochaine?.le : null);
   const datees = ensuite.filter((e) => dateDe(e)).sort((x, y) => String(dateDe(x)).localeCompare(String(dateDe(y))));
   const pas = [

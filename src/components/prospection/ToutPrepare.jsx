@@ -46,7 +46,7 @@ export function lignesDuRecu(r, { issue = null, dateRelance = null, jourLong = (
   return [
     r.monday?.etat === "ok" && { nom: "Contact Monday", resultat: /cré/i.test(r.monday.texte || "") ? "Ligne créée" : "Ligne mise à jour" },
     r.mail?.etat === "ok" && { nom: "Email", resultat: `Envoyé à ${r.mail.detail?.a || "l'agent"}` },
-    r.mail && r.mail.etat !== "ok" && { nom: "Email", resultat: r.mail.etat === "info" ? "Brouillon ouvert" : "À vérifier" },
+    r.mail && r.mail.etat !== "ok" && { nom: "Email", resultat: r.mail.etat === "info" ? "Brouillon ouvert" : r.mail.etat === "attente" && /part dans/.test(r.mail.texte || "") ? "En cours d'envoi" : "À vérifier" },
     r.diffusion?.etat === "ok" && { nom: "Liste de diffusion", resultat: "Ajouté" },
     dateRelance && issue !== "pas_interesse" && { nom: "Relance", resultat: String(jourLong(dateRelance)).replace(/^./, (x) => x.toUpperCase()) },
     issue === "pas_interesse" && { nom: "Ne plus appeler", resultat: "Noté" },

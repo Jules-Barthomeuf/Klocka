@@ -126,6 +126,8 @@ const SCHEMA = {
         autre_contact: { type: 'string', description: "la phrase exacte où l'autre interlocuteur a été cité, vide sinon" },
       },
     },
+    // Le canal demandé (16 oct. 2026, Jules : « elle veut un SMS, et ça propose un mail »).
+    canal_prefere: { type: 'string', enum: ['sms', 'mail', ''], description: "sms si l'interlocuteur demande qu'on lui écrive par SMS (texto) plutôt que par mail ; mail s'il demande un mail ; vide sinon" },
     // Le clip d'objection (16 oct. 2026, Jules) : l'objection que l'appel n'a pas levée part à l'équipe, avec 15 s d'audio.
     objection: {
       type: 'object',
@@ -182,6 +184,8 @@ L'issue, une seule :
 - veut_mail : il veut d'abord un mail avant d'aller plus loin ;
 - pas_interesse : il ne veut pas travailler avec nous ;
 - invalide : mauvais numéro, la personne n'est plus là ;
+- residentiel : la personne (ou son agence) ne fait que du résidentiel, jamais de murs commerciaux ni de locaux : aucun deal possible avec elle ;
+- rappelle_bientot : l'interlocuteur ne peut pas parler et rappelle (ou demande qu'on le rappelle) dans les minutes qui viennent (« je vous rappelle dans dix minutes ») : l'échange n'a pas encore eu lieu ;
 - autre.
 
 Règles : n'écris un champ que s'il a été dit, avec la phrase exacte dans « citations ». Un nom mal entendu reste tel qu'entendu, avec une confiance moyenne. Une date se recopie en mots (« jeudi prochain »), jamais en chiffres calculés. Aucun mail à écrire : les modèles sont fixes.
@@ -311,7 +315,7 @@ export function messagePasDeReponse(a, props) {
 /** Pure : l'issue lue par AK, ramenée à celles du mode appel ; ce qui ne rentre dans aucune reste « autre ». */
 export function issueDuModeAppel(issue) {
   // Plus de repli sur « Pas de bien » (12 oct. 2026) : un secrétariat qui transmet n'est pas un agent sans bien.
-  if (['pas_de_reponse', 'repondeur', 'pas_de_murs', 'a_des_murs', 'pas_interesse', 'a_rappeler', 'interesse', 'veut_mail'].includes(issue)) return issue;
+  if (['pas_de_reponse', 'repondeur', 'pas_de_murs', 'a_des_murs', 'pas_interesse', 'a_rappeler', 'interesse', 'veut_mail', 'residentiel', 'rappelle_bientot'].includes(issue)) return issue;
   if (issue === 'invalide') return 'pas_de_reponse';
   return 'autre';
 }
@@ -441,6 +445,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null, pourquoi_relance: lu.pourquoi_relance || null,
     compris, transcription_echec: transcriptionEchec,
     objection: objectionDe(lu, transcription),
+    canal_prefere: lu.canal_prefere === 'sms' ? 'sms' : null,
     propositions: props, message, etat: 'a_valider',
   });
   // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus

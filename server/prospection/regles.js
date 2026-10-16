@@ -48,6 +48,9 @@ export const ISSUES = {
   a_rappeler: 'À rappeler',
   interesse: 'Intéressé',
   autre: 'Autre',
+  // 16 oct. 2026 (Jules) : l'agent ne fait que du résidentiel ; il rappelle dans quelques minutes.
+  residentiel: 'Que du résidentiel',
+  rappelle_bientot: 'Il rappelle tout de suite',
 };
 
 export const ESSAIS_MAX = 3;
@@ -159,6 +162,10 @@ export function suiteDeLIssue(issue, { tentatives = 0, maintenant = new Date(), 
   if (issue === 'interesse') return { statut: 'en_discussion', tentatives: 0, prochaine: { quoi: 'rappeler : la suite de notre échange', le: dite || ouvre(plusJours(auj, 7)) }, mails: ['presentation'], relance_mail_jours: 3, date_par_defaut: !dite };
   if (issue === 'a_rappeler') return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler comme convenu', le: dite || ouvre(plusJours(auj, 7)) }, mails: [], date_par_defaut: !dite };
   if (issue === 'invalide') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], autre_contact: true };
+  // Que du résidentiel (16 oct. 2026, Jules) : pas de deal possible ; ni relance, ni mail, ni Monday, il sort de la file.
+  if (issue === 'residentiel') return { statut: 'archive', tentatives: 0, prochaine: null, mails: [], hors_cible: true };
+  // « Je vous rappelle dans dix minutes » (16 oct. 2026, Jules) : l'appel est noté, rien d'autre ; son rappel s'y rattachera.
+  if (issue === 'rappelle_bientot') return { statut: statut || 'a_rappeler', tentatives, prochaine: null, mails: [] };
   return { statut: 'a_rappeler', tentatives: 0, prochaine: { quoi: 'rappeler', le: dite || ouvre(plusJours(auj, 7)) }, mails: [] };
 }
 

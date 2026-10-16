@@ -981,6 +981,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     onSuccess: (r, v) => {
       retenirEnCours(null);
       if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et sa transcription sont gardés ; les actions s'ouvriront au retour du réseau");
+      // « Que du résidentiel », « Il rappelle tout de suite » (16 oct. 2026) : validés d'office, sans relance ni Monday.
+      if (r.simple && r.issue === "residentiel") return suivante("Que du résidentiel · noté, sorti de la file, ni relance ni Monday");
+      if (r.simple && r.issue === "rappelle_bientot") return suivante("Il rappelle tout de suite · l'appel est noté ; quand il rappelle, touchez « Rappel »");
       if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : v.issue === "agent_prevenu" ? "Agent prévenu" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
       envoyerParole(r.appel.id);
       envoyerObjection(r.appel);
@@ -1070,7 +1073,10 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const r = recuFrais.data?.recu || recu;
   const aFaire = r && (r.mail?.etat === "brouillon" || r.monday?.etat === "doute");
   // Le mail part juste après les dix secondes : on attend de savoir s'il est retrouvé dans les envoyés.
-  const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "");
+  // On ne retient pas l'analyste plus de six secondes après la fenêtre d'annulation (16 oct. 2026) : le mail finit de partir seul.
+  const [envoiLong, setEnvoiLong] = useState(false);
+  useEffect(() => { setEnvoiLong(false); if (annulerDans > 0 || !recu) return undefined; const t = setTimeout(() => setEnvoiLong(true), 6000); return () => clearTimeout(t); }, [annulerDans > 0, !!recu]);
+  const mailEnRoute = r?.mail?.etat === "attente" && /part dans/.test(r.mail.texte || "") && !envoiLong;
   // Dix secondes, puis « Tout est préparé ! » (8 oct. 2026), puis la suivante ; un brouillon à ouvrir ou une ligne à choisir attendent un geste.
   const [bilan, setBilan] = useState("");
   useEffect(() => {

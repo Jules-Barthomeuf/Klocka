@@ -668,6 +668,9 @@ export const ISSUES_APPEL = {
   autre: { cle: 'autre', titre: 'Autre', groupe: 'abouti', statut: 'À rappeler' },
   // Relances (8 oct. 2026) : on a dit à l'agent ce qu'on pense de son bien (retenu ou refusé).
   agent_prevenu: { cle: 'agent_prevenu', titre: 'Agent prévenu', groupe: 'abouti', simple: true },
+  // 16 oct. 2026 (Jules) : validées d'office, même lues par AK (`direct`), sans aucune action proposée ni Monday.
+  residentiel: { cle: 'residentiel', titre: 'Que du résidentiel', groupe: 'abouti', simple: true, direct: true },
+  rappelle_bientot: { cle: 'rappelle_bientot', titre: 'Il rappelle tout de suite', groupe: 'abouti', simple: true, direct: true },
 };
 
 /** L'agence prise pour l'appeler : elle entre au carnet si besoin, et personne d'autre ne la prend pendant trente minutes. */
@@ -791,9 +794,10 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, transcription_gardee: transcriptionGardee, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }
   // « Message laissé » (13 oct. 2026, Jules) : pas de lecture, l'écran des actions proposées s'ouvre aussitôt.
-  if (def.simple && !surActions && issue !== 'repondeur') {
+  if (def.simple && (!surActions || def.direct) && issue !== 'repondeur') {
     const choix = lu.appel.propositions.filter((p) => p.coche !== false && ['statut', 'relance'].includes(p.type)).map((p) => p.id);
-    return validerIssue({ appel_id: lu.appel.id, choix, session_id, agence_id, user, issue });
+    const r = await validerIssue({ appel_id: lu.appel.id, choix, session_id, agence_id, user, issue });
+    return { ...r, issue, titre: def.titre };
   }
   const f = Records.get('AgentImmo', agentId);
   // Un rappel entrant (« Il me rappelle ») : l'email et le numéro tapés dans les notes l'emportent sur ceux entendus.
@@ -845,6 +849,16 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     }
     actions.push({ id: 'diffusion', type: 'diffusion', titre: 'Ajouter à la liste de diffusion agents', liste: LISTE_DIFFUSION, a: destinataire, coche: !!destinataire });
     if (variantes.length) etape(destinataire ? `Je prépare l'email pour ${destinataire}` : 'Je prépare l\'email (il manque son adresse)');
+  }
+  // Il veut un SMS, pas un mail (16 oct. 2026, Jules) : le mail proposé devient un SMS, envoyé depuis le téléphone.
+  const iMail = actions.findIndex((x) => x.type === 'mail');
+  if (lu.appel.canal_prefere === 'sms' && iMail >= 0) {
+    const tel = valeurSure(compris, 'telephone') || numero || numeroDe(a) || null;
+    // Le prénom, sans la civilité (« Madame Sophie Essai » : Sophie).
+    const prenomAgent = String(f?.prenom || compris.champs?.interlocuteur?.valeur || '').trim().replace(/^(madame|monsieur|mme|mlle|m\.)\s+/i, '').split(/\s+/)[0] || '';
+    const texte = `Bonjour${prenomAgent ? ` ${prenomAgent}` : ''}, ${analyste} de Klocka. Merci pour notre échange : comme convenu, nous achetons des murs commerciaux loués. Dès qu'un bien se présente, envoyez-le-moi par SMS ou à ${moi}. Bonne journée !`;
+    actions.splice(iMail, 1, { id: 'sms', type: 'sms', titre: 'SMS', a: tel, texte, coche: true });
+    etape(`Il préfère un SMS : je le prépare${tel ? ` pour le ${tel}` : ''}, à envoyer depuis votre téléphone`);
   }
   if (relance) {
     actions.push({ ...relance, titre: 'Planifier la relance', coche: true });
@@ -947,10 +961,15 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
     const [p2, ...reste] = fiche0.relances_suivantes;
     majAgent(appel.agent_id, { prochaine: p2, relances_suivantes: reste });
   }
+  // Que du résidentiel : l'agence sort de la file, comme « Pas pertinente » (16 oct. 2026, Jules).
+  if (issueTapee === 'residentiel' && ag) Records.update(AGENCE, ag.id, { hors_cible: true, hors_cible_le: maintenantD.toISOString(), hors_cible_par: moi, hors_cible_pourquoi: 'que du résidentiel (lu dans l\'appel)', reservee: null });
   if (issueTapee === 'pas_interesse') {
     majAgent(appel.agent_id, { statut: 'archive', prochaine: null, relances_suivantes: [], ne_plus_appeler: true, ne_plus_appeler_le: maintenantD.toISOString() });
     if (ag) Records.update(AGENCE, ag.id, { ne_plus_appeler: true });
   }
+  // Le SMS demandé part du téléphone de l'analyste : la plateforme le note au journal de l'agent.
+  const smsAct = action('sms');
+  if (smsAct) journal(appel.agent_id, { type: 'sms', texte: `SMS${smsAct.a ? ` au ${smsAct.a}` : ''}, envoyé depuis le téléphone : ${String(smsAct.texte || '').slice(0, 400)}`, par: moi });
   if (note && String(note).trim()) journal(appel.agent_id, { type: 'note', texte: `Note : ${String(note).trim().slice(0, 500)}`, par: moi });
   for (const c of (Array.isArray(corrections) ? corrections : []).slice(0, 8)) {
     if (c?.libelle && String(c.valeur || '').trim()) journal(appel.agent_id, { type: 'note', texte: `Corrigé à la validation · ${String(c.libelle).slice(0, 40)} : ${String(c.valeur).trim().slice(0, 300)}`, par: moi });
@@ -1253,9 +1272,19 @@ export async function annulerValidation(appelId, user, { maintenantD = new Date(
 const jourLong = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
 
 /** Le reçu d'un appel, tel qu'il est maintenant (Monday et le mail ont pu avancer entre-temps). */
+// Le mail différé part au plus tard à la lecture du reçu (16 oct. 2026, Jules : « ça prend parfois beaucoup
+// de temps ») : si le serveur a redémarré pendant les dix secondes, sa minuterie est perdue ; l'écran, qui relit
+// le reçu toutes les 2,5 s, le fait partir sans attendre la tournée de rattrapage.
+const envoisLances = new Set();
 export function recu(appelId) {
   const appel = Records.get(APPEL, appelId);
-  return appel?.recu ? { ok: true, recu: appel.recu } : { ok: false, error: 'Pas de reçu pour cet appel.' };
+  if (!appel?.recu) return { ok: false, error: 'Pas de reçu pour cet appel.' };
+  const m = appel.recu.mail?.mail_id ? Records.get('ProspectionMail', appel.recu.mail.mail_id) : null;
+  if (m?.etat === 'differe' && String(m.partir_le || '') <= new Date().toISOString() && !envoisLances.has(m.id)) {
+    envoisLances.add(m.id);
+    envoyerMailDiffere(appelId).catch(() => {}).finally(() => setTimeout(() => envoisLances.delete(m.id), 60000).unref?.());
+  }
+  return { ok: true, recu: appel.recu };
 }
 
 /**

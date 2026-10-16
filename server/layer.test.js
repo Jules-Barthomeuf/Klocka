@@ -42,7 +42,7 @@ test('une source entre telle quelle ; les faits gardent leur citation vérifiée
 });
 
 test('valider, corriger, rejeter ; seuls les faits validés répondent, avec leur source', async () => {
-  const lots = C.aValider();
+  const lots = await C.aValider();
   const faits = lots.flatMap((l) => l.faits);
   const decision = faits.find((f) => f.type === 'decision');
   const info = faits.find((f) => f.type === 'information');

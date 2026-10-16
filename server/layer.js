@@ -19,7 +19,7 @@ import { Records } from './db.js';
 import { estSuperAdmin } from './acces-pages.js';
 import { notifier } from './notifications.js';
 import { corrigerKlocka, NOTE_KLOCKA } from './klocka-nom.js';
-import { auditer, journaliserRequete, requetesDepuis } from './layer-schema.js';
+import { auditer, requetesDepuis } from './layer-schema.js';
 import { enfiler, enregistrer } from './layer-taches.js';
 import { indexer } from './layer-recherche.js';
 
@@ -290,6 +290,8 @@ export async function extraire(sourceId, { valideD_office = null } = {}) {
     Records.update(SOURCE, source.id, { cout: { entree: (avant.entree || 0) + cout.entree, sortie: (avant.sortie || 0) + cout.sortie, usd: Math.round(((avant.usd || 0) + cout.usd) * 1e6) / 1e6 } });
     // Les doublons entre tranches (une même décision redite) sont écartés au rangement.
     const r = rangerFaits(source, faits, { valideD_office });
+    // Phase 4 : contradictions, validation automatique ou validateur désigné, en tâche de fond.
+    if (!valideD_office && r.faits.length) (await import('./layer-cycle.js')).planifierControle(source.id);
     return { ok: true, source_id: source.id, faits: r.faits.map(resumeFait), doublons: r.doublons };
   } catch (e) {
     Records.update(SOURCE, source.id, { statut_extraction: 'echec', erreur: String(e?.message || e).slice(0, 300) });
@@ -307,6 +309,10 @@ export function resumeFait(f) {
   return {
     id: f.id, type: f.type, resume: f.resume, citation: f.citation, citation_verifiee: f.citation_verifiee !== false, personne: f.personne, echeance: f.echeance,
     statut: f.statut, corrige: !!f.corrige, valide_par: f.valide_par || null, valide_le: f.valide_le || null, candidats: f.candidats || [],
+    // Phase 4 : le cycle de vie, ce qui a empêché la validation seule, la proposition de remplacement.
+    mode_validation: f.mode_validation || null, confiance: f.confiance ?? null, validateur: f.validateur || null, obstacles: f.obstacles || [],
+    contradiction: f.contradiction || null, remplace_par: f.remplace_par || null, motif_rejet: f.motif_rejet || null,
+    statut_engagement: f.type === 'engagement' ? f.statut_engagement || 'ouvert' : null, responsable: f.responsable || null,
     date: s?.date || f.cree_le,
     source: s ? { id: s.id, type: s.type, titre: s.titre, auteur: s.auteur, date: s.date, lien_original: s.lien_original || null } : null,
     fiches: liensDu(f.id).map((l) => ({ type_entite: l.type_entite, entite_id: l.entite_id, libelle: libelleEntite(l.type_entite, l.entite_id), lien: lienEntite(l.type_entite, l.entite_id) })),
@@ -344,8 +350,10 @@ export function trancher(faitId, { action, par, resume, type, fiches, motif_reje
 }
 
 /** Valide d'un coup les faits en attente d'une source. */
-export function validerLot(sourceId, { par }) {
-  const enAttente = Records.list(FAIT).filter((f) => f.source_id === sourceId && (f.statut === 'a_valider' || f.statut === 'a_rattacher'));
+export async function validerLot(sourceId, { par, user = null }) {
+  const { peutValiderFait } = await import('./layer-cycle.js');
+  // Un lot ne valide que ce qui revient à la personne (phase 4) ; un fait en contradiction attend sa décision.
+  const enAttente = Records.list(FAIT).filter((f) => f.source_id === sourceId && (f.statut === 'a_valider' || f.statut === 'a_rattacher') && !f.contradiction && (!user || peutValiderFait(user, f)));
   for (const f of enAttente) {
     Records.update(FAIT, f.id, { statut: 'valide', valide_par: par, valide_le: maintenant(), mode_validation: 'manuel' });
     auditer({ par, action: 'valider', fait_id: f.id, avant: { statut: f.statut }, apres: { statut: 'valide', lot: sourceId } });
@@ -354,8 +362,10 @@ export function validerLot(sourceId, { par }) {
 }
 
 /** La file À valider, groupée par source, la plus récente d'abord. */
-export function aValider() {
-  const faits = Records.list(FAIT).filter((f) => f.statut === 'a_valider' || f.statut === 'a_rattacher');
+export async function aValider(user = null) {
+  const { peutValiderFait } = await import('./layer-cycle.js');
+  // Chacun voit ce qui lui revient (phase 4) ; Jules voit tout. Sans personne nommée (tests, outils), tout.
+  const faits = Records.list(FAIT).filter((f) => (f.statut === 'a_valider' || f.statut === 'a_rattacher') && (!user || peutValiderFait(user, f)));
   const parSource = new Map();
   for (const f of faits) { if (!parSource.has(f.source_id)) parSource.set(f.source_id, []); parSource.get(f.source_id).push(resumeFait(f)); }
   return [...parSource.entries()].map(([id, liste]) => {

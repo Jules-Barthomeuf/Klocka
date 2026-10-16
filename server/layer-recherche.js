@@ -103,6 +103,14 @@ export async function embedderFaits(faitIds, { fetchFn = fetch } = {}) {
 }
 enregistrer('embedder', async ({ fait_ids }) => { await embedderFaits(fait_ids || []); });
 
+/** Les vecteurs de ces faits (modèle courant), en Map id → Float32Array. */
+export function vecteursDe(ids) {
+  const m = new Map();
+  const lire = db.prepare('SELECT vecteur FROM layer_vecteurs WHERE fait_id = ? AND modele = ?');
+  for (const id of ids || []) { const r = lire.get(id, MODELE_EMBED); if (r) m.set(id, depuisBlob(r.vecteur)); }
+  return m;
+}
+
 /** Rattrape l'index des faits existants : plein texte tout de suite, embeddings en file par lots. Rend ce qui a été fait. */
 export function rattraper() {
   const faits = Records.list(FAIT);
@@ -141,7 +149,8 @@ export function fusionRRF(classements, k = RRF_K) {
 
 /** Les faits candidats, après les filtres. */
 function candidats({ type = null, type_entite = null, entite_id = null, ville = null, personne = null, depuis = null, jusqua = null, historique = false } = {}) {
-  const statuts = historique ? ['valide', 'remplace'] : ['valide'];
+  // En historique : ce qui a été remplacé ou archivé revient aussi (phase 4).
+  const statuts = historique ? ['valide', 'remplace', 'archive'] : ['valide'];
   let faits = Records.list(FAIT).filter((f) => statuts.includes(f.statut));
   if (type) faits = faits.filter((f) => f.type === type);
   if (personne) faits = faits.filter((f) => norm(f.personne).includes(norm(personne)));

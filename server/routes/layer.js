@@ -14,19 +14,32 @@ export function monterLayer(app) {
     if (user?.role !== 'admin') { res.status(403).json({ error: 'Réservé à l\'équipe.' }); return null; }
     return user;
   };
-  const valideur = async (req, res) => {
+  // Phase 4 : le validateur d'un fait est l'auteur de sa source (appel, débrief) ou Jules (le reste) ; Jules valide tout.
+  const Y = () => import('../layer-cycle.js');
+  // Relancer une extraction, importer les appels : Jules seul.
+  const jules = async (req, res) => {
     const user = equipe(req, res);
     if (!user) return null;
-    if (!(await C()).peutValider(user)) { res.status(403).json({ error: 'Au MVP, seul Jules valide les faits.' }); return null; }
+    if (!(await C()).peutValider(user)) { res.status(403).json({ error: 'Réservé à Jules.' }); return null; }
+    return user;
+  };
+  const valideurDe = async (req, res, faitId) => {
+    const user = equipe(req, res);
+    if (!user) return null;
+    const { Records } = await import('../db.js');
+    const f = Records.get('CerveauFait', faitId);
+    if (!f) { res.status(404).json({ error: 'Fait introuvable.' }); return null; }
+    if (!(await Y()).peutValiderFait(user, f)) { res.status(403).json({ error: 'Ce fait revient à un autre validateur.' }); return null; }
     return user;
   };
 
   app.get('/api/layer/etat', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const M = await C();
-    ok(res, { a_valider: M.nombreAValider(), peut_valider: M.peutValider(user), mesures: M.mesures() });
+    const lots = await M.aValider(user);
+    ok(res, { a_valider: lots.reduce((n, l) => n + l.faits.length, 0), a_valider_tous: M.nombreAValider(), peut_valider: true, tout_voir: M.peutValider(user), mesures: M.mesures(), manuel: (await Y()).partManuelle() });
   }));
-  app.get('/api/layer/a-valider', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { lots: (await C()).aValider() }); }));
+  app.get('/api/layer/a-valider', wrap(async (req, res) => { const user = equipe(req, res); if (!user) return; ok(res, { lots: await (await C()).aValider(user) }); }));
   app.get('/api/layer/faits', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).tousLesFaits() }); }));
   app.get('/api/layer/savoir', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).savoir() }); }));
   app.get('/api/layer/sources', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { sources: (await C()).sources() }); }));
@@ -68,24 +81,37 @@ export function monterLayer(app) {
     ok(res, { source_id: s.source.id, ...r });
   }));
   app.post('/api/layer/sources/:id/extraire', wrap(async (req, res) => {
-    if (!(await valideur(req, res))) return;
+    if (!(await jules(req, res))) return;
     ok(res, await (await C()).extraire(req.params.id));
   }));
   app.post('/api/layer/importer-appels', wrap(async (req, res) => {
-    if (!(await valideur(req, res))) return;
+    if (!(await jules(req, res))) return;
     ok(res, (await C()).importerAppelsGardes());
   }));
 
   // La validation : valider, corriger, rejeter ; un lot par source.
   app.post('/api/layer/faits/:id', wrap(async (req, res) => {
-    const user = await valideur(req, res); if (!user) return;
+    const user = await valideurDe(req, res, req.params.id); if (!user) return;
+    const action = req.body?.action;
+    // Le cycle de vie (phase 4) : remplacer le fait contredit, ou garder les deux.
+    if (action === 'remplacer') {
+      const r = (await Y()).remplacer(req.params.id, String(req.body?.remplace || ''), { par: user.email });
+      return r.ok ? ok(res, r) : res.status(400).json({ error: r.error });
+    }
+    if (action === 'garder') return ok(res, (await Y()).garderLesDeux(req.params.id, { par: user.email }));
     const r = (await C()).trancher(req.params.id, { ...req.body, par: user.email });
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
   app.post('/api/layer/sources/:id/valider', wrap(async (req, res) => {
-    const user = await valideur(req, res); if (!user) return;
-    ok(res, (await C()).validerLot(req.params.id, { par: user.email }));
+    const user = equipe(req, res); if (!user) return;
+    ok(res, await (await C()).validerLot(req.params.id, { par: user.email, user }));
+  }));
+  // Un engagement tenu, rouvert ou échu à la main : toute l'équipe (c'est un fait du terrain, pas une validation).
+  app.post('/api/layer/engagements/:id', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = (await Y()).marquerEngagement(req.params.id, String(req.body?.statut || ''), { par: user.email });
+    return r.ok ? ok(res, r) : res.status(400).json({ error: r.error });
   }));
 
   // La question d'une décision sans motif, et sa réponse.

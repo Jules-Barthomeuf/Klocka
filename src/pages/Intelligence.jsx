@@ -84,7 +84,6 @@ function AValider({ peutValider }) {
   if (!lots.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Rien à valider. Les faits arrivent ici dès qu'un compte rendu, un appel ou un débrief entre dans l'Intelligence.</p>;
   return (
     <div className="flex flex-col gap-6">
-      {!peutValider && <p className="m-0 text-[13px] text-ambre">Au MVP, seul Jules valide : vous voyez la file sans pouvoir la trancher.</p>}
       {lots.map(({ source, faits }) => (
         <section key={source.id}>
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
@@ -116,10 +115,12 @@ function CarteFait({ f, peutValider }) {
   const [fiches, setFiches] = useState(f.fiches.map(({ type_entite, entite_id, libelle }) => ({ type_entite, entite_id, libelle })));
   const trancher = useMutation({
     mutationFn: (corps) => base44.request("POST", `${API}/faits/${f.id}`, { body: corps }),
-    onSuccess: (_, corps) => { toast.success(corps.action === "rejeter" ? "Fait rejeté" : "Fait validé", { duration: 1500 }); rafraichir(); },
+    onSuccess: (_, corps) => { toast.success(corps.action === "rejeter" ? "Fait rejeté" : corps.action === "remplacer" ? "L'ancien fait est remplacé" : "Fait validé", { duration: 1500 }); rafraichir(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const ajouter = (c) => setFiches((l) => (l.some((x) => x.type_entite === c.type_entite && x.entite_id === c.entite_id) ? l : [...l, c]));
+  // Rejeter demande un motif (phase 4) : il sert à mesurer la qualité de l'extraction.
+  const [rejet, setRejet] = useState(false);
   return (
     <article className="border-t border-trait py-4 first:border-t-0">
       <div className="flex flex-wrap items-start gap-4">
@@ -148,6 +149,28 @@ function CarteFait({ f, peutValider }) {
             </p>
           )}
           <Fiches fiches={edition ? fiches : f.fiches} candidats={f.candidats} edition={edition} onAjouter={ajouter} onRetirer={(c) => setFiches((l) => l.filter((x) => !(x.type_entite === c.type_entite && x.entite_id === c.entite_id)))} />
+          {f.contradiction && (
+            <div className="mt-2.5 rounded-[10px] border border-ambre/40 px-3 py-2 text-[13px]">
+              <p className="m-0 text-ambre">Remplace le fait validé « {f.contradiction.resume} » ?</p>
+              {f.contradiction.raison && <p className="m-0 mt-0.5 text-ardoise">{f.contradiction.raison}</p>}
+              {peutValider && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => trancher.mutate({ action: "remplacer", remplace: f.contradiction.fait_id })} disabled={trancher.isPending} className={principal}>Remplacer l'ancien</button>
+                  <button type="button" onClick={() => trancher.mutate({ action: "garder" })} disabled={trancher.isPending} className={bouton}>Garder les deux</button>
+                </div>
+              )}
+            </div>
+          )}
+          {!f.contradiction && f.obstacles?.length > 0 && <p className="m-0 mt-1.5 text-[12px] text-brume">Pas validé seul : {f.obstacles.join(" · ")}.</p>}
+          {rejet && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12.5px]">
+              <span className="text-ardoise">Pourquoi ?</span>
+              {[["faux", "Faux"], ["doublon", "Doublon"], ["hors_sujet", "Hors sujet"], ["mal_rattache", "Mal rattaché"], ["autre", "Autre"]].map(([k, mot]) => (
+                <button key={k} type="button" onClick={() => trancher.mutate({ action: "rejeter", motif_rejet: k })} disabled={trancher.isPending} className={bouton}>{mot}</button>
+              ))}
+              <button type="button" onClick={() => setRejet(false)} className="p-0 text-brume underline underline-offset-2" style={{ background: "transparent" }}>Annuler</button>
+            </div>
+          )}
         </div>
         {peutValider && (
           <div className="flex flex-none flex-wrap gap-1.5">
@@ -158,7 +181,7 @@ function CarteFait({ f, peutValider }) {
               </>
             ) : (
               <>
-                <button type="button" onClick={() => trancher.mutate({ action: "rejeter" })} disabled={trancher.isPending} className={bouton} aria-label="Rejeter" title="Rejeter : faux ou sans intérêt"><X className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setRejet(true)} disabled={trancher.isPending} className={bouton} aria-label="Rejeter" title="Rejeter : faux, doublon, hors sujet…"><X className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setEdition(true)} className={bouton}><Pencil className="h-3.5 w-3.5" />Corriger</button>
                 <button type="button" onClick={() => trancher.mutate({ action: "valider" })} disabled={trancher.isPending} className={principal}><Check className="h-3.5 w-3.5" />Valider</button>
               </>

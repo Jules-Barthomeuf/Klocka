@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 3 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride. Phase suivante : 4 (cycle de vie et validation sans goulot).
+**État : phases 1 à 4 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot. Phase suivante : 5 (synthèses vivantes).
 
 ---
 
@@ -155,6 +155,23 @@ Sur « Comité 7 octobre » (13 536 signes, une seule tranche ; 25 faits en base
 
 **Mesure réelle** (base locale, 25 faits) : la bonne réponse en tête pour trois questions ; durée totale 175 à 278 ms, dont 2 à 8 ms de calcul local (le reste : l'appel réseau d'embedding de la question). Le seuil Postgres (300 ms) surveille la durée locale (`duree_locale_ms`), pas le réseau.
 
+## 4 quater. Phase 4 : cycle de vie et validation sans goulot (15 oct. 2026)
+
+`server/layer-cycle.js`. Après chaque extraction, une tâche `controler` (file du Layer) passe sur les faits nouveaux de la source :
+
+1. **Embeddings** des faits nouveaux (pour comparer le sens).
+2. **Contradictions** : parmi les faits validés de même type qui partagent une fiche, ceux du même sujet (cosinus ≥ 0,82 ; sans vecteurs, ≥ 20 % de mots communs) ; les deux plus proches sont jugés par le modèle rapide (`claude-haiku-4-5`, sans réglage d'effort : il ne l'accepte pas). Consigne : une situation qui a changé rend l'ancien fait dépassé (= contradiction) ; un ajout, une action à venir ou une redite non. Vérifié en réel sur quatre cas (4/4). Le nouveau fait porte alors `contradiction: { fait_id, resume, raison }` : à l'écran, « Remplace le fait validé … ? », Remplacer l'ancien (`remplacer` : l'ancien passe `remplace` avec `remplace_par`) ou Garder les deux (`garderLesDeux`). Un lot ne tranche jamais une contradiction.
+3. **Validation automatique** si : statut `a_valider` (pas `a_rattacher`), citation retrouvée mot pour mot, confiance ≥ 0,9, au moins une fiche, aucune contradiction (ni juge injoignable). → `valide`, `mode_validation: 'auto'`, `valide_par: 'auto'`, corrigeable.
+4. **Sinon** : `validateur` = l'auteur de la source pour un appel ou un débrief, rien (= Jules) pour le reste ; `obstacles` dit pourquoi (affiché « Pas validé seul : … »). `peutValiderFait(user, fait)` : Jules toujours, sinon le validateur. La file À valider (`aValider(user)`) et le compteur « à valider » sont personnels ; Jules voit tout.
+
+**Rejet** : un motif obligatoire à l'écran (faux, doublon, hors sujet, mal rattaché, autre).
+
+**Engagements** : `ouvert` à la naissance ; `echu` à J+1 de l'échéance (tâche de nuit, 5 h Paris, Render ou `LAYER_NUIT=true`) ; `tenu` à la main (`POST /api/layer/engagements/:id { statut }`).
+
+**Archivage** (même tâche de nuit) : un fait validé, hors savoir, dont toutes les fiches sont fermées (agent `archive` ou `ne_plus_appeler`, projet `vendu` ou `cede`) passe `archive`. Un dossier abandonné n'archive rien : ses faits disent souvent le pourquoi d'un refus. Les faits remplacés et archivés reviennent dans une recherche d'historique.
+
+**Audit** de chaque bascule (`valider_auto`, `remplacer`, `garder_les_deux`, `engagement_*`, `archiver`). **Mesure** : `partManuelle()` (part des faits tranchés à la main sur 14 jours, objectif < 20 %), rendue par `/api/layer/etat` (`manuel`).
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -181,7 +198,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 1. Renommage ✓ | « Cerveau » → « l'Intelligence » dans toute l'interface, routes `/Layer` et `/api/layer` avec redirections, outils AK `layer_*` (anciens noms acceptés), consigne et questions d'AK, fichiers renommés ; re-test de la consigne d'extraction sur le comité du 7 oct. ; recherche globale de « cerveau » rendue à Jules | ceux du tableau des branchements, `server/index.js`, `src/App.jsx`, `src/lib/adresses.js` |
 | 2. Données ✓ | Champs nouveaux des faits (statut `remplace`, `remplace_par`, `mode_validation`, `motif_rejet`, `confiance`, `statut_engagement`, responsable) ; sources `mail` et `monday`, `id_externe`, coût d'extraction ; tables `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes` (reprend `CerveauRecherche`), `layer_audit`, `layer_taches` ; index SQLite | `server/layer.js`, `server/layer-schema.js` (nouveau) |
 | 3. Recherche hybride ✓ | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
-| 4. Cycle de vie et validation | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
+| 4. Cycle de vie et validation ✓ | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
 | 5. Synthèses par fiche | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
 | 6. Branchements et sources | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
 | 7. Page Layer | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |

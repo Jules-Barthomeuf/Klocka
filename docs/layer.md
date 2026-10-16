@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 et 2 faites (15 oct. 2026)** : renommage, re-test de la consigne, données et tâches de fond. Phase suivante : 3 (recherche hybride).
+**État : phases 1 à 3 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride. Phase suivante : 4 (cycle de vie et validation sans goulot).
 
 ---
 
@@ -137,6 +137,24 @@ Sur « Comité 7 octobre » (13 536 signes, une seule tranche ; 25 faits en base
 
 **Re-test avec la confiance** (comité du 7 oct., deux essais) : 33 et 40 faits, 25/25 retrouvés les deux fois ; confiance rendue pour chaque fait (de 0,7 à 1 ; 26/33 et 35/40 à 0,9 ou plus : le modèle est confiant, la validation auto de la phase 4 exige aussi la citation mot pour mot, le rattachement sans ambiguïté et l'absence de contradiction). La description du champ impose le point décimal : avec « 0,5 » écrit, le modèle a une fois rendu un JSON illisible.
 
+## 4 ter. Phase 3 : la recherche hybride (15 oct. 2026)
+
+`server/layer-recherche.js`, appelée par `chercher()` (`server/layer.js`, désormais asynchrone) et l'outil `layer_chercher`.
+
+1. **Filtres d'abord** (`candidats`) : statut `valide` (et `remplace` si `historique: true`), `type`, fiche (`type_entite` + `entite_id`), `ville` (lien de type ville, ou ville de l'agence, de l'agent, du dossier rattaché), `personne`, période `depuis` / `jusqua` (date de la source). AK les déduit de la question et les passe en paramètres de l'outil (schéma enrichi de `texte`, `ville`, `historique`).
+2. **Plein texte** : `layer_fts` (FTS5, `unicode61 remove_diacritics 2`) sur résumé + citation ; la question devient `"mot"* OR …` (mots de 3 lettres et plus, `requeteFts`), classement bm25.
+3. **Sens** : embedding de la question, cosinus avec `layer_vecteurs` (même modèle seulement).
+4. **Fusion** : rang réciproque, k = 60 (`fusionRRF`), 10 premiers.
+5. **Journal** : `layer_requetes` (question, texte, filtres, faits rendus, durée totale, durée locale).
+
+**Embeddings** : Mistral `mistral-embed`, 1024 dimensions, norme 1, `POST https://api.mistral.ai/v1/embeddings` `{ model, input }` → `data[].embedding`, `usage.prompt_tokens` (vérifié dans la doc et par un appel réel le 15 oct. 2026). Le modèle rendu est gardé avec chaque vecteur ; un résumé corrigé ou un modèle changé relance l'embedding (`empreinte`). Calcul en tâche de fond (`embedder`, lots de 32) ; jetons comptés sur la source (`cout.embed_jetons`), dollars seulement si `LAYER_EMBED_USD_PAR_MILLION` est posé (tarif non trouvé dans les pages publiques lues).
+
+**Indexation** : chaque fait créé (`rangerFaits`) ou dont le résumé change (`trancher`) est indexé ; au démarrage, `rattraper()` indexe en plein texte ce qui manque et met les embeddings manquants en file.
+
+**Sans clé Mistral**, ou si l'appel tombe : plein texte seul (`pistes: { fts: true, sens: false }`). Les tests vident la clé et utilisent un faux fournisseur.
+
+**Mesure réelle** (base locale, 25 faits) : la bonne réponse en tête pour trois questions ; durée totale 175 à 278 ms, dont 2 à 8 ms de calcul local (le reste : l'appel réseau d'embedding de la question). Le seuil Postgres (300 ms) surveille la durée locale (`duree_locale_ms`), pas le réseau.
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -162,7 +180,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 |---|---|---|
 | 1. Renommage ✓ | « Cerveau » → « l'Intelligence » dans toute l'interface, routes `/Layer` et `/api/layer` avec redirections, outils AK `layer_*` (anciens noms acceptés), consigne et questions d'AK, fichiers renommés ; re-test de la consigne d'extraction sur le comité du 7 oct. ; recherche globale de « cerveau » rendue à Jules | ceux du tableau des branchements, `server/index.js`, `src/App.jsx`, `src/lib/adresses.js` |
 | 2. Données ✓ | Champs nouveaux des faits (statut `remplace`, `remplace_par`, `mode_validation`, `motif_rejet`, `confiance`, `statut_engagement`, responsable) ; sources `mail` et `monday`, `id_externe`, coût d'extraction ; tables `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes` (reprend `CerveauRecherche`), `layer_audit`, `layer_taches` ; index SQLite | `server/layer.js`, `server/layer-schema.js` (nouveau) |
-| 3. Recherche hybride | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
+| 3. Recherche hybride ✓ | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
 | 4. Cycle de vie et validation | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
 | 5. Synthèses par fiche | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
 | 6. Branchements et sources | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |

@@ -125,6 +125,8 @@ const TABLES = ['layer_fts', 'layer_vecteurs', 'layer_syntheses', 'layer_evaluat
 /** Crée ce qui manque, et recopie une fois le journal des recherches du MVP. Rejouable. */
 export function installer() {
   db.exec(SCHEMA);
+  // La durée locale (sans l'appel réseau d'embedding) : c'est elle que surveille le seuil Postgres. Colonne ajoutée le 15 oct. 2026.
+  if (!db.prepare('PRAGMA table_info(layer_requetes)').all().some((c) => c.name === 'duree_locale_ms')) db.exec('ALTER TABLE layer_requetes ADD COLUMN duree_locale_ms INTEGER');
   const copie = db.prepare('INSERT OR IGNORE INTO layer_requetes (id, le, par, origine, question, nombre) VALUES (?, ?, ?, ?, ?, ?)');
   db.transaction(() => {
     for (const r of Records.list('CerveauRecherche')) copie.run(r.id, r.le || r.created_date, r.par || null, 'ak', r.question || null, Number(r.trouves) || 0);
@@ -159,10 +161,10 @@ export const auditDe = (faitId) => db.prepare('SELECT * FROM layer_audit WHERE f
 // --- Journal des recherches ----------------------------------------------------------------
 
 /** Une recherche : la question, les filtres déduits, les faits rendus, sa durée. Rend son identifiant. */
-export function journaliserRequete({ par = null, origine = 'ak', question = '', texte = '', filtres = {}, faits = [], duree_ms = null }) {
+export function journaliserRequete({ par = null, origine = 'ak', question = '', texte = '', filtres = {}, faits = [], duree_ms = null, duree_locale_ms = null }) {
   const id = randomUUID();
-  db.prepare('INSERT INTO layer_requetes (id, le, par, origine, question, texte, filtres, faits, nombre, duree_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(id, maintenant(), par ? String(par).toLowerCase() : null, origine, String(question || '').slice(0, 500), String(texte || '').slice(0, 500), json(filtres), json(faits), faits.length, duree_ms);
+  db.prepare('INSERT INTO layer_requetes (id, le, par, origine, question, texte, filtres, faits, nombre, duree_ms, duree_locale_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, maintenant(), par ? String(par).toLowerCase() : null, origine, String(question || '').slice(0, 500), String(texte || '').slice(0, 500), json(filtres), json(faits), faits.length, duree_ms, duree_locale_ms ?? duree_ms);
   return id;
 }
 
@@ -175,10 +177,10 @@ export function noterCites(requeteId, faitIds = []) {
 export const requetesDepuis = (depuisIso) => db.prepare('SELECT * FROM layer_requetes WHERE le >= ? ORDER BY le DESC').all(depuisIso)
   .map((r) => ({ ...r, filtres: JSON.parse(r.filtres || '{}'), faits: JSON.parse(r.faits || '[]'), cites: JSON.parse(r.cites || '[]') }));
 
-/** Les deux seuils du chantier Postgres, mesurés : recherche lente (p95 sur 7 jours) ou trop de faits. */
+/** Les deux seuils du chantier Postgres, mesurés : recherche lente (p95 sur 7 jours, temps local sans l'appel réseau d'embedding) ou trop de faits. */
 export function alertePostgres({ maintenantD = new Date() } = {}) {
   const depuis = new Date(maintenantD.getTime() - 7 * 86400000).toISOString();
-  const durees = db.prepare('SELECT duree_ms FROM layer_requetes WHERE le >= ? AND duree_ms IS NOT NULL ORDER BY duree_ms').all(depuis).map((r) => r.duree_ms);
+  const durees = db.prepare('SELECT COALESCE(duree_locale_ms, duree_ms) AS d FROM layer_requetes WHERE le >= ? AND COALESCE(duree_locale_ms, duree_ms) IS NOT NULL ORDER BY d').all(depuis).map((r) => r.d);
   const p95 = durees.length ? durees[Math.min(durees.length - 1, Math.floor(durees.length * 0.95))] : null;
   const faits = db.prepare("SELECT COUNT(*) AS n FROM records WHERE entity = 'CerveauFait'").get().n;
   return { p95_ms: p95, faits, lent: p95 != null && p95 > SEUIL_RECHERCHE_MS, trop: faits > SEUIL_FAITS, declenche: (p95 != null && p95 > SEUIL_RECHERCHE_MS) || faits > SEUIL_FAITS };

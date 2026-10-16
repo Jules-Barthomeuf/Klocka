@@ -8,6 +8,8 @@ import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-layer-'));
 process.env.SUPER_ADMIN_EMAILS = 'jules@klocka.test';
+// Aucun appel à Mistral pendant les tests : la recherche s'y fait sur le plein texte seul.
+process.env.MISTRAL_API_KEY = '';
 const C = await import('./layer.js');
 const { Records } = await import('./db.js');
 
@@ -39,17 +41,17 @@ test('une source entre telle quelle ; les faits gardent leur citation vérifiée
   assert.equal(Records.get(C.SOURCE, s.id).faits, 3);
 });
 
-test('valider, corriger, rejeter ; seuls les faits validés répondent, avec leur source', () => {
+test('valider, corriger, rejeter ; seuls les faits validés répondent, avec leur source', async () => {
   const lots = C.aValider();
   const faits = lots.flatMap((l) => l.faits);
   const decision = faits.find((f) => f.type === 'decision');
   const info = faits.find((f) => f.type === 'information');
   const engagement = faits.find((f) => f.type === 'engagement');
-  assert.equal(C.chercher({ question: 'pourquoi refusé Libourne' }).length, 0, 'rien n\'est acquis avant validation');
+  assert.equal((await C.chercher({ question: 'pourquoi refusé Libourne' })).length, 0, 'rien n\'est acquis avant validation');
   C.trancher(decision.id, { action: 'valider', par: JULES.email });
   C.trancher(info.id, { action: 'corriger', par: JULES.email, resume: 'L\'agence Durand a deux murs off-market à Antibes (centre).', type: 'information' });
   C.trancher(engagement.id, { action: 'rejeter', par: JULES.email });
-  const trouves = C.chercher({ question: 'pourquoi on a refusé Libourne ?' }, { par: MAXIME.email });
+  const trouves = await C.chercher({ question: 'pourquoi on a refusé Libourne ?' }, { par: MAXIME.email });
   assert.equal(trouves.length, 1);
   assert.match(trouves[0].resume, /loyer trop haut/);
   assert.equal(trouves[0].source.titre, 'Comité');
@@ -79,7 +81,7 @@ test('un dossier refusé sans motif : une question à qui a tranché, trois par 
   assert.equal(r.fait.statut, 'valide');
   assert.equal(r.fait.fiches[0].entite_id, 'd-2');
   assert.equal(C.questionOuverte(MAXIME.email).id, q2.id, 'la suivante est posée');
-  assert.match(C.chercher({ question: 'Mâcon refusé' })[0].resume, /emplacement trop faible/);
+  assert.match((await C.chercher({ question: 'Mâcon refusé' }))[0].resume, /emplacement trop faible/);
   assert.ok(Records.list('Notification').some((n) => n.pour === MAXIME.email && /Boulangerie, Mâcon refusé/.test(n.titre)));
   // Trois par jour au plus.
   const demain = new Date('2030-01-01T09:00:00Z');

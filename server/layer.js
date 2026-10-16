@@ -21,6 +21,7 @@ import { notifier } from './notifications.js';
 import { corrigerKlocka, NOTE_KLOCKA } from './klocka-nom.js';
 import { auditer, journaliserRequete, requetesDepuis } from './layer-schema.js';
 import { enfiler, enregistrer } from './layer-taches.js';
+import { indexer } from './layer-recherche.js';
 
 export const SOURCE = 'CerveauSource';
 export const FAIT = 'CerveauFait';
@@ -219,6 +220,7 @@ export function rangerFaits(source, faits, { valideD_office = null } = {}) {
       ...(valideD_office ? { valide_par: valideD_office, valide_le: maintenant() } : {}),
     });
     for (const l of uniques) Records.create(LIEN, { fait_id: fait.id, type_entite: l.type_entite, entite_id: l.entite_id });
+    indexer(fait);
     crees.push(fait);
   }
   Records.update(SOURCE, source.id, { statut_extraction: 'fait', faits: crees.length, doublons, extrait_le: maintenant() });
@@ -336,6 +338,7 @@ export function trancher(faitId, { action, par, resume, type, fiches, motif_reje
   // Un fait encore « à rattacher » se valide quand même : il reste sans fiche, mais on le retrouve par la recherche.
   Records.update(FAIT, f.id, patch);
   const apres = Records.get(FAIT, f.id);
+  if (apres.resume !== f.resume) indexer(apres);
   auditer({ par, action: action === 'corriger' ? 'corriger' : 'valider', fait_id: f.id, avant, apres: { statut: apres.statut, type: apres.type, resume: apres.resume, fiches: liensDu(f.id).map(({ type_entite, entite_id }) => ({ type_entite, entite_id })) } });
   return { ok: true, fait: resumeFait(apres) };
 }
@@ -374,23 +377,19 @@ export function pertinence(question, fait) {
 }
 
 /**
- * Cherche dans les faits validés. Filtres : type, type_entite + entite_id,
- * personne, depuis / jusqua (AAAA-MM-JJ). Les plus pertinents, puis les plus récents.
+ * Cherche dans les faits validés (phase 3) : la recherche hybride de
+ * `layer-recherche.js` (plein texte + sens, fusion RRF, 10 premiers), après les
+ * filtres déduits par AK : type, fiche (type_entite + entite_id), ville,
+ * personne, période (depuis / jusqua, AAAA-MM-JJ), historique (les faits
+ * remplacés aussi). Rend les faits lisibles (`resumeFait`), et l'identifiant de
+ * la recherche au journal en propriété `requete_id` du tableau.
  */
-export function chercher({ question = '', type = null, type_entite = null, entite_id = null, personne = null, depuis = null, jusqua = null, limite = 12 } = {}, { par = null } = {}) {
-  let faits = Records.list(FAIT).filter((f) => f.statut === 'valide');
-  if (type) faits = faits.filter((f) => f.type === type);
-  if (type_entite && entite_id) { const ids = new Set(Records.list(LIEN).filter((l) => l.type_entite === type_entite && l.entite_id === entite_id).map((l) => l.fait_id)); faits = faits.filter((f) => ids.has(f.id)); }
-  if (personne) faits = faits.filter((f) => norm(f.personne).includes(norm(personne)));
-  let liste = faits.map(resumeFait);
-  if (depuis) liste = liste.filter((f) => String(f.date).slice(0, 10) >= depuis);
-  if (jusqua) liste = liste.filter((f) => String(f.date).slice(0, 10) <= jusqua);
-  const notes = liste.map((f) => ({ f, p: pertinence(question, f) })).filter((x) => !question || x.p >= 0.34);
-  notes.sort((a, b) => b.p - a.p || String(b.f.date).localeCompare(String(a.f.date)));
-  const trouves = notes.slice(0, limite).map((x) => x.f);
-  // Chaque question sur le passé est comptée : c'est le critère d'usage réel du MVP.
-  // Depuis la phase 2, dans le journal des recherches du Layer (layer_requetes), avec les filtres et les faits rendus.
-  if (par) journaliserRequete({ par, origine: 'ak', question, texte: question, filtres: { type, type_entite, entite_id, personne, depuis, jusqua }, faits: trouves.map((f) => f.id) });
+export async function chercher({ question = '', texte = null, type = null, type_entite = null, entite_id = null, ville = null, personne = null, depuis = null, jusqua = null, historique = false, limite = 10 } = {}, { par = null, origine = 'ak' } = {}) {
+  const { rechercher } = await import('./layer-recherche.js');
+  const r = await rechercher({ question, texte, type, type_entite, entite_id, ville, personne, depuis, jusqua, historique, limite }, { par, origine });
+  const trouves = r.faits.map(resumeFait);
+  trouves.requete_id = r.requete_id;
+  trouves.pistes = r.pistes;
   return trouves;
 }
 

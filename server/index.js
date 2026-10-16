@@ -1271,7 +1271,7 @@ monterTesteur(app);
 monterSuiviChat(app);
 monterLayer(app);
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
-import('./layer.js').then(async (L) => { const T = await import('./layer-taches.js'); T.reprendre(); const n = L.reprendreExtractions(); if (n) console.log(`[layer] ${n} source(s) remise(s) en file d'extraction`); }).catch((e) => console.error('[layer] reprise :', e.message));
+import('./layer.js').then(async (L) => { const T = await import('./layer-taches.js'); T.reprendre(); const n = L.reprendreExtractions(); if (n) console.log(`[layer] ${n} source(s) remise(s) en file d'extraction`); const R = await import('./layer-recherche.js'); const x = R.rattraper(); if (x.fts || x.embeddings_en_file) console.log(`[layer] index rattrapé : ${x.fts} fait(s) en plein texte, ${x.embeddings_en_file} embedding(s) en file`); }).catch((e) => console.error('[layer] reprise :', e.message));
 monterAudience(app);
 amorcerBacASable();
 // L'équipe (10 oct. 2026) : admins et mandataires, à part des clients.

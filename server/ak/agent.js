@@ -296,7 +296,10 @@ const OUTILS_AK = [
     name: 'layer_chercher',
     description: "Cherche dans l'Intelligence de Klocka (le Layer), les faits VALIDÉS tirés des comptes rendus, des appels et des débriefs : ce qui a été dit, décidé, promis ou appris sur un dossier, un projet, un agent, une agence, un investisseur, une ville. À appeler d'abord pour toute question sur le passé (« pourquoi on a refusé Libourne ? », « qu'est-ce que Durand nous a dit ? »). Rend chaque fait avec sa date, la personne, la citation exacte et sa source.",
     input_schema: { type: 'object', properties: {
-      question: { type: 'string', description: 'les mots clés de la question (noms, lieu, sujet)' },
+      question: { type: 'string', description: 'la question telle que posée' },
+      texte: { type: 'string', description: 'ce qu\'on cherche, débarrassé des filtres (noms, sujet)' },
+      ville: { type: 'string', description: 'la ville, si la question en nomme une' },
+      historique: { type: 'boolean', description: 'true si la question porte sur l\'historique (ce qui était vrai avant) : les faits remplacés sont alors inclus' },
       type: { type: 'string', enum: ['decision', 'information', 'engagement', 'savoir'] },
       type_entite: { type: 'string', enum: ['dossier', 'projet', 'agent', 'agence', 'investisseur', 'ville'] },
       entite_id: { type: 'string', description: 'l\'identifiant de la fiche (deal_id, projet_id, id de l\'agent ou de l\'agence), si connu' },
@@ -1051,7 +1054,7 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (user?.role !== 'admin') return { ok: false, error: 'L’Intelligence est réservée à l\'équipe.' };
     const pour = (f) => ({ date: String(f.date).slice(0, 10), type: f.type, resume: f.resume, personne: f.personne, citation: f.citation, echeance: f.echeance, fiches: f.fiches.map((x) => x.libelle), source: f.source ? `${f.source.type}${f.source.titre ? ` « ${f.source.titre} »` : ''}, ${String(f.source.date).slice(0, 10)}${f.source.auteur ? `, par ${f.source.auteur}` : ''}` : null, source_id: f.source?.id || null });
     if (name === 'layer_chercher') {
-      const faits = C.chercher(input || {}, { par: user?.email });
+      const faits = await C.chercher(input || {}, { par: user?.email });
       return { ok: true, faits: faits.map(pour), nombre: faits.length, ...(faits.length ? {} : { rien: 'Aucun fait validé ne répond. Dis-le tel quel, n\'invente pas, et propose de noter l\'information si la personne la connaît.' }), a_valider: C.nombreAValider() };
     }
     if (name === 'layer_fiche') return { ok: true, faits: C.historique(input.type_entite, input.id).map(pour) };

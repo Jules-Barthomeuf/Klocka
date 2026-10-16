@@ -635,6 +635,18 @@ ses collègues ou, pour une agence, ses agents, qui s'ouvrent à la suite
 (« Retour ») ; l'Intelligence ; les coordonnées en dernier. Rien ne se
 modifie ici : la grille reste l'endroit où l'on corrige une fiche.
 
+**L'Agenda sur le Dashboard** (16 oct. 2026, Jules : « une pill comme les deux
+boîtes, avec Agenda : on clique et on voit la page »). En haut à gauche du
+Dashboard de l'équipe, une pilule au dessin de celle des boîtes mail
+(`rounded-full border-trait bg-surface-pleine`, 13,5 px, une icône calendrier de
+14 px puis « Agenda ») ; un point `ambre` quand quelque chose attend : un briefing
+à faire, ou un résumé à relire (Jules). Un clic ouvre la page Agenda. Au
+téléphone, les deux pilules se suivent sur la même ligne ; sur ordinateur, celle
+des boîtes reste dans le coin en haut à droite. L'entrée « Agenda » du menu est
+restée. Le même jour, « Reprenez là où vous en étiez » (les derniers dossiers
+et projets ouverts) est retiré du Dashboard ; « Ce qui vous attend » reste, seul
+et centré.
+
 ### L'Agenda (16 oct. 2026, « Semaine » jusqu'au même jour)
 
 Qui est là, et les briefings. Centrée (`max-w-[1100px]`), des blocs `bg-rail`

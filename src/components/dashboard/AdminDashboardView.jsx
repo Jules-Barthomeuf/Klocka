@@ -7,6 +7,7 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import Progresser from "@/components/dashboard/Progresser";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
+import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
@@ -41,8 +42,12 @@ export default function AdminDashboardView() {
               ce qui se décide ici ne part nulle part. */}
           {!conversation && (
             <>
-              <div className={`flex justify-end ${coin ? "md:hidden" : ""}`}>
-                <BoiteMail />
+              {/* L'Agenda, en haut à gauche (16 oct. 2026) ; les boîtes à sa droite au téléphone, dans le coin sur ordinateur. */}
+              <div className="flex items-center justify-between gap-3">
+                <PastilleAgenda />
+                <div className={coin ? "md:hidden" : ""}>
+                  <BoiteMail />
+                </div>
               </div>
               {coin && createPortal(<BoiteMail />, coin)}
             </>

@@ -1,6 +1,5 @@
 import React from "react";
 import { motion } from "framer-motion";
-import ReprisePlace from "./ReprisePlace";
 import CeQuiVousAttend from "@/components/dashboard/CeQuiVousAttend";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -53,14 +52,13 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
         </div>
       )}
 
-      {/* Ce qui est dû à gauche, ce qu'on avait laissé en plan à droite. Un
+      {/* Ce qui est dû, seul : « Reprenez là où vous en étiez » est retiré (16 oct. 2026, Jules). Un
           bloc vide se cache : une barre au-dessus du néant ne sépare rien. */}
       {/* Historique ouvert : une seule grande colonne à la place des deux. */}
       {!conversation && historique && <div className="mt-[9vh] max-md:mt-10">{historique}</div>}
       {!conversation && !historique && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto mt-[9vh] grid max-w-[880px] gap-x-12 gap-y-8 md:grid-cols-2 max-md:mt-10">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto mt-[9vh] grid max-w-[440px] gap-y-8 max-md:mt-10">
           <CeQuiVousAttend />
-          <ReprisePlace />
         </motion.div>
       )}
     </div>

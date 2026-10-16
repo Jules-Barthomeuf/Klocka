@@ -148,3 +148,68 @@ test('Jules : toutes les réponses, par motif, et la synthèse', async () => {
   Q.repondre(Records.list('QuestionAppel').find((x) => x.etat === 'ouverte').id, { email: MAXIME }, [{ id: Records.list('QuestionAppel').find((x) => x.etat === 'ouverte').questions[0].id, texte: 'Autre chose.' }], { estJules: true });
   assert.equal(Q.retours({ jours: 90, maintenant: T0 }).synthese.a_jour, false);
 });
+
+test('Jules voit les questions posées aux autres, en lecture seule, et en est prévenu', async () => {
+  const JULES = { email: 'jules.b@klocka.immo' };
+  const ouvertes = Q.questionsEquipe(JULES, { maintenant: T0 });
+  assert.ok(ouvertes.length >= 1);
+  assert.ok(ouvertes.every((q) => q.par !== JULES.email));
+  assert.ok(ouvertes.every((q) => q.etat !== 'obsolete'));
+  // Maxime ne voit pas celles de Nora ; il ne voit rien de l'équipe côté serveur (la route ne lui rend que les siennes).
+  const a = appel({ par: NORA, modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }] });
+  Q.surveiller({ maintenant: T0 });
+  assert.ok(Q.questionsEquipe(JULES, { maintenant: T0 }).some((q) => q.appel_id === a.id && q.par === NORA));
+  assert.ok(!Q.mesQuestions({ email: MAXIME }, { maintenant: T0 }).some((q) => q.appel_id === a.id));
+  // Un tour prévient Jules d'une question nouvelle.
+  const b = appel({ par: MAXIME, modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], le: il_y_a(120) });
+  await Q.tour({ invoke: async () => ({ resume: 'r', questions: [] }), maintenant: T0 });
+  const q = Records.list('QuestionAppel').find((x) => x.appel_id === b.id);
+  const notes = Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${q.id}`));
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].pour, 'jules.b@klocka.immo');
+  assert.match(notes[0].titre, /question à Maxime/);
+  // Les siennes ne lui sont pas annoncées deux fois.
+  const c = appel({ par: 'jules.b@klocka.immo', modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], le: il_y_a(130) });
+  await Q.tour({ invoke: async () => ({ resume: 'r', questions: [] }), maintenant: T0 });
+  const qc = Records.list('QuestionAppel').find((x) => x.appel_id === c.id);
+  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${qc.id}`)).length, 0);
+  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${qc.id}`) && n.pour === 'jules.b@klocka.immo').length, 1);
+});
+
+test('la rédaction ne pose pas de nouvelle question sur un cas déjà répondu', async () => {
+  const a = appel({ par: MAXIME, modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], temps: { valide_ms: 170000 }, le: il_y_a(140) });
+  Q.surveiller({ maintenant: T0 });
+  const q = Records.list('QuestionAppel').find((x) => x.appel_id === a.id);
+  const corr = q.questions.find((x) => x.motif === 'correction');
+  Q.repondre(q.id, { email: MAXIME }, [{ id: corr.id, texte: 'Le mail était trop long.' }]);
+  const r = await Q.rediger(q.id, { invoke: async () => ({ resume: 'r', questions: [{ motif: 'correction', texte: 'Encore une ?' }, { motif: 'trop_long', texte: 'Qu\'est-ce qui a pris du temps ?' }] }) });
+  assert.deepEqual(r.questions.filter((x) => x.motif === 'correction').map((x) => x.reponse), ['Le mail était trop long.']);
+  assert.equal(r.questions.find((x) => x.motif === 'trop_long').texte, 'Qu\'est-ce qui a pris du temps ?');
+  assert.equal(r.questions.length, 2);
+});
+
+test('relecture du 16 oct. : annonce quel que soit le chemin, réannonce d\'un motif nouveau, Jules lit sans répondre, une rédaction à la fois', async () => {
+  // Née hors d'un tour (à l'ouverture du Dashboard) : elle est quand même annoncée, une fois.
+  const a = appel({ par: NORA, etat: 'a_valider', le: il_y_a(100), temps: null });
+  Q.surveiller({ maintenant: T0 });
+  const q = Records.list('QuestionAppel').find((x) => x.appel_id === a.id);
+  assert.ok((await Q.annoncer()) >= 1);
+  const pour = (n) => Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel:${q.id}:`) && x.pour === n).length;
+  assert.equal(pour(NORA), 1);
+  assert.equal(Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel-jules:${q.id}:`)).length, 1);
+  await Q.annoncer();
+  assert.equal(pour(NORA), 1);
+  // Validé une heure plus tard : « pas validé » s'efface, « validation longue » arrive ; même nombre de motifs, réannoncée.
+  Records.update('AppelAgent', a.id, { etat: 'valide', temps: { valide_ms: 3600000 } });
+  Q.surveiller({ maintenant: T0 });
+  assert.deepEqual(Records.get('QuestionAppel', q.id).motifs, ['trop_long']);
+  await Q.annoncer();
+  assert.equal(pour(NORA), 2);
+  // Jules ne répond pas à la place de Nora.
+  assert.equal(Q.repondre(q.id, { email: 'jules.b@klocka.immo' }, [{ id: Records.get('QuestionAppel', q.id).questions[0].id, texte: 'x' }]).ok, false);
+  // Deux rédactions lancées ensemble : un seul appel au modèle.
+  let appels = 0;
+  const lent = async () => { appels += 1; await new Promise((r) => setTimeout(r, 30)); return { resume: 'r', questions: [] }; };
+  await Promise.all([Q.rediger(q.id, { invoke: lent }), Q.rediger(q.id, { invoke: lent })]);
+  assert.equal(appels, 1);
+});

@@ -226,9 +226,16 @@ Français simple, sans tiret long, sans gras.`;
  * questions modèles encore sans réponse. Ne lève jamais ; ne touche jamais à
  * une question déjà répondue.
  */
+const enRedaction = new Set();
 export async function rediger(id, { invoke = null } = {}) {
+  if (enRedaction.has(id)) return null;
   const q = Records.get(ENTITE, id);
   if (!q || q.etat !== 'ouverte') return null;
+  enRedaction.add(id);
+  try { return await redigerUne(id, q, { invoke }); } finally { enRedaction.delete(id); }
+}
+
+async function redigerUne(id, q, { invoke }) {
   const appel = Records.get(APPEL, q.appel_id);
   if (!appel) return null;
   Records.update(ENTITE, id, { ia_essais: (q.ia_essais || 0) + 1 });
@@ -247,12 +254,10 @@ export async function rediger(id, { invoke = null } = {}) {
     const questions = [];
     for (const m of frais.motifs) {
       const gardees = frais.questions.filter((x) => x.motif === m);
+      // Un motif déjà répondu ne reçoit pas de nouvelle question ; sans texte du modèle, on garde les questions modèles.
+      if ((gardees.length && gardees.every((x) => x.reponse)) || !(par[m] || []).length) { questions.push(...gardees); continue; }
       const repondues = gardees.filter((x) => x.reponse);
-      const texte = par[m] || [];
-      // Les réponses restent ; les questions sans réponse prennent le texte du modèle, dans l'ordre.
-      questions.push(...repondues);
-      texte.forEach((t, k) => { if (repondues.length + k < Math.max(texte.length, 1) + repondues.length) questions.push({ id: unId(frais.appel_id, m, repondues.length + k + 1), motif: m, texte: t, reponse: null, repondue_le: null }); });
-      if (!texte.length && !repondues.length) questions.push(...gardees);
+      questions.push(...repondues, ...par[m].map((t, k) => ({ id: unId(frais.appel_id, m, repondues.length + k + 1), motif: m, texte: t, reponse: null, repondue_le: null })));
     }
     return Records.update(ENTITE, id, { questions: questions.length ? questions : frais.questions, resume: court(r?.resume, 600) || frais.resume || null, ia: true });
   } catch (e) {
@@ -261,9 +266,9 @@ export async function rediger(id, { invoke = null } = {}) {
   }
 }
 
-/** Rédige, en tâche de fond, les questions qui n'ont que leur texte modèle (deux essais au plus, deux minutes après leur naissance). */
+/** Rédige, en tâche de fond, les questions qui n'ont que leur texte modèle (deux essais au plus). */
 export async function redigerLesNouvelles({ invoke = null, maintenant = new Date(), max = 4 } = {}) {
-  const a = Records.list(ENTITE).filter((q) => q.etat === 'ouverte' && !q.ia && (q.ia_essais || 0) < 2 && maintenant - new Date(q.cree_le) >= (invoke ? 0 : 0)).slice(0, max);
+  const a = Records.list(ENTITE).filter((q) => q.etat === 'ouverte' && !q.ia && (q.ia_essais || 0) < 2).slice(0, max);
   let n = 0;
   for (const q of a) { if (await rediger(q.id, { invoke })) n += 1; }
   return n;
@@ -293,11 +298,25 @@ export function mesQuestions(user, { maintenant = new Date(), limite = 3 } = {})
     .slice(0, limite).map((q) => vue(q));
 }
 
-/** `user` répond (à toutes les questions, ou à quelques-unes). Seule la personne concernée, ou Jules, répond. */
-export function repondre(id, user, reponses, { estJules = false, maintenant = new Date() } = {}) {
+/**
+ * Pour Jules (16 oct. 2026) : les questions posées aux autres, en lecture seule,
+ * pour voir ce que les analystes voient et tester : les sans réponse, et celles
+ * répondues depuis sept jours ; la plus récente d'abord.
+ */
+export function questionsEquipe(user, { maintenant = new Date(), limite = 12 } = {}) {
+  const e = bas(user?.email);
+  const depuis = new Date(maintenant.getTime() - 7 * 86400000).toISOString();
+  return Records.list(ENTITE)
+    .filter((q) => q.par !== e && (q.etat === 'ouverte' || (q.etat === 'repondue' && String(q.repondue_le || q.maj_le || q.cree_le) >= depuis)))
+    .sort((a, b) => String(b.le_appel).localeCompare(String(a.le_appel)))
+    .slice(0, limite).map((q) => vue(q));
+}
+
+/** `user` répond (à toutes les questions, ou à quelques-unes). Seule la personne concernée répond : Jules lit (16 oct. 2026). */
+export function repondre(id, user, reponses, { maintenant = new Date() } = {}) {
   const q = Records.get(ENTITE, id);
   if (!q) return { ok: false, error: 'Question introuvable.' };
-  if (q.par !== bas(user?.email) && !estJules) return { ok: false, error: 'Cette question est pour quelqu\'un d\'autre.' };
+  if (q.par !== bas(user?.email)) return { ok: false, error: 'Cette question est pour quelqu\'un d\'autre.' };
   const par = new Map((reponses || []).map((r) => [String(r.id), String(r.texte || '').trim().slice(0, 4000)]));
   let n = 0;
   const questions = q.questions.map((x) => {
@@ -352,7 +371,7 @@ export function retours({ jours = 30, maintenant = new Date() } = {}) {
   try { synthese = JSON.parse(Meta.get(CLE_SYNTHESE) || 'null'); } catch { synthese = null; }
   return {
     jours, total: tout.length, ouvertes: tout.filter((q) => q.etat === 'ouverte').length, repondues: tout.filter((q) => q.etat === 'repondue').length,
-    par_motif: parMotif, analystes, synthese: synthese ? { ...synthese, a_jour: synthese.n_reponses === questions.filter((x) => x.reponse).length } : null,
+    par_motif: parMotif, analystes, synthese: synthese ? { ...synthese, a_jour: synthese.n_reponses === Records.list(ENTITE).reduce((t, q) => t + q.questions.filter((x) => x.reponse).length, 0) } : null,
     seuil_validation_s: SEUIL_VALIDATION_MS / 1000,
     questions: tout.slice(0, 120).map((q) => vue(q, { complet: true })),
   };
@@ -402,17 +421,41 @@ Français simple, sans tiret long.`;
 
 // --- Le tour --------------------------------------------------------------------------------
 
-/** Un tour : surveille, prévient les analystes des questions nouvelles, rédige, efface les écrans de plus de 30 jours. */
+/** Pure : la clé de ce qui a été annoncé (les motifs, triés) : un motif nouveau se réannonce. */
+export const cleAnnonce = (q) => [...(q.motifs || [])].sort().join(',');
+
+/**
+ * Prévient l'analyste, et Jules, de chaque question ouverte pas encore annoncée
+ * pour ses motifs actuels. Appelée à chaque surveillance (Dashboard, tour) :
+ * une question née à l'ouverture du Dashboard est annoncée comme les autres.
+ */
+export async function annoncer() {
+  const { notifier } = await import('../notifications.js');
+  const { SUPER_ADMINS } = await import('../acces-pages.js');
+  const juleses = SUPER_ADMINS.filter((x) => x.endsWith('@klocka.immo'));
+  let n = 0;
+  for (const q of Records.list(ENTITE).filter((x) => x.etat === 'ouverte' && x.annonce !== cleAnnonce(x))) {
+    const cle = cleAnnonce(q);
+    const quoi = `${q.agence || q.agent || 'Un appel'} : ${q.motifs.map((m) => MOTIFS[m].toLowerCase()).join(', ')}`;
+    notifier({ pour: q.par, titre: 'AK a une question sur un de tes appels', texte: `${quoi}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${cle}` });
+    // Jules reçoit aussi chaque question posée aux analystes (il n'y répond pas : il voit et il teste).
+    for (const j of juleses.filter((x) => x !== q.par)) {
+      notifier({ pour: j, titre: `AK a posé une question à ${q.par.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase())}`, texte: `${quoi}. Tu la vois sur ton Dashboard, avec son écran.`, lien: '/Dashboard', cle: `question-appel-jules:${q.id}:${cle}:${j}` });
+    }
+    Records.update(ENTITE, q.id, { annonce: cle });
+    n += 1;
+  }
+  return n;
+}
+
+/** Un tour : surveille, annonce, rédige, efface les écrans de plus de 30 jours. */
 export async function tour({ invoke = null, maintenant = new Date() } = {}) {
   const { crees, rouvertes } = surveiller({ maintenant });
-  const { notifier } = await import('../notifications.js');
-  for (const q of [...crees, ...rouvertes]) {
-    notifier({ pour: q.par, titre: 'AK a une question sur un de tes appels', texte: `${q.agence || q.agent || 'Un appel'} : ${q.motifs.map((m) => MOTIFS[m].toLowerCase()).join(', ')}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${q.motifs.length}` });
-  }
+  const annoncees = await annoncer();
   const redigees = await redigerLesNouvelles({ invoke, maintenant });
   let purges = 0;
   try { purges = (await import('../enregistrements-ecran.js')).purger({ maintenant }); } catch { /* le tour ne s'arrête pas pour un fichier */ }
-  return { crees: crees.length, rouvertes: rouvertes.length, redigees, purges };
+  return { crees: crees.length, rouvertes: rouvertes.length, annoncees, redigees, purges };
 }
 
 /** Sur Render (ou avec QUESTIONS_APPELS=true) : un tour toutes les cinq minutes. */

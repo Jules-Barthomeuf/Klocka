@@ -295,6 +295,9 @@ export default function SuiviAppels({ dansProspection = false }) {
     mutationFn: (quoi) => base44.request("POST", `/api/monitoring/appels/${quoi}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["suivi-appels"] }),
   });
+  // L'onglet Retours : Jules seul (le serveur le dit, avec les questions de son Dashboard).
+  const qa = useQuery({ queryKey: ["questions-appels"], queryFn: () => base44.request("GET", "/api/questions-appels"), retry: false, staleTime: 60000 });
+  const retoursOuverts = !!qa.data?.jules;
   const { data, isLoading, error } = useQuery({
     queryKey: ["suivi-appels", jours, dansProspection],
     queryFn: () => base44.request("GET", `${base}?jours=${jours}`),
@@ -330,7 +333,7 @@ export default function SuiviAppels({ dansProspection = false }) {
         {/* Avant le 13 octobre, c'était de l'essai (16 oct. 2026, Jules) : rien n'est compté avant. */}
         {data?.debut_mesures && !data?.remise_a_zero && <p className="m-0 mb-4 text-[12.5px] text-brume">Compté à partir du 13 octobre : avant, les appels étaient des essais.</p>}
         <div className="mb-6 flex gap-5 border-b border-trait">
-          {VUES.filter(([k]) => k !== "retours" || !dansProspection).map(([k, mot]) => (
+          {VUES.filter(([k]) => k !== "retours" || (!dansProspection && retoursOuverts)).map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setVue(k)} className={`-mb-px border-b-[1.5px] pb-2 text-[13.5px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
           ))}
         </div>

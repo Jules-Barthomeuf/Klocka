@@ -26,12 +26,14 @@ export function monterQuestionsAppels(app) {
     const user = equipe(req, res); if (!user) return;
     const M = await Q();
     const { crees, rouvertes } = M.surveillerSiBesoin();
-    if (crees.length || rouvertes.length) M.redigerLesNouvelles().catch(() => {});
-    ok(res, { questions: M.mesQuestions(user) });
+    if (crees.length || rouvertes.length) { await M.annoncer(); M.redigerLesNouvelles().catch(() => {}); }
+    // Jules voit aussi celles des analystes, en lecture seule (il teste) ; `jules` ouvre l'onglet Retours du Suivi.
+    const j = await estJules(user);
+    ok(res, { questions: M.mesQuestions(user), equipe: j ? M.questionsEquipe(user) : [], jules: j });
   }));
   app.post('/api/questions-appels/:id/reponse', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
-    const r = (await Q()).repondre(req.params.id, user, req.body?.reponses || [], { estJules: await estJules(user) });
+    const r = (await Q()).repondre(req.params.id, user, req.body?.reponses || []);
     if (!r.ok) return res.status(400).json(r);
     ok(res, r);
   }));
@@ -46,7 +48,9 @@ export function monterQuestionsAppels(app) {
     const user = equipe(req, res); if (!user) return;
     const r = await (await Q()).fichierEcran(req.params.id, user, { estJules: await estJules(user) });
     if (r.erreur) return res.status(r.erreur).json({ error: r.message });
-    const taille = fs.statSync(r.chemin).size;
+    let taille;
+    // Effacé entre-temps (la purge des 30 jours) : 404, pas 500.
+    try { taille = fs.statSync(r.chemin).size; } catch { return res.status(404).json({ error: 'L\'enregistrement n\'est plus sur le serveur (gardé 30 jours).' }); }
     res.set({ 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Content-Length': String(taille), 'Cache-Control': 'private, max-age=3600' });
     fs.createReadStream(r.chemin).on('error', () => res.destroy()).pipe(res);
   }));

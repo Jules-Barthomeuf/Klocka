@@ -155,9 +155,10 @@ export function jetonValide(jeton) {
 
 /**
  * Pose les webhooks sur les deux tableaux (statut et commentaires). À lancer à
- * la main, une fois, depuis Render : `npm run layer:monday -- https://klocka-unus.onrender.com`.
+ * la main, une fois : `npm run layer:monday` (adresse par défaut : https://app.klocka.immo, URL_PUBLIQUE).
  */
-export async function brancherWebhooks(base, { graphql = null } = {}) {
+export async function brancherWebhooks(base = null, { graphql = null } = {}) {
+  if (!base) base = (await import('./contexte.js')).URL_CANONIQUE;
   const jeton = (process.env.MONDAY_WEBHOOK_JETON || '').trim();
   if (!jeton) throw new Error('MONDAY_WEBHOOK_JETON manque.');
   const url = `${String(base).replace(/\/$/, '')}/api/layer/monday/webhook?jeton=${encodeURIComponent(jeton)}`;
@@ -192,7 +193,5 @@ export function importerMails({ jours = 92 } = {}) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const base = process.argv[2];
-  if (!base) { console.error('Usage : node server/layer-sources.js https://klocka-unus.onrender.com'); process.exit(1); }
-  brancherWebhooks(base).then((r) => { console.log(JSON.stringify(r, null, 2)); process.exit(0); }).catch((e) => { console.error(e.message); process.exit(1); });
+  brancherWebhooks(process.argv[2] || null).then((r) => { console.log(JSON.stringify(r, null, 2)); process.exit(0); }).catch((e) => { console.error(e.message); process.exit(1); });
 }

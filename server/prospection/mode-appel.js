@@ -1347,9 +1347,13 @@ function ficheEssai(a) {
  * Ouvre un essai : la liste fictive, remise à zéro (les fiches reviennent à
  * « à appeler », les appels d'avant ne comptent plus), puis une session.
  */
+// Un essai à chacun (16 oct. 2026, Jules : « ils doivent avoir le même écran que moi pour Essai ») : chaque
+// personne a sa liste et ses quatre agences fictives. Partagées, elles se remettaient à zéro ou se trouvaient
+// « toutes appelées » quand un collègue jouait les siennes.
 export function ouvrirEssai(user) {
-  let l = Records.list(LISTE).find((x) => x.essai);
-  if (!l) l = Records.create(LISTE, { ville: 'Essai', essai: true, etat: 'fini', journal: [], lancee_le: maintenant() });
+  const moi = String(user?.email || '').toLowerCase() || null;
+  let l = Records.list(LISTE).find((x) => x.essai && (x.essai_par || null) === moi);
+  if (!l) l = Records.create(LISTE, { ville: 'Essai', essai: true, essai_par: moi, etat: 'fini', journal: [], lancee_le: maintenant() });
   const existantes = Records.list(AGENCE).filter((a) => a.liste_id === l.id);
   for (const modele of AGENCES_ESSAI) {
     const a = existantes.find((x) => x.nom === modele.nom);

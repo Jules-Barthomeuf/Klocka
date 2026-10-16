@@ -59,3 +59,16 @@ test('Il rappelle tout de suite : l’appel est noté, rien d’autre', async ()
   assert.ok(Records.list('AppelAgent').some((x) => x.agence_id === ag.id), 'l’appel est dans la base');
   assert.notEqual(Records.get('AgenceProspect', ag.id).hors_cible, true, 'elle reste dans la file');
 });
+
+test('un essai à chacun : ses propres agences fictives, que l’essai d’un collègue ne touche pas', () => {
+  const maxime = { email: 'maxime.p@klocka.immo', role: 'admin' };
+  const a = MA.ouvrirEssai(nora);
+  const b = MA.ouvrirEssai(maxime);
+  assert.notEqual(a.session.liste_id, b.session.liste_id);
+  const deNora = Records.list('AgenceProspect').filter((x) => x.liste_id === a.session.liste_id);
+  assert.equal(deNora.length, 4);
+  Records.update('AgenceProspect', deNora[0].id, { pour: ['nora.l@klocka.immo'] });
+  MA.ouvrirEssai(maxime);
+  assert.deepEqual(Records.get('AgenceProspect', deNora[0].id).pour, ['nora.l@klocka.immo'], 'l’essai de Maxime ne remet pas celui de Nora à zéro');
+  assert.equal(MA.ouvrirEssai(nora).session.liste_id, a.session.liste_id, 'la même liste revient');
+});

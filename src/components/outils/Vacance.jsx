@@ -4,6 +4,7 @@ import { Search, X, ChevronDown, Loader2, SlidersHorizontal, PanelRightClose, Pa
 import { base44 } from "@/api/base44Client";
 import CarteVacance from "@/components/outils/CarteVacance";
 import PanneauTaux from "@/components/outils/PanneauTaux";
+import PanneauRue, { nomDeRue } from "@/components/outils/PanneauRue";
 import { CATEGORIES, TYPES_SIGNAL, CLES_CATEGORIES, CLES_TYPES, RAYON, motType, motCategorie, adresseLisible } from "@/lib/vacance-signaux";
 
 // Vacance (spec du 13 oct. 2026) : autour d'une adresse, les événements
@@ -33,7 +34,9 @@ function lireUrl(sp) {
   if (!Number.isFinite(lon) || !Number.isFinite(lat) || !sp.get("lon")) return null;
   const liste = (v, toutes) => (v ? v.split(",").filter((x) => toutes.includes(x)) : toutes);
   return {
-    adresse: { label: sp.get("q") || "", lon, lat, citycode: sp.get("commune") || null, postcode: sp.get("cp") || null, city: sp.get("ville") || null },
+    adresse: { label: sp.get("q") || "", lon, lat, citycode: sp.get("commune") || null, postcode: sp.get("cp") || null, city: sp.get("ville") || null, street: sp.get("rue") || null },
+    portee: sp.get("portee") === "rue" ? "rue" : "zone",
+    rue: sp.get("rue") || null,
     rayon: Math.min(RAYON.max, Math.max(RAYON.min, Number(sp.get("rayon")) || RAYON.defaut)),
     categories: liste(sp.get("cat"), CLES_CATEGORIES),
     types: liste(sp.get("types"), CLES_TYPES),
@@ -41,6 +44,14 @@ function lireUrl(sp) {
     dateMax: sp.get("max") || "",
   };
 }
+
+/** La rue de l'adresse choisie : celle de la proposition, sinon lue dans son libellé (« 12 Rue Gambetta 33500 Libourne »). */
+const rueDe = (a) => {
+  if (!a) return null;
+  if (a.street) return a.street;
+  const t = String(a.label || "").replace(/\s+\d{5}.*$/, "").replace(/^\d+\s*(bis|ter|quater|[btq])?\s+/i, "").trim();
+  return t || null;
+};
 
 /** Une puce de filtre, cochée ou non, avec sa croix quand elle l'est. */
 function Puce({ mot, cochee, onBascule }) {
@@ -109,6 +120,25 @@ export default function Vacance() {
     } catch (e) { setTauxErreur(e?.message || "Le taux n'a pas pu être mesuré."); setTauxAttente(false); }
   }, []);
 
+  // --- La vacance d'une rue entière, par tronçon (16 oct. 2026, Jules : « par tronçon, en gros par rue, pas forcément par zone »). ---
+  const [portee, setPortee] = useState(initial?.portee || "zone");
+  const [rue, setRue] = useState(null);
+  const [rueErreur, setRueErreur] = useState(null);
+  const [rueAttente, setRueAttente] = useState(false);
+  const [rueVoie, setRueVoie] = useState(initial?.rue || null);
+  const [tronconChoisi, setTronconChoisi] = useState(null);
+  const [localRue, setLocalRue] = useState(null);
+  const sondageRue = useRef(null);
+  useEffect(() => () => clearTimeout(sondageRue.current), []);
+  const mesurerRue = useCallback(async (commune, voie) => {
+    clearTimeout(sondageRue.current);
+    try {
+      const d = await base44.request("GET", `/api/outils/vacance/taux-rue?${new URLSearchParams({ commune: commune || "", voie })}`);
+      if (d.etat === "chargement") { sondageRue.current = setTimeout(() => mesurerRue(commune, voie), 4000); return; }
+      setRue(d); setRueAttente(false);
+    } catch (e) { setRueErreur(e?.message || "La rue n'a pas pu être mesurée."); setRueAttente(false); }
+  }, []);
+
   // --- Autocomplétion : dès trois caractères, 250 ms après la dernière frappe, cinq propositions. ---
   useEffect(() => {
     const q = texte.trim();
@@ -139,13 +169,14 @@ export default function Vacance() {
     arreterSondage();
     setAdresse(null); setResultats(null); setParametresLances(null); setChoisi(null); setErreur(null); setChargement(false); setProgression(null);
     clearTimeout(sondageTaux.current); setTaux(null); setTauxErreur(null); setTauxAttente(false);
+    clearTimeout(sondageRue.current); setRue(null); setRueErreur(null); setRueAttente(false); setRueVoie(null); setTronconChoisi(null); setLocalRue(null);
     setSp({}, { replace: true });
     setTimeout(() => champ.current?.focus(), 0);
   };
 
   const bascule = (set, cle) => (prev) => { const n = new Set(prev); if (n.has(cle)) n.delete(cle); else n.add(cle); return n; };
   const datesInversees = !!(dateMin && dateMax && dateMin > dateMax);
-  const peutLancer = !!adresse && categories.size > 0 && types.size > 0 && !datesInversees && !chargement;
+  const peutLancer = portee === "rue" ? !!adresse && !!(rueVoie || rueDe(adresse)) && !rueAttente : !!adresse && categories.size > 0 && types.size > 0 && !datesInversees && !chargement;
 
   const parametres = useCallback(() => ({
     lon: adresse?.lon, lat: adresse?.lat, rayon_m: rayon,
@@ -182,8 +213,30 @@ export default function Vacance() {
     }
   }, []);
 
+  // Mesurer toute une rue : ni rayon ni signaux, la voie entière et ses tronçons.
+  const lancerRue = useCallback((voie) => {
+    if (!adresse || !voie) return;
+    arreterSondage(); clearTimeout(sondageTaux.current);
+    setErreur(null); setChoisi(null); setChargement(false); setProgression(null); setResultats(null); setParametresLances(null);
+    setTaux(null); setTauxErreur(null); setTauxAttente(false);
+    setRue(null); setRueErreur(null); setRueAttente(true); setTronconChoisi(null); setLocalRue(null); setRueVoie(voie); setPortee("rue"); setListeOuverte(true);
+    mesurerRue(adresse.citycode, voie);
+    setSp({ q: adresse.label, lon: String(adresse.lon), lat: String(adresse.lat), commune: adresse.citycode || "", cp: adresse.postcode || "", ville: adresse.city || "", portee: "rue", rue: voie }, { replace: true });
+  }, [adresse, setSp, mesurerRue]);
+
+  // Passer de la zone à la rue (ou l'inverse) repart d'une carte propre : rien de l'autre mesure ne reste affiché.
+  const basculerPortee = (p) => {
+    if (p === portee) return;
+    arreterSondage(); clearTimeout(sondageTaux.current); clearTimeout(sondageRue.current);
+    setResultats(null); setParametresLances(null); setChoisi(null); setErreur(null); setChargement(false); setProgression(null);
+    setTaux(null); setTauxErreur(null); setTauxAttente(false);
+    setRue(null); setRueErreur(null); setRueAttente(false); setTronconChoisi(null); setLocalRue(null);
+    setPortee(p);
+  };
+
   const lancer = useCallback(() => {
     if (!adresse) return;
+    if (portee === "rue") { lancerRue(rueVoie || rueDe(adresse)); return; }
     const p = parametres();
     arreterSondage();
     setErreur(null); setChoisi(null); setChargement(true); setProgression(null);
@@ -195,7 +248,7 @@ export default function Vacance() {
       rayon: String(rayon), cat: p.categories, types: p.types, ...(dateMin ? { min: dateMin } : {}), ...(dateMax ? { max: dateMax } : {}),
     }, { replace: true });
     interroger(p);
-  }, [adresse, parametres, rayon, dateMin, dateMax, interroger, setSp, mesurerTaux]);
+  }, [adresse, portee, rueVoie, lancerRue, parametres, rayon, dateMin, dateMax, interroger, setSp, mesurerTaux]);
 
   // Une adresse de page complète : la recherche part d'elle-même, c'est son sens.
   useEffect(() => { if (initial?.adresse?.lon) lancer(); }, []);
@@ -206,14 +259,28 @@ export default function Vacance() {
   const donneesAnciennes = resultats?.zone?.chargee_le && (Date.now() - Date.parse(resultats.zone.chargee_le) > 48 * 3600 * 1000 || resultats.zone.erreur);
 
   const ouvrir = (l) => { setChoisi(l); setCible(l); };
+  // La carte se cadre sur la rue entière, ou sur le tronçon choisi.
+  const cadreRue = useMemo(() => {
+    if (!rue?.locaux?.length) return null;
+    const t = rue.troncons?.find((x) => x.rang === tronconChoisi);
+    const cles = t ? new Set(t.cles) : null;
+    const pts = rue.locaux.filter((l) => !cles || cles.has(l.cle));
+    if (!pts.length) return null;
+    const lats = pts.map((l) => l.lat); const lons = pts.map((l) => l.lon);
+    return [[Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]];
+  }, [rue, tronconChoisi]);
+  const panneauRue = portee === "rue" && !!(rue || rueAttente || rueErreur);
+  const panneauZone = portee === "zone" && !!resultats;
   // Le point choisi : sa ligne passe en tête du tableau (14 oct. 2026, Jules), le reste garde son ordre.
   const lignesTableau = useMemo(() => (choisi ? [...locaux.filter((l) => l.cle === choisi.cle), ...locaux.filter((l) => l.cle !== choisi.cle)] : locaux), [locaux, choisi?.cle]);
 
   const sousTitre = !adresse
     ? "Saisissez une adresse et lancez une recherche pour afficher les signaux."
-    : !resultats && !chargement
-      ? "Cliquez sur « Lancer » pour afficher les signaux."
-      : null;
+    : portee === "rue"
+      ? (!rue && !rueAttente && !rueErreur ? "Cliquez sur « Lancer » pour mesurer la vacance de toute la rue, tronçon par tronçon." : null)
+      : !resultats && !chargement
+        ? "Cliquez sur « Lancer » pour afficher les signaux."
+        : null;
 
   return (
     <div className="flex min-h-[100dvh] flex-col">
@@ -271,8 +338,24 @@ export default function Vacance() {
             </span>
           )}
 
-          {/* Le rayon : curseur et champ, en mètres, synchronisés. */}
+          {/* La portée (16 oct. 2026) : autour de l'adresse (un rayon) ou sur toute sa rue (par tronçon). */}
           {adresse && (
+            <div role="group" aria-label="Portée de la mesure" className="inline-flex h-10 items-center rounded-full bg-rail-actif p-1">
+              {[["zone", "Autour de l'adresse"], ["rue", "Sur la rue"]].map(([k, mot]) => (
+                <button key={k} type="button" onClick={() => basculerPortee(k)} aria-pressed={portee === k}
+                  className={`h-8 rounded-full px-3.5 text-[13px] transition-colors ${portee === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={portee === k ? undefined : { background: "transparent" }}>{mot}</button>
+              ))}
+            </div>
+          )}
+          {adresse && portee === "rue" && (
+            <span className="inline-flex h-10 max-w-[320px] items-center gap-2 rounded-champ border border-trait px-3 text-[13.5px] text-craie" title="La rue entière, d'un bout à l'autre, sans rayon">
+              <span className="text-[11px] uppercase tracking-[.14em] text-brume">Rue</span>
+              <span className="truncate text-encre">{nomDeRue(rueVoie || rueDe(adresse)) || "—"}</span>
+            </span>
+          )}
+
+          {/* Le rayon : curseur et champ, en mètres, synchronisés. */}
+          {adresse && portee === "zone" && (
             <label className="inline-flex h-10 items-center gap-2.5 rounded-champ border border-trait px-3 text-[12.5px] text-ardoise">
               <span className="uppercase tracking-[.14em] text-brume">Rayon</span>
               <input type="range" min={RAYON.min} max={RAYON.max} step={RAYON.pas} value={rayon} onChange={(e) => setRayon(Number(e.target.value))} aria-label="Rayon en mètres" className="k-vacance-curseur w-[120px] md:w-[160px]" />
@@ -288,7 +371,7 @@ export default function Vacance() {
           )}
 
           {/* Le type de bien : des puces, toutes cochées au départ, et la flèche pour la liste complète. */}
-          <div className="relative flex flex-wrap items-center gap-1.5">
+          <div className={`relative flex flex-wrap items-center gap-1.5 ${portee === "rue" ? "hidden" : ""}`}>
             {CATEGORIES.filter((c) => categories.has(c.cle)).map((c) => (
               <Puce key={c.cle} mot={c.mot} cochee onBascule={() => setCategories(bascule(setCategories, c.cle))} />
             ))}
@@ -309,7 +392,7 @@ export default function Vacance() {
             {categories.size === 0 && !listeTypes && <span className="text-[12.5px] text-alerte">Cochez au moins un type de bien.</span>}
           </div>
 
-          <button type="button" onClick={() => setFiltresOuverts((v) => !v)} aria-expanded={filtresOuverts} className={`${BOUTON_SECONDAIRE} ${filtresOuverts ? "border-menthe text-encre" : ""}`} style={{ background: "transparent" }}>
+          <button type="button" onClick={() => setFiltresOuverts((v) => !v)} aria-expanded={filtresOuverts} className={`${BOUTON_SECONDAIRE} ${filtresOuverts ? "border-menthe text-encre" : ""} ${portee === "rue" ? "hidden" : ""}`} style={{ background: "transparent" }}>
             <SlidersHorizontal className="h-4 w-4" strokeWidth={1.7} />
             + de filtres
             {(types.size !== CLES_TYPES.length || dateMin || dateMax) && <span className="ml-0.5 rounded-full bg-menthe px-1.5 text-[11px] font-medium text-sur-menthe">{(types.size !== CLES_TYPES.length ? 1 : 0) + (dateMin || dateMax ? 1 : 0)}</span>}
@@ -321,13 +404,13 @@ export default function Vacance() {
             disabled={!peutLancer}
             className={`ml-auto inline-flex h-10 items-center gap-2 rounded-full px-5 text-[14px] transition-colors ${peutLancer ? `bg-menthe text-sur-menthe hover:bg-menthe-survol ${modifie ? "ring-2 ring-menthe/40 ring-offset-2 ring-offset-fond" : ""}` : "cursor-not-allowed bg-relief text-brume"}`}
           >
-            {chargement ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Search className="h-4 w-4" strokeWidth={1.8} />}
+            {chargement || rueAttente ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Search className="h-4 w-4" strokeWidth={1.8} />}
             Lancer
           </button>
         </div>
 
         {/* Les filtres avancés : les types de signal, les dates. Rien ne part d'ici. */}
-        {filtresOuverts && (
+        {filtresOuverts && portee === "zone" && (
           <div className="animate-in fade-in slide-in-from-top-1 duration-150 grid gap-4 border-t border-trait py-3 md:grid-cols-[1fr_auto]">
             <div>
               <p className="m-0 mb-2 text-[11px] uppercase tracking-[.14em] text-brume">Type de signal</p>
@@ -388,16 +471,17 @@ export default function Vacance() {
             onChoisir={(l) => { setChoisi(l); }}
             survol={survol}
             onSurvol={setSurvol}
-            cible={cible}
+            cible={portee === "rue" ? localRue : cible}
+            rue={portee === "rue" && rue?.locaux ? { locaux: rue.locaux, troncons: rue.troncons, tronconChoisi, onTroncon: setTronconChoisi, choisi: localRue, onChoisir: setLocalRue, cadre: cadreRue } : null}
           />
-          {resultats && !listeOuverte && (
+          {(panneauZone || panneauRue) && !listeOuverte && (
             <button type="button" onClick={() => setListeOuverte(true)} aria-label="Ouvrir la liste" title="Ouvrir la liste" className="absolute right-3 top-3 z-[400] grid h-9 w-9 place-items-center rounded-full border border-bord bg-surface-pleine text-ardoise hover:text-encre">
               <PanelRightOpen className="h-4 w-4" strokeWidth={1.7} />
             </button>
           )}
         </div>
 
-        {resultats && listeOuverte && (
+        {(panneauZone || panneauRue) && listeOuverte && (
           <aside className="flex w-[360px] flex-none flex-col border-l border-trait bg-rail max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:z-[450] max-md:h-[46%] max-md:w-auto max-md:border-l-0 max-md:border-t">
             {/* Le panneau : le taux de vacance seul (14 oct. 2026 : le compte des signaux retiré). */}
             <div className="flex flex-none justify-end px-2 pt-2">
@@ -406,7 +490,9 @@ export default function Vacance() {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <PanneauTaux taux={taux} attente={tauxAttente} erreur={tauxErreur} />
+              {panneauRue
+                ? <PanneauRue rue={rue} attente={rueAttente} erreur={rueErreur} tronconChoisi={tronconChoisi} onTroncon={setTronconChoisi} onLocal={setLocalRue} localChoisi={localRue} />
+                : <PanneauTaux taux={taux} attente={tauxAttente} erreur={tauxErreur} onRue={adresse ? lancerRue : null} />}
             </div>
           </aside>
         )}

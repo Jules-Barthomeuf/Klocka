@@ -18,6 +18,7 @@ export const NOUVEAUTES = [
       { titre: "Outils", texte: "K-Data s'appelle Outils, et Signaux de vacance y a rejoint les autres.", page: "KData" },
       { titre: "Agenda", texte: "Qui est là cette semaine. Un clic sur un jour : un briefing pour qui revient, ou pour ceux qui restent quand vous partez. Il le lit ce jour-là, dans son Agenda.", page: "Semaine" },
       { titre: "AK vous pose des questions sur vos appels", texte: "Un appel corrigé, pas validé, validé sans appel ou validé trop lentement : votre écran pendant l'appel est rejoué sur le Dashboard, avec un résumé et deux ou trois questions. Vos réponses servent à améliorer le module.", page: "Dashboard" },
+      { titre: "La vacance, rue par rue", texte: "Dans Vacance, « Sur la rue » mesure toute une rue d'un bout à l'autre et la coupe en tronçons : on voit lequel est le plus vide, et les locaux à regarder.", page: "Outils" },
       { titre: "La fiche d'un agent", texte: "Un clic sur son nom : combien de fois on s'est parlé, ses fiches reçues, ce qu'il nous dit souvent et les actions à proposer.", page: "Prospection" },
     ],
   },

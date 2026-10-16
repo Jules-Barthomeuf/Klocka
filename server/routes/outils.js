@@ -43,6 +43,14 @@ export function monterOutils(app) {
     res.status(r.statut || 200).json(r);
   }));
 
+  // Le taux d'une rue entière et de ses tronçons (16 oct. 2026) : mêmes règles que le taux par zone, sans rayon.
+  app.get('/api/outils/vacance/taux-rue', wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    const r = await (await import('../outils/vacance-taux.js')).tauxDeLaRue(req.query);
+    if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+    res.status(r.statut || 200).json(r);
+  }));
+
   app.get('/api/outils/vacance/etat', wrap((req, res) => {
     if (!equipe(req, res)) return;
     ok(res, etat());

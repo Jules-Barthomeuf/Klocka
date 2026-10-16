@@ -729,6 +729,30 @@ chiffrées qui s'éclatent au zoom. Les bulles de Leaflet prennent les jetons
 ouverte. Les filtres ne montrent que les huit signaux dont la source est
 branchée (BODACC, SIRENE) : les permis Sitadel attendent leur source.
 
+**La vacance par rue et par tronçon** (16 oct. 2026, Jules : « pouvoir mesurer
+la vacance par tronçon, en gros par rue, pas forcément par zone »). Dans la
+barre, une pilule à deux choix à côté de l'adresse choisie : « Autour de
+l'adresse » (le rayon, comme avant) et « Sur la rue » (`rounded-full bg-rail-actif
+p-1`, le choix actif `bg-surface-pleine text-encre`). Sur la rue, le rayon, les
+types de bien et les filtres de signaux disparaissent (ils parlent des signaux) ;
+un libellé « Rue · … » dit la voie mesurée. Un clic sur une rue du tableau du
+panneau de zone la mesure aussi, en entier. Le panneau devient « Taux de
+vacance estimé · rue entière » : le nom de la rue (17 px), le pourcentage de la
+rue (40 px), puis les tronçons en lignes (pastille numérotée de 20 px, « n° 43 à
+91 · 677 m », le pourcentage à droite, une barre de 4 px et « vacants / tranchés » dessous ;
+le plus vacant en pastille et barre `ambre`, le choisi sur `bg-rail-actif` avec une
+pastille menthe), puis « À regarder » : les locaux vacants puis incertains du
+tronçon choisi, ou de toute la rue. La carte se cadre sur la rue entière, ou sur le
+tronçon choisi : un rond par local (vacant en `ambre`, plus gros ; incertain en
+anneau creux ; occupé en `menthe-fonce`), un tracé par tronçon le long de l'axe de
+la rue (sans les points mal géocodés), son numéro au milieu ; un clic sur le tracé,
+le numéro ou la ligne choisit le tronçon, un clic sur un rond ouvre la fiche du
+local (état, raison, occupants, dernier occupant). Même méthode que la zone
+(`vacance-taux.js`, v1.4) : mêmes sources, mêmes règles, seuil de dix locaux
+tranchés pour afficher un pourcentage ; un tronçon est un morceau d'environ
+quinze locaux rangés par numéro (une rue de moins de trente locaux reste d'un
+seul tenant), pour qu'un pourcentage ait du sens sans cacher un bout vide.
+
 ### Le jugement d'un point (Off-market Simple, 11 oct. 2026)
 
 Décision de Jules : on juge en un clic, puis on dit pourquoi **librement**,

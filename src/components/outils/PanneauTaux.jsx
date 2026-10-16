@@ -11,7 +11,7 @@ const pct = (n) => (n == null ? "—" : `${String(n).replace(".", ",")} %`);
 const dateFr = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "");
 const enMots = (v) => v.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 
-export default function PanneauTaux({ taux, attente, erreur }) {
+export default function PanneauTaux({ taux, attente, erreur, onRue = null }) {
   if (erreur) return <p className="m-0 px-4 py-3 text-[13px] text-alerte">{erreur}</p>;
   if (attente || !taux) {
     return (
@@ -38,11 +38,13 @@ export default function PanneauTaux({ taux, attente, erreur }) {
       {taux.rues.length > 0 && (
         <div className="mt-4">
           <div className="grid grid-cols-[minmax(0,1fr)_52px_64px] gap-2 pb-1 text-[10.5px] uppercase tracking-[.12em] text-brume">
-            <span>Rue</span><span className="text-right">Taux</span><span className="text-right">Vac. / tot.</span>
+            <span>Rue{onRue ? " · un clic la mesure en entier" : ""}</span><span className="text-right">Taux</span><span className="text-right">Vac. / tot.</span>
           </div>
           <div className="border-y border-trait">
             {taux.rues.map((x) => (
-              <div key={x.voie} className="grid grid-cols-[minmax(0,1fr)_52px_64px] items-center gap-2 border-t border-trait py-1.5 text-[12.5px] first:border-t-0" title={x.incertains ? `${x.incertains} incertain${x.incertains > 1 ? "s" : ""}, à part` : undefined}>
+              // Un clic mesure la rue entière, tronçon par tronçon (16 oct. 2026) : le rayon ne la coupe plus.
+              <div key={x.voie} role={onRue ? "button" : undefined} tabIndex={onRue ? 0 : undefined} onClick={onRue ? () => onRue(x.voie) : undefined} onKeyDown={onRue ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRue(x.voie); } } : undefined}
+                className={`grid grid-cols-[minmax(0,1fr)_52px_64px] items-center gap-2 border-t border-trait py-1.5 text-[12.5px] first:border-t-0 ${onRue ? "cursor-pointer hover:bg-relief/40" : ""}`} title={onRue ? `Mesurer toute la rue, par tronçon${x.incertains ? ` · ${x.incertains} incertain${x.incertains > 1 ? "s" : ""}, à part` : ""}` : x.incertains ? `${x.incertains} incertain${x.incertains > 1 ? "s" : ""}, à part` : undefined}>
                 <span className="min-w-0 truncate text-craie">{enMots(x.voie)}</span>
                 <span className={`text-right tabular-nums ${x.fiable ? "text-encre" : "text-brume"}`}>{x.fiable ? pct(x.taux) : "—"}</span>
                 <span className="text-right tabular-nums text-ardoise">{x.vacants} / {x.tranches}</span>

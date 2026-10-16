@@ -29,7 +29,7 @@ import db from '../db.js';
 import { distanceM } from './vacance-regles.js';
 
 export const PARAMETRES_TAUX = {
-  version: 'v1.3 du 14 oct. 2026',
+  version: 'v1.4 du 16 oct. 2026',
   // Les activités de vitrine : le commerce de la table NAF de l'outil, et les services en boutique.
   vitrines: ['45', '47', '56', '952', '960', '64.19', '66.22', '68.31', '79.1', '77.2', '74.2', '95.1'],
   // Sans local : marchés, vente à distance, vente hors magasin.
@@ -41,6 +41,10 @@ export const PARAMETRES_TAUX = {
   locaux_min_rue: 4,
   // En deçà de ce nombre de locaux tranchés, un pourcentage ne veut rien dire (un local = 20 points sur 5) : il n'est pas affiché.
   locaux_min_taux: 10,
+  // Une rue longue se découpe en tronçons de ce nombre de locaux (Jules, 16 oct. 2026 : « par tronçon, par rue,
+  // pas forcément par zone ») : assez pour qu'un pourcentage ait du sens (le seuil est de dix tranchés), pas
+  // assez pour que le taux de la rue entière cache un bout vide. Une rue de moins du double reste d'un seul tenant.
+  locaux_par_troncon: 15,
   rayon_min_m: 50,
   rayon_max_m: 1500,
   rayon_defaut_m: 300,
@@ -72,6 +76,12 @@ export function cleLocal(adresse) {
 /** Pure : la voie d'une clé de local (« 23 PLACE JEAN MOULIN » → « PLACE JEAN MOULIN »). */
 export const voieDe = (cle) => String(cle || '').replace(/^\d+( (BIS|TER|QUATER))? /, '');
 
+/** Pure : la voie d'une adresse complète (« 23 Place Jean-Moulin 33500 » → « PLACE JEAN MOULIN »), ou null sans numéro. */
+export const voieDeAdresse = (adresse) => { const c = cleLocal(adresse); return c ? voieDe(c) : null; };
+
+/** Pure : la voie d'un nom de rue seul (« Rue de la République » → « RUE REPUBLIQUE »), tel que le registre l'écrit. */
+export const voieDuNom = (nom) => { const t = String(nom || '').trim(); return t ? voieDeAdresse(`1 ${t}`) : null; };
+
 const commence = (naf, prefixes) => { const c = String(naf || '').replace(/\./g, ''); return prefixes.some((p) => c.startsWith(String(p).replace(/\./g, ''))); };
 export const horsMagasin = (naf, P = P0) => commence(naf, P.hors_magasin);
 const nomDe = (e) => e.enseigne || e.denomination || e.siret;
@@ -84,6 +94,56 @@ const motsDuNom = (s) => sansAccents(s).toUpperCase().replace(/[^A-Z0-9 ]/g, ' '
 export const memeCommerce = (a, b) => { const x = new Set(motsDuNom(a)); return motsDuNom(b).some((m) => x.has(m)); };
 
 /**
+ * Pure : le décompte d'un ensemble de locaux. Une seule règle, pour le total, pour chaque rue et pour chaque
+ * tronçon : vacants / (vacants + occupés) ; les incertains sont comptés à part, jamais au dénominateur. Plus de
+ * fourchette (14 oct. 2026) : celle des seuls incertains passait pour une marge d'erreur, que la méthode n'a pas
+ * encore mesurée.
+ */
+export function compterLocaux(ls, P = P0) {
+  const o = ls.filter((l) => l.etat === 'occupe').length;
+  const v = ls.filter((l) => l.etat === 'vacant').length;
+  const i = ls.filter((l) => l.etat === 'incertain').length;
+  const pct = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : null);
+  const confirmes = ls.filter((l) => l.etat === 'vacant' && l.confiance === 'forte').length;
+  return { locaux: ls.length, occupes: o, vacants: v, incertains: i, tranches: o + v, vacants_confirmes: confirmes, taux: pct(v, o + v), fiable: o + v >= P.locaux_min_taux };
+}
+
+/** Pure : le numéro d'un local d'après sa clé (« 23 BIS PLACE… » → 23). */
+export const numeroDe = (cle) => Number(String(cle || '').match(/^(\d+)/)?.[1]);
+
+/**
+ * Pure : les tronçons d'une rue. Les locaux se rangent par numéro (les deux côtés ensemble : les numéros
+ * croissent le long de la rue), puis se coupent en tronçons de taille égale, d'environ `locaux_par_troncon`
+ * locaux. Chaque tronçon a son numéro de début et de fin, sa longueur le long des locaux, son décompte et son
+ * taux, avec la même règle que partout. Une rue de moins de deux fois la taille d'un tronçon reste d'un seul.
+ */
+export function decouperEnTroncons(locaux, { P = P0 } = {}) {
+  const tries = locaux.filter((l) => Number.isFinite(numeroDe(l.cle)) && Number.isFinite(l.lat) && Number.isFinite(l.lon))
+    .sort((a, b) => numeroDe(a.cle) - numeroDe(b.cle) || String(a.cle).localeCompare(String(b.cle), 'fr'));
+  if (!tries.length) return [];
+  const cible = Math.max(1, P.locaux_par_troncon);
+  const n = tries.length < 2 * cible ? 1 : Math.round(tries.length / cible);
+  const base = Math.floor(tries.length / n);
+  const reste = tries.length % n;
+  const out = [];
+  let debut = 0;
+  for (let k = 0; k < n; k += 1) {
+    const taille = base + (k < reste ? 1 : 0);
+    const ls = tries.slice(debut, debut + taille);
+    debut += taille;
+    let longueur = 0;
+    for (let j = 1; j < ls.length; j += 1) longueur += distanceM(ls[j - 1].lat, ls[j - 1].lon, ls[j].lat, ls[j].lon);
+    out.push({
+      rang: k + 1, du: numeroDe(ls[0].cle), au: numeroDe(ls[ls.length - 1].cle), longueur_m: Math.round(longueur),
+      centre: { lat: ls.reduce((t, l) => t + l.lat, 0) / ls.length, lon: ls.reduce((t, l) => t + l.lon, 0) / ls.length },
+      cles: ls.map((l) => l.cle),
+      ...compterLocaux(ls, P),
+    });
+  }
+  return out;
+}
+
+/**
  * Pure : les locaux autour d'un point, et l'état de chacun.
  *
  * @param {Array} etablissements  le recensement SIRENE de la commune (vitrinesCommune), avec lat/lon
@@ -93,7 +153,8 @@ export const memeCommerce = (a, b) => { const x = new Set(motsDuNom(a)); return 
  */
 export function etatsDesLocaux(etablissements, osm, zone, { maintenantD = new Date(), P = P0, google = null } = {}) {
   const limite = new Date(maintenantD.getTime() - P.annees_historique * 365.25 * 86400000).toISOString().slice(0, 10);
-  const dans = (x) => Number.isFinite(x.lat) && Number.isFinite(x.lon) && distanceM(zone.lat, zone.lon, x.lat, x.lon) <= zone.rayon_m;
+  // Une zone se donne par un rayon, ou par une voie entière (zone.voie : toute la rue, d'un bout à l'autre).
+  const dans = (x) => Number.isFinite(x.lat) && Number.isFinite(x.lon) && (zone.voie ? voieDeAdresse(x.adresse) === zone.voie : distanceM(zone.lat, zone.lon, x.lat, x.lon) <= zone.rayon_m);
   const exclus = [];
   const parCle = new Map();
   for (const e of etablissements || []) {
@@ -175,22 +236,11 @@ export function etatsDesLocaux(etablissements, osm, zone, { maintenantD = new Da
     delete l.etablissements; delete l.osm;
   }
 
-  const compter = (ls) => {
-    const o = ls.filter((l) => l.etat === 'occupe').length;
-    const v = ls.filter((l) => l.etat === 'vacant').length;
-    const i = ls.filter((l) => l.etat === 'incertain').length;
-    const pct = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : null);
-    // Une seule règle, pour le total comme pour chaque rue : vacants / (vacants + occupés) ; les incertains
-    // sont comptés à part, jamais au dénominateur. Plus de fourchette (14 oct. 2026) : celle des seuls
-    // incertains passait pour une marge d'erreur, que la méthode n'a pas encore mesurée.
-    const confirmes = ls.filter((l) => l.etat === 'vacant' && l.confiance === 'forte').length;
-    return { locaux: ls.length, occupes: o, vacants: v, incertains: i, tranches: o + v, vacants_confirmes: confirmes, taux: pct(v, o + v), fiable: o + v >= P.locaux_min_taux };
-  };
   const parVoie = new Map();
   for (const l of locaux) { if (!parVoie.has(l.voie)) parVoie.set(l.voie, []); parVoie.get(l.voie).push(l); }
-  const rues = [...parVoie.entries()].filter(([, ls]) => ls.length >= P.locaux_min_rue).map(([voie, ls]) => ({ voie, ...compter(ls) })).sort((a, b) => b.locaux - a.locaux);
+  const rues = [...parVoie.entries()].filter(([, ls]) => ls.length >= P.locaux_min_rue).map(([voie, ls]) => ({ voie, ...compterLocaux(ls, P) })).sort((a, b) => b.locaux - a.locaux);
   locaux.sort((a, b) => ({ vacant: 0, incertain: 1, occupe: 2 }[a.etat] - { vacant: 0, incertain: 1, occupe: 2 }[b.etat]) || a.distance_m - b.distance_m);
-  return { locaux, exclus, taux: compter(locaux), rues, parametres: { version: P.version, annees_historique: P.annees_historique, seuil_adresse_multiple: P.seuil_adresse_multiple } };
+  return { locaux, exclus, taux: compterLocaux(locaux, P), rues, parametres: { version: P.version, annees_historique: P.annees_historique, seuil_adresse_multiple: P.seuil_adresse_multiple } };
 }
 
 // --- Les sources, et leur cache -------------------------------------------------
@@ -298,6 +348,24 @@ async function googleAuLocal(cle, lat, lon) {
   return { places: ici, garde: false };
 }
 
+// Chaque local que le registre dit vide, vérifié sur Google Maps (le premier passage seulement ; ensuite gardé
+// un mois). Commun au taux par zone et au taux par rue : la même méthode, jamais deux.
+async function mesurerZone(rec, osm, zoneQ, P) {
+  const premier = etatsDesLocaux(rec.etablissements, osm, zoneQ, { P });
+  const candidats = premier.locaux.filter((l) => l.etat !== 'occupe' && l.dernier).slice(0, 200);
+  const google = new Map();
+  let appels = 0; let echecs = 0;
+  if ((process.env.GOOGLE_MAPS_SERVEUR || '').trim()) {
+    for (let i = 0; i < candidats.length; i += 5) {
+      await Promise.all(candidats.slice(i, i + 5).map(async (l) => {
+        try { const g = await googleAuLocal(l.cle, l.lat, l.lon); google.set(l.cle, g.places); if (!g.garde) appels += 1; } catch { echecs += 1; }
+      }));
+    }
+  }
+  const r = etatsDesLocaux(rec.etablissements, osm, zoneQ, { P, google });
+  return { r, google: { verifies: google.size, candidats: candidats.length, echecs, appels, cout_usd: Math.round(appels * COUT_GOOGLE_USD * 100) / 100 } };
+}
+
 /**
  * Le taux de vacance autour d'un point. Rend { statut: 202, etat: 'chargement' }
  * tant que la commune se recense (une à deux minutes la première fois).
@@ -315,18 +383,36 @@ export async function tauxDeVacance(q = {}, { P = P0 } = {}) {
   let osm;
   try { osm = await osmAutour(lat, lon, rayon); } catch (e) { return { ok: false, statut: 503, error: `${e?.message || e} Le taux ne se calcule pas sans OpenStreetMap : réessayez dans quelques minutes.` }; }
   const zoneQ = { lat, lon, rayon_m: rayon };
-  const premier = etatsDesLocaux(rec.etablissements, osm, zoneQ, { P });
-  // Chaque local que le registre dit vide, vérifié sur Google Maps (le premier passage seulement ; ensuite gardé un mois).
-  const candidats = premier.locaux.filter((l) => l.etat !== 'occupe' && l.dernier).slice(0, 200);
-  const google = new Map();
-  let appels = 0; let echecs = 0;
-  if ((process.env.GOOGLE_MAPS_SERVEUR || '').trim()) {
-    for (let i = 0; i < candidats.length; i += 5) {
-      await Promise.all(candidats.slice(i, i + 5).map(async (l) => {
-        try { const g = await googleAuLocal(l.cle, l.lat, l.lon); google.set(l.cle, g.places); if (!g.garde) appels += 1; } catch { echecs += 1; }
-      }));
-    }
-  }
-  const r = etatsDesLocaux(rec.etablissements, osm, zoneQ, { P, google });
-  return { ok: true, statut: 200, ...r, recense_le: rec.charge_le, osm: { commerces: osm.length }, google: { verifies: google.size, candidats: candidats.length, echecs, appels, cout_usd: Math.round(appels * COUT_GOOGLE_USD * 100) / 100 }, zone: { ...zoneQ, commune: code } };
+  const { r, google } = await mesurerZone(rec, osm, zoneQ, P);
+  return { ok: true, statut: 200, ...r, recense_le: rec.charge_le, osm: { commerces: osm.length }, google, zone: { ...zoneQ, commune: code } };
+}
+
+/**
+ * Le taux de vacance d'une rue entière, puis de chacun de ses tronçons (16 oct. 2026, Jules : « pouvoir mesurer
+ * la vacance par tronçon, en gros par rue, pas forcément par zone »). Même méthode que pour une zone (mêmes
+ * sources, mêmes règles, même seuil de dix locaux), mais l'unité est la voie : tous ses locaux d'un bout à
+ * l'autre, sans rayon qui coupe la rue. `voie` : le nom de la rue (« Rue de la République »).
+ */
+export async function tauxDeLaRue(q = {}, { P = P0 } = {}) {
+  const voie = voieDuNom(q.voie || q.rue);
+  const code = String(q.commune || '').trim();
+  if (!voie) return { ok: false, statut: 400, error: 'Choisissez une rue dans les propositions.' };
+  if (!code) return { ok: false, statut: 400, error: 'Commune inconnue : choisissez la rue dans les propositions.' };
+  const rec = recensement(code, { forcer: q.relire === '1' });
+  if (rec.etat === 'erreur') return { ok: false, statut: 502, error: rec.erreur || 'Le recensement de la commune a échoué.' };
+  if (rec.etat !== 'pret') return { ok: true, statut: 202, etat: 'chargement' };
+  const limite = new Date(Date.now() - P.annees_historique * 365.25 * 86400000).toISOString().slice(0, 10);
+  const pts = rec.etablissements.filter((e) => Number.isFinite(e.lat) && Number.isFinite(e.lon) && voieDeAdresse(e.adresse) === voie && (e.etat === 'actif' || (e.date_fermeture && e.date_fermeture >= limite)));
+  if (!pts.length) return { ok: false, statut: 404, error: `Aucun local à vitrine sur cette rue au registre de la commune (« ${voie.toLowerCase()} »).` };
+  const lat = pts.reduce((t, e) => t + e.lat, 0) / pts.length;
+  const lon = pts.reduce((t, e) => t + e.lon, 0) / pts.length;
+  // OpenStreetMap se lit dans le cercle qui contient la rue entière, avec une marge.
+  const rayon = Math.min(3000, Math.max(100, Math.round(Math.max(...pts.map((e) => distanceM(lat, lon, e.lat, e.lon))) + 40)));
+  let osm;
+  try { osm = await osmAutour(lat, lon, rayon); } catch (e) { return { ok: false, statut: 503, error: `${e?.message || e} Le taux ne se calcule pas sans OpenStreetMap : réessayez dans quelques minutes.` }; }
+  const zoneQ = { lat, lon, rayon_m: rayon, voie };
+  const { r, google } = await mesurerZone(rec, osm, zoneQ, P);
+  const troncons = decouperEnTroncons(r.locaux, { P });
+  const { rues, ...reste } = r;
+  return { ok: true, statut: 200, ...reste, parametres: { ...reste.parametres, locaux_par_troncon: P.locaux_par_troncon }, voie, nom: q.voie || q.rue || voie, troncons, recense_le: rec.charge_le, osm: { commerces: osm.length }, google, zone: { ...zoneQ, commune: code } };
 }

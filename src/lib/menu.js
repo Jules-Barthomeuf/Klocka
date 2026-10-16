@@ -11,7 +11,6 @@ export const ENTREES_ADMIN = [
   { cle: "Analyse", label: "Dossiers" },
   { cle: "Offres", label: "Offres" },
   { cle: "Prospection", label: "Prospection" },
-  { cle: "Relances", label: "Relances" },
   // Agents (16 oct. 2026, Jules) : tous les agents immobiliers, et tout ce qui s'est dit avec chacun.
   { cle: "Agents", label: "Agents" },
   { cle: "OffMarket", label: "Off-market" },
@@ -70,7 +69,7 @@ export const ENTREES_MANDATAIRE = [
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [
   ["Dashboard", "Dashboard"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
-  ["Prospection", "Prospection"], ["Relances", "Relances"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["AdminUtilisateurs", "Utilisateurs"], ["SimulateurRentabilite", "Simulateur"],
+  ["Prospection", "Prospection"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["AdminUtilisateurs", "Utilisateurs"], ["SimulateurRentabilite", "Simulateur"],
 ];
 export const PAGES_OUVERTURE_CLIENT = [
   ["Dashboard", "Dashboard"], ["MesProjets", "Mes projets"], ["SimulateurRentabilite", "Simulateur"], ["Ressources", "Ressources"],

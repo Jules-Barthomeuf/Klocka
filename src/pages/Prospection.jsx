@@ -4,13 +4,14 @@ import FicheContact from "@/components/prospection/FicheContact";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Sparkles, Square, Undo2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { OngletAgentIA, OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
+import RelancesParMail from "@/components/prospection/RelancesParMail";
+import { FileRelances, ModeAppelUnique } from "@/components/prospection/FileRelances";
 import SuiviAppels from "@/pages/SuiviAppels";
-import ModeAppel from "@/components/prospection/ModeAppel";
 import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
 import AvatarAK from "@/components/AvatarAK";
 import Chargement from "@/components/ui/Chargement";
@@ -960,13 +961,20 @@ export default function Prospection() {
   // « Mode appel » (6 oct. 2026) : la file d'une ville, une agence à la fois, pensée pour le téléphone.
   // Les relances (7 oct. 2026) ont leur propre page : Relances.
   // « Suivi » (13 oct. 2026, Jules) : la page Suivi des appels, ouverte à l'équipe : vue d'ensemble, par analyste, journal.
-  const PARTIES = [["journee", "À appeler"], ["agent", "Agent IA"], ["listes", "Listes"], ["appel", "Mode appel"], ["suivi", "Suivi"]];
+  // Quatre onglets (16 oct. 2026, Jules : Prospection et Relances fusionnées) :
+  // Aujourd'hui (une seule file, À envoyer à droite), Mode appel (un seul),
+  // Agences (les listes ; l'agent IA y crée une liste), Suivi.
+  const PARTIES = [["journee", "Aujourd'hui"], ["appel", "Mode appel"], ["listes", "Agences"], ["suivi", "Suivi"]];
   // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
   const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
   const depuisAdresse = new URLSearchParams(window.location.search);
-  const [partie, setPartie] = useState(() => { const u = depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
+  const [partie, setPartie] = useState(() => { const u = ({ agent: "listes", relances: "journee" })[depuisAdresse.get("partie")] || depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
   const [aAppeler, setAAppeler] = useState(0);
+  // La relance prise dans la file : le Mode appel s'ouvre dessus.
+  const [courante, setCourante] = useState(null);
+  const [agentOuvert, setAgentOuvert] = useState(false);
+  const choisirPartie = (k) => { if (k !== "appel") setCourante(null); setPartie(k); };
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
   const [listeOuverte, setListeOuverte] = useState(() => depuisAdresse.get("liste") || null);
   const [appel, setAppel] = useState(null);
@@ -996,7 +1004,7 @@ export default function Prospection() {
         {/* Les onglets en pilule, comme ceux de la page projet. */}
         <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties de la prospection">
           {PARTIES.map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => setPartie(k)} aria-pressed={partie === k}
+            <button key={k} type="button" onClick={() => choisirPartie(k)} aria-pressed={partie === k}
               className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${partie === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
               style={partie === k ? undefined : { background: "transparent" }}>
               {mot}{k === "journee" && aAppeler > 0 && <span className={`text-[12px] tabular-nums ${partie === k ? "opacity-70" : "text-brume"}`}>{aAppeler}</span>}
@@ -1016,11 +1024,26 @@ export default function Prospection() {
       </header>
       {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
       <div key={partie} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-      {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })} />}
-      {partie === "appel" && <ModeAppel />}
+      {partie === "journee" && (
+        <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
+          sousLaFile={<FileRelances onOuvrir={(c) => { setCourante(c); setPartie("appel"); }} />}
+          sousLesEnvois={<section className="rounded-[16px] border border-trait bg-surface-pleine p-5"><p className="m-0 mb-3 text-[15px] text-encre">Relances par mail</p><RelancesParMail /></section>} />
+      )}
+      {partie === "appel" && <ModeAppelUnique courante={courante} setCourante={setCourante} />}
       {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
-      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
+      {partie === "listes" && (
+        <>
+          {/* L'agent IA n'est plus un onglet : une action qui crée la liste d'une ville (16 oct. 2026). */}
+          <div className="mb-4 flex justify-end">
+            <button type="button" onClick={() => setAgentOuvert((v) => !v)} aria-expanded={agentOuvert}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
+              <Sparkles className="h-4 w-4" />{agentOuvert ? "Fermer l'agent IA" : "Chercher une ville avec l'agent IA"}
+            </button>
+          </div>
+          {agentOuvert && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setAgentOuvert(false); }} />}
+          {!agentOuvert && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} />}
+        </>
+      )}
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
       {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">

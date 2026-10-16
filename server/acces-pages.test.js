@@ -36,15 +36,16 @@ test("un admin ne peut pas se rouvrir une page en modifiant son compte", () => {
   assert.equal('pages_ouvertes' in retirerChampsProteges({ pages_ouvertes: ['Emailing'], full_name: 'x' }), false);
 });
 
-test("Relances seule : son tableau de bord et le mode appel s'ouvrent, le reste de la Prospection reste fermé", () => {
+test("Relances a rejoint la Prospection (16 oct. 2026) : ouvrir la Prospection ouvre les relances et le mode appel", () => {
   const jules = Records.list('User').find((u) => u.email === 'jules.b@klocka.immo');
   const maxime = Records.create('User', { email: 'maxime.p@klocka.immo', role: 'admin' });
-  A.poserAcces(jules, 'maxime.p@klocka.immo', ['Relances']);
+  A.poserAcces(jules, 'maxime.p@klocka.immo', ['Prospection']);
   const m = Records.get('User', maxime.id);
   assert.equal(A.apiFermee(m, '/api/prospection/relances'), null);
   assert.equal(A.apiFermee(m, '/api/prospection/mode-appel/file?liste=x&relances=1'), null);
-  assert.equal(A.apiFermee(m, '/api/prospection/agent-ia/listes'), 'Prospection');
-  // Ni l'une ni l'autre : le mode appel est fermé.
+  assert.equal(A.apiFermee(m, '/api/prospection/agent-ia/listes'), null);
+  // Prospection fermée : les relances et le mode appel le sont aussi.
   A.poserAcces(jules, 'maxime.p@klocka.immo', []);
   assert.ok(A.apiFermee(Records.get('User', maxime.id), '/api/prospection/mode-appel/file'));
+  assert.ok(A.apiFermee(Records.get('User', maxime.id), '/api/prospection/relances'));
 });

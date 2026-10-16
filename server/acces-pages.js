@@ -19,8 +19,7 @@ export const API_DES_PAGES = {
   // L'Intelligence (14 oct. 2026) : la mémoire de l'équipe ; fermé avec sa page.
   Cerveau: ['/api/layer', '/api/cerveau'],
   Prospection: ['/api/prospection'],
-  // Relances (7 oct. 2026) : sa page et le mode appel, qu'elle partage avec la Prospection.
-  Relances: ['/api/prospection/relances', '/api/prospection/mode-appel', '/api/prospection/rappels'],
+  // Relances a rejoint la Prospection le 16 oct. 2026 : ses API (relances, mode appel, rappels) sont sous /api/prospection.
   // Le Suivi : l'usage de chaque analyste et les règles de la nuit, fermés avec la page Suivi.
   Monitoring: ['/api/monitoring/appels', '/api/monitoring/mandataires', '/api/monitoring/regles', '/api/monitoring/qualite-ak', '/api/monitoring/chat', '/api/monitoring/reunions', '/api/monitoring/audience', '/api/monitoring/enregistrements', '/api/ak/lecons', '/api/testeur'],
   Emailing: ['/api/emailing'],

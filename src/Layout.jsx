@@ -33,7 +33,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -358,8 +358,8 @@ function LayoutContent({ children, currentPageName }) {
   // L'agent testeur : un outil de super admin, qu'il peut masquer dans Personnalisation (12 oct. 2026).
   // L'agent testeur retiré de l'écran le 16 oct. 2026 (Jules) : ni bouton, ni onglet dans le Suivi.
   const testeurVisible = false;
-  // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ou Relances ouvertes).
-  const rappelOuvert = vueAdmin && !(pagesFermees.includes("Prospection") && pagesFermees.includes("Relances"));
+  // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ouverte).
+  const rappelOuvert = vueAdmin && !pagesFermees.includes("Prospection");
   // Le bouton « Rappel » n'a rien à faire sur la page Analyse (16 oct. 2026, Jules) ; un rappel en cours y reste visible.
   const boutonRappel = rappelOuvert && currentPageName !== "Analyse";
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
@@ -492,7 +492,6 @@ function LayoutContent({ children, currentPageName }) {
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
-    Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },

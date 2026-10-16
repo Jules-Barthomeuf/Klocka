@@ -420,8 +420,8 @@ export function historique(type_entite, entite_id) {
  * Jules : « à droite de Savoir, Informations, et tout le reste au total ») :
  * les validés et ceux qui attendent, chacun avec son statut.
  */
-export function tousLesFaits() {
-  return Records.list(FAIT).filter((f) => f.statut !== 'rejete').map(resumeFait).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+export function tousLesFaits({ rejetes = false } = {}) {
+  return Records.list(FAIT).filter((f) => rejetes || f.statut !== 'rejete').map(resumeFait).sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 
 export function savoir() {

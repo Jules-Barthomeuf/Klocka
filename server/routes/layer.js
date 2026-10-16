@@ -40,7 +40,10 @@ export function monterLayer(app) {
     ok(res, { a_valider: lots.reduce((n, l) => n + l.faits.length, 0), a_valider_tous: M.nombreAValider(), peut_valider: true, tout_voir: M.peutValider(user), mesures: M.mesures(), manuel: (await Y()).partManuelle() });
   }));
   app.get('/api/layer/a-valider', wrap(async (req, res) => { const user = equipe(req, res); if (!user) return; ok(res, { lots: await (await C()).aValider(user) }); }));
-  app.get('/api/layer/faits', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).tousLesFaits() }); }));
+  // `?tous=1` : les rejetés aussi (onglet Faits, filtre statut).
+  app.get('/api/layer/faits', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).tousLesFaits({ rejetes: req.query.tous === '1' }) }); }));
+  // Phase 7 : les indicateurs de la page et leurs courbes.
+  app.get('/api/layer/tableau', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, await (await Y()).tableauDeBord({ jours: Math.min(90, Math.max(7, Number(req.query.jours) || 30)) })); }));
   app.get('/api/layer/savoir', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { faits: (await C()).savoir() }); }));
   app.get('/api/layer/sources', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, { sources: (await C()).sources() }); }));
   app.get('/api/layer/sources/:id', wrap(async (req, res) => {

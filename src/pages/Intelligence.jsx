@@ -3,64 +3,182 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, FileText, Loader2, Pencil, Upload, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { J } from "@/design/jetons";
 import { FriseFaits, FenetreSource, TYPES, TEINTES, SOURCES, quand } from "@/components/layer/FriseFaits";
+import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
+import { BarresHorizontales, Chiffre, ChiffreCourbe, Croissance, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
-// L'Intelligence (spec MVP du 14 oct. 2026) : ce qui a été dit, décidé ou promis,
-// gardé avec sa source. Trois onglets : À valider (Jules valide, corrige ou
-// rejette chaque fait extrait), Savoir (les règles de l'équipe validées),
-// Sources (le journal brut, et l'ajout d'un compte rendu). En tête, les
-// critères du MVP qui se mesurent seuls.
+// L'Intelligence (le Layer ; spec MVP du 14 oct. 2026, refonte du 15 oct.) : ce
+// qui a été dit, décidé ou promis, gardé avec sa source. Voir docs/layer.md.
 
 const API = "/api/layer";
 const ENTITES = { dossier: "Dossier", projet: "Projet", agent: "Agent", agence: "Agence", investisseur: "Investisseur", ville: "Ville" };
 const bouton = "inline-flex h-8 items-center gap-1.5 rounded-full border border-bord-doux px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40";
 const principal = "inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50";
 
+// La page (phase 7 du Layer, 15-16 oct. 2026) : reconstruite sur le modèle de
+// Suivi > Appels, avec ses briques (components/monitoring/GraphesAppels.jsx).
+// En tête, quatre indicateurs avec leur courbe sur 30 jours ; puis la
+// croissance de ce qu'on donne à l'Intelligence, depuis le 13 oct. (Jules :
+// avant, c'était du test) ; puis les onglets À valider, Faits (filtres type,
+// statut, période, fiche), Synthèses, Sources, Évaluation.
+
+const ONGLETS = [["a_valider", "À valider"], ["faits", "Faits"], ["syntheses", "Synthèses"], ["sources", "Sources"], ["evaluation", "Évaluation"]];
+const pct = (v) => (v == null ? "—" : `${v} %`);
+
 export default function Intelligence() {
   const [onglet, setOnglet] = useState("a_valider");
+  const c = useCouleurs();
   const etat = useQuery({ queryKey: ["layer", "etat"], queryFn: () => base44.request("GET", `${API}/etat`) });
+  const tableau = useQuery({ queryKey: ["layer", "tableau"], queryFn: () => base44.request("GET", `${API}/tableau?jours=30`) });
+  const tous = useQuery({ queryKey: ["layer", "faits", "tous"], queryFn: () => base44.request("GET", `${API}/faits?tous=1`) });
+  const syntheses = useQuery({ queryKey: ["layer", "syntheses"], queryFn: () => base44.request("GET", `${API}/syntheses`) });
   const e = etat.data;
-  // À droite de Savoir, chaque type de fait, puis tous les faits (14 oct. 2026, Jules).
-  const tous = useQuery({ queryKey: ["layer", "faits"], queryFn: () => base44.request("GET", `${API}/faits`) });
-  const compte = (type) => (tous.data?.faits || []).filter((f) => !type || f.type === type).length;
-  const avec = (mot, n) => (n ? `${mot} · ${n}` : mot);
-  const onglets = [["a_valider", `À valider${e?.a_valider ? ` · ${e.a_valider}` : ""}`], ["savoir", "Savoir"], ["information", avec("Informations", compte("information"))], ["decision", avec("Décisions", compte("decision"))], ["engagement", avec("Engagements", compte("engagement"))], ["tout", avec("Tout", compte(null))], ["sources", "Sources"]];
+  const t = tableau.data;
+  const nombre = { a_valider: e?.a_valider || 0, faits: (tous.data?.faits || []).filter((f) => f.statut !== "rejete").length, syntheses: syntheses.data?.syntheses?.length || 0 };
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 py-8 md:px-6">
-      <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre">Intelligence</h1>
-      <p className="m-0 mt-2 max-w-[70ch] text-[14px] text-ardoise">Ce qui a été dit, décidé ou promis, tiré des comptes rendus, des appels et des débriefs. Un fait ne répond aux questions d'AK qu'une fois validé.</p>
-      {e?.mesures && <Mesures m={e.mesures} />}
-      <div className="mt-6 mb-5 flex flex-wrap items-center gap-x-6 gap-y-2">
-        {onglets.map(([k, mot]) => (
-          <button key={k} type="button" onClick={() => setOnglet(k)} aria-current={onglet === k ? "page" : undefined}
-            className="relative pb-2 text-[11px] uppercase tracking-[.16em] transition-colors" style={{ background: "transparent", color: onglet === k ? J["menthe"] : J["brume"], borderBottom: `1.5px solid ${onglet === k ? J["menthe"] : "transparent"}` }}>
-            {mot}
-          </button>
-        ))}
+    <div className="min-h-screen text-encre">
+      <div className="mx-auto max-w-[1300px] px-4 py-8 md:px-8 md:py-10">
+        <h1 className="m-0 text-[34px] font-light tracking-[-.02em] max-md:text-[24px]">Intelligence</h1>
+        <p className="m-0 mt-1.5 max-w-[760px] text-[13.5px] text-ardoise">Ce qui a été dit, décidé ou promis, tiré des comptes rendus, des réunions, des appels et des débriefs. Un fait ne répond aux questions d'AK qu'une fois validé.</p>
+
+        {t && (
+          <div className="mt-7 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <ChiffreCourbe c={c} libelle="Faits validés · 7 jours" valeur={t.kpis.valides_semaine} note="par jour sur 30 jours" serie={t.serie} cle="valides" />
+              <ChiffreCourbe c={c} libelle="Validés sans correction" valeur={pct(t.kpis.part_sans_correction)} note="sur 7 jours" serie={t.serie} cle="part_sans_correction" format={(v) => `${v} %`} />
+              <ChiffreCourbe c={c} libelle="Engagements échus" valeur={t.kpis.engagements_echus} note="aujourd'hui, en stock" serie={t.serie} cle="echus" />
+              <ChiffreCourbe c={c} libelle="Questions · 7 jours" valeur={t.kpis.questions_semaine} note="posées à l'Intelligence" serie={t.serie} cle="questions" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Croissance c={c} serie={t.croissance} titre="Ce qu'on lui donne" aide="Sources entrées, en cumul, depuis le 13 octobre."
+                series={[{ cle: "sources", nom: "Toutes" }, { cle: "comptes_rendus", nom: "Comptes rendus" }, { cle: "reunions", nom: "Réunions" }, { cle: "appels", nom: "Appels" }, { cle: "debriefs", nom: "Débriefs" }]} />
+              <Croissance c={c} serie={t.croissance} titre="Ce qu'elle sait" aide="Faits extraits, validés et savoir validé, en cumul, depuis le 13 octobre."
+                series={[{ cle: "faits_extraits", nom: "Faits extraits" }, { cle: "faits_valides", nom: "Faits validés" }, { cle: "savoir_valide", nom: "Savoir validé" }]} />
+            </div>
+          </div>
+        )}
+
+        <div className="mb-6 mt-8 flex flex-wrap gap-x-5 gap-y-2 border-b border-trait">
+          {ONGLETS.map(([k, mot]) => (
+            <button key={k} type="button" onClick={() => setOnglet(k)} aria-current={onglet === k ? "page" : undefined}
+              className={`-mb-px border-b-[1.5px] pb-2 text-[13.5px] transition-colors ${onglet === k ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
+              {mot}{nombre[k] ? <span className="text-brume"> · {nombre[k]}</span> : null}
+            </button>
+          ))}
+        </div>
+        {onglet === "a_valider" && <AValider peutValider={!!e?.peut_valider} />}
+        {onglet === "faits" && <Faits q={tous} />}
+        {onglet === "syntheses" && <Syntheses q={syntheses} />}
+        {onglet === "sources" && <Sources peutValider={!!e?.tout_voir} />}
+        {onglet === "evaluation" && <Evaluation e={e} t={t} c={c} />}
       </div>
-      {onglet === "a_valider" ? <AValider peutValider={!!e?.peut_valider} /> : onglet === "savoir" ? <Savoir /> : onglet === "sources" ? <Sources peutValider={!!e?.peut_valider} /> : <FaitsDuType q={tous} type={onglet === "tout" ? null : onglet} />}
     </div>
   );
 }
 
-/** Les critères du MVP qui se mesurent seuls, sur quatorze jours. */
+/** Les critères du MVP qui se mesurent seuls, sur quatorze jours (onglet Évaluation depuis la phase 7). */
 function Mesures({ m }) {
-  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)} %` : "—");
+  const pctDe = (a, b) => (b ? `${Math.round((a / b) * 100)} %` : "—");
   const cases = [
-    ["Faits validés sans correction", pct(m.extraction.sans_correction, m.extraction.tranches - m.extraction.rejetes), "70 % ou plus", `${m.extraction.tranches} tranchés, ${m.extraction.rejetes} rejetés`],
+    ["Faits validés sans correction", pctDe(m.extraction.sans_correction, m.extraction.tranches - m.extraction.rejetes), "70 % ou plus", `${m.extraction.tranches} tranchés, ${m.extraction.rejetes} rejetés`],
     ["Questions sur le passé posées à AK", String(m.questions.total), "10 par semaine, 2 personnes", `${m.questions.personnes} personne${m.questions.personnes > 1 ? "s" : ""}, ${m.questions.sans_reponse} sans réponse`],
-    ["Décisions motivées", pct(m.decisions.motivees, m.decisions.total), "100 %", `${m.decisions.total} dossier${m.decisions.total > 1 ? "s" : ""} accepté${m.decisions.total > 1 ? "s" : ""} ou refusé${m.decisions.total > 1 ? "s" : ""}`],
+    ["Décisions motivées", pctDe(m.decisions.motivees, m.decisions.total), "100 %", `${m.decisions.total} dossier${m.decisions.total > 1 ? "s" : ""} accepté${m.decisions.total > 1 ? "s" : ""} ou refusé${m.decisions.total > 1 ? "s" : ""}`],
   ];
   return (
-    <div className="mt-6 grid gap-px overflow-hidden rounded-[14px] border border-trait bg-trait md:grid-cols-3">
-      {cases.map(([titre, valeur, seuil, detail]) => (
-        <div key={titre} className="bg-fond px-5 py-4">
-          <div className="text-[12.5px] text-ardoise">{titre}</div>
-          <div className="mt-1 text-[26px] font-light tracking-[-0.02em] text-encre tabular-nums">{valeur}</div>
-          <div className="mt-1 text-[12px] text-brume">{detail} · seuil {seuil}</div>
-        </div>
-      ))}
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      {cases.map(([titre, valeur, seuil, detail]) => <Chiffre key={titre} libelle={titre} valeur={valeur} note={`${detail} · seuil ${seuil}`} />)}
+    </div>
+  );
+}
+
+const STATUTS = [["valide", "Validés"], ["a_valider", "À valider"], ["remplace", "Remplacés"], ["archive", "Archivés"], ["rejete", "Rejetés"]];
+const PERIODES_FAITS = [[30, "30 jours"], [90, "90 jours"], [0, "Tout"]];
+const pilule = (actif) => `h-8 rounded-full border px-3 text-[12.5px] transition-colors ${actif ? "border-menthe bg-menthe/[0.1] text-menthe" : "border-trait text-ardoise hover:text-encre"}`;
+
+/** Les faits, filtrés par type, statut, période et fiche (phase 7). Savoir, Informations, Décisions, Engagements, Tout : la demande du 14 oct. */
+function Faits({ q }) {
+  const [type, setType] = useState(null);
+  const [statut, setStatut] = useState("valide");
+  const [jours, setJours] = useState(0);
+  const [fiche, setFiche] = useState("");
+  const [typeFiche, setTypeFiche] = useState("");
+  const tous = q.data?.faits || [];
+  const depuis = jours ? new Date(Date.now() - jours * 86400000).toISOString().slice(0, 10) : null;
+  const cherche = fiche.trim().toLowerCase();
+  const avecStatut = (f) => (statut === "a_valider" ? ["a_valider", "a_rattacher"].includes(f.statut) : f.statut === statut);
+  const faits = tous.filter((f) => (!type || f.type === type) && avecStatut(f)
+    && (!depuis || String(f.date).slice(0, 10) >= depuis)
+    && (!typeFiche || (f.fiches || []).some((x) => x.type_entite === typeFiche))
+    && (!cherche || (f.fiches || []).some((x) => String(x.libelle || "").toLowerCase().includes(cherche))));
+  const compte = (t) => tous.filter((f) => (!t || f.type === t) && avecStatut(f)).length;
+  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[[null, "Tout"], ["savoir", "Savoir"], ["information", "Informations"], ["decision", "Décisions"], ["engagement", "Engagements"]].map(([k, mot]) => (
+          <button key={mot} type="button" onClick={() => setType(k)} className={pilule(type === k)} style={type === k ? undefined : { background: "transparent" }}>{mot} · {compte(k)}</button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap gap-1.5">{STATUTS.map(([k, mot]) => <button key={k} type="button" onClick={() => setStatut(k)} className={pilule(statut === k)} style={statut === k ? undefined : { background: "transparent" }}>{mot}</button>)}</div>
+        <div className="flex flex-wrap gap-1.5">{PERIODES_FAITS.map(([j, mot]) => <button key={j} type="button" onClick={() => setJours(j)} className={pilule(jours === j)} style={jours === j ? undefined : { background: "transparent" }}>{mot}</button>)}</div>
+        <select value={typeFiche} onChange={(ev) => setTypeFiche(ev.target.value)} aria-label="Type de fiche" className="h-8 rounded-full border border-trait bg-transparent px-3 text-[12.5px] text-craie">
+          <option value="">Toutes les fiches</option>
+          {Object.entries(ENTITES).map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
+        </select>
+        <input value={fiche} onChange={(ev) => setFiche(ev.target.value)} placeholder="Nom d'une fiche" aria-label="Nom d'une fiche" className="h-8 w-[200px] rounded-full border border-trait bg-surface px-3 text-[12.5px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
+      </div>
+      <p className="m-0 text-[12.5px] text-brume">{faits.length} fait{faits.length > 1 ? "s" : ""}. Seuls les faits validés répondent aux questions d'AK.</p>
+      {faits.length ? <FriseFaits faits={faits} /> : <p className="m-0 py-10 text-center text-[14px] text-brume">Aucun fait avec ces filtres.</p>}
+    </div>
+  );
+}
+
+/** Les synthèses des fiches (phase 5), la plus récente d'abord ; un clic déplie la synthèse et ses engagements. */
+function Syntheses({ q }) {
+  const [ouverte, setOuverte] = useState(null);
+  const liste = q.data?.syntheses || [];
+  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!liste.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Aucune synthèse encore : elle se crée dès qu'un fait validé est rattaché à une fiche.</p>;
+  return (
+    <div className="border-y border-trait">
+      {liste.map((s) => {
+        const cle = `${s.type_entite}:${s.entite_id}`;
+        return (
+          <div key={cle} className="border-t border-trait first:border-t-0">
+            <button type="button" onClick={() => setOuverte(ouverte === cle ? null : cle)} aria-expanded={ouverte === cle} className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 px-2 py-4 text-left" style={{ background: "transparent" }}>
+              <span className="min-w-0">
+                <span className="block truncate text-[16px] text-encre">{s.libelle}</span>
+                <span className="block text-[13.5px] text-ardoise">{ENTITES[s.type_entite] || s.type_entite} · {s.faits.length} fait{s.faits.length > 1 ? "s" : ""} · version {s.version}</span>
+              </span>
+              <span className={`text-[12.5px] ${s.perime ? "text-ambre" : "text-brume"}`}>{s.perime ? "à jour sous une heure" : `du ${quand(s.genere_le)}`}</span>
+            </button>
+            {ouverte === cle && <CeQueKlockaSait type={s.type_entite} id={s.entite_id} titre="Synthèse" className="px-2 pb-4" />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** L'évaluation : les critères du MVP, la validation manuelle, les coûts du mois, le seuil Postgres ; le banc de questions en phase 8. */
+function Evaluation({ e, t, c }) {
+  if (!e || !t) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  const m = t.manuel;
+  return (
+    <div className="flex flex-col gap-4">
+      {e.mesures && <Mesures m={e.mesures} />}
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Chiffre libelle="Validation à la main" valeur={pct(m.part)} note={`${m.manuels} sur ${m.tranches} faits, 14 jours · objectif < ${m.objectif} %`} />
+        <Chiffre libelle="Coût d'extraction du mois" valeur={`${String(t.couts_mois.extraction_usd).replace(".", ",")} $`} note={`${t.couts_mois.sources} source${t.couts_mois.sources > 1 ? "s" : ""} · ${t.couts_mois.embed_jetons.toLocaleString("fr-FR")} jetons d'embeddings`} />
+        <Chiffre libelle="Recherche la plus lente" valeur={t.postgres.p95_ms == null ? "—" : `${t.postgres.p95_ms} ms`} note="95 % des recherches, calcul local · seuil 300 ms" />
+        <Chiffre libelle="Faits en base" valeur={t.postgres.faits.toLocaleString("fr-FR")} note={t.postgres.declenche ? "seuil Postgres atteint : voir docs/layer.md" : "seuil Postgres : 50 000"} />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <BarresHorizontales c={c} titre="Types de faits validés" lignes={t.types.map((x) => ({ nom: TYPES[x.type] || x.type, valeur: x.n }))} />
+        <BarresHorizontales c={c} titre="Statuts" lignes={t.statuts.filter((x) => x.n).map((x) => ({ nom: ({ a_valider: "À valider", a_rattacher: "À rattacher", valide: "Validés", remplace: "Remplacés", archive: "Archivés", rejete: "Rejetés" })[x.statut], valeur: x.n }))} />
+        <BarresHorizontales c={c} titre="Sources" lignes={t.sources.map((x) => ({ nom: SOURCES[x.type] || x.type, valeur: x.n }))} />
+      </div>
     </div>
   );
 }
@@ -242,36 +360,6 @@ function Fiches({ fiches, candidats = [], edition, onAjouter, onRetirer }) {
       )}
     </div>
   );
-}
-
-const VIDES = {
-  information: "Aucune information encore. Un fait sur un dossier, un agent, une agence ou une ville, dit en appel, en réunion ou en débrief, arrive ici.",
-  decision: "Aucune décision encore. Ce qui est tranché en réunion ou sur un dossier, avec son motif, arrive ici.",
-  engagement: "Aucun engagement encore. Une promesse (« Durand rappelle jeudi ») arrive ici, avec qui et pour quand.",
-  tout: "L'Intelligence est vide pour l'instant : déposez un compte rendu dans Sources, enregistrez une réunion ou validez un appel transcrit.",
-};
-
-/** Les faits d'un type (ou tous) : validés et à valider, les rejetés exceptés, avec leur source. */
-function FaitsDuType({ q, type }) {
-  const faits = (q.data?.faits || []).filter((f) => !type || f.type === type);
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
-  if (!faits.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">{VIDES[type || "tout"]}</p>;
-  const valides = faits.filter((f) => f.statut === "valide").length;
-  return (
-    <>
-      <p className="m-0 mb-3 text-[12.5px] text-brume">{faits.length} fait{faits.length > 1 ? "s" : ""} · {valides} validé{valides > 1 ? "s" : ""}{faits.length - valides ? ` · ${faits.length - valides} à valider` : ""}. Seuls les faits validés répondent aux questions d'AK.</p>
-      <FriseFaits faits={faits} />
-    </>
-  );
-}
-
-/** Le savoir de l'équipe : les faits « savoir » validés. */
-function Savoir() {
-  const q = useQuery({ queryKey: ["layer", "savoir"], queryFn: () => base44.request("GET", `${API}/savoir`) });
-  const faits = q.data?.faits || [];
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
-  if (!faits.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Aucun savoir validé encore. Une règle de l'équipe dite en réunion ou en débrief (« à Antibes, un n°2 se loue sous 300 €/m²/an ») arrive ici une fois validée.</p>;
-  return <FriseFaits faits={faits} />;
 }
 
 /** Le journal brut, et l'ajout d'un compte rendu (collé ou déposé). */

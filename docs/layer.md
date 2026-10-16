@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 6 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements. Phase suivante : 7 (page Intelligence).
+**État : phases 1 à 7 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence. Phase suivante : 8 (évaluation).
 
 ---
 
@@ -197,6 +197,15 @@ Une seule fonction serveur, `ficheLayer(type, id)` (`server/layer-syntheses.js`)
 
 Une ligne de synthèse déplie ses faits ; un fait ouvre sa source (`FenetreSource`). Après validation d'un appel, l'extraction part en tâche de fond (phase 2). Le tableau de bord n'a plus la ligne « X éléments à valider » seule : `JourneeLayer` la remplace.
 
+## 4 septies. Phase 7 : la page Intelligence (15-16 oct. 2026)
+
+`src/pages/Intelligence.jsx`, reconstruite avec les briques de Suivi > Appels (`src/components/monitoring/GraphesAppels.jsx`). `Chiffre` y a été déplacé (il était local à `SuiviAppels.jsx`) ; ajoutés à la fin du module : `ChiffreCourbe` (un chiffre et sa courbe) et `Croissance` (courbes cumulées, une couleur par série dans l'ordre fixe de `jetons.graphique`). `FaitsParJour` accepte `titre` et `aide`.
+
+- **En tête, quatre indicateurs** avec leur courbe sur 30 jours (`GET /api/layer/tableau`, `tableauDeBord` dans `server/layer-cycle.js`) : faits validés (7 jours), part validée sans correction (7 jours), engagements échus (en stock), questions posées (7 jours, journal des recherches).
+- **La croissance** (Jules, 16 oct., transmis par une autre session) : « Ce qu'on lui donne » (sources en cumul : toutes, comptes rendus, réunions, appels, débriefs) et « Ce qu'elle sait » (faits extraits, validés, savoir validé), **comptés à partir du 13 oct. 2026** (`DEBUT_DONNEES` ; avant, c'était du test). La bande des critères du MVP a quitté l'en-tête (lecture de « enlève le truc », à confirmer avec Jules) : elle est dans l'onglet Évaluation.
+- **Onglets** : À valider · n (personnel) ; Faits (type : Tout, Savoir, Informations, Décisions, Engagements, la demande du 14 oct. ; statut : validés, à valider, remplacés, archivés, rejetés ; période ; type de fiche et nom) ; Synthèses (une ligne par fiche, un clic déplie la synthèse) ; Sources ; Évaluation (critères du MVP, part de validation à la main, coût d'extraction du mois, recherche la plus lente et nombre de faits face aux seuils Postgres, répartitions types / statuts / sources ; le banc de questions vient en phase 8).
+- **Vue par fiche** depuis la fiche elle-même : `CeQueKlockaSait` (phase 6).
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -226,7 +235,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 4. Cycle de vie et validation ✓ | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
 | 5. Synthèses par fiche ✓ | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
 | 6. Branchements ✓ (sources : phase 9) | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
-| 7. Page Layer | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
+| 7. Page Intelligence ✓ | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
 | 8. Évaluation | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |
 
 ### Spec des phases 3 à 9 (reçue le 15 oct. 2026, résumé)

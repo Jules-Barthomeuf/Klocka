@@ -245,3 +245,87 @@ export function planifier() {
   t.unref?.();
   return t;
 }
+
+// --- Phase 7 : le tableau de bord de la page Intelligence (15 oct. 2026) ---------------------
+
+const jourParis = (d) => new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(new Date(d));
+
+/**
+ * Les quatre indicateurs de la page, chacun avec sa série sur `jours` jours :
+ * faits validés (par jour), part validée sans correction (par jour), engagements
+ * échus (en stock, chaque soir), questions posées à l'Intelligence (par jour).
+ * Plus les répartitions (types, sources, auto / manuel) et les coûts du mois.
+ */
+export async function tableauDeBord({ jours = 30, maintenantD = new Date() } = {}) {
+  const liste = [];
+  for (let i = jours - 1; i >= 0; i -= 1) liste.push(jourParis(maintenantD.getTime() - i * 86400000));
+  const faits = Records.list(FAIT);
+  const tranches = faits.filter((f) => f.valide_le && ['valide', 'remplace', 'archive'].includes(f.statut));
+  const parJour = new Map(liste.map((j) => [j, { jour: j, valides: 0, sans_correction: 0, echus: 0, questions: 0 }]));
+  for (const f of tranches) { const d = parJour.get(jourParis(f.valide_le)); if (d) { d.valides += 1; if (!f.corrige) d.sans_correction += 1; } }
+  const engagements = faits.filter((f) => f.type === 'engagement' && f.echu_le);
+  for (const d of parJour.values()) {
+    const fin = `${d.jour}T23:59:59.999Z`;
+    d.echus = engagements.filter((f) => f.echu_le <= fin && (!f.tenu_le || f.tenu_le > fin)).length;
+    d.part_sans_correction = d.valides ? Math.round((d.sans_correction / d.valides) * 100) : null;
+  }
+  const debut = `${liste[0]}T00:00:00.000Z`;
+  return import('./layer-schema.js').then(({ requetesDepuis, alertePostgres }) => {
+    for (const r of requetesDepuis(debut)) { const d = parJour.get(jourParis(r.le)); if (d) d.questions += 1; }
+    const serie = [...parJour.values()];
+    const semaine = serie.slice(-7);
+    const somme = (k) => semaine.reduce((t, d) => t + d[k], 0);
+    const valides7 = somme('valides');
+    const sources = Records.list(SOURCE);
+    const mois = jourParis(maintenantD).slice(0, 7);
+    const duMois = sources.filter((s) => String(s.date || s.cree_le || '').slice(0, 7) === mois);
+    return {
+      jours,
+      kpis: {
+        valides_semaine: valides7,
+        part_sans_correction: valides7 ? Math.round((somme('sans_correction') / valides7) * 100) : null,
+        engagements_echus: faits.filter((f) => f.type === 'engagement' && f.statut === 'valide' && f.statut_engagement === 'echu').length,
+        questions_semaine: somme('questions'),
+      },
+      serie,
+      types: ['decision', 'information', 'engagement', 'savoir'].map((t) => ({ type: t, n: faits.filter((f) => f.type === t && f.statut === 'valide').length })),
+      statuts: ['a_valider', 'a_rattacher', 'valide', 'remplace', 'archive', 'rejete'].map((s) => ({ statut: s, n: faits.filter((f) => f.statut === s).length })),
+      sources: ['compte_rendu', 'appel', 'debrief', 'decision', 'mail', 'evenement'].map((t) => ({ type: t, n: sources.filter((s) => s.type === t).length })).filter((x) => x.n),
+      manuel: partManuelle({ maintenantD }),
+      couts_mois: { sources: duMois.length, extraction_usd: Math.round(duMois.reduce((t, s) => t + (s.cout?.usd || 0), 0) * 100) / 100, embed_jetons: duMois.reduce((t, s) => t + (s.cout?.embed_jetons || 0), 0) },
+      postgres: alertePostgres({ maintenantD }),
+      croissance: croissance({ maintenantD }),
+    };
+  });
+}
+
+// Les données comptent à partir du 13 oct. 2026 (Jules, 16 oct. : « avant, c'était du test »).
+export const DEBUT_DONNEES = '2026-10-13';
+
+/**
+ * La croissance de ce qu'on donne à l'Intelligence (Jules, 16 oct. 2026) :
+ * chaque jour depuis le 13 oct., les cumuls des sources entrées (par type, les
+ * réunions à part des comptes rendus), des faits extraits, des faits validés
+ * et du savoir validé.
+ */
+export function croissance({ maintenantD = new Date(), depuis = DEBUT_DONNEES } = {}) {
+  const fin = jourParis(maintenantD);
+  const jours = [];
+  for (let d = new Date(`${depuis}T12:00:00Z`); jourParis(d) <= fin; d = new Date(d.getTime() + 86400000)) jours.push(jourParis(d));
+  const sources = Records.list(SOURCE).map((s) => ({ jour: jourParis(s.cree_le || s.date || s.created_date), genre: String(s.cle || '').startsWith('reunion-') ? 'reunion' : s.type === 'decision' ? 'debrief' : s.type }));
+  const faits = Records.list(FAIT);
+  const crees = faits.map((f) => jourParis(f.cree_le || f.created_date));
+  const valides = faits.filter((f) => f.valide_le && ['valide', 'remplace', 'archive'].includes(f.statut));
+  const cumul = (dates, j) => dates.filter((x) => x >= depuis && x <= j).length;
+  return jours.map((j) => ({
+    jour: j,
+    comptes_rendus: cumul(sources.filter((s) => s.genre === 'compte_rendu').map((s) => s.jour), j),
+    reunions: cumul(sources.filter((s) => s.genre === 'reunion').map((s) => s.jour), j),
+    appels: cumul(sources.filter((s) => s.genre === 'appel').map((s) => s.jour), j),
+    debriefs: cumul(sources.filter((s) => s.genre === 'debrief').map((s) => s.jour), j),
+    sources: cumul(sources.map((s) => s.jour), j),
+    faits_extraits: cumul(crees, j),
+    faits_valides: cumul(valides.map((f) => jourParis(f.valide_le)), j),
+    savoir_valide: cumul(valides.filter((f) => f.type === 'savoir').map((f) => jourParis(f.valide_le)), j),
+  }));
+}

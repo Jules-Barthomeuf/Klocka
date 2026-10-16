@@ -158,7 +158,9 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   const parJour = joursListe.map((j) => {
     const dans = appels.filter((x) => R.jourDe(new Date(x.le)) === j);
     const dj = dans.map((x) => Number(x.duree_s)).filter((n) => n > 0);
-    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), duree_totale_s: dj.reduce((t, n) => t + n, 0), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
+    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), duree_totale_s: dj.reduce((t, n) => t + n, 0),
+      // Le temps après l'appel, ce jour-là (16 oct. 2026, Jules) : la médiane de chaque étape depuis le raccrochage.
+      apres_appel: Object.fromEntries(ETAPES_TEMPS.map((k) => { const t = dans.map((x) => x.temps?.[`${k}_ms`]).filter((n) => Number.isFinite(n)); return [k, { mediane_ms: mediane(t), n: t.length }]; })), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
   });
   const heures = Array.from({ length: 24 }, (_, h) => ({ heure: h, appels: appels.filter((x) => heureParis(x.le) === h).length }));
   // La carte jour × heure (14 oct. 2026) : lundi à dimanche, heure de Paris.

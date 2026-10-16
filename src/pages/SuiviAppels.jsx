@@ -4,7 +4,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
-import { TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { TempsPostAppel, TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -201,6 +201,8 @@ function VueEnsemble({ data, jours, c, onChoisir }) {
           </div>
           {/* Le temps d'appel et le nombre d'appels, avec la croissance sur la veille (16 oct. 2026, Jules). */}
           <TempsEtAppels parJour={data.par_jour} c={c} />
+          {/* Le temps après l'appel, jour par jour (16 oct. 2026, Jules). */}
+          <TempsPostAppel parJour={data.par_jour} c={c} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <CourbesAnalystes parJour={data.par_jour} analystes={data.analystes} c={c} />
             <TauxJoints parJour={data.par_jour} c={c} />

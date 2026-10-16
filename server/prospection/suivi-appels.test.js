@@ -225,4 +225,5 @@ test('les chiffres comptent à partir du 13 octobre : avant, c\'était de l\'ess
   // D'autres essais du fichier ont des appels ce jour-là : le temps total les additionne, celui-ci compris.
   const j14 = r.par_jour.find((j) => j.jour === '2026-10-14');
   assert.ok(j14.duree_totale_s >= 90 && j14.appels >= 1);
+  assert.deepEqual(Object.keys(j14.apres_appel), ['pret', 'valide', 'prepare'], 'le temps après l\'appel, jour par jour');
 });

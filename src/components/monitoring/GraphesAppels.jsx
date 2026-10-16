@@ -494,3 +494,46 @@ export function TempsEtAppels({ parJour, c }) {
     </Cadre>
   );
 }
+
+/**
+ * Le temps après l'appel, jour par jour (16 oct. 2026, Jules) : depuis le raccrochage, la médiane du temps
+ * jusqu'aux actions prêtes, jusqu'à la validation, jusqu'à « Tout préparé ». Plus la courbe descend, moins
+ * l'analyste attend ou retouche avant de passer à l'appel suivant.
+ */
+export function TempsPostAppel({ parJour, c }) {
+  const ETAPES = [["pret", "Actions prêtes"], ["valide", "Validé"], ["prepare", "Tout préparé"]];
+  const data = parJour.map((j) => ({
+    jour: j.jour,
+    ...Object.fromEntries(ETAPES.map(([k]) => [k, j.apres_appel?.[k]?.mediane_ms != null ? Math.round(j.apres_appel[k].mediane_ms / 1000) : null])),
+    n: j.apres_appel?.valide?.n || 0,
+  }));
+  const couleur = (i) => c.series[i] || c.menthe;
+  const dernier = [...data].reverse().find((d) => d.valide != null);
+  const premier = data.find((d) => d.valide != null);
+  const aide = dernier && premier && dernier !== premier
+    ? `Raccroché → validé : ${duree(premier.valide)} le premier jour mesuré, ${duree(dernier.valide)} le dernier (médiane du jour).`
+    : "Depuis le raccrochage : la médiane du jour pour chaque étape.";
+  return (
+    <Cadre titre="Temps après l'appel" aide={aide} droite={<Legende items={ETAPES.map(([, mot], i) => ({ nom: mot, couleur: couleur(i) }))} />}>
+      {!data.some((d) => d.valide != null || d.pret != null) ? <p className="m-0 py-10 text-center text-[12.5px] text-brume">Pas encore d'appel mesuré sur la période.</p> : (
+        <div className="h-[240px]">
+          <ResponsiveContainer>
+            <LineChart data={data} margin={{ top: 6, right: 8, left: -6, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={c.trait} />
+              <XAxis dataKey="jour" tickFormatter={jourCourt} minTickGap={18} {...axe(c)} />
+              <YAxis tickFormatter={duree} width={56} {...axe(c)} />
+              <Tooltip cursor={{ stroke: c.ardoise, strokeWidth: 1 }} content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return <Bulle titre={`${jourLong(d.jour)}${d.n ? ` · ${d.n} appel${d.n > 1 ? "s" : ""}` : ""}`} lignes={ETAPES.map(([k, mot], i) => ({ nom: mot, valeur: duree(d[k]), couleur: couleur(i) }))} />;
+              }} />
+              {ETAPES.map(([k], i) => (
+                <Line key={k} dataKey={k} stroke={couleur(i)} strokeWidth={2} dot={{ r: 3, fill: couleur(i), stroke: c["surface-pleine"], strokeWidth: 2 }} connectNulls isAnimationActive={false} />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </Cadre>
+  );
+}

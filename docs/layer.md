@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 9 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence, évaluation et coûts, sources mail et Monday. Reste à Jules : régler `MONDAY_WEBHOOK_JETON` sur Render puis poser les webhooks (section 4 nonies).
+**État : phases 1 à 9 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence, évaluation et coûts, sources mail et Monday. Webhooks Monday posés le 16 oct. (section 4 nonies).
 
 ---
 
@@ -239,7 +239,7 @@ Une ligne de synthèse déplie ses faits ; un fait ouvre sa source (`FenetreSour
 - Webhook public `POST /api/layer/monday/webhook?jeton=…`, ouvert seulement si le jeton égale `MONDAY_WEBHOOK_JETON` (fermé sans réglage) ; répond au défi de Monday (`{ challenge }`). Monday ne signe pas les webhooks posés avec un jeton personnel (le JWT ne vient qu'avec une application), d'où le jeton dans le lien.
 - Suivis : les tableaux `MONDAY_BOARD_AGENTS` et `MONDAY_BOARD_PROPRIETES` ; événements `change_status_column_value` (colonne de type statut, valeur changée ; dédupliqué par `triggerUuid`) et `create_update` (commentaire ; dédupliqué par `updateId`). Le reste est ignoré.
 - Rattachement par la ligne : `AgentImmo.monday_ligne_id` (agent et agence), `Deal.monday_item_id` (dossier), `Project.monday_item_id` (projet). `lien_original` = la ligne Monday (« Ouvrir sur Monday » dans la fenêtre de la source).
-- **Pose des webhooks** (une fois) : régler `MONDAY_WEBHOOK_JETON` (une chaîne aléatoire) sur Render et dans le `.env` du Mac, avec la même valeur ; puis, depuis le Mac, `npm run layer:monday` (quatre webhooks : deux tableaux, deux événements). Le lien posé est `https://app.klocka.immo/api/layer/monday/webhook?jeton=…` (`URL_CANONIQUE`, `server/contexte.js` ; adresse de l'application depuis le 16 oct., plus `klocka-unus.onrender.com`). Pas posé depuis la session qui l'a écrit : c'est une écriture sur le Monday de production.
+- **Pose des webhooks** (une fois) : régler `MONDAY_WEBHOOK_JETON` (une chaîne aléatoire) sur Render et dans le `.env` du Mac, avec la même valeur ; puis, depuis le Mac, `npm run layer:monday` (quatre webhooks : deux tableaux, deux événements). Le lien posé est `https://app.klocka.immo/api/layer/monday/webhook?jeton=…` (`URL_CANONIQUE`, `server/contexte.js` ; adresse de l'application depuis le 16 oct., plus `klocka-unus.onrender.com`). **Posés le 16 oct. 2026** (jeton réglé sur Render et dans le `.env`) : ids Monday 189735450 et 189735454 (Agents immobiliers : statut, commentaire), 189735456 et 189735462 (Propriétés : statut, commentaire). Ne pas relancer la commande : elle poserait des doublons (les sources, elles, restent dédupliquées).
 
 **Appels clients** (page Clients, 16 oct.) : `depuisAppelClient(appel)` fait entrer un `AppelClient` comme source « appel » (`cle = appel-client-<id>`) : la transcription, ou le résumé collé ; rattaché à l'investisseur quand le client a un compte à la même adresse (`DemandeClient.client_email`), sans fiche sinon ; un appel annulé n'entre pas. Branché dans `noterAppelClient` (`server/clients-equipe.js`, commit 49e6f13), juste après la création de l'appel. Pas d'import d'historique : au 16 oct., seuls des appels d'essai existaient (bac à sable).
 
@@ -295,4 +295,3 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 
 - « Enlève le truc » (Jules, 16 oct.) lu comme la bande du MVP, déplacée dans l'onglet Évaluation : à confirmer.
 - Newsletters de Resend hors du Layer : à confirmer.
-- Webhooks Monday : jeton à régler et pose à lancer (section 4 nonies).

@@ -94,7 +94,7 @@ export default function Calculatrice({ textes }) {
   return createPortal(
     <div role="dialog" aria-label="Calculatrice"
       style={place ? { left: place.x, top: place.y, right: "auto", bottom: "auto", width: Math.min(LARGEUR, window.innerWidth - 16), maxHeight: window.innerHeight - place.y - 8 } : undefined}
-      className="fixed left-3 top-20 z-[60] flex max-h-[calc(100dvh-6rem)] w-[280px] flex-col gap-4 overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-5 shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-300 animate-in fade-in-0 slide-in-from-left-2 max-md:inset-x-3 max-md:bottom-3 max-md:top-auto max-md:max-h-[60dvh] max-md:w-auto">
+      className="fixed left-3 top-20 z-[60] flex max-h-[calc(100dvh-6rem)] w-[280px] flex-col gap-4 overflow-y-auto rounded-[18px] border border-trait bg-fond/50 p-5 backdrop-blur-xl shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-300 animate-in fade-in-0 slide-in-from-left-2 max-md:inset-x-3 max-md:bottom-3 max-md:top-auto max-md:max-h-[60dvh] max-md:w-auto">
       {/* L'en-tête se tient pour déplacer la fenêtre. */}
       <div onPointerDown={saisir} onPointerMove={glisser} onPointerUp={lacher} onPointerCancel={lacher} title="Glisser pour déplacer"
         className="-mx-5 -mt-5 flex cursor-grab touch-none select-none items-center justify-between px-5 pb-1 pt-5 active:cursor-grabbing">

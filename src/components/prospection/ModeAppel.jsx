@@ -1191,7 +1191,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
                     {!simule && moi?.role === "admin" && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
                   </div>
-                  <div className="flex items-center gap-2.5">
+                  {/* Les boutons passent à la ligne quand la colonne est étroite, jamais coupés ni sur deux lignes (16 oct. 2026). */}
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 [&>button]:whitespace-nowrap">
                     {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
                     <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
                     <button type="button" onClick={raccrocher} className="h-10 rounded-full bg-alerte px-5 text-[14px] text-white hover:opacity-90">Raccrocher</button>

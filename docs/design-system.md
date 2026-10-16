@@ -481,7 +481,7 @@ le rappel reste dans une pilule « Rappel à terminer » en bas, au centre.
 **La calculatrice de l'appel** (Jules, 16 oct. 2026) : dès qu'un prix ou un
 loyer est entendu (transcription ou notes), elle s'ouvre seule en fenêtre
 devant la barre de gauche (280 px, `fixed left-3 top-20 z-[60]`,
-`bg-surface-pleine`, rayon 18, ombre de menu flottant ; au téléphone, en bas de
+fond `bg-fond/50` flou (`backdrop-blur-xl`), rayon 18, ombre de menu flottant ; au téléphone, en bas de
 l'écran). Elle se déplace par son en-tête et garde sa place (navigateur) ; une
 croix la ferme, le chiffre suivant la rouvre. Étiquette « CALCULATRICE », trois
 champs soulignés en 18 px (Prix FAI, Loyer annuel HT, Surface), corrigeables,

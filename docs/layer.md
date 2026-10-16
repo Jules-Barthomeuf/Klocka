@@ -241,6 +241,8 @@ Une ligne de synthèse déplie ses faits ; un fait ouvre sa source (`FenetreSour
 - Rattachement par la ligne : `AgentImmo.monday_ligne_id` (agent et agence), `Deal.monday_item_id` (dossier), `Project.monday_item_id` (projet). `lien_original` = la ligne Monday (« Ouvrir sur Monday » dans la fenêtre de la source).
 - **Pose des webhooks** (une fois) : régler `MONDAY_WEBHOOK_JETON` (une chaîne aléatoire) sur Render et dans le `.env` du Mac, avec la même valeur ; puis, depuis le Mac, `npm run layer:monday` (quatre webhooks : deux tableaux, deux événements). Le lien posé est `https://app.klocka.immo/api/layer/monday/webhook?jeton=…` (`URL_CANONIQUE`, `server/contexte.js` ; adresse de l'application depuis le 16 oct., plus `klocka-unus.onrender.com`). Pas posé depuis la session qui l'a écrit : c'est une écriture sur le Monday de production.
 
+**Appels clients** (page Clients, 16 oct.) : `depuisAppelClient(appel)` fait entrer un `AppelClient` comme source « appel » (`cle = appel-client-<id>`) : la transcription, ou le résumé collé ; rattaché à l'investisseur quand le client a un compte à la même adresse (`DemandeClient.client_email`), sans fiche sinon ; un appel annulé n'entre pas. À appeler par `server/clients-equipe.js` (fichier d'une autre session) après la création de l'appel.
+
 **Correction du nom** : `ajouterSource` corrige « Cloaca » en « Klocka » hors des adresses mail et des liens (`horsAdresses`) : sinon `nora@klocka.immo` devenait `nora@Klocka.immo`.
 
 ## 5. Correspondance des noms

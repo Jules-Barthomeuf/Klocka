@@ -105,14 +105,14 @@ const OUTILS_AK = [
   },
   {
     name: 'faire_tout',
-    description: "« Prends ce mail, fais tout », « prends ces deux mails et fais tout » : d'un ou plusieurs mails reçus (leurs identifiants, de boite_recue) ou des pièces jointes du message, AK crée le dossier de préanalyse (fiche lue, dossier nommé « Enseigne - Ville » ; un mail qui porte plusieurs fiches donne un dossier par fiche, à annoncer tous avec leur lien), ouvre son dossier Drive avec les pièces d'origine, et lit le marché du bien sur Data-B (valeur locative, cessions de fonds) rangé dans le dossier. Sans rien demander. K-Data ne part que si la personne nomme ses outils. Un mail envoyé par quelqu'un de l'équipe ne fait pas de lui l'agent du dossier.",
+    description: "« Prends ce mail, fais tout », « prends ces deux mails et fais tout » : d'un ou plusieurs mails reçus (leurs identifiants, de boite_recue) ou des pièces jointes du message, AK crée le dossier de préanalyse (fiche lue, dossier nommé « Enseigne - Ville » ; un mail qui porte plusieurs fiches donne un dossier par fiche, à annoncer tous avec leur lien), ouvre son dossier Drive avec les pièces d'origine, et lit le marché du bien sur Data-B (valeur locative, cessions de fonds) rangé dans le dossier. Sans rien demander. Les Outils (ex-K-Data) ne partent que si la personne nomme ses outils. Un mail envoyé par quelqu'un de l'équipe ne fait pas de lui l'agent du dossier.",
     input_schema: {
       type: 'object',
       properties: {
         mail_id: { type: 'string', description: 'le mail, de boite_recue' },
         mail_ids: { type: 'array', items: { type: 'string' }, description: 'plusieurs mails : celui qui porte la fiche fait le dossier, les autres y déposent leurs pièces (bail, PV, diagnostics)' },
         chemins: { type: 'array', items: { type: 'string' }, description: 'les pièces jointes du message, à défaut de mail : la première PDF est la fiche' },
-        outils: { type: 'array', items: { type: 'string', enum: CLES_OUTILS }, description: 'les outils K-Data, seulement si la personne en nomme ; sinon Data-B' },
+        outils: { type: 'array', items: { type: 'string', enum: CLES_OUTILS }, description: 'les Outils (ex-K-Data), seulement si la personne en nomme ; sinon Data-B' },
       },
     },
   },
@@ -491,12 +491,12 @@ const OUTILS_AK = [
   },
   {
     name: 'outils_kdata',
-    description: "La liste des outils K-Data et les réglages que chacun demande. À appeler avant lancer_kdata pour demander à la personne lesquels elle veut et avec quels réglages.",
+    description: "La liste des Outils (ex-K-Data) et les réglages que chacun demande. À appeler avant lancer_kdata pour demander à la personne lesquels elle veut et avec quels réglages.",
     input_schema: { type: 'object', properties: {} },
   },
   {
     name: 'lancer_kdata',
-    description: "Lance des analyses K-Data sur une adresse et les range dans un dossier. L'adresse est celle du projet ou du dossier (la prendre d'etat_projet ou etat_dossier). Les analyses tournent en tâche de fond : AK préviendra dans le chat quand c'est fini, il ne faut pas attendre ni inventer un résultat.",
+    description: "Lance des analyses des Outils (ex-K-Data) sur une adresse et les range dans un dossier. L'adresse est celle du projet ou du dossier (la prendre d'etat_projet ou etat_dossier). Les analyses tournent en tâche de fond : AK préviendra dans le chat quand c'est fini, il ne faut pas attendre ni inventer un résultat.",
     input_schema: {
       type: 'object',
       properties: {
@@ -656,7 +656,7 @@ const OUTILS_AK = [
   },
   {
     name: 'taches_en_cours',
-    description: "Ce qu'AK est en train de faire en tâche de fond (analyses K-Data, préz), pour répondre « je suis en train de faire autre chose » ou dire où ça en est.",
+    description: "Ce qu'AK est en train de faire en tâche de fond (analyses des Outils (ex-K-Data), préz), pour répondre « je suis en train de faire autre chose » ou dire où ça en est.",
     input_schema: { type: 'object', properties: {} },
   },
 ];
@@ -1334,7 +1334,7 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     const r = lancerAnalyses({ adresse: input.adresse, outils: input.outils, reglages: input.reglages || {} }, user);
     if (!r.ok) return r;
     if (input.deal_id) ranger(r.ids, input.deal_id);
-    fond({ genre: 'kdata', libelle: `K-Data sur ${input.adresse} : ${input.outils.map((o) => NOMS_KDATA[o] || o).join(', ')}`, ids: r.ids, deal_id: input.deal_id || null });
+    fond({ genre: 'kdata', libelle: `Outils sur ${input.adresse} : ${input.outils.map((o) => NOMS_KDATA[o] || o).join(', ')}`, ids: r.ids, deal_id: input.deal_id || null });
     return { ok: true, lancees: input.outils.length, lot: r.lot, note: 'Les analyses tournent ; AK préviendra dans le chat quand elles seront finies.' };
   }
   if (name === 'creer_presentation_bancaire') {
@@ -1555,7 +1555,7 @@ LA BOÎTE MAIL, LE DRIVE, L'AGENDA
 
 LE MARCHÉ, DATA-B ET K-DATA
 - Les données de marché viennent de Data-B et d'Equimmox. « Fais-moi X sur Data-B », une valeur locative, des cessions de fonds, une étude d'implantation, le propriétaire des murs : data_b, avec le projet_id ou le deal_id quand on parle d'un bien de la plateforme (le résultat y est rangé), sinon l'adresse. Une question sur une rue (« ça se loue combien ici ? ») : data_b sur cette adresse, et tu rends les chiffres avec leur source.
-- K-Data n'est pas encore au point : il ne part que si la personne le nomme. « Fais l'analyse K-Data » : demande d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms ; ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer K-Data sans demander (alors K-Zoning, K-Expertise et Estimation). Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
+- Les Outils (ex-K-Data) ne sont pas encore au point : ils ne partent que si la personne les nomme. « Fais l'analyse K-Data » ou « lance les Outils » : demande d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms ; ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer les Outils sans demander (alors K-Zoning, K-Expertise et Estimation). Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
 - Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Monday de l'agent à jour. Une ligne pour dire ce qui est fait.
@@ -1563,7 +1563,7 @@ LA PROSPECTION ET L'OFF-MARKET (ALX)
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 
 LES TÂCHES DE FOND
-- K-Data, préz bancaire, prospection ALX, préanalyse : dis que c'est parti, sans annoncer de résultat ni l'inventer. La suite arrive d'elle-même (voir plus bas comment, selon où tu parles).
+- Les Outils (ex-K-Data), préz bancaire, prospection ALX, préanalyse : dis que c'est parti, sans annoncer de résultat ni l'inventer. La suite arrive d'elle-même (voir plus bas comment, selon où tu parles).
 
 CE QUI NE SE FAIT JAMAIS
 - N'invente jamais un chiffre sur un bien : ce que tu n'as pas reçu d'un outil, tu ne l'as pas.

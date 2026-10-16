@@ -78,6 +78,33 @@ export function depuisMail(mail, { sens = 'envoye', extraire = true } = {}) {
   return s.source;
 }
 
+// --- Les appels clients (page Clients, 16 oct. 2026) --------------------------------------
+
+/**
+ * Un appel client (AppelClient, server/clients-equipe.js) entre comme source
+ * « appel » : la transcription, ou le résumé collé. Rattaché à l'investisseur
+ * quand le client a un compte (même adresse) ; sinon la source reste
+ * cherchable, sans fiche. Un appel annulé n'entre pas (la fiche, elle, est
+ * remise ; ce qui s'est dit reste vrai, mais l'équipe a dit « pas ça »).
+ */
+export function depuisAppelClient(appel, { extraire = true } = {}) {
+  if (!appel || appel.annule_le || appel.essai) return null;
+  const texte = String(appel.transcription || appel.resume_colle || '').trim();
+  if (!texte) return null;
+  const client = appel.client_id ? Records.get('DemandeClient', appel.client_id) : null;
+  const email = String(client?.client_email || '').trim().toLowerCase();
+  const compte = email ? Records.list('User').find((u) => String(u.email || '').trim().toLowerCase() === email) : null;
+  const nom = client?.client_nom || compte?.full_name || null;
+  const s = ajouterSource({
+    type: 'appel', auteur: appel.par || null, date: appel.le || null, titre: `Appel client${nom ? ` : ${nom}` : ''}`,
+    contenu: appel.transcription ? texte : `Résumé de l'appel, collé par l'analyste :\n\n${texte}`,
+    lien_original: '/Clients', liens: compte ? [{ type_entite: 'investisseur', entite_id: compte.id }] : [], cle: `appel-client-${appel.id}`,
+  });
+  if (!s.ok) return null;
+  if (!s.deja && extraire) planifierExtraction(s.source.id);
+  return s.source;
+}
+
 // --- Monday ---------------------------------------------------------------------------------
 
 const lienLigne = (board, item) => `https://klocka-company.monday.com/boards/${board}/pulses/${item}`;

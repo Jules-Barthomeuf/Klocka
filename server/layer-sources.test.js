@@ -82,3 +82,17 @@ test('l\'historique importe les mails envoyés et reçus une seule fois', () => 
   assert.equal(S.importerMails().importes, 2);
   assert.equal(S.importerMails().importes, 0);
 });
+
+test('un appel client : source « appel », rattachée à l\'investisseur qui a un compte ; un appel annulé n\'entre pas', () => {
+  const u = Records.create('User', { email: 'simon@exemple.fr', full_name: 'Simon S', role: 'user' });
+  const d = Records.create('DemandeClient', { client_nom: 'Simon S', client_email: 'Simon@exemple.fr' });
+  const a = Records.create('AppelClient', { client_id: d.id, le: '2026-10-16T14:00:00Z', par: 'nora@klocka.immo', source: 'colle', resume_colle: 'Cherche des murs à Nice, 800 k€ maximum.' });
+  const s = S.depuisAppelClient(a, { extraire: false });
+  assert.equal(s.type, 'appel');
+  assert.equal(s.cle, `appel-client-${a.id}`);
+  assert.deepEqual(liensDe(s), [`investisseur:${u.id}`]);
+  assert.match(s.contenu, /^Résumé de l'appel, collé/);
+  assert.equal(S.depuisAppelClient({ ...a, id: 'x2', annule_le: '2026-10-16T15:00:00Z' }), null);
+  const sans = S.depuisAppelClient({ id: 'x3', client_id: Records.create('DemandeClient', { client_nom: 'Inconnu' }).id, transcription: 'Bonjour, je cherche un local.' }, { extraire: false });
+  assert.deepEqual(sans.liens, []);
+});

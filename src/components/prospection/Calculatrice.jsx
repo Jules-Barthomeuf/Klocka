@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { chiffresEntendus, calculer } from "@/lib/chiffres-entendus";
 import seuils from "../../../server/ak/seuils.json";
 
 // La calculatrice du mode appel (16 oct. 2026, Jules) : dès qu'un prix ou un
-// loyer est dit, elle s'ouvre dans la colonne de gauche, les chiffres déjà
+// loyer est dit, elle s'ouvre en fenêtre devant la barre de gauche (au
+// téléphone, en bas de l'écran), les chiffres déjà
 // posés, et fait les comptes aux seuils d'AK. Un chiffre se corrige à la main ;
 // redit autrement au téléphone, c'est le nouveau qui revient.
 
@@ -44,6 +47,8 @@ const ecrire = (n) => (n == null ? "" : Math.round(n).toLocaleString("fr-FR"));
 export default function Calculatrice({ textes }) {
   const lu = useMemo(() => chiffresEntendus(textes), [textes.join("\n")]);
   const [saisi, setSaisi] = useState({});
+  // Fermée, elle revient au prochain chiffre entendu.
+  const [fermee, setFermee] = useState(false);
   // Un chiffre redit au téléphone remplace celui tapé à la main.
   const precedent = useRef(lu);
   useEffect(() => {
@@ -54,18 +59,24 @@ export default function Calculatrice({ textes }) {
       return t;
     });
     precedent.current = lu;
+    setFermee(false);
   }, [lu.prix, lu.loyer_an, lu.surface]);
 
-  if (lu.prix == null && lu.loyer_an == null) return null;
+  if (fermee || (lu.prix == null && lu.loyer_an == null)) return null;
   const valeur = (k) => (k in saisi ? saisi[k] : ecrire(lu[k]));
   const v = { prix: lireNombre(valeur("prix")), loyer_an: lireNombre(valeur("loyer_an")), surface: lireNombre(valeur("surface")) };
   const r = calculer(v, seuils);
   const poser = (k) => (x) => setSaisi((s) => ({ ...s, [k]: x }));
   const [mot, couleur] = VERDICT[r.verdict] || [];
 
-  return (
-    <div className="flex flex-col gap-4 border-t border-trait pt-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-2">
-      <span className="text-[11px] tracking-[.16em] text-brume">CALCULATRICE</span>
+  return createPortal(
+    <div role="dialog" aria-label="Calculatrice"
+      className="fixed left-3 top-20 z-[60] flex max-h-[calc(100dvh-6rem)] w-[280px] flex-col gap-4 overflow-y-auto rounded-[18px] border border-trait bg-surface-pleine p-5 shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-300 animate-in fade-in-0 slide-in-from-left-2 max-md:inset-x-3 max-md:bottom-3 max-md:top-auto max-md:max-h-[60dvh] max-md:w-auto">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] tracking-[.16em] text-brume">CALCULATRICE</span>
+        <button type="button" onClick={() => setFermee(true)} aria-label="Fermer la calculatrice" title="Fermer : elle revient au prochain chiffre entendu"
+          className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+      </div>
       <div className="flex flex-col gap-3">
         <Champ libelle="Prix FAI" valeur={valeur("prix")} onChange={poser("prix")} unite="€" />
         <Champ libelle="Loyer annuel HT" valeur={valeur("loyer_an")} onChange={poser("loyer_an")} unite="€/an"
@@ -82,6 +93,7 @@ export default function Calculatrice({ textes }) {
           {r.loyer_m2_an != null && <Ligne libelle="Loyer au m² par an" valeur={euros(r.loyer_m2_an)} />}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

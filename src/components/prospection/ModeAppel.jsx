@@ -1171,7 +1171,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-[14px] text-menthe hover:underline ${autresNumeros.length ? "mt-2" : ""}`}>{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
                     </div>
                   )}
-                  {/* La calculatrice (16 oct. 2026, Jules) : elle s'ouvre seule dès qu'un prix ou un loyer est entendu. */}
+                  {/* La calculatrice (16 oct. 2026, Jules) : une fenêtre devant la barre de gauche, ouverte seule dès qu'un prix ou un loyer est entendu. */}
                   <Calculatrice textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
                 </div>
                 <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-7 max-lg:order-2 max-lg:border-t max-md:p-5 lg:border-r">

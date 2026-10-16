@@ -479,8 +479,10 @@ pointillé tant que l'agent n'est pas confirmé. « Ne plus appeler » en cadre
 le rappel reste dans une pilule « Rappel à terminer » en bas, au centre.
 
 **La calculatrice de l'appel** (Jules, 16 oct. 2026) : dès qu'un prix ou un
-loyer est entendu (transcription ou notes), elle s'ouvre seule dans la colonne
-de gauche de l'écran d'appel, sous les numéros : étiquette « CALCULATRICE »,
+loyer est entendu (transcription ou notes), elle s'ouvre seule en fenêtre
+devant la barre de gauche (280 px, `fixed left-3 top-20 z-[60]`,
+`bg-surface-pleine`, rayon 18, ombre de menu flottant ; au téléphone, en bas de
+l'écran), fermable, rouverte au chiffre suivant (Jules, même jour) : étiquette « CALCULATRICE »,
 trois champs soulignés en 18 px (Prix FAI, Loyer annuel HT, Surface),
 corrigeables, puis des lignes libellé / valeur en 13,5 px (rendement brut,
 acte en main, verdict en `menthe` / `ambre` / `alerte` aux seuils d'AK, prix

@@ -7,7 +7,7 @@ import { journeesAVoir } from "@/lib/nouveautes";
 
 // « Quoi de neuf » (16 oct. 2026, Jules) : le briefing du jour, ce qui a été
 // ajouté à la plateforme. Une fois par jour et par navigateur, sur le
-// Dashboard ; après l'annonce d'AK si elle est ouverte. Même registre que
+// à l'arrivée sur n'importe quelle page de l'équipe (Layout) ; après l'annonce d'AK si elle est ouverte. Même registre que
 // « Tout préparé » : reflet sur le titre, lignes cochées une à une.
 
 const CLE = "klocka.quoi-de-neuf.vu";

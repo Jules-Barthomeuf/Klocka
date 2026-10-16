@@ -21,6 +21,22 @@ export const MAILS_PLATEFORME = {
       ],
     },
   },
+  nouveautes_du_jour: {
+    nom: 'Nouveautés du jour',
+    description: "Part chaque matin vers 8 h à l'équipe quand la plateforme a changé : les nouveautés de la veille (src/lib/nouveautes.js), une par ligne, et le lien pour les essayer.",
+    variables: ['objet', 'titre', 'intro', 'liste', 'lien'],
+    objet: '{{objet}}',
+    apercu: '{{intro}}',
+    design: {
+      theme: 'clair',
+      blocs: [
+        b('titre', { texte: '{{titre}}' }, 'titre'),
+        b('texte', { texte: '{{intro}}' }, 'intro'),
+        b('texte', { texte: '{{liste}}' }, 'liste'),
+        b('bouton', { texte: 'Ouvrir Klocka', lien: '{{lien}}' }, 'bouton'),
+      ],
+    },
+  },
   rapport_regles: {
     nom: 'Rapport des règles',
     description: 'Part chaque matin vers 7 h à Jules : les règles de la prospection contrôlées la nuit, « Tout est conforme » ou les écarts.',

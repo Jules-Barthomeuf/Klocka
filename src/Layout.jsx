@@ -52,6 +52,8 @@ import AssistantFlottant from "@/components/AssistantFlottant";
 import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
+import AKNouveauLook from "@/components/AKNouveauLook";
+import QuoiDeNeuf from "@/components/QuoiDeNeuf";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -809,6 +811,9 @@ function LayoutContent({ children, currentPageName }) {
       {/* La page Note est déjà l'assistant, en grand : pas de pilule en double. */}
       {/* La pilule flottante se tait sur le dashboard : le chat y est déjà. */}
       {vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
+      {/* Dès l'arrivée, sur n'importe quelle page de l'équipe (16 oct. 2026, Jules) : l'annonce d'AK, une fois ; puis « Quoi de neuf », une fois par jour. */}
+      {vueAdmin && !hideNavbar && !enCadre && <AKNouveauLook />}
+      {vueAdmin && !hideNavbar && !enCadre && <QuoiDeNeuf />}
 
       {/* La recherche du rail, et ⌘K. */}
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}

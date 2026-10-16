@@ -1304,6 +1304,11 @@ import('./etat-plateforme.js')
   .then((m) => m.tenirAJour())
   .catch((e) => console.error('[état] module absent :', e.message));
 
+// Le mail des nouveautés (16 oct. 2026, Jules) : chaque matin vers 8 h, à l'équipe, s'il y a du nouveau (Render seulement).
+import('./nouveautes-mail.js')
+  .then((m) => m.planifier())
+  .catch((e) => console.error('[nouveautés] module absent :', e.message));
+
 // Les règles de la prospection contrôlées chaque nuit, et leur mail de 7 h : coupés le 16 oct. 2026 (Jules).
 // Le contrôle reste dans server/prospection/controles.js (planifier) ; le rebrancher ici le relance.
 

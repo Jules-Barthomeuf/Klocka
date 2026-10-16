@@ -73,12 +73,36 @@ export default function MessagesAK() {
   );
   // Le panneau passe par-dessus la barre, collé à gauche (16 oct. 2026, Jules).
   const position = { left: "12px" };
+  // La taille de la fenêtre se tire par son coin en haut à droite (16 oct. 2026, Jules) ; gardée dans ce navigateur.
+  const CLE_TAILLE = "klocka.assistant.taille";
+  const borner = ({ w, h }) => ({ w: Math.round(Math.min(Math.max(w, 340), window.innerWidth - 24)), h: Math.round(Math.min(Math.max(h, 360), window.innerHeight - 24)) });
+  const [taille, setTaille] = useState(() => { try { const t = JSON.parse(localStorage.getItem(CLE_TAILLE)); return t?.w && t?.h ? t : { w: 420, h: 640 }; } catch { return { w: 420, h: 640 }; } });
+  const tirer = (e) => {
+    e.preventDefault();
+    const x0 = e.clientX; const y0 = e.clientY; const t0 = taille;
+    let derniere = t0;
+    const bouger = (ev) => { derniere = borner({ w: t0.w + (ev.clientX - x0), h: t0.h - (ev.clientY - y0) }); setTaille(derniere); };
+    const lacher = () => {
+      try { localStorage.setItem(CLE_TAILLE, JSON.stringify(derniere)); } catch { /* sans stockage */ }
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", lacher);
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+  };
+  const tailleVue = borner(taille);
   return createPortal(
     <>
       {ouvert && (
-        <div role="dialog" aria-label="Assistant Klocka" style={position}
-          className="fixed bottom-3 z-[75] flex h-[min(640px,calc(100dvh-24px))] w-[420px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[20px] border border-trait bg-fond shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-200 animate-in fade-in-0 slide-in-from-bottom-2 max-md:!left-3">
-          <div className="flex flex-none items-center gap-3 border-b border-trait px-4 py-3">
+        <div role="dialog" aria-label="Assistant Klocka" style={{ ...position, width: tailleVue.w, height: tailleVue.h }}
+          className="group/fenetre fixed bottom-3 z-[75] flex max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[20px] border border-trait bg-fond shadow-[0_18px_40px_rgb(0_0_0/0.18)] duration-200 animate-in fade-in-0 slide-in-from-bottom-2 max-md:!left-3">
+          {/* Le coin à tirer, en haut à droite : il se montre au survol. */}
+          <div role="separator" aria-label="Redimensionner l'assistant" title="Tirer pour agrandir ou réduire" onPointerDown={tirer}
+            className="absolute right-0 top-0 z-10 h-5 w-5 cursor-nesw-resize opacity-0 transition-opacity group-hover/fenetre:opacity-100">
+            <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-tr-[6px] border-r-2 border-t-2 border-bord-vif" />
+          </div>
+          {/* La barre du haut, de la couleur de la barre de navigation (16 oct. 2026, Jules). */}
+          <div className="flex flex-none items-center gap-3 border-b border-trait bg-rail px-4 py-3">
             <img src="/avatars/ak.png" alt="" className="h-9 w-9 rounded-full object-cover" />
             <div className="flex min-w-0 flex-1 flex-col"><span className="text-[15px] text-encre">Assistant Klocka</span><span className="text-[12.5px] text-ardoise">Ses messages, et ta réponse</span></div>
             <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>

@@ -213,6 +213,15 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
       } catch (e) {
         console.warn(`[veille] notification non posée : ${e?.message || e}`);
       }
+      // AK l'écrit dans ses messages, en bas à gauche, à la personne de la boîte où la fiche est arrivée (16 oct. 2026, Jules).
+      try {
+        const destinataire = auteur?.email || (await import('../acces-pages.js')).SUPER_ADMINS[0];
+        const de = String(mail.de || mail.de_email || '').replace(/<[^>]*>/g, '').trim();
+        // En arrière-plan : la veille ne l'attend pas.
+        import('../ak-messages.js').then((m) => m.annoncerPreanalyse({ email: destinataire, deal_id: dossier.deal_id, nom, de })).catch((e) => console.warn(`[veille] message d'AK non écrit : ${e?.message || e}`));
+      } catch (e) {
+        console.warn(`[veille] message d'AK non écrit : ${e?.message || e}`);
+      }
       bilan.lignes.push({ dossier: nom || dossier.deal_id, deal_id: dossier.deal_id, de: mail.de_email, documents: piecesFiche(mail).map(nomPiece), preanalyse: true, agent: dossier.agent_fiche?.phrase || null });
     } catch (e) {
       const essais = (mail.preanalyse_auto?.essais || 0) + 1;

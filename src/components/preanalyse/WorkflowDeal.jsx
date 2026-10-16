@@ -106,9 +106,8 @@ const ETAPES = [
 ];
 
 /** Les étapes d'un dossier : un dossier venu d'un mandataire K Partners commence par lui, pas par un mail. */
-const etapesDu = (dossier) => (dossier?.origine === "mandataire"
-  ? ETAPES.map((e) => (e.n === 1 ? { ...e, id: "mail", label: "Mandataire", sub: "K Partners" } : e))
-  : ETAPES);
+// L'étape Mail retirée de l'écran le 16 oct. 2026 (Jules) : un dossier s'ouvre sur la pré-analyse.
+const etapesDu = () => ETAPES.filter((e) => e.n !== 1);
 
 /**
  * Supprimer le dossier pour de bon, après confirmation : il disparaît avec ses
@@ -153,7 +152,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
         className="flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-[13.5px] text-encre transition-colors hover:border-trait"
         style={{ background: "transparent" }}
       >
-        <span className="text-[11px] tabular-nums text-ardoise">{String(courante.n).padStart(2, "0")}</span>
+        <span className="text-[11px] tabular-nums text-ardoise">{String(ETAPES.indexOf(courante) + 1).padStart(2, "0")}</span>
         <span className="font-semibold">{courante.label}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-ardoise transition-transform ${ouvert ? "rotate-180" : ""}`} />
       </button>
@@ -174,7 +173,7 @@ function MenuEtapes({ etape, debloquee, dossier, deblocageEnCours, onEtape, onPa
                     ${active ? "text-encre font-semibold" : accessible ? "text-craie" : "text-brume"}`}
                   style={{ background: "transparent" }}
                 >
-                  <span className="w-5 text-[11px] tabular-nums text-ardoise">{String(e.n).padStart(2, "0")}</span>
+                  <span className="w-5 text-[11px] tabular-nums text-ardoise">{String(ETAPES.indexOf(e) + 1).padStart(2, "0")}</span>
                   <span className="flex-1">{e.label}</span>
                   <span className="whitespace-nowrap text-[11px] text-ardoise">{e.sub}</span>
                 </button>
@@ -315,12 +314,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // est gardée par dossier. Sans mémoire, l'étape la plus avancée fait foi.
   const cleEtape = dossier?.deal_id ? `klocka_etape_${dossier.deal_id}` : null;
   const [etape, setEtapeBrut] = useState(() => {
-    if (apercu) return 1;
+    if (apercu) return 2;
     try {
       const gardee = cleEtape ? Number(localStorage.getItem(cleEtape)) : 0;
-      if (gardee >= 1 && gardee <= debloquee) return gardee;
+      if (gardee >= 2 && gardee <= debloquee) return gardee;
     } catch { /* sans mémoire */ }
-    return Math.min(debloquee, etapeCompletee(dossier));
+    return Math.max(2, Math.min(debloquee, etapeCompletee(dossier)));
   });
   const setEtape = (n) => {
     setEtapeBrut(n);
@@ -500,47 +499,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       )}
       {dossier && <div className="mb-8" />}
 
-      {/* Sur le marché, le chat du haut devient celui du marché : une seule
-          barre dans la page, et c'est celle qui sait interroger les sources.
-          Partout ailleurs, le chat du dossier ne bouge pas. */}
-      {surMarche && <JournalQuestion dealId={dossier?.deal_id} adresse={adresseDe(dossier?.lots?.[0])} apercu={apercu} />}
-
-      {/* Le chat n'a rien à faire sur Plateforme ni Présentation : là, on génère.
-          Ni sur une pré-analyse vide : le dépôt et la boîte à coller suffisent. */}
-      {etape <= 3 && !surMarche && !(etape === 2 && !dossier?.lots?.length && !dossier?.documents_espace?.length) && (
-      <ChatDossier
-        afficherRequetes={etape === 2 || etape === 3}
-        panneauDocuments={dossier && etape !== 2 ? <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive /> : null}
-        nbDocuments={(dossier?.documents_espace || []).length}
-        onOuvrirExtraction={(id) => {
-          setOngletAnalyse(id);
-          // Ouvrir une table depuis une autre étape emmène à l'étape Analyse,
-          // sinon l'onglet change sans que rien ne s'affiche.
-          if (etape !== 3 && debloquee >= 3) setEtape(3);
-          requestAnimationFrame(() =>
-            document.getElementById("tables-analyse")?.scrollIntoView({ behavior: "smooth", block: "start" })
-          );
-        }}
-        dossier={dossier}
-        modeMail={etape === 1}
-        gabarits={GABARITS}
-        onComposer={(prompt) => composerMail.mutate(prompt)}
-        compositionEnCours={composerMail.isPending}
-        modePreanalyse={!dossier?.lots?.length}
-        onAnalyserTexte={(texte) => analyserFiche.mutate({ texte })}
-        onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
-        analyseEnCours={analyserFiche.isPending}
-        onArreter={() => arretAnalyse.current?.abort()}
-        onExtraire={() => extraire.mutate()}
-        extractionEnCours={extraire.isPending}
-        documentsCoches={documentsCoches}
-        onToutCocher={() => {
-          const tous = (dossier?.documents_espace || []).map((d) => d.id);
-          setDocumentsCoches(documentsCoches.length === tous.length ? [] : tous);
-        }}
-        onRefresh={onRefresh}
-        apercu={apercu}
-      />
+      {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
+      {dossier && etape === 3 && (
+        <section className="mb-6 rounded-[14px] border border-trait px-4 py-3">
+          <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">Documents · {(dossier.documents_espace || []).length}</p>
+          <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
+        </section>
       )}
 
       {/* Contenu de l'étape courante */}
@@ -862,7 +826,7 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 
 function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnalyserFichier, onAnalyserTexte, onArreterAnalyse = null, analyseEnCours = false }) {
   const titre = (
-    <TitreEtape n={2} titre="Pré-analyse" />
+    <TitreEtape n={1} titre="Pré-analyse" />
   );
 
   // --- Nouveau dossier, ou coquille nommée sans analyse : la fiche entre ici.
@@ -1127,7 +1091,7 @@ function EtapeDocuments({ dossier, onRefresh, apercu }) {
   return (
     <>
       <TitreEtape
-        n={3}
+        n={2}
         titre="Documents"
         description="Baux, PV d'AG, diagnostics : dépôt, classement dans le Drive d'équipe, extraction case par case avec page source, puis synthèse des points à vérifier."
       />
@@ -1223,7 +1187,7 @@ function EtapePresentation({ dossier, onRefresh, apercu }) {
   return (
     <>
       <TitreEtape
-        n={5}
+        n={4}
         titre="Présentation"
         description="Le dossier de présentation bancaire du bien, généré depuis les données du deal : le bien, le bail, l'opération, le plan de financement, le marché et les points forts. Modifiable ensuite dans Google Slides."
       />
@@ -1469,7 +1433,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
   });
 
   const titre = (
-    <TitreEtape n={4} titre="Plateforme" />
+    <TitreEtape n={3} titre="Plateforme" />
   );
 
   // Le projet existe : le deal est dans la plateforme, quel que soit le statut

@@ -318,7 +318,7 @@ export default function Semaine() {
         </p>
       )}
       <div className="mt-6 flex flex-col gap-5">
-        {q.isLoading && <Chargement />}
+        {/* Un seul chargement (16 oct. 2026, Jules) : celui des Présences, plus bas. */}
         {q.error && <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "L'Agenda ne se charge pas."}</p>}
         <Presences onBriefing={setBriefing} />
         {d?.retour && <RetourRecu r={d.retour} moi={d.moi} />}

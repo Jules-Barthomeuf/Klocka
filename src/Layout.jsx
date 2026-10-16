@@ -54,6 +54,7 @@ import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import AKNouveauLook from "@/components/AKNouveauLook";
 import QuoiDeNeuf from "@/components/QuoiDeNeuf";
+import MessagesAK from "@/components/MessagesAK";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -671,31 +672,11 @@ function LayoutContent({ children, currentPageName }) {
 
         {/* Le compte. */}
         <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2 px-3 py-3"}`}>
-          {/* Sa photo (déposée sur la page Compte, ou celle de Google), sinon son initiale.
-              Le clic ouvre la page Compte ; un client garde « Mon compte ». */}
-          <Link to={createPageUrl(user?.role === "admin" || user?.role === "mandataire" ? "Personnalisation" : "MonCompte")} onClick={isMobile ? closeMobile : undefined} title={user?.full_name || user?.email} className="grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-full bg-menthe text-[14px] font-medium text-sur-menthe">
-            {user?.picture ? <img src={user.picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initiale}
-          </Link>
-          {!replie && <span className="min-w-0 flex-1 truncate text-[14px] text-encre">{nomCourt}</span>}
-          <div className={`flex items-center ${replie ? "flex-col gap-1" : "gap-0"}`}>
-            {/* Le mode téléphone : au bureau seulement, et pas depuis le cadre lui-même. */}
-            {!isMobile && !dansUnCadre && (
-              <button type="button" onClick={() => setApercuTelephone(true)} aria-label="Voir comme sur un téléphone" title="Mode téléphone : la page vue comme sur un téléphone" className={bouton} style={{ background: "transparent" }}>
-                <Smartphone className="h-4 w-4" strokeWidth={1.7} />
-              </button>
-            )}
-            {!replie && (
-              <button type="button" onClick={() => base44.auth.fenetre.ouvrir()} aria-label="Ouvrir un autre compte dans cette fenêtre" title="Ouvrir un autre compte dans cette fenêtre — celui-ci reste connecté dans les autres" className={bouton} style={{ background: "transparent" }}>
-                <Users className="h-4 w-4" strokeWidth={1.7} />
-              </button>
-            )}
-            <button type="button" onClick={basculer} aria-label={clair ? "Passer en mode sombre" : "Passer en mode clair"} title={clair ? "Passer en mode sombre" : "Passer en mode clair"} className={bouton} style={{ background: "transparent" }}>
-              {clair ? <Moon className="h-4 w-4" strokeWidth={1.7} /> : <Sun className="h-4 w-4" strokeWidth={1.7} />}
-            </button>
-            <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
+          {/* Le bas de la barre (16 oct. 2026, Jules) : AK à gauche, toujours là (MessagesAK s'y pose), puis la déconnexion. */}
+          <div id="k-ak-slot" data-replie={replie ? "1" : "0"} className={replie ? "" : "min-w-0 flex-1"} />
+          <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
               <LogOut className="h-4 w-4" strokeWidth={1.7} />
             </button>
-          </div>
         </div>
       </div>
     );
@@ -816,6 +797,8 @@ function LayoutContent({ children, currentPageName }) {
       {/* Dès l'arrivée, sur n'importe quelle page de l'équipe (16 oct. 2026, Jules) : l'annonce d'AK, une fois ; puis « Quoi de neuf », une fois par jour. */}
       {vueAdmin && !hideNavbar && !enCadre && <AKNouveauLook />}
       {vueAdmin && !hideNavbar && !enCadre && <QuoiDeNeuf />}
+      {/* Les messages d'AK, en bas à gauche (16 oct. 2026, Jules) : la fiche pré-analysée, et la discussion. */}
+      {vueAdmin && !hideNavbar && !enCadre && <MessagesAK />}
 
       {/* La recherche du rail, et ⌘K. */}
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}

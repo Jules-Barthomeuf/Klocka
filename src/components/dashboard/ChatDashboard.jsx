@@ -951,7 +951,7 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1465,6 +1465,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     if (!onHistorique) return undefined;
     const ouvrirDepuis = (e) => {
       if (e.detail?.api !== E.api || (e.detail?.qs || "") !== qs) return;
+      // Deux chats sur la même page (les messages d'AK en bas à gauche, 16 oct. 2026) : chacun n'ouvre que ce qui le vise.
+      if ((e.detail?.cible || null) !== cible) return;
       // Sans conversation gardée (une offre d'avant, celle d'un collègue), le fil part du message de reprise.
       const secours = e.detail.secours;
       if (!e.detail.id && secours) { ouvrirConversation({ id: null, messages: secours }); return; }
@@ -1476,7 +1478,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     return () => window.removeEventListener("klocka:ouvrir-conversation", ouvrirDepuis);
     // La conversation s'ouvre avec les fonctions du rendu courant.
      
-  }, [onHistorique, E.api, qs]);
+  }, [onHistorique, E.api, qs, cible]);
   const ouvrirLien = (lien) =>
     String(lien).startsWith("resultats:") ? onOuvrirResultats?.(String(lien).slice(10))
     : String(lien).startsWith("datab:") ? onRecherche?.({ datab_jeton: String(lien).slice(6) })

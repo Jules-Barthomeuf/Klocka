@@ -61,6 +61,7 @@ import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
 import { monterClientsEquipe } from './routes/clients-equipe.js';
 import { monterCoaching } from './routes/coaching.js';
+import { monterMessagesAK } from './routes/messages-ak.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
 import { monterAlx } from './routes/alx.js';
 import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.js';
@@ -1267,6 +1268,7 @@ monterProspection(app);
 monterMandataire(app);
 monterClientsEquipe(app);
 monterCoaching(app);
+monterMessagesAK(app);
 monterMandatairePortes(app);
 monterAlx(app);
 // Off-market (10 oct. 2026) : l'équipe et les mandataires, le rôle décide de l'espace.
@@ -1309,6 +1311,11 @@ import('./outils/vacance.js').then((m) => m.planifier()).catch((e) => console.er
 import('./etat-plateforme.js')
   .then((m) => m.tenirAJour())
   .catch((e) => console.error('[état] module absent :', e.message));
+
+// Les messages d'AK (16 oct. 2026, Jules) : son premier message, une fois, à chaque super admin.
+import('./ak-messages.js')
+  .then((m) => m.accueillir())
+  .catch((e) => console.error('[messages AK] :', e.message));
 
 // Le coach (16 oct. 2026, Jules) : le matin, « Je t'ai préparé un petit quiz ! » pour les tutos de la veille.
 import('./coaching.js')

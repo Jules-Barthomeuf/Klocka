@@ -102,14 +102,11 @@ function Regles() {
 
 export default function QualiteEtRegles() {
   return (
-    <div className="mb-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+    // Les règles de la nuit retirées de l'écran, leur contrôle et leur mail coupés (16 oct. 2026, Jules).
+    <div className="mb-8">
       <div className="rounded-md border border-trait p-4">
         <h2 className={titreCase}>Qualité d'AK · appels validés sans correction</h2>
         <QualiteAK />
-      </div>
-      <div className="rounded-md border border-trait p-4">
-        <h2 className={titreCase}>Les règles de la nuit</h2>
-        <Regles />
       </div>
     </div>
   );

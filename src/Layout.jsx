@@ -352,7 +352,8 @@ function LayoutContent({ children, currentPageName }) {
   // voit exactement ce que voit un mandataire ou un client.
   const vueAdmin = vue === "admin";
   // L'agent testeur : un outil de super admin, qu'il peut masquer dans Personnalisation (12 oct. 2026).
-  const testeurVisible = vueAdmin && !!user?.gere_les_acces && prefs.agent_testeur !== "non";
+  // L'agent testeur retiré de l'écran le 16 oct. 2026 (Jules) : ni bouton, ni onglet dans le Suivi.
+  const testeurVisible = false;
   // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ou Relances ouvertes).
   const rappelOuvert = vueAdmin && !(pagesFermees.includes("Prospection") && pagesFermees.includes("Relances"));
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un

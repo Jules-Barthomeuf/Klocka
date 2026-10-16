@@ -17,9 +17,8 @@ const PAGES = [
   // Enregistrer une réunion, qui nourrit l'Intelligence (14 oct. 2026).
   { to: "/SuiviReunion", mot: "Réunion" },
   { to: "/SuiviMandataires", mot: "Mandataires" },
-  { to: "/CoutsIA", mot: "Coûts IA" },
   { to: "/SuiviChat", mot: "Chat" },
-  { to: "/SuiviTesteur", mot: "Agent testeur" },
+  // Coûts IA et Agent testeur retirés des onglets le 16 oct. 2026 (Jules) ; leurs pages restent à leur adresse.
 ];
 
 export default function OngletsSuivi({ className = "" }) {

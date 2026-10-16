@@ -1300,10 +1300,8 @@ import('./etat-plateforme.js')
   .then((m) => m.tenirAJour())
   .catch((e) => console.error('[état] module absent :', e.message));
 
-// Les règles de la prospection, contrôlées chaque nuit : le rapport part par mail vers 7 h (Render seulement).
-import('./prospection/controles.js')
-  .then((m) => m.planifier())
-  .catch((e) => console.error('[contrôles] module absent :', e.message));
+// Les règles de la prospection contrôlées chaque nuit, et leur mail de 7 h : coupés le 16 oct. 2026 (Jules).
+// Le contrôle reste dans server/prospection/controles.js (planifier) ; le rebrancher ici le relance.
 
 // Le score « Zone » de l'Off-market Simple, réentraîné chaque nuit à 3 h (Render seulement).
 import('./off-market/zone/modele.js')

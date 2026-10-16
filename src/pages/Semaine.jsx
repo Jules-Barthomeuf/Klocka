@@ -319,11 +319,11 @@ export default function Semaine() {
       <div className="mt-6 flex flex-col gap-5">
         {q.isLoading && <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
         {q.error && <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "L'Agenda ne se charge pas."}</p>}
+        <Presences onBriefing={setBriefing} />
         {d?.retour && <RetourRecu r={d.retour} moi={d.moi} />}
         {(d?.briefings || []).map((b) => <BriefingRecu key={b.id} b={b} />)}
         {(d?.a_faire || []).map((a) => <AFaire key={`${a.genre}:${a.jour}`} a={a} onOuvrir={setBriefing} />)}
         {(d?.a_relire || []).map((a) => <Relecture key={`${a.pour}:${a.du}`} a={a} />)}
-        <Presences onBriefing={setBriefing} />
       </div>
       {briefing && <FenetreBriefing key={briefing} jour={briefing} onFermer={() => setBriefing(null)} />}
     </div>

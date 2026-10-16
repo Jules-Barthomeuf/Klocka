@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { JourneeLayer } from "@/components/layer/CeQueKlockaSait";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
@@ -47,8 +46,7 @@ export default function AdminDashboardView() {
               {coin && createPortal(<BoiteMail />, coin)}
             </>
           )}
-          {/* L'Intelligence (phase 6, 15 oct. 2026) : mes engagements du jour, mes faits à valider, mes questions « pourquoi ? ». */}
-          {!conversation && <JourneeLayer className="mb-4" />}
+          {/* « L'Intelligence, aujourd'hui » retirée du Dashboard le 16 oct. 2026 (Jules) ; elle reste dans la page Intelligence. */}
           {/* Les questions d'AK sur mes appels (corrigés, pas validés, sans appel, trop longs), avec mon écran rejoué (16 oct. 2026). */}
           {!conversation && <QuestionsDAK className="mb-4 md:mt-14" />}
           {/* Les objections non levées, quinze secondes chacune, à résoudre ensemble (16 oct. 2026). */}

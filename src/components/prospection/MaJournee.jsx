@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { JourneeLayer } from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, Lock, Phone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -171,8 +170,7 @@ export default function MaJournee({ onAppeler, enCours = false, onCompte = null,
         </div>
       </div>
       <div className="flex flex-col gap-4 lg:sticky lg:top-6">
-        {/* L'Intelligence (phase 6) : mes engagements du jour et en retard, mes faits à valider, mes questions. */}
-        <JourneeLayer />
+        {/* « L'Intelligence, aujourd'hui » retirée le 16 oct. 2026 (Jules). */}
         <AEnvoyer envois={data.a_envoyer} />
         <Fiabilite f={data.fiabilite} />
       </div>

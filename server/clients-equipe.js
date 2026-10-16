@@ -244,6 +244,8 @@ export async function noterAppelClient({ client_id = null, contenu, source = 'co
     resume: l.resume, lecture: l, avant, apres, nouveau,
     monday: { etat: m.etat, texte: m.texte, id: m.id || d.monday_id || null, cree: !!m.cree, avant: m.avant || null },
   });
+  // L'Intelligence lit l'appel comme une source (16 oct. 2026) : extraction en fond, jamais dans les tests.
+  if (!process.env.NODE_TEST_CONTEXT) import('./layer-sources.js').then((x) => x.depuisAppelClient(appel)).catch((e) => console.error('[layer] appel client :', e?.message || e));
   return { ok: true, client: fiche, appel, nouveau };
 }
 

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-16",
     items: [
+      { titre: "Les notes d'appel dans Agents", texte: "Un appel raconté dans le chat s'inscrit maintenant sur la fiche de l'agent, dans Agents, en plus de Monday : dernier contact, résumé, relance. S'il n'est pas au carnet, il y entre.", page: "Agents" },
       { titre: "AK, en bas à gauche", texte: "AK a sa place en bas de la barre : parlez-lui à tout moment. Quand une fiche commerciale arrive, il la pré-analyse et vous l'écrit, la discussion s'ouvre toute seule.", page: "Dashboard" },
       { titre: "Agents", texte: "Tous les agents immobiliers en cartes : un clic, et tout ce qui s'est dit avec lui, chaque appel en entier (transcription ou résumé), et qui de l'équipe l'a appelé.", page: "Agents" },
       { titre: "Clients", texte: "Une fiche par client, nourrie par vos appels : enregistrez l'appel ou collez le résumé, la fiche, Monday et le réseau des mandataires se remplissent.", page: "AdminClients" },

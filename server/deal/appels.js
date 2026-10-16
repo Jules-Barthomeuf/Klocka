@@ -19,6 +19,7 @@ const SCHEMA = {
     telephone: { type: 'string', description: 'numéro si dit, sinon chaîne vide' },
     ville: { type: 'string', description: "ville de l'agent ou du bien, si dite" },
     resume: { type: 'string', description: "ce qui a été dit, en deux à quatre lignes factuelles : le bien, les chiffres, ce qui est convenu, ce qui manque" },
+    issue: { type: 'string', enum: ['a_des_murs', 'interesse', 'veut_mail', 'a_rappeler', 'pas_de_murs', 'pas_interesse', 'repondeur', 'pas_de_reponse'], description: "l'issue de l'appel : a_des_murs (il a un ou des biens), interesse, veut_mail, a_rappeler, pas_de_murs, pas_interesse, repondeur, pas_de_reponse (n'a pas décroché)" },
     prochaine_relance: { type: 'string', description: "date YYYY-MM-DD à laquelle relancer ou attendre quelque chose (« d'ici jeudi » = ce jeudi ; « fin de mois » = dernier jour du mois ; rien de dit = chaîne vide)" },
     bien: {
       type: 'object',
@@ -71,8 +72,88 @@ ${String(texte || '').slice(0, 12000)}
     email: vide(c.email)?.toLowerCase() || null, telephone: vide(c.telephone), ville: vide(c.ville),
     resume: vide(c.resume) || String(texte || '').trim().slice(0, 600),
     prochaine_relance: dateValide(c.prochaine_relance),
+    issue: ISSUES_NOTE.has(c.issue) ? c.issue : (bien ? 'a_des_murs' : 'interesse'),
     bien,
   };
+}
+
+const ISSUES_NOTE = new Set(['a_des_murs', 'interesse', 'veut_mail', 'a_rappeler', 'pas_de_murs', 'pas_interesse', 'repondeur', 'pas_de_reponse']);
+
+/**
+ * Pure : l'agent du carnet dont parle la note (16 oct. 2026, Jules : « je ne vois pas la fiche de l'agent dans Agents ») :
+ * par son mail, son numéro, sinon son nom (et sa ville quand plusieurs se ressemblent).
+ */
+export function agentDeLaNote(note, liste, trouver) {
+  const mail = String(note.email || '').toLowerCase();
+  if (mail) { const a = liste.find((x) => (x.emails || []).map((e) => String(e).toLowerCase()).includes(mail)); if (a) return a; }
+  const chiffres = (t) => String(t || '').replace(/\D/g, '').replace(/^33/, '0').slice(-9);
+  if (note.telephone && chiffres(note.telephone).length === 9) { const a = liste.find((x) => (x.telephones || []).some((t) => chiffres(t) === chiffres(note.telephone))); if (a) return a; }
+  const nom = [note.prenom, note.nom].filter(Boolean).join(' ');
+  if (!nom) return null;
+  const trouves = trouver(liste, nom);
+  if (trouves.length <= 1) return trouves[0] || null;
+  const villeNorm = String(note.ville || '').toLowerCase();
+  const dansLaVille = villeNorm ? trouves.filter((a) => [a.ville, ...(a.villes || [])].some((v) => String(v || '').toLowerCase() === villeNorm)) : [];
+  return dansLaVille.length === 1 ? dansLaVille[0] : null;
+}
+
+/** L'appel de la note inscrit au carnet : la page Agents, la fiche de l'agent, les relances le voient. */
+export async function inscrireAuCarnet(note, { texte = '', par = null, maintenant = new Date() } = {}) {
+  const P = await import('../prospection/carnet.js');
+  let agent = agentDeLaNote(note, P.agents(), P.trouver);
+  let cree = false;
+  if (!agent) {
+    const nom = [note.prenom, note.nom].filter(Boolean).join(' ');
+    if (!nom || (!note.email && !note.telephone)) return { ok: false, raison: "agent absent du carnet, sans mail ni numéro pour l'y ajouter" };
+    const r = P.integrer([{ nom, agence: note.entreprise || null, email: note.email || undefined, telephone: note.telephone || undefined, ville: note.ville || null, source: "Note d'appel" }]);
+    agent = r.crees[0] || agentDeLaNote(note, P.agents(), P.trouver);
+    cree = !!r.crees[0];
+    if (!agent) return { ok: false, raison: "agent introuvable au carnet" };
+  }
+  const le = maintenant.toISOString();
+  const appel = Records.create('AppelAgent', {
+    agent_id: agent.id, agent: agent.nom, agence_id: agent.agence_id || null, par: par?.email || null, le,
+    issue: note.issue || 'interesse', etat: 'valide', source: 'note_chat',
+    resume: note.resume || null, notes: String(texte || '').slice(0, 4000) || null,
+  });
+  // Une note rattrapée après coup ne recouvre pas un contact plus récent.
+  const actuel = P.agentDe(agent.id);
+  if (!actuel?.dernier_contact_le || actuel.dernier_contact_le <= le) {
+    P.majAgent(agent.id, {
+      dernier_contact_le: le, resume_dernier_appel: note.resume || null,
+      ...(note.prochaine_relance ? { prochaine: { quoi: "relance de la note d'appel", le: note.prochaine_relance } } : {}),
+    });
+  }
+  P.journal(agent.id, { type: 'appel', texte: `Note d'appel : ${note.resume || ''}`, par: par?.email || null, le });
+  return { ok: true, agent_id: agent.id, nom: agent.nom, cree, appel_id: appel.id };
+}
+
+/**
+ * Une fois : les notes d'appel des 30 derniers jours, faites avant que la note n'écrive au carnet
+ * (Louis de Larroche Baron, 16 oct. 2026), y sont inscrites à leur date.
+ */
+export async function rattraperNotesAuCarnet({ maintenant = new Date() } = {}) {
+  const { Meta } = await import('../db.js');
+  const CLE = 'notes-appel:carnet-rattrape';
+  if (Meta.get(CLE)) return { deja: true };
+  const depuis = new Date(maintenant.getTime() - 30 * 86400000).toISOString();
+  let inscrites = 0;
+  for (const x of Records.list('AssistantAction').filter((a) => a.type === 'note_appel' && !a.agent_carnet_id && String(a.le || '') >= depuis && a.note)) {
+    try {
+      const r = await inscrireAuCarnet(x.note, { texte: x.texte || '', par: x.par ? { email: x.par } : null, maintenant: new Date(x.le) });
+      if (r.ok) { Records.update('AssistantAction', x.id, { agent_carnet_id: r.agent_id }); inscrites += 1; }
+    } catch { /* une note illisible n'arrête pas les autres */ }
+  }
+  Meta.set(CLE, maintenant.toISOString());
+  return { inscrites };
+}
+
+/** Pure : les dossiers déjà ouverts avec cet agent, quand la note ne décrit aucun bien précis (ni rue, ni prix, ni loyer). */
+export function dossiersDejaOuverts(bien, emails, deals) {
+  if (!bien || bien.rue || bien.prix || bien.loyer) return [];
+  const siens = new Set((emails || []).map((e) => String(e).toLowerCase()).filter(Boolean));
+  if (!siens.size) return [];
+  return deals.filter((d) => !d.test && siens.has(String(d.contact_agent_email || '').toLowerCase()));
 }
 
 /** La note, d'un bout à l'autre : la fiche de l'agent, le dossier s'il y a un bien. */
@@ -101,8 +182,23 @@ export async function traiterNoteAppel(texte, { user, surEtape = null } = {}) {
     rates.push(`Monday : ${e?.message || e}`);
   }
 
+  // Le carnet de la plateforme aussi : la page Agents et la fiche de l'agent montrent l'appel.
+  let carnet = null;
+  try {
+    carnet = await inscrireAuCarnet(note, { texte, par: user });
+    if (carnet.ok) fait.push(carnet.cree ? `ajouté au carnet des agents : ${carnet.nom}` : `appel inscrit sur sa fiche Agents : ${carnet.nom}`);
+    else rates.push(`Carnet des agents : ${carnet.raison}`);
+  } catch (e) {
+    rates.push(`Carnet des agents : ${e?.message || e}`);
+  }
+
+  // Une note qui ne décrit aucun bien précis n'ouvre pas un dossier vide à côté de ceux de l'agent.
+  const agentCarnet = carnet?.agent_id ? Records.get('AgentImmo', carnet.agent_id) : null;
+  const deja = dossiersDejaOuverts(note.bien, [note.email, ...(agentCarnet?.emails || [])], Records.list('Deal'));
+  if (deja.length) fait.push(`dossiers déjà ouverts avec lui : ${deja.slice(0, 4).map((d) => d.nom || d.deal_id).join(', ')}`);
+
   let dossier = null;
-  if (note.bien) {
+  if (note.bien && !deja.length) {
     surEtape?.(`Ouverture du dossier${note.bien.nom ? ` « ${note.bien.nom} »` : ''}`);
     try {
       const { executerOutil } = await import('../assistant-commande.js');
@@ -144,7 +240,7 @@ export async function traiterNoteAppel(texte, { user, surEtape = null } = {}) {
 
   Records.create('AssistantAction', {
     type: 'note_appel', par: user?.email || null, le: new Date().toISOString(), texte: String(texte || '').slice(0, 4000),
-    note, agent_item_id: agent?.id || null, deal_id: dossier?.deal_id || null,
+    note, agent_item_id: agent?.id || null, agent_carnet_id: carnet?.agent_id || null, deal_id: dossier?.deal_id || null,
   });
 
   return {

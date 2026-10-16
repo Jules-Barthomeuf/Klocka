@@ -1317,6 +1317,12 @@ import('./ak-messages.js')
   .then((m) => m.accueillir())
   .catch((e) => console.error('[messages AK] :', e.message));
 
+// Les notes d'appel du chat d'avant le 16 oct. : leur appel inscrit au carnet des agents, une fois.
+import('./deal/appels.js')
+  .then((m) => m.rattraperNotesAuCarnet())
+  .then((r) => { if (r?.inscrites) console.log(`[notes d'appel] ${r.inscrites} inscrite(s) au carnet`); })
+  .catch((e) => console.error("[notes d'appel] :", e.message));
+
 // Le coach (16 oct. 2026, Jules) : le matin, « Je t'ai préparé un petit quiz ! » pour les tutos de la veille.
 import('./coaching.js')
   .then((m) => m.planifier())

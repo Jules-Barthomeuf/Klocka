@@ -61,7 +61,7 @@ test("les chiffres : joints, enregistrés, durées, validation depuis la fenêtr
 });
 
 test("sans appel, rien n'est divisé par zéro : les parts restent vides", () => {
-  const c = S.chiffres([], { maintenantD: MAINTENANT });
+  const c = S.chiffres([], { maintenantD: MAINTENANT, debutMesures: null });
   assert.equal(c.appels, 0);
   assert.equal(c.joints_pct, null);
   assert.equal(c.duree_moyenne_s, null);
@@ -73,14 +73,14 @@ test("le tableau complet : l'équipe entière même à zéro, l'essai à part, l
   Records.create('AppelAgent', { le: '2026-10-09T10:00:00Z', par: 'jules.b@klocka.immo', issue: 'a_des_murs', etat: 'valide', source: 'relances', citations: { date: 'Rappelez-moi jeudi' } });
   Records.create('AppelAgent', { le: '2026-10-09T11:00:00Z', par: 'jules.b@klocka.immo', issue: 'repondeur', etat: 'valide', source: 'essai' });
   Records.create('AppelAgent', { le: '2026-08-01T11:00:00Z', par: 'jules.b@klocka.immo', issue: 'repondeur', etat: 'valide' });
-  const s = S.suiviAppels({ jours: 30, maintenantD: MAINTENANT });
+  const s = S.suiviAppels({ jours: 30, maintenantD: MAINTENANT, debutMesures: null });
   assert.equal(s.equipe.appels, 2, "l'essai et l'appel hors période ne comptent pas");
   assert.ok(s.analystes.length >= 2, "les analystes sans appel sont listés");
   assert.equal(s.journal[0].source, 'relances');
   assert.equal(s.journal[0].citations[0].phrase, 'Rappelez-moi jeudi');
   assert.equal(s.journal[1].resume, 'Rien pour le moment.');
   assert.equal(s.par_jour.length, 30);
-  assert.equal(S.suiviAppels({ jours: 30, source: 'essai', maintenantD: MAINTENANT }).equipe.appels, 1, "l'essai se voit quand on le demande");
+  assert.equal(S.suiviAppels({ jours: 30, source: 'essai', maintenantD: MAINTENANT, debutMesures: null }).equipe.appels, 1, "l'essai se voit quand on le demande");
 });
 
 test('remettre à zéro : le suivi compte à partir de ce moment, rien ne s\'efface, « Tout afficher » revient en arrière', () => {
@@ -88,14 +88,14 @@ test('remettre à zéro : le suivi compte à partir de ce moment, rien ne s\'eff
   const apres = new Date(MAINTENANT.getTime() - 3600000).toISOString();
   Records.create('AppelAgent', { par: 'nora.l@klocka.immo', le: avant, issue: 'pas_de_reponse', etat: 'valide', agence_id: 'za', source: 'prospection' });
   Records.create('AppelAgent', { par: 'nora.l@klocka.immo', le: apres, issue: 'pas_de_murs', etat: 'valide', agence_id: 'zb', source: 'prospection' });
-  const tout = S.suiviAppels({ jours: 7, maintenantD: MAINTENANT }).equipe.appels;
+  const tout = S.suiviAppels({ jours: 7, maintenantD: MAINTENANT, debutMesures: null }).equipe.appels;
   S.remettreAZero('jules.b@klocka.immo', new Date(MAINTENANT.getTime() - 2 * 3600000));
-  const r = S.suiviAppels({ jours: 7, maintenantD: MAINTENANT });
+  const r = S.suiviAppels({ jours: 7, maintenantD: MAINTENANT, debutMesures: null });
   assert.ok(r.equipe.appels >= 1 && r.equipe.appels < tout, "les appels d'avant la remise à zéro ne comptent plus, celui d'après oui");
   assert.equal(r.remise_a_zero.par, 'jules.b@klocka.immo');
   assert.equal(Records.list('AppelAgent').filter((x) => ['za', 'zb'].includes(x.agence_id)).length, 2, 'rien n\'est effacé');
   S.toutAfficher();
-  assert.equal(S.suiviAppels({ jours: 7, maintenantD: MAINTENANT }).equipe.appels, tout);
+  assert.equal(S.suiviAppels({ jours: 7, maintenantD: MAINTENANT, debutMesures: null }).equipe.appels, tout);
 });
 
 test("les relances par mail ne comptent pas comme des appels : à part, et seules sous leur filtre", async () => {
@@ -212,4 +212,17 @@ test('le contexte gagné : les appels qui ont nourri l’Intelligence, leurs fai
   assert.equal(c.analystes[0].valides, 1);
   assert.deepEqual(c.par_jour, [{ jour: '2026-10-14', sources: 2, faits: 2 }]);
   assert.equal(c.derniers[0].titre, 'Appel : Martin');
+});
+
+test('les chiffres comptent à partir du 13 octobre : avant, c\'était de l\'essai', () => {
+  const t = Records.create('AppelAgent', { le: '2026-10-12T10:00:00Z', issue: 'pas_de_murs', etat: 'valide', par: 'avant@klocka.test', duree_s: 50 });
+  const apres = Records.create('AppelAgent', { le: '2026-10-14T10:00:00Z', issue: 'a_des_murs', etat: 'valide', par: 'apres@klocka.test', duree_s: 90 });
+  const r = S.suiviAppels({ jours: 30, maintenantD: new Date('2026-10-15T12:00:00Z') });
+  const ids = r.journal.map((x) => x.id);
+  assert.ok(ids.includes(apres.id));
+  assert.ok(!ids.includes(t.id), 'l\'appel du 12 octobre ne compte pas');
+  assert.equal(r.par_jour[0].jour, '2026-10-13', 'la courbe commence le 13');
+  // D'autres essais du fichier ont des appels ce jour-là : le temps total les additionne, celui-ci compris.
+  const j14 = r.par_jour.find((j) => j.jour === '2026-10-14');
+  assert.ok(j14.duree_totale_s >= 90 && j14.appels >= 1);
 });

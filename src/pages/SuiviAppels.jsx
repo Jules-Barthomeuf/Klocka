@@ -4,7 +4,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
-import { AppelsParJour, BarresHorizontales, Chiffre, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -199,6 +199,8 @@ function VueEnsemble({ data, jours, c, onChoisir }) {
             <AppelsParJour parJour={data.par_jour} c={c} />
             <ClassementAnalystes analystes={data.analystes} c={c} titre="Appels par analyste" onChoisir={onChoisir} />
           </div>
+          {/* Le temps d'appel et le nombre d'appels, avec la croissance sur la veille (16 oct. 2026, Jules). */}
+          <TempsEtAppels parJour={data.par_jour} c={c} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <CourbesAnalystes parJour={data.par_jour} analystes={data.analystes} c={c} />
             <TauxJoints parJour={data.par_jour} c={c} />
@@ -292,6 +294,8 @@ export default function SuiviAppels({ dansProspection = false }) {
           </div>
         )}
 
+        {/* Avant le 13 octobre, c'était de l'essai (16 oct. 2026, Jules) : rien n'est compté avant. */}
+        {data?.debut_mesures && !data?.remise_a_zero && <p className="m-0 mb-4 text-[12.5px] text-brume">Compté à partir du 13 octobre : avant, les appels étaient des essais.</p>}
         <div className="mb-6 flex gap-5 border-b border-trait">
           {VUES.map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setVue(k)} className={`-mb-px border-b-[1.5px] pb-2 text-[13.5px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>

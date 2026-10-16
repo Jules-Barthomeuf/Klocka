@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import jetons from "@/design/jetons.json";
 
 // Les graphiques du Suivi des appels (14 oct. 2026, Jules : « plein de courbes,
@@ -418,5 +418,79 @@ export function ChiffreCourbe({ valeur, libelle, note = null, serie = [], cle, c
         </ResponsiveContainer>
       </div>
     </div>
+  );
+}
+
+/**
+ * Des courbes cumulées jour après jour (page Intelligence, 16 oct. 2026, Jules :
+ * « visualiser la croissance des données qu'on lui donne, le savoir qui
+ * augmente »). `series` : [{ cle, nom }], une couleur par série dans l'ordre
+ * fixe de la palette ; une seule échelle (des nombres d'éléments).
+ */
+export function Croissance({ serie, series, c, titre, aide = null }) {
+  const teintes = Object.fromEntries(series.map((s, i) => [s.cle, c.series[i % c.series.length]]));
+  return (
+    <Cadre titre={titre} aide={aide} droite={<Legende items={series.map((s) => ({ nom: s.nom, couleur: teintes[s.cle] }))} />}>
+      <div className="h-[230px]">
+        <ResponsiveContainer>
+          <LineChart data={serie} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke={c.trait} />
+            <XAxis dataKey="jour" tickFormatter={jourCourt} minTickGap={18} {...axe(c)} />
+            <YAxis allowDecimals={false} {...axe(c)} />
+            <Tooltip cursor={{ stroke: c.ardoise, strokeWidth: 1 }} content={({ active, payload }) => active && payload?.length ? <Bulle titre={jourLong(payload[0].payload.jour)} lignes={series.map((s) => ({ nom: s.nom, valeur: payload[0].payload[s.cle], couleur: teintes[s.cle] }))} /> : null} />
+            {series.map((s) => <Line key={s.cle} dataKey={s.cle} stroke={teintes[s.cle]} strokeWidth={2} dot={serie.length <= 10 ? { r: 3, fill: teintes[s.cle], stroke: c["surface-pleine"], strokeWidth: 2 } : false} isAnimationActive={false} />)}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </Cadre>
+  );
+}
+
+/** Pure : la croissance d'un jour sur la veille, en %, ou null sans veille comparable. */
+export const croissance = (aujourdhui, veille) => (veille > 0 ? Math.round(((aujourdhui - veille) / veille) * 100) : null);
+const enPourcent = (v) => (v == null ? "—" : `${v > 0 ? "+" : ""}${v} %`);
+
+/**
+ * Le temps d'appel et le nombre d'appels, jour par jour (16 oct. 2026, Jules) : les appels en barres,
+ * le temps total au téléphone en courbe, et la croissance de chacun sur la veille.
+ */
+export function TempsEtAppels({ parJour, c }) {
+  const data = parJour.map((j, i) => {
+    const veille = i > 0 ? parJour[i - 1] : null;
+    const minutes = Math.round((j.duree_totale_s || 0) / 60);
+    return {
+      jour: j.jour, appels: j.appels, minutes,
+      croissance_appels: veille ? croissance(j.appels, veille.appels) : null,
+      croissance_minutes: veille ? croissance(minutes, Math.round((veille.duree_totale_s || 0) / 60)) : null,
+    };
+  });
+  const dernier = data.at(-1);
+  const resume = dernier && data.length > 1
+    ? `Sur la veille : appels ${enPourcent(dernier.croissance_appels)}, temps ${enPourcent(dernier.croissance_minutes)}`
+    : null;
+  return (
+    <Cadre titre="Temps d'appel et nombre d'appels" aide={resume || "Jour par jour : les appels en barres, le temps total au téléphone en courbe."}
+      droite={<Legende items={[{ nom: "Appels", couleur: c.menthe }, { nom: "Minutes au téléphone", couleur: c.series[1] || c.ardoise }]} />}>
+      <div className="h-[260px]">
+        <ResponsiveContainer>
+          <ComposedChart data={data} margin={{ top: 6, right: 4, left: -18, bottom: 0 }} barCategoryGap={4}>
+            <CartesianGrid vertical={false} stroke={c.trait} />
+            <XAxis dataKey="jour" tickFormatter={jourCourt} minTickGap={18} {...axe(c)} />
+            <YAxis yAxisId="appels" allowDecimals={false} {...axe(c)} />
+            <YAxis yAxisId="minutes" orientation="right" allowDecimals={false} width={44} tickFormatter={(v) => `${v} min`} {...axe(c)} />
+            <Tooltip cursor={{ fill: c.trait }} content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload;
+              return <Bulle titre={jourLong(d.jour)} lignes={[
+                { nom: "Appels", valeur: `${d.appels} (${enPourcent(d.croissance_appels)} sur la veille)`, couleur: c.menthe },
+                { nom: "Au téléphone", valeur: `${d.minutes} min (${enPourcent(d.croissance_minutes)} sur la veille)`, couleur: c.series[1] || c.ardoise },
+              ]} />;
+            }} />
+            <Bar yAxisId="appels" dataKey="appels" fill={c.menthe} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            <Line yAxisId="minutes" dataKey="minutes" stroke={c.series[1] || c.ardoise} strokeWidth={2} dot={{ r: 3, fill: c.series[1] || c.ardoise, stroke: c["surface-pleine"], strokeWidth: 2 }} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </Cadre>
   );
 }

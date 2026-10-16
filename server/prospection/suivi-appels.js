@@ -107,10 +107,14 @@ export function minuitParis(d = new Date()) {
   return new Date(Date.parse(`${jour}T00:00:00Z`) - minutes * 60000).toISOString();
 }
 
-export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(), journal = 300 } = {}) {
+// Les chiffres comptent à partir du 13 oct. 2026 (16 oct., Jules : « avant c'était en test, ça compte pas »).
+export const DEBUT_DES_MESURES = minuitParis(new Date('2026-10-13T12:00:00Z'));
+
+export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(), journal = 300, debutMesures = DEBUT_DES_MESURES } = {}) {
   const zero = remiseAZero();
   // « 1 jour » (14 oct. 2026, Jules) : la journée en cours, depuis minuit à Paris.
-  const fenetre = jours === 1 ? minuitParis(maintenantD) : new Date(maintenantD.getTime() - jours * 86400000).toISOString();
+  const fenetreBrute = jours === 1 ? minuitParis(maintenantD) : new Date(maintenantD.getTime() - jours * 86400000).toISOString();
+  const fenetre = debutMesures && debutMesures > fenetreBrute ? debutMesures : fenetreBrute;
   const depuis = zero?.le && zero.le > fenetre ? zero.le : fenetre;
   const sessions = new Map(Records.list('SessionAppel').map((s) => [s.id, s]));
   const agences = new Map(Records.list('AgenceProspect').map((a) => [a.id, a]));
@@ -146,11 +150,15 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
 
   // La courbe par jour (chaque analyste), les heures, les sources.
   const joursListe = [];
-  for (let i = Math.min(jours, 60) - 1; i >= 0; i -= 1) joursListe.push(R.jourDe(new Date(maintenantD.getTime() - i * 86400000)));
+  for (let i = Math.min(jours, 60) - 1; i >= 0; i -= 1) {
+    const j = R.jourDe(new Date(maintenantD.getTime() - i * 86400000));
+    // Pas de jour avant le début des mesures : la courbe commence le 13 octobre.
+    if (!debutMesures || j >= R.jourDe(new Date(debutMesures))) joursListe.push(j);
+  }
   const parJour = joursListe.map((j) => {
     const dans = appels.filter((x) => R.jourDe(new Date(x.le)) === j);
     const dj = dans.map((x) => Number(x.duree_s)).filter((n) => n > 0);
-    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
+    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), duree_totale_s: dj.reduce((t, n) => t + n, 0), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
   });
   const heures = Array.from({ length: 24 }, (_, h) => ({ heure: h, appels: appels.filter((x) => heureParis(x.le) === h).length }));
   // La carte jour × heure (14 oct. 2026) : lundi à dimanche, heure de Paris.
@@ -202,6 +210,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     jours,
     source,
     remise_a_zero: zero?.le && zero.le > fenetre ? zero : null,
+    debut_mesures: debutMesures || null,
     depuis_mesures: '2026-10-09',
     equipe: chiffres(appels, { sessions: sessionsFen, maintenantD }),
     relances_mail: mailsRelance.length,

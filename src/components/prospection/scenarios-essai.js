@@ -3,7 +3,8 @@
 // lit pour de vrai et propose ses actions. Rien n'est écrit dans Monday,
 // aucun mail ne part. `attendu` dit ce qu'on doit voir, pour vérifier d'un
 // coup d'œil ; `notes` remplit les notes de l'appel (elles font foi) ;
-// `motif` joue l'appel comme une relance (Bien retenu, Bien refusé).
+// `motif` joue l'appel comme une relance (Bien retenu, Bien refusé) ;
+// `calcul` dit ce que la calculatrice doit lire (vérifié par les tests).
 
 export const GROUPES_ESSAI = [
   ["personne", "Personne au bout du fil"],
@@ -11,6 +12,7 @@ export const GROUPES_ESSAI = [
   ["bien", "Il a un bien"],
   ["non", "Pas intéressé"],
   ["cas", "Cas particuliers"],
+  ["calcul", "Calculatrice"],
   ["relance", "Relances"],
 ];
 
@@ -147,6 +149,29 @@ export const SCENARIOS_ESSAI = [
       "Non attendez, lundi je suis en visite toute la journée, plutôt mardi après-midi.",
     ],
     attendu: "Relance au mardi ; la date retenue est la dernière dite.",
+  },
+  {
+    cle: "calcul_chiffres", groupe: "calcul", titre: "Prix, loyer au mois, surface",
+    phrases: [
+      "Bonjour, Sophie Essai, gérante de l'agence.",
+      "J'ai des murs de boulangerie à Antibes, 95 m² en rez-de-chaussée.",
+      "Ils sont affichés à 380 000 € net vendeur.",
+      "Le locataire paie 2 500 euros par mois hors charges, bail de 2021.",
+      "Je vous envoie la fiche ce soir.",
+    ],
+    calcul: { prix: 380000, loyer_an: 30000, surface: 95 },
+    attendu: "La calculatrice s'ouvre à gauche dès « 95 m² » : prix 380 000 €, loyer 30 000 €/an (2 500 €/mois), rendement brut 7,89 %, acte en main 7,34 %, ça tourne.",
+  },
+  {
+    cle: "calcul_correction", groupe: "calcul", titre: "En lettres, et il corrige le prix",
+    phrases: [
+      "Oui bonjour, Marc Démo à l'appareil.",
+      "J'ai un local de quatre-vingts mètres carrés loué à une banque.",
+      "Le prix est de cinq cent vingt mille euros, le loyer trente et un mille par an.",
+      "Ah non pardon, je me trompe, le vendeur est descendu à quatre cent soixante mille.",
+    ],
+    calcul: { prix: 460000, loyer_an: 31000, surface: 80 },
+    attendu: "Le prix passe de 520 000 € à 460 000 € quand il se corrige ; acte en main 6,27 %, limite ; le prix qui passe à 7 % : 412 000 €.",
   },
   {
     cle: "bien_retenu", groupe: "relance", titre: "Relance : bien retenu, agent prévenu", motif: "bien_retenu",

@@ -478,8 +478,8 @@ function LayoutContent({ children, currentPageName }) {
   // La liste et son ordre d'origine vivent dans src/lib/menu.js ; l'ordre
   // et les masques choisis dans Personnalisation s'appliquent au rendu.
   const DETAILS = {
-    // Côté équipe, « Dashboard » ouvre les Projets (14 oct. 2026, Jules) ; le chat reste derrière « Nouveau chat ».
-    Dashboard: { to: createPageUrl(vueAdmin ? "AdminProjets" : "Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
+    // « Dashboard » ouvre le Dashboard pour tous (16 oct. 2026, Jules : il ne renvoie plus aux Projets, qui ont leur entrée).
+    Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },

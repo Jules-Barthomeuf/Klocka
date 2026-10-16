@@ -478,6 +478,15 @@ pointillé tant que l'agent n'est pas confirmé. « Ne plus appeler » en cadre
 `alerte`, une relance prise par un collègue en `ambre`. Fermé avant la fin,
 le rappel reste dans une pilule « Rappel à terminer » en bas, au centre.
 
+**La calculatrice de l'appel** (Jules, 16 oct. 2026) : dès qu'un prix ou un
+loyer est entendu (transcription ou notes), elle s'ouvre seule dans la colonne
+de gauche de l'écran d'appel, sous les numéros : étiquette « CALCULATRICE »,
+trois champs soulignés en 18 px (Prix FAI, Loyer annuel HT, Surface),
+corrigeables, puis des lignes libellé / valeur en 13,5 px (rendement brut,
+acte en main, verdict en `menthe` / `ambre` / `alerte` aux seuils d'AK, prix
+pour 7 %, prix et loyer au m²). Le dernier chiffre dit l'emporte. Lecture sans
+IA (`src/lib/chiffres-entendus.js`) ; deux cas « Calculatrice » dans l'Essai.
+
 ## 6. Le chat et l'écran scindé
 
 Le chat est `ChatDashboard` ; une page en crée un espace (`ESPACES`), elle ne

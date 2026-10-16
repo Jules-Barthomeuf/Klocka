@@ -440,7 +440,7 @@ export async function annoncer() {
     notifier({ pour: q.par, titre: 'AK a une question sur un de tes appels', texte: `${quoi}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${cle}` });
     // Jules reçoit aussi chaque question posée aux analystes (il n'y répond pas : il voit et il teste).
     for (const j of juleses.filter((x) => x !== q.par)) {
-      notifier({ pour: j, titre: `AK a posé une question à ${q.par.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase())}`, texte: `${quoi}. Tu la vois sur ton Dashboard, avec son écran.`, lien: '/Dashboard', cle: `question-appel-jules:${q.id}:${cle}:${j}` });
+      notifier({ pour: j, titre: `AK a posé une question à ${q.par.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase())}`, texte: `${quoi}. Dans Suivi > Appels > Retours, avec son écran.`, lien: '/SuiviAppels?vue=retours', cle: `question-appel-jules:${q.id}:${cle}:${j}` });
     }
     Records.update(ENTITE, q.id, { annonce: cle });
     n += 1;

@@ -286,7 +286,8 @@ export default function SuiviAppels({ dansProspection = false }) {
   const [jours, setJours] = useState(30);
   const [ouvert, setOuvert] = useState(null);
   const [qui, setQui] = useState("");
-  const [vue, setVue] = useState("ensemble");
+  // `?vue=retours` : la notification d'une question posée à un analyste ouvre l'onglet Retours (16 oct. 2026).
+  const [vue, setVue] = useState(() => { try { const v = new URLSearchParams(window.location.search).get("vue"); return VUES.some(([k]) => k === v) ? v : "ensemble"; } catch { return "ensemble"; } });
   const voirJournalDe = (prenom) => { setQui(prenom); setVue("journal"); };
   const c = useCouleurs();
   // Remettre à zéro (9 oct. 2026) : le suivi compte à partir de maintenant ; rien ne s'efface, « Tout afficher » revient en arrière.

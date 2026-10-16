@@ -27,9 +27,8 @@ export function monterQuestionsAppels(app) {
     const M = await Q();
     const { crees, rouvertes } = M.surveillerSiBesoin();
     if (crees.length || rouvertes.length) { await M.annoncer(); M.redigerLesNouvelles().catch(() => {}); }
-    // Jules voit aussi celles des analystes, en lecture seule (il teste) ; `jules` ouvre l'onglet Retours du Suivi.
-    const j = await estJules(user);
-    ok(res, { questions: M.mesQuestions(user), equipe: j ? M.questionsEquipe(user) : [], jules: j });
+    // `jules` ouvre l'onglet Retours du Suivi, où il voit les questions de toute l'équipe (plus dans le Dashboard, 16 oct. 2026).
+    ok(res, { questions: M.mesQuestions(user), jules: await estJules(user) });
   }));
   app.post('/api/questions-appels/:id/reponse', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;

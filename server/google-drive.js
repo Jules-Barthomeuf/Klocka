@@ -18,7 +18,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import { Records } from './db.js';
 import { storedAccount, accessTokenFor } from './google-oauth.js';
+import { SUPER_ADMINS } from './acces-pages.js';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD =
@@ -40,6 +42,41 @@ function compteDrive(email) {
     );
   }
   return account;
+}
+
+// Le compte qui voit le Drive partagé (16 oct. 2026, Jules : « il doit bien être connecté au drive Klocka »).
+// Le compte de la personne qui parle d'abord : c'est son autorisation qui est engagée. S'il n'est pas membre
+// du Drive partagé (sourcing@ ne l'était pas), le compte déclaré par GOOGLE_DRIVE_COMPTE, puis les comptes de
+// Jules connectés qui le voient : le Drive de l'équipe n'est pas celui d'une personne. Le compte utilisé est
+// toujours rendu, pour être dit. Retenu dix minutes. Personne ne le voit : l'erreur dit qui ajouter.
+const GARDE_COMPTE_MS = 10 * 60 * 1000;
+const comptesRetenus = new Map();
+export const oublierComptesDrive = () => comptesRetenus.clear();
+
+async function voitLeDrive(account) {
+  try { return !!(await trouverDrivePartage(await accessTokenFor(account))); } catch { return false; }
+}
+
+export async function compteDriveEffectif(email) {
+  const demande = compteDrive(email);
+  if (!drivePartageDemande) return demande;
+  const cle = String(email || '').toLowerCase();
+  const garde = comptesRetenus.get(cle);
+  if (garde && Date.now() - garde.le < GARDE_COMPTE_MS) return garde.compte;
+  let choisi = null;
+  if (await voitLeDrive(demande)) choisi = demande;
+  else {
+    const autres = [...new Set([process.env.GOOGLE_DRIVE_COMPTE, ...SUPER_ADMINS].map((x) => String(x || '').trim().toLowerCase()).filter((x) => x && x !== demande.email))];
+    for (const e of autres) {
+      const a = Records.filter('MailAccount', { email: e })[0];
+      if (a?.peut_drive && (await voitLeDrive(a))) { choisi = a; break; }
+    }
+  }
+  if (!choisi) {
+    throw new Error(`Drive partagé « ${DRIVE_PARTAGE_NOM || DRIVE_PARTAGE_ID} » introuvable depuis ${demande.email}, et aucun compte de Jules connecté ne le voit. Ajoutez ${demande.email} comme membre du Drive (Drive, KLOCKA, Gérer les membres), ou connectez un compte qui en est membre.`);
+  }
+  comptesRetenus.set(cle, { le: Date.now(), compte: choisi });
+  return choisi;
 }
 
 async function driveFetch(token, url, options = {}) {
@@ -135,7 +172,7 @@ export async function assurerDossierProjets(token) {
  * @param {string} compteEmail - le compte qui a créé le dossier
  */
 export async function corbeille(compteEmail, fileId) {
-  const account = compteDrive(compteEmail);
+  const account = await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
   return driveFetch(token, `${DRIVE_API}/files/${encodeURIComponent(fileId)}?supportsAllDrives=true`, {
     method: 'PATCH',
@@ -173,7 +210,7 @@ export async function uploaderFichier(token, { nom, buffer, mime, parentId }) {
  * @returns {{ folder_id, folder_url, envoyes: string[], erreurs: string[] }}
  */
 export async function classerDansDrive(compteEmail, titre, fichiers, uploadDir) {
-  const account = compteDrive(compteEmail);
+  const account = await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
 
   const { dossier: racine, driveId, chemin } = await assurerDossierProjets(token);
@@ -202,6 +239,7 @@ export async function classerDansDrive(compteEmail, titre, fichiers, uploadDir) 
     folder_url: dossier.webViewLink || `https://drive.google.com/drive/folders/${dossier.id}`,
     chemin: `${chemin}/${titre || 'Deal sans titre'}`,
     drive_partage: !!driveId,
+    compte: account.email,
     envoyes,
     erreurs,
   };
@@ -213,7 +251,7 @@ export async function classerDansDrive(compteEmail, titre, fichiers, uploadDir) 
  * @returns {{ id, slides_url }}
  */
 export async function uploaderEnSlides(compteEmail, { nom, buffer }) {
-  const account = compteDrive(compteEmail);
+  const account = await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
 
   const { dossier: racine, driveId } = await assurerDossierProjets(token);
@@ -251,7 +289,7 @@ export async function uploaderEnSlides(compteEmail, { nom, buffer }) {
  * @returns {{ id, doc_url }}
  */
 export async function uploaderEnDoc(compteEmail, { nom, buffer, parentId = null }) {
-  const account = compteDrive(compteEmail);
+  const account = await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
 
   let parent = parentId;
@@ -294,7 +332,7 @@ export async function uploaderEnDoc(compteEmail, { nom, buffer, parentId = null 
  * @param {{ dossierId?: string, recherche?: string, limite?: number }} options
  */
 export async function listerFichiers(compteEmail, { dossierId = null, recherche = '', limite = 50 } = {}) {
-  const account = compteDrive(compteEmail);
+  const account = await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
   const clauses = ["trashed = false", "not mimeType contains 'application/vnd.google-apps'"];
   if (dossierId) clauses.push(`'${q(dossierId)}' in parents`);
@@ -325,7 +363,7 @@ export async function listerFichiers(compteEmail, { dossierId = null, recherche 
  * à la main.
  */
 export async function telechargerFichier(compteEmail, fileId) {
-  const account = compteDrive(compteEmail);
+  const account = await compteDriveEffectif(compteEmail);
   const token = await accessTokenFor(account);
   const meta = await driveFetch(
     token,

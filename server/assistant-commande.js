@@ -750,7 +750,8 @@ export async function executerOutil({ name, input }, user) {
       .map((d) => ({ nom: d.nom, chemin: d.url }));
     const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);
     Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-    return { ok: true, cree: true, titre, url: r.folder_url, chemin: r.chemin, compte, fichiers_classes: r.envoyes.length };
+    // Le compte qui a servi : celui de la personne, ou un compte qui voit le Drive partagé quand le sien n'en est pas membre.
+    return { ok: true, cree: true, titre, url: r.folder_url, chemin: r.chemin, compte: r.compte || compte, ...(r.compte && r.compte !== compte ? { note: `classé avec le compte ${r.compte} : ${compte} n'est pas membre du Drive partagé` } : {}), fichiers_classes: r.envoyes.length, ...(r.erreurs?.length ? { fichiers_en_erreur: r.erreurs } : {}) };
   }
 
   if (name === 'etat_dossier') {

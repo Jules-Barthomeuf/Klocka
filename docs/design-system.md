@@ -610,21 +610,25 @@ ses collègues ou, pour une agence, ses agents, qui s'ouvrent à la suite
 (« Retour ») ; l'Intelligence ; les coordonnées en dernier. Rien ne se
 modifie ici : la grille reste l'endroit où l'on corrige une fiche.
 
-### La page Semaine (16 oct. 2026)
+### L'Agenda (16 oct. 2026, « Semaine » jusqu'au même jour)
 
-Qui est là, et ce qu'on a manqué. Centrée (`max-w-[1100px]`), des blocs
-`bg-rail` en 14 px de rayon, empilés : « Bon retour, … » (le résumé reçu, en
-texte simple, le matin du retour) ; « … revient lundi » (mon point de la
-semaine pour l'absent, une zone de texte, bouton plein menthe) ; pour Jules,
-« Le résumé pour … » (les points de l'équipe en lignes, qui manque, « Écrire le
-brouillon » en bouton secondaire, l'objet et le texte modifiables, « Valider »
-en plein menthe, l'état à côté) ; puis « Présences ». Les présences : une
-ligne par personne, un carré de 28 px par jour ouvré sur cinq semaines, la
-lettre du jour dedans ; là = encre à 7 %, école = menthe, congés = ambre,
-autre = `bord-vif` ; lu dans l'agenda = liseré ; aujourd'hui = contour menthe.
-Jules seul clique (le motif choisi dans la pilule au-dessus) ; Maj + clic pose
-la semaine entière. Le même jour, Jules a retiré le bloc « Pendant l'absence
-de … » et la passation laissée par celui qui part, et voulu le résumé court.
+Qui est là, et les briefings. Centrée (`max-w-[1100px]`), des blocs `bg-rail`
+en 14 px de rayon, empilés : « Bon retour, … » (le résumé relu par Jules, en
+texte simple) ; « Briefing de … » (questions en `brume` 12,5 px, réponses en
+`craie`) ; les briefings à faire (« Nora revient lundi 19 octobre », « Tu pars
+lundi 26 octobre », bouton plein menthe, ou secondaire « Revoir mon
+briefing ») ; pour Jules, « Le résumé pour … » (briefings reçus, qui manque,
+« Écrire le brouillon » secondaire, titre et texte modifiables, « Valider »
+plein menthe) ; puis « Présences ». Un clic sur un jour ouvre la fenêtre du
+briefing : « Pour » en pastilles à cocher (menthe pâle cochée), une question
+par zone de texte avec son aide en `brume`, « Envoyer le briefing » en plein
+menthe. Les présences : une ligne par personne, un carré de 28 px par jour
+ouvré sur cinq semaines, la lettre du jour dedans ; là = encre à 7 %, école =
+menthe, congés = ambre, autre = `bord-vif` ; lu dans l'agenda = liseré ;
+aujourd'hui = contour menthe. Jules a une pilule « Briefing / École / Congés
+/ Absent » : Briefing par défaut, un motif pour poser les absences (Maj +
+clic : la semaine). Décisions de Jules le même jour : pas de mail, pas de bloc
+« Pendant l'absence de … », résumé court.
 
 ### L'écran de recherche (Off-market, 10 oct. 2026)
 

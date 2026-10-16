@@ -15,6 +15,8 @@ export const NOUVEAUTES = [
       { titre: "Le clip d'objection", texte: "Une objection que vous n'avez pas su lever ? Quinze secondes partent sur le Dashboard : l'équipe écoute et propose la réponse.", page: "Dashboard" },
       { titre: "Mes appels", texte: "Vos chiffres et vos graphiques jour par jour, dont votre part de parole pendant les appels.", page: "SuiviAppels" },
       { titre: "Outils", texte: "K-Data s'appelle Outils, et Signaux de vacance y a rejoint les autres.", page: "KData" },
+      { titre: "Agenda", texte: "Qui est là cette semaine. Un clic sur un jour : un briefing pour qui revient, ou pour ceux qui restent quand vous partez. Il le lit ce jour-là, dans son Agenda.", page: "Semaine" },
+      { titre: "La fiche d'un agent", texte: "Un clic sur son nom : combien de fois on s'est parlé, ses fiches reçues, ce qu'il nous dit souvent et les actions à proposer.", page: "Prospection" },
     ],
   },
 ];

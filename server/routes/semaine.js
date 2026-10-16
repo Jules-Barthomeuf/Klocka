@@ -1,7 +1,7 @@
-// La page Semaine (16 oct. 2026) : les présences de l'équipe, le point de la
-// semaine de chacun pour celle ou celui qui est absent, le résumé que Jules
-// relit et qui part par mail le matin du retour. Seul Jules pose les absences
-// et valide.
+// L'Agenda (16 oct. 2026) : les présences de l'équipe, les briefings d'un
+// jour (pour qui revient, pour ceux qui restent), le résumé que Jules relit et
+// qui paraît dans l'Agenda de la personne le matin de son retour. Seul Jules
+// pose les absences et valide. Aucun mail.
 
 import { currentUser, ok, wrap } from '../contexte.js';
 
@@ -23,7 +23,7 @@ export function monterSemaine(app) {
   app.get('/api/semaine', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
     const estJules = (await import('../acces-pages.js')).estSuperAdmin(user);
-    ok(res, { ...(await (await S()).maSemaine(user, { estJules })), est_jules: estJules });
+    ok(res, { ...(await (await S()).monAgenda(user, { estJules })), est_jules: estJules });
   }));
   app.get('/api/semaine/presences', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
@@ -41,14 +41,20 @@ export function monterSemaine(app) {
     if (rate) return res.status(400).json(rate);
     ok(res, { ok: true, n: r.length });
   }));
-  // Le point de la semaine de chacun, pour la personne absente.
-  app.post('/api/semaine/points', wrap(async (req, res) => {
+  // Le briefing d'un jour : ce qu'il faut pour l'ouvrir (pour qui, questions, réponses pré-remplies), puis l'enregistrer.
+  app.get('/api/semaine/briefing/:jour', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
-    const r = (await S()).contribuer(user, req.body || {});
+    const r = await (await S()).preparerBriefing(user, req.params.jour);
     if (!r.ok) return res.status(400).json(r);
     ok(res, r);
   }));
-  // Jules : le brouillon, ses corrections, sa validation (le mail part le matin du retour, ou tout de suite).
+  app.post('/api/semaine/briefing', wrap(async (req, res) => {
+    const user = equipe(req, res); if (!user) return;
+    const r = await (await S()).enregistrerBriefing(user, req.body || {});
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
+  }));
+  // Jules : le brouillon, ses corrections, sa validation (il paraît dans l'Agenda de la personne le matin du retour, ou tout de suite).
   app.post('/api/semaine/retours/brouillon', wrap(async (req, res) => {
     const user = await jules(req, res); if (!user) return;
     const b = req.body || {};

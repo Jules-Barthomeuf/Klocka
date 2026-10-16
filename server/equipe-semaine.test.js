@@ -56,76 +56,73 @@ test('l\'agenda refusé par Google (API non activée) se dit, sans casser', asyn
   assert.equal(r.etat, 'api_desactivee');
 });
 
-test('le point de chacun, le brouillon court, la relecture de Jules, l\'envoi le matin du retour', async () => {
-  const JULES = { email: 'jules.b@klocka.immo' };
+test('Maxime clique sur le lundi du retour de Nora : son briefing, la réunion pré-remplie, lu par Nora ce jour-là', async () => {
   const CORALIE = 'coralie.g@klocka.immo';
-  Records.create('AppelAgent', { agent_id: 'a1', par: NORA, etat: 'valide', issue: 'a_des_murs', resume: 'Durand a deux murs à Antibes', le: '2026-10-20T09:00:00Z' });
-  Records.create('Deal', { deal_id: 'd-1', nom: 'Murs Antibes', statut: 'analyse', suivi: [{ le: '2026-10-21T09:00:00Z', par: CORALIE, detail: 'Bail reçu' }] });
-  Records.create('CerveauSource', { id: 'src-reu', type: 'compte_rendu', titre: 'Réunion : hebdo', date: '2026-10-20T08:00:00Z', contenu: '…' });
+  // Nora en congés du 2 au 6 novembre, de retour le lundi 9.
+  for (const j of ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06']) S.poserAbsence({ email: NORA, jour: j, motif: 'conges' });
+  Records.create('CerveauSource', { id: 'src-reu', type: 'compte_rendu', titre: 'Réunion : hebdo', date: '2026-11-03T08:00:00Z', contenu: '…' });
   Records.create('CerveauFait', { source_id: 'src-reu', type: 'decision', resume: 'On arrête Libourne', statut: 'valide' });
-  // Ceux qui sont là écrivent leur point pour Maxime (absent du 19 au 23).
-  assert.equal(S.contribuer({ email: NORA }, { pour: NORA, du: '2026-10-19', texte: 'x' }).ok, false);
-  assert.equal(S.contribuer({ email: 'x@y.fr' }, { pour: MAXIME, du: '2026-10-19', texte: 'x' }).ok, false);
-  S.contribuer({ email: NORA }, { pour: MAXIME, du: '2026-10-19', au: '2026-10-23', texte: 'J\'ai rappelé Durand.' });
-  S.contribuer({ email: NORA }, { pour: MAXIME, du: '2026-10-19', au: '2026-10-23', texte: 'J\'ai rappelé Durand, deux murs à Antibes.' });
-  assert.equal(S.contributionsPour(MAXIME, '2026-10-19').length, 1);
-  const c = S.collecte({ du: '2026-10-19', au: '2026-10-23', pour: MAXIME });
-  const nora = c.par_personne.find((p) => p.nom === 'Nora');
-  assert.equal(nora.son_point, 'J\'ai rappelé Durand, deux murs à Antibes.');
-  assert.equal(nora.appels_agents, 1);
-  assert.deepEqual(c.par_personne.find((p) => p.nom === 'Coralie').dossiers, ['Murs Antibes']);
-  assert.equal(c.reunions[0].faits[0].resume, 'On arrête Libourne');
-  assert.ok(!c.par_personne.some((p) => p.nom === 'Maxime'));
-  // Le brouillon, court, à partir de tout cela.
-  const prompts = [];
-  const invoke = async (prompt) => { prompts.push(prompt); return { objet: 'Ta semaine du 19 au 23 octobre', texte: 'Bon retour.\nCe que chacun a fait\n- Nora : Durand.' }; };
-  const b = await S.ecrireBrouillon(MAXIME, { du: '2026-10-19', au: '2026-10-23' }, { invoke });
-  assert.equal(b.retour.etat, 'brouillon');
-  assert.match(prompts[0], /deux murs à Antibes/);
-  assert.match(prompts[0], /On arrête Libourne/);
-  assert.match(prompts[0], /250 mots/);
-  // Jules corrige, valide avant le retour : rien ne part encore.
-  S.corriger(b.retour.id, { texte: 'Bon retour Maxime.\nCe que chacun a fait\n- Nora a rappelé Durand.' });
-  const envois = [];
-  const envoyer = async (m) => { envois.push(m); return { success: true }; };
-  const v = await S.valider(b.retour.id, JULES, { aujourdhui: '2026-10-23', envoyer });
-  assert.equal(v.part_le, '2026-10-26');
-  assert.equal(envois.length, 0);
-  // Pendant ce temps, Maxime ne voit rien ; Jules voit qui a écrit et qui manque.
-  const vueJules = await S.maSemaine(JULES, { aujourdhui: '2026-10-23', estJules: true });
-  assert.deepEqual(vueJules.a_relire[0].manquent, ['Coralie', 'Jules']);
-  assert.equal(vueJules.a_relire[0].retour.etat, 'valide');
-  assert.equal((await S.maSemaine({ email: MAXIME }, { aujourdhui: '2026-10-23' })).retour, null);
-  // Le lundi du retour, le tour l'envoie, une fois.
-  const t = await S.tourDuMatin({ aujourdhui: '2026-10-26', invoke, envoyer });
-  assert.deepEqual(t.fait, ['envoyé à Maxime']);
-  assert.equal(envois[0].to, MAXIME);
-  assert.equal(envois[0].from, 'jules.b@klocka.immo');
-  assert.match(envois[0].body, /Nora a rappelé Durand/);
-  assert.equal((await S.tourDuMatin({ aujourdhui: '2026-10-26', invoke, envoyer })).fait.length, 0);
-  const vueMaxime = await S.maSemaine({ email: MAXIME }, { aujourdhui: '2026-10-26' });
-  assert.match(vueMaxime.retour.texte, /Nora a rappelé Durand/);
-  assert.equal((await S.ecrireBrouillon(MAXIME, { du: '2026-10-19', au: '2026-10-23' }, { invoke })).ok, false);
+  Records.create('CerveauFait', { source_id: 'src-reu', type: 'engagement', resume: 'Coralie rappelle Durand', echeance: '2026-11-10', statut: 'valide' });
+  const prep = await S.preparerBriefing({ email: MAXIME }, '2026-11-09', { ctx: ctx() });
+  assert.equal(prep.genre, 'retour');
+  assert.deepEqual(prep.pour, [NORA]);
+  assert.match(prep.questions.find((q) => q.cle === 'reunion').reponse, /Décidé : On arrête Libourne/);
+  assert.match(prep.questions.find((q) => q.cle === 'reunion').reponse, /Engagement : Coralie rappelle Durand \(pour le 2026-11-10\)/);
+  assert.equal((await S.enregistrerBriefing({ email: MAXIME }, { jour: '2026-11-09', pour: [], reponses: [{ cle: 'avance', reponse: 'x' }] })).ok, false);
+  const r = await S.enregistrerBriefing({ email: MAXIME }, { jour: '2026-11-09', genre: 'retour', pour: [NORA], du: '2026-11-02', au: '2026-11-06', reponses: [{ cle: 'avance', reponse: 'Bail reçu sur Murs Antibes.' }, { cle: 'premier', reponse: 'Rappeler Durand.' }] }, { aujourdhui: '2026-11-05' });
+  assert.equal(r.lu_le, '2026-11-09');
+  // Pas encore lu : ni notification, ni dans son Agenda avant lundi.
+  assert.ok(!Records.list('Notification').some((n) => n.cle === `agenda:briefing:${r.briefing.id}:${NORA}`));
+  assert.equal(S.briefingsPour(NORA, '2026-11-06').length, 0);
+  // Rouvert : le briefing déjà écrit revient.
+  const re = await S.preparerBriefing({ email: MAXIME }, '2026-11-09', { ctx: ctx() });
+  assert.equal(re.deja, true);
+  assert.equal(re.questions.find((q) => q.cle === 'avance').reponse, 'Bail reçu sur Murs Antibes.');
+  // Vendredi 6 (dernier jour) : Coralie et Jules sont invités, pas Maxime (déjà fait).
+  const invoke = async (prompt) => { invoke.prompts.push(prompt); return { objet: 'Ta semaine du 2 au 6 novembre', texte: 'Bon retour.\nCe que chacun a fait\n- Maxime : bail reçu.' }; };
+  invoke.prompts = [];
+  await S.tourDuMatin({ aujourdhui: '2026-11-06', invoke });
+  const cles = Records.list('Notification').map((n) => n.cle);
+  assert.ok(cles.includes(`agenda:a-briefer:${NORA}:2026-11-02:${CORALIE}`));
+  assert.ok(!cles.includes(`agenda:a-briefer:${NORA}:2026-11-02:${MAXIME}`));
+  // Jules relit avant le retour : brouillon (avec le briefing de Maxime), validation, rien ne paraît encore.
+  const b = await S.ecrireBrouillon(NORA, { du: '2026-11-02', au: '2026-11-06' }, { invoke });
+  assert.match(invoke.prompts[0], /Bail reçu sur Murs Antibes/);
+  assert.match(invoke.prompts[0], /On arrête Libourne/);
+  const v = await S.valider(b.retour.id, { email: 'jules.b@klocka.immo' }, { aujourdhui: '2026-11-06' });
+  assert.equal(v.parait_le, '2026-11-09');
+  assert.equal((await S.monAgenda({ email: NORA }, { aujourdhui: '2026-11-06' })).retour, null);
+  // Lundi 9 : le résumé paraît, le briefing de Maxime est annoncé ; rien par mail.
+  const lundi = await S.tourDuMatin({ aujourdhui: '2026-11-09', invoke });
+  assert.ok(lundi.fait.includes('briefing de Maxime'));
+  assert.ok(lundi.fait.includes('publié pour Nora'));
+  const vue = await S.monAgenda({ email: NORA }, { aujourdhui: '2026-11-09' });
+  assert.equal(vue.retour.etat, 'publie');
+  assert.equal(vue.briefings[0].de_nom, 'Maxime');
+  assert.ok(Records.list('Notification').some((n) => n.cle === `agenda:briefing:${r.briefing.id}:${NORA}` && n.pour === NORA));
+  assert.ok(!Records.list('EmailLog').length);
+  // Un second tour le même jour ne refait rien.
+  assert.deepEqual((await S.tourDuMatin({ aujourdhui: '2026-11-09', invoke })).fait, []);
 });
 
-test('le tour du matin : le dernier jour d\'absence, les points demandés ; au retour sans validation, le brouillon et Jules prévenu', async () => {
-  const invoke = async () => ({ objet: 'Ta semaine', texte: 'Bon retour.' });
-  for (const j of ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06']) S.poserAbsence({ email: NORA, jour: j, motif: 'conges' });
-  S.contribuer({ email: MAXIME }, { pour: NORA, du: '2026-11-02', texte: 'Fait.' });
-  const vendredi = await S.tourDuMatin({ aujourdhui: '2026-11-06', invoke });
-  assert.deepEqual(vendredi.fait, ['points pour Nora']);
-  const cles = Records.list('Notification').map((n) => n.cle);
-  assert.ok(cles.includes(`semaine:point:${NORA}:2026-11-02:coralie.g@klocka.immo`));
-  assert.ok(!cles.includes(`semaine:point:${NORA}:2026-11-02:${MAXIME}`)); // il a déjà écrit
-  const lundi = await S.tourDuMatin({ aujourdhui: '2026-11-09', invoke });
-  assert.deepEqual(lundi.fait, ['à relire pour Nora']);
-  assert.equal(S.retourDe(NORA, '2026-11-02').etat, 'brouillon');
-  assert.ok(Records.list('Notification').some((n) => n.cle === `semaine:relire:${NORA}:2026-11-02` && n.pour === 'jules.b@klocka.immo'));
-  // Validé le lundi même : il part aussitôt.
-  const envois = [];
-  const v = await S.valider(S.retourDe(NORA, '2026-11-02').id, { email: 'jules.b@klocka.immo' }, { aujourdhui: '2026-11-09', envoyer: async (m) => { envois.push(m); return { success: true }; } });
-  assert.equal(v.retour.etat, 'envoye');
-  assert.equal(envois.length, 1);
+test('Maxime part la semaine du 26 : le vendredi, il est invité à faire le brief à Nora ; ses dossiers pré-remplis', async () => {
+  for (const j of ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20']) S.poserAbsence({ email: MAXIME, jour: j, motif: 'ecole' });
+  Records.create('Deal', { deal_id: 'd-max2', nom: 'Murs Cannes', statut: 'analyse', cree_par: MAXIME, suivi: [{ le: '2026-11-10T09:00:00Z', par: MAXIME, detail: 'Analyse' }] });
+  const vendredi = await S.tourDuMatin({ aujourdhui: '2026-11-13', invoke: async () => ({}) });
+  assert.ok(vendredi.fait.includes('départ Maxime'));
+  const n = Records.list('Notification').find((x) => x.cle === `agenda:depart:${MAXIME}:2026-11-16`);
+  assert.match(n.titre, /fais le brief à Nora, Coralie/);
+  const prep = await S.preparerBriefing({ email: MAXIME }, '2026-11-13', { ctx: ctx() });
+  assert.equal(prep.genre, 'depart');
+  assert.equal(prep.jour, '2026-11-16');
+  assert.deepEqual(prep.pour.sort(), ['coralie.g@klocka.immo', 'jules.b@klocka.immo', NORA].sort());
+  assert.match(prep.questions.find((q) => q.cle === 'dossiers').reponse, /- Murs Cannes : /);
+  // Écrit le vendredi pour le lundi : Nora le lit lundi.
+  const r = await S.enregistrerBriefing({ email: MAXIME }, { jour: prep.jour, genre: 'depart', pour: [NORA], reponses: [{ cle: 'dossiers', reponse: '- Murs Cannes : en analyse' }] }, { aujourdhui: '2026-11-13' });
+  assert.equal(S.briefingsPour(NORA, '2026-11-13').filter((b) => b.id === r.briefing.id).length, 0);
+  assert.equal(S.briefingsPour(NORA, '2026-11-16').filter((b) => b.id === r.briefing.id).length, 1);
+  // Une fois écrit, plus d'invitation.
+  assert.ok(!(await S.tourDuMatin({ aujourdhui: '2026-11-13', invoke: async () => ({}) })).fait.includes('départ Maxime'));
 });
 
 test('une absence d\'un seul jour ne demande ni points ni résumé', async () => {

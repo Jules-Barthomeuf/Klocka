@@ -5,8 +5,8 @@
 
 export const ENTREES_ADMIN = [
   { cle: "Dashboard", label: "Dashboard" },
-  // La semaine de l'équipe (16 oct. 2026) : qui est là, la passation avant de partir, le résumé du retour.
-  { cle: "Semaine", label: "Semaine" },
+  // L'Agenda de l'équipe (16 oct. 2026) : qui est là, les briefings d'un jour, le résumé du retour.
+  { cle: "Semaine", label: "Agenda" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   { cle: "Offres", label: "Offres" },

@@ -497,6 +497,25 @@ async function voxtralTranscrire({ buffer, mimetype, biais = !biaisRefuse }) {
 }
 
 /**
+ * Les voix d'un enregistrement (16 oct. 2026) : Voxtral sépare les locuteurs (`diarize`) et date chaque
+ * segment ; `speaker_id` reste le même sur tout l'enregistrement. Vérifié en réel sur deux voix.
+ * @returns {Promise<{start:number, end:number, speaker_id:string}[]>}
+ */
+export async function voxtralLocuteurs({ buffer, mimetype = 'audio/wav' }) {
+  if (!MISTRAL_KEY) throw new Error('Voxtral (MISTRAL_API_KEY) est nécessaire pour séparer les voix.');
+  const form = new FormData();
+  form.append('file', new Blob([buffer], { type: mimetype }), 'audio.wav');
+  form.append('model', VOXTRAL_MODEL);
+  form.append('language', 'fr');
+  form.append('diarize', 'true');
+  form.append('timestamp_granularities', 'segment');
+  const r = await fetch('https://api.mistral.ai/v1/audio/transcriptions', { method: 'POST', headers: { Authorization: `Bearer ${MISTRAL_KEY}` }, body: form, signal: AbortSignal.timeout(180000) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data?.message || `Voxtral a répondu ${r.status}.`), { statut: r.status });
+  return (data?.segments || []).map((s) => ({ start: s.start, end: s.end, speaker_id: s.speaker_id }));
+}
+
+/**
  * @param {{buffer: Buffer, mimetype?: string, rapide?: boolean}} o - `rapide` :
  *   la dictée en direct préfère rendre la main tout de suite (un seul essai
  *   par service) plutôt qu'attendre un palier de quota.

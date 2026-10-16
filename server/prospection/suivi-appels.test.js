@@ -227,3 +227,26 @@ test('les chiffres comptent à partir du 13 octobre : avant, c\'était de l\'ess
   assert.ok(j14.duree_totale_s >= 90 && j14.appels >= 1);
   assert.deepEqual(Object.keys(j14.apres_appel), ['pret', 'valide', 'prepare'], 'le temps après l\'appel, jour par jour');
 });
+
+test("la part de parole : gardée une fois sur l'appel, moyennée dans les chiffres, jamais bloquante", async () => {
+  const x = Records.create('AppelAgent', { le: '2026-10-14T09:00:00Z', par: 'jules.b@klocka.immo', issue: 'pas_de_murs', etat: 'valide' });
+  // Un WAV de 14 s : l'analyste (fort) 10 s, l'agent (faible) 4 s.
+  const n = 14 * 16000;
+  const wav = Buffer.alloc(44 + n * 2);
+  wav.write('RIFF', 0); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(16000, 24); wav.writeUInt16LE(16, 34);
+  wav.write('data', 36); wav.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i += 1) wav.writeInt16LE(Math.round(Math.sin(i / 7) * (i < 6 * 16000 || i >= 10 * 16000 ? 20000 : 3000)), 44 + i * 2);
+  const locuteurs = async () => [{ start: 0, end: 6, speaker_id: 'a' }, { start: 6, end: 10, speaker_id: 'b' }, { start: 10, end: 14, speaker_id: 'a' }];
+  const r = await S.noterParole(x.id, wav, { locuteurs });
+  assert.equal(r.parole.pct, 71);
+  assert.equal(Records.get('AppelAgent', x.id).parole.pct, 71);
+  // Une seconde fois : rien ne change.
+  assert.equal((await S.noterParole(x.id, wav, { locuteurs: async () => { throw new Error('non'); } })).deja, true);
+  // Une panne de Voxtral ne lève pas.
+  const y = Records.create('AppelAgent', { le: '2026-10-14T10:00:00Z', par: 'jules.b@klocka.immo', issue: 'pas_de_murs', etat: 'valide' });
+  assert.equal((await S.noterParole(y.id, wav, { locuteurs: async () => { throw new Error('panne'); } })).ok, false);
+  assert.equal((await S.noterParole('inconnu', wav)).ok, false);
+  const c = S.chiffres([Records.get('AppelAgent', x.id), { ...Records.get('AppelAgent', y.id), parole: { pct: 51 } }, { le: '2026-10-14T11:00:00Z', issue: 'x', etat: 'valide' }], { maintenantD: MAINTENANT });
+  assert.equal(c.parole_pct, 61);
+  assert.equal(S.chiffres([{ le: '2026-10-14T11:00:00Z', issue: 'x', etat: 'valide' }], { maintenantD: MAINTENANT }).parole_pct, null);
+});

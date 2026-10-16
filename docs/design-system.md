@@ -716,3 +716,5 @@ s'impriment et ne suivent pas le thème.
 - [ ] Le motif existe déjà ailleurs ? Le reprendre (listes, écran scindé, barres).
 - [ ] Lint (`react/jsx-no-undef` compris), tests et build passent ; l'écran a
       été vu, ou il est dit qu'il ne l'a pas été.
+
+**Suivi > Appels, « Mes appels »** (Jules, 16 oct. 2026) : l'onglet prend la place de « Contexte » (le contexte gagné se lit dans l'Intelligence). Chacun y voit ses propres chiffres, ceux du tableau par analyste, chacun dans une carte `Chiffre`, puis sa courbe par jour et un lien « Voir mes appels, un par un ». La « Part de parole » est la part du temps où l'analyste parle (voix séparées par Voxtral sur l'audio entier, envoyé après le raccrochage ; la voix la plus forte est la sienne, règle à vérifier sur de vrais appels) ; « — » tant qu'aucun appel n'est mesuré. Les filtres par mode (Tout, Prospection, Relances, Rappel, Essai) n'existent plus : le graphique « Par mode » reste dans la vue d'ensemble.

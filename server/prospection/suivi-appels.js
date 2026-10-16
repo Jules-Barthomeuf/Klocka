@@ -63,6 +63,8 @@ export function chiffres(appels, { sessions = [], maintenantD = new Date() } = {
     duree_moyenne_s: moyenne(durees),
     duree_totale_s: durees.reduce((a, b) => a + b, 0),
     temps_mode_appel_s: Math.round(tempsSessions / 1000),
+    // La part de parole (16 oct. 2026) : la moyenne sur les appels où les voix ont pu être séparées.
+    parole_pct: (() => { const t = appels.map((x) => x.parole?.pct).filter(Number.isFinite); return t.length ? Math.round(t.reduce((a, b) => a + b, 0) / t.length) : null; })(),
     jours_actifs: jours.size,
     par_jour_actif: jours.size ? Math.round((appels.length / jours.size) * 10) / 10 : null,
     fenetre_pct: pct(ui.filter((x) => x.validation_ui.depuis_fenetre).length, ui.length),
@@ -342,6 +344,26 @@ export function noterTemps(id, etape, ms) {
   if (temps[`${etape}_ms`] == null) temps[`${etape}_ms`] = n;
   Records.update('AppelAgent', id, { temps });
   return { ok: true, temps };
+}
+
+/**
+ * La part de parole d'un appel (16 oct. 2026, Jules) : l'audio entier de l'appel, les voix séparées par
+ * Voxtral, la part de l'analyste gardée sur l'appel. Une fois par appel ; ne lève jamais.
+ */
+export async function noterParole(id, wav, { locuteurs } = {}) {
+  const x = Records.get('AppelAgent', id);
+  if (!x) return { ok: false, error: 'Appel introuvable.' };
+  if (x.parole) return { ok: true, parole: x.parole, deja: true };
+  try {
+    const separer = locuteurs || (await import('../llm.js')).voxtralLocuteurs;
+    const parole = (await import('../parole.js')).partDeParole(await separer({ buffer: wav }), wav);
+    if (!parole) return { ok: true, parole: null };
+    Records.update('AppelAgent', id, { parole });
+    return { ok: true, parole };
+  } catch (e) {
+    console.warn(`[parole] ${String(e?.message || e).slice(0, 160)}`);
+    return { ok: false, error: 'Les voix n\'ont pas pu être séparées.' };
+  }
 }
 
 /** Pure : la médiane d'une liste de nombres, ou null. */

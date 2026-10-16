@@ -13,6 +13,7 @@ import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospe
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
+import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -576,6 +577,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   // La transcription en direct : un morceau toutes les quelques secondes, transcrit à la volée.
   const morceaux = useRef([]); // [{ i, texte: string|null, wav: Blob|null, etat: 'envoi'|'ok'|'echec' }]
   const [direct, setDirect] = useState([]);
+  // L'audio entier de l'appel (16 oct. 2026) : les morceaux gardés, recollés au raccrochage pour la part de parole.
+  const audios = useRef([]);
+  const parole = useRef(new Set());
   const directFin = useRef(null);
   const compte = useRef(null);
   const messageT = useRef(null);
@@ -808,6 +812,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
         const x = { i: morceaux.current.length, texte: null, wav: null, etat: "envoi" };
         morceaux.current.push(x); montrer();
         try { x.wav = await versWav(new Blob(bouts, { type: m.mimeType || "audio/webm" }), 16000); } catch { x.etat = "echec"; montrer(); return; }
+        audios.current[x.i] = x.wav;
         transcrireMorceau(x);
       };
       m.start();
@@ -841,6 +846,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     if (!prise || prise.agence_id !== a.id) prendre.mutate(a.id);
     retenirEnCours({ agence: { id: a.id, nom: a.nom, telephone: numeroAppel, lieu: a.lieu, badge: a.badge, historique: a.historique, interlocuteurs: a.interlocuteurs }, onglet, le: new Date().toISOString() });
     preLecture.current = { dernier: 0, sig: "", enCours: false };
+    audios.current = [];
     setNotes(true); setSimule(false); setEcran("appel"); lancerChrono(); enregistrer();
   };
   // Le temps après l'appel (13 oct. 2026, Jules) : depuis le raccrochage jusqu'aux actions prêtes, à la validation, à « Tout est préparé ».
@@ -910,6 +916,19 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setEdits({});
     setEcran("actions");
   };
+  // La part de parole : l'audio entier part après coup, sans rien attendre ; jamais sur un appel simulé ni sans transcription gardée.
+  const envoyerParole = (id) => {
+    if (!id || session?.essai || simule || parole.current.has(id)) return;
+    const wavs = audios.current.filter(Boolean);
+    if (!wavs.length || wavs.reduce((t, b) => t + b.size, 0) > OCTETS_MAX) return;
+    parole.current.add(id);
+    fusionnerWav(wavs).then((wav) => {
+      if (!wav) return null;
+      const f = new FormData();
+      f.append("audio", wav, "appel.wav");
+      return base44.request("POST", `${API}/appels/${id}/parole`, { body: f, isForm: true });
+    }).catch(() => {});
+  };
   const noter = useMutation({
     mutationFn: async ({ issue: is, simple = false, remplace = null, notes: notesDites = null }) => {
       const notesAEnvoyer = notesDites ?? notesAppel;
@@ -945,6 +964,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       retenirEnCours(null);
       if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et sa transcription sont gardés ; les actions s'ouvriront au retour du réseau");
       if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : v.issue === "agent_prevenu" ? "Agent prévenu" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
+      envoyerParole(r.appel.id);
       ouvrirActions(r.appel, r.appel.issue_tapee || v.issue);
     },
     onError: (e) => { toast.error(e?.message || "L'appel n'a pas pu être lu"); setEcran(direct.length ? "appel" : "issue"); },

@@ -34,6 +34,7 @@ const COLONNES = [
   ["notes_pct", "Avec notes", p100],
   ["duree_moyenne_s", "Durée moy.", dureeLisible],
   ["duree_totale_s", "Au téléphone", dureeLisible],
+  ["parole_pct", "Part de parole", p100],
   ["temps_mode_appel_s", "En mode appel", dureeLisible],
   ["valides", "Validés", (v) => v],
   ["oublies", "Non validés", (v) => v],

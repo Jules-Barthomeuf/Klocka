@@ -571,6 +571,17 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
+  // La part de parole : l'audio entier de l'appel, envoyé après coup, sans rien bloquer (16 oct. 2026).
+  app.post('/api/prospection/mode-appel/appels/:id/parole', upload.single('audio'), wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const wav = req.file ? fs.readFileSync(req.file.path) : null;
+    if (req.file) fs.promises.unlink(req.file.path).catch(() => {});
+    if (!wav?.length) return res.status(400).json({ error: 'Aucun audio.' });
+    const r = await (await import('../prospection/suivi-appels.js')).noterParole(req.params.id, wav);
+    if (!r.ok) return res.status(r.error === 'Appel introuvable.' ? 404 : 502).json({ error: r.error });
+    ok(res, r);
+  }));
   app.get('/api/prospection/mode-appel/appels/:id/recu', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const r = (await MA()).recu(req.params.id);

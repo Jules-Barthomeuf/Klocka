@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -40,8 +41,9 @@ export default function FicheSource({ dossier, className = "" }) {
       >
         <FileText className="w-3.5 h-3.5" /> Fiche commerciale importée
       </button>
-      {ouvert && (
-        <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[760px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col">
+      {/* Rendu dans le body, au-dessus de tout (16 oct. 2026, Jules : l'icône Rappel cachait la croix) : dans la page, son z-[60] restait sous les boutons fixes du coin. */}
+      {ouvert && createPortal(
+        <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[90] w-full sm:w-[760px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] flex flex-col">
           <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-trait max-md:px-4 max-md:pt-[max(16px,env(safe-area-inset-top))]">
             <div className="min-w-0">
               <p className="m-0 text-[11px] tracking-[.18em] uppercase text-brume">Fiche commerciale importée</p>
@@ -98,7 +100,8 @@ export default function FicheSource({ dossier, className = "" }) {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

@@ -107,11 +107,20 @@ export function candidatsPour(type, nom, { limite = 5 } = {}) {
  * Une source entre telle quelle. `liens` : les fiches déjà connues (l'agent et
  * l'agence d'un appel) ; chaque fait extrait s'y rattache d'office.
  */
+// Les adresses mail et les liens restent tels quels : « nora@klocka.immo » n'est pas une transcription à corriger (16 oct. 2026).
+const ADRESSES = /[^\s<>()]+@[^\s<>()]+|https?:\/\/[^\s<>()]+|\bwww\.[^\s<>()]+/g;
+export function horsAdresses(texte, corriger) {
+  let fin = 0;
+  let sortie = '';
+  for (const m of texte.matchAll(ADRESSES)) { sortie += corriger(texte.slice(fin, m.index)) + m[0]; fin = m.index + m[0].length; }
+  return sortie + corriger(texte.slice(fin));
+}
+
 export function ajouterSource({ type, auteur = null, date = null, titre = null, contenu, lien_original = null, liens = [], cle = null, id_externe = null }) {
   // L'identifiant externe (Message-ID d'un mail, identifiant d'update Monday) déduplique comme une clé.
   if (!cle && id_externe) cle = `${type}:${id_externe}`;
   // Le nom de la startup, que la transcription écorche (« Cloaca ») : corrigé avant d'entrer (14 oct. 2026).
-  const texte = corrigerKlocka(String(contenu || '').trim());
+  const texte = horsAdresses(String(contenu || '').trim(), corrigerKlocka);
   if (!texte) return { ok: false, error: 'Source vide.' };
   if (!TYPES_SOURCE.includes(type)) return { ok: false, error: `Type de source inconnu : ${type}` };
   // Une même source (le même appel, le même compte rendu) n'entre qu'une fois.

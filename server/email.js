@@ -219,7 +219,12 @@ export function normalizeRecipients(value) {
 
 function logEmail(fields) {
   try {
-    return Records.create('EmailLog', fields);
+    const log = Records.create('EmailLog', fields);
+    // Un mail parti entre dans l'Intelligence (Layer, phase 9) ; un échec n'y touche jamais l'envoi.
+    if (log?.statut === 'envoye' && !process.env.NODE_TEST_CONTEXT) {
+      import('./layer-sources.js').then((m) => m.depuisMail(log, { sens: 'envoye' })).catch((e) => console.error('[layer] mail envoyé :', e?.message || e));
+    }
+    return log;
   } catch {
     return null;
   }

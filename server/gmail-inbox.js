@@ -180,7 +180,9 @@ export async function releverBoite(compteEmail, { max = 25, repecher = false } =
         continue;
       }
 
-      Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain, interne: !!interneTri });
+      const recu = Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain, interne: !!interneTri });
+      // Un mail retenu entre dans l'Intelligence (Layer, phase 9).
+      if (!process.env.NODE_TEST_CONTEXT) import('./layer-sources.js').then((m) => m.depuisMail(recu, { sens: 'recu' })).catch((e) => console.error('[layer] mail reçu :', e?.message || e));
       nouveaux++;
     } catch (e) {
       // Un message illisible ne doit pas bloquer la relève des autres.

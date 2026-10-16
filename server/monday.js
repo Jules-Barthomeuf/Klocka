@@ -59,6 +59,9 @@ async function graphql(query, variables = {}) {
   return data.data;
 }
 
+/** Une requête GraphQL brute (les webhooks du Layer, server/layer-sources.js). */
+export const requeteMonday = (query, variables = {}) => graphql(query, variables);
+
 // Les utilisateurs du compte Monday, pour retrouver qui a fait l'action. Lus
 // une fois, gardés dix minutes : une équipe ne change pas entre deux poses.
 let utilisateursCache = { le: 0, liste: [] };

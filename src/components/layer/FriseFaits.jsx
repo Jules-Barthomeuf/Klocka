@@ -10,7 +10,7 @@ import { base44 } from "@/api/base44Client";
 export const quand = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—");
 export const TYPES = { decision: "Décision", information: "Information", engagement: "Engagement", savoir: "Savoir" };
 export const TEINTES = { decision: "text-menthe", information: "text-craie", engagement: "text-ambre", savoir: "text-bleu" };
-export const SOURCES = { compte_rendu: "Compte rendu", appel: "Appel", debrief: "Débrief", decision: "Réponse à une question" };
+export const SOURCES = { compte_rendu: "Compte rendu", appel: "Appel", debrief: "Débrief", decision: "Réponse à une question", mail: "Mail", evenement: "Monday" };
 
 /** Une liste de faits validés, du plus récent au plus ancien, chacun avec sa source. */
 export function FriseFaits({ faits }) {
@@ -54,7 +54,7 @@ export function FenetreSource({ id, onFermer }) {
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {!s ? <Loader2 className="mx-auto h-5 w-5 animate-spin text-ardoise" /> : <pre className="m-0 whitespace-pre-wrap font-sans text-[13.5px] leading-[1.6] text-craie">{s.contenu}</pre>}
         </div>
-        {s?.lien_original && <div className="border-t border-trait px-5 py-3 text-[12.5px]"><a href={s.lien_original} className="text-craie underline underline-offset-2 hover:text-encre">Ouvrir l'original</a></div>}
+        {s?.lien_original && <div className="border-t border-trait px-5 py-3 text-[12.5px]"><a href={s.lien_original} {...(/^https?:/.test(s.lien_original) ? { target: "_blank", rel: "noreferrer" } : {})} className="text-craie underline underline-offset-2 hover:text-encre">{/monday\.com/.test(s.lien_original) ? "Ouvrir sur Monday" : "Ouvrir l'original"}</a></div>}
       </div>
     </div>
   );

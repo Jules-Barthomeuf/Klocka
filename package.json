@@ -20,7 +20,8 @@
     "postinstall": "node scripts/chromium.mjs",
     "chromium": "KLOCKA_CHROMIUM=1 node scripts/chromium.mjs",
     "banc": "node server/ak/banc/rejouer.js",
-    "layer:eval": "node server/layer-evaluation.js"
+    "layer:eval": "node server/layer-evaluation.js",
+    "layer:monday": "node server/layer-sources.js"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.278",

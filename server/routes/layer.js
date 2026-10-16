@@ -92,6 +92,20 @@ export function monterLayer(app) {
     ok(res, (await C()).importerAppelsGardes());
   }));
 
+  // Phase 9 : les mails (historique, Jules) et le webhook Monday (public, ouvert par le jeton du lien).
+  const SR = () => import('../layer-sources.js');
+  app.post('/api/layer/importer-mails', wrap(async (req, res) => {
+    if (!(await jules(req, res))) return;
+    ok(res, (await SR()).importerMails({ jours: Number(req.body?.jours) || 92 }));
+  }));
+  app.post('/api/layer/monday/webhook', wrap(async (req, res) => {
+    const M = await SR();
+    if (!M.jetonValide(req.query.jeton)) return res.status(403).json({ error: 'Jeton refusé.' });
+    // La poignée de main de Monday : renvoyer le défi tel quel.
+    if (req.body?.challenge) return res.json({ challenge: req.body.challenge });
+    ok(res, M.depuisMonday(req.body));
+  }));
+
   // Phase 5 : ce qu'on sait d'une fiche (synthèse, engagements, derniers faits), les synthèses, une régénération à la main (Jules).
   const SY = () => import('../layer-syntheses.js');
   app.get('/api/layer/fiches/:type/:id', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, (await SY()).ficheLayer(req.params.type, req.params.id)); }));

@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 8 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence, évaluation et coûts. Phase suivante : 9 (sources mail et Monday).
+**État : phases 1 à 9 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence, évaluation et coûts, sources mail et Monday. Reste à Jules : régler `MONDAY_WEBHOOK_JETON` sur Render puis poser les webhooks (section 4 nonies).
 
 ---
 
@@ -224,6 +224,25 @@ Une ligne de synthèse déplie ses faits ; un fait ouvre sa source (`FenetreSour
 
 **Re-test après la note de l'équipe** (une autre session a ajouté les noms de l'équipe à `NOTE_KLOCKA`, 16 oct.) : 23, 24, 25, 25 faits sur 25 en quatre essais (24,25 de moyenne, contre 24,5 avant) : dans le bruit, gardée. Toute modification de `NOTE_KLOCKA` ou de la consigne se re-teste sur le comité.
 
+## 4 nonies. Phase 9 : sources mail et Monday (16 oct. 2026)
+
+`server/layer-sources.js`, tests `server/layer-sources.test.js`.
+
+**Mails** (type `mail`, dédupliqués par Message-ID : `cle = mail:<id>`) :
+- **Envoyés** : chaque mail parti par `sendEmail` (`server/email.js`, `logEmail` au statut `envoye`) : mode appel, demandes de documents, retours de dossier, fiches commerciales. Un mail simulé, en erreur ou d'essai n'entre pas.
+- **Reçus** : chaque mail retenu par la relève Gmail (`MailRecu`, `server/gmail-inbox.js`). Rien d'autre n'est lu : pas de boîte externe au-delà de ce que la relève garde déjà.
+- **Rattachement** : l'agent par l'adresse (`AgentImmo.emails` ; destinataire d'un envoi, expéditeur d'un reçu), son agence par le nom (`AgentImmo.agence` est un nom), le dossier par `deal_id`. Le contenu commence par « Mail envoyé de … à …, objet « … » ».
+- **Les newsletters de Resend n'entrent pas** : un même texte à des centaines d'adresses n'apprend rien sur personne. À revoir si Jules le veut.
+- **Historique** : `POST /api/layer/importer-mails` (Jules, 92 jours par défaut), comme `importer-appels`. L'extraction tourne en fond dans la file des tâches.
+
+**Monday** (type `evenement`, `cle = evenement:monday:…`) :
+- Webhook public `POST /api/layer/monday/webhook?jeton=…`, ouvert seulement si le jeton égale `MONDAY_WEBHOOK_JETON` (fermé sans réglage) ; répond au défi de Monday (`{ challenge }`). Monday ne signe pas les webhooks posés avec un jeton personnel (le JWT ne vient qu'avec une application), d'où le jeton dans le lien.
+- Suivis : les tableaux `MONDAY_BOARD_AGENTS` et `MONDAY_BOARD_PROPRIETES` ; événements `change_status_column_value` (colonne de type statut, valeur changée ; dédupliqué par `triggerUuid`) et `create_update` (commentaire ; dédupliqué par `updateId`). Le reste est ignoré.
+- Rattachement par la ligne : `AgentImmo.monday_ligne_id` (agent et agence), `Deal.monday_item_id` (dossier), `Project.monday_item_id` (projet). `lien_original` = la ligne Monday (« Ouvrir sur Monday » dans la fenêtre de la source).
+- **Pose des webhooks** (à faire une fois, par Jules, sur Render où `MONDAY_TOKEN` est réglé) : régler `MONDAY_WEBHOOK_JETON` (une chaîne aléatoire), puis `npm run layer:monday -- https://klocka-unus.onrender.com` (quatre webhooks : deux tableaux, deux événements). Pas posé depuis cette session : c'est une écriture sur le Monday de production.
+
+**Correction du nom** : `ajouterSource` corrige « Cloaca » en « Klocka » hors des adresses mail et des liens (`horsAdresses`) : sinon `nora@klocka.immo` devenait `nora@Klocka.immo`.
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -255,6 +274,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 6. Branchements ✓ (sources : phase 9) | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
 | 7. Page Intelligence ✓ | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
 | 8. Évaluation ✓ | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |
+| 9. Sources mail et Monday ✓ | Mails envoyés et retenus, statuts et commentaires Monday par webhook | `server/layer-sources.js` (nouveau) |
 
 ### Spec des phases 3 à 9 (reçue le 15 oct. 2026, résumé)
 
@@ -271,4 +291,6 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 
 ### Points ouverts
 
-Aucun à ce stade.
+- « Enlève le truc » (Jules, 16 oct.) lu comme la bande du MVP, déplacée dans l'onglet Évaluation : à confirmer.
+- Newsletters de Resend hors du Layer : à confirmer.
+- Webhooks Monday : jeton à régler et pose à lancer (section 4 nonies).

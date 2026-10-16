@@ -1,7 +1,7 @@
 // Les chiffres entendus pendant un appel (16 oct. 2026, Jules) : l'agent dit
 // un prix, un loyer, une surface ; la calculatrice du mode appel les lit dans
-// la transcription en direct et fait les comptes (rendement, acte en main,
-// prix qui passe), sans IA.
+// la transcription en direct et fait les comptes (rendement brut, acte en
+// main, prix et loyer au m²), sans IA.
 //
 // La transcription écrit les montants en chiffres (« 450 000 euros ») ou en
 // toutes lettres (« quatre cent cinquante mille euros ») : les deux se lisent.
@@ -136,9 +136,9 @@ export function chiffresEntendus(textes) {
 }
 
 /**
- * Les comptes de la calculatrice, aux seuils d'AK (server/ak/seuils.json).
+ * Les comptes de la calculatrice ; les frais d'acquisition sont ceux d'AK (server/ak/seuils.json).
  * @param {{prix?:number|null, loyer_an?:number|null, surface?:number|null}} v
- * @param {{frais_acquisition_pct:number, rendement_aem:{tourne:number, dead:number}}} seuils
+ * @param {{frais_acquisition_pct:number}} seuils
  */
 export function calculer({ prix, loyer_an: loyer, surface }, seuils) {
   const p = Number(prix) > 0 ? Number(prix) : null;
@@ -146,14 +146,9 @@ export function calculer({ prix, loyer_an: loyer, surface }, seuils) {
   const s = Number(surface) > 0 ? Number(surface) : null;
   const frais = 1 + seuils.frais_acquisition_pct / 100;
   const arrondi = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
-  const rendementAem = p && l ? arrondi((l / (p * frais)) * 100) : null;
-  const verdict = rendementAem == null ? null : rendementAem >= seuils.rendement_aem.tourne ? 'tourne' : rendementAem < seuils.rendement_aem.dead ? 'dead' : 'limite';
   return {
     rendement_brut: p && l ? arrondi((l / p) * 100) : null,
-    rendement_aem: rendementAem,
-    verdict,
-    // Le prix FAI qui donne le rendement « ça tourne » acte en main.
-    prix_qui_passe: l ? Math.round(l / (seuils.rendement_aem.tourne / 100) / frais / 1000) * 1000 : null,
+    rendement_aem: p && l ? arrondi((l / (p * frais)) * 100) : null,
     prix_m2: p && s ? Math.round(p / s) : null,
     loyer_m2_an: l && s ? Math.round(l / s) : null,
   };

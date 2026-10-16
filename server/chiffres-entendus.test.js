@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { motsEnChiffres, chiffresEntendus, calculer } from '../src/lib/chiffres-entendus.js';
 import { SCENARIOS_ESSAI } from '../src/components/prospection/scenarios-essai.js';
 
-const SEUILS = { frais_acquisition_pct: 7.5, rendement_aem: { tourne: 7, dead: 5.5 } };
+const SEUILS = { frais_acquisition_pct: 7.5 };
 
 test('les nombres en lettres deviennent des chiffres', () => {
   assert.equal(motsEnChiffres('quatre cent cinquante mille euros'), '450000 euros');
@@ -48,16 +48,13 @@ test('ni un téléphone, ni une année, ni une durée ne sont des montants', () 
   assert.deepEqual(c.trouves, []);
 });
 
-test('les comptes, aux seuils d’AK', () => {
+test('les comptes, aux frais d’acquisition d’AK', () => {
   const r = calculer({ prix: 450000, loyer_an: 28000, surface: 80 }, SEUILS);
   assert.equal(r.rendement_brut, 6.22);
   assert.equal(r.rendement_aem, 5.79);
-  assert.equal(r.verdict, 'limite');
-  assert.equal(r.prix_qui_passe, 372000);
   assert.equal(r.prix_m2, 5625);
   assert.equal(r.loyer_m2_an, 350);
-  assert.equal(calculer({ prix: 300000, loyer_an: 28000 }, SEUILS).verdict, 'tourne');
-  assert.equal(calculer({ prix: 600000, loyer_an: 28000 }, SEUILS).verdict, 'dead');
+  assert.equal(calculer({ prix: 450000, loyer_an: 28000 }, SEUILS).prix_m2, null);
   assert.equal(calculer({ prix: null, loyer_an: null }, SEUILS).rendement_aem, null);
 });
 

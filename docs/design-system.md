@@ -482,12 +482,13 @@ le rappel reste dans une pilule « Rappel à terminer » en bas, au centre.
 loyer est entendu (transcription ou notes), elle s'ouvre seule en fenêtre
 devant la barre de gauche (280 px, `fixed left-3 top-20 z-[60]`,
 `bg-surface-pleine`, rayon 18, ombre de menu flottant ; au téléphone, en bas de
-l'écran), fermable, rouverte au chiffre suivant (Jules, même jour) : étiquette « CALCULATRICE »,
-trois champs soulignés en 18 px (Prix FAI, Loyer annuel HT, Surface),
-corrigeables, puis des lignes libellé / valeur en 13,5 px (rendement brut,
-acte en main, verdict en `menthe` / `ambre` / `alerte` aux seuils d'AK, prix
-pour 7 %, prix et loyer au m²). Le dernier chiffre dit l'emporte. Lecture sans
-IA (`src/lib/chiffres-entendus.js`) ; deux cas « Calculatrice » dans l'Essai.
+l'écran). Elle se déplace par son en-tête et garde sa place (navigateur) ; une
+croix la ferme, le chiffre suivant la rouvre. Étiquette « CALCULATRICE », trois
+champs soulignés en 18 px (Prix FAI, Loyer annuel HT, Surface), corrigeables,
+puis des lignes libellé / valeur en 13,5 px : rendement brut, « Acte en main »
+(sans le taux des frais), prix et loyer au m². Ni verdict ni prix cible
+(Jules, même jour). Le dernier chiffre dit l'emporte. Lecture sans IA
+(`src/lib/chiffres-entendus.js`) ; deux cas « Calculatrice » dans l'Essai.
 
 ## 6. Le chat et l'écran scindé
 

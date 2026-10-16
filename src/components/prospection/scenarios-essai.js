@@ -160,7 +160,7 @@ export const SCENARIOS_ESSAI = [
       "Je vous envoie la fiche ce soir.",
     ],
     calcul: { prix: 380000, loyer_an: 30000, surface: 95 },
-    attendu: "La calculatrice s'ouvre à gauche dès « 95 m² » : prix 380 000 €, loyer 30 000 €/an (2 500 €/mois), rendement brut 7,89 %, acte en main 7,34 %, ça tourne.",
+    attendu: "La calculatrice s'ouvre en haut à gauche dès « 95 m² » : prix 380 000 €, loyer 30 000 €/an (2 500 €/mois), rendement brut 7,89 %, acte en main 7,34 %, prix au m² 4 000 €.",
   },
   {
     cle: "calcul_correction", groupe: "calcul", titre: "En lettres, et il corrige le prix",
@@ -171,7 +171,7 @@ export const SCENARIOS_ESSAI = [
       "Ah non pardon, je me trompe, le vendeur est descendu à quatre cent soixante mille.",
     ],
     calcul: { prix: 460000, loyer_an: 31000, surface: 80 },
-    attendu: "Le prix passe de 520 000 € à 460 000 € quand il se corrige ; acte en main 6,27 %, limite ; le prix qui passe à 7 % : 412 000 €.",
+    attendu: "Le prix passe de 520 000 € à 460 000 € quand il se corrige ; rendement brut 6,74 %, acte en main 6,27 %.",
   },
   {
     cle: "bien_retenu", groupe: "relance", titre: "Relance : bien retenu, agent prévenu", motif: "bien_retenu",

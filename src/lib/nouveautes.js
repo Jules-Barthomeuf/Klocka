@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-16",
     items: [
+      { titre: "Agents", texte: "Tous les agents immobiliers en cartes : un clic, et tout ce qui s'est dit avec lui, chaque appel en entier (transcription ou résumé), et qui de l'équipe l'a appelé.", page: "Agents" },
       { titre: "Clients", texte: "Une fiche par client, nourrie par vos appels : enregistrez l'appel ou collez le résumé, la fiche, Monday et le réseau des mandataires se remplissent.", page: "AdminClients" },
       { titre: "La calculatrice en appel", texte: "Dès qu'un prix ou un loyer est dit au téléphone, elle s'ouvre et calcule le rendement. Elle se déplace où vous voulez.", page: "Prospection", requete: "?partie=appel" },
       { titre: "Le clip d'objection", texte: "Une objection que vous n'avez pas su lever ? Quinze secondes partent sur le Dashboard : l'équipe écoute et propose la réponse.", page: "Dashboard" },

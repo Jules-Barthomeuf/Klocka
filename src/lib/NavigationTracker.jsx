@@ -13,6 +13,7 @@ const PAGE_TITLES = {
     AdminProjets: "Gestion des Projets",
     AdminClients: "Clients",
     AdminUtilisateurs: "Utilisateurs",
+    Agents: "Agents",
     AdminRessources: "Gestion des Ressources",
     AdminSuggestions: "Suggestions & Feedback",
     AdminPortail: "Gestion des Portails",

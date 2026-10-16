@@ -30,6 +30,8 @@ export const API_DES_PAGES = {
   AdminEquipe: ['/api/admin/equipe'],
   // Clients (16 oct. 2026) : les fiches nourries par les appels, fermées avec leur page.
   AdminClients: ['/api/clients-equipe'],
+  // Agents (16 oct. 2026) : la liste et les appels en entier ; la fiche reste celle de la Prospection.
+  Agents: ['/api/prospection/agents-liste', '/api/prospection/agents', '/api/prospection/fiche', '/api/prospection/agent-ia/equipe'],
 };
 
 // Ce qui ne se ferme jamais : sans elles, plus moyen de travailler ni de revenir.

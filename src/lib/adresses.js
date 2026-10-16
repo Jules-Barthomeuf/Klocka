@@ -45,6 +45,7 @@ export const ADRESSES = {
   Comparateur: "Comparateur",
   AdminClients: "Clients",
   AdminUtilisateurs: "Utilisateurs",
+  Agents: "Agents",
   Offres: "Offres",
   Emailing: "Emailing",
   AdminPresentations: "Presentations",

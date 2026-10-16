@@ -728,6 +728,15 @@ export function monterProspection(app) {
     ok(res, { total: tous.length, agents: liste.slice(0, 300).map(({ journal, ...a }) => ({ ...a, journal_n: (journal || []).length })) });
   }));
 
+  // La page Agents (16 oct. 2026) : tous les agents, et l'intégralité des appels de chacun.
+  app.get('/api/prospection/agents-liste', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { agents: (await import('../prospection/agents-liste.js')).listerAgents() });
+  }));
+  app.get('/api/prospection/agents/:id/appels', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { appels: (await import('../prospection/agents-liste.js')).appelsDeLAgent(req.params.id) });
+  }));
   app.get('/api/prospection/agents/:id', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const p = await P();

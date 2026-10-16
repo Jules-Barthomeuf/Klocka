@@ -12,6 +12,8 @@ export const ENTREES_ADMIN = [
   { cle: "Offres", label: "Offres" },
   { cle: "Prospection", label: "Prospection" },
   { cle: "Relances", label: "Relances" },
+  // Agents (16 oct. 2026, Jules) : tous les agents immobiliers, et tout ce qui s'est dit avec chacun.
+  { cle: "Agents", label: "Agents" },
   { cle: "OffMarket", label: "Off-market" },
   { cle: "Emailing", label: "Emailing" },
   { cle: "ALX", label: "ALX" },

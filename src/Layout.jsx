@@ -8,6 +8,7 @@ import AccueilMandataire from "@/components/mandataire/AccueilMandataire";
 import InstallerApp from "@/components/InstallerApp";
 import {
   BookUser,
+  Contact,
   LayoutDashboard,
   LayoutGrid,
   Magnet,
@@ -497,6 +498,7 @@ function LayoutContent({ children, currentPageName }) {
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
+    Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
     // Emailing : les séquences des leads et les mails de la plateforme (Resend).

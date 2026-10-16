@@ -1020,6 +1020,8 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: note.trim(), cle,
     session_id: session?.id || null, issue, depuis_fenetre: depuisFenetre.current, etapes_vues: etapesVues.current,
     passe: edits.passe ?? null,
+    // Les cases Monday corrigées à l'écran d'actions (16 oct. 2026) : elles partent telles quelles.
+    monday_cases: edits.monday && Object.keys(edits.monday).length ? edits.monday : null,
     corrections: faits.filter((f) => MODIFIABLES.includes(f.cle) && edits[f.cle] != null && edits[f.cle].trim() !== f.valeur).map((f) => ({ cle: f.cle, libelle: f.libelle, valeur: edits[f.cle].trim() })),
   });
   // Valider depuis la fenêtre des actions (8 oct. 2026) : elle reste ouverte et suit l'envoi, puis « Tout préparé ».

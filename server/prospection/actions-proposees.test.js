@@ -342,3 +342,40 @@ test('Deux relances (un bien et un mandat annoncé) et la date changée à la ma
   assert.match(v.recu.relance.texte, /puis/);
   assert.equal(ligneDe(faux, ag).colonnes.relance, premiere);
 });
+
+test("Chaque case Monday se corrige à l'écran, et la relance décochée n'est pas écrite dans Monday (16 oct. 2026)", async () => {
+  const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite();
+  const ag = agence({ nom: 'Agence Corrigée' });
+  const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_de_murs', user: nora });
+  assert.equal(r.ok, true, r.error);
+  const rel = r.appel.propositions.find((p) => p.type === 'relance');
+  assert.ok(rel, 'une relance est proposée');
+  // La relance décochée ; cinq cases tapées à la main.
+  const choix = r.appel.propositions.filter((p) => p.coche !== false && p.id !== rel.id).map((p) => p.id);
+  const v = await MA.validerIssue({ appel_id: r.appel.id, choix, cle: 'cases-1', user: nora, issue: r.appel.issue_tapee,
+    monday_cases: { Ville: 'Antibes', Entreprise: 'Agence Durand & Fils', Statut: 'À rappeler', Remarques: 'Rappeler jeudi : il veut nos critères', 'Liste de diffusion': 'Non' } });
+  assert.equal(v.ok, true, v.error);
+  assert.equal(v.recu.monday.etat, 'ok', v.recu.monday.erreur);
+  const l = ligneDe(faux, ag);
+  assert.equal(l.colonnes.ville, 'Antibes');
+  assert.equal(l.colonnes.entreprise, 'Agence Durand & Fils');
+  assert.equal(l.colonnes.statut, 'À rappeler');
+  assert.match(l.colonnes.remarques, /Rappeler jeudi : il veut nos critères$/);
+  assert.equal(l.colonnes.diffusion, 'Non');
+  assert.equal(l.colonnes.relance || '', '', 'relance décochée : rien dans Monday');
+  // Gardé sur l'appel, pour un nouvel essai.
+  assert.equal(Records.get('AppelAgent', r.appel.id).monday_cases.Ville, 'Antibes');
+  assert.equal(Records.get('AppelAgent', r.appel.id).relance_decochee, true);
+});
+
+test('valeursPour : une case vidée efface, une remarque vidée ne s\'ajoute pas, une colonne inconnue est ignorée', () => {
+  const cols = { ville: { id: 'ville', type: 'text' }, remarques: { id: 'rem', type: 'long_text' }, relance: { id: 'rel', type: 'date' }, statut: { id: 'st', type: 'status' } };
+  const ligne = { id: '9', nom: 'Paul', ville: 'Nice', remarques: '01/10/2026 · ancien', relance: '2026-11-01' };
+  const v = MON.valeursPour(ligne, cols, { contact: 'Paul', ville: 'Nice', remarque: '16/10/2026 · nouveau', relance: '2026-11-20', forcees: { Ville: '', Remarques: '', 'Prochaine relance': '2026-12-01', Statut: 'En discussion', Inconnue: 'x' } });
+  assert.equal(v.valeurs.ville, '', 'la ville vidée efface celle de la ligne');
+  assert.equal(v.valeurs.rem, undefined, 'la remarque vidée ne s\'ajoute pas');
+  assert.deepEqual(v.valeurs.rel, { date: '2026-12-01' });
+  assert.deepEqual(v.valeurs.st, { label: 'En discussion' });
+  assert.ok(v.apercu.find((x) => x.titre === 'Statut' && x.corrige));
+  assert.ok(!v.attendus.some((x) => x.cle === 'remarques'));
+});

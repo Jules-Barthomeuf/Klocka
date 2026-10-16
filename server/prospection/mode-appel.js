@@ -899,7 +899,7 @@ export async function validerIssue(x) {
   return p;
 }
 
-async function validerUneFois({ appel_id, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
+async function validerUneFois({ appel_id, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, monday_cases = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
   // « Ce qui s'est passé », réécrit par l'analyste : c'est sa phrase qui part dans Monday et le journal.
   const passeTapee = passe != null ? String(passe).trim() : null;
   if (passeTapee != null && passeTapee !== String(Records.get(APPEL, appel_id)?.passe || '')) Records.update(APPEL, appel_id, { passe: passeTapee || null, passe_corrigee: true });
@@ -918,6 +918,9 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
   for (const c of Array.isArray(corrections) ? corrections : []) if (c?.cle && ['interlocuteur', 'telephone', 'email'].includes(c.cle)) corrige[c.cle] = String(c.valeur ?? '').trim();
   // Gardé sur l'appel : « choisir la ligne Monday » après coup reprend le nom tapé (12 oct. 2026).
   if (Object.keys(corrige).length) Records.update(APPEL, appel_id, { corrige });
+  // Les cases Monday corrigées à l'écran (16 oct. 2026) : gardées sur l'appel, pour un nouvel essai ou une ligne choisie après coup.
+  const casesMonday = monday_cases && typeof monday_cases === 'object' ? Object.fromEntries(Object.entries(monday_cases).filter(([k]) => typeof k === 'string' && k.length < 60).slice(0, 20).map(([k, v]) => [k, String(v ?? '').slice(0, 1000)])) : null;
+  if (casesMonday && Object.keys(casesMonday).length) Records.update(APPEL, appel_id, { monday_cases: casesMonday });
   // De quoi tout remettre comme avant (« Annuler ») : la fiche et l'agence telles qu'elles étaient.
   const ficheAvant = Records.get('AgentImmo', appel.agent_id);
   const agenceAvant = ag ? { morte: ag.morte ?? null, ne_plus_appeler: ag.ne_plus_appeler ?? null, prioritaire: ag.prioritaire ?? null, agents: ag.agents || [] } : null;
@@ -987,8 +990,12 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
   if (!def.simple && ag) {
     const emailUtilise = action('mail') ? R.normEmail(mail?.a ?? action('mail').a) : adresse;
     const dansLaListe = dif ? ['ok'].includes(diffusion?.etat) : issueTapee === 'pas_interesse' ? false : null;
-    const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: issueTapee, user, relance: a?.prochaine?.le || null, note, corrige, email: emailUtilise, diffusion: dansLaListe });
-    const d = essai && appel.monday_essai ? marquerEssai(d0) : d0;
+    // La relance décochée (16 oct. 2026, Jules) : pas de relance dans Monday non plus, même si la fiche en garde une.
+    const relanceDecochee = !!rel && !pris.has(rel.id) && !rel.toujours;
+    if (relanceDecochee) Records.update(APPEL, appel_id, { relance_decochee: true });
+    const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: issueTapee, user, relance: relanceDecochee ? null : a?.prochaine?.le || null, note, corrige, email: emailUtilise, diffusion: dansLaListe });
+    const d1 = essai && appel.monday_essai ? marquerEssai(d0) : d0;
+    const d = casesMonday && Object.keys(casesMonday).length ? { ...d1, forcees: casesMonday } : d1;
     if (essai && !appel.monday_essai) monday = { etat: 'info', texte: `Essai : Monday n'est pas touché (on y aurait écrit « ${[d.agence, d.contact || 'contact sans nom', d.issue].join(' · ')} »)` };
     else {
       // Monday ne retient plus la validation (12 oct. 2026, « Validation… » qui tournait) : au-delà de 15 s, on rend la main
@@ -1129,8 +1136,9 @@ export async function choisirLigneMonday(appelId, ligneId) {
   const { agentDe } = await import('./carnet.js');
   const a = agentDe(appel.agent_id);
   const user = { email: appel.par };
-  const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: appel.issue_tapee, user, relance: a?.prochaine?.le || null, corrige: appel.corrige || {}, email: appel.recu.mail?.detail?.a || null, diffusion: appel.recu.diffusion ? appel.recu.diffusion.etat === 'ok' : appel.issue_tapee === 'pas_interesse' ? false : null });
-  const d = appel.essai ? marquerEssai(d0) : d0;
+  const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: appel.issue_tapee, user, relance: appel.relance_decochee ? null : a?.prochaine?.le || null, corrige: appel.corrige || {}, email: appel.recu.mail?.detail?.a || null, diffusion: appel.recu.diffusion ? appel.recu.diffusion.etat === 'ok' : appel.issue_tapee === 'pas_interesse' ? false : null });
+  const d1 = appel.essai ? marquerEssai(d0) : d0;
+  const d = appel.monday_cases ? { ...d1, forcees: appel.monday_cases } : d1;
   const r = await ecrireMonday({ appel_id: appel.id, cible: cibleMonday(d, ag, a), donnees: d, ligne_id: ligneId || 'nouvelle' });
   const recu = { ...appel.recu, monday: r.monday };
   Records.update(APPEL, appel.id, { recu, annuler: { ...(appel.annuler || {}), ecriture: r.ecriture } });

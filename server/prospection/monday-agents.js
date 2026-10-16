@@ -197,7 +197,71 @@ export function valeursPour(ligne, cols, d) {
     if (t === 'checkbox') poser('diffusion', 'Liste de diffusion', d.diffusion ? { checked: 'true' } : '', d.diffusion ? 'v' : '', null, 'non_vide');
     else poser('diffusion', 'Liste de diffusion', t === 'status' ? { label: oui } : t === 'dropdown' ? { labels: [oui] } : oui, oui);
   }
+  appliquerForcees({ valeurs, attendus, apercu, avant, cols, forcees: d.forcees, contact: nom || null });
   return { valeurs, attendus, apercu, contact_modifie: autreNom || autreTel || autreEmail };
+}
+
+// Les cases corrigées à l'écran d'actions (16 oct. 2026, Jules : « je veux pouvoir modifier chaque case dans
+// Monday ») : sous leur titre d'aperçu, elles remplacent ce que le calcul proposait, telles qu'elles sont tapées.
+// Contact, téléphone et e-mail passent par les corrections ; SPOC (une personne) ne se tape pas.
+const CLE_DU_TITRE = { Ville: 'ville', Entreprise: 'entreprise', Remarques: 'remarques', 'Prochaine relance': 'relance', Statut: 'statut', 'Liste de diffusion': 'diffusion', 'Dernier contact': 'date_contact', 'Dernier contact, par qui': 'dernier_contact', 'Prénom': 'prenom' };
+const OUI = /^(oui|v|true|1|x)$/i;
+
+/** Pure : la valeur Monday d'une colonne, d'après le texte tapé. */
+export function valeurDeColonne(col, texte) {
+  const v = String(texte ?? '').trim();
+  const t = col?.type;
+  if (t === 'checkbox') return { valeur: OUI.test(v) ? { checked: 'true' } : '', attendu: OUI.test(v) ? 'v' : '', mode: 'non_vide' };
+  if (!v) return { valeur: t === 'people' ? { personsAndTeams: [] } : '', attendu: '', mode: 'egal' };
+  if (t === 'date') return { valeur: /^\d{4}-\d{2}-\d{2}$/.test(v) ? { date: v } : '', attendu: /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '', mode: 'egal' };
+  if (t === 'status') return { valeur: { label: v }, attendu: v, mode: 'egal' };
+  if (t === 'dropdown') return { valeur: { labels: [v.slice(0, 100)] }, attendu: v.slice(0, 100), mode: 'contient' };
+  if (t === 'long_text') return { valeur: { text: v }, attendu: v, mode: 'contient' };
+  if (t === 'phone') return { valeur: { phone: telephoneInternational(v) || v, countryShortName: 'FR' }, attendu: telephoneInternational(v) || v, mode: 'telephone' };
+  if (t === 'email') return { valeur: { email: v, text: v }, attendu: v, mode: 'contient' };
+  return { valeur: v, attendu: v, mode: 'egal' };
+}
+
+/** Pure : applique les cases corrigées à ce que `valeursPour` allait écrire (en place). */
+export function appliquerForcees({ valeurs, attendus, apercu, avant = {}, cols, forcees }) {
+  if (!forcees || typeof forcees !== 'object') return;
+  const retirer = (cle) => {
+    const k = attendus.findIndex((x) => x.cle === cle);
+    if (k >= 0) attendus.splice(k, 1);
+  };
+  for (const [titre, brut] of Object.entries(forcees)) {
+    const cle = CLE_DU_TITRE[titre];
+    const col = cle ? cols[cle] : null;
+    if (!col) continue;
+    let texte = String(brut ?? '').trim();
+    const titreApercu = titre;
+    // Les remarques : la ligne de cet appel, ajoutée aux remarques d'avant (rien si on l'a vidée).
+    if (cle === 'remarques') {
+      const avantTexte = String(avant.remarques || '').replace(/\u200b/g, '').trim();
+      if (!texte) {
+        delete valeurs[col.id]; retirer(cle);
+        const k = apercu.findIndex((x) => x.titre === titreApercu); if (k >= 0) apercu.splice(k, 1);
+        continue;
+      }
+      const tout = [avantTexte, texte.replace(/^\+\s*/, '')].filter(Boolean).join('\n');
+      valeurs[col.id] = col.type === 'long_text' ? { text: tout } : tout;
+      retirer(cle); attendus.push({ cle, titre, colonne: col.id, attendu: texte.replace(/^\+\s*/, ''), mode: 'contient' });
+    } else {
+      if (cle === 'diffusion' && col.type !== 'checkbox') texte = OUI.test(texte) ? 'Oui' : texte ? 'Non' : '';
+      const v = valeurDeColonne(col, texte);
+      // Une case vidée sur une colonne déjà vide : rien à écrire.
+      if (!texte && !String(avant[cle] ?? '').trim() && !(cle in valeurs)) {
+        delete valeurs[col.id]; retirer(cle);
+        const k = apercu.findIndex((x) => x.titre === titreApercu); if (k >= 0) apercu.splice(k, 1);
+        continue;
+      }
+      valeurs[col.id] = v.valeur;
+      retirer(cle); attendus.push({ cle, titre, colonne: col.id, attendu: v.attendu, mode: v.mode });
+    }
+    const k = apercu.findIndex((x) => x.titre === titreApercu);
+    const ligne = { titre: titreApercu, avant: avant[cle] ?? '', apres: texte, corrige: true };
+    if (k >= 0) apercu[k] = ligne; else apercu.push(ligne);
+  }
 }
 
 /** Pure : les écarts entre la ligne relue et ce qu'on voulait y lire. */

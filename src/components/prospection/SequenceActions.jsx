@@ -135,24 +135,30 @@ function CelluleMonday({ col }) {
   const champ = "w-full min-w-0 bg-transparent px-2 text-center text-[14px] outline-none";
   if (col.edit?.type === "texte") {
     const lien = col.titre === "E-mail" || col.titre === "Téléphone";
+    const valeur = String(col.edit.valeur ?? "");
+    // Statut et liste de diffusion gardent leur étiquette pleine, l'entreprise sa puce : on tape dedans.
+    const etiquette = ["Statut", "Liste de diffusion"].includes(col.titre) && valeur.trim();
+    const puce = col.titre === "Entreprise" && valeur.trim();
+    const fond = etiquette ? MO.etiquettes[valeur.trim()] || MO.etiquette_defaut : puce ? MO.puce : "transparent";
     return (
-      <span className="flex h-full items-center justify-center gap-2 px-2">
+      <span className="flex h-full items-center gap-2 px-2">
         {col.titre === "Téléphone" && !vide && <Drapeau />}
-        <input value={col.edit.valeur ?? ""} onChange={(e) => col.edit.changer(e.target.value)} placeholder={col.edit.placeholder} aria-label={col.titre} title={col.edit.valeur || col.edit.placeholder}
-          className={`${champ} ${col.titre === "Contact" ? "text-left" : ""} focus:rounded-[4px] focus:ring-1`} style={{ color: lien ? MO.lien : MO.texte, "--tw-ring-color": MO.lien }} />
+        <input value={valeur} onChange={(e) => col.edit.changer(e.target.value)} placeholder={col.edit.placeholder || "—"} aria-label={col.titre} title={valeur || col.edit.placeholder || col.titre}
+          className={`${champ} !text-left h-[28px] rounded-[4px] focus:ring-1`} style={{ color: etiquette ? MO.fond : lien ? MO.lien : MO.texte, background: fond, "--tw-ring-color": MO.lien }} />
       </span>
     );
   }
+  if (col.desactivee) return <span className="flex h-full items-center px-3 text-[13px]" title={col.desactivee} style={{ color: MO.texte_doux }}>{col.desactivee}</span>;
   if (col.edit?.type === "date") {
     return (
-      <span className="relative flex h-full items-center justify-center">
-        <button type="button" onClick={() => setOuvert((x) => !x)} title="Changer la date" className="flex items-center gap-2 px-2 text-[14px]" style={{ background: "transparent", color: MO.texte }}>
+      <span className="relative flex h-full items-center">
+        <button type="button" onClick={() => setOuvert((x) => !x)} title="Changer la date" className="flex w-full items-center gap-2 px-3 text-[14px]" style={{ background: "transparent", color: MO.texte }}>
           <HorlogeMonday />{dateMonday(col.edit.valeur) || "—"}
         </button>
         {ouvert && (
           <>
             <div className="fixed inset-0 z-[85]" onClick={() => setOuvert(false)} />
-            <div className="absolute right-0 top-full z-[90] mt-2 rounded-[14px] border border-bord-vif bg-surface-pleine p-3 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+            <div className="absolute left-0 top-full z-[90] mt-2 rounded-[14px] border border-bord-vif bg-surface-pleine p-3 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
               <Calendrier valeur={col.edit.valeur || ""} onChoisir={(d) => { col.edit.changer(d); setOuvert(false); }} label={col.titre} />
             </div>
           </>
@@ -179,32 +185,23 @@ const HorlogeMonday = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke={MO.texte_doux} strokeWidth="1.4" /><path d="M8 8 L8 1.5 A6.5 6.5 0 0 1 13.6 11.2 Z" fill={MO.texte_doux} /></svg>
 );
 
+// Les champs en colonne, sur deux colonnes (16 oct. 2026, Jules : « là ils sont en ligne, je les veux en colonne ») :
+// chaque champ garde le dessin de Monday, son titre sur fond d'en-tête à gauche, sa cellule à droite ; les
+// remarques prennent toute la largeur.
 function TableauMonday({ colonnes }) {
   const cols = [...colonnes].sort((a, b) => ORDRE_MONDAY.indexOf(a.titre) - ORDRE_MONDAY.indexOf(b.titre));
   const bord = { borderColor: MO.trait };
   return (
-    <div className="overflow-x-auto rounded-[8px] border" style={{ ...bord, background: MO.fond, fontFamily: "Figtree, 'Instrument Sans', system-ui, sans-serif" }}>
-      <table className="border-collapse" style={{ minWidth: "100%" }}>
-        <thead>
-          <tr>
-            {cols.map((c, n) => (
-              <th key={c.titre} className={`h-[36px] px-2 text-[14px] font-normal ${n ? "border-l" : ""} ${c.titre === "Contact" ? "sticky left-0 z-10 text-left" : "text-center"}`} style={{ ...bord, color: MO.texte, background: MO.entete, minWidth: LARGEURS_MONDAY[c.titre] || 140, maxWidth: LARGEURS_MONDAY[c.titre] || 140, paddingLeft: c.titre === "Contact" ? 14 : undefined }}>
-                <span className="inline-flex items-center gap-1.5">{c.titre}{c.titre === "Prochaine relance" && <Info className="h-4 w-4" style={{ color: MO.texte_doux }} />}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {cols.map((c, n) => (
-              <td key={c.titre} className={`relative h-[36px] border-t p-0 ${n ? "border-l" : ""} ${c.titre === "Contact" ? "sticky left-0 z-10" : ""}`} style={{ ...bord, background: MO.fond, minWidth: LARGEURS_MONDAY[c.titre] || 140, maxWidth: LARGEURS_MONDAY[c.titre] || 140 }}>
-                {c.titre === "Contact" && <span className="absolute inset-y-0 left-0 w-[6px]" style={{ background: MO.groupe }} aria-hidden />}
-                <span className={`block h-full ${c.titre === "Contact" ? "pl-2" : ""}`}><CelluleMonday col={c} /></span>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+    <div className="grid grid-cols-2 overflow-hidden rounded-[8px] border max-md:grid-cols-1" style={{ ...bord, background: MO.fond, fontFamily: "Figtree, 'Instrument Sans', system-ui, sans-serif" }}>
+      {cols.map((c) => (
+        <div key={c.titre} className={`relative grid min-w-0 grid-cols-[minmax(0,140px)_minmax(0,1fr)] border-b border-r ${c.titre === "Remarques" ? "col-span-2 max-md:col-span-1" : ""}`} style={bord}>
+          {c.titre === "Contact" && <span className="absolute inset-y-0 left-0 w-[6px]" style={{ background: MO.groupe }} aria-hidden />}
+          <span className={`flex min-h-[40px] items-center gap-1.5 border-r px-3 text-[13.5px] ${c.titre === "Contact" ? "pl-4" : ""}`} style={{ ...bord, color: MO.texte, background: MO.entete }}>
+            {c.titre}{c.titre === "Prochaine relance" && <Info className="h-3.5 w-3.5 flex-none" style={{ color: MO.texte_doux }} />}
+          </span>
+          <span className={`block min-h-[40px] min-w-0 ${c.titre === "Remarques" ? "py-1" : ""}`}><CelluleMonday col={c} /></span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -515,19 +512,34 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
     });
   };
   // Les colonnes du tableau Monday, sous leur titre dans Monday : « Date » est le jour du contact, « Dernier contact » le texte « jour · qui ».
+  // Chaque case de la ligne se corrige (16 oct. 2026, Jules) ; ce qu'on tape part tel quel dans Monday
+  // (`monday_cases`, sous le titre de l'aperçu). La relance décochée : pas de relance dans Monday non plus.
+  const relanceCochee = !pr || coches.has(pr.id) || !!pr.toujours;
+  const caseMonday = (titre, apres) => edits?.monday?.[titre] ?? apres;
+  const changerCase = (titre) => (v) => setEdits?.((e) => ({ ...e, monday: { ...(e?.monday || {}), [titre]: v } }));
   const colonnesMonday = () => {
     const ap = ligne?.apercu || [];
     const avecParQui = ap.some((x) => x.titre === "Dernier contact, par qui");
-    return ap.map((x) => {
+    const vues = ap.map((x) => {
       const titre = x.titre === "Dernier contact, par qui" ? "Dernier contact" : x.titre === "Dernier contact" && avecParQui ? "Date" : x.titre;
       const apres = String(x.apres ?? "").replace(/\u200b/g, "").trim();
       const cle = CLE_MONDAY[x.titre];
-      if (x.titre === "Prochaine relance" && pr) return { titre, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
+      if (x.titre === "Prochaine relance") {
+        if (!relanceCochee) return { titre, desactivee: "Relance décochée : rien dans Monday" };
+        if (pr) return { titre, edit: { type: "date", valeur: relanceLe || apres, changer: setRelanceLe } };
+        return setEdits ? { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } } : { titre, valeur: apres };
+      }
       if (cle && setEdits) return { titre, edit: { type: "texte", valeur: edits?.[cle] ?? (cle === "interlocuteur" && /^À préciser/.test(apres) ? "" : apres), changer: (v) => setEdits((e) => ({ ...e, [cle]: v })), placeholder: PLACEHOLDERS_MONDAY[cle] } };
-      return { titre, valeur: x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres };
+      // Le SPOC est une personne de Monday : il se lit.
+      if (x.titre === "SPOC" || !setEdits) return { titre, valeur: x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres };
+      const base = x.titre === "Remarques" ? apres.replace(/^\+\s*/, "") : apres;
+      if (x.titre === "Dernier contact" && /^\d{4}-\d{2}-\d{2}$/.test(apres)) return { titre, edit: { type: "date", valeur: caseMonday(x.titre, apres), changer: changerCase(x.titre) } };
+      return { titre, edit: { type: "texte", valeur: caseMonday(x.titre, base), changer: changerCase(x.titre), placeholder: x.titre === "Liste de diffusion" ? "Oui ou Non" : "—" } };
     });
+    // Sans relance proposée ni dans l'aperçu, la case reste visible quand la relance est décochée.
+    return vues;
   };
-  const mondayRetouche = !!relanceLe || ["interlocuteur", "telephone", "email"].some((k) => edits?.[k] != null);
+  const mondayRetouche = !!relanceLe || ["interlocuteur", "telephone", "email"].some((k) => edits?.[k] != null) || Object.keys(edits?.monday || {}).length > 0;
 
   /** Ce que la fenêtre montre pour une étape : son titre, ses cases, et ce que « Rétablir » remet. */
   const contenuDe = (q) => {
@@ -561,8 +573,8 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
           </>
         ),
         // La ligne au dessin de Monday ; sans aperçu (Monday muet), les cases d'avant.
-        ...(ligne?.apercu?.length ? { tableau: <TableauMonday colonnes={colonnesMonday()} />, cases: [], aide: "Ce qu'AK écrit sur la ligne Monday. Contact, téléphone, e-mail et relance se corrigent dans la cellule." } : { cases, aide: null }),
-        retablir: mondayRetouche ? () => { setRelanceLe(null); setEdits?.((e) => { const n0 = { ...e }; delete n0.interlocuteur; delete n0.telephone; delete n0.email; return n0; }); } : null,
+        ...(ligne?.apercu?.length ? { tableau: <TableauMonday colonnes={colonnesMonday()} />, cases: [], aide: "Ce qu'AK écrit sur la ligne Monday. Chaque case se corrige : ce que vous tapez part tel quel." } : { cases, aide: null }),
+        retablir: mondayRetouche ? () => { setRelanceLe(null); setEdits?.((e) => { const n0 = { ...e }; delete n0.interlocuteur; delete n0.telephone; delete n0.email; delete n0.monday; return n0; }); } : null,
       };
     }
     if (q.type === "mail") {

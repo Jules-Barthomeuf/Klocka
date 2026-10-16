@@ -513,7 +513,7 @@ export function monterProspection(app) {
     const b = req.body || {};
     const r = await (await MA()).validerIssue({
       appel_id: req.params.id, choix: Array.isArray(b.choix) ? b.choix : [], mail: b.mail || null,
-      relance_le: b.relance_le || null, relance2_le: b.relance2_le || null, monday_ligne: b.monday_ligne || null, note: String(b.note || '').slice(0, 2000),
+      relance_le: b.relance_le || null, relance2_le: b.relance2_le || null, monday_ligne: b.monday_ligne || null, monday_cases: b.monday_cases && typeof b.monday_cases === 'object' ? b.monday_cases : null, note: String(b.note || '').slice(0, 2000),
       cle: b.cle ? String(b.cle).slice(0, 80) : null, session_id: b.session_id || null, issue: b.issue || null,
       depuisFenetre: !!b.depuis_fenetre, etapesVues: Array.isArray(b.etapes_vues) ? b.etapes_vues.slice(0, 30) : null,
       corrections: Array.isArray(b.corrections) ? b.corrections : [], passe: b.passe != null ? String(b.passe).slice(0, 300) : null, user,

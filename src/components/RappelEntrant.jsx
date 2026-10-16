@@ -277,7 +277,7 @@ export default function RappelEntrant() {
       if (titre.trim() && titre.trim() !== (appel.resume || "")) await base44.request("POST", `${API}/${rappel.id}/titre`, { body: { titre } });
       const compris = appel.compris?.champs || {};
       const corrections = MODIFIABLES.filter(([k]) => edits[k] != null && String(edits[k]).trim() !== String(compris[k]?.valeur ?? "")).map(([k, libelle]) => ({ cle: k, libelle, valeur: String(edits[k]).trim() }));
-      return base44.request("POST", `${MA}/appels/${appel.id}/valider`, { body: { choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, note: "", cle, session_id: null, issue, corrections } });
+      return base44.request("POST", `${MA}/appels/${appel.id}/valider`, { body: { choix: [...coches], mail: coches.has("mail") ? mail : null, relance_le: relanceLe, relance2_le: relance2Le, monday_ligne: ligneMonday, monday_cases: edits?.monday && Object.keys(edits.monday).length ? edits.monday : null, note: "", cle, session_id: null, issue, corrections } });
     },
     onSuccess: (r) => {
       setRecu(r.recu); setEcran("recu");

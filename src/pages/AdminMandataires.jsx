@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { InvestisseurLayer } from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import CarteGoogleSecteurs, { MotifSecteur } from "@/components/mandataire/CarteGoogleSecteurs";
 import VillesKlocka from "@/components/mandataire/VillesKlocka";
@@ -670,6 +671,8 @@ function Demandes() {
                 {[d.budget_min || d.budget_max ? `${d.budget_min ? Math.round(d.budget_min / 1000) : "?"} à ${d.budget_max ? Math.round(d.budget_max / 1000) : "?"} k€` : null,
                   d.rendement_min ? `≥ ${d.rendement_min} %` : null, d.bail].filter(Boolean).join(" · ") || "Sans critère chiffré"}
               </p>
+              {/* L'Intelligence (phase 6) : ce qu'on sait de cet investisseur, à côté de ses critères ; page de l'équipe seulement. */}
+              {d.client_email && <InvestisseurLayer email={d.client_email} className="mt-1.5" />}
             </div>
             <button type="button" onClick={() => poser.mutate({ ...d, visible: d.visible === false })}
               className={`text-[12.5px] ${d.visible === false ? "text-brume" : "text-menthe"}`} style={{ background: "transparent" }}

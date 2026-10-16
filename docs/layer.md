@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 5 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes. Phase suivante : 6 (branchements).
+**État : phases 1 à 6 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements. Phase suivante : 7 (page Intelligence).
 
 ---
 
@@ -182,6 +182,21 @@ Sur « Comité 7 octobre » (13 536 signes, une seule tranche ; 25 faits en base
 - **`ficheLayer(type, id)`** : la fonction unique des branchements (phase 6) : synthèse, engagements ouverts ou échus, derniers faits, total.
 - **AK** : `layer_fiche` rend la synthèse d'abord, les engagements, les derniers faits ; `detail: true` ajoute la frise. **Routes** : `GET /api/layer/fiches/:type/:id`, `GET /api/layer/syntheses`, `POST /api/layer/syntheses/:type/:id/regenerer` (Jules).
 
+## 4 sexies. Phase 6 : les branchements (15 oct. 2026)
+
+Une seule fonction serveur, `ficheLayer(type, id)` (`server/layer-syntheses.js`), et des briques d'écran dans `src/components/layer/CeQueKlockaSait.jsx` :
+
+| Où | Quoi | Brique | Route |
+|---|---|---|---|
+| Mode appel, colonne de gauche (`ModeAppel.jsx`, hors essai) | synthèse de l'agence, engagements ouverts (« Tenu » d'un clic) | `CeQueKlockaSait type="agence"` | `GET /api/layer/fiches/:type/:id` |
+| Fiche agent (Prospection) | idem pour l'agent, la frise complète repliée dessous | `CeQueKlockaSait type="agent"` | idem |
+| Dossier, onglet Historique (`WorkflowDeal.jsx`) | synthèse du dossier au-dessus de la frise | `CeQueKlockaSait type="dossier"` | idem |
+| Pré-analyse, carte du lot (`CarteLot`, `DealResultat.jsx`) | « Ce que Klocka sait déjà » : recherche sur l'enseigne du locataire, sur la ville (avec l'enseigne), et faits de l'agent (`contact_agent_email`) ; faits du dossier lui-même écartés ; chacun dit pourquoi | `DejaSu` | `GET /api/layer/deja-su/:dealId?lot=` (`dejaSu`) |
+| Matching (Mandataires > Demandes clients, équipe seulement) | faits d'information et de décision de l'investisseur, retrouvé par `client_email` | `InvestisseurLayer` | `GET /api/layer/investisseurs/:email` (`ficheInvestisseur`) |
+| Ma journée (Prospection) et tableau de bord | engagements du jour ou en retard de la personne (de ses appels et débriefs, ou dont elle est responsable), faits à valider, questions « pourquoi ? » en attente | `JourneeLayer` | `GET /api/layer/journee` (`journee`) |
+
+Une ligne de synthèse déplie ses faits ; un fait ouvre sa source (`FenetreSource`). Après validation d'un appel, l'extraction part en tâche de fond (phase 2). Le tableau de bord n'a plus la ligne « X éléments à valider » seule : `JourneeLayer` la remplace.
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -210,7 +225,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 3. Recherche hybride ✓ | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
 | 4. Cycle de vie et validation ✓ | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
 | 5. Synthèses par fiche ✓ | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
-| 6. Branchements et sources | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
+| 6. Branchements ✓ (sources : phase 9) | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
 | 7. Page Layer | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
 | 8. Évaluation | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |
 

@@ -92,6 +92,10 @@ export function monterLayer(app) {
   // Phase 5 : ce qu'on sait d'une fiche (synthèse, engagements, derniers faits), les synthèses, une régénération à la main (Jules).
   const SY = () => import('../layer-syntheses.js');
   app.get('/api/layer/fiches/:type/:id', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, (await SY()).ficheLayer(req.params.type, req.params.id)); }));
+  // Phase 6 : les branchements (pré-analyse, matching investisseur, Ma journée).
+  app.get('/api/layer/deja-su/:dealId', wrap(async (req, res) => { if (!equipe(req, res)) return; const r = await (await SY()).dejaSu(req.params.dealId, Number(req.query.lot) || 0); return r.ok ? ok(res, r) : res.status(404).json({ error: r.error }); }));
+  app.get('/api/layer/investisseurs/:email', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, (await SY()).ficheInvestisseur(req.params.email)); }));
+  app.get('/api/layer/journee', wrap(async (req, res) => { const user = equipe(req, res); if (!user) return; ok(res, await (await SY()).journee(user)); }));
   app.get('/api/layer/syntheses', wrap(async (req, res) => {
     if (!equipe(req, res)) return;
     const M = await C();

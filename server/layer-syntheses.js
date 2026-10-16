@@ -135,13 +135,78 @@ export function ficheChangee(faitId, { maintenantMs = Date.now() } = {}) {
  * Ce que l'Intelligence sait d'une fiche, pour les branchements : la synthèse
  * (si elle existe), les engagements ouverts ou échus, les derniers faits.
  */
-export function ficheLayer(type, id, { derniers = 8 } = {}) {
+export function ficheLayer(type, id, { derniers = 30 } = {}) {
   const faits = faitsDeLaFiche(type, id);
   return {
     type_entite: type, entite_id: String(id),
     synthese: synthese(type, id),
     engagements: faits.filter((f) => f.type === 'engagement' && ['ouvert', 'echu'].includes(f.statut_engagement || 'ouvert')).map((f) => ({ id: f.id, resume: f.resume, echeance: f.echeance || null, statut_engagement: f.statut_engagement || 'ouvert', responsable: f.responsable || f.personne || null, date: f.date })),
-    faits: faits.slice(0, derniers).map((f) => ({ id: f.id, type: f.type, resume: f.resume, date: f.date, personne: f.personne || null, source: f.source_titre })),
+    faits: faits.slice(0, derniers).map((f) => ({ id: f.id, type: f.type, resume: f.resume, date: f.date, personne: f.personne || null, source: f.source_titre, source_id: f.source_id })),
     total: faits.length,
   };
+}
+
+// --- Phase 6 : les branchements (15 oct. 2026) ------------------------------------------------
+
+const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? x.valeur : x);
+const normal = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/**
+ * Pré-analyse : ce que Klocka sait déjà d'un lot, sur l'enseigne du locataire,
+ * la ville et l'agent du dossier. Les faits du dossier lui-même sont écartés ;
+ * chacun dit pourquoi il est là. `rechercher` : pour les tests.
+ */
+export async function dejaSu(dealId, lotIndex = 0, { rechercher = null, limite = 8 } = {}) {
+  const deal = Records.findBy('Deal', 'deal_id', dealId);
+  if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+  const lot = deal.lots?.[lotIndex]?.lot || deal.lots?.[0]?.lot || {};
+  const enseigne = String(val(lot.locataire_nom) || '').trim() || null;
+  const adresse = val(lot.adresse);
+  const ville = (adresse && typeof adresse === 'object' ? adresse.ville : null) || null;
+  const emailAgent = String(deal.contact_agent_email || '').toLowerCase();
+  const agent = emailAgent ? Records.list('AgentImmo').find((a) => (a.emails || [a.email]).filter(Boolean).some((e) => String(e).toLowerCase() === emailAgent)) : null;
+  const chercher = rechercher || (await import('./layer-recherche.js')).rechercher;
+  const duDossier = new Set(Records.list(LIEN).filter((l) => l.type_entite === 'dossier' && l.entite_id === dealId).map((l) => l.fait_id));
+  const vus = new Map();
+  const ajouter = (faits, pourquoi) => { for (const f of faits) if (!duDossier.has(f.id) && !vus.has(f.id)) vus.set(f.id, { f, pourquoi }); };
+  if (enseigne) ajouter((await chercher({ texte: enseigne, limite: 5 })).faits, `l'enseigne ${enseigne}`);
+  if (ville) ajouter((await chercher({ texte: enseigne || ville, ville, limite: 5 })).faits, `la ville de ${ville}`);
+  if (agent) ajouter(faitsDeLaFiche('agent', agent.id).slice(0, 5), `l'agent ${agent.nom || ''}`.trim());
+  const faits = [...vus.values()].slice(0, limite).map(({ f, pourquoi }) => {
+    const s = Records.get(SOURCE, f.source_id);
+    return { id: f.id, type: f.type, resume: f.resume, pourquoi, date: String(s?.date || f.cree_le || '').slice(0, 10), personne: f.personne || null, source: s ? { id: s.id, type: s.type, titre: s.titre } : null };
+  });
+  return { ok: true, enseigne, ville, agent: agent ? { id: agent.id, nom: agent.nom } : null, faits };
+}
+
+/** Matching : la fiche d'un investisseur, retrouvé par son adresse ; seuls ses faits d'information et de décision (section 9). */
+export function ficheInvestisseur(email) {
+  const u = Records.list('User').find((x) => normal(x.email) === normal(email));
+  if (!u) return { ok: true, investisseur: null, faits: [], synthese: null };
+  const f = ficheLayer('investisseur', u.id, { derniers: 20 });
+  return { ok: true, investisseur: { id: u.id, nom: u.full_name || u.email }, synthese: f.synthese, faits: f.faits.filter((x) => ['information', 'decision'].includes(x.type)), total: f.total };
+}
+
+/**
+ * Ma journée (section 9) : les engagements du jour et en retard de la personne
+ * (ceux de ses appels et débriefs, ou dont elle est responsable), ses faits à
+ * valider, ses questions « pourquoi ? » en attente.
+ */
+export async function journee(user, { maintenantD = new Date() } = {}) {
+  const email = normal(user?.email);
+  const prenom = normal(String(user?.full_name || '').split(/\s+/)[0] || email.split('@')[0].split('.')[0]);
+  const jour = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(maintenantD);
+  const engagements = Records.list(FAIT)
+    .filter((f) => f.type === 'engagement' && f.statut === 'valide' && ['ouvert', 'echu'].includes(f.statut_engagement || 'ouvert'))
+    .filter((f) => (f.statut_engagement === 'echu') || (f.echeance && f.echeance <= jour))
+    .filter((f) => { const s = Records.get(SOURCE, f.source_id); return normal(s?.auteur) === email || (prenom && normal(f.responsable || f.personne).split(/\s+/).includes(prenom)); })
+    .map((f) => {
+      const l = Records.list(LIEN).find((x) => x.fait_id === f.id);
+      return { id: f.id, resume: f.resume, echeance: f.echeance || null, statut_engagement: f.statut_engagement || 'ouvert', en_retard: f.statut_engagement === 'echu' || (f.echeance && f.echeance < jour), responsable: f.responsable || f.personne || null, fiche: l ? { type_entite: l.type_entite, entite_id: l.entite_id } : null };
+    })
+    .sort((a, b) => String(a.echeance || '').localeCompare(String(b.echeance || '')));
+  const L = await import('./layer.js');
+  const a_valider = (await L.aValider(user)).reduce((n, x) => n + x.faits.length, 0);
+  const questions = Records.list('CerveauQuestion').filter((q) => normal(q.pour) === email && ['posee', 'en_attente'].includes(q.etat)).map((q) => ({ id: q.id, texte: q.texte, etat: q.etat, deal_id: q.deal_id }));
+  return { ok: true, jour, engagements, a_valider, questions };
 }

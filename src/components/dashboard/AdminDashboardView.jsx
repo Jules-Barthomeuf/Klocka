@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { JourneeLayer } from "@/components/layer/CeQueKlockaSait";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import BoiteMail from "@/components/dashboard/BoiteMail";
-import { Link, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
 // Le dashboard admin, c'est le plan de travail — rien d'autre.
@@ -22,7 +22,6 @@ export default function AdminDashboardView() {
   const [historique, setHistorique] = useState(false);
   // L'Intelligence (14 oct. 2026) : un rappel des faits à valider, rien d'autre ; et la question
   // d'une décision sans motif, ouverte depuis sa notification, posée dans le chat.
-  const { data: layer } = useQuery({ queryKey: ["layer", "etat"], queryFn: () => base44.request("GET", "/api/layer/etat"), staleTime: 60 * 1000 });
   const { search } = useLocation();
   useEffect(() => {
     const id = new URLSearchParams(search).get("layer_question") || new URLSearchParams(search).get("cerveau_question");
@@ -46,12 +45,8 @@ export default function AdminDashboardView() {
               {coin && createPortal(<BoiteMail />, coin)}
             </>
           )}
-          {!conversation && layer?.a_valider > 0 && (
-            <Link to="/Intelligence" className="mb-4 flex items-center justify-between gap-3 rounded-[14px] bg-rail px-5 py-3 text-[14px] text-encre no-underline hover:bg-rail-actif">
-              <span>{layer.a_valider} élément{layer.a_valider > 1 ? "s" : ""} à valider à l'Intelligence</span>
-              <span className="text-[13px] text-menthe">Valider</span>
-            </Link>
-          )}
+          {/* L'Intelligence (phase 6, 15 oct. 2026) : mes engagements du jour, mes faits à valider, mes questions « pourquoi ? ». */}
+          {!conversation && <JourneeLayer className="mb-4" />}
           <PlanDeTravail
             conversation={conversation}
             historique={historique ? <HistoriqueColonne /> : null}

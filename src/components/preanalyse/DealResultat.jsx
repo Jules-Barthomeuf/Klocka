@@ -30,6 +30,7 @@ import PenseeIA from "@/components/PenseeIA";
 const CLE_MAPS = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 import { EncartConnexionGmail, useConnexionGmail } from "@/components/mails/ConnexionGmail";
 import { J } from "@/design/jetons";
+import { DejaSu } from "@/components/layer/CeQueKlockaSait";
 
 // Bibliothèque partagée du workflow d'analyse : verdicts, statuts, carte d'un
 // lot, dialogue de mail d'intention, journal de suivi. Consommée par
@@ -1307,6 +1308,9 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             </div>
             <VuesLieu lot={lot} enr={enr} coteACote dealId={dossier?.deal_id} />
           </section>
+
+          {/* L'Intelligence (phase 6, 15 oct. 2026) : ce que Klocka sait déjà de l'enseigne, de la ville, de l'agent. */}
+          {!apercu && dossier?.deal_id && <DejaSu dealId={dossier.deal_id} lot={lot.index ?? 0} />}
 
 
           {/* Le simulateur, tel quel */}

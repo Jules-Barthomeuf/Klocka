@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
+import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -505,8 +506,8 @@ function FicheAgent({ id, onFermer }) {
         {!a.journal?.length && <li className="text-[12.5px] text-brume">Rien encore.</li>}
       </ul>
       {/* L'Intelligence (14 oct. 2026) : ce que l'agent a dit, promis, et ce qu'on a décidé à son sujet, validé, avec sa source. */}
-      <p className={`${etiquette} mt-5`}>Dans l'Intelligence</p>
-      <div className="mt-1"><HistoriqueLayer type="agent" id={a.id} /></div>
+      <CeQueKlockaSait type="agent" id={a.id} className="mt-5" vide="Rien encore : ce que l'agent dira en appel, validé, arrivera ici." />
+      <details className="mt-3"><summary className="cursor-pointer text-[12.5px] text-brume">Toute la frise</summary><div className="mt-1"><HistoriqueLayer type="agent" id={a.id} /></div></details>
     </section>
   );
 }

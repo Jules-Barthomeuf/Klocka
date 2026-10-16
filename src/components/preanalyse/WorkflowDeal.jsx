@@ -53,6 +53,7 @@ const GRILLES_ANALYSE = [
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
+import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 
 // Une analyse K-Data rangée dans l'affaire se lit ici, dans une fenêtre qui
 // montre l'outil sur l'adresse, tel quel. On la regarde, on la ferme : la
@@ -578,7 +579,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               </div>
             )}
             {/* L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé ou promis sur ce dossier, avec sa source. */}
-            {grilleAnalyse === "historique" && <HistoriqueLayer type="dossier" id={dossier?.deal_id} />}
+            {grilleAnalyse === "historique" && (
+              <div className="flex flex-col gap-4">
+                <CeQueKlockaSait type="dossier" id={dossier?.deal_id} titre="Synthèse de l'Intelligence" />
+                <HistoriqueLayer type="dossier" id={dossier?.deal_id} />
+              </div>
+            )}
             {grilleAnalyse === "simulateur" && (
               dossier?.lots?.[0]?.simulateur
                 ? <SimulateurDossier parametres={dossier.lots[0].simulateur} dealId={dossier.deal_id} lotIndex={0} onEnregistre={onRefresh} />

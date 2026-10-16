@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -459,6 +460,8 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
           ))}
           {!histo.length && <span className="px-3 pt-1 text-[13.5px] text-brume">Jamais appelée</span>}
         </div>
+        {/* L'Intelligence (phase 6, 15 oct. 2026) : avant d'appeler, ce qu'on sait de l'agence et ce qu'on lui doit. */}
+        {!essai && <CeQueKlockaSait type="agence" id={a.id} className="px-3" />}
       </div>
 
       {/* La fiche. */}

@@ -20,6 +20,7 @@ import Message from "@/components/MessageIA";
 import SourcesLoi from "@/components/offres/SourcesLoi";
 import { J, alpha } from "@/design/jetons";
 import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/ProspecterDataB";
+import Chargement from "@/components/ui/Chargement";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -283,7 +284,7 @@ export function HistoriqueColonne({ espace = "admin" }) {
       <div className="mb-1 border-b border-bord pb-2.5">
         <p className="m-0 text-[13.5px] text-craie">Historique{conversations.length ? <span className="text-brume"> · {conversations.length}</span> : null}</p>
       </div>
-      {isLoading && <p className="m-0 py-3 text-[13.5px] text-brume">Lecture…</p>}
+      {isLoading && <Chargement taille="petit" />}
       {!isLoading && !conversations.length && <p className="m-0 py-3 text-[13.5px] text-brume">Rien encore : chaque échange avec l'assistant se range ici, et se rouvre d'un clic.</p>}
       {conversations.map((c) => (
         <div key={c.id} className="group flex items-center gap-4 border-t border-trait py-3 first:border-t-0">
@@ -344,7 +345,7 @@ function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle, api = "/api/a
           <Plus className="h-3.5 w-3.5" /> Nouvelle conversation
         </button>
       </div>
-      {isLoading ? <p className="m-0 text-[14px] text-ardoise">Lecture…</p>
+      {isLoading ? <Chargement taille="petit" />
         : !conversations.length ? <p className="m-0 text-[14px] text-ardoise">Rien encore : chaque échange avec l'assistant se range ici, et se rouvre d'un clic.</p>
         : (
           <ul className="m-0 flex max-h-[320px] list-none flex-col gap-1 overflow-y-auto p-0">

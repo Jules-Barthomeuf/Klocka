@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, X, ArrowRight } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { Fait, LIBELLES_CONFIANCE, LIBELLES_PROFILS, Pastille, Score, Section, Tableau, bouton, nMurs, boutonPlein, champ, dateCourte, euros, pl, req, useOffMarket } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Off-market : la fiche d'un propriétaire. Qui décide, ce qu'il possède en
 // tout, par quel canal on lui parle, et où en est la relation. Deux
@@ -32,7 +33,7 @@ export default function FicheProprietaire({ cle, onFermer, onLocal, onCourrier, 
         </div>
         <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
       </div>
-      {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+      {q.isLoading && <Chargement taille="grand" />}
       {q.isError && <p className="px-5 py-8 text-[13.5px] text-ardoise">{q.error?.message || "Propriétaire introuvable."}</p>}
       {p && (
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pb-6 pt-4">

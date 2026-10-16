@@ -13,6 +13,7 @@ import SuiviAppels from "@/pages/SuiviAppels";
 import ModeAppel from "@/components/prospection/ModeAppel";
 import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
 import AvatarAK from "@/components/AvatarAK";
+import Chargement from "@/components/ui/Chargement";
 
 // La prospection, avec l'alternant. La liste du jour est prête ; on choisit
 // un agent (il se verrouille à son nom), on enregistre l'appel, et à la fin
@@ -386,7 +387,7 @@ function OngletEnvois() {
     onError: (e) => toast.error(e?.message || "Envoi raté"),
   });
   const ecarter = useMutation({ mutationFn: (id) => base44.request("POST", `/api/prospection/envois/${id}/ecarter`), onSuccess: maj });
-  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement taille="grand" />;
   return (
     <div>
       <p className="m-0 mb-4 max-w-[64ch] text-[13.5px] text-craie">Tout ce qui part vers un agent passe ici : les mails d'après appel, leurs relances le jour venu, les SMS, les réponses aux dossiers. Relis, coche, envoie : ils partent de ta boîte. Rien ne part tout seul.</p>
@@ -460,7 +461,7 @@ function Decision({ d, raisons }) {
 
 function OngletDecisions() {
   const { data, isLoading } = useQuery({ queryKey: ["prospection-decisions"], queryFn: () => base44.request("GET", "/api/prospection/decisions") });
-  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement taille="grand" />;
   const dossiers = data?.dossiers || [];
   return (
     <div>
@@ -694,7 +695,7 @@ function OngletGrille({ onAppeler, onFiche }) {
         </form>
       )}
 
-      {isLoading ? <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
+      {isLoading ? <Chargement taille="grand" /> : (
         <div className="mt-3 max-h-[calc(100vh-300px)] overflow-auto rounded-[16px] border border-trait bg-rail max-md:max-h-[75dvh]">
           <table className="min-w-full border-collapse text-[13.5px]">
             <thead className="sticky top-0 z-20">
@@ -747,7 +748,7 @@ function OngletGrille({ onAppeler, onFiche }) {
 
 function OngletTableau() {
   const { data, isLoading } = useQuery({ queryKey: ["prospection-tableau"], queryFn: () => base44.request("GET", "/api/prospection/tableau") });
-  if (isLoading || !data) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
+  if (isLoading || !data) return <Chargement taille="grand" />;
   const tuiles = [["Appels passés", data.appels], ["Agents joints", data.agents_joints], ["Dossiers reçus", data.dossiers_recus], ["Taux de Oui", `${data.taux_oui} %`], ["Délai de décision", data.delai_reponse_h != null ? `${data.delai_reponse_h} h` : "pas encore"], ["Relances en retard", data.relances_en_retard]];
   return (
     <div className="flex flex-col gap-4">
@@ -801,7 +802,7 @@ function OngletReglages() {
     onError: (e) => toast.error(e?.message || "Import raté"),
   });
   const monday = useMutation({ mutationFn: () => base44.request("POST", "/api/prospection/import-monday"), onSuccess: (x) => { toast.success(`Monday : ${x.lus} lus, ${x.crees} ajoutés, ${x.completes} complétés`); maj(); }, onError: (e) => toast.error(e?.message || "Monday injoignable") });
-  if (!r) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
+  if (!r) return <Chargement taille="grand" />;
   const ajouterVille = (v) => { const t = String(v || "").trim(); if (t && !r.villes.includes(t)) setR((x) => ({ ...x, villes: [...x.villes, t] })); };
   const suggestions = (data?.villes_des_dossiers || []).filter((v) => !r.villes.includes(v));
   return (

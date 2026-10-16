@@ -12,6 +12,7 @@ import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import { depuisCourt } from "@/components/ui/liste-documents";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 import ApercuPdf from "@/components/presentations/ApercuPdf";
+import Chargement from "@/components/ui/Chargement";
 
 // Présentations — les dossiers bancaires « Projet de Financement » (12 oct.
 // 2026). Comme Offres et le Mandat : le chat à gauche, la présentation à
@@ -146,7 +147,7 @@ export default function AdminPresentations() {
         )}
       </div>
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+        <Chargement />
       ) : !presentations.length ? (
         <p className="py-12 text-center text-[14px] text-brume">
           Aucune présentation encore : nommez un projet au chat, ou{" "}
@@ -354,7 +355,7 @@ function ChoixProjet({ enCours, onChoisir, onFermer }) {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
           {isLoading ? (
-            <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+            <Chargement />
           ) : !trouves.length ? (
             <p className="py-10 text-center text-[13.5px] text-brume">Aucun projet ne correspond.</p>
           ) : (

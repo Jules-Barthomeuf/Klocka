@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import ListeRelances from "@/components/prospection/ListeRelances";
 import ModeAppel from "@/components/prospection/ModeAppel";
 import RelancesParMail from "@/components/prospection/RelancesParMail";
+import Chargement from "@/components/ui/Chargement";
 
 // La page Relances (spec du 8 oct. 2026) : une seule page partagée par toute
 // l'équipe, en onglets comme la Prospection : Liste (toutes les relances à
@@ -196,7 +197,7 @@ export default function Relances() {
         <ModeAppel relances relance={courante} onSuivante={suivante} onRetour={retour} />
       ) : (
         <div key={partie} className="flex flex-col gap-6 pb-16 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-          {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+          {q.isLoading && <Chargement taille="grand" />}
           {q.isError && !/403|réservé/i.test(q.error?.message || "") && <p className="py-12 text-center text-[14px] text-alerte">Les relances n'ont pas pu être lues : {q.error?.message || "erreur"}.</p>}
           {/* Par mail (10 oct. 2026) : l'IA prépare, on valide ; validé, c'est une relance. */}
           {partie === "mail" && <RelancesParMail onFait={rafraichir} />}

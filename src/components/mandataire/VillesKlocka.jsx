@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Les villes Klocka (Mandataires, onglet Villes Klocka) : où Klocka cherche
 // pour ses investisseurs, partout en France. L'agent IA de chaque mandataire
@@ -65,7 +66,7 @@ export default function VillesKlocka() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+        <Chargement />
       ) : !villes.length ? (
         <p className="py-10 text-center text-[14px] text-brume">Aucune ville Klocka : l'agent de chaque mandataire ne lit que les communes qu'il coche.</p>
       ) : (

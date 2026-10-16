@@ -54,6 +54,7 @@ const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
+import Chargement from "@/components/ui/Chargement";
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -61,9 +62,10 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
 // Le temps qu'une page arrive. Même signe que les autres attentes de
 // l'application : on ne change pas de vocabulaire selon ce qu'on attend.
+// Entre deux pages, la même animation que partout (16 oct. 2026, Jules : « harmonise »).
 const EnChargement = () => (
   <div className="fixed inset-0 flex items-center justify-center bg-fond">
-    <div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin"></div>
+    <Chargement taille="grand" titre="Klocka s'ouvre" etats={["Je prépare la page", "Je rassemble vos données", "J'affiche"]} />
   </div>
 );
 
@@ -142,7 +144,7 @@ const AuthenticatedApp = () => {
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-fond">
-        <div className="w-8 h-8 border-4 border-menthe/30 border-t-menthe rounded-full animate-spin"></div>
+        <Chargement taille="grand" titre="Klocka s'ouvre" etats={["Je vérifie votre session", "Je prépare la page", "J'affiche"]} />
       </div>
     );
   }

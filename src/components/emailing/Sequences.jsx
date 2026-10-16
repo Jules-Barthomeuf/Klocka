@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import EditeurEmail from "./EditeurEmail";
 import { Fenetre, Interrupteur, Pastille, req, useEnregistrement, useReferentiel, useSansDefilement, useTelephone, bouton, boutonLigne, boutonPlein, champ, pluriel, pourcent } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les séquences, dessinées sur la maquette (6 oct. 2026) : à gauche les
 // séquences en cartes, à droite celle qu'on regarde. Son nom et son
@@ -145,7 +146,7 @@ function VueSequence({ id, onEmail, onSupprimee }) {
       queryClient.invalidateQueries({ queryKey: ["emailing-sequence", id] }).then(() => req("GET", `/sequences/${id}`)).then(setS);
     }
   }, [id, queryClient]);
-  if (!s) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!s) return <Chargement taille="grand" />;
   const statsEtape = Object.fromEntries((stats?.etapes || []).map((e) => [e.id, e]));
   const changerEtape = (eid, patch) => changer({ etapes: s.etapes.map((x) => (x.id === eid ? { ...x, ...patch } : x)) });
   const basculer = (on) => {
@@ -272,7 +273,7 @@ export default function Sequences({ demande = null, onDetail = null }) {
     );
   }
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   if (!liste.length) return <p className="py-14 text-center text-[14px] text-brume">Aucune séquence encore : « Nouvelle séquence », en haut à droite.</p>;
   return (
     <div className="grid grid-cols-[280px_minmax(0,1fr)] items-start gap-7 px-10 pb-20 pt-7 max-lg:grid-cols-1 max-md:px-4 max-md:pt-5">

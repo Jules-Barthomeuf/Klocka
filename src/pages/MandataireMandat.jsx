@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { BandeauExemples, BoutonFichier, LienFichier, PastilleExemple, euros, formDe } from "@/components/mandataire/kit";
@@ -9,6 +9,7 @@ import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/li
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
 import { DocumentTelephone } from "@/components/mandataire/GenerationDocument";
+import Chargement from "@/components/ui/Chargement";
 
 // Mandat — comme l'Estimation, tout passe par le chat : il pose les questions
 // du mandat de vente, le mandat se construit à droite, et quand tout est bon
@@ -137,7 +138,7 @@ export default function MandataireMandat() {
                 {mandats.length > 0 && <span className="text-[13.5px] text-ardoise">{mandats.length}</span>}
               </div>
               {isLoading ? (
-                <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>
+                <Chargement taille="grand" />
               ) : !mandats.length ? (
                 <p className="py-16 text-center text-sm text-brume">Aucun mandat encore : dites au chat quel mandat vous préparez.</p>
               ) : (

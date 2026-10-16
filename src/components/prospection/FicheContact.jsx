@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, Loader2, Mail, MailOpen, MessageSquare, Phone, Ref
 import { base44 } from "@/api/base44Client";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
+import Chargement from "@/components/ui/Chargement";
 
 // La fiche d'un agent ou d'une agence, en un coup d'œil (16 oct. 2026, Jules) :
 // combien de fois on s'est parlé, ses mails, ses fiches commerciales, ce qu'il
@@ -175,7 +176,7 @@ export default function FicheContact({ depart, onFermer }) {
       <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre max-md:h-10 max-md:w-10" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
     </div>
   );
-  if (q.isLoading) return <div>{entete}<div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div></div>;
+  if (q.isLoading) return <div>{entete}<Chargement /></div>;
   if (!f) return <div>{entete}<p className="m-0 py-10 text-center text-[13px] text-brume">Fiche introuvable.</p></div>;
   const c = f.chiffres;
   const il = f.type === "agence" ? "elle" : "lui";

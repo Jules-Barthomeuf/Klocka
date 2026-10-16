@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/avis";
 import Calendrier from "@/components/ui/calendrier";
 import EditeurEmail from "./EditeurEmail";
 import { Interrupteur, Pastille, Pastilles, req, useEnregistrement, useReferentiel, useSansDefilement, boutonLigne, champ, pluriel, pourcent } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les newsletters (9 oct. 2026, plan de Jules) : à gauche les newsletters en
 // cartes, à droite celle qu'on regarde. Ses réglages (listes, départ, rythme,
@@ -222,7 +223,7 @@ function VueNewsletter({ id, onMail, onSupprimee, onAtelier = null }) {
     onError: (e) => toast.error(e?.message || "Ajout impossible"),
   });
   const supprimer = useMutation({ mutationFn: () => req("DELETE", `/newsletters/${id}`), onSuccess: () => { toast.success("Newsletter supprimée"); onSupprimee(); }, onError: (e) => toast.error(e?.message || "Impossible") });
-  if (!n) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!n) return <Chargement taille="grand" />;
   const statsMail = Object.fromEntries((stats?.mails || []).map((m) => [m.id, m]));
   const listes = (ref?.listes || []).map((l) => [l.id, l.nom, l.abonnes]);
   const basculer = (on) => {
@@ -478,7 +479,7 @@ export default function Newsletters({ demande = null }) {
   const supprimer = useMutation({ mutationFn: (id) => req("DELETE", `/newsletters/${id}`), onSuccess: (_r, id) => { toast.success("Newsletter supprimée"); if (choisie === id) setChoisie(null); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
 
   const vueAtelier = atelier && <Atelier id={atelier.id} mailId={atelier.mailId} onFermer={() => { setAtelier(null); rafraichir(); queryClient.invalidateQueries({ queryKey: ["emailing-newsletter"] }); }} />;
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   if (!liste.length) return <>{vueAtelier}<p className="py-14 text-center text-[14px] text-brume">Aucune newsletter encore : « Nouvelle newsletter », en haut à droite.</p></>;
   return (
     <div className="grid grid-cols-[280px_minmax(0,1fr)] items-start gap-7 px-10 pb-20 pt-7 max-lg:grid-cols-1 max-md:px-4 max-md:pt-5">

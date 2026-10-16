@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { EnTeteAlx, Carte, Stat, Etiquette } from "@/components/alx/alx-commun";
 import { J } from "@/design/jetons";
+import Chargement from "@/components/ui/Chargement";
 
 // Le résultat de l'entraînement : ce que le modèle a appris des ventes
 // réelles, et comment il l'explique.
@@ -110,7 +111,7 @@ export default function ALXEntrainement() {
         <EnTeteAlx titre="Ce que le modèle a appris" sous={m ? `Entraîné le ${quand(m.le)} sur ${m.dataset.lignes} observations gelées un an avant leur issue — ${m.dataset.villes?.map((v) => v.nom).join(", ")}.` : "XGBoost + SHAP sur l'historique DVF, à date gelée."} />
 
         {isLoading ? (
-          <p className="text-ardoise">Lecture…</p>
+          <Chargement />
         ) : !data?.pret ? (
           <Carte>
             <p className="m-0 text-[13.5px] leading-[1.7] text-craie">Aucun entraînement encore. Deux commandes, dans l'ordre :</p>

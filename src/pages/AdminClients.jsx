@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Loader2, Mic, Plus, Search, X } from "lucide-react";
+import { ChevronDown, Mic, Plus, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
 import AppelClient from "@/components/clients/AppelClient";
+import Chargement from "@/components/ui/Chargement";
 
 // Les clients, côté équipe (16 oct. 2026, Jules) : la page Clients des
 // mandataires, mais avec les vrais noms, et une fiche très personnelle nourrie
@@ -138,7 +139,7 @@ function FicheClient({ id, onFermer, onAppel }) {
       <div className="absolute inset-0 bg-fond/60 backdrop-blur-[2px]" onClick={onFermer} />
       <aside role="dialog" aria-modal="true" aria-label={d?.nom || "Client"}
         className="absolute inset-y-0 right-0 flex w-[600px] max-w-full flex-col overflow-y-auto border-l border-trait bg-surface-pleine animate-in slide-in-from-right duration-200">
-        {isLoading || !d ? <div className="flex justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : <>
+        {isLoading || !d ? <Chargement taille="grand" /> : <>
           <div className="flex flex-col gap-4 border-b border-trait px-7 pb-5 pt-7 max-md:px-5 max-md:pt-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3.5">
@@ -310,7 +311,7 @@ export default function AdminClients() {
         ))}
       </div>
 
-      {isLoading && <p className="m-0 text-[14px] text-brume">Lecture…</p>}
+      {isLoading && <Chargement taille="grand" />}
       {!isLoading && !clients.length && <p className="m-0 text-[14px] text-brume">Aucun client encore. Enregistrez un appel : le client naît de ce qu'il dit.</p>}
       {!isLoading && clients.length > 0 && !lignes.length && <p className="m-0 rounded-[18px] border border-dashed border-trait p-12 text-center text-[15px] text-brume">Aucun client ne correspond.</p>}
       {lignes.length > 0 && vue === "cartes" && <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">{lignes.map((x) => <CarteClient key={x.id} d={x} onOuvrir={() => setOuvert(x.id)} />)}</div>}

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { req, pourcent } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les statistiques, dessinées sur la maquette (6 oct. 2026) : la période, cinq
 // chiffres en bandeau, les envoyés et ouverts en barres. Depuis le 9 oct. 2026
@@ -179,7 +179,7 @@ function ACibler() {
 export default function Statistiques() {
   const [jours, setJours] = useState(30);
   const { data, isLoading } = useQuery({ queryKey: ["emailing-stats", jours], queryFn: () => req("GET", `/stats?jours=${jours}`) });
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   const g = data?.globales || {};
   const periode = PERIODES.find(([j]) => j === jours)?.[1];
   const chiffres = [

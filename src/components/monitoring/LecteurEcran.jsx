@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import "rrweb-player/dist/style.css";
+import Chargement from "@/components/ui/Chargement";
 
 // Rejouer l'écran d'un analyste pendant un appel (14 oct. 2026, Jules) : la
 // page telle qu'il l'a vue et utilisée, de l'appel décroché à sa validation.
@@ -42,7 +43,7 @@ export default function LecteurEcran({ id, titre = "Écran pendant l'appel", onF
           <button type="button" onClick={onFermer} aria-label="Fermer" title="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-4">
-          {etat.attente && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+          {etat.attente && <Chargement taille="grand" />}
           {etat.erreur && <p className="m-0 py-16 text-center text-[14px] text-brume">{etat.erreur}</p>}
           <div ref={zone} className="k-lecteur-ecran w-full" />
         </div>

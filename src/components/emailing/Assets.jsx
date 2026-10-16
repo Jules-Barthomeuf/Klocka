@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { ExternalLink, Eye, Loader2, Monitor, Plus, Smartphone, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { Fenetre, req, bouton, boutonLigne, boutonPlein, champ } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les assets (9 oct. 2026) : ce qu'on glisse dans un mail en un clic, depuis
 // l'éditeur (« Insérer un asset »). Le simulateur et son lien personnel, les
@@ -143,7 +144,7 @@ export default function Assets({ demande = null }) {
   useEffect(() => { if (demande?.quoi === "nouveau") setCreer(true); }, [demande?.n]);
   const renommer = useMutation({ mutationFn: ({ id, nom }) => req("PATCH", `/assets/${id}`, { nom }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["emailing-assets"] }) });
   const supprimer = useMutation({ mutationFn: (id) => req("DELETE", `/assets/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["emailing-assets"] }); toast.success("Asset supprimé"); } });
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   const liste = data?.assets || [];
   return (
     <div className="px-10 pb-20 pt-7 max-md:px-4 max-md:pt-5">

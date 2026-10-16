@@ -1,9 +1,10 @@
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ENTREES_ADMIN, ENTREES_AUTRE } from "@/lib/menu";
+import Chargement from "@/components/ui/Chargement";
 
 // Les accès de l'équipe, page par page (6 oct. 2026) : Jules seul les voit et
 // les change. Tout est fermé par défaut ; un clic sur une page l'ouvre à la
@@ -18,7 +19,7 @@ export default function AccesAdmins() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["acces-pages"] }),
     onError: (e) => toast.error(e?.message || "Accès non modifiés"),
   });
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   if (isError || !data) return null;
   const toujours = new Set(data.toujours_ouvertes || []);
   const pages = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => !toujours.has(e.cle));

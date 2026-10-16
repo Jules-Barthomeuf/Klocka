@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Printer, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { Case, Etiquette, LIBELLES_PROFILS, LIBELLES_SIGNAUX, Pastille, Score, Vide, bouton, boutonPlein, champ, dateCourte, nMurs, pl, req, useOffMarket } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Off-market : les parties qui ne sont ni la carte ni une fiche. Aujourd'hui
 // (ce qu'il y a à faire), Propriétaires (le territoire vu par qui possède),
@@ -180,7 +181,7 @@ export function Listes({ territoire, filtresCourants, selectionCourante = [], on
       </div>
       <div className="min-w-0">
         {!ouverte && <Vide>Ouvrez une liste, ou créez-en une depuis les filtres de la carte.</Vide>}
-        {ouverte && liste.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+        {ouverte && liste.isLoading && <Chargement taille="grand" />}
         {l && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -255,7 +256,7 @@ export function Courriers({ onProprietaire }) {
   const valider = useMutation({ mutationFn: ({ id, texte }) => req("POST", `/courriers/${id}/valider`, { texte }), onSuccess: (r) => { toast.success(`Posté · second courrier le ${dateCourte(r.courrier.relance_le)} si pas de réponse`); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
   const ecarter = useMutation({ mutationFn: (id) => req("POST", `/courriers/${id}/ecarter`, {}), onSuccess: rafraichir, onError: (e) => toast.error(e?.message || "Impossible") });
   const modifier = useMutation({ mutationFn: ({ id, texte }) => req("POST", `/courriers/${id}`, { texte }), onError: (e) => toast.error(e?.message || "Impossible") });
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   const a = q.data?.a_valider || [];
   const envoyes = q.data?.envoyes || [];
   return (
@@ -294,7 +295,7 @@ export function Courriers({ onProprietaire }) {
 
 export function Pipeline({ statuts, onProprietaire }) {
   const q = useOffMarket(["pipeline"], "/pipeline");
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   const contacts = (q.data?.contacts || []).filter((x) => !x.oppose);
   const opposes = (q.data?.contacts || []).filter((x) => x.oppose);
   const ordre = Object.keys(statuts);
@@ -330,7 +331,7 @@ export function Bilan({ statuts, espace }) {
   const q = useOffMarket(["bilan"], "/bilan");
   const rafraichir = useRafraichir();
   const veille = useMutation({ mutationFn: () => req("POST", "/veille", {}), onSuccess: (r) => { toast.success(`${pl(r.relus, "propriétaire relu", "propriétaires relus")} au BODACC, ${r.nouveaux} avec un nouveau signal`); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   const b = q.data;
   if (!b) return null;
   const max = Math.max(1, ...Object.values(b.entonnoir));

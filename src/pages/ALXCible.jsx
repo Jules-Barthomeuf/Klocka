@@ -8,6 +8,7 @@ import { Bouton, Etiquette, Nombre, TEINTES, emplacementDe, euros, Urgence, joli
 import CoordonneesProprietaire from "@/components/alx/CoordonneesProprietaire";
 import { ceQueFait, urlStreetView } from "@/components/alx/fiche-commerce";
 import { J } from "@/design/jetons";
+import Chargement from "@/components/ui/Chargement";
 
 // La fiche d'un commerce : la seule. À gauche, ce qu'on sait, le propriétaire,
 // ses gérants, ce que fait le commerce, le verdict « va vendre ou pas » et ses
@@ -154,7 +155,7 @@ function ApercuCible({ id, onFermer, onEcarter, onGarder, pending }) {
   return (
     <div className="animate-in fade-in duration-200 fixed inset-0 z-[60] flex items-center justify-center bg-fond/75 p-6 max-md:z-[70] max-md:p-3" onClick={onFermer}>
       <div onClick={(e) => e.stopPropagation()} className="alx-entree w-full max-w-[960px] overflow-hidden rounded-[20px] border border-trait bg-surface-pleine max-md:max-h-[calc(100dvh-24px)] max-md:overflow-y-auto">
-        {!c ? <div className="p-10 text-ardoise">Lecture…</div> : (
+        {!c ? <div className="p-10"><Chargement taille="grand" /></div> : (
           <div className="grid grid-cols-1 lg:grid-cols-2">
             <div className="flex flex-col gap-5 p-7 max-md:p-5">
               <div>
@@ -284,7 +285,7 @@ export default function ALXCible() {
 
   if (!user || user.role !== "admin") return null;
   if (!id) return <div className="alx min-h-screen p-10 text-ardoise">Aucun commerce désigné.</div>;
-  if (isLoading || !c) return <div className="alx min-h-screen p-10 text-ardoise">Lecture…</div>;
+  if (isLoading || !c) return <div className="alx min-h-screen p-10"><Chargement taille="grand" /></div>;
 
   const p = c.proprietaire || {};
   const s = c.societe || {};

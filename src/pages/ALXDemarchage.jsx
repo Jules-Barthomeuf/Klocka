@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/avis";
 import { Bouton, euros, joliNom, Nombre, TEINTES, Urgence } from "@/components/alx/alx-commun";
 import CarteMurs from "@/components/alx/CarteMurs";
 import { ceQueFait, urlStreetView } from "@/components/alx/fiche-commerce";
+import Chargement from "@/components/ui/Chargement";
 
 // ALX, côté résultat, dans le registre visuel de l'atelier (Figtree + capitales
 // Montserrat, halo posé par le Layout, surfaces de verre). On ne lance rien
@@ -169,7 +170,7 @@ function DetailCommerce({ m, onRetour, retour }) {
           : <div className="grid h-full place-items-center px-6 text-center text-[12.5px] text-ardoise">Street View demande la clé VITE_GOOGLE_MAPS_API_KEY.</div>}
       </div>
 
-      {!c ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : (
+      {!c ? <Chargement /> : (
         <div className="mt-5 flex flex-col gap-5">
           <div>
             <p className={etiq}>Le commerce</p>
@@ -523,7 +524,7 @@ export default function ALXDemarchage() {
             <p className="m-0 mt-2.5 text-[11.5px] text-brume">{societes.length} société{societes.length > 1 ? "s" : ""} · clic sur une ligne : ses gérants, son contact et son message · les murs des particuliers ne sont pas publiés, ils ne se démarchent pas.</p>
           </>
         )}
-        {d.isLoading && villeId && <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>}
+        {d.isLoading && villeId && <Chargement taille="grand" />}
       </div>
 
       {/* Un niveau de plus que .alx : la règle globale `.alx > *` pose

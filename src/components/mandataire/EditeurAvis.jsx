@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import LogoKP from "./LogoKP";
 import AGENCE from "@/lib/agence-klocka.json";
 import "./avis-valeur.css";
+import Chargement from "@/components/ui/Chargement";
 
 // L'éditeur de l'avis de valeur, comme un atelier de design : à gauche le
 // chat de retouche (« raccourcis la synthèse », « mets la photo plus grande »,
@@ -958,7 +959,7 @@ function Versions({ estimation, onAvis }) {
   const versions = data?.versions || [];
   return (
     <div className="px-3 py-3">
-      {isLoading ? <p className="m-0 px-1 text-[13px] text-brume">Lecture…</p>
+      {isLoading ? <Chargement taille="petit" />
         : !versions.length ? <p className="m-0 px-1 text-[13px] leading-[1.5] text-ardoise">Aucune version encore : chaque retouche par le chat en garde une.</p>
         : versions.map((v) => (
           <div key={v.id} className="flex items-center gap-2 border-t border-trait px-1 py-2.5 first:border-t-0">

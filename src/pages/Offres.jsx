@@ -2,13 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { FileText, Loader2, MoreHorizontal, Search, Trash2 } from "lucide-react";
+import { FileText, MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import EditeurLoi from "@/components/offres/EditeurLoi";
+import Chargement from "@/components/ui/Chargement";
 
 // Offres — les lettres d'intention d'achat (LOI) de l'équipe. Comme
 // l'Estimation des mandataires : le chat à gauche, la lettre à droite. On
@@ -132,7 +133,7 @@ export default function Offres() {
         )}
       </div>
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+        <Chargement />
       ) : !offres.length ? (
         <p className="py-12 text-center text-[14px] text-brume">{recherche ? "Aucune offre ne correspond." : "Aucune offre encore : décrivez la situation au chat, il rédige la lettre."}</p>
       ) : (

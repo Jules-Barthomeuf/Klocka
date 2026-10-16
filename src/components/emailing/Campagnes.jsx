@@ -4,6 +4,7 @@ import { ArrowLeft, Check, CircleAlert, Copy, Loader2, Plus, Send, Trash2, Trian
 import { toast } from "@/components/ui/avis";
 import EditeurEmail from "./EditeurEmail";
 import { Etat, Fenetre, Pastille, Pastilles, req, useEnregistrement, useReferentiel, bouton, boutonLigne, boutonPlein, champ, etiquette, dateHeure, jourHeure, pourcent, pluriel } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les campagnes : un envoi ponctuel (newsletter, annonce, invitation). La
 // liste, puis la création en quatre étapes visibles en haut : Destinataires,
@@ -193,7 +194,7 @@ function EditeurCampagne({ id, onFermer }) {
     mutationFn: (nom) => req("POST", "/templates", { nom, objet: c.objet, apercu: c.apercu, design: c.design }),
     onSuccess: () => { toast.success("Template enregistré"); queryClient.invalidateQueries({ queryKey: ["emailing-templates"] }); },
   });
-  if (!c) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!c) return <Chargement taille="grand" />;
   const partie = !["brouillon", "programmee"].includes(c.statut);
   return (
     <div className="flex h-[100dvh] min-h-[640px] flex-col max-md:h-[calc(100dvh-var(--k-haut-mobile)-var(--k-bas-mobile))]">
@@ -271,7 +272,7 @@ export default function Campagnes({ ouvrir = null, demande = null, onDetail = nu
   const quand = (c) => (c.statut === "programmee" ? jourHeure(c.programmee_le) : ["envoyee", "en_cours"].includes(c.statut) ? jourHeure(c.envoyee_le || c.demarree_le) : modifiee(c.maj_le || c.cree_le));
   return (
     <div className="px-10 pb-20 pt-7 max-md:px-4 max-md:pt-5">
-      {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+      {isLoading ? <Chargement />
         : !liste.length ? <p className="py-14 text-center text-[14px] text-brume">Aucune campagne encore : « Nouvelle campagne », en haut à droite.</p>
           : (
             <div className="overflow-x-auto rounded-[14px] border border-trait bg-rail">

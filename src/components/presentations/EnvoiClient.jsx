@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Envoyer une présentation à des clients (13 oct. 2026, Jules) : on coche
 // parmi les comptes clients, le client du projet en tête. Elle apparaît dans
@@ -63,7 +64,7 @@ export default function EnvoiClient({ id, titre, onFermer }) {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
           {isLoading ? (
-            <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+            <Chargement />
           ) : !trouves.length ? (
             <p className="py-10 text-center text-[13.5px] text-brume">Aucun client ne correspond.</p>
           ) : (

@@ -4,6 +4,7 @@ import { Loader2, MapPin, Search, Sparkles, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ChoixMetiers, GrilleCriteres } from "@/components/mandataire/ProspecterDataB";
+import Chargement from "@/components/ui/Chargement";
 
 // L'onglet K Prospective du mandataire : le formulaire de Data Prospective.
 // On remplit les champs (ville, rue facultative, métiers, critères), et la
@@ -169,7 +170,7 @@ export default function KProspectiveDataB({ onOuvrir }) {
 
       <h2 className="mb-3 mt-12 text-[20px] font-normal text-encre">Prospectives réalisées</h2>
       {chargeFaites ? (
-        <p className="m-0 text-[13.5px] text-brume">Chargement…</p>
+        <Chargement taille="petit" />
       ) : !prospectives.length ? (
         <p className="m-0 text-[13.5px] text-brume">Aucune pour l'instant : remplissez les champs plus haut et lancez.</p>
       ) : (

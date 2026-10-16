@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Loader2, X, ArrowRight } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import FacadeLocal from "./FacadeLocal";
 import { Fait, LIBELLES_CONFIANCE, LIBELLES_PROFILS, Pastille, SENS_SCORES, Score, Section, Tableau, bouton, boutonPlein, dateCourte, euros, useOffMarket } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Off-market : la fiche des murs commerciaux, dans l'ordre de la spec : est-ce un bon
 // mur ? qui le possède ? y a-t-il une raison de vendre ? Chaque fait avec sa
@@ -52,7 +53,7 @@ export default function FicheLocal({ id, onFermer, onProprietaire, onListe, onCo
           ))}
         </nav>
       )}
-      {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+      {q.isLoading && <Chargement taille="grand" />}
       {l && (
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pb-6 pt-4">
           {/* La façade d'abord (Jules, 10 oct. 2026), puis les notes et le reste. */}

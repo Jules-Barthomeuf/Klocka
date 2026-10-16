@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Modèle Zone (11 oct. 2026) : la page admin du score « Zone » de
 // l'Off-market Simple, hors du menu. Les jugements, la version active, les
@@ -35,7 +36,7 @@ export default function AdminModeleZone() {
   const revenir = useMutation({ mutationFn: () => req("POST", "/revenir", {}), onSuccess: (r) => { toast.success(`Version ${r.version} rétablie`); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
   const d = q.data;
   if (q.isError) return <p className="px-6 py-10 text-[14px] text-ardoise">{q.error?.message || "Page réservée à l'équipe Klocka."}</p>;
-  if (!d) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!d) return <Chargement taille="grand" />;
   const j = d.jugements;
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 py-6 md:px-6">

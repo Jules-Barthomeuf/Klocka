@@ -11,6 +11,7 @@ import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/li
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import EditeurAvis from "@/components/mandataire/EditeurAvis";
 import GenerationDocument, { DocumentTelephone, MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
+import Chargement from "@/components/ui/Chargement";
 
 // Estimation — tout passe par le chat : le mandataire dit le bien, joint le
 // bail, répond aux questions ; la valeur vient de Data-B et l'avis de valeur
@@ -206,7 +207,7 @@ export default function MandataireEstimation() {
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>
+              <Chargement taille="grand" />
             ) : !estimations.length ? (
               <p className="py-16 text-center text-sm text-brume">Aucune estimation encore : dites au chat quel bien vous estimez.</p>
             ) : (

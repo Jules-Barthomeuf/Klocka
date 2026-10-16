@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import Chargement from "@/components/ui/Chargement";
 
 // L'Agenda de l'équipe (16 oct. 2026, Jules ; « Semaine » jusqu'au même jour).
 // Jules pose les absences (école, congés) ; un clic sur un jour ouvre un
@@ -84,7 +85,7 @@ function FenetreBriefing({ jour, onFermer }) {
       <DialogContent className="max-h-[88vh] max-w-[680px] overflow-y-auto">
         <DialogTitle className="text-[20px] font-normal text-encre">{titre}</DialogTitle>
         <DialogDescription className="text-[13px] text-ardoise">{sous}</DialogDescription>
-        {q.error ? <p className="m-0 py-6 text-[13.5px] text-alerte">{q.error.message || "Le briefing ne s'ouvre pas."}</p> : q.isLoading || !d ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : (
+        {q.error ? <p className="m-0 py-6 text-[13.5px] text-alerte">{q.error.message || "Le briefing ne s'ouvre pas."}</p> : q.isLoading || !d ? <Chargement /> : (
           <div className="mt-1">
             <p className={etiq}>Pour</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -229,7 +230,7 @@ function Presences({ onBriefing }) {
     (d?.jours || []).forEach((j, i) => { const n = Math.floor(i / 5); (s[n] = s[n] || []).push(j); });
     return s;
   }, [d]);
-  if (q.isLoading || !d) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading || !d) return <Chargement />;
   const absences = d.modifiable && mode !== "briefing";
   const cliquer = (e, p, j, st, sem) => {
     if (!absences) return onBriefing(j);
@@ -317,7 +318,7 @@ export default function Semaine() {
         </p>
       )}
       <div className="mt-6 flex flex-col gap-5">
-        {q.isLoading && <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+        {q.isLoading && <Chargement />}
         {q.error && <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "L'Agenda ne se charge pas."}</p>}
         <Presences onBriefing={setBriefing} />
         {d?.retour && <RetourRecu r={d.retour} moi={d.moi} />}

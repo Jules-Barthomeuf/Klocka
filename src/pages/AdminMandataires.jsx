@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useUser } from "@/components/providers/UserProvider";
 // Les couleurs des secteurs passent en JL (littérales) : Google dessine en SVG.
 import { J, JL, alpha } from "@/design/jetons";
+import Chargement from "@/components/ui/Chargement";
 
 // L'administration de l'espace mandataire (spécification V1, section 13) :
 // les secteurs tracés sur la carte de France (admin seulement, sans
@@ -87,7 +88,7 @@ function ChoixDecoupage({ niveau, choisies, onBasculer }) {
       </div>
       <div className="mt-2 max-h-[220px] overflow-y-auto rounded-[10px] border border-trait">
         {error ? <p className="m-0 px-3 py-3 text-[12px] text-alerte">{error.message}</p>
-          : isLoading ? <p className="m-0 px-3 py-3 text-[12px] text-brume">Lecture…</p>
+          : isLoading ? <Chargement taille="petit" />
           : commune && recherche.length < 2 ? <p className="m-0 px-3 py-3 text-[12px] text-brume">Tapez deux lettres au moins.</p>
           : !unites.length ? <p className="m-0 px-3 py-3 text-[12px] text-brume">Rien de ce nom.</p>
           : unites.map((u) => {

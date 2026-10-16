@@ -6,6 +6,7 @@ import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapP
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import FicheContact from "@/components/prospection/FicheContact";
+import Chargement from "@/components/ui/Chargement";
 
 // L'agent IA de la prospection des agents immobiliers, et ses listes. On
 // lui donne une ville : il y cherche toutes les agences (Google Maps, comme
@@ -104,7 +105,7 @@ export function OngletAgentIA({ onOuvrirListe }) {
       </form>
 
       {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+        <Chargement />
       ) : !listes.length ? (
         <p className="py-12 text-center text-[14px] text-brume">Aucune ville cherchée encore : donnez-en une à l'agent.</p>
       ) : (
@@ -168,7 +169,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
   const supprimer = useSupprimerListe();
   const listes = data?.listes || [];
   const active = ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   if (!listes.length) return <div className="pb-16"><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : lancez l'agent IA sur une ville.</p></div>;
   // Le classeur des listes du mandataire : les intercalaires en haut, l'ouvert
   // raccordé à la page à points (rail-actif), le tableau sur le rail.
@@ -350,7 +351,7 @@ function TableauAgences({ id, onAppeler }) {
     // « Appelées » : la plus récemment appelée en tête. Ailleurs, l'ordre fixe de la liste.
     return filtre === "appelees" ? [...base].sort((x, y) => String(y.statut?.quand || "").localeCompare(String(x.statut?.quand || ""))) : base;
   }, [data, q, filtre, moiEmail]);
-  if (isLoading || !data) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading || !data) return <Chargement />;
 
   return (
     <div>
@@ -595,7 +596,7 @@ function Supprimees({ listeId }) {
     mutationFn: (agence) => base44.request("POST", `${API}/agences/${agence}/remettre`),
     onSuccess: () => { for (const k of [["agent-ia-retirees", listeId], ["agent-ia-liste", listeId]]) queryClient.invalidateQueries({ queryKey: k }); },
   });
-  if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   const lignes = data?.retirees || [];
   return (
     <div className="mt-4">

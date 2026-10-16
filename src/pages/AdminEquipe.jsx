@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useUser } from "@/components/providers/UserProvider";
 import AccesAdmins from "@/components/compte/AccesAdmins";
+import Chargement from "@/components/ui/Chargement";
 
 // L'équipe (10 oct. 2026) : les administrateurs et les mandataires, à part
 // des clients (page Clients). Un admin peut aussi être mandataire ; un
@@ -71,7 +72,7 @@ export default function AdminEquipe() {
     <div className="mx-auto w-full max-w-[1100px] px-4 py-8 md:px-6">
       <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre">Équipe</h1>
       <p className="m-0 mt-1.5 text-[14px] text-ardoise">Les administrateurs et les mandataires. Les clients sont dans Clients.{!peut && d ? " Vous lisez : seuls les super administrateurs changent les rôles." : ""}</p>
-      {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+      {q.isLoading && <Chargement taille="grand" />}
       {d && (
         <div className="mt-8 flex flex-col gap-10">
           {peut && (

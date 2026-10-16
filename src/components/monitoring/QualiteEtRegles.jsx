@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Le Suivi de la prospection (9 oct. 2026), deux cases côte à côte :
 // - la qualité d'AK : la part des appels validés sans aucune correction
@@ -16,7 +17,7 @@ const semaineCourte = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-F
 
 function QualiteAK() {
   const { data, isLoading } = useQuery({ queryKey: ["monitoring-qualite-ak"], queryFn: () => base44.request("GET", "/api/monitoring/qualite-ak?semaines=8") });
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   const c = data?.courante;
   const p = data?.precedente;
   const ecart = c?.taux != null && p?.taux != null ? c.taux - p.taux : null;
@@ -62,7 +63,7 @@ function Regles() {
     onError: (e) => toast.error(e?.message || "Contrôle impossible"),
   });
   const rap = data?.rapport;
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   return (
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-3">

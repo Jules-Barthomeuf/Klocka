@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import { BarresHorizontales, Cadre, VisitesParJour, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import Chargement from "@/components/ui/Chargement";
 
 // Suivi > Audience (14 oct. 2026, Jules : le tableau d'audience du site, « que
 // pour les clients, donc ceux qui ne sont pas admin ») : les visites de la
@@ -52,7 +52,7 @@ export default function SuiviAudience() {
           ))}
         </div>
       </div>
-      {q.isLoading || !a ? <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : (
+      {q.isLoading || !a ? <Chargement taille="grand" /> : (
         <div className="flex flex-col gap-5">
           <div className="grid gap-px overflow-hidden rounded-[14px] border border-trait bg-trait md:grid-cols-3">
             <Chiffre titre="Visites" valeur={a.totaux.visites} evolution={a.totaux.visites_evolution} />

@@ -9,6 +9,7 @@ import { J } from "@/design/jetons";
 import { BoutonFichier, Frise, MotDeKlocka, formDe } from "@/components/mandataire/kit";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { devinerPiece } from "@/lib/pieces-dossier";
+import Chargement from "@/components/ui/Chargement";
 
 // Les dossiers mandataires, une conversation chacun, des deux côtés :
 // Klocka (`cote="klocka"`, page Conversations) et le mandataire
@@ -341,7 +342,7 @@ export function Conversation({ c, cote, bord = true }) {
       )}
 
       <div ref={defile} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-6 pb-5 pt-[18px] max-md:px-4">
-        {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-ardoise" /></div>}
+        {isLoading && <Chargement />}
         {!isLoading && !lignes.length && <p className="m-0 py-8 text-center text-[13.5px] text-brume">{klocka ? "Aucun message encore." : "Aucun message encore. Écrivez à votre analyste, ou glissez une pièce ici."}</p>}
         {lignes.map((m, i) => (
           <React.Fragment key={m.id}>

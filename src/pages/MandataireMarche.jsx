@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J, alpha } from "@/design/jetons";
 import { BandeauExemples, Bouton, BoutonFichier, Carte, EnTete, Frise, LienFichier, PastilleExemple, dateCourte, euros, formDe } from "@/components/mandataire/kit";
+import Chargement from "@/components/ui/Chargement";
 
 // Mise en marché, porte 3 (spécification V1, section 10). Après le go :
 // Klocka produit le dossier investisseur, le mandataire tourne la vidéo,
@@ -57,7 +58,7 @@ export default function MandataireMarche() {
 
       <BandeauExemples liste={marches} />
       <div className="mt-6 space-y-3">
-        {isLoading && <p className="m-0 text-[13.5px] text-brume">Lecture…</p>}
+        {isLoading && <Chargement taille="grand" />}
         {!isLoading && !marches.length && <p className="m-0 text-[13.5px] text-brume">Aucun bien en mise en marché : ils arrivent ici quand un analyste donne le go à un dossier.</p>}
         {marches.map((m) => (
           <div key={m.id}>

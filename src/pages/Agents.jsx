@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Loader2, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import FicheContact from "@/components/prospection/FicheContact";
+import Chargement from "@/components/ui/Chargement";
 
 // Les agents (16 oct. 2026, Jules) : tous les agents immobiliers du carnet, en
 // cartes comme les Clients, avec leur petite tête. Un clic ouvre tout : la
@@ -108,7 +109,7 @@ function TiroirAgent({ id, onFermer }) {
           <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Tous ses appels{appels.length ? ` · ${appels.length}` : ""}</p>
           {appels.length > 0 && <button type="button" onClick={() => setOuverts(tout ? new Set() : new Set(appels.map((x) => x.id)))} className="p-0 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{tout ? "Tout replier" : "Tout déplier"}</button>}
         </div>
-        {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+        {isLoading ? <Chargement taille="petit" titre="Ses appels" />
           : !appels.length ? <p className="m-0 mt-2 text-[13.5px] text-brume">Aucun appel encore avec cet agent.</p>
             : <div className="mt-1 border-t border-trait">{appels.map((x) => <AppelEntier key={x.id} x={x} ouvert={ouverts.has(x.id)} onBasculer={() => basculer(x.id)} />)}</div>}
       </aside>
@@ -155,7 +156,7 @@ export default function Agents() {
         ))}
       </div>
 
-      {isLoading && <p className="m-0 text-[14px] text-brume">Lecture…</p>}
+      {isLoading && <Chargement taille="grand" />}
       {!isLoading && !lignes.length && <p className="m-0 rounded-[18px] border border-dashed border-trait p-12 text-center text-[15px] text-brume">Aucun agent ne correspond.</p>}
       {lignes.length > 0 && (
         <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">

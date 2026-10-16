@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/avis";
 import { FriseFaits, FenetreSource, TYPES, TEINTES, SOURCES, quand } from "@/components/layer/FriseFaits";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { BarresHorizontales, Chiffre, ChiffreCourbe, Croissance, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import Chargement from "@/components/ui/Chargement";
 
 // L'Intelligence (le Layer ; spec MVP du 14 oct. 2026, refonte du 15 oct.) : ce
 // qui a été dit, décidé ou promis, gardé avec sa source. Voir docs/layer.md.
@@ -111,7 +112,7 @@ function Faits({ q }) {
     && (!typeFiche || (f.fiches || []).some((x) => x.type_entite === typeFiche))
     && (!cherche || (f.fiches || []).some((x) => String(x.libelle || "").toLowerCase().includes(cherche))));
   const compte = (t) => tous.filter((f) => (!t || f.type === t) && avecStatut(f)).length;
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -138,7 +139,7 @@ function Faits({ q }) {
 function Syntheses({ q }) {
   const [ouverte, setOuverte] = useState(null);
   const liste = q.data?.syntheses || [];
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   if (!liste.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Aucune synthèse encore : elle se crée dès qu'un fait validé est rattaché à une fiche.</p>;
   return (
     <div className="border-y border-trait">
@@ -163,7 +164,7 @@ function Syntheses({ q }) {
 
 /** L'évaluation : les critères du MVP, la validation manuelle, les coûts du mois, le seuil Postgres ; le banc de questions en phase 8. */
 function Evaluation({ e, t, c }) {
-  if (!e || !t) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!e || !t) return <Chargement taille="grand" />;
   const m = t.manuel;
   return (
     <div className="flex flex-col gap-4">
@@ -199,7 +200,7 @@ function AValider({ peutValider }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const lots = q.data?.lots || [];
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   if (!lots.length) return <p className="m-0 py-14 text-center text-[14px] text-brume">Rien à valider. Les faits arrivent ici dès qu'un compte rendu, un appel ou un débrief entre dans l'Intelligence.</p>;
   return (
     <div className="flex flex-col gap-6">
@@ -417,7 +418,7 @@ function Sources({ peutValider }) {
         </div>
         {ajouter.isPending && <p className="m-0 mt-2 text-[12.5px] text-ardoise">Lecture et extraction : une vingtaine de secondes.</p>}
       </section>
-      {q.isLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : !sources.length ? (
+      {q.isLoading ? <Chargement /> : !sources.length ? (
         <p className="m-0 py-10 text-center text-[14px] text-brume">Le journal est vide. Chaque compte rendu, appel transcrit et débrief y entre tel quel.</p>
       ) : (
         <div className="border-y border-trait">
@@ -459,7 +460,7 @@ function Banc({ peutEditer }) {
   const proposer = useMutation({ mutationFn: () => base44.request("POST", `${API}/evaluation/proposer`, { body: {} }), onSuccess: (r) => { toast.success(`${r.questions.length} question${r.questions.length > 1 ? "s" : ""} proposée${r.questions.length > 1 ? "s" : ""} : à relire`); setVoirBanc(true); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
   const executer = useMutation({ mutationFn: () => base44.request("POST", `${API}/evaluation/executer`, { body: {} }), onSuccess: () => { toast.success("Exécution lancée : le résultat arrive dans une minute environ"); setTimeout(rafraichir, 60000); }, onError: (e) => toast.error(e?.message || "Impossible") });
   const d = q.data;
-  if (!d) return <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!d) return <Chargement />;
   const c = d.comparaison;
   const pc = (v) => (v == null ? "—" : `${Math.round(v * 100)} %`);
   return (

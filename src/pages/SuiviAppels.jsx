@@ -6,6 +6,7 @@ import OngletsSuivi from "@/components/OngletsSuivi";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
 import { useAuth } from "@/lib/AuthContext";
 import { TempsPostAppel, TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, ChiffreCourbe, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import Chargement from "@/components/ui/Chargement";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -124,7 +125,7 @@ function VueMesAppels({ base, jours, c, onJournal }) {
     placeholderData: (prev) => prev,
     refetchOnWindowFocus: true,
   });
-  if (isLoading || !data) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
+  if (isLoading || !data) return <Chargement taille="grand" />;
   const moi = data.analystes.find((a) => a.email === email);
   if (!moi?.appels) return <p className="m-0 py-10 text-center text-[13.5px] text-brume">Aucun appel à votre nom sur la période.</p>;
   const unJour = jours === 1;
@@ -332,7 +333,7 @@ export default function SuiviAppels({ dansProspection = false }) {
           ))}
         </div>
 
-        {isLoading || !data ? <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
+        {isLoading || !data ? <Chargement taille="grand" /> : (
           <>
             {vue === "ensemble" && <VueEnsemble data={data} jours={jours} c={c} onChoisir={voirJournalDe} />}
 

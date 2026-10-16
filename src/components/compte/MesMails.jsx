@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RotateCcw } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Compte > Mails (13 oct. 2026, Jules) : chacun part des mails de l'équipe et
 // les réécrit à sa façon ; après un appel, la plateforme lui propose sa
@@ -63,7 +64,7 @@ export default function MesMails() {
       <p className="m-0 mt-2 max-w-[70ch] text-[13.5px] leading-[1.6] text-craie">
         Partez des mails de l'équipe et réécrivez-les à votre façon : après vos appels, la plateforme vous propose votre version. Les variables restent : {"{{salutation}}"} (« Bonjour Madame Martin, »), {"{{type_bien}}"} et {"{{ville}}"} (dits pendant l'appel), {"{{signature}}"} (votre signature, posée à l'envoi).
       </p>
-      {isLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+      {isLoading ? <Chargement />
         : error ? <p className="m-0 py-6 text-[13.5px] text-alerte">{error.message || "Les mails ne se chargent pas."}</p>
           : <div className="mt-2">{(data?.mails || []).map((m) => <UnMail key={m.slug} m={m} />)}</div>}
     </section>

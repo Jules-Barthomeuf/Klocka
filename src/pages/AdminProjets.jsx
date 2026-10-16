@@ -44,6 +44,7 @@ import ShadowEditorDialog from "../components/admin/ShadowEditorDialog";
 import { FField, FInput, FTextarea } from "../components/admin/FormField";
 
 import { travauxParDefautListe } from "@/components/simulator/CalculFinancier";
+import Chargement from "@/components/ui/Chargement";
 // Au téléphone (moins de 768 px), l'éditeur s'ouvre en plein écran.
 const REQUETE_TELEPHONE = "(max-width: 767px)";
 function useTelephone() {
@@ -1596,7 +1597,7 @@ export default function AdminProjets() {
             </DialogHeader>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {versions == null ? (
-                <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+                <Chargement />
               ) : !versions.length ? (
                 <p className="m-0 py-10 text-center text-[13.5px] text-brume">Aucune version encore : cliquez sur Enregistrer pour en poser une.</p>
               ) : (

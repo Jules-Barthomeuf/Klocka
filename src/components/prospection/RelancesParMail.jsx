@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Mail, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Relances > Par mail (10 oct. 2026) : l'IA prépare un mail pour chaque
 // relance due dont l'agent a une adresse ; on relit, on retouche, on valide.
@@ -72,7 +73,7 @@ export default function RelancesParMail({ onFait }) {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
-  if (q.isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement taille="grand" />;
   const d = q.data || {};
   const mails = d.mails || [];
   return (

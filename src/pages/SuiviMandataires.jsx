@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import { ENTREES_MANDATAIRE } from "@/lib/menu";
+import Chargement from "@/components/ui/Chargement";
 
 // Le Suivi des mandataires (9 oct. 2026) : ce que chaque mandataire K Partners
 // fait de son espace. Qui se connecte et quand, quelles pages, puis le travail
@@ -125,7 +125,7 @@ export default function SuiviMandataires() {
           ))}
         </div>
 
-        {isLoading || !data ? <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div> : (
+        {isLoading || !data ? <Chargement taille="grand" /> : (
           <>
             {vue === "ensemble" && <div className="k-monte">
               <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">

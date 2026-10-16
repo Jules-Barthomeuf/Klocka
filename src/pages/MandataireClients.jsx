@@ -6,6 +6,7 @@ import { Search, X, ArrowRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { J } from "@/design/jetons";
+import Chargement from "@/components/ui/Chargement";
 
 // Les clients Klocka vus du mandataire (maquette « Clients Admin », 4 oct.
 // 2026, reprise pour le côté mandataire) : des cartes ou un tableau, une
@@ -97,7 +98,7 @@ export default function MandataireClients() {
         ))}
       </div>
 
-      {isLoading && <p className="m-0 text-[14px] text-brume">Lecture…</p>}
+      {isLoading && <Chargement taille="grand" />}
       {!isLoading && !demandes.length && (
         <p className="m-0 text-[14px] text-brume">Aucun client pour l'instant. Ils apparaissent ici dès que Klocka publie une recherche.</p>
       )}

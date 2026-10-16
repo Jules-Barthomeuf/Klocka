@@ -6,6 +6,7 @@ import { GABARITS, THEMES, rendreEmail } from "@/lib/email-design";
 import { toast } from "@/components/ui/avis";
 import EditeurEmail, { BoutonTester } from "./EditeurEmail";
 import { req, useEnregistrement, useSansDefilement, bouton, boutonPlein, date } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les templates, de retour en onglet (9 oct. 2026) : alignés en vignettes, La
 // Note et La Lettre en tête, chacun avec « Envoyer un test » (à soi par
@@ -118,7 +119,7 @@ export default function Templates({ demande = null, onDetail = null }) {
   const supprimer = useMutation({ mutationFn: (id) => req("DELETE", `/templates/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["emailing-templates"] }) });
   const testPlateforme = useMutation({ mutationFn: (cle) => req("POST", `/modeles/${cle}/test`), onSuccess: (r) => toast.success(`Test envoyé à ${r.a}`), onError: (e) => toast.error(e?.message || "Test impossible") });
   if (ouvert) return <EditeurTemplate t={ouvert.t} plateforme={ouvert.plateforme} onFermer={() => setOuvert(null)} />;
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   const tester = (t) => <BoutonTester email={t} libelle="Envoyer un test" plein />;
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-8 max-md:px-4 max-md:py-6">

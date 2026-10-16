@@ -11,6 +11,7 @@ import FacadeLocal from "./FacadeLocal";
 import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone";
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
 import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, comprendre, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import Chargement from "@/components/ui/Chargement";
 
 // Off-market, le mode Simple (spec de Jules du 11 oct. 2026) : la carte de la
 // ville avec tous ses commerces, la couleur dit seulement si l'on sait qui
@@ -212,7 +213,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
           <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
         </div>
         <div className="mt-4 overflow-hidden rounded-[12px] border border-bord-doux">
-          {q.isLoading && <div className="flex justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-ardoise" /></div>}
+          {q.isLoading && <Chargement />}
           {listes.map((l) => (
             <button key={l.id} type="button" disabled={envoyer.isPending} onClick={() => envoyer.mutate({ liste_id: l.id })} className="flex w-full items-center justify-between gap-3 border-t border-trait px-4 py-3 text-left first:border-t-0 hover:bg-relief/40 disabled:opacity-50" style={{ background: "transparent" }}>
               <span className="text-[14px] text-encre">{l.nom}</span><span className="text-[12.5px] text-ardoise">{pl(l.n, "commerce")}</span>
@@ -254,7 +255,7 @@ function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = n
     catch (e) { toast.error(e?.message || "Estimation impossible"); } finally { setEstime(false); }
   };
   estimerRef.current = () => estimer();
-  if (!c) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!c) return <Chargement taille="grand" />;
   const lien = LIENS[c.lien] || LIENS.null;
   const enCours = ["a_faire", "en_cours"].includes(c.etat_recherche);
   const gerant = c.exploitant?.gerants?.[0] || null;

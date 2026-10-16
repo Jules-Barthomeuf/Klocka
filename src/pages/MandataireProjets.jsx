@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import CarteProjet from "@/components/projet/CarteProjet";
 import { euros } from "@/components/mandataire/kit";
+import Chargement from "@/components/ui/Chargement";
 
 // Projets — ceux de la plateforme, tels que les clients les voient : les
 // siens (nés de ses dossiers) et tous les autres projets disponibles, sans
@@ -47,7 +48,7 @@ export default function MandataireProjets() {
       </header>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>
+        <Chargement taille="grand" />
       ) : !projets.length ? (
         <p className="py-20 text-center text-[14px] text-brume">{filtre === "mes" ? "Aucun projet né de vos dossiers pour l'instant : il apparaîtra ici au Go de Klocka." : "Aucun projet à montrer."}</p>
       ) : (

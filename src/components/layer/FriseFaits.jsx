@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import Chargement from "@/components/ui/Chargement";
 
 // Les faits validés de l'Intelligence (14 oct. 2026), du plus récent au plus ancien,
 // chacun cliquable vers sa source : la page Intelligence (Savoir) et l'onglet
@@ -64,7 +65,7 @@ export function FenetreSource({ id, onFermer }) {
 /** L'onglet Historique d'une fiche (dossier, agent, agence) : ses faits validés, avec leur source. */
 export function HistoriqueLayer({ type, id }) {
   const q = useQuery({ queryKey: ["layer", "historique", type, id], queryFn: () => base44.request("GET", `/api/layer/historique/${type}/${encodeURIComponent(id)}`), enabled: !!id });
-  if (q.isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (q.isLoading) return <Chargement />;
   const faits = q.data?.faits || [];
   if (!faits.length) return <p className="m-0 py-6 text-[13.5px] text-brume">Rien à l'Intelligence sur cette fiche pour l'instant : ce qui en sera dit en réunion, en appel ou en débrief arrivera ici une fois validé.</p>;
   return <FriseFaits faits={faits} />;

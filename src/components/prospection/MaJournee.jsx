@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2, Lock, Phone } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Ma journée : l'accueil de la prospection. À gauche, la ville (ses chiffres
 // d'après sa liste de l'agent IA), l'avancement du jour, et qui appeler ou
@@ -147,7 +148,7 @@ export default function MaJournee({ onAppeler, enCours = false, onCompte = null,
   });
   useEffect(() => { onCompte?.(data?.a_appeler?.length || 0); }, [data, onCompte]);
   const choisir = (v) => { setVille(v); try { if (v) localStorage.setItem("prospection.ville", v); else localStorage.removeItem("prospection.ville"); } catch { /* sans gravité */ } };
-  if (isLoading || !data) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (isLoading || !data) return <Chargement taille="grand" />;
   const v = data.ville;
   const { faits, total } = data.appels;
   return (

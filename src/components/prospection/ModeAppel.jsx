@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
 import { clipAutour, morceauDeLaPhrase } from "@/lib/clip-objection";
+import Chargement from "@/components/ui/Chargement";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -1141,7 +1142,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
 
       {/* Tous les écrans, raisonnement et actions proposées compris, sur le fond des listes : la couleur de la barre choisie dans Compte, et ses points (9 oct. 2026). */}
       <div data-zone="listes" className={`k-points relative flex flex-col gap-4 bg-rail px-5 pb-5 pt-4 max-md:px-3 ${relances ? "rounded-[12px]" : "rounded-b-md rounded-t-[12px]"}`}>
-        {(!relances && listes.isLoading) || ouvrir.isPending || (session && file.isLoading) ? <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : null}
+        {(!relances && listes.isLoading) || ouvrir.isPending || (session && file.isLoading) ? <Chargement taille="grand" /> : null}
         {!relances && !listes.isLoading && !villes.length && onglet !== ESSAI && <p className="m-0 py-12 text-center text-[14px] text-brume">Aucune ville encore : lancez l'agent IA sur une ville, ou ouvrez l'onglet Essai.</p>}
         {relances && file.isError && <p className="m-0 py-12 text-center text-[14px] text-alerte">Cette relance n'a pas pu s'ouvrir : {file.error?.message || "erreur"}.</p>}
 

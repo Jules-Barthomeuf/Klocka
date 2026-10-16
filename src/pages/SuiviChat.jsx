@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Suivi > Chat (12 oct. 2026) : chaque échange des chats (AK dans
 // l'application et dans Google Chat, les quatre chats des mandataires), ce
@@ -25,7 +25,7 @@ function Echange({ id, onFerme }) {
   const q = useQuery({ queryKey: ["suivi-chat", id], queryFn: () => req(`/${id}`) });
   const [voirConsigne, setVoirConsigne] = useState(false);
   const e = q.data?.echange;
-  if (!e) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!e) return <Chargement taille="grand" />;
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">

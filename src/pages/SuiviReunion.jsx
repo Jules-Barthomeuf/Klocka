@@ -7,6 +7,7 @@ import OngletsSuivi from "@/components/OngletsSuivi";
 import MicroEcoute from "@/components/prospection/MicroEcoute";
 import { versWav } from "@/lib/dictee";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 
 // Suivi > Réunion (14 oct. 2026, Jules : « enregistrer une réunion, qui va
 // durer longtemps ; ça va nourrir l'Intelligence »).
@@ -34,7 +35,7 @@ function Transcription({ id }) {
   const copier = async () => { try { await navigator.clipboard.writeText(r.texte); toast.success("Transcription copiée"); } catch { toast.error("La copie a échoué."); } };
   return (
     <div className="mx-2 mb-4 rounded-[14px] border border-trait bg-rail px-5 py-4">
-      {q.isLoading ? <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+      {q.isLoading ? <Chargement />
         : q.error ? <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "La transcription ne se charge pas."}</p> : (
           <>
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
@@ -316,7 +317,7 @@ export default function SuiviReunion() {
         {/* Les réunions déjà enregistrées. */}
         <section className="mt-9">
           <h2 className="m-0 mb-3 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">Réunions enregistrées</h2>
-          {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+          {isLoading ? <Chargement />
             : passees.length ? (
               <div className="border-y border-trait">
                 {passees.map((r) => (

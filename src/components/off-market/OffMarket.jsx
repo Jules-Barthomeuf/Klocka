@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { FILTRES_VIDES, filtrer } from "@/lib/off-market-filtres";
 import FicheLocal from "./FicheLocal";
@@ -9,6 +9,7 @@ import Recherche from "./Recherche";
 import Simple from "./Simple";
 import { Aujourdhui, Bilan, Courriers, Listes, Pipeline } from "./Parties";
 import { Vide, pl, req, useOffMarket } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Off-market (spec de Jules du 10 oct. 2026, organisation de PropStream le
 // même jour) : le sourcing des murs commerciaux. La boucle tient en six
@@ -120,7 +121,7 @@ export default function OffMarket({ espace = "klocka" }) {
       )}
 
       <div key={partie} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-        {base.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
+        {base.isLoading && <Chargement taille="grand" />}
         {base.data && !territoires.length && ["recherche", "listes"].includes(partie) && <Vide>{espace === "klocka" ? "Aucune ville lue : lancez la lecture d'un territoire pour commencer." : "Aucune ville lue dans votre secteur pour l'instant : demandez à Klocka d'en ouvrir une."}</Vide>}
 
         {partie === "recherche" && territoires.length > 0 && mode === "simple" && (

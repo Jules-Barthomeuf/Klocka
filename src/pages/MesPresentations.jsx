@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 import Deck from "@/components/presentations/Deck";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
+import Chargement from "@/components/ui/Chargement";
 
 // Présentations, côté client (13 oct. 2026, Jules) : les dossiers bancaires
 // que l'équipe Klocka lui a envoyés. Une présentation ouverte prend toute la
@@ -47,7 +47,7 @@ export default function MesPresentations() {
       </header>
       <div className="mt-[6vh]">
         {isLoading ? (
-          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>
+          <Chargement taille="grand" />
         ) : !presentations.length ? (
           <p className="py-16 text-center text-[14px] text-brume">{equipe ? "Aucune présentation pour l'instant : elles apparaissent ici dès leur création." : "Aucune présentation pour l'instant : Klocka vous l'enverra ici dès qu'elle sera prête."}</p>
         ) : (

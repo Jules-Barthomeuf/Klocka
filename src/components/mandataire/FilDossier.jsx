@@ -4,6 +4,7 @@ import { ArrowRightLeft, Loader2, Paperclip, Send, Sparkles, X } from "lucide-re
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { devinerPiece } from "@/lib/pieces-dossier";
+import Chargement from "@/components/ui/Chargement";
 
 // La conversation d'un dossier mandataire : le mandataire et son analyste
 // Klocka, avec les événements du dossier (pièce reçue, envoi, décision,
@@ -77,7 +78,7 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
-  if (isLoading) return <div className="flex justify-center py-6"><Loader2 className="h-4 w-4 animate-spin text-ardoise" /></div>;
+  if (isLoading) return <Chargement />;
   if (!data) return null;
   const messages = data.messages || [];
   const dernierBriefing = klocka ? [...messages].reverse().find((m) => m.genre === "briefing") : null;

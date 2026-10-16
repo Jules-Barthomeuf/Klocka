@@ -5,6 +5,7 @@ import { Check, Download, Loader2, Plus, RefreshCw, Tag, Trash2, Upload, X } fro
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { API, Avatar, Etat, Fenetre, req, useReferentiel, bouton, boutonContour, boutonLigne, boutonPlein, champ, etiquette, date, dateHeure, pluriel } from "./commun";
+import Chargement from "@/components/ui/Chargement";
 
 // Les contacts : le tableau (recherche, filtres, sélection multiple, actions
 // en masse), l'import en trois temps (le texte ou le fichier, la
@@ -179,7 +180,7 @@ function Fiche({ id, onFermer }) {
           <div className="min-w-0"><p className="m-0 truncate text-[16px] text-encre">{c ? [c.prenom, c.nom].filter(Boolean).join(" ") || c.email : "…"}</p><p className="m-0 truncate text-[13px] text-ardoise">{c?.email}</p></div>
           <div className="flex flex-none items-center gap-2">{c && <Etat statut={c.statut} />}<button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:bg-relief max-md:h-10 max-md:w-10"><X className="h-4 w-4" /></button></div>
         </div>
-        {!c ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div> : (
+        {!c ? <Chargement /> : (
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 max-md:px-4 max-md:pb-[calc(20px+env(safe-area-inset-bottom))]">
             <label className={`${etiquette} mb-3`}>Type
               <select value={c.type || "lead"} onChange={(e) => maj.mutate({ type: e.target.value })} className={`${champ} mt-1 h-9 text-[13px]`}>
@@ -357,7 +358,7 @@ export default function Contacts({ demande = null }) {
             </>,
           )}
 
-          {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+          {isLoading ? <Chargement />
             : !contacts.length ? <p className="py-14 text-center text-[14px] text-brume">Aucun contact{q || type || filtre ? " pour ces filtres" : " : « Importer » ou « Ajouter un contact », en haut à droite"}.</p>
               : (
                 <div className="mt-3.5 overflow-x-auto rounded-[14px] border border-trait bg-rail">

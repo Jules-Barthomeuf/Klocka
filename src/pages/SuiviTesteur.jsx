@@ -5,6 +5,7 @@ import { Check, Copy, Loader2, Mail, Square } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import Chargement from "@/components/ui/Chargement";
 
 // Suivi > Agent testeur (10 oct. 2026) : les audits lancés depuis le bouton,
 // un rapport ouvert : résumé, notes, problèmes avec leurs captures, tâches,
@@ -29,7 +30,7 @@ function Rapport({ id, onFerme }) {
   const [grande, setGrande] = useState(null);
   const [copie, setCopie] = useState(false);
   const r = q.data?.rapport;
-  if (!r) return <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  if (!r) return <Chargement taille="grand" />;
   const captureDe = (nom) => (r.captures || []).find((c) => c.fichier === nom) || null;
   const copier = async () => { try { await navigator.clipboard.writeText(r.prompt_correction || ""); setCopie(true); setTimeout(() => setCopie(false), 1500); } catch { toast.error("Copie impossible"); } };
   return (

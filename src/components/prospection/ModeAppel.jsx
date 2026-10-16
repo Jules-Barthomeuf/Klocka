@@ -14,6 +14,7 @@ import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/pros
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
+import { clipAutour, morceauDeLaPhrase } from "@/lib/clip-objection";
 
 // Le mode appel (maquette de Jules, spec du 7 oct. 2026). Un onglet par
 // ville, puis une agence à la fois, tenue pour soi tant qu'elle est à
@@ -916,6 +917,22 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setNote(""); setEdits({});
     setEcran("actions");
   };
+  // Le clip d'objection (16 oct. 2026, Jules) : AK a relevé une objection non levée ; quinze secondes
+  // autour de sa phrase partent à l'équipe (Dashboard), après coup, sans rien attendre. Jamais en essai.
+  const objectionEnvoyee = useRef(new Set());
+  const envoyerObjection = (ap) => {
+    const phrase = ap?.objection?.phrase;
+    if (!phrase || !ap.id || session?.essai || simule || objectionEnvoyee.current.has(ap.id)) return;
+    const i = morceauDeLaPhrase(morceaux.current.map((x) => x.texte || ""), phrase);
+    if (i < 0 || !audios.current[i]) return;
+    objectionEnvoyee.current.add(ap.id);
+    clipAutour(audios.current, i).then((clip) => {
+      if (!clip) return null;
+      const f = new FormData();
+      f.append("audio", clip, "objection.wav");
+      return base44.request("POST", `${API}/appels/${ap.id}/objection`, { body: f, isForm: true });
+    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur le Dashboard.` }); }).catch(() => {});
+  };
   // La part de parole : l'audio entier part après coup, sans rien attendre ; jamais sur un appel simulé ni sans transcription gardée.
   const envoyerParole = (id) => {
     if (!id || session?.essai || simule || parole.current.has(id)) return;
@@ -965,6 +982,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et sa transcription sont gardés ; les actions s'ouvriront au retour du réseau");
       if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : v.issue === "agent_prevenu" ? "Agent prévenu" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
       envoyerParole(r.appel.id);
+      envoyerObjection(r.appel);
       ouvrirActions(r.appel, r.appel.issue_tapee || v.issue);
     },
     onError: (e) => { toast.error(e?.message || "L'appel n'a pas pu être lu"); setEcran(direct.length ? "appel" : "issue"); },

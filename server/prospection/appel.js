@@ -126,6 +126,16 @@ const SCHEMA = {
         autre_contact: { type: 'string', description: "la phrase exacte où l'autre interlocuteur a été cité, vide sinon" },
       },
     },
+    // Le clip d'objection (16 oct. 2026, Jules) : l'objection que l'appel n'a pas levée part à l'équipe, avec 15 s d'audio.
+    objection: {
+      type: 'object',
+      description: "l'objection principale de l'interlocuteur (refus, doute, frein) que l'appelant n'a pas su lever pendant l'appel ; phrase vide s'il n'y en a pas, ou si elle a été levée",
+      properties: {
+        phrase: { type: 'string', description: "la phrase de l'interlocuteur, mot pour mot telle qu'écrite dans la transcription, vide sinon" },
+        sujet: { type: 'string', description: "l'objection en quelques mots (« ne travaille pas avec des investisseurs »), vide sinon" },
+        resolue: { type: 'boolean', description: "true si l'appelant a levé l'objection pendant l'appel" },
+      },
+    },
     confiance: {
       type: 'object',
       description: "pour chaque champ rempli : haute si dit clairement, moyenne si mal entendu ou épelé, basse si déduit",
@@ -136,6 +146,22 @@ const SCHEMA = {
 };
 
 const lignesJournal = (a) => (a.journal || []).slice(0, 6).map((j) => `${String(j.le).slice(0, 10)} ${j.type} : ${j.texte}`).join('\n') || 'aucun échange';
+
+/**
+ * Pure : l'objection non levée qu'AK a relevée, seulement si sa phrase se lit bien dans la transcription
+ * (une phrase inventée ne donnerait pas de clip juste).
+ */
+export function objectionDe(lu, transcription) {
+  const o = lu?.objection;
+  const phrase = String(o?.phrase || '').trim();
+  if (!phrase || o?.resolue || !transcription) return null;
+  const norm = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const mots = norm(phrase).split(' ').filter((m) => m.length > 2);
+  const texte = ` ${norm(transcription)} `;
+  const lus = mots.filter((m) => texte.includes(` ${m} `)).length;
+  if (!mots.length || lus / mots.length < 0.6) return null;
+  return { phrase: phrase.slice(0, 400), sujet: String(o.sujet || '').trim().slice(0, 140) || null };
+}
 
 /** Lit l'appel (transcription ou récit) et rend ce qu'AK en retient. */
 async function lire(a, texte, { par, maintenant, issueTapee = null, entrant = false }) {
@@ -414,6 +440,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
     transcription: null, recit: null, resume: lu.resume || null, passe: String(lu.ce_qui_s_est_passe || '').trim().slice(0, 300) || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null, pourquoi_relance: lu.pourquoi_relance || null,
     compris, transcription_echec: transcriptionEchec,
+    objection: objectionDe(lu, transcription),
     propositions: props, message, etat: 'a_valider',
   });
   // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus

@@ -583,6 +583,48 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(r.error === 'Appel introuvable.' ? 404 : 502).json({ error: r.error });
     ok(res, r);
   }));
+  // Le clip d'objection (16 oct. 2026) : quinze secondes autour de l'objection non levée, pour l'équipe.
+  app.post('/api/prospection/mode-appel/appels/:id/objection', upload.single('audio'), wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const wav = req.file ? fs.readFileSync(req.file.path) : null;
+    if (req.file) fs.promises.unlink(req.file.path).catch(() => {});
+    const O = await import('../objections.js');
+    const r = O.deposer({ appel_id: req.params.id, wav, par: user.email });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    if (!r.deja) {
+      const { notifier } = await import('../notifications.js');
+      notifier({ titre: `Objection à résoudre${r.objection.agence ? ` · ${r.objection.agence}` : ''}`, texte: `« ${r.objection.phrase} » : quinze secondes à écouter, une réponse à trouver.`, lien: '/TableauDeBord', action: 'Écouter', cle: `objection-${r.objection.id}` });
+    }
+    ok(res, r);
+  }));
+  // Les objections sur le Dashboard : toute l'équipe les écoute et y répond.
+  app.get('/api/objections', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { objections: (await import('../objections.js')).liste({ ouvertes: req.query.toutes !== '1' }) });
+  }));
+  app.get('/api/objections/:id/audio', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const p = (await import('../objections.js')).fichier(req.params.id);
+    if (!p) return res.status(404).json({ error: "Le clip n'existe plus (effacé après 30 jours)." });
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    fs.createReadStream(p).pipe(res);
+  }));
+  app.post('/api/objections/:id/reponse', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await import('../objections.js')).repondre(req.params.id, req.body?.texte, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/objections/:id/resoudre', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await import('../objections.js')).resoudre(req.params.id, req.body?.resolue !== false, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.get('/api/prospection/mode-appel/appels/:id/recu', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const r = (await MA()).recu(req.params.id);
@@ -692,6 +734,23 @@ export function monterProspection(app) {
     const a = p.agentDe(req.params.id);
     if (!a) return res.status(404).json({ error: 'Agent introuvable.' });
     ok(res, { agent: a, appels: p.appels().filter((x) => x.agent_id === a.id).sort((x, y) => String(y.le).localeCompare(String(x.le))).slice(0, 20) });
+  }));
+
+  // La fiche d'un agent ou d'une agence en un coup d'œil (16 oct. 2026) ; la lecture par l'IA à part, elle peut prendre quelques secondes.
+  app.get('/api/prospection/fiche/:type/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    if (!['agent', 'agence'].includes(req.params.type)) return res.status(400).json({ error: 'Type inconnu.' });
+    const F = await import('../prospection/fiche-contact.js');
+    const f = req.params.type === 'agence' ? await F.ficheAgence(req.params.id) : await F.ficheAgent(req.params.id);
+    if (!f) return res.status(404).json({ error: 'Fiche introuvable.' });
+    ok(res, f);
+  }));
+  app.post('/api/prospection/fiche/:type/:id/lire', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    if (!['agent', 'agence'].includes(req.params.type)) return res.status(400).json({ error: 'Type inconnu.' });
+    const r = await (await import('../prospection/fiche-contact.js')).lire(req.params.type, req.params.id, { forcer: !!req.body?.forcer });
+    if (!r) return res.status(404).json({ error: 'Fiche introuvable.' });
+    ok(res, r);
   }));
 
   app.post('/api/prospection/agents', wrap(async (req, res) => {

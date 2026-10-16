@@ -146,6 +146,26 @@ export function monterPresentations(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, M.lirePourClient(req.params.id, user));
   }));
+  // Le chat du client sur SA présentation, et la note du design (16 oct. 2026, Jules).
+  app.post(`${client}/:id/chat`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const r = await (await import('../presentation-client.js')).discuter(req.params.id, user, { texte: req.body?.texte, historique: req.body?.historique });
+    if (!r.ok) return res.status(r.error === 'Présentation introuvable.' ? 404 : 400).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.get(`${client}/:id/note`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    ok(res, { note: (await import('../presentation-client.js')).maNote(req.params.id, user) });
+  }));
+  app.post(`${client}/:id/note`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const r = await (await import('../presentation-client.js')).noter(req.params.id, user, req.body?.note);
+    if (!r.ok) return res.status(r.error === 'Présentation introuvable.' ? 404 : 400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post(`${client}/:id/question`, wrap(async (req, res) => {
     const user = connecte(req, res);
     if (!user) return;

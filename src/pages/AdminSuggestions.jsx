@@ -267,6 +267,13 @@ export default function AdminSuggestions() {
                     ) : (
                       <p className="m-0 text-[15px] leading-[1.65] text-encre whitespace-pre-wrap">{r.contenu}</p>
                     )}
+                    {/* La note du design d'une présentation, donnée par un client (16 oct. 2026) : cinq étoiles. */}
+                    {r.note_design ? (
+                      <p className="m-0 mt-1 flex items-center gap-2 text-[12.5px] text-craie" aria-label={`Design noté ${r.note_design} sur 5`}>
+                        <span className="text-[16px] tracking-[2px] text-ambre">{"★".repeat(r.note_design)}<span className="text-brume">{"★".repeat(5 - r.note_design)}</span></span>
+                        Design de la présentation · {r.note_design}/5
+                      </p>
+                    ) : null}
                     {r.prompt_correction && <PromptCorrection r={r} />}
                     <p className="m-0 mt-1.5 text-[12.5px] text-brume flex flex-wrap items-center gap-x-2">
                       <span className="inline-flex items-center gap-1.5" title={`Urgence ${urgenceDe(r.urgence).n} sur 5 — cliquez une barre pour la changer`}>

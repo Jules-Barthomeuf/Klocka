@@ -359,6 +359,8 @@ function LayoutContent({ children, currentPageName }) {
   const testeurVisible = false;
   // « Il me rappelle » (8 oct. 2026) : sur chaque page de l'équipe qui prospecte (Prospection ou Relances ouvertes).
   const rappelOuvert = vueAdmin && !(pagesFermees.includes("Prospection") && pagesFermees.includes("Relances"));
+  // Le bouton « Rappel » n'a rien à faire sur la page Analyse (16 oct. 2026, Jules) ; un rappel en cours y reste visible.
+  const boutonRappel = rappelOuvert && currentPageName !== "Analyse";
   // Ce qui est en retard suit l'admin de page en page : sans ce compteur, un
   // rappel dû n'existe que si l'on retourne au tableau de bord.
   const { data: attend } = useQuery({
@@ -753,7 +755,7 @@ function LayoutContent({ children, currentPageName }) {
               )}
               <div className="flex items-center gap-1">
                 {testeurVisible && <BoutonTesteur compact vue={vue} />}
-                {rappelOuvert && <BoutonRappel compact />}
+                {boutonRappel && <BoutonRappel compact />}
                 {/* La recherche : ⌘K n'existe pas au téléphone. */}
                 {vueAdmin && (
                   <Button variant="ghost" size="icon" onClick={() => setRechercheOuverte(true)} className="text-encre" aria-label="Rechercher" title="Rechercher">
@@ -822,10 +824,10 @@ function LayoutContent({ children, currentPageName }) {
       {/* Le coin en haut à droite, sur ordinateur : ce qu'une page y pose (la pilule des boîtes du Dashboard, par `#k-haut-droite`), et l'icône Rappel, seule, dans la marge du coin, pour ne jamais couvrir le bouton d'un en-tête. */}
       {vueAdmin && !hideNavbar && !modoKData && (
         <>
-          <div id="k-haut-droite" className={`fixed ${rappelOuvert ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
+          <div id="k-haut-droite" className={`fixed ${boutonRappel ? "right-[120px]" : "right-[68px]"} top-4 z-40 flex items-center gap-3 empty:hidden max-md:hidden`} />
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
-          {testeurVisible && <div className={`fixed ${rappelOuvert ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
-          {rappelOuvert && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
+          {testeurVisible && <div className={`fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
+          {boutonRappel && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
         </>
       )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}

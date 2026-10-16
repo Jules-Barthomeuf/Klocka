@@ -143,8 +143,12 @@ function CelluleMonday({ col }) {
     return (
       <span className="flex h-full items-center gap-2 px-2">
         {col.titre === "Téléphone" && !vide && <Drapeau />}
-        <input value={valeur} onChange={(e) => col.edit.changer(e.target.value)} placeholder={col.edit.placeholder || "—"} aria-label={col.titre} title={valeur || col.edit.placeholder || col.titre}
-          className={`${champ} !text-left h-[28px] rounded-[4px] focus:ring-1`} style={{ color: etiquette ? MO.fond : lien ? MO.lien : MO.texte, background: fond, "--tw-ring-color": MO.lien }} />
+        {col.titre === "Remarques" ? (
+          // Les remarques sont longues : une zone sur plusieurs lignes plutôt qu'une ligne coupée.
+          <textarea value={valeur} onChange={(e) => col.edit.changer(e.target.value)} rows={Math.min(5, Math.max(2, Math.ceil(valeur.length / 90)))} aria-label={col.titre} placeholder="—"
+            className="w-full min-w-0 resize-y rounded-[4px] bg-transparent px-2 py-1.5 text-left text-[14px] leading-[1.45] outline-none focus:ring-1" style={{ color: MO.texte, "--tw-ring-color": MO.lien }} />
+        ) : <input value={valeur} onChange={(e) => col.edit.changer(e.target.value)} placeholder={col.edit.placeholder || "—"} aria-label={col.titre} title={valeur || col.edit.placeholder || col.titre}
+          className={`${champ} !text-left h-[28px] rounded-[4px] focus:ring-1`} style={{ color: etiquette ? MO.fond : lien ? MO.lien : MO.texte, background: fond, "--tw-ring-color": MO.lien }} />}
       </span>
     );
   }

@@ -23,6 +23,7 @@ export const ADRESSES = {
   SuiviTesteur: "SuiviTesteur",
   SuiviChat: "SuiviChat",
   SuiviReunion: "SuiviReunion",
+  Semaine: "Semaine",
   ImpressionPresentation: "ImpressionPresentation",
   ALX: "ALX",
   ALXAtelier: "ALXAtelier",

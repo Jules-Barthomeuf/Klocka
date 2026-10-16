@@ -67,6 +67,7 @@ import { jetonValide as jetonImpressionValide } from './presentation-pdf.js';
 import { monterTesteur } from './routes/testeur.js';
 import { monterSuiviChat } from './routes/suivi-chat.js';
 import { monterLayer } from './routes/layer.js';
+import { monterSemaine } from './routes/semaine.js';
 import { monterAudience } from './routes/audience.js';
 import { monterEquipe } from './routes/equipe.js';
 import { amorcerBacASable } from './testeur/bac-a-sable.js';
@@ -1272,6 +1273,9 @@ planifierVeilleOffMarket();
 monterTesteur(app);
 monterSuiviChat(app);
 monterLayer(app);
+// La page Semaine (16 oct. 2026) : présences, passation, résumé de retour ; le tour du matin sur Render.
+monterSemaine(app);
+import('./equipe-semaine.js').then((m) => m.planifier()).catch((e) => console.error('[semaine] :', e.message));
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
 import('./layer.js').then(async (L) => { const T = await import('./layer-taches.js'); T.reprendre(); const n = L.reprendreExtractions(); if (n) console.log(`[layer] ${n} source(s) remise(s) en file d'extraction`); (await import('./layer-cycle.js')).planifier(); const R = await import('./layer-recherche.js'); const x = R.rattraper(); if (x.fts || x.embeddings_en_file) console.log(`[layer] index rattrapé : ${x.fts} fait(s) en plein texte, ${x.embeddings_en_file} embedding(s) en file`); }).catch((e) => console.error('[layer] reprise :', e.message));
 monterAudience(app);

@@ -32,7 +32,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -482,6 +482,7 @@ function LayoutContent({ children, currentPageName }) {
   const DETAILS = {
     // « Dashboard » ouvre le Dashboard pour tous (16 oct. 2026, Jules : il ne renvoie plus aux Projets, qui ont leur entrée).
     Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
+    Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },

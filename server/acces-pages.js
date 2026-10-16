@@ -34,7 +34,7 @@ export const API_DES_PAGES = {
 
 // Ce qui ne se ferme jamais : sans elles, plus moyen de travailler ni de revenir.
 // Présentations (13 oct. 2026, Jules : « toutes les présentations sont partagées entre tous les admins ») : ouverte à tous.
-export const TOUJOURS_OUVERTES = ['Dashboard', 'Personnalisation', 'AdminPresentations'];
+export const TOUJOURS_OUVERTES = ['Dashboard', 'Personnalisation', 'AdminPresentations', 'Semaine'];
 
 /** Les pages du menu de l'équipe, celles qui s'ouvrent ou se ferment. */
 export const PAGES_EQUIPE = [...new Set([...ENTREES_ADMIN, ...ENTREES_AUTRE].map((e) => e.cle))].filter((p) => !TOUJOURS_OUVERTES.includes(p));

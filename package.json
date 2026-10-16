@@ -11,7 +11,7 @@
     "etat": "node server/etat-plateforme.js",
     "recap": "node server/recap/recap.js",
     "ak:epreuves": "node server/ak/epreuves.js",
-    "build": "vite build",
+    "build": "node scripts/nouveautes.mjs && vite build",
     "lint": "eslint .",
     "test": "node --test server/*.test.js server/ak/*.test.js server/alx/*.test.js server/deal/*.test.js server/implantation/*.test.js server/marche/*.test.js server/prospection/*.test.js server/emailing/*.test.js server/recap/*.test.js server/testeur/*.test.js server/off-market/*.test.js server/outils/*.test.js",
     "typecheck": "tsc -p ./jsconfig.json",

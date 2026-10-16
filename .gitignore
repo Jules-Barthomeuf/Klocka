@@ -52,3 +52,6 @@ ml/sortie/
 
 # Les reglages Claude Code propres a cette machine ; settings.json, lui, se partage.
 .claude/settings.local.json
+
+# Écrit au build (scripts/nouveautes.mjs)
+server/nouveautes.json

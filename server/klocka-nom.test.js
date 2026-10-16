@@ -19,3 +19,18 @@ test("le nom de Paul aussi : « de Zulveta », « de Silueta » deviennent « de
   assert.equal(corrigerKlocka("qui s'appelle CloCA"), "qui s'appelle Klocka");
   for (const mot of ['petites cloques', 'Sultan', 'statue', 'la suite']) assert.equal(corrigerKlocka(mot), mot);
 });
+
+test('les noms de l\'équipe (16 oct. 2026) : les formes rares partout, les mots courants seulement après le prénom ou « Madame »', () => {
+  assert.equal(corrigerKlocka('Bonjour, ici Coralie Guillot et Nora Lorinquet, de chez Cloaca.'), 'Bonjour, ici Coralie Guillaud et Nora Lorinquer, de chez Klocka.');
+  assert.equal(corrigerKlocka('Je vous passe Maxime Palma, Jules Barthomieu ou Paul de Zuluta. Madame Guillaume vous rappellera.'), 'Je vous passe Maxime Pama, Jules Barthomeuf ou Paul de Zulueta. Madame Guillaume vous rappellera.'.replace('Madame Guillaume', 'Madame Guillaud'));
+  assert.equal(corrigerKlocka('Coraly Guyot, Norah Laurinquer, M. Pamma, Paul de Zoulouéta'), 'Coralie Guillaud, Nora Lorinquer, M. Pama, Paul de Zulueta');
+  // Ce qui peut être quelqu'un d'autre reste tel quel.
+  for (const t of ['Guillaume Dupont', 'Saint-Guillaume', 'le Panama', 'la Palma', 'Monsieur Palma', 'Monsieur Barthélémy', 'Madame Guilbert']) assert.equal(corrigerKlocka(t), t);
+});
+
+test('le vocabulaire donné à Voxtral : un mot par entrée, sans espace ni virgule', async () => {
+  const { VOCABULAIRE, EQUIPE } = await import('./klocka-nom.js');
+  assert.ok(VOCABULAIRE.includes('Klocka') && VOCABULAIRE.includes('Guillaud'));
+  for (const m of VOCABULAIRE) assert.doesNotMatch(m, /[\s,]/);
+  assert.equal(EQUIPE.length, 5);
+});

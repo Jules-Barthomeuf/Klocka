@@ -11,7 +11,7 @@
 // Chargé ici aussi pour que les modules restent utilisables hors du serveur
 // (scripts, tests) sans dépendre de l'ordre des imports.
 import 'dotenv/config';
-import { corrigerKlocka } from './klocka-nom.js';
+import { corrigerKlocka, VOCABULAIRE } from './klocka-nom.js';
 import Anthropic from '@anthropic-ai/sdk';
 import { enregistrerUsage } from './llm-couts.js';
 
@@ -469,11 +469,16 @@ const MISTRAL_KEY = (process.env.MISTRAL_API_KEY || '').trim();
 const VOXTRAL_MODEL = (process.env.VOXTRAL_MODEL || 'voxtral-mini-latest').trim();
 
 /** L'audio transcrit par Voxtral (Mistral) : rapide, français, déjà ponctué. */
-async function voxtralTranscrire({ buffer, mimetype }) {
+// Les noms de Klocka et de l'équipe, reconnus dès la transcription (16 oct. 2026) : `context_bias` de Voxtral,
+// un mot par entrée, séparés par des virgules (vérifié en réel : « Coralie Guillot » devient « Coralie Guillaud »).
+// Un modèle qui ne le prend pas renvoie 400 : on retranscrit sans, et la correction d'après fait le reste.
+let biaisRefuse = false;
+async function voxtralTranscrire({ buffer, mimetype, biais = !biaisRefuse }) {
   const form = new FormData();
   form.append('file', new Blob([buffer], { type: mimetype }), mimetype.includes('wav') ? 'audio.wav' : 'audio');
   form.append('model', VOXTRAL_MODEL);
   form.append('language', 'fr');
+  if (biais) form.append('context_bias', VOCABULAIRE.join(','));
   const r = await fetch('https://api.mistral.ai/v1/audio/transcriptions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${MISTRAL_KEY}` },
@@ -481,6 +486,11 @@ async function voxtralTranscrire({ buffer, mimetype }) {
     signal: AbortSignal.timeout(60000),
   });
   const data = await r.json().catch(() => ({}));
+  if (!r.ok && biais && r.status === 400 && /context.?bias/i.test(JSON.stringify(data))) {
+    biaisRefuse = true;
+    console.warn(`[voxtral] ${VOXTRAL_MODEL} refuse context_bias : transcription sans`);
+    return voxtralTranscrire({ buffer, mimetype, biais: false });
+  }
   if (!r.ok) throw Object.assign(new Error(data?.message || `Voxtral a répondu ${r.status}.`), { statut: r.status });
   if (data?.usage?.prompt_audio_seconds) console.log(`[voxtral] ${data.usage.prompt_audio_seconds} s d'audio transcrits (${VOXTRAL_MODEL})`);
   return String(data?.text || '').trim();

@@ -1340,6 +1340,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         }
         return null;
       }
+      // Plus de crédit chez Anthropic : une phrase, pas le JSON de l'API (16 oct. 2026, Jules).
+      // Le serveur envoie déjà la phrase ; l'ancienne erreur brute de l'API est aussi reconnue (un serveur pas encore mis à jour).
+      if (/credit balance is too low|je n'ai plus de crédits/i.test(String(e?.message || ""))) return pousser({ role: "assistant", contenu: "Désolé je n'ai plus de crédits ! :(" });
       return pousser({ role: "assistant", contenu: prospection ? e?.message || "Recherche impossible" : `Impossible : ${e?.message || "erreur"}` });
     },
   });

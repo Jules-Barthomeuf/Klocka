@@ -8,6 +8,7 @@
 // dépendances en paramètre.
 
 import crypto from 'crypto';
+import { estSansCredit, messagePourLaPersonne } from './credit-ia.js';
 import multer from 'multer';
 import { CHEMIN_UPLOADS, Records } from './db.js';
 import { ADMIN_EMAIL } from './seed.js';
@@ -96,7 +97,8 @@ export const wrap = (fn) => async (req, res) => {
     await fn(req, res);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: String(e?.message || e) });
+    // Plus de crédit chez Anthropic : une phrase, pas le JSON de l'API (16 oct. 2026, Jules).
+    res.status(estSansCredit(e) ? 402 : 500).json({ error: messagePourLaPersonne(e) });
   }
 };
 

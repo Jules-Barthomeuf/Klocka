@@ -2,6 +2,8 @@
 // (« etape », puis « resultat » ou « erreur »). La compression retiendrait
 // les lignes jusqu'à la fin ; `flush` les pousse une à une.
 
+import { messagePourLaPersonne } from './credit-ia.js';
+
 export function ouvrirFlux(res) {
   res.status(200);
   res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
@@ -20,6 +22,7 @@ export function ouvrirFlux(res) {
     // Le texte du modèle au fil de l'eau (12 oct. 2026) : un morceau, et le tour de la boucle où il est écrit.
     texte: (morceau, tour = 0) => { if (morceau) ecrire({ texte: String(morceau), tour }); },
     fin: (resultat) => { ecrire({ resultat }); res.end(); },
-    erreur: (e) => { ecrire({ erreur: String(e?.message || e || 'Erreur') }); res.end(); },
+    // Plus de crédit chez Anthropic : une phrase, pas le JSON de l'API (16 oct. 2026, Jules).
+    erreur: (e) => { ecrire({ erreur: e ? messagePourLaPersonne(e) : 'Erreur' }); res.end(); },
   };
 }

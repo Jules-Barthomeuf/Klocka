@@ -447,7 +447,10 @@ relue, « Annuler · 10 s » en pied ; puis « Tout préparé » prend le relais
 
 **Relances** (spec de Jules du 8 oct. 2026, qui remplace les onglets et les
 fiches du 7 oct.) : une page à part (menu « Relances », après Prospection),
-partagée par toute l'équipe, sans onglets. Titre centré, puis le tableau de
+partagée par toute l'équipe. **Le 16 oct. 2026 (Jules), le tableau de bord (total, mails
+à valider, activité, pilotage) est retiré** : la page s'ouvre sur Liste, avec
+Mode appel et Par mail ; le reste de ce paragraphe décrit la liste. Titre
+centré, puis (ancien) tableau de
 bord : le total (« 23 relances à faire · 4 en retard », 22 px), les motifs en
 pastilles cliquables qui filtrent la liste (Bien retenu en `menthe` et Bien
 refusé en `alerte` tant qu'il en reste), puis trois blocs bordés en grille :

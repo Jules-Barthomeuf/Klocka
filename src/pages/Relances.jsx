@@ -3,22 +3,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, Trash2, Undo2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import TableauDeBordRelances from "@/components/prospection/TableauDeBordRelances";
 import ListeRelances from "@/components/prospection/ListeRelances";
 import ModeAppel from "@/components/prospection/ModeAppel";
 import RelancesParMail from "@/components/prospection/RelancesParMail";
 
 // La page Relances (spec du 8 oct. 2026) : une seule page partagée par toute
-// l'équipe, en trois onglets comme la Prospection : Tableau de bord (mails à
-// valider, activité, pilotage), Liste (toutes les relances à faire, en
-// tableau ; cocher pour supprimer ou renvoyer en prospection) et Mode appel.
+// l'équipe, en onglets comme la Prospection : Liste (toutes les relances à
+// faire, en tableau ; cocher pour supprimer ou renvoyer en prospection), Mode
+// appel et Par mail. L'onglet Tableau de bord (mails à valider, activité,
+// pilotage) a été retiré le 16 oct. 2026 (Jules).
 // Un clic sur une ligne la prend (« En cours : Maxime » chez les autres en
 // moins de deux secondes) et ouvre le mode appel sur cet agent ; l'onglet Mode
 // appel prend la première ligne libre. Après l'issue : « Relance suivante »
 // prend la prochaine ligne libre dans l'ordre de la liste, ou « Retour à la liste ».
 
 const API = "/api/prospection/relances";
-const PARTIES = [["bord", "Tableau de bord"], ["liste", "Liste"], ["appel", "Mode appel"], ["mail", "Par mail"]];
+const PARTIES = [["liste", "Liste"], ["appel", "Mode appel"], ["mail", "Par mail"]];
 const pl = (n, mot, mots = `${mot}s`) => `${n} ${n > 1 ? mots : mot}`;
 
 export default function Relances() {
@@ -198,7 +198,6 @@ export default function Relances() {
         <div key={partie} className="flex flex-col gap-6 pb-16 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
           {q.isLoading && <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
           {q.isError && !/403|réservé/i.test(q.error?.message || "") && <p className="py-12 text-center text-[14px] text-alerte">Les relances n'ont pas pu être lues : {q.error?.message || "erreur"}.</p>}
-          {data && partie === "bord" && <TableauDeBordRelances data={data} />}
           {/* Par mail (10 oct. 2026) : l'IA prépare, on valide ; validé, c'est une relance. */}
           {partie === "mail" && <RelancesParMail onFait={rafraichir} />}
 

@@ -310,8 +310,8 @@ const OUTILS_AK = [
   },
   {
     name: 'layer_fiche',
-    description: "La frise de l'Intelligence d'une fiche : tous ses faits validés, du plus récent au plus ancien, chacun avec sa source. type_entite : dossier (deal_id), projet, agent, agence, investisseur, ville (son nom).",
-    input_schema: { type: 'object', properties: { type_entite: { type: 'string', enum: ['dossier', 'projet', 'agent', 'agence', 'investisseur', 'ville'] }, id: { type: 'string' } }, required: ['type_entite', 'id'] },
+    description: "Ce que l'Intelligence sait d'une fiche : d'abord sa synthèse (qui/quoi, situation, décisions, engagements ouverts, vigilance, dernier contact ; chaque ligne avec les faits qui la portent), ses engagements ouverts ou échus, ses derniers faits validés. detail: true ajoute la frise complète (tous les faits validés, avec leur source). À appeler AVANT layer_chercher pour toute question sur une personne ou une fiche. type_entite : dossier (deal_id), projet, agent, agence, investisseur, ville (son nom).",
+    input_schema: { type: 'object', properties: { type_entite: { type: 'string', enum: ['dossier', 'projet', 'agent', 'agence', 'investisseur', 'ville'] }, id: { type: 'string' }, detail: { type: 'boolean', description: 'true pour la frise complète' } }, required: ['type_entite', 'id'] },
   },
   {
     name: 'layer_noter',
@@ -1057,7 +1057,18 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
       const faits = await C.chercher(input || {}, { par: user?.email });
       return { ok: true, faits: faits.map(pour), nombre: faits.length, ...(faits.length ? {} : { rien: 'Aucun fait validé ne répond. Dis-le tel quel, n\'invente pas, et propose de noter l\'information si la personne la connaît.' }), a_valider: C.nombreAValider() };
     }
-    if (name === 'layer_fiche') return { ok: true, faits: C.historique(input.type_entite, input.id).map(pour) };
+    if (name === 'layer_fiche') {
+      // Phase 5 : la synthèse d'abord, la frise sur demande.
+      const { ficheLayer } = await import('../layer-syntheses.js');
+      const f = ficheLayer(input.type_entite, input.id);
+      return {
+        ok: true,
+        synthese: f.synthese ? { lignes: f.synthese.lignes, genere_le: f.synthese.genere_le, perimee: f.synthese.perime } : null,
+        engagements: f.engagements, derniers_faits: f.faits, total_faits: f.total,
+        ...(input.detail ? { frise: C.historique(input.type_entite, input.id).map(pour) } : {}),
+        ...(f.total ? {} : { rien: "Rien dans l'Intelligence sur cette fiche. Dis-le tel quel, et propose de noter (layer_noter) si la personne sait quelque chose." }),
+      };
+    }
     if (input.question_id) {
       const q = await C.repondre(String(input.question_id), String(input.texte || ''), { user });
       return q.ok ? { ok: true, decision: q.fait?.resume || null, valide: 'La réponse vient de la personne qui a tranché : validée d\'office, rattachée au dossier.' } : q;

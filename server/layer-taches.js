@@ -28,13 +28,14 @@ let minuterie = null;
 export function enregistrer(type, fn) { executants.set(type, fn); }
 
 /** Met une tâche en file. Une tâche de même clé déjà en attente ou en cours n'est pas doublée. Rend la tâche. */
-export function enfiler(type, charge = {}, { cle = null, lancer = AUTO } = {}) {
+export function enfiler(type, charge = {}, { cle = null, lancer = AUTO, apres = null } = {}) {
   if (cle) {
     const deja = db.prepare("SELECT * FROM layer_taches WHERE cle = ? AND etat IN ('en_attente', 'en_cours')").get(cle);
     if (deja) return deja;
   }
-  const t = { id: randomUUID(), type, cle, charge: JSON.stringify(charge || {}), etat: 'en_attente', essais: 0, cree_le: maintenant(), maj_le: maintenant() };
-  db.prepare('INSERT INTO layer_taches (id, type, cle, charge, etat, essais, cree_le, maj_le) VALUES (@id, @type, @cle, @charge, @etat, @essais, @cree_le, @maj_le)').run(t);
+  // `apres` : pas avant cette date (une synthèse au plus une fois par heure et par fiche).
+  const t = { id: randomUUID(), type, cle, charge: JSON.stringify(charge || {}), etat: 'en_attente', essais: 0, apres: apres || null, cree_le: maintenant(), maj_le: maintenant() };
+  db.prepare('INSERT INTO layer_taches (id, type, cle, charge, etat, essais, apres, cree_le, maj_le) VALUES (@id, @type, @cle, @charge, @etat, @essais, @apres, @cree_le, @maj_le)').run(t);
   if (lancer) setImmediate(tourner);
   return t;
 }

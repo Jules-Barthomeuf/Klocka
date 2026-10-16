@@ -22,6 +22,7 @@ import { corrigerKlocka, NOTE_KLOCKA } from './klocka-nom.js';
 import { auditer, requetesDepuis } from './layer-schema.js';
 import { enfiler, enregistrer } from './layer-taches.js';
 import { indexer } from './layer-recherche.js';
+import { ficheChangee } from './layer-syntheses.js';
 
 export const SOURCE = 'CerveauSource';
 export const FAIT = 'CerveauFait';
@@ -221,6 +222,7 @@ export function rangerFaits(source, faits, { valideD_office = null } = {}) {
     });
     for (const l of uniques) Records.create(LIEN, { fait_id: fait.id, type_entite: l.type_entite, entite_id: l.entite_id });
     indexer(fait);
+    if (statut === 'valide') ficheChangee(fait.id);
     crees.push(fait);
   }
   Records.update(SOURCE, source.id, { statut_extraction: 'fait', faits: crees.length, doublons, extrait_le: maintenant() });
@@ -331,6 +333,8 @@ export function trancher(faitId, { action, par, resume, type, fiches, motif_reje
     return { ok: true };
   }
   if (action !== 'valider' && action !== 'corriger') return { ok: false, error: 'Action inconnue.' };
+  // Les fiches d'avant (une correction peut en retirer) : leur synthèse est périmée aussi.
+  ficheChangee(f.id);
   const patch = { statut: 'valide', valide_par: par, valide_le: maintenant(), candidats: [], mode_validation: 'manuel' };
   if (action === 'corriger') {
     patch.corrige = true;
@@ -345,6 +349,7 @@ export function trancher(faitId, { action, par, resume, type, fiches, motif_reje
   Records.update(FAIT, f.id, patch);
   const apres = Records.get(FAIT, f.id);
   if (apres.resume !== f.resume) indexer(apres);
+  ficheChangee(f.id);
   auditer({ par, action: action === 'corriger' ? 'corriger' : 'valider', fait_id: f.id, avant, apres: { statut: apres.statut, type: apres.type, resume: apres.resume, fiches: liensDu(f.id).map(({ type_entite, entite_id }) => ({ type_entite, entite_id })) } });
   return { ok: true, fait: resumeFait(apres) };
 }
@@ -357,6 +362,7 @@ export async function validerLot(sourceId, { par, user = null }) {
   for (const f of enAttente) {
     Records.update(FAIT, f.id, { statut: 'valide', valide_par: par, valide_le: maintenant(), mode_validation: 'manuel' });
     auditer({ par, action: 'valider', fait_id: f.id, avant: { statut: f.statut }, apres: { statut: 'valide', lot: sourceId } });
+    ficheChangee(f.id);
   }
   return { ok: true, valides: enAttente.length };
 }

@@ -89,6 +89,20 @@ export function monterLayer(app) {
     ok(res, (await C()).importerAppelsGardes());
   }));
 
+  // Phase 5 : ce qu'on sait d'une fiche (synthèse, engagements, derniers faits), les synthèses, une régénération à la main (Jules).
+  const SY = () => import('../layer-syntheses.js');
+  app.get('/api/layer/fiches/:type/:id', wrap(async (req, res) => { if (!equipe(req, res)) return; ok(res, (await SY()).ficheLayer(req.params.type, req.params.id)); }));
+  app.get('/api/layer/syntheses', wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    const M = await C();
+    ok(res, { syntheses: (await SY()).syntheses().map((s) => ({ ...s, libelle: M.libelleEntite(s.type_entite, s.entite_id) || s.entite_id, lien: M.lienEntite(s.type_entite, s.entite_id) })) });
+  }));
+  app.post('/api/layer/syntheses/:type/:id/regenerer', wrap(async (req, res) => {
+    if (!(await jules(req, res))) return;
+    const r = await (await SY()).generer(req.params.type, req.params.id);
+    return r.ok ? ok(res, r) : res.status(400).json({ error: r.error });
+  }));
+
   // La validation : valider, corriger, rejeter ; un lot par source.
   app.post('/api/layer/faits/:id', wrap(async (req, res) => {
     const user = await valideurDe(req, res, req.params.id); if (!user) return;

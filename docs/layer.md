@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 4 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot. Phase suivante : 5 (synthèses vivantes).
+**État : phases 1 à 5 faites (15 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes. Phase suivante : 6 (branchements).
 
 ---
 
@@ -172,6 +172,16 @@ Sur « Comité 7 octobre » (13 536 signes, une seule tranche ; 25 faits en base
 
 **Audit** de chaque bascule (`valider_auto`, `remplacer`, `garder_les_deux`, `engagement_*`, `archiver`). **Mesure** : `partManuelle()` (part des faits tranchés à la main sur 14 jours, objectif < 20 %), rendue par `/api/layer/etat` (`manuel`).
 
+## 4 quinquies. Phase 5 : les synthèses vivantes (15 oct. 2026)
+
+`server/layer-syntheses.js`, table `layer_syntheses` (une ligne par fiche : `lignes` JSON `[{ rubrique, texte, faits: [ids] }]`, `faits` inclus, `version`, `genere_le`, `perime`, `cout_usd` cumulé).
+
+- **Fiches** : agent, agence, dossier, investisseur, ville. **Rubriques**, dans l'ordre : `qui_quoi`, `situation`, `decisions`, `engagements` (ouverts ou échus, jamais tenus), `vigilance`, `dernier_contact` ; 10 à 15 lignes, moins s'il y a peu de faits ; une rubrique sans fait n'a pas de ligne. Seuls les faits validés de la fiche entrent ; chaque ligne garde les identifiants des faits qui la portent (`ranger` écarte les identifiants inconnus).
+- **Vivante** : `ficheChangee(faitId)` est appelée à chaque changement d'un fait validé (validation manuelle, auto ou par lot, correction, remplacement, garder les deux, engagement tenu ou échu, archivage, réponse à une question). La synthèse passe `perime` et sa régénération (tâche `synthese`) attend l'heure révolue depuis la dernière ; plusieurs faits dans l'heure ne font qu'une tâche (clé `synthese:<type>:<id>`). Sans fait validé, pas de synthèse.
+- **Modèle rapide** (`claude-haiku-4-5`), coût sur la synthèse. Essai réel (ville de Nice, 3 faits) : cinq lignes conformes, chacune avec ses faits.
+- **`ficheLayer(type, id)`** : la fonction unique des branchements (phase 6) : synthèse, engagements ouverts ou échus, derniers faits, total.
+- **AK** : `layer_fiche` rend la synthèse d'abord, les engagements, les derniers faits ; `detail: true` ajoute la frise. **Routes** : `GET /api/layer/fiches/:type/:id`, `GET /api/layer/syntheses`, `POST /api/layer/syntheses/:type/:id/regenerer` (Jules).
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -199,7 +209,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 2. Données ✓ | Champs nouveaux des faits (statut `remplace`, `remplace_par`, `mode_validation`, `motif_rejet`, `confiance`, `statut_engagement`, responsable) ; sources `mail` et `monday`, `id_externe`, coût d'extraction ; tables `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes` (reprend `CerveauRecherche`), `layer_audit`, `layer_taches` ; index SQLite | `server/layer.js`, `server/layer-schema.js` (nouveau) |
 | 3. Recherche hybride ✓ | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
 | 4. Cycle de vie et validation ✓ | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
-| 5. Synthèses par fiche | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
+| 5. Synthèses par fiche ✓ | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
 | 6. Branchements et sources | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
 | 7. Page Layer | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
 | 8. Évaluation | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |

@@ -25,6 +25,7 @@
 import { Records } from './db.js';
 import { auditer } from './layer-schema.js';
 import { enfiler, enregistrer } from './layer-taches.js';
+import { ficheChangee } from './layer-syntheses.js';
 
 const FAIT = 'CerveauFait';
 const LIEN = 'CerveauLien';
@@ -130,6 +131,7 @@ export async function controler(sourceId, { juge = null, embedder = true } = {})
     if (!obstacles.length) {
       Records.update(FAIT, f.id, { statut: 'valide', mode_validation: 'auto', valide_par: 'auto', valide_le: maintenant(), candidats: [] });
       auditer({ par: 'auto', action: 'valider_auto', fait_id: f.id, avant: { statut: frais.statut }, apres: { statut: 'valide', confiance: frais.confiance } });
+      ficheChangee(f.id);
       auto += 1;
     } else {
       Records.update(FAIT, f.id, { validateur: validateurDe(source), obstacles });
@@ -157,6 +159,7 @@ export function remplacer(nouveauId, ancienId, { par }) {
   auditer({ par, action: 'remplacer', fait_id: a.id, avant: { statut: a.statut }, apres: { statut: 'remplace', remplace_par: n.id } });
   Records.update(FAIT, n.id, { statut: 'valide', mode_validation: 'manuel', valide_par: par, valide_le: maintenant(), contradiction: null, candidats: [] });
   auditer({ par, action: 'valider', fait_id: n.id, avant: { statut: n.statut }, apres: { statut: 'valide', remplace: a.id } });
+  ficheChangee(a.id); ficheChangee(n.id);
   return { ok: true };
 }
 
@@ -166,6 +169,7 @@ export function garderLesDeux(nouveauId, { par, valider = true }) {
   if (!n) return { ok: false, error: 'Fait introuvable.' };
   Records.update(FAIT, n.id, { contradiction: null, ...(valider ? { statut: 'valide', mode_validation: 'manuel', valide_par: par, valide_le: maintenant(), candidats: [] } : {}) });
   auditer({ par, action: 'garder_les_deux', fait_id: n.id, avant: { contradiction: n.contradiction }, apres: { contradiction: null, statut: valider ? 'valide' : n.statut } });
+  if (valider) ficheChangee(n.id);
   return { ok: true };
 }
 
@@ -176,6 +180,7 @@ export function marquerEngagement(faitId, statut, { par }) {
   if (!['ouvert', 'tenu', 'echu'].includes(statut)) return { ok: false, error: 'Statut inconnu.' };
   Records.update(FAIT, f.id, { statut_engagement: statut, ...(statut === 'tenu' ? { tenu_le: maintenant(), tenu_par: par } : {}) });
   auditer({ par, action: `engagement_${statut}`, fait_id: f.id, avant: { statut_engagement: f.statut_engagement }, apres: { statut_engagement: statut } });
+  ficheChangee(f.id);
   return { ok: true };
 }
 
@@ -189,6 +194,7 @@ export function echeances({ maintenantD = new Date() } = {}) {
   for (const f of Records.list(FAIT).filter((x) => x.type === 'engagement' && x.statut === 'valide' && (x.statut_engagement || 'ouvert') === 'ouvert' && echu(x.echeance, jour))) {
     Records.update(FAIT, f.id, { statut_engagement: 'echu', echu_le: maintenantD.toISOString() });
     auditer({ par: 'auto', action: 'engagement_echu', fait_id: f.id, avant: { statut_engagement: 'ouvert' }, apres: { statut_engagement: 'echu', echeance: f.echeance } });
+    ficheChangee(f.id);
     n += 1;
   }
   return n;
@@ -209,6 +215,7 @@ export function archiver() {
     if (!liens.length || !liens.every((l) => ficheFermee(l.type_entite, l.entite_id))) continue;
     Records.update(FAIT, f.id, { statut: 'archive', archive_le: maintenant() });
     auditer({ par: 'auto', action: 'archiver', fait_id: f.id, avant: { statut: 'valide' }, apres: { statut: 'archive', fiches: liens.map((l) => `${l.type_entite}:${l.entite_id}`) } });
+    ficheChangee(f.id);
     n += 1;
   }
   return n;

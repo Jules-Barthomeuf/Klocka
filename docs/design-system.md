@@ -592,6 +592,24 @@ Enregistrer et le menu à neuf points.
   est refusé.
 - Au téléphone et à la création, l'éditeur d'avant reste.
 
+### La fiche d'un agent ou d'une agence (Prospection, 16 oct. 2026)
+
+Demande de Jules : « en un coup d'œil ». Un panneau à droite de 640 px
+(`FicheContact`), rendu par portail, plein écran au téléphone ; il s'ouvre au
+clic sur un nom (À appeler, la grille), par le bouton « Fiche » d'une agence
+dans les Listes, ou par l'adresse (`?agent=`, `?agence=`). De haut en bas :
+le nom (20 px) et sa ligne (poste, ville, statut, l'agence en lien) ; quatre
+chiffres en cartes de `Chiffre` (On s'est parlé, Mails, Fiches reçues avec
+Oui et Non, Dernier échange) ; « Ce qu'il nous dit souvent » (une phrase, la
+pastille « n fois », sa citation entre guillemets) ; « Actions proposées »
+numérotées en pastilles menthe pâle, chacune avec son pourquoi ; « Son
+parcours avec nous » en frise verticale, le dernier point en menthe ;
+« Échanges » en lignes avec une pilule de filtres (Tout, Appels, Mails,
+Fiches, Monday) ; « Qui a échangé avec lui » (photo, Référent, compte) ;
+ses collègues ou, pour une agence, ses agents, qui s'ouvrent à la suite
+(« Retour ») ; l'Intelligence ; les coordonnées en dernier. Rien ne se
+modifie ici : la grille reste l'endroit où l'on corrige une fiche.
+
 ### L'écran de recherche (Off-market, 10 oct. 2026)
 
 Décision prise avec Jules d'après PropStream, en gardant nos jetons et nos

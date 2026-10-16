@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, PhoneForwarded, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import FicheContact from "@/components/prospection/FicheContact";
 
 // L'agent IA de la prospection des agents immobiliers, et ses listes. On
 // lui donne une ville : il y cherche toutes les agences (Google Maps, comme
@@ -306,6 +307,8 @@ function TableauAgences({ id, onAppeler }) {
   });
   const [pourquoi, setPourquoi] = useState(false);
   const [mail, setMail] = useState(null); // { agence, agent }
+  // La fiche de l'agence en un coup d'œil (16 oct. 2026) : échanges, fiches reçues, ses agents, qui de l'équipe.
+  const [fiche, setFiche] = useState(null);
   const basculer = (x) => setCoches((c) => { const n = new Set(c); if (n.has(x)) n.delete(x); else n.add(x); return n; });
   const versMonday = useMutation({
     mutationFn: (ids) => base44.request("POST", `${API}/monday`, { body: { ids } }),
@@ -474,6 +477,14 @@ function TableauAgences({ id, onAppeler }) {
                                 <Mail className="h-3.5 w-3.5" />Email{(a.mails || []).length ? <span className="text-brume">· {a.mails.length}</span> : null}
                               </button>
                             )}
+                            <button type="button" onClick={() => setFiche({ type: "agence", id: a.id })}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-trait px-3.5 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+                              Fiche
+                            </button>
+                            {fiche?.id === a.id && createPortal(
+                              <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[45] w-full max-w-[640px] overflow-y-auto border-l border-relief bg-fond p-5 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]" onClick={(e) => e.stopPropagation()}>
+                                <FicheContact key={`agence:${a.id}`} depart={fiche} onFermer={() => setFiche(null)} />
+                              </div>, document.body)}
                             {!a.carnet_id && (
                               <button type="button" onClick={() => carnet.mutate({ agence: a.id })} disabled={carnet.isPending || (!a.telephone && !a.email && !(a.agents || []).length)}
                                 className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-trait px-3.5 text-[13px] text-craie hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>

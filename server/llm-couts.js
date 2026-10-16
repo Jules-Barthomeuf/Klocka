@@ -294,6 +294,7 @@ const ACTIONS = [
   { cle: 'revue_rue', libelle: 'Noter une rue sur Street View', unite: 'par point', parAppel: true, operations: ['revue de rue'], ou: 'Off-market, mode Simple : « Noter la rue » dans la fiche d\'un point (équipe)' },
   { cle: 'agent_testeur', libelle: 'Auditer une page avec l\'agent testeur', unite: 'par audit', parAppel: false, operations: ['agent testeur'], ou: 'Le bouton Testeur en haut à droite (équipe) ; le rapport dans Suivi > Agent testeur' },
   { cle: 'recap_matin', libelle: 'Faire le récap du matin', unite: 'par récap', parAppel: false, operations: ['récap du matin'], ou: 'Chaque matin à 5 h 30, depuis le Mac de Jules (npm run recap)' },
+  { cle: 'fiche_contact', libelle: 'Lire la relation avec un agent ou une agence', unite: 'par lecture', parAppel: true, operations: ['fiche contact'], ou: 'Prospection : la fiche d\'un agent ou d\'une agence, à l\'ouverture quand un échange nouveau est arrivé (au plus une fois par heure)' },
   { cle: 'preanalyse', libelle: 'Analyser une fiche commerciale', unite: 'par fiche', parAppel: false, operations: ['pré-analyse'], ou: 'Étape Pré-analyse, ou fiche collée dans un chat' },
   { cle: 'grille', libelle: 'Mettre en forme une grille', unite: 'par grille', parAppel: false, prefixe: 'grille ', ou: 'Onglets Bail, Quittances, Copropriété, Diagnostics' },
   { cle: 'question', libelle: 'Poser une question sur les pièces', unite: 'par question', parAppel: false, operations: ['chat du dossier'], ou: 'Chat du dossier, étape Analyse' },

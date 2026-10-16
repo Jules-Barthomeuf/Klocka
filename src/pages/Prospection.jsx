@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { HistoriqueLayer } from "@/components/layer/FriseFaits";
-import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
+import { createPortal } from "react-dom";
+import FicheContact from "@/components/prospection/FicheContact";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -477,41 +477,6 @@ function OngletDecisions() {
 
 const STATUTS = { nouveau: "À appeler", a_rappeler: "À rappeler", en_discussion: "En discussion", pas_de_murs: "Pas de murs", envoie_des_fiches: "Envoie des fiches", pause: "En pause", archive: "Archivé" };
 
-function FicheAgent({ id, onFermer }) {
-  const { data } = useQuery({ queryKey: ["prospection-agent", id], queryFn: () => base44.request("GET", `/api/prospection/agents/${id}`) });
-  const a = data?.agent;
-  if (!a) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
-  const lignes = [
-    ["Téléphones", (a.telephones || []).join(", ")], ["Mails", (a.emails || []).join(", ")], ["Secteurs", (a.secteurs || []).join(", ")],
-    ["Référent", a.referent], ["Dernier contact", dateCourte(a.dernier_contact_le)], ["Prochaine action", a.prochaine ? `${jourFr(a.prochaine.le)} : ${a.prochaine.quoi}` : ""],
-    ["Score", `${a.score || 0} (${a.fiches || 0} fiches, ${a.oui || 0} Oui)`], ["Equimmox", Object.entries(a.annonces_par_ville || {}).map(([v, n]) => `${v} ${n}`).join(", ")],
-    ["Source", a.source], ["Remarques", a.remarques],
-  ].filter(([, v]) => v);
-  return (
-    <section className={`${carte} p-5`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="m-0 text-[18px] font-semibold text-encre">{a.nom}</h3>
-          <p className="m-0 mt-0.5 text-[13px] text-craie">{[a.agence, a.ville, STATUTS[a.statut]].filter(Boolean).join(" · ")}</p>
-        </div>
-        <button type="button" onClick={onFermer} aria-label="Fermer" className="text-brume hover:text-encre max-md:-mr-2 max-md:-mt-2 max-md:grid max-md:h-10 max-md:w-10 max-md:flex-none max-md:place-items-center" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-      </div>
-      <dl className="m-0 mt-4 grid grid-cols-[120px_1fr] gap-x-3 gap-y-1.5 text-[13px] max-md:grid-cols-[100px_minmax(0,1fr)]">
-        {lignes.map(([k, v]) => <React.Fragment key={k}><dt className="text-brume">{k}</dt><dd className="m-0 break-words text-encre">{v}</dd></React.Fragment>)}
-      </dl>
-      {a.resume_dernier_appel && <p className="m-0 mt-3 text-[13px] text-craie">Dernier appel : {a.resume_dernier_appel}</p>}
-      <p className={`${etiquette} mt-5`}>Historique</p>
-      <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
-        {(a.journal || []).map((j, i) => <li key={i} className="text-[12.5px] text-craie"><span className="text-brume">{dateCourte(j.le)} · {j.type}</span> {j.texte}</li>)}
-        {!a.journal?.length && <li className="text-[12.5px] text-brume">Rien encore.</li>}
-      </ul>
-      {/* L'Intelligence (14 oct. 2026) : ce que l'agent a dit, promis, et ce qu'on a décidé à son sujet, validé, avec sa source. */}
-      <CeQueKlockaSait type="agent" id={a.id} className="mt-5" vide="Rien encore : ce que l'agent dira en appel, validé, arrivera ici." />
-      <details className="mt-3"><summary className="cursor-pointer text-[12.5px] text-brume">Toute la frise</summary><div className="mt-1"><HistoriqueLayer type="agent" id={a.id} /></div></details>
-    </section>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // La grille : l'ancienne Google Sheet, dans la plateforme
 // ---------------------------------------------------------------------------
@@ -608,12 +573,12 @@ function Cellule({ agent, col, onEnregistrer, equipe = [], teinte = "text-craie"
   );
 }
 
-function OngletGrille({ onAppeler }) {
+function OngletGrille({ onAppeler, onFiche }) {
   const queryClient = useQueryClient();
   const [onglet, setOnglet] = useState(() => { try { return localStorage.getItem("prospection.onglet") || ""; } catch { return ""; } });
   const [jour, setJour] = useState(true);
   const [q, setQ] = useState("");
-  const [fiche, setFiche] = useState(null);
+  const setFiche = onFiche;
   const [ajout, setAjout] = useState(false);
   const [nouvelle, setNouvelle] = useState({ nom: "", agence: "", telephone: "", email: "" });
   useEffect(() => { try { localStorage.setItem("prospection.onglet", onglet); } catch { /* le choix se perd, sans gravité */ } }, [onglet]);
@@ -747,7 +712,7 @@ function OngletGrille({ onAppeler }) {
                 return (
                   <tr key={a.id} className={`group ${a.a_appeler ? "" : "opacity-[0.92]"}`}>
                     <td className="sticky left-0 z-10 border-b border-trait bg-rail py-4 pl-6 pr-4 align-middle group-hover:bg-rail max-md:pl-4 max-md:pr-3">
-                      <button type="button" onClick={() => setFiche(a.id)} className="block max-w-[220px] truncate max-md:max-w-[150px] border-0 p-0 text-left text-[15px] font-medium text-encre hover:text-menthe" style={{ background: "transparent" }} title={a.onglet || undefined}>{a.nom}</button>
+                      <button type="button" onClick={() => setFiche({ type: "agent", id: a.id })} className="block max-w-[220px] truncate max-md:max-w-[150px] border-0 p-0 text-left text-[15px] font-medium text-encre hover:text-menthe" style={{ background: "transparent" }} title={a.onglet || undefined}>{a.nom}</button>
                       <div className="mt-0.5 max-w-[220px] max-md:max-w-[150px]"><Cellule agent={a} col={COL_AGENCE} onEnregistrer={enregistrerA} teinte="text-ardoise text-[13px]" /></div>
                     </td>
                     {COLONNES.map((c) => (
@@ -772,11 +737,6 @@ function OngletGrille({ onAppeler }) {
         </div>
       )}
       <p className="m-0 text-[11px] text-brume">{lignes.length} ligne{lignes.length > 1 ? "s" : ""} · clic sur une cellule pour la modifier, sur un nom pour sa fiche et son historique · « Appeler » le prend à ton nom.</p>
-      {fiche && (
-        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-40 w-full max-w-[460px] overflow-y-auto border-l border-relief bg-fond p-4 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
-          <FicheAgent id={fiche} onFermer={() => setFiche(null)} />
-        </div>
-      )}
     </div>
   );
 }
@@ -1009,6 +969,8 @@ export default function Prospection() {
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
   const [listeOuverte, setListeOuverte] = useState(() => depuisAdresse.get("liste") || null);
   const [appel, setAppel] = useState(null);
+  // La fiche d'un agent ou d'une agence (16 oct. 2026) : depuis À appeler, la grille, ou l'adresse (?agent=… ou ?agence=…, liens de l'Intelligence).
+  const [fiche, setFiche] = useState(() => { const u = new URLSearchParams(window.location.search); return u.get("agent") ? { type: "agent", id: u.get("agent") } : u.get("agence") ? { type: "agence", id: u.get("agence") } : null; });
   const [carte, setCarte] = useState(null);
   const jour = useQuery({ queryKey: ["prospection-jour"], queryFn: () => base44.request("GET", "/api/prospection/jour"), refetchInterval: 60000 });
   const prendre = useMutation({
@@ -1053,7 +1015,7 @@ export default function Prospection() {
       </header>
       {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
       <div key={partie} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-      {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} />}
+      {partie === "journee" && <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })} />}
       {partie === "appel" && <ModeAppel />}
       {partie === "suivi" && <SuiviAppels dansProspection />}
       {partie === "agent" && <OngletAgentIA onOuvrirListe={(id) => { setListeOuverte(id); setPartie("listes"); }} />}
@@ -1061,7 +1023,7 @@ export default function Prospection() {
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
       {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
-        {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} />}
+        {onglet === "grille" && <OngletGrille onAppeler={(a) => prendre.mutate(a)} onFiche={setFiche} />}
         {onglet === "envois" && <OngletEnvois />}
         {onglet === "decisions" && <OngletDecisions />}
         {onglet === "tableau" && <OngletTableau />}
@@ -1072,6 +1034,11 @@ export default function Prospection() {
           <PanneauAppel key={appel.id} agent={appel} onCarte={setCarte} onFermer={() => { setAppel(null); ["prospection-grille", "prospection-jour"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] })); }} />
         </div>
       )}
+      {/* Hors de la page (portail) : au téléphone elle couvre la barre du haut, au bureau le bouton de rappel. */}
+      {fiche && createPortal(
+        <div className="animate-in slide-in-from-right duration-300 ease-out fixed inset-y-0 right-0 z-[45] w-full max-w-[640px] overflow-y-auto border-l border-relief bg-fond p-5 shadow-2xl max-md:z-[70] max-md:border-l-0 max-md:p-4 max-md:pb-[calc(16px+env(safe-area-inset-bottom))] max-md:pt-[calc(16px+env(safe-area-inset-top))]">
+          <FicheContact key={`${fiche.type}:${fiche.id}`} depart={fiche} onFermer={() => setFiche(null)} />
+        </div>, document.body)}
       {carte && <CarteAppel key={carte.nom + (carte.resume || "")} carte={carte} onFermer={() => setCarte(null)} />}
     </div>
   );

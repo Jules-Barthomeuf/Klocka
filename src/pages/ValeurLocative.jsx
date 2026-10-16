@@ -267,7 +267,7 @@ export default function ValeurLocative() {
   const JALONS = { adresse: "l'adresse", dvf: "les ventes DVF", rue: "la rue chez Equimmox, 200 m", quartier: "le quartier chez Equimmox, 500 m", ville: "la ville chez Equimmox, 1 km" };
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
-      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
+      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Outils</p>
       <h1 className="mt-2 mb-6 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">Valeur locative</h1>
 
       <div className={`${CARTE} p-5`}>

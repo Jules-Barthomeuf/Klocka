@@ -721,7 +721,7 @@ const ACTIONS_FAITES = {
   noter_engagement: "Engagement noté", tenir_engagement: "Engagement tenu", creer_dossier: "Dossier créé",
   analyser_fiche: "Fiche analysée", faire_tout: "Mail traité de bout en bout", deposer_mail: "Mail déposé sur le dossier",
   preanalyser_mail: "Préanalyse lancée", ranger_drive: "Rangé sur le Drive", bloquer_rdv: "Rendez-vous posé dans l'agenda",
-  lancer_kdata: "Analyse K-Data lancée", generer_prez_bancaire: "Présentation bancaire en préparation",
+  lancer_kdata: "Analyse lancée dans Outils", generer_prez_bancaire: "Présentation bancaire en préparation",
   lancer_alx: "Prospection ALX lancée", ajouter_document: "Document ajouté au dossier", creer_client_monday: "Client créé dans Monday",
   renommer_dossier: "Dossier renommé", supprimer_dossier: "Dossier supprimé", creer_projet_depuis_dossier: "Projet créé",
   ajouter_photos_projet: "Photos ajoutées au projet", ajouter_prospect: "Agent ajouté au carnet de prospection",

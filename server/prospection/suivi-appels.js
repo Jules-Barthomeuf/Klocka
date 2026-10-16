@@ -112,7 +112,10 @@ export function minuitParis(d = new Date()) {
 // Les chiffres comptent à partir du 13 oct. 2026 (16 oct., Jules : « avant c'était en test, ça compte pas »).
 export const DEBUT_DES_MESURES = minuitParis(new Date('2026-10-13T12:00:00Z'));
 
-export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(), journal = 300, debutMesures = DEBUT_DES_MESURES } = {}) {
+// `par` (16 oct. 2026, Jules : « Mes appels ») : les mêmes chiffres et graphiques, sur les appels d'une seule personne.
+export function suiviAppels({ jours = 30, source = null, par = null, maintenantD = new Date(), journal = 300, debutMesures = DEBUT_DES_MESURES } = {}) {
+  const qui = par ? String(par).toLowerCase() : null;
+  const sien = (x) => !qui || String(x.par || '').toLowerCase() === qui;
   const zero = remiseAZero();
   // « 1 jour » (14 oct. 2026, Jules) : la journée en cours, depuis minuit à Paris.
   const fenetreBrute = jours === 1 ? minuitParis(maintenantD) : new Date(maintenantD.getTime() - jours * 86400000).toISOString();
@@ -123,14 +126,14 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   const listes = new Map(Records.list('ListeAgences').map((l) => [l.id, l]));
   const fiches = new Map(Records.list('AgentImmo').map((f) => [f.id, f]));
   const bruts = Records.list(APPEL)
-    .filter((x) => String(x.le) >= depuis && !x.essai_archive && !['remplace', 'abandonne'].includes(x.etat))
+    .filter((x) => String(x.le) >= depuis && !x.essai_archive && !['remplace', 'abandonne'].includes(x.etat) && sien(x))
     .map((x) => ({ ...x, _source: sourceDe(x, sessions) }));
   // Les relances par mail (10 oct. 2026) sont des contacts, pas des appels : elles se comptent à part,
   // et seulement elles quand on filtre sur « Relances par mail ».
   const mailsRelance = bruts.filter((x) => x.canal === 'mail');
   const tous = bruts.filter((x) => x.canal !== 'mail');
   const appels = source === 'relances_mail' ? mailsRelance : tous.filter((x) => (source ? x._source === source : x._source !== 'essai'));
-  const sessionsFen = [...sessions.values()].filter((s) => String(s.debut) >= depuis && !s.essai);
+  const sessionsFen = [...sessions.values()].filter((s) => String(s.debut) >= depuis && !s.essai && sien(s));
 
   // Par analyste : toute l'équipe nommée, même ceux qui n'ont pas appelé (c'est aussi une information).
   const equipe = new Map();
@@ -160,7 +163,8 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
   const parJour = joursListe.map((j) => {
     const dans = appels.filter((x) => R.jourDe(new Date(x.le)) === j);
     const dj = dans.map((x) => Number(x.duree_s)).filter((n) => n > 0);
-    return { jour: j, appels: dans.length, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), duree_totale_s: dj.reduce((t, n) => t + n, 0),
+    const parole = dans.map((x) => x.parole?.pct).filter(Number.isFinite);
+    return { jour: j, appels: dans.length, parole_pct: parole.length ? Math.round(parole.reduce((a, b) => a + b, 0) / parole.length) : null, aboutis: dans.filter((x) => !SANS_REPONSE.includes(x.issue)).length, duree_moyenne_s: moyenne(dj), duree_totale_s: dj.reduce((t, n) => t + n, 0),
       // Le temps après l'appel, ce jour-là (16 oct. 2026, Jules) : la médiane de chaque étape depuis le raccrochage.
       apres_appel: Object.fromEntries(ETAPES_TEMPS.map((k) => { const t = dans.map((x) => x.temps?.[`${k}_ms`]).filter((n) => Number.isFinite(n)); return [k, { mediane_ms: mediane(t), n: t.length }]; })), biens: dans.filter((x) => x.issue === 'a_des_murs').length, par: Object.fromEntries(analystes.map((a) => [a.email, dans.filter((x) => String(x.par || '').toLowerCase() === a.email).length])) };
   });
@@ -202,7 +206,7 @@ export function suiviAppels({ jours = 30, source = null, maintenantD = new Date(
     };
   });
 
-  const rappels = Records.list('RappelEntrant').filter((r) => String(r.debut) >= depuis);
+  const rappels = Records.list('RappelEntrant').filter((r) => String(r.debut) >= depuis && sien(r));
   const contexte = contexteAppels(appels, { sources: Records.list('CerveauSource'), faits: Records.list('CerveauFait'), liens: Records.list('CerveauLien') });
   // Les rappels entrants qui n'ont pas abouti à un appel du journal (13 oct. 2026, Jules : « dans les
   // journaux d'appels on doit voir aussi les rappels qui ont été faits ») : en cours, à identifier,

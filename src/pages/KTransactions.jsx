@@ -314,7 +314,7 @@ export default function KTransactions() {
 
   return (
     <div className="mx-auto max-w-[900px] px-4 pb-20 pt-10">
-      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">K-Data</p>
+      <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Outils</p>
       <h1 className="mt-2 mb-2 text-[30px] font-light max-md:text-[24px] tracking-[-0.01em] text-encre">K-Transactions</h1>
       <p className="m-0 mb-7 max-w-[620px] text-[13.5px] leading-[1.7] text-ardoise">
         Ce que les murs et les fonds se sont vraiment vendus autour d&apos;une adresse : prix au m² des locaux, prix de cession

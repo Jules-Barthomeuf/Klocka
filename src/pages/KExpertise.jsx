@@ -211,7 +211,7 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
         <p className="m-0 text-[21px] font-medium text-encre max-md:text-[18px]">{p?.libelle || e.adresse}</p>
         <p className="m-0 mt-1 text-[13px] text-ardoise">{e.activite}</p>
         <p className="m-0 mt-4 text-[13px] text-encre">Étude préparée par <strong>{e.par || user?.full_name || user?.email}</strong></p>
-        <p className="m-0 mt-1 text-[11.5px] text-brume">Document généré par K-Data le {quand(e.fini_le || e.cree_le)}{r.sources?.length ? ` · sources : ${r.sources.join(", ")}` : ""}</p>
+        <p className="m-0 mt-1 text-[11.5px] text-brume">Document généré par les outils Klocka le {quand(e.fini_le || e.cree_le)}{r.sources?.length ? ` · sources : ${r.sources.join(", ")}` : ""}</p>
         {d?.du_cache && <p className="m-0 mt-2 text-[11.5px] text-menthe-texte">Étude reprise de la base, moins de trente jours.</p>}
         {(r.etude_erreur || r.data_b_erreur) && <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12px] text-alerte"><AlertTriangle className="h-3.5 w-3.5" />Étude d&apos;implantation : {r.etude_erreur || r.data_b_erreur}</p>}
         {d?.manques?.length > 0 && <p className="m-0 mt-2 text-[11.5px] text-ardoise">Lectures manquantes : {d.manques.join(" · ")}</p>}

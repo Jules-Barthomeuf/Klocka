@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
 import { useAuth } from "@/lib/AuthContext";
-import { TempsPostAppel, TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { TempsPostAppel, TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, ChiffreCourbe, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -111,20 +111,79 @@ function DetailAppel({ x, modifiable = true }) {
 
 /**
  * Mes appels (16 oct. 2026, Jules) : à la place de « Contexte », chacun voit ses
- * propres chiffres, tous ceux du tableau par analyste, et sa courbe par jour.
- * Le contexte gagné par les appels se lit dans l'Intelligence.
+ * propres chiffres et, comme la vue d'ensemble, ses graphiques : les mêmes
+ * calculs, sur ses seuls appels (« ?moi=1 »). En tête, cinq chiffres avec leur
+ * courbe, dont la part de parole ; puis tous ses chiffres, puis les graphiques.
  */
-function VueMesAppels({ data, c, onJournal }) {
+function VueMesAppels({ base, jours, c, onJournal }) {
   const { user } = useAuth();
   const email = String(user?.email || "").toLowerCase();
+  const { data, isLoading } = useQuery({
+    queryKey: ["suivi-appels-moi", jours, base],
+    queryFn: () => base44.request("GET", `${base}?jours=${jours}&moi=1`),
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: true,
+  });
+  if (isLoading || !data) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-ardoise" /></div>;
   const moi = data.analystes.find((a) => a.email === email);
-  if (!moi) return <p className="m-0 py-10 text-center text-[13.5px] text-brume">Aucun appel à votre nom sur la période.</p>;
+  if (!moi?.appels) return <p className="m-0 py-10 text-center text-[13.5px] text-brume">Aucun appel à votre nom sur la période.</p>;
+  const unJour = jours === 1;
+  const serie = data.par_jour.map((j) => ({
+    jour: j.jour, appels: j.appels, parole: j.parole_pct,
+    joints: j.appels ? Math.round((j.aboutis / j.appels) * 100) : null,
+    minutes: j.duree_totale_s ? Math.round(j.duree_totale_s / 60) : 0,
+    post: j.apres_appel?.valide?.mediane_ms != null ? Math.round(j.apres_appel.valide.mediane_ms / 1000) : null,
+  }));
+  const post = moi.apres_appel?.valide;
+  const issues = Object.entries(moi.issues || data.equipe.issues || {}).sort((x, y) => y[1] - x[1]).map(([k, n]) => ({ nom: ISSUES_MOTS[k] || k, valeur: n }));
+  const modes = data.sources.map((x) => ({ nom: x.libelle, valeur: x.appels }));
   return (
     <div className="k-monte flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5">
-        {COLONNES.map(([k, titre, f]) => <Chiffre key={k} valeur={f(moi[k])} libelle={titre} />)}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <ChiffreCourbe valeur={moi.appels} libelle="Appels" note={`${moi.jours_actifs} jour${moi.jours_actifs > 1 ? "s" : ""} actif${moi.jours_actifs > 1 ? "s" : ""}`} serie={serie} cle="appels" c={c} />
+        <ChiffreCourbe valeur={p100(moi.joints_pct)} libelle="Joints" note={`${moi.aboutis} conversation${moi.aboutis > 1 ? "s" : ""}`} serie={serie} cle="joints" c={c} format={(v) => `${v} %`} />
+        <ChiffreCourbe valeur={dureeLisible(moi.duree_totale_s)} libelle="Au téléphone" note={`${dureeLisible(moi.duree_moyenne_s)} en moyenne`} serie={serie} cle="minutes" c={c} format={(v) => `${v} min`} />
+        <ChiffreCourbe valeur={p100(moi.parole_pct)} libelle="Part de parole" note={moi.parole_pct == null ? "mesurée sur les prochains appels" : "votre temps de parole sur l'appel"} serie={serie} cle="parole" c={c} format={(v) => `${v} %`} />
+        <ChiffreCourbe valeur={post?.moyenne_ms != null ? secondesLisibles(post.moyenne_ms) : "—"} libelle="Post-appel" note="raccroché → validé, moyenne" serie={serie} cle="post" c={c} format={(v) => secondesLisibles(v * 1000)} />
       </div>
-      <PetitsMultiples analystes={[moi]} parJour={data.par_jour} c={c} />
+
+      {unJour ? (
+        <ParHeure heures={data.heures} c={c} titre="Mes appels heure par heure, aujourd'hui" />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <AppelsParJour parJour={data.par_jour} c={c} />
+            <TauxJoints parJour={data.par_jour} c={c} />
+          </div>
+          <TempsEtAppels parJour={data.par_jour} c={c} />
+          <TempsPostAppel parJour={data.par_jour} c={c} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Cumul parJour={data.par_jour} c={c} />
+            <DureeParJour parJour={data.par_jour} c={c} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <CarteSemaine semaine={data.semaine || []} c={c} />
+            <ParHeure heures={data.heures} c={c} />
+          </div>
+        </>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <BarresHorizontales titre="Mes issues" lignes={issues} c={c} vide="Aucun appel sur la période." />
+        <BarresHorizontales titre="Par mode" lignes={modes} c={c} />
+        <Durees durees={data.durees || []} c={c} />
+      </div>
+
+      <Cadre titre="Tous mes chiffres">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4 xl:grid-cols-5">
+          {COLONNES.map(([k, titre, f]) => (
+            <div key={k} className="flex flex-col gap-0.5">
+              <span className="text-[12.5px] text-ardoise">{titre}</span>
+              <span className="text-[18px] tabular-nums text-encre">{f(moi[k])}</span>
+            </div>
+          ))}
+        </div>
+      </Cadre>
       <div>
         <button type="button" onClick={() => onJournal(moi.prenom)} className="p-0 text-[13px] text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Voir mes appels, un par un</button>
       </div>
@@ -132,7 +191,7 @@ function VueMesAppels({ data, c, onJournal }) {
   );
 }
 
-const ISSUES_MOTS = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien", pas_interesse: "Pas intéressé", agent_prevenu: "Agent prévenu", rien_de_nouveau: "Rien de nouveau", interesse: "Intéressé" };
+const ISSUES_MOTS = { pas_de_reponse: "Pas de réponse", repondeur: "Répondeur", pas_de_murs: "Pas de bien pour l'instant", a_des_murs: "A un bien", veut_mail: "Veut d'abord un mail", invalide: "Mauvais numéro", pas_interesse: "Pas intéressé", agent_prevenu: "Agent prévenu", rien_de_nouveau: "Rien de nouveau", interesse: "Intéressé" };
 
 /**
  * La vue d'ensemble, redessinée en graphiques (14 oct. 2026, Jules : « plein de
@@ -301,7 +360,7 @@ export default function SuiviAppels({ dansProspection = false }) {
               <p className="m-0 mt-3 text-[12px] text-brume">Durée, enregistrement, notes, validation depuis la fenêtre, étapes ouvertes et corrections d'AK sont mesurés depuis le 9 octobre 2026 : avant, « — ». Un clic sur une personne ouvre ses appels.</p>
             </div>}
 
-            {vue === "moi" && <VueMesAppels data={data} c={c} onJournal={voirJournalDe} />}
+            {vue === "moi" && <VueMesAppels base={base} jours={jours} c={c} onJournal={voirJournalDe} />}
 
             {vue === "journal" && <div className="rounded-md border border-trait p-4 k-monte">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">

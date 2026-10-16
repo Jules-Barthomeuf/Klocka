@@ -4,11 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowUp, ArrowUpRight, Check, ChevronDown, Clock, Folder, Loader2, Search, Wrench, X, XCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
-import { MODULES_KDATA } from "@/lib/kdata-modules";
+import { MODULES_KDATA, MODULES_LANCABLES } from "@/lib/kdata-modules";
 import { toast } from "@/components/ui/avis";
 import { J, alpha } from "@/design/jetons";
 
-// K-Data : le point de départ commun des huit outils.
+// Outils (K-Data jusqu'au 16 oct. 2026) : le point de départ commun des outils.
 //
 // Le geste tient en deux temps, comme le chat du tableau de bord Klocka : à
 // gauche de la barre on choisit les outils, au milieu on donne l'adresse, et
@@ -206,7 +206,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
   }, [adresse]);
 
   const basculer = (cle) => setOutils((s) => { const n = new Set(s); n.has(cle) ? n.delete(cle) : n.add(cle); return n; });
-  const tous = outils.size === MODULES_KDATA.length;
+  const tous = outils.size === MODULES_LANCABLES.length;
 
   // Les réponses aux questions des outils choisis. Un outil décoché garde les
   // siennes de côté : le recocher ne fait pas tout resaisir.
@@ -214,7 +214,7 @@ function Composeur({ onLancer, enCours, questions, notes }) {
   const repondre = (outil, cle, valeur) => setReglages((r) => ({ ...r, [outil]: { ...(r[outil] || {}), [cle]: valeur } }));
 
   // Dans l'ordre des cartes, pour que le panneau ne saute pas d'un clic à l'autre.
-  const aQuestionner = MODULES_KDATA
+  const aQuestionner = MODULES_LANCABLES
     .filter((m) => outils.has(m.cle) && (questions?.[m.cle] || []).length > 0)
     .map((m) => m.cle);
   const manques = aQuestionner
@@ -247,12 +247,12 @@ function Composeur({ onLancer, enCours, questions, notes }) {
               <div role="menu" className="animate-in fade-in slide-in-from-top-1 duration-150 absolute left-0 top-full z-20 mt-3 w-[360px] overflow-hidden rounded-bloc max-md:max-h-[70vh] max-md:w-[calc(100vw-40px)] max-md:overflow-y-auto text-left shadow-[0_20px_50px_rgba(0,0,0,.6)]" style={{ background: J["barre"] }}>
                 <div className="flex items-center justify-between border-b border-bord px-4 pb-2.5 pt-3.5">
                   <span className="font-pill text-[11px] font-medium uppercase tracking-[.16em] text-ardoise">Les outils à lancer</span>
-                  <button type="button" onClick={() => setOutils(tous ? new Set() : new Set(MODULES_KDATA.map((m) => m.cle)))} className="text-[11px] text-menthe-texte hover:text-encre">
+                  <button type="button" onClick={() => setOutils(tous ? new Set() : new Set(MODULES_LANCABLES.map((m) => m.cle)))} className="text-[11px] text-menthe-texte hover:text-encre">
                     {tous ? "Aucun" : "Tous"}
                   </button>
                 </div>
                 <div className="p-1.5">
-                  {MODULES_KDATA.map((m) => {
+                  {MODULES_LANCABLES.map((m) => {
                     const Icone = m.icone;
                     const actif = outils.has(m.cle);
                     return (

@@ -32,7 +32,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, Wrench } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, PhoneForwarded, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -135,8 +135,8 @@ function BasculeKData({ enKData, onChanger }) {
   return (
     <div className="flex flex-1 items-center justify-between gap-2">
       <span className={`text-[12.5px] transition-colors ${enKData ? "text-brume" : "font-medium text-encre"}`}>Klocka</span>
-      <Switch checked={enKData} onCheckedChange={onChanger} className="flex-shrink-0" aria-label="Basculer entre Klocka et K-Data" />
-      <span className={`text-[12.5px] transition-colors ${enKData ? "font-medium text-encre" : "text-brume"}`}>K-Data</span>
+      <Switch checked={enKData} onCheckedChange={onChanger} className="flex-shrink-0" aria-label="Basculer entre Klocka et Outils" />
+      <span className={`text-[12.5px] transition-colors ${enKData ? "font-medium text-encre" : "text-brume"}`}>Outils</span>
     </div>
   );
 }
@@ -212,8 +212,8 @@ function MenuApps({ isActivePage }) {
               <LayoutGrid className="h-4 w-4 text-menthe" />
             </span>
             <span className="min-w-0">
-              <span className="block text-[13px] font-medium text-encre">K-Data</span>
-              <span className="block truncate text-[11.5px] text-ardoise">Le tableau de bord des six modules.</span>
+              <span className="block text-[13px] font-medium text-encre">Outils</span>
+              <span className="block truncate text-[11.5px] text-ardoise">Le tableau de bord des outils.</span>
             </span>
           </Link>
           <div className="grid grid-cols-2 gap-1 max-sm:grid-cols-1">
@@ -277,7 +277,7 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
         <Link
           to={createPageUrl("KData")}
           className="flex h-8 w-8 items-center justify-center rounded-full text-brume transition-colors hover:bg-encre/[0.06] hover:text-encre"
-          title="Tableau de bord K-Data"
+          title="Tableau de bord des outils"
         >
           <Home className="h-4 w-4" />
         </Link>
@@ -486,7 +486,6 @@ function LayoutContent({ children, currentPageName }) {
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     Relances: { to: createPageUrl("Relances"), icon: PhoneForwarded, actif: isActivePage("Relances") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
-    Outils: { to: createPageUrl("Outils"), icon: Wrench, actif: isActivePage("Outils") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
@@ -573,7 +572,8 @@ function LayoutContent({ children, currentPageName }) {
             K-Data : la vue client ne le propose pas. */}
         {isAdmin && !showClientView && !replie && (
           <div className="mx-3 mt-1 grid grid-cols-2 rounded-[12px] bg-rail-actif p-1">
-            {[["klocka", "Klocka"], ["kdata", "K-Data"]].map(([k, mot]) => {
+            {/* K-Data s'appelle Outils depuis le 16 oct. 2026 (Jules). */}
+            {[["klocka", "Klocka"], ["kdata", "Outils"]].map(([k, mot]) => {
               const actif = k === "kdata" ? enKData : !enKData;
               return (
                 <button

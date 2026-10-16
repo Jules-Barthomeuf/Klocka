@@ -127,7 +127,7 @@ function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, 
       className="text-[13.5px] leading-[1.55] cursor-pointer"
     >
       {marche.kdata_en_cours && (
-        <p className="m-0 mb-1 inline-flex items-center gap-1.5 text-[11.5px] text-ardoise"><Loader2 className="w-3 h-3 animate-spin" /> K-Data Valeur locative interroge Equimmox : quelques minutes.</p>
+        <p className="m-0 mb-1 inline-flex items-center gap-1.5 text-[11.5px] text-ardoise"><Loader2 className="w-3 h-3 animate-spin" /> Valeur locative (Outils) interroge Equimmox : quelques minutes.</p>
       )}
       <span className="flex items-center gap-1.5 font-medium text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>
         {ecart}
@@ -158,7 +158,7 @@ function SourceMarche({ marche }) {
     <div className="px-4 py-3">
       <p className="m-0 text-[12px] text-craie">{marche.source}{marche.periode ? `, du ${new Date(marche.periode.du).toLocaleDateString("fr-FR")} au ${new Date(marche.periode.au).toLocaleDateString("fr-FR")}` : ""}.</p>
       {marche.lien && <a href={marche.lien} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[12px] text-menthe-clair hover:text-encre">Ouvrir la carte des ventes (DVF) ↗</a>}
-      {marche.kdata?.id && <a href={`/ValeurLocative?id=${encodeURIComponent(marche.kdata.id)}`} target="_blank" rel="noopener noreferrer" className="mt-1 mr-4 inline-block text-[12px] text-menthe-clair hover:text-encre">Ouvrir l'analyse K-Data Valeur locative ↗</a>}
+      {marche.kdata?.id && <a href={`/ValeurLocative?id=${encodeURIComponent(marche.kdata.id)}`} target="_blank" rel="noopener noreferrer" className="mt-1 mr-4 inline-block text-[12px] text-menthe-clair hover:text-encre">Ouvrir l'analyse Valeur locative ↗</a>}
       {marche.second_regard?.median != null && (
         <p className="m-0 mt-1 text-[11.5px] text-ardoise" style={{ fontVariantNumeric: "tabular-nums" }}>
           Second regard, {marche.second_regard.source} : {Math.round(marche.second_regard.median).toLocaleString("fr-FR")} €/m²/an

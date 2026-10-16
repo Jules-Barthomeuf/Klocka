@@ -1,6 +1,6 @@
-import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed } from "lucide-react";
+import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed, Radar } from "lucide-react";
 
-// Les six applications de K-Data, décrites une seule fois : le tableau de
+// Les applications d'Outils (K-Data jusqu'au 16 oct. 2026), décrites une seule fois : le tableau de
 // bord en fait des cartes, la barre du haut de K-Data en fait un menu.
 // `pageName` sert à la route (createPageUrl) et à isActivePage ; `chemin`
 // reste nul tant que la page n'existe pas — une carte ou un lien qui n'ouvre
@@ -8,6 +8,7 @@ import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClos
 //
 // `image` habille la carte du tableau de bord ; `icone` reste utilisée là où
 // une photo ne tiendrait pas — le menu des outils, une ligne de la file.
+// `lancable: false` : l'outil s'ouvre seul, le composeur du tableau de bord ne le lance pas sur une adresse.
 export const MODULES_KDATA = [
   {
     cle: "kzoning",
@@ -89,9 +90,24 @@ export const MODULES_KDATA = [
     chemin: "/KTransactions",
     etat: "Ouvert",
   },
+  {
+    // L'ancienne entrée « Outils » du menu (13 oct. 2026), rangée ici le 16 oct. 2026 (Jules).
+    cle: "signaux-vacance",
+    pageName: "Outils",
+    nom: "Signaux de vacance",
+    icone: Radar,
+    image: "/img/kdata/signaux-vacance.jpg",
+    phrase: "Sur une carte, les signaux publics qui annoncent qu'un local va se libérer, et le taux de vacance de la commune.",
+    chemin: "/Outils",
+    etat: "Ouvert",
+    lancable: false,
+  },
 ];
 
-// Les pages du côté K-Data, tableau de bord compris : sert à savoir si l'on
+/** Les outils que le composeur lance sur une adresse. */
+export const MODULES_LANCABLES = MODULES_KDATA.filter((m) => m.lancable !== false);
+
+// Les pages du côté Outils, tableau de bord compris : sert à savoir si l'on
 // s'y trouve, dans Layout, pour échanger la barre latérale contre la barre
 // du haut.
 export const PAGES_KDATA = ["KData", ...MODULES_KDATA.map((m) => m.pageName)];

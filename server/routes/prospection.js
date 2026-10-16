@@ -117,7 +117,7 @@ export function monterProspection(app) {
     if (!admin(req, res)) return;
     const { suiviAppels, SOURCES } = await import('../prospection/suivi-appels.js');
     const source = SOURCES[req.query.source] ? String(req.query.source) : null;
-    ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source }));
+    ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source, par: req.query.moi ? currentUser(req)?.email : null }));
   }));
   // Le Suivi des mandataires : ce que chaque mandataire K Partners fait de son espace (9 oct. 2026).
   app.get('/api/monitoring/mandataires', wrap(async (req, res) => {
@@ -137,7 +137,8 @@ export function monterProspection(app) {
     if (!admin(req, res)) return;
     const { suiviAppels, SOURCES } = await import('../prospection/suivi-appels.js');
     const source = SOURCES[req.query.source] ? String(req.query.source) : null;
-    ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source }));
+    // « ?moi=1 » : les appels de la personne connectée seulement (Mes appels).
+    ok(res, suiviAppels({ jours: Math.min(365, Math.max(1, Number(req.query.jours) || 30)), source, par: req.query.moi ? currentUser(req)?.email : null }));
   }));
   // Compte > Mails (13 oct. 2026) : les mails de chacun, à partir de ceux de l'équipe.
   app.get('/api/mes-mails', wrap(async (req, res) => {

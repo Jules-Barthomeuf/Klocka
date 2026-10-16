@@ -250,3 +250,14 @@ test("la part de parole : gardée une fois sur l'appel, moyennée dans les chiff
   assert.equal(c.parole_pct, 61);
   assert.equal(S.chiffres([{ le: '2026-10-14T11:00:00Z', issue: 'x', etat: 'valide' }], { maintenantD: MAINTENANT }).parole_pct, null);
 });
+
+test("Mes appels : `par` ne garde que les appels, sessions et rappels de la personne", () => {
+  const le = new Date(MAINTENANT.getTime() - 3600000).toISOString();
+  Records.create('AppelAgent', { le, par: 'nora.l@klocka.immo', issue: 'pas_de_murs', etat: 'valide', source: 'prospection', duree_s: 120, parole: { pct: 40 } });
+  Records.create('AppelAgent', { le, par: 'maxime.p@klocka.immo', issue: 'a_des_murs', etat: 'valide', source: 'prospection', duree_s: 300 });
+  const moi = S.suiviAppels({ jours: 7, par: 'Nora.L@klocka.immo', maintenantD: MAINTENANT, debutMesures: null });
+  assert.ok(moi.journal.length >= 1);
+  assert.ok(moi.journal.every((x) => x.par === 'Nora' || /nora/i.test(x.par)), 'seulement ses appels');
+  assert.equal(moi.analystes.find((a) => a.email === 'maxime.p@klocka.immo')?.appels || 0, 0);
+  assert.ok(moi.par_jour.some((j) => j.parole_pct === 40), 'la part de parole du jour');
+});

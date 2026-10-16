@@ -135,7 +135,8 @@ export function avecMemoire(m, recent = true) {
 async function cadreLayer(texte, user) {
   if (user?.role !== 'admin') return '';
   const C = await import('../layer.js');
-  let cadre = `\n\nL'INTELLIGENCE DE KLOCKA (le Layer) (comptes rendus, appels, débriefs, validés par Jules) : pour toute question sur le passé (ce qui a été dit, décidé, promis, pourquoi), layer_chercher d'abord. Cite toujours la date, la personne et la source de chaque fait. Ne présente jamais un fait non validé comme acquis. Rien trouvé : dis-le tel quel, sans inventer, et propose de noter l'information si la personne la connaît.`;
+  // Les consignes de la section 12 de la spec du Layer (15 oct. 2026).
+  let cadre = `\n\nL'INTELLIGENCE DE KLOCKA (le Layer : comptes rendus, réunions, appels, débriefs, validés par l'équipe). Pour toute question sur le passé ou sur une personne, une agence, un dossier, un investisseur, une ville : appelle layer_fiche (la synthèse de la fiche) puis layer_chercher (avec les filtres que la question donne : fiche, ville, type, période) AVANT de répondre. Cite toujours la date, la personne et la source de chaque fait (« d'après l'Intelligence, le 15/10, Nora… ») et son statut s'il n'est pas validé (« à valider, pas encore acquis »). Si la recherche ne rend rien : réponds « rien dans l'Intelligence » et propose de le noter (layer_noter). Ne déduis jamais un fait absent d'un autre fait.`;
   const debrief = C.debriefDe(texte);
   if (debrief) {
     const r = await C.noter(debrief, { user }).catch((e) => ({ ok: false, error: e?.message || String(e) }));
@@ -144,7 +145,7 @@ async function cadreLayer(texte, user) {
       : `\nCE MESSAGE EST UN DÉBRIEF, MAIS IL N'A PAS PU ÊTRE NOTÉ DANS L'INTELLIGENCE (${r.error}). Dis-le, en une ligne.`;
   }
   const q = C.questionOuverte(user.email);
-  if (q) cadre += `\nTU AS POSÉ CETTE QUESTION À LA PERSONNE (question_id ${q.id}) : « ${q.texte} ». Si son message y répond, appelle noter avec question_id ${q.id} et texte = le motif tel qu'elle le dit, puis remercie en une ligne. Sinon, réponds à son message, et repose la question en une ligne à la fin.`;
+  if (q) cadre += `\nTU AS POSÉ CETTE QUESTION À LA PERSONNE (question_id ${q.id}) : « ${q.texte} ». Si son message y répond, appelle layer_noter avec question_id ${q.id} et texte = le motif tel qu'elle le dit, puis remercie en une ligne. Sinon, réponds à son message, et repose la question en une ligne à la fin.`;
   return cadre;
 }
 
@@ -360,5 +361,11 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
     } catch (e) { console.warn('[ak app] sources de la LOI :', e?.message || e); }
   }
   try { noterEchange({ espace, auteur: message.auteur, demande: texte, reponse }); } catch { /* la mesure ne bloque pas la réponse */ }
+  // Le Layer (phase 8) : les faits que la réponse a cités, au journal de chaque recherche (matière de l'évaluation).
+  try {
+    const { faitsCites } = await import('../layer-evaluation.js');
+    const { noterCites } = await import('../layer-schema.js');
+    for (const s of souvenirs.filter((x) => x.outil === 'layer_chercher' && x.resultat?.requete_id)) noterCites(s.resultat.requete_id, faitsCites(reponse, s.resultat.faits || []));
+  } catch { /* la mesure ne bloque pas la réponse */ }
   return { texte: reponse, actions, outils, brouillon, taches: fond.map((t) => t.libelle), trace, tours, blocs, memoire: memoireDesOutils(souvenirs) || null, ...(fichiers.length ? { fichiers } : {}), ...(limite ? { limite } : {}), ...(sources ? { sources } : {}) };
 }

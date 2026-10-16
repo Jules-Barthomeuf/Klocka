@@ -1052,10 +1052,10 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
   if (name === 'layer_chercher' || name === 'layer_fiche' || name === 'layer_noter') {
     const C = await import('../layer.js');
     if (user?.role !== 'admin') return { ok: false, error: 'L’Intelligence est réservée à l\'équipe.' };
-    const pour = (f) => ({ date: String(f.date).slice(0, 10), type: f.type, resume: f.resume, personne: f.personne, citation: f.citation, echeance: f.echeance, fiches: f.fiches.map((x) => x.libelle), source: f.source ? `${f.source.type}${f.source.titre ? ` « ${f.source.titre} »` : ''}, ${String(f.source.date).slice(0, 10)}${f.source.auteur ? `, par ${f.source.auteur}` : ''}` : null, source_id: f.source?.id || null });
+    const pour = (f) => ({ id: f.id, date: String(f.date).slice(0, 10), type: f.type, statut: f.statut, resume: f.resume, personne: f.personne, citation: f.citation, echeance: f.echeance, fiches: f.fiches.map((x) => x.libelle), source: f.source ? `${f.source.type}${f.source.titre ? ` « ${f.source.titre} »` : ''}, ${String(f.source.date).slice(0, 10)}${f.source.auteur ? `, par ${f.source.auteur}` : ''}` : null, source_id: f.source?.id || null });
     if (name === 'layer_chercher') {
       const faits = await C.chercher(input || {}, { par: user?.email });
-      return { ok: true, faits: faits.map(pour), nombre: faits.length, ...(faits.length ? {} : { rien: 'Aucun fait validé ne répond. Dis-le tel quel, n\'invente pas, et propose de noter l\'information si la personne la connaît.' }), a_valider: C.nombreAValider() };
+      return { ok: true, requete_id: faits.requete_id || null, faits: faits.map(pour), nombre: faits.length, ...(faits.length ? {} : { rien: 'Aucun fait validé ne répond. Dis-le tel quel, n\'invente pas, et propose de noter l\'information si la personne la connaît.' }), a_valider: C.nombreAValider() };
     }
     if (name === 'layer_fiche') {
       // Phase 5 : la synthèse d'abord, la frise sur demande.

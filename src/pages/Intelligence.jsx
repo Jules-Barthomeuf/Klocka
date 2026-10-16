@@ -167,10 +167,11 @@ function Evaluation({ e, t, c }) {
   const m = t.manuel;
   return (
     <div className="flex flex-col gap-4">
+      <Banc peutEditer={!!e.tout_voir} />
       {e.mesures && <Mesures m={e.mesures} />}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Chiffre libelle="Validation à la main" valeur={pct(m.part)} note={`${m.manuels} sur ${m.tranches} faits, 14 jours · objectif < ${m.objectif} %`} />
-        <Chiffre libelle="Coût d'extraction du mois" valeur={`${String(t.couts_mois.extraction_usd).replace(".", ",")} $`} note={`${t.couts_mois.sources} source${t.couts_mois.sources > 1 ? "s" : ""} · ${t.couts_mois.embed_jetons.toLocaleString("fr-FR")} jetons d'embeddings`} />
+        <Chiffre libelle="Coût du mois" valeur={(() => { const total = t.couts_mois.extraction_usd + (t.couts_mois.syntheses_usd || 0); return total > 0 && total < 0.01 ? "< 0,01 $" : `${String(Math.round(total * 100) / 100).replace(".", ",")} $`; })()} note={`extraction ${String(t.couts_mois.extraction_usd).replace(".", ",")} $ · synthèses ${String(t.couts_mois.syntheses_usd || 0).replace(".", ",")} $ · ${t.couts_mois.embed_jetons.toLocaleString("fr-FR")} jetons d'embeddings`} />
         <Chiffre libelle="Recherche la plus lente" valeur={t.postgres.p95_ms == null ? "—" : `${t.postgres.p95_ms} ms`} note="95 % des recherches, calcul local · seuil 300 ms" />
         <Chiffre libelle="Faits en base" valeur={t.postgres.faits.toLocaleString("fr-FR")} note={t.postgres.declenche ? "seuil Postgres atteint : voir docs/layer.md" : "seuil Postgres : 50 000"} />
       </div>
@@ -438,5 +439,85 @@ function Sources({ peutValider }) {
       )}
       {ouverte && <FenetreSource id={ouverte} onFermer={() => setOuverte(null)} />}
     </div>
+  );
+}
+
+/**
+ * Le banc d'évaluation (phase 8) : les questions, leur réponse et leurs faits
+ * attendus ; une exécution par version ; les deux dernières côte à côte. Jules
+ * édite, propose et lance ; l'équipe lit.
+ */
+function Banc({ peutEditer }) {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["layer", "evaluation"], queryFn: () => base44.request("GET", `${API}/evaluation`) });
+  const [nouvelle, setNouvelle] = useState("");
+  const [attendue, setAttendue] = useState("");
+  const [voirBanc, setVoirBanc] = useState(false);
+  const rafraichir = () => qc.invalidateQueries({ queryKey: ["layer", "evaluation"] });
+  const ajouter = useMutation({ mutationFn: () => base44.request("POST", `${API}/evaluation/questions`, { body: { question: nouvelle, reponse_attendue: attendue } }), onSuccess: () => { setNouvelle(""); setAttendue(""); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
+  const retirer = useMutation({ mutationFn: (id) => base44.request("DELETE", `${API}/evaluation/questions/${id}`), onSuccess: rafraichir });
+  const proposer = useMutation({ mutationFn: () => base44.request("POST", `${API}/evaluation/proposer`, { body: {} }), onSuccess: (r) => { toast.success(`${r.questions.length} question${r.questions.length > 1 ? "s" : ""} proposée${r.questions.length > 1 ? "s" : ""} : à relire`); setVoirBanc(true); rafraichir(); }, onError: (e) => toast.error(e?.message || "Impossible") });
+  const executer = useMutation({ mutationFn: () => base44.request("POST", `${API}/evaluation/executer`, { body: {} }), onSuccess: () => { toast.success("Exécution lancée : le résultat arrive dans une minute environ"); setTimeout(rafraichir, 60000); }, onError: (e) => toast.error(e?.message || "Impossible") });
+  const d = q.data;
+  if (!d) return <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>;
+  const c = d.comparaison;
+  const pc = (v) => (v == null ? "—" : `${Math.round(v * 100)} %`);
+  return (
+    <section className="rounded-[14px] border border-trait bg-surface p-4">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="m-0 text-[11px] font-normal uppercase tracking-[.16em] text-menthe">Banc d'évaluation · {d.banc.length} question{d.banc.length > 1 ? "s" : ""}</h2>
+        {peutEditer && (
+          <div className="flex flex-wrap gap-1.5">
+            <button type="button" onClick={() => proposer.mutate()} disabled={proposer.isPending} className={bouton}>{proposer.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Proposer des questions</button>
+            <button type="button" onClick={() => executer.mutate()} disabled={executer.isPending || !d.banc.length} className={principal}>Lancer une exécution</button>
+          </div>
+        )}
+      </div>
+      {c ? (
+        <>
+          {c.regression && <p className="m-0 mb-3 rounded-[10px] border border-alerte/40 px-3 py-2 text-[13px] text-alerte">Le rappel a baissé depuis l'exécution précédente : pas de mise en production avant d'avoir compris pourquoi.</p>}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Chiffre libelle="Rappel" valeur={pc(c.dernier.rappel)} note={c.precedent ? `avant : ${pc(c.precedent.rappel)}` : "première exécution"} />
+            <Chiffre libelle="Citation correcte" valeur={pc(c.dernier.citation_ok)} note={c.precedent ? `avant : ${pc(c.precedent.citation_ok)}` : "première exécution"} />
+            <Chiffre libelle="Version" valeur={c.dernier.version} note={`le ${quand(c.dernier.le)}${c.dernier.note ? ` · ${c.dernier.note}` : ""}`} />
+            <Chiffre libelle="Précédente" valeur={c.precedent?.version || "—"} note={c.precedent ? `le ${quand(c.precedent.le)}` : ""} />
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-[13px]">
+              <thead><tr className="border-b border-bord text-left text-[11px] uppercase tracking-[.1em] text-brume"><th className="py-2 pr-3 font-normal">Question</th><th className="px-2 py-2 text-right font-normal">Rappel</th><th className="px-2 py-2 text-right font-normal">Avant</th><th className="px-2 py-2 text-right font-normal">Citation</th></tr></thead>
+              <tbody>
+                {c.questions.map((x) => (
+                  <tr key={x.id} className="border-b border-trait">
+                    <td className="py-2 pr-3 text-craie">{x.question}</td>
+                    <td className={`px-2 py-2 text-right tabular-nums ${x.rappel < 1 ? "text-ambre" : "text-encre"}`}>{pc(x.rappel)}</td>
+                    <td className={`px-2 py-2 text-right tabular-nums ${x.rappel_avant != null && x.rappel < x.rappel_avant ? "text-alerte" : "text-brume"}`}>{pc(x.rappel_avant)}</td>
+                    <td className={`px-2 py-2 text-right ${x.citation_ok ? "text-encre" : "text-ambre"}`}>{x.citation_ok ? "Juste" : "À revoir"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : <p className="m-0 text-[13.5px] text-brume">Aucune exécution encore{d.banc.length ? " : lancez la première." : " : ajoutez ou proposez des questions, puis lancez une exécution."}</p>}
+      <button type="button" onClick={() => setVoirBanc((v) => !v)} className="mt-3 p-0 text-[12.5px] text-craie underline decoration-trait underline-offset-2 hover:text-encre" style={{ background: "transparent" }}>{voirBanc ? "Replier le banc" : "Voir et modifier le banc"}</button>
+      {voirBanc && (
+        <div className="mt-3">
+          {d.banc.map((b) => (
+            <div key={b.id} className="flex items-start justify-between gap-3 border-t border-trait py-2 text-[13px] first:border-t-0">
+              <span className="min-w-0"><span className="text-encre">{b.question}</span>{b.reponse_attendue ? <span className="block text-ardoise">Attendu : {b.reponse_attendue}</span> : null}<span className="block text-[12px] text-brume">{b.faits_attendus.length} fait{b.faits_attendus.length > 1 ? "s" : ""} attendu{b.faits_attendus.length > 1 ? "s" : ""}{b.auteur === "brouillon" ? " · brouillon à relire" : ""}</span></span>
+              {peutEditer && <button type="button" onClick={() => retirer.mutate(b.id)} className={bouton} aria-label="Retirer du banc" title="Retirer du banc (gardée en base)"><X className="h-3.5 w-3.5" /></button>}
+            </div>
+          ))}
+          {peutEditer && (
+            <div className="mt-3 flex flex-col gap-2">
+              <input value={nouvelle} onChange={(ev) => setNouvelle(ev.target.value)} placeholder="Une question que l'équipe pose (« pourquoi a-t-on refusé Libourne ? »)" className="h-9 rounded-champ border border-trait bg-surface px-3 text-[13.5px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
+              <input value={attendue} onChange={(ev) => setAttendue(ev.target.value)} placeholder="La réponse attendue, en une phrase" className="h-9 rounded-champ border border-trait bg-surface px-3 text-[13.5px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]" />
+              <p className="m-0 text-[12px] text-brume">Les faits attendus se relient ensuite : une question ajoutée ici sert à mesurer la citation, son rappel compte dès qu'elle a des faits attendus.</p>
+              <button type="button" onClick={() => ajouter.mutate()} disabled={!nouvelle.trim() || ajouter.isPending} className={`${principal} self-start`}>Ajouter au banc</button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

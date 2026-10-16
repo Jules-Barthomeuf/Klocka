@@ -256,6 +256,12 @@ const jourParis = (d) => new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Pa
  * échus (en stock, chaque soir), questions posées à l'Intelligence (par jour).
  * Plus les répartitions (types, sources, auto / manuel) et les coûts du mois.
  */
+/** Le coût des synthèses régénérées ce mois-ci (section 14 de la spec). */
+async function coutSynthesesDuMois(mois) {
+  const db = (await import('./db.js')).default;
+  return Math.round((db.prepare('SELECT COALESCE(SUM(cout_usd), 0) AS t FROM layer_syntheses WHERE substr(genere_le, 1, 7) = ?').get(mois).t || 0) * 10000) / 10000;
+}
+
 export async function tableauDeBord({ jours = 30, maintenantD = new Date() } = {}) {
   const liste = [];
   for (let i = jours - 1; i >= 0; i -= 1) liste.push(jourParis(maintenantD.getTime() - i * 86400000));
@@ -270,7 +276,7 @@ export async function tableauDeBord({ jours = 30, maintenantD = new Date() } = {
     d.part_sans_correction = d.valides ? Math.round((d.sans_correction / d.valides) * 100) : null;
   }
   const debut = `${liste[0]}T00:00:00.000Z`;
-  return import('./layer-schema.js').then(({ requetesDepuis, alertePostgres }) => {
+  return import('./layer-schema.js').then(async ({ requetesDepuis, alertePostgres }) => {
     for (const r of requetesDepuis(debut)) { const d = parJour.get(jourParis(r.le)); if (d) d.questions += 1; }
     const serie = [...parJour.values()];
     const semaine = serie.slice(-7);
@@ -292,7 +298,7 @@ export async function tableauDeBord({ jours = 30, maintenantD = new Date() } = {
       statuts: ['a_valider', 'a_rattacher', 'valide', 'remplace', 'archive', 'rejete'].map((s) => ({ statut: s, n: faits.filter((f) => f.statut === s).length })),
       sources: ['compte_rendu', 'appel', 'debrief', 'decision', 'mail', 'evenement'].map((t) => ({ type: t, n: sources.filter((s) => s.type === t).length })).filter((x) => x.n),
       manuel: partManuelle({ maintenantD }),
-      couts_mois: { sources: duMois.length, extraction_usd: Math.round(duMois.reduce((t, s) => t + (s.cout?.usd || 0), 0) * 100) / 100, embed_jetons: duMois.reduce((t, s) => t + (s.cout?.embed_jetons || 0), 0) },
+      couts_mois: { sources: duMois.length, extraction_usd: Math.round(duMois.reduce((t, s) => t + (s.cout?.usd || 0), 0) * 10000) / 10000, embed_jetons: duMois.reduce((t, s) => t + (s.cout?.embed_jetons || 0), 0), syntheses_usd: await coutSynthesesDuMois(mois) },
       postgres: alertePostgres({ maintenantD }),
       croissance: croissance({ maintenantD }),
     };

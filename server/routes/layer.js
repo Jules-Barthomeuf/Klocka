@@ -110,6 +110,19 @@ export function monterLayer(app) {
     return r.ok ? ok(res, r) : res.status(400).json({ error: r.error });
   }));
 
+  // Phase 8 : l'évaluation. Le banc se lit par l'équipe ; il s'édite, se propose et s'exécute par Jules.
+  const EV = () => import('../layer-evaluation.js');
+  app.get('/api/layer/evaluation', wrap(async (req, res) => {
+    if (!equipe(req, res)) return;
+    const E = await EV();
+    ok(res, { banc: E.banc(), comparaison: E.comparer(), runs: E.runs({ limite: 10 }).map(({ resultats, ...r }) => ({ ...r, questions: resultats.length })) });
+  }));
+  app.post('/api/layer/evaluation/questions', wrap(async (req, res) => { const user = await jules(req, res); if (!user) return; const r = (await EV()).ajouter({ ...req.body, auteur: user.email }); return r.ok ? ok(res, r) : res.status(400).json({ error: r.error }); }));
+  app.put('/api/layer/evaluation/questions/:id', wrap(async (req, res) => { if (!(await jules(req, res))) return; const r = (await EV()).modifier(req.params.id, req.body || {}); return r.ok ? ok(res, r) : res.status(400).json({ error: r.error }); }));
+  app.delete('/api/layer/evaluation/questions/:id', wrap(async (req, res) => { if (!(await jules(req, res))) return; const r = (await EV()).retirer(req.params.id); return r.ok ? ok(res, r) : res.status(404).json({ error: r.error }); }));
+  app.post('/api/layer/evaluation/proposer', wrap(async (req, res) => { if (!(await jules(req, res))) return; const r = await (await EV()).proposerBanc(); return r.ok ? ok(res, r) : res.status(400).json({ error: r.error }); }));
+  app.post('/api/layer/evaluation/executer', wrap(async (req, res) => { if (!(await jules(req, res))) return; ok(res, { tache: (await EV()).planifierEvaluation(req.body?.note || null) }); }));
+
   // La validation : valider, corriger, rejeter ; un lot par source.
   app.post('/api/layer/faits/:id', wrap(async (req, res) => {
     const user = await valideurDe(req, res, req.params.id); if (!user) return;

@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phases 1 à 7 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence. Phase suivante : 8 (évaluation).
+**État : phases 1 à 8 faites (16 oct. 2026)** : renommage, données et tâches de fond, recherche hybride, cycle de vie et validation sans goulot, synthèses vivantes, branchements, page Intelligence, évaluation et coûts. Phase suivante : 9 (sources mail et Monday).
 
 ---
 
@@ -206,6 +206,24 @@ Une ligne de synthèse déplie ses faits ; un fait ouvre sa source (`FenetreSour
 - **Onglets** : À valider · n (personnel) ; Faits (type : Tout, Savoir, Informations, Décisions, Engagements, la demande du 14 oct. ; statut : validés, à valider, remplacés, archivés, rejetés ; période ; type de fiche et nom) ; Synthèses (une ligne par fiche, un clic déplie la synthèse) ; Sources ; Évaluation (critères du MVP, part de validation à la main, coût d'extraction du mois, recherche la plus lente et nombre de faits face aux seuils Postgres, répartitions types / statuts / sources ; le banc de questions vient en phase 8).
 - **Vue par fiche** depuis la fiche elle-même : `CeQueKlockaSait` (phase 6).
 
+## 4 octies. Phase 8 : évaluation et coûts (16 oct. 2026)
+
+`server/layer-evaluation.js`, tables `layer_evaluations` et `layer_evaluations_runs`, onglet Évaluation de la page.
+
+- **Banc** : question, réponse attendue, faits attendus, auteur ; ajout, modification, retrait (gardée en base, `actif = 0`) ; Jules édite, l'équipe lit. `proposerBanc()` rédige un brouillon (auteur « brouillon ») à partir des faits validés et des questions déjà posées au journal (modèle rapide). Essai réel : 30 questions proposées sur les 25 faits du comité.
+- **Exécution** (`executer`, tâche `evaluation`, ou `npm run layer:eval`) : pour chaque question, la recherche hybride telle qu'AK la fait ; **rappel** = part des faits attendus dans les 10 rendus ; puis une réponse courte du modèle rapide qui cite ses faits ; **citation correcte** = un fait attendu, ou un fait de la même source. Version = commit déployé (`RENDER_GIT_COMMIT`) ou local. Essai réel : rappel 0,967, citation 0,967 ; un second passage identique ne signale pas de régression.
+- **Comparaison** des deux dernières exécutions, question par question (`comparer`), et **non-régression** : `regression()` vrai si le rappel baisse ; `npm run layer:eval` sort alors en code 2 (« pas de mise en production »). Rien ne bloque le déploiement Render tout seul : la commande est à lancer avant de pousser un changement de consigne, de modèle ou de fusion.
+- **Faits cités par AK** : après chaque réponse, les faits rendus par `layer_chercher` dont la majorité des mots porteurs se retrouvent dans la réponse sont notés au journal (`faitsCites`, `noterCites`).
+- **Consigne d'AK** (section 12, `cadreLayer` dans `server/ak/app.js`) : `layer_fiche` puis `layer_chercher` avec les filtres ; date, personne, source et statut ; « rien dans l'Intelligence » et proposer `layer_noter` ; ne rien déduire.
+
+**Coûts (section 14)** :
+- Par source : jetons et dollars d'extraction (`cout`), jetons d'embeddings ; par synthèse : dollars cumulés. Onglet Évaluation : coût du mois (extraction + synthèses) et jetons d'embeddings.
+- Synthèse régénérée au plus une fois par heure et par fiche (phase 5).
+- **Modèle rapide pour l'extraction : refusé par le re-test** (comité, deux essais : 22 et 19 faits sur 25, contre 24 à 25 avec le modèle principal). L'extraction reste sur le modèle principal ; le modèle rapide sert aux synthèses, aux contradictions, au banc et à l'évaluation.
+- **Cache des consignes** : la partie fixe de la consigne d'extraction fait environ 600 jetons, sous le minimum de mise en cache des modèles ; la consigne d'AK est déjà servie par le cache du chat (51 % des jetons d'entrée, `docs/etat-plateforme.md`). Rien à gagner de plus à ce stade.
+
+**Re-test après la note de l'équipe** (une autre session a ajouté les noms de l'équipe à `NOTE_KLOCKA`, 16 oct.) : 23, 24, 25, 25 faits sur 25 en quatre essais (24,25 de moyenne, contre 24,5 avant) : dans le bruit, gardée. Toute modification de `NOTE_KLOCKA` ou de la consigne se re-teste sur le comité.
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -236,7 +254,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | 5. Synthèses par fiche ✓ | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |
 | 6. Branchements ✓ (sources : phase 9) | Usage proactif (mode appel, pré-analyse, matching, tableau de bord) ; sources mail et Monday | modules cités en section 1 et 2 |
 | 7. Page Intelligence ✓ | Reconstruite sur Suivi > Appels : KPIs, graphiques, filtres, mêmes briques | `src/pages/Layer.jsx`, briques de Suivi > Appels |
-| 8. Évaluation | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |
+| 8. Évaluation ✓ | Banc de questions, exécutions comparées par version | `server/layer-evaluation.js` (nouveau) |
 
 ### Spec des phases 3 à 9 (reçue le 15 oct. 2026, résumé)
 

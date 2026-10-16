@@ -952,7 +952,23 @@ function EtapesNotif({ etapes = [], enCours = false }) {
  * de fil, une notification en haut à droite montre ce qu'il fait (les étapes,
  * en direct), puis sa réponse.
  */
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null }) {
+// Le fil compact de l'assistant Klocka (16 oct. 2026, Jules) : la date entre deux jours, l'heure sous chaque réponse.
+const jourDe = (m) => { const d = m?.le || m?.ak_le; return d ? new Date(d).toDateString() : null; };
+const heureDe = (m) => { const d = m?.le || m?.ak_le; return d ? new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : null; };
+function SeparateurJour({ iso }) {
+  const d = new Date(iso);
+  const hier = new Date(); hier.setDate(hier.getDate() - 1);
+  const mot = d.toDateString() === new Date().toDateString() ? "Aujourd'hui" : d.toDateString() === hier.toDateString() ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div className="flex items-center gap-4" role="separator">
+      <span className="h-px flex-1 bg-trait" />
+      <span className="text-[12px] uppercase tracking-[.12em] text-brume">{mot}</span>
+      <span className="h-px flex-1 bg-trait" />
+    </div>
+  );
+}
+
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1057,7 +1073,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   }, []);
 
   const historique = () => fil.filter((m) => m.role === "user" || m.role === "assistant").slice(-12);
-  const pousser = (m) => setFil((f) => [...f, m]);
+  const pousser = (m) => setFil((f) => [...f, m.le ? m : { ...m, le: new Date().toISOString() }]);
 
   const rafraichir = () => {
     for (const k of prospectionId
@@ -1866,14 +1882,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             <p className="m-0 max-w-[30ch] text-[19px] font-medium tracking-[-0.01em] text-encre">{filVide}</p>
           </div>
         )}
-        <div className={`mx-auto w-full max-w-[760px] space-y-8 py-8 ${filVide && !fil.length && !travaille ? "hidden" : ""}`}>
-          {fil.map((m, i) =>
+        <div className={`mx-auto w-full max-w-[760px] ${compact ? "space-y-6 py-6" : "space-y-8 py-8"} ${filVide && !fil.length && !travaille ? "hidden" : ""}`}>
+          {fil.map((m, i) => [
+            compact && jourDe(m) && jourDe(m) !== jourDe(fil.slice(0, i).reverse().find((x) => jourDe(x))) && <SeparateurJour key={`j-${i}`} iso={m.le || m.ak_le} />,
             m.role === "user" ? (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-end">
                 <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre"] }}>{m.contenu}</div>
               </motion.div>
             ) : m.role === "bloc" ? (
-              <div key={i} className="pl-[3.25rem]">
+              <div key={i} className={compact ? "" : "pl-[3.25rem]"}>
                 {m.type === "fiche" ? <ResultatFiche r={m.donnees} clients={m.donnees.clients} />
                   : m.type === "client" ? <ResultatClient r={m.donnees} />
                   : m.type === "echeances" ? <Echeances onBrouillon={setBrouillon} />
@@ -1882,10 +1899,10 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               </div>
             ) : (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex gap-4">
-                <AvatarAK />
-                <div className="min-w-0 flex-1 pt-1.5 text-[16px]">
+                {!compact && <AvatarAK />}
+                <div className={`min-w-0 flex-1 text-[16px] ${compact ? "" : "pt-1.5"}`}>
                   <Etapes etapes={m.etapes} />
-                  <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} />
+                  <Message m={m} question={[...fil].slice(0, i).reverse().find((x) => x.role === "user")?.contenu || null} surface={E.avis} heure={compact ? heureDe(m) : null} />
                   <SourcesLoi sources={m.sources} />
                   {/* L'avis affiché à côté du chat : sa carte « Ouvrir l'avis » ne servirait à rien. */}
                   {m.cartes?.filter((c) => !(avisACote && String(c.lien || "").startsWith("avis:"))).length > 0 && (
@@ -1893,11 +1910,11 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                   )}
                 </div>
               </motion.div>
-            )
-          )}
+            ),
+          ])}
           {travaille && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="flex gap-4">
-              <AvatarAK />
+              {!compact && <AvatarAK />}
               <div className="min-w-0 flex-1 pt-2">
                 {enFlux
                   ? <Etapes etapes={etapesVives.length ? etapesVives : ["Réflexion…"]} courante={Math.max(0, etapesVives.length - 1)} />
@@ -1907,7 +1924,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             </motion.div>
           )}
           {(fiche || brouillon || (suites.length > 0 && !travaille)) && (
-            <div className="space-y-4 pl-[3.25rem]">
+            <div className={`space-y-4 ${compact ? "" : "pl-[3.25rem]"}`}>
               {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
               {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />}
               {suites.length > 0 && !travaille && (

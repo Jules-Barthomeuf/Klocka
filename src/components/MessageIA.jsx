@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/avis";
 import { Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import { sansMarkdown } from "@/components/preanalyse/ChatDossier";
 import { J } from "@/design/jetons";
+import { morceaux } from "@/lib/chiffres-message";
 
 // Un message de conversation, le même partout : la question dans une bulle de
 // verre, la réponse en texte plein — l'une sous l'autre, toutes deux calées à
@@ -16,7 +17,7 @@ import { J } from "@/design/jetons";
 // la cause. Le pouce en bas ouvre d'abord un champ, facultatif, pour dire ce
 // qui cloche : le prompt en devient beaucoup plus juste.
 
-export function AvisReponse({ question, reponse, surface, dealId = undefined }) {
+export function AvisReponse({ question, reponse, surface, dealId = undefined, heure = null }) {
   const [ouvert, setOuvert] = useState(null); // "bas" quand on précise
   const [precision, setPrecision] = useState("");
   const [resultat, setResultat] = useState(null); // { prompt, resume, pouce }
@@ -68,6 +69,7 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
   return (
     <div className="mt-2.5">
       <div className="flex items-center gap-1.5">
+        {heure && <span className="mr-2 text-[13px] tabular-nums text-brume">{heure}</span>}
         <button
           onClick={() => envoyer.mutate("haut")}
           disabled={envoyer.isPending}
@@ -110,7 +112,23 @@ export function AvisReponse({ question, reponse, surface, dealId = undefined }) 
   );
 }
 
-export default function MessageIA({ m, question = null, surface = null, dealId = null }) {
+function CarteChiffres({ chiffres }) {
+  return (
+    <div className="my-4 overflow-hidden rounded-[16px] border border-trait">
+      {chiffres.map((c, n) => (
+        <div key={n} className="border-t border-trait px-5 py-4 first:border-t-0">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-[14px] text-ardoise">{c.libelle}</span>
+            <span className="flex-none text-[16px] font-semibold tabular-nums text-encre">{c.valeur}</span>
+          </div>
+          {c.detail && <p className="m-0 mt-1.5 text-[14px] leading-[1.55] text-craie">{c.detail}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function MessageIA({ m, question = null, surface = null, dealId = null, heure = null }) {
   if (m.role === "user") {
     return (
       <div className="flex justify-start">
@@ -120,8 +138,11 @@ export default function MessageIA({ m, question = null, surface = null, dealId =
   }
   return (
     <div>
-      <div className="text-[15px] leading-[1.75] text-encre whitespace-pre-wrap">{sansMarkdown(m.contenu)}</div>
-      {surface && m.contenu && <AvisReponse question={question} reponse={m.contenu} surface={surface} dealId={dealId} />}
+      {morceaux(m.contenu).map((x, n) => (x.chiffres
+        ? <CarteChiffres key={n} chiffres={x.chiffres} />
+        : <div key={n} className="text-[15px] leading-[1.75] text-encre whitespace-pre-wrap [&+&]:mt-3">{sansMarkdown(x.texte)}</div>))}
+      {surface && m.contenu ? <AvisReponse question={question} reponse={m.contenu} surface={surface} dealId={dealId} heure={heure} />
+        : heure ? <p className="m-0 mt-2.5 text-[13px] tabular-nums text-brume">{heure}</p> : null}
     </div>
   );
 }

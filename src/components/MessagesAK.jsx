@@ -102,13 +102,17 @@ export default function MessagesAK() {
             <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-tr-[6px] border-r-2 border-t-2 border-bord-vif" />
           </div>
           {/* La barre du haut, de la couleur de la barre de navigation (16 oct. 2026, Jules). */}
-          <div className="flex flex-none items-center gap-3 border-b border-trait bg-rail px-4 py-3">
-            <img src="/avatars/ak.png" alt="" className="h-9 w-9 rounded-full object-cover" />
-            <div className="flex min-w-0 flex-1 flex-col"><span className="text-[15px] text-encre">Assistant Klocka</span><span className="text-[12.5px] text-ardoise">Ses messages, et ta réponse</span></div>
-            <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+          {/* Le dessin de Jules (16 oct. 2026) : la photo d'AK et sa pastille, le nom seul, la croix. */}
+          <div className="flex flex-none items-center gap-3.5 border-b border-trait bg-rail px-5 py-4">
+            <span className="relative h-11 w-11 flex-none">
+              <img src="/avatars/ak.png" alt="" className="h-11 w-11 rounded-full object-cover" />
+              <span aria-hidden className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-rail bg-menthe" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[18px] font-medium text-encre">Assistant Klocka</span>
+            <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer" className="grid h-9 w-9 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-5 w-5" /></button>
           </div>
-          <div className="min-h-0 flex-1 px-3">
-            <ChatDashboard espace="admin" cible="ak" sansBarreHaut onHistorique={() => {}} onConversation={() => {}} filVide="L'assistant Klocka t'écrit ici quand une fiche arrive et qu'il l'a pré-analysée." />
+          <div className="min-h-0 flex-1 px-5">
+            <ChatDashboard espace="admin" cible="ak" compact sansBarreHaut onHistorique={() => {}} onConversation={() => {}} filVide="L'assistant Klocka t'écrit ici quand une fiche arrive et qu'il l'a pré-analysée." />
           </div>
         </div>
       )}

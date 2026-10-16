@@ -46,6 +46,9 @@ export function serialisables(messages) {
           .slice(0, 8)
           .map((c) => ({ titre: c.titre.slice(0, 160), detail: typeof c.detail === 'string' ? c.detail.slice(0, 400) : null, etat: ['fait', 'annule', 'rate'].includes(c.etat) ? c.etat : 'fait', lien: typeof c.lien === 'string' ? c.lien.slice(0, 400) : null, ...(typeof c.action === 'string' ? { action: c.action.slice(0, 40) } : {}) }));
       }
+      // L'heure d'un message, et ce qu'AK a écrit de lui-même (assistant Klocka) : sans elles, l'heure et les non-lus se perdent au premier enregistrement.
+      for (const k of ['le', 'ak_le']) if (typeof m[k] === 'string' && !Number.isNaN(Date.parse(m[k]))) propre[k] = m[k].slice(0, 40);
+      if (typeof m.ak_cle === 'string') propre.ak_cle = m.ak_cle.slice(0, 120);
       // La mémoire des outils d'une réponse d'AK : elle revient au tour suivant, même dans une conversation rouverte.
       if (m.role === 'assistant' && typeof m.memoire === 'string' && m.memoire.trim()) propre.memoire = m.memoire.slice(0, 8000);
       // Les sources d'une LOI : la lettre et les titres, la fenêtre relit le reste.

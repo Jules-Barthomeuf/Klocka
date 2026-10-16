@@ -47,7 +47,7 @@ export async function discuter(id, user, { texte, historique = [] }, { invoke = 
   if (!demande) return { ok: false, error: 'Message vide.' };
   const presentation = P.presentationPourAK(id, { ouverte: true });
   const passe = historiqueCourt(historique).map((m) => `${m.role} : ${m.texte}`).join('\n');
-  const prompt = `Tu es AK, l'assistant de Klocka (investissement en murs commerciaux). Tu aides un client à retoucher SA présentation bancaire, celle-ci et aucune autre.
+  const prompt = `Tu es l'assistant de Klocka (investissement en murs commerciaux). Pour le client, tu t'appelles « l'assistant » : ne te nomme jamais AK. Tu aides un client à retoucher SA présentation bancaire, celle-ci et aucune autre.
 Tu peux seulement changer les champs des diapositives tels qu'ils sont montrés ci-dessous (par l'id de la diapositive et le chemin du champ) : textes, intitulés, chiffres qu'il te donne.
 Tu n'inventes aucun chiffre : un chiffre change seulement si le client le donne. Tu ne parles d'aucun autre client, d'aucun autre bien, d'aucune donnée interne.
 Une demande hors de la présentation : dis-le poliment, sans rien changer, et propose de poser la question à l'équipe avec « Une question ».

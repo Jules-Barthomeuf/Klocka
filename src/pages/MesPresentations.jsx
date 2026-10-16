@@ -78,12 +78,13 @@ export default function MesPresentations() {
 
 /**
  * Une présentation ouverte, côté client : l'écran de l'équipe, à l'identique (16 oct. 2026, Jules) —
- * le chat d'AK dans sa colonne à gauche (la même, redimensionnable), l'éditeur en carte à droite,
- * le fond sobre ; au téléphone, l'éditeur en plein écran et « Demander à AK ».
+ * le chat de l'assistant dans sa colonne à gauche (la même, redimensionnable), l'éditeur en carte à droite,
+ * le fond sobre ; au téléphone, l'éditeur en plein écran et « Demander à l'assistant ».
  */
 function VueClient({ id, onFermer }) {
   const queryClient = useQueryClient();
-  const [conversation, setConversation] = useState(false);
+  // Le chat s'ouvre déjà en fil, comme chez l'équipe une présentation ouverte : la saisie en bas (Jules, 16 oct. 2026).
+  const [, setConversation] = useState(true);
   const [large, setLarge] = useState(() => typeof window === "undefined" || window.matchMedia("(min-width: 1024px)").matches);
   useEffect(() => {
     const m = window.matchMedia("(min-width: 1024px)");
@@ -117,7 +118,7 @@ function VueClient({ id, onFermer }) {
   };
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
   const surReponse = (r) => { if (r?.presentation_modifiee) queryClient.invalidateQueries({ queryKey: ["presentation-bancaire", id, "client"] }); };
-  const chat = <ChatDashboard espace="presentation_client" onConversation={setConversation} onReponse={surReponse} barreApercu={large && conversation} contexte={{ presentation_id: id }} />;
+  const chat = <ChatDashboard espace="presentation_client" onConversation={setConversation} onReponse={surReponse} barreApercu={large} filVide="Que voulez-vous changer ? Un texte, un titre, une diapositive : dites-le, l'assistant le fait." contexte={{ presentation_id: id }} />;
   const editeur = <EditeurPresentation key={id} id={id} client onFermer={onFermer} />;
   if (!large) {
     return (
@@ -131,16 +132,8 @@ function VueClient({ id, onFermer }) {
   return (
     <div className="k-page-presentation relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
       <div className={`relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
-        <div className={conversation ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8"}>
-          <header className={conversation ? "flex flex-col" : "flex flex-col items-center pt-10 text-center"}>
-            {!conversation && (
-              <>
-                <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Que voulez-vous changer ?</h1>
-                <p className="m-0 mt-2 max-w-[56ch] text-[14px] text-ardoise">Dites-le simplement : AK retouche la présentation à droite et vous dit ce qu'il a fait. Tout se modifie aussi sur place, au clic.</p>
-              </>
-            )}
-            <div className={conversation ? "w-full" : "mt-6 w-full"}>{chat}</div>
-          </header>
+        <div className="k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5">
+          <header className="flex flex-col"><div className="w-full">{chat}</div></header>
         </div>
         <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
           <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">{editeur}</div>
@@ -156,12 +149,12 @@ function VueClient({ id, onFermer }) {
   );
 }
 
-/** Au téléphone : « Demander à AK » ouvre le chat en plein écran, par-dessus la présentation. */
+/** Au téléphone : « Demander à l'assistant » ouvre le chat en plein écran, par-dessus la présentation. */
 function ChatMobile({ children }) {
   const [ouvert, setOuvert] = React.useState(false);
   return (
     <div className="lg:hidden">
-      {!ouvert && <button type="button" onClick={() => setOuvert(true)} className="fixed bottom-5 left-3 z-[75] h-11 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe shadow-[0_18px_40px_rgb(0_0_0/0.18)]">Demander à AK</button>}
+      {!ouvert && <button type="button" onClick={() => setOuvert(true)} className="fixed bottom-5 left-3 z-[75] h-11 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe shadow-[0_18px_40px_rgb(0_0_0/0.18)]">Demander à l'assistant</button>}
       {ouvert && (
         <div className="fixed inset-0 z-[80] flex flex-col bg-fond">
           <button type="button" onClick={() => setOuvert(false)} className="flex-none border-b border-trait px-5 py-3 text-left text-[14px] text-craie" style={{ background: "transparent" }}>← Revenir à la présentation</button>

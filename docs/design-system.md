@@ -633,6 +633,39 @@ aujourd'hui = contour menthe. Jules a une pilule « Briefing / École / Congés
 clic : la semaine). Décisions de Jules le même jour : pas de mail, pas de bloc
 « Pendant l'absence de … », résumé court.
 
+### Les questions d'AK sur les appels (Dashboard et Suivi, 16 oct. 2026)
+
+Demande de Jules : AK surveille le journal des appels et interroge l'analyste.
+Quatre cas : un appel **corrigé**, **pas validé** (au bout d'une heure),
+**validé sans appel** (moins de 15 secondes, ni enregistrement ni notes),
+**validé trop lentement** (plus de 2 minutes après le raccrochage ; « 2 min 47,
+c'est trop »). Seuils dans `server/prospection/questions-appels.js`.
+
+*Dashboard de l'analyste* (`QuestionsDAK`) : un bloc `bg-rail`, 18 px de rayon,
+sous « Quoi de neuf » et au-dessus des objections, rien s'il n'y a pas de
+question. Titre en capitales 11 px (« AK A UNE QUESTION SUR TON APPEL DU 15
+OCTOBRE · AGENCE »). Deux colonnes (1,35 / 1) ; une seule au téléphone. À gauche,
+l'écran de l'analyste pendant l'appel, rejoué par rrweb dans un cadre `rounded-[12px]`
+(`EcranRejoue`), avec la date où il s'efface ; sans enregistrement, un cadre en
+pointillé qui dit pourquoi. À droite : les motifs en pastilles, le résumé d'AK
+en 15 px `encre`, « Ce que tu as fait » en lignes à filets (13 px : l'appel, ce
+qu'AK avait compris, les corrections, les annulations, les étapes vues, le temps
+de validation), puis une zone de texte par question, « Envoyer ma réponse »
+plein menthe et « Plus tard » (la question revient demain). On tutoie.
+
+*Suivi > Appels > Retours* (Jules seul) : une phrase qui dit les règles, cinq
+cartes (un chiffre par cas, en appels, avec les réponses reçues sur les questions ;
+le taux de réponse), « Ce qui revient, et ce qu'il faut améliorer » (la synthèse
+d'AK, à la demande, avec ses exemples recopiés), puis la liste des appels, filtrable
+(sans réponse, répondues, un cas) ; une ligne ouverte montre le résumé, ce que
+l'analyste a fait, « Voir son écran » et les questions avec leurs réponses.
+
+*Le lecteur d'écran* ne conclut plus « illisible » quand le serveur ne répond pas :
+chaque mise en ligne coupe le service environ une minute (le disque de Render
+empêche un déploiement sans coupure), il réessaie six fois en le disant, puis
+propose « Réessayer ». Un fichier effacé, ou une question qui n'est pas la sienne,
+le dit en clair. Les écrans restent 30 jours.
+
 ### L'écran de recherche (Off-market, 10 oct. 2026)
 
 Décision prise avec Jules d'après PropStream, en gardant nos jetons et nos

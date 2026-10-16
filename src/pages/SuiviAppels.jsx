@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
+import RetoursAnalystes from "@/components/monitoring/RetoursAnalystes";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
 import { useAuth } from "@/lib/AuthContext";
 import { TempsPostAppel, TempsEtAppels, AppelsParJour, BarresHorizontales, Chiffre, ChiffreCourbe, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
@@ -17,7 +18,8 @@ import Chargement from "@/components/ui/Chargement";
 
 // « Aujourd'hui » (14 oct. 2026, Jules) : la journée en cours, depuis minuit.
 const PERIODES = [[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "90 jours"]];
-const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["moi", "Mes appels"], ["journal", "Journal des appels"]];
+// « Retours » (16 oct. 2026, Jules) : les réponses des analystes aux questions d'AK sur leurs appels (hors de la Prospection : Jules seul).
+const VUES = [["ensemble", "Vue d'ensemble"], ["analystes", "Par analyste"], ["moi", "Mes appels"], ["journal", "Journal des appels"], ["retours", "Retours"]];
 const titreCase = "m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-menthe font-normal";
 const filtre = (actif) => `px-3 py-1.5 rounded-md text-[12.5px] border transition-colors ${actif ? "border-menthe text-menthe bg-menthe/[0.1]" : "border-bord text-ardoise hover:text-encre hover:border-bord-vif"}`;
 const dureeLisible = (s) => (s == null ? "—" : s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}` : `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`);
@@ -328,7 +330,7 @@ export default function SuiviAppels({ dansProspection = false }) {
         {/* Avant le 13 octobre, c'était de l'essai (16 oct. 2026, Jules) : rien n'est compté avant. */}
         {data?.debut_mesures && !data?.remise_a_zero && <p className="m-0 mb-4 text-[12.5px] text-brume">Compté à partir du 13 octobre : avant, les appels étaient des essais.</p>}
         <div className="mb-6 flex gap-5 border-b border-trait">
-          {VUES.map(([k, mot]) => (
+          {VUES.filter(([k]) => k !== "retours" || !dansProspection).map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setVue(k)} className={`-mb-px border-b-[1.5px] pb-2 text-[13.5px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
           ))}
         </div>
@@ -362,6 +364,7 @@ export default function SuiviAppels({ dansProspection = false }) {
             </div>}
 
             {vue === "moi" && <VueMesAppels base={base} jours={jours} c={c} onJournal={voirJournalDe} />}
+            {vue === "retours" && !dansProspection && <RetoursAnalystes jours={jours} />}
 
             {vue === "journal" && <div className="rounded-md border border-trait p-4 k-monte">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">

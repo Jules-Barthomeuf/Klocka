@@ -48,7 +48,8 @@ export function monterAudience(app) {
     if (!(await superAdmin(req, res))) return;
     const p = (await import('../enregistrements-ecran.js')).fichier(req.params.id);
     if (!p) return res.status(404).json({ error: 'Enregistrement introuvable ou effacé (30 jours).' });
-    res.set({ 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Cache-Control': 'private, max-age=3600' });
-    fs.createReadStream(p).pipe(res);
+    // La taille annoncée : un fichier coupé en route se voit tout de suite, au lieu d'un JSON tronqué (« illisible »).
+    res.set({ 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Content-Length': String(fs.statSync(p).size), 'Cache-Control': 'private, max-age=3600' });
+    fs.createReadStream(p).on('error', () => res.destroy()).pipe(res);
   }));
 }

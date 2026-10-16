@@ -1,6 +1,7 @@
-// La page Semaine (16 oct. 2026) : les présences de l'équipe, la passation
-// avant de partir, le résumé de retour et celui laissé à ceux qui restent.
-// Toute l'équipe lit ; seul Jules pose les absences.
+// La page Semaine (16 oct. 2026) : les présences de l'équipe, le point de la
+// semaine de chacun pour celle ou celui qui est absent, le résumé que Jules
+// relit et qui part par mail le matin du retour. Seul Jules pose les absences
+// et valide.
 
 import { currentUser, ok, wrap } from '../contexte.js';
 
@@ -21,7 +22,8 @@ export function monterSemaine(app) {
 
   app.get('/api/semaine', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
-    ok(res, await (await S()).maSemaine(user));
+    const estJules = (await import('../acces-pages.js')).estSuperAdmin(user);
+    ok(res, { ...(await (await S()).maSemaine(user, { estJules })), est_jules: estJules });
   }));
   app.get('/api/semaine/presences', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
@@ -39,14 +41,33 @@ export function monterSemaine(app) {
     if (rate) return res.status(400).json(rate);
     ok(res, { ok: true, n: r.length });
   }));
-  app.post('/api/semaine/passation', wrap(async (req, res) => {
+  // Le point de la semaine de chacun, pour la personne absente.
+  app.post('/api/semaine/points', wrap(async (req, res) => {
     const user = equipe(req, res); if (!user) return;
-    const r = (await S()).enregistrerPassation(user, req.body || {});
+    const r = (await S()).contribuer(user, req.body || {});
     if (!r.ok) return res.status(400).json(r);
     ok(res, r);
   }));
-  app.post('/api/semaine/resumes/:id/vu', wrap(async (req, res) => {
-    const user = equipe(req, res); if (!user) return;
-    ok(res, { ok: !!(await S()).marquerVu(req.params.id, user) });
+  // Jules : le brouillon, ses corrections, sa validation (le mail part le matin du retour, ou tout de suite).
+  app.post('/api/semaine/retours/brouillon', wrap(async (req, res) => {
+    const user = await jules(req, res); if (!user) return;
+    const b = req.body || {};
+    const r = await (await S()).ecrireBrouillon(b.pour, { du: b.du, au: b.au });
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
+  }));
+  app.post('/api/semaine/retours/:id', wrap(async (req, res) => {
+    const user = await jules(req, res); if (!user) return;
+    const r = (await S()).corriger(req.params.id, req.body || {});
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
+  }));
+  app.post('/api/semaine/retours/:id/valider', wrap(async (req, res) => {
+    const user = await jules(req, res); if (!user) return;
+    const M = await S();
+    if (req.body && (req.body.objet !== undefined || req.body.texte !== undefined)) { const c = M.corriger(req.params.id, req.body); if (!c.ok) return res.status(400).json(c); }
+    const r = await M.valider(req.params.id, user);
+    if (!r.ok) return res.status(400).json(r);
+    ok(res, r);
   }));
 }

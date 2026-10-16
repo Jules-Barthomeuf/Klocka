@@ -1,15 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 
 // La semaine de l'équipe (16 oct. 2026, Jules) : qui est là, ce qu'on a
-// manqué. Jules pose les absences (école, congés) ; la veille d'un départ, la
-// personne laisse le point sur ses dossiers ; ceux qui restent lisent
-// « Pendant l'absence de … » ; au retour, le lundi d'après, un résumé très
-// détaillé de la période. Le serveur écrit tout (server/equipe-semaine.js).
+// manqué. Jules pose les absences (école, congés) ; pendant l'absence de
+// quelqu'un, chacun écrit son point de la semaine pour lui ; Jules relit le
+// brouillon court qui en sort, le corrige, le valide ; il part par mail le
+// matin du retour et s'affiche ici (server/equipe-semaine.js).
 
 const etiq = "m-0 text-[11px] uppercase tracking-[.16em] text-brume";
 const champ = "w-full rounded-champ border border-trait bg-surface px-3 py-2 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe max-md:text-[16px]";
@@ -18,73 +17,107 @@ const jourLong = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", {
 const jourCourt = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "UTC" });
 const lettre = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "narrow", timeZone: "UTC" }).toUpperCase();
 
-/** Un résumé écrit par le serveur : le chapeau, puis ses sections en lignes. */
-function Resume({ r, titre, sousTitre }) {
-  const qc = useQueryClient();
-  useEffect(() => {
-    if (!r?.id) return;
-    base44.request("POST", `/api/semaine/resumes/${r.id}/vu`, { body: {} }).then(() => qc.invalidateQueries({ queryKey: ["notifications"] })).catch(() => {});
-  }, [r?.id, qc]);
+/** Mon résumé, reçu le matin de mon retour (relu par Jules, parti aussi par mail). */
+function RetourRecu({ r, moi }) {
   return (
     <section className="rounded-[14px] border border-trait bg-rail px-6 py-5 max-md:px-4">
-      <h2 className="m-0 text-[22px] font-normal tracking-[-0.01em] text-encre">{titre}</h2>
-      {sousTitre && <p className="m-0 mt-1 text-[13px] text-ardoise">{sousTitre}</p>}
-      {r.chapeau && <p className="m-0 mt-4 text-[15px] leading-[1.6] text-craie">{r.chapeau}</p>}
-      {(r.sections || []).map((s) => (
-        <div key={s.titre} className="mt-6">
-          <p className={etiq}>{s.titre}</p>
-          <ul className="m-0 mt-2 list-none p-0">
-            {s.points.map((p, k) => (
-              <li key={k} className="border-t border-trait py-2.5 text-[14px] leading-[1.55] text-craie first:border-t-0">
-                {p.texte}
-                {p.deal_id && <> <Link to={`/Analyse?deal_id=${encodeURIComponent(p.deal_id)}`} className="whitespace-nowrap text-[12.5px] text-ardoise underline decoration-trait underline-offset-2 hover:text-encre">ouvrir le dossier</Link></>}
-              </li>
-            ))}
-            {!s.points.length && <li className="text-[13.5px] text-brume">Rien.</li>}
-          </ul>
-        </div>
-      ))}
-      <p className="m-0 mt-6 text-[12px] text-brume">Écrit le {new Date(r.genere_le).toLocaleString("fr-FR", { timeZone: "Europe/Paris", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}, à partir des dossiers, des réunions, de l'Intelligence, de la prospection et des nouveautés de la plateforme.</p>
+      <h2 className="m-0 text-[22px] font-normal tracking-[-0.01em] text-encre">Bon retour{moi ? `, ${moi}` : ""}</h2>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">{r.objet} · du {jourLong(r.du)} au {jourLong(r.au)}, relu par Jules.</p>
+      <div className="mt-4 whitespace-pre-line text-[15px] leading-[1.65] text-craie">{r.texte}</div>
     </section>
   );
 }
 
-/** La veille d'un départ : le point sur ses dossiers, pour ceux qui restent. */
-function AvantDePartir({ depart, motifs }) {
+/** Mon point de la semaine pour quelqu'un d'absent. */
+function MonPoint({ a }) {
   const qc = useQueryClient();
-  const p = depart.passation;
-  const [texte, setTexte] = useState(p?.texte || "");
-  const [notes, setNotes] = useState(() => Object.fromEntries((p?.dossiers || []).map((d) => [d.deal_id, d.note])));
-  const envoyer = useMutation({
-    mutationFn: () => base44.request("POST", "/api/semaine/passation", { body: { du: depart.du, au: depart.au, texte, dossiers: depart.dossiers.map((d) => ({ deal_id: d.deal_id, nom: d.nom, note: notes[d.deal_id] || "" })) } }),
-    onSuccess: () => { toast.success("Laissé à l'équipe"); qc.invalidateQueries({ queryKey: ["semaine"] }); },
-    onError: (e) => toast.error(e?.message || "Ça n'est pas parti."),
+  const [texte, setTexte] = useState(a.mon_point || "");
+  const enregistrer = useMutation({
+    mutationFn: () => base44.request("POST", "/api/semaine/points", { body: { pour: a.pour, du: a.du, au: a.au, texte } }),
+    onSuccess: () => { toast.success(`Point enregistré pour ${a.nom}`); qc.invalidateQueries({ queryKey: ["semaine"] }); },
+    onError: (e) => toast.error(e?.message || "Ça n'a pas pris."),
   });
   return (
     <section className="rounded-[14px] border border-trait bg-rail px-6 py-5 max-md:px-4">
-      <h2 className="m-0 text-[22px] font-normal tracking-[-0.01em] text-encre">Avant de partir</h2>
-      <p className="m-0 mt-1 text-[13px] text-ardoise">
-        {motifs[depart.motif] || "Absent"} du {jourLong(depart.du)} au {jourLong(depart.au)}. Quelques lignes par dossier : l'équipe les lira demain matin, et ton résumé de retour en partira.
-      </p>
-      <p className={`${etiq} mt-5`}>Le point général</p>
-      <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={3} className={`${champ} mt-2`} placeholder="Ce qui est en cours, ce que tu attends, qui doit reprendre quoi." />
-      <p className={`${etiq} mt-5`}>Tes dossiers</p>
+      <h2 className="m-0 text-[22px] font-normal tracking-[-0.01em] text-encre">{a.nom} revient {jourLong(a.jour_retour)}</h2>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Ton point de la semaine, en quelques lignes : ce que tu as fait, ce qu'{a.nom === "Maxime" || a.nom === "Jules" ? "il" : "elle"} doit savoir. Jules relit le tout, et le résumé part par mail le matin du retour.</p>
+      <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={4} className={`${champ} mt-3`} placeholder="Ex. : rappelé Durand (deux murs à Antibes, fiches jeudi) ; bail reçu sur Murs Antibes ; on a décidé d'arrêter Libourne." />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending || texte.trim() === (a.mon_point || "").trim()}
+          className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+          {enregistrer.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{a.mon_point ? "Mettre à jour" : "Enregistrer mon point"}
+        </button>
+        {a.mon_point && <span className="text-[12.5px] text-brume">Enregistré.</span>}
+      </div>
+    </section>
+  );
+}
+
+/** Jules : les points de chacun, le brouillon, sa correction, sa validation. */
+function Relecture({ a }) {
+  const qc = useQueryClient();
+  const r = a.retour;
+  const [objet, setObjet] = useState(r?.objet || "");
+  const [texte, setTexte] = useState(r?.texte || "");
+  useEffect(() => { setObjet(r?.objet || ""); setTexte(r?.texte || ""); }, [r?.genere_le, r?.objet, r?.texte]);
+  const rafraichir = () => qc.invalidateQueries({ queryKey: ["semaine"] });
+  const brouillon = useMutation({
+    mutationFn: () => base44.request("POST", "/api/semaine/retours/brouillon", { body: { pour: a.pour, du: a.du, au: a.au } }),
+    onSuccess: rafraichir, onError: (e) => toast.error(e?.message || "Le brouillon ne s'est pas écrit."),
+  });
+  const corriger = useMutation({
+    mutationFn: () => base44.request("POST", `/api/semaine/retours/${r.id}`, { body: { objet, texte } }),
+    onSuccess: () => { toast.success("Correction enregistrée"); rafraichir(); }, onError: (e) => toast.error(e?.message || "Ça n'a pas pris."),
+  });
+  const valider = useMutation({
+    mutationFn: () => base44.request("POST", `/api/semaine/retours/${r.id}/valider`, { body: { objet, texte } }),
+    onSuccess: (x) => { toast.success(x?.retour?.etat === "envoye" ? `Envoyé à ${a.nom}` : `Validé : part ${jourLong(a.jour_retour)} matin`); rafraichir(); },
+    onError: (e) => toast.error(e?.message || "Ça n'a pas pris."),
+  });
+  const modifie = r && (objet !== (r.objet || "") || texte !== (r.texte || ""));
+  return (
+    <section className="rounded-[14px] border border-trait bg-rail px-6 py-5 max-md:px-4">
+      <h2 className="m-0 text-[22px] font-normal tracking-[-0.01em] text-encre">Le résumé pour {a.nom}</h2>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Absent du {jourLong(a.du)} au {jourLong(a.au)} · part par mail {jourLong(a.jour_retour)} matin, une fois validé.</p>
+
+      <p className={`${etiq} mt-5`}>Les points de l'équipe</p>
       <ul className="m-0 mt-2 list-none p-0">
-        {depart.dossiers.map((d) => (
-          <li key={d.deal_id} className="grid grid-cols-[220px_minmax(0,1fr)] items-start gap-3 border-t border-trait py-2.5 first:border-t-0 max-md:grid-cols-1 max-md:gap-1.5">
-            <span className="pt-2 text-[14px] text-encre">{d.nom}<span className="block text-[12px] text-brume">{d.statut || ""}</span></span>
-            <input value={notes[d.deal_id] || ""} onChange={(e) => setNotes((n) => ({ ...n, [d.deal_id]: e.target.value }))} className={champ} placeholder="Où il en est, ce qu'il faut faire pendant ton absence" />
+        {a.points.map((p) => (
+          <li key={p.nom} className="border-t border-trait py-2 text-[14px] leading-[1.55] first:border-t-0">
+            <span className="text-encre">{p.nom}</span><span className="text-brume"> · {new Date(p.ecrit_le).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", weekday: "short", day: "numeric", month: "short" })}</span>
+            <span className="block whitespace-pre-line text-craie">{p.texte}</span>
           </li>
         ))}
-        {!depart.dossiers.length && <li className="text-[13.5px] text-brume">Aucun dossier ouvert à ton nom : le point général suffit.</li>}
+        {!a.points.length && <li className="text-[13.5px] text-brume">Personne n'a encore écrit son point.</li>}
       </ul>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => envoyer.mutate()} disabled={envoyer.isPending}
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-          {envoyer.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{p ? "Mettre à jour" : "Laisser à l'équipe"}
+      {a.manquent.length > 0 && <p className="m-0 mt-2 text-[12.5px] text-ardoise">Pas encore écrit : {a.manquent.join(", ")}.</p>}
+
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => brouillon.mutate()} disabled={brouillon.isPending}
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+          {brouillon.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{r ? "Réécrire avec les derniers points" : "Écrire le brouillon"}
         </button>
-        {p && <span className="text-[12.5px] text-brume">Laissé le {new Date(p.ecrit_le).toLocaleString("fr-FR", { timeZone: "Europe/Paris", weekday: "long", hour: "2-digit", minute: "2-digit" })}</span>}
+        <span className="text-[12.5px] text-brume">À partir des points, des réunions et décisions, de l'activité de chacun et des nouveautés.</span>
       </div>
+
+      {r && (
+        <>
+          <p className={`${etiq} mt-5`}>Le mail</p>
+          <input value={objet} onChange={(e) => setObjet(e.target.value)} className={`${champ} mt-2`} aria-label="Objet du mail" />
+          <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={14} className={`${champ} mt-2 leading-[1.6]`} aria-label="Texte du résumé" />
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => valider.mutate()} disabled={valider.isPending || !texte.trim()}
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+              {valider.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{r.etat === "valide" ? "Valider à nouveau" : "Valider"}
+            </button>
+            {modifie && (
+              <button type="button" onClick={() => corriger.mutate()} disabled={corriger.isPending}
+                className="inline-flex h-10 items-center rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Enregistrer sans valider</button>
+            )}
+            <span className="text-[12.5px] text-brume">{r.etat === "valide" ? `Validé : part ${jourLong(a.jour_retour)} matin.` : "Brouillon : rien ne part sans ta validation."}</span>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -183,7 +216,6 @@ function Presences() {
 }
 
 export default function Semaine() {
-  const motifs = { ecole: "École", conges: "Congés", autre: "Absent" };
   const q = useQuery({ queryKey: ["semaine"], queryFn: () => base44.request("GET", "/api/semaine"), staleTime: 60000 });
   const d = q.data;
   const s = d?.semaine;
@@ -196,18 +228,11 @@ export default function Semaine() {
         </p>
       )}
       <div className="mt-6 flex flex-col gap-5">
-        {q.isLoading && (
-          <div className="flex items-center gap-2 rounded-[14px] border border-trait bg-rail px-6 py-5 text-[13.5px] text-ardoise">
-            <Loader2 className="h-4 w-4 animate-spin" />Lecture de la semaine. Un résumé de retour s'écrit en une minute environ.
-          </div>
-        )}
+        {q.isLoading && <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>}
         {q.error && <p className="m-0 text-[13.5px] text-alerte">{q.error.message || "La semaine ne se charge pas."}</p>}
-        {d?.retour && <Resume r={d.retour} titre={`Bon retour${d.moi ? `, ${d.moi}` : ""}`} sousTitre={`Ce qui s'est passé du ${jourLong(d.retour.du)} au ${jourLong(d.retour.au)}.`} />}
-        {d?.depart && <AvantDePartir key={d.depart.du} depart={d.depart} motifs={motifs} />}
-        {(d?.passations || []).map((r) => {
-          const nom = r.sur.split("@")[0].split(".")[0].replace(/^./, (c) => c.toUpperCase());
-          return <Resume key={r.id} r={r} titre={`Pendant l'absence de ${nom}`} sousTitre={`Jusqu'au ${jourLong(r.au)}.${r.avec_passation ? ` À partir de ce que ${nom} a laissé.` : ` ${nom} n'a rien laissé : écrit à partir de ses dossiers.`}`} />;
-        })}
+        {d?.retour && <RetourRecu r={d.retour} moi={d.moi} />}
+        {(d?.a_ecrire || []).map((a) => <MonPoint key={`${a.pour}:${a.du}`} a={a} />)}
+        {(d?.a_relire || []).map((a) => <Relecture key={`${a.pour}:${a.du}`} a={a} />)}
         <Presences />
       </div>
     </div>

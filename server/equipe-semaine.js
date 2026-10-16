@@ -1,24 +1,20 @@
 // La semaine de l'équipe (16 oct. 2026, Jules) : qui est là, et ce qu'on a
 // manqué quand on ne l'était pas.
 //
-// Maxime part à l'école une semaine sur deux ; Nora et Coralie s'absentent
-// aussi. Jules dit qui est là et qui ne l'est pas (un jour à la fois, avec un
-// motif : école, congés, autre) ; les agendas Google s'y ajoutent quand ils
-// sont lisibles. Trois moments en découlent :
+// Jules dit qui est là et qui ne l'est pas (un jour à la fois, avec un motif :
+// école, congés, autre) ; les agendas Google s'y ajoutent quand ils sont
+// lisibles. Pendant l'absence de quelqu'un (Nora en congés, Maxime à
+// l'école), ceux qui sont là écrivent leur point de la semaine pour elle ; le
+// dernier jour de l'absence, chacun y est invité. Un brouillon court s'écrit
+// à partir de ces points, des réunions et décisions de l'Intelligence, de
+// l'activité de chacun et des nouveautés de la plateforme : ce que chacun a
+// fait, réunions et décisions, nouveautés. Jules le relit, le corrige et le
+// valide ; il part par mail (depuis la boîte de Jules) le matin du retour, à
+// partir de 7 h, et s'affiche dans la page Semaine de la personne.
 //
-//   avant de partir   la veille d'une absence, la personne est invitée à
-//                     faire le point sur ses dossiers (la passation) ;
-//   le premier jour   ceux qui restent reçoivent « Pendant l'absence de … » :
-//                     ses dossiers, où il en est, ce qu'il faut surveiller ;
-//   au retour         le premier jour ouvré après l'absence (le lundi
-//                     d'après), un résumé très détaillé de ce qui s'est
-//                     passé : ses dossiers, les autres, la réunion
-//                     hebdomadaire, la prospection, ce qui a changé dans la
-//                     plateforme, ce qui l'attend, qui est là cette semaine.
-//
-// Les résumés s'écrivent avec le modèle principal, une fois par période, et
-// se gardent (ResumeEquipe). Rien ne part par mail : une notification de
-// l'application, et la page Semaine.
+// Décisions de Jules (16 oct. 2026) : rempli par tous, relu par lui, envoyé
+// le lundi par mail, court ; pas de bloc « Pendant l'absence de … » pour ceux
+// qui restent, pas de passation laissée par celui qui part.
 
 import { execFileSync } from 'child_process';
 import fs from 'fs';
@@ -28,8 +24,8 @@ import { Records, Meta } from './db.js';
 import { ANALYSTES } from './fil-dossier.js';
 
 const ABSENCE = 'AbsenceEquipe';
-const PASSATION = 'PassationEquipe';
-const RESUME = 'ResumeEquipe';
+const CONTRIBUTION = 'ContributionSemaine';
+const RETOUR = 'RetourEquipe';
 export const MOTIFS = { ecole: 'École', conges: 'Congés', autre: 'Absent' };
 const bas = (e) => String(e || '').trim().toLowerCase();
 const ici = path.dirname(fileURLToPath(import.meta.url));
@@ -179,40 +175,23 @@ export function quiEstLa(jour, ctx) {
   return { la: EQUIPE.filter((p) => !absentLe(p.email, jour, ctx)).map((p) => p.nom), absents: EQUIPE.filter((p) => absentLe(p.email, jour, ctx)).map((p) => ({ nom: p.nom, ...periodeAutour(p.email, jour, ctx) })) };
 }
 
-// --- Les dossiers d'une personne -----------------------------------------------------------
 
-const FERMES = new Set(['abandonne', 'refuse', 'archive', 'archived', 'non', 'perdu']);
-const dernierSuivi = (d) => (d.suivi || []).map((s) => s.le).sort().pop() || d.cree_le || d.created_date || null;
+// --- Les points de la semaine, écrits par ceux qui sont là ---------------------------------
 
-/** Ses dossiers ouverts : créés par lui, dont il est responsable, ou qu'il a touchés depuis deux mois. */
-export function dossiersDe(email, { maintenant = new Date() } = {}) {
-  const e = bas(email);
-  const depuis = new Date(maintenant.getTime() - 60 * 86400000).toISOString();
-  return Records.list('Deal')
-    .filter((d) => !d.supprime && !d.archived && !d.test && !FERMES.has(String(d.statut || '')))
-    .filter((d) => bas(d.cree_par) === e || (d.responsables || []).map(bas).includes(e) || (d.suivi || []).some((s) => bas(s.par) === e && String(s.le || '') >= depuis))
-    .map((d) => ({ deal_id: d.deal_id, nom: d.nom || 'Dossier', statut: d.statut || null, derniere_activite: dernierSuivi(d) }))
-    .sort((x, y) => String(y.derniere_activite || '').localeCompare(String(x.derniere_activite || '')))
-    .slice(0, 25);
-}
+export const contributionsPour = (email, du) => Records.list(CONTRIBUTION).filter((c) => c.pour === bas(email) && c.du === du).sort((x, y) => String(x.ecrit_le).localeCompare(String(y.ecrit_le)));
 
-// --- La passation ---------------------------------------------------------------------------
-
-export const passationDe = (email, du) => Records.list(PASSATION).find((p) => p.email === bas(email) && p.du === du) || null;
-
-/** La personne laisse le point sur ses dossiers avant de partir. */
-export function enregistrerPassation(user, { du, au, texte = '', dossiers = [] }) {
+/** `user` écrit (ou réécrit) son point de la semaine pour `pour`, absent sur la période qui commence le `du`. */
+export function contribuer(user, { pour, du, au = null, texte }) {
   const e = bas(user?.email);
-  if (!EQUIPE.some((p) => p.email === e)) return { ok: false, error: 'Réservé à l\'équipe.' };
-  if (!du || !au) return { ok: false, error: 'Période manquante.' };
-  const propres = (dossiers || []).filter((d) => d?.deal_id && String(d.note || '').trim()).map((d) => ({ deal_id: String(d.deal_id), nom: String(d.nom || '').slice(0, 160), note: String(d.note).trim().slice(0, 2000) }));
-  if (!String(texte).trim() && !propres.length) return { ok: false, error: 'Écrivez au moins une ligne.' };
-  const champs = { email: e, du, au, texte: String(texte).trim().slice(0, 8000), dossiers: propres, ecrit_le: new Date().toISOString() };
-  const deja = passationDe(e, du);
-  const p = deja ? Records.update(PASSATION, deja.id, champs) : Records.create(PASSATION, champs);
-  // La passation change : le résumé de ceux qui restent se réécrit.
-  for (const r of Records.list(RESUME).filter((x) => x.genre === 'passation' && x.sur === e && x.du === du)) Records.delete(RESUME, r.id);
-  return { ok: true, passation: p };
+  const p = bas(pour);
+  if (!EQUIPE.some((x) => x.email === e)) return { ok: false, error: 'Réservé à l\'équipe.' };
+  if (!EQUIPE.some((x) => x.email === p) || p === e) return { ok: false, error: 'Personne inconnue.' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(du || ''))) return { ok: false, error: 'Période manquante.' };
+  const t = String(texte || '').trim().slice(0, 6000);
+  const deja = Records.list(CONTRIBUTION).find((c) => c.pour === p && c.du === du && c.par === e);
+  if (!t) { if (deja) Records.delete(CONTRIBUTION, deja.id); return { ok: true, retire: !!deja }; }
+  const champs = { pour: p, du, au, par: e, texte: t, ecrit_le: new Date().toISOString() };
+  return { ok: true, contribution: deja ? Records.update(CONTRIBUTION, deja.id, champs) : Records.create(CONTRIBUTION, champs) };
 }
 
 // --- Les nouveautés de la plateforme -------------------------------------------------------
@@ -227,251 +206,214 @@ export function nouveautes(du, au) {
       liste = sortie.split('\n').filter(Boolean).map((l) => { const [le, ...s] = l.split('\t'); return { le, sujet: s.join('\t') }; });
     } catch { liste = []; }
   }
-  return liste.filter((c) => { const j = jourParis(c.le); return j >= du && j <= au; }).map((c) => ({ le: c.le, sujet: String(c.sujet).slice(0, 700) }));
+  return liste.filter((c) => { const j = jourParis(c.le); return j >= du && j <= au; }).map((c) => ({ le: c.le, sujet: String(c.sujet).slice(0, 500) }));
 }
 
-// --- La collecte d'une période --------------------------------------------------------------
+// --- Ce qui s'est passé pendant la période --------------------------------------------------
 
 const court = (s, n = 300) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
 const dansPeriode = (le, du, au) => { if (!le) return false; const j = jourParis(le); return j >= du && j <= au; };
 
-/** Tout ce qui s'est passé entre `du` et `au` (inclus), vu pour `sur` (la personne absente). */
-export async function collecte({ du, au, sur }) {
-  const e = bas(sur);
-  const siens = new Set(dossiersDe(e, { maintenant: new Date(`${au}T23:00:00Z`) }).map((d) => d.deal_id));
-  const nom = (x) => nomDe(x) || 'quelqu\'un';
-  // Les dossiers : leur suivi dans la période, et les messages des mandataires.
-  const messages = Records.list('MessageDossier').filter((m) => dansPeriode(m.le, du, au));
-  const dossierMandataire = new Map(Records.list('DossierMandataire').map((d) => [d.id, d]));
-  const dossiers = [];
-  for (const d of Records.list('Deal').filter((x) => !x.supprime && !x.test)) {
-    const evs = (d.suivi || []).filter((s) => dansPeriode(s.le, du, au)).map((s) => ({ le: s.le, par: nom(s.par), quoi: court(s.detail || s.type, 220) }));
-    const msgs = messages.filter((m) => dossierMandataire.get(m.dossier_id)?.deal_id === d.deal_id && m.genre !== 'evenement').map((m) => ({ le: m.le, par: m.cote === 'mandataire' ? 'le mandataire' : nom(m.auteur_email), quoi: court(m.texte, 200), interne: !!m.interne }));
-    if (!evs.length && !msgs.length) continue;
-    dossiers.push({ deal_id: d.deal_id, nom: d.nom || 'Dossier', statut: d.statut || null, a_lui: siens.has(d.deal_id), evenements: evs.slice(-15), messages: msgs.slice(-8) });
+/**
+ * La matière du résumé : les points écrits par chacun, l'activité de chacun
+ * (appels, dossiers, appels clients, réunions enregistrées), les réunions et
+ * décisions de l'Intelligence, les nouveautés.
+ */
+export function collecte({ du, au, pour }) {
+  const absent = bas(pour);
+  const presents = EQUIPE.filter((p) => p.email !== absent);
+  const activite = {};
+  for (const p of presents) activite[p.nom] = { appels_agents: 0, conversations: [], dossiers: new Set(), appels_clients: 0, reunions: 0 };
+  const qui = (email) => presents.find((p) => p.email === bas(email))?.nom || null;
+  for (const a of Records.list('AppelAgent').filter((x) => !x.essai && !x.faux && x.etat !== 'remplace' && dansPeriode(x.le, du, au))) {
+    const n = qui(a.par); if (!n) continue;
+    activite[n].appels_agents += 1;
+    if (!['repondeur', 'pas_de_reponse'].includes(a.issue) && a.resume) activite[n].conversations.push(court(a.resume, 160));
   }
-  dossiers.sort((x, y) => Number(y.a_lui) - Number(x.a_lui) || y.evenements.length - x.evenements.length);
-  // Ses dossiers sans mouvement : à dire aussi (« rien n'a bougé »).
-  const immobiles = [...siens].filter((id) => !dossiers.some((d) => d.deal_id === id)).map((id) => Records.findBy('Deal', 'deal_id', id)).filter(Boolean).map((d) => ({ deal_id: d.deal_id, nom: d.nom || 'Dossier', statut: d.statut || null }));
-  // Les projets créés ou changés.
-  const projets = Records.list('Project').filter((p) => dansPeriode(p.created_date, du, au) || dansPeriode(p.updated_date, du, au))
-    .map((p) => ({ id: p.id, titre: p.titre || 'Projet', statut: p.statut || null, changement: dansPeriode(p.created_date, du, au) ? 'créé pendant la période' : 'modifié pendant la période' })).slice(0, 30);
-  // Les réunions : les comptes rendus entrés dans l'Intelligence, et leurs faits.
+  for (const d of Records.list('Deal').filter((x) => !x.supprime && !x.test)) {
+    for (const s of (d.suivi || []).filter((x) => dansPeriode(x.le, du, au))) { const n = qui(s.par); if (n) activite[n].dossiers.add(d.nom || 'Dossier'); }
+  }
+  for (const a of Records.list('AppelClient').filter((x) => !x.annule_le && !x.essai && dansPeriode(x.le, du, au))) { const n = qui(a.par); if (n) activite[n].appels_clients += 1; }
+  for (const r of Records.list('Reunion').filter((x) => x.etat === 'envoyee' && dansPeriode(x.debut, du, au))) { const n = qui(r.par); if (n) activite[n].reunions += 1; }
+  const parPersonne = presents.map((p) => {
+    const a = activite[p.nom];
+    return { nom: p.nom, son_point: contributionsPour(absent, du).find((c) => c.par === p.email)?.texte || null, appels_agents: a.appels_agents, conversations: a.conversations.slice(0, 6), dossiers: [...a.dossiers].slice(0, 10), appels_clients: a.appels_clients, reunions_enregistrees: a.reunions };
+  });
+  // Les réunions et les décisions : les comptes rendus de la période et leurs faits ; les décisions validées d'ailleurs.
   const faits = Records.list('CerveauFait').filter((f) => f.statut !== 'rejete');
-  const reunions = Records.list('CerveauSource').filter((s) => s.type === 'compte_rendu' && dansPeriode(s.date, du, au)).map((s) => ({
-    titre: s.titre, date: s.date,
-    faits: faits.filter((f) => f.source_id === s.id).map((f) => ({ type: f.type, resume: f.resume, personne: f.personne || null, echeance: f.echeance || null, statut: f.statut })).slice(0, 60),
+  const comptesRendus = Records.list('CerveauSource').filter((s) => s.type === 'compte_rendu');
+  const reunions = comptesRendus.filter((s) => dansPeriode(s.date, du, au)).map((s) => ({
+    titre: s.titre, date: jourParis(s.date),
+    faits: faits.filter((f) => f.source_id === s.id && ['decision', 'engagement', 'information'].includes(f.type)).map((f) => ({ type: f.type, resume: f.resume, personne: f.personne || null, echeance: f.echeance || null })).slice(0, 40),
   }));
-  const sourcesReunion = new Set(Records.list('CerveauSource').filter((s) => s.type === 'compte_rendu').map((s) => s.id));
-  // Les autres faits validés de la période (appels, débriefs, mails, Monday).
-  const autresFaits = faits.filter((f) => f.statut === 'valide' && !sourcesReunion.has(f.source_id) && dansPeriode(f.date || f.cree_le, du, au) && ['decision', 'engagement', 'information'].includes(f.type))
-    .map((f) => ({ type: f.type, resume: f.resume, personne: f.personne || null })).slice(0, 40);
-  const prenom = nomDe(e).toLowerCase();
-  const pourLui = faits.filter((f) => f.type === 'engagement' && ['ouvert', 'echu'].includes(f.statut_engagement || 'ouvert') && f.statut === 'valide' && (String(f.responsable || f.personne || '').toLowerCase().includes(prenom)))
-    .map((f) => ({ resume: f.resume, echeance: f.echeance || null })).slice(0, 15);
-  // La prospection : les appels par personne, les fiches reçues et leurs décisions.
-  const appels = Records.list('AppelAgent').filter((x) => !x.essai && !x.faux && x.etat !== 'remplace' && dansPeriode(x.le, du, au));
-  const parPersonne = {};
-  for (const a of appels) { const n = nom(a.par); parPersonne[n] = (parPersonne[n] || 0) + 1; }
-  let fiches = [];
-  try {
-    const { listerFiches } = await import('./deal/fiches-stats.js');
-    fiches = listerFiches({ deals: Records.list('Deal'), mails: Records.list('MailRecu'), projets: Records.list('Project') }, { depuis: null })
-      .filter((f) => dansPeriode(f.le, du, au)).map((f) => ({ titre: f.titre, agent: f.agent, ville: f.ville, etape: f.etape }));
-  } catch { fiches = []; }
-  const marquants = appels.filter((a) => !['repondeur', 'pas_de_reponse'].includes(a.issue) && a.resume).map((a) => ({ par: nom(a.par), agent: a.agent || null, issue: a.issue, resume: court(a.resume, 200) })).slice(0, 20);
-  return {
-    du, au, sur: e, nom: nomDe(e),
-    passation: passationDe(e, du),
-    dossiers: dossiers.slice(0, 30), immobiles: immobiles.slice(0, 15), projets, reunions, faits: autresFaits, engagements: pourLui,
-    prospection: { appels: appels.length, par_personne: parPersonne, conversations: marquants, fiches },
-    produit: nouveautes(du, au),
-  };
+  const idsCR = new Set(comptesRendus.map((s) => s.id));
+  const decisions = faits.filter((f) => f.type === 'decision' && f.statut === 'valide' && !idsCR.has(f.source_id) && dansPeriode(f.date || f.cree_le, du, au)).map((f) => f.resume).slice(0, 20);
+  return { du, au, pour: absent, nom: nomDe(absent), par_personne: parPersonne, reunions, decisions, nouveautes: nouveautes(du, au) };
 }
 
-// --- Les résumés ----------------------------------------------------------------------------
+// --- Le résumé : brouillon, relecture de Jules, envoi --------------------------------------
 
 const SCHEMA = {
   type: 'object',
   properties: {
-    chapeau: { type: 'string', description: 'deux ou trois phrases : l\'essentiel de la période' },
-    sections: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          titre: { type: 'string' },
-          points: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                texte: { type: 'string', description: 'un fait précis : qui, quoi, quand, avec les chiffres et les noms' },
-                deal_id: { type: 'string', description: 'l\'identifiant du dossier concerné, s\'il y en a un, sinon vide' },
-              },
-              required: ['texte'],
-            },
-          },
-        },
-        required: ['titre', 'points'],
-      },
-    },
+    objet: { type: 'string', description: 'l\'objet du mail, court (« Ta semaine du 12 au 16 octobre »)' },
+    texte: { type: 'string', description: 'le résumé, en texte simple, avec les trois titres de section chacun sur sa ligne' },
   },
-  required: ['chapeau', 'sections'],
+  required: ['objet', 'texte'],
 };
-
-const SECTIONS_RETOUR = ['Tes dossiers', 'Les autres dossiers', 'La réunion hebdomadaire', 'La prospection', 'Ce qui a changé dans la plateforme', 'Ce qui t\'attend', 'Qui est là cette semaine'];
-const SECTIONS_PASSATION = ['Où il en est, dossier par dossier', 'À surveiller pendant son absence', 'Qui reprend quoi'];
-
+export const SECTIONS = ['Ce que chacun a fait', 'Réunions et décisions', 'Nouveautés de la plateforme'];
 const dateFr = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 
-/** Pure : la consigne du résumé de retour. */
-export function consigneRetour(c, equipe) {
-  return `Tu écris pour ${c.nom}, de l'équipe Klocka (achat et vente de murs commerciaux), qui revient aujourd'hui après une absence du ${dateFr(c.du)} au ${dateFr(c.au)}. ${c.nom} doit pouvoir reprendre son travail sans rien demander à personne : sois TRÈS détaillé, précis et concret (noms des dossiers, des agents, des personnes, dates, chiffres, décisions et leur motif). Tutoie ${c.nom}. N'invente rien : tout vient des données ci-dessous ; si une partie est vide, dis-le en une phrase (« rien n'a bougé sur … »).
+/** Pure : la consigne du brouillon. */
+export function consigne(c) {
+  return `Tu écris pour ${c.nom}, de l'équipe Klocka (achat et vente de murs commerciaux), qui revient après une absence du ${dateFr(c.du)} au ${dateFr(c.au)}. Un résumé COURT de ce qui s'est passé (250 mots au plus), qu'elle lit en deux minutes le matin de son retour. Tutoie ${c.nom}. N'invente rien : tout vient des données ci-dessous. Français simple, phrases courtes, sans tiret long, sans gras, sans markdown.
 
-Sections, dans cet ordre, chacune avec autant de points qu'il faut :
-${SECTIONS_RETOUR.map((s, i) => `${i + 1}. ${s}`).join('\n')}
-- Tes dossiers : pour chacun de ses dossiers, ce qui s'est passé (étapes, pièces, messages du mandataire, décisions), qui l'a fait, et ce qui reste à faire ; puis ceux qui n'ont pas bougé. Mets deal_id.
-- Les autres dossiers : ce qui a avancé chez les autres.
-- La réunion hebdomadaire : les décisions, les informations et les engagements de chaque réunion de la période (qui s'est engagé à quoi, pour quand). Si aucune réunion, dis-le.
-- La prospection : le nombre d'appels et par qui, les conversations marquantes, les fiches reçues et leur sort.
-- Ce qui a changé dans la plateforme : à partir des nouveautés, ce qui change pour SON travail, en mots simples, une ligne par changement utile (pas de détail technique, pas de nom de fichier).
-- Ce qui t'attend : ses engagements, ses dossiers à reprendre, les décisions qui l'attendent, dans l'ordre d'urgence.
-- Qui est là cette semaine : ${equipe}.
-Écris en français simple, phrases courtes, sans tiret long.
+Trois sections, dans cet ordre, chaque titre seul sur sa ligne, puis des lignes qui commencent par « - » :
+${SECTIONS.join('\n')}
+- Ce que chacun a fait : une ligne ou deux par personne, d'abord ce qu'elle a écrit elle-même (son point), puis son activité si elle apporte quelque chose (appels, dossiers, appels clients). Une personne sans point ni activité : « rien de noté ».
+- Réunions et décisions : les décisions et les engagements qui la concernent ou qui changent le travail de l'équipe ; si aucune réunion n'a été enregistrée, dis-le en une ligne.
+- Nouveautés de la plateforme : trois à cinq lignes, ce qui change pour son travail, en mots simples, sans détail technique.
+Commence par une phrase d'accueil d'une ligne. Pas de formule de fin.
 
-${c.passation ? `CE QUE ${c.nom.toUpperCase()} AVAIT LAISSÉ EN PARTANT :\n${c.passation.texte || ''}\n${(c.passation.dossiers || []).map((d) => `- ${d.nom} (${d.deal_id}) : ${d.note}`).join('\n')}\n\n` : ''}DONNÉES DE LA PÉRIODE (JSON) :
-${JSON.stringify({ dossiers: c.dossiers, dossiers_sans_mouvement: c.immobiles, projets: c.projets, reunions: c.reunions, autres_faits: c.faits, ses_engagements: c.engagements, prospection: c.prospection, nouveautes: c.produit })}`;
+DONNÉES (JSON) :
+${JSON.stringify({ par_personne: c.par_personne, reunions: c.reunions, autres_decisions: c.decisions, nouveautes: c.nouveautes })}`;
 }
 
-/** Pure : la consigne du résumé laissé à ceux qui restent. */
-export function consignePassation(c, dossiers, equipe) {
-  return `Tu écris pour l'équipe Klocka (achat et vente de murs commerciaux) qui reste pendant l'absence de ${c.nom}, du ${dateFr(c.du)} au ${dateFr(c.au)}. Présents : ${equipe}. À partir de ce que ${c.nom} a laissé et de l'état de ses dossiers, dis à ceux qui restent où en est chaque dossier, ce qu'il faut surveiller ou faire pendant son absence, et qui reprend quoi si ${c.nom} l'a dit (sinon, propose sans imposer). Sois précis (noms, dates, chiffres). N'invente rien. Vouvoie l'équipe, ou écris à la troisième personne. Français simple, sans tiret long.
+export const retourDe = (email, du) => Records.list(RETOUR).find((r) => r.pour === bas(email) && r.du === du) || null;
 
-Sections, dans cet ordre :
-${SECTIONS_PASSATION.map((s, i) => `${i + 1}. ${s}`).join('\n')}
-
-CE QUE ${c.nom.toUpperCase()} A LAISSÉ :
-${c.passation ? `${c.passation.texte || ''}\n${(c.passation.dossiers || []).map((d) => `- ${d.nom} (${d.deal_id}) : ${d.note}`).join('\n')}` : `(${c.nom} n'a rien laissé : appuie-toi sur l'état des dossiers, et dis-le.)`}
-
-SES DOSSIERS OUVERTS (JSON) :
-${JSON.stringify(dossiers)}`;
+/** Le brouillon (ou sa réécriture, avec les derniers points) : jamais sur un résumé déjà envoyé. */
+export async function ecrireBrouillon(email, { du, au }, { invoke = null } = {}) {
+  const deja = retourDe(email, du);
+  if (deja?.etat === 'envoye') return { ok: false, error: 'Déjà envoyé.' };
+  const c = collecte({ du, au, pour: email });
+  let resultat; let cout = 0;
+  if (invoke) resultat = await invoke(consigne(c));
+  else {
+    const { invokeLLM } = await import('./llm.js');
+    const { mesurer } = await import('./llm-couts.js');
+    const m = await mesurer({ operation: 'semaine equipe', sur: `retour:${email}:${du}` }, () => invokeLLM({ prompt: consigne(c), response_json_schema: SCHEMA, max_tokens: 2500 }));
+    resultat = m.resultat; cout = m.consommation?.cout || 0;
+  }
+  const champs = {
+    pour: bas(email), du, au, etat: 'brouillon', objet: court(resultat?.objet || `Ta semaine du ${dateFr(du)} au ${dateFr(au)}`, 160), texte: String(resultat?.texte || '').trim().slice(0, 8000),
+    contributions: contributionsPour(email, du).map((x) => x.par), genere_le: new Date().toISOString(), cout_usd: (deja?.cout_usd || 0) + cout, valide_par: null, valide_le: null,
+  };
+  return { ok: true, retour: deja ? Records.update(RETOUR, deja.id, champs) : Records.create(RETOUR, champs) };
 }
 
-function nettoyer(r, sections) {
-  const propres = (r?.sections || []).filter((s) => s?.titre).map((s) => ({ titre: court(s.titre, 80), points: (s.points || []).filter((p) => p?.texte).map((p) => ({ texte: court(p.texte, 900), deal_id: p.deal_id ? String(p.deal_id).trim() || null : null })) }));
-  // L'ordre prescrit d'abord, puis le reste.
-  propres.sort((x, y) => { const a = sections.indexOf(x.titre); const b = sections.indexOf(y.titre); return (a < 0 ? 99 : a) - (b < 0 ? 99 : b); });
-  return { chapeau: court(r?.chapeau, 900), sections: propres };
+/** Jules corrige l'objet ou le texte. */
+export function corriger(id, { objet, texte }) {
+  const r = Records.get(RETOUR, id);
+  if (!r) return { ok: false, error: 'Résumé introuvable.' };
+  if (r.etat === 'envoye') return { ok: false, error: 'Déjà envoyé.' };
+  return { ok: true, retour: Records.update(RETOUR, id, { ...(objet !== undefined ? { objet: court(objet, 160) } : {}), ...(texte !== undefined ? { texte: String(texte).slice(0, 8000) } : {}), corrige_le: new Date().toISOString() }) };
 }
 
-async function appelerModele(prompt, sur, invoke) {
-  if (invoke) return { resultat: await invoke(prompt), cout: 0 };
-  const { invokeLLM } = await import('./llm.js');
-  const { mesurer } = await import('./llm-couts.js');
-  const m = await mesurer({ operation: 'semaine equipe', sur }, () => invokeLLM({ prompt, response_json_schema: SCHEMA, max_tokens: 8000 }));
-  return { resultat: m.resultat, cout: m.consommation?.cout || 0 };
+/** Jules valide : le résumé part le matin du retour (tout de suite si le retour est déjà là). */
+export async function valider(id, user, { aujourdhui = jourParis(), envoyer = null } = {}) {
+  const r = Records.get(RETOUR, id);
+  if (!r) return { ok: false, error: 'Résumé introuvable.' };
+  if (r.etat === 'envoye') return { ok: false, error: 'Déjà envoyé.' };
+  if (!String(r.texte || '').trim()) return { ok: false, error: 'Le résumé est vide.' };
+  Records.update(RETOUR, id, { etat: 'valide', valide_par: bas(user?.email), valide_le: new Date().toISOString() });
+  const jourRetour = ouvreSuivant(r.au, 1);
+  if (aujourdhui >= jourRetour) return envoyerRetour(id, { envoyer });
+  return { ok: true, retour: Records.get(RETOUR, id), part_le: jourRetour };
 }
 
-export const resumeDe = (genre, sur, du) => Records.list(RESUME).find((r) => r.genre === genre && r.sur === bas(sur) && r.du === du) || null;
-
-/** Le résumé de retour de `email` pour la période {du, au} : écrit une fois, gardé. */
-export async function resumeRetour(email, { du, au }, { invoke = null, ctx = null, aujourdhui = jourParis() } = {}) {
-  const deja = resumeDe('retour', email, du);
-  if (deja) return deja;
-  const c = await collecte({ du, au, sur: email });
-  const cx = ctx || await contexte(plusJours(aujourdhui, -1), plusJours(aujourdhui, 7));
-  const semaine = quiEstLa(aujourdhui, cx);
-  const equipe = `${semaine.la.join(', ') || 'personne'}${semaine.absents.length ? ` ; absents : ${semaine.absents.map((a) => `${a.nom} (jusqu'au ${dateFr(a.au)})`).join(', ')}` : ''}`;
-  const { resultat, cout } = await appelerModele(consigneRetour(c, equipe), `retour:${email}:${du}`, invoke);
-  const contenu = nettoyer(resultat, SECTIONS_RETOUR);
-  return Records.create(RESUME, { genre: 'retour', sur: bas(email), pour: [bas(email)], du, au, ...contenu, sources: { dossiers: c.dossiers.length, reunions: c.reunions.length, nouveautes: c.produit.length, appels: c.prospection.appels }, genere_le: new Date().toISOString(), cout_usd: cout, vu_par: [] });
+/** L'envoi : un mail depuis la boîte de celui qui a validé, une notification, et la page Semaine de la personne. */
+export async function envoyerRetour(id, { envoyer = null } = {}) {
+  const r = Records.get(RETOUR, id);
+  if (!r || r.etat !== 'valide') return { ok: false, error: 'Pas validé.' };
+  const corps = `${r.texte}\n\nAussi dans la page Semaine : ${(await import('./contexte.js')).URL_CANONIQUE}/Semaine`;
+  let res;
+  try {
+    res = envoyer ? await envoyer({ to: r.pour, subject: r.objet, body: corps, from: r.valide_par })
+      : await (await import('./email.js')).sendEmail({ from: r.valide_par, owner: r.valide_par, to: r.pour, subject: r.objet, body: corps });
+  } catch (e) { res = { success: false, error: e?.message || String(e) }; }
+  const parti = !!res?.success;
+  Records.update(RETOUR, id, { etat: 'envoye', envoye_le: new Date().toISOString(), mail: parti ? 'envoye' : `non parti : ${court(res?.error || 'raison inconnue', 160)}` });
+  const { notifier } = await import('./notifications.js');
+  notifier({ pour: r.pour, titre: `Bon retour, ${nomDe(r.pour)} : ta semaine en bref`, texte: r.objet, lien: '/Semaine', cle: `semaine:retour:${r.pour}:${r.du}` });
+  return { ok: true, retour: Records.get(RETOUR, id), mail: parti };
 }
 
-/** Le résumé laissé à ceux qui restent pendant l'absence de `email`. */
-export async function resumePassation(email, { du, au }, { invoke = null, ctx = null } = {}) {
-  const deja = resumeDe('passation', email, du);
-  if (deja) return deja;
-  const cx = ctx || await contexte(plusJours(du, -1), plusJours(au, 1));
-  const semaine = quiEstLa(du, cx);
-  const c = { du, au, nom: nomDe(email), passation: passationDe(email, du) };
-  const dossiers = dossiersDe(email).map((d) => { const deal = Records.findBy('Deal', 'deal_id', d.deal_id); return { ...d, derniers: (deal?.suivi || []).slice(-5).map((s) => ({ le: s.le, quoi: court(s.detail || s.type, 160) })) }; });
-  const { resultat, cout } = await appelerModele(consignePassation(c, dossiers, semaine.la.join(', ') || 'personne'), `passation:${email}:${du}`, invoke);
-  const contenu = nettoyer(resultat, SECTIONS_PASSATION);
-  return Records.create(RESUME, { genre: 'passation', sur: bas(email), pour: semaine.la.map((n) => EQUIPE.find((p) => p.nom === n)?.email).filter(Boolean), du, au, ...contenu, avec_passation: !!c.passation, genere_le: new Date().toISOString(), cout_usd: cout, vu_par: [] });
+// --- Ce que la page montre ------------------------------------------------------------------
+
+/** Pure : le nombre de jours ouvrés d'une période. */
+export const joursOuvres = (du, au) => { let n = 0; for (let j = du; j <= au; j = plusJours(j, 1)) if (estOuvre(j)) n += 1; return n; };
+// Un jour d'absence ne demande pas de résumé : à partir de deux jours ouvrés.
+export const MIN_JOURS = 2;
+const assezLongue = (p) => !!p && joursOuvres(p.du, p.au) >= MIN_JOURS;
+
+/** Les absences en cours ou qui viennent de finir (retour aujourd'hui ou plus tard), dont le résumé n'est pas parti. */
+function absencesASuivre(aujourdhui, ctx) {
+  const vues = [];
+  for (const p of EQUIPE) {
+    const periode = periodeAutour(p.email, aujourdhui, ctx) || retourLe(p.email, aujourdhui, ctx);
+    if (!assezLongue(periode)) continue;
+    const r = retourDe(p.email, periode.du);
+    if (r?.etat === 'envoye') continue;
+    vues.push({ ...p, ...periode, jour_retour: ouvreSuivant(periode.au, 1), retour: r });
+  }
+  return vues;
 }
 
 /** Ce que la page Semaine montre à `user` aujourd'hui. */
-export async function maSemaine(user, { aujourdhui = jourParis(), generer = true, invoke = null } = {}) {
+export async function maSemaine(user, { aujourdhui = jourParis(), estJules = false } = {}) {
   const e = bas(user?.email);
   const ctx = await contexte(plusJours(aujourdhui, -40), plusJours(aujourdhui, 40));
   const moi = EQUIPE.find((p) => p.email === e) || null;
-  // Mon retour : aujourd'hui, ou un retour récent (dans les 7 derniers jours) déjà écrit.
-  let retour = null;
-  if (moi) {
-    const p = retourLe(e, aujourdhui, ctx);
-    if (p) retour = generer ? await resumeRetour(e, p, { ctx, aujourdhui, invoke }) : resumeDe('retour', e, p.du);
-    if (!retour) retour = Records.list(RESUME).filter((r) => r.genre === 'retour' && r.sur === e && r.au >= plusJours(aujourdhui, -14)).sort((x, y) => String(y.genere_le).localeCompare(String(x.genere_le)))[0] || null;
-  }
-  // Mon départ : demain (ouvré) je ne suis pas là.
-  const depart = moi ? departApres(e, aujourdhui, ctx) : null;
-  // Pendant l'absence des autres : leur passation, pour ceux qui sont là.
-  const absents = EQUIPE.filter((p) => p.email !== e).map((p) => ({ p, periode: periodeAutour(p.email, aujourdhui, ctx) })).filter((x) => x.periode);
-  const passations = [];
-  for (const { p, periode } of absents) {
-    const r = generer ? await resumePassation(p.email, periode, { ctx, invoke }) : resumeDe('passation', p.email, periode.du);
-    if (r) passations.push(r);
-  }
+  // Mon résumé : le dernier envoyé, des deux dernières semaines.
+  const retour = moi ? Records.list(RETOUR).filter((r) => r.pour === e && r.etat === 'envoye' && r.au >= plusJours(aujourdhui, -14)).sort((x, y) => String(y.envoye_le).localeCompare(String(x.envoye_le)))[0] || null : null;
+  const suivies = absencesASuivre(aujourdhui, ctx).filter((a) => a.email !== e);
   return {
-    aujourdhui, moi: moi ? moi.nom : null,
-    retour, depart: depart ? { ...depart, passation: passationDe(e, depart.du), dossiers: dossiersDe(e) } : null,
-    passations, semaine: quiEstLa(aujourdhui, ctx),
+    aujourdhui, moi: moi ? moi.nom : null, retour,
+    // Mon point pour chaque absent : ce que j'ai déjà écrit.
+    a_ecrire: moi ? suivies.map((a) => ({ pour: a.email, nom: a.nom, du: a.du, au: a.au, jour_retour: a.jour_retour, motif: a.motif, mon_point: contributionsPour(a.email, a.du).find((c) => c.par === e)?.texte || '' })) : [],
+    // Pour Jules : la relecture, avec qui a écrit et qui manque.
+    a_relire: estJules ? suivies.map((a) => {
+      const pts = contributionsPour(a.email, a.du);
+      return { pour: a.email, nom: a.nom, du: a.du, au: a.au, jour_retour: a.jour_retour, points: pts.map((c) => ({ nom: nomDe(c.par), texte: c.texte, ecrit_le: c.ecrit_le })), manquent: EQUIPE.filter((p) => p.email !== a.email && !pts.some((c) => c.par === p.email)).map((p) => p.nom), retour: a.retour || null };
+    }) : [],
+    semaine: quiEstLa(aujourdhui, ctx),
   };
-}
-
-/** Marque un résumé lu par `user`. */
-export function marquerVu(id, user) {
-  const r = Records.get(RESUME, id);
-  if (!r) return null;
-  const e = bas(user?.email);
-  if ((r.vu_par || []).includes(e)) return r;
-  return Records.update(RESUME, id, { vu_par: [...(r.vu_par || []), e] });
 }
 
 // --- Le tour du matin -----------------------------------------------------------------------
 
 /**
- * Chaque jour ouvré à partir de 7 h : les résumés de retour et de passation
- * s'écrivent, et chacun en est prévenu ; la veille d'un départ, la personne
- * est invitée à faire le point. Une notification par moment (clé).
+ * Chaque jour ouvré à partir de 7 h : le dernier jour d'une absence, ceux qui
+ * sont là sont invités à écrire leur point ; le matin du retour, le résumé
+ * validé part ; s'il ne l'est pas, le brouillon s'écrit et Jules est prévenu.
  */
-export async function tourDuMatin({ aujourdhui = jourParis(), invoke = null } = {}) {
-  if (!estOuvre(aujourdhui)) return { ok: true, rien: true };
+export async function tourDuMatin({ aujourdhui = jourParis(), invoke = null, envoyer = null } = {}) {
+  if (!estOuvre(aujourdhui)) return { ok: true, fait: [] };
   const { notifier } = await import('./notifications.js');
   const ctx = await contexte(plusJours(aujourdhui, -40), plusJours(aujourdhui, 40));
   const fait = [];
   for (const p of EQUIPE) {
-    const retour = retourLe(p.email, aujourdhui, ctx);
-    if (retour) {
-      await resumeRetour(p.email, retour, { ctx, aujourdhui, invoke });
-      notifier({ pour: p.email, titre: `Bon retour, ${p.nom} : ce que tu as manqué`, texte: `Du ${dateFr(retour.du)} au ${dateFr(retour.au)} : tes dossiers, la réunion, la prospection, les nouveautés.`, lien: '/Semaine', cle: `semaine:retour:${p.email}:${retour.du}` });
-      fait.push(`retour ${p.nom}`);
-    }
-    const depart = departApres(p.email, aujourdhui, ctx);
-    if (depart && !passationDe(p.email, depart.du)) {
-      notifier({ pour: p.email, titre: 'Avant de partir, fais le point sur tes dossiers', texte: `Absent du ${dateFr(depart.du)} au ${dateFr(depart.au)}. Quelques lignes par dossier : l'équipe les lira demain.`, lien: '/Semaine', cle: `semaine:depart:${p.email}:${depart.du}` });
-      fait.push(`départ ${p.nom}`);
-    }
-    // Le premier jour de l'absence : ceux qui restent reçoivent la passation.
     const absence = periodeAutour(p.email, aujourdhui, ctx);
-    if (absence && absence.du === aujourdhui) {
-      const r = await resumePassation(p.email, absence, { ctx, invoke });
-      for (const q of r.pour || []) notifier({ pour: q, titre: `Pendant l'absence de ${p.nom}`, texte: `Jusqu'au ${dateFr(absence.au)} : ses dossiers, où il en est, ce qu'il faut surveiller.`, lien: '/Semaine', cle: `semaine:passation:${p.email}:${absence.du}:${q}` });
-      fait.push(`passation ${p.nom}`);
+    if (assezLongue(absence) && absence.au === aujourdhui) {
+      const ecrits = new Set(contributionsPour(p.email, absence.du).map((c) => c.par));
+      for (const q of EQUIPE.filter((x) => x.email !== p.email && !absentLe(x.email, aujourdhui, ctx) && !ecrits.has(x.email))) {
+        notifier({ pour: q.email, titre: `${p.nom} revient ${dateFr(ouvreSuivant(absence.au, 1))} : ton point de la semaine`, texte: 'Quelques lignes : ce que tu as fait, ce qu\'elle doit savoir. Jules relit, et le résumé part par mail le matin de son retour.', lien: '/Semaine', cle: `semaine:point:${p.email}:${absence.du}:${q.email}` });
+      }
+      fait.push(`points pour ${p.nom}`);
+    }
+    const retour = retourLe(p.email, aujourdhui, ctx);
+    if (assezLongue(retour)) {
+      let r = retourDe(p.email, retour.du);
+      if (r?.etat === 'valide') { await envoyerRetour(r.id, { envoyer }); fait.push(`envoyé à ${p.nom}`); continue; }
+      if (r?.etat === 'envoye') continue;
+      if (!r) r = (await ecrireBrouillon(p.email, retour, { invoke })).retour;
+      for (const j of SUPER_JULES) notifier({ pour: j, titre: `Le résumé pour ${p.nom} attend ta relecture`, texte: `${p.nom} revient aujourd'hui. Relis, corrige, valide : il part aussitôt.`, lien: '/Semaine', cle: `semaine:relire:${p.email}:${retour.du}` });
+      fait.push(`à relire pour ${p.nom}`);
     }
   }
   return { ok: true, fait };
 }
+const SUPER_JULES = ['jules.b@klocka.immo'];
 
 /** Sur Render (ou avec EQUIPE_SEMAINE=true) : le tour, une fois par jour ouvré, à partir de 7 h. */
 export function planifier() {

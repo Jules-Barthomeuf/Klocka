@@ -613,17 +613,18 @@ modifie ici : la grille reste l'endroit où l'on corrige une fiche.
 ### La page Semaine (16 oct. 2026)
 
 Qui est là, et ce qu'on a manqué. Centrée (`max-w-[1100px]`), des blocs
-`bg-rail` en 14 px de rayon, empilés : « Bon retour, … » (le résumé de retour,
-le lundi d'après une absence), « Avant de partir » (la veille d'une absence :
-le point général et une ligne par dossier, bouton plein menthe « Laisser à
-l'équipe »), « Pendant l'absence de … » (pour ceux qui restent), puis
-« Présences ». Un résumé : titre 22 px, chapeau 15 px `craie`, sections en
-étiquettes avec leurs points en lignes à filets, « ouvrir le dossier » en lien
-discret. Les présences : une ligne par personne, un carré de 28 px par jour
-ouvré sur cinq semaines, la lettre du jour dedans ; là = encre à 7 %, école =
-menthe, congés = ambre, autre = `bord-vif` ; lu dans l'agenda = liseré ;
-aujourd'hui = contour menthe. Jules seul clique (le motif choisi dans la
-pilule au-dessus) ; Maj + clic pose la semaine entière.
+`bg-rail` en 14 px de rayon, empilés : « Bon retour, … » (le résumé reçu, en
+texte simple, le matin du retour) ; « … revient lundi » (mon point de la
+semaine pour l'absent, une zone de texte, bouton plein menthe) ; pour Jules,
+« Le résumé pour … » (les points de l'équipe en lignes, qui manque, « Écrire le
+brouillon » en bouton secondaire, l'objet et le texte modifiables, « Valider »
+en plein menthe, l'état à côté) ; puis « Présences ». Les présences : une
+ligne par personne, un carré de 28 px par jour ouvré sur cinq semaines, la
+lettre du jour dedans ; là = encre à 7 %, école = menthe, congés = ambre,
+autre = `bord-vif` ; lu dans l'agenda = liseré ; aujourd'hui = contour menthe.
+Jules seul clique (le motif choisi dans la pilule au-dessus) ; Maj + clic pose
+la semaine entière. Le même jour, Jules a retiré le bloc « Pendant l'absence
+de … » et la passation laissée par celui qui part, et voulu le résumé court.
 
 ### L'écran de recherche (Off-market, 10 oct. 2026)
 

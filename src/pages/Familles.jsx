@@ -72,7 +72,7 @@ export default function Familles() {
             <div className="h-0.5 w-32 bg-menthe mb-2 rounded-full"></div>
           </div>
           <NeonButton
-            onClick={() => navigate(createPageUrl("AdminClients"))}
+            onClick={() => navigate(createPageUrl("AdminUtilisateurs"))}
             variant="solid"
             className="inline-flex items-center"
           >
@@ -106,7 +106,7 @@ export default function Familles() {
                 Sélectionnez des utilisateurs dans la gestion clients pour créer une famille.
               </p>
               <NeonButton
-                onClick={() => navigate(createPageUrl("AdminClients"))}
+                onClick={() => navigate(createPageUrl("AdminUtilisateurs"))}
                 variant="solid"
               >
                 Aller à la gestion clients

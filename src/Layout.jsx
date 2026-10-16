@@ -7,6 +7,7 @@ import NotificationsApp from "@/components/NotificationsApp";
 import AccueilMandataire from "@/components/mandataire/AccueilMandataire";
 import InstallerApp from "@/components/InstallerApp";
 import {
+  BookUser,
   LayoutDashboard,
   LayoutGrid,
   Magnet,
@@ -493,7 +494,8 @@ function LayoutContent({ children, currentPageName }) {
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
-    AdminClients: { to: createPageUrl("AdminClients"), icon: Users, actif: isActivePage("AdminClients") },
+    AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
+    AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
     // Emailing : les séquences des leads et les mails de la plateforme (Resend).

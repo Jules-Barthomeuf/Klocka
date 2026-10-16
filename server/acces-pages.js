@@ -30,6 +30,8 @@ export const API_DES_PAGES = {
   AdminEquipe: ['/api/admin/equipe'],
   // Outils (13 oct. 2026) : la page et son API (adresses, signaux de vacance).
   Outils: ['/api/outils'],
+  // Clients (16 oct. 2026) : les fiches nourries par les appels, fermées avec leur page.
+  AdminClients: ['/api/clients-equipe'],
 };
 
 // Ce qui ne se ferme jamais : sans elles, plus moyen de travailler ni de revenir.

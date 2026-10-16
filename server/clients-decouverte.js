@@ -18,7 +18,7 @@ export const LISTES = {
   oui_non: ['Oui', 'Non'],
 };
 
-const COL = {
+export const COL = {
   email: 'email',
   telephone: 'phone',
   statut: 'status1',
@@ -38,7 +38,7 @@ const COL = {
   personnes: 'multiple_person_mkv6tmmw',
 };
 
-const SCHEMA = {
+export const SCHEMA = {
   type: 'object',
   properties: {
     prenom: { type: 'string' },

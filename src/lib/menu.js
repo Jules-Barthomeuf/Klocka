@@ -21,7 +21,9 @@ export const ENTREES_ADMIN = [
   { cle: "AdminSuggestions", label: "Feedback" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
   { cle: "Vision", label: "Vision" },
+  // Clients (16 oct. 2026, Jules) : les fiches clients nourries par les appels ; les comptes de la plateforme passent dans Utilisateurs.
   { cle: "AdminClients", label: "Clients" },
+  { cle: "AdminUtilisateurs", label: "Utilisateurs" },
 ];
 
 export const ENTREES_AUTRE = [
@@ -66,7 +68,7 @@ export const ENTREES_MANDATAIRE = [
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [
   ["Dashboard", "Dashboard"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
-  ["Prospection", "Prospection"], ["Relances", "Relances"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["SimulateurRentabilite", "Simulateur"],
+  ["Prospection", "Prospection"], ["Relances", "Relances"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["AdminUtilisateurs", "Utilisateurs"], ["SimulateurRentabilite", "Simulateur"],
 ];
 export const PAGES_OUVERTURE_CLIENT = [
   ["Dashboard", "Dashboard"], ["MesProjets", "Mes projets"], ["SimulateurRentabilite", "Simulateur"], ["Ressources", "Ressources"],

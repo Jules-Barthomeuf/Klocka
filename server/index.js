@@ -59,6 +59,7 @@ import { monterEmailing } from './routes/emailing.js';
 import { apiFermee, pagesFermees, estSuperAdmin, admins as adminsAcces, poserAcces, TOUJOURS_OUVERTES } from './acces-pages.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
+import { monterClientsEquipe } from './routes/clients-equipe.js';
 import { monterMandatairePortes } from './routes/mandataire-portes.js';
 import { monterAlx } from './routes/alx.js';
 import { monterOffMarket, planifierVeilleOffMarket } from './routes/off-market.js';
@@ -1261,6 +1262,7 @@ monterPresentations(app);
 monterEmailing(app);
 monterProspection(app);
 monterMandataire(app);
+monterClientsEquipe(app);
 monterMandatairePortes(app);
 monterAlx(app);
 // Off-market (10 oct. 2026) : l'équipe et les mandataires, le rôle décide de l'espace.

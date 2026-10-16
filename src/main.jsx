@@ -27,6 +27,7 @@ const PAGES_A_PRECHAUFFER = [
   () => import('@/pages/ALX'),
   () => import('@/pages/SimulateurRentabilite'),
   () => import('@/pages/AdminClients'),
+  () => import('@/pages/AdminUtilisateurs'),
   () => import('@/pages/AdminSuggestions'),
   () => import('@/pages/MesProjets'),
 ];

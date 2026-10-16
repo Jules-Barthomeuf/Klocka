@@ -174,7 +174,7 @@ export default function Famille() {
           <h2 className="text-2xl text-encre mb-4">Aucun utilisateur sélectionné</h2>
           <p className="text-ardoise mb-6">Retournez à la gestion des clients pour sélectionner des utilisateurs à comparer.</p>
           <NeonButton
-            onClick={() => navigate(createPageUrl("AdminClients"))}
+            onClick={() => navigate(createPageUrl("AdminUtilisateurs"))}
             variant="solid"
             className="inline-flex items-center"
           >
@@ -193,7 +193,7 @@ export default function Famille() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate(createPageUrl("AdminClients"))}
+            onClick={() => navigate(createPageUrl("AdminUtilisateurs"))}
             className="text-ardoise hover:text-encre mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

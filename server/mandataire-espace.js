@@ -477,9 +477,11 @@ export async function synchroniserDemandesMonday({ user = null } = {}) {
       crees += 1;
     }
   }
-  // Un client qui a trouvé (ou qui est sorti du tableau) : sa demande se ferme.
+  // Un client qui a trouvé (ou qui est sorti du tableau) : sa demande se ferme. Seulement celles nées de
+  // l'import : un client créé par l'équipe depuis un appel (16 oct. 2026) a sa fiche Monday, mais pas
+  // forcément un statut « en recherche », et ne se ferme pas tout seul.
   let fermees = 0;
-  for (const d of existantes.values()) {
+  for (const d of [...existantes.values()].filter((x) => x.source === 'monday')) {
     if (d.active !== false) { Records.update('DemandeClient', d.id, { active: false }); fermees += 1; }
   }
   const bilan = { le: new Date().toISOString(), crees, mises_a_jour, fermees, en_recherche: clients.length };

@@ -351,16 +351,16 @@ export function ClassementAnalystes({ analystes, c, titre, onChoisir }) {
 }
 
 /** Les faits que les appels ont apportés à l'Intelligence, jour par jour (14 oct. 2026). */
-export function FaitsParJour({ parJour, c }) {
+export function FaitsParJour({ parJour, c, titre = "Faits tirés des appels, par jour", aide = "Chaque appel validé avec sa transcription entre dans l'Intelligence ; l'extraction en tire des faits.", autre = "Appels entrés" }) {
   return (
-    <Cadre titre="Faits tirés des appels, par jour" aide="Chaque appel validé avec sa transcription entre dans l'Intelligence ; l'extraction en tire des faits.">
+    <Cadre titre={titre} aide={aide}>
       <div className="h-[220px]">
         <ResponsiveContainer>
           <BarChart data={parJour} margin={{ top: 6, right: 4, left: -18, bottom: 0 }} barCategoryGap={4}>
             <CartesianGrid vertical={false} stroke={c.trait} />
             <XAxis dataKey="jour" tickFormatter={jourCourt} minTickGap={18} {...axe(c)} />
             <YAxis allowDecimals={false} {...axe(c)} />
-            <Tooltip cursor={{ fill: c.trait }} content={({ active, payload }) => active && payload?.length ? <Bulle titre={jourLong(payload[0].payload.jour)} lignes={[{ nom: "Faits", valeur: payload[0].payload.faits, couleur: c.menthe }, { nom: "Appels entrés", valeur: payload[0].payload.sources }]} /> : null} />
+            <Tooltip cursor={{ fill: c.trait }} content={({ active, payload }) => active && payload?.length ? <Bulle titre={jourLong(payload[0].payload.jour)} lignes={[{ nom: "Faits", valeur: payload[0].payload.faits, couleur: c.menthe }, payload[0].payload.sources != null ? { nom: autre, valeur: payload[0].payload.sources } : null]} /> : null} />
             <Bar dataKey="faits" fill={c.menthe} radius={[4, 4, 0, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
@@ -386,5 +386,37 @@ export function VisitesParJour({ parJour, c }) {
         </ResponsiveContainer>
       </div>
     </Cadre>
+  );
+}
+
+/** La carte d'un chiffre (déplacée de Suivi > Appels le 15 oct. 2026 pour servir aussi à la page Intelligence). */
+export function Chiffre({ valeur, libelle, note = null }) {
+  return (
+    <div className="rounded-md border border-trait bg-surface px-4 py-3.5">
+      <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{libelle}</p>
+      <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{valeur}</p>
+      {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}
+    </div>
+  );
+}
+
+/** Un chiffre et sa courbe sur la période (page Intelligence, 15 oct. 2026) : la carte de Chiffre, la petite courbe de PetitsMultiples. */
+export function ChiffreCourbe({ valeur, libelle, note = null, serie = [], cle, c, format = (v) => v }) {
+  const donnees = serie.map((d) => ({ jour: d.jour, v: d[cle] }));
+  return (
+    <div className="rounded-md border border-trait bg-surface px-4 pb-2 pt-3.5">
+      <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{libelle}</p>
+      <p className="m-0 mt-2 text-[24px] font-light text-encre">{valeur}</p>
+      {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}
+      <div className="mt-2 h-[44px]">
+        <ResponsiveContainer>
+          <AreaChart data={donnees} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+            <YAxis hide domain={[0, "auto"]} />
+            <Tooltip cursor={{ stroke: c.ardoise, strokeWidth: 1 }} content={({ active, payload }) => active && payload?.length ? <Bulle titre={jourLong(payload[0].payload.jour)} lignes={[{ nom: libelle, valeur: payload[0].payload.v == null ? "—" : format(payload[0].payload.v), couleur: c.menthe }]} /> : null} />
+            <Area dataKey="v" stroke={c.menthe} strokeWidth={2} fill={c.menthe} fillOpacity={0.14} connectNulls isAnimationActive={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }

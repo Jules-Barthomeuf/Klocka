@@ -4,7 +4,7 @@ import { ChevronDown, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import LecteurEcran from "@/components/monitoring/LecteurEcran";
-import { AppelsParJour, BarresHorizontales, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
+import { AppelsParJour, BarresHorizontales, Chiffre, FaitsParJour, CarteSemaine, ClassementAnalystes, CourbesAnalystes, Cumul, Cadre, DureeParJour, Durees, ParHeure, PetitsMultiples, TauxJoints, useCouleurs } from "@/components/monitoring/GraphesAppels";
 
 // Le Suivi des appels (9 oct. 2026) : l'usage de chacun en Prospection, en
 // Relances et au Rappel, pour voir qui appelle, combien, comment, et faire en
@@ -24,15 +24,6 @@ const p100 = (v) => (v == null ? "—" : `${v} %`);
 const quand = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const SOURCES = { prospection: "Prospection", relances: "Relances", rappel: "Rappel", essai: "Essai", carnet: "Ancien carnet" };
 
-function Chiffre({ valeur, libelle, note = null }) {
-  return (
-    <div className="rounded-md border border-trait bg-surface px-4 py-3.5">
-      <p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{libelle}</p>
-      <p className="m-0 mt-2 text-[24px] font-light tabular-nums text-encre">{valeur}</p>
-      {note && <p className="m-0 mt-0.5 text-[12px] text-brume">{note}</p>}
-    </div>
-  );
-}
 
 // Les colonnes du tableau par analyste : [clé, titre, mise en forme].
 const COLONNES = [

@@ -5,6 +5,7 @@ import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
+import Progresser from "@/components/dashboard/Progresser";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -56,6 +57,8 @@ export default function AdminDashboardView() {
             historique={historique ? <HistoriqueColonne /> : null}
             chat={<ChatDashboard onConversation={setConversation} onHistorique={setHistorique} />}
           />
+          {/* Pour progresser (16 oct. 2026, Jules) : le tuto de deux minutes après un blocage, le quiz du lendemain. */}
+          {!conversation && <Progresser className="mx-auto mt-10 max-w-[760px]" />}
         </motion.div>
       </div>
     </div>

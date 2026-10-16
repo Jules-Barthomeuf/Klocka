@@ -123,3 +123,41 @@ test('le rattachement : la ville du fait départage les homonymes ; un dossier s
   const props = r.faits[1].candidats[0]?.propositions || C.liensDu(r.faits[1].id);
   assert.ok(JSON.stringify(props).includes(projet.id), 'le projet de Libourne est proposé (ou rattaché) pour « dossier »');
 });
+
+test('phase 2 : un rejet garde son motif et sa trace ; un engagement naît « ouvert » avec son responsable ; la confiance est bornée', async () => {
+  const S = await import('./layer-schema.js');
+  const s = C.ajouterSource({ type: 'compte_rendu', auteur: 'jules.b@klocka.immo', titre: 'Point', contenu: "Durand rappelle jeudi. L'agence Martin a deux murs." }).source;
+  const r = C.rangerFaits(s, [
+    { type: 'engagement', resume: 'Durand rappelle jeudi', citation: 'Durand rappelle jeudi.', personne: 'Durand', echeance: '2026-10-16', confiance: 1.4, entites: [] },
+    { type: 'information', resume: "L'agence Martin a deux murs", citation: "L'agence Martin a deux murs.", confiance: 0.62, entites: [] },
+  ]);
+  const [eng, info] = r.faits;
+  assert.equal(eng.statut_engagement, 'ouvert');
+  assert.equal(eng.responsable, 'Durand');
+  assert.equal(eng.confiance, 1, 'bornée à 1');
+  assert.equal(info.confiance, 0.62);
+  assert.equal(info.statut_engagement, undefined);
+
+  assert.equal(C.trancher(info.id, { action: 'rejeter', par: 'jules.b@klocka.immo', motif_rejet: 'hors_sujet' }).ok, true);
+  const rejete = Records.get(C.FAIT, info.id);
+  assert.deepEqual([rejete.statut, rejete.motif_rejet, rejete.mode_validation], ['rejete', 'hors_sujet', 'manuel']);
+  C.trancher(eng.id, { action: 'corriger', par: 'jules.b@klocka.immo', resume: 'Durand rappelle jeudi 16' });
+  const audit = S.auditDe(eng.id);
+  assert.equal(audit.at(-1).action, 'corriger');
+  assert.equal(audit.at(-1).avant.resume, 'Durand rappelle jeudi');
+  assert.equal(audit.at(-1).apres.resume, 'Durand rappelle jeudi 16');
+  assert.equal(S.auditDe(info.id)[0].apres.motif_rejet, 'hors_sujet');
+});
+
+test('phase 2 : une source mail ou Monday se déduplique par son identifiant externe ; un appel part en file, pas en direct', async () => {
+  const a = C.ajouterSource({ type: 'mail', contenu: 'Bonjour, voici le dossier.', id_externe: '<abc@mail>' });
+  const b = C.ajouterSource({ type: 'mail', contenu: 'Bonjour, voici le dossier.', id_externe: '<abc@mail>' });
+  assert.equal(b.deja, true);
+  assert.equal(a.source.id, b.source.id);
+  assert.equal(a.source.cle, 'mail:<abc@mail>');
+  assert.equal(C.ajouterSource({ type: 'evenement', contenu: 'Statut passé à Rappeler', id_externe: 'upd-1' }).ok, true);
+  const T = await import('./layer-taches.js');
+  const avant = T.etatFile().en_attente || 0;
+  C.depuisAppel({ id: 'appel-file', transcription_gardee: 'Bonjour, ici Durand.', agent: 'Durand', par: 'nora.l@klocka.immo', le: '2026-10-15T08:00:00Z' });
+  assert.equal((T.etatFile().en_attente || 0) - avant, 1, "l'extraction attend dans la file");
+});

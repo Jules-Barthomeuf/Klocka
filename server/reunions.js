@@ -149,7 +149,7 @@ async function envoyerAuLayer(a, decoupe, entete, { C = null, version = null } =
     const s = layer.ajouterSource({ type: 'compte_rendu', auteur: a.par, date: a.debut, titre: `Réunion : ${nom}${partie}${version ? ' (relue)' : ''}`, contenu, lien_original: '/SuiviReunion', cle: `reunion-${a.id}${version ? `-v${version}` : ''}-${k + 1}` });
     if (!s.ok) return { ok: false, error: s.error };
     sources.push(s.source.id);
-    if (!s.deja) layer.extraire(s.source.id).catch(() => {});
+    if (!s.deja) (layer.planifierExtraction ? layer.planifierExtraction(s.source.id) : layer.extraire(s.source.id).catch(() => {}));
   }
   return { ok: true, ids: sources };
 }

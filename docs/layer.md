@@ -11,7 +11,7 @@ lit d'abord, sans relire tout le code.
 
 **Nom.** À l'écran : « l'Intelligence » (Intelligence de Klocka), décision de Jules du 15 oct. 2026. Le nom technique reste « le Layer » : outils d'AK `layer_*`, API `/api/layer`, fichiers `layer.*`. « Cerveau » est l'ancien nom (jusqu'au 15 oct.).
 
-**État : phase 1 faite (15 oct. 2026)** : renommage et re-test de la consigne. Phase suivante : 2 (données).
+**État : phases 1 et 2 faites (15 oct. 2026)** : renommage, re-test de la consigne, données et tâches de fond. Phase suivante : 3 (recherche hybride).
 
 ---
 
@@ -111,6 +111,32 @@ Sur « Comité 7 octobre » (13 536 signes, une seule tranche ; 25 faits en base
 
 « Retrouvé » : même citation (l'une contient l'autre) ou résumé proche (≥ 45 % de mots communs). Le modèle ne rend jamais deux fois la même liste, même avec la consigne d'origine : « identiques » au sens strict n'est pas atteignable, l'équivalence l'est. La phrase des tranches ne s'applique pas à une source d'une tranche ; un saut de ligne qu'elle ajoutait a été retiré : hors `NOTE_KLOCKA`, la consigne est identique au signe près à l'originale.
 
+## 4 bis. Phase 2 : les données (15 oct. 2026)
+
+**Champs ajoutés aux enregistrements JSON** (aucune migration : lus avec défaut ; absents sur les anciens faits) :
+
+| Entité | Champ | Valeurs |
+|---|---|---|
+| `CerveauFait` | `statut` | `a_valider`, `a_rattacher` (à valider, fiche à choisir), `valide`, `rejete`, `remplace`, `archive` (`STATUTS_FAIT`) |
+| | `remplace_par` | id du fait qui le remplace (phase 4) |
+| | `mode_validation` | `manuel` ou `auto` (posé à chaque validation, `auto` en phase 4) |
+| | `motif_rejet` | `faux`, `doublon`, `hors_sujet`, `mal_rattache`, `autre` (`MOTIFS_REJET`) |
+| | `confiance` | 0 à 1, rendu par l'extraction (champ ajouté au schéma de sortie) |
+| | `statut_engagement`, `responsable` | engagements : `ouvert` à la naissance, puis `tenu` ou `echu` (phase 4) ; `responsable` = la personne qui promet |
+| `CerveauSource` | `type` | + `mail`, `evenement` (Monday) |
+| | `id_externe` | Message-ID, identifiant d'update Monday ; vaut clé de déduplication (`<type>:<id_externe>`) |
+| | `cout` | `{ entree, sortie, usd }`, cumulé à chaque extraction (`mesurer`) |
+
+**Tables** (`server/layer-schema.js`, créées si elles manquent, `defaire()` pour revenir en arrière) : `layer_fts`, `layer_vecteurs`, `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes`, `layer_audit`, `layer_taches` ; index sur le statut des faits et sur la fiche des liens. Le journal du MVP (`CerveauRecherche`) est recopié une fois dans `layer_requetes` ; les nouvelles recherches n'écrivent plus que là. Testé à vide (`server/layer-schema.test.js`) et sur une copie de la base locale (63 319 enregistrements intacts après `defaire()`).
+
+**Audit** : `trancher` (valider, corriger, rejeter) et `validerLot` écrivent qui, quand, l'état avant et après (`auditer`, `auditDe`).
+
+**Tâches de fond** (`server/layer-taches.js`) : `enfiler(type, charge, { cle })`, une à la fois, trois essais (1 min puis 5 min), `reprendre()` au démarrage (`server/index.js`) remet en attente ce qui était en cours ; `reprendreExtractions()` remet en file les sources restées en attente d'extraction. Sous `node --test`, rien ne part seul : le test appelle `tourner()`. L'extraction des appels (`depuisAppel`) et des réunions passe par la file (`planifierExtraction`) ; un compte rendu collé reste extrait tout de suite (la personne attend le résultat).
+
+**Seuils Postgres** : `alertePostgres()` mesure le p95 des recherches sur 7 jours (seuil 300 ms) et le nombre de faits (seuil 50 000).
+
+**Re-test avec la confiance** (comité du 7 oct., deux essais) : 33 et 40 faits, 25/25 retrouvés les deux fois ; confiance rendue pour chaque fait (de 0,7 à 1 ; 26/33 et 35/40 à 0,9 ou plus : le modèle est confiant, la validation auto de la phase 4 exige aussi la citation mot pour mot, le rattachement sans ambiguïté et l'absence de contradiction). La description du champ impose le point décimal : avec « 0,5 » écrit, le modèle a une fois rendu un JSON illisible.
+
 ## 5. Correspondance des noms
 
 | Avant | Après |
@@ -135,7 +161,7 @@ n'est supprimé ; tout ajout de données est rejouable et ignorable.
 | Phase | Contenu | Fichiers principaux |
 |---|---|---|
 | 1. Renommage ✓ | « Cerveau » → « l'Intelligence » dans toute l'interface, routes `/Layer` et `/api/layer` avec redirections, outils AK `layer_*` (anciens noms acceptés), consigne et questions d'AK, fichiers renommés ; re-test de la consigne d'extraction sur le comité du 7 oct. ; recherche globale de « cerveau » rendue à Jules | ceux du tableau des branchements, `server/index.js`, `src/App.jsx`, `src/lib/adresses.js` |
-| 2. Données | Champs nouveaux des faits (statut `remplace`, `remplace_par`, `mode_validation`, `motif_rejet`, `confiance`, `statut_engagement`, responsable) ; sources `mail` et `monday`, `id_externe`, coût d'extraction ; tables `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes` (reprend `CerveauRecherche`), `layer_audit`, `layer_taches` ; index SQLite | `server/layer.js`, `server/layer-schema.js` (nouveau) |
+| 2. Données ✓ | Champs nouveaux des faits (statut `remplace`, `remplace_par`, `mode_validation`, `motif_rejet`, `confiance`, `statut_engagement`, responsable) ; sources `mail` et `monday`, `id_externe`, coût d'extraction ; tables `layer_syntheses`, `layer_evaluations`, `layer_evaluations_runs`, `layer_requetes` (reprend `CerveauRecherche`), `layer_audit`, `layer_taches` ; index SQLite | `server/layer.js`, `server/layer-schema.js` (nouveau) |
 | 3. Recherche hybride | FTS5 (accents ignorés) + embeddings + fusion des deux classements ; rattrapage des faits existants | `server/layer-recherche.js` (nouveau) |
 | 4. Cycle de vie et validation | Remplacement d'un fait, engagements tenus / en retard, validation sans goulot (règles de la section 7 à recevoir), audit | `server/layer.js` |
 | 5. Synthèses par fiche | Une synthèse vivante par dossier, agent, agence…, marquée périmée quand un fait change | `server/layer-syntheses.js` (nouveau) |

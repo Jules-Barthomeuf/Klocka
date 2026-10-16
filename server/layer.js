@@ -19,14 +19,20 @@ import { Records } from './db.js';
 import { estSuperAdmin } from './acces-pages.js';
 import { notifier } from './notifications.js';
 import { corrigerKlocka, NOTE_KLOCKA } from './klocka-nom.js';
+import { auditer, journaliserRequete, requetesDepuis } from './layer-schema.js';
+import { enfiler, enregistrer } from './layer-taches.js';
 
 export const SOURCE = 'CerveauSource';
 export const FAIT = 'CerveauFait';
 export const LIEN = 'CerveauLien';
 export const QUESTION = 'CerveauQuestion';
-const RECHERCHE = 'CerveauRecherche';
 
-export const TYPES_SOURCE = ['compte_rendu', 'appel', 'debrief', 'decision'];
+// `mail` et `evenement` (Monday) : les sources de la phase 9 (15 oct. 2026).
+export const TYPES_SOURCE = ['compte_rendu', 'appel', 'debrief', 'decision', 'mail', 'evenement'];
+// Le cycle de vie d'un fait (phase 2) : à valider (ou à rattacher) → validé | rejeté ; validé → remplacé | archivé.
+export const STATUTS_FAIT = ['a_valider', 'a_rattacher', 'valide', 'rejete', 'remplace', 'archive'];
+export const MOTIFS_REJET = ['faux', 'doublon', 'hors_sujet', 'mal_rattache', 'autre'];
+export const STATUTS_ENGAGEMENT = ['ouvert', 'tenu', 'echu'];
 export const TYPES_FAIT = ['decision', 'information', 'engagement', 'savoir'];
 export const TYPES_ENTITE = ['dossier', 'projet', 'agent', 'agence', 'investisseur', 'ville'];
 
@@ -99,7 +105,9 @@ export function candidatsPour(type, nom, { limite = 5 } = {}) {
  * Une source entre telle quelle. `liens` : les fiches déjà connues (l'agent et
  * l'agence d'un appel) ; chaque fait extrait s'y rattache d'office.
  */
-export function ajouterSource({ type, auteur = null, date = null, titre = null, contenu, lien_original = null, liens = [], cle = null }) {
+export function ajouterSource({ type, auteur = null, date = null, titre = null, contenu, lien_original = null, liens = [], cle = null, id_externe = null }) {
+  // L'identifiant externe (Message-ID d'un mail, identifiant d'update Monday) déduplique comme une clé.
+  if (!cle && id_externe) cle = `${type}:${id_externe}`;
   // Le nom de la startup, que la transcription écorche (« Cloaca ») : corrigé avant d'entrer (14 oct. 2026).
   const texte = corrigerKlocka(String(contenu || '').trim());
   if (!texte) return { ok: false, error: 'Source vide.' };
@@ -108,8 +116,8 @@ export function ajouterSource({ type, auteur = null, date = null, titre = null, 
   if (cle) { const deja = Records.list(SOURCE).find((s) => s.cle === cle); if (deja) return { ok: true, source: deja, deja: true }; }
   const source = Records.create(SOURCE, {
     type, auteur: auteur ? String(auteur).toLowerCase() : null, date: date || maintenant(), titre: titre ? String(titre).slice(0, 160) : null,
-    contenu: texte.slice(0, 120000), lien_original, liens: (liens || []).filter((l) => l?.type_entite && l?.entite_id), cle,
-    statut_extraction: 'en_attente', faits: 0, doublons: 0, cree_le: maintenant(),
+    contenu: texte.slice(0, 120000), lien_original, liens: (liens || []).filter((l) => l?.type_entite && l?.entite_id), cle, id_externe: id_externe ? String(id_externe) : null,
+    statut_extraction: 'en_attente', faits: 0, doublons: 0, cout: { entree: 0, sortie: 0, usd: 0 }, cree_le: maintenant(),
   });
   return { ok: true, source };
 }
@@ -129,6 +137,7 @@ const SCHEMA = {
           citation: { type: 'string', description: 'la phrase EXACTE de la source, recopiée mot pour mot, d\'où vient le fait' },
           personne: { type: 'string', description: 'qui a dit, décidé ou promis (prénom nom, ou rôle), vide si inconnu' },
           echeance: { type: 'string', description: 'pour un engagement : la date promise, AAAA-MM-JJ, vide sinon' },
+          confiance: { type: 'number', description: 'un nombre entre 0 et 1, écrit avec un point décimal (0.9, pas 0,9) : ta certitude que ce fait est dit tel quel dans la source et bien compris ; 1 si dit en toutes lettres, 0.5 si déduit ou ambigu' },
           entites: {
             type: 'array',
             items: { type: 'object', properties: { type_entite: { type: 'string', enum: TYPES_ENTITE }, nom: { type: 'string' } }, required: ['type_entite', 'nom'] },
@@ -203,7 +212,10 @@ export function rangerFaits(source, faits, { valideD_office = null } = {}) {
       source_id: source.id, type: f.type, resume: String(f.resume).trim().slice(0, 400), citation: String(f.citation || '').trim().slice(0, 1200),
       citation_verifiee: citationDans(f.citation, source.contenu), personne: String(f.personne || '').trim() || null,
       echeance: /^\d{4}-\d{2}-\d{2}$/.test(String(f.echeance || '')) ? f.echeance : null,
+      confiance: Number.isFinite(Number(f.confiance)) ? Math.max(0, Math.min(1, Number(f.confiance))) : null,
+      ...(f.type === 'engagement' ? { statut_engagement: 'ouvert', responsable: String(f.personne || '').trim() || null } : {}),
       candidats, statut, corrige: false, cree_le: maintenant(),
+      ...(valideD_office ? { mode_validation: 'manuel' } : {}),
       ...(valideD_office ? { valide_par: valideD_office, valide_le: maintenant() } : {}),
     });
     for (const l of uniques) Records.create(LIEN, { fait_id: fait.id, type_entite: l.type_entite, entite_id: l.entite_id });
@@ -235,6 +247,25 @@ export function tranches(texte, max = SIGNES_PAR_TRANCHE) {
   return sortie;
 }
 
+/**
+ * L'extraction en tâche de fond (phase 2) : la source attend dans la file du Layer
+ * (layer_taches), reprise au démarrage si le serveur s'arrête en chemin. Rend la tâche.
+ */
+export function planifierExtraction(sourceId) {
+  return enfiler('extraire', { source_id: sourceId }, { cle: `extraire:${sourceId}` });
+}
+enregistrer('extraire', async ({ source_id }) => {
+  const r = await extraire(source_id);
+  if (!r.ok) throw new Error(r.error);
+});
+
+/** Au démarrage : les sources restées en attente ou en cours d'extraction (avant la file, ou serveur arrêté) repartent. */
+export function reprendreExtractions() {
+  let n = 0;
+  for (const s of Records.list(SOURCE).filter((x) => ['en_attente', 'en_cours'].includes(x.statut_extraction))) { planifierExtraction(s.id); n += 1; }
+  return n;
+}
+
 /** Extrait les faits d'une source (l'IA), tranche par tranche si elle est longue, puis les range. */
 export async function extraire(sourceId, { valideD_office = null } = {}) {
   const source = Records.get(SOURCE, sourceId);
@@ -245,11 +276,16 @@ export async function extraire(sourceId, { valideD_office = null } = {}) {
     const { mesurer } = await import('./llm-couts.js');
     const morceaux = tranches(source.contenu);
     const faits = [];
+    const cout = { entree: 0, sortie: 0, usd: 0 };
     for (let k = 0; k < morceaux.length; k += 1) {
       const tranche = morceaux.length > 1 ? { rang: k + 1, total: morceaux.length } : null;
-      const { resultat } = await mesurer({ operation: 'cerveau', sur: source.id, par: source.auteur }, () => invokeLLM({ prompt: consigne(source, morceaux[k], tranche), response_json_schema: SCHEMA }));
+      const { resultat, consommation } = await mesurer({ operation: 'cerveau', sur: source.id, par: source.auteur }, () => invokeLLM({ prompt: consigne(source, morceaux[k], tranche), response_json_schema: SCHEMA }));
       faits.push(...(resultat?.faits || []));
+      cout.entree += consommation?.entree || 0; cout.sortie += consommation?.sortie || 0; cout.usd += consommation?.cout || 0;
     }
+    // Le coût d'extraction, gardé sur la source (section 14 de la spec) : il s'ajoute à chaque nouvelle lecture.
+    const avant = Records.get(SOURCE, source.id)?.cout || {};
+    Records.update(SOURCE, source.id, { cout: { entree: (avant.entree || 0) + cout.entree, sortie: (avant.sortie || 0) + cout.sortie, usd: Math.round(((avant.usd || 0) + cout.usd) * 1e6) / 1e6 } });
     // Les doublons entre tranches (une même décision redite) sont écartés au rangement.
     const r = rangerFaits(source, faits, { valideD_office });
     return { ok: true, source_id: source.id, faits: r.faits.map(resumeFait), doublons: r.doublons };
@@ -276,12 +312,18 @@ export function resumeFait(f) {
 }
 
 /** Valider, corriger (résumé, type, fiches), rejeter. */
-export function trancher(faitId, { action, par, resume, type, fiches } = {}) {
+export function trancher(faitId, { action, par, resume, type, fiches, motif_rejet = null } = {}) {
   const f = Records.get(FAIT, faitId);
   if (!f) return { ok: false, error: 'Fait introuvable.' };
-  if (action === 'rejeter') { Records.update(FAIT, f.id, { statut: 'rejete', valide_par: par, valide_le: maintenant() }); return { ok: true }; }
+  const avant = { statut: f.statut, type: f.type, resume: f.resume, fiches: liensDu(f.id).map(({ type_entite, entite_id }) => ({ type_entite, entite_id })) };
+  if (action === 'rejeter') {
+    const motif = MOTIFS_REJET.includes(motif_rejet) ? motif_rejet : null;
+    Records.update(FAIT, f.id, { statut: 'rejete', valide_par: par, valide_le: maintenant(), mode_validation: 'manuel', motif_rejet: motif });
+    auditer({ par, action: 'rejeter', fait_id: f.id, avant, apres: { statut: 'rejete', motif_rejet: motif } });
+    return { ok: true };
+  }
   if (action !== 'valider' && action !== 'corriger') return { ok: false, error: 'Action inconnue.' };
-  const patch = { statut: 'valide', valide_par: par, valide_le: maintenant(), candidats: [] };
+  const patch = { statut: 'valide', valide_par: par, valide_le: maintenant(), candidats: [], mode_validation: 'manuel' };
   if (action === 'corriger') {
     patch.corrige = true;
     if (String(resume || '').trim()) patch.resume = String(resume).trim().slice(0, 400);
@@ -293,13 +335,18 @@ export function trancher(faitId, { action, par, resume, type, fiches } = {}) {
   }
   // Un fait encore « à rattacher » se valide quand même : il reste sans fiche, mais on le retrouve par la recherche.
   Records.update(FAIT, f.id, patch);
-  return { ok: true, fait: resumeFait(Records.get(FAIT, f.id)) };
+  const apres = Records.get(FAIT, f.id);
+  auditer({ par, action: action === 'corriger' ? 'corriger' : 'valider', fait_id: f.id, avant, apres: { statut: apres.statut, type: apres.type, resume: apres.resume, fiches: liensDu(f.id).map(({ type_entite, entite_id }) => ({ type_entite, entite_id })) } });
+  return { ok: true, fait: resumeFait(apres) };
 }
 
 /** Valide d'un coup les faits en attente d'une source. */
 export function validerLot(sourceId, { par }) {
   const enAttente = Records.list(FAIT).filter((f) => f.source_id === sourceId && (f.statut === 'a_valider' || f.statut === 'a_rattacher'));
-  for (const f of enAttente) Records.update(FAIT, f.id, { statut: 'valide', valide_par: par, valide_le: maintenant() });
+  for (const f of enAttente) {
+    Records.update(FAIT, f.id, { statut: 'valide', valide_par: par, valide_le: maintenant(), mode_validation: 'manuel' });
+    auditer({ par, action: 'valider', fait_id: f.id, avant: { statut: f.statut }, apres: { statut: 'valide', lot: sourceId } });
+  }
   return { ok: true, valides: enAttente.length };
 }
 
@@ -342,7 +389,8 @@ export function chercher({ question = '', type = null, type_entite = null, entit
   notes.sort((a, b) => b.p - a.p || String(b.f.date).localeCompare(String(a.f.date)));
   const trouves = notes.slice(0, limite).map((x) => x.f);
   // Chaque question sur le passé est comptée : c'est le critère d'usage réel du MVP.
-  if (par) Records.create(RECHERCHE, { par: String(par).toLowerCase(), question: String(question).slice(0, 300), trouves: trouves.length, le: maintenant() });
+  // Depuis la phase 2, dans le journal des recherches du Layer (layer_requetes), avec les filtres et les faits rendus.
+  if (par) journaliserRequete({ par, origine: 'ak', question, texte: question, filtres: { type, type_entite, entite_id, personne, depuis, jusqua }, faits: trouves.map((f) => f.id) });
   return trouves;
 }
 
@@ -379,7 +427,7 @@ export function mesures({ jours = 14, maintenantD = new Date() } = {}) {
   const depuis = new Date(maintenantD.getTime() - jours * 86400000).toISOString();
   const tranches = Records.list(FAIT).filter((f) => f.valide_le && f.valide_le >= depuis && f.statut !== 'a_valider');
   const valides = tranches.filter((f) => f.statut === 'valide' && f.source_id && Records.get(SOURCE, f.source_id)?.type !== 'decision');
-  const recherches = Records.list(RECHERCHE).filter((r) => r.le >= depuis);
+  const recherches = requetesDepuis(depuis).filter((r) => r.par).map((r) => ({ par: r.par, trouves: r.nombre }));
   const decisions = Records.list('Deal').flatMap((d) => (d.suivi || []).filter((s) => s.type === 'statut' && (s.vers === 'abandonne' || s.vers === 'projet_cree') && s.le >= depuis).map((s) => ({ d, s })));
   const motivees = decisions.filter(({ d, s }) => motifDe(d, s));
   return {
@@ -499,7 +547,7 @@ export function depuisAppel(appel, { par = null, agence = null } = {}) {
     type: 'appel', auteur: par || appel.par, date: appel.le || null, titre: `Appel${qui ? ` : ${qui}` : ''}`,
     contenu: `${appel.notes ? `Notes de l'analyste : ${appel.notes}\n\n` : ''}${texte}`, lien_original: '/Prospection?onglet=suivi', liens, cle: `appel-${appel.id}`,
   });
-  if (s.ok && !s.deja) extraire(s.source.id).catch(() => {});
+  if (s.ok && !s.deja) planifierExtraction(s.source.id);
   return s.source || null;
 }
 

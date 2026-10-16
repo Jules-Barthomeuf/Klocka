@@ -6,6 +6,7 @@ import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
+import AKNouveauLook from "@/components/AKNouveauLook";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
@@ -48,6 +49,8 @@ export default function AdminDashboardView() {
           )}
           {/* L'Intelligence (phase 6, 15 oct. 2026) : mes engagements du jour, mes faits à valider, mes questions « pourquoi ? ». */}
           {!conversation && <JourneeLayer className="mb-4" />}
+          {/* « AK a un nouveau look » (16 oct. 2026) : une fois par personne et par navigateur. */}
+          <AKNouveauLook />
           {/* Les objections non levées, quinze secondes chacune, à résoudre ensemble (16 oct. 2026). */}
           {!conversation && <ObjectionsAResoudre className="mb-4 md:mt-14" />}
           <PlanDeTravail

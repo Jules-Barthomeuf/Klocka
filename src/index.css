@@ -1032,3 +1032,12 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
   .k-etats > span:first-child { opacity: 1; }
   .k-titre-metal { color: rgb(var(--k-encre-rgb)); background: none; }
 }
+
+/* « AK a un nouveau look » (16 oct. 2026, Jules) : le portrait tourne sur lui-même en arrivant, puis flotte ;
+   un anneau de lumière tourne autour. Même registre que « Tout préparé » : blanc et gris. */
+.k-ak-portrait { animation: k-ak-tour 1.4s cubic-bezier(.2, .8, .2, 1) .2s both, k-ak-flotte 4s ease-in-out 1.8s infinite; transform-style: preserve-3d; }
+@keyframes k-ak-tour { from { opacity: 0; transform: perspective(600px) rotateY(-540deg) scale(.6); } to { opacity: 1; transform: perspective(600px) rotateY(0) scale(1); } }
+@keyframes k-ak-flotte { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.k-ak-anneau { background: conic-gradient(from 0deg, transparent 0deg, rgb(var(--k-encre-rgb) / .15) 30deg, rgb(var(--k-encre-rgb)) 90deg, transparent 100deg, transparent 360deg); animation: k-ak-anneau 2.4s linear infinite; mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); }
+@keyframes k-ak-anneau { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .k-ak-portrait, .k-ak-anneau { animation: none; } }

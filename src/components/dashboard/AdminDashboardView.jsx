@@ -7,6 +7,7 @@ import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDas
 import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import AKNouveauLook from "@/components/AKNouveauLook";
+import QuoiDeNeuf from "@/components/QuoiDeNeuf";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
@@ -51,6 +52,8 @@ export default function AdminDashboardView() {
           {!conversation && <JourneeLayer className="mb-4" />}
           {/* « AK a un nouveau look » (16 oct. 2026) : une fois par personne et par navigateur. */}
           <AKNouveauLook />
+          {/* « Quoi de neuf » : le briefing du jour, une fois par jour, après l'annonce d'AK. */}
+          <QuoiDeNeuf />
           {/* Les objections non levées, quinze secondes chacune, à résoudre ensemble (16 oct. 2026). */}
           {!conversation && <ObjectionsAResoudre className="mb-4 md:mt-14" />}
           <PlanDeTravail

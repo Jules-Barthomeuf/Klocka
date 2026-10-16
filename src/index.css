@@ -1048,3 +1048,27 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
   html.k-imprime-fiche body > *:not(.k-impression) { display: none !important; }
   html.k-imprime-fiche .k-impression { position: static !important; }
 }
+
+/* Les étapes d'AK (16 oct. 2026, Jules) : l'étape en cours porte quatre points qui tournent en se resserrant ;
+   terminée, un seul point arrive. CSS seul, arrêté si le système demande moins d'animations.
+   .k-carre : un carré de 14 px, quatre points de 4 px (le premier plein, ses deux voisins à 75 %, l'opposé à 50 %,
+   ce qui donne le sens de rotation). Un demi-tour dure 1,4 s : un quart de tour en se resserrant vers le centre
+   (moitié de la taille), un quart de tour en s'écartant. La boucle fait deux demi-tours (2,8 s) pour que le
+   dégradé retrouve sa place sans saut. Chaque quart de tour accélère puis ralentit (cubic-bezier doux). */
+.k-carre { position: relative; display: inline-block; flex: none; width: 14px; height: 14px; animation: k-carre-tour 2.8s cubic-bezier(.45, 0, .55, 1) infinite; }
+.k-carre > i { position: absolute; left: 5px; top: 5px; width: 4px; height: 4px; border-radius: 9999px; background: rgb(var(--k-brume-rgb)); animation: k-carre-serre 2.8s cubic-bezier(.45, 0, .55, 1) infinite; }
+.k-carre > i:nth-child(1) { --sx: -1; --sy: -1; }
+.k-carre > i:nth-child(2) { --sx: 1; --sy: -1; opacity: .75; }
+.k-carre > i:nth-child(3) { --sx: -1; --sy: 1; opacity: .75; }
+.k-carre > i:nth-child(4) { --sx: 1; --sy: 1; opacity: .5; }
+@keyframes k-carre-tour { 0% { transform: rotate(0deg); } 25% { transform: rotate(90deg); } 50% { transform: rotate(180deg); } 75% { transform: rotate(270deg); } 100% { transform: rotate(360deg); } }
+@keyframes k-carre-serre {
+  0%, 50%, 100% { transform: translate(calc(var(--sx) * 5px), calc(var(--sy) * 5px)); }
+  25%, 75% { transform: translate(calc(var(--sx) * 2.5px), calc(var(--sy) * 2.5px)); }
+}
+/* L'étape finie : un point gris de 8 px. Il arrive en 0,5 s : d'un petit carré pivoté à 45°, plus grand et presque
+   transparent, qui se réduit, se redresse et s'arrondit jusqu'au rond plein. */
+.k-point-fait { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 9999px; background: rgb(var(--k-brume-rgb)); }
+.k-point-fait.k-arrive { animation: k-point-arrive .5s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes k-point-arrive { 0% { transform: rotate(45deg) scale(1.9); border-radius: 1px; opacity: .12; } 100% { transform: rotate(0deg) scale(1); border-radius: 9999px; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .k-carre, .k-carre > i, .k-point-fait.k-arrive { animation: none; } }

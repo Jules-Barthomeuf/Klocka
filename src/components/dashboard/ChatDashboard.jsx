@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { PointsEnCours, PointFait } from "@/components/ui/PointsEtape";
 import { motion } from "framer-motion";
 import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -809,13 +810,12 @@ function Etapes({ etapes, courante = null }) {
         const faite = !enCours || i < courante;
         const ici = enCours && i === courante;
         return (
-          <motion.div key={i} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, delay: enCours ? 0 : i * 0.03 }}
-            className="flex items-center gap-3.5 text-[15px] transition-colors"
+          // Chaque nouvelle ligne glisse un peu vers le haut en fondu (0,35 s), puis prend son tour le carré animé (16 oct. 2026).
+          <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut", delay: enCours ? 0 : i * 0.03 }}
+            className="flex items-center gap-3.5 text-[15px] transition-colors duration-300"
             style={{ color: faite ? J["craie"] : ici ? J["encre"] : J["brume"], opacity: faite || ici ? 1 : 0.55 }}>
             <span className="grid h-4 w-4 flex-none place-items-center">
-              {faite ? <Check className="h-4 w-4" style={{ color: J["menthe"] }} strokeWidth={2} />
-                : ici ? <span className="h-2.5 w-2.5 animate-pulse rounded-full" style={{ background: J["menthe-pale"] }} />
-                : <span className="h-1.5 w-1.5 rounded-full" style={{ background: J["bord-vif"] }} />}
+              {ici ? <PointsEnCours /> : faite ? <PointFait anime={enCours} /> : <span className="h-1.5 w-1.5 rounded-full" style={{ background: J["bord-vif"] }} />}
             </span>
             {e}
           </motion.div>
@@ -934,9 +934,9 @@ function EtapesNotif({ etapes = [], enCours = false }) {
       {etapes.map((t, i) => {
         const courante = enCours && i === etapes.length - 1;
         return (
-          <li key={i} className="flex list-none items-start gap-2 text-[13px] leading-[1.45]" style={{ color: courante ? J["encre"] : J["ardoise"] }}>
-            <span className="mt-[3px] grid h-3.5 w-3.5 flex-none place-items-center">
-              {courante ? <Loader2 className="h-3 w-3 animate-spin" style={{ color: J["menthe"] }} /> : <Check className="h-3 w-3" style={{ color: J["menthe"] }} />}
+          <li key={i} className="flex list-none items-start gap-2 text-[13px] leading-[1.45] transition-colors duration-300" style={{ color: courante ? J["encre"] : J["craie"] }}>
+            <span className="mt-[2px] grid h-4 w-4 flex-none place-items-center">
+              {courante ? <PointsEnCours /> : <PointFait anime={enCours} />}
             </span>
             <span>{t}</span>
           </li>

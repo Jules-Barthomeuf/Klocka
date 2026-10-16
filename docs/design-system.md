@@ -556,6 +556,28 @@ et la mise à jour du document en cours). CSS seul (`.k-pile`, `.k-mini`,
 `.k-titre-metal`, `.k-etats` dans index.css), arrêté si le système demande
 moins d'animations.
 
+### Les étapes d'AK quand il réfléchit (16 oct. 2026)
+
+Spec de Jules, qui remplace le point qui pulse et la roue : l'étape en cours
+porte **quatre petits points gris** (4 px, `brume`) dans un carré de 14 px, à
+gauche du texte (`.k-carre`, `PointsEnCours`). Le premier est plein, ses deux
+voisins à 75 %, le point opposé à 50 % : le dégradé donne le sens de rotation.
+Un demi-tour dure 1,4 s : un quart de tour en se resserrant vers le centre
+(à la moitié de la taille), un quart de tour en s'écartant ; chaque quart de
+tour accélère et ralentit (`cubic-bezier(.45, 0, .55, 1)`). La boucle CSS fait deux
+demi-tours (2,8 s) pour que le dégradé retrouve sa place sans saut. Le texte de
+l'étape en cours est en `encre`. **Quand l'étape se termine**, les quatre
+points disparaissent au profit d'**un seul point de 8 px** (`brume`,
+`PointFait`) qui arrive en 0,5 s : d'un petit carré pivoté à 45°, plus grand et
+presque transparent, qui se réduit, se redresse et s'arrondit jusqu'au rond
+plein ; le texte passe en `craie`, comme les lignes finies. Chaque nouvelle
+ligne glisse vers le haut en fondu (0,35 s), puis prend à son tour le carré.
+Une étape d'un fil relu garde son point sans l'animer. Les gris et le blanc
+cassé de la spec (#7a7f7d, #f2f2f2, #c4c4c4) sont les jetons `brume`, `encre`
+et `craie`, donc ils suivent le thème clair. CSS seul, arrêté si le système
+demande moins d'animations. Dans le fil (`Etapes`) et dans la notification du
+chat embarqué (`EtapesNotif`).
+
 ### L'Intelligence (le Layer, 14 oct. 2026)
 
 Spec MVP de Jules du 14 oct. 2026 (« Cerveau » jusqu'au 15 oct., renommée « Intelligence » ; le nom technique est « le Layer », voir `docs/layer.md`). Une page admin **Intelligence** (icône cerveau,

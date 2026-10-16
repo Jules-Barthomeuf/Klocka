@@ -1041,3 +1041,10 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-ak-anneau { background: conic-gradient(from 0deg, transparent 0deg, rgb(var(--k-encre-rgb) / .15) 30deg, rgb(var(--k-encre-rgb)) 90deg, transparent 100deg, transparent 360deg); animation: k-ak-anneau 2.4s linear infinite; mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); }
 @keyframes k-ak-anneau { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .k-ak-portrait, .k-ak-anneau { animation: none; } }
+
+/* La fiche client en PDF (16 oct. 2026) : le reste de la page ne prend aucune place (sinon des pages blanches suivent), fond blanc. */
+@media print {
+  html.k-imprime-fiche, html.k-imprime-fiche body { background: #fff !important; height: auto !important; overflow: visible !important; }
+  html.k-imprime-fiche body > *:not(.k-impression) { display: none !important; }
+  html.k-imprime-fiche .k-impression { position: static !important; }
+}

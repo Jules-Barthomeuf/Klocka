@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Mic, Plus, Search, X } from "lucide-react";
+import { ChevronDown, Download, Mic, Plus, Search, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { J } from "@/design/jetons";
@@ -116,6 +116,67 @@ const Ligne = ({ mot, children }) => (
 const Titre = ({ children }) => <p className="m-0 pb-1.5 text-[12px] tracking-[0.14em] text-ardoise">{children}</p>;
 const Puces = ({ items }) => <span className="flex flex-col gap-1">{items.map((x) => <span key={x}>{x}</span>)}</span>;
 
+/**
+ * La fiche en PDF (16 oct. 2026, Jules) : un document à part, invisible à l'écran, qui seul s'imprime
+ * (.k-impression) ; « Télécharger le PDF » ouvre l'impression, avec « Enregistrer en PDF ».
+ */
+function DocumentClient({ d }) {
+  const f = d.fiche || {};
+  const Bloc = ({ titre, lignes }) => {
+    const l = lignes.filter(([, v]) => v && (!Array.isArray(v) || v.length));
+    if (!l.length) return null;
+    return (
+      <section className="mt-7">
+        <h2 className="m-0 border-b border-trait pb-1.5 text-[10pt] font-normal uppercase tracking-[.14em] text-ardoise">{titre}</h2>
+        {l.map(([mot, v]) => (
+          <div key={mot} className="grid grid-cols-[42mm_1fr] gap-4 border-b border-trait py-2 text-[10.5pt] leading-[1.45]">
+            <span className="text-ardoise">{mot}</span>
+            <span className="text-encre">{Array.isArray(v) ? v.join(" ; ") : v}</span>
+          </div>
+        ))}
+      </section>
+    );
+  };
+  return createPortal(
+    <div className="k-impression hidden bg-white text-encre print:block">
+      <div className="flex items-start justify-between gap-6">
+        <div>
+          <p className="m-0 text-[9pt] uppercase tracking-[.16em] text-ardoise">Fiche client · Klocka</p>
+          <h1 className="m-0 mt-1.5 text-[22pt] font-normal tracking-[-0.01em]">{d.nom}</h1>
+          <p className="m-0 mt-1 text-[10pt] text-ardoise">{[d.email, d.telephone, d.entre_le ? `client depuis le ${quand(d.entre_le, "long")}` : null].filter(Boolean).join(" · ")}</p>
+        </div>
+        <img src="/logo-klocka.svg" alt="Klocka" className="h-[12mm] w-[12mm]" />
+      </div>
+      {d.prochaine_etape?.texte && <p className="m-0 mt-6 rounded-[3mm] border border-trait px-4 py-2.5 text-[10.5pt]"><span className="text-ardoise">Prochaine étape · </span>{d.prochaine_etape.texte}{d.prochaine_etape.date_dite ? ` (${d.prochaine_etape.date_dite})` : ""}</p>}
+      <Bloc titre="Ce qu'il cherche" lignes={[["Type de bien", typeDe(d)], ["Zones", zonesDe(d)], ["Budget", budgetDe(d)], ["Apport", kEuros(d.apport)], ["Rendement minimum", d.rendement_min ? rendementDe(d) : null], ["Bail", d.bail], ["Objectif", d.objectif]]} />
+      <Bloc titre="Ce qu'on sait de lui" lignes={[["Pourquoi il investit", f.motivation], ["Situation", f.situation], ["Métier, ville", [d.fonction, d.localisation].filter(Boolean).join(" · ")], ["Revenus", d.revenu ? `${kEuros(d.revenu)} par an` : null], ["Patrimoine", d.patrimoine], ["Quand", f.horizon], ["Financement", f.financement], ["Il aime", f.preferences], ["Il refuse", f.exclusions], ["Attention à", f.points_attention], ["À lui demander", f.questions_ouvertes]]} />
+      {d.historique.filter((a) => !a.annule_le).length > 0 && (
+        <section className="mt-7">
+          <h2 className="m-0 border-b border-trait pb-1.5 text-[10pt] font-normal uppercase tracking-[.14em] text-ardoise">Ses appels</h2>
+          {d.historique.filter((a) => !a.annule_le).map((a) => (
+            <div key={a.id} className="border-b border-trait py-2.5 text-[10.5pt] leading-[1.45]">
+              <p className="m-0 text-[9pt] text-ardoise">{quand(a.le, "long")} · {String(a.par || "").split("@")[0]} · {a.source === "enregistre" ? "enregistré" : "résumé collé"}</p>
+              <p className="m-0 mt-0.5">{a.resume || "—"}</p>
+            </div>
+          ))}
+        </section>
+      )}
+      <p className="m-0 mt-8 text-[8.5pt] text-brume">Document interne Klocka, édité le {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}. Ne pas transmettre.</p>
+    </div>,
+    document.body,
+  );
+}
+
+/** Le nom du fichier PDF : le titre de la page le temps de l'impression. */
+function telechargerPdf(nom) {
+  const avant = document.title;
+  document.title = `Fiche client - ${nom}`;
+  document.documentElement.classList.add("k-imprime-fiche");
+  const remettre = () => { document.title = avant; document.documentElement.classList.remove("k-imprime-fiche"); window.removeEventListener("afterprint", remettre); };
+  window.addEventListener("afterprint", remettre);
+  window.print();
+}
+
 /** La fiche d'un client, à droite : tout ce qu'on sait de lui, ses appels, ce qu'en voient les mandataires. */
 function FicheClient({ id, onFermer, onAppel }) {
   const queryClient = useQueryClient();
@@ -154,9 +215,11 @@ function FicheClient({ id, onFermer, onAppel }) {
             <div className="flex flex-wrap gap-2.5">
               <button type="button" onClick={() => onAppel(d, "enregistrer")} className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol"><Mic className="h-4 w-4" />Enregistrer l'appel</button>
               <button type="button" onClick={() => onAppel(d, "coller")} className="h-11 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Coller un résumé</button>
+              <button type="button" onClick={() => telechargerPdf(d.nom)} className="inline-flex h-11 items-center gap-2 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><Download className="h-4 w-4" />Télécharger le PDF</button>
             </div>
           </div>
 
+          <DocumentClient d={d} />
           {d.prochaine_etape?.texte && (
             <div className="mx-7 mt-5 rounded-[12px] border border-menthe/40 px-4 py-3 max-md:mx-5">
               <p className="m-0 text-[12px] tracking-[0.14em] text-menthe">PROCHAINE ÉTAPE</p>

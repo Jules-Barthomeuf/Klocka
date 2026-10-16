@@ -120,6 +120,9 @@ const ESPACES = {
   presentation: { api: "/api/assistant", page: "presentations", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quel projet ? « Fais la présentation bancaire du projet de Dieppe, à l'attention du Crédit Agricole »" },
   // L'éditeur de projet (équipe, 14 oct. 2026) : le chat d'AK retouche les chiffres du projet ouvert à droite, avec leurs sources.
   projet: { api: "/api/assistant", page: "projets", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Que corriger ? « Le loyer est trop bas, va chercher des chiffres plus cohérents »" },
+  // La présentation vue du client (16 oct. 2026, Jules : « le même design que la partie admin ») : le même chat,
+  // sur sa route à lui ; AK n'y touche qu'à la présentation ouverte à droite.
+  presentation_client: { api: "/api/client/ak", client: true, modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Que voulez-vous changer ? « Raccourcissez le texte de la couverture », « mettez le titre plus simplement »…" },
   prospection: { api: "/api/mandataire", qs: "?espace=prospection", modesAGauche: true, modeParDefaut: "libre", modes: MODES_PROSPECTION, commandes: COMMANDES_PROSPECTION, fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Quelle zone prospectez-vous ? « Mâcon », « la rue Carnot », « les boulangeries indépendantes à Charnay »" },
 };
 
@@ -200,6 +203,8 @@ function Suggestions({ onChoisir, espace = "admin" }) {
   const { data } = useQuery({
     queryKey: prospection ? ["mandataire-prospections"] : mandataire ? ["mandataire-jour"] : ["ce-qui-attend"],
     queryFn: () => base44.request("GET", prospection ? "/api/mandataire/prospections" : mandataire ? "/api/mandataire/jour" : "/api/assistant/attend"),
+    // Le client n'a pas « ce qui attend » de l'équipe (16 oct. 2026).
+    enabled: espace !== "presentation_client",
     staleTime: 30 * 1000,
   });
   const { data: demandes } = useQuery({
@@ -953,7 +958,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const estimation = espace === "estimation";
   const mandatEspace = espace === "mandat";
   // Le mandataire, au tableau de bord, en prospection ou en estimation : ses routes, pas celles de l'équipe.
-  const mandataire = espace === "mandataire" || espace === "affinage" || prospection || estimation || mandatEspace;
+  // L'espace du client parle comme celui d'un mandataire : `${E.api}/chat`, la réponse en `texte`.
+  const mandataire = espace === "mandataire" || espace === "affinage" || prospection || estimation || mandatEspace || espace === "presentation_client";
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [texte, setTexte] = useState("");
@@ -1169,7 +1175,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         return r;
       }
       const r = mandataire
-        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
+        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}), ...(E.client ? { presentation_id: contexte?.presentation_id || null } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
         : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: E.page ? "assistant" : type, ...(E.page ? { contexte: contexteEnvoye() } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
@@ -1252,6 +1258,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           queryClient.invalidateQueries({ queryKey: ["m-prospection", prospectionId] });
           queryClient.invalidateQueries({ queryKey: ["mandataire-prospections"] });
         }
+        // Le client : la présentation à droite se relit si AK l'a retouchée.
+        if (E.client) onReponse?.(r);
         pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
         if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "" });
         setSuites(suitesMandataire(r));

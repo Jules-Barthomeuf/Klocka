@@ -166,6 +166,55 @@ export function monterPresentations(app) {
     if (!r.ok) return res.status(r.error === 'Présentation introuvable.' ? 404 : 400).json({ error: r.error });
     ok(res, r);
   }));
+  // Le chat du client au format du chat de l'équipe (16 oct. 2026, Jules : « le même design que la partie admin ») :
+  // ChatDashboard, espace « presentation_client », parle à ces routes ; AK n'y lit que la présentation demandée.
+  const ak = '/api/client/ak';
+  app.post(`${ak}/chat`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const C = await import('../presentation-client.js');
+    const flux = req.query.flux === '1' ? (await import('../flux.js')).ouvrirFlux(res) : null;
+    const id = String(req.body?.presentation_id || '');
+    const historique = (Array.isArray(req.body?.historique) ? req.body.historique : []).map((m) => ({ role: m?.role === 'assistant' ? 'assistant' : 'client', texte: m?.contenu ?? m?.texte ?? '' }));
+    flux?.etape('Je lis votre présentation');
+    const r = await C.discuter(id, user, { texte: req.body?.texte, historique });
+    if (!r.ok) { if (flux) return flux.erreur(r.error); return res.status(400).json({ error: r.error }); }
+    if (r.changes) flux?.etape(`Je retouche ${r.changes > 1 ? `${r.changes} champs` : 'un champ'} de la présentation`);
+    const resultat = { texte: r.reponse, presentation_modifiee: r.changes > 0, presentation_id: id };
+    if (flux) return flux.fin(resultat);
+    ok(res, resultat);
+  }));
+  app.get(`${ak}/conversations`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    ok(res, { conversations: (await import('../presentation-client.js')).conversations(user) });
+  }));
+  app.get(`${ak}/conversations/:id`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const c = (await import('../presentation-client.js')).conversation(req.params.id, user);
+    if (!c) return res.status(404).json({ error: 'Conversation introuvable.' });
+    ok(res, c);
+  }));
+  app.post(`${ak}/conversations`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const c = (await import('../presentation-client.js')).garderConversation(user, req.body || {});
+    ok(res, { id: c.id, titre: c.titre });
+  }));
+  app.patch(`${ak}/conversations/:id`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    const c = (await import('../presentation-client.js')).renommer(req.params.id, user, req.body?.titre);
+    if (!c) return res.status(404).json({ error: 'Conversation introuvable.' });
+    ok(res, { id: c.id, titre: c.titre });
+  }));
+  app.delete(`${ak}/conversations/:id`, wrap(async (req, res) => {
+    const user = connecte(req, res);
+    if (!user) return;
+    if (!(await import('../presentation-client.js')).supprimer(req.params.id, user)) return res.status(404).json({ error: 'Conversation introuvable.' });
+    ok(res, { ok: true });
+  }));
   app.post(`${client}/:id/question`, wrap(async (req, res) => {
     const user = connecte(req, res);
     if (!user) return;

@@ -1,11 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useCurrentUser } from "@/components/hooks/useCurrentUser";
 import Deck from "@/components/presentations/Deck";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
-import ChatClient, { NoteDesign } from "@/components/presentations/ChatClient";
+import { NoteDesign } from "@/components/presentations/ChatClient";
+import ChatDashboard from "@/components/dashboard/ChatDashboard";
+import { useQueryClient } from "@tanstack/react-query";
 import Chargement from "@/components/ui/Chargement";
 
 // Présentations, côté client (13 oct. 2026, Jules) : les dossiers bancaires
@@ -34,19 +36,7 @@ export default function MesPresentations() {
     return () => document.documentElement.classList.remove("k-sans-barre");
   }, [ouverte]);
 
-  if (ouverte) {
-    return (
-      <div className="grid h-[100dvh] w-full lg:grid-cols-[380px_minmax(0,1fr)]">
-        {/* À gauche, AK sur cette présentation ; au téléphone, sous l'éditeur, à la demande. */}
-        <div className="min-h-0 border-r border-trait max-lg:hidden"><ChatClient id={ouverte} /></div>
-        <div className="min-h-0 min-w-0">
-          <EditeurPresentation key={ouverte} id={ouverte} client onFermer={() => ouvrir(null)} />
-        </div>
-        <ChatMobile id={ouverte} />
-        <NoteDesign id={ouverte} />
-      </div>
-    );
-  }
+  if (ouverte) return <VueClient id={ouverte} onFermer={() => ouvrir(null)} />;
 
   return (
     <div className="mx-auto w-full max-w-[1100px] px-5 py-6 md:px-10 md:py-9">
@@ -86,8 +76,88 @@ export default function MesPresentations() {
   );
 }
 
+/**
+ * Une présentation ouverte, côté client : l'écran de l'équipe, à l'identique (16 oct. 2026, Jules) —
+ * le chat d'AK dans sa colonne à gauche (la même, redimensionnable), l'éditeur en carte à droite,
+ * le fond sobre ; au téléphone, l'éditeur en plein écran et « Demander à AK ».
+ */
+function VueClient({ id, onFermer }) {
+  const queryClient = useQueryClient();
+  const [conversation, setConversation] = useState(false);
+  const [large, setLarge] = useState(() => typeof window === "undefined" || window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 1024px)");
+    const f = () => setLarge(m.matches);
+    m.addEventListener("change", f);
+    return () => m.removeEventListener("change", f);
+  }, []);
+  useEffect(() => {
+    document.documentElement.classList.add("k-sans-barre", "k-sobre");
+    window.scrollTo(0, 0);
+    return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre");
+  }, []);
+  const CLE_LARGEUR = "klocka.presentations-client.largeur-chat";
+  const LARGEUR_DEFAUT = 420;
+  const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, window.innerWidth - 560)));
+  const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
+  const [tire, setTire] = useState(false);
+  const tirer = (e) => {
+    e.preventDefault();
+    setTire(true);
+    let derniere = largeurChat;
+    const bouger = (ev) => { derniere = borner(ev.clientX); setLargeurChat(derniere); };
+    const lacher = () => {
+      setTire(false);
+      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", lacher);
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+  };
+  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
+  const surReponse = (r) => { if (r?.presentation_modifiee) queryClient.invalidateQueries({ queryKey: ["presentation-bancaire", id, "client"] }); };
+  const chat = <ChatDashboard espace="presentation_client" onConversation={setConversation} onReponse={surReponse} barreApercu={large && conversation} contexte={{ presentation_id: id }} />;
+  const editeur = <EditeurPresentation key={id} id={id} client onFermer={onFermer} />;
+  if (!large) {
+    return (
+      <div className="h-[100dvh] w-full">
+        {editeur}
+        <ChatMobile>{chat}</ChatMobile>
+        <NoteDesign id={id} />
+      </div>
+    );
+  }
+  return (
+    <div className="k-page-presentation relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
+      <div className={`relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+        <div className={conversation ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8"}>
+          <header className={conversation ? "flex flex-col" : "flex flex-col items-center pt-10 text-center"}>
+            {!conversation && (
+              <>
+                <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Que voulez-vous changer ?</h1>
+                <p className="m-0 mt-2 max-w-[56ch] text-[14px] text-ardoise">Dites-le simplement : AK retouche la présentation à droite et vous dit ce qu'il a fait. Tout se modifie aussi sur place, au clic.</p>
+              </>
+            )}
+            <div className={conversation ? "w-full" : "mt-6 w-full"}>{chat}</div>
+          </header>
+        </div>
+        <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
+          <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">{editeur}</div>
+        </div>
+        <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
+          onPointerDown={tirer} onDoubleClick={remettre}
+          className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
+          <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
+        </div>
+      </div>
+      <NoteDesign id={id} />
+    </div>
+  );
+}
+
 /** Au téléphone : « Demander à AK » ouvre le chat en plein écran, par-dessus la présentation. */
-function ChatMobile({ id }) {
+function ChatMobile({ children }) {
   const [ouvert, setOuvert] = React.useState(false);
   return (
     <div className="lg:hidden">
@@ -95,7 +165,7 @@ function ChatMobile({ id }) {
       {ouvert && (
         <div className="fixed inset-0 z-[80] flex flex-col bg-fond">
           <button type="button" onClick={() => setOuvert(false)} className="flex-none border-b border-trait px-5 py-3 text-left text-[14px] text-craie" style={{ background: "transparent" }}>← Revenir à la présentation</button>
-          <div className="min-h-0 flex-1"><ChatClient id={id} /></div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">{children}</div>
         </div>
       )}
     </div>

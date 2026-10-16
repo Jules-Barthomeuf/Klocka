@@ -98,3 +98,42 @@ export function maNote(id, user) {
   const email = String(user?.email || '').toLowerCase();
   return Records.list('Suggestion').find((s) => s.type === 'note_design' && s.presentation_id === id && String(s.client_email || '').toLowerCase() === email)?.note_design || null;
 }
+
+// --- Les conversations du client, pour l'historique du chat (le même composant que l'équipe) ---
+
+const CONV = 'ConversationClient';
+const proprio = (user) => String(user?.email || '').toLowerCase();
+
+export function conversations(user) {
+  return Records.list(CONV).filter((c) => c.par === proprio(user))
+    .sort((a, b) => String(b.maj_le || '').localeCompare(String(a.maj_le || '')))
+    .map((c) => ({ id: c.id, titre: c.titre, maj_le: c.maj_le, presentation_id: c.presentation_id || null, messages: (c.messages || []).length }));
+}
+
+export function conversation(id, user) {
+  const c = Records.get(CONV, id);
+  return c && c.par === proprio(user) ? c : null;
+}
+
+/** Garde le fil : un client ne lit et n'écrit que ses conversations. */
+export function garderConversation(user, { id = null, messages = [], presentation_id = null }) {
+  const fil = (Array.isArray(messages) ? messages : []).slice(-80);
+  const premier = fil.find((m) => m?.role === 'user');
+  const titre = String(premier?.contenu || premier?.texte || 'Conversation').replace(/\s+/g, ' ').slice(0, 70);
+  const deja = id ? conversation(id, user) : null;
+  if (deja) return Records.update(CONV, deja.id, { messages: fil, maj_le: new Date().toISOString(), titre: deja.titre_choisi ? deja.titre : titre });
+  return Records.create(CONV, { par: proprio(user), messages: fil, titre, presentation_id, maj_le: new Date().toISOString() });
+}
+
+export function renommer(id, user, titre) {
+  const c = conversation(id, user);
+  if (!c) return null;
+  return Records.update(CONV, c.id, { titre: String(titre || '').slice(0, 80) || c.titre, titre_choisi: true });
+}
+
+export function supprimer(id, user) {
+  const c = conversation(id, user);
+  if (!c) return false;
+  Records.delete(CONV, c.id);
+  return true;
+}

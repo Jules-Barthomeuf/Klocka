@@ -799,6 +799,8 @@ lien discret `text-brume`. Le choix ouvre le champ de « Déjà appelé ? »
 la couleur reste celle du propriétaire ; le score règle l'opacité, un point
 jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
+**Relances dues dans les listes** (Jules, 17 oct. 2026) : le tableau des relances n'est plus sous la file d'Aujourd'hui ; c'est un intercalaire « Relances dues » (compteur ambre s'il y en a), première des listes. Même contenu : motifs, « Pris par », actions groupées ; un clic sur une ligne ouvre le mode appel dessus.
+
 **Suivi en classeur** (Jules, 17 oct. 2026) : les vues du Suivi (Vue d'ensemble, Par analyste, Mes appels, Journal, Retours) sont des intercalaires de classeur comme les listes, l'ouvert raccordé au panneau `bg-rail` à points qui porte le contenu. Les périodes restent au-dessus.
 
 **Animations de la Prospection** (Jules, 17 oct. 2026) : chaque changement entre en fondu avec une légère montée (`animate-in fade-in-0 slide-in-from-bottom-1`, 300 ms) : la page ou le mode appel qu'on allume, le tableau d'une liste, les lignes d'Aujourd'hui l'une après l'autre (40 ms d'écart, dix au plus) ; la barre de recherche du « + » glisse depuis la gauche et le « + » tourne en « × » ; les chiffres d'une liste descendent en fondu ; le curseur de l'interrupteur glisse. Le passage au mode appel (et le retour) : la page sortante s'efface en se resserrant (200 ms, léger flou), puis l'autre entre en montant et en s'agrandissant (500 ms, `zoom-in-95 slide-in-from-bottom-6`). Arrêtées si le système demande moins d'animations.

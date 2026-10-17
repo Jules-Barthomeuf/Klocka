@@ -165,6 +165,8 @@ export function OngletAgentIA({ onOuvrirListe }) {
 }
 
 /** L'onglet Listes : une liste par ville, en classeur ; la ville ouverte en tableau. */
+export const RELANCES = "relances";
+
 /** Le « + » en tête des listes : une ville à chercher, l'agent IA en crée la liste (17 oct. 2026, Jules). */
 function AjoutVille({ onCree }) {
   const queryClient = useQueryClient();
@@ -202,13 +204,14 @@ function AjoutVille({ onCree }) {
   );
 }
 
-export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer }) {
+export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, relances = null }) {
   const { data, isLoading } = useListes();
   const supprimer = useSupprimerListe();
   const listes = data?.listes || [];
-  const active = ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
+  const surRelances = !!relances && ouverte === RELANCES;
+  const active = surRelances ? RELANCES : ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
   if (isLoading) return <Chargement />;
-  if (!listes.length) return <div className="pb-16"><div className="flex items-end"><span aria-hidden className="w-3 flex-none" /><AjoutVille onCree={onOuvrir} /></div><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : le « + » en haut à gauche cherche une ville.</p></div>;
+  if (!listes.length && !relances) return <div className="pb-16"><div className="flex items-end"><span aria-hidden className="w-3 flex-none" /><AjoutVille onCree={onOuvrir} /></div><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : le « + » en haut à gauche cherche une ville.</p></div>;
   // Le classeur des listes du mandataire : les intercalaires en haut, l'ouvert
   // raccordé à la page à points (rail-actif), le tableau sur le rail.
   return (
@@ -218,6 +221,17 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer }
         <span aria-hidden className="w-3 flex-none" />
         <AjoutVille onCree={onOuvrir} />
         <span aria-hidden className="w-1 flex-none" />
+        {/* Les relances dues, première liste de toutes (17 oct. 2026, Jules : « inclus relances dues dans les listes »). */}
+        {relances && (
+          <>
+            <button type="button" role="tab" aria-selected={surRelances} onClick={() => onOuvrir(RELANCES)}
+              className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${surRelances ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+              <span className="truncate">Relances dues</span>
+              <span className={`flex-none text-[11.5px] tabular-nums ${surRelances ? "text-menthe" : relances.n ? "text-ambre" : "text-brume"}`}>{relances.n}</span>
+            </button>
+            <span aria-hidden className="w-1 flex-none" />
+          </>
+        )}
         {listes.map((l, i) => {
           const actif = active === l.id;
           return (
@@ -244,7 +258,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer }
         {onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        {active && <div key={active} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1"><TableauAgences id={active} onAppeler={onAppeler} /></div>}
+        {active && <div key={active} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">{surRelances ? relances.contenu : <TableauAgences id={active} onAppeler={onAppeler} />}</div>}
       </div>
     </div>
   );

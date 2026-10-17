@@ -974,6 +974,8 @@ export default function Prospection() {
   const [aAppeler, setAAppeler] = useState(0);
   // La relance prise dans la file : le Mode appel s'ouvre dessus.
   const [courante, setCourante] = useState(null);
+  // Le nombre de relances dues, pour l'intercalaire « Relances dues » des listes.
+  const relancesDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), refetchInterval: 60_000, retry: false });
   // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
   const [enAppel, setEnAppel] = useState(false);
   // La transition (17 oct. 2026, Jules) : la page sortante s'efface en se resserrant (220 ms), puis l'autre entre en montant et en s'agrandissant.
@@ -1046,13 +1048,13 @@ export default function Prospection() {
         <>
         <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={basculer} /></div>
         <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
-          sousLaFile={<FileRelances onOuvrir={(c) => { setCourante(c); basculer(true); }} />}
           sousLesEnvois={<section className="rounded-[16px] border border-trait bg-surface-pleine p-5"><p className="m-0 mb-3 text-[15px] text-encre">Relances par mail</p><RelancesParMail /></section>} />
         </>
       )}
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer} />}
+      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer}
+        relances={{ n: relancesDues.data?.lignes?.length || 0, contenu: <FileRelances integre onOuvrir={(c) => { setCourante(c); basculer(true); }} /> }} />}
       </div>
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}

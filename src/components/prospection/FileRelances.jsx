@@ -25,7 +25,7 @@ const prendre = async (x) => {
 };
 
 /** La liste des relances dues, avec ses filtres. `onOuvrir(courante)` : la ligne est prise, le Mode appel s'ouvre dessus. */
-export function FileRelances({ onOuvrir }) {
+export function FileRelances({ onOuvrir, integre = false }) {
   const queryClient = useQueryClient();
   const [motif, setMotif] = useState(null);
   const [cherche, setCherche] = useState("");
@@ -88,9 +88,9 @@ export function FileRelances({ onOuvrir }) {
   if (q.isError && /403|réservé/i.test(q.error?.message || "")) return null;
   if (!data) return q.isError ? <p className="m-0 py-6 text-center text-[14px] text-alerte">Les relances n'ont pas pu être lues : {q.error?.message || "erreur"}.</p> : null;
   return (
-    <div data-zone="listes" className="k-points relative mt-8 rounded-[14px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
+    <div {...(integre ? {} : { "data-zone": "listes" })} className={integre ? "" : "k-points relative mt-8 rounded-[14px] bg-rail px-5 pb-5 pt-4 max-md:px-3"}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="m-0 text-[11.5px] uppercase tracking-[0.12em] text-ardoise">Relances dues</p>
+        {integre ? <span /> : <p className="m-0 text-[11.5px] uppercase tracking-[0.12em] text-ardoise">Relances dues</p>}
         <span className="text-[13px] text-ardoise">{pl(toutes.length, "relance")}{toutes.filter((x) => x.groupe === "retard").length ? ` · ${toutes.filter((x) => x.groupe === "retard").length} en retard` : ""}{data.demain ? ` · ${data.demain} demain` : ""}</span>
       </div>
       {avis && (

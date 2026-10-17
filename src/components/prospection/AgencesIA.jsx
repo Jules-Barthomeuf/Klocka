@@ -2,10 +2,10 @@ import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, PhoneCall, PhoneForwarded, PhoneIncoming, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapPin, Mic, Phone, PhoneForwarded, Plus, RefreshCw, Search, Send, Sparkles, Trash2, UserPlus, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { enregistrerUnRappel } from "@/components/RappelEntrant";
+import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
 import FicheContact from "@/components/prospection/FicheContact";
 import Chargement from "@/components/ui/Chargement";
 
@@ -202,7 +202,7 @@ function AjoutVille({ onCree }) {
   );
 }
 
-export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onDemarrer }) {
+export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer }) {
   const { data, isLoading } = useListes();
   const supprimer = useSupprimerListe();
   const listes = data?.listes || [];
@@ -243,7 +243,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onDemarrer }
         <span aria-hidden className="min-w-3 flex-1" />
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        {active && <TableauAgences key={active} id={active} onAppeler={onAppeler} onDemarrer={onDemarrer} />}
+        {active && <TableauAgences key={active} id={active} onAppeler={onAppeler} onBasculer={onBasculer} />}
       </div>
     </div>
   );
@@ -291,7 +291,7 @@ function TrierPar({ valeur, onChange }) {
   );
 }
 
-function TableauAgences({ id, onAppeler, onDemarrer }) {
+function TableauAgences({ id, onAppeler, onBasculer }) {
   // L'agent d'un collègue (le premier qui l'a joint) : absent de ma file, signalé ici.
   const { data: equipeDonnees } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
   const moiEmail = equipeDonnees?.moi || null;
@@ -396,17 +396,8 @@ function TableauAgences({ id, onAppeler, onDemarrer }) {
 
   return (
     <div>
-      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Monday » les montre ; en tête, démarrer les appels et enregistrer un rappel. */}
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        {onDemarrer && (
-          <button type="button" onClick={onDemarrer} className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[14.5px] text-sur-menthe hover:bg-menthe-survol">
-            <PhoneCall className="h-4 w-4" />Démarrer les appels
-          </button>
-        )}
-        <button type="button" onClick={enregistrerUnRappel} className="inline-flex h-11 items-center gap-2 rounded-full border border-menthe/50 px-5 text-[14.5px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}>
-          <PhoneIncoming className="h-4 w-4" />Enregistrer un rappel
-        </button>
-      </div>
+      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Monday » les montre ; à droite, l'interrupteur du mode appel. */}
+      {onBasculer && <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={onBasculer} /></div>}
       {chiffresOuverts && <BarreVille ville={data.ville} chiffres={data.chiffres} />}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">

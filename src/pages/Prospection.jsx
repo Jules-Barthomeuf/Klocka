@@ -4,12 +4,12 @@ import FicheContact from "@/components/prospection/FicheContact";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneIncoming, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, FileUp, Loader2, Lock, Mail, Mic, PhoneCall, PhoneOff, Plus, Redo2, RefreshCw, Search, Send, Square, Undo2, X } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
-import { enregistrerUnRappel } from "@/components/RappelEntrant";
+import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
 import RelancesParMail from "@/components/prospection/RelancesParMail";
 import { FileRelances, ModeAppelUnique } from "@/components/prospection/FileRelances";
 import SuiviAppels from "@/pages/SuiviAppels";
@@ -1027,19 +1027,14 @@ export default function Prospection() {
       {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
       {enAppel && (
         <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-          <button type="button" onClick={() => { setCourante(null); setEnAppel(false); }} className="mb-4 inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-            <ArrowLeft className="h-3.5 w-3.5" />Retour
-          </button>
+          <div className="mb-4 flex justify-end"><BasculeModeAppel actif onChange={(v) => { if (!v) setCourante(null); setEnAppel(v); }} /></div>
           <ModeAppelUnique courante={courante} setCourante={setCourante} />
         </div>
       )}
       <div key={partie} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
       {partie === "journee" && (
         <>
-        <div className="mb-5 flex flex-wrap items-center justify-end gap-3">
-          <button type="button" onClick={() => setEnAppel(true)} className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-6 text-[14.5px] text-sur-menthe hover:bg-menthe-survol"><PhoneCall className="h-4 w-4" />Démarrer les appels</button>
-          <button type="button" onClick={enregistrerUnRappel} className="inline-flex h-11 items-center gap-2 rounded-full border border-menthe/50 px-5 text-[14.5px] text-menthe hover:bg-menthe/10" style={{ background: "transparent" }}><PhoneIncoming className="h-4 w-4" />Enregistrer un rappel</button>
-        </div>
+        <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={setEnAppel} /></div>
         <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
           sousLaFile={<FileRelances onOuvrir={(c) => { setCourante(c); setEnAppel(true); }} />}
           sousLesEnvois={<section className="rounded-[16px] border border-trait bg-surface-pleine p-5"><p className="m-0 mb-3 text-[15px] text-encre">Relances par mail</p><RelancesParMail /></section>} />
@@ -1047,7 +1042,7 @@ export default function Prospection() {
       )}
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onDemarrer={() => setEnAppel(true)} />}
+      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={setEnAppel} />}
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
       {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">

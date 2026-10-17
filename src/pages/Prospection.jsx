@@ -976,7 +976,14 @@ export default function Prospection() {
   const [courante, setCourante] = useState(null);
   // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
   const [enAppel, setEnAppel] = useState(false);
-  const basculeAppel = <BasculeModeAppel actif onChange={(v) => { if (!v) setCourante(null); setEnAppel(v); }} />;
+  // La transition (17 oct. 2026, Jules) : la page sortante s'efface en se resserrant (220 ms), puis l'autre entre en montant et en s'agrandissant.
+  const [sortant, setSortant] = useState(false);
+  const basculer = (v) => {
+    if (sortant) return;
+    setSortant(true);
+    setTimeout(() => { if (!v) setCourante(null); setEnAppel(v); setSortant(false); }, 220);
+  };
+  const basculeAppel = <BasculeModeAppel actif onChange={basculer} />;
   const choisirPartie = (k) => { setCourante(null); setEnAppel(false); setPartie(k); };
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
   const [listeOuverte, setListeOuverte] = useState(() => depuisAdresse.get("liste") || null);
@@ -1026,8 +1033,9 @@ export default function Prospection() {
         </nav>}
       </header>
       {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
+      <div className={`transition-[opacity,transform,filter] duration-200 ease-in ${sortant ? "scale-[0.985] opacity-0 blur-[3px]" : ""}`}>
       {enAppel && (
-        <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
+        <div className="duration-500 ease-out animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-6">
           {/* Sur la ligne des villes ; sans elle (une relance prise), en tête. */}
           {courante && <div className="mb-4 flex justify-end">{basculeAppel}</div>}
           <ModeAppelUnique courante={courante} setCourante={setCourante} entete={basculeAppel} />
@@ -1036,15 +1044,16 @@ export default function Prospection() {
       <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
       {partie === "journee" && (
         <>
-        <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={setEnAppel} /></div>
+        <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={basculer} /></div>
         <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
-          sousLaFile={<FileRelances onOuvrir={(c) => { setCourante(c); setEnAppel(true); }} />}
+          sousLaFile={<FileRelances onOuvrir={(c) => { setCourante(c); basculer(true); }} />}
           sousLesEnvois={<section className="rounded-[16px] border border-trait bg-surface-pleine p-5"><p className="m-0 mb-3 text-[15px] text-encre">Relances par mail</p><RelancesParMail /></section>} />
         </>
       )}
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
-      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={setEnAppel} />}
+      {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer} />}
+      </div>
       </div>
       {/* Le contenu de l'onglet entre en fondu à chaque changement. */}
       {partie === "prospecter" && <div key={onglet} className="animate-in fade-in slide-in-from-bottom-1 duration-200">

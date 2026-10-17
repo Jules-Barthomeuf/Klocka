@@ -1218,7 +1218,7 @@ function CorrectionFiche({ ouverte, lot, onSaisie, enCours, onFermer }) {
   );
 }
 
-export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false }) {
+export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false, sansSimulateur = false }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
   const verifier = useMutation({
     mutationFn: ({ cle, statut }) => base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/lots/${lot.index ?? 0}/verification`, { body: { cle, statut } }),
@@ -1282,7 +1282,8 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
           {/* « Ce que Klocka sait déjà » retiré de l'Analyse le 16 oct. 2026 (Jules). */}
 
 
-          {/* Le simulateur, tel quel */}
+          {/* Le simulateur : sous les deux colonnes, sur toute la largeur, quand le dossier le montre lui-même (17 oct. 2026, Jules). */}
+          {!sansSimulateur && (
           <section className="py-8">
             <div className="flex items-baseline gap-3 flex-wrap mb-5">
               <h2 className="m-0 text-[18px] font-semibold">Simulateur</h2>
@@ -1290,6 +1291,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             </div>
             <SimulateurDossier parametres={lot.simulateur} dealId={dossier?.deal_id || null} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
           </section>
+          )}
 
           {/* Le détail */}
           <div className="mt-8 border-t border-trait">

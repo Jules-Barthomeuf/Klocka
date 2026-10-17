@@ -337,7 +337,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   const pleineLargeur = !!dossier && vue === "analyse" && grilleAnalyse === "simulateur";
   // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.
-  useEffect(() => { onLargeur?.(pleineLargeur); return () => onLargeur?.(false); }, [pleineLargeur]);
+  const pageLarge = pleineLargeur || (!!dossier && vue === "preanalyse");
+  useEffect(() => { onLargeur?.(pageLarge); return () => onLargeur?.(false); }, [pageLarge]);
   // L'onglet Marché de l'étape Analyse : le seul endroit où le chat du haut
   // change de nature.
   const surMarche = montre("analyse") && grilleAnalyse === "marche";
@@ -593,6 +594,16 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} />}
       </div>
+      {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}
+      {dossier && vue === "preanalyse" && lot?.simulateur && (
+        <section className="mt-8">
+          <div className="mb-5 flex flex-wrap items-baseline gap-3">
+            <h2 className="m-0 text-[18px] font-semibold">Simulateur</h2>
+            <span className="text-[12.5px] text-brume">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
+          </div>
+          <SimulateurDossier parametres={lot.simulateur} dealId={dossier.deal_id} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
+        </section>
+      )}
 
     </div>
   );
@@ -887,6 +898,7 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
       {dossier.lots.map((lot) => (
         <CarteLot
           key={lot.index}
+          sansSimulateur
           lot={lot}
           dossier={dossier}
           onSaisie={(saisie) => onSaisie?.(lot.index, saisie)}

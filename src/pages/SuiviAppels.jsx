@@ -333,12 +333,24 @@ export default function SuiviAppels({ dansProspection = false }) {
 
         {/* Avant le 13 octobre, c'était de l'essai (16 oct. 2026, Jules) : rien n'est compté avant. */}
         {data?.debut_mesures && !data?.remise_a_zero && <p className="m-0 mb-4 text-[12.5px] text-brume">Compté à partir du 13 octobre : avant, les appels étaient des essais.</p>}
-        <div className="mb-6 flex gap-5 border-b border-trait">
-          {VUES.filter(([k]) => k !== "retours" || (!dansProspection && retoursOuverts)).map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => setVue(k)} className={`-mb-px border-b-[1.5px] pb-2 text-[13.5px] transition-colors ${vue === k ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
-          ))}
+        {/* Les vues en intercalaires de classeur, comme les listes de la Prospection (17 oct. 2026, Jules) : l'ouvert raccordé au panneau à points. */}
+        <div role="tablist" aria-label="Les vues du suivi" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <span aria-hidden className="w-3 flex-none" />
+          {VUES.filter(([k]) => k !== "retours" || (!dansProspection && retoursOuverts)).map(([k, mot], i) => {
+            const actif = vue === k;
+            return (
+              <React.Fragment key={k}>
+                {i > 0 && <span aria-hidden className="w-1 flex-none" />}
+                <button type="button" role="tab" aria-selected={actif} onClick={() => setVue(k)}
+                  className={`flex max-w-[240px] flex-none items-center rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+                  <span className="truncate">{mot}</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
+          <span aria-hidden className="min-w-3 flex-1" />
         </div>
-
+        <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
         {isLoading || !data ? <Chargement taille="grand" /> : (
           <>
             {vue === "ensemble" && <VueEnsemble data={data} jours={jours} c={c} onChoisir={voirJournalDe} />}
@@ -404,6 +416,7 @@ export default function SuiviAppels({ dansProspection = false }) {
             </div>}
           </>
         )}
+        </div>
       </div>
     </div>
   );

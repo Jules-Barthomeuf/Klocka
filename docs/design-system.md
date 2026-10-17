@@ -799,6 +799,8 @@ lien discret `text-brume`. Le choix ouvre le champ de « Déjà appelé ? »
 la couleur reste celle du propriétaire ; le score règle l'opacité, un point
 jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
+**Suivi en classeur** (Jules, 17 oct. 2026) : les vues du Suivi (Vue d'ensemble, Par analyste, Mes appels, Journal, Retours) sont des intercalaires de classeur comme les listes, l'ouvert raccordé au panneau `bg-rail` à points qui porte le contenu. Les périodes restent au-dessus.
+
 **Animations de la Prospection** (Jules, 17 oct. 2026) : chaque changement entre en fondu avec une légère montée (`animate-in fade-in-0 slide-in-from-bottom-1`, 300 ms) : la page ou le mode appel qu'on allume, le tableau d'une liste, les lignes d'Aujourd'hui l'une après l'autre (40 ms d'écart, dix au plus) ; la barre de recherche du « + » glisse depuis la gauche et le « + » tourne en « × » ; les chiffres d'une liste descendent en fondu ; le curseur de l'interrupteur glisse. Le passage au mode appel (et le retour) : la page sortante s'efface en se resserrant (200 ms, léger flou), puis l'autre entre en montant et en s'agrandissant (500 ms, `zoom-in-95 slide-in-from-bottom-6`). Arrêtées si le système demande moins d'animations.
 
 **Mode appel en interrupteur** (Jules, 17 oct. 2026) : plus d'onglet ; un interrupteur « Mode appel » (`BasculeModeAppel`, pilule à contour, curseur menthe allumé) est à droite, en tête d'Aujourd'hui et de chaque liste. Allumé, le mode appel prend la place de la page (l'interrupteur reste en haut pour l'éteindre). Les chiffres d'une liste ne sont plus en tête : un « + » après « Vérifier dans Monday » les montre. L'icône Rappel du coin reste le seul accès à « Il me rappelle ».

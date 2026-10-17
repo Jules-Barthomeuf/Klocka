@@ -20,7 +20,7 @@ export const RESSORT = { type: "spring", stiffness: 380, damping: 32, mass: 0.7 
 const FONDU = { duration: 0.22, ease: [0.22, 1, 0.36, 1] };
 
 /**
- * Une pastille de source, au dessin de la maquette : l'icône dans un rond, le nom à côté.
+ * Une pastille de source, au dessin des raccourcis (Jules, 17 oct. 2026 : « harmonisées avec Pré-analyser ») : l'icône, le nom.
  * `choisie` (panneau des sources) : coche menthe ; `eteinte` (carte de compétence) : barrée, en retrait.
  */
 export function PastilleSource({ cle, choisie = false, eteinte = false, onClick, libelle = null, icone = null, title = null, fixe = false }) {
@@ -29,8 +29,8 @@ export function PastilleSource({ cle, choisie = false, eteinte = false, onClick,
   return (
     <motion.button type="button" onClick={onClick} aria-pressed={eteinte ? false : choisie || undefined} title={title || undefined}
       layout transition={RESSORT} whileTap={fixe ? undefined : { scale: 0.95 }}
-      className={`inline-flex h-9 items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3.5 text-[13.5px] transition-[background-color,border-color,color,opacity] duration-300 ease-out ${choisie ? "border-menthe/60 bg-menthe/10 text-encre" : eteinte ? "border-trait bg-transparent text-brume line-through opacity-70" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"} ${fixe ? "cursor-default" : ""}`}>
-      <span className={`relative grid h-[30px] w-[30px] flex-none place-items-center overflow-hidden rounded-full transition-colors duration-300 ${choisie ? "bg-menthe/20 text-menthe" : eteinte ? "bg-transparent" : "bg-rail-actif text-craie"}`}>
+      className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-[13.5px] transition-[background-color,border-color,color,opacity] duration-300 ease-out ${choisie ? "border-menthe/60 bg-menthe/10 text-encre" : eteinte ? "border-trait bg-transparent text-brume line-through opacity-70" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"} ${fixe ? "cursor-default" : ""}`}>
+      <span className={`relative grid h-3.5 w-3.5 flex-none place-items-center transition-colors duration-300 ${choisie ? "text-menthe" : "text-ardoise"}`}>
         <AnimatePresence initial={false} mode="popLayout">
           <motion.span key={choisie ? "coche" : "icone"} className="grid place-items-center"
             initial={{ opacity: 0, scale: 0.4, rotate: -30 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.4, rotate: 30 }} transition={FONDU}>

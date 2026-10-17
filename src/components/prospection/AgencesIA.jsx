@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { ArrowRight, Check, ChevronDown, ChevronRight, Loader2, Lock, Mail, MapP
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import FicheContact from "@/components/prospection/FicheContact";
 import Chargement from "@/components/ui/Chargement";
 
@@ -64,33 +65,31 @@ function useSupprimerListe() {
     },
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
-  // La confirmation est une fenêtre de la plateforme, plus la boîte du navigateur (17 oct. 2026, Jules).
+  // La confirmation est la fenêtre de la plateforme (ui/alert-dialog), plus la boîte du navigateur (17 oct. 2026, Jules).
   const fenetre = aSupprimer ? <FenetreSupprimerListe liste={aSupprimer} enCours={m.isPending} onValider={() => m.mutate(aSupprimer)} onFermer={() => setASupprimer(null)} /> : null;
   return { demander: setASupprimer, enCours: m.isPending, fenetre };
 }
 
 function FenetreSupprimerListe({ liste, enCours, onValider, onFermer }) {
-  useEffect(() => {
-    const echap = (e) => { if (e.key === "Escape") onFermer(); };
-    window.addEventListener("keydown", echap);
-    return () => window.removeEventListener("keydown", echap);
-  }, [onFermer]);
   const n = liste.agences;
-  return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200 animate-in fade-in-0 md:left-[var(--k-barre-largeur,0px)]" onMouseDown={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
-      <div role="alertdialog" aria-modal="true" aria-label={`Supprimer la liste ${liste.ville}`} className="w-full max-w-[440px] rounded-[20px] border border-bord-vif bg-surface-pleine p-5 duration-200 animate-in zoom-in-95 fade-in-0">
-        <p className="m-0 text-[17px] text-encre">Supprimer la liste {liste.ville} ?</p>
-        <p className="m-0 mt-2 text-[13.5px] leading-[1.55] text-ardoise">
-          {n > 0 ? `Ses ${n} agence${n > 1 ? "s" : ""} sortent de la liste` : "La liste est vide"}. Les agents déjà au carnet y restent.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onFermer} autoFocus className="h-10 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
-          <button type="button" onClick={onValider} disabled={enCours} className="inline-flex h-10 items-center gap-2 rounded-full bg-alerte/90 px-4 text-[13.5px] text-white disabled:opacity-50">
-            {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Supprimer
-          </button>
-        </div>
-      </div>
-    </div>, document.body);
+  return (
+    <AlertDialog open onOpenChange={(o) => { if (!o && !enCours) onFermer(); }}>
+      <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-encre">Supprimer la liste {liste.ville} ?</AlertDialogTitle>
+          <AlertDialogDescription className="text-ardoise">
+            {n > 0 ? `Ses ${n} agence${n > 1 ? "s" : ""} sortent de la liste` : "La liste est vide"}. Les agents déjà au carnet y restent.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={enCours}>Annuler</AlertDialogCancel>
+          <AlertDialogAction onClick={(e) => { e.preventDefault(); onValider(); }} disabled={enCours} className="bg-alerte text-fond hover:bg-alerte/90">
+            {enCours ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}Supprimer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 /** L'onglet Agent IA : la ville à chercher, et ce que l'agent fait ou a fait, ville par ville. */

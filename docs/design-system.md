@@ -516,7 +516,7 @@ le recopie pas.
   - grille `grid-cols-[minmax(360px,440px)_minmax(0,1fr)]`, `h-[100dvh]` ;
   - la barre latérale s'efface (`html.k-sans-barre`), la page ne défile plus,
     **chaque colonne défile seule** ;
-  - séparation `border-l border-bord-doux` ;
+  - séparation `border-l border-bord-doux` ; depuis le 17 oct. 2026 (Présentations, Offres, Dossier ouvert), le document est une carte posée sur le fond (`py-2 pr-2`, `rounded-[14px] border-bord-doux bg-rail`), avec une poignée qui règle la largeur du chat (double-clic : 420 px), et la barre du haut de l'éditeur de présentation : titre et état, pilule Édition / Lecture s'il y a lieu, actions, action principale en menthe, croix pour fermer ;
   - fond de l'aperçu : `bg-fond` pour l'avis de valeur, le même que derrière
     les réponses du chat (3 oct. 2026) ; `J.barre` pour le mandat (2 oct.) ;
   - après chaque message, l'aperçu de l'avis montre les étapes réelles du

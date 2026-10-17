@@ -266,6 +266,27 @@ export default function Analyse() {
   };
 
   const scinde = ecranLarge && !!dealId && !vueConversation;
+  // La largeur du chat, comme dans Présentations et Offres : la poignée se tire, un double-clic la remet.
+  const CLE_LARGEUR = "klocka.dossiers.largeur-chat";
+  const LARGEUR_DEFAUT = 420;
+  const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
+  const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
+  const [tire, setTire] = useState(false);
+  const tirer = (e) => {
+    e.preventDefault();
+    setTire(true);
+    let derniere = largeurChat;
+    const bouger = (ev) => { derniere = borner(ev.clientX); setLargeurChat(derniere); };
+    const lacher = () => {
+      setTire(false);
+      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", lacher);
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+  };
+  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
   useEffect(() => {
     if (!scinde) return undefined;
     document.documentElement.classList.add("k-sans-barre");
@@ -318,7 +339,6 @@ export default function Analyse() {
           onRefresh={recharger}
           onLargeur={setLarge}
           onVue={setVueDossier}
-          etroit={scinde}
         />
         </>
       ) : (
@@ -332,7 +352,7 @@ export default function Analyse() {
 
   if (scinde) {
     return (
-      <div className="grid h-[100dvh] grid-cols-[minmax(360px,440px)_minmax(0,1fr)] overflow-hidden text-encre">
+      <div className={`relative grid h-[100dvh] overflow-hidden text-encre ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
         {/* À gauche, AK sur ce dossier ; il le lit et le corrige, l'écran suit. */}
         <div className={`h-[100dvh] min-h-0 min-w-0 px-5 ${chatOuvert ? "overflow-hidden" : "overflow-y-auto pb-8"}`}>
           {!chatOuvert && (
@@ -343,12 +363,33 @@ export default function Analyse() {
           )}
           <div className={chatOuvert ? "w-full" : "mt-6 w-full"}>
             <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert}
+              retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
               contexte={{ deal_id: dealId, etape: vueDossier }}
               onReponse={() => { recharger(); rafraichirListes(); }} />
           </div>
         </div>
-        <div className="h-[100dvh] min-h-0 min-w-0 overflow-y-auto border-l border-bord-doux px-8 py-7">
-          {contenuDossier}
+        {/* Le dossier, un écran dans l'écran : une carte posée sur le fond, comme la présentation à côté du chat (17 oct. 2026, Jules). */}
+        <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
+          <div className="h-full min-h-0 overflow-y-auto rounded-[14px] border border-bord-doux bg-rail">
+            {dossier?.deal_id === dealId ? (
+              <WorkflowDeal dossier={dossier} enCours={majLot.isPending} onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
+                onRefresh={recharger} onLargeur={setLarge} onVue={setVueDossier} etroit enCarte onFermer={() => montrerDeal(null)}
+                actionsBarre={conversationDuDeal ? (
+                  <button type="button" onClick={() => changerVue(null)}
+                    className="inline-flex h-9 min-w-0 items-center gap-2 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+                    <MessagesSquare className="h-3.5 w-3.5 flex-none" /><span className="truncate">{conversationDuDeal.mandataire_nom}</span>
+                  </button>
+                ) : null} />
+            ) : (
+              <div className="grid h-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
+            )}
+          </div>
+        </div>
+        {/* La poignée entre le chat et le dossier. */}
+        <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
+          onPointerDown={tirer} onDoubleClick={remettre}
+          className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
+          <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
         </div>
       </div>
     );

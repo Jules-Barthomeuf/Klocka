@@ -53,7 +53,7 @@ const GRILLES_ANALYSE = [
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
 import { ActionSuivante, ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
-import { etapeFrise } from "@/lib/dossiers-architecture";
+import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 
@@ -305,7 +305,7 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
-export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const abandonne = dossier?.statut === "abandonne";
@@ -459,7 +459,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     new Date(dossier.relance_prevue_le) <= new Date();
 
   return (
-    <div className="space-y-5">
+    <div className={enCarte ? "space-y-5 px-6 pb-10" : "space-y-5"}>
       {apercu && (
         <div className="rounded-md border border-sky-500/25 bg-sky-500/[0.07] px-4 py-3 flex items-start gap-2 text-sm text-sky-200/90">
           <Eye className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -479,10 +479,34 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         />
       )}
 
+      {/* À côté du chat (17 oct. 2026, Jules) : le dossier dans une carte, avec la barre du haut de l'éditeur de présentation. */}
+      {dossier && enCarte && (
+        <div className="k-barre-apercu sticky top-0 z-20 -mx-6 flex h-14 items-center gap-3 border-b border-trait bg-rail px-5 md:pr-[120px]">
+          <div className="flex min-w-0 flex-1 items-baseline gap-3">
+            <span className="truncate text-[14.5px] text-encre">{dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || "Dossier"}</span>
+            <span className="flex-none truncate text-[12.5px] text-ardoise">{(FRISE.find((e) => e.id === vue) || {}).label}{aRelancer ? " · à relancer" : ""}{abandonne ? " · abandonné" : ""}</span>
+          </div>
+          {actionsBarre}
+          {!apercu && <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
+            onAbandonner={() => {
+              if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
+              base44
+                .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
+                .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
+                .catch((e) => toast.error(e?.message || "Abandon impossible"));
+            }} />}
+          {onFermer && (
+            <button type="button" onClick={onFermer} aria-label="Fermer le dossier" title="Tous les dossiers"
+              className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+              <IconeFermer className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
       {/* En-tête du dossier : le nom, puis la frise des huit étapes. */}
       {dossier && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-4 max-md:gap-3">
+          {!enCarte && <div className="flex flex-wrap items-center justify-between gap-4 max-md:gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2.5">
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {aRelancer && (
@@ -501,7 +525,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                     .catch((e) => toast.error(e?.message || "Abandon impossible"));
                 }} />
             )}
-          </div>
+          </div>}
           <FriseDossier vue={vue} atteinte={etapeFrise(dossier)} onAller={allerA} occupe={deblocageEnCours} />
         </>
       )}

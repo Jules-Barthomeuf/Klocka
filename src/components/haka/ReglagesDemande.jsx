@@ -20,9 +20,9 @@ export function PastilleSource({ cle, choisie = false, onClick, libelle = null, 
   const Icone = icone || s.icone;
   return (
     <button type="button" onClick={onClick} aria-pressed={choisie}
-      className={`inline-flex h-11 items-center gap-2.5 rounded-full border py-1 pl-1 pr-4 text-[15px] transition-colors ${choisie ? "border-menthe/60 bg-menthe/10 text-encre" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
-      <span className={`grid h-9 w-9 flex-none place-items-center rounded-full ${choisie ? "bg-menthe/20 text-menthe" : "bg-rail-actif text-craie"}`}>
-        {choisie ? <Check className="h-4 w-4" strokeWidth={2} /> : <Icone className="h-4 w-4" strokeWidth={1.7} />}
+      className={`inline-flex h-9 items-center gap-2 rounded-full border py-0.5 pl-0.5 pr-3.5 text-[13.5px] transition-colors ${choisie ? "border-menthe/60 bg-menthe/10 text-encre" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
+      <span className={`grid h-[30px] w-[30px] flex-none place-items-center rounded-full ${choisie ? "bg-menthe/20 text-menthe" : "bg-rail-actif text-craie"}`}>
+        {choisie ? <Check className="h-3.5 w-3.5" strokeWidth={2} /> : <Icone className="h-3.5 w-3.5" strokeWidth={1.8} />}
       </span>
       {libelle || s.nom}
     </button>
@@ -35,7 +35,7 @@ export function PanneauSources({ sources, onChange, className = "" }) {
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
       <p className="m-0 text-[13px] text-ardoise">{sources.length ? `Haka ne lira que ${sources.length > 1 ? `ces ${sources.length} sources` : "cette source"}.` : "Auto : Haka choisit lui-même où chercher. Cochez des sources pour l'en tenir là."}</p>
-      <div className="flex flex-wrap justify-center gap-2.5">
+      <div className="flex flex-wrap justify-center gap-2">
         <PastilleSource cle="auto" libelle="Auto" icone={Sparkles} choisie={!sources.length} onClick={() => onChange([])} />
         {SOURCES_CHOISISSABLES.map((cle) => <PastilleSource key={cle} cle={cle} choisie={sources.includes(cle)} onClick={() => basculer(cle)} />)}
       </div>

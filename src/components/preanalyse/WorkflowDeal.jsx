@@ -336,7 +336,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   const [preuveGrille, setPreuveGrille] = useState(null);
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
-  const pleineLargeur = !!dossier && vue === "analyse" && grilleAnalyse === "simulateur";
+  // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
+  const colonneVide = !!dossier && vue === "analyse" && !(dossier.dossier_mandataire_id && !apercu);
+  const pleineLargeur = !!dossier && vue === "analyse" && (grilleAnalyse === "simulateur" || colonneVide);
   // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.
   const pageLarge = pleineLargeur || (!!dossier && vue === "preanalyse");
   useEffect(() => { onLargeur?.(pageLarge); return () => onLargeur?.(false); }, [pageLarge]);

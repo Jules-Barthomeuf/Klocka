@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { sourceDe } from "@/lib/sources";
-import { useCompteHaka } from "@/components/haka/useFileHaka";
 
 // Les cartes de compétences (17 oct. 2026, Jules) : ce que Haka sait faire,
 // et où il ira chercher. Sous chaque carte, ses sources en pastilles : un clic
@@ -71,11 +70,11 @@ const rang = (cle) => { const i = D_ABORD.indexOf(cle); return i < 0 ? D_ABORD.l
  */
 
 export default function CartesCompetences({ declencheur = "chat", contexte = null, limite = 0, className = "" }) {
-  const compte = useCompteHaka();
-  const q = useQuery({ queryKey: ["haka-competences", declencheur], queryFn: () => base44.request("GET", `/api/haka/competences?declencheur=${declencheur}`), enabled: !!compte.data?.actif, staleTime: 5 * 60_000, retry: false });
+  const q = useQuery({ queryKey: ["haka-competences", declencheur], queryFn: () => base44.request("GET", `/api/haka/competences?declencheur=${declencheur}`), staleTime: 5 * 60_000, retry: false });
   const toutes = q.data?.competences || [];
   const liste = limite ? [...toutes].sort((a, b) => rang(a.cle) - rang(b.cle)).slice(0, limite) : toutes;
-  if (!compte.data?.actif || !liste.length) return null;
+  // Les recettes se lisent même Haka éteint (17 oct. 2026, Jules : « je ne peux pas les voir ») : la carte pose une demande dans le chat, rien de plus.
+  if (!liste.length) return null;
   // Lancer : le chat de la page reçoit le texte et prend la main ; rien ne part avant l'envoi.
   const lancer = (texte) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte, contexte } }));
   return (

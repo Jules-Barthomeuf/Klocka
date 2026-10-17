@@ -23,9 +23,10 @@ const euros = (x) => `${Math.round(x).toLocaleString('fr-FR')} €`;
 
 /** Les mots qui reconnaissent une activité de la liste (« établissements de nuit » : boîte, discothèque…). */
 const MOTS = {
-  'bureaux': ['bureau'],
+  // « bureau de tabac » est un commerce : seuls les bureaux comme activité excluent.
+  'bureaux': ['bureaux', 'plateau de bureau', 'local de bureau', 'usage de bureau'],
   'professions liberales': ['profession liberale', 'cabinet medical', 'cabinet d\'avocat', 'notaire', 'kinesitherapeute', 'dentiste', 'medecin'],
-  'etablissements de nuit': ['boite de nuit', 'discotheque', 'bar de nuit', 'etablissement de nuit', 'club'],
+  'etablissements de nuit': ['boite de nuit', 'discotheque', 'bar de nuit', 'etablissement de nuit', 'night club', 'nightclub'],
   'kebab': ['kebab'],
   'restauration rapide hors kebab': ['tacos', 'burger', 'pizza a emporter', 'restauration rapide', 'fast food', 'snack'],
 };

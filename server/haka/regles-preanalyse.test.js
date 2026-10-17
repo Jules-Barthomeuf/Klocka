@@ -48,3 +48,11 @@ test('les règles viennent de l\'en-tête : un autre seuil change le verdict', (
 test('nettoyerRegles : nombres, listes, booléens ; noms invalides écartés', () => {
   assert.deepEqual(nettoyerRegles({ rendement_brut_min: '5,5', activites_exclues: ['a', ' b ', ''], actif: true, 'Mauvais nom': 1, vide: '' }), { rendement_brut_min: 5.5, activites_exclues: ['a', 'b'], actif: true });
 });
+
+test('les mots exclus ne mordent pas sur un commerce voisin : bureau de tabac, club de sport', () => {
+  const v = { prix_fai: 1000000, loyer_annuel_ht_hc: 60000, occupe: true };
+  assert.equal(verdictPreanalyse({ ...v, activite: 'Bureau de tabac' }).verdict, 'conforme');
+  assert.equal(verdictPreanalyse({ ...v, activite: 'Club de sport' }).verdict, 'conforme');
+  assert.equal(verdictPreanalyse({ ...v, activite: 'Plateau de bureaux' }).verdict, 'ecarte');
+  assert.equal(verdictPreanalyse({ ...v, activite: 'Discothèque' }).verdict, 'ecarte');
+});

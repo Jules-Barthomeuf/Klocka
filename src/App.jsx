@@ -51,6 +51,7 @@ const SuiviChat = lazy(() => import('@/pages/SuiviChat'));
 // Haka (17 oct. 2026) : la file À valider, et son Suivi.
 const AValider = lazy(() => import('@/pages/AValider'));
 const SuiviHaka = lazy(() => import('@/pages/SuiviHaka'));
+const Automatismes = lazy(() => import('@/pages/Automatismes'));
 const SuiviReunion = lazy(() => import('@/pages/SuiviReunion'));
 const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
@@ -118,7 +119,7 @@ const PAGES_PUBLIQUES = {
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

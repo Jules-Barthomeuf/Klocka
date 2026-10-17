@@ -15,12 +15,19 @@ import './competences/relances-matin.js';
 import { BOITES_COMMUNES } from './drapeaux.js';
 import { membreDeLEquipe, signalerExterieur } from './competences/demande-equipe.js';
 import { porteUneFiche } from '../deal/fiches-auto.js';
+import { enPause, ignorer } from './automatismes.js';
 
 const CLE_DEPUIS = 'mail.preanalyse_auto.depuis';
 
 /** Une fiche reçue devient une tâche. Rend la tâche (existante si le mail est déjà en file). */
 export function surFicheRecue(mail, { uploadDir = null, lancer } = {}) {
   const pour = proprietaireDeLaBoite(mail.compte)?.email || null;
+  // L'automatisme en pause (Jules, 17 oct. 2026) : la fiche est notée « ignorée (en pause) », jamais perdue.
+  if (enPause('pre-analyse-fiche')) {
+    const id = ignorer('pre-analyse-fiche', { declencheur: 'mail_fiche_recue', relance: { type: 'fiche_recue', charge: { mail_id: mail.id, compte: mail.compte, uploadDir }, cle: `fiche:${mail.id}`, pour } });
+    Records.update('MailRecu', mail.id, { haka_ignore: id });
+    return { id: null, ignore: id };
+  }
   const t = taches.enfiler('fiche_recue', { mail_id: mail.id, compte: mail.compte, uploadDir }, { cle: `fiche:${mail.id}`, pour, ...(lancer === undefined ? {} : { lancer }) });
   if (!mail.haka_tache_id) Records.update('MailRecu', mail.id, { haka_tache_id: t.id });
   return t;
@@ -37,11 +44,12 @@ export async function surReleve({ uploadDir = null } = {}) {
   if (!depuis) { depuis = new Date().toISOString(); Meta.set(CLE_DEPUIS, depuis); }
   const contexte = contexteDesConversations();
   const candidats = contexte.mails
-    .filter((m) => !m.haka_tache_id && Date.parse(m.date || 0) >= Date.parse(depuis) && estUneNouvelleFiche(m, contexte))
+    .filter((m) => !m.haka_tache_id && !m.haka_ignore && Date.parse(m.date || 0) >= Date.parse(depuis) && estUneNouvelleFiche(m, contexte))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
   for (const mail of candidats) {
     try {
       const t = surFicheRecue(mail, { uploadDir });
+      if (t.ignore) { bilan.ignorees = (bilan.ignorees || 0) + 1; continue; }
       bilan.en_file += 1;
       bilan.lignes.push({ dossier: null, deal_id: null, de: mail.de_email, documents: piecesFiche(mail).map((p) => (typeof p === 'string' ? p : p?.nom)), haka: t.id, en_file: true });
     } catch (e) {

@@ -66,7 +66,7 @@ export function OngletTests({ c, onTester, enCours }) {
   );
 }
 
-function Trace({ id }) {
+export function Trace({ id }) {
   const q = useQuery({ queryKey: ["haka-execution", id], queryFn: () => base44.request("GET", `/api/haka/executions/${id}`), retry: false });
   if (q.isLoading) return <p className="m-0 py-3 text-[13px] text-brume">Chargement…</p>;
   const e = q.data?.execution;

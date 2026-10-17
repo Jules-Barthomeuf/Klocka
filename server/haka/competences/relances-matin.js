@@ -16,6 +16,7 @@ import * as taches from '../taches.js';
 import * as file from '../file.js';
 import { source } from '../sources.js';
 import { boiteQuiEnvoie } from '../proprietaire.js';
+import { enPause, ignorer } from '../automatismes.js';
 
 export const COMPETENCE = 'relances_matin';
 export const VERSION = '1';
@@ -118,6 +119,8 @@ export function tourDuMatin({ maintenant = new Date() } = {}) {
   if (!aLancer({ maintenant, dernier: Meta.get(CLE_DERNIER) })) return null;
   const jour = jourParis(maintenant);
   Meta.set(CLE_DERNIER, jour);
+  // L'automatisme en pause : le tour est noté « ignoré (en pause) », relançable après la reprise.
+  if (enPause('mails-agents')) { ignorer('mails-agents', { declencheur: 'planifie', relance: { type: COMPETENCE, charge: { jour }, cle: `${COMPETENCE}:${jour}` } }); return null; }
   return taches.enfiler(COMPETENCE, { jour }, { cle: `${COMPETENCE}:${jour}` });
 }
 

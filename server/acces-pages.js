@@ -23,6 +23,7 @@ export const API_DES_PAGES = {
   // Le Suivi : l'usage de chaque analyste et les règles de la nuit, fermés avec la page Suivi.
   // Haka (17 oct. 2026) : la file À valider et ses décisions.
   AValider: ['/api/haka'],
+  Automatismes: ['/api/haka/automatismes'],
   Monitoring: ['/api/monitoring/haka', '/api/monitoring/appels', '/api/monitoring/mandataires', '/api/monitoring/regles', '/api/monitoring/qualite-ak', '/api/monitoring/chat', '/api/monitoring/reunions', '/api/monitoring/audience', '/api/monitoring/enregistrements', '/api/ak/lecons', '/api/testeur'],
   Emailing: ['/api/emailing'],
   ALX: ['/api/alx'],

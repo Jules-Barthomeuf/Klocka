@@ -168,6 +168,37 @@ export function monterHaka(app) {
     repondre(res, (await C()).abandonnerBrouillon(req.params.cle));
   }));
 
+  // Les automatismes (17 oct. 2026, spec § 11) : visibles par l'équipe, actions par Jules seul.
+  const A = () => import('../haka/automatismes.js');
+  app.get('/api/haka/automatismes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { estSuperAdmin } = await import('../acces-pages.js');
+    ok(res, { ...(await (await A()).vue()), peut_agir: estSuperAdmin(currentUser(req)) });
+  }));
+  app.get('/api/haka/automatismes/:slug/executions', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const jour = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date || '')) ? req.query.date : new Date().toISOString().slice(0, 10);
+    ok(res, { jour, executions: (await A()).detail(req.params.slug, { jour }) });
+  }));
+  app.get('/api/haka/alertes', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { estSuperAdmin } = await import('../acces-pages.js');
+    ok(res, { alertes: estSuperAdmin(user) ? await (await A()).alertes() : [] });
+  }));
+  for (const [chemin, faire] of [['pause', 'pause'], ['reprendre', 'reprendre'], ['lancer', 'lancer'], ['ignores/traiter', 'traiterIgnores']]) {
+    app.post(`/api/haka/automatismes/:slug/${chemin}`, wrap(async (req, res) => {
+      const user = await jules(req, res);
+      if (!user) return;
+      repondre(res, await (await A())[faire](req.params.slug, user));
+    }));
+  }
+  app.post('/api/haka/executions/:id/relancer', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, await (await A()).relancer(req.params.id, user));
+  }));
+
   // Le Suivi : coûts par dossier, décisions, motifs de rejet.
   app.get('/api/monitoring/haka', wrap(async (req, res) => {
     if (!admin(req, res)) return;

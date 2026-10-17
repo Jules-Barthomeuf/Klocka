@@ -19,8 +19,9 @@ const orange = "bg-ambre";
 const vert = "bg-menthe";
 
 /** Pure : les lignes du volet, depuis mes propositions et les lignes dues de « Ce qui vous attend ». */
-export function lignesDeLaCloche({ propositions = [], dues = [] } = {}) {
-  const lignes = [];
+export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } = {}) {
+  // Les alertes des automatismes (Jules seul) : en erreur, plafond atteint, planifié qui n'a pas tourné.
+  const lignes = alertes.map((a) => ({ cle: `alerte:${a.cle}`, teinte: orange, phrase: a.phrase, lieu: a.lieu, quand: a.le ? ilYa(a.le) : "aujourd'hui", lien: a.lien, action: true, le: a.le }));
   const relances = propositions.filter((p) => p.type === "relance_mail");
   for (const p of propositions) {
     if (p.type === "relance_mail") continue;
@@ -54,11 +55,12 @@ export default function Cloche({ className = "" }) {
   const user = useUser();
   const actif = !!useCompteHaka().data?.actif;
   const moi = usePropositions("moi");
+  const alertes = useQuery({ queryKey: ["haka-alertes"], queryFn: () => base44.request("GET", "/api/haka/alertes"), refetchInterval: 120_000, retry: false });
   const attend = useQuery({ queryKey: ["ce-qui-attend"], queryFn: () => base44.request("GET", "/api/assistant/attend"), refetchInterval: 60_000, staleTime: 30_000 });
   const lignes = useMemo(() => {
     const dues = (attend.data?.lignes || []).filter((l) => l.nouveau || (l.dans != null && l.dans <= 0));
-    return lignesDeLaCloche({ propositions: actif ? moi.data?.propositions || [] : [], dues });
-  }, [actif, moi.data, attend.data]);
+    return lignesDeLaCloche({ propositions: actif ? moi.data?.propositions || [] : [], dues, alertes: alertes.data?.alertes || [] });
+  }, [actif, moi.data, attend.data, alertes.data]);
   const n = compteurDeLaCloche(lignes);
 
   useEffect(() => {

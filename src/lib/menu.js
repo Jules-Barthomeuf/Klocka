@@ -27,6 +27,8 @@ export const ENTREES_ADMIN = [
   // Clients (16 oct. 2026, Jules) : les fiches clients nourries par les appels ; les comptes de la plateforme passent dans Utilisateurs.
   { cle: "AdminClients", label: "Clients" },
   { cle: "AdminUtilisateurs", label: "Utilisateurs" },
+  // Les automatismes de Haka (17 oct. 2026) : ce qu'il fait seul ; troisième onglet d'Administration.
+  { cle: "Automatismes", label: "Automatismes" },
 ];
 
 export const ENTREES_AUTRE = [
@@ -84,7 +86,7 @@ export const MENU_ADMIN = [
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
-  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }] },
+  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }] },
 ];
 /** Pure : le groupe du menu de l'équipe auquel une page appartient, ou null. */
 export const groupeDe = (page) => MENU_ADMIN.find((x) => x.groupe && x.entrees.some((e) => e.cle === page)) || null;

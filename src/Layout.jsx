@@ -11,6 +11,7 @@ import {
   BookUser,
   Contact,
   LayoutDashboard,
+  Workflow,
   LayoutGrid,
   Magnet,
   Building2,
@@ -507,6 +508,7 @@ function LayoutContent({ children, currentPageName }) {
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
+    Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
     Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },

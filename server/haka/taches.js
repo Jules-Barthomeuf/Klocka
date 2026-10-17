@@ -167,6 +167,22 @@ export async function avancer(tache, { declencheur = 'file', user = null } = {})
 }
 
 /**
+ * « Relancer » une tâche en échec (Automatismes, 17 oct. 2026) : elle reprend au pas qui a
+ * échoué. Un pas vers l'extérieur n'est jamais relancé ainsi : il ne passe que par la validation.
+ */
+export function relancer(tacheId) {
+  const t = tacheAJour(tacheId);
+  if (!t) return { ok: false, statut: 404, error: 'Tâche introuvable.' };
+  if (t.etat !== 'echec') return { ok: false, statut: 400, error: 'Seule une exécution en erreur se relance.' };
+  const e = etapesDe(tacheId).find((x) => x.etat === 'echec');
+  if (e?.externe) return { ok: false, statut: 400, error: 'Cette étape agit vers l\'extérieur : elle ne se relance que depuis À valider.' };
+  if (e) majEtape(e.id, { etat: 'a_faire', essais: 0, erreur: null });
+  majTache(tacheId, { etat: 'en_attente', essais: 0, erreur: null, apres: null });
+  if (AUTO) setImmediate(() => tourner().catch(() => {}));
+  return { ok: true, tache: tacheAJour(tacheId) };
+}
+
+/**
  * Exécute un pas externe, et un seul : appelé par la validation dans la file.
  * Déjà fait : rend le résultat gardé (idempotent). Ensuite la tâche repart
  * sur les pas suivants.

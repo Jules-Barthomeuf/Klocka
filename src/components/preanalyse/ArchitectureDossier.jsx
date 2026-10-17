@@ -35,12 +35,12 @@ const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "n
 /**
  * La frise (maquette de Jules, 17 oct. 2026) : huit ronds reliés par un trait,
  * le numéro ou la coche dans le rond, le nom de l'étape et son sous-titre
- * dessous ; l'étape ouverte est pleine et soulignée, les étapes faites sont
+ * dessous ; l'étape ouverte est pleine (sans soulignement), les étapes faites sont
  * cochées et leur trait est vert.
  */
 export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
   return (
-    <nav aria-label="Étapes du dossier" className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav aria-label="Étapes du dossier" className="overflow-x-auto py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <ol className="m-0 grid min-w-[860px] list-none grid-cols-8 gap-0 p-0">
         {FRISE.map((e, i) => {
           const ouverte = vue === e.id;
@@ -58,7 +58,6 @@ export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
                 </span>
                 <span className={`mt-3 block truncate pr-3 text-[14px] transition-colors ${ouverte ? "text-encre" : faite ? "text-craie" : "text-brume group-hover:text-craie"}`}>{e.label}</span>
                 <span className="mt-1.5 block truncate pr-3 text-[12px] text-ardoise">{e.sous}</span>
-                <span className={`mr-3 mt-2.5 block h-[1.5px] transition-colors duration-300 ${ouverte ? "bg-encre" : "bg-transparent"}`} />
               </button>
             </li>
           );

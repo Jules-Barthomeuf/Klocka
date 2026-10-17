@@ -24,7 +24,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
     <div>
       {/* Un message envoyé : le salut et les colonnes s'effacent, le chat
           devient le fil. L'arbre ne change pas, le chat garde son état. */}
-      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "pt-[9vh]" : "pt-[13vh]"}`}>
+      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "min-h-[calc(100dvh-7rem)] justify-center pb-10 max-md:min-h-0 max-md:justify-start" : "pt-[13vh]"}`}>
         {/* Le halo sauge derrière le salut et le chat : réglage « Halo » de
             Compte (caché à « Sans » et en mode clair, par index.css). Il était
             parti avec le chat en une barre (14 sept.), sans que le réglage le sache. */}

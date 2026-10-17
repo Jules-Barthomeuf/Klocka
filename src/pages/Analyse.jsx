@@ -265,7 +265,19 @@ export default function Analyse() {
     );
   };
 
-  const scinde = ecranLarge && !!dealId && !vueConversation;
+  // Mode IA ou mode normal (17 oct. 2026, Jules) : IA, la barre latérale s'efface et AK est à gauche ;
+  // normal, la barre latérale reste et le dossier prend la page. Gardé dans ce navigateur.
+  const [modeIA, setModeIABrut] = useState(() => { try { return localStorage.getItem("klocka.dossier.mode") !== "normal"; } catch { return true; } });
+  const setModeIA = (v) => { setModeIABrut(v); try { localStorage.setItem("klocka.dossier.mode", v ? "ia" : "normal"); } catch { /* navigation privée */ } };
+  const choixMode = ecranLarge ? (
+    <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1" role="group" aria-label="Mode d'affichage du dossier">
+      {[[true, "Mode IA"], [false, "Normal"]].map(([v, mot]) => (
+        <button key={mot} type="button" onClick={() => setModeIA(v)} aria-pressed={modeIA === v}
+          className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${modeIA === v ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={modeIA === v ? undefined : { background: "transparent" }}>{mot}</button>
+      ))}
+    </div>
+  ) : null;
+  const scinde = ecranLarge && !!dealId && !vueConversation && modeIA;
   // La largeur du chat, comme dans Présentations et Offres : la poignée se tire, un double-clic la remet.
   const CLE_LARGEUR = "klocka.dossiers.largeur-chat";
   const LARGEUR_DEFAUT = 420;
@@ -297,13 +309,16 @@ export default function Analyse() {
   // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
   const contenuDossier = (
     <div className={`mx-auto ${large ? "max-w-none" : "max-w-[1500px]"}`}>
-      <div className="mb-4 flex items-center justify-between gap-3">
+      {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin. */}
+      <div className="mb-4 flex items-center justify-between gap-3 md:pr-14">
         <button
           onClick={() => montrerDeal(null)}
           className="text-ardoise hover:text-encre text-xs flex flex-none items-center gap-1.5 transition-colors max-md:min-h-[36px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
         </button>
+        <span className="flex-1" />
+        {dealId && !vueConversation && choixMode}
         {conversationDuDeal && (vueConversation ? (
           <button type="button" onClick={() => changerVue("analyse")}
             className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
@@ -374,12 +389,12 @@ export default function Analyse() {
             {dossier?.deal_id === dealId ? (
               <WorkflowDeal dossier={dossier} enCours={majLot.isPending} onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
                 onRefresh={recharger} onLargeur={setLarge} onVue={setVueDossier} etroit enCarte onFermer={() => montrerDeal(null)}
-                actionsBarre={conversationDuDeal ? (
+                actionsBarre={<>{choixMode}{conversationDuDeal ? (
                   <button type="button" onClick={() => changerVue(null)}
                     className="inline-flex h-9 min-w-0 items-center gap-2 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
                     <MessagesSquare className="h-3.5 w-3.5 flex-none" /><span className="truncate">{conversationDuDeal.mandataire_nom}</span>
                   </button>
-                ) : null} />
+                ) : null}</>} />
             ) : (
               <div className="grid h-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-ardoise" /></div>
             )}

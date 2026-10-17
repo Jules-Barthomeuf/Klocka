@@ -714,7 +714,7 @@ function LayoutContent({ children, currentPageName }) {
           {!hideNavbar && (
             <aside
               data-zone="barre"
-              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-trait bg-rail transition-[width] duration-200 ${sidebarCollapsed ? "w-[64px]" : "w-[228px]"}`}
+              className={`k-points k-barre-laterale hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col rounded-r-[24px] border-y border-r border-trait bg-rail transition-[width] duration-200 before:rounded-r-[24px] ${sidebarCollapsed ? "w-[64px]" : "w-[228px]"}`}
               style={{ paddingTop: "env(safe-area-inset-top)" }}
             >
               {sidebarContent(false)}

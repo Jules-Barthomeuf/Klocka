@@ -493,6 +493,8 @@ puis des lignes libellé / valeur en 13,5 px : rendement brut, « Acte en main �
 (Jules, même jour). Le dernier chiffre dit l'emporte. Lecture sans IA
 (`src/lib/chiffres-entendus.js`) ; deux cas « Calculatrice » dans l'Essai.
 
+**Barre latérale arrondie** (Jules, 17 oct. 2026) : le bord droit de la barre latérale est arrondi (`rounded-r-[24px]`), avec son trait en haut, à droite et en bas.
+
 ## 6. Le chat et l'écran scindé
 
 Le chat est `ChatDashboard` ; une page en crée un espace (`ESPACES`), elle ne

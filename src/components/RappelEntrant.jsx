@@ -33,6 +33,9 @@ const principal = "h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe 
 const MODIFIABLES = [["interlocuteur", "Interlocuteur"], ["telephone", "Téléphone"], ["email", "Email"]];
 
 /** Le bouton « Rappel », en haut de chaque page : il démarre l'enregistrement dans le même geste (le micro l'exige). */
+/** Ouvre l'écran « Il me rappelle » (le même que l'icône du coin). */
+export const enregistrerUnRappel = () => window.dispatchEvent(new Event(EVT));
+
 export function BoutonRappel({ compact = false }) {
   // Une icône seule, dans le coin : sur ordinateur, posée dans la marge en
   // haut à droite, hors des en-têtes des pages (9 oct. 2026) ; au téléphone,

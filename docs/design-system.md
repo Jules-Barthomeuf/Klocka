@@ -799,6 +799,8 @@ lien discret `text-brume`. Le choix ouvre le champ de « Déjà appelé ? »
 la couleur reste celle du propriétaire ; le score règle l'opacité, un point
 jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
+**Mode appel en bouton** (Jules, 17 oct. 2026) : plus d'onglet Mode appel ; « Démarrer les appels » (menthe plein) et « Enregistrer un rappel » (contour menthe, ouvre « Il me rappelle ») sont en tête d'Aujourd'hui et de chaque liste. Le mode appel prend la place de la page, avec « Retour ». Les chiffres d'une liste (agences, fait, intéressées, à rappeler, « à part ») ne sont plus en tête : un « + » après « Vérifier dans Monday » les montre.
+
 **Prospection et Relances, une seule page** (Jules, 16 oct. 2026) : la page Prospection a quatre onglets en pilule, Aujourd'hui (ouvert par défaut), Mode appel, Listes, Suivi. Aujourd'hui : à gauche la file (À appeler, puis « Relances dues » en tableau sur `bg-rail` à points, avec « Pris par »), à droite le panneau À envoyer (mails d'AK, puis « Relances par mail » à valider) et la fiabilité d'AK. Un clic sur une relance la prend et ouvre le Mode appel dessus ; sans ligne prise, le Mode appel est la file des villes. Listes (renommé le 17 oct. 2026) : les listes par ville ; un « + » en tête des intercalaires ouvre une barre de recherche, on y met une ville et l'agent IA en crée la liste (plus de bouton « Chercher une ville avec l'agent IA »). L'entrée Relances n'est plus au menu ; son adresse renvoie à la Prospection.
 
 ## 7. Les documents imprimés

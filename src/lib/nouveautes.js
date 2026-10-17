@@ -10,7 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-16",
     items: [
-      { titre: "Prospection et Relances, une seule page", texte: "Quatre onglets : Aujourd'hui (qui appeler et les relances dues, avec les mails à envoyer à droite), Mode appel (un seul), Listes (le « + » en tête cherche une ville : l'agent IA en crée la liste) et Suivi.", page: "Prospection" },
+      { titre: "Prospection et Relances, une seule page", texte: "Trois onglets : Aujourd'hui (qui appeler et les relances dues, avec les mails à envoyer à droite), Listes (le « + » en tête cherche une ville : l'agent IA en crée la liste) et Suivi. Le mode appel est un bouton, « Démarrer les appels », à côté de « Enregistrer un rappel ».", page: "Prospection" },
       { titre: "Les notes d'appel dans Agents", texte: "Un appel raconté dans le chat s'inscrit maintenant sur la fiche de l'agent, dans Agents, en plus de Monday : dernier contact, résumé, relance. S'il n'est pas au carnet, il y entre.", page: "Agents" },
       { titre: "AK, en bas à gauche", texte: "AK a sa place en bas de la barre : parlez-lui à tout moment. Quand une fiche commerciale arrive, il la pré-analyse et vous l'écrit, la discussion s'ouvre toute seule.", page: "Dashboard" },
       { titre: "Agents", texte: "Tous les agents immobiliers en cartes : un clic, et tout ce qui s'est dit avec lui, chaque appel en entier (transcription ou résumé), et qui de l'équipe l'a appelé.", page: "Agents" },

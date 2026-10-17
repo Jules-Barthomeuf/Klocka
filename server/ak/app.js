@@ -232,6 +232,18 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
       if (ctx) cadrePage += `\n${ctx}\nUne correction porte sur CE projet : modifier_projet avec projet_id ${contexte.projet_id}, tous les changements d'un coup.`;
     }
   }
+  // Un dossier ouvert (17 oct. 2026, Jules) : AK à gauche, le dossier à droite, à toutes les étapes.
+  if (contexte?.page === 'dossiers' && contexte.deal_id) {
+    const { Records } = await import('../db.js');
+    const deal = Records.findBy('Deal', 'deal_id', String(contexte.deal_id));
+    if (deal) {
+      const lot = deal.lots?.[0];
+      const titre = deal.nom || lot?.synthese?.titre || deal.deal_id;
+      const etapes = { reception: 'Email', preanalyse: 'Pré-analyse', documents: 'Data Room', analyse: 'Analyse', plateforme: 'Plateforme', clients: 'Clients', offre: 'Offre', bancaire: 'Dossier bancaire' };
+      const etape = etapes[contexte.etape] || null;
+      cadrePage = `\n\nTU ES DANS UN DOSSIER OUVERT À DROITE : « ${titre} » (deal_id ${deal.deal_id}, statut ${deal.statut || 'analyse'}${etape ? `, étape ouverte : ${etape}` : ''}${lot?.evaluation?.verdict ? `, verdict ${lot.evaluation.verdict}` : ''}). Une question ou une correction sans autre précision porte sur CE dossier : etat_dossier avec ce deal_id pour lire ce qu'il contient, modifier_dossier avec ce deal_id pour corriger un fait (loyer, prix, surface, locataire, bail…), mails_du_dossier pour les échanges. L'écran se met à jour après ta réponse. Ne parle d'un autre dossier que si on te le nomme.`;
+    }
+  }
   // La page Emailing : le chat y conçoit les séquences d'emails, avec l'équipe.
   if (contexte?.page === 'emailing') {
     const E = await import('../emailing/index.js');

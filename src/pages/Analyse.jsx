@@ -10,6 +10,7 @@ import { Conversation, Resume } from "@/components/conversations/EspaceConversat
 import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
+import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { FRISE, PHASES, classer, etapeFrise } from "@/lib/dossiers-architecture";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
@@ -36,6 +37,10 @@ export default function Analyse() {
   // Une fiche glissée n'importe où sur la liste : elle est analysée, et le dossier s'ouvre.
   const [survol, setSurvol] = useState(false);
   const [large, setLarge] = useState(false);
+  // Un dossier ouvert (17 oct. 2026, Jules) : la barre latérale s'efface, AK à gauche, le dossier à droite, à toutes les étapes.
+  const ecranLarge = useEcranLarge();
+  const [vueDossier, setVueDossier] = useState(null);
+  const [chatOuvert, setChatOuvert] = useState(false);
   const analyserFiche = useMutation({
     mutationFn: (fichier) => { const form = new FormData(); form.append("fichier", fichier); return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true }); },
     onSuccess: (d) => { toast.success("Fiche analysée"); rafraichirListes(); montrerDeal(d.deal_id); },
@@ -260,6 +265,95 @@ export default function Analyse() {
     );
   };
 
+  const scinde = ecranLarge && !!dealId && !vueConversation;
+  useEffect(() => {
+    if (!scinde) return undefined;
+    document.documentElement.classList.add("k-sans-barre");
+    window.scrollTo(0, 0);
+    return () => document.documentElement.classList.remove("k-sans-barre");
+  }, [scinde]);
+
+  // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
+  const contenuDossier = (
+    <div className={`mx-auto ${large ? "max-w-none" : "max-w-[1500px]"}`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => montrerDeal(null)}
+          className="text-ardoise hover:text-encre text-xs flex flex-none items-center gap-1.5 transition-colors max-md:min-h-[36px]"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
+        </button>
+        {conversationDuDeal && (vueConversation ? (
+          <button type="button" onClick={() => changerVue("analyse")}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
+            Voir l'analyse <ArrowRight className="h-4 w-4" />
+          </button>
+        ) : (
+          <button type="button" onClick={() => changerVue(null)}
+            className="inline-flex h-9 min-w-0 items-center gap-2.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+            <MessagesSquare className="h-4 w-4 flex-none" /> <span className="truncate"><span className="max-md:hidden">Revenir à la conversation · </span>{conversationDuDeal.mandataire_nom}</span> <PointNouveau n={conversationDuDeal.non_lus} />
+          </button>
+        ))}
+      </div>
+      {vueConversation ? (
+        <div className="flex h-[calc(100dvh-150px)] min-h-[560px] overflow-hidden rounded-[16px] border border-bord-doux bg-rail max-lg:h-auto max-lg:flex-col">
+          <Conversation key={conversationDuDeal.id} c={conversationDuDeal} cote="klocka" />
+          <Resume c={conversationDuDeal} cote="klocka" onAnalyse={() => changerVue("analyse")} />
+        </div>
+      ) : nouveau && !dealId ? (
+        <WorkflowDeal
+          dossier={null}
+          onAnalyse={(d) => {
+            setDossier(d);
+            montrerDeal(d.deal_id);
+            rafraichirListes();
+          }}
+        />
+      ) : dossier?.deal_id === dealId ? (
+        <>
+        <WorkflowDeal
+          dossier={dossier}
+          enCours={majLot.isPending}
+          onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
+          onRefresh={recharger}
+          onLargeur={setLarge}
+          onVue={setVueDossier}
+          etroit={scinde}
+        />
+        </>
+      ) : (
+        <div className="bg-surface border border-trait rounded-md p-8 text-center">
+          <Loader2 className="w-6 h-6 text-ardoise animate-spin mx-auto mb-3" />
+          <p className="text-ardoise text-sm">Ouverture du dossier…</p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (scinde) {
+    return (
+      <div className="grid h-[100dvh] grid-cols-[minmax(360px,440px)_minmax(0,1fr)] overflow-hidden text-encre">
+        {/* À gauche, AK sur ce dossier ; il le lit et le corrige, l'écran suit. */}
+        <div className={`h-[100dvh] min-h-0 min-w-0 px-5 ${chatOuvert ? "overflow-hidden" : "overflow-y-auto pb-8"}`}>
+          {!chatOuvert && (
+            <div className="pt-10">
+              <h1 className="m-0 text-[22px] font-normal leading-[1.2] tracking-[-0.02em] text-encre">Une question sur ce dossier ?</h1>
+              <p className="m-0 mt-2 text-[13.5px] leading-[1.55] text-ardoise">AK le lit, répond, et corrige ce que vous lui dites. Le dossier, à droite, se met à jour.</p>
+            </div>
+          )}
+          <div className={chatOuvert ? "w-full" : "mt-6 w-full"}>
+            <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert}
+              contexte={{ deal_id: dealId, etape: vueDossier }}
+              onReponse={() => { recharger(); rafraichirListes(); }} />
+          </div>
+        </div>
+        <div className="h-[100dvh] min-h-0 min-w-0 overflow-y-auto border-l border-bord-doux px-8 py-7">
+          {contenuDossier}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
       {/* Une lumière dans le coin, en haut à gauche, sur le dossier ouvert. */}
@@ -269,57 +363,7 @@ export default function Analyse() {
         className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
       >
         {enWorkflow ? (
-          <div className={`mx-auto ${large ? "max-w-none" : "max-w-[1500px]"}`}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <button
-                onClick={() => montrerDeal(null)}
-                className="text-ardoise hover:text-encre text-xs flex flex-none items-center gap-1.5 transition-colors max-md:min-h-[36px]"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
-              </button>
-              {conversationDuDeal && (vueConversation ? (
-                <button type="button" onClick={() => changerVue("analyse")}
-                  className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
-                  Voir l'analyse <ArrowRight className="h-4 w-4" />
-                </button>
-              ) : (
-                <button type="button" onClick={() => changerVue(null)}
-                  className="inline-flex h-9 min-w-0 items-center gap-2.5 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-                  <MessagesSquare className="h-4 w-4 flex-none" /> <span className="truncate"><span className="max-md:hidden">Revenir à la conversation · </span>{conversationDuDeal.mandataire_nom}</span> <PointNouveau n={conversationDuDeal.non_lus} />
-                </button>
-              ))}
-            </div>
-            {vueConversation ? (
-              <div className="flex h-[calc(100dvh-150px)] min-h-[560px] overflow-hidden rounded-[16px] border border-bord-doux bg-rail max-lg:h-auto max-lg:flex-col">
-                <Conversation key={conversationDuDeal.id} c={conversationDuDeal} cote="klocka" />
-                <Resume c={conversationDuDeal} cote="klocka" onAnalyse={() => changerVue("analyse")} />
-              </div>
-            ) : nouveau && !dealId ? (
-              <WorkflowDeal
-                dossier={null}
-                onAnalyse={(d) => {
-                  setDossier(d);
-                  montrerDeal(d.deal_id);
-                  rafraichirListes();
-                }}
-              />
-            ) : dossier?.deal_id === dealId ? (
-              <>
-              <WorkflowDeal
-                dossier={dossier}
-                enCours={majLot.isPending}
-                onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
-                onRefresh={recharger}
-                onLargeur={setLarge}
-              />
-              </>
-            ) : (
-              <div className="bg-surface border border-trait rounded-md p-8 text-center">
-                <Loader2 className="w-6 h-6 text-ardoise animate-spin mx-auto mb-3" />
-                <p className="text-ardoise text-sm">Ouverture du dossier…</p>
-              </div>
-            )}
-          </div>
+          contenuDossier
         ) : (
           <div className="relative mx-auto max-w-[1400px]"
             onDragOver={(e) => { if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setSurvol(true); } }}
@@ -567,3 +611,16 @@ function QuestionsMandataires() {
   );
 }
 
+
+/** Un écran assez large pour le chat et le dossier côte à côte. */
+function useEcranLarge() {
+  const requete = "(min-width: 1024px)";
+  const [large, setLarge] = useState(() => typeof window !== "undefined" && window.matchMedia(requete).matches);
+  useEffect(() => {
+    const m = window.matchMedia(requete);
+    const changer = () => setLarge(m.matches);
+    m.addEventListener("change", changer);
+    return () => m.removeEventListener("change", changer);
+  }, []);
+  return large;
+}

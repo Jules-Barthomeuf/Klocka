@@ -305,7 +305,7 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
-export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const abandonne = dossier?.statut === "abandonne";
@@ -330,6 +330,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // L'étape de la frise ouverte (17 oct. 2026) : huit étapes sur les cinq portes du serveur.
   const [vue, setVue] = useState(() => vueDeLaPorte(etape, dossier));
   useEffect(() => { if (dossier && PORTE[vue] !== etape) setVue(vueDeLaPorte(etape, dossier)); }, [etape]);
+  useEffect(() => { onVue?.(dossier ? vue : null); }, [vue, dossier?.deal_id]);
   // Sans dossier (dépôt direct d'une fiche) l'étape se lit sur la porte ; avec un dossier, sur la frise.
   const montre = (id) => (dossier ? vue === id : PORTE[id] === etape);
   const [preuveGrille, setPreuveGrille] = useState(null);
@@ -514,7 +515,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {dossier && <div className="mb-6" />}
 
       {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
-      <div className={dossier && !pleineLargeur ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}>
+      {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
+      <div className={dossier && !pleineLargeur ? `grid items-start gap-8 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_340px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {dossier && vue === "documents" && (

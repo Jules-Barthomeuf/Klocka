@@ -120,6 +120,8 @@ const ESPACES = {
   // Les présentations bancaires (équipe, 12 oct. 2026) : le chat d'AK crée la
   // présentation d'un projet et retouche celle ouverte à droite.
   presentation: { api: "/api/assistant", page: "presentations", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quel projet ? « Fais la présentation bancaire du projet de Dieppe, à l'attention du Crédit Agricole »" },
+  // Un dossier ouvert (équipe, 17 oct. 2026) : AK à gauche, le dossier à droite, à toutes les étapes.
+  dossier: { api: "/api/assistant", page: "dossiers", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Une question sur ce dossier ? « Qu'est-ce qui manque ? », « Le loyer est de 24 000 € HT »" },
   // L'éditeur de projet (équipe, 14 oct. 2026) : le chat d'AK retouche les chiffres du projet ouvert à droite, avec leurs sources.
   projet: { api: "/api/assistant", page: "projets", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Que corriger ? « Le loyer est trop bas, va chercher des chiffres plus cohérents »" },
   // La présentation vue du client (16 oct. 2026, Jules : « le même design que la partie admin ») : le même chat,

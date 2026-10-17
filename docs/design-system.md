@@ -512,7 +512,7 @@ le recopie pas.
 - **Aperçu d'un PDF** (12 oct. 2026, décidé avec Jules) : il prend toute la
   page à droite de la barre latérale (`ApercuPdf`), sans marge ni fond flouté ;
   rien du chat ne doit dépasser. Fermer : la croix ou Échap.
-- **Écran scindé** (Estimation, Mandat, Offres), à partir de 1024 px :
+- **Écran scindé** (Estimation, Mandat, Offres, et un dossier ouvert depuis le 17 oct. 2026 : AK à gauche, le dossier à droite à toutes les étapes ; la colonne de droite du dossier passe sous le contenu en dessous de 1700 px), à partir de 1024 px :
   - grille `grid-cols-[minmax(360px,440px)_minmax(0,1fr)]`, `h-[100dvh]` ;
   - la barre latérale s'efface (`html.k-sans-barre`), la page ne défile plus,
     **chaque colonne défile seule** ;

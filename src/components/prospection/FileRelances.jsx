@@ -140,7 +140,7 @@ export function FileRelances({ onOuvrir }) {
 }
 
 /** Le Mode appel : sur la relance prise si `courante`, sinon la file des villes. Une seule entrée pour les deux. */
-export function ModeAppelUnique({ courante, setCourante }) {
+export function ModeAppelUnique({ courante, setCourante, entete = null }) {
   const queryClient = useQueryClient();
   const rafraichir = () => { queryClient.invalidateQueries({ queryKey: ["relances"] }); queryClient.invalidateQueries({ queryKey: ["relances-prises"] }); };
   // En quittant le Mode appel avec une ligne prise, elle se libère.
@@ -168,5 +168,5 @@ export function ModeAppelUnique({ courante, setCourante }) {
     setCourante(null); rafraichir();
   };
   if (courante) return <ModeAppel key={courante.cle} relances relance={courante} onSuivante={suivante} onRetour={retour} />;
-  return <ModeAppel />;
+  return <ModeAppel entete={entete} />;
 }

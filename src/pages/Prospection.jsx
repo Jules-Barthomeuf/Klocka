@@ -976,6 +976,7 @@ export default function Prospection() {
   const [courante, setCourante] = useState(null);
   // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
   const [enAppel, setEnAppel] = useState(false);
+  const basculeAppel = <BasculeModeAppel actif onChange={(v) => { if (!v) setCourante(null); setEnAppel(v); }} />;
   const choisirPartie = (k) => { setCourante(null); setEnAppel(false); setPartie(k); };
   useEffect(() => { try { localStorage.setItem("prospection.partie", partie); } catch { /* sans gravité */ } }, [partie]);
   const [listeOuverte, setListeOuverte] = useState(() => depuisAdresse.get("liste") || null);
@@ -1027,8 +1028,9 @@ export default function Prospection() {
       {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
       {enAppel && (
         <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-          <div className="mb-4 flex justify-end"><BasculeModeAppel actif onChange={(v) => { if (!v) setCourante(null); setEnAppel(v); }} /></div>
-          <ModeAppelUnique courante={courante} setCourante={setCourante} />
+          {/* Sur la ligne des villes ; sans elle (une relance prise), en tête. */}
+          {courante && <div className="mb-4 flex justify-end">{basculeAppel}</div>}
+          <ModeAppelUnique courante={courante} setCourante={setCourante} entete={basculeAppel} />
         </div>
       )}
       <div key={partie} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">

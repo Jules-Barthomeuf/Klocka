@@ -530,7 +530,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   );
 }
 
-export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false }) {
+export default function ModeAppel({ relances = false, relance = null, onSuivante = null, onRetour = null, essaiSeul = false, entete = null }) {
   // `essaiSeul` (page Relances, 8 oct. 2026) : seulement le mode Essai, sans les villes, les relances d'abord.
   const [scenario, setScenario] = useState(null);
   // En essai, écrire pour de vrai dans Monday (8 oct. 2026) : oui par défaut, retenu dans le navigateur.
@@ -1146,6 +1146,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
           </>
         )}
         <span aria-hidden className="min-w-3 flex-1" />
+        {entete && <span className="ml-3 flex-none self-center pb-1">{entete}</span>}
       </div>}
 
       {/* Tous les écrans, raisonnement et actions proposées compris, sur le fond des listes : la couleur de la barre choisie dans Compte, et ses points (9 oct. 2026). */}

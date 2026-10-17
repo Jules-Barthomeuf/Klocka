@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-17",
     items: [
+      { titre: "La cloche", texte: "En haut à droite, sur toutes les pages : le nombre d'éléments qui attendent une action de votre part (vos dossiers, les relances de vos agents, vos rappels dus). Un clic ouvre la liste, et « Ouvrir » vous mène droit à l'objet.", page: "Dashboard" },
       { titre: "La page Haka", texte: "Le Dashboard devient la page Haka : vous donnez du travail à l'assistant et vous voyez ce qu'il a préparé. Choisissez un dossier dans la saisie pour qu'il l'ait en contexte, lancez une demande d'un raccourci, et retrouvez en bas ce qui attend votre clic et ce qu'il a fait seul.", page: "Dashboard" },
       { titre: "Un menu plus court", texte: "Dashboard, Projets, Dossiers, Appels, puis Relations (Clients, Agents) et Administration (Intelligence, Utilisateurs). Le reste est dans Autre. Paramètres est en bas de la barre, avec le Suivi dedans.", page: "Personnalisation" },
     ],

@@ -513,7 +513,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
       <div className={dossier && !pleineLargeur ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}>
       <div className="min-w-0 space-y-5">
-      {dossier && <VerdictDossier dossier={dossier} />}
+      {/* Pas de verdict dans la pré-analyse (17 oct. 2026, Jules) : elle le porte déjà. */}
+      {dossier && vue !== "preanalyse" && <VerdictDossier dossier={dossier} />}
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {dossier && vue === "documents" && (
         <section className="mb-6 rounded-[14px] border border-trait px-4 py-3">

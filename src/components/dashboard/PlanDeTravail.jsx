@@ -36,7 +36,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
           </div>
         )}
         {!conversation && (
-          <motion.h1 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="relative m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>
+          <motion.h1 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="k-balayage relative m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>
             Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?
           </motion.h1>
         )}

@@ -4,7 +4,7 @@
 // son ordre d'origine (celui de la maquette).
 
 export const ENTREES_ADMIN = [
-  { cle: "Dashboard", label: "Accueil" },
+  { cle: "Dashboard", label: "Haka" },
   // L'Agenda de l'équipe (16 oct. 2026) : qui est là, les briefings d'un jour, le résumé du retour.
   { cle: "Semaine", label: "Agenda" },
   { cle: "AdminProjets", label: "Projets" },
@@ -69,14 +69,14 @@ export const ENTREES_MANDATAIRE = [
 ];
 
 /**
- * Le menu de l'équipe (17 oct. 2026, Jules) : Accueil (l'ancien Dashboard), Projets, Dossiers,
+ * Le menu de l'équipe (17 oct. 2026, Jules) : Haka (l'ancien Dashboard), Projets, Dossiers,
  * Appels ; « Relations » (Clients, Agents) ; « Administration » (Intelligence,
  * Utilisateurs) ; Paramètres en bas de la barre, avec le Suivi dedans. L'Agenda
  * quitte le menu (la pastille du Dashboard y mène). Le reste passe dans « Autre ».
  * ENTREES_ADMIN reste la liste des pages de l'équipe (les accès en dépendent).
  */
 export const MENU_ADMIN = [
-  { cle: "Dashboard", label: "Accueil" },
+  { cle: "Dashboard", label: "Haka" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   { cle: "AValider", label: "À valider" },
@@ -110,7 +110,7 @@ export function menuAdmin(masques = []) {
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [
-  ["Dashboard", "Accueil"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
+  ["Dashboard", "Haka"], ["AdminProjets", "Projets"], ["Analyse", "Dossiers"],
   ["Prospection", "Prospection"], ["OffMarket", "Off-market"], ["ALX", "ALX"], ["Monitoring", "Suivi"], ["AdminClients", "Clients"], ["AdminUtilisateurs", "Utilisateurs"], ["SimulateurRentabilite", "Simulateur"],
 ];
 export const PAGES_OUVERTURE_CLIENT = [

@@ -1,13 +1,11 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowRight, Building2, FileSearch, FileSignature, FolderOpen, Landmark } from "lucide-react";
-import { useUser } from "@/components/providers/UserProvider";
-import { createPageUrl } from "@/utils";
+import { Building2, FileSearch, FileSignature, FolderOpen, Landmark, Plus, X } from "lucide-react";
 
 // Les raccourcis sous la saisie de l'Accueil (17 oct. 2026, Jules) : les
 // compétences les plus demandées, à la place de « Connecter un skill ». Un
 // clic pose la demande dans le champ, avec le dossier choisi s'il y en a un ;
-// rien ne part avant l'envoi. « Toutes les compétences » ouvre Paramètres.
+// rien ne part avant l'envoi, et c'est un « Produire ». Le « + » à droite
+// (Jules, même jour) ouvre le choix des sources.
 
 const RACCOURCIS = [
   { cle: "preanalyse", libelle: "Pré-analyser", icone: FileSearch, sans: "Pré-analyse cette fiche : ", avec: "Pré-analyse ce dossier." },
@@ -19,15 +17,9 @@ const RACCOURCIS = [
 
 const PILULE = "inline-flex h-9 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 text-[13.5px] text-encre transition-colors hover:border-bord-vif";
 
-/** @param {{ dossier?: {deal_id: string, titre?: string}|null, className?: string }} props */
-export default function RaccourcisHaka({ dossier = null, className = "" }) {
-  const user = useUser();
-  const navigate = useNavigate();
-  const poser = (r) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte: dossier ? r.avec : r.sans } }));
-  const toutes = () => {
-    try { localStorage.setItem("compte.section", "competences"); } catch { /* navigation privée */ }
-    navigate(createPageUrl("Personnalisation"));
-  };
+/** @param {{ dossier?: {deal_id: string, titre?: string}|null, sourcesOuvert?: boolean, onSources?: () => void, nbSources?: number, className?: string }} props */
+export default function RaccourcisHaka({ dossier = null, sourcesOuvert = false, onSources = null, nbSources = 0, className = "" }) {
+  const poser = (r) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte: dossier ? r.avec : r.sans, sortie: "produire" } }));
   return (
     <nav aria-label="Raccourcis" className={`flex flex-wrap justify-center gap-2 ${className}`}>
       {RACCOURCIS.map((r) => {
@@ -38,9 +30,12 @@ export default function RaccourcisHaka({ dossier = null, className = "" }) {
           </button>
         );
       })}
-      {user?.gere_les_acces && (
-        <button type="button" onClick={toutes} className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13.5px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
-          Toutes les compétences<ArrowRight className="h-3.5 w-3.5" />
+      {onSources && (
+        <button type="button" onClick={onSources} aria-expanded={sourcesOuvert}
+          aria-label={sourcesOuvert ? "Fermer le choix des sources" : "Choisir les sources"} title={sourcesOuvert ? "Fermer" : "Choisir les sources que Haka lira"}
+          className={`relative grid h-9 w-9 place-items-center rounded-full border transition-colors ${sourcesOuvert || nbSources ? "border-menthe/60 text-menthe" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
+          {sourcesOuvert ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {!sourcesOuvert && nbSources > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-menthe px-1 text-[10px] text-sur-menthe">{nbSources}</span>}
         </button>
       )}
     </nav>

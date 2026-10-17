@@ -293,6 +293,8 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   }
   cadrePage += await cadreLayer(texte, user);
   cadrePage += cadreEcran(contexte?.ecran);
+  // Les réglages de l'Accueil (17 oct. 2026) : sources choisies, répondre ou produire.
+  cadrePage += (await import('./cadre-demande.js')).cadreDemande(contexte);
   const fond = [];
   const apres = [];
   const actions = [];

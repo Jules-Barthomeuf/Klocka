@@ -76,7 +76,7 @@ export default function CartesCompetences({ declencheur = "chat", contexte = nul
   // Les recettes se lisent même Haka éteint (17 oct. 2026, Jules : « je ne peux pas les voir ») : la carte pose une demande dans le chat, rien de plus.
   if (!liste.length) return null;
   // Lancer : le chat de la page reçoit le texte et prend la main ; rien ne part avant l'envoi.
-  const lancer = (texte) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte, contexte } }));
+  const lancer = (texte) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte, contexte, sortie: "produire" } }));
   return (
     <section aria-label="Ce que Haka sait faire" className={className}>
       <p className="m-0 mb-3 text-[11px] uppercase tracking-[.16em] text-brume">Ce que Haka sait faire</p>

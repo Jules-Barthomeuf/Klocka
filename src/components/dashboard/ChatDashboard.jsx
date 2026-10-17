@@ -9,6 +9,8 @@ import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import SkillsChat from "@/components/dashboard/SkillsChat";
 import ChoixDossier from "@/components/haka/ChoixDossier";
+import { BasculeSortie, BoutonSources } from "@/components/haka/ReglagesDemande";
+import { sourceDe } from "@/lib/sources";
 import { avis, poser, toast } from "@/components/ui/avis";
 import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
@@ -971,7 +973,7 @@ function SeparateurJour({ iso }) {
   );
 }
 
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -987,6 +989,10 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const [dossierChoisi, setDossierChoisi] = useState(null);
   useEffect(() => { onDossier?.(dossierChoisi); }, [dossierChoisi, onDossier]);
   const pageEnvoi = E.page || (choixDossier && dossierChoisi ? "dossiers" : null);
+  // Les réglages de Haka (sources, répondre ou produire), tenus par la page : ils partent avec chaque demande.
+  const reglagesRef = useRef(reglages);
+  reglagesRef.current = reglages;
+  const avecContexte = !!(pageEnvoi || reglages);
   // La prospection choisit toujours entre ses deux modes : pas de « mode auto ».
   const [mode, setMode] = useState((ESPACES[espace] || ESPACES.admin).modeParDefaut || null);
   useEffect(() => { onMode?.(mode); }, [mode, onMode]);
@@ -1077,7 +1083,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     const focaliser = () => champRef.current?.focus();
     window.addEventListener("klocka:assistant", focaliser);
     // Une carte de compétence (Haka, 17 oct. 2026) remplit le champ ; la personne envoie.
-    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
+    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (e.detail.sortie) reglagesRef.current?.setSortie?.(e.detail.sortie); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
     window.addEventListener("klocka:composer", composer);
     return () => { window.removeEventListener("klocka:assistant", focaliser); window.removeEventListener("klocka:composer", composer); };
   }, [choixDossier]);
@@ -1196,14 +1202,14 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         form.append("fichier", piece);
         form.append("texte", t);
         form.append("historique", JSON.stringify(historique()));
-        if (pageEnvoi) form.append("contexte", JSON.stringify(contexteEnvoye()));
+        if (avecContexte) form.append("contexte", JSON.stringify(contexteEnvoye()));
         const r = await base44.flux("/api/assistant/boite?flux=1", { body: form, isForm: true, signal: controleur.current.signal, surEtape, surTexte });
         await vider();
         return r;
       }
       const r = mandataire
         ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}), ...(E.client ? { presentation_id: contexte?.presentation_id || null } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
-        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: pageEnvoi ? "assistant" : type, ...(pageEnvoi ? { contexte: contexteEnvoye() } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
+        : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: pageEnvoi ? "assistant" : type, ...(avecContexte ? { contexte: contexteEnvoye() } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
       return r;
@@ -1465,7 +1471,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const contexteEnvoye = () => {
     let ecran = null;
     try { ecran = lireEcran?.() || null; } catch { ecran = null; }
-    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}) };
+    const r = reglagesRef.current;
+    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}) };
   };
   const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide;
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
@@ -1671,6 +1678,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               </span>
             )}
             {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation} />}
+            {reglages && <BasculeSortie sortie={reglages.sortie} onChange={reglages.setSortie} />}
             {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation} />}
             {/* L'ampoule, en bas à gauche : des phrases toutes prêtes, posées
                 dans le champ d'un clic, jamais envoyées toutes seules. */}
@@ -1719,7 +1727,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
 
             <div className="ml-auto flex items-center gap-1.5">
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
-              {!E.modesAGauche && (
+              {reglages && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
+              {!E.modesAGauche && !reglages && (
               <div className="relative">
                 <button
                   type="button"
@@ -1868,7 +1877,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         <div className={`flex flex-none items-center gap-3 border-b border-trait ${sansBarreHaut ? "hidden" : ""} ${barreApercu ? "k-barre-apercu -mx-5 h-14 px-5" : "py-3"}`}>
           {/* `retour` (14 oct. 2026, éditeur de projet) : « Retour » ramène à la page d'où l'on vient, au lieu de vider le chat. */}
           <button type="button" onClick={retour ? retour.onClick : nouvelleConversation} className="inline-flex flex-none items-center gap-1 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
-            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : libelleAccueil || "Accueil"}
+            <ChevronLeft className="h-4 w-4" /> {retour ? retour.libelle || "Retour" : libelleAccueil || "Haka"}
           </button>
           {/* À côté d'un aperçu, pas de titre : il collait à « Dashboard » (3 oct. 2026). */}
           {barreApercu ? <span className="flex-1" /> : titreEdite != null ? (
@@ -1957,6 +1966,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         <div className="mx-auto w-full max-w-[760px] flex-none pb-5 pt-3">
           {/* En bas de l'écran, ce qui accompagne la barre passe au-dessus d'elle. */}
           {sousBarre && <div className="mb-3 max-h-[30vh] overflow-y-auto [&>div]:mt-0">{sousBarre}</div>}
+          {/* Les sources de Haka, ouvertes depuis la barre pendant une conversation. */}
+          {reglages?.sourcesOuvert && reglages.panneau && <div className="mb-3 max-h-[40vh] overflow-y-auto rounded-[16px] border border-trait bg-rail p-4">{reglages.panneau}</div>}
           {/* L'élément cliqué dans l'avis, à côté : « ça » le désigne dans le message. */}
           {estimation && selectionAvis?.chemin && (
             <div className="mb-2 flex items-center gap-1.5 text-[12.5px] text-menthe">

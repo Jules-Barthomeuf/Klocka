@@ -1074,3 +1074,21 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-point-fait.k-arrive { animation: k-point-arrive .5s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes k-point-arrive { 0% { transform: rotate(45deg) scale(1.9); border-radius: 1px; opacity: .12; } 100% { transform: rotate(0deg) scale(1); border-radius: 9999px; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .k-carre, .k-carre > i, .k-point-fait.k-arrive { animation: none; } }
+
+/* Le salut de la page Haka (17 oct. 2026, Jules : « un petit effet de balayage ») : une bande plus
+   pâle traverse le texte de gauche à droite à l'arrivée, puis toutes les huit secondes. */
+.k-balayage {
+  background-image: linear-gradient(100deg, rgb(var(--k-encre-rgb)) 0%, rgb(var(--k-encre-rgb)) 42%, rgb(var(--k-encre-rgb) / 0.35) 50%, rgb(var(--k-encre-rgb)) 58%, rgb(var(--k-encre-rgb)) 100%);
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: k-balayage 8s ease-in-out 0.5s infinite;
+}
+@keyframes k-balayage {
+  0% { background-position: 100% 0; }
+  22% { background-position: 0% 0; }
+  100% { background-position: 0% 0; }
+}
+@media (prefers-reduced-motion: reduce) { .k-balayage { animation: none; background-position: 0% 0; } }

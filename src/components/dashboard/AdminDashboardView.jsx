@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
@@ -10,6 +10,7 @@ import CartesCompetences from "@/components/haka/CartesCompetences";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
 import ColonnesAccueil from "@/components/haka/ColonnesAccueil";
 import LivrableAccueil from "@/components/haka/LivrableAccueil";
+import { PanneauSources } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
 import { useLocation } from "react-router-dom";
@@ -58,11 +59,19 @@ export default function AdminDashboardView() {
   const [travail, setTravail] = useState(false);
   const [livrables, setLivrables] = useState([]);
   const [depuis, setDepuis] = useState(null);
+  // Les réglages d'une demande (17 oct. 2026, Jules) : sources « Auto » ou cochées, « Répondre » ou « Produire ».
+  const [sources, setSources] = useState([]);
+  const [sortie, setSortie] = useState("repondre");
+  const [sourcesOuvert, setSourcesOuvert] = useState(false);
+  const panneauSources = <PanneauSources sources={sources} onChange={setSources} />;
+  const reglages = useMemo(() => ({ sources, sortie, setSortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), panneau: panneauSources }),
+    // Le panneau se redessine avec les sources : elles suffisent à le suivre.
+    [sources, sortie, sourcesOuvert]);
   // Une conversation qui commence repart d'un panneau vide ; qui se ferme, l'Accueil revient.
   const surConversation = useCallback((ouverte) => {
     setConversation(ouverte);
     if (ouverte) setDepuis((d) => d || new Date(Date.now() - 5000).toISOString());
-    else { setDepuis(null); setLivrables([]); }
+    else { setDepuis(null); setLivrables([]); setSortie("repondre"); }
   }, []);
   const surReponse = useCallback((r) => {
     const nouveaux = livrablesDe(r);
@@ -133,12 +142,13 @@ export default function AdminDashboardView() {
             conversation={conversation}
             historique={historique ? <HistoriqueColonne /> : null}
             chat={<ChatDashboard onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} onTravail={surTravail}
-              barreApercu={scinde} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Accueil"
+              barreApercu={scinde} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Haka" reglages={reglages}
               placeholderAccueil={hakaActif ? "Collez une note, déposez une fiche, ou demandez à Haka…" : null} />}
             apresChat={(
               <>
                 {/* Les raccourcis et les cartes de compétences remplacent « Connecter un skill » (17 oct. 2026). */}
-                <RaccourcisHaka dossier={dossier} className="mx-auto mt-5 max-w-[760px]" />
+                <RaccourcisHaka dossier={dossier} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[760px]" />
+                {sourcesOuvert && <div className="mx-auto mt-6 max-w-[900px] duration-300 animate-in fade-in-0 slide-in-from-top-1">{panneauSources}</div>}
                 <CartesCompetences declencheur="chat" limite={4} contexte={dossier} className="mx-auto mt-12 max-w-[1000px] text-left" />
               </>
             )}

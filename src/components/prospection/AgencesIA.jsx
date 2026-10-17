@@ -184,11 +184,11 @@ function AjoutVille({ onCree }) {
     <>
       <button type="button" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert} aria-label="Ajouter une ville" title="Ajouter une ville"
         className={`grid h-9 w-9 flex-none place-items-center self-end rounded-t-[10px] text-[16px] transition-colors ${ouvert ? "bg-rail text-encre" : "bg-surface text-ardoise hover:bg-rail hover:text-encre"}`}>
-        <Plus className="h-4 w-4" />
+        <Plus className={`h-4 w-4 transition-transform duration-300 ${ouvert ? "rotate-45" : ""}`} />
       </button>
       {ouvert && (
         <form onSubmit={(e) => { e.preventDefault(); if (ville.trim()) lancer.mutate(ville.trim()); }}
-          className="ml-2 flex h-9 w-[300px] max-w-[70vw] flex-none items-center gap-2 self-end rounded-full border border-trait bg-surface pl-3.5 pr-1 focus-within:border-bord-doux">
+          className="ml-2 flex h-9 w-[300px] max-w-[70vw] flex-none items-center gap-2 self-end rounded-full duration-300 ease-out animate-in fade-in-0 slide-in-from-left-3 border border-trait bg-surface pl-3.5 pr-1 focus-within:border-bord-doux">
           <MapPin className="h-3.5 w-3.5 flex-none text-ardoise" />
           <input autoFocus value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Une ville : Nice, Lille…" aria-label="Ville à chercher"
             className="min-w-0 flex-1 border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
@@ -244,7 +244,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer }
         {onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        {active && <TableauAgences key={active} id={active} onAppeler={onAppeler} />}
+        {active && <div key={active} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1"><TableauAgences id={active} onAppeler={onAppeler} /></div>}
       </div>
     </div>
   );
@@ -398,7 +398,7 @@ function TableauAgences({ id, onAppeler }) {
   return (
     <div>
       {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Monday » les montre  ; l'interrupteur du mode appel est sur la ligne des villes. */}
-      {chiffresOuverts && <BarreVille ville={data.ville} chiffres={data.chiffres} />}
+      {chiffresOuverts && <div className="duration-300 ease-out animate-in fade-in-0 slide-in-from-top-2"><BarreVille ville={data.ville} chiffres={data.chiffres} /></div>}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">
           <Search className="h-3.5 w-3.5 flex-none text-ardoise" />

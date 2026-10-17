@@ -1033,7 +1033,7 @@ export default function Prospection() {
           <ModeAppelUnique courante={courante} setCourante={setCourante} entete={basculeAppel} />
         </div>
       )}
-      <div key={partie} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
+      <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
       {partie === "journee" && (
         <>
         <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={setEnAppel} /></div>

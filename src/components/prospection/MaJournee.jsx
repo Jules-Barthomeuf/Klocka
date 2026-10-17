@@ -51,9 +51,9 @@ function Badge({ children }) {
   return <span className="inline-flex h-[22px] flex-none items-center rounded-full border border-bord-doux px-2 text-[11.5px] text-craie">{children}</span>;
 }
 
-function LigneAppel({ a, onAppeler, enCours, onFiche }) {
+function LigneAppel({ a, onAppeler, enCours, onFiche, rang = 0 }) {
   return (
-    <div className="flex items-center gap-4 rounded-[14px] border border-trait bg-surface-pleine px-4 py-3.5">
+    <div style={{ animationDelay: `${Math.min(rang, 10) * 40}ms`, animationFillMode: "backwards" }} className="flex items-center gap-4 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-2 rounded-[14px] border border-trait bg-surface-pleine px-4 py-3.5">
       <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-relief text-[12.5px] text-craie">{initiales(a.nom)}</span>
       <div className="min-w-0 flex-1">
         <p className="m-0 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px] text-encre">
@@ -165,7 +165,7 @@ export default function MaJournee({ onAppeler, enCours = false, onCompte = null,
         </div>
         <p className="m-0 mb-3 mt-8 text-[11.5px] uppercase tracking-[0.12em] text-ardoise">À appeler et à relancer aujourd'hui</p>
         <div className="flex flex-col gap-2.5">
-          {data.a_appeler.map((a) => <LigneAppel key={a.id} a={a} onAppeler={onAppeler} enCours={enCours} onFiche={onFiche} />)}
+          {data.a_appeler.map((a, i) => <LigneAppel key={a.id} rang={i} a={a} onAppeler={onAppeler} enCours={enCours} onFiche={onFiche} />)}
           {!data.a_appeler.length && <p className="m-0 rounded-[14px] border border-dashed border-trait px-5 py-8 text-center text-[13.5px] text-brume">Personne à appeler aujourd'hui{v ? ` à ${v.ville}` : ""}. Mettez des agences au carnet depuis Listes.</p>}
         </div>
         {sousLaFile}

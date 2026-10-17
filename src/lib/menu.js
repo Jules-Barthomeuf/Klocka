@@ -35,7 +35,7 @@ export const ENTREES_AUTRE = [
   { cle: "AdminEquipe", label: "Équipe" },
   { cle: "AdminMandataires", label: "Mandataires" },
   // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
-  { cle: "Personnalisation", label: "Compte" },
+  { cle: "Personnalisation", label: "Paramètres" },
 ];
 
 export const ENTREES_CLIENT = [
@@ -65,6 +65,40 @@ export const ENTREES_MANDATAIRE = [
   { cle: "Feedback", label: "Feedback" },
   { cle: "Personnalisation", label: "Compte" },
 ];
+
+/**
+ * Le menu de l'équipe (17 oct. 2026, Jules) : Dashboard, Projets, Dossiers,
+ * Appels ; « Relations » (Clients, Agents) ; « Administration » (Intelligence,
+ * Utilisateurs) ; Paramètres en bas de la barre, avec le Suivi dedans. L'Agenda
+ * quitte le menu (la pastille du Dashboard y mène). Le reste passe dans « Autre ».
+ * ENTREES_ADMIN reste la liste des pages de l'équipe (les accès en dépendent).
+ */
+export const MENU_ADMIN = [
+  { cle: "Dashboard", label: "Dashboard" },
+  { cle: "AdminProjets", label: "Projets" },
+  { cle: "Analyse", label: "Dossiers" },
+  { cle: "Prospection", label: "Appels" },
+  { groupe: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
+  { groupe: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }] },
+];
+/** Hors du menu : l'Agenda (pastille du Dashboard), le Suivi (dans Paramètres), Paramètres (en bas de la barre). */
+const HORS_MENU_ADMIN = ["Semaine", "Monitoring", "Personnalisation"];
+
+/**
+ * Pure : le menu de l'équipe, ses groupes, et « Autre » (tout ce qui n'y est pas).
+ * Les pages masquées dans Paramètres disparaissent, un groupe vide aussi.
+ */
+export function menuAdmin(masques = []) {
+  const garde = (e) => !masques.includes(e.cle);
+  const places = new Set(HORS_MENU_ADMIN);
+  const principal = MENU_ADMIN.map((x) => {
+    if (x.groupe) { x.entrees.forEach((e) => places.add(e.cle)); return { ...x, entrees: x.entrees.filter(garde) }; }
+    places.add(x.cle);
+    return x;
+  }).filter((x) => (x.groupe ? x.entrees.length : garde(x)));
+  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => !places.has(e.cle) && garde(e));
+  return { principal, autre };
+}
 
 /** Les pages qu'on peut choisir comme page d'ouverture : [nom de page, libellé]. */
 export const PAGES_OUVERTURE_ADMIN = [

@@ -8,6 +8,12 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-17",
+    items: [
+      { titre: "Un menu plus court", texte: "Dashboard, Projets, Dossiers, Appels, puis Relations (Clients, Agents) et Administration (Intelligence, Utilisateurs). Le reste est dans Autre. Paramètres est en bas de la barre, avec le Suivi dedans.", page: "Personnalisation" },
+    ],
+  },
+  {
     jour: "2026-10-16",
     items: [
       { titre: "Dossiers, une nouvelle organisation", texte: "La liste se range en À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification, Commercialisation, Transaction) et Écartés par AK. Un dossier ouvert montre une frise de huit étapes, son verdict, l'action suivante et, à droite, ses documents, ses livrables et son fil.", page: "Analyse" },

@@ -24,3 +24,17 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
   assert.deepEqual(cles(r.principal), ['A', 'B', 'C', 'D', 'N']);
   assert.deepEqual(cles(r.autre), []);
 });
+
+test("le menu de l'équipe (17 oct. 2026) : quatre pages, Relations, Administration, le reste dans Autre", async () => {
+  const { menuAdmin } = await import('../src/lib/menu.js');
+  const { principal, autre } = menuAdmin();
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Dashboard', 'Projets', 'Dossiers', 'Appels']);
+  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs']]]);
+  const cles = autre.map((e) => e.cle);
+  for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
+  for (const dedans of ['Offres', 'ALX', 'AdminPresentations']) assert.ok(cles.includes(dedans), dedans);
+  // Une page masquée disparaît ; un groupe vidé aussi.
+  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Offres']);
+  assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
+  assert.ok(!m.autre.some((e) => e.cle === 'Offres'));
+});

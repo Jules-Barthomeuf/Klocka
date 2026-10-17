@@ -7,6 +7,7 @@ import { CLAIR, OPTIONS, POLICES, accentHex, barreHex, barreLisible, hexVersHsv,
 import jetons from "@/design/jetons.json";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
+import Monitoring from "@/pages/Monitoring";
 import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
 import CommunesAgent from "@/components/mandataire/CommunesAgent";
@@ -337,6 +338,8 @@ export default function Personnalisation() {
     // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
     ["mails", "Mails", admin && !vueClient],
     ["habilitations", "Habilitations", vueMandataire],
+    // Le Suivi (usage, appels, mandataires, audience), rangé dans Paramètres le 17 oct. 2026 (Jules).
+    ["suivi", "Suivi", admin && !vueClient && !vueMandataire],
   ].filter((x) => x[2]);
   const [sectionBrute, setSection] = useState(() => { try { return (typeof window !== "undefined" && window.location.hash === "#agent") ? "agent" : localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
   const section = sections.some(([k]) => k === sectionBrute) ? sectionBrute : "profil";
@@ -348,7 +351,7 @@ export default function Personnalisation() {
     <div className={`mx-auto w-full px-5 py-8 md:px-6 md:py-10 ${large ? "max-w-[1100px]" : "max-w-[980px]"}`}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Compte</h1>
+          <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Paramètres</h1>
           <p className="m-0 mt-2 max-w-[62ch] text-[14px] leading-[1.6] text-craie">Votre profil, puis vos réglages. Tout s'applique tout de suite, et vous suit d'un appareil à l'autre.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -472,6 +475,7 @@ export default function Personnalisation() {
       {section === "signature" && <SignatureMails email={user?.email} />}
       {section === "mails" && <MesMails />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
+      {section === "suivi" && <div className="-mx-4 md:-mx-8"><Monitoring /></div>}
       </div>
     </div>
   );

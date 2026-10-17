@@ -493,6 +493,8 @@ puis des lignes libellé / valeur en 13,5 px : rendement brut, « Acte en main �
 (Jules, même jour). Le dernier chiffre dit l'emporte. Lecture sans IA
 (`src/lib/chiffres-entendus.js`) ; deux cas « Calculatrice » dans l'Essai.
 
+**Le menu de l'équipe** (Jules, 17 oct. 2026) : Dashboard, Projets, Dossiers, Appels (la Prospection) ; le groupe « Relations » (Clients, Agents) ; le groupe « Administration » (Intelligence, Utilisateurs) ; « Autre » pour le reste ; « Paramètres » (l'ancien Compte, icône roue) en bas de la barre, au-dessus d'AK, avec le Suivi en section. L'Agenda n'est plus au menu (la pastille du Dashboard y mène). Un groupe : son nom en 12,5 px `text-brume` avec un chevron, ouvert par défaut, toujours ouvert s'il contient la page courante. Structure dans `menuAdmin` (`src/lib/menu.js`), testée.
+
 **Barre latérale arrondie** (Jules, 17 oct. 2026) : le bord droit de la barre latérale est arrondi (`rounded-r-[24px]`), avec son trait en haut, à droite et en bas.
 
 ## 6. Le chat et l'écran scindé

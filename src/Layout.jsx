@@ -33,13 +33,13 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, menuAdmin, repartir } from "@/lib/menu";
 import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -339,6 +339,8 @@ function LayoutContent({ children, currentPageName }) {
   // La vue choisie par un admin : la sienne, celle d'un client, celle d'un mandataire.
   const [apercu, setApercu] = useState(apercuAdmin);
   const [autreOpen, setAutreOpen] = useState(false);
+  // Les groupes du menu de l'équipe, ouverts par défaut ; gardés le temps de la session.
+  const [groupesOuverts, setGroupesOuverts] = useState({});
   const isChildPage = CHILD_PAGES.includes(currentPageName);
 
   // Alexis : la page secrète se visite sans barre latérale — rien ne doit y mener.
@@ -537,7 +539,9 @@ function LayoutContent({ children, currentPageName }) {
     const replie = sidebarCollapsed && !isMobile;
     // Le menu principal et « Autre », tels que la personne les a rangés dans
     // Personnalisation (glisser-déposer d'un groupe à l'autre).
-    const { principal: entrees, autre: autres } = repartir(
+    // L'équipe (17 oct. 2026, Jules) : un menu fixe, avec ses groupes Relations et Administration, et Paramètres en bas.
+    const menuEquipe = vue === "admin" && !showClientView;
+    const { principal: entrees, autre: autres } = menuEquipe ? menuAdmin(prefs.menu_masques || []) : repartir(
       vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },
@@ -637,6 +641,26 @@ function LayoutContent({ children, currentPageName }) {
         <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
             {entrees.map((e) => {
+              // Un groupe (Relations, Administration) : son nom, qui le replie, et ses pages dessous.
+              if (e.groupe) {
+                const ouvert = groupesOuverts[e.groupe] !== false || e.entrees.some((x) => DETAILS[x.cle]?.actif);
+                return (
+                  <div key={e.groupe} className="mt-2">
+                    {!replie && (
+                      <button type="button" onClick={() => setGroupesOuverts((g) => ({ ...g, [e.groupe]: !ouvert }))} aria-expanded={ouvert}
+                        className="flex w-full items-center gap-1.5 px-3 py-[5px] text-[12.5px] text-brume transition-colors hover:text-encre" style={{ background: "transparent" }}>
+                        <span>{e.groupe}</span>
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${ouvert ? "" : "-rotate-90"}`} />
+                      </button>
+                    )}
+                    {(ouvert || replie) && (
+                      <div className="flex flex-col gap-0.5 duration-200 animate-in fade-in-0">
+                        {e.entrees.map((x) => <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={x.cle} e={x} ferme={pagesFermees.includes(x.cle)} />)}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
@@ -669,6 +693,12 @@ function LayoutContent({ children, currentPageName }) {
           )}
         </div>
 
+        {/* Paramètres, en bas de la barre (17 oct. 2026, Jules) : l'ancien « Compte », avec le Suivi dedans. */}
+        {menuEquipe && (
+          <div className={`flex-shrink-0 pb-2 ${replie ? "" : "px-3"}`}>
+            <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} e={{ cle: "Personnalisation", label: "Paramètres" }} icon={Settings} />
+          </div>
+        )}
         {/* Le compte. */}
         <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2 px-3 py-3"}`}>
           {/* Le bas de la barre (16 oct. 2026, Jules) : AK à gauche, toujours là (MessagesAK s'y pose), puis la déconnexion. */}

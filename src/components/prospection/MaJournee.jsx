@@ -166,7 +166,7 @@ export default function MaJournee({ onAppeler, enCours = false, onCompte = null,
         <p className="m-0 mb-3 mt-8 text-[11.5px] uppercase tracking-[0.12em] text-ardoise">À appeler et à relancer aujourd'hui</p>
         <div className="flex flex-col gap-2.5">
           {data.a_appeler.map((a) => <LigneAppel key={a.id} a={a} onAppeler={onAppeler} enCours={enCours} onFiche={onFiche} />)}
-          {!data.a_appeler.length && <p className="m-0 rounded-[14px] border border-dashed border-trait px-5 py-8 text-center text-[13.5px] text-brume">Personne à appeler aujourd'hui{v ? ` à ${v.ville}` : ""}. Mettez des agences au carnet depuis Agences.</p>}
+          {!data.a_appeler.length && <p className="m-0 rounded-[14px] border border-dashed border-trait px-5 py-8 text-center text-[13.5px] text-brume">Personne à appeler aujourd'hui{v ? ` à ${v.ville}` : ""}. Mettez des agences au carnet depuis Listes.</p>}
         </div>
         {sousLaFile}
       </div>

@@ -164,13 +164,50 @@ export function OngletAgentIA({ onOuvrirListe }) {
 }
 
 /** L'onglet Listes : une liste par ville, en classeur ; la ville ouverte en tableau. */
+/** Le « + » en tête des listes : une ville à chercher, l'agent IA en crée la liste (17 oct. 2026, Jules). */
+function AjoutVille({ onCree }) {
+  const queryClient = useQueryClient();
+  const [ouvert, setOuvert] = useState(false);
+  const [ville, setVille] = useState("");
+  const lancer = useMutation({
+    mutationFn: (v) => base44.request("POST", `${API}/lancer`, { body: { ville: v } }),
+    onSuccess: (r) => {
+      toast.success(r.deja ? `${r.liste.ville} se cherche déjà` : `L'agent cherche à ${r.liste.ville}`, { description: "Les agences arrivent dans la liste au fil de l'eau." });
+      setVille(""); setOuvert(false);
+      queryClient.invalidateQueries({ queryKey: ["agent-ia-listes"] });
+      onCree?.(r.liste.id);
+    },
+    onError: (e) => toast.error(e?.message || "Lancement impossible"),
+  });
+  return (
+    <>
+      <button type="button" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert} aria-label="Ajouter une ville" title="Ajouter une ville"
+        className={`grid h-9 w-9 flex-none place-items-center self-end rounded-t-[10px] text-[16px] transition-colors ${ouvert ? "bg-rail text-encre" : "bg-surface text-ardoise hover:bg-rail hover:text-encre"}`}>
+        <Plus className="h-4 w-4" />
+      </button>
+      {ouvert && (
+        <form onSubmit={(e) => { e.preventDefault(); if (ville.trim()) lancer.mutate(ville.trim()); }}
+          className="ml-2 flex h-9 w-[300px] max-w-[70vw] flex-none items-center gap-2 self-end rounded-full border border-trait bg-surface pl-3.5 pr-1 focus-within:border-bord-doux">
+          <MapPin className="h-3.5 w-3.5 flex-none text-ardoise" />
+          <input autoFocus value={ville} onChange={(e) => setVille(e.target.value)} placeholder="Une ville : Nice, Lille…" aria-label="Ville à chercher"
+            className="min-w-0 flex-1 border-none bg-transparent text-[13.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+          <button type="submit" disabled={!ville.trim() || lancer.isPending} aria-label="Chercher"
+            className="grid h-7 w-7 flex-none place-items-center rounded-full bg-menthe text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+            {lancer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+          </button>
+        </form>
+      )}
+    </>
+  );
+}
+
 export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
   const { data, isLoading } = useListes();
   const supprimer = useSupprimerListe();
   const listes = data?.listes || [];
   const active = ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
   if (isLoading) return <Chargement />;
-  if (!listes.length) return <div className="pb-16"><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : lancez l'agent IA sur une ville.</p></div>;
+  if (!listes.length) return <div className="pb-16"><div className="flex items-end"><span aria-hidden className="w-3 flex-none" /><AjoutVille onCree={onOuvrir} /></div><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : le « + » en haut à gauche cherche une ville.</p></div>;
   // Le classeur des listes du mandataire : les intercalaires en haut, l'ouvert
   // raccordé à la page à points (rail-actif), le tableau sur le rail.
   return (
@@ -178,6 +215,8 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler }) {
       <div role="tablist" aria-label="Les listes par ville" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}
         <span aria-hidden className="w-3 flex-none" />
+        <AjoutVille onCree={onOuvrir} />
+        <span aria-hidden className="w-1 flex-none" />
         {listes.map((l, i) => {
           const actif = active === l.id;
           return (

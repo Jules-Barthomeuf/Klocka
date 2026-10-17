@@ -22,6 +22,15 @@ test('recents : titres, archivés et dossiers de test écartés', () => {
   Records.create('Deal', { deal_id: 'd3', lots: [{ synthese: { titre: 'Tiger CIM' } }] });
   for (const id of ['d1', 'd2', 'd3', 'inconnu']) R.noterOuverture(id, { email: 'Nora@klocka.immo' });
   const r = R.recents();
-  assert.deepEqual(r.map((x) => x.titre), ['Tiger CIM', 'Project Atlas']);
+  assert.deepEqual(r.slice(0, 2).map((x) => x.titre), ['Tiger CIM', 'Project Atlas']);
   assert.equal(r[0].par, 'nora@klocka.immo');
+});
+
+test('par défaut : les dossiers les plus récents de la plateforme complètent la liste jusqu\'à cinq', () => {
+  for (const n of ['Phoenix Merger', 'Diamond Recap', 'Financial Deal', 'Test', 'Sixième']) Records.create('Deal', { deal_id: `x-${n}`, nom: n, test: n === 'Test' });
+  const r = R.recents();
+  assert.equal(r.length, 5);
+  assert.deepEqual(r.slice(0, 2).map((x) => x.titre), ['Tiger CIM', 'Project Atlas'], 'les ouverts d\'abord');
+  assert.ok(r.slice(2).every((x) => x.recent_plateforme));
+  assert.ok(!r.some((x) => x.titre === 'Test' || x.titre === 'Ancien'));
 });

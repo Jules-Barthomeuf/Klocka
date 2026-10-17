@@ -20,7 +20,7 @@ export function noterOuverture(dealId, user) {
   return liste[0];
 }
 
-/** Les derniers dossiers ouverts qui existent encore (ni archivés, ni de test), avec leur titre. */
+/** Les derniers dossiers ouverts qui existent encore (ni archivés, ni de test), avec leur titre ; complétés par les plus récents de la plateforme. */
 export function recents({ limite = 5 } = {}) {
   const out = [];
   for (const r of lire()) {
@@ -28,6 +28,15 @@ export function recents({ limite = 5 } = {}) {
     if (!d || d.archived || d.test) continue;
     out.push({ deal_id: r.deal_id, titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || r.deal_id, le: r.le, par: r.par });
     if (out.length >= limite) break;
+  }
+  // Par défaut (Jules, 17 oct. 2026) : tant que l'équipe n'a pas ouvert assez de dossiers, les plus récents mis dans la plateforme complètent la liste.
+  if (out.length < limite) {
+    const vus = new Set(out.map((x) => x.deal_id));
+    for (const d of Records.list('Deal', { sort: '-created_date', limit: 60 })) {
+      if (out.length >= limite) break;
+      if (!d.deal_id || vus.has(d.deal_id) || d.archived || d.test) continue;
+      out.push({ deal_id: d.deal_id, titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || d.deal_id, le: d.created_date || d.cree_le || null, par: null, recent_plateforme: true });
+    }
   }
   return out;
 }

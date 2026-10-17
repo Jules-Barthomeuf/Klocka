@@ -1648,7 +1648,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         >
           <textarea
             ref={champRef}
-            rows={Math.min(10, Math.max(choixDossier && !conversation ? 5 : 2, texte.split("\n").length))}
+            rows={Math.min(10, Math.max(choixDossier && !conversation ? 4 : 2, texte.split("\n").length))}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}

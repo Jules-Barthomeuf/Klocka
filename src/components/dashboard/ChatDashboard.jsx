@@ -9,7 +9,7 @@ import { useDictee } from "@/lib/dictee";
 import { demanderNotifications } from "@/lib/notifications";
 import SkillsChat from "@/components/dashboard/SkillsChat";
 import ChoixDossier from "@/components/haka/ChoixDossier";
-import { BasculeSortie, BoutonSources } from "@/components/haka/ReglagesDemande";
+import { BasculeSortie, BoutonSources, Depliant } from "@/components/haka/ReglagesDemande";
 import { sourceDe } from "@/lib/sources";
 import { avis, poser, toast } from "@/components/ui/avis";
 import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
@@ -1967,7 +1967,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           {/* En bas de l'écran, ce qui accompagne la barre passe au-dessus d'elle. */}
           {sousBarre && <div className="mb-3 max-h-[30vh] overflow-y-auto [&>div]:mt-0">{sousBarre}</div>}
           {/* Les sources de Haka, ouvertes depuis la barre pendant une conversation. */}
-          {reglages?.sourcesOuvert && reglages.panneau && <div className="mb-3 max-h-[40vh] overflow-y-auto rounded-[16px] border border-trait bg-rail p-4">{reglages.panneau}</div>}
+          {reglages?.panneau && <Depliant ouvert={!!reglages.sourcesOuvert}><div className="mb-3 max-h-[40vh] overflow-y-auto rounded-[16px] border border-trait bg-rail p-4">{reglages.panneau}</div></Depliant>}
           {/* L'élément cliqué dans l'avis, à côté : « ça » le désigne dans le message. */}
           {estimation && selectionAvis?.chemin && (
             <div className="mb-2 flex items-center gap-1.5 text-[12.5px] text-menthe">

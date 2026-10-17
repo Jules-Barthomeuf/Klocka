@@ -10,7 +10,7 @@ import CartesCompetences from "@/components/haka/CartesCompetences";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
 import ColonnesAccueil from "@/components/haka/ColonnesAccueil";
 import LivrableAccueil from "@/components/haka/LivrableAccueil";
-import { PanneauSources } from "@/components/haka/ReglagesDemande";
+import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
 import { useLocation } from "react-router-dom";
@@ -148,7 +148,7 @@ export default function AdminDashboardView() {
               <>
                 {/* Les raccourcis et les cartes de compétences remplacent « Connecter un skill » (17 oct. 2026). */}
                 <RaccourcisHaka dossier={dossier} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[760px]" />
-                {sourcesOuvert && <div className="mx-auto mt-6 max-w-[900px] duration-300 animate-in fade-in-0 slide-in-from-top-1">{panneauSources}</div>}
+                <Depliant ouvert={sourcesOuvert} className="mx-auto max-w-[900px]"><div className="pt-6">{panneauSources}</div></Depliant>
                 <CartesCompetences declencheur="chat" limite={4} contexte={dossier} className="mx-auto mt-12 max-w-[1000px] text-left" />
               </>
             )}
@@ -165,11 +165,12 @@ export default function AdminDashboardView() {
       </div>
       {/* Le livrable, un écran dans l'écran : une carte posée sur le fond, comme la lettre à côté du chat. */}
       {scinde && (
-        <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2 duration-500 ease-out animate-in fade-in-0">
+        <motion.div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2"
+          initial={{ opacity: 0, x: 48, scale: 0.985 }} animate={{ opacity: 1, x: 0, scale: 1 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}>
           <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
             <LivrableAccueil livrables={livrables} dossier={dossier} depuis={depuis} travail={travail} />
           </div>
-        </div>
+        </motion.div>
       )}
       {scinde && (
         <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"

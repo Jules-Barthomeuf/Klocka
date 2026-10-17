@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Check, Download, FolderOpen, Loader2, X } from "lucide-react";
 import CarteProposition from "@/components/haka/CarteProposition";
@@ -25,7 +26,7 @@ function Livrable({ l }) {
   };
   const cliquable = fichier || /^https?:/.test(lien) || lien.startsWith("/");
   return (
-    <div className="flex items-center gap-3 border-t border-trait py-3 first:border-t-0">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="flex items-center gap-3 border-t border-trait py-3 first:border-t-0">
       <span className={`grid h-6 w-6 flex-none place-items-center rounded-full ${l.etat === "rate" ? "bg-alerte/15 text-alerte" : "bg-menthe/15 text-menthe"}`}>
         {l.etat === "rate" ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
       </span>
@@ -38,7 +39,7 @@ function Livrable({ l }) {
           {fichier ? <Download className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}{l.action || (fichier ? "Télécharger" : "Ouvrir")}
         </button>
       )}
-    </div>
+    </motion.div>
   );
 }
 

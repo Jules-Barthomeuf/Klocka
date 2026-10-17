@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, ArrowRight, Check, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, Check, MoreHorizontal, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
-import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
-import { VuesLieu } from "@/components/preanalyse/DealResultat";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
-import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
+import { FRISE, checklistDataRoom, etapeFrise } from "@/lib/dossiers-architecture";
 
 // Les pièces du dossier ouvert (17 oct. 2026, Jules) : la frise de huit
 // étapes, le verdict, l'action suivante, la colonne de droite (investisseurs
@@ -66,25 +64,6 @@ export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
   );
 }
 
-/** L'action suivante : l'étape d'après, nommée, un clic pour y passer. */
-export function ActionSuivante({ vue, onAller, occupe = false }) {
-  const i = FRISE.findIndex((e) => e.id === vue);
-  const suivante = FRISE[i + 1];
-  if (!suivante) return null;
-  return (
-    <section aria-label="Action suivante" className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border border-trait px-5 py-4">
-      <div>
-        <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Action suivante</p>
-        <p className="m-0 mt-1 text-[15px] text-encre">Passer à l'étape {suivante.n}, {suivante.label}</p>
-      </div>
-      <button type="button" onClick={() => onAller(suivante.id)} disabled={occupe}
-        className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-        {occupe ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{suivante.label}<ArrowRight className="h-4 w-4" />
-      </button>
-    </section>
-  );
-}
-
 function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });
 }
@@ -92,30 +71,34 @@ function useLettres(dealId) {
 const bloc = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail p-4";
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
-/** La colonne de droite, fixe : investisseurs compatibles (d'après Monday), Street View et plan, et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
-export function ColonneDroite({ dossier, apercu = false }) {
-  const lot = dossier?.lots?.[0];
-  // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday.
-  const correspondances = useQuery({
-    queryKey: ["dossier-clients", dossier?.deal_id],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dossier.deal_id}/clients`),
-    enabled: !!dossier?.deal_id && !apercu,
-    staleTime: 5 * 60 * 1000,
-  });
+/** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
+export function ColonneDroite({ dossier, apercu = false, onAller = null }) {
+  const { pieces, autres } = checklistDataRoom(dossier?.documents_espace || []);
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
+      {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Elle remplace les clients et les vues de la rue. */}
       <section data-zone="listes" className={bloc}>
-        {/* Titre et sous-titre retirés le 17 oct. 2026 (Jules) : la liste porte son propre libellé, « Clients possibles ». */}
-        <div className="[&>div]:!mt-0 [&>div]:!border-t-0 [&>div]:!pt-0 [&>p]:!mt-0">
-          <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
-        </div>
+        <button type="button" onClick={() => onAller?.("documents")} className="flex w-full items-baseline justify-between p-0 text-left" style={{ background: "transparent" }}>
+          <span className="text-[15px] text-encre">Data Room</span>
+          <span className="text-[12.5px] tabular-nums text-ardoise">{pieces.filter((x) => x.docs.length).length} sur {pieces.length}</span>
+        </button>
+        <ul className="m-0 mt-3 flex list-none flex-col p-0">
+          {pieces.map((x) => (
+            <li key={x.nom} className="flex items-start gap-2.5 border-t border-trait py-2 first:border-t-0">
+              <span className={`mt-[3px] grid h-[16px] w-[16px] flex-none place-items-center rounded-[4px] border ${x.docs.length ? "border-menthe bg-menthe text-sur-menthe" : "border-bord-doux"}`}>
+                {x.docs.length > 0 && <Check className="h-3 w-3" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block text-[13.5px] ${x.docs.length ? "text-encre" : "text-craie"}`}>{x.nom}</span>
+                <span className={`block truncate text-[12px] ${x.docs.length ? "text-ardoise" : "text-ambre"}`} title={x.docs.map((d) => d.nom).join(", ")}>
+                  {x.docs.length ? x.docs.map((d) => d.nom).join(", ") : "Manquant"}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {autres.length > 0 && <p className="m-0 mt-2 text-[12px] text-brume">Et {autres.length} autre{autres.length > 1 ? "s" : ""} pièce{autres.length > 1 ? "s" : ""} importée{autres.length > 1 ? "s" : ""}.</p>}
       </section>
-
-      {lot && !apercu && (
-        <section data-zone="listes" className={bloc}>
-          <VuesLieu lot={lot} enr={lot.enrichissement} coteACote empile dealId={dossier?.deal_id} />
-        </section>
-      )}
 
       {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}
       {dossier?.dossier_mandataire_id && !apercu && (
@@ -127,6 +110,7 @@ export function ColonneDroite({ dossier, apercu = false }) {
     </aside>
   );
 }
+
 
 const panneau = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail px-5 py-6";
 

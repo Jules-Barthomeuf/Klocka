@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classer, etapeFrise, phaseDe, estEcarte, aTraiter, estAMoi, FRISE } from '../src/lib/dossiers-architecture.js';
+import { classer, etapeFrise, phaseDe, estEcarte, aTraiter, estAMoi, FRISE, checklistDataRoom } from '../src/lib/dossiers-architecture.js';
 
 const d = (o) => ({ deal_id: o.id || 'x', etape_max: 2, statut: 'analyse', responsables: [], lots: [], ...o });
 
@@ -63,4 +63,20 @@ test('classer : un dossier dans un seul bloc, les autres au pipeline', () => {
   assert.deepEqual(r.pipeline.qualification.map((x) => x.deal_id), ['c']);
   assert.deepEqual(r.pipeline.commercialisation.map((x) => x.deal_id), ['f']);
   assert.equal(Object.values(r.pipeline).flat().length + r.toi.length + r.tiers.length + r.ecartes.length, 5);
+});
+
+test('la Data Room : par catégorie, sinon par nom ; le reste à part', () => {
+  const docs = [
+    { nom: 'Bail commercial-1.pdf', categorie: 'Bail commercial' },
+    { nom: 'Receipt-2387.pdf', categorie: 'Quittances' },
+    { nom: 'PV AG 2025.pdf', categorie: null },
+    { nom: 'photo.png', categorie: 'Autre' },
+  ];
+  const { pieces, autres } = checklistDataRoom(docs);
+  const de = (n) => pieces.find((p) => p.nom === n).docs.map((d) => d.nom);
+  assert.deepEqual(de('Bail commercial'), ['Bail commercial-1.pdf']);
+  assert.deepEqual(de('Quittances'), ['Receipt-2387.pdf']);
+  assert.deepEqual(de('Assemblée générale'), ['PV AG 2025.pdf']);
+  assert.deepEqual(de('Diagnostics'), []);
+  assert.deepEqual(autres.map((d) => d.nom), ['photo.png']);
 });

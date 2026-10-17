@@ -98,3 +98,26 @@ export function classer(dossiers, moi) {
   }
   return r;
 }
+
+// Les pièces attendues d'un dossier de murs commerciaux, et comment les reconnaître : par la catégorie posée
+// sur le document (Data Room), sinon par son nom.
+const PIECES_ATTENDUES = [
+  ["Bail commercial", /\bbail|avenant|renouvellement/],
+  ["Quittances", /quittance|appel de loyer|avis d.?[ée]ch[ée]ance/],
+  ["Règlement de copropriété", /r[eè]glement|\brcp\b|copropri/],
+  ["Assemblée générale", /\bpv\b|assembl|\bag\b/],
+  ["Diagnostics", /\bdpe\b|diag|amiante|plomb|termite|\berp\b/],
+  ["Taxe foncière", /taxe|fonci/],
+];
+const sansAccent = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Pure : chaque pièce attendue avec les documents qui la couvrent, et les documents qui n'en couvrent aucune. */
+export function checklistDataRoom(documents = []) {
+  const pris = new Set();
+  const pieces = PIECES_ATTENDUES.map(([nom, re]) => {
+    const docs = documents.filter((d) => sansAccent(d.categorie) === sansAccent(nom) || (!d.categorie || d.categorie === "Autre") && re.test(sansAccent(d.nom)));
+    docs.forEach((d) => pris.add(d));
+    return { nom, docs };
+  });
+  return { pieces, autres: documents.filter((d) => !pris.has(d)) };
+}

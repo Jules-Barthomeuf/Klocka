@@ -199,7 +199,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
           <table className="w-full border-collapse min-w-[720px]">
             <thead>
               <tr className="border-y border-relief">
-                <th className="w-9 py-2.5">
+                <th className="w-12 py-2.5 pr-4">
                   <button
                     onClick={() => onCocher?.(tousCoches ? [] : documents.map((d) => d.id))}
                     aria-label={tousCoches ? "Tout décocher" : "Tout cocher"} title={tousCoches ? "Tout décocher" : "Tout cocher"}
@@ -214,7 +214,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     {h}
                   </th>
                 ))}
-                <th className="w-10" />
+                <th className="w-14" />
               </tr>
             </thead>
             <tbody>
@@ -222,7 +222,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                 const coche = coches.includes(d.id);
                 return (
                   <tr key={d.id} className="border-b border-relief hover:bg-encre/[0.02] transition-colors">
-                    <td className="py-3">
+                    <td className="py-3 pr-4">
                       <button
                         onClick={() => basculer(d.id)}
                         aria-label={coche ? "Retirer des sources" : "Interroger ce document"} title={coche ? "Retirer des sources" : "Interroger ce document"}
@@ -280,7 +280,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">{typeLisible(d.mime)}</td>
                     <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
                     <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
-                    <td className="py-3 text-right relative">
+                    <td className="relative py-3 pl-6 text-right">
                       <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors max-md:-m-2 max-md:p-2" aria-label="Actions" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>

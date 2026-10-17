@@ -52,7 +52,7 @@ const GRILLES_ANALYSE = [
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
-import { ActionSuivante, ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
+import { ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
 import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
@@ -547,8 +547,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {dossier && vue === "documents" && (
-        <section className="mb-6 rounded-[14px] border border-trait px-4 py-3">
-          <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">Data Room · {(dossier.documents_espace || []).length}</p>
+        <section data-zone="listes" className="k-points relative mb-6 rounded-[16px] border border-trait bg-rail px-4 py-3">
           <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
         </section>
       )}
@@ -617,10 +616,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {montre("plateforme") && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
         {montre("bancaire") && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
       </div>
-      {/* Pas d'« Action suivante » dans la pré-analyse (17 oct. 2026, Jules). */}
-      {dossier && vue !== "preanalyse" && <ActionSuivante vue={vue} onAller={allerA} occupe={deblocageEnCours} />}
+      {/* « Action suivante » retirée de toutes les étapes le 17 oct. 2026 (Jules) ; la frise suffit. */}
       </div>
-      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} />}
+      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} onAller={allerA} />}
       </div>
       {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}
       {dossier && vue === "preanalyse" && lot?.simulateur && (

@@ -76,7 +76,7 @@ export default function MessagesAK() {
   // La taille de la fenêtre se tire par son coin en haut à droite (16 oct. 2026, Jules) ; gardée dans ce navigateur.
   const CLE_TAILLE = "klocka.assistant.taille";
   const borner = ({ w, h }) => ({ w: Math.round(Math.min(Math.max(w, 340), window.innerWidth - 24)), h: Math.round(Math.min(Math.max(h, 360), window.innerHeight - 24)) });
-  const [taille, setTaille] = useState(() => { try { const t = JSON.parse(localStorage.getItem(CLE_TAILLE)); return t?.w && t?.h ? t : { w: 420, h: 640 }; } catch { return { w: 420, h: 640 }; } });
+  const [taille, setTaille] = useState(() => { try { const t = JSON.parse(localStorage.getItem(CLE_TAILLE)); return t?.w && t?.h ? t : { w: 420, h: 540 }; } catch { return { w: 420, h: 540 }; } });
   const tirer = (e) => {
     e.preventDefault();
     const x0 = e.clientX; const y0 = e.clientY; const t0 = taille;

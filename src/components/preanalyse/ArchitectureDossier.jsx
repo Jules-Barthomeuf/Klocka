@@ -128,9 +128,10 @@ export function ColonneDroite({ dossier, apercu = false }) {
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
       <section className={bloc}>
-        <p className={titreBloc}>Investisseurs compatibles</p>
-        <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Monday</p>
-        <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
+        {/* Titre et sous-titre retirés le 17 oct. 2026 (Jules) : la liste porte son propre libellé, « Clients possibles ». */}
+        <div className="[&>div]:!mt-0 [&>div]:!border-t-0 [&>div]:!pt-0 [&>p]:!mt-0">
+          <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
+        </div>
       </section>
 
       {lot && !apercu && (

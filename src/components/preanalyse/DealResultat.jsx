@@ -361,7 +361,13 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
           </span>
         );
       case "emplacement":
-        return <span className={`text-[13.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-encre" : "text-brume"}`}>{emplacement}</span>;
+        // L'adresse sous l'emplacement (17 oct. 2026, Jules) : la changer déplace Street View et le plan, et l'emplacement repasse à vérifier.
+        return (
+          <div>
+            <span className={`text-[13.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-encre" : "text-brume"}`}>{emplacement}</span>
+            <div className="mt-1.5 text-[12.5px]">{champ("adresse")}</div>
+          </div>
+        );
       default: return null;
     }
   };

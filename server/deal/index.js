@@ -334,6 +334,11 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
   const sansAnciennes = { ...entree };
   for (const k of perime.retirer) delete sansAnciennes[k];
   const { relancer } = perime;
+  // Une adresse changée (17 oct. 2026, Jules) : l'emplacement est à revoir. Un statut posé à la main
+  // sur la ligne Emplacement tombe, et la ligne repasse « à vérifier » le temps qu'on regarde la rue.
+  if (Object.prototype.hasOwnProperty.call(saisie, 'adresse') && sansAnciennes.verifications) {
+    sansAnciennes.verifications = Object.fromEntries(Object.entries(sansAnciennes.verifications).filter(([cle]) => !/\|emplacement$/.test(cle)));
+  }
   lots[indexLot] = {
     ...sansAnciennes,
     ...(relancer ? { marche_relance: { le: new Date().toISOString(), raison: 'adresse corrigée', cle: `${dealId}|${indexLot}` } } : {}),

@@ -366,9 +366,9 @@ export default function Analyse() {
 
   if (scinde) {
     return (
-      <div className={`k-page-presentation relative grid h-[100dvh] overflow-hidden text-encre ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+      <div className={`k-page-presentation relative grid h-[100dvh] overflow-hidden text-encre duration-500 ease-out animate-in fade-in-0 ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
-        <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5">
+        <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5 duration-500 ease-out animate-in fade-in-0 slide-in-from-left-4">
           {!chatOuvert && (
             <div className="grid min-h-0 flex-1 place-items-center">
               <h1 className="m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
@@ -382,7 +382,7 @@ export default function Analyse() {
           </div>
         </div>
         {/* Le dossier, un écran dans l'écran : une carte posée sur le fond, comme la présentation à côté du chat (17 oct. 2026, Jules). */}
-        <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
+        <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2 duration-500 ease-out animate-in fade-in-0 zoom-in-[0.98]">
           <div className="h-full min-h-0 overflow-y-auto rounded-[14px] border border-bord-doux bg-rail">
             {dossier?.deal_id === dealId ? (
               <WorkflowDeal dossier={dossier} enCours={majLot.isPending} onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
@@ -413,7 +413,7 @@ export default function Analyse() {
       {/* Une lumière dans le coin, en haut à gauche, sur le dossier ouvert. */}
       {enWorkflow && <div aria-hidden className="k-halo pointer-events-none absolute -left-[260px] -top-[260px] h-[680px] w-[900px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.13),transparent)" }} />}
       <div
-        key={dealId || (nouveau ? "nouveau" : "accueil")}
+        key={`${dealId || (nouveau ? "nouveau" : "accueil")}-${modeIA ? "ia" : "normal"}`}
         className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
       >
         {enWorkflow ? (

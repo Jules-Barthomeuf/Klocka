@@ -848,9 +848,8 @@ function EtapeMail({ dossier, onSuivant, apercu, brouillon: brouillonExterne, on
 // ---------------------------------------------------------------------------
 
 function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnalyserFichier, onAnalyserTexte, onArreterAnalyse = null, analyseEnCours = false }) {
-  const titre = (
-    <TitreEtape n={1} titre="Pré-analyse" />
-  );
+  // Le titre « 01 Pré-analyse » ne reste que sans dossier : la frise le dit déjà (17 oct. 2026, Jules).
+  const titre = dossier ? null : <TitreEtape n={1} titre="Pré-analyse" />;
 
   // --- Nouveau dossier, ou coquille nommée sans analyse : la fiche entre ici.
   if (!dossier || !dossier.lots?.length)
@@ -869,7 +868,6 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
   return (
     <>
       {titre}
-      <RelancePreanalyse dossier={dossier} onRefresh={onRefresh} apercu={apercu} />
       {dossier.source?.avertissements?.length > 0 && (
         <Bandeau type="info" items={dossier.source.avertissements} />
       )}
@@ -1566,43 +1564,6 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
         {etat?.etat === "erreur" && <span className="text-[12.5px] text-alerte">{etat.erreur}</span>}
         <span className="text-[12.5px] text-brume">Ou collez le teaser de l'agent dans le chat : il sera analysé dans ce dossier.</span>
       </div>
-    </div>
-  );
-}
-
-// Relancer la pré-analyse depuis l'onglet Pré-analyse : le teaser est rejoué,
-// puis la data room relue jusqu'à l'étape atteinte.
-function RelancePreanalyse({ dossier, onRefresh, apercu }) {
-  const dealId = dossier.deal_id;
-  const queryClient = useQueryClient();
-  const { data: etat } = useQuery({
-    queryKey: ["preanalyse-documents", dealId],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/preanalyse-documents`),
-    refetchInterval: (q) => (q.state.data?.etat === "en_cours" ? 3000 : false),
-  });
-  const relancer = useMutation({
-    mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/relancer-preanalyse`, { body: {} }),
-    onSuccess: () => { demanderNotifications(); toast.success("Pré-analyse relancée — l'analyse suivra", { description: "Vous serez prévenu quand elle sera terminée." }); queryClient.invalidateQueries({ queryKey: ["preanalyse-documents", dealId] }); },
-    onError: (e) => toast.error(e?.message || "Relance impossible"),
-  });
-  useEffect(() => {
-    if (etat?.etat === "pret" && etat?.relance) {
-      onRefresh?.();
-      ["etape1", "etape2", "etape3", "etape4", "carte", "matrice", "fiche"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k, dealId] }));
-      prevenir("Pré-analyse terminée", dossier.titre || dossier.nom || "Le dossier est à jour", `/Dossiers?deal_id=${dealId}`);
-    }
-  }, [etat?.etat]);
-  const enCours = etat?.etat === "en_cours";
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 -mt-2 mb-4">
-      <p className="m-0 text-[12.5px] text-alerte">{etat?.etat === "erreur" ? etat.erreur : ""}</p>
-      {enCours ? (
-        <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise"><PenseeIA etat="searching" taille={20} /> {etat.phase === "preanalyse" ? "Pré-analyse en cours…" : etat.phase?.startsWith("etape") ? `Relecture de la data room ${etat.fait ?? 0}/${etat.total ?? "…"}` : "En cours…"}</span>
-      ) : (
-        <button onClick={() => !apercu && window.confirm("Relancer la pré-analyse, puis l'analyse de la data room ?") && relancer.mutate()} disabled={apercu || relancer.isPending} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-bord-doux text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
-          <RefreshCw className="w-3.5 h-3.5" /> Relancer la pré-analyse
-        </button>
-      )}
     </div>
   );
 }

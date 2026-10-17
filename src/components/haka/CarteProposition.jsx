@@ -49,7 +49,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
   const [motif, setMotif] = useState("");
   const aChoix = Array.isArray(p.choix) && p.choix.length > 0;
   const information = Array.isArray(p.actions) && p.actions.length === 1 && p.actions[0] === "vu";
-  const estMail = p.type === "demande_documents";
+  const estMail = p.type === "demande_documents" || p.type === "relance_mail";
   const prenom = (e) => String(e || "").split("@")[0].split(".")[0].replace(/^\w/, (c) => c.toUpperCase());
   return (
     <article className={`rounded-[16px] border border-trait bg-rail ${compacte ? "p-4" : "p-5"}`}>
@@ -69,6 +69,15 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
 
       <div className="mt-3">
         {estMail && <ApercuMail charge={charge} edition={edition} setCharge={setCharge} />}
+        {p.type === "reponse_equipe" && (
+          <div className="flex flex-col gap-2">
+            <div className="rounded-[12px] border border-trait px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-brume">La demande</p><p className="m-0 mt-1 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-craie">{p.charge?.demande}</p></div>
+            <div className="rounded-[12px] border border-menthe/40 px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-menthe">La réponse de Haka</p><p className="m-0 mt-1 whitespace-pre-wrap text-[14px] leading-[1.55] text-encre">{p.charge?.reponse}</p></div>
+          </div>
+        )}
+        {p.type === "mail_exterieur" && (
+          <div className="rounded-[12px] border border-trait px-4 py-3"><p className="m-0 text-[12.5px] text-ardoise"><span className="text-brume">De</span> {p.charge?.de}</p><p className="m-0 mt-1 text-[14.5px] text-encre">{p.charge?.objet}</p><p className="m-0 mt-2 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-craie">{p.charge?.extrait}</p></div>
+        )}
         {aChoix && (
           <div className="flex flex-col gap-2">
             {(p.charge?.candidats || []).map((c) => (

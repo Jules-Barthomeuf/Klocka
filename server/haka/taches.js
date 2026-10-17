@@ -37,9 +37,16 @@ let minuterie = null;
  *   `{ attendre: 'validation', proposition_id }` (la tâche s'arrête devant le pas externe suivant)
  *   ou `{ differer: iso }` (la tâche repart plus tard, le pas sera rejoué).
  */
-export function enregistrer(type, { version = '1', etapes }) {
+export function enregistrer(type, { version = '1', etapes, surRejet = null }) {
   if (!Array.isArray(etapes) || !etapes.length) throw new Error(`Compétence ${type} : aucun pas`);
-  competences.set(type, { version: String(version), etapes });
+  competences.set(type, { version: String(version), etapes, surRejet });
+}
+
+/** Ce qu'une compétence fait quand sa proposition est rejetée (écarter un mail préparé, par exemple). */
+export async function surRejet(tacheId, proposition, user) {
+  const t = tacheAJour(tacheId);
+  const def = t && competences.get(t.type);
+  if (def?.surRejet) await def.surRejet(t, proposition, user);
 }
 export const competenceDe = (type) => competences.get(type) || null;
 

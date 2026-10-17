@@ -24,6 +24,9 @@ const maintenant = () => new Date().toISOString();
 /** Les libellés des types, pour l'écran et les notifications. */
 export const TYPES = {
   demande_documents: { libelle: 'Demander les documents', externe: true },
+  relance_mail: { libelle: 'Relancer un agent par mail', externe: true },
+  reponse_equipe: { libelle: "Réponse à une demande de l'équipe", externe: false },
+  mail_exterieur: { libelle: 'Mail reçu sur sourcing@', externe: false },
   rattacher_ou_creer: { libelle: 'Même adresse : rattacher ou créer ?', externe: false },
   meme_bien_recu: { libelle: "Même bien reçu d'un autre agent", externe: false },
 };
@@ -32,7 +35,7 @@ export const TYPES = {
  * Dépose une proposition dans la file et prévient la personne. Une proposition
  * de même clé déjà en attente n'est pas doublée (elle est rendue).
  */
-export async function proposer({ type, titre, resume = null, charge = {}, sources = [], pour = null, dossier = null, competence = null, version = null, tache_id = null, etape = null, cout_usd = 0, cle = null, actions = ['valider', 'modifier', 'rejeter'], choix = null }) {
+export async function proposer({ type, titre, resume = null, charge = {}, sources = [], pour = null, dossier = null, competence = null, version = null, tache_id = null, etape = null, cout_usd = 0, cle = null, actions = ['valider', 'modifier', 'rejeter'], choix = null, source_migration = null }) {
   if (cle) {
     const deja = Records.list(ENTITE).find((p) => p.cle === cle && p.etat === 'proposee');
     if (deja) return deja;
@@ -43,7 +46,7 @@ export async function proposer({ type, titre, resume = null, charge = {}, source
     pour: pour ? norm(pour) : null, dossier: dossier || null,
     etat: 'proposee', motif_rejet: null, decidee_par: null, decidee_le: null, erreur: null,
     actions, choix, competence, version, tache_id, etape, cout_usd: Number(cout_usd) || 0,
-    source: { module: 'haka' }, resultat: null, cle, pris_par: null, cree_le: maintenant(),
+    source: source_migration || { module: 'haka' }, resultat: null, cle, pris_par: null, cree_le: maintenant(),
   });
   try {
     const { notifier } = await import('../notifications.js');
@@ -117,7 +120,7 @@ export async function rejeter(id, user, motif) {
   const m = String(motif || '').trim();
   if (!m) return { ok: false, statut: 400, error: 'Dites pourquoi : le motif aide Haka à faire mieux.' };
   Records.update(ENTITE, p.id, { etat: 'rejetee', motif_rejet: m.slice(0, 500), decidee_par: norm(user.email), decidee_le: maintenant() });
-  if (p.tache_id) taches.annuler(p.tache_id, m);
+  if (p.tache_id) { try { await taches.surRejet(p.tache_id, p, user); } catch (e) { console.warn(`[haka] surRejet : ${e?.message || e}`); } taches.annuler(p.tache_id, m); }
   if (p.dossier) {
     const deal = Records.findBy('Deal', 'deal_id', p.dossier);
     if (deal) {

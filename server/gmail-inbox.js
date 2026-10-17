@@ -154,7 +154,7 @@ export async function releverBoite(compteEmail, { max = 25, repecher = false } =
 
       // Un mail sans rapport avec un dossier n'entre pas : la boîte de
       // l'application reste le reflet des dossiers, pas une copie de Gmail.
-      let { garder, raison, incertain, interne: interneTri } = trierMail(mail, ref);
+      let { garder, raison, incertain, interne: interneTri, commande } = trierMail(mail, ref);
 
       // Un signal ambigu — une pièce jointe qui peut être un bail comme un RIB
       // — est le seul cas où l'on fait lire le mail.
@@ -180,7 +180,7 @@ export async function releverBoite(compteEmail, { max = 25, repecher = false } =
         continue;
       }
 
-      const recu = Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain, interne: !!interneTri });
+      const recu = Records.create('MailRecu', { ...mail, retenu_parce_que: raison, juge_par_ia: !!incertain, interne: !!interneTri, ...(commande ? { commande: true } : {}) });
       // Un mail retenu entre dans l'Intelligence (Layer, phase 9).
       if (!process.env.NODE_TEST_CONTEXT) import('./layer-sources.js').then((m) => m.depuisMail(recu, { sens: 'recu' })).catch((e) => console.error('[layer] mail reçu :', e?.message || e));
       nouveaux++;

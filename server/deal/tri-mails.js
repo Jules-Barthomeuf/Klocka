@@ -166,6 +166,10 @@ function exemplesRecents(limite = 12) {
 }
 
 /** Le référentiel, chargé une fois par relève plutôt qu'une fois par mail. */
+let drapeauxHaka = null;
+import('../haka/drapeaux.js').then((D) => { drapeauxHaka = D; }).catch(() => {});
+const requireDrapeaux = () => { if (!drapeauxHaka) throw new Error('drapeaux pas encore chargés'); return drapeauxHaka; };
+
 export function referentielTri() {
   const internes = adressesInternes();
   // Le domaine de l'équipe se déduit des comptes connectés si rien n'est déclaré.
@@ -179,6 +183,9 @@ export function referentielTri() {
       }
     }
   }
+  // Les boîtes où l'équipe écrit à Haka, quand la file est allumée.
+  let commandes = new Set();
+  try { const D = requireDrapeaux(); if (D.FILE) commandes = D.BOITES_COMMUNES; } catch { /* pas de Haka */ }
   return {
     internes,
     domaines,
@@ -186,8 +193,7 @@ export function referentielTri() {
     attendus: agentsAttendus(),
     ignores: new Set(EXPEDITEURS_IGNORES),
     apprises: reglesApprises(),
-    exemples: exemplesRecents(),
-  };
+    exemples: exemplesRecents(), commandes };
 }
 
 /**
@@ -217,6 +223,8 @@ export function trierMail(mail, ref) {
   // un collègue) entre, marquée interne pour que l'expéditeur ne passe pas
   // pour l'agent ; sans pièce, c'est une conversation, elle reste dehors.
   const interne = ref.internes.has(email) || (!!domaine && ref.domaines.has(domaine));
+  // Haka (17 oct. 2026) : sur une boîte commune (sourcing@), un mail de l'équipe est une demande à Haka, pièce ou pas.
+  if (interne && ref.commandes?.has(String(mail.compte || '').toLowerCase())) return { garder: true, interne: true, commande: true, raison: 'demande à Haka' };
   if (interne) {
     const utiles = (mail.pieces_jointes || []).filter((p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || ''));
     if (!utiles.length) return { garder: false, raison: 'échange interne, sans pièce' };

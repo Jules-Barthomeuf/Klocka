@@ -11,6 +11,10 @@ import { contexteDesConversations, estUneNouvelleFiche, piecesFiche } from '../d
 import { proprietaireDeLaBoite } from './proprietaire.js';
 import * as taches from './taches.js';
 import './competences/fiche-recue.js';
+import './competences/relances-matin.js';
+import { BOITES_COMMUNES } from './drapeaux.js';
+import { membreDeLEquipe, signalerExterieur } from './competences/demande-equipe.js';
+import { porteUneFiche } from '../deal/fiches-auto.js';
 
 const CLE_DEPUIS = 'mail.preanalyse_auto.depuis';
 
@@ -43,6 +47,21 @@ export async function surReleve({ uploadDir = null } = {}) {
     } catch (e) {
       bilan.erreurs.push(`Fiche « ${mail.objet || mail.id} » non mise en file : ${e?.message || e}`);
       bilan.echecs.push({ operation: 'haka_fiche', compte: mail.compte, quoi: `Fiche « ${String(mail.objet || '').slice(0, 80)} » non mise en file`, cause: String(e?.message || e).slice(0, 240), le: new Date().toISOString() });
+    }
+  }
+  // Les boîtes communes (sourcing@) : une demande de l'équipe devient une tâche ; un extérieur va dans le Commun.
+  for (const mail of contexte.mails.filter((m) => BOITES_COMMUNES.has(String(m.compte || '').toLowerCase()) && !m.haka_tache_id && !m.haka_vu && Date.parse(m.date || 0) >= Date.parse(depuis))) {
+    try {
+      if (mail.commande && membreDeLEquipe(mail.de_email)) {
+        const t = taches.enfiler('demande_equipe', { mail_id: mail.id }, { cle: `demande:${mail.id}`, pour: String(mail.de_email).toLowerCase() });
+        Records.update('MailRecu', mail.id, { haka_tache_id: t.id });
+        bilan.demandes = (bilan.demandes || 0) + 1;
+      } else if (!mail.interne && !porteUneFiche(mail)) {
+        await signalerExterieur(mail);
+        bilan.exterieurs = (bilan.exterieurs || 0) + 1;
+      }
+    } catch (e) {
+      bilan.erreurs.push(`Mail sourcing@ « ${mail.objet || mail.id} » : ${e?.message || e}`);
     }
   }
   return bilan;

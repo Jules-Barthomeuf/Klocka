@@ -111,6 +111,28 @@ export default function Offres() {
     return () => document.documentElement.classList.remove("k-sans-barre");
   }, [scinde]);
 
+  // La largeur du chat, comme dans Présentations (17 oct. 2026, Jules) : la poignée se tire, un double-clic la remet.
+  const CLE_LARGEUR = "klocka.offres.largeur-chat";
+  const LARGEUR_DEFAUT = 420;
+  const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
+  const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
+  const [tire, setTire] = useState(false);
+  const tirer = (e) => {
+    e.preventDefault();
+    setTire(true);
+    let derniere = largeurChat;
+    const bouger = (ev) => { derniere = borner(ev.clientX); setLargeurChat(derniere); };
+    const lacher = () => {
+      setTire(false);
+      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
+      window.removeEventListener("pointermove", bouger);
+      window.removeEventListener("pointerup", lacher);
+    };
+    window.addEventListener("pointermove", bouger);
+    window.addEventListener("pointerup", lacher);
+  };
+  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
+
   const supprimer = useMutation({
     mutationFn: (id) => base44.request("DELETE", `/api/offres/${id}`),
     onSuccess: (_, id) => { if (courante === id) setCourante(null); rafraichir(); },
@@ -151,7 +173,7 @@ export default function Offres() {
   return (
     <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
-      <div className={scinde ? "grid h-[100dvh] grid-cols-[minmax(360px,440px)_minmax(0,1fr)] overflow-hidden" : ""}>
+      <div className={scinde ? `relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : ""} style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
         <div className={scinde ? (conversation ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8") : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
           <div className={`mx-auto ${scinde ? "max-w-none" : conversation ? "max-w-[1100px]" : "max-w-[1400px]"}`}>
             <header className={conversation ? "flex flex-col" : `flex flex-col items-center text-center ${scinde ? "pt-10" : "pt-[6vh] max-md:pt-4"}`}>
@@ -162,7 +184,7 @@ export default function Offres() {
                 </>
               )}
               <div className={conversation ? "w-full" : `w-full ${scinde ? "mt-6" : "mt-8 max-w-[660px] max-md:mt-6"}`}>
-                <ChatDashboard espace="offre" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
+                <ChatDashboard espace="offre" libelleAccueil="Toutes les offres" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
                   barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { loi_id: courante } : null} onConversationId={setConversationId} />
               </div>
             </header>
@@ -171,15 +193,26 @@ export default function Offres() {
             <div className="mx-auto mt-[6vh] max-w-[1400px]"><HistoriqueColonne espace="admin" /></div>
           ) : liste)}
         </div>
+        {/* La lettre, un écran dans l'écran : une carte posée sur le fond, comme la présentation à côté du chat. */}
         {scinde && (
-          <div className="h-[100dvh] min-h-0 min-w-0 border-l border-bord-doux">
+          <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
+            <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
             {courante ? (
               <EditeurLoi key={courante} id={courante} travail={travail} onFermer={() => setCourante(null)} />
             ) : (
-              <div className="grid h-full place-items-center bg-fond px-10 text-center">
+              <div className="grid h-full place-items-center px-10 text-center">
                 <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">La lettre d'intention se rédige ici dès que le chat a l'acquéreur, le bien, le vendeur, le prix et l'apport. Elle se relit et se retouche sur place, puis part en Word ou en PDF.</p>
               </div>
             )}
+            </div>
+          </div>
+        )}
+        {/* La poignée entre le chat et la lettre. */}
+        {scinde && (
+          <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
+            onPointerDown={tirer} onDoubleClick={remettre}
+            className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
+            <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
           </div>
         )}
       </div>

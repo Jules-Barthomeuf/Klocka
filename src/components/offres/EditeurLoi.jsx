@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Download, LayoutTemplate, Loader2, RotateCcw, X } from "lucide-react";
+import { Check, Download, FileText, LayoutTemplate, Loader2, RotateCcw, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
@@ -71,29 +71,43 @@ export default function EditeurLoi({ id, onFermer, travail = null }) {
   useEffect(() => { defile.current?.scrollTo({ top: 0 }); }, [modele]);
   const statut = modifier.isPending ? "Enregistrement…" : data && !modele ? "Choisissez un modèle" : data?.manquants?.length ? `${data.manquants.length} information${data.manquants.length > 1 ? "s" : ""} manquante${data.manquants.length > 1 ? "s" : ""}` : "Vos retouches sont gardées";
 
+  // La barre du haut reprend celle de l'éditeur de présentation (17 oct. 2026, Jules) : titre et état, Édition / Lecture, les fichiers, fermer.
+  const [mode, setMode] = useState("edition");
+  const lecture = mode === "lecture";
+  const bouton = "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] disabled:opacity-40 max-md:px-3";
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-fond">
-      <div className="k-barre-apercu flex h-14 flex-none items-center justify-between gap-3 border-b border-trait px-5 max-md:gap-2 max-md:px-3">
-        <div className="flex min-w-0 items-baseline gap-3 max-md:flex-col max-md:gap-0">
-          <span className="truncate text-[14.5px] text-encre max-md:max-w-full">Lettre d'intention</span>
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-rail">
+      <div className="k-barre-apercu flex h-14 flex-none items-center gap-3 border-b border-trait px-5 md:pr-[120px] max-md:gap-2 max-md:px-3">
+        <div className="flex min-w-0 flex-1 items-baseline gap-3 max-md:flex-col max-md:gap-0">
+          <span className="truncate text-[14.5px] text-encre max-md:max-w-full">{data?.lettre?.adresse || "Lettre d'intention"}</span>
           <span className="truncate text-[12.5px] text-ardoise max-md:max-w-full">{statut}</span>
         </div>
+        {modele && (
+          <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1">
+            {[["edition", "Édition"], ["lecture", "Lecture"]].map(([k, mot]) => (
+              <button key={k} type="button" onClick={() => setMode(k)} aria-pressed={mode === k}
+                className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${mode === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={mode === k ? undefined : { background: "transparent" }}>{mot}</button>
+            ))}
+          </div>
+        )}
         <div className="flex flex-none items-center gap-1.5 max-md:gap-1">
-          {modele && (
+          {modele && !lecture && (
             <button type="button" onClick={() => modifier.mutate({ modele: null })} disabled={modifier.isPending} aria-label="Changer de modèle" title="Changer de modèle"
-              className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] max-md:w-9 max-md:justify-center max-md:px-0 text-ardoise hover:bg-relief hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
-              <LayoutTemplate className="h-3.5 w-3.5" /><span className="max-md:hidden">Changer de modèle</span>
+              className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
+              <LayoutTemplate className="h-4 w-4" />
             </button>
           )}
-          {["docx", "pdf"].map((f) => (
-            <button key={f} type="button" onClick={() => telecharger(f)} disabled={!data || !modele || !!telechargement}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] max-md:px-3 text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>
-              {telechargement === f ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}{f === "docx" ? "Word" : "PDF"}
-            </button>
-          ))}
+          <button type="button" onClick={() => telecharger("docx")} disabled={!data || !modele || !!telechargement}
+            className={`${bouton} border border-bord-doux text-craie hover:border-bord-vif hover:text-encre`} style={{ background: "transparent" }}>
+            {telechargement === "docx" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}Word
+          </button>
+          <button type="button" onClick={() => telecharger("pdf")} disabled={!data || !modele || !!telechargement}
+            className={`${bouton} bg-menthe text-sur-menthe hover:bg-menthe-survol`}>
+            {telechargement === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}PDF
+          </button>
           {onFermer && (
             <button type="button" onClick={onFermer} aria-label="Fermer la lettre" title="Fermer"
-              className="ml-1 grid h-9 w-9 flex-none place-items-center max-md:ml-0 rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>
+              className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:ml-0" style={{ background: "transparent" }}>
               <X className="h-4 w-4" />
             </button>
           )}
@@ -111,7 +125,7 @@ export default function EditeurLoi({ id, onFermer, travail = null }) {
             onChamp={(k, v) => modifier.mutate({ champs: { [k]: v } })} onTexte={(k, v) => modifier.mutate({ textes: { [k]: v } })} />
         ) : (
           <div key={modele} className="px-6 py-8 animate-in fade-in duration-500 max-md:py-4">
-            <Lettre d={data} modele={modele} onChamp={(k, v) => modifier.mutate({ champs: { [k]: v } })} onTexte={(k, v) => modifier.mutate({ textes: { [k]: v } })} />
+            <Lettre d={data} modele={modele} apercu={lecture} onChamp={(k, v) => modifier.mutate({ champs: { [k]: v } })} onTexte={(k, v) => modifier.mutate({ textes: { [k]: v } })} />
           </div>
         )}
       </div>

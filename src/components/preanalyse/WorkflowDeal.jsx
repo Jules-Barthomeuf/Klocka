@@ -335,6 +335,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   const [preuveGrille, setPreuveGrille] = useState(null);
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
+  const pleineLargeur = !!dossier && vue === "analyse" && grilleAnalyse === "simulateur";
   // L'onglet Marché de l'étape Analyse : le seul endroit où le chat du haut
   // change de nature.
   const surMarche = montre("analyse") && grilleAnalyse === "marche";
@@ -509,7 +510,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       )}
       {dossier && <div className="mb-6" />}
 
-      <div className={dossier ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}>
+      {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
+      <div className={dossier && !pleineLargeur ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}>
       <div className="min-w-0 space-y-5">
       {dossier && <VerdictDossier dossier={dossier} />}
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
@@ -586,7 +588,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       {dossier && <ActionSuivante vue={vue} onAller={allerA} occupe={deblocageEnCours} />}
       </div>
-      {dossier && <ColonneDroite dossier={dossier} onAller={allerA} apercu={apercu} />}
+      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} onAller={allerA} apercu={apercu} />}
       </div>
 
     </div>

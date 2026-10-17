@@ -268,7 +268,7 @@ export default function Analyse() {
         className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
       >
         {enWorkflow ? (
-          <div className={`mx-auto ${vueConversation ? "max-w-[1500px]" : "max-w-6xl"}`}>
+          <div className="mx-auto max-w-[1500px]">
             <div className="mb-4 flex items-center justify-between gap-3">
               <button
                 onClick={() => montrerDeal(null)}

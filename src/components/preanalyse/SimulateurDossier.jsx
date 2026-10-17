@@ -49,7 +49,7 @@ const DEFAUTS = {
   feesKlockaType: "pourcentage",
   tauxIncentiveKlocka: 20,
   dureeCredit: 20,
-  tauxInteret: 3.7,
+  tauxInteret: 3.9,
   tauxAssuranceCredit: 0.25,
   pretInFine: false,
   sansCredit: false,

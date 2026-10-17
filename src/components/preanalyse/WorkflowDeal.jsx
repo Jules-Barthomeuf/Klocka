@@ -588,7 +588,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         {montre("plateforme") && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
         {montre("bancaire") && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
       </div>
-      {dossier && <ActionSuivante vue={vue} onAller={allerA} occupe={deblocageEnCours} />}
+      {/* Pas d'« Action suivante » dans la pré-analyse (17 oct. 2026, Jules). */}
+      {dossier && vue !== "preanalyse" && <ActionSuivante vue={vue} onAller={allerA} occupe={deblocageEnCours} />}
       </div>
       {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} />}
       </div>

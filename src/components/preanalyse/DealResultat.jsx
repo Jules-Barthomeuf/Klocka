@@ -1224,7 +1224,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   });
   // Le détail (critères, données extraites, enrichissement, lieu, marché) se
   // déplie en bas : on y descend pour vérifier, pas pour lire.
-  const [detailOuvert, setDetailOuvert] = useState(false);
 
   const [mailOuvert, setMailOuvert] = useState(false);
   const [correction, setCorrection] = useState(false);
@@ -1284,124 +1283,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
           </section>
           )}
 
-          {/* Le détail */}
-          <div className="mt-8 border-t border-trait">
-            <button onClick={() => setDetailOuvert((o) => !o)} className="w-full py-3 flex items-center justify-between gap-3 text-left text-ardoise hover:text-encre text-xs transition-colors">
-              <span>Détail — données extraites avec citations, enrichissement{lot.contexte_marche ? ", marché local" : ""}</span>
-              {detailOuvert ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-      {detailOuvert && (
-        <div className="pb-5">
-          <Tabs defaultValue="extraction">
-            <TabsList className="mb-4 gap-5">
-              <TabsTrigger value="extraction">Données extraites</TabsTrigger>
-              <TabsTrigger value="enrichissement">Enrichissement</TabsTrigger>
-              {lot.contexte_marche && <TabsTrigger value="marche">Marché local</TabsTrigger>}
-            </TabsList>
-
-            <TabsContent value="extraction">
-              {lot.incidents_garde_fou?.length > 0 && (
-                <div className="mb-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2">
-                  <p className="text-red-300 text-xs font-medium mb-1">
-                    {lot.incidents_garde_fou.length} valeur(s) rejetée(s) par le garde-fou
-                  </p>
-                  {lot.incidents_garde_fou.map((i, k) => (
-                    <p key={k} className="text-red-300/70 text-[11px]">
-                      {i.champ} : {i.motif}
-                      {i.valeur_rejetee != null && ` (valeur écartée : ${JSON.stringify(i.valeur_rejetee)})`}
-                    </p>
-                  ))}
-                </div>
-              )}
-              <div className="space-y-1">
-                {CHAMPS_AFFICHES.map(([champ, libelle]) => {
-                  const c = lot.lot[champ];
-                  const absent = !c || c.absent;
-                  return (
-                    <div key={champ} className="flex items-start gap-3 py-1.5 border-b border-relief max-md:flex-wrap max-md:gap-x-3 max-md:gap-y-1">
-                      <span className="text-ardoise text-xs w-40 max-md:w-28 flex-shrink-0">{libelle}</span>
-                      <span className={`text-xs flex-1 ${absent ? "text-brume italic" : "text-encre"}`}>
-                        {absent ? "non renseigné dans la fiche" : afficherValeur(champ, c.valeur)}
-                      </span>
-                      {!absent && c.citation && (
-                        <span
-                          title={c.citation}
-                          className="text-brume text-[11px] flex items-center gap-1 max-w-[45%] max-md:max-w-full truncate cursor-help"
-                        >
-                          <Quote className="w-3 h-3 flex-shrink-0" />
-                          {c.citation}
-                        </span>
-                      )}
-                      {!absent && c.confiance === "basse" && (
-                        <Badge className="bg-menthe/15 text-menthe border-menthe/25 text-[11px]">
-                          confiance basse
-                        </Badge>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="enrichissement">
-              <div className="space-y-1 text-xs">
-                <LigneDetail label="Commune" valeur={enr?.commune ? `${enr.commune.nom} (${enr.commune.code_insee})` : "non résolue"} />
-                <LigneDetail label="Population" valeur={enr?.commune?.population?.toLocaleString("fr-FR") ?? "—"} />
-                <LigneDetail label="Typologie" valeur={enr?.typologie_ville ? enr.typologie_ville.replace("_", " ") : enr?.commune ? "population inconnue" : "commune non résolue"} />
-                <LigneDetail
-                  label="Ville riche"
-                  valeur={enr?.ville_riche === null ? "inconnu (revenu médian non renseigné)" : enr?.ville_riche ? "oui" : "non"}
-                />
-                <LigneDetail label="Paris" valeur={enr?.paris ? "oui" : "non"} />
-                <LigneDetail
-                  label="Signature"
-                  valeur={`${enr?.signature?.niveau ?? "—"} (${enr?.signature?.source ?? "—"}, confiance ${enr?.signature?.confiance ?? "—"})`}
-                />
-                <LigneDetail label="Activité" valeur={`${enr?.activite?.libelle ?? "—"}${enr?.activite?.exclue ? " — EXCLUE" : ""}`} />
-                <LigneDetail label="Emplacement" valeur={enr?.emplacement ?? "—"} />
-              </div>
-              {enr?.signature?.a_valider && (
-                <ValidationEnseigne nom={lot.lot.locataire_nom?.valeur} signature={enr.signature} apercu={apercu} />
-              )}
-            </TabsContent>
-
-            {lot.contexte_marche && (
-              <TabsContent value="marche">
-                <div className="space-y-3">
-                  <p className="text-craie text-sm leading-relaxed whitespace-pre-wrap">
-                    {lot.contexte_marche.resume}
-                  </p>
-                  {lot.contexte_marche.sources?.length > 0 && (
-                    <div>
-                      <p className="text-ardoise text-xs mb-1.5">Sources consultées :</p>
-                      <ul className="space-y-1">
-                        {lot.contexte_marche.sources.map((s, i) => (
-                          <li key={i}>
-                            <a
-                              href={s.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-menthe-clair hover:text-encre text-xs underline underline-offset-2 transition-colors"
-                            >
-                              {s.titre}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <p className="text-brume text-[11px]">
-                    Généré avec recherche web — à vérifier avant décision. Ce contexte n'entre pas dans le
-                    verdict.
-                  </p>
-                </div>
-              </TabsContent>
-            )}
-          </Tabs>
-        </div>
-      )}
-
-          </div>
+          {/* Le bloc « Détail » (données extraites, enrichissement, marché local) retiré le 17 oct. 2026 (Jules). */}
         </main>
 
       </div>

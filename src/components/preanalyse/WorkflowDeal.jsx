@@ -589,7 +589,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       {dossier && <ActionSuivante vue={vue} onAller={allerA} occupe={deblocageEnCours} />}
       </div>
-      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} onAller={allerA} apercu={apercu} />}
+      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} />}
       </div>
 
     </div>

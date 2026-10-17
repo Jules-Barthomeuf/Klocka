@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, ArrowRight, Check, FileText, Loader2, Lock, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, ArrowRight, Check, Loader2, Lock, MoreHorizontal, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
@@ -113,47 +113,13 @@ function useLettres(dealId) {
 const bloc = "rounded-[16px] border border-trait bg-rail p-4";
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
-/** La colonne de droite, fixe : investisseurs compatibles, documents, livrables, fil. */
-export function ColonneDroite({ dossier, onAller, apercu = false }) {
-  const docs = dossier?.documents_espace || [];
-  const lettres = useLettres(apercu ? null : dossier?.deal_id);
-  const livrables = [
-    dossier?.lots?.[0]?.presentation && { cle: "pres", texte: "Présentation bancaire", action: () => onAller("bancaire") },
-    dossier?.projet_id && { cle: "projet", texte: "Projet sur la plateforme", lien: `/Projets?id=${dossier.projet_id}` },
-    ...(lettres.data || []).map((o) => ({ cle: o.id, texte: `Offre${o.acquereur ? ` · ${o.acquereur}` : ""}`, lien: "/Offres" })),
-  ].filter(Boolean);
+/** La colonne de droite, fixe : investisseurs compatibles, et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
+export function ColonneDroite({ dossier, apercu = false }) {
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-48px)] lg:self-start lg:overflow-y-auto">
       <section className={bloc}>
         <p className={titreBloc}>Investisseurs compatibles</p>
         <p className="m-0 text-[13px] leading-[1.55] text-ardoise">Le rapprochement du bien avec les demandes des investisseurs n'est pas encore branché : il apparaîtra ici.</p>
-      </section>
-
-      <section className={bloc}>
-        <p className={`${titreBloc} flex items-baseline justify-between`}>Documents<span className="tabular-nums normal-case tracking-normal">{docs.length}</span></p>
-        {docs.length ? (
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {docs.slice(0, 5).map((d) => (
-              <li key={d.id || d.nom} className="flex items-center gap-2 text-[13px] text-craie"><FileText className="h-3.5 w-3.5 flex-none text-brume" /><span className="truncate" title={d.nom}>{d.nom}</span></li>
-            ))}
-          </ul>
-        ) : <p className="m-0 text-[13px] text-brume">Aucun document encore.</p>}
-        <button type="button" onClick={() => onAller("documents")} className="mt-3 p-0 text-[13px] text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>{docs.length > 5 ? `Tout voir (${docs.length})` : "Ouvrir les documents"}</button>
-      </section>
-
-      <section className={bloc}>
-        <p className={titreBloc}>Livrables</p>
-        {livrables.length ? (
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {livrables.map((l) => (
-              <li key={l.cle}>
-                {l.lien
-                  ? <Link to={l.lien} className="text-[13px] text-craie hover:text-encre">{l.texte}</Link>
-                  : <button type="button" onClick={l.action} className="p-0 text-[13px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l.texte}</button>}
-              </li>
-            ))}
-          </ul>
-        ) : <p className="m-0 text-[13px] text-brume">Rien de produit pour l'instant.</p>}
       </section>
 
       {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}

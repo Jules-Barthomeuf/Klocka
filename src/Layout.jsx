@@ -636,13 +636,16 @@ function LayoutContent({ children, currentPageName }) {
               // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.
               if (e.groupe) {
                 const premiere = e.entrees[0];
+                // Sous « Administration » : les projets récents (17 oct. 2026, Jules : d'abord sous Projets, déplacés ici).
+                const recents = e.groupe === "Administration" && !replie ? <DossiersRecents key={`${e.cle}-recents`} onNaviguer={isMobile ? closeMobile : undefined} /> : null;
+                if (recents) return [<LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
+                  to={DETAILS[premiere.cle]?.to} icon={ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
+                  badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />, recents];
                 return <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
                   to={DETAILS[premiere.cle]?.to} icon={e.groupe === "Relations" ? Handshake : ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
-              // Sous « Projets » : les dossiers récemment ouverts par l'équipe (17 oct. 2026, Jules).
-              if (e.cle === "AdminProjets" && menuEquipe && !replie) return <React.Fragment key={e.cle}>{lien}<DossiersRecents onNaviguer={isMobile ? closeMobile : undefined} /></React.Fragment>;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}

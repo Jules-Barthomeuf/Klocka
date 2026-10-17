@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { ChevronDown, Loader2 } from "lucide-react";
-import { VuesLieu, ChampFiche } from "@/components/preanalyse/DealResultat";
+import { ChampFiche } from "@/components/preanalyse/DealResultat";
 import { J } from "@/design/jetons";
 
 // Le bien, et lui seul : ce que la fiche annonce, et sous chaque ligne le
@@ -150,11 +150,6 @@ export default function SectionBien({ dossier, apercu = false, onSaisie, enCours
                     <dl className="m-0">{detail.map((c) => <ChampLu key={c.id} c={c} />)}</dl>
                   ) : (
                     <p className="m-0 text-[12.5px] text-brume">Rien dans les pièces sur ce point.</p>
-                  )}
-                  {p.lieu && (
-                    <div className="mt-4">
-                      <VuesLieu lot={lot} enr={lot.enrichissement} coteACote dealId={dossier?.deal_id} />
-                    </div>
                   )}
                 </>
               )}

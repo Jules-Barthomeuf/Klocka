@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Archive, ArrowRight, Check, Loader2, Lock, MoreHorizontal, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
+import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
+import { VuesLieu } from "@/components/preanalyse/DealResultat";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
 
@@ -113,14 +115,30 @@ function useLettres(dealId) {
 const bloc = "rounded-[16px] border border-trait bg-rail p-4";
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
-/** La colonne de droite, fixe : investisseurs compatibles, et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
+/** La colonne de droite, fixe : investisseurs compatibles (d'après Monday), Street View et plan, et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
 export function ColonneDroite({ dossier, apercu = false }) {
+  const lot = dossier?.lots?.[0];
+  // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday.
+  const correspondances = useQuery({
+    queryKey: ["dossier-clients", dossier?.deal_id],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dossier.deal_id}/clients`),
+    enabled: !!dossier?.deal_id && !apercu,
+    staleTime: 5 * 60 * 1000,
+  });
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-48px)] lg:self-start lg:overflow-y-auto">
       <section className={bloc}>
         <p className={titreBloc}>Investisseurs compatibles</p>
-        <p className="m-0 text-[13px] leading-[1.55] text-ardoise">Le rapprochement du bien avec les demandes des investisseurs n'est pas encore branché : il apparaîtra ici.</p>
+        <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Monday</p>
+        <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
       </section>
+
+      {lot && !apercu && (
+        <section className={bloc}>
+          <p className={titreBloc}>Street View et plan</p>
+          <VuesLieu lot={lot} enr={lot.enrichissement} coteACote empile dealId={dossier?.deal_id} />
+        </section>
+      )}
 
       {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}
       {dossier?.dossier_mandataire_id && !apercu && (

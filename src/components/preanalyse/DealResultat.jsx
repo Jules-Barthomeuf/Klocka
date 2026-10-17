@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
-import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import CarteGoogle from "@/components/CarteGoogle";
 import StreetViewRue from "@/components/projet/StreetViewRue";
 import FicheSource from "@/components/preanalyse/FicheSource";
@@ -907,7 +906,7 @@ export function JournalSuivi({ suivi }) {
 
 // Situer le bien de deux façons : le plan et la vue piéton, qui réutilisent les vues de la
 // page projet, alimentées par l'adresse du lot (ou le centre de la commune).
-export function VuesLieu({ lot, enr, coteACote = false, dealId = null }) {
+export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = false }) {
   const [vue, setVue] = useState("carte");
   const a = lot.lot?.adresse?.valeur;
   const adresse = a?.rue ? [a.rue, a.code_postal, a.ville].filter(Boolean).join(", ") : null;
@@ -951,7 +950,7 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null }) {
   if (coteACote) {
     return (
       <div className="space-y-3">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className={`grid grid-cols-1 gap-4 ${empile ? "" : "lg:grid-cols-2"}`}>
           <figure className="m-0">
             <div className="relative h-[300px] rounded-[14px] overflow-hidden border border-trait bg-surface">
               {!CLE_MAPS ? (
@@ -1236,17 +1235,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   // déplie en bas : on y descend pour vérifier, pas pour lire.
   const [detailOuvert, setDetailOuvert] = useState(false);
 
-  // À qui ce bien pourrait correspondre, d'après les investisseurs de Monday.
-  const {
-    data: correspondances,
-    isLoading: chargementCorrespondances,
-    isError: erreurCorrespondances,
-  } = useQuery({
-    queryKey: ["dossier-clients", dossier?.deal_id],
-    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dossier.deal_id}/clients`),
-    enabled: !!dossier?.deal_id,
-    staleTime: 5 * 60 * 1000,
-  });
   const [mailOuvert, setMailOuvert] = useState(false);
   const [correction, setCorrection] = useState(false);
   const enr = lot.enrichissement;
@@ -1288,25 +1276,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
             {!apercu && onSaisie && <CorrectionFiche ouverte={correction} lot={lot} onSaisie={onSaisie} enCours={enCours} onFermer={() => setCorrection(false)} />}
           </section>
 
-          {/* L'emplacement, juste sous la fiche : on regarde la rue avant tout
-              le reste, et la qualification qu'on en tire change le verdict. */}
-          <section className="py-8">
-            <div className="flex items-baseline gap-3 flex-wrap mb-4">
-              <h2 className="m-0 text-[18px] font-semibold">Emplacement</h2>
-              <span className="text-[12.5px] text-brume">{enCours ? "recalcul…" : "le verdict est recalculé à chaque changement"}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 mb-5">
-              <div className="inline-flex flex-wrap rounded-full border border-bord-doux p-0.5">
-                {EMPLACEMENTS.map((e) => (
-                  <button key={e.code} disabled={apercu || enCours} onClick={() => onSaisie?.({ emplacement: e.code })} className={`px-3.5 py-1.5 rounded-full text-[12.5px] transition-colors disabled:opacity-50 ${enr?.emplacement === e.code ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{e.libelle}</button>
-                ))}
-              </div>
-              {(!enr?.emplacement || enr.emplacement === "a_qualifier") && (
-                <span className="border border-bord-vif rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-[.18em]" style={{ color: J["ambre"] }}>à qualifier</span>
-              )}
-            </div>
-            <VuesLieu lot={lot} enr={enr} coteACote dealId={dossier?.deal_id} />
-          </section>
+          {/* L'emplacement (boutons N°1, N°2…) retiré le 17 oct. 2026 (Jules) ; Street View et plan sont dans la colonne de droite du dossier. */}
 
           {/* L'Intelligence (phase 6, 15 oct. 2026) : ce que Klocka sait déjà de l'enseigne, de la ville, de l'agent. */}
           {/* « Ce que Klocka sait déjà » retiré de l'Analyse le 16 oct. 2026 (Jules). */}
@@ -1319,15 +1289,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               <span className="text-[12.5px] text-brume">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
             </div>
             <SimulateurDossier parametres={lot.simulateur} dealId={dossier?.deal_id || null} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
-          </section>
-
-          {/* Les clients à qui ce bien pourrait correspondre */}
-          <section className="pt-8">
-            <div className="flex items-baseline gap-3 flex-wrap mb-3">
-              <h2 className="m-0 text-[18px] font-semibold">Clients à qui ce bien pourrait correspondre</h2>
-              <span className="text-[12.5px] text-brume">budget, apport et zone de recherche, d'après Monday</span>
-            </div>
-            <ClientsCorrespondants clients={correspondances?.clients} chargement={chargementCorrespondances} configure={correspondances?.configure} erreur={erreurCorrespondances} />
           </section>
 
           {/* Le détail */}

@@ -6,7 +6,6 @@ import ChatDashboard, { HistoriqueColonne, cartesDe } from "@/components/dashboa
 import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
-import CartesCompetences from "@/components/haka/CartesCompetences";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
 import ColonnesAccueil from "@/components/haka/ColonnesAccueil";
 import LivrableAccueil from "@/components/haka/LivrableAccueil";
@@ -146,10 +145,9 @@ export default function AdminDashboardView() {
               placeholderAccueil={hakaActif ? "Collez une note, déposez une fiche, ou demandez à Haka…" : null} />}
             apresChat={(
               <>
-                {/* Les raccourcis et les cartes de compétences remplacent « Connecter un skill » (17 oct. 2026). */}
+                {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
                 <RaccourcisHaka dossier={dossier} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[760px]" />
                 <Depliant ouvert={sourcesOuvert} className="mx-auto max-w-[900px]"><div className="pt-6">{panneauSources}</div></Depliant>
-                <CartesCompetences declencheur="chat" limite={4} contexte={dossier} className="mx-auto mt-12 max-w-[1000px] text-left" />
               </>
             )}
             bas={(

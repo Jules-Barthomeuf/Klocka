@@ -34,8 +34,8 @@ const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "n
 
 /**
  * La frise (maquette de Jules, 17 oct. 2026) : huit ronds reliés par un trait,
- * le numéro ou la coche dans le rond, le nom de l'étape et son sous-titre
- * dessous ; l'étape ouverte est pleine (sans soulignement), les étapes faites sont
+ * le numéro ou la coche dans le rond, le nom de l'étape
+ * dessous (les sous-titres retirés le 17 oct. 2026) ; l'étape ouverte est pleine (sans soulignement), les étapes faites sont
  * cochées et leur trait est vert.
  */
 export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
@@ -57,7 +57,6 @@ export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
                   {!derniere && <span className={`mx-2.5 h-px flex-1 transition-colors duration-500 ${faite ? "bg-menthe/50" : "bg-encre/[0.14]"}`} />}
                 </span>
                 <span className={`mt-3 block truncate pr-3 text-[14px] transition-colors ${ouverte ? "text-encre" : faite ? "text-craie" : "text-brume group-hover:text-craie"}`}>{e.label}</span>
-                <span className="mt-1.5 block truncate pr-3 text-[12px] text-ardoise">{e.sous}</span>
               </button>
             </li>
           );

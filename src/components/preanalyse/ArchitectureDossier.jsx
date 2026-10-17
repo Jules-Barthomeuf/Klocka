@@ -126,7 +126,7 @@ export function ColonneDroite({ dossier, apercu = false }) {
     staleTime: 5 * 60 * 1000,
   });
   return (
-    <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-48px)] lg:self-start lg:overflow-y-auto">
+    <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
       <section className={bloc}>
         <p className={titreBloc}>Investisseurs compatibles</p>
         <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Monday</p>
@@ -144,7 +144,7 @@ export function ColonneDroite({ dossier, apercu = false }) {
       {dossier?.dossier_mandataire_id && !apercu && (
         <section className={bloc}>
           <p className={titreBloc}>Fil</p>
-          <FilDossier dossierId={dossier.dossier_mandataire_id} cote="analyste" hauteur="max-h-[320px]" />
+          <FilDossier dossierId={dossier.dossier_mandataire_id} cote="analyste" hauteur="max-h-none" />
         </section>
       )}
     </aside>

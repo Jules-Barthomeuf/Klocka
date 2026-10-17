@@ -501,7 +501,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 }} />
             )}
           </div>
-          <FriseDossier vue={vue} atteinte={etapeFrise(dossier)} debloquee={debloquee} onAller={allerA} occupe={deblocageEnCours} />
+          <FriseDossier vue={vue} atteinte={etapeFrise(dossier)} onAller={allerA} occupe={deblocageEnCours} />
         </>
       )}
 

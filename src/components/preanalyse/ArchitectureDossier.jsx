@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Archive, ArrowRight, Check, Loader2, Lock, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, ArrowRight, Check, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
 import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
@@ -32,27 +32,33 @@ export function vueDeLaPorte(porte, dossier) {
 const argent = (n) => (n == null ? null : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "");
 
-/** La frise : huit étapes, la faite cochée, l'atteinte soulignée, l'ouverte pleine, la fermée avec un cadenas. */
-export function FriseDossier({ vue, atteinte, debloquee, onAller, occupe = false }) {
+/**
+ * La frise (maquette de Jules, 17 oct. 2026) : huit ronds reliés par un trait,
+ * le numéro ou la coche dans le rond, le nom de l'étape et son sous-titre
+ * dessous ; l'étape ouverte est pleine et soulignée, les étapes faites sont
+ * cochées et leur trait est vert.
+ */
+export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
   return (
     <nav aria-label="Étapes du dossier" className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <ol className="m-0 grid min-w-[760px] list-none grid-cols-8 gap-1 p-0">
-        {FRISE.map((e) => {
+      <ol className="m-0 grid min-w-[860px] list-none grid-cols-8 gap-0 p-0">
+        {FRISE.map((e, i) => {
           const ouverte = vue === e.id;
           const faite = e.n < atteinte;
-          const ferme = PORTE[e.id] > debloquee && e.n > atteinte;
+          const derniere = i === FRISE.length - 1;
           return (
             <li key={e.id} className="min-w-0">
               <button type="button" onClick={() => onAller(e.id)} disabled={occupe} aria-current={ouverte ? "step" : undefined}
-                title={ferme ? "Ouvrir cette étape valide les précédentes" : undefined}
-                className={`group flex w-full flex-col items-start gap-2 rounded-[12px] px-3 py-2.5 text-left transition-colors ${ouverte ? "bg-rail-actif" : "hover:bg-rail"}`} style={ouverte ? undefined : { background: "transparent" }}>
-                <span className={`h-[3px] w-full rounded-full transition-colors duration-500 ${faite || e.n === atteinte ? "bg-menthe" : "bg-encre/[0.12]"}`} />
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full text-[11px] tabular-nums ${ouverte ? "bg-encre text-fond" : faite ? "bg-menthe text-sur-menthe" : "bg-relief text-craie"}`}>
-                    {faite && !ouverte ? <Check className="h-3 w-3" /> : ferme ? <Lock className="h-2.5 w-2.5" /> : e.n}
+                className="group block w-full text-left" style={{ background: "transparent" }}>
+                <span className="flex items-center">
+                  <span className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-full border text-[11px] tabular-nums transition-colors duration-300 ${ouverte ? "border-encre bg-encre text-fond" : faite ? "border-menthe/60 bg-menthe/25 text-menthe" : "border-bord-doux text-transparent group-hover:border-bord-vif"}`}>
+                    {faite && !ouverte ? <Check className="h-3 w-3" /> : ouverte ? e.n : null}
                   </span>
-                  <span className={`truncate text-[13px] ${ouverte ? "text-encre" : ferme ? "text-brume" : "text-craie group-hover:text-encre"}`}>{e.label}</span>
+                  {!derniere && <span className={`mx-2.5 h-px flex-1 transition-colors duration-500 ${faite ? "bg-menthe/50" : "bg-encre/[0.14]"}`} />}
                 </span>
+                <span className={`mt-3 block truncate pr-3 text-[14px] transition-colors ${ouverte ? "text-encre" : faite ? "text-craie" : "text-brume group-hover:text-craie"}`}>{e.label}</span>
+                <span className="mt-1.5 block truncate pr-3 text-[12px] text-ardoise">{e.sous}</span>
+                <span className={`mr-3 mt-2.5 block h-[1.5px] transition-colors duration-300 ${ouverte ? "bg-encre" : "bg-transparent"}`} />
               </button>
             </li>
           );

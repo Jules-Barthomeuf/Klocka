@@ -10,14 +10,14 @@
 
 /** Les huit étapes de la frise d'un dossier ouvert. */
 export const FRISE = [
-  { n: 1, id: "reception", label: "Réception" },
-  { n: 2, id: "preanalyse", label: "Pré-analyse" },
-  { n: 3, id: "documents", label: "Documents" },
-  { n: 4, id: "analyse", label: "Analyse" },
-  { n: 5, id: "plateforme", label: "Plateforme" },
-  { n: 6, id: "clients", label: "Clients" },
-  { n: 7, id: "offre", label: "Offre" },
-  { n: 8, id: "bancaire", label: "Dossier bancaire" },
+  { n: 1, id: "reception", label: "Réception", sous: "Mail trié" },
+  { n: 2, id: "preanalyse", label: "Pré-analyse", sous: "Fiche" },
+  { n: 3, id: "documents", label: "Documents", sous: "Reçus / manquants" },
+  { n: 4, id: "analyse", label: "Analyse", sous: "Grilles" },
+  { n: 5, id: "plateforme", label: "Plateforme", sous: "Projet en ligne" },
+  { n: 6, id: "clients", label: "Clients", sous: "Loom" },
+  { n: 7, id: "offre", label: "Offre", sous: "LOI" },
+  { n: 8, id: "bancaire", label: "Dossier bancaire", sous: "Après offre" },
 ];
 
 /** Les quatre phases du pipeline. */

@@ -618,7 +618,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       {/* « Action suivante » retirée de toutes les étapes le 17 oct. 2026 (Jules) ; la frise suffit. */}
       </div>
-      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} onAller={allerA} />}
+      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} onAller={allerA} vue={vue} />}
       </div>
       {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}
       {dossier && vue === "preanalyse" && lot?.simulateur && (

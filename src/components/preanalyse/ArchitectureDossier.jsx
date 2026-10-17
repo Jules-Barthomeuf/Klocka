@@ -72,11 +72,12 @@ const bloc = "k-points relative overflow-hidden rounded-[16px] border border-tra
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
 /** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
-export function ColonneDroite({ dossier, apercu = false, onAller = null }) {
+export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null }) {
   const { pieces, autres } = checklistDataRoom(dossier?.documents_espace || []);
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
-      {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Elle remplace les clients et les vues de la rue. */}
+      {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Pas dans l'Analyse. */}
+      {vue !== "analyse" && (
       <section data-zone="listes" className={bloc}>
         <button type="button" onClick={() => onAller?.("documents")} className="flex w-full items-baseline justify-between p-0 text-left" style={{ background: "transparent" }}>
           <span className="text-[15px] text-encre">Data Room</span>
@@ -99,6 +100,7 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null }) {
         </ul>
         {autres.length > 0 && <p className="m-0 mt-2 text-[12px] text-brume">Et {autres.length} autre{autres.length > 1 ? "s" : ""} pièce{autres.length > 1 ? "s" : ""} importée{autres.length > 1 ? "s" : ""}.</p>}
       </section>
+      )}
 
       {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}
       {dossier?.dossier_mandataire_id && !apercu && (

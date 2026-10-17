@@ -35,6 +35,7 @@ export default function Analyse() {
   const setOnglet = (k) => { setOngletBrut(k); try { localStorage.setItem("dossiers.onglet", k); } catch { /* sans gravité */ } };
   // Une fiche glissée n'importe où sur la liste : elle est analysée, et le dossier s'ouvre.
   const [survol, setSurvol] = useState(false);
+  const [large, setLarge] = useState(false);
   const analyserFiche = useMutation({
     mutationFn: (fichier) => { const form = new FormData(); form.append("fichier", fichier); return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true }); },
     onSuccess: (d) => { toast.success("Fiche analysée"); rafraichirListes(); montrerDeal(d.deal_id); },
@@ -268,7 +269,7 @@ export default function Analyse() {
         className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
       >
         {enWorkflow ? (
-          <div className="mx-auto max-w-[1500px]">
+          <div className={`mx-auto ${large ? "max-w-none" : "max-w-[1500px]"}`}>
             <div className="mb-4 flex items-center justify-between gap-3">
               <button
                 onClick={() => montrerDeal(null)}
@@ -309,6 +310,7 @@ export default function Analyse() {
                 enCours={majLot.isPending}
                 onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
                 onRefresh={recharger}
+                onLargeur={setLarge}
               />
               </>
             ) : (

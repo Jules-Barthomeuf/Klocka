@@ -305,7 +305,7 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
-export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const abandonne = dossier?.statut === "abandonne";
@@ -336,6 +336,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   const pleineLargeur = !!dossier && vue === "analyse" && grilleAnalyse === "simulateur";
+  // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.
+  useEffect(() => { onLargeur?.(pleineLargeur); return () => onLargeur?.(false); }, [pleineLargeur]);
   // L'onglet Marché de l'étape Analyse : le seul endroit où le chat du haut
   // change de nature.
   const surMarche = montre("analyse") && grilleAnalyse === "marche";

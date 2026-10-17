@@ -12,7 +12,7 @@ import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
 // Les pièces du dossier ouvert (17 oct. 2026, Jules) : la frise de huit
 // étapes, le verdict, l'action suivante, la colonne de droite (investisseurs
 // compatibles, documents, livrables, fil) et les trois vues nouvelles
-// (Réception, Clients, Offre). Les étapes qui existaient déjà (pré-analyse,
+// (Email, Clients, Offre). Les étapes qui existaient déjà (pré-analyse,
 // documents, analyse, plateforme, dossier bancaire) gardent leurs écrans.
 
 /** La porte du serveur (etape_max, 1 à 5) qu'une étape de la frise demande. */
@@ -141,7 +141,7 @@ export function VueReception({ dossier }) {
   ].filter(([, v]) => v);
   return (
     <div data-zone="listes" className={panneau}>
-      <h2 className="m-0 mb-4 text-[20px] font-normal text-encre">Réception</h2>
+      <h2 className="m-0 mb-4 text-[20px] font-normal text-encre">Email</h2>
       <dl className="m-0 grid grid-cols-[130px_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-[14px] max-md:grid-cols-1">
         {lignes.map(([k, v]) => (<React.Fragment key={k}><dt className="text-ardoise">{k}</dt><dd className="m-0 break-words text-encre">{v}</dd></React.Fragment>))}
       </dl>

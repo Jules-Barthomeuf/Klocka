@@ -519,7 +519,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
       {dossier && vue === "documents" && (
         <section className="mb-6 rounded-[14px] border border-trait px-4 py-3">
-          <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">Documents · {(dossier.documents_espace || []).length}</p>
+          <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">Data Room · {(dossier.documents_espace || []).length}</p>
           <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
         </section>
       )}

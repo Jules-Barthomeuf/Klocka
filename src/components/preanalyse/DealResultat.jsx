@@ -412,7 +412,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   }
 
   return (
-    <div className="overflow-hidden rounded-[16px] border border-trait bg-rail-actif">
+    <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail">
       <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:relative max-md:px-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-2">
@@ -922,9 +922,6 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
   });
   const repere = situe?.mode === "repere" && situe.lat != null ? situe : null;
   const centre = repere ? { lat: repere.lat, lon: repere.lon } : { lat: enr?.commune?.centre?.lat, lon: enr?.commune?.centre?.lon };
-  const noteSansAdresse = repere
-    ? `Adresse précise absente de la fiche : les vues sont posées sur le repère qu'elle donne, ${repere.repere}.`
-    : "Adresse précise absente de la fiche : les vues sont centrées sur la commune.";
   // Les vues de la page projet attendent un objet « projet » : on le compose.
   // La géolocalisation est mise en cache sur cet identifiant. « lot-0 » était
   // le même d'un dossier à l'autre : la rue affichée restait celle du dossier
@@ -966,7 +963,6 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
             </div>
           </figure>
         </div>
-        {!adresse && <p className="m-0 text-[12.5px] text-brume">{noteSansAdresse}</p>}
       </div>
     );
   }
@@ -995,11 +991,6 @@ export function VuesLieu({ lot, enr, coteACote = false, dealId = null, empile = 
         <div className="relative h-[420px] max-md:h-[300px] rounded-md overflow-hidden border border-trait">
           <StreetViewRue project={lieu} />
         </div>
-      )}
-      {vue !== "carte" && !adresse && (
-        <p className="m-0 text-[11px] text-brume">
-          {noteSansAdresse}
-        </p>
       )}
     </div>
   );

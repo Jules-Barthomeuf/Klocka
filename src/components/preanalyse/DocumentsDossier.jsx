@@ -210,7 +210,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                   </button>
                 </th>
                 {["Nom", "Catégorie", "Analyse", "Type", "Importé le", "Taille"].map((h, i) => (
-                  <th key={h} className={`py-2.5 text-[11px] tracking-[0.16em] uppercase text-brume font-normal ${i >= 2 ? "text-right" : "text-left"}`}>
+                  <th key={h} className={`whitespace-nowrap py-2.5 text-[11px] tracking-[0.16em] uppercase text-brume font-normal ${i >= 2 ? "pl-6 text-right" : "text-left"}`}>
                     {h}
                   </th>
                 ))}
@@ -263,7 +263,7 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           ${d.categorie_auto ? "border-menthe/40 text-menthe" : "border-bord text-ardoise"}`}
                       />
                     </td>
-                    <td className="py-3 pr-4 text-right whitespace-nowrap">
+                    <td className="py-3 pl-4 text-right whitespace-nowrap">
                       {d.extraction?.statut ? (
                         <span
                           className={`text-[12.5px] ${ETATS[d.extraction.statut]?.classe || "text-ardoise"}`}
@@ -277,9 +277,9 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                         <span className="text-[12.5px] text-brume">—</span>
                       )}
                     </td>
-                    <td className="py-3 text-right text-[12.5px] text-ardoise">{typeLisible(d.mime)}</td>
-                    <td className="py-3 text-right text-[12.5px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
-                    <td className="py-3 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
+                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">{typeLisible(d.mime)}</td>
+                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
+                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
                     <td className="py-3 text-right relative">
                       <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors max-md:-m-2 max-md:p-2" aria-label="Actions" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />

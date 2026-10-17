@@ -85,7 +85,7 @@ function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });
 }
 
-const bloc = "rounded-[16px] border border-trait bg-rail-actif p-4";
+const bloc = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail p-4";
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
 /** La colonne de droite, fixe : investisseurs compatibles (d'après Monday), Street View et plan, et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
@@ -100,7 +100,7 @@ export function ColonneDroite({ dossier, apercu = false }) {
   });
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
-      <section className={bloc}>
+      <section data-zone="listes" className={bloc}>
         {/* Titre et sous-titre retirés le 17 oct. 2026 (Jules) : la liste porte son propre libellé, « Clients possibles ». */}
         <div className="[&>div]:!mt-0 [&>div]:!border-t-0 [&>div]:!pt-0 [&>p]:!mt-0">
           <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
@@ -108,15 +108,14 @@ export function ColonneDroite({ dossier, apercu = false }) {
       </section>
 
       {lot && !apercu && (
-        <section className={bloc}>
-          <p className={titreBloc}>Street View et plan</p>
+        <section data-zone="listes" className={bloc}>
           <VuesLieu lot={lot} enr={lot.enrichissement} coteACote empile dealId={dossier?.deal_id} />
         </section>
       )}
 
       {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}
       {dossier?.dossier_mandataire_id && !apercu && (
-        <section className={bloc}>
+        <section data-zone="listes" className={bloc}>
           <p className={titreBloc}>Fil</p>
           <FilDossier dossierId={dossier.dossier_mandataire_id} cote="analyste" hauteur="max-h-none" />
         </section>
@@ -125,7 +124,7 @@ export function ColonneDroite({ dossier, apercu = false }) {
   );
 }
 
-const panneau = "rounded-[16px] border border-trait bg-rail-actif px-5 py-6";
+const panneau = "k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail px-5 py-6";
 
 /** Étape 1 : d'où vient le dossier, qui l'a envoyé, quand. */
 export function VueReception({ dossier }) {
@@ -137,7 +136,7 @@ export function VueReception({ dossier }) {
     ["Responsables", (dossier?.responsables || []).join(", ") || null],
   ].filter(([, v]) => v);
   return (
-    <div className={panneau}>
+    <div data-zone="listes" className={panneau}>
       <h2 className="m-0 mb-4 text-[20px] font-normal text-encre">Réception</h2>
       <dl className="m-0 grid grid-cols-[130px_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-[14px] max-md:grid-cols-1">
         {lignes.map(([k, v]) => (<React.Fragment key={k}><dt className="text-ardoise">{k}</dt><dd className="m-0 break-words text-encre">{v}</dd></React.Fragment>))}
@@ -149,7 +148,7 @@ export function VueReception({ dossier }) {
 /** Étape 6 : les clients à qui le bien est proposé. */
 export function VueClients({ dossier }) {
   return (
-    <div className={panneau}>
+    <div data-zone="listes" className={panneau}>
       <h2 className="m-0 mb-2 text-[20px] font-normal text-encre">Clients</h2>
       <p className="m-0 text-[14px] leading-[1.6] text-ardoise">
         {dossier?.projet_id
@@ -166,7 +165,7 @@ export function VueOffre({ dossier, apercu = false }) {
   const lettres = useLettres(apercu ? null : dossier?.deal_id);
   const liste = lettres.data || [];
   return (
-    <div className={panneau}>
+    <div data-zone="listes" className={panneau}>
       <h2 className="m-0 mb-3 text-[20px] font-normal text-encre">Offre</h2>
       {liste.length ? (
         <ul className="m-0 flex list-none flex-col gap-2 p-0">

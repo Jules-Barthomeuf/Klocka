@@ -1,24 +1,24 @@
 # État de la plateforme
 
-Écrit le 14/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 16/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-16 personnes, 3 270 pages ouvertes, 3 demandes à l'assistant, 130 actions exécutées.
+16 personnes, 3 060 pages ouvertes, 3 demandes à l'assistant, 130 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 194 | 3 | 40 | 14/10/2026 |
-| admin@klocka.local (équipe) | 487 | 0 | 0 | 11/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 083 | 3 | 40 | 16/10/2026 |
+| admin@klocka.local (équipe) | 398 | 0 | 0 | 11/10/2026 |
 | jules.btmf@gmail.com (équipe) | 281 | 0 | 0 | 21/09/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
 | test.mandataire@kpartners.fr | 101 | 0 | 0 | 10/10/2026 |
 | alexis.p@klocka.immo (équipe) | 38 | 0 | 0 | 28/09/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
-| client.demo@klocka.local | 11 | 0 | 0 | 28/09/2026 |
 | maxime.p@klocka.immo | 2 | 0 | 0 | 25/09/2026 |
+| client.demo@klocka.local | 1 | 0 | 0 | 28/09/2026 |
 | sourcing@klocka.immo | 0 | 0 | 1 | — |
 | jules.b@klocka.immo (AK dans l'application) | 0 | 0 | 36 | — |
 | admin.stress@test.local (AK dans l'application) | 0 | 0 | 4 | — |
@@ -27,42 +27,42 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 472 (14 %)
-- **Dashboard** — 341 (10 %)
-- **ALX** — 272 (8 %)
-- **AdminProjets** — 267 (8 %)
-- **Prospection** — 177 (5 %)
-- **Emailing** — 139 (4 %)
-- **Personnalisation** — 124 (4 %)
+- **Analyse** — 442 (14 %)
+- **Dashboard** — 347 (11 %)
+- **AdminProjets** — 225 (7 %)
+- **Prospection** — 192 (6 %)
+- **ALX** — 143 (5 %)
+- **Emailing** — 140 (5 %)
+- **Personnalisation** — 132 (4 %)
 - **MandataireProspection** — 100 (3 %)
-- **ProjetDetail** — 97 (3 %)
 - **KZoning** — 82 (3 %)
-- **KData** — 78 (2 %)
-- **MandataireEstimation** — 77 (2 %)
-- Le reste, sous 2 % : Outils, MandataireDossier, AdminPresentations, KExpertise, Monitoring, SimulateurRentabilite, MandataireMandat, AdminMandataires, Home, ALXCible, OffMarket, AdminClients, ConversationsMandataires, SimulateurPublic, Relances, MandataireOffMarket, AdminSuggestions, KEstimation, KFoncier, MandataireClients, AdminLeadMagnets, Offres, MesProjets, KVacance, FeuilleDeRoute, MesPresentations, FichesCommerciales, Cerveau, ValeurLocative, ALXEntrainement, ALXAtelier, KProspective, ALXBilan, SuiviAppels, MonAssistant, Validations, MandataireMarche, Vision, KTransactions, Ressources, CoutsIA, MandataireProjets, analyse, SuiviMandataires, ALXVilles, AdminEquipe, Comparateur, AdminValidations, AdminModeleZone, SuiviTesteur, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources
+- **ProjetDetail** — 80 (3 %)
+- **KData** — 79 (3 %)
+- **MandataireEstimation** — 77 (3 %)
+- Le reste, sous 2 % : Outils, MandataireDossier, AdminPresentations, KExpertise, MandataireMandat, Monitoring, SimulateurRentabilite, Home, AdminMandataires, AdminClients, OffMarket, ConversationsMandataires, SimulateurPublic, Relances, MandataireOffMarket, KEstimation, KFoncier, MesPresentations, MandataireClients, AdminLeadMagnets, Cerveau, Offres, AdminSuggestions, KVacance, FeuilleDeRoute, MesProjets, FichesCommerciales, ValeurLocative, SuiviAppels, ALXAtelier, KProspective, ALXCible, Semaine, Agents, MonAssistant, CoutsIA, Validations, MandataireMarche, Vision, KTransactions, Ressources, MandataireProjets, analyse, AdminEquipe, SuiviMandataires, SuiviAudience, SuiviTesteur, Comparateur, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources
 
 ## Ce que l'IA coûte
 
-39,19 € sur la période, 1 459 appels, 9 061 k jetons. 34 % part en tâche de fond, sans que personne clique. 53 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+38,98 € sur la période, 1 499 appels, 9 350 k jetons. 38 % part en tâche de fond, sans que personne clique. 52 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,01 € par appel | 614 | 10,33 € | — |
+| Non attribué (fond) | 0,01 € par appel | 627 | 11,56 € | — |
 | Trier ce qu’on colle dans la boîte | 0,07 € par dépôt | 79 | 9,62 € | 23 s |
 | Demander quelque chose à AK | 0,06 € par demande | 42 | 4,27 € | 14 s |
 | Demander quelque chose à l'assistant (mandataire) | 0,01 € par demande | 107 | 2,53 € | 22 s |
 | Retrouver l’annonce en ligne (fond) | 0,18 € par bien | 8 | 2,40 € | 1 min |
-| Faire le récap du matin | 0,17 € par récap | 12 | 2,11 € | 6 min |
-| Appel direct au modèle | 0,04 € par appel | 46 | 2,08 € | 28 s |
+| Faire le récap du matin | 0,17 € par récap | 14 | 2,38 € | 5 min |
 | Auditer une page avec l'agent testeur | 0,69 € par audit | 2 | 1,38 € | 8 min |
 | Extraire un document déposé | 0,03 € par document | 11 | 0,83 € | 37 s |
 | Lire une pièce du dossier | 0,05 € par document | 9 | 0,63 € | 44 s |
+| Appel direct au modèle | 0,04 € par appel | 11 | 0,41 € | 22 s |
 | Demander quelque chose à l'assistant | 0,11 € par demande | 3 | 0,38 € | 12 s |
 | Analyser une fiche commerciale | 0,03 € par fiche | 8 | 0,31 € | 13 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,64 €) · relecture de préz (0,48 €) · POST /api/prospection/mode-appel/pre-lecture (0,08 €) · cerveau (0,08 €) · template depuis une capture (0,03 €) · POST /api/prospection/rappels/:id/analyser (0,02 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,64 €) · relecture de préz (0,48 €) · cerveau (0,19 €) · POST /api/prospection/mode-appel/pre-lecture (0,14 €) · fil dossier (0,04 €) · template depuis une capture (0,03 €).
 
 ## Les leviers sur la dépense
 
@@ -89,5 +89,5 @@ Tâches de fond : 7 lancées, 7 finies, 0 ratées (loi 5, kdata 2).
 
 - L'écran de travail, c'est **Analyse** : 14 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,07 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 34 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 38 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

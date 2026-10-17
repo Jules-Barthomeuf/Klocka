@@ -515,6 +515,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 </Badge>
               )}
             </div>
+            <div className="flex flex-none items-center gap-2">
+            {actionsBarre}
             {!apercu && (
               <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
                 onAbandonner={() => {
@@ -525,6 +527,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                     .catch((e) => toast.error(e?.message || "Abandon impossible"));
                 }} />
             )}
+            </div>
           </div>}
           <FriseDossier vue={vue} atteinte={etapeFrise(dossier)} onAller={allerA} occupe={deblocageEnCours} />
         </>

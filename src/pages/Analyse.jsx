@@ -317,8 +317,6 @@ export default function Analyse() {
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
         </button>
-        <span className="flex-1" />
-        {dealId && !vueConversation && choixMode}
         {conversationDuDeal && (vueConversation ? (
           <button type="button" onClick={() => changerVue("analyse")}
             className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
@@ -354,6 +352,7 @@ export default function Analyse() {
           onRefresh={recharger}
           onLargeur={setLarge}
           onVue={setVueDossier}
+          actionsBarre={choixMode}
         />
         </>
       ) : (

@@ -8,6 +8,7 @@ import jetons from "@/design/jetons.json";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import Monitoring from "@/pages/Monitoring";
+import Competences from "@/components/haka/Competences";
 import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
 import CommunesAgent from "@/components/mandataire/CommunesAgent";
@@ -340,6 +341,8 @@ export default function Personnalisation() {
     ["habilitations", "Habilitations", vueMandataire],
     // Le Suivi (usage, appels, mandataires, audience), rangé dans Paramètres le 17 oct. 2026 (Jules).
     ["suivi", "Suivi", admin && !vueClient && !vueMandataire],
+    // Les compétences de Haka (17 oct. 2026) : Jules seul les écrit et les publie.
+    ["competences", "Compétences", !vueClient && !!user?.gere_les_acces],
   ].filter((x) => x[2]);
   const [sectionBrute, setSection] = useState(() => { try { return (typeof window !== "undefined" && window.location.hash === "#agent") ? "agent" : localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
   const section = sections.some(([k]) => k === sectionBrute) ? sectionBrute : "profil";
@@ -476,6 +479,7 @@ export default function Personnalisation() {
       {section === "mails" && <MesMails />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       {section === "suivi" && <div className="-mx-4 md:-mx-8"><Monitoring /></div>}
+      {section === "competences" && <Competences />}
       </div>
     </div>
   );

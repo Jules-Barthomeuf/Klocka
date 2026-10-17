@@ -7,6 +7,8 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
 import CompteurAValider from "@/components/dashboard/CompteurAValider";
+import CartesCompetences from "@/components/haka/CartesCompetences";
+import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -18,6 +20,8 @@ import { base44 } from "@/api/base44Client";
 // faire. Ces chiffres restent consultables sur leurs pages respectives.
 
 export default function AdminDashboardView() {
+  // Haka allumé : ses cartes remplacent « Connecter un skill ».
+  const hakaActif = !!useCompteHaka().data?.actif;
   const [conversation, setConversation] = useState(false);
   // Sur ordinateur, la pilule des boîtes rejoint le coin en haut à droite, à côté de « Rappel » (8 oct. 2026).
   const [coin, setCoin] = useState(null);
@@ -63,9 +67,10 @@ export default function AdminDashboardView() {
           <PlanDeTravail
             conversation={conversation}
             historique={historique ? <HistoriqueColonne /> : null}
-            chat={<ChatDashboard onConversation={setConversation} onHistorique={setHistorique} />}
+            chat={<ChatDashboard onConversation={setConversation} onHistorique={setHistorique} sansSkills={hakaActif} />}
           />
-          {/* Pour progresser (16 oct. 2026, Jules) : le tuto de deux minutes après un blocage, le quiz du lendemain. */}
+          {/* Les cartes de compétences de Haka (17 oct. 2026) : ce qu'il sait faire, et où il ira chercher. */}
+          {!conversation && <CartesCompetences declencheur="chat" className="mx-auto mt-10 max-w-[1000px]" />}
         </motion.div>
       </div>
     </div>

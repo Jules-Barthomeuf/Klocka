@@ -11,6 +11,7 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
+import CartesCompetences from "@/components/haka/CartesCompetences";
 import { FRISE, PHASES, classer, etapeFrise } from "@/lib/dossiers-architecture";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
@@ -370,8 +371,10 @@ export default function Analyse() {
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
         <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5 duration-500 ease-out animate-in fade-in-0 slide-in-from-left-4">
           {!chatOuvert && (
-            <div className="grid min-h-0 flex-1 place-items-center">
+            <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto py-6">
               <h1 className="m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
+              {/* Les compétences de Haka qui s'appliquent à un dossier (17 oct. 2026). */}
+              <CartesCompetences declencheur="dossier" contexte={{ deal_id: dealId, titre: dossier?.titre || dossier?.nom || null }} />
             </div>
           )}
           <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>

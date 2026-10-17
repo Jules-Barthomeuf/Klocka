@@ -71,6 +71,37 @@ export function monterHaka(app) {
     ok(res, { ok: (await T()).leverPause(req.params.id, { reprendreLePas: req.body?.relancer !== false }) });
   }));
 
+  // Les compétences (palier 3) : lisibles par l'équipe (les cartes), modifiables par Jules seul.
+  const C = () => import('../haka/competences.js');
+  const jules = async (req, res) => { const user = admin(req, res); if (!user) return null; const { estSuperAdmin } = await import('../acces-pages.js'); if (!estSuperAdmin(user)) { res.status(403).json({ error: 'Jules seul écrit les compétences.' }); return null; } return user; };
+  app.get('/api/haka/competences', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const c = await C();
+    if (req.query.declencheur) return ok(res, { competences: c.pourDeclencheur(String(req.query.declencheur)) });
+    ok(res, { competences: c.lister(), outils: c.OUTILS, declencheurs: c.DECLENCHEURS, valide_par: c.VALIDE_PAR });
+  }));
+  app.get('/api/haka/competences/:cle', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const x = (await C()).lire(req.params.cle);
+    if (!x) return res.status(404).json({ error: 'Compétence introuvable.' });
+    ok(res, { competence: x, rendu: (await C()).rendre(x) });
+  }));
+  app.put('/api/haka/competences/:cle', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, (await C()).enregistrerBrouillon(req.params.cle, req.body || {}, user));
+  }));
+  app.post('/api/haka/competences/:cle/publier', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, (await C()).publier(req.params.cle, user));
+  }));
+  app.post('/api/haka/competences/:cle/abandonner', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, (await C()).abandonnerBrouillon(req.params.cle));
+  }));
+
   // Le Suivi : coûts par dossier, décisions, motifs de rejet.
   app.get('/api/monitoring/haka', wrap(async (req, res) => {
     if (!admin(req, res)) return;

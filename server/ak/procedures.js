@@ -40,6 +40,12 @@ async function annexe(nom) {
 export async function lireProcedure({ nom } = {}) {
   const n = String(nom || '').trim().toLowerCase();
   if (!PROCEDURES[n]) return { ok: false, error: `Fiche inconnue : « ${nom} ». Fiches : ${Object.keys(PROCEDURES).join(', ')}.` };
+  // Haka (17 oct. 2026) : la version publiée dans Paramètres › Compétences l'emporte sur le fichier.
+  try {
+    const { pourAK } = await import('../haka/competences.js');
+    const publiee = pourAK(n);
+    if (publiee) return { ok: true, nom: n, fiche: publiee + await annexe(n) };
+  } catch { /* la base n'est pas là : le fichier */ }
   let texte;
   try { texte = fs.readFileSync(new URL(`${n}.md`, DOSSIER), 'utf8'); } catch { return { ok: false, error: `La fiche « ${n} » est introuvable sur le serveur.` }; }
   return { ok: true, nom: n, fiche: texte + await annexe(n) };

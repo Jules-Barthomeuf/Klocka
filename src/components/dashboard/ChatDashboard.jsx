@@ -970,7 +970,7 @@ function SeparateurJour({ iso }) {
   );
 }
 
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null}) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false}) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1071,7 +1071,10 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   useEffect(() => {
     const focaliser = () => champRef.current?.focus();
     window.addEventListener("klocka:assistant", focaliser);
-    return () => window.removeEventListener("klocka:assistant", focaliser);
+    // Une carte de compétence (Haka, 17 oct. 2026) remplit le champ ; la personne envoie.
+    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
+    window.addEventListener("klocka:composer", composer);
+    return () => { window.removeEventListener("klocka:assistant", focaliser); window.removeEventListener("klocka:composer", composer); };
   }, []);
 
   const historique = () => fil.filter((m) => m.role === "user" || m.role === "assistant").slice(-12);
@@ -2042,7 +2045,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         {fenetreEl}
         {/* La pièce jointe, l'erreur, les mails types : sous la barre. */}
         {sousBarre}
-        {!embarque && (espace === "mandataire" || espace === "admin") && (
+        {/* Les cartes de compétences de Haka remplacent « Connecter un skill » quand il est allumé (17 oct. 2026). */}
+        {!embarque && !sansSkills && (espace === "mandataire" || espace === "admin") && (
           <>
             <div className="mt-2.5 flex justify-start">
               <button type="button" onClick={() => setSkillsOuvert(true)}

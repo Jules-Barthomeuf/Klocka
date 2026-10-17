@@ -1,3 +1,4 @@
+import Cloche from "@/components/haka/Cloche";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -831,6 +832,8 @@ function LayoutContent({ children, currentPageName }) {
           {/* L'agent testeur (10 oct. 2026), à gauche du rappel : un clic, et l'IA audite la page ouverte dans un bac à sable. */}
           {testeurVisible && <div className={`fixed ${boutonRappel ? "right-[60px]" : "right-3"} top-3 z-40 max-md:hidden`}><BoutonTesteur vue={vue} /></div>}
           {boutonRappel && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
+          {/* La cloche (17 oct. 2026, Jules) : entre les boîtes connectées et le mode appel, sur toutes les pages de l'équipe. */}
+          <Cloche className={`fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
         </>
       )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}

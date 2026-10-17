@@ -54,6 +54,7 @@ import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
 import { ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
 import { FRISE, etapeFrise } from "@/lib/dossiers-architecture";
+import { useAValiderDossier } from "@/components/haka/PanneauAValiderDossier";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 
@@ -339,6 +340,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
   const colonneVide = !!dossier && vue === "analyse" && !(dossier.dossier_mandataire_id && !apercu);
   const pleineLargeur = !!dossier && vue === "analyse" && (grilleAnalyse === "simulateur" || colonneVide);
+  // Haka (17 oct. 2026) : ce qui attend dans À valider pour ce dossier, en pastille dans la barre.
+  const aValider = useAValiderDossier(dossier?.deal_id && !apercu ? dossier.deal_id : null);
   // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.
   const pageLarge = pleineLargeur || (!!dossier && vue === "preanalyse");
   useEffect(() => { onLargeur?.(pageLarge); return () => onLargeur?.(false); }, [pageLarge]);
@@ -488,6 +491,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             <span className="truncate text-[14.5px] text-encre">{dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || "Dossier"}</span>
             <span className="flex-none truncate text-[12.5px] text-ardoise">{(FRISE.find((e) => e.id === vue) || {}).label}{aRelancer ? " · à relancer" : ""}{abandonne ? " · abandonné" : ""}</span>
           </div>
+          {aValider.length > 0 && (
+            <button type="button" onClick={() => document.getElementById("a-valider-dossier")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full bg-menthe px-3 text-[12.5px] text-sur-menthe hover:bg-menthe-survol">
+              {aValider.length} à valider
+            </button>
+          )}
           {actionsBarre}
           {!apercu && <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
             onAbandonner={() => {

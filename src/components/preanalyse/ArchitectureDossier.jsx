@@ -6,6 +6,7 @@ import { base44 } from "@/api/base44Client";
 import FilDossier from "@/components/mandataire/FilDossier";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { FRISE, checklistDataRoom, etapeFrise } from "@/lib/dossiers-architecture";
+import PanneauAValiderDossier from "@/components/haka/PanneauAValiderDossier";
 
 // Les pièces du dossier ouvert (17 oct. 2026, Jules) : la frise de huit
 // étapes, le verdict, l'action suivante, la colonne de droite (investisseurs
@@ -76,6 +77,8 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
   const { pieces, autres } = checklistDataRoom(dossier?.documents_espace || []);
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
+      {/* Haka (17 oct. 2026) : ce qu'il propose pour ce dossier, en tête. */}
+      {dossier?.deal_id && !apercu && <PanneauAValiderDossier dealId={dossier.deal_id} />}
       {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Pas dans l'Analyse. */}
       {vue !== "analyse" && (
       <section data-zone="listes" className={bloc}>

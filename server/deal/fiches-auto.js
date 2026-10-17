@@ -16,7 +16,8 @@ import { Records, Meta } from '../db.js';
 import { typeDepuisCategorie } from './grille.js';
 import { ajouterSuivi } from './lifecycle.js';
 
-export const AUTO = /^(1|true|oui|yes)$/i.test(process.env.MAIL_PREANALYSE_AUTO || '');
+// Sous HAKA_FICHES (17 oct. 2026), c'est Haka qui prend les fiches : cette passe s'éteint.
+export const AUTO = /^(1|true|oui|yes)$/i.test(process.env.MAIL_PREANALYSE_AUTO || '') && !/^(1|true|oui|yes)$/i.test(process.env.HAKA_FICHES || '');
 const CLE_DEPUIS = 'mail.preanalyse_auto.depuis';
 // Une préanalyse coûte un appel au modèle : trois par passage au plus, les
 // suivantes passent au passage d'après.

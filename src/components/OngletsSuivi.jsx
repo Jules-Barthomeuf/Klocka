@@ -18,6 +18,8 @@ const PAGES = [
   { to: "/SuiviReunion", mot: "Réunion" },
   { to: "/SuiviMandataires", mot: "Mandataires" },
   { to: "/SuiviChat", mot: "Chat" },
+  // Haka (17 oct. 2026) : coûts par tâche, décisions, motifs de rejet.
+  { to: "/SuiviHaka", mot: "Haka" },
   // Coûts IA et Agent testeur retirés des onglets le 16 oct. 2026 (Jules) ; leurs pages restent à leur adresse.
 ];
 

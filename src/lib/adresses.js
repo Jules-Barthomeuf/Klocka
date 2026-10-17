@@ -22,6 +22,8 @@ export const ADRESSES = {
   Cerveau: "Intelligence",
   SuiviTesteur: "SuiviTesteur",
   SuiviChat: "SuiviChat",
+  SuiviHaka: "SuiviHaka",
+  AValider: "AValider",
   SuiviReunion: "SuiviReunion",
   // La page Semaine s'appelle Agenda depuis le 16 oct. 2026 (Jules) ; /Semaine y mène.
   Semaine: "Agenda",

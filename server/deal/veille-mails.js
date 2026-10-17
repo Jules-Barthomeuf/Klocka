@@ -132,8 +132,16 @@ async function releverVraiment(uploadDir = null) {
     const dossierUploads = uploadDir || CHEMIN_UPLOADS;
     let fiches = { crees: 0, rejoints: 0, lignes: [] };
     try {
-      const { preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
-      fiches = await preanalyserLesNouvellesFiches({ uploadDir: dossierUploads });
+      // Haka (17 oct. 2026) : sous HAKA_FICHES, chaque fiche entre en file (une tâche par mail, reprise au démarrage,
+      // le mail à l'agent attend un clic dans À valider) ; sinon l'ancienne passe, qui crée et préanalyse tout de suite.
+      const { FICHES } = await import('../haka/drapeaux.js');
+      if (FICHES) {
+        const { surReleve } = await import('../haka/declencheurs.js');
+        fiches = await surReleve({ uploadDir: dossierUploads });
+      } else {
+        const { preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
+        fiches = await preanalyserLesNouvellesFiches({ uploadDir: dossierUploads });
+      }
       erreurs.push(...(fiches.erreurs || []));
       echecs.push(...(fiches.echecs || []));
     } catch (e) {

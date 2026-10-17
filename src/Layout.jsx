@@ -389,6 +389,10 @@ function LayoutContent({ children, currentPageName }) {
     staleTime: 60 * 1000,
   });
   const layerAValider = vueAdmin ? layer?.a_valider || 0 : 0;
+  // Haka (17 oct. 2026) : ce qui attend dans À valider ; l'entrée du menu n'existe que si Haka est allumé.
+  const { data: haka } = useQuery({ queryKey: ["haka-compte"], queryFn: () => base44.request("GET", "/api/haka/propositions/compte"), enabled: vueAdmin, refetchInterval: 60 * 1000, staleTime: 30 * 1000, retry: false });
+  const hakaActif = !!haka?.actif;
+  const hakaAValider = vueAdmin && hakaActif ? (haka?.moi || 0) + (haka?.commun || 0) : 0;
   // Les messages des mandataires qui attendent une réponse, et de l'autre
   // côté ceux de Klocka que le mandataire n'a pas lus.
   const { data: conversations } = useQuery({
@@ -489,13 +493,14 @@ function LayoutContent({ children, currentPageName }) {
     Dashboard: { to: createPageUrl("Dashboard"), icon: LayoutDashboard, actif: isActivePage("Dashboard"), badge: enRetard || null, badgeColor: "bg-alerte text-white" },
     Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
+    AValider: { to: createPageUrl("AValider"), icon: ClipboardCheck, actif: isActivePage("AValider"), badge: hakaAValider || null, badgeColor: "bg-menthe text-sur-menthe" },
     Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
     ALX: { to: "/ALX", icon: Compass, actif: isActivePage("ALX") || isActivePage("ALXAtelier") || isActivePage("ALXVilles") || isActivePage("ALXCible") || isActivePage("ALXBilan"), badge: alxAFaire || null, badgeColor: "bg-rail-actif text-craie" },
     // Suivi : l'usage de la plateforme et ce que coûte chaque geste, deux onglets d'une même page.
-    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviAudience") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
+    Monitoring: { to: "/Suivi", icon: Activity, actif: isActivePage("Monitoring") || isActivePage("SuiviHaka") || isActivePage("CoutsIA") || isActivePage("SuiviAppels") || isActivePage("SuiviAudience") || isActivePage("SuiviMandataires") || isActivePage("SuiviTesteur") || isActivePage("SuiviChat") || isActivePage("SuiviReunion") },
     AdminSuggestions: { to: createPageUrl("AdminSuggestions"), icon: Lightbulb, actif: isActivePage("AdminSuggestions") },
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
@@ -538,7 +543,7 @@ function LayoutContent({ children, currentPageName }) {
     // Personnalisation (glisser-déposer d'un groupe à l'autre).
     // L'équipe (17 oct. 2026, Jules) : un menu fixe, avec ses groupes Relations et Administration, et Paramètres en bas.
     const menuEquipe = vue === "admin" && !showClientView;
-    const { principal: entrees, autre: autres } = menuEquipe ? menuAdmin(prefs.menu_masques || []) : repartir(
+    const { principal: entrees, autre: autres } = menuEquipe ? menuAdmin([...(prefs.menu_masques || []), ...(hakaActif ? [] : ["AValider"])]) : repartir(
       vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },

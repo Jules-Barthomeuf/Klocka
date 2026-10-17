@@ -52,6 +52,7 @@ import { monterCourriel } from './routes/courriel.js';
 import { monterIntegrations } from './routes/integrations.js';
 import { monterMonday } from './routes/monday.js';
 import { monterAk } from './routes/ak.js';
+import { monterHaka } from './routes/haka.js';
 import { monterFiches } from './routes/fiches.js';
 import { monterOffres } from './routes/offres.js';
 import { monterPresentations } from './routes/presentations.js';
@@ -872,7 +873,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata|mandataire|notifications)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|haka|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata|mandataire|notifications)\b/.test(
       req.path
     )
   ) {
@@ -890,7 +891,7 @@ app.use((req, res, next) => {
 // concernent que l'équipe. Sans ce filtre, un compte client — il y en a
 // soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
 // agents, et déclencher des actions en son nom.
-const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|monday|monitoring|alx|marche|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|haka|monday|monitoring|alx|marche|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
 
 app.use((req, res, next) => {
   if (AUTH_DESACTIVEE) return next();
@@ -1259,6 +1260,8 @@ monterIntegrations(app);
 
 monterMonday(app);
 monterAk(app);
+// Haka (17 oct. 2026) : la file « À valider » et ses tâches ; rien d'actif sans HAKA_FILE.
+monterHaka(app);
 monterFiches(app);
 monterOffres(app);
 monterPresentations(app);
@@ -1283,6 +1286,8 @@ monterQuestionsAppels(app);
 import('./prospection/questions-appels.js').then((m) => m.planifier()).catch((e) => console.error('[questions-appels] :', e.message));
 import('./equipe-semaine.js').then((m) => m.planifier()).catch((e) => console.error('[semaine] :', e.message));
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
+// Haka (17 oct. 2026) : ses tâches reprennent au démarrage ; un pas externe surpris en cours devient incertain, jamais rejoué.
+import('./haka/drapeaux.js').then(async (D) => { if (!D.FILE) return; await import('./haka/declencheurs.js'); const r = await (await import('./haka/taches.js')).reprendre(); if (r.reprises || r.incertaines) console.log(`[haka] ${r.reprises} tâche(s) reprise(s), ${r.incertaines} incertaine(s)`); }).catch((e) => console.error('[haka] reprise :', e.message));
 import('./layer.js').then(async (L) => { const T = await import('./layer-taches.js'); T.reprendre(); const n = L.reprendreExtractions(); if (n) console.log(`[layer] ${n} source(s) remise(s) en file d'extraction`); (await import('./layer-cycle.js')).planifier(); const R = await import('./layer-recherche.js'); const x = R.rattraper(); if (x.fts || x.embeddings_en_file) console.log(`[layer] index rattrapé : ${x.fts} fait(s) en plein texte, ${x.embeddings_en_file} embedding(s) en file`); }).catch((e) => console.error('[layer] reprise :', e.message));
 monterAudience(app);
 amorcerBacASable();

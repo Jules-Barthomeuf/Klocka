@@ -217,7 +217,7 @@ export function normalizeRecipients(value) {
   return list.map((v) => String(v).trim()).filter(Boolean);
 }
 
-function logEmail(fields) {
+export function logEmail(fields) {
   try {
     const log = Records.create('EmailLog', fields);
     // Un mail parti entre dans l'Intelligence (Layer, phase 9) ; un échec n'y touche jamais l'envoi.

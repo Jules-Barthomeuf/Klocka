@@ -14,7 +14,7 @@ import { secteurGarde } from './projet-secteur.js';
 // Fait avancer le cycle de vie d'un deal après l'envoi d'un mail d'intention :
 // trace l'envoi dans `suivi`, applique la transition de statut correspondante
 // et capitalise dans la base marché quand le deal se clôt.
-async function avancerDealApresMail(dealId, intention, sujet, destinataire, user) {
+export async function avancerDealApresMail(dealId, intention, sujet, destinataire, user) {
   const deal = Records.findBy('Deal', 'deal_id', dealId);
   if (!deal) return;
 

@@ -298,6 +298,7 @@ const ACTIONS = [
   { cle: 'questions_appels', libelle: 'AK pose ses questions sur un appel', unite: 'par appel', parAppel: true, operations: ['questions appels'], ou: 'Le Dashboard de l\'analyste : un appel corrigé, non validé, validé sans appel ou validé trop lentement (une fois par appel)' },
   { cle: 'synthese_questions_appels', libelle: 'Synthèse des retours des analystes', unite: 'par synthèse', parAppel: false, operations: ['synthese questions appels'], ou: 'Suivi > Appels > Retours : « Faire la synthèse » (Jules)' },
   { cle: 'fiche_contact', libelle: 'Lire la relation avec un agent ou une agence', unite: 'par lecture', parAppel: true, operations: ['fiche contact'], ou: 'Prospection : la fiche d\'un agent ou d\'une agence, à l\'ouverture quand un échange nouveau est arrivé (au plus une fois par heure)' },
+  { cle: 'haka_fiche', libelle: 'Haka : traiter une fiche reçue', unite: 'par fiche', parAppel: false, operations: ['haka'], ou: 'La veille des boîtes, compétence « fiche reçue » : dossier, pré-analyse, doublons, mail prêt dans À valider', fond: true },
   { cle: 'preanalyse', libelle: 'Analyser une fiche commerciale', unite: 'par fiche', parAppel: false, operations: ['pré-analyse'], ou: 'Étape Pré-analyse, ou fiche collée dans un chat' },
   { cle: 'grille', libelle: 'Mettre en forme une grille', unite: 'par grille', parAppel: false, prefixe: 'grille ', ou: 'Onglets Bail, Quittances, Copropriété, Diagnostics' },
   { cle: 'question', libelle: 'Poser une question sur les pièces', unite: 'par question', parAppel: false, operations: ['chat du dossier'], ou: 'Chat du dossier, étape Analyse' },
@@ -338,6 +339,14 @@ const ACTIONS = [
  * décision attend, elle coûte autre chose que de l'argent).
  */
 export const LEVIERS = [
+  {
+    cle: 'postgres_worker',
+    etat: 'decider',
+    titre: 'Postgres et un worker séparé pour Haka',
+    effet: 'la veille et les tâches de Haka hors du processus web',
+    ou: 'Quand haka_taches dépasse ~200 tâches par jour, ou qu\'un redémarrage interrompt des pas externes chaque semaine',
+    texte: 'Un seul processus Render porte le web, la veille et les tâches de Haka ; chaque push le redémarre une minute (le disque /var/data est attaché à ce seul service). Le jour où le volume l\'exige : Postgres et un worker à part, la file « À valider » reste la même.',
+  },
   {
     cle: 'cache',
     etat: 'pose',

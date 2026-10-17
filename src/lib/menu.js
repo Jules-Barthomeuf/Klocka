@@ -9,6 +9,8 @@ export const ENTREES_ADMIN = [
   { cle: "Semaine", label: "Agenda" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
+  // Haka (17 oct. 2026) : la file À valider ; visible quand HAKA_FILE est allumé.
+  { cle: "AValider", label: "À valider" },
   { cle: "Offres", label: "Offres" },
   { cle: "Prospection", label: "Prospection" },
   // Agents (16 oct. 2026, Jules) : tous les agents immobiliers, et tout ce qui s'est dit avec chacun.
@@ -77,6 +79,7 @@ export const MENU_ADMIN = [
   { cle: "Dashboard", label: "Dashboard" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
+  { cle: "AValider", label: "À valider" },
   { cle: "Prospection", label: "Appels" },
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.

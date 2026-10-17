@@ -59,6 +59,8 @@ export async function ouvrirBacASable({ user, vue = 'admin', id = randomBytes(4)
       KLOCKA_BAC_A_SABLE: amorce,
       // Rien ne sort du bac à sable : ni mail, ni Monday, ni veille, ni contrôles, ni récap.
       EMAILING_REEL: '', RESEND_API_KEY: '', MONDAY_TOKEN: '', MONDAY_API_TOKEN: '', OFF_MARKET_VEILLE: 'false', CONTROLES_AUTO: 'false', RENDER: '', MYNOTARY_AGENT: '',
+      // Haka (17 oct. 2026) : la file tourne dans le bac, en simulation (ni Gmail, ni envoi) ; la veille des boîtes n'y lit rien.
+      GOOGLE_GMAIL_READ: '', GOOGLE_CHAT: '', HAKA_FILE: '1', HAKA_FICHES: '1', HAKA_SIMULER: '1',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

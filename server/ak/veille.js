@@ -879,8 +879,10 @@ export const versionQuiTourne = () => version || 'sans git';
 export const etatVeille = () => ({ version: versionQuiTourne(), ...dernier, active: !!minuterie, intervalle_s: INTERVALLE_S, nom: NOM, compte: compteAk().ok ? 'connecté' : compteAk().error, taches: tachesEnCours(), reponses_en_attente: Records.list(ENTITE_REPONSE).length });
 
 /** Démarre la veille si la portée Chat est demandée ; rend vrai si elle tourne. */
+// AK_CHAT_ACTIF=false (17 oct. 2026, Jules : tout dans l'app) : le polling Google Chat ne démarre pas, le code reste.
+const CHAT_ACTIF = !/^(0|false|non|no)$/i.test(process.env.AK_CHAT_ACTIF || '');
 export function demarrerVeille() {
-  if (!chatDemande || minuterie) return !!minuterie;
+  if (!chatDemande || !CHAT_ACTIF || minuterie) return !!minuterie;
   relever().catch(() => {});
   minuterie = setInterval(() => relever().catch(() => {}), INTERVALLE_S * 1000);
   return true;

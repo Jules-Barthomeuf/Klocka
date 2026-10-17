@@ -6,6 +6,7 @@ import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDas
 import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
+import CompteurAValider from "@/components/dashboard/CompteurAValider";
 import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
@@ -54,6 +55,8 @@ export default function AdminDashboardView() {
           )}
           {/* « L'Intelligence, aujourd'hui » retirée du Dashboard le 16 oct. 2026 (Jules) ; elle reste dans la page Intelligence. */}
           {/* Les questions d'AK sur mes appels (corrigés, pas validés, sans appel, trop longs), avec mon écran rejoué (16 oct. 2026). */}
+          {/* Haka (17 oct. 2026) : ce qui attend dans À valider. */}
+          {!conversation && <CompteurAValider className="mb-4 md:mt-14" />}
           {!conversation && <QuestionsDAK className="mb-4 md:mt-14" />}
           {/* Les objections non levées, quinze secondes chacune, à résoudre ensemble (16 oct. 2026). */}
           {!conversation && <ObjectionsAResoudre className="mb-4 md:mt-14" />}

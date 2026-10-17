@@ -978,12 +978,12 @@ export default function Prospection() {
   const relancesDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), refetchInterval: 60_000, retry: false });
   // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
   const [enAppel, setEnAppel] = useState(false);
-  // La transition (17 oct. 2026, Jules) : la page sortante s'efface en se resserrant (220 ms), puis l'autre entre en montant et en s'agrandissant.
+  // La transition (17 oct. 2026, Jules : « simple, smooth ») : un fondu enchaîné, la page sortante s'efface (180 ms), l'autre apparaît (300 ms).
   const [sortant, setSortant] = useState(false);
   const basculer = (v) => {
     if (sortant) return;
     setSortant(true);
-    setTimeout(() => { if (!v) setCourante(null); setEnAppel(v); setSortant(false); }, 220);
+    setTimeout(() => { if (!v) setCourante(null); setEnAppel(v); setSortant(false); }, 180);
   };
   const basculeAppel = <BasculeModeAppel actif onChange={basculer} />;
   const choisirPartie = (k) => { setCourante(null); setEnAppel(false); setPartie(k); };
@@ -1035,15 +1035,15 @@ export default function Prospection() {
         </nav>}
       </header>
       {/* Chaque partie entre en fondu, avec une légère montée (8 oct. 2026). */}
-      <div className={`transition-[opacity,transform,filter] duration-200 ease-in ${sortant ? "scale-[0.985] opacity-0 blur-[3px]" : ""}`}>
+      <div className={`transition-opacity duration-[180ms] ease-out ${sortant ? "opacity-0" : "opacity-100"}`}>
       {enAppel && (
-        <div className="duration-500 ease-out animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-6">
+        <div className="duration-300 ease-out animate-in fade-in-0">
           {/* Sur la ligne des villes ; sans elle (une relance prise), en tête. */}
           {courante && <div className="mb-4 flex justify-end">{basculeAppel}</div>}
           <ModeAppelUnique courante={courante} setCourante={setCourante} entete={basculeAppel} />
         </div>
       )}
-      <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
+      <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0">
       {partie === "journee" && (
         <>
         <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={basculer} /></div>

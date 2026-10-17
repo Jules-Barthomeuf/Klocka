@@ -13,8 +13,9 @@ export default function SimChartCarousel({ calculs, anneeRevente, formatCurrency
 
   const go = (dir) => setIndex((i) => (i + dir + CHARTS.length) % CHARTS.length);
 
+  // Un seul cadre (17 oct. 2026, Jules) : la carte du graphique perd son propre contour, celui du carrousel reste.
   return (
-    <div className="relative border border-trait rounded-md pb-3 pt-3">
+    <div className="relative rounded-md border border-trait pb-3 pt-3 [&>div:first-child]:!border-0 [&>div:first-child]:!bg-transparent">
       <SimHeroChart calculs={calculs} anneeRevente={anneeRevente} formatCurrency={formatCurrency} metric={current.id} />
 
       <button

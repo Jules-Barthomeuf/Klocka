@@ -596,10 +596,6 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}
       {dossier && vue === "preanalyse" && lot?.simulateur && (
         <section className="mt-8">
-          <div className="mb-5 flex flex-wrap items-baseline gap-3">
-            <h2 className="m-0 text-[18px] font-semibold">Simulateur</h2>
-            <span className="text-[12.5px] text-brume">pré-rempli avec ce dossier, tous les paramètres sont manipulables</span>
-          </div>
           <SimulateurDossier parametres={lot.simulateur} dealId={dossier.deal_id} lotIndex={lot.index ?? 0} onEnregistre={onRefresh} />
         </section>
       )}

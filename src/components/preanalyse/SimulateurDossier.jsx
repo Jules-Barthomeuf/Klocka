@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, SlidersHorizontal, AlertTriangle, Save, Loader2, Check } from "lucide-react";
+import { SlidersHorizontal, AlertTriangle, Save, Loader2, Check } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -181,16 +181,6 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
     travauxBailleur, setTravauxBailleur,
   };
 
-  const reinitialiser = () => {
-    setEtat(etatInitial(parametres));
-    setVacancesLocatives(Array(25).fill(0));
-    setTravauxBailleur(travauxParDefaut());
-    setNegoPct(0);
-    apportTouche.current = parametres?.apport != null;
-    if (parametres?.apport != null) setApport(parametres.apport);
-  };
-
-
   // Données manquantes : on ne bloque pas, on signale ce qui est à poser à la main.
   const manquants = [
     !etat.prixBienFAI && "prix FAI",
@@ -207,7 +197,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
       advanced={advanced}
       activeTab={ongletActif}
       afficherScenario={false}
-      titre="Hypothèses"
+      titre="Simulateur"
       fermeParDefaut
       ouvertes={["ACQUISITION"]}
       alertes={{ prixBienFAI: !etat.prixBienFAI ? "Prix FAI à renseigner : sans lui, rien ne se calcule." : null, prixBienNegocie: !etat.prixBienNegocie ? "Prix négocié à 0." : null }}
@@ -257,13 +247,7 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
                 onClick={() => setRailOuvert((o) => !o)}
                 className={`${compact ? "" : "lg:hidden "}flex items-center gap-1.5 px-2.5 h-7 max-md:h-8 rounded-full border border-bord text-craie hover:text-encre text-[11px]`}
               >
-                <SlidersHorizontal className="w-3 h-3" /> Hypothèses
-              </button>
-              <button
-                onClick={reinitialiser}
-                className="flex items-center gap-1.5 px-2.5 h-7 max-md:h-8 rounded-full border border-bord text-craie hover:text-encre text-[11px]"
-              >
-                <RefreshCw className="w-3 h-3" /> Dossier
+                <SlidersHorizontal className="w-3 h-3" /> Simulateur
               </button>
               {dealId && (
                 <button

@@ -33,7 +33,8 @@ export const TEINTE = { clair: J.encre, texte: J.encre, doux: J.craie, muet: J.a
 export function Onglets({ items, valeur, onChange, taille = "section", className = "" }) {
   const page = taille === "page";
   return (
-    <div className={`flex overflow-x-auto border-b border-trait ${page ? "gap-7" : "gap-7"} ${className}`}>
+    // En « page », la barre ne défile jamais (17 oct. 2026, Jules) : les onglets passent à la ligne s'ils manquent de place.
+    <div className={`flex border-b border-trait gap-7 ${page ? "flex-wrap overflow-visible" : "overflow-x-auto"} ${className}`}>
       {items.map((o) => {
         const actif = valeur === o.cle;
         return (

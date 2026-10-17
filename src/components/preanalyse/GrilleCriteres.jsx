@@ -252,7 +252,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
         const resume = g ? { ok: g.resume.ok, a_checker: g.resume.a_checker || 0, warning: g.resume.warning + g.resume.a_verifier, no_go: g.resume.no_go || 0, vide: g.resume.vide + g.resume.non_lu } : null;
         const enCours = g?.remplissage?.etat === "en_cours";
         return (
-          <div key={v.id} className="overflow-hidden rounded-[16px] border border-trait bg-surface">
+          <div key={v.id} data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail">
             <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:px-4">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <h2 className="m-0 text-[18px] font-semibold text-encre">{v.titre || g?.titre || v.id}</h2>

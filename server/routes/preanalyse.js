@@ -96,6 +96,16 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
+  // Les dossiers récemment ouverts par l'équipe, sous « Projets » dans la barre (17 oct. 2026).
+  app.get('/api/preanalyse/recents', wrap(async (req, res) => {
+    const { recents } = await import('../deal/recents.js');
+    ok(res, { dossiers: recents({ limite: Math.min(10, Number(req.query.limite) || 5) }) });
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/ouvert', wrap(async (req, res) => {
+    const { noterOuverture } = await import('../deal/recents.js');
+    ok(res, { ok: true, ouvert: noterOuverture(req.params.dealId, currentUser(req)) });
+  }));
+
   app.get('/api/preanalyse/dossiers/:dealId', wrap((req, res) => {
     const d = obtenirDossier(req.params.dealId);
     if (!d) return res.status(404).json({ error: 'Dossier introuvable' });

@@ -64,6 +64,12 @@ export default function Analyse() {
     refetchOnWindowFocus: true,
   });
 
+  // Un dossier ouvert entre dans « Dossiers récents », sous Projets dans la barre (17 oct. 2026).
+  useEffect(() => {
+    if (!dealId) return;
+    base44.request("POST", `/api/preanalyse/dossiers/${dealId}/ouvert`, { body: {} }).then(() => queryClient.invalidateQueries({ queryKey: ["dossiers-recents"] })).catch(() => {});
+  }, [dealId, queryClient]);
+
   const montrerDeal = (id) => {
     const suivant = new URLSearchParams(params);
     suivant.delete("nouveau");

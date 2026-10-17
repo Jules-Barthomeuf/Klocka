@@ -1,4 +1,5 @@
 import Cloche from "@/components/haka/Cloche";
+import DossiersRecents from "@/components/DossiersRecents";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -640,6 +641,8 @@ function LayoutContent({ children, currentPageName }) {
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
+              // Sous « Projets » : les dossiers récemment ouverts par l'équipe (17 oct. 2026, Jules).
+              if (e.cle === "AdminProjets" && menuEquipe && !replie) return <React.Fragment key={e.cle}>{lien}<DossiersRecents onNaviguer={isMobile ? closeMobile : undefined} /></React.Fragment>;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}

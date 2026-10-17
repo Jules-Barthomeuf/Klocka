@@ -429,7 +429,7 @@ export default function SimulateurRentabilite() {
     setSurface(34); setLoyerInitialHTHC(27840); setLoyerSoumisTVA(false); setTauxTVA(20);
     setChargesCoproRefacturables(true); setChargesCopropriete(0); setTaxeFonciereRefacturable(true);
     setTaxeFonciere(0); setPrixBienFAI(327000); setPrixBienNegocie(327000); setApport(70000);
-    setDureeCredit(20); setTauxInteret(3.7); setTauxAssuranceCredit(0.25); setIndexation(2);
+    setDureeCredit(20); setTauxInteret(3.9); setTauxAssuranceCredit(0.25); setIndexation(2);
     setAnneeRevente(20); setRendementBrutAcheteur(6.5); setTauxCommissionAgentRevente(5);
     setRevalorisationActive(false); setRenegociationActive(false); setPretInFine(false);
     setTravauxBailleur(travauxParDefaut()); setVacancesLocatives(Array(25).fill(0));

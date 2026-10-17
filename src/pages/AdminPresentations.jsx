@@ -190,7 +190,8 @@ export default function AdminPresentations() {
                 </>
               )}
               <div className={conversation ? "w-full" : `w-full ${scinde ? "mt-6" : "mt-8 max-w-[660px] max-md:mt-6"}`}>
-                <ChatDashboard espace="presentation" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
+                {/* « Toutes les présentations » (17 oct. 2026, Jules) : vide le chat, ferme la présentation et rend la page avec la liste. */}
+                <ChatDashboard espace="presentation" libelleAccueil="Toutes les présentations" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
                   barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { presentation_id: courante } : null} onConversationId={setConversationId} />
               </div>
             </header>

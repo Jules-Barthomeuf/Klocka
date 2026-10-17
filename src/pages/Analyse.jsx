@@ -301,9 +301,9 @@ export default function Analyse() {
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
   useEffect(() => {
     if (!scinde) return undefined;
-    document.documentElement.classList.add("k-sans-barre");
+    document.documentElement.classList.add("k-sans-barre", "k-sobre", "k-sans-ak");
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre");
+    return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre", "k-sans-ak");
   }, [scinde]);
 
   // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
@@ -366,16 +366,15 @@ export default function Analyse() {
 
   if (scinde) {
     return (
-      <div className={`relative grid h-[100dvh] overflow-hidden text-encre ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
-        {/* À gauche, AK sur ce dossier ; il le lit et le corrige, l'écran suit. */}
-        <div className={`h-[100dvh] min-h-0 min-w-0 px-5 ${chatOuvert ? "overflow-hidden" : "overflow-y-auto pb-8"}`}>
+      <div className={`k-page-presentation relative grid h-[100dvh] overflow-hidden text-encre ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+        {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
+        <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5">
           {!chatOuvert && (
-            <div className="pt-10">
-              <h1 className="m-0 text-[22px] font-normal leading-[1.2] tracking-[-0.02em] text-encre">Une question sur ce dossier ?</h1>
-              <p className="m-0 mt-2 text-[13.5px] leading-[1.55] text-ardoise">AK le lit, répond, et corrige ce que vous lui dites. Le dossier, à droite, se met à jour.</p>
+            <div className="grid min-h-0 flex-1 place-items-center">
+              <h1 className="m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
             </div>
           )}
-          <div className={chatOuvert ? "w-full" : "mt-6 w-full"}>
+          <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>
             <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert}
               retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
               contexte={{ deal_id: dealId, etape: vueDossier }}

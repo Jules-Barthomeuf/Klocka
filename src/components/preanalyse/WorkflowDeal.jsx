@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight, Briefcase, Check, Clock, Download, ExternalLink, Eye, Film, FlaskConical, FolderCheck,
-  Archive, ChevronDown, ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, ThumbsDown, ThumbsUp, Trash2, Upload, RefreshCw } from "lucide-react";
+  Archive, ChevronDown, ChevronLeft, ChevronRight, Loader2, Lock, Mail, Microscope, Send, Sparkles, Trash2, Upload, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import {
   Bandeau, CarteLot, DialogMailIntention, JournalSuivi, sansVerdict,
@@ -932,19 +932,7 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
         />
       ))}
 
-      {/* La décision Oui / Non clôt l'étape. */}
-      <BlocDecision
-        dossier={dossier}
-        onRefresh={onRefresh}
-        apercu={apercu}
-        actif={apercu || (dossier.statut || "analyse") === "analyse"}
-        intentionOui="demande_documents"
-        intentionNon="refus"
-        titreOui="Oui — on poursuit"
-        descOui="Un mail de demande de documents (bail, PV d'AG, diagnostics…) est pré-rédigé pour l'agent. Le deal passe en attente de documents, avec relance automatique proposée."
-        titreNon="Non — on s'arrête là"
-        descNon="Un mail de refus courtois est pré-rédigé (« nous restons en recherche d'opportunités »). Le deal alimente la base de données marché puis part aux archives."
-      />
+      {/* Les boutons Abandonner / Poursuivre retirés le 17 oct. 2026 (Jules). */}
     </>
   );
 }
@@ -1049,79 +1037,6 @@ function DepotFiche({ onFichier, onTexte, onArreter = null, enCours = false, ape
 // Bloc de décision Oui / Non — partagé par les étapes 2 et 4
 // ---------------------------------------------------------------------------
 
-function BlocDecision({ dossier, onRefresh, actif, intentionOui, intentionNon, titreOui, descOui, titreNon, descNon, onOui = undefined, apercu }) {
-  const [dialogIntention, setDialogIntention] = useState(null);
-  // En aperçu, les cartes sont visibles mais inertes.
-  const ouvrir = (intention) => !apercu && setDialogIntention(intention);
-  const supprimer = useSupprimerDossier(dossier);
-
-  const changerStatut = useMutation({
-    mutationFn: ({ statut, note }) =>
-      base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/statut`, {
-        body: { statut, note },
-      }),
-    onSuccess: () => {
-      toast.success("Statut mis à jour");
-      onRefresh?.();
-    },
-    onError: (e) => toast.error(e?.message || "Changement de statut impossible"),
-  });
-
-  // Décision déjà prise, ou étape hors contexte : rien. Le dossier a avancé,
-  // et rappeler « Décision : oui » en bas de chaque étape n'apprend rien.
-  if (!actif) return null;
-
-  // La décision reste sous la main : deux boutons posés en bas à droite de
-  // l'écran, au-dessus de la bulle d'assistant. Un clic écrit le mail.
-  return (
-    <>
-      {/* La place que les boutons occupent : le contenu ne passe pas dessous. */}
-      <div className="h-[72px]" aria-hidden />
-      <div className="fixed z-40 right-5 bottom-[84px] max-md:right-3 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom)+70px)] flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <button
-          onClick={() => ouvrir(intentionNon)}
-           aria-label={`${titreNon} — ${descNon}`} title={`${titreNon} — ${descNon}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-alerte/60 bg-surface-pleine/95 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,.5)] text-alerte text-[13.5px] font-semibold hover:bg-alerte/20 hover:border-alerte/60 transition-colors"
-        >
-          <ThumbsDown className="w-4 h-4" /> Abandonner
-        </button>
-        <button
-          onClick={() => ouvrir(intentionOui)}
-           aria-label={`${titreOui} — ${descOui}`} title={`${titreOui} — ${descOui}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-menthe shadow-[0_10px_30px_rgba(0,0,0,.5)] text-fond text-[13.5px] font-semibold hover:bg-menthe-survol transition-colors"
-        >
-          <ThumbsUp className="w-4 h-4" /> Poursuivre
-        </button>
-      </div>
-
-      {dialogIntention && (
-        <DialogMailIntention
-          dossier={dossier}
-          intention={dialogIntention}
-          onClose={() => setDialogIntention(null)}
-          onDone={() => {
-            const etaitOui = dialogIntention === intentionOui;
-            setDialogIntention(null);
-            onRefresh?.();
-            if (etaitOui) onOui?.();
-          }}
-          onArchiverSansMail={
-            dialogIntention === intentionNon
-              ? () => {
-                  changerStatut.mutate({
-                    statut: "abandonne",
-                    note: intentionNon === "refus" ? "Refusé sans mail" : "Abandonné sans mail",
-                  });
-                  setDialogIntention(null);
-                }
-              : null
-          }
-          onSupprimer={dialogIntention === intentionNon && dossier?.statut !== "projet_cree" ? () => { setDialogIntention(null); supprimer(); } : undefined}
-        />
-      )}
-    </>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Étape 3 — Documents : attente, relance, dépôt, extraction, Drive, synthèse
@@ -1441,19 +1356,6 @@ function EtapeDecisionFinale({ dossier, onRefresh, onOui, apercu }) {
         </div>
       )}
 
-      <BlocDecision
-        dossier={dossier}
-        onRefresh={onRefresh}
-        actif={actif}
-        apercu={apercu}
-        intentionOui="presentation_client"
-        intentionNon="abandon"
-        titreOui="Proposer au client"
-        descOui="La fiche de présentation du deal et le mail au client sont pré-rédigés avec les points clés et les réserves. Rien ne part sans validation. Puis direction l'étape Plateforme."
-        titreNon="Abandonner"
-        descNon="Vous donnez les raisons en une phrase ; un mail professionnel est rédigé pour l'agent. Le dossier alimente la base marché puis part aux archives."
-        onOui={onOui}
-      />
     </>
   );
 }

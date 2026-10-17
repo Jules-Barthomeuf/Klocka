@@ -118,7 +118,7 @@ export default function MessagesAK() {
       )}
       {slot && createPortal(entree, slot)}
       {!ouvert && !slot && (
-        <div style={position} className="fixed bottom-5 z-[75] flex items-end gap-3 max-md:!left-3">
+        <div style={position} className="k-ak-flottant fixed bottom-5 z-[75] flex items-end gap-3 max-md:!left-3">
           <button type="button" onClick={() => setOuvert(true)} aria-label={nonLus ? `Assistant Klocka, ${nonLus} non lu${nonLus > 1 ? "s" : ""}` : "Assistant Klocka"} title="Assistant Klocka"
             className="relative grid h-[54px] w-[54px] flex-none place-items-center rounded-full border border-trait bg-fond p-0 shadow-[0_18px_40px_rgb(0_0_0/0.18)] transition-transform hover:scale-105">
             {nonLus > 0 && <span aria-hidden className="k-ak-anneau absolute inset-0 rounded-full" />}

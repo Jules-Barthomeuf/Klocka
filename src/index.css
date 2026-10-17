@@ -830,6 +830,8 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
    côte) pose cette classe sur <html> : la barre latérale s'efface, le
    contenu reprend sa largeur. Elle revient dès que la page retire la classe. */
 html.k-sans-barre .k-barre-laterale { display: none !important; }
+/* Un dossier en mode IA (17 oct. 2026, Jules) : pas d'AK flottant en bas à gauche, le chat du dossier est déjà là. */
+html.k-sans-ak .k-ak-flottant { display: none !important; }
 html.k-sans-barre .k-contenu { margin-left: 0 !important; }
 html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
 

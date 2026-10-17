@@ -412,7 +412,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   }
 
   return (
-    <div className="overflow-hidden rounded-[16px] border border-trait bg-surface">
+    <div className="overflow-hidden rounded-[16px] border border-trait bg-rail-actif">
       <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:relative max-md:px-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-2">
@@ -1241,7 +1241,7 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
 
   return (
     <div className="text-encre">
-      <div className="pt-2">
+      <div>
         <main className="min-w-0">
           {/* La fiche du bien : un tableau au dessin des grilles du bail. */}
           <section className="pb-8">

@@ -62,33 +62,6 @@ export function FriseDossier({ vue, atteinte, debloquee, onAller, occupe = false
   );
 }
 
-const TON_VERDICT = { GO: "text-menthe border-menthe/50", "GO SOUS RÉSERVE": "text-ambre border-ambre/50", INSUFFISANT: "text-ambre border-ambre/50", "NO-GO": "text-alerte border-alerte/50" };
-
-/** Le verdict d'AK sur le bien, avec ses chiffres, en tête de la colonne principale. */
-export function VerdictDossier({ dossier }) {
-  const lot = dossier?.lots?.[0];
-  const verdict = lot?.evaluation?.verdict;
-  if (!lot || !verdict) return null;
-  const prix = lot.lot?.prix_fai?.absent === false ? lot.lot.prix_fai.valeur : null;
-  const loyer = lot.lot?.loyer_annuel_ht_hc?.absent === false ? lot.lot.loyer_annuel_ht_hc.valeur : null;
-  const surface = lot.lot?.surface_m2?.absent === false ? lot.lot.surface_m2.valeur : null;
-  const rendement = lot.evaluation?.contexte?.rendement_net_moyen ?? lot.evaluation?.aem?.rendement_aem ?? null;
-  const chiffres = [["Prix FAI", argent(prix)], ["Loyer annuel", argent(loyer)], ["Surface", surface ? `${surface} m²` : null], ["Rendement net", rendement != null ? `${String(Math.round(rendement * 10) / 10).replace(".", ",")} %` : null]].filter(([, v]) => v);
-  return (
-    <section aria-label="Verdict" className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[16px] border border-trait bg-rail px-5 py-4">
-      <div>
-        <p className="m-0 text-[11px] uppercase tracking-[.16em] text-brume">Verdict d'AK</p>
-        <span className={`mt-1.5 inline-flex h-8 items-center rounded-full border px-3.5 text-[14px] ${TON_VERDICT[verdict] || "border-trait text-craie"}`}>{verdict}</span>
-      </div>
-      <dl className="m-0 flex flex-1 flex-wrap gap-x-7 gap-y-2">
-        {chiffres.map(([k, v]) => (
-          <div key={k}><dt className="text-[12px] text-ardoise">{k}</dt><dd className="m-0 text-[16px] tabular-nums text-encre">{v}</dd></div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
 /** L'action suivante : l'étape d'après, nommée, un clic pour y passer. */
 export function ActionSuivante({ vue, onAller, occupe = false }) {
   const i = FRISE.findIndex((e) => e.id === vue);
@@ -112,7 +85,7 @@ function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });
 }
 
-const bloc = "rounded-[16px] border border-trait bg-rail p-4";
+const bloc = "rounded-[16px] border border-trait bg-rail-actif p-4";
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
 /** La colonne de droite, fixe : investisseurs compatibles (d'après Monday), Street View et plan, et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
@@ -152,7 +125,7 @@ export function ColonneDroite({ dossier, apercu = false }) {
   );
 }
 
-const panneau = "rounded-[16px] border border-trait bg-rail px-5 py-6";
+const panneau = "rounded-[16px] border border-trait bg-rail-actif px-5 py-6";
 
 /** Étape 1 : d'où vient le dossier, qui l'a envoyé, quand. */
 export function VueReception({ dossier }) {

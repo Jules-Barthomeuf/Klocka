@@ -78,9 +78,14 @@ export const MENU_ADMIN = [
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
   { cle: "Prospection", label: "Appels" },
-  { groupe: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
-  { groupe: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }] },
+  // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
+  // première page, et des onglets en tête de page passent de l'une à l'autre.
+  { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
+  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }] },
 ];
+/** Pure : le groupe du menu de l'équipe auquel une page appartient, ou null. */
+export const groupeDe = (page) => MENU_ADMIN.find((x) => x.groupe && x.entrees.some((e) => e.cle === page)) || null;
+
 /** Hors du menu : l'Agenda (pastille du Dashboard), le Suivi (dans Paramètres), Paramètres (en bas de la barre). */
 const HORS_MENU_ADMIN = ["Semaine", "Monitoring", "Personnalisation"];
 

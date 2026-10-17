@@ -38,3 +38,12 @@ test("le menu de l'équipe (17 oct. 2026) : quatre pages, Relations, Administrat
   assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
   assert.ok(!m.autre.some((e) => e.cle === 'Offres'));
 });
+
+test('un groupe est une entrée ; une page sait son groupe', async () => {
+  const { menuAdmin, groupeDe } = await import('../src/lib/menu.js');
+  const g = menuAdmin().principal.find((x) => x.groupe === 'Relations');
+  assert.equal(g.cle, 'Relations');
+  assert.equal(groupeDe('Agents').groupe, 'Relations');
+  assert.equal(groupeDe('Cerveau').groupe, 'Administration');
+  assert.equal(groupeDe('Dashboard'), null);
+});

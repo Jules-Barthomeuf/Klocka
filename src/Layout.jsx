@@ -33,13 +33,13 @@ import {
   ChevronLeft,
   ChevronDown,
   ExternalLink,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Folder, Phone, PanelLeft, MapPin, FileSignature, SquarePen, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, menuAdmin, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, menuAdmin, repartir } from "@/lib/menu";
 import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,6 @@ import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import AKNouveauLook from "@/components/AKNouveauLook";
 import QuoiDeNeuf from "@/components/QuoiDeNeuf";
-import MessagesAK from "@/components/MessagesAK";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -339,8 +338,6 @@ function LayoutContent({ children, currentPageName }) {
   // La vue choisie par un admin : la sienne, celle d'un client, celle d'un mandataire.
   const [apercu, setApercu] = useState(apercuAdmin);
   const [autreOpen, setAutreOpen] = useState(false);
-  // Les groupes du menu de l'équipe, ouverts par défaut ; gardés le temps de la session.
-  const [groupesOuverts, setGroupesOuverts] = useState({});
   const isChildPage = CHILD_PAGES.includes(currentPageName);
 
   // Alexis : la page secrète se visite sans barre latérale — rien ne doit y mener.
@@ -621,45 +618,18 @@ function LayoutContent({ children, currentPageName }) {
           </div>
         )}
 
-        {/* Nouveau chat : retour au tableau de bord de départ (le fil se ferme,
-            la conversation reste dans l'Historique). */}
-        {(vue === "admin" || vue === "mandataire") && (
-          <div className={`mt-3 ${replie ? "flex justify-center" : "px-3"}`}>
-            <button type="button" onClick={() => { if (isMobile) closeMobile(); navigate(createPageUrl("Dashboard")); }}
-              aria-label="Nouveau chat" title="Nouveau chat"
-              className={replie
-                ? "grid h-9 w-9 place-items-center rounded-full border border-trait text-craie hover:text-encre"
-                : "flex w-full items-center gap-2.5 rounded-[10px] border border-trait px-3 py-2 text-[14px] text-encre transition-colors hover:bg-rail-actif"}
-              style={{ background: "transparent" }}>
-              <SquarePen className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
-              {!replie && "Nouveau chat"}
-            </button>
-          </div>
-        )}
+        {/* « Nouveau chat » retiré de la barre le 17 oct. 2026 (Jules). */}
 
         {/* Les pages. */}
         <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
             {entrees.map((e) => {
-              // Un groupe (Relations, Administration) : son nom, qui le replie, et ses pages dessous.
+              // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.
               if (e.groupe) {
-                const ouvert = groupesOuverts[e.groupe] !== false || e.entrees.some((x) => DETAILS[x.cle]?.actif);
-                return (
-                  <div key={e.groupe} className="mt-2">
-                    {!replie && (
-                      <button type="button" onClick={() => setGroupesOuverts((g) => ({ ...g, [e.groupe]: !ouvert }))} aria-expanded={ouvert}
-                        className="flex w-full items-center gap-1.5 px-3 py-[5px] text-[12.5px] text-brume transition-colors hover:text-encre" style={{ background: "transparent" }}>
-                        <span>{e.groupe}</span>
-                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${ouvert ? "" : "-rotate-90"}`} />
-                      </button>
-                    )}
-                    {(ouvert || replie) && (
-                      <div className="flex flex-col gap-0.5 duration-200 animate-in fade-in-0">
-                        {e.entrees.map((x) => <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={x.cle} e={x} ferme={pagesFermees.includes(x.cle)} />)}
-                      </div>
-                    )}
-                  </div>
-                );
+                const premiere = e.entrees[0];
+                return <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
+                  to={DETAILS[premiere.cle]?.to} icon={e.groupe === "Relations" ? Handshake : ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
+                  badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
@@ -701,8 +671,8 @@ function LayoutContent({ children, currentPageName }) {
         )}
         {/* Le compte. */}
         <div className={`mt-auto flex-shrink-0 border-t border-trait ${replie ? "flex flex-col items-center gap-1 py-3" : "flex items-center gap-2 px-3 py-3"}`}>
-          {/* Le bas de la barre (16 oct. 2026, Jules) : AK à gauche, toujours là (MessagesAK s'y pose), puis la déconnexion. */}
-          <div id="k-ak-slot" data-replie={replie ? "1" : "0"} className={replie ? "" : "min-w-0 flex-1"} />
+          {/* « Assistant Klocka · Discuter » retiré du bas de la barre le 17 oct. 2026 (Jules). */}
+          {!replie && <span className="min-w-0 flex-1" />}
           <button type="button" onClick={() => base44.auth.logout(window.location.origin + '/Connexion')} aria-label="Déconnexion" title="Déconnexion" className={bouton} style={{ background: "transparent" }}>
               <LogOut className="h-4 w-4" strokeWidth={1.7} />
             </button>
@@ -811,6 +781,22 @@ function LayoutContent({ children, currentPageName }) {
             hauteur minimale d'un écran plein y ajoutait 56px de vide en bas,
             sous les cartes qui, elles, tombent juste. */}
         <div key={`${location.pathname}|${vue}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
+          {/* Les pages d'un groupe du menu (Relations, Administration) : leurs onglets en tête, pour passer de l'une à l'autre. */}
+          {vue === "admin" && !showClientView && !hideNavbar && groupeDe(currentPageName) && (
+            <nav aria-label={groupeDe(currentPageName).groupe} className="flex justify-center px-4 pt-6 max-md:pt-4">
+              <div className="inline-flex gap-1 rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl">
+                {groupeDe(currentPageName).entrees.map((x) => {
+                  const ici = currentPageName === x.cle || DETAILS[x.cle]?.actif;
+                  return (
+                    <Link key={x.cle} to={DETAILS[x.cle]?.to || createPageUrl(x.cle)} aria-current={ici ? "page" : undefined}
+                      className={`inline-flex h-9 items-center rounded-full px-4 text-[14px] transition-colors ${ici ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}>
+                      {x.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </nav>
+          )}
           {pagesFermees.includes(currentPageName) ? <AccesReserve /> : children}
         </div>
       </main>
@@ -827,7 +813,7 @@ function LayoutContent({ children, currentPageName }) {
       {vueAdmin && !hideNavbar && !enCadre && <AKNouveauLook />}
       {vueAdmin && !hideNavbar && !enCadre && <QuoiDeNeuf />}
       {/* Les messages d'AK, en bas à gauche (16 oct. 2026, Jules) : la fiche pré-analysée, et la discussion. */}
-      {vueAdmin && !hideNavbar && !enCadre && <MessagesAK />}
+      {/* AK (sa tête en bas à gauche, ses messages) retiré de la barre et de l'écran le 17 oct. 2026 (Jules). */}
 
       {/* La recherche du rail, et ⌘K. */}
       {vueAdmin && <RechercheRapide ouvert={rechercheOuverte} onFermer={() => setRechercheOuverte(false)} />}

@@ -6,26 +6,21 @@ import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, Rotat
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
-import { J } from "@/design/jetons";
 import { Conversation, Resume } from "@/components/conversations/EspaceConversations";
 import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
+import { useUser } from "@/components/providers/UserProvider";
+import { FRISE, PHASES, classer, etapeFrise } from "@/lib/dossiers-architecture";
 
-// Dossiers — chaque dossier suit six étapes : Mail → Pré-analyse → Analyse →
-// Vidéo → Plateforme → Présentation. La liste présente des cartes simples
-// (nom, étape atteinte, responsable), triables ; « Nouveau dossier » démarre
-// à l'étape 1 ; ?deal_id= rouvre un dossier en cours.
-
-const ETAPES_LIBELLES = ["Mail", "Pré-analyse", "Analyse", "Vidéo", "Plateforme", "Présentation"];
+// Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
+// À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification,
+// Commercialisation, Transaction) et Écartés par AK ; le dossier ouvert suit
+// une frise de huit étapes. Les règles sont dans src/lib/dossiers-architecture.js.
+// « Nouveau dossier » démarre à la réception ; ?deal_id= rouvre un dossier en cours.
 
 // Les admins proposés à la création d'un dossier.
 const ADMINS = ["Jules", "Maxime", "Paul", "Coralie", "Nora"];
 
-const TRIS = [
-  { id: "maj", label: "Dernière modification" },
-  { id: "etape", label: "Étape" },
-  { id: "admin", label: "Admin" },
-];
 
 
 export default function Analyse() {
@@ -33,10 +28,10 @@ export default function Analyse() {
   const [params, setParams] = useSearchParams();
   const dealId = params.get("deal_id");
   const nouveau = params.get("nouveau") === "1";
-  const [tri, setTri] = useState("maj");
   // La recherche et le filtre par étape, au-dessus des cartes.
   const [recherche, setRecherche] = useState("");
-  const [etapeFiltre, setEtapeFiltre] = useState(0); // 0 : toutes
+  const [ecartesOuverts, setEcartesOuverts] = useState(false);
+  const moi = useUser()?.email || "";
   // Création d'un dossier nommé : nom + responsables, avant toute analyse.
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [nomDossier, setNomDossier] = useState("");
@@ -163,21 +158,17 @@ export default function Analyse() {
   const changerVue = (v) => { const suivant = new URLSearchParams(params); if (v === "analyse") suivant.set("vue", "analyse"); else suivant.delete("vue"); setParams(suivant); };
   const aRelancer = pipeline?.a_relancer || 0;
 
-  // Cartes triées : par modification (récent d'abord), par étape (avancé
-  // d'abord), ou groupées par admin (alphabétique puis récent).
-  const dossiers = useMemo(() => {
+  // Les trois blocs de la liste (17 oct. 2026) : À traiter, Pipeline, Écartés par AK.
+  // Chaque bloc, du plus récemment modifié au plus ancien.
+  const blocs = useMemo(() => {
     const t = recherche.trim().toLowerCase();
-    const liste = (pipeline?.dossiers || []).filter((d) => !d.archived)
-      .filter((d) => !etapeFiltre || (d.etape_max || 1) === etapeFiltre)
-      .filter((d) => !t || `${d.titre || ""} ${d.nom_fichier || ""} ${d.ville || ""} ${d.responsable || ""}`.toLowerCase().includes(t));
+    const garde = (d) => !t || `${d.titre || ""} ${d.nom_fichier || ""} ${d.ville || ""} ${d.responsable || ""}`.toLowerCase().includes(t);
     const parMaj = (a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || ""));
-    if (tri === "etape") return [...liste].sort((a, b) => (a.etape_max || 0) - (b.etape_max || 0) || parMaj(a, b));
-    if (tri === "admin") {
-      return [...liste].sort((a, b) =>
-        String(a.responsable || "zzz").localeCompare(String(b.responsable || "zzz")) || parMaj(a, b));
-    }
-    return [...liste].sort(parMaj);
-  }, [pipeline, tri, recherche, etapeFiltre]);
+    const r = classer((pipeline?.dossiers || []).filter(garde), moi);
+    r.toi.sort(parMaj); r.tiers.sort(parMaj); r.ecartes.sort(parMaj);
+    for (const k of Object.keys(r.pipeline)) r.pipeline[k].sort(parMaj);
+    return r;
+  }, [pipeline, recherche, moi]);
   const nbDossiers = (pipeline?.dossiers || []).filter((d) => !d.archived).length;
   // Les trois derniers ouverts (modifiés) en cartes, les autres en lignes dans l'ordre choisi.
   const ouvrirResponsables = (d) => {
@@ -331,14 +322,6 @@ export default function Analyse() {
                 <span className={`mr-1 text-[15px] max-md:basis-full max-md:text-[13.5px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
                   {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
                 </span>
-                <label className="relative inline-flex h-[46px] items-center gap-2.5 rounded-full border border-bord-doux bg-surface px-[18px] text-[15px] text-encre hover:border-bord-vif max-md:h-10 max-md:px-4 max-md:text-[14px]">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-ardoise" />
-                  <span>{TRIS.find((t) => t.id === tri)?.label}</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-ardoise" />
-                  <select aria-label="Trier" value={tri} onChange={(e) => setTri(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
-                    {TRIS.map((t) => <option key={t.id} value={t.id}>Trier : {t.label}</option>)}
-                  </select>
-                </label>
                 <button
                   onClick={() => setCreationOuverte(true)}
                   className="inline-flex h-[46px] items-center gap-2 rounded-full bg-menthe px-[22px] text-[15px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol max-md:h-10 max-md:px-4 max-md:text-[14px]"
@@ -354,12 +337,6 @@ export default function Analyse() {
                 <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
                 <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
-              {[[0, "Toutes"], [2, "Pré-analyse"], [3, "Analyse"], [4, "Vidéo"], [5, "Plateforme"]].map(([v, mot]) => (
-                <button key={v} type="button" onClick={() => setEtapeFiltre(v)}
-                  className={`h-12 rounded-full border px-5 text-[15px] transition-colors max-md:h-10 max-md:px-4 max-md:text-[14px] ${etapeFiltre === v ? "border-encre bg-encre text-fond" : "border-trait bg-surface text-craie hover:border-bord-doux hover:text-encre"}`}>
-                  {mot}
-                </button>
-              ))}
             </div>
 
             {/* Les cartes */}
@@ -368,21 +345,60 @@ export default function Analyse() {
               <div className="flex justify-center py-16">
                 <Loader2 className="w-6 h-6 text-ardoise animate-spin" />
               </div>
-            ) : dossiers.length === 0 ? (
+            ) : nbDossiers === 0 ? (
               <p className="text-brume text-sm text-center py-16">
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <>
-                {/* Tous les dossiers, en cartes. */}
-                <p className="m-0 mb-2.5 pt-6 text-[14px] text-ardoise">Tous les dossiers</p>
-                <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
-                  {dossiers.map((d) => (
-                    <CarteDossierAdmin key={d.deal_id} d={d} qui={(d.responsable || "").split("@")[0] || "—"} onOuvrir={() => montrerDeal(d.deal_id)}
-                      menu={<MenuDossier d={d} bouton="top-[74px] right-2.5" place="top-[106px] right-4" />} />
-                  ))}
-                </div>
-              </>
+              <div className="flex flex-col gap-10 pt-6">
+                {/* À traiter : ce qui attend, de toi ou d'un tiers. */}
+                <section aria-label="À traiter">
+                  <h2 className="m-0 mb-3 text-[11px] font-normal uppercase tracking-[.16em] text-brume">À traiter</h2>
+                  <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
+                    {[["À toi d'agir", blocs.toi, "Rien n'attend de toi."], ["En attente d'un tiers", blocs.tiers, "Personne ne te doit rien."]].map(([titre, liste, vide]) => (
+                      <div key={titre} className="rounded-[18px] border border-trait bg-surface p-4">
+                        <p className="m-0 mb-3 flex items-baseline justify-between text-[15px] text-encre">{titre}<span className="text-[13px] tabular-nums text-ardoise">{liste.length}</span></p>
+                        <div className="flex flex-col gap-2.5">
+                          {liste.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
+                          {!liste.length && <p className="m-0 py-4 text-center text-[13px] text-brume">{vide}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Pipeline : quatre phases, de la réception à la transaction. */}
+                <section aria-label="Pipeline">
+                  <h2 className="m-0 mb-3 text-[11px] font-normal uppercase tracking-[.16em] text-brume">Pipeline</h2>
+                  <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+                    {PHASES.map((ph) => (
+                      <div key={ph.id} className="rounded-[18px] border border-trait bg-rail p-4">
+                        <p className="m-0 flex items-baseline justify-between text-[15px] text-encre">{ph.label}<span className="text-[13px] tabular-nums text-ardoise">{blocs.pipeline[ph.id].length}</span></p>
+                        <p className="m-0 mb-3 mt-0.5 text-[12px] text-brume">{ph.sous}</p>
+                        <div className="flex flex-col gap-2.5">
+                          {blocs.pipeline[ph.id].map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
+                          {!blocs.pipeline[ph.id].length && <p className="m-0 py-4 text-center text-[13px] text-brume">Aucun dossier.</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Écartés par AK : abandonnés, ou jugés NO-GO. Repliés. */}
+                <section aria-label="Écartés par AK">
+                  <button type="button" onClick={() => setEcartesOuverts((v) => !v)} aria-expanded={ecartesOuverts}
+                    className="inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[11px] uppercase tracking-[.16em] text-brume transition-colors hover:text-encre">
+                    Écartés par AK <span className="tabular-nums">{blocs.ecartes.length}</span>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${ecartesOuverts ? "rotate-180" : ""}`} />
+                  </button>
+                  {ecartesOuverts && (
+                    <div className="mt-3 grid grid-cols-1 gap-2.5 duration-300 ease-out animate-in fade-in-0 slide-in-from-top-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {blocs.ecartes.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
+                      {!blocs.ecartes.length && <p className="m-0 py-3 text-[13px] text-brume">Rien d'écarté.</p>}
+                    </div>
+                  )}
+                </section>
+              </div>
             )}
           </div>
         )}
@@ -477,45 +493,24 @@ export default function Analyse() {
   );
 }
 
-const TEINTES_ETAPE = { 1: "brume", 2: "ambre", 3: "menthe", 4: "bleu", 5: "vert", 6: "vert" };
-
-/** La carte d'un dossier : la grille de points et l'étape en haut, le bien, l'avancement. */
-function CarteDossierAdmin({ d, qui, onOuvrir, menu }) {
-  const etape = Math.min(d.etape_max || 1, 5);
-  const abandonne = d.statut === "abandonne";
-  const teinte = abandonne ? J["brume"] : J[TEINTES_ETAPE[etape]];
+/** La carte compacte d'un dossier dans les blocs de la liste : nom, étape de la frise, qui, ce qui attend. */
+function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
+  const n = etapeFrise(d);
+  const verdict = d.lots?.[0]?.verdict;
   return (
-    <article className="relative flex cursor-pointer flex-col rounded-[18px] border border-trait bg-rail transition-colors hover:border-bord-doux" onClick={onOuvrir}>
-      <div className="k-grid k-grid-toujours relative h-[112px] flex-none rounded-t-[17px] border-b border-trait">
-        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-trait bg-fond px-2.5 py-[5px] text-[12px] text-craie">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: teinte }} />{abandonne ? "Abandonné" : ETAPES_LIBELLES[etape - 1]}
-          {d.a_relancer && <Clock className="h-3 w-3 text-alerte" aria-label="À relancer" />}
-        </span>
-        <span className="absolute right-4 top-[18px] inline-flex items-center gap-2 text-[12px] tabular-nums text-brume">
-          <PointNouveau n={d.fil_non_lus || 0} />{d.maj_le ? new Date(d.maj_le).toLocaleDateString("fr-FR") : ""}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-3.5 px-5 pb-5 pt-[18px]">
-        <div className="flex min-w-0 flex-col gap-2">
-          <p className="m-0 truncate text-[17px] font-medium text-encre" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</p>
-          <p className="m-0 flex min-w-0 flex-wrap items-center gap-2">
-            {d.origine === "mandataire" && <span className="flex-none rounded-full border border-menthe/40 px-2.5 py-[3px] text-[12px] text-menthe">K Partners{d.mandataire_nom ? ` · ${d.mandataire_nom}` : ""}</span>}
-            <span className="truncate text-[13px] text-ardoise">{qui}</span>
-          </p>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <div className="flex justify-between text-[12px] text-ardoise"><span>Étape</span><span className="tabular-nums">{etape} / 5</span></div>
-          <div className="grid grid-cols-5 gap-1">
-            {[1, 2, 3, 4, 5].map((n) => <span key={n} className={`h-1 rounded-full ${n <= etape ? "" : "bg-encre/[0.12]"}`} style={n <= etape ? { background: abandonne ? J["brume"] : J["menthe"] } : undefined} />)}
-          </div>
-        </div>
-      </div>
+    <article className="relative cursor-pointer rounded-[14px] border border-trait bg-fond p-3.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+      <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
+      <p className="m-0 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ardoise">
+        <span className="inline-flex items-center gap-1.5 text-craie"><span className="h-1.5 w-1.5 rounded-full bg-menthe" />{ecarte ? (d.statut === "abandonne" ? "Abandonné" : "NO-GO") : FRISE[n - 1].label}</span>
+        <span className="truncate">{qui}</span>
+        {!ecarte && verdict && <span className="flex-none text-brume">{verdict}</span>}
+        {d.origine === "mandataire" && <span className="flex-none text-menthe">K Partners</span>}
+      </p>
+      {d.pourquoi && <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[12.5px] text-ambre">{d.a_relancer && <Clock className="h-3 w-3" />}{d.pourquoi}</p>}
       <span onClick={(e) => e.stopPropagation()}>{menu}</span>
     </article>
   );
 }
-
-
 
 /**
  * Les mandataires qui écrivent à propos d'un bien pas encore transféré : il

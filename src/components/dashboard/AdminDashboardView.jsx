@@ -34,7 +34,9 @@ export default function AdminDashboardView() {
     }).catch(() => {});
   }, [search]);
   return (
-    <div className="min-h-screen">
+    <div className="relative min-h-screen">
+      {/* L'Agenda, tout à gauche de la page (17 oct. 2026, Jules : « plus à gauche »), hors de la colonne centrée. */}
+      {!conversation && <div className="absolute left-5 top-4 z-10 md:left-6"><PastilleAgenda /></div>}
       <div className={`mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pb-14 pt-4"}`}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           {/* Les boîtes d'envoi, en haut à droite : sans elles, la moitié de
@@ -42,8 +44,7 @@ export default function AdminDashboardView() {
           {!conversation && (
             <>
               {/* L'Agenda, en haut à gauche (16 oct. 2026) ; les boîtes à sa droite au téléphone, dans le coin sur ordinateur. */}
-              <div className="flex items-center justify-between gap-3">
-                <PastilleAgenda />
+              <div className="flex min-h-[38px] items-center justify-end gap-3">
                 <div className={coin ? "md:hidden" : ""}>
                   <BoiteMail />
                 </div>

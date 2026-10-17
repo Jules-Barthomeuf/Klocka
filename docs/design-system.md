@@ -799,6 +799,8 @@ lien discret `text-brume`. Le choix ouvre le champ de « Déjà appelé ? »
 la couleur reste celle du propriétaire ; le score règle l'opacité, un point
 jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
+**Dossiers, la nouvelle architecture** (Jules, 17 oct. 2026) : la liste a trois blocs. « À traiter » : deux colonnes, « À toi d'agir » et « En attente d'un tiers ». « Pipeline » : quatre colonnes `bg-rail`, Tri, Qualification, Commercialisation, Transaction. « Écartés par AK » : abandonnés ou jugés NO-GO. Cartes compactes (`CarteCompacte`, rayon 14 px) : nom, étape de la frise, qui, verdict, ce qui attend en ambre. Le dossier ouvert : nom et menu ⋯, frise de huit étapes (Réception, Pré-analyse, Documents, Analyse, Plateforme, Clients, Offre, Dossier bancaire : faite cochée, ouverte pleine, fermée au cadenas), colonne principale (verdict d'AK, contenu de l'étape, action suivante) et colonne de droite de 340 px, fixe (investisseurs compatibles, documents, livrables, fil). Les règles de classement sont dans `src/lib/dossiers-architecture.js`, testées. Les huit étapes reposent sur les cinq portes du serveur.
+
 **Relances dues dans les listes** (Jules, 17 oct. 2026) : le tableau des relances n'est plus sous la file d'Aujourd'hui ; c'est un intercalaire « Relances dues » (compteur ambre s'il y en a), première des listes. Même contenu : motifs, « Pris par », actions groupées ; un clic sur une ligne ouvre le mode appel dessus.
 
 **Suivi en classeur** (Jules, 17 oct. 2026) : les vues du Suivi (Vue d'ensemble, Par analyste, Mes appels, Journal, Retours) sont des intercalaires de classeur comme les listes, l'ouvert raccordé au panneau `bg-rail` à points qui porte le contenu. Les périodes restent au-dessus.

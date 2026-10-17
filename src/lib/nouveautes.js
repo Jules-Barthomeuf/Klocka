@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-16",
     items: [
+      { titre: "Dossiers, une nouvelle organisation", texte: "La liste se range en À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification, Commercialisation, Transaction) et Écartés par AK. Un dossier ouvert montre une frise de huit étapes, son verdict, l'action suivante et, à droite, ses documents, ses livrables et son fil.", page: "Analyse" },
       { titre: "Prospection et Relances, une seule page", texte: "Trois onglets : Aujourd'hui (qui appeler, avec les mails à envoyer à droite), Listes (« Relances dues » en première liste ; le « + » en tête cherche une ville : l'agent IA en crée la liste) et Suivi. Le mode appel est un interrupteur, à droite : allumé, il prend la place de la page.", page: "Prospection" },
       { titre: "Les notes d'appel dans Agents", texte: "Un appel raconté dans le chat s'inscrit maintenant sur la fiche de l'agent, dans Agents, en plus de Monday : dernier contact, résumé, relance. S'il n'est pas au carnet, il y entre.", page: "Agents" },
       { titre: "AK, en bas à gauche", texte: "AK a sa place en bas de la barre : parlez-lui à tout moment. Quand une fiche commerciale arrive, il la pré-analyse et vous l'écrit, la discussion s'ouvre toute seule.", page: "Dashboard" },

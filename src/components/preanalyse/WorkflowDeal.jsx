@@ -52,6 +52,8 @@ const GRILLES_ANALYSE = [
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
+import { ActionSuivante, ColonneDroite, FriseDossier, MenuActionsDossier, PORTE, VerdictDossier, VueClients, VueOffre, VueReception, vueDeLaPorte } from "@/components/preanalyse/ArchitectureDossier";
+import { etapeFrise } from "@/lib/dossiers-architecture";
 import { HistoriqueLayer } from "@/components/layer/FriseFaits";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 
@@ -325,12 +327,17 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     setEtapeBrut(n);
     try { if (cleEtape && !apercu) localStorage.setItem(cleEtape, String(n)); } catch { /* sans mémoire */ }
   };
+  // L'étape de la frise ouverte (17 oct. 2026) : huit étapes sur les cinq portes du serveur.
+  const [vue, setVue] = useState(() => vueDeLaPorte(etape, dossier));
+  useEffect(() => { if (dossier && PORTE[vue] !== etape) setVue(vueDeLaPorte(etape, dossier)); }, [etape]);
+  // Sans dossier (dépôt direct d'une fiche) l'étape se lit sur la porte ; avec un dossier, sur la frise.
+  const montre = (id) => (dossier ? vue === id : PORTE[id] === etape);
   const [preuveGrille, setPreuveGrille] = useState(null);
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   // L'onglet Marché de l'étape Analyse : le seul endroit où le chat du haut
   // change de nature.
-  const surMarche = etape === 3 && grilleAnalyse === "marche";
+  const surMarche = montre("analyse") && grilleAnalyse === "marche";
   // Les analyses K-Data rangées dans cette affaire : un onglet chacune, à
   // droite du marché, qui s'ouvre en fenêtre de lecture.
   const { data: kdata } = useQuery({
@@ -422,13 +429,23 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       });
       setEtape(cible || r.etape_max);
       onRefresh?.();
+      return true;
     } catch (e) {
       toast.error(e?.message || "Passage à l'étape impossible");
+      return false;
     } finally {
       setDeblocageEnCours(false);
     }
   };
   const passerEtapeSuivante = () => passerVersEtape(null);
+  // Un clic sur la frise : une étape pas encore atteinte débloque les précédentes.
+  const allerA = async (id) => {
+    const porte = PORTE[id];
+    if (dossier && !apercu && porte > debloquee) {
+      if (!(await passerVersEtape(porte))) return;
+    } else setEtape(porte);
+    setVue(id);
+  };
 
   const lot = dossier?.lots?.[0];
   const aRelancer =
@@ -457,11 +474,11 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
         />
       )}
 
-      {/* En-tête du dossier : nom, repères, actions */}
+      {/* En-tête du dossier : le nom, puis la frise des huit étapes. */}
       {dossier && (
-        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 max-md:gap-3 max-md:pb-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2.5">
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-4 max-md:gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
@@ -469,26 +486,19 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 </Badge>
               )}
             </div>
+            {!apercu && (
+              <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
+                onAbandonner={() => {
+                  if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
+                  base44
+                    .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
+                    .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
+                    .catch((e) => toast.error(e?.message || "Abandon impossible"));
+                }} />
+            )}
           </div>
-          <MenuEtapes
-            etape={etape}
-            debloquee={debloquee}
-            dossier={dossier}
-            deblocageEnCours={deblocageEnCours}
-            onEtape={setEtape}
-            onPasser={passerVersEtape}
-            abandonne={abandonne}
-            apercu={apercu}
-            onAbandonner={() => {
-              if (!window.confirm("Abandonner ce dossier ? Il restera consultable.")) return;
-              base44
-                .request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/abandonner`)
-                .then(() => { toast.success("Dossier abandonné"); onRefresh?.(); })
-                .catch((e) => toast.error(e?.message || "Abandon impossible"));
-            }}
-            onSupprimer={supprimer}
-          />
-        </div>
+          <FriseDossier vue={vue} atteinte={etapeFrise(dossier)} debloquee={debloquee} onAller={allerA} occupe={deblocageEnCours} />
+        </>
       )}
 
       {/* Sans dossier encore, l'étape se choisit au même endroit, en haut à droite. */}
@@ -497,10 +507,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           <MenuEtapes etape={etape} debloquee={debloquee} dossier={null} deblocageEnCours={deblocageEnCours} onEtape={setEtape} onPasser={passerVersEtape} abandonne={false} apercu={apercu} onAbandonner={() => {}} />
         </div>
       )}
-      {dossier && <div className="mb-8" />}
+      {dossier && <div className="mb-6" />}
 
+      <div className={dossier ? "grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]" : ""}>
+      <div className="min-w-0 space-y-5">
+      {dossier && <VerdictDossier dossier={dossier} />}
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
-      {dossier && etape === 3 && (
+      {dossier && vue === "documents" && (
         <section className="mb-6 rounded-[14px] border border-trait px-4 py-3">
           <p className="m-0 mb-2 text-[11px] uppercase tracking-[.16em] text-brume">Documents · {(dossier.documents_espace || []).length}</p>
           <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
@@ -508,9 +521,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       )}
 
       {/* Contenu de l'étape courante */}
-      <div key={etape} className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out space-y-5">
-        {etape === 1 && <EtapeMail dossier={dossier} onSuivant={() => setEtape(2)} apercu={apercu} brouillon={brouillonMail} onBrouillon={setBrouillonMail} />}
-        {etape === 2 && (
+      <div key={dossier ? vue : etape} className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out space-y-5">
+        {!dossier && etape === 1 && <EtapeMail dossier={dossier} onSuivant={() => setEtape(2)} apercu={apercu} brouillon={brouillonMail} onBrouillon={setBrouillonMail} />}
+        {montre("preanalyse") && (
           <EtapePreanalyse
             dossier={dossier}
             onAnalyserFichier={(fichier) => analyserFiche.mutate({ fichier })}
@@ -523,7 +536,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             apercu={apercu}
           />
         )}
-        {etape === 3 && (
+        {montre("analyse") && (
           <div id="tables-analyse" className="space-y-5">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
             <Onglets
@@ -564,9 +577,16 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             )}
           </div>
         )}
-        {etape === 3 && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
-        {etape === 4 && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
-        {etape === 5 && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
+        {montre("analyse") && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
+        {dossier && vue === "reception" && <VueReception dossier={dossier} />}
+        {dossier && vue === "clients" && <VueClients dossier={dossier} />}
+        {dossier && vue === "offre" && <VueOffre dossier={dossier} apercu={apercu} />}
+        {montre("plateforme") && <EtapePlateforme dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
+        {montre("bancaire") && <EtapePresentation dossier={dossier} onRefresh={onRefresh} apercu={apercu} />}
+      </div>
+      {dossier && <ActionSuivante vue={vue} onAller={allerA} occupe={deblocageEnCours} />}
+      </div>
+      {dossier && <ColonneDroite dossier={dossier} onAller={allerA} apercu={apercu} />}
       </div>
 
     </div>

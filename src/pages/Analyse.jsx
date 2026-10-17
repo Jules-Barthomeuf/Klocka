@@ -30,7 +30,16 @@ export default function Analyse() {
   const nouveau = params.get("nouveau") === "1";
   // La recherche et le filtre par étape, au-dessus des cartes.
   const [recherche, setRecherche] = useState("");
-  const [ecartesOuverts, setEcartesOuverts] = useState(false);
+  // Les trois onglets de la liste (17 oct. 2026) : À traiter, Pipeline, Écartés par AK.
+  const [onglet, setOngletBrut] = useState(() => { try { const x = localStorage.getItem("dossiers.onglet"); return ["traiter", "pipeline", "ecartes"].includes(x) ? x : "traiter"; } catch { return "traiter"; } });
+  const setOnglet = (k) => { setOngletBrut(k); try { localStorage.setItem("dossiers.onglet", k); } catch { /* sans gravité */ } };
+  // Une fiche glissée n'importe où sur la liste : elle est analysée, et le dossier s'ouvre.
+  const [survol, setSurvol] = useState(false);
+  const analyserFiche = useMutation({
+    mutationFn: (fichier) => { const form = new FormData(); form.append("fichier", fichier); return base44.request("POST", "/api/preanalyse/analyser", { body: form, isForm: true }); },
+    onSuccess: (d) => { toast.success("Fiche analysée"); rafraichirListes(); montrerDeal(d.deal_id); },
+    onError: (e) => toast.error(e?.message || "Analyse impossible"),
+  });
   const moi = useUser()?.email || "";
   // Création d'un dossier nommé : nom + responsables, avant toute analyse.
   const [creationOuverte, setCreationOuverte] = useState(false);
@@ -310,33 +319,45 @@ export default function Analyse() {
             )}
           </div>
         ) : (
-          <div className="max-w-[1400px] mx-auto">
-            {/* Bandeau : titre, relances, tri, nouveau dossier. */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-7">
-              <div className="flex items-baseline gap-3">
-                <h1 className="m-0 text-[34px] font-medium leading-[1.05] tracking-[-0.01em] text-encre max-md:text-[26px]">Dossiers</h1>
-                <span className="text-[15px] text-ardoise">{nbDossiers} dossier{nbDossiers > 1 ? "s" : ""}</span>
+          <div className="relative mx-auto max-w-[1400px]"
+            onDragOver={(e) => { if (e.dataTransfer?.types?.includes("Files")) { e.preventDefault(); setSurvol(true); } }}
+            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setSurvol(false); }}
+            onDrop={(e) => { e.preventDefault(); setSurvol(false); const f = e.dataTransfer?.files?.[0]; if (f && !analyserFiche.isPending) analyserFiche.mutate(f); }}>
+            {survol && (
+              <div className="pointer-events-none fixed inset-4 z-40 grid place-items-center rounded-[24px] border-2 border-dashed border-menthe bg-fond/80 text-[18px] text-encre backdrop-blur-sm duration-200 animate-in fade-in-0 md:left-[calc(var(--k-barre-largeur,0px)+16px)]">
+                Lâche la fiche pour l'ajouter
               </div>
-              {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin (9 oct. 2026). */}
-              <div className="flex flex-wrap items-center gap-2.5 md:pr-14">
-                <span className={`mr-1 text-[15px] max-md:basis-full max-md:text-[13.5px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>
-                  {aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente
-                </span>
-                <button
-                  onClick={() => setCreationOuverte(true)}
-                  className="inline-flex h-[46px] items-center gap-2 rounded-full bg-menthe px-[22px] text-[15px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol max-md:h-10 max-md:px-4 max-md:text-[14px]"
-                >
+            )}
+            {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
+            <header className="relative mb-8 flex flex-col items-center gap-6 text-center">
+              <div className="flex flex-wrap items-center justify-end gap-2.5 self-end md:absolute md:right-14 md:top-0 md:self-auto">
+                <span className={`text-[14px] max-md:text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
+                <button onClick={() => setCreationOuverte(true)}
+                  className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol">
                   <Plus className="w-4 h-4" /> Nouveau dossier
                 </button>
               </div>
-            </div>
+              <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
+              <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties des dossiers">
+                {[["traiter", "À traiter", blocs.toi.length + blocs.tiers.length], ["pipeline", "Pipeline", Object.values(blocs.pipeline).flat().length], ["ecartes", "Écartés par AK", blocs.ecartes.length]].map(([k, mot, n]) => (
+                  <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={onglet === k}
+                    className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${onglet === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
+                    style={onglet === k ? undefined : { background: "transparent" }}>
+                    {mot}<span className={`text-[12px] tabular-nums ${onglet === k ? "opacity-70" : n ? "text-menthe" : "text-brume"}`}>{n}</span>
+                  </button>
+                ))}
+              </nav>
+            </header>
 
-            {/* Recherche et étapes, sur une ligne. */}
-            <div className="flex flex-wrap items-center gap-3 pb-2 max-md:gap-2">
-              <div className="flex h-12 min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:basis-full">
+            {/* Recherche, et ce que fait la page toute seule. */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pb-2">
+              <div className="flex h-12 min-w-[240px] max-w-[460px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:max-w-none max-md:basis-full">
                 <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
-                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher un dossier" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+                <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Adresse, agent, ville" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
+              <p className="m-0 flex-1 text-[14px] text-ardoise">
+                {analyserFiche.isPending ? "AK analyse la fiche…" : "Les fiches reçues par mail sont triées par AK. Glisse une fiche n'importe où pour l'ajouter."}
+              </p>
             </div>
 
             {/* Les cartes */}
@@ -350,10 +371,8 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="flex flex-col gap-10 pt-6">
-                {/* À traiter : ce qui attend, de toi ou d'un tiers. */}
-                <section aria-label="À traiter">
-                  <h2 className="m-0 mb-3 text-[11px] font-normal uppercase tracking-[.16em] text-brume">À traiter</h2>
+              <div key={onglet} className="pt-6 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
+                {onglet === "traiter" && (
                   <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
                     {[["À toi d'agir", blocs.toi, "Rien n'attend de toi."], ["En attente d'un tiers", blocs.tiers, "Personne ne te doit rien."]].map(([titre, liste, vide]) => (
                       <div key={titre} className="rounded-[18px] border border-trait bg-surface p-4">
@@ -365,11 +384,8 @@ export default function Analyse() {
                       </div>
                     ))}
                   </div>
-                </section>
-
-                {/* Pipeline : quatre phases, de la réception à la transaction. */}
-                <section aria-label="Pipeline">
-                  <h2 className="m-0 mb-3 text-[11px] font-normal uppercase tracking-[.16em] text-brume">Pipeline</h2>
+                )}
+                {onglet === "pipeline" && (
                   <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
                     {PHASES.map((ph) => (
                       <div key={ph.id} className="rounded-[18px] border border-trait bg-rail p-4">
@@ -382,22 +398,13 @@ export default function Analyse() {
                       </div>
                     ))}
                   </div>
-                </section>
-
-                {/* Écartés par AK : abandonnés, ou jugés NO-GO. Repliés. */}
-                <section aria-label="Écartés par AK">
-                  <button type="button" onClick={() => setEcartesOuverts((v) => !v)} aria-expanded={ecartesOuverts}
-                    className="inline-flex items-center gap-2 border-0 bg-transparent p-0 text-[11px] uppercase tracking-[.16em] text-brume transition-colors hover:text-encre">
-                    Écartés par AK <span className="tabular-nums">{blocs.ecartes.length}</span>
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${ecartesOuverts ? "rotate-180" : ""}`} />
-                  </button>
-                  {ecartesOuverts && (
-                    <div className="mt-3 grid grid-cols-1 gap-2.5 duration-300 ease-out animate-in fade-in-0 slide-in-from-top-1 sm:grid-cols-2 lg:grid-cols-3">
-                      {blocs.ecartes.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
-                      {!blocs.ecartes.length && <p className="m-0 py-3 text-[13px] text-brume">Rien d'écarté.</p>}
-                    </div>
-                  )}
-                </section>
+                )}
+                {onglet === "ecartes" && (
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                    {blocs.ecartes.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
+                    {!blocs.ecartes.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Rien d'écarté.</p>}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -156,12 +156,13 @@ export function ColonneDroite({ dossier, onAller, apercu = false }) {
         ) : <p className="m-0 text-[13px] text-brume">Rien de produit pour l'instant.</p>}
       </section>
 
-      <section className={bloc}>
-        <p className={titreBloc}>Fil</p>
-        {dossier?.dossier_mandataire_id && !apercu
-          ? <FilDossier dossierId={dossier.dossier_mandataire_id} cote="analyste" hauteur="max-h-[320px]" />
-          : <p className="m-0 text-[13px] text-brume">Ce dossier ne vient pas d'un mandataire : pas de fil.</p>}
-      </section>
+      {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}
+      {dossier?.dossier_mandataire_id && !apercu && (
+        <section className={bloc}>
+          <p className={titreBloc}>Fil</p>
+          <FilDossier dossierId={dossier.dossier_mandataire_id} cote="analyste" hauteur="max-h-[320px]" />
+        </section>
+      )}
     </aside>
   );
 }

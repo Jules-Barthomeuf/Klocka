@@ -214,8 +214,9 @@ export default function SimulateurDossier({ parametres, compact = false, dealId 
     />
   );
 
+  // Un seul fond (17 oct. 2026, Jules) : les cartes du simulateur laissent voir celui du panneau, sans à-plats plus clairs.
   return (
-    <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail">
+    <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail">
       {manquants.length > 0 && (
         <div className="px-4 py-2 border-b border-trait flex items-start gap-2 text-[11px] text-menthe/80">
           <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />

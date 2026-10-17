@@ -1083,7 +1083,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     const focaliser = () => champRef.current?.focus();
     window.addEventListener("klocka:assistant", focaliser);
     // Une carte de compétence (Haka, 17 oct. 2026) remplit le champ ; la personne envoie.
-    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (e.detail.sortie) reglagesRef.current?.setSortie?.(e.detail.sortie); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
+    const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (e.detail.competence) reglagesRef.current?.choisirCompetence?.(e.detail.competence, e.detail.eteintes || []); if (e.detail.sortie) reglagesRef.current?.setSortie?.(e.detail.sortie); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
     window.addEventListener("klocka:composer", composer);
     return () => { window.removeEventListener("klocka:assistant", focaliser); window.removeEventListener("klocka:composer", composer); };
   }, [choixDossier]);
@@ -1472,7 +1472,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     let ecran = null;
     try { ecran = lireEcran?.() || null; } catch { ecran = null; }
     const r = reglagesRef.current;
-    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}) };
+    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })), ...(r.competence ? { competence: r.competence.cle, sources_eteintes: (r.eteintes || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}) };
   };
   const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide;
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);
@@ -1539,7 +1539,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const envoiEnVol = useRef(false);
   useEffect(() => { if (!boite.isPending && !analyser.isPending && !rappeler.isPending) envoiEnVol.current = false; }, [boite.isPending, analyser.isPending, rappeler.isPending]);
   const lancer = (contenu, type = null) => {
-    const t = (contenu ?? texte).trim();
+    // Une compétence choisie se lance sans texte : sa phrase part, avec le dossier s'il y en a un.
+    const parDefaut = reglagesRef.current?.competence ? `${reglagesRef.current.competence.nom}${dossierChoisi ? ` du dossier « ${dossierChoisi.titre} »` : ""}.` : "";
+    const t = (contenu ?? texte).trim() || parDefaut;
     // Une garde qui ne dépend pas du rendu (12 oct. 2026) : deux Entrée rapides partaient deux fois.
     if (enCours || rappeler.isPending || envoiEnVol.current) return;
     // Envoyer clôt la dictée : sinon le micro reste ouvert et la suite de ce
@@ -1643,15 +1645,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const barre = (
         <BordureEcoute actif={ecoute} radius="24px">
         <div
-          className="rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 shadow-[0_12px_32px_rgb(0_0_0/0.07)] max-md:px-4 max-md:pt-4"
+          className={`rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
           style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
           <textarea
             ref={champRef}
-            rows={Math.min(10, Math.max(choixDossier && !conversation ? 4 : 2, texte.split("\n").length))}
+            rows={Math.min(10, Math.max(choixDossier && !conversation ? 3 : 2, texte.split("\n").length))}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier) && !enCours) { e.preventDefault(); lancer(); } }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
             placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? "Répondre ou ajouter une précision…" : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
@@ -1678,6 +1680,13 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               </span>
             )}
             {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation} />}
+            {reglages?.competence && (
+              <span className="inline-flex h-8 min-w-0 max-w-[260px] items-center gap-1.5 rounded-full bg-menthe/10 pl-2.5 pr-1 text-[13px] text-encre">
+                <Sparkles className="h-3.5 w-3.5 flex-none text-menthe" />
+                <span className="truncate">{reglages.competence.nom}</span>
+                <button type="button" onClick={() => reglages.choisirCompetence(null)} aria-label="Retirer la compétence" title="Retirer la compétence" className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
+              </span>
+            )}
             {reglages && <BasculeSortie sortie={reglages.sortie} onChange={reglages.setSortie} />}
             {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation} />}
             {/* L'ampoule, en bas à gauche : des phrases toutes prêtes, posées
@@ -1813,7 +1822,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               <button
                 type="button"
                 onClick={() => (enCours ? controleur.current?.abort() : lancer())}
-                disabled={!enCours && !texte.trim() && !fichier}
+                disabled={!enCours && !texte.trim() && !fichier && !reglages?.competence}
                 aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe-pale text-sur-menthe-pale transition-opacity disabled:opacity-70"

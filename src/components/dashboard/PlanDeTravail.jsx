@@ -24,7 +24,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
     <div>
       {/* Un message envoyé : le salut et les colonnes s'effacent, le chat
           devient le fil. L'arbre ne change pas, le chat garde son état. */}
-      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "min-h-[calc(100dvh-7rem)] justify-center pb-10 max-md:min-h-0 max-md:justify-start" : "pt-[13vh]"}`}>
+      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "min-h-[calc(100dvh-4.5rem)] justify-center max-md:min-h-0 max-md:justify-start" : "pt-[13vh]"}`}>
         {/* Le halo sauge derrière le salut et le chat : réglage « Halo » de
             Compte (caché à « Sans » et en mode clair, par index.css). Il était
             parti avec le chat en une barre (14 sept.), sans que le réglage le sache. */}
@@ -40,7 +40,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
             Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?
           </motion.h1>
         )}
-        {chat && <div className={conversation ? "h-full w-full" : "relative mt-9 w-full max-w-[660px] max-md:mt-6"}>{chat}</div>}
+        {chat && <div className={conversation ? "h-full w-full" : `relative mt-9 w-full max-md:mt-6 ${apresChat ? "max-w-[820px]" : "max-w-[660px]"}`}>{chat}</div>}
         {!conversation && !historique && apresChat && <div className="relative w-full">{apresChat}</div>}
       </header>
 
@@ -60,7 +60,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
       {/* Historique ouvert : une seule grande colonne à la place des deux. */}
       {!conversation && historique && <div className="mt-[9vh] max-md:mt-10">{historique}</div>}
       {!conversation && !historique && bas && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto mt-14 max-w-[1000px] max-md:mt-10">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto max-w-[1000px]">
           {bas}
         </motion.div>
       )}

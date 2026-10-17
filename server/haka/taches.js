@@ -16,6 +16,7 @@
 import { randomUUID } from 'node:crypto';
 import db from '../db.js';
 import { installer } from './schema.js';
+import { ouvrir as ouvrirExecution, synchroniser } from './executions.js';
 
 installer();
 
@@ -37,9 +38,9 @@ let minuterie = null;
  *   `{ attendre: 'validation', proposition_id }` (la tâche s'arrête devant le pas externe suivant)
  *   ou `{ differer: iso }` (la tâche repart plus tard, le pas sera rejoué).
  */
-export function enregistrer(type, { version = '1', etapes, surRejet = null }) {
+export function enregistrer(type, { version = '1', etapes, surRejet = null, competence = null }) {
   if (!Array.isArray(etapes) || !etapes.length) throw new Error(`Compétence ${type} : aucun pas`);
-  competences.set(type, { version: String(version), etapes, surRejet });
+  competences.set(type, { version: String(version), etapes, surRejet, competence });
 }
 
 /** Ce qu'une compétence fait quand sa proposition est rejetée (écarter un mail préparé, par exemple). */
@@ -54,6 +55,8 @@ const lire = (t) => (t ? { ...t, charge: JSON.parse(t.charge || '{}') } : null);
 const majTache = (id, champs) => {
   const cles = Object.keys(champs);
   db.prepare(`UPDATE haka_taches SET ${cles.map((k) => `${k} = @${k}`).join(', ')}, maj_le = @maj_le WHERE id = @id`).run({ ...champs, maj_le: maintenant(), id });
+  // L'exécution de la compétence suit l'état de sa tâche.
+  if ('etat' in champs || 'dossier' in champs) { try { synchroniser(id); } catch { /* la trace ne bloque jamais la tâche */ } }
 };
 const majEtape = (id, champs) => {
   const cles = Object.keys(champs);
@@ -76,9 +79,13 @@ export function enfiler(type, charge = {}, { cle = null, pour = null, dossier = 
     const ins = db.prepare('INSERT INTO haka_etapes (id, tache_id, ordre, nom, externe, cle, etat, essais) VALUES (?, ?, ?, ?, ?, ?, ?, 0)');
     def.etapes.forEach((e, i) => ins.run(randomUUID(), id, i, e.nom, e.externe ? 1 : 0, `${id}:${e.nom}`, 'a_faire'));
   })();
+  // Une tâche d'une compétence a son exécution : la version publiée y est figée.
+  if (def.competence) { try { ouvrirExecution({ ...t, charge }, { competence: def.competence, declencheur: declencheurDe(type), lance_par: pour || 'automatisme', entrees: { cle } }); } catch (e) { console.warn(`[haka] exécution non ouverte : ${e?.message || e}`); } }
   if (lancer) setImmediate(() => tourner().catch(() => {}));
   return lire(t);
 }
+
+const declencheurDe = (type) => ({ fiche_recue: 'mail_fiche_recue', relances_matin: 'planifie', relance_mail: 'planifie', demande_equipe: 'mail_sourcing' })[type] || 'automatique';
 
 const prochaine = () => db.prepare("SELECT * FROM haka_taches WHERE etat = 'en_attente' AND (apres IS NULL OR apres <= ?) ORDER BY cree_le LIMIT 1").get(maintenant());
 

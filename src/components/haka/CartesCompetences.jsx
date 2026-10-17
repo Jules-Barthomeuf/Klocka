@@ -22,7 +22,7 @@ function Carte({ c, contexte, onLancer }) {
   const lancer = () => {
     const sans = (c.outils || []).filter((o) => eteintes.has(o.cle)).map((o) => sourceDe(o.cle).nom);
     const texte = `${c.nom}${contexte?.titre ? ` du dossier « ${contexte.titre} »` : ""}${sans.length ? ` (sans ${sans.join(", ")})` : ""}.`;
-    onLancer(texte);
+    onLancer(texte, { cle: c.cle, nom: c.nom, outils: c.outils || [] }, (c.outils || []).filter((o) => eteintes.has(o.cle)).map((o) => o.cle));
     setEteintes(new Set());
   };
   // La carte (17 oct. 2026, design de Jules) : la tâche en une phrase, puis ses sources en pastilles,
@@ -62,7 +62,7 @@ function Carte({ c, contexte, onLancer }) {
 
 const APPARITION = { cache: { opacity: 0, y: 14 }, vu: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } } };
 
-const D_ABORD = ["preanalyse", "data-room", "loi", "presentation-bancaire"];
+const D_ABORD = ["pre-analyse-fiche", "data-room", "loi", "presentation-bancaire"];
 const rang = (cle) => { const i = D_ABORD.indexOf(cle); return i < 0 ? D_ABORD.length : i; };
 
 /**
@@ -77,7 +77,7 @@ export default function CartesCompetences({ declencheur = "chat", contexte = nul
   // Les recettes se lisent même Haka éteint (17 oct. 2026, Jules : « je ne peux pas les voir ») : la carte pose une demande dans le chat, rien de plus.
   if (!liste.length) return null;
   // Lancer : le chat de la page reçoit le texte et prend la main ; rien ne part avant l'envoi.
-  const lancer = (texte) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte, contexte, sortie: "produire" } }));
+  const lancer = (texte, competence, eteintes) => window.dispatchEvent(new CustomEvent("klocka:composer", { detail: { texte, contexte, sortie: "produire", competence, eteintes } }));
   return (
     <section aria-label="Ce que Haka sait faire" className={className}>
       <p className="m-0 mb-3 text-[11px] uppercase tracking-[.16em] text-brume">Ce que Haka sait faire</p>

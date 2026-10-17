@@ -294,7 +294,11 @@ ASSETS DISPONIBLES :\n${resumeAssets()}`;
   cadrePage += await cadreLayer(texte, user);
   cadrePage += cadreEcran(contexte?.ecran);
   // Les réglages de l'Accueil (17 oct. 2026) : sources choisies, répondre ou produire.
-  cadrePage += (await import('./cadre-demande.js')).cadreDemande(contexte);
+  let competenceChoisie = null;
+  if (contexte?.competence) {
+    try { const { publiee, rendre } = await import('../haka/competences.js'); const c = publiee(String(contexte.competence)); if (c && !c.desactivee) competenceChoisie = { nom: c.nom, texte: rendre(c) }; } catch { /* la compétence n'est pas lisible : la demande part sans */ }
+  }
+  cadrePage += (await import('./cadre-demande.js')).cadreDemande(contexte, { competence: competenceChoisie });
   const fond = [];
   const apres = [];
   const actions = [];

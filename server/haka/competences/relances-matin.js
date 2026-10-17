@@ -36,6 +36,7 @@ export function proprietaireDeLAgent(agentId, { appels = null, users = null } = 
 const utilisateur = (email) => Records.list('User').find((u) => norm(u.email) === norm(email)) || null;
 
 taches.enregistrer('relance_mail', {
+  competence: 'mails-agents',
   version: VERSION,
   etapes: [
     {
@@ -77,6 +78,7 @@ taches.enregistrer('relance_mail', {
 });
 
 taches.enregistrer(COMPETENCE, {
+  competence: 'mails-agents',
   version: VERSION,
   etapes: [
     {

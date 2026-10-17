@@ -45,6 +45,7 @@ async function creerDepuisMail(mail, { user, uploadDir, contactEmail }) {
 }
 
 taches.enregistrer(COMPETENCE, {
+  competence: 'pre-analyse-fiche',
   version: VERSION,
   etapes: [
     {

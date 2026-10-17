@@ -16,10 +16,13 @@
 import { Records } from '../db.js';
 import { estSuperAdmin } from '../acces-pages.js';
 import * as taches from './taches.js';
+import { parTache } from './executions.js';
 
 const ENTITE = 'HakaProposition';
 const norm = (e) => String(e || '').trim().toLowerCase();
 const maintenant = () => new Date().toISOString();
+/** L'exécution d'où vient une proposition : on remonte ainsi d'un rejet à la compétence et à la version. */
+const executionDeLaTache = (tacheId) => { try { return tacheId ? parTache(tacheId)?.id || null : null; } catch { return null; } };
 
 /** Les libellés des types, pour l'écran et les notifications. */
 export const TYPES = {
@@ -45,7 +48,7 @@ export async function proposer({ type, titre, resume = null, charge = {}, source
     charge: charge || {}, charge_finale: null, sources: Array.isArray(sources) ? sources : [],
     pour: pour ? norm(pour) : null, dossier: dossier || null,
     etat: 'proposee', motif_rejet: null, decidee_par: null, decidee_le: null, erreur: null,
-    actions, choix, competence, version, tache_id, etape, cout_usd: Number(cout_usd) || 0,
+    actions, choix, competence, version, tache_id, etape, cout_usd: Number(cout_usd) || 0, execution_id: executionDeLaTache(tache_id),
     source: source_migration || { module: 'haka' }, resultat: null, cle, pris_par: null, cree_le: maintenant(),
   });
   try {

@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, BookOpen, Box, Brain, Building2, CalendarDays, Database, Euro, FileText, FolderOpen, Globe, Home, Key, Landmark, LayoutTemplate, Mail, Map, MapPin, Phone, Presentation, Radar, ScanSearch, Search, Store, Tag, Users, Calculator } from "lucide-react";
+import { ArrowLeftRight, BarChart3, Megaphone, MapPinned, Tags, Briefcase, BookOpen, Box, Brain, Building2, CalendarDays, Database, Euro, FileText, FolderOpen, Globe, Home, Key, Landmark, LayoutTemplate, Mail, Map, MapPin, Phone, Presentation, Radar, ScanSearch, Search, Store, Tag, Users, Calculator } from "lucide-react";
 
 // Le registre des sources (17 oct. 2026, Jules) : une clé, un nom, une icône,
 // pour tout ce que Haka peut lire ou utiliser. Les cartes de compétences, la
@@ -41,6 +41,11 @@ export const SOURCES = {
   off_market: { nom: "Off-market", icone: Radar },
   prospection: { nom: "Prospection", icone: Phone },
   adresse: { nom: "Adresse", icone: MapPin },
+  // Ajoutés avec la pré-analyse en compétence (17 oct. 2026) : le référentiel d'enseignes, les annonces, Maps, Pappers.
+  enseignes: { nom: "Référentiel d'enseignes", icone: Tags },
+  annonces: { nom: "Annonces", icone: Megaphone },
+  google_maps: { nom: "Google Maps", icone: MapPinned },
+  pappers: { nom: "Pappers", icone: Briefcase },
 };
 
 /** La source d'une clé, avec un repli lisible pour une clé inconnue. */

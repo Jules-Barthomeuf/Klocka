@@ -21,3 +21,12 @@ test('répondre : une réponse, pas de document', () => {
   assert.match(cadreDemande({ sortie: 'repondre' }), /Ne crée ni ne modifie de document/);
   assert.equal(cadreDemande({ sources: ['a\nb'.repeat(1)] }).includes('\nb'), false);
 });
+
+test('une compétence choisie : sa méthode fait foi, et les sources éteintes sont dites dans le livrable', () => {
+  const t = cadreDemande({ sources_eteintes: [{ cle: 'dvf', nom: 'DVF' }] }, { competence: { nom: "Pré-analyse d'une fiche", texte: '1. Lire la fiche.' } });
+  assert.match(t, /COMPÉTENCE « Pré-analyse d'une fiche »/);
+  assert.match(t, /1\. Lire la fiche\./);
+  assert.match(t, /SOURCES ÉTEINTES POUR CE LANCEMENT : DVF/);
+  assert.match(t, /analyse faite sans DVF/);
+  assert.equal(cadreDemande({ sources_eteintes: ['DVF'] }, { competence: null }), '', 'sans compétence, rien à dire des sources éteintes');
+});

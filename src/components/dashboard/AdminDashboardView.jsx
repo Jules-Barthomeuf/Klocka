@@ -7,12 +7,12 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
-import ColonnesAccueil from "@/components/haka/ColonnesAccueil";
 import LivrableAccueil from "@/components/haka/LivrableAccueil";
-import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
+import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
 import { useLocation } from "react-router-dom";
+import { sourceDe } from "@/lib/sources";
 import { base44 } from "@/api/base44Client";
 
 // L'Accueil de l'équipe (17 oct. 2026, Jules : « comme l'accueil de Max ») :
@@ -63,14 +63,22 @@ export default function AdminDashboardView() {
   const [sortie, setSortie] = useState("repondre");
   const [sourcesOuvert, setSourcesOuvert] = useState(false);
   const panneauSources = <PanneauSources sources={sources} onChange={setSources} />;
-  const reglages = useMemo(() => ({ sources, sortie, setSortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), panneau: panneauSources }),
+  // La compétence choisie (carte ou raccourci) : une pastille dans la saisie, « Produire », et ses sources dessous (17 oct. 2026).
+  const [competence, setCompetence] = useState(null);
+  const [eteintes, setEteintes] = useState([]);
+  const choisirCompetence = useCallback((c, eteintesDepart = []) => {
+    setCompetence(c || null);
+    setEteintes(c ? eteintesDepart : []);
+    if (c) setSortie("produire");
+  }, []);
+  const reglages = useMemo(() => ({ sources, sortie, setSortie, sourcesOuvert, onOuvrirSources: () => setSourcesOuvert((o) => !o), panneau: panneauSources, competence, eteintes, choisirCompetence }),
     // Le panneau se redessine avec les sources : elles suffisent à le suivre.
-    [sources, sortie, sourcesOuvert]);
+    [sources, sortie, sourcesOuvert, competence, eteintes, choisirCompetence]);
   // Une conversation qui commence repart d'un panneau vide ; qui se ferme, l'Accueil revient.
   const surConversation = useCallback((ouverte) => {
     setConversation(ouverte);
     if (ouverte) setDepuis((d) => d || new Date(Date.now() - 5000).toISOString());
-    else { setDepuis(null); setLivrables([]); setSortie("repondre"); }
+    else { setDepuis(null); setLivrables([]); setSortie("repondre"); setCompetence(null); setEteintes([]); }
   }, []);
   const surReponse = useCallback((r) => {
     const nouveaux = livrablesDe(r);
@@ -119,12 +127,12 @@ export default function AdminDashboardView() {
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
 
   return (
-    <div className={scinde ? `k-page-presentation relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen"}
+    <div className={scinde ? `k-page-presentation relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
       style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
       {/* L'Agenda, tout à gauche de la page (17 oct. 2026, Jules : « plus à gauche »), hors de la colonne centrée. */}
       {!conversation && <div className="absolute left-5 top-4 z-10 md:left-6"><PastilleAgenda /></div>}
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
-      <div className={scinde ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pb-14 pt-4"}`}>
+      <div className={scinde ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pt-4 max-md:pb-14"}`}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           {/* Les boîtes d'envoi, en haut à droite : dans le coin sur ordinateur, à droite de l'Agenda au téléphone. */}
           {!conversation && (
@@ -146,17 +154,29 @@ export default function AdminDashboardView() {
             apresChat={(
               <>
                 {/* Les raccourcis remplacent « Connecter un skill » ; les cartes « Ce que Haka sait faire » sont retirées de la page (17 oct. 2026, Jules). */}
-                <RaccourcisHaka dossier={dossier} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[760px]" />
+                <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
+                <Depliant ouvert={!!competence && (competence.outils || []).length > 0} className="mx-auto max-w-[900px]">
+                  <div className="flex flex-col items-center gap-2.5 pt-5">
+                    <p className="m-0 text-[13px] text-ardoise">{eteintes.length ? `Sans ${eteintes.map((c) => sourceDe(c).nom).join(", ")} : le livrable le dira.` : "Les sources de cette compétence. Un clic en éteint une pour ce lancement."}</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {[...competence?.outils || []].sort((a, b) => Number(!!b.obligatoire) - Number(!!a.obligatoire)).map((o) => (
+                        <PastilleSource key={o.cle} cle={o.cle} eteinte={eteintes.includes(o.cle)} fixe={!!o.obligatoire}
+                          title={o.obligatoire ? "Obligatoire pour cette compétence" : undefined}
+                          onClick={() => { if (!o.obligatoire) setEteintes((x) => (x.includes(o.cle) ? x.filter((k) => k !== o.cle) : [...x, o.cle])); }} />
+                      ))}
+                    </div>
+                  </div>
+                </Depliant>
                 <Depliant ouvert={sourcesOuvert} className="mx-auto max-w-[900px]"><div className="pt-6">{panneauSources}</div></Depliant>
               </>
             )}
             bas={(
-              <div className="flex flex-col gap-10">
-                <ColonnesAccueil />
-                {/* Les questions d'AK sur les appels et les objections : ce qui attend la personne, sous les deux colonnes, seulement quand il y en a. */}
-                <QuestionsDAK />
-                <ObjectionsAResoudre />
-              </div>
+              <>
+                {/* Pas de défilement sur la page (Jules, 17 oct. 2026) : « À valider » et « Fait par Haka » ont quitté la page, ce qui attend
+                    est dans la cloche. Les questions d'AK sur les appels et les objections restent, seulement quand il y en a. */}
+                <QuestionsDAK className="mt-10" />
+                <ObjectionsAResoudre className="mt-6" />
+              </>
             )}
           />
         </motion.div>

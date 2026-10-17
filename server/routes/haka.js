@@ -14,7 +14,7 @@ export function monterHaka(app) {
   const actif = (res) => { if (!FILE) { res.status(404).json({ error: 'Haka inactif (HAKA_FILE).', actif: false }); return false; } return true; };
   const F = () => import('../haka/file.js');
   const T = () => import('../haka/taches.js');
-  const repondre = (res, r) => (r.ok ? ok(res, r) : res.status(r.statut || 400).json({ error: r.error, proposition: r.proposition || null }));
+  const repondre = (res, r) => (r.ok ? ok(res, r) : res.status(r.statut || 400).json({ error: r.error, proposition: r.proposition || null, obstacles: r.obstacles || null }));
 
   app.get('/api/haka/etat', wrap(async (req, res) => {
     if (!admin(req, res)) return;
@@ -84,8 +84,24 @@ export function monterHaka(app) {
   app.get('/api/haka/competences', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const c = await C();
-    if (req.query.declencheur) return ok(res, { competences: c.pourDeclencheur(String(req.query.declencheur)) });
-    ok(res, { competences: c.lister(), outils: c.OUTILS, declencheurs: c.DECLENCHEURS, valide_par: c.VALIDE_PAR });
+    if (req.query.declencheur) { const E = await import('../haka/executions.js'); return ok(res, { competences: c.pourDeclencheur(String(req.query.declencheur)).map((x) => ({ ...x, usage: E.stats(x.cle, { jours: 30 }).executions })) }); }
+    const E = await import('../haka/executions.js');
+    ok(res, {
+      competences: c.lister().map((x) => ({ ...x, stats: E.stats(x.cle, { jours: 30 }), erreurs_format: x.brouillon ? c.validerFormat(x.brouillon) : [] })),
+      outils: c.OUTILS, declencheurs: c.DECLENCHEURS, valide_par: c.VALIDE_PAR, modes: c.MODES, destinations: c.DESTINATIONS, livrables: c.LIVRABLES,
+    });
+  }));
+  // Créer à partir d'un exemple : Haka propose un brouillon complet (en-tête et corps) ; rien n'est publié.
+  app.post('/api/haka/competences/depuis-exemple', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, await (await import('../haka/competence-depuis-exemple.js')).depuisExemple(req.body || {}, user));
+  }));
+  // Une compétence neuve (Jules) : un brouillon, sans version publiée.
+  app.post('/api/haka/competences', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, (await C()).creer(req.body || {}, user));
   }));
   app.get('/api/haka/competences/:cle', wrap(async (req, res) => {
     if (!admin(req, res)) return;
@@ -101,7 +117,50 @@ export function monterHaka(app) {
   app.post('/api/haka/competences/:cle/publier', wrap(async (req, res) => {
     const user = await jules(req, res);
     if (!user) return;
-    repondre(res, (await C()).publier(req.params.cle, user));
+    repondre(res, (await C()).publier(req.params.cle, user, { note: req.body?.note }));
+  }));
+  // « Tester » : le brouillon sur ses dossiers de test, en lecture seule, comparé à la version publiée.
+  app.post('/api/haka/competences/:cle/tester', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, await (await C()).tester(req.params.cle));
+  }));
+  app.post('/api/haka/competences/:cle/republier', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, (await C()).republier(req.params.cle, req.body?.version, user));
+  }));
+  app.post('/api/haka/competences/:cle/activer', wrap(async (req, res) => {
+    const user = await jules(req, res);
+    if (!user) return;
+    repondre(res, (await C()).basculerActivation(req.params.cle, req.body?.active !== false));
+  }));
+  // Les quatre onglets de la fiche : tests, exécutions, historique (versions, diff, rejets et corrections).
+  app.get('/api/haka/competences/:cle/tests', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const c = (await C()).lire(req.params.cle);
+    if (!c) return res.status(404).json({ error: 'Compétence introuvable.' });
+    const E = await import('../haka/executions.js');
+    ok(res, { tests: E.testsDe(c.cle, { brouillon_le: c.brouillon?.modifie_le || null }), brouillon: !!c.brouillon, tests_ok: !!(c.brouillon?.tests_pour), obstacles: (await C()).obstaclesPublication(c) });
+  }));
+  app.get('/api/haka/competences/:cle/executions', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { executions: (await import('../haka/executions.js')).lister({ competence: req.params.cle, limite: Math.min(100, Number(req.query.limite) || 30) }) });
+  }));
+  app.get('/api/haka/competences/:cle/historique', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const C2 = await C();
+    const c = C2.lire(req.params.cle);
+    if (!c) return res.status(404).json({ error: 'Compétence introuvable.' });
+    const E = await import('../haka/executions.js');
+    const diff = req.query.de && req.query.vers ? C2.diffVersions(c.cle, req.query.de, req.query.vers) : null;
+    ok(res, { versions: [...(c.versions || [])].reverse().map(({ version, publiee_le, par, note }) => ({ version, publiee_le, par, note: note || null, publiee: version === c.version })), stats: E.stats(c.cle, { jours: 90 }), diff });
+  }));
+  app.get('/api/haka/executions/:id', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const t = (await import('../haka/executions.js')).trace(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Exécution introuvable.' });
+    ok(res, { execution: t });
   }));
   app.post('/api/haka/competences/:cle/abandonner', wrap(async (req, res) => {
     const user = await jules(req, res);

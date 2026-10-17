@@ -124,7 +124,7 @@ export default function RetoursAnalystes({ jours = 30 }) {
   return (
     <div>
       <p className="m-0 mb-5 max-w-[760px] text-[13.5px] leading-[1.6] text-ardoise">
-        AK surveille le journal des appels. Un appel corrigé, pas validé au bout d'une heure, validé sans appel (moins de 15 secondes, ni enregistrement ni notes) ou validé plus de {Math.round(data.seuil_validation_s / 60)} minutes après le raccrochage donne une question, posée à l'analyste dans son Dashboard avec son écran rejoué. Ses réponses arrivent ici.
+        AK surveille le journal des appels. Un appel corrigé, pas validé au bout d'une heure, validé sans appel (moins de 15 secondes, ni enregistrement ni notes) ou validé plus de {Math.round(data.seuil_validation_s / 60)} minutes après le raccrochage donne une question, posée à l'analyste sur son Accueil avec son écran rejoué. Ses réponses arrivent ici.
       </p>
 
       <div className="mb-6 grid grid-cols-5 gap-3 max-md:grid-cols-2">

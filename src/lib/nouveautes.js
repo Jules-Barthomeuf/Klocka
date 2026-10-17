@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-17",
     items: [
+      { titre: "L'Accueil", texte: "Le Dashboard devient l'Accueil : vous donnez du travail à l'assistant et vous voyez ce qu'il a préparé. Choisissez un dossier dans la saisie pour qu'il l'ait en contexte, lancez une demande d'un raccourci, et retrouvez en bas ce qui attend votre clic et ce qu'il a fait seul.", page: "Dashboard" },
       { titre: "Un menu plus court", texte: "Dashboard, Projets, Dossiers, Appels, puis Relations (Clients, Agents) et Administration (Intelligence, Utilisateurs). Le reste est dans Autre. Paramètres est en bas de la barre, avec le Suivi dedans.", page: "Personnalisation" },
     ],
   },

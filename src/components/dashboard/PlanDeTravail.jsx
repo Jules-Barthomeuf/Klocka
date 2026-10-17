@@ -11,7 +11,9 @@ import { J, alpha } from "@/design/jetons";
 // Rien ne part vers l'extérieur sans que le texte ait été relu : une action
 // « mail » ouvre un brouillon éditable, jamais un envoi.
 
-export default function PlanDeTravail({ chat = null, conversation = false, historique = null }) {
+// L'Accueil (17 oct. 2026, Jules) : `apresChat` (raccourcis et cartes de Haka) se pose sous la saisie,
+// `bas` (À valider, Fait par Haka) prend la place de « Ce qui vous attend ».
+export default function PlanDeTravail({ chat = null, conversation = false, historique = null, apresChat = null, bas = null }) {
   const utilisateur = useUser();
   const brut = (utilisateur?.full_name || utilisateur?.email || "").split(/[ @]/)[0] || "";
   const prenom = brut ? brut.charAt(0).toUpperCase() + brut.slice(1) : "";
@@ -22,7 +24,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
     <div>
       {/* Un message envoyé : le salut et les colonnes s'effacent, le chat
           devient le fil. L'arbre ne change pas, le chat garde son état. */}
-      <header className={conversation ? "flex flex-col" : "relative flex flex-col items-center pt-[13vh] text-center max-md:pt-8"}>
+      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "pt-[9vh]" : "pt-[13vh]"}`}>
         {/* Le halo sauge derrière le salut et le chat : réglage « Halo » de
             Compte (caché à « Sans » et en mode clair, par index.css). Il était
             parti avec le chat en une barre (14 sept.), sans que le réglage le sache. */}
@@ -38,7 +40,8 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
             Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?
           </motion.h1>
         )}
-        {chat && <div className={conversation ? "w-full" : "relative mt-9 w-full max-w-[660px] max-md:mt-6"}>{chat}</div>}
+        {chat && <div className={conversation ? "h-full w-full" : "relative mt-9 w-full max-w-[660px] max-md:mt-6"}>{chat}</div>}
+        {!conversation && !historique && apresChat && <div className="relative w-full">{apresChat}</div>}
       </header>
 
       {/* Le stockage, tant qu'il n'est pas sûr : on ne découvre pas la perte après coup. */}
@@ -56,7 +59,12 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
           bloc vide se cache : une barre au-dessus du néant ne sépare rien. */}
       {/* Historique ouvert : une seule grande colonne à la place des deux. */}
       {!conversation && historique && <div className="mt-[9vh] max-md:mt-10">{historique}</div>}
-      {!conversation && !historique && (
+      {!conversation && !historique && bas && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto mt-14 max-w-[1000px] max-md:mt-10">
+          {bas}
+        </motion.div>
+      )}
+      {!conversation && !historique && !bas && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }} className="mx-auto mt-[9vh] grid max-w-[440px] gap-y-8 max-md:mt-10">
           <CeQuiVousAttend />
         </motion.div>

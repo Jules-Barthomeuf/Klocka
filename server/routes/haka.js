@@ -22,6 +22,13 @@ export function monterHaka(app) {
     ok(res, { ...drapeaux(), file: FILE ? t.etatFile() : null, plafond: FILE ? { jour: t.tachesDuJour('fiche_recue'), max: drapeaux().plafond_jour } : null });
   }));
 
+  // « Fait par Haka », sur l'Accueil : les passes de la veille (actives sans drapeau) et les tâches de Haka.
+  app.get('/api/haka/fait', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { faitParHaka } = await import('../haka/fait.js');
+    ok(res, { items: await faitParHaka({ jours: Number(req.query.jours) || 7, limite: Math.min(20, Number(req.query.limite) || 8) }) });
+  }));
+
   // Le compteur : sans drapeau, l'écran cache l'entrée du menu.
   app.get('/api/haka/propositions/compte', wrap(async (req, res) => {
     const user = admin(req, res);

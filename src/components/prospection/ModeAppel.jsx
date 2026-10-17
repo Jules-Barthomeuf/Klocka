@@ -932,7 +932,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       const f = new FormData();
       f.append("audio", clip, "objection.wav");
       return base44.request("POST", `${API}/appels/${ap.id}/objection`, { body: f, isForm: true });
-    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur le Dashboard.` }); }).catch(() => {});
+    }).then((r) => { if (r?.objection && !r.deja) toast("Objection envoyée à l'équipe", { description: `« ${phrase.slice(0, 90)} » : quinze secondes à écouter sur l'Accueil.` }); }).catch(() => {});
   };
   // La part de parole : l'audio entier part après coup, sans rien attendre ; jamais sur un appel simulé ni sans transcription gardée.
   const envoyerParole = (id) => {

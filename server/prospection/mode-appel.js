@@ -792,10 +792,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // La transcription se garde avec l'appel (13 oct. 2026, Jules : « un journal d'appels par analyste, les notes, les transcriptions »).
   const transcriptionGardee = String(transcription || lu.appel.transcription || '').trim().slice(0, 30000) || null;
   Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, transcription_gardee: transcriptionGardee, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
-  // Le coach (16 oct. 2026, Jules) : une objection que l'appel n'a pas levée, et un tuto de deux minutes part pour l'analyste.
-  if (lu.appel.objection?.phrase && user?.email && !process.env.NODE_TEST_CONTEXT) {
-    import('../coaching.js').then((m) => m.creerTuto({ par: user.email, sujet: `Répondre à « ${lu.appel.objection.sujet || lu.appel.objection.phrase} »`, contexte: lu.appel.objection.phrase, appel_id: lu.appel.id, source: 'objection' })).catch((e) => console.warn('[coach]', e?.message || e));
-  }
+  // Le coach (tuto après une objection non levée) retiré le 17 oct. 2026 (Jules) : server/coaching.js reste, rien ne l'appelle plus.
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }
   // « Message laissé » (13 oct. 2026, Jules) : pas de lecture, l'écran des actions proposées s'ouvre aussitôt.
   if (def.simple && (!surActions || def.direct) && issue !== 'repondeur') {

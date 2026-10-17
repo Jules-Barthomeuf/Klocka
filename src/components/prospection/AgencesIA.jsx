@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDictee } from "@/lib/dictee";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -54,18 +54,43 @@ function useListes() {
  */
 function useSupprimerListe() {
   const queryClient = useQueryClient();
+  const [aSupprimer, setASupprimer] = useState(null);
   const m = useMutation({
     mutationFn: (l) => base44.request("DELETE", `${API}/listes/${l.id}`),
     onSuccess: (r) => {
       queryClient.invalidateQueries({ queryKey: ["agent-ia-listes"] });
+      setASupprimer(null);
       toast.success(`Liste ${r.ville} supprimée`, { description: `${r.agences} agence${r.agences > 1 ? "s" : ""} retirée${r.agences > 1 ? "s" : ""} ; celles au carnet y restent.` });
     },
     onError: (e) => toast.error(e?.message || "Suppression impossible"),
   });
-  const demander = (l) => {
-    if (window.confirm(`Supprimer la liste ${l.ville} et ses ${l.agences} agence${l.agences > 1 ? "s" : ""} ? Les agents déjà au carnet y restent.`)) m.mutate(l);
-  };
-  return { demander, enCours: m.isPending };
+  // La confirmation est une fenêtre de la plateforme, plus la boîte du navigateur (17 oct. 2026, Jules).
+  const fenetre = aSupprimer ? <FenetreSupprimerListe liste={aSupprimer} enCours={m.isPending} onValider={() => m.mutate(aSupprimer)} onFermer={() => setASupprimer(null)} /> : null;
+  return { demander: setASupprimer, enCours: m.isPending, fenetre };
+}
+
+function FenetreSupprimerListe({ liste, enCours, onValider, onFermer }) {
+  useEffect(() => {
+    const echap = (e) => { if (e.key === "Escape") onFermer(); };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [onFermer]);
+  const n = liste.agences;
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm duration-200 animate-in fade-in-0 md:left-[var(--k-barre-largeur,0px)]" onMouseDown={(e) => { if (e.target === e.currentTarget) onFermer(); }}>
+      <div role="alertdialog" aria-modal="true" aria-label={`Supprimer la liste ${liste.ville}`} className="w-full max-w-[440px] rounded-[20px] border border-bord-vif bg-surface-pleine p-5 duration-200 animate-in zoom-in-95 fade-in-0">
+        <p className="m-0 text-[17px] text-encre">Supprimer la liste {liste.ville} ?</p>
+        <p className="m-0 mt-2 text-[13.5px] leading-[1.55] text-ardoise">
+          {n > 0 ? `Ses ${n} agence${n > 1 ? "s" : ""} sortent de la liste` : "La liste est vide"}. Les agents déjà au carnet y restent.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onFermer} autoFocus className="h-10 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+          <button type="button" onClick={onValider} disabled={enCours} className="inline-flex h-10 items-center gap-2 rounded-full bg-alerte/90 px-4 text-[13.5px] text-white disabled:opacity-50">
+            {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Supprimer
+          </button>
+        </div>
+      </div>
+    </div>, document.body);
 }
 
 /** L'onglet Agent IA : la ville à chercher, et ce que l'agent fait ou a fait, ville par ville. */
@@ -88,6 +113,7 @@ export function OngletAgentIA({ onOuvrirListe }) {
 
   return (
     <div className="mx-auto max-w-[1100px] pb-16">
+      {supprimer.fenetre}
       <div className="text-center">
         <h2 className="m-0 text-[24px] font-normal tracking-[-0.02em] text-encre">Où cherchez-vous ?</h2>
         <p className="m-0 mx-auto mt-2 max-w-[64ch] text-[14px] leading-[1.6] text-ardoise">
@@ -216,6 +242,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
   // raccordé à la page à points (rail-actif), le tableau sur le rail.
   return (
     <div className="w-full pb-16">
+      {supprimer.fenetre}
       <div role="tablist" aria-label="Les listes par ville" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}
         <span aria-hidden className="w-3 flex-none" />

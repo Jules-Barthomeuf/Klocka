@@ -241,9 +241,10 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer }
           );
         })}
         <span aria-hidden className="min-w-3 flex-1" />
+        {onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        {active && <TableauAgences key={active} id={active} onAppeler={onAppeler} onBasculer={onBasculer} />}
+        {active && <TableauAgences key={active} id={active} onAppeler={onAppeler} />}
       </div>
     </div>
   );
@@ -291,7 +292,7 @@ function TrierPar({ valeur, onChange }) {
   );
 }
 
-function TableauAgences({ id, onAppeler, onBasculer }) {
+function TableauAgences({ id, onAppeler }) {
   // L'agent d'un collègue (le premier qui l'a joint) : absent de ma file, signalé ici.
   const { data: equipeDonnees } = useQuery({ queryKey: ["agent-ia-equipe"], queryFn: () => base44.request("GET", `${API}/equipe`), staleTime: 5 * 60_000 });
   const moiEmail = equipeDonnees?.moi || null;
@@ -396,8 +397,7 @@ function TableauAgences({ id, onAppeler, onBasculer }) {
 
   return (
     <div>
-      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Monday » les montre ; à droite, l'interrupteur du mode appel. */}
-      {onBasculer && <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={onBasculer} /></div>}
+      {/* Les chiffres de la ville ne sont plus en tête (17 oct. 2026, Jules) : le « + » après « Vérifier dans Monday » les montre  ; l'interrupteur du mode appel est sur la ligne des villes. */}
       {chiffresOuverts && <BarreVille ville={data.ville} chiffres={data.chiffres} />}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-[240px] max-w-[420px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-4 py-2.5 focus-within:border-bord-doux max-md:min-w-0 max-md:max-w-none max-md:basis-full">

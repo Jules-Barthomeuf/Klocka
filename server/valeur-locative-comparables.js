@@ -133,7 +133,12 @@ export function valeurParComparables(cible, refsKlocka = [], refsEquimmox = [], 
   const conf = confiance({ klocka: retenu?.dedans.length || 0, age_ans: age, dispersion });
 
   // Sous le seuil, Equimmox est affiché ; les loyers Klocka restent en contrôle.
-  const eqValeur = eqDuNiveau[0] || eq[0] || null;
+  // Affiché, Equimmox l'est à son échelle la plus fine (la rue, puis le quartier, puis la commune) ;
+  // en contrôle, il se compare au même niveau que les loyers Klocka.
+  const ORDRE = ['rue', 'quartier', 'commune'];
+  const eqPlusFin = [...eq].sort((a, b) => ORDRE.indexOf(a.niveau) - ORDRE.indexOf(b.niveau))[0] || null;
+  const eqValeur = eqPlusFin;
+  const eqControle = eqDuNiveau[0] || eqPlusFin;
   const affichee = conf !== 'faible' && four ? 'klocka' : eqValeur ? 'equimmox' : four ? 'klocka' : null;
   const valeur = affichee === 'klocka' ? four
     : affichee === 'equimmox' ? { bas: eqValeur.bas ?? eqValeur.loyer_m2, central: eqValeur.loyer_m2, haut: eqValeur.haut ?? eqValeur.loyer_m2 }
@@ -152,7 +157,7 @@ export function valeurParComparables(cible, refsKlocka = [], refsEquimmox = [], 
     affichee,
     valeur,
     // Ce que l'autre source dit, pour le contrôle : l'écart de la médiane Klocka à Equimmox.
-    controle: fourKlocka && eqValeur ? { equimmox: eqValeur.loyer_m2, klocka: fourKlocka.central, ecart_pct: Math.round(((fourKlocka.central / eqValeur.loyer_m2) - 1) * 100) } : null,
+    controle: fourKlocka && eqControle ? { equimmox: eqControle.loyer_m2, niveau: eqControle.niveau, klocka: fourKlocka.central, ecart_pct: Math.round(((fourKlocka.central / eqControle.loyer_m2) - 1) * 100) } : null,
   };
 }
 

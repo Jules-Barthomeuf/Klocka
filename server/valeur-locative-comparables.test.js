@@ -78,3 +78,14 @@ test("l'écart à Data-B se calcule par échelle, pour être gardé", () => {
   assert.deepEqual(e.map((x) => x.niveau), ['rue', 'ville']);
   assert.equal(e[0].ecart_pct, 10);
 });
+
+test('Equimmox affiché : son échelle la plus fine, même quand les loyers Klocka sont à la commune', () => {
+  const cible = { lat: 43.7, lon: 7.26, rue: '20 avenue Jean Médecin', code_postal: '06000', code_insee: '06088', ville: 'Nice' };
+  const loin = { ...referencesKlocka([deal('n2', { rue: '1 boulevard Gambetta', cp: '06000', ville: 'Nice' })])[0], point: { lat: 43.71, lon: 7.25 } };
+  loin.adresse.code_insee = '06088';
+  const r = valeurParComparables(cible, [loin], [{ loyer_m2: 434, niveau: 'rue' }, { loyer_m2: 364, niveau: 'commune' }]);
+  assert.equal(r.niveau, 'commune');
+  assert.equal(r.affichee, 'equimmox');
+  assert.equal(r.valeur.central, 434);
+  assert.equal(r.controle.equimmox, 364);
+});

@@ -47,7 +47,7 @@ async function pointDe(ligne) {
   return point;
 }
 
-async function referencesAutour(adresse) {
+export async function referencesAutour(adresse) {
   const dep = String(adresse.code_postal || '').slice(0, 2);
   const refs = referencesKlocka(Records.list('Deal')).filter((r) => !dep || r.departement === dep || (!r.departement && r.adresse.ville && r.adresse.ville.toLowerCase() === String(adresse.ville || '').toLowerCase()));
   for (const r of refs) {

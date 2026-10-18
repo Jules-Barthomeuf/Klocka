@@ -73,6 +73,7 @@ Fondations déjà là, à réunir plutôt qu'à créer :
 - Data-B appelé en parallèle, jamais affiché : l'écart est gardé avec la recherche (`ecart_data_b`, `data_b_lu` sur ValeurLocativeRecherche).
 - L'actualisation à l'ILC (18 oct. 2026) : chaque loyer Klocka est ramené au dernier indice publié depuis le trimestre de son dossier (INSEE, série 001532540, service SDMX public, gardé 30 jours ; `server/ilc.js`). Le loyer d'origine reste à côté (`loyer_m2_brut`). Equimmox, actuel, n'est pas actualisé. Limite : la date retenue est celle du dossier, pas celle du bail.
 - Pas encore : l'ajustement par surface et par classement d'emplacement.
+- Test réel du 18 oct. 2026 (base locale, Equimmox et Data-B actifs) : 45 rue d'Antibes à Cannes, 20 avenue Jean Médecin à Nice, 10 rue de la République à Antibes. Partout Equimmox affiché (confiance faible : 0 ou 1 loyer Klocka dans le 06). Data-B lit 47 à 54 % plus haut à la rue, 71 à 73 % plus haut au quartier, et tombe à 1 à 17 % de la valeur à la ville : ses échelles fines ne sont pas comparables aux baux constatés d'Equimmox. Correction le même jour : Equimmox affiché l'est à son échelle la plus fine (la rue), plus à celle du cercle Klocka.
 - Comptage en lecture seule pour Render : `npm run comptage-loyers` (option `--ban` pour vérifier les adresses, `--json`). Quand il sera connu, on règle `POIDS`, `MIN_PAR_CERCLE` et `SEUILS`, sans rien changer d'autre.
 
 ## Ordre de construction recalé

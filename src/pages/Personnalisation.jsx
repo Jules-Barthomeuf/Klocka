@@ -3,7 +3,7 @@ import { vueDe } from "@/lib/vue";
 import { Check, Eye, EyeOff, Grip, Pipette, RotateCcw } from "lucide-react";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
-import { CLAIR, OPTIONS, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
+import { CLAIR, OPTIONS, PERSONNAGES_HAKA, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
 import jetons from "@/design/jetons.json";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
@@ -442,6 +442,21 @@ export default function Personnalisation() {
               onChange={(e) => changer({ cartes_opacite: Number(e.target.value) })} aria-label="Opacité des cartes" className="min-w-0 flex-1" />
             <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.cartes_opacite} %</span>
           </label>
+        </Reglage>
+        <Reglage titre="Personnage de Haka" note="Son portrait dans les chats. D'autres personnages viendront.">
+          <div className="flex flex-wrap gap-3">
+            {OPTIONS.personnage_haka.map(([v, mot]) => {
+              const actif = prefs.personnage_haka === v;
+              return (
+                <button key={v} type="button" onClick={() => changer({ personnage_haka: v })} aria-pressed={actif} title={mot}
+                  className={`flex flex-col items-center gap-1.5 rounded-[14px] border p-2.5 transition-colors ${actif ? "border-menthe bg-menthe/10" : "border-bord-doux hover:border-bord-vif"}`}
+                  style={{ background: actif ? undefined : "transparent" }}>
+                  <img src={PERSONNAGES_HAKA[v]} alt="" className="h-14 w-14 rounded-full object-cover" draggable={false} />
+                  <span className="text-[12.5px] text-craie">{mot}</span>
+                </button>
+              );
+            })}
+          </div>
         </Reglage>
         <Reglage titre="Police" note="Partout, ALX compris.">
           <Pilules valeur={prefs.police} options={OPTIONS.police} onChoisir={(v) => changer({ police: v })} rendre={(v, mot) => <span style={{ fontFamily: POLICES[v] }}>{mot}</span>} />

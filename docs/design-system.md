@@ -626,6 +626,8 @@ Remplace les quatre points qui tournent du 16 oct. (ci-dessous, gardés pour les
 
 **Le chat du dossier comme celui de Haka** (Jules, 18 oct. 2026) : en mode IA, la saisie a le « + » (joindre une pièce au dossier) et « Sources : Auto », sans Répondre / Produire (l'assistant choisit selon la demande) ; un clic sur Sources déplie les pastilles au-dessus de la saisie (Auto, ou les sources cochées). Une fois la conversation ouverte, la barre « Tous les dossiers · Historique » est transparente : le fond Halo passe dessous.
 
+**Le personnage de Haka** (Jules, 18 oct. 2026) : le portrait de l'assistant dans les chats est un personnage choisi dans Paramètres › Affichage (« Personnage de Haka », préférence `personnage_haka`). Les portraits sont dans `public/avatars/haka/`, déclarés dans `PERSONNAGES_HAKA` (`src/lib/personnalisation.js`) ; un seul pour l'instant (`haka-1`), recadré en carré sur son disque.
+
 ### Les étapes d'AK quand il réfléchit (16 oct. 2026)
 
 Spec de Jules, qui remplace le point qui pulse et la roue : l'étape en cours

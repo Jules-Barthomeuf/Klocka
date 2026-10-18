@@ -49,6 +49,7 @@ export const DEFAUT = Object.freeze({
   cartes_opacite: OPACITE_DEFAUT, // l'opacité des cartes de la page Dossiers, de 10 (presque transparentes) à 100 (pleines) (18 oct. 2026)
   points_actions: "oui", // les points dans la fenêtre des actions proposées (8 oct. 2026) : oui | non
   agent_testeur: "oui", // le bouton « Tester cette page avec l'agent », pour un super admin (12 oct. 2026) : oui | non
+  personnage_haka: "haka-1", // le portrait de Haka dans les chats (18 oct. 2026) : une clé de PERSONNAGES_HAKA
 });
 
 /** Les choix offerts, dans l'ordre où la page les montre : [valeur, libellé]. */
@@ -68,7 +69,11 @@ export const OPTIONS = {
   grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes et mode appel"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
   points_actions: [["oui", "Avec des points"], ["non", "Sans points"]],
   agent_testeur: [["oui", "Affiché"], ["non", "Masqué"]],
+  personnage_haka: [["haka-1", "Haka"]],
 };
+
+/** Les personnages de Haka (18 oct. 2026, Jules) : le portrait de chaque clé, dans public/avatars/haka. */
+export const PERSONNAGES_HAKA = { "haka-1": "/avatars/haka/haka-1.png" };
 
 /** Les polices, telles que le CSS les lit. Toutes sont déjà chargées (index.html). */
 export const POLICES = {

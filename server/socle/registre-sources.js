@@ -32,6 +32,13 @@ export const SOURCES = [
   { cle: 'osm', nom: 'OpenStreetMap', famille: 'publique', poids: null, licence: 'ODbL', rythme: 'continue' },
   { cle: 'inpi_rne', nom: 'Registre national des entreprises (INPI)', famille: 'publique', poids: null, licence: 'Gratuit sur inscription', rythme: 'quotidien' },
   { cle: 'ilc', nom: 'Indice des loyers commerciaux (INSEE)', famille: 'publique', poids: null, licence: 'Licence ouverte', rythme: 'trimestriel' },
+  // Ajouts du 18 oct. 2026 (lots 5 à 9).
+  { cle: 'klocka_transactions', nom: 'Ventes des projets Klocka signés', famille: 'interne', poids: null, licence: 'Interne', rythme: 'à chaque signature' },
+  { cle: 'sirene_stock', nom: 'Stock Sirene géolocalisé (INSEE, data.gouv.fr)', famille: 'publique', poids: null, licence: 'Licence ouverte', rythme: 'mensuel' },
+  { cle: 'georisques', nom: 'Géorisques (risques de la commune)', famille: 'publique', poids: null, licence: 'Licence ouverte', rythme: 'continue' },
+  { cle: 'gpu', nom: "Géoportail de l'urbanisme (zonage, prescriptions)", famille: 'publique', poids: null, licence: 'Licence ouverte', rythme: 'continue' },
+  { cle: 'isochrones_ign', nom: 'Isochrones de la Géoplateforme (IGN)', famille: 'publique', poids: null, licence: 'Licence ouverte', rythme: 'continue' },
+  { cle: 'sncf_gares', nom: 'Gares et fréquentation (SNCF)', famille: 'publique', poids: null, licence: 'Licence ouverte', rythme: 'annuel' },
 ];
 
 const parCle = new Map(SOURCES.map((s) => [s.cle, s]));

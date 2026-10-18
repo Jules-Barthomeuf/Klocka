@@ -1,4 +1,5 @@
 import Cloche from "@/components/haka/Cloche";
+import MarqueKlocka from "@/components/MarqueKlocka";
 import DossiersRecents from "@/components/DossiersRecents";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -565,8 +566,8 @@ function LayoutContent({ children, currentPageName }) {
         {/* La marque, et le repli. */}
         <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
-            {/* Le logo est retiré de la barre ouverte (18 oct. 2026, Jules) ; le rail replié garde la marque, sinon son haut serait vide. */}
-            {replie && <img src="/logo-klocka.svg" alt="Klocka OS" className="h-6 w-6 rounded-[6px]" draggable={false} />}
+            {/* La marque de Klocka OS (18 oct. 2026, Jules) : trois losanges, à gauche du nom. */}
+            <MarqueKlocka className="h-[22px] w-[22px]" />
             {!replie && <span className="text-[18px] font-normal tracking-[-0.02em] text-encre">Klocka OS</span>}
           </Link>
           {!isMobile && !replie && (

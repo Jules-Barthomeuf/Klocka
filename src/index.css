@@ -1106,3 +1106,7 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 }
 @keyframes k-raisonne { from { background-position: 100% 0; } to { background-position: -60% 0; } }
 @media (prefers-reduced-motion: reduce) { .k-raisonne { animation: none; color: rgb(var(--k-brume-rgb)); background-image: none; } }
+
+/* La marque de Klocka OS : trois losanges (le dessus, le milieu doré, le dessous). */
+:root { --k-marque-haut: #ecebe6; --k-marque-milieu: #c1a470; --k-marque-bas: #6f7175; }
+:root[data-theme="clair"] { --k-marque-haut: #111111; --k-marque-milieu: #a98650; --k-marque-bas: #b4b3ad; }

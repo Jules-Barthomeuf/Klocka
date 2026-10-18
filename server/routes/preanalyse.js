@@ -818,6 +818,12 @@ export function monterPreanalyse(app) {
     if (!s) return res.status(404).json({ error: 'Dossier introuvable' });
     ok(res, s);
   }));
+  // L'onglet Bien du module d'analyse : lignes, sources, statuts, calculés par le code.
+  app.get('/api/preanalyse/dossiers/:dealId/bien', wrap(async (req, res) => {
+    const b = await (await import('../deal/bien-analyse.js')).bienDu(req.params.dealId);
+    if (!b) return res.status(404).json({ error: 'Dossier introuvable' });
+    ok(res, b);
+  }));
   app.get('/api/preanalyse/dossiers/:dealId/historique-analyse', wrap(async (req, res) => {
     ok(res, { entrees: (await SY()).historique(req.params.dealId) });
   }));

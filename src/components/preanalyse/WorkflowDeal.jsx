@@ -23,6 +23,7 @@ import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/GrilleCriteres";
 import SyntheseAnalyse, { HistoriqueAnalyse, useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
+import TableauBienAnalyse from "@/components/preanalyse/TableauBienAnalyse";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
@@ -604,6 +605,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             />
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} />}
+            {/* L'onglet Bien (18 oct. 2026, maquette de Jules) : le tableau Ligne / Ce qu'on y lit / Sources / Statut, puis la fiche commerciale. */}
+            {grilleAnalyse === "bien" && !apercu && <TableauBienAnalyse dealId={dossier?.deal_id} />}
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">

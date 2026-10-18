@@ -35,6 +35,25 @@ Reste du lot 1 :
 - SIRENE et BODACC demandent `INSEE_SIRENE_CLE` : absente en local, à vérifier sur Render.
 - K-Vacance, K-Foncier, K-Transactions et K-Zoning ne gardent pas leur résultat : le format commun se vérifie sur un appel en direct, pas sur la base.
 
+## Lot 3, cadrage des sources d'annonces (18 oct. 2026, avant toute construction)
+
+Comptage Render : 8 loyers Klocka dans le 06 (7 Nice, 1 Beaulieu), dont 1 bail lu. Décision de Jules : le lot 3 passe avant le lot 2.
+
+Conditions d'utilisation et robots.txt relevés le 18 oct. 2026 (pages gardées dans le scratchpad de la session) :
+
+| Source | Verdict |
+| --- | --- |
+| SeLoger Bureaux & Commerces, Logic-Immo | Collecte interdite (CGU art. 8.3, base protégée ; recherche bloquée au robots.txt ; Jinka condamnée en 2025) |
+| Leboncoin | Collecte interdite (CGU art. 11.1.2, robots interdits ; jurisprudence Entreparticuliers, CA Paris 2021, Cass. 2022) |
+| BureauxLocaux (CoStar) | Rien sur les robots, mais recherche bloquée et usage commercial interdit |
+| Geolocaux | robots.txt ouvert (plans du site des annonces nouvelles et retirées), mais base protégée par les mentions légales |
+| Bpifrance Transmission | Interdit sans accord ; programme de partenaires |
+| Fusacq, ParuVendu, Michel Simond | Interdit par les CGU |
+| CessionPME | CGU illisibles (403), piège à robots : seulement par accord |
+| Agences du 06 (ex. Locopro) | Reproduction interdite par les mentions ; demander directement |
+
+Voies sûres : Equimmox en mode « Offre » (les annonces, déjà sous notre abonnement), les fiches reçues des agents, un flux sous licence (Melo, Yanport), des accords directs (Bpifrance, CessionPME, agences).
+
 ## À ranger dans le lot 4 (Valeur locative), à ne pas traiter avant
 
 1. Vérifier que le loyer de chaque lot est le loyer en cours à la date du dossier ; si c'est un loyer de signature de bail, actualiser depuis la date du bail.

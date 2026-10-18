@@ -1,12 +1,18 @@
 // « Quoi de neuf » (16 oct. 2026, Jules) : chaque jour, ce qui a été ajouté à
-// la plateforme, dit pour l'équipe. Le Dashboard le montre une fois par jour
-// et par navigateur, dans une fenêtre au registre de « Tout préparé ».
+// la plateforme, dit pour l'équipe. Depuis le 18 oct. 2026 (Jules : « au lieu de la pop-up, dans le mail »),
+// il n'y a plus de fenêtre : ces lignes partent dans le mail du matin « Ma journée » (server/nouveautes-mail.js).
 //
 // Une entrée par nouveauté, la plus récente journée en haut. `page` : le nom
 // de page (createPageUrl) que « Voir » ouvre ; `requete` : ce qui suit l'adresse.
 // Écrit pour l'équipe : ce que ça change pour elle, en une phrase, sans jargon.
 
 export const NOUVEAUTES = [
+  {
+    jour: "2026-10-18",
+    items: [
+      { titre: "Le mail « Ma journée »", texte: "Chaque matin ouvré vers 8 h : les nouveautés de la plateforme (plus de fenêtre à l'arrivée), vos relances à faire aujourd'hui et ce qu'il y a à faire dans Dossiers. Rien ne part s'il n'y a rien à dire.", page: "Dashboard" },
+    ],
+  },
   {
     jour: "2026-10-17",
     items: [

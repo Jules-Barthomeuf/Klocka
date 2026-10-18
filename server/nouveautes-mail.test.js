@@ -42,12 +42,14 @@ test('envoyé une fois : le lendemain, rien ne repart', async () => {
   Records.create('User', { email: 'maxime.p@klocka.immo', role: 'admin' });
   const envoyes = [];
   const envoyer = async (cle, { a, vars }) => { envoyes.push([cle, a, vars.objet]); return { ok: true }; };
-  const r = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T07:00:00Z'), envoyer });
+  const vide = { relances: async () => [], dossiers: async () => [] };
+  const r = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T07:00:00Z'), envoyer, ...vide });
   assert.equal(r.envoye, 2);
-  assert.equal(envoyes[0][0], 'nouveautes_du_jour');
-  assert.equal((await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T09:00:00Z'), envoyer })).envoye, 0);
+  assert.equal(envoyes[0][0], 'ma_journee');
+  assert.equal((await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T09:00:00Z'), envoyer, ...vide })).envoye, 0);
   const { Meta } = await import('./db.js');
   Meta.set('nouveautes:mail:dernier_jour', '');
+  Meta.set('nouveautes:mail:dernier_jour:passe', '');
 });
 
 test('ni samedi ni dimanche ; le lundi reprend le vendredi et le week-end', async () => {
@@ -57,7 +59,37 @@ test('ni samedi ni dimanche ; le lundi reprend le vendredi et le week-end', asyn
   assert.equal(M.ouvre(new Date('2026-10-19T08:00:00Z')), true, 'lundi');
   Meta.set('nouveautes:mail:dernier_jour', '2026-10-15');
   const envoyer = async () => ({ ok: true });
-  assert.equal((await M.envoyerSiNouveau({ maintenant: new Date('2026-10-17T09:00:00Z'), envoyer })).raison, 'week-end');
-  const lundi = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T07:00:00Z'), envoyer });
+  const vide = { relances: async () => [], dossiers: async () => [] };
+  assert.equal((await M.envoyerSiNouveau({ maintenant: new Date('2026-10-17T09:00:00Z'), envoyer, ...vide })).raison, 'week-end');
+  const lundi = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-20T07:00:00Z'), envoyer, ...vide });
   assert.ok(lundi.journees.includes('2026-10-16'), 'le vendredi part le lundi');
+});
+
+test('Ma journée : les trois parties, seulement celles qui ont quelque chose à dire', async () => {
+  const { classer } = await import('../src/lib/dossiers-architecture.js');
+  const lignes = [{ agent_id: 'a1', nom: 'Marc Agent', agence: 'Agence Test', motif: 'point_mensuel' }, { agent_id: 'a2', nom: 'Sans Maître', motif: 'retenter' }, { agent_id: 'a3', nom: 'À Paul', motif: 'retenu' }];
+  const proprio = (id) => ({ a1: 'nora@klocka.immo', a3: 'paul@klocka.immo' })[id] || null;
+  const r = M.relancesDe('Nora@klocka.immo', lignes, proprio);
+  assert.deepEqual(r.miennes.map((l) => l.nom), ['Marc Agent']);
+  assert.equal(r.sansProprietaire, 1);
+  const dossiers = [
+    { deal_id: 'd1', titre: '5 rue Hoche', statut: 'documents_recus', responsables: ['Nora'] },
+    { deal_id: 'd2', titre: '3 rue Thouron', statut: 'documents_demandes', responsables: ['Nora'] },
+    { deal_id: 'd3', titre: 'Chez Paul', statut: 'documents_recus', responsables: ['Paul'] },
+  ];
+  const d = M.dossiersAFaire('nora@klocka.immo', dossiers, classer);
+  assert.deepEqual(d.toi.map((x) => x.titre), ['5 rue Hoche']);
+  assert.equal(d.tiers, 1);
+  const v = M.contenuJournee({ journees: [J[1]], relances: r, dossiers: d, prenom: 'Nora', aujourdhui: '2026-10-19' });
+  assert.match(v.titre, /Bonjour Nora, votre journée/);
+  assert.match(v.contenu, /\*\*NOUVEAU SUR KLOCKA\*\*/);
+  assert.match(v.contenu, /\*\*RELANCES À FAIRE AUJOURD'HUI\*\* · 1\n\n\*\*Marc Agent\*\* \(Agence Test\) · point mensuel/);
+  assert.match(v.contenu, /1 relance sans propriétaire/);
+  assert.match(v.contenu, /\*\*À FAIRE DANS DOSSIERS\*\* · 1\n\n\*\*5 rue Hoche\*\* · Documents reçus, à lire/);
+  assert.match(v.contenu, /1 dossier attend une réponse d'un tiers/);
+  assert.match(v.objet, /lundi 19 octobre : 2 nouveautés, 1 relance, 1 dossier/);
+  const sansNouveaute = M.contenuJournee({ journees: [], relances: { miennes: [], sansProprietaire: 0 }, dossiers: { toi: [], tiers: 0 }, aujourdhui: '2026-10-19' });
+  assert.equal(sansNouveaute, null, 'rien à dire : rien ne part');
+  const seulementRelances = M.contenuJournee({ journees: [], relances: r, dossiers: { toi: [], tiers: 0 }, aujourdhui: '2026-10-19' });
+  assert.ok(!/NOUVEAU SUR KLOCKA|À FAIRE DANS DOSSIERS/.test(seulementRelances.contenu));
 });

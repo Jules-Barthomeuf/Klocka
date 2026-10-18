@@ -56,7 +56,6 @@ import FeedbackSurvol from "@/components/FeedbackSurvol";
 import RappelEntrant, { BoutonRappel } from "@/components/RappelEntrant";
 import { BoutonTesteur } from "@/components/AgentTesteur";
 import AKNouveauLook from "@/components/AKNouveauLook";
-import QuoiDeNeuf from "@/components/QuoiDeNeuf";
 import FondHalo from "@/components/projet/FondHalo";
 
 const globalTooltipStyles = `
@@ -825,7 +824,7 @@ function LayoutContent({ children, currentPageName }) {
       {vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName) && <AssistantFlottant />}
       {/* Dès l'arrivée, sur n'importe quelle page de l'équipe (16 oct. 2026, Jules) : l'annonce d'AK, une fois ; puis « Quoi de neuf », une fois par jour. */}
       {vueAdmin && !hideNavbar && !enCadre && <AKNouveauLook />}
-      {vueAdmin && !hideNavbar && !enCadre && <QuoiDeNeuf />}
+      {/* « Quoi de neuf » n'est plus une fenêtre (18 oct. 2026, Jules) : les nouveautés arrivent dans le mail « Ma journée ». */}
       {/* Les messages d'AK, en bas à gauche (16 oct. 2026, Jules) : la fiche pré-analysée, et la discussion. */}
       {/* AK (sa tête en bas à gauche, ses messages) retiré de la barre et de l'écran le 17 oct. 2026 (Jules). */}
 

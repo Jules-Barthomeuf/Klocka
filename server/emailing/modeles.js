@@ -21,6 +21,24 @@ export const MAILS_PLATEFORME = {
       ],
     },
   },
+  // « Ma journée » (18 oct. 2026, Jules) : le mail du matin de chaque analyste. Il remplace la fenêtre « Quoi de neuf » :
+  // les nouveautés, les relances à faire aujourd'hui, ce qu'il y a à faire dans Dossiers.
+  ma_journee: {
+    nom: 'Ma journée',
+    description: "Part chaque matin vers 8 h, du lundi au vendredi, à chaque personne de l'équipe : les nouveautés de la plateforme, ses relances à faire aujourd'hui, ce qu'il y a à faire dans ses dossiers. Rien ne part si les trois sont vides.",
+    variables: ['objet', 'titre', 'intro', 'contenu', 'lien'],
+    objet: '{{objet}}',
+    apercu: '{{intro}}',
+    design: {
+      theme: 'clair',
+      blocs: [
+        b('titre', { texte: '{{titre}}' }, 'titre'),
+        b('texte', { texte: '{{intro}}' }, 'intro'),
+        b('texte', { texte: '{{contenu}}' }, 'contenu'),
+        b('bouton', { texte: 'Ouvrir Klocka', lien: '{{lien}}' }, 'bouton'),
+      ],
+    },
+  },
   nouveautes_du_jour: {
     nom: 'Nouveautés du jour',
     description: "Part chaque matin vers 8 h à l'équipe quand la plateforme a changé : les nouveautés de la veille (src/lib/nouveautes.js), une par ligne, et le lien pour les essayer.",

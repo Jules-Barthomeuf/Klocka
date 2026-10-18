@@ -18,7 +18,8 @@ function Carte({ c, contexte, onLancer }) {
   const [toutes, setToutes] = useState(false);
   const outils = [...(c.outils || [])].sort((a, b) => Number(!!b.obligatoire) - Number(!!a.obligatoire));
   const visibles = toutes ? outils : outils.slice(0, 3);
-  const basculer = (o) => { if (o.obligatoire) return; setEteintes((s) => { const n = new Set(s); if (n.has(o.cle)) n.delete(o.cle); else n.add(o.cle); return n; }); };
+  // On n'éteint plus une source à la carte (Jules, 18 oct. 2026) : les pastilles montrent ce que la compétence lit, rien de plus.
+  const basculer = () => {};
   const lancer = () => {
     const sans = (c.outils || []).filter((o) => eteintes.has(o.cle)).map((o) => sourceDe(o.cle).nom);
     const texte = `${c.nom}${contexte?.titre ? ` du dossier « ${contexte.titre} »` : ""}${sans.length ? ` (sans ${sans.join(", ")})` : ""}.`;
@@ -41,8 +42,7 @@ function Carte({ c, contexte, onLancer }) {
             const eteinte = eteintes.has(o.cle);
             return (
               <motion.div key={o.cle} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={RESSORT}>
-                <PastilleSource cle={o.cle} eteinte={eteinte} fixe={o.obligatoire} onClick={() => basculer(o)}
-                  title={o.obligatoire ? `${s.nom} : obligatoire pour cette compétence` : eteinte ? `${s.nom} : éteinte pour ce lancement` : `Éteindre ${s.nom} pour ce lancement`} />
+                <PastilleSource cle={o.cle} eteinte={eteinte} fixe onClick={() => basculer(o)} />
               </motion.div>
             );
           })}

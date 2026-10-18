@@ -157,12 +157,9 @@ export default function AdminDashboardView() {
                 <RaccourcisHaka choisie={competence?.cle || null} onChoisir={(c) => (competence?.cle === c.cle ? choisirCompetence(null) : choisirCompetence({ cle: c.cle, nom: c.nom, outils: c.outils || [] }))} sourcesOuvert={sourcesOuvert} onSources={() => setSourcesOuvert((o) => !o)} nbSources={sources.length} className="mx-auto mt-5 max-w-[820px]" />
                 <Depliant ouvert={!!competence && (competence.outils || []).length > 0} className="mx-auto max-w-[900px]">
                   <div className="flex flex-col items-center gap-2.5 pt-5">
-                    <p className="m-0 text-[13px] text-ardoise">{eteintes.length ? `Sans ${eteintes.map((c) => sourceDe(c).nom).join(", ")} : le livrable le dira.` : "Les sources de cette compétence. Un clic en éteint une pour ce lancement."}</p>
                     <div className="flex flex-wrap justify-center gap-2">
                       {[...competence?.outils || []].sort((a, b) => Number(!!b.obligatoire) - Number(!!a.obligatoire)).map((o) => (
-                        <PastilleSource key={o.cle} cle={o.cle} eteinte={eteintes.includes(o.cle)} fixe={!!o.obligatoire}
-                          title={o.obligatoire ? "Obligatoire pour cette compétence" : undefined}
-                          onClick={() => { if (!o.obligatoire) setEteintes((x) => (x.includes(o.cle) ? x.filter((k) => k !== o.cle) : [...x, o.cle])); }} />
+                        <PastilleSource key={o.cle} cle={o.cle} fixe />
                       ))}
                     </div>
                   </div>

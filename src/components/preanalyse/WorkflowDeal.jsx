@@ -312,33 +312,35 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
-/** Le menu des onglets de l'analyse, à droite : vertical, collant en haut, repliable (choix gardé dans le navigateur). */
-function MenuAnalyse({ items, valeur, onChange }) {
-  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.analyse.menu") !== "ferme"; } catch { return true; } });
-  const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.analyse.menu", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
+/** Les étapes du dossier, à droite de la page (18 oct. 2026, Jules) : un menu vertical, collant en haut, repliable (choix gardé dans le navigateur). */
+function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
+  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.dossier.etapes") !== "ferme"; } catch { return true; } });
+  const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.dossier.etapes", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
   return (
     <motion.aside layout transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className={`sticky top-4 flex-none ${ouvert ? "w-[210px]" : "w-10"} max-md:hidden`}>
       {ouvert ? (
         <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden rounded-[16px] border border-trait bg-rail">
           <div className="flex items-center justify-between border-b border-trait px-4 py-2.5">
-            <span className="text-[11px] uppercase tracking-[.16em] text-brume">Onglets</span>
-            <button type="button" onClick={basculer} aria-label="Fermer le menu des onglets" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><PanelRightClose className="h-4 w-4" /></button>
+            <span className="text-[11px] uppercase tracking-[.16em] text-brume">Étapes</span>
+            <button type="button" onClick={basculer} aria-label="Fermer le menu des étapes" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><PanelRightClose className="h-4 w-4" /></button>
           </div>
           <nav className="flex flex-col p-1.5">
             {items.map((o) => {
               const actif = valeur === o.cle;
               return (
-                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} aria-current={actif ? "page" : undefined}
-                  className={`flex items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-rail-actif hover:text-encre"}`} style={actif ? undefined : { background: "transparent" }}>
+                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
+                  className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
+                  <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${actif ? "border-encre bg-encre text-fond" : o.faite ? "border-menthe/50 text-menthe" : "border-encre/[0.18] text-brume"}`}>
+                    {o.faite && !actif ? <Check className="h-3 w-3" /> : o.n}
+                  </span>
                   <span className="min-w-0 truncate">{o.titre}</span>
-                  {o.n > 0 && <span className="flex-none rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{o.n}</span>}
                 </button>
               );
             })}
           </nav>
         </motion.div>
       ) : (
-        <button type="button" onClick={basculer} aria-label="Ouvrir le menu des onglets" title="Onglets de l'analyse" className="grid h-10 w-10 place-items-center rounded-full border border-trait bg-rail text-ardoise transition-colors hover:text-encre"><PanelRightOpen className="h-4 w-4" /></button>
+        <button type="button" onClick={basculer} aria-label="Ouvrir le menu des étapes" title="Étapes du dossier" className="grid h-10 w-10 place-items-center rounded-full border border-trait bg-rail text-ardoise transition-colors hover:text-encre"><PanelRightOpen className="h-4 w-4" /></button>
       )}
     </motion.aside>
   );
@@ -588,7 +590,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             )}
             </div>
           </div>}
-          <FriseDossier vue={vue} atteinte={etapeFrise(dossier)} onAller={allerA} occupe={deblocageEnCours} />
+          {/* Les étapes passent dans le menu de droite (18 oct. 2026, Jules) ; au téléphone, la frise reste en haut. */}
+          <div className="md:hidden"><FriseDossier vue={vue} atteinte={etapeFrise(dossier)} onAller={allerA} occupe={deblocageEnCours} /></div>
         </>
       )}
 
@@ -602,6 +605,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
 
       {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
+      <div className="flex items-start gap-5">
+      <div className="min-w-0 flex-1">
       <div className={dossier && !pleineLargeur ? `grid items-start gap-8 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_340px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
@@ -628,12 +633,14 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           />
         )}
         {montre("analyse") && (
-          <div id="tables-analyse" className="flex items-start gap-5">
-            <div className="min-w-0 flex-1 space-y-5">
-            {/* Au téléphone, les onglets restent en barre au-dessus. */}
-            <div className="md:hidden">
-              <Onglets items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre })), { cle: "historique", titre: "Historique" }]} valeur={grilleAnalyse} onChange={setGrilleAnalyse} taille="page" />
-            </div>
+          <div id="tables-analyse" className="space-y-5">
+            {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
+            <Onglets
+              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData, { cle: "historique", titre: "Historique" }]}
+              valeur={grilleAnalyse}
+              onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
+              taille="page"
+            />
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
             <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
@@ -671,10 +678,6 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />
               </div>
             )}
-            </div>
-            {/* Les onglets de l'analyse, à droite du tableau, dans un menu qu'on peut fermer (18 oct. 2026, Jules). */}
-            <MenuAnalyse items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre, n: reste(g.id) })), ...ongletsKData.map((o) => ({ cle: o.cle, titre: o.titre, n: 0 })), { cle: "historique", titre: "Historique", n: 0 }]}
-              valeur={grilleAnalyse} onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))} />
           </div>
         )}
         {montre("analyse") && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}
@@ -687,6 +690,11 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* « Action suivante » retirée de toutes les étapes le 17 oct. 2026 (Jules) ; la frise suffit. */}
       </div>
       {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} onAller={allerA} vue={vue} />}
+      </div>
+      </div>
+      {dossier && (
+        <MenuEtapesDroite items={FRISE.map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: e.n < etapeFrise(dossier) }))} valeur={vue} onChange={allerA} occupe={deblocageEnCours} />
+      )}
       </div>
       {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}
       {dossier && vue === "preanalyse" && lot?.simulateur && (

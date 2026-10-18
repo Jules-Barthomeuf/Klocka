@@ -304,6 +304,34 @@ export default function KFoncier() {
           </div>
         ) : null}
 
+        {/* Boîte à outils (lot 6, 18 oct. 2026) : le propriétaire des murs de l'adresse elle-même, à partir de sa parcelle. */}
+        {vue?.local && (
+          <div className="border-b border-trait px-4 py-3">
+            <p className="alx-mont m-0 mb-1.5 text-[10.5px] uppercase tracking-[.14em] text-brume">Les murs de l&apos;adresse</p>
+            {!vue.local.ok ? <p className="m-0 text-[12.5px] text-ardoise">{vue.local.error}</p> : (
+              <>
+                <p className="m-0 text-[12px] text-ardoise">Parcelle {vue.local.parcelle.section} {vue.local.parcelle.numero}{vue.local.parcelle.contenance ? ` · ${vue.local.parcelle.contenance} m²` : ""}</p>
+                {vue.local.constat ? (
+                  <p className="m-0 mt-1.5 text-[13px] text-encre">{vue.local.constat.libelle}<span className="block text-[11.5px] leading-[1.5] text-brume">{vue.local.constat.raison}</span></p>
+                ) : vue.local.proprietaires.map((p) => (
+                  <div key={p.cle || p.nom} className="mt-2 rounded-[12px] border border-trait bg-surface px-3 py-2.5">
+                    <p className="m-0 text-[13.5px] text-encre">{p.societe?.nom || p.nom}</p>
+                    <p className="m-0 text-[11.5px] text-ardoise">
+                      {p.siren ? `SIREN ${p.siren}` : "SIREN inconnu"}
+                      {p.rapprochement?.methode === "nom_adresse" && (p.siren ? ` · rapproché par le nom (score ${Math.round(p.rapprochement.score * 100)} %)` : " · introuvable à l'annuaire")}
+                    </p>
+                    {p.dirigeants?.length > 0 && <p className="m-0 mt-1 text-[11.5px] text-craie">{p.dirigeants.slice(0, 3).map((d) => [d.nom, d.qualite].filter(Boolean).join(", ")).join(" · ")}</p>}
+                    {p.alertes?.length > 0 && <p className="m-0 mt-1 text-[11.5px] text-ambre">BODACC : {p.alertes.map((a) => `${a.type} (${quand(a.date)})`).join(" · ")}</p>}
+                  </div>
+                ))}
+                <p className="m-0 mt-2 text-[11.5px] text-ardoise">
+                  {vue.local.derniere_mutation ? `Dernière vente de la parcelle : ${quand(vue.local.derniere_mutation.date)}, ${Number(vue.local.derniere_mutation.prix || 0).toLocaleString("fr-FR")} €${vue.local.derniere_mutation.types?.length ? ` (${vue.local.derniere_mutation.types.join(", ")})` : ""}.` : "Aucune vente de la parcelle dans DVF sur 5 ans."}
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-y-auto">
           <p className="alx-mont m-0 px-4 pb-1 pt-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Dernières recherches</p>
           {!recherches.length ? <p className="m-0 px-4 pb-3 text-[12.5px] text-brume">Aucune pour l&apos;instant.</p> : recherches.map((r) => (

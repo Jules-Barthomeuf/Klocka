@@ -154,6 +154,21 @@ export async function analyser(texte, user = null) {
   if (existante) Records.update(RECHERCHE, existante.id, { le, par: user?.email || existante.par });
   else Records.create(RECHERCHE, { adresse: adresse.label, point, le, par: user?.email || null }, user?.email);
 
+  // Boîte à outils allumée (lot 6, 18 oct. 2026) : le propriétaire des murs de l'adresse elle-même, à partir de
+  // l'identifiant de local et de sa parcelle (société rapprochée, dirigeants, BODACC, dernière mutation DVF).
+  let local = null;
+  const { boiteOutilsActive } = await import('./socle/drapeaux.js');
+  if (boiteOutilsActive()) {
+    try {
+      const { resoudreLocal } = await import('./socle/local.js');
+      const l = await resoudreLocal(adresse.label);
+      if (l.ok) {
+        const { proprietaireDuLocal } = await import('./kfoncier-local.js');
+        local = await proprietaireDuLocal(l.local, parcelles);
+      } else local = { ok: false, error: l.error };
+    } catch (e) { local = { ok: false, error: e?.message || String(e) }; }
+  }
+
   return {
     ok: true,
     point,
@@ -162,6 +177,7 @@ export async function analyser(texte, user = null) {
     parcelles,
     total: parcelles.length,
     avec_proprietaires: parcelles.filter((p) => p.proprietaires.length).length,
+    local,
   };
 }
 

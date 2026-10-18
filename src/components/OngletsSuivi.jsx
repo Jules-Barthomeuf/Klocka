@@ -35,7 +35,7 @@ export default function OngletsSuivi({ className = "" }) {
             to={p.to}
             aria-current={actif ? "page" : undefined}
             className="relative pb-2 text-[11px] uppercase tracking-[.16em] transition-colors max-md:pt-3"
-            style={{ color: actif ? J["menthe"] : J["brume"], borderBottom: actif ? "1.5px solid #96c0b8" : "1.5px solid transparent" }}
+            style={{ color: actif ? J["menthe"] : J["brume"], borderBottom: actif ? `1.5px solid ${J["menthe"]}` : "1.5px solid transparent" }}
           >
             {p.mot}
           </Link>

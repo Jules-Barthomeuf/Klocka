@@ -48,7 +48,7 @@ export function Onglets({ items, valeur, onChange, taille = "section", className
               background: "transparent",
               color: actif ? J["encre"] : J["ardoise"],
               fontWeight: page && actif ? 600 : undefined,
-              borderBottom: actif ? "1.5px solid #96c0b8" : "1.5px solid transparent",
+              borderBottom: actif ? `1.5px solid ${J["menthe"]}` : "1.5px solid transparent",
               marginBottom: -1,
             }}
           >

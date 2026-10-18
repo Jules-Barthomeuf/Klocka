@@ -2,7 +2,10 @@
    Les couleurs de ce fichier ne sont pas des choix de design : ce sont des
    échelles qui portent un sens (classes DPE, séries d'un graphique, teintes
    d'une carte). Elles ne suivent pas la marque et ne doivent pas la suivre. */
-import { TEINTE, FOND, MOT, Th, teinteDe, useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
+import { TEINTE, FOND, MOT, Th, teinteDe, statutAffiche, useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
+import { Depliant } from "@/components/haka/ReglagesDemande";
+
+const COLONNES_FICHE = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2fr)_120px_minmax(0,1.6fr)]";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -73,7 +76,11 @@ const LIGNES_BIEN = [
   { id: "occupe", element: "Occupé", champs: ["occupe"] },
   { id: "activite", element: "Activité", champs: ["categorie_activite", "activite_exclue"] },
   { id: "enseigne", element: "Qualité de l'enseigne", champs: ["signature", "locataire_nom"] },
-  { id: "emplacement", element: "Emplacement", champs: ["emplacement"] },
+  { id: "emplacement", element: "Adresse et emplacement", champs: ["emplacement"] },
+  // Ce que « Corriger la fiche » portait seul, désormais modifiable dans le tableau (18 oct. 2026, Jules) : sans critère, la ligne est une information.
+  { id: "surface", element: "Surface", info: true },
+  { id: "type_actif", element: "Type d'actif", info: true },
+  { id: "bail", element: "Bail", info: true },
 ];
 
 const SIGNATURES = {
@@ -339,7 +346,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
             {hors ? (
               <>
                 <span className="text-[13.5px] text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{euros(fai)}</span>
-                <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {euros(valChamp(lot.lot?.montant_honoraires))} d'honoraires</span>
+                <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[11.5px] text-brume">net vendeur {champ("prix_fai")} + {champ("montant_honoraires")} d'honoraires</span>
               </>
             ) : champ("prix_fai")}
           </div>
@@ -349,7 +356,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
       case "rendement":
         return (
           <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
-            <span className="text-craie">{pourcent(annonce) || "—"} <span className="text-[11px] text-brume">annoncé</span></span>
+            <span className="inline-flex items-baseline gap-1.5 text-craie">{champ("rendement_annonce")}{valChamp(lot.lot?.rendement_annonce) == null && annonce ? <span className="text-[11px] text-brume">({pourcent(annonce)} calculé)</span> : null} <span className="text-[11px] text-brume">annoncé</span></span>
             <span className="text-encre" title="Rendement net moyen du simulateur, sur toute la durée du projet">{pourcent(reel) || "—"} <span className="text-[11px] text-brume">réel</span></span>
           </span>
         );
@@ -369,9 +376,17 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         // L'adresse sous l'emplacement (17 oct. 2026, Jules) : la changer déplace Street View et le plan, et l'emplacement repasse à vérifier.
         return (
           <div>
-            <span className={`text-[13.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-encre" : "text-brume"}`}>{emplacement}</span>
-            <div className="mt-1.5 text-[12.5px]">{champ("adresse")}</div>
+            <div>{champ("adresse")}</div>
+            <span className={`mt-1 block text-[12.5px] ${enr.emplacement && enr.emplacement !== "a_qualifier" ? "text-craie" : "text-brume"}`}>Emplacement {emplacement}</span>
           </div>
+        );
+      case "surface": return champ("surface_m2");
+      case "type_actif": return champ("type_actif");
+      case "bail":
+        return (
+          <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            {champ("bail_type")}<span className="text-[12px] text-brume">échéance</span>{champ("bail_echeance")}
+          </span>
         );
       default: return null;
     }
@@ -402,6 +417,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
       const calcule = marcheEnLecture ? "vide" : statutMarche(marche?.[l.marche]);
       return { ...l, c, decision, st: decision?.statut || calcule, attenduMarche: "dans le marché, à 15 % près" };
     }
+    if (l.info) return { ...l, c: null, decision: null, st: "info" };
     const c = critereDe(grille, l.champs);
     const decision = decisionDe(c);
     // Un marché lu sur le quartier, faute d'adresse, met une réserve sur le
@@ -416,6 +432,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   const resume = { ok: 0, warning: 0, no_go: 0, vide: 0 };
   for (const l of lignes) {
     const st = l.st;
+    if (st === "info") continue;
     if (st === "ok") resume.ok += 1;
     else if (st === "no_go") resume.no_go += 1;
     else if (st === "vide") resume.vide += 1;
@@ -423,7 +440,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   }
 
   return (
-    <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail">
+    <div className="relative rounded-[16px] border border-trait bg-rail">
       <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 max-md:relative max-md:px-4">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <span className="inline-flex items-center gap-2">
@@ -435,78 +452,62 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex flex-wrap items-center gap-3 text-[12.5px] text-craie">
             <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
-            {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} no go</span>}
-            {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} sans valeur</span>}
+            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} signalé{resume.warning > 1 ? "s" : ""}</span>
+            {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} bloquant{resume.no_go > 1 ? "s" : ""}</span>}
+            {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} non trouvé{resume.vide > 1 ? "s" : ""}</span>}
           </span>
           {actions}
         </div>
       </header>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] table-fixed border-collapse">
-          <thead><tr><Th className="w-[22%]">Critère</Th><Th className="w-[26%]">Valeur lue</Th><Th className="w-[16%]">Statut</Th><Th className="w-[36%]">Notes</Th></tr></thead>
-          <tbody>
-            {lignes.map(({ id, element, c, st, decision, attenduMarche, marche: cleMarche }, iLigne) => {
-              const modifiable = !!(c && onVerifier);
-              return (
-                <React.Fragment key={id}>
-                <tr className="align-top">
-                  <td className="px-4 py-3 border-b border-r border-trait">
-                    <button onClick={() => bascule(id)} className="text-left text-[13.5px] text-encre hover:text-menthe">{element}</button>
-                    {ouverts.has(id) && c?.critere && (
-                      <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{c.critere}{c.groupe ? ` · ${c.groupe}` : ""}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 border-b border-r border-trait break-words [&_*]:whitespace-normal">
-                    {valeur(id)}
-                  </td>
-                  <td
-                    className={`px-4 py-3 border-b border-r border-trait relative ${modifiable ? "cursor-pointer" : ""}`}
-                    style={{ background: FOND[st] || FOND.vide }}
-                    onClick={() => modifiable && setChoix(choix === id ? null : id)}
-                    title={modifiable ? "Confirmer le statut" : undefined}
-                  >
-                    <span className="inline-flex items-center gap-2 text-[12.5px] font-medium" style={{ color: teinteDe(st) }}>
-                      {MOT[st] || st}
-                      {c && enVerification === cleLigne(c) && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-label="Changement en cours" />}
-                    </span>
-                    {decision && <span className="block text-[11px] text-ardoise">décidé{decision.par ? ` · ${decision.par.split("@")[0]}` : ""}</span>}
-                    {choix === id && (
-                      <div ref={menu} className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
-                        {[["ok", "OK"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([statut, mot]) => (
-                          <button key={statut} onClick={() => { onVerifier(cleLigne(c), statut); setChoix(null); }} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[statut], color: teinteDe(statut) }}>{mot}</button>
-                        ))}
-                        {decision && <button onClick={() => { onVerifier(cleLigne(c), null); setChoix(null); }} className="text-left text-[12.5px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 border-b border-trait">
-                    <NotesLigne
-                      textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}
-                      manuelle={lot.notes_manuelles?.[id] || null}
-                      onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
-                      enCours={enNote === id}
-                    />
-                  </td>
-                </tr>
-                {cleMarche && marche?.[cleMarche] && (
-                  // La source glisse : la hauteur passe de 0 à son contenu.
-                  // Le fond et le filet ne sont posés que quand c'est ouvert :
-                  // sinon, même une cellule « collapsée » à 0 laissait voir un
-                  // filet de fond derrière Prix marché et Loyer marché.
-                  <tr aria-hidden={source !== cleMarche}>
-                    <td colSpan={4} className={`p-0 overflow-hidden transition-[background-color,border-color] duration-300 ${source === cleMarche ? "bg-fond/40 border-b border-trait" : "border-b border-transparent"}`}>
-                      <div className="overflow-hidden transition-[max-height,opacity] duration-300 ease-out" style={{ maxHeight: source === cleMarche ? 1200 : 0, opacity: source === cleMarche ? 1 : 0 }}>
-                        <SourceMarche marche={marche[cleMarche]} />
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Le dessin de l'onglet Bien de l'Analyse (18 oct. 2026, Jules) : des lignes sans cadre, le statut en mot ou en pastille. */}
+      <div className={`grid ${COLONNES_FICHE} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
+        <span>Critère</span><span>Ce qu'on y lit</span><span>Statut</span><span>Notes</span>
+      </div>
+      <div className="k-cascade">
+        {lignes.map(({ id, element, c, st, decision, marche: cleMarche }, iLigne) => {
+          const modifiable = !!(c && onVerifier);
+          const [mot, classe, puce] = st === "info" ? ["Info", "bg-rail-actif text-craie", true] : statutAffiche({ statut: st });
+          return (
+            <React.Fragment key={id}>
+              <div className={`grid ${COLONNES_FICHE} gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
+                <div className="min-w-0">
+                  <button type="button" onClick={() => bascule(id)} className="text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{element}</button>
+                  <Depliant ouvert={ouverts.has(id) && !!c?.critere}><p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{c?.critere}{c?.groupe ? ` · ${c.groupe}` : ""}</p></Depliant>
+                </div>
+                <div className="min-w-0 break-words text-[14.5px] [&_*]:whitespace-normal">{valeur(id)}</div>
+                <div className="relative">
+                  <button type="button" disabled={!modifiable} onClick={() => modifiable && setChoix(choix === id ? null : id)} title={modifiable ? "Confirmer le statut" : undefined}
+                    className={`inline-flex items-center gap-2 text-[13px] ${puce ? `h-7 rounded-full px-3 ${classe}` : classe} ${modifiable ? "cursor-pointer hover:opacity-80" : "cursor-default"}`} style={puce ? undefined : { background: "transparent" }}>
+                    {mot}
+                    {c && enVerification === cleLigne(c) && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="Changement en cours" />}
+                  </button>
+                  {decision && <span className="mt-0.5 block text-[11.5px] text-brume">décidé{decision.par ? ` · ${decision.par.split("@")[0]}` : ""}</span>}
+                  {choix === id && (
+                    <div ref={menu} className={`absolute left-0 z-20 flex min-w-[150px] flex-col gap-1 rounded-[12px] border border-bord-doux bg-surface p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
+                      {[["ok", "OK"], ["a_verifier", "Signalé"], ["no_go", "Bloquant"]].map(([statut, libelle]) => (
+                        <button key={statut} onClick={() => { onVerifier(cleLigne(c), statut); setChoix(null); }} className="rounded-[8px] px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[statut], color: teinteDe(statut) }}>{libelle}</button>
+                      ))}
+                      {decision && <button onClick={() => { onVerifier(cleLigne(c), null); setChoix(null); }} className="px-3 py-1 text-left text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Revenir au calcul</button>}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <NotesLigne
+                    textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}
+                    manuelle={lot.notes_manuelles?.[id] || null}
+                    onNoter={onNoter ? (texte) => onNoter(id, texte) : null}
+                    enCours={enNote === id}
+                  />
+                </div>
+              </div>
+              {cleMarche && marche?.[cleMarche] && (
+                <Depliant ouvert={source === cleMarche}>
+                  <div className="border-t border-trait bg-fond/40"><SourceMarche marche={marche[cleMarche]} /></div>
+                </Depliant>
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );
@@ -1133,93 +1134,6 @@ export function BandeauRecalcul({ actif }) {
   );
 }
 
-// Ce que la préanalyse a lu, corrigeable d'un coup. Une fiche qui dit
-// « Réaumur » a pu être lue en Vendée ; on corrige l'adresse (et tout ce qui
-// a été mal lu), puis on relance : lieu, marché, grille, verdict et
-// simulateur se recalculent sur les valeurs corrigées, en un seul passage.
-const CHAMPS_CORRIGEABLES = [
-  { champ: "adresse", libelle: "Adresse", large: true, exemple: "12 rue Réaumur, 75003 Paris" },
-  { champ: "prix_fai", libelle: "Prix (FAI ou net vendeur)", exemple: "520000" },
-  { champ: "honoraires_inclus", libelle: "Honoraires inclus dans le prix", booleen: true },
-  { champ: "montant_honoraires", libelle: "Montant des honoraires", exemple: "26000" },
-  { champ: "loyer_annuel_ht_hc", libelle: "Loyer annuel HT HC", exemple: "34416" },
-  { champ: "surface_m2", libelle: "Surface (m²)", exemple: "76" },
-  { champ: "rendement_annonce", libelle: "Rendement annoncé (%)", exemple: "6.6" },
-  { champ: "occupe", libelle: "Occupé", booleen: true },
-  { champ: "locataire_nom", libelle: "Locataire (enseigne)", exemple: "Amorino" },
-  { champ: "locataire_activite", libelle: "Activité", exemple: "glacier" },
-  { champ: "type_actif", libelle: "Type d'actif", exemple: "murs commerciaux" },
-  { champ: "bail_type", libelle: "Type de bail", exemple: "3/6/9" },
-  { champ: "bail_echeance", libelle: "Échéance du bail", exemple: "21/04/2031" },
-];
-
-const valeursDe = (lot) => Object.fromEntries(CHAMPS_CORRIGEABLES.map(({ champ, booleen }) => {
-  const c = lot?.lot?.[champ];
-  if (booleen) return [champ, !c || c.absent ? null : c.valeur === true];
-  return [champ, texteBrut(champ, c)];
-}));
-
-function CorrectionFiche({ ouverte, lot, onSaisie, enCours, onFermer }) {
-  const depart = valeursDe(lot);
-  const cleDepart = JSON.stringify(depart);
-  const [brouillon, setBrouillon] = useState(depart);
-  // Après un recalcul, le formulaire repart des valeurs enregistrées.
-  useEffect(() => { setBrouillon(JSON.parse(cleDepart)); }, [cleDepart]);
-  const changes = Object.fromEntries(Object.entries(brouillon).filter(([k, v]) => v !== depart[k]));
-  const nb = Object.keys(changes).length;
-  const relancer = () => {
-    if (!nb || enCours) return;
-    onSaisie(Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v])));
-    onFermer?.();
-  };
-
-  return (
-    <div className="grid transition-[grid-template-rows,opacity] duration-300 ease-out" style={{ gridTemplateRows: ouverte ? "1fr" : "0fr", opacity: ouverte ? 1 : 0 }} aria-hidden={!ouverte}>
-      <div className="overflow-hidden">
-        <div className="mt-4 rounded-[16px] border border-trait bg-surface p-5">
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-            <h3 className="m-0 text-[15px] font-semibold text-encre">Corriger la fiche</h3>
-            <span className="text-[12.5px] text-ardoise">Corrigez ce qui a été mal lu, puis relancez : lieu, marché, grille et simulateur se recalculent. Un champ vidé redevient « non renseigné ».</span>
-          </div>
-          <div className="grid gap-x-5 gap-y-3 md:grid-cols-2">
-            {CHAMPS_CORRIGEABLES.map(({ champ, libelle, large, booleen, exemple }) => {
-              const modifie = champ in changes;
-              return (
-                <label key={champ} className={`flex flex-col gap-1.5 ${large ? "md:col-span-2" : ""}`}>
-                  <span className={`text-[12px] ${modifie ? "text-menthe-clair" : "text-ardoise"}`}>{libelle}{modifie ? " · modifié" : ""}</span>
-                  {booleen ? (
-                    <span className="inline-flex items-center gap-1">
-                      {[["Oui", true], ["Non", false]].map(([mot, v]) => (
-                        <button key={mot} type="button" tabIndex={ouverte ? 0 : -1} onClick={() => setBrouillon((b) => ({ ...b, [champ]: b[champ] === v ? null : v }))} className={`px-3 py-1 rounded-full text-[12.5px] border transition-all duration-200 ${brouillon[champ] === v ? "bg-menthe border-menthe text-sur-menthe font-semibold" : "border-bord-doux text-brume hover:text-encre hover:border-bord-vif"}`}>{mot}</button>
-                      ))}
-                    </span>
-                  ) : (
-                    <input
-                      value={brouillon[champ] ?? ""}
-                      tabIndex={ouverte ? 0 : -1}
-                      onChange={(e) => setBrouillon((b) => ({ ...b, [champ]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === "Enter") relancer(); }}
-                      placeholder={champ === "adresse" ? `non renseignée, par exemple ${exemple}` : "non renseigné"}
-                      className={`rounded-md border bg-fond px-3 py-2 text-[13.5px] max-md:text-[16px] text-encre outline-none transition-colors placeholder:text-bord-vif focus:border-menthe/60 ${modifie ? "border-menthe/40" : "border-trait"}`}
-                    />
-                  )}
-                </label>
-              );
-            })}
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
-            {nb > 0 && <button type="button" tabIndex={ouverte ? 0 : -1} onClick={() => setBrouillon(depart)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler les modifications</button>}
-            <button type="button" tabIndex={ouverte ? 0 : -1} onClick={relancer} disabled={!nb || enCours} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[12.5px] font-semibold text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
-              {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              Relancer la préanalyse{nb ? ` (${nb} modification${nb > 1 ? "s" : ""})` : ""}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = false, sansSimulateur = false }) {
   // Vérifier un critère à la main : vert, jaune, ou retour au calcul.
   const verifier = useMutation({
@@ -1237,7 +1151,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
   // déplie en bas : on y descend pour vérifier, pas pour lire.
 
   const [mailOuvert, setMailOuvert] = useState(false);
-  const [correction, setCorrection] = useState(false);
   const enr = lot.enrichissement;
 
   return (
@@ -1260,11 +1173,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
               enNote={noter.isPending ? noter.variables?.ligne : null}
               actions={(
                 <span className="flex flex-wrap items-center gap-2">
-                  {!apercu && onSaisie && (
-                    <button type="button" onClick={() => setCorrection((v) => !v)} aria-expanded={correction} className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] transition-colors ${correction ? "border-menthe/50 text-encre" : "border-bord-doux text-craie hover:text-encre hover:border-bord-vif"}`} style={{ background: "transparent" }}>
-                      <Pencil className="w-3.5 h-3.5" /> Corriger la fiche
-                    </button>
-                  )}
                   <FicheSource dossier={dossier} />
                   {lot.mail_agent && (
                     <button onClick={() => !apercu && setMailOuvert(true)} disabled={apercu} className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-40">
@@ -1274,7 +1182,6 @@ export function CarteLot({ lot, dossier, onSaisie, onRefresh, enCours, apercu = 
                 </span>
               )}
             />
-            {!apercu && onSaisie && <CorrectionFiche ouverte={correction} lot={lot} onSaisie={onSaisie} enCours={enCours} onFermer={() => setCorrection(false)} />}
           </section>
 
           {/* L'emplacement (boutons N°1, N°2…) retiré le 17 oct. 2026 (Jules) ; Street View et plan sont dans la colonne de droite du dossier. */}

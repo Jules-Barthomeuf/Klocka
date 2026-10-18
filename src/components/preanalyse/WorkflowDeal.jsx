@@ -431,8 +431,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   const reste = (id) => synthese.data?.par_onglet?.[id] || 0;
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
-  const colonneVide = !!dossier && vue === "analyse" && !(dossier.dossier_mandataire_id && !apercu);
-  const pleineLargeur = !!dossier && vue === "analyse" && (grilleAnalyse === "simulateur" || colonneVide);
+  // Depuis le 18 oct. 2026, la colonne ne porte que l'emplacement (Pré-analyse) et la Data Room (son étape).
+  const colonneVide = !!dossier && !["preanalyse", "documents"].includes(vue) && !(dossier.dossier_mandataire_id && !apercu);
+  const pleineLargeur = !!dossier && ((vue === "analyse" && grilleAnalyse === "simulateur") || colonneVide);
   // Haka (17 oct. 2026) : ce qui attend dans À valider pour ce dossier, en pastille dans la barre.
   const aValider = useAValiderDossier(dossier?.deal_id && !apercu ? dossier.deal_id : null);
   // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.

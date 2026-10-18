@@ -1,3 +1,4 @@
+import { VuesLieu } from "@/components/preanalyse/DealResultat";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -89,8 +90,15 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
       {/* Haka (17 oct. 2026) : ce qu'il propose pour ce dossier, en tête. */}
       {dossier?.deal_id && !apercu && <PanneauAValiderDossier dealId={dossier.deal_id} />}
-      {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Pas dans l'Analyse. */}
-      {vue !== "analyse" && (
+      {/* Pré-analyse : Street View et le plan, l'un sous l'autre (18 oct. 2026, Jules). */}
+      {vue === "preanalyse" && dossier?.lots?.[0] && !apercu && (
+        <section className={bloc}>
+          <p className={titreBloc}>Emplacement</p>
+          <VuesLieu lot={dossier.lots[0]} enr={dossier.lots[0].enrichissement} coteACote empile dealId={dossier?.deal_id} />
+        </section>
+      )}
+      {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Seulement à l'étape Data Room (18 oct. 2026, Jules). */}
+      {vue === "documents" && (
       <ZoneConversion onAjouter={ajouter}>
       <section data-zone="listes" className={bloc}>
         <button type="button" onClick={() => onAller?.("documents")} className="flex w-full items-baseline justify-between p-0 text-left" style={{ background: "transparent" }}>

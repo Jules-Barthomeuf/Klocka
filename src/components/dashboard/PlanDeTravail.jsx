@@ -25,16 +25,8 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
       {/* Un message envoyé : le salut et les colonnes s'effacent, le chat
           devient le fil. L'arbre ne change pas, le chat garde son état. */}
       <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "min-h-[calc(100dvh-4.5rem)] justify-center pb-[10vh] max-md:min-h-0 max-md:justify-start max-md:pb-0" : "pt-[13vh]"}`}>
-        {/* Le halo sauge derrière le salut et le chat : réglage « Halo » de
-            Compte (caché à « Sans » et en mode clair, par index.css). Il était
-            parti avec le chat en une barre (14 sept.), sans que le réglage le sache. */}
-        {!conversation && (
-          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-[6vh] h-[900px] overflow-hidden"
-            style={{ maskImage: "linear-gradient(to bottom, #000 55%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, #000 55%, transparent)" }}>
-            <div className="accueil-halo-a" style={{ top: "32%" }} />
-            <div className="accueil-halo-b" style={{ top: "72%" }} />
-          </div>
-        )}
+        {/* Plus de halo propre derrière le salut : le fond « Halo » commun
+            (FondHalo, Layout) suffit, le même que sur Projets (18 oct. 2026, Jules). */}
         {!conversation && (
           <motion.h1 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="k-balayage relative m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>
             Bonjour{prenom ? ` ${prenom}` : ""}. Que puis-je faire pour vous ?

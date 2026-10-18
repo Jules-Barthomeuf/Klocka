@@ -565,7 +565,8 @@ function LayoutContent({ children, currentPageName }) {
         {/* La marque, et le repli. */}
         <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
-            <img src="/logo-klocka.svg" alt="Klocka OS" className="h-6 w-6 rounded-[6px]" draggable={false} />
+            {/* Le logo est retiré de la barre ouverte (18 oct. 2026, Jules) ; le rail replié garde la marque, sinon son haut serait vide. */}
+            {replie && <img src="/logo-klocka.svg" alt="Klocka OS" className="h-6 w-6 rounded-[6px]" draggable={false} />}
             {!replie && <span className="text-[18px] font-normal tracking-[-0.02em] text-encre">Klocka OS</span>}
           </Link>
           {!isMobile && !replie && (
@@ -612,7 +613,7 @@ function LayoutContent({ children, currentPageName }) {
         {/* « Nouveau chat » retiré de la barre le 17 oct. 2026 (Jules). */}
 
         {/* Les pages. */}
-        <div className="mt-3 flex-1 overflow-y-auto px-3 pb-4">
+        <div className="mt-7 flex-1 overflow-y-auto px-3 pb-4">
           <div className="flex flex-col gap-0.5">
             {entrees.map((e) => {
               // Un groupe (Relations, Administration) : une seule entrée, vers sa première page ; actif sur toutes ses pages.

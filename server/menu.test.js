@@ -31,12 +31,12 @@ test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administratio
   assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels']);
   // À valider (Haka) se masque quand Haka n'est pas allumé : le Layout passe la clé dans les masques.
   assert.ok(!menuAdmin(['AValider']).principal.some((x) => x.cle === 'AValider'));
-  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes']]]);
+  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Suivi']]]);
   const cles = autre.map((e) => e.cle);
   for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
   for (const dedans of ['Offres', 'ALX', 'AdminPresentations']) assert.ok(cles.includes(dedans), dedans);
   // Une page masquée disparaît ; un groupe vidé aussi.
-  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'Offres']);
+  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'Monitoring', 'Offres']);
   assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
   assert.ok(!m.autre.some((e) => e.cle === 'Offres'));
 });
@@ -46,6 +46,9 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
   const g = menuAdmin().principal.find((x) => x.groupe === 'Relations');
   assert.equal(g.cle, 'Relations');
   assert.equal(groupeDe('Agents').groupe, 'Relations');
+  // Le Suivi et ses pages de détail sont dans Administration (18 oct. 2026).
+  assert.equal(groupeDe('Monitoring').groupe, 'Administration');
+  assert.equal(groupeDe('SuiviAppels').groupe, 'Administration');
   assert.equal(groupeDe('Cerveau').groupe, 'Administration');
   assert.equal(groupeDe('Dashboard'), null);
 });

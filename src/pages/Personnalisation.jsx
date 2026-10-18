@@ -8,7 +8,6 @@ import { CLAIR, OPTIONS, PERSONNAGES_HAKA, POLICES, accentHex, barreHex, barreLi
 import jetons from "@/design/jetons.json";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
-import Monitoring from "@/pages/Monitoring";
 import Competences from "@/components/haka/Competences";
 import Sources from "@/components/socle/Sources";
 import AccesAdmins from "@/components/compte/AccesAdmins";
@@ -344,8 +343,7 @@ export default function Personnalisation() {
     // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
     ["mails", "Mails", admin && !vueClient],
     ["habilitations", "Habilitations", vueMandataire],
-    // Le Suivi (usage, appels, mandataires, audience), rangé dans Paramètres le 17 oct. 2026 (Jules).
-    ["suivi", "Suivi", admin && !vueClient && !vueMandataire],
+    // Le Suivi, rangé ici le 17 oct. 2026, est passé dans Administration le 18 oct. (Jules).
     // Les compétences de Haka (17 oct. 2026) : Jules seul les écrit et les publie.
     ["competences", "Compétences", !vueClient && !!user?.gere_les_acces],
     // Les sources de la boîte à outils de Haka (18 oct. 2026, lot 1) : interrupteurs, poids, entrepôt.
@@ -493,7 +491,6 @@ export default function Personnalisation() {
       {section === "signature" && <SignatureMails email={user?.email} />}
       {section === "mails" && <MesMails />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
-      {section === "suivi" && <div className="-mx-4 md:-mx-8"><Monitoring /></div>}
       {section === "haka" && (
       <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
         <Reglage titre="Personnage de Haka" note="Son portrait dans les chats.">

@@ -73,7 +73,7 @@ export const ENTREES_MANDATAIRE = [
 /**
  * Le menu de l'équipe (17 oct. 2026, Jules) : Haka (l'ancien Dashboard), Projets, Dossiers,
  * Appels ; « Relations » (Clients, Agents) ; « Administration » (Intelligence,
- * Utilisateurs) ; Paramètres en bas de la barre, avec le Suivi dedans. L'Agenda
+ * Utilisateurs, Automatismes, Suivi) ; Paramètres en bas de la barre. L'Agenda
  * quitte le menu (la pastille du Dashboard y mène). Le reste passe dans « Autre ».
  * ENTREES_ADMIN reste la liste des pages de l'équipe (les accès en dépendent).
  */
@@ -86,13 +86,15 @@ export const MENU_ADMIN = [
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
-  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }] },
+  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" },
+    // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
+    { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
 ];
 /** Pure : le groupe du menu de l'équipe auquel une page appartient, ou null. */
-export const groupeDe = (page) => MENU_ADMIN.find((x) => x.groupe && x.entrees.some((e) => e.cle === page)) || null;
+export const groupeDe = (page) => MENU_ADMIN.find((x) => x.groupe && x.entrees.some((e) => e.cle === page || e.aussi?.includes(page))) || null;
 
-/** Hors du menu : l'Agenda (pastille du Dashboard), le Suivi (dans Paramètres), Paramètres (en bas de la barre). */
-const HORS_MENU_ADMIN = ["Semaine", "Monitoring", "Personnalisation"];
+/** Hors du menu : l'Agenda (pastille du Dashboard), Paramètres (en bas de la barre). Le Suivi est dans Administration depuis le 18 oct. 2026. */
+const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
 
 /**
  * Pure : le menu de l'équipe, ses groupes, et « Autre » (tout ce qui n'y est pas).

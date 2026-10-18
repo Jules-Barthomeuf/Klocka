@@ -12,7 +12,7 @@ import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import CartesCompetences from "@/components/haka/CartesCompetences";
-import { FRISE, PHASES, classer, etapeFrise } from "@/lib/dossiers-architecture";
+import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
 // À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification,
@@ -32,9 +32,6 @@ export default function Analyse() {
   const nouveau = params.get("nouveau") === "1";
   // La recherche et le filtre par étape, au-dessus des cartes.
   const [recherche, setRecherche] = useState("");
-  // Les trois onglets de la liste (17 oct. 2026) : À traiter, Pipeline, Écartés par AK.
-  const [onglet, setOngletBrut] = useState(() => { try { const x = localStorage.getItem("dossiers.onglet"); return ["traiter", "pipeline", "ecartes"].includes(x) ? x : "traiter"; } catch { return "traiter"; } });
-  const setOnglet = (k) => { setOngletBrut(k); try { localStorage.setItem("dossiers.onglet", k); } catch { /* sans gravité */ } };
   // Une fiche glissée n'importe où sur la liste : elle est analysée, et le dossier s'ouvre.
   const [survol, setSurvol] = useState(false);
   const [large, setLarge] = useState(false);
@@ -180,18 +177,14 @@ export default function Analyse() {
   const changerVue = (v) => { const suivant = new URLSearchParams(params); if (v === "analyse") suivant.set("vue", "analyse"); else suivant.delete("vue"); setParams(suivant); };
   const aRelancer = pipeline?.a_relancer || 0;
 
-  // Les trois blocs de la liste (17 oct. 2026) : À traiter, Pipeline, Écartés par AK.
-  // Chaque bloc, du plus récemment modifié au plus ancien.
-  const blocs = useMemo(() => {
-    const t = recherche.trim().toLowerCase();
-    const garde = (d) => !t || `${d.titre || ""} ${d.nom_fichier || ""} ${d.ville || ""} ${d.responsable || ""}`.toLowerCase().includes(t);
-    const parMaj = (a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || ""));
-    const r = classer((pipeline?.dossiers || []).filter(garde), moi);
-    r.toi.sort(parMaj); r.tiers.sort(parMaj); r.ecartes.sort(parMaj);
-    for (const k of Object.keys(r.pipeline)) r.pipeline[k].sort(parMaj);
-    return r;
-  }, [pipeline, recherche, moi]);
   const nbDossiers = (pipeline?.dossiers || []).filter((d) => !d.archived).length;
+  // Tous les dossiers, en une seule liste, du plus récemment modifié au plus ancien (18 oct. 2026, Jules).
+  const tous = useMemo(() => {
+    const t = recherche.trim().toLowerCase();
+    return (pipeline?.dossiers || [])
+      .filter((d) => !d.archived && (!t || `${d.titre || ""} ${d.nom_fichier || ""} ${d.ville || ""} ${d.responsable || ""}`.toLowerCase().includes(t)))
+      .sort((a, b) => String(b.maj_le || "").localeCompare(String(a.maj_le || "")));
+  }, [pipeline, recherche]);
   // Les trois derniers ouverts (modifiés) en cartes, les autres en lignes dans l'ordre choisi.
   const ouvrirResponsables = (d) => {
     const actuels = (d.responsables?.length ? d.responsables : [String(d.responsable || "").split("@")[0]]).map((x) => ADMINS.find((a) => a.toLowerCase() === String(x).split(/[.\s]/)[0].toLowerCase()) || x).filter(Boolean);
@@ -448,13 +441,10 @@ export default function Analyse() {
               </div>
               <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
               <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties des dossiers">
-                {[["traiter", "À traiter", blocs.toi.length + blocs.tiers.length], ["pipeline", "Pipeline", Object.values(blocs.pipeline).flat().length], ["ecartes", "Écartés par AK", blocs.ecartes.length]].map(([k, mot, n]) => (
-                  <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={onglet === k}
-                    className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${onglet === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
-                    style={onglet === k ? undefined : { background: "transparent" }}>
-                    {mot}<span className={`text-[12px] tabular-nums ${onglet === k ? "opacity-70" : n ? "text-menthe" : "text-brume"}`}>{n}</span>
-                  </button>
-                ))}
+                {/* Un seul onglet (18 oct. 2026, Jules) : « À traiter », « Pipeline » et « Écartés par AK » sont retirés. */}
+                <span className="inline-flex h-9 flex-none items-center gap-2 rounded-full bg-encre px-4 text-[14px] text-fond">
+                  Dossiers<span className="text-[12px] tabular-nums opacity-70">{tous.length}</span>
+                </span>
               </nav>
             </header>
 
@@ -480,40 +470,9 @@ export default function Analyse() {
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div key={onglet} className="pt-6 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1">
-                {onglet === "traiter" && (
-                  <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
-                    {[["À toi d'agir", blocs.toi, "Rien n'attend de toi."], ["En attente d'un tiers", blocs.tiers, "Personne ne te doit rien."]].map(([titre, liste, vide]) => (
-                      <div key={titre} className="rounded-[18px] border border-trait bg-surface p-4">
-                        <p className="m-0 mb-3 flex items-baseline justify-between text-[15px] text-encre">{titre}<span className="text-[13px] tabular-nums text-ardoise">{liste.length}</span></p>
-                        <div className="flex flex-col gap-2.5">
-                          {liste.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
-                          {!liste.length && <p className="m-0 py-4 text-center text-[13px] text-brume">{vide}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {onglet === "pipeline" && (
-                  <div className="grid grid-cols-1 gap-[18px] md:grid-cols-2 xl:grid-cols-4">
-                    {PHASES.map((ph) => (
-                      <div key={ph.id} className="rounded-[18px] border border-trait bg-rail p-4">
-                        <p className="m-0 flex items-baseline justify-between text-[15px] text-encre">{ph.label}<span className="text-[13px] tabular-nums text-ardoise">{blocs.pipeline[ph.id].length}</span></p>
-                        <p className="m-0 mb-3 mt-0.5 text-[12px] text-brume">{ph.sous}</p>
-                        <div className="flex flex-col gap-2.5">
-                          {blocs.pipeline[ph.id].map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
-                          {!blocs.pipeline[ph.id].length && <p className="m-0 py-4 text-center text-[13px] text-brume">Aucun dossier.</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {onglet === "ecartes" && (
-                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                    {blocs.ecartes.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
-                    {!blocs.ecartes.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Rien d'écarté.</p>}
-                  </div>
-                )}
+              <div className="grid grid-cols-1 gap-2.5 pt-6 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1 sm:grid-cols-2 lg:grid-cols-3">
+                {tous.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
+                {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
             )}
           </div>

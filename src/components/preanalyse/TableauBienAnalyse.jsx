@@ -10,7 +10,7 @@ import { Depliant } from "@/components/haka/ReglagesDemande";
 
 const STATUT = {
   info: ["Info", "bg-rail-actif text-craie"],
-  signale: ["Signalé", "bg-ambre/15 text-ambre"],
+  signale: ["À vérifier", "bg-ambre/15 text-ambre"],
   bloquant: ["Bloquant", "bg-alerte/15 text-alerte"],
   ok: ["OK", "text-menthe"],
   non_trouve: ["Non trouvé", "text-brume"],

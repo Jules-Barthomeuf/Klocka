@@ -80,6 +80,7 @@ export function useFermerAuClicAilleurs(ouvert, fermer) {
 }
 export const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 /** Les colonnes du tableau, les mêmes que l'onglet Bien. */
+const STATUT_SUIVANT = { ok: "a_verifier", a_checker: "a_verifier", a_verifier: "no_go", warning: "no_go", no_go: "ok", vide: "ok", non_lu: "ok" };
 const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_110px]";
 /** Le statut d'une ligne en mot : [mot, classes, en pastille ?]. « Info » pour une ligne d'information. */
 export function statutAffiche(l) {
@@ -87,7 +88,7 @@ export function statutAffiche(l) {
   switch (l.statut) {
     case "ok": return info ? ["Info", "bg-rail-actif text-craie", true] : ["OK", "text-menthe", false];
     case "a_checker": return info ? ["Info", "bg-rail-actif text-craie", true] : ["À checker", "bg-rail-actif text-craie", true];
-    case "warning": case "a_verifier": return ["Signalé", "bg-ambre/15 text-ambre", true];
+    case "warning": case "a_verifier": return ["À vérifier", "bg-ambre/15 text-ambre", true];
     case "no_go": return ["Bloquant", "bg-alerte/15 text-alerte", true];
     case "non_lu": return ["Non lu", "text-brume", false];
     default: return ["Non trouvé", "text-brume", false];
@@ -113,8 +114,6 @@ export const Th = ({ children, className = "" }) => <th className={`text-left te
 export function TableCriteres({ g, onPreuve = undefined, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
   const [ouverts, setOuverts] = useState(() => new Set());
   const [details, setDetails] = useState(() => new Set());
-  const [choix, setChoix] = useState(null);
-  const menu = useFermerAuClicAilleurs(choix != null, () => setChoix(null));
   const queryClient = useQueryClient();
   const bascule = (id) => setOuverts((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const basculeDetail = (id) => setDetails((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -126,7 +125,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
   });
   const decider = useMutation({
     mutationFn: ({ critere, statut }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${g.id}/statut/${critere}`, { body: { statut } }),
-    onSuccess: () => { setChoix(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   // La note : un commentaire libre, ce qu'on veut, à côté de la valeur.
@@ -206,19 +205,13 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                 </button>
               )) : null)}
             </div>
-            <div className="relative">
-              <button type="button" disabled={lectureSeule || !dealId} onClick={() => setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}
-                className={`${puce ? `inline-flex h-7 items-center rounded-full px-3 ${classe}` : classe} text-[13px]`} style={puce ? undefined : { background: "transparent" }}>{mot}</button>
-              {l.decision && <span className="block text-[11px] text-brume">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
-              {choix === l.id && (
-                <div ref={menu} className={`absolute right-0 z-20 flex min-w-[160px] flex-col gap-1 rounded-[12px] border border-bord-doux bg-surface p-1.5 shadow-[0_12px_30px_rgb(0_0_0/0.35)] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                  {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "Signalé"], ["no_go", "Bloquant"]].map(([st, m]) => (
-                    <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="rounded-[8px] px-3 py-1.5 text-left text-[12.5px] font-medium hover:bg-encre/[0.05]" style={{ background: "transparent", color: teinteDe(st) }}>{m}</button>
-                  ))}
-                  {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="px-3 py-1 text-left text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Revenir au calcul</button>}
-                </div>
-              )}
-            </div>
+            {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules) ; plus de menu. */}
+            <button type="button" disabled={lectureSeule || !dealId || decider.isPending} onClick={() => decider.mutate({ critere: l.id, statut: STATUT_SUIVANT[l.statut] || "ok" })}
+              title={lectureSeule || !dealId ? undefined : "Cliquer pour changer le statut"}
+              className={`-mx-2 -my-1.5 self-start rounded-[10px] px-2 py-1.5 text-left transition-colors ${lectureSeule || !dealId ? "cursor-default" : "cursor-pointer hover:bg-encre/[0.05]"}`} style={{ background: "transparent" }}>
+              <span className={`${puce ? `inline-flex h-7 items-center rounded-full px-3 ${classe}` : classe} text-[13px]`}>{mot}</span>
+              {l.decision && <span className="mt-0.5 block text-[11px] text-brume">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
+            </button>
           </div>
         );
       })}

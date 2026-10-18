@@ -1,4 +1,5 @@
 import { VuesLieu } from "@/components/preanalyse/DealResultat";
+import ClientsCorrespondants from "@/components/admin/ClientsCorrespondants";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -77,6 +78,13 @@ const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume"
 
 /** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
 export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null, onRefresh = null }) {
+  // Pré-analyse : à qui ce bien pourrait correspondre, d'après les investisseurs de Monday (revenu le 18 oct. 2026, Jules).
+  const correspondances = useQuery({
+    queryKey: ["dossier-clients", dossier?.deal_id],
+    queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dossier.deal_id}/clients`),
+    enabled: !!dossier?.deal_id && !apercu && vue === "preanalyse",
+    staleTime: 5 * 60 * 1000,
+  });
   const { pieces, autres } = checklistDataRoom(dossier?.documents_espace || []);
   // Maj + glisser un fichier sur la Data Room ouvre la roue de conversion (18 oct. 2026, Jules) ; le centre le range tel quel.
   const ajouter = dossier?.deal_id && !apercu ? async (f) => {
@@ -95,6 +103,13 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
         <section className={bloc}>
           <p className={titreBloc}>Emplacement</p>
           <VuesLieu lot={dossier.lots[0]} enr={dossier.lots[0].enrichissement} coteACote empile dealId={dossier?.deal_id} />
+        </section>
+      )}
+      {vue === "preanalyse" && dossier?.deal_id && !apercu && (
+        <section className={bloc}>
+          <p className={titreBloc}>Clients intéressés</p>
+          <p className="m-0 text-[12.5px] text-brume">Budget, apport et zone de recherche, d'après Monday</p>
+          <ClientsCorrespondants clients={correspondances.data?.clients} chargement={correspondances.isLoading} configure={correspondances.data?.configure} erreur={correspondances.isError} />
         </section>
       )}
       {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Seulement à l'étape Data Room (18 oct. 2026, Jules). */}

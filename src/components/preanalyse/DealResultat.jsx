@@ -5,6 +5,7 @@
 import { TEINTE, FOND, MOT, Th, teinteDe, statutAffiche, useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { Depliant } from "@/components/haka/ReglagesDemande";
 
+const SUIVANT = { ok: "a_verifier", a_verifier: "no_go", warning: "no_go", no_go: "ok", vide: "ok" };
 const COLONNES_FICHE = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2fr)_120px_minmax(0,1.6fr)]";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
@@ -323,9 +324,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
   const ctx = lot.evaluation?.contexte || {};
   const enr = lot.enrichissement || {};
   const [ouverts, setOuverts] = useState(() => new Set());
-  const [choix, setChoix] = useState(null);
   const [source, setSource] = useState(null); // "prix" | "loyer"
-  const menu = useFermerAuClicAilleurs(choix != null, () => setChoix(null));
   const bascule = (id) => setOuverts((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const loyerFiche = valChamp(lot.lot?.loyer_annuel_ht_hc);
   const { hors, fai } = prixDuLot(lot);
@@ -452,7 +451,7 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex flex-wrap items-center gap-3 text-[12.5px] text-craie">
             <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} signalé{resume.warning > 1 ? "s" : ""}</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
             {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} bloquant{resume.no_go > 1 ? "s" : ""}</span>}
             {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} non trouvé{resume.vide > 1 ? "s" : ""}</span>}
           </span>
@@ -475,22 +474,17 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
                   <Depliant ouvert={ouverts.has(id) && !!c?.critere}><p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{c?.critere}{c?.groupe ? ` · ${c.groupe}` : ""}</p></Depliant>
                 </div>
                 <div className="min-w-0 break-words text-[14.5px] [&_*]:whitespace-normal">{valeur(id)}</div>
-                <div className="relative">
-                  <button type="button" disabled={!modifiable} onClick={() => modifiable && setChoix(choix === id ? null : id)} title={modifiable ? "Confirmer le statut" : undefined}
-                    className={`inline-flex items-center gap-2 text-[13px] ${puce ? `h-7 rounded-full px-3 ${classe}` : classe} ${modifiable ? "cursor-pointer hover:opacity-80" : "cursor-default"}`} style={puce ? undefined : { background: "transparent" }}>
+                {/* Un clic sur la case fait tourner le statut : OK, À vérifier, Bloquant (18 oct. 2026, Jules : « cliquer sur la case autour »). */}
+                <button type="button" disabled={!modifiable || (c && enVerification === cleLigne(c))}
+                  onClick={() => modifiable && onVerifier(cleLigne(c), SUIVANT[st] || "ok")}
+                  title={modifiable ? "Cliquer pour changer le statut" : undefined}
+                  className={`-mx-2 -my-1.5 self-start rounded-[10px] px-2 py-1.5 text-left transition-colors ${modifiable ? "cursor-pointer hover:bg-encre/[0.05]" : "cursor-default"}`} style={{ background: "transparent" }}>
+                  <span className={`inline-flex items-center gap-2 text-[13px] ${puce ? `h-7 rounded-full px-3 ${classe}` : classe}`}>
                     {mot}
                     {c && enVerification === cleLigne(c) && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="Changement en cours" />}
-                  </button>
+                  </span>
                   {decision && <span className="mt-0.5 block text-[11.5px] text-brume">décidé{decision.par ? ` · ${decision.par.split("@")[0]}` : ""}</span>}
-                  {choix === id && (
-                    <div ref={menu} className={`absolute left-0 z-20 flex min-w-[150px] flex-col gap-1 rounded-[12px] border border-bord-doux bg-surface p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.5)] ${iLigne >= lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
-                      {[["ok", "OK"], ["a_verifier", "Signalé"], ["no_go", "Bloquant"]].map(([statut, libelle]) => (
-                        <button key={statut} onClick={() => { onVerifier(cleLigne(c), statut); setChoix(null); }} className="rounded-[8px] px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[statut], color: teinteDe(statut) }}>{libelle}</button>
-                      ))}
-                      {decision && <button onClick={() => { onVerifier(cleLigne(c), null); setChoix(null); }} className="px-3 py-1 text-left text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Revenir au calcul</button>}
-                    </div>
-                  )}
-                </div>
+                </button>
                 <div className="min-w-0">
                   <NotesLigne
                     textes={[...(lot.notes?.[id]?.textes || []), ...(cleMarche ? notesMarche(marche?.[cleMarche], marche) : [])]}

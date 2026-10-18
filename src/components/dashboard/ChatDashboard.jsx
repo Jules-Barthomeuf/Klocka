@@ -124,7 +124,7 @@ const ESPACES = {
   // présentation d'un projet et retouche celle ouverte à droite.
   presentation: { api: "/api/assistant", page: "presentations", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quel projet ? « Fais la présentation bancaire du projet de Dieppe, à l'attention du Crédit Agricole »" },
   // Un dossier ouvert (équipe, 17 oct. 2026) : AK à gauche, le dossier à droite, à toutes les étapes.
-  dossier: { api: "/api/assistant", page: "dossiers", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Une question sur ce dossier ? « Qu'est-ce qui manque ? », « Le loyer est de 24 000 € HT »" },
+  dossier: { api: "/api/assistant", page: "dossiers", modesAGauche: true, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Une question sur ce dossier ? « Qu'est-ce qui manque ? », « Le loyer est de 24 000 € HT »" },
   // L'éditeur de projet (équipe, 14 oct. 2026) : le chat d'AK retouche les chiffres du projet ouvert à droite, avec leurs sources.
   projet: { api: "/api/assistant", page: "projets", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Que corriger ? « Le loyer est trop bas, va chercher des chiffres plus cohérents »" },
   // La présentation vue du client (16 oct. 2026, Jules : « le même design que la partie admin ») : le même chat,
@@ -1682,8 +1682,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             {E.fichier && <button
               type="button"
               onClick={() => fichierRef.current?.click()}
-              aria-label={mandataire ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
-              title={mandataire ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
+              aria-label={mandataire || espace === "dossier" ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
+              title={mandataire || espace === "dossier" ? "Joindre une pièce (bail, quittances, Kbis, photo…)" : "Déposer une fiche (PDF, Word, image, mail) — elle devient un dossier"}
               className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise transition-colors hover:bg-barre-relief hover:text-encre"
               style={{ background: "transparent" }}
             >

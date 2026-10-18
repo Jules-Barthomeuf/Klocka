@@ -852,6 +852,9 @@ html.k-sans-defilement, html.k-sans-defilement body { overflow: hidden; }
    remonte semble passer dessous (12 oct. 2026, Jules : « pas délimitée, le même bloc »). */
 :root .k-page-presentation .k-colonne-chat .k-barre-apercu { background-color: rgb(var(--k-fond-rgb)); border-bottom-color: transparent; position: relative; z-index: 2; }
 :root .k-page-presentation .k-colonne-chat .k-barre-apercu::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 20px; pointer-events: none; background: linear-gradient(rgb(var(--k-fond-rgb)), rgb(var(--k-fond-rgb) / 0)); }
+/* Le dossier en mode IA (18 oct. 2026, Jules) : la barre « Tous les dossiers · Historique » laisse voir le fond Halo, sans fondu. */
+:root .k-page-presentation.k-dossier-ia .k-colonne-chat .k-barre-apercu { background-color: transparent; }
+:root .k-page-presentation.k-dossier-ia .k-colonne-chat .k-barre-apercu::after { display: none; }
 /* Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points. */
 html.k-sobre body::after,
 html.k-sobre .k-halo,

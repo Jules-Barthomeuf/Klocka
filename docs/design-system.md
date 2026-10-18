@@ -624,6 +624,8 @@ Remplace les quatre points qui tournent du 16 oct. (ci-dessous, gardés pour les
 
 **La Pré-analyse au dessin de l'Analyse** (Jules, 18 oct. 2026) : le tableau « Fiche du bien » prend les lignes de l'onglet Bien (Critère / Ce qu'on y lit / Statut / Notes, sans cadre de cellule, le statut en mot ou en pastille : OK, Signalé, Bloquant, Non trouvé, Info). Chaque valeur se modifie sur place, et la modification relance l'analyse ; « Corriger la fiche » n'existe plus. La ligne « Adresse et emplacement » porte l'adresse : la changer relit le marché (prix, loyer) et déplace Street View et le plan. Surface, type d'actif et bail ont leur ligne d'information. La colonne de droite montre l'emplacement (Street View puis le plan) à l'étape Pré-analyse, et la Data Room seulement à l'étape Data Room ; ailleurs, sans colonne, le contenu prend toute la largeur. Sous le plan, « Clients intéressés » (investisseurs de Monday compatibles). Le statut d'une ligne, dans la fiche comme dans les tableaux de l'Analyse, se change d'un clic sur sa case, sans menu : OK, puis À vérifier, puis Bloquant, puis OK. « Signalé » devient « À vérifier » partout.
 
+**Le chat du dossier comme celui de Haka** (Jules, 18 oct. 2026) : en mode IA, la saisie a le « + » (joindre une pièce au dossier), Répondre / Produire et « Sources : Auto » ; un clic sur Sources déplie les pastilles au-dessus de la saisie (Auto, ou les sources cochées). Une fois la conversation ouverte, la barre « Tous les dossiers · Historique » est transparente : le fond Halo passe dessous.
+
 ### Les étapes d'AK quand il réfléchit (16 oct. 2026)
 
 Spec de Jules, qui remplace le point qui pulse et la roue : l'étape en cours

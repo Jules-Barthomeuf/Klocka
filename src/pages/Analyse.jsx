@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -268,6 +269,14 @@ export default function Analyse() {
   // Mode IA ou mode normal (17 oct. 2026, Jules) : IA, la barre latérale s'efface et AK est à gauche ;
   // normal, la barre latérale reste et le dossier prend la page. Gardé dans ce navigateur.
   const [modeIA, setModeIABrut] = useState(() => { try { return localStorage.getItem("klocka.dossier.mode") !== "normal"; } catch { return true; } });
+  // Les réglages du chat du dossier, comme sur la page Haka (18 oct. 2026, Jules) : sources « Auto » ou choisies, Répondre ou Produire.
+  const [sourcesChat, setSourcesChat] = useState([]);
+  const [sortieChat, setSortieChat] = useState("repondre");
+  const [sourcesOuvert, setSourcesOuvert] = useState(false);
+  const reglagesChat = useMemo(() => ({
+    sources: sourcesChat, sortie: sortieChat, setSortie: setSortieChat, sourcesOuvert,
+    onOuvrirSources: () => setSourcesOuvert((o) => !o), competence: null, eteintes: [], choisirCompetence: () => {},
+  }), [sourcesChat, sortieChat, sourcesOuvert]);
   // Passer du mode normal au mode IA fait glisser le dossier vers la droite et apparaître le chat (18 oct. 2026, Jules).
   const glisse = useRef(false);
   const setModeIA = (v) => { glisse.current = v && !modeIA; setModeIABrut(v); try { localStorage.setItem("klocka.dossier.mode", v ? "ia" : "normal"); } catch { /* navigation privée */ } };
@@ -371,7 +380,7 @@ export default function Analyse() {
 
   if (scinde) {
     return (
-      <div className={`k-page-presentation relative grid h-[100dvh] overflow-hidden text-encre ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+      <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] overflow-hidden text-encre ${glisse.current ? "" : "duration-500 ease-out animate-in fade-in-0"} ${tire ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
         {/* À gauche, AK sur ce dossier, le design de Présentations : la question au centre, le chat en bas. */}
         <motion.div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5"
           initial={glisse.current ? { opacity: 0, x: -40 } : { opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
@@ -383,7 +392,8 @@ export default function Analyse() {
             </div>
           )}
           <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>
-            <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert}
+            <Depliant ouvert={sourcesOuvert}><div className="pb-4"><PanneauSources sources={sourcesChat} onChange={setSourcesChat} /></div></Depliant>
+            <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
               retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
               contexte={{ deal_id: dealId, etape: vueDossier }}
               onReponse={() => { recharger(); rafraichirListes(); }} />

@@ -212,6 +212,8 @@ function kexpertise(brut = {}, entree = {}) {
         flux_voiture: note(etude?.flux_voiture),
         habitants_zone_primaire: primaire?.insee?.population?.habitants ?? null,
         generateurs: Array.isArray(r.generateurs) ? r.generateurs.length : null,
+        // L'emplacement classé (lot 8, boîte à outils allumée) : indice de flux sur 100 et classement du tronçon.
+        ...(r.emplacement ? { classement: r.emplacement.classement?.classement ?? null, libelle_classement: r.emplacement.classement?.libelle ?? null, indice_flux: r.emplacement.flux?.indice ?? null, lineaire_commercial: !!r.emplacement.urbanisme?.lineaire_commercial } : {}),
       }
       : null,
     fourchette: null,
@@ -219,7 +221,7 @@ function kexpertise(brut = {}, entree = {}) {
     // Quatre lectures possibles : l'étude et les trois zones INSEE.
     confiance: confianceDe({ n: avecInsee.length + (etude ? 1 : 0), min_haute: 4, min_moyenne: 2 }),
     sources: listeSources,
-    detail: { generateurs: r.generateurs || [], zones, etude, manques: etude?.manques || [], erreur_etude: r.etude_erreur || null },
+    detail: { generateurs: r.generateurs || [], zones, etude, manques: etude?.manques || [], erreur_etude: r.etude_erreur || null, emplacement: r.emplacement || null },
     date,
   });
 }

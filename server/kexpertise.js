@@ -25,6 +25,8 @@ import { Records } from './db.js';
 import { geocoder } from './deal/geocodage.js';
 import { interroger, construireRequete } from './kzoning-commerces.js';
 import { habitantsDeLaZone } from './kzoning-insee.js';
+import { boiteOutilsActive } from './socle/drapeaux.js';
+import { emplacementDe } from './outils-kd/expertise.js';
 
 const ENTITE = 'ExpertiseKData';
 
@@ -43,6 +45,10 @@ export const ETAPES = [
   { cle: 'zones', nom: 'Zones de chalandise : habitants, logements' },
   { cle: 'synthese', nom: 'Synthèse' },
 ];
+
+// Boîte à outils allumée (lot 8, 18 oct. 2026) : une étape de plus avant la synthèse, l'emplacement classé.
+const ETAPE_EMPLACEMENT = { cle: 'emplacement', nom: 'Emplacement : indice de flux, urbanisme, risques, classement' };
+const etapesDuJour = () => (boiteOutilsActive() ? [...ETAPES.slice(0, -1), ETAPE_EMPLACEMENT, ETAPES[ETAPES.length - 1]] : ETAPES);
 
 // Ce qui attire du monde, et ce qu'on en dit. L'ordre est celui du rapport.
 const GENERATEURS = [
@@ -138,7 +144,7 @@ export function lancerExpertise({ adresse, activite = null, forcer = false }, us
     activite: String(activite || '').trim() || 'Tous les commerces',
     etat: 'en_cours',
     progression: 0,
-    etapes: ETAPES.map((x) => ({ ...x, etat: 'a_faire', detail: null })),
+    etapes: etapesDuJour().map((x) => ({ ...x, etat: 'a_faire', detail: null })),
     cree_le: new Date().toISOString(),
     fini_le: null,
     par: user?.email || null,
@@ -219,7 +225,22 @@ async function executer(id, { forcer, user }) {
   if (resultat.zones.some((z) => z.insee) && !resultat.sources.includes('INSEE Filosofi')) resultat.sources.push('INSEE Filosofi');
   noter(id, { resultat });
 
-  // 5. La synthèse : rien de calculé de neuf, tout est déjà là.
+  // 5. L'emplacement (lot 8, boîte à outils allumée) : indice de flux décomposé, PLU, risques, gares et arrêts,
+  //    loyer déjà lu, classement du tronçon. Le code calcule ; une source coupée retire sa composante.
+  if ((Records.get(ENTITE, id)?.etapes || []).some((x) => x.cle === 'emplacement')) {
+    etape(id, 'emplacement', 'en_cours');
+    try {
+      resultat.emplacement = await emplacementDe({ adresse: e.adresse, point, etude: resultat.etude, zones: resultat.zones, generateurs: resultat.generateurs });
+      for (const src of resultat.emplacement.sources) if (!resultat.sources.includes(src)) resultat.sources.push(src);
+      etape(id, 'emplacement', 'faite', `${resultat.emplacement.classement.libelle}, indice de flux ${resultat.emplacement.flux.indice ?? '—'} / 100`);
+    } catch (err) {
+      resultat.emplacement = null;
+      etape(id, 'emplacement', 'ratee', err?.message || String(err));
+    }
+    noter(id, { resultat });
+  }
+
+  // 6. La synthèse : rien de calculé de neuf, tout est déjà là.
   etape(id, 'synthese', 'faite');
   noter(id, { etat: 'terminee', fini_le: new Date().toISOString(), progression: 100, resultat });
 }

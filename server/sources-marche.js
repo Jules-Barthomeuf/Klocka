@@ -9,10 +9,18 @@
 // l'étude interne (alx/index.js) : un crédit par rue ne tient pas.
 
 import { dataBConfigure } from './data-b.js';
+import { sourceActive } from './socle/registre-sources.js';
+import { boiteOutilsActive } from './socle/drapeaux.js';
 
 async function enRepli(nom, parDataB, parSecours) {
   let motif = "Data-B n'est pas configuré";
-  if (dataBConfigure()) {
+  // Data-B passe par son interrupteur (Paramètres › Sources) ; boîte à outils allumée, l'étude d'implantation
+  // interne devient la référence (lot 8, 18 oct. 2026) et Data-B n'est plus appelé d'abord pour elle.
+  const coupe = !sourceActive('data_b');
+  const interneDabord = nom === 'implantation' && boiteOutilsActive();
+  if (coupe) motif = 'Data-B est coupé (Paramètres › Sources)';
+  else if (interneDabord) motif = "l'étude interne est la référence (boîte à outils allumée)";
+  if (dataBConfigure() && !coupe && !interneDabord) {
     try {
       const r = await parDataB();
       if (r?.ok) return r;

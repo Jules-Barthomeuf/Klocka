@@ -257,6 +257,38 @@ function Rapport({ expertise: e, user, onRetour, onSupprimer }) {
         </Panel>
       )}
 
+      {/* L'emplacement classé (lot 8, 18 oct. 2026, boîte à outils allumée) : le code calcule l'indice et le classement. */}
+      {r.emplacement && (
+        <Panel titre="Emplacement">
+          <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+            <Compteur titre={r.emplacement.classement?.libelle || "Classement"} valeur={`${r.emplacement.flux?.indice ?? "—"} / 100`} />
+            <Bloc>
+              {(r.emplacement.flux?.composantes || []).map((c) => (
+                <Ligne key={c.cle} label={c.libelle}>{c.note} / 100 <span className="text-brume">· poids {Math.round(c.poids * 100)} %</span></Ligne>
+              ))}
+              <p className="m-0 mt-2 text-[11.5px] text-brume">Indice de flux : {r.emplacement.flux?.nature} ; {r.emplacement.flux?.sur}.</p>
+            </Bloc>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <Bloc>
+              <p className="m-0 mb-2 text-[12px] uppercase tracking-[.08em] text-ardoise">Activités</p>
+              {(r.emplacement.classement?.activites?.adaptees || []).map((a) => <p key={a} className="m-0 py-0.5 text-[13px] text-encre">Adapté : {a}</p>)}
+              {(r.emplacement.classement?.activites?.deconseillees || []).map((a) => <p key={a} className="m-0 py-0.5 text-[13px] text-ardoise">Déconseillé : {a}</p>)}
+            </Bloc>
+            <Bloc>
+              <p className="m-0 mb-2 text-[12px] uppercase tracking-[.08em] text-ardoise">Urbanisme, risques, transports</p>
+              <Ligne label="Zone du PLU">{r.emplacement.urbanisme?.zone?.code || "—"}</Ligne>
+              <Ligne label="Linéaire commercial protégé">{r.emplacement.urbanisme ? (r.emplacement.urbanisme.lineaire_commercial ? "oui" : "non") : "—"}</Ligne>
+              <Ligne label="Gare la plus proche">{r.emplacement.gares?.[0] ? `${r.emplacement.gares[0].nom}, ${r.emplacement.gares[0].distance_m} m${r.emplacement.gares[0].voyageurs ? `, ${nb(r.emplacement.gares[0].voyageurs)} voyageurs en ${r.emplacement.gares[0].annee}` : ""}` : "aucune à 1,5 km"}</Ligne>
+              <Ligne label="Arrêts à moins de 300 m">{r.emplacement.arrets?.filter((a) => a.distance_m <= 300).length ?? "—"}</Ligne>
+              {r.emplacement.loyer?.central && <Ligne label="Loyer de marché (déjà lu)">{`${r.emplacement.loyer.bas} à ${r.emplacement.loyer.haut} €/m²/an`}</Ligne>}
+              {(r.emplacement.classement?.reserves || []).map((x) => <p key={x} className="m-0 mt-2 text-[12.5px] text-ambre">{x}</p>)}
+            </Bloc>
+          </div>
+          <Sources>{(r.emplacement.sources || []).join(", ") || "étude interne"} ; classement estimé, à étalonner sur celui des analystes</Sources>
+        </Panel>
+      )}
+
       {/* Générateurs de flux */}
       <Panel titre="Générateurs de flux">
         {!r.generateurs?.length ? <p className="m-0 text-[12.5px] text-brume">Aucun générateur cartographié dans 300 m.</p> :

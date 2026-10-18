@@ -46,7 +46,6 @@ import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, group
 import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AnimatedDropdown } from "@/components/ui/animated-dropdown";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserProvider, useUser } from "@/components/providers/UserProvider";
@@ -565,9 +564,9 @@ function LayoutContent({ children, currentPageName }) {
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
         <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
-          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka">
-            <img src="/logo-klocka.svg" alt="Klocka" className="h-6 w-6 rounded-[6px]" draggable={false} />
-            {!replie && <span className="text-[17px] font-semibold tracking-[-0.01em] text-encre">Klocka</span>}
+          <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
+            <img src="/logo-klocka.svg" alt="Klocka OS" className="h-6 w-6 rounded-[6px]" draggable={false} />
+            {!replie && <span className="text-[17px] font-semibold tracking-[-0.01em] text-encre">Klocka OS</span>}
           </Link>
           {!isMobile && !replie && (
             <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Replier le menu" title="Replier le menu" className={`ml-auto ${bouton}`} style={{ background: "transparent" }}>
@@ -607,24 +606,6 @@ function LayoutContent({ children, currentPageName }) {
                 </button>
               );
             })}
-          </div>
-        )}
-
-        {/* La vue : admin, ou comme un client. */}
-        {isAdmin && !replie && (
-          <div className="mx-3 mt-2.5 flex items-center gap-2.5 px-2">
-            <Eye className="h-4 w-4 flex-none text-ardoise" strokeWidth={1.7} />
-            <AnimatedDropdown
-              value={apercu}
-              onChange={(v) => { choisirApercu(v); setApercu(v); }}
-              options={[
-                { value: 'admin', label: 'Vue Admin' },
-                { value: 'client', label: 'Vue Client' },
-                { value: 'mandataire', label: 'Vue Mandataire' },
-              ]}
-              className="flex-1"
-              triggerClassName="bg-transparent border-none text-encre text-[14.5px] h-7 px-0 hover:bg-transparent hover:text-encre"
-            />
           </div>
         )}
 
@@ -678,6 +659,25 @@ function LayoutContent({ children, currentPageName }) {
           )}
         </div>
 
+        {/* La vue (18 oct. 2026, Jules) : au-dessus de Paramètres, avec son icône ; un clic passe à la vue suivante
+            (Admin, Client, Mandataire), sans menu. Elle vivait en haut de la barre, sous le choix Klocka | Outils. */}
+        {isAdmin && (
+          <div className={`flex-shrink-0 pb-0.5 ${replie ? "" : "px-3"}`}>
+            {(() => {
+              const vues = [["admin", "Admin"], ["client", "Client"], ["mandataire", "Mandataire"]];
+              const i = Math.max(0, vues.findIndex(([k]) => k === apercu));
+              const suivante = vues[(i + 1) % vues.length][0];
+              return (
+                <button type="button" onClick={() => { choisirApercu(suivante); setApercu(suivante); }}
+                  aria-label={`Vue ${vues[i][1]} : passer à la vue ${vues[(i + 1) % vues.length][1]}`} title={`Vue ${vues[i][1]} · cliquer pour passer à ${vues[(i + 1) % vues.length][1]}`}
+                  className={`relative flex w-full items-center rounded-[10px] text-ardoise transition-colors hover:bg-rail-actif hover:text-encre ${replie ? "mx-auto h-9 w-9 justify-center" : "gap-2.5 px-3 py-[7px]"}`} style={{ background: "transparent" }}>
+                  <Eye className="h-[17px] w-[17px] flex-none" strokeWidth={1.7} />
+                  {!replie && <><span className="flex-1 truncate text-left text-[15px]">Vue</span><span className="text-[12.5px] text-brume">{vues[i][1]}</span></>}
+                </button>
+              );
+            })()}
+          </div>
+        )}
         {/* Paramètres, en bas de la barre (17 oct. 2026, Jules) : l'ancien « Compte », avec le Suivi dedans. */}
         {menuEquipe && (
           <div className={`flex-shrink-0 pb-2 ${replie ? "" : "px-3"}`}>

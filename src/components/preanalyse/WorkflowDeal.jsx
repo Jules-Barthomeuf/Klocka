@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { X as IconeFermer } from "lucide-react";
+import { X as IconeFermer, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -312,6 +312,38 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
+/** Le menu des onglets de l'analyse, à droite : vertical, collant en haut, repliable (choix gardé dans le navigateur). */
+function MenuAnalyse({ items, valeur, onChange }) {
+  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.analyse.menu") !== "ferme"; } catch { return true; } });
+  const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.analyse.menu", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
+  return (
+    <motion.aside layout transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className={`sticky top-4 flex-none ${ouvert ? "w-[210px]" : "w-10"} max-md:hidden`}>
+      {ouvert ? (
+        <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden rounded-[16px] border border-trait bg-rail">
+          <div className="flex items-center justify-between border-b border-trait px-4 py-2.5">
+            <span className="text-[11px] uppercase tracking-[.16em] text-brume">Onglets</span>
+            <button type="button" onClick={basculer} aria-label="Fermer le menu des onglets" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><PanelRightClose className="h-4 w-4" /></button>
+          </div>
+          <nav className="flex flex-col p-1.5">
+            {items.map((o) => {
+              const actif = valeur === o.cle;
+              return (
+                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} aria-current={actif ? "page" : undefined}
+                  className={`flex items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : "text-craie hover:bg-rail-actif hover:text-encre"}`} style={actif ? undefined : { background: "transparent" }}>
+                  <span className="min-w-0 truncate">{o.titre}</span>
+                  {o.n > 0 && <span className="flex-none rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{o.n}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </motion.div>
+      ) : (
+        <button type="button" onClick={basculer} aria-label="Ouvrir le menu des onglets" title="Onglets de l'analyse" className="grid h-10 w-10 place-items-center rounded-full border border-trait bg-rail text-ardoise transition-colors hover:text-encre"><PanelRightOpen className="h-4 w-4" /></button>
+      )}
+    </motion.aside>
+  );
+}
+
 export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -596,14 +628,12 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           />
         )}
         {montre("analyse") && (
-          <div id="tables-analyse" className="space-y-5">
-            {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
-            <Onglets
-              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData, { cle: "historique", titre: "Historique" }]}
-              valeur={grilleAnalyse}
-              onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
-              taille="page"
-            />
+          <div id="tables-analyse" className="flex items-start gap-5">
+            <div className="min-w-0 flex-1 space-y-5">
+            {/* Au téléphone, les onglets restent en barre au-dessus. */}
+            <div className="md:hidden">
+              <Onglets items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre })), { cle: "historique", titre: "Historique" }]} valeur={grilleAnalyse} onChange={setGrilleAnalyse} taille="page" />
+            </div>
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
             <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
@@ -641,6 +671,10 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />
               </div>
             )}
+            </div>
+            {/* Les onglets de l'analyse, à droite du tableau, dans un menu qu'on peut fermer (18 oct. 2026, Jules). */}
+            <MenuAnalyse items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre, n: reste(g.id) })), ...ongletsKData.map((o) => ({ cle: o.cle, titre: o.titre, n: 0 })), { cle: "historique", titre: "Historique", n: 0 }]}
+              valeur={grilleAnalyse} onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))} />
           </div>
         )}
         {montre("analyse") && <EtapeDecisionFinale dossier={dossier} onRefresh={onRefresh} onOui={passerEtapeSuivante} apercu={apercu} />}

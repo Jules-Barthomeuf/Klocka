@@ -372,7 +372,7 @@ export default function Analyse() {
         <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5 duration-500 ease-out animate-in fade-in-0 slide-in-from-left-4">
           {!chatOuvert && (
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto py-6">
-              <h1 className="m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
+              <h1 className="k-balayage m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
               {/* Plus de cartes de compétences ici : la question et la saisie suffisent (18 oct. 2026, Jules). */}
             </div>
           )}

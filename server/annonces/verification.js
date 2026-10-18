@@ -137,13 +137,35 @@ export function logicielDe(html) {
   return { logiciel: metier?.[0] || generique?.[0] || 'inconnu', generateur, hotes: hotes.slice(0, 20) };
 }
 
+// Les décisions de Jules sur les douteux (18 oct. 2026) :
+//   - le gabarit Hektor (« exploitation offline ou online ... de ces données ») : interdit, accord à demander ;
+//   - Netty et les variantes « toute reproduction interdite » : autorisé, des faits seulement ;
+//   - les autres : la phrase parle de l'exploitation des données → interdit ; d'autre chose → autorisé ;
+//     sinon (elle nomme les données sans parler de leur exploitation) → montrée à Jules.
+const RE_HEKTOR = /exploitation\s+offline\s+ou\s+online/i;
+const RE_EXPLOITATION_DONNEES = /(exploit\w*|r[ée]utilis\w*|utilis\w*)\b[^.;]{0,120}\bdonn[ée]es\b|\bdonn[ée]es\b[^.;]{0,120}\b(exploit\w*|r[ée]utilis\w*)/i;
+const RE_DONNEES = /\bdonn[ée]es\b|base[s]? de donn/i;
+
+/** Pure : la décision sur une phrase douteuse : { categorie, regle, accord_a_demander } ou null (à montrer à Jules). */
+export function trancherDouteux(phrase) {
+  const p = String(phrase || '');
+  if (RE_HEKTOR.test(p)) return { categorie: 'interdit', regle: 'gabarit Hektor (exploitation des données), décision du 18 oct.', accord_a_demander: true };
+  if (RE_EXPLOITATION_DONNEES.test(p)) return { categorie: 'interdit', regle: 'la phrase parle de l\'exploitation des données', accord_a_demander: false };
+  if (RE_DONNEES.test(p)) return null;
+  return { categorie: 'autorise', regle: 'reproduction du site interdite, rien sur les données : faits seulement (adresse, surface, loyer, date, lien)', accord_a_demander: false, faits_seulement: true };
+}
+
 /** Pure : la catégorie d'un site, de ses trois lectures. */
 export function categorie({ robots, textes }) {
   if (robots?.bloque) return { categorie: 'interdit', motif: `robots.txt : ${robots.raison}`, phrase: robots.lignes.map((l) => `Disallow: ${l}`).join(' ; ') };
   const interdit = textes.find((t) => t.verdict === 'interdit');
   if (interdit) return { categorie: 'interdit', motif: 'conditions ou mentions légales', phrase: interdit.phrase, page: interdit.page };
   const douteux = textes.find((t) => t.verdict === 'douteux');
-  if (douteux) return { categorie: 'douteux', motif: 'reproduction interdite, sans parler d\'extraction', phrase: douteux.phrase, page: douteux.page };
+  if (douteux) {
+    const d = trancherDouteux(douteux.phrase);
+    if (d) return { categorie: d.categorie, motif: `douteux tranché : ${d.regle}`, phrase: douteux.phrase, page: douteux.page, lu_douteux: true, accord_a_demander: d.accord_a_demander, faits_seulement: !!d.faits_seulement };
+    return { categorie: 'douteux', motif: 'la phrase nomme les données sans parler de leur exploitation : à trancher', phrase: douteux.phrase, page: douteux.page };
+  }
   return { categorie: 'autorise', motif: textes.length ? 'rien n\'interdit la collecte' : 'aucune page légale trouvée, rien n\'interdit la collecte', phrase: null };
 }
 

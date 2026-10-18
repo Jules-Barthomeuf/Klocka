@@ -1303,6 +1303,8 @@ monterKValeurLocative(app);
 // Le socle de la boîte à outils de Haka (18 oct. 2026, lot 1) : sources, interrupteur, local, entrepôt.
 monterSocle(app);
 import('./socle/entrepot.js').then((m) => m.planifierImports()).catch((e) => console.error('[entrepot] :', e.message));
+// La collecte d'annonces des sites d'agences (lot 3) : éteinte tant que BOITE_OUTILS, la source « annonces » et ANNONCES_COLLECTE=1 ne sont pas réunis.
+import('./annonces/collecte.js').then((m) => m.planifierCollecte()).catch((e) => console.error('[annonces] :', e.message));
 monterKFoncier(app);
 monterKProspective(app);
 monterLeadMagnet(app);

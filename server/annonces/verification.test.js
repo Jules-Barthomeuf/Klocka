@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reglesRobots, verdictRobots, verdictTexte, liensLegaux, logicielDe, categorie, origineDe, collectable } from './verification.js';
+import { reglesRobots, verdictRobots, verdictTexte, liensLegaux, logicielDe, categorie, origineDe, collectable, trancherDouteux } from './verification.js';
 
 test('robots.txt : notre groupe, sinon celui de tous ; annonces ou recherche fermées = interdit', () => {
   const t = 'User-agent: *\nDisallow: /admin/\nDisallow: /recherche/\n\nUser-agent: GPTBot\nDisallow: /';
@@ -25,7 +25,7 @@ test('les liens légaux, le logiciel et la catégorie', () => {
   const html = '<a href="/mentions-legales">Mentions légales</a><a href="/contact">Contact</a><script src="https://cdn.apimo.pro/x.js"></script>';
   assert.deepEqual(liensLegaux(html, 'https://agence.fr/'), ['https://agence.fr/mentions-legales']);
   assert.equal(logicielDe(html).logiciel, 'apimo');
-  assert.equal(categorie({ robots: { bloque: false }, textes: [{ verdict: 'douteux', phrase: 'p', page: 'u' }] }).categorie, 'douteux');
+  assert.equal(categorie({ robots: { bloque: false }, textes: [{ verdict: 'douteux', phrase: 'Toute reproduction des pages, données ou éléments est interdite.', page: 'u' }] }).categorie, 'douteux');
   assert.equal(categorie({ robots: { bloque: true, raison: 'r', lignes: ['/recherche'] }, textes: [] }).categorie, 'interdit');
   assert.equal(categorie({ robots: { bloque: false }, textes: [{ verdict: 'rien' }] }).categorie, 'autorise');
   assert.equal(origineDe('www.agence.fr/nos-biens'), 'https://www.agence.fr');
@@ -37,4 +37,12 @@ test('le bruit des bandeaux de cookies ne fait pas une interdiction ; une page d
   assert.equal(verdictTexte("En l'absence d'une assignation à comparaître, les informations stockées ou extraites à cette seule fin ne peuvent généralement pas être utilisées pour vous identifier.").verdict, 'rien');
   assert.equal(verdictRobots('User-agent: *\nDisallow: /prendre_rdv_bien/').bloque, false);
   assert.equal(verdictRobots('User-agent: *\nDisallow: /annonces/f/').bloque, true);
+});
+
+test('les décisions de Jules sur les douteux', () => {
+  const h = trancherDouteux("Par conséquent, leur exploitation offline ou online, à titre gratuit ou onéreux, de tout ou partie de ces données sans le consentement exprès de l'Éditeur est interdite.");
+  assert.deepEqual([h.categorie, h.accord_a_demander], ['interdit', true]);
+  assert.equal(trancherDouteux('La reproduction ou représentation, intégrale ou partielle, de ce site est formellement interdite sauf autorisation expresse de la société Netty.').categorie, 'autorise');
+  assert.equal(trancherDouteux("Toute utilisation des données du site sans autorisation est interdite.").categorie, 'interdit');
+  assert.equal(trancherDouteux('Toute reproduction des pages, données ou de tout autre élément du site est interdite.'), null);
 });

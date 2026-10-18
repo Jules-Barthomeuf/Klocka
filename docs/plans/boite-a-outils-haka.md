@@ -64,6 +64,22 @@ Décision de Jules : collecte directe sur les sites des agences du 06, pas les p
 - Logiciels vus au premier passage (avant le blocage) : Apimo en tête (96 sites autorisés), puis Hektor, WordPress, Netty, Adapt Immo, Twimmo, Immo-Facile, Ubiflow.
 - Les douteux tiennent surtout en une phrase, celle du gabarit Hektor (61 sites) : « Par conséquent, leur exploitation offline ou online, à titre gratuit ou onéreux, de tout ou partie de ces données sans le consentement exprès de l'Éditeur est interdite. » Puis celle de Netty (11 sites) : « La reproduction ou représentation, intégrale ou partielle, de ce site sur un support électronique ou tout autre support quel qu'il soit est formellement interdite sauf autorisation expresse de la société Netty. »
 
+### Décisions de Jules sur les douteux (18 oct. 2026)
+
+- Gabarit Hektor (« exploitation offline ou online ... de ces données ») : **interdit**, colonne « accord à demander ».
+- Netty et variantes « toute reproduction interdite » : **autorisé, faits seulement** (adresse, surface, loyer, date, lien).
+- Les autres : la phrase parle de l'exploitation des données → interdit ; d'autre chose → autorisé ; sinon, montrée à Jules. Codé dans `trancherDouteux` ; appliqué par `npm run annonces:trancher`.
+
+Nouveaux totaux : **295 autorisés, 130 interdits (dont 62 « accord à demander »), 77 injoignables, 5 douteux** (quatre phrases qui nomment les données sans parler de leur exploitation : Palais Immobilier, Century 21 Lafage, Locopro, Foncia ; un site à relire).
+
+### Le blocage Apimo (18 oct. 2026)
+
+Le serveur d'Apimo (`web2.apimo.pro`, 212.83.171.8, et 212.83.187.122, chez Scaleway) a fermé sa porte à l'adresse de la machine de Jules (81.65.160.211), d'où tournait la vérification ; Render n'a rien lu. Aucun contournement (ni autre adresse, ni proxy, ni Render). Le lecteur Apimo attend la levée du blocage pour qu'on voie la structure des pages ; la Wayback Machine nous limite aussi pour l'instant.
+
+### Le cadre de collecte (18 oct. 2026)
+
+`server/annonces/collecte.js`, derrière BOITE_OUTILS, la source « annonces » (Paramètres › Sources) et `ANNONCES_COLLECTE=1` ; sur Render seulement. Budget par serveur (`ANNONCES_BUDGET_SERVEUR`, 120 requêtes par jour par défaut, une toutes les 12 minutes au plus), une lecture par jour par site, un 403 ou un 429 coupe le serveur 7 jours et prévient Jules, revérification mensuelle au même rythme. Faits seulement, loyer annuel, identifiant de local, dédoublonnage (même local, surface à 2 m² près, loyer à 3 % près). Lecteurs par logiciel : aucun encore (Apimo d'abord).
+
 ## À ranger dans le lot 4 (Valeur locative), à ne pas traiter avant
 
 1. Vérifier que le loyer de chaque lot est le loyer en cours à la date du dossier ; si c'est un loyer de signature de bail, actualiser depuis la date du bail.

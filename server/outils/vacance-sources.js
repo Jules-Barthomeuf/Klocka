@@ -19,6 +19,13 @@
 
 import { ErreurSource } from '../marche/erreurs.js';
 import { lireEtablissement, sireneConfigure, MESSAGE_SANS_CLE } from '../insee-sirene.js';
+import { sourceActive } from '../socle/registre-sources.js';
+import { communeChargee, etablissementsDeCommune, etablissementsDeSirens, versApi } from '../socle/imports/sirene-stock.js';
+
+// Le stock SIRENE mensuel de l'entrepôt (boîte à outils, 18 oct. 2026) : quand la commune y est et que la source
+// « sirene_stock » est active, le registre se lit là, sans clé ni quota ; sinon, l'API comme avant.
+const stockPour = (code) => sourceActive('sirene_stock') && communeChargee(code);
+const depuisStock = (lignes) => lignes.map((x) => lireEtablissementVacance(versApi(x))).filter(Boolean);
 
 const BODACC = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
 const SIRENE = 'https://api.insee.fr/api-sirene/3.11/siret';
@@ -158,8 +165,16 @@ export function lireEtablissementVacance(e) {
  * @param {{surProgres?: Function}} [o]
  */
 export async function etablissementsParSirens(sirens, { surProgres = null } = {}) {
-  const propres = [...new Set((sirens || []).map((s) => String(s).replace(/\D/g, '')).filter((s) => /^\d{9}$/.test(s)))];
+  let propres = [...new Set((sirens || []).map((s) => String(s).replace(/\D/g, '')).filter((s) => /^\d{9}$/.test(s)))];
   const sortie = [];
+  // Le stock d'abord (les établissements des départements chargés) ; l'API, s'il y a une clé, pour le reste.
+  if (sourceActive('sirene_stock') && propres.length) {
+    const lus = etablissementsDeSirens(propres);
+    sortie.push(...depuisStock(lus));
+    const vus = new Set(lus.map((x) => x.siren));
+    propres = sireneConfigure() ? propres.filter((s) => !vus.has(s)) : [];
+    if (lus.length) surProgres?.(`Stock SIRENE : ${vus.size} entreprises lues dans l'entrepôt`);
+  }
   for (let i = 0; i < propres.length; i += SIRENS_PAR_LOT) {
     const lot = propres.slice(i, i + SIRENS_PAR_LOT);
     const brut = await pagesSirene(lot.map((s) => `siren:${s}`).join(' OR '));
@@ -174,6 +189,11 @@ export async function etablissementsParSirens(sirens, { surProgres = null } = {}
 export async function fermeturesCommune(codeCommune, depuis, { surProgres = null } = {}) {
   const code = String(codeCommune || '').replace(/[^0-9AB]/gi, '');
   if (!code) return [];
+  if (stockPour(code)) {
+    const fermes = depuisStock(etablissementsDeCommune(code).filter((x) => x.etat === 'F' && String(x.date_debut || '') >= String(depuis || '')));
+    surProgres?.(`Stock SIRENE : ${fermes.length} fermetures dans la commune`);
+    return fermes;
+  }
   const brut = await pagesSirene(`codeCommuneEtablissement:${code} AND periode(etatAdministratifEtablissement:F AND dateDebut:[${depuis} TO *])`);
   surProgres?.(`SIRENE : ${brut.length} fermetures dans la commune`);
   return brut.map(lireEtablissementVacance).filter(Boolean);
@@ -192,6 +212,14 @@ export async function vitrinesCommune(codeCommune, prefixes, { surProgres = null
   const code = String(codeCommune || '').replace(/[^0-9AB]/gi, '');
   if (!code || !prefixes?.length) return [];
   const naf = (p) => { const c = String(p).replace(/\./g, ''); return c.length > 2 ? `${c.slice(0, 2)}.${c.slice(2)}` : c; };
+  if (stockPour(code)) {
+    const commence = (v) => { const c = String(v || '').replace(/\./g, ''); return prefixes.some((p) => c.startsWith(String(p).replace(/\./g, ''))); };
+    const lignes = etablissementsDeCommune(code).filter((x) => commence(x.naf));
+    const cat = new Map(lignes.map((x) => [x.siret, x.categorie_juridique || null]));
+    const lus = depuisStock(lignes).map((l) => ({ ...l, categorie_juridique: cat.get(l.siret) || null }));
+    surProgres?.(`Stock SIRENE : ${lus.length} établissements à vitrine dans la commune`);
+    return lus;
+  }
   const q = `codeCommuneEtablissement:${code} AND periode(etatAdministratifEtablissement:A AND (${prefixes.map((p) => `activitePrincipaleEtablissement:${naf(p)}*`).join(' OR ')}))`;
   const brut = await pagesSirene(q, { champs: `${CHAMPS},categorieJuridiqueUniteLegale` });
   surProgres?.(`SIRENE : ${brut.length} établissements à vitrine dans la commune`);

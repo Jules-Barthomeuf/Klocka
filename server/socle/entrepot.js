@@ -48,6 +48,8 @@ export const JEUX = [
   { cle: 'dvf', nom: 'Ventes de locaux commerciaux (DVF géolocalisées)', source: 'dvf', licence: 'Licence ouverte', mode: 'import', portee: 'commune', rythme_jours: 30 },
   { cle: 'iris', nom: 'Contours IRIS', source: 'iris_ign', licence: 'Licence ouverte', mode: 'import', portee: 'commune', rythme_jours: 180 },
   { cle: 'sirene_bodacc', nom: 'Établissements SIRENE et annonces BODACC', source: 'sirene', licence: 'Licence ouverte', mode: 'import', portee: 'commune', rythme_jours: 7 },
+  // Le stock SIRENE mensuel de data.gouv.fr, sans clé, lu en flux et filtré par département (imports/sirene-stock.js).
+  { cle: 'sirene_stock', nom: 'Stock SIRENE des établissements (mensuel)', source: 'sirene_stock', licence: 'Licence ouverte', mode: 'import', portee: 'departement', rythme_jours: 30 },
   { cle: 'cadastre', nom: 'Parcelles cadastrales', source: 'cadastre_ign', licence: 'Licence ouverte', mode: 'demande', portee: 'local' },
   { cle: 'troncons', nom: 'Tronçons de route (BD TOPO)', source: 'bdtopo', licence: 'Licence ouverte', mode: 'demande', portee: 'local' },
   { cle: 'carreaux', nom: 'Carreaux de 200 m (Filosofi)', source: 'insee_filosofi', licence: 'Licence ouverte', mode: 'demande', portee: 'local' },
@@ -120,7 +122,13 @@ async function importerSireneBodacc(commune) {
   return { lignes: n, millesime: maintenant().slice(0, 10) };
 }
 
-const IMPORTEURS = { dvf: importerDvf, iris: importerIris, sirene_bodacc: importerSireneBodacc };
+async function importerSireneStockDep(departement) {
+  const { importerSireneStock } = await import('./imports/sirene-stock.js');
+  const r = await importerSireneStock({ departement, surProgres: (m) => console.log(`[entrepot] stock SIRENE ${departement} : ${m}`) });
+  return { lignes: r.lignes, millesime: r.millesime };
+}
+
+const IMPORTEURS = { dvf: importerDvf, iris: importerIris, sirene_bodacc: importerSireneBodacc, sirene_stock: importerSireneStockDep };
 
 /** Importe un jeu pour une commune (ou le département pour « communes »), à travers l'interrupteur de sa source. */
 export async function importer(cleJeu, cibleCode) {
@@ -129,6 +137,8 @@ export async function importer(cleJeu, cibleCode) {
   if (!sourceActive(jeu.source)) { noter(cleJeu, cibleCode, { statut: 'coupee' }); return { ok: false, coupee: true }; }
   const appel = cleJeu === 'communes'
     ? () => importerCommunes(cibleCode)
+    // Un jeu par département (le stock SIRENE) reçoit le code du département, pas une commune.
+    : jeu.portee === 'departement' ? () => IMPORTEURS[cleJeu](cibleCode)
     : () => {
       const commune = db.prepare('SELECT * FROM entrepot_commune WHERE code = ?').get(cibleCode);
       if (!commune) throw new Error(`Commune ${cibleCode} absente : importer d'abord les communes.`);
@@ -166,6 +176,18 @@ export async function passerImports({ max = 30 } = {}) {
   for (const dep of DEPARTEMENTS) {
     const etat = db.prepare('SELECT * FROM entrepot_jeu WHERE cle = ? AND commune = ?').get('communes', dep);
     if (aRefaire(etat, 90)) { const r = await importer('communes', dep); r.ok ? bilan.faits++ : bilan.echecs++; }
+    // Les autres jeux par département (le stock SIRENE, une fois par mois).
+    for (const jeu of JEUX.filter((j) => j.mode === 'import' && j.portee === 'departement' && j.cle !== 'communes')) {
+      const e = db.prepare('SELECT * FROM entrepot_jeu WHERE cle = ? AND commune = ?').get(jeu.cle, dep);
+      if (!aRefaire(e, jeu.rythme_jours)) continue;
+      const r = await importer(jeu.cle, dep);
+      if (r.ok) bilan.faits++;
+      else if (!r.coupee) {
+        bilan.echecs++;
+        const { notifier } = await import('../notifications.js');
+        notifier({ titre: `Import raté : ${jeu.nom}`, texte: `Département ${dep} : ${r.error || 'erreur inconnue'}.`, genre: 'alerte', cle: `import:${jeu.cle}:${maintenant().slice(0, 10)}` });
+      }
+    }
   }
   const communes = db.prepare('SELECT * FROM entrepot_commune ORDER BY population DESC').all().filter((c) => DEPARTEMENTS.includes(c.departement));
   for (const jeu of JEUX.filter((j) => j.mode === 'import' && j.portee === 'commune')) {

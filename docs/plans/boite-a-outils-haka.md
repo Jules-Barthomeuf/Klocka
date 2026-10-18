@@ -156,3 +156,38 @@ L'état des lieux raccourcit le plan : la sortie de Data-B tient d'abord à deux
 3. **F1 commun** : un identifiant de local (BAN, parcelle, IRIS, carreau) que tous les outils reçoivent, à partir du code existant.
 4. **Contrat commun** : chaque outil renvoie valeur, fourchette, confiance, sources datées, détail ; Haka les reçoit ainsi.
 5. Les autres usages de Data-B (transactions, mandataires, off-market, assistant), un par un, puis la résiliation à l'échéance du contrat.
+
+## Lot 6, K-Transactions : compte rendu (18 oct. 2026)
+
+Derrière `BOITE_OUTILS` ; éteint, l'outil garde son rayon de 500 m. `server/ktransactions-murs.js`, branché dans `ktransactions.analyser`.
+
+- Fait : identifiant de local (`resoudreLocal`) ; les ventes « Local industriel, commercial ou assimilé » (dvf.js écarte déjà les actes mêlés à d'autres biens) ; prix au m² hors du 5e–95e centile de la commune écartés ; recherche par cercles parcelle → rue → IRIS → commune jusqu'à 5 ventes ; quartiles, nombre, période, médiane par année ; ventes de la rue ; dernière mutation de la parcelle (DVF entier, tous biens) ; ventes Klocka des projets signés (source `klocka_transactions`) ; `entrepot_dvf` et `entrepot_iris` quand la commune y est, sinon les fichiers DVF ; tout par `viaSource`.
+- Essais réels : 45 rue d'Antibes à Cannes (entrepôt) : 24 ventes dans la rue, 7 915 € / m² (5 756 à 8 631) ; 20 avenue Jean Médecin à Nice (fichiers) : 18 ventes dans la rue, 4 095 € / m² ; 1 place Masséna : dernière mutation de la parcelle le 12/10/2023, 1 210 000 €.
+- Reste : l'actualisation des prix (aucun indice public des prix des murs commerciaux : prix nominaux, médiane par année affichée, à trancher par Jules) ; DVF+ (Cerema) pour regrouper les mutations à plusieurs lots ; la comparaison avec Data-B sur 30 adresses (attend l'adaptateur du lot 2).
+
+## Lot 6, K-Foncier : compte rendu (18 oct. 2026)
+
+Derrière `BOITE_OUTILS`. `server/kfoncier-local.js`, branché dans `kfoncier.analyser` (champ `local`), bloc « Les murs de l'adresse » dans la page.
+
+- Fait : parcelle du local ; propriétaires personnes morales de la parcelle (miroir du fichier DGFiP) ; société par SIREN, sinon par nom et commune dans l'annuaire des entreprises avec un score (seuil 0,6, montré) ; dirigeants (RNE via l'annuaire) ; alertes BODACC (procédures collectives, cessions, radiations, décès) ; dernière mutation DVF de la parcelle ; sans personne morale : « Personne physique, non identifiable ».
+- Essais réels : 20 avenue Jean Médecin (Groupe GT par SIREN, deux dirigeants ; SCI NICIM sans SIREN, introuvable à l'annuaire, dit comme tel) ; 45 rue d'Antibes (société par SIREN) ; place Masséna (personne physique).
+- Reste : le miroir sert le millésime 2021 du fichier des personnes morales ; importer le fichier DGFiP du 06 (plus récent) dans l'entrepôt ; l'API RNE de l'INPI en direct (compte gratuit à créer) ; la comparaison avec Data-B.
+
+## Lot 5, Estimation : compte rendu (18 oct. 2026)
+
+Derrière `BOITE_OUTILS`. `server/kestimation-boite.js`, appelé par `kestimation.js` (`estimer` devient asynchrone).
+
+- Trois valeurs calculées par le code : comparaison (murs de K-Transactions par cercles, ajustée à la taille : ventes de la moitié au double de la surface s'il y en a 5) ; capitalisation (loyer en place, sinon loyer Equimmox × surface pondérée ; taux des projets Klocka signés de la commune, au moins 3, sinon rendement implicite loyer Equimmox ÷ prix DVF, sinon la grille de l'outil, dit) ; Equimmox prix des murs (offres).
+- Valeur retenue : médiane des méthodes (moyenne à deux) ; confiance par l'écart (≤ 15 % haute, ≤ 30 % moyenne) ; ce qui manque est listé ; l'ancien calcul reste à côté (`valeurs_grille`) pour comparer.
+- Constat de méthode : local vacant, loyer de marché au rendement implicite = prix DVF × surface, c'est-à-dire la comparaison elle-même. Cette capitalisation est montrée mais ne compte ni dans la médiane ni dans la confiance.
+- Essai réel : 45 rue d'Antibes, Cannes, vacant, 80 m², Equimmox en direct : comparaison 657 000 € (18 ventes de surface proche, 8 212 € / m²), Equimmox 328 000 € (79 offres, 4 094 € / m²), retenu 493 000 €, confiance faible (écart 67 %). L'écart entre ventes de la rue et offres Equimmox est le premier point à regarder avec Jules.
+- Reste : la comparaison avec Data-B (écart médian < 15 % sur 30 adresses) ; peu de projets Klocka signés : le taux vient surtout du rendement implicite.
+
+## K-Vacance, le stock SIRENE (18 oct. 2026)
+
+- `server/socle/imports/sirene-stock.js` : le fichier StockEtablissement mensuel de data.gouv.fr (licence ouverte, sans clé, 2,9 Go zippé, coordonnées Lambert 93 comprises) lu en flux, jamais posé sur le disque ; on garde le département (06), actifs et fermés depuis moins de 8 ans, diffusion publique ; seconde passe sur StockUniteLegale (1 Go) pour le nom et la catégorie juridique des entreprises gardées. Table `entrepot_sirene`. Jeu `sirene_stock` de l'entrepôt, par département, tous les 30 jours.
+- `outils/vacance-sources.js` lit ce stock d'abord (vitrines, fermetures, établissements par SIREN) quand la commune y est et que la source est active ; sinon l'API comme avant. Plus besoin de `INSEE_SIRENE_CLE` pour le 06.
+- Import réel du 06 (base locale, 18 oct. 2026) : 2 minutes, 44 282 364 lignes lues, 555 243 établissements gardés sur 163 communes (356 854 actifs, 198 389 fermés depuis moins de 8 ans), 461 714 entreprises toutes nommées, 88 % géolocalisés ; la base locale passe à 521 Mo. Cannes sans clé : 8 255 établissements à vitrine, 6 545 fermetures depuis 2024, lus en 1,4 s.
+- Sur Render : lire en flux comme ici, vérifier la place sur /var/data avant le premier passage de nuit, garder le rythme de 30 jours.
+- Reste : garder en base le résultat de K-Vacance (aujourd'hui seulement l'adresse et la date) ; BPE.
+

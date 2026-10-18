@@ -269,14 +269,14 @@ export default function Analyse() {
   // Mode IA ou mode normal (17 oct. 2026, Jules) : IA, la barre latérale s'efface et AK est à gauche ;
   // normal, la barre latérale reste et le dossier prend la page. Gardé dans ce navigateur.
   const [modeIA, setModeIABrut] = useState(() => { try { return localStorage.getItem("klocka.dossier.mode") !== "normal"; } catch { return true; } });
-  // Les réglages du chat du dossier, comme sur la page Haka (18 oct. 2026, Jules) : sources « Auto » ou choisies, Répondre ou Produire.
+  // Les réglages du chat du dossier, comme sur la page Haka (18 oct. 2026, Jules) : sources « Auto » ou choisies.
+  // Ni Répondre ni Produire dans ce petit chat : l'assistant choisit selon la demande (Jules, le même jour).
   const [sourcesChat, setSourcesChat] = useState([]);
-  const [sortieChat, setSortieChat] = useState("repondre");
   const [sourcesOuvert, setSourcesOuvert] = useState(false);
   const reglagesChat = useMemo(() => ({
-    sources: sourcesChat, sortie: sortieChat, setSortie: setSortieChat, sourcesOuvert,
+    sources: sourcesChat, sortie: null, sourcesOuvert,
     onOuvrirSources: () => setSourcesOuvert((o) => !o), competence: null, eteintes: [], choisirCompetence: () => {},
-  }), [sourcesChat, sortieChat, sourcesOuvert]);
+  }), [sourcesChat, sourcesOuvert]);
   // Passer du mode normal au mode IA fait glisser le dossier vers la droite et apparaître le chat (18 oct. 2026, Jules).
   const glisse = useRef(false);
   const setModeIA = (v) => { glisse.current = v && !modeIA; setModeIABrut(v); try { localStorage.setItem("klocka.dossier.mode", v ? "ia" : "normal"); } catch { /* navigation privée */ } };

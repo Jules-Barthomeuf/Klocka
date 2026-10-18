@@ -1705,7 +1705,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 <button type="button" onClick={() => reglages.choisirCompetence(null)} aria-label="Retirer la compétence" title="Retirer la compétence" className="grid h-6 w-6 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
               </span>
             )}
-            {reglages && <BasculeSortie sortie={reglages.sortie} onChange={reglages.setSortie} />}
+            {/* Sans `setSortie` (le chat d'un dossier, 18 oct. 2026, Jules), pas de bascule : l'assistant choisit selon la demande. */}
+            {reglages?.setSortie && <BasculeSortie sortie={reglages.sortie} onChange={reglages.setSortie} />}
             {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation} />}
             {/* L'ampoule, en bas à gauche : des phrases toutes prêtes, posées
                 dans le champ d'un clic, jamais envoyées toutes seules. */}

@@ -30,13 +30,16 @@ const MODULES_PAR_CLE = Object.fromEntries(MODULES_KDATA.map((m) => [m.cle, m]))
 const lireOutils = () => { try { return new Set(JSON.parse(localStorage.getItem(CLE_OUTILS) || "[]")); } catch { return new Set(); } };
 const garderOutils = (s) => { try { localStorage.setItem(CLE_OUTILS, JSON.stringify([...s])); } catch { /* sans stockage, la sélection ne survit pas à la page */ } };
 
-/** Une carte de module : la photo, et son titre posé dessus. Rien de plus. */
+/** Une carte de module : la photo, son titre posé dessus, et ce qu'il fait en une ligne (18 oct. 2026, Jules). */
 function CarteModule({ module: m }) {
   return (
     <Link to={m.chemin} title={m.phrase} className={`${CARTE} group relative block aspect-[4/3] overflow-hidden`}>
       <img src={m.image} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
       <div className="absolute inset-0 bg-gradient-to-t from-fond/90 via-fond/10 to-transparent transition-colors group-hover:from-fond/95" />
-      <h2 className="absolute inset-x-0 bottom-0 m-0 p-3 text-[13.5px] font-medium leading-tight tracking-[-0.01em] text-craie">{m.nom}</h2>
+      <div className="absolute inset-x-0 bottom-0 p-3">
+        <h2 className="m-0 text-[13.5px] font-medium leading-tight tracking-[-0.01em] text-craie">{m.nom}</h2>
+        <p className="m-0 mt-1 line-clamp-2 text-[12px] leading-[1.4] text-ardoise">{m.phrase}</p>
+      </div>
     </Link>
   );
 }
@@ -263,7 +266,10 @@ function Composeur({ onLancer, enCours, questions, notes }) {
                           {actif && <Check className="h-3 w-3" style={{ color: J["sur-menthe"] }} />}
                         </span>
                         <Icone className="h-4 w-4 flex-none" style={{ color: actif ? J["menthe"] : J["ardoise"] }} />
-                        <span className="text-[13.5px]" style={{ color: actif ? J["menthe"] : J["craie"] }}>{m.nom}</span>
+                        <span className="min-w-0">
+                          <span className="block text-[13.5px]" style={{ color: actif ? J["menthe"] : J["craie"] }}>{m.nom}</span>
+                          <span className="block truncate text-[11.5px] text-ardoise">{m.phrase}</span>
+                        </span>
                       </button>
                     );
                   })}

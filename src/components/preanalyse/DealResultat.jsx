@@ -106,7 +106,8 @@ const eurosM2 = (n, suffixe = "") => (n == null ? "—" : `${Math.round(n).toLoc
  */
 function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource, manque = null, adresseComparaison = null }) {
   const [detail, setDetail] = useState(false);
-  if (chargement) return <p className="m-0 inline-flex items-center gap-1.5 text-[12px] text-brume"><Loader2 className="w-3 h-3 animate-spin" /> Lecture du marché autour…</p>;
+  // Plus de « Lecture du marché autour… » (18 oct. 2026, Jules : « on arrive, on voit direct le contenu ») : la dernière comparaison gardée s'affiche, la nouvelle la remplace sans bruit.
+  if (chargement && !marche) return null;
   if (!marche) return <p className="m-0 text-[12px] text-brume">{manque || "Pas de marché lisible autour."}</p>;
   const j = marche.jugement;
   const repere = marche.median ?? null;
@@ -303,6 +304,10 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     queryKey: ["marche-comparaison", dealId, lot.index ?? 0, valChamp(lot.lot?.prix_fai), valChamp(lot.lot?.loyer_annuel_ht_hc), valChamp(lot.lot?.surface_m2), texteBrut("adresse", lot.lot?.adresse)],
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/lots/${lot.index ?? 0}/marche-comparaison`),
     enabled: !!dealId && !apercu,
+    // La comparaison gardée sur le lot s'affiche tout de suite ; la relecture se fait derrière, sans message.
+    initialData: lot.comparaison_marche ? { ok: true, ...lot.comparaison_marche } : undefined,
+    initialDataUpdatedAt: lot.comparaison_marche?.le ? Date.parse(lot.comparaison_marche.le) : undefined,
+    placeholderData: (precedent) => precedent,
     staleTime: 10 * 60 * 1000,
     retry: false,
     refetchInterval: (q) => (q.state.data?.loyer?.kdata_en_cours ? 20000 : false),

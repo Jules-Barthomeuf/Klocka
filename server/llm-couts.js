@@ -408,6 +408,14 @@ export const LEVIERS = [
     texte: "L'API propose un mode différé à moitié prix, cache compris. La contrepartie est un délai qui peut aller jusqu'à vingt-quatre heures au lieu d'une minute. La lecture des pièces tourne déjà en tâche de fond et vous prévient quand elle est finie : c'est le profil qui s'y prête. Le choix vous revient, il change un délai.",
   },
   {
+    cle: 'chat_court',
+    etat: 'pose',
+    titre: 'Des réponses courtes, une réflexion moyenne',
+    effet: 'Moins de jetons de sortie par demande au chat (réflexion comprise)',
+    ou: `Posé le 18 octobre · consigne d'AK (un ou deux paragraphes au plus) · AK_EFFORT ${process.env.AK_EFFORT || 'medium'}`,
+    texte: "Le 18 octobre, Jules demande de baisser les crédits le plus possible : le chat répond en un ou deux paragraphes au plus, sans liste numérotée, tableau ni calcul détaillé sauf demande, et sa réflexion passe de « high » à « medium » (elle se paie au prix de la sortie). Le coût par demande d'AK se lira ici avant et après.",
+  },
+  {
     cle: 'modele_moins_cher',
     etat: 'pose',
     titre: 'Sonnet partout, le chat compris',

@@ -7,6 +7,8 @@ import FilDossier from "@/components/mandataire/FilDossier";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { FRISE, checklistDataRoom, etapeFrise } from "@/lib/dossiers-architecture";
 import PanneauAValiderDossier from "@/components/haka/PanneauAValiderDossier";
+import { ZoneConversion } from "@/components/preanalyse/RoueConversion";
+import { toast } from "@/components/ui/avis";
 
 // Les pièces du dossier ouvert (17 oct. 2026, Jules) : la frise de huit
 // étapes, le verdict, l'action suivante, la colonne de droite (investisseurs
@@ -73,14 +75,23 @@ const bloc = "k-points relative overflow-hidden rounded-[16px] border border-tra
 const titreBloc = "m-0 mb-2.5 text-[11px] uppercase tracking-[.16em] text-brume";
 
 /** La colonne de droite : la Data Room en liste à cocher (17 oct. 2026), et le fil d'un dossier de mandataire. Documents et livrables retirés le 17 oct. 2026 (Jules). */
-export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null }) {
+export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = null, onRefresh = null }) {
   const { pieces, autres } = checklistDataRoom(dossier?.documents_espace || []);
+  // Maj + glisser un fichier sur la Data Room ouvre la roue de conversion (18 oct. 2026, Jules) ; le centre le range tel quel.
+  const ajouter = dossier?.deal_id && !apercu ? async (f) => {
+    const form = new FormData();
+    form.append("fichier", f);
+    await base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/espace/documents`, { body: form, isForm: true });
+    toast.success(`${f.name} rangé dans la Data Room`);
+    onRefresh?.();
+  } : null;
   return (
     <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
       {/* Haka (17 oct. 2026) : ce qu'il propose pour ce dossier, en tête. */}
       {dossier?.deal_id && !apercu && <PanneauAValiderDossier dealId={dossier.deal_id} />}
       {/* La Data Room en liste à cocher (17 oct. 2026, Jules) : ce qui est importé, ce qui manque. Pas dans l'Analyse. */}
       {vue !== "analyse" && (
+      <ZoneConversion onAjouter={ajouter}>
       <section data-zone="listes" className={bloc}>
         <button type="button" onClick={() => onAller?.("documents")} className="flex w-full items-baseline justify-between p-0 text-left" style={{ background: "transparent" }}>
           <span className="text-[15px] text-encre">Data Room</span>
@@ -102,7 +113,9 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
           ))}
         </ul>
         {autres.length > 0 && <p className="m-0 mt-2 text-[12px] text-brume">Et {autres.length} autre{autres.length > 1 ? "s" : ""} pièce{autres.length > 1 ? "s" : ""} importée{autres.length > 1 ? "s" : ""}.</p>}
+        <p className="m-0 mt-3 text-[11.5px] text-brume">Maj + glisser un fichier ici : le convertir.</p>
       </section>
+      </ZoneConversion>
       )}
 
       {/* Le fil n'existe que pour un dossier de mandataire : sans lui, rien à montrer (17 oct. 2026, Jules). */}

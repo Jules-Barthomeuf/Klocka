@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus } from "lucide-react";
+import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus, ArrowLeftRight } from "lucide-react";
+import { Roue, ZoneConversion } from "@/components/preanalyse/RoueConversion";
+import { typeDe } from "@/lib/conversions";
 
 // Les documents du dossier, en tableau : case à cocher pour les soumettre au
 // chat, nom modifiable, catégorie, type, date et taille, et un menu ⋯ par ligne.
@@ -145,9 +147,29 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
     </datalist>
   );
 
+  // La roue de conversion (18 oct. 2026, Jules) : par le bouton « Convertir », le menu d'une pièce, ou Maj + glisser.
+  const [roue, setRoue] = useState(null);
+  const convertirRef = useRef(null);
+  const ajouterConverti = dossier && !apercu ? (f) => importer.mutateAsync([f]) : null;
+  const ouvrirRoue = (fichier, el) => {
+    const r = el?.getBoundingClientRect?.();
+    setRoue({ fichier, x: r ? r.left + r.width / 2 : window.innerWidth / 2, y: r ? r.top + r.height / 2 : window.innerHeight / 2 });
+  };
+  const convertirPiece = async (d, el) => {
+    try {
+      const rep = await fetch(d.url, { credentials: "include" });
+      if (!rep.ok) throw new Error(`le document ne se lit pas (${rep.status})`);
+      const blob = await rep.blob();
+      ouvrirRoue(new File([blob], d.nom, { type: blob.type }), el);
+    } catch (e) {
+      toast.error("Conversion impossible", { description: e?.message || String(e) });
+    }
+  };
+
   return (
-    <div className="pt-2">
+    <ZoneConversion className="pt-2" onAjouter={ajouterConverti}>
       {datalist}
+      {roue && <Roue x={roue.x} y={roue.y} nom={roue.fichier.name} mime={roue.fichier.type} fichier={roue.fichier} onAjouter={ajouterConverti} onFermer={() => setRoue(null)} />}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h3 className="m-0 text-[18px] font-semibold text-encre">Documents du dossier</h3>
         <div className="flex flex-wrap items-center gap-2.5 max-md:w-full">
@@ -167,6 +189,23 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
               Dossier Drive <ExternalLink className="w-3 h-3" />
             </a>
           )}
+          <button
+            type="button"
+            onClick={() => convertirRef.current?.click()}
+            title="Convertir un fichier : PDF, image, Word, texte. Ou glissez-le ici en tenant Maj."
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13.5px] border border-bord-doux text-encre hover:border-bord-vif transition-colors"
+            style={{ background: "transparent" }}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            Convertir
+          </button>
+          <input
+            ref={convertirRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.docx,.txt,.md,.csv"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) ouvrirRoue(f, convertirRef.current?.previousElementSibling); }}
+          />
           <button
             onClick={() => inputRef.current?.click()}
             disabled={apercu || importer.isPending || !dossier}
@@ -289,6 +328,11 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           <button onClick={() => { setMenu(null); setRenommage({ id: d.id, nom: d.nom }); }} className="block w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06]">
                             Renommer
                           </button>
+                          {d.url && typeDe(d.nom) && (
+                            <button onClick={(e) => { setMenu(null); convertirPiece(d, e.currentTarget.closest("td")); }} className="block w-full px-3.5 py-2 text-left text-[12.5px] text-craie hover:bg-encre/[0.06]">
+                              Convertir…
+                            </button>
+                          )}
                           {d.url && (
                             <a href={d.url} target="_blank" rel="noopener noreferrer" onClick={() => setMenu(null)} className="block w-full px-3.5 py-2 text-[12.5px] text-craie hover:bg-encre/[0.06]">
                               Ouvrir
@@ -348,6 +392,6 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
           </div>
         </div>
       )}
-    </div>
+    </ZoneConversion>
   );
 }

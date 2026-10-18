@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-18",
     items: [
+      { titre: "Convertir un fichier dans la Data Room", texte: "Dans un dossier, glissez un fichier sur la Data Room en tenant Maj : une roue s'ouvre, lâchez-le sur un format. PDF en Word, JPG, PNG ou texte ; images en JPG, PNG, WEBP, PDF, compressées ou réduites ; Word et texte en PDF. Tout se fait dans le navigateur, le fichier converti arrive dans vos téléchargements. Aussi par le bouton « Convertir » et le menu ⋯ d'une pièce.", page: "Analyse" },
       { titre: "La police Inter", texte: "Une police de plus dans Personnalisation : Inter, à côté d'Instrument Sans, Figtree et Montserrat. Elle s'applique partout dès qu'on la choisit.", page: "Personnalisation" },
       { titre: "Le mail « Ma journée »", texte: "Chaque matin ouvré vers 8 h : les nouveautés de la plateforme (plus de fenêtre à l'arrivée), vos relances à faire aujourd'hui et ce qu'il y a à faire dans Dossiers. Rien ne part s'il n'y a rien à dire.", page: "Dashboard" },
     ],

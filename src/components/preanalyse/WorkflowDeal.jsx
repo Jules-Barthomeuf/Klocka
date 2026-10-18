@@ -732,7 +732,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       {/* « Action suivante » retirée de toutes les étapes le 17 oct. 2026 (Jules) ; la frise suffit. */}
       </div>
-      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} onAller={allerA} vue={vue} />}
+      {dossier && !pleineLargeur && <ColonneDroite dossier={dossier} apercu={apercu} onAller={allerA} vue={vue} onRefresh={onRefresh} />}
       </div>
       </div>
       {dossier && (

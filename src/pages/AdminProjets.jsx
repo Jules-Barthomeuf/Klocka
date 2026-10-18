@@ -1262,8 +1262,12 @@ export default function AdminProjets() {
   useEffect(() => {
     if (!scindeProjet) return undefined;
     document.documentElement.classList.add("k-sans-defilement", "k-sans-ak");
+    window.dispatchEvent(new CustomEvent("klocka:replier-barre", { detail: { replier: true } }));
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak");
+    return () => {
+      document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak");
+      window.dispatchEvent(new CustomEvent("klocka:replier-barre", { detail: { replier: false } }));
+    };
   }, [scindeProjet]);
   // Les réglages du chat, ceux du mode IA d'un dossier : sources « Auto » ou choisies, panneau au-dessus de la saisie.
   const [chatOuvert, setChatOuvert] = useState(false);

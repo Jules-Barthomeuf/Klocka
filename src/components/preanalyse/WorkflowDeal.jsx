@@ -21,7 +21,7 @@ import DocumentsDossier from "./DocumentsDossier";
 import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
-import GrilleCriteres from "@/components/preanalyse/GrilleCriteres";
+import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/GrilleCriteres";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
@@ -309,6 +309,13 @@ function etapeDebloquee(dossier) {
 export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Les onglets de l'analyse se chargent à l'ouverture du dossier, pas au clic : ni « Lecture… » ni attente (18 oct. 2026).
+  useEffect(() => {
+    const id = dossier?.deal_id;
+    if (!id || apercu) return;
+    prechargerGrilles(queryClient, id, GRILLES_ANALYSE.flatMap((g) => (g.grilles || []).map((x) => x.id)));
+    queryClient.prefetchQuery({ queryKey: ["marche-journal", id, 0], queryFn: () => base44.request("GET", `/api/marche/journal?deal_id=${encodeURIComponent(id)}&index=0`) }).catch(() => {});
+  }, [dossier?.deal_id, apercu, queryClient]);
   const abandonne = dossier?.statut === "abandonne";
   const supprimer = useSupprimerDossier(dossier);
   // En aperçu, tout est déverrouillé pour parcourir les écrans librement.

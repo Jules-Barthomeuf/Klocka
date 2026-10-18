@@ -29,6 +29,28 @@ const FRAICHEUR = 7 * 24 * 60 * 60 * 1000;
 const gardee = (dealId, id) => { const c = lire(dealId, id); return c && Date.now() - c.le < FRAICHEUR ? c.g : undefined; };
 const gardeeLe = (dealId, id) => lire(dealId, id)?.le ?? 0;
 
+/** La requête d'une grille : la même pour l'onglet et pour le préchargement. */
+export const requeteGrille = (dealId, id) => ({
+  queryKey: ["grille", id, dealId],
+  queryFn: async () => {
+    const g = await base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${id}`);
+    garder(dealId, id, g);
+    return g;
+  },
+  staleTime: 10 * 60 * 1000,
+  gcTime: 60 * 60 * 1000,
+});
+
+/**
+ * À l'ouverture d'un dossier, toutes ses grilles se chargent derrière (18 oct. 2026, Jules :
+ * « je veux plus que ça charge avec lecture ») : un clic sur Copropriété ou Diagnostics les
+ * trouve déjà là.
+ */
+export function prechargerGrilles(queryClient, dealId, ids) {
+  if (!dealId) return;
+  for (const id of ids) queryClient.prefetchQuery(requeteGrille(dealId, id)).catch(() => {});
+}
+
 // « À checker » : bleu clair pâle, texte blanc — la valeur est là, un humain
 // doit encore la valider en OK.
 // Les statuts prennent les teintes de l'application : menthe, ambre, rouge,
@@ -193,20 +215,13 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
   // `grilles` porte titre et sous-titre par tableau ; `ids` seul reste accepté.
   const voulues = demandees || (ids || []).map((id, i) => ({ id, titre: i === 0 ? titre : null, sousTitre: i === 0 ? sousTitre : null }));
   const requetes = useQueries({ queries: voulues.map((v) => ({
-    queryKey: ["grille", v.id, dealId],
-    queryFn: async () => {
-      const g = await base44.request("GET", `/api/preanalyse/dossiers/${dealId}/grille/${v.id}`);
-      garder(dealId, v.id, g);
-      return g;
-    },
+    ...requeteGrille(dealId, v.id),
     enabled: !!dealId,
     // On revient sur le dossier : l'analyse déjà lue s'affiche tout de suite,
     // même après un rechargement de la page — elle est gardée sur le poste.
     // La relecture éventuelle se fait derrière, sans écran d'attente.
     initialData: () => gardee(dealId, v.id),
     initialDataUpdatedAt: () => gardeeLe(dealId, v.id),
-    staleTime: 10 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
     placeholderData: (precedent) => precedent,
     refetchInterval: (q) => (q.state.data?.remplissage?.etat === "en_cours" ? 3000 : false),
   })) });
@@ -286,7 +301,7 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                 )}
               </div>
             </header>
-            {g ? <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} /> : <div className="p-6"><PenseeIA etat="breathing" taille={20} texte="Lecture…" /></div>}
+            {g ? <TableCriteres g={g} onPreuve={onPreuve} dealId={dealId} /> : null}
           </div>
         );
       })}

@@ -149,9 +149,14 @@ function FicheCommerce({ commerce: c, point, onFermer }) {
             <Ligne label="Activité relevée">{c.metier || c.genre || "—"}</Ligne>
             <Ligne label="Rue">{c.rue_typologie ? `${RUES[c.rue_typologie]} · ${c.rue_nb_commerces} commerces relevés` : "—"}</Ligne>
             <Ligne label="Horaires">{c.horaires || "—"}</Ligne>
-            <Ligne label="Téléphone">{c.telephone ? <a className="text-menthe-texte" href={`tel:${c.telephone}`}>{c.telephone}</a> : "—"}</Ligne>
+            {/* Lot 9 (18 oct. 2026) : le téléphone et le site de Google Places quand OpenStreetMap n'en a pas. */}
+            <Ligne label="Téléphone">{(c.telephone || c.contact?.telephone) ? <a className="text-menthe-texte" href={`tel:${c.telephone || c.contact.telephone}`}>{c.telephone || c.contact.telephone}</a> : "—"}</Ligne>
             <Ligne label="Email">{c.email ? <a className="text-menthe-texte" href={`mailto:${c.email}`}>{c.email}</a> : "—"}</Ligne>
-            <Ligne label="Site">{c.site ? <a className="text-menthe-texte" href={c.site} target="_blank" rel="noreferrer">{c.site.replace(/^https?:\/\//, "")}</a> : "—"}</Ligne>
+            <Ligne label="Site">{(c.site || c.contact?.site) ? <a className="text-menthe-texte" href={c.site || c.contact.site} target="_blank" rel="noreferrer">{(c.site || c.contact.site).replace(/^https?:\/\//, "")}</a> : "—"}</Ligne>
+            {c.interet && <Ligne label="Intérêt">{c.interet.total} / 100{c.interet.parts?.length ? ` · ${c.interet.parts.map((x) => x.libelle).join(", ")}` : ""}</Ligne>}
+            {c.signaux?.length > 0 && <Ligne label="Signaux">{c.signaux.map((x) => `${x.type_signal}${x.date_signal ? ` (${String(x.date_signal).slice(0, 10)})` : ""}`).join(", ")}</Ligne>}
+            {c.historique?.deja_cible && <Ligne label="Déjà chez Klocka">{`cible ALX${c.historique.pile ? `, pile « ${c.historique.pile} »` : ""}`}</Ligne>}
+            {c.contact?.statut && c.contact.statut !== "OPERATIONAL" && <Ligne label="Sur Maps">{c.contact.statut === "CLOSED_PERMANENTLY" ? "fermé définitivement" : "fermé temporairement"}</Ligne>}
 
             <p className="alx-mont mt-6 mb-1 text-[10.5px] uppercase tracking-[.14em] text-menthe-texte">Informations sur l&apos;entreprise</p>
             {s ? (
@@ -259,7 +264,9 @@ function Resultats({ prospection: p, onRetour, onSupprimer }) {
                     {s ? <span className="rounded-full border border-trait px-2 py-0.5">{s.nom}</span> : <span className="rounded-full border border-trait px-2 py-0.5">société non rapprochée</span>}
                     {s?.effectif_etablissement && <span className="rounded-full border border-trait px-2 py-0.5">{effectif(s.effectif_etablissement)}</span>}
                     {s?.annee_naissance_gerant && <span className="rounded-full border border-trait px-2 py-0.5">gérant {ANNEE - Number(s.annee_naissance_gerant)} ans</span>}
-                    {c.telephone && <Phone className="h-3 w-3" />}{c.email && <Mail className="h-3 w-3" />}{c.site && <Globe className="h-3 w-3" />}
+                    {c.interet && <span className="rounded-full border border-menthe/40 px-2 py-0.5 text-menthe-texte">intérêt {c.interet.total}</span>}
+                    {c.signaux?.length > 0 && <span className="rounded-full border border-ambre/40 px-2 py-0.5 text-ambre">signal</span>}
+                    {(c.telephone || c.contact?.telephone) && <Phone className="h-3 w-3" />}{c.email && <Mail className="h-3 w-3" />}{(c.site || c.contact?.site) && <Globe className="h-3 w-3" />}
                   </span>
                 </span>
               </button>

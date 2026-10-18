@@ -191,3 +191,23 @@ Derrière `BOITE_OUTILS`. `server/kestimation-boite.js`, appelé par `kestimatio
 - Sur Render : lire en flux comme ici, vérifier la place sur /var/data avant le premier passage de nuit, garder le rythme de 30 jours.
 - Reste : garder en base le résultat de K-Vacance (aujourd'hui seulement l'adresse et la date) ; BPE.
 
+
+
+## Lot 8, K-Expertise et K-Zoning : compte rendu (18 oct. 2026)
+
+Derrière BOITE_OUTILS ; chaque source passe par son interrupteur (registre : georisques, gpu, isochrones_ign, sncf_gares, osm).
+
+- **Sources ouvertes** (`server/outils-kd/sources-ouvertes.js`), vérifiées sur Cannes : Géorisques (risques de la commune), Géoportail de l'urbanisme (zone du PLU, prescriptions, linéaire commercial protégé), SNCF (2 792 gares et leur fréquentation 2024, rapprochées par le code UIC), arrêts de transport (OpenStreetMap). Gardées 14 à 90 jours.
+- **Indice de flux** (`emplacement.js`) : 0 à 100, six composantes notées chacune contre un plafond et pondérées (habitants et entreprises à 5 minutes, gares pondérées par leurs voyageurs et la distance, arrêts à 300 m, générateurs, commerces du tronçon) ; une composante sans donnée est retirée et l'indice dit sur combien il repose. Estimation relative, à étalonner.
+- **K-Expertise** : étape « Emplacement » (classement n°1, n°1 bis, n°2, secondaire ; note de chaque critère ; réserves PLU, risques ; activités adaptées et déconseillées ; dernier loyer déjà lu). L'étude interne devient la référence quand la boîte est allumée ; Data-B ne passe plus qu'à travers son interrupteur (`sources-marche.js`). Essai réel Data-B coupé, 45 rue d'Antibes à Cannes : emplacement n°1, indice 77 sur 6 composantes.
+- **K-Zoning** : `POST /api/kzoning/chalandise` et un panneau sur la page : trois zones à pied (isochrones IGN, Filosofi, recensement), commerces et concurrence d'une activité dans la zone primaire, gares, arrêts, indice. Essai réel : 1 086 / 5 393 / 13 971 habitants, 484 commerces dont 10 boulangeries, indice 72 sur 4 composantes.
+- Format commun : K-Expertise rend le classement et l'indice ; K-Zoning la chalandise.
+
+Reste : l'étalonnage du classement (8 cas sur 10 face à Data-B, Data-B coupé, 30 adresses), les horaires GTFS (fréquence des passages), la BPE, les comptages piétons municipaux ; le rapport d'une page pour l'étude client.
+
+## Lot 9, K-Prospective : compte rendu (18 oct. 2026)
+
+- **Savoir à qui l'on parle** (`server/outils-kd/prospective.js`), étape « contacts » derrière BOITE_OUTILS : téléphone, site et statut sur Google Places (retenus seulement, quarante au plus), signaux de vacance déjà relevés (vacance_signal), historique avec Klocka (cible ALX), score d'intérêt sur 100 ; les retenus sont classés par intérêt. Essai réel, boulangeries à 500 m du 45 rue d'Antibes : 11 trouvées, 11 joignables.
+- Page : intérêt, signaux, coordonnées, « déjà chez Klocka ».
+
+Reste : la recherche par commune et par rue (aujourd'hui un cercle autour d'une adresse), l'export vers la page Appels, la phrase d'accroche de Haka (lot 10), et le remplacement de la Prospective Data-B des mandataires (quatre écrans, contacts et solvabilité).

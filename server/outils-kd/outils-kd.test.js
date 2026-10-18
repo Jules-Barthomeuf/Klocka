@@ -48,3 +48,12 @@ test('K-Zoning : une zone lisible, et la chalandise au format commun', async () 
   assert.equal(c.valeur.concurrents, 10);
   assert.equal(c.confiance, 'haute');
 });
+
+test("K-Prospective : le score d'intérêt monte avec un signal, un propriétaire et un contact, descend si Klocka a écarté", async () => {
+  const { scoreInteret } = await import('./prospective.js');
+  const fort = scoreInteret({ criteres_remplis: 2, criteres_total: 2, signaux: [{ type_signal: 'liquidation' }], proprietaire_societe: true, contact: { telephone: '04 93 00 00 00' } });
+  assert.equal(fort.total, 90);
+  const ecarte = scoreInteret({ criteres_remplis: 1, criteres_total: 2, historique: { pile: 'ecartee' } });
+  assert.equal(ecarte.total, 0);
+  assert.equal(scoreInteret({}).total, 0);
+});

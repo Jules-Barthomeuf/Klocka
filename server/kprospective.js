@@ -19,6 +19,7 @@ import { commercesDeLaZone } from './kzoning-commerces.js';
 import { filtresDe, nomMetierDe, METIERS, TOUS_LES_COMMERCES } from './kzoning-metiers.js';
 import { parcellesAutour, locauxDeSection, grouperProprietaires } from './kfoncier.js';
 import { contient } from './kvaleurlocative.js';
+import { boiteOutilsActive } from './socle/drapeaux.js';
 
 const ENTITE = 'Prospection';
 const CACHE_SOCIETE = 'CacheSocieteCommerce';
@@ -311,7 +312,7 @@ export function lancerProspection({ adresse, activite = null, rayon_m = RAYON_DE
     activite: String(activite || '').trim() || TOUS_LES_COMMERCES.nom,
     rayon_m: rayon, criteres: propres,
     etat: 'en_cours', progression: 0,
-    etapes: ETAPES.map((x) => ({ ...x, etat: 'a_faire', detail: null })),
+    etapes: (boiteOutilsActive() ? [...ETAPES, { cle: 'contacts', nom: 'À qui l\'on parle : coordonnées, signaux, historique Klocka, intérêt' }] : ETAPES).map((x) => ({ ...x, etat: 'a_faire', detail: null })),
     cree_le: new Date().toISOString(), fini_le: null, par: user?.email || null,
     point: null, commerces: [], retenus: [], nb_commerces: 0, nb_retenus: 0,
   }, user?.email);
@@ -406,5 +407,23 @@ async function executer(id) {
   etape(id, 'criteres', 'en_cours');
   const retenus = commerces.filter((c) => correspond(c, criteres)).map((c) => c.id);
   etape(id, 'criteres', 'faite', `${retenus.length} commerces retenus sur ${commerces.length}`);
-  noter(id, { commerces, retenus, nb_retenus: retenus.length, etat: 'terminee', fini_le: new Date().toISOString(), progression: 100 });
+
+  // Boîte à outils allumée (lot 9, 18 oct. 2026) : savoir à qui l'on parle. Coordonnées publiques (Google
+  // Places), signaux de vacance, historique avec Klocka, score d'intérêt ; les retenus sont classés par intérêt.
+  let ordre = retenus;
+  if ((Records.get(ENTITE, id)?.etapes || []).some((x) => x.cle === 'contacts')) {
+    etape(id, 'contacts', 'en_cours');
+    try {
+      const { enrichirRetenus } = await import('./outils-kd/prospective.js');
+      const total = Object.keys(criteres).length;
+      const parId = new Map(commerces.map((c) => [c.id, c]));
+      // Un retenu remplit tous les critères demandés.
+      const enrichis = await enrichirRetenus(retenus.map((i) => ({ ...parId.get(i), criteres_remplis: total })).filter((c) => c.id), { ville: (String(Records.get(ENTITE, id)?.point?.label || '').match(/\d{5}\s+(.+)$/) || [])[1] || null, criteresTotal: total });
+      for (const x of enrichis) parId.set(x.id, x);
+      commerces = commerces.map((c) => parId.get(c.id) || c);
+      ordre = [...enrichis.map((x) => x.id), ...retenus.filter((i) => !enrichis.some((x) => x.id === i))];
+      etape(id, 'contacts', 'faite', `${enrichis.filter((x) => x.contact?.telephone || x.contact?.site).length} joignables, ${enrichis.filter((x) => x.signaux?.length).length} avec un signal, classés par intérêt`);
+    } catch (err) { etape(id, 'contacts', 'ratee', err?.message || String(err)); }
+  }
+  noter(id, { commerces, retenus: ordre, nb_retenus: ordre.length, etat: 'terminee', fini_le: new Date().toISOString(), progression: 100 });
 }

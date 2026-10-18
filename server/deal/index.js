@@ -63,6 +63,8 @@ export async function analyserFiche(entree, ctx = {}) {
       const enrichissement = await enrichir(lot);
       const evaluation = evaluer(lot, enrichissement);
 
+      // L'origine du loyer (18 oct. 2026, valeur locative par comparables) : lu sur la fiche, il est annoncé.
+      if (lot && val(lot.loyer_annuel_ht_hc) && !lot.origine_loyer) lot.origine_loyer = 'annonce';
       const dossierLot = { lot, enrichissement, evaluation };
       const [synthese, mailAgent] = await Promise.all([
         redigerSynthese(dossierLot),
@@ -297,6 +299,8 @@ export async function reevaluerLot(dealId, indexLot, saisie = {}) {
         ? { valeur: null, absent: true, confiance: null, citation: null, saisi_a_la_main: true }
         : { valeur: lu.valeur, absent: false, confiance: 1, citation: 'Saisi à la main.', saisi_a_la_main: true },
     };
+    // Un loyer posé à la main garde son origine ; un bail lu (matrice) la passe à « reel ».
+    if (champ === 'loyer_annuel_ht_hc') lot = { ...lot, origine_loyer: lu.vide ? null : 'saisi' };
   }
 
   // Une adresse corrigée périme tout ce qui a été lu à l'ancienne : on le

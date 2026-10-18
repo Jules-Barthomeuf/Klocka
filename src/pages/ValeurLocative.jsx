@@ -28,7 +28,8 @@ const NIVEAUX = [["rue", "Rue"], ["quartier", "Quartier"], ["ville", "Ville"]];
 // La mécanique : dans quel ordre Valeur locative interroge quoi.
 const ETAPES_MECANIQUE = [
   { source: "Equimmox, analyse de loyer, à trois rayons", quoi: "Des baux réellement signés : la rue à 200 m, le quartier à 500 m, la ville à 1 km, chacun en fourchette basse et haute. Le résultat se garde trente jours par adresse : le rouvrir ne relance rien." },
-  { source: "DVF, prix des murs × taux de rendement", quoi: "Le loyer déduit des ventes de murs commerciaux à 500 m, au taux de la grille d'estimation. Une déduction, qui sert de second regard, et de repli quand Equimmox manque." },
+  { source: "Les loyers des dossiers Klocka", quoi: "Les loyers lus dans les baux (poids 3), saisis ou annoncés par les fiches d'agents (poids 1,5), cherchés en cercles : le tronçon, la rue, le quartier (500 m), la commune. Avec Equimmox dans la même liste (poids 1), ils donnent la fourchette par quartiles. Assez de loyers proches et concordants : la valeur Klocka est retenue ; sinon Equimmox, et Klocka sert de contrôle." },
+  { source: "Data-B, en parallèle", quoi: "Interrogé pour comparer, jamais affiché : l'écart à la valeur retenue est gardé avec la recherche, le temps de vérifier qu'on peut s'en passer." },
   { source: "Géoplateforme, contours IRIS", quoi: "Le découpage en quartiers statistiques pour colorer la carte." },
   { source: "OpenStreetMap", quoi: "La densité de commerces d'un IRIS qu'on n'a pas lu : un des deux signaux de l'indice de position." },
   { source: "INSEE Filosofi", quoi: "Le niveau de vie des habitants d'un IRIS qu'on n'a pas lu : le second signal. L'indice classe, il ne chiffre pas — aucun euro n'est inventé." },
@@ -41,6 +42,48 @@ const CLASSES = [
   ["moyenne", "Moyenne / faible", "bg-jaune"],
   ["tres_faible", "Très faible", "bg-vert"],
 ];
+
+const SOURCE_REF = { klocka_bail: "Bail Klocka", klocka_saisi: "Klocka, saisi", klocka_fiche: "Fiche d'agent", equimmox: "Equimmox" };
+
+/**
+ * La valeur retenue (18 oct. 2026, sortie de Data-B) : la fourchette des comparables, sa source et sa
+ * confiance, puis chaque comparable avec sa source et son poids. Sous le seuil de confiance, Equimmox
+ * est affiché et les loyers Klocka servent de contrôle.
+ */
+function ValeurRetenue({ r }) {
+  const [ouvert, setOuvert] = useState(false);
+  const v = r?.valeur;
+  const c = r?.comparables;
+  if (!v) return null;
+  return (
+    <div className="border-b border-trait px-4 py-3">
+      <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.14em] text-brume">Valeur retenue</p>
+      <p className="m-0 mt-1 text-[22px] font-semibold tabular-nums text-encre">{euros(v.bas)} à {euros(v.haut)}</p>
+      <p className="m-0 mt-0.5 text-[12px] text-ardoise">
+        médiane {euros(v.central)} · {v.source === "klocka" ? `loyers Klocka${c?.libelle ? `, ${c.libelle.toLowerCase()}` : ""}` : "Equimmox"} · confiance {v.confiance}
+      </p>
+      {c?.controle && <p className="m-0 mt-1 text-[11.5px] text-brume">Contrôle : médiane Klocka {euros(c.controle.klocka)}, Equimmox {euros(c.controle.equimmox)} ({c.controle.ecart_pct > 0 ? "+" : ""}{c.controle.ecart_pct} %).</p>}
+      {c?.comparables?.length > 0 && (
+        <>
+          <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className="mt-2 text-[12px] text-menthe-texte hover:text-encre" style={{ background: "transparent" }}>
+            {ouvert ? "Masquer" : "Voir"} les {c.comparables.length} comparables
+          </button>
+          {ouvert && (
+            <ul className="m-0 mt-2 list-none p-0">
+              {c.comparables.map((x, i) => (
+                <li key={i} className="flex items-baseline justify-between gap-3 border-t border-trait py-1.5 text-[12px]">
+                  <span className="min-w-0 truncate text-craie" title={x.adresse || x.titre || ""}>{x.titre || x.adresse || SOURCE_REF[x.source]}</span>
+                  <span className="flex-none text-brume">{SOURCE_REF[x.source] || x.source} · ×{x.poids}</span>
+                  <span className="flex-none tabular-nums text-encre">{euros(x.loyer_m2)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 /** Un niveau du panneau : son nom, sa fourchette. */
 function Niveau({ titre, valeur }) {
@@ -217,6 +260,7 @@ export default function ValeurLocative() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
+            <ValeurRetenue r={r} />
             {NIVEAUX.map(([cle, titre]) => <Niveau key={cle} titre={titre} valeur={r[cle]} />)}
           <div className="border-t border-trait px-4 py-3">
             <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">Découpage par niveau de valeur locative</p>

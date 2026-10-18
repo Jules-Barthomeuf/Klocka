@@ -1,5 +1,7 @@
 # Boîte à outils d'analyse de Haka
 
+**Échéance du contrat Data-B : à renseigner** (date de fin et préavis de résiliation, à lire sur le contrat). Ne pas résilier avant que les usages ci-dessous aient tous basculé, ni laisser passer l'échéance pour payer une année de trop.
+
 Plan de Jules du 18 oct. 2026 : remplacer Data-B par neuf outils internes que Haka appelle comme les autres, au contrat commun (entrée, valeur en fourchette, confiance, sources datées, détail vérifiable, date). Le code calcule, l'IA explique ; pas de chiffre sans détail ; les données Klocka priment.
 
 Ce fichier garde le plan, l'état des lieux de la phase 0 et les décisions prises. Le texte complet du plan est dans la conversation du 18 oct. ; ce qui suit en est la version de travail.
@@ -40,6 +42,28 @@ Fondations déjà là, à réunir plutôt qu'à créer :
 - F2 : SIRENE, BODACC, OSM et Google Places déjà chargés par commune pour les Signaux de vacance (`outils/vacance*.js`) ; K-Vacance et K-Zoning lisent OSM et SIRENE chacun de leur côté.
 - F3 : des caches par outil, datés, sans registre commun des jeux de données ni des résultats.
 - Données Klocka : loyers, prix et surfaces dans `deal.lots[].lot`, au format `{valeur, citation, confiance}`. Pas d'entité « bail », pas de statut « signé » sur un dossier ; les projets portent l'aboutissement.
+
+## Usages de Data-B hors des neuf outils, à basculer un par un avant la résiliation
+
+| Usage | Où | Produit Data-B | Bascule prévue |
+| --- | --- | --- | --- |
+| Avis de valeur des mandataires (murs) | `server/data-b-murs.js`, appelé par `mandataire-avis.js` | expertise.data-b.com (navigateur) | Estimation interne |
+| Prospective des mandataires | `server/mandataire-prospective.js` | prospective.data-b.com (5 routes) | K-Prospective |
+| Off-market : bâtiments et occupants | `server/alx/foncier.js`, `server/off-market/occupants.js`, `off-market/simple.js` | data-b.com/api/batimentV2, /company/foncier, /company/occupant | K-Foncier, SIRENE |
+| Outil `data_b` de Haka | `server/data-b-assistant.js` | valeurs locatives, transactions | Valeur locative, K-Transactions |
+| Transactions | `server/data-b-transactions.js` | transaction.data-b.com | K-Transactions (DVF, BODACC) |
+| Connecteurs de marché | `server/marche/connecteurs/data-b-*.js` | selon le connecteur | les outils correspondants |
+| Secteur d'un projet | `server/projet-secteur.js` | valeurs locatives | Valeur locative |
+
+## Palier 1 livré : Valeur locative sans Data-B (18 oct. 2026)
+
+- Une seule liste de comparables, chacun avec sa source et son poids : bail Klocka 3, loyer saisi ou fiche d'agent 1,5, Equimmox 1 (`server/valeur-locative-comparables.js`, `POIDS`).
+- L'origine du loyer sur chaque lot (`origine_loyer` : `annonce` à l'analyse de la fiche, `saisi` à la main, `reel` quand la matrice lit un loyer dans un bail, un avenant ou une quittance) ; `server/loyers-klocka.js` la déduit pour les dossiers d'avant.
+- La recherche en cercles : tronçon (même rue, 80 m), rue, quartier (500 m, en attendant l'IRIS de F1), commune ; on s'arrête au premier qui réunit `MIN_PAR_CERCLE` (5) loyers Klocka.
+- La fourchette par quartiles pondérés ; la confiance par le code (nombre de loyers Klocka, âge médian, dispersion), seuils dans `SEUILS`. Sous « moyenne », Equimmox est affiché et Klocka sert de contrôle.
+- Data-B appelé en parallèle, jamais affiché : l'écart est gardé avec la recherche (`ecart_data_b`, `data_b_lu` sur ValeurLocativeRecherche).
+- Pas encore : l'actualisation à l'ILC (la série d'indices est à brancher depuis l'INSEE ; d'ici là l'âge pèse seulement sur la confiance) et l'ajustement par surface et par classement d'emplacement.
+- Comptage en lecture seule pour Render : `npm run comptage-loyers` (option `--ban` pour vérifier les adresses, `--json`). Quand il sera connu, on règle `POIDS`, `MIN_PAR_CERCLE` et `SEUILS`, sans rien changer d'autre.
 
 ## Ordre de construction recalé
 

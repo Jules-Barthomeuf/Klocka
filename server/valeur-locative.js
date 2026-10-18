@@ -25,11 +25,52 @@ import { Records } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
 import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
+import { referencesKlocka } from './loyers-klocka.js';
+import { valeurParComparables, ecartDataB } from './valeur-locative-comparables.js';
+
+// --- Les loyers Klocka autour d'une adresse (18 oct. 2026) -----------------------------------
+// Les références du même département, géocodées une fois et gardées (AdresseResolue) : une
+// adresse de dossier ne repasse pas par la BAN à chaque recherche.
+const ADRESSES = 'AdresseResolue';
+
+async function pointDe(ligne) {
+  const cle = cleDe(ligne);
+  const garde = Records.filter(ADRESSES, { cle })[0];
+  if (garde) return garde.point;
+  let point = null;
+  try {
+    const a = await resoudreAdresse(ligne);
+    point = a ? { lat: a.lat, lon: a.lon, code_insee: a.code_insee, code_postal: a.code_postal, rue: a.rue } : null;
+  } catch { return null; }
+  Records.create(ADRESSES, { cle, ligne, point, le: new Date().toISOString() });
+  return point;
+}
+
+async function referencesAutour(adresse) {
+  const dep = String(adresse.code_postal || '').slice(0, 2);
+  const refs = referencesKlocka(Records.list('Deal')).filter((r) => !dep || r.departement === dep || (!r.departement && r.adresse.ville && r.adresse.ville.toLowerCase() === String(adresse.ville || '').toLowerCase()));
+  for (const r of refs) {
+    if (!r.adresse.ligne) continue;
+    r.point = await pointDe(r.adresse.ligne);
+    if (r.point?.code_insee && !r.adresse.code_insee) r.adresse.code_insee = r.point.code_insee;
+    if (r.point?.code_postal && !r.adresse.code_postal) r.adresse.code_postal = r.point.code_postal;
+  }
+  return refs;
+}
+
+/** Pure : les lectures Equimmox par rayon, en références de la liste commune. */
+export function equimmoxEnComparables(equimmox = {}) {
+  const niveau = { 200: 'rue', 500: 'quartier', 1000: 'commune' };
+  return Object.entries(equimmox)
+    .filter(([, e]) => e && (e.moyenne != null || e.bas != null))
+    .map(([rayon, e]) => ({ loyer_m2: e.moyenne ?? Math.round(((e.bas ?? e.haut) + (e.haut ?? e.bas)) / 2), bas: e.bas ?? null, haut: e.haut ?? null, niveau: niveau[rayon] || 'quartier', libelle: `Equimmox, baux à ${Number(rayon) >= 1000 ? `${Number(rayon) / 1000} km` : `${rayon} m`}`, le: e.le || null }));
+}
 
 const ENTITE = 'ValeurLocativeRecherche';
 // Version 2 (6 oct. 2026) : Equimmox lit les baux des commerces, plus les
 // offres de bureaux ; les recherches d'avant ne se reprennent plus.
-const VERSION = 2;
+// Version 3 (18 oct. 2026) : les loyers Klocka entrent, Data-B n'est plus affiché.
+const VERSION = 3;
 const CACHE_JOURS = 30;
 export const UNITE = '€ HT HC / m² / an';
 
@@ -64,29 +105,21 @@ export function composer(adresse, equimmox = {}, _dvf = null, dataB = null) {
         source: 'Equimmox',
         du_cache: !!eq.du_cache,
       };
-    } else if (dataB?.[cle] && (dataB[cle].basse != null || dataB[cle].haute != null)) {
-      // Equimmox n'a rien constaté à ce rayon : l'estimation Data-B de la même
-      // échelle prend la place, et le dit.
-      const d = dataB[cle];
-      const moyenne = d.basse != null && d.haute != null ? Math.round((d.basse + d.haute) / 2) : null;
-      niveaux[cle] = { nom: d.nom || null, basse: d.basse ?? d.haute, moyenne, haute: d.haute ?? d.basse, rayon: null, source: 'Data-B', estime: true, du_cache: !!dataB.du_cache };
     } else {
       niveaux[cle] = null;
     }
   }
   const constate = ECHELLES.some(({ cle }) => niveaux[cle]?.source === 'Equimmox');
-  const estimeDataB = ECHELLES.some(({ cle }) => niveaux[cle]?.source === 'Data-B');
   return {
-    source: [constate && 'Equimmox · Analyse de loyer', estimeDataB && 'Data-B · Valeurs locatives'].filter(Boolean).join(' + ')
-      || 'aucune source',
+    source: constate ? 'Equimmox · Analyse de loyer' : 'aucune source',
     unite: UNITE,
     adresse: adresse.label,
     rue: niveaux.rue,
     quartier: niveaux.quartier,
     ville: niveaux.ville,
     dvf: null,
-    // L'estimation Data-B, entière et à part, même quand Equimmox a répondu.
-    data_b: dataB ? { rue: dataB.rue || null, quartier: dataB.quartier || null, ville: dataB.ville || null, lien: dataB.lien || null, le: dataB.le || null } : null,
+    // Data-B n'est plus affiché (18 oct. 2026, sortie de Data-B) : appelé en parallèle, son écart est gardé à part.
+    data_b: null,
     constate,
   };
 }
@@ -112,15 +145,11 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
   }
 
   const erreurs = [];
-  // Data-B d'abord : une page HTTP, quelques secondes, gardée trente jours.
-  let dataB = null;
-  if (dataBConfigure()) {
-    surJalon('data-b');
-    try {
-      const d = await valeurLocativeDataB(adresse.label, { forcer, user });
-      if (d.ok) dataB = d.resultat; else erreurs.push(`Data-B : ${d.error}`);
-    } catch (e) { erreurs.push(`Data-B : ${e?.message || e}`); }
-  }
+  // Data-B en parallèle, pour la comparaison seulement (18 oct. 2026, plan de la boîte à outils) :
+  // son chiffre n'est jamais affiché, l'écart à la valeur retenue est gardé avec la recherche.
+  const dataBEnCours = dataBConfigure()
+    ? valeurLocativeDataB(adresse.label, { forcer, user }).then((d) => (d.ok ? d.resultat : null)).catch(() => null)
+    : Promise.resolve(null);
 
   // Puis Equimmox, rayon par rayon : chaque lecture est gardée à part, une
   // panne sur l'un ne perd pas les autres.
@@ -137,12 +166,21 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
     erreurs.push("Equimmox n'est pas configuré.");
   }
 
-  const resultat = { ...composer(adresse, equimmox, null, dataB), erreurs, le: new Date().toISOString(), par: user?.email || null };
-  if (!resultat.rue && !resultat.quartier && !resultat.ville) {
+  // Les loyers des dossiers Klocka, en cercles autour de l'adresse, avec Equimmox dans la même liste.
+  surJalon('klocka');
+  let comparables = null;
+  try {
+    comparables = valeurParComparables(adresse, await referencesAutour(adresse), equimmoxEnComparables(equimmox));
+  } catch (e) { erreurs.push(`Loyers Klocka : ${e?.message || e}`); }
+
+  const resultat = { ...composer(adresse, equimmox, null, null), comparables, valeur: comparables?.valeur ? { ...comparables.valeur, source: comparables.affichee, niveau: comparables.niveau, confiance: comparables.confiance } : null, erreurs, le: new Date().toISOString(), par: user?.email || null };
+  if (!resultat.rue && !resultat.quartier && !resultat.ville && !resultat.valeur) {
     return { ok: false, error: `Aucune valeur locative lisible ici : ${erreurs.join(' ; ') || 'aucune source n\'a répondu'}.` };
   }
-  const record = Records.create(ENTITE, { cle, version: VERSION, adresse: adresse.label, point: { lat: adresse.lat, lon: adresse.lon, code_insee: adresse.code_insee, ville: adresse.ville }, resultat, le: resultat.le, par: resultat.par }, user?.email);
-  console.log(`[valeur-locative] ${adresse.label} : ${resultat.source}${user?.email ? ` — ${user.email}` : ''}`);
+  const dataB = await dataBEnCours;
+  const ecart_data_b = ecartDataB(resultat.valeur, dataB);
+  const record = Records.create(ENTITE, { cle, version: VERSION, adresse: adresse.label, point: { lat: adresse.lat, lon: adresse.lon, code_insee: adresse.code_insee, ville: adresse.ville }, resultat, ecart_data_b, data_b_lu: dataB ? { rue: dataB.rue || null, quartier: dataB.quartier || null, ville: dataB.ville || null, le: dataB.le || null } : null, le: resultat.le, par: resultat.par }, user?.email);
+  console.log(`[valeur-locative] ${adresse.label} : ${resultat.valeur ? `${resultat.valeur.source}, confiance ${resultat.valeur.confiance}` : resultat.source}${user?.email ? ` — ${user.email}` : ''}`);
   return { ok: true, id: record.id, resultat };
 }
 

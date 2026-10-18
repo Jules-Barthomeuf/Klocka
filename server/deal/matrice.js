@@ -11,6 +11,7 @@
 // quand l'équipe ajoute une colonne et l'enregistre. Au bout de vingt
 // dossiers, la grille est la méthode Klocka.
 
+import { loyerDuBail } from '../loyers-klocka.js';
 import { prixFai as prixFaiDuLot } from './prix.js';
 import { createHash } from 'crypto';
 import { Records } from '../db.js';
@@ -165,6 +166,17 @@ export async function remplirMatrice(dealId, { uploadDir, user, seulementColonne
         ...(partiel ? {} : { rempli_le: new Date().toISOString(), rempli_par: user?.email || null }),
       },
     });
+    // Un loyer lu dans le bail : l'origine du loyer du premier lot devient « reel » (18 oct. 2026), et la
+    // valeur locative par comparables le pèse comme un bail signé.
+    if (!partiel) {
+      const frais = brutDe(dealId);
+      const bail = loyerDuBail(frais);
+      if (bail && frais?.lots?.[0]?.lot && frais.lots[0].lot.origine_loyer !== 'reel') {
+        const lots = [...frais.lots];
+        lots[0] = { ...lots[0], lot: { ...lots[0].lot, origine_loyer: 'reel' }, loyer_bail: bail };
+        Records.update('Deal', frais.id, { lots });
+      }
+    }
   };
   let fait = 0;
   let sautees = 0;

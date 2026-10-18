@@ -65,17 +65,20 @@ test('le loyer se déduit du prix des murs au taux de la grille, bas au taux bas
   assert.equal(loyerDerive({}), null);
 });
 
-test('composer : Data-B remplit une échelle qu\'Equimmox n\'a pas lue, et reste visible à part', () => {
+test('composer : Data-B n\'est plus affiché, même quand Equimmox n\'a pas lu une échelle (18 oct. 2026)', () => {
   const adresse = { label: '55 rue des Poteaux 75018 Paris', rue: 'Rue des Poteaux', ville: 'Paris' };
-  const dataB = { rue: { nom: 'Rue des Poteaux', basse: 300, haute: 400 }, quartier: { nom: 'Clignancourt', basse: 250, haute: 350 }, lien: 'https://valeurlocative.data-b.com/search' };
+  const dataB = { rue: { nom: 'Rue des Poteaux', basse: 300, haute: 400 }, quartier: { nom: 'Clignancourt', basse: 250, haute: 350 } };
   const r = composer(adresse, { 500: { bas: 280, moyenne: 310, haut: 340, rayon: '500 m' } }, null, dataB);
   assert.equal(r.quartier.source, 'Equimmox');
-  assert.equal(r.rue.source, 'Data-B');
-  assert.equal(r.rue.moyenne, 350);
-  assert.equal(r.rue.estime, true);
-  assert.equal(r.ville, null);
-  assert.match(r.source, /Equimmox.*Data-B/);
-  assert.deepEqual(r.data_b.quartier, dataB.quartier);
+  assert.equal(r.rue, null);
+  assert.equal(r.source, 'Equimmox · Analyse de loyer');
+  assert.equal(r.data_b, null);
+});
+
+test('equimmoxEnComparables : une référence par rayon lu, au bon niveau', async () => {
+  const { equimmoxEnComparables } = await import('./valeur-locative.js');
+  const refs = equimmoxEnComparables({ 200: { bas: 280, moyenne: 310, haut: 340 }, 1000: { bas: 200, haut: 260 } });
+  assert.deepEqual(refs.map((r) => [r.niveau, r.loyer_m2]), [['rue', 310], ['commune', 230]]);
 });
 
 test('champsValeurLocative : la rue Data-B remplit l\'offre de marché du projet', async () => {

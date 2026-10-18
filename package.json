@@ -9,6 +9,7 @@
     "server": "node server/index.js",
     "import": "node server/import.js",
     "etat": "node server/etat-plateforme.js",
+    "comptage-loyers": "node scripts/comptage-loyers.mjs",
     "recap": "node server/recap/recap.js",
     "ak:epreuves": "node server/ak/epreuves.js",
     "build": "node scripts/nouveautes.mjs && vite build",

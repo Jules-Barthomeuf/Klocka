@@ -142,7 +142,7 @@ export function valeurParComparables(cible, refsKlocka = [], refsEquimmox = [], 
     niveau: retenu?.cercle.cle || null,
     libelle: retenu?.cercle.libelle || null,
     comparables: comparables.map((r) => ({
-      source: r.source, poids: r.poids, loyer_m2: r.loyer_m2, surface: r.surface ?? null, origine: r.origine ?? null,
+      source: r.source, poids: r.poids, loyer_m2: r.loyer_m2, loyer_m2_brut: r.loyer_m2_brut ?? null, ilc: r.ilc?.actualise ? { de: r.ilc.de, a: r.ilc.a, facteur: r.ilc.facteur } : null, surface: r.surface ?? null, origine: r.origine ?? null,
       titre: r.titre ?? r.libelle ?? null, adresse: r.adresse?.ligne ?? r.adresse ?? null, deal_id: r.deal_id ?? null, document: r.document ?? null,
       distance_m: distanceM(cible, r.point), le: r.le ?? null,
     })),

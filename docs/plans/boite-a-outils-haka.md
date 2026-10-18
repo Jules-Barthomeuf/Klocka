@@ -1,6 +1,15 @@
 # Boîte à outils d'analyse de Haka
 
-**Échéance du contrat Data-B : à renseigner** (date de fin et préavis de résiliation, à lire sur le contrat). Ne pas résilier avant que les usages ci-dessous aient tous basculé, ni laisser passer l'échéance pour payer une année de trop.
+## Contrat Data-B
+
+| Champ | Valeur |
+| --- | --- |
+| Date d'échéance | _à compléter (JJ/MM/AAAA)_ |
+| Durée du préavis | _à compléter (en mois ou en jours)_ |
+| Reconduction tacite | _à compléter (oui / non)_ |
+| **Résilier au plus tard le** | **échéance − préavis = _à calculer dès que les deux champs sont remplis_** |
+
+Ne pas résilier avant que tous les usages listés plus bas aient basculé ; avec une reconduction tacite, laisser passer la date ci-dessus engage une période de plus.
 
 Plan de Jules du 18 oct. 2026 : remplacer Data-B par neuf outils internes que Haka appelle comme les autres, au contrat commun (entrée, valeur en fourchette, confiance, sources datées, détail vérifiable, date). Le code calcule, l'IA explique ; pas de chiffre sans détail ; les données Klocka priment.
 
@@ -62,7 +71,8 @@ Fondations déjà là, à réunir plutôt qu'à créer :
 - La recherche en cercles : tronçon (même rue, 80 m), rue, quartier (500 m, en attendant l'IRIS de F1), commune ; on s'arrête au premier qui réunit `MIN_PAR_CERCLE` (5) loyers Klocka.
 - La fourchette par quartiles pondérés ; la confiance par le code (nombre de loyers Klocka, âge médian, dispersion), seuils dans `SEUILS`. Sous « moyenne », Equimmox est affiché et Klocka sert de contrôle.
 - Data-B appelé en parallèle, jamais affiché : l'écart est gardé avec la recherche (`ecart_data_b`, `data_b_lu` sur ValeurLocativeRecherche).
-- Pas encore : l'actualisation à l'ILC (la série d'indices est à brancher depuis l'INSEE ; d'ici là l'âge pèse seulement sur la confiance) et l'ajustement par surface et par classement d'emplacement.
+- L'actualisation à l'ILC (18 oct. 2026) : chaque loyer Klocka est ramené au dernier indice publié depuis le trimestre de son dossier (INSEE, série 001532540, service SDMX public, gardé 30 jours ; `server/ilc.js`). Le loyer d'origine reste à côté (`loyer_m2_brut`). Equimmox, actuel, n'est pas actualisé. Limite : la date retenue est celle du dossier, pas celle du bail.
+- Pas encore : l'ajustement par surface et par classement d'emplacement.
 - Comptage en lecture seule pour Render : `npm run comptage-loyers` (option `--ban` pour vérifier les adresses, `--json`). Quand il sera connu, on règle `POIDS`, `MIN_PAR_CERCLE` et `SEUILS`, sans rien changer d'autre.
 
 ## Ordre de construction recalé

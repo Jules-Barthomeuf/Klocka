@@ -26,6 +26,7 @@ import { resoudreAdresse } from './adresse-ban.js';
 import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
 import { referencesKlocka } from './loyers-klocka.js';
+import { actualiserReferences, indicesIlc } from './ilc.js';
 import { valeurParComparables, ecartDataB } from './valeur-locative-comparables.js';
 
 // --- Les loyers Klocka autour d'une adresse (18 oct. 2026) -----------------------------------
@@ -55,7 +56,8 @@ async function referencesAutour(adresse) {
     if (r.point?.code_insee && !r.adresse.code_insee) r.adresse.code_insee = r.point.code_insee;
     if (r.point?.code_postal && !r.adresse.code_postal) r.adresse.code_postal = r.point.code_postal;
   }
-  return refs;
+  // Chaque loyer Klocka ramené au dernier ILC publié, depuis la date de son dossier (Equimmox, lui, est actuel).
+  return actualiserReferences(refs, await indicesIlc());
 }
 
 /** Pure : les lectures Equimmox par rayon, en références de la liste commune. */

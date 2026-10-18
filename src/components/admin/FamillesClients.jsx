@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
 import { BoutonLienInvitation } from "@/components/admin/InviterClient";
 import { Check, Copy, Link2, Loader2, Plus, Search, Send, Users, X } from "lucide-react";
 
@@ -26,8 +27,8 @@ const copier = async (texte) => {
 
 const appel = (chemin, body) => base44.request("POST", chemin, { body });
 
-const champ = "w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] max-md:text-[16px] text-encre outline-none placeholder:text-brume";
-const etiquette = "block text-[11px] tracking-[.16em] uppercase text-brume mb-1.5";
+const champ = "h-11 w-full rounded-full border border-trait bg-surface px-4 text-[15px] text-encre outline-none placeholder:text-brume focus:border-bord-doux max-md:text-[16px]";
+const etiquette = "mb-1.5 block text-[12.5px] text-ardoise";
 const principal = "inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40";
 const secondaire = "inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-menthe hover:text-encre disabled:opacity-40";
 
@@ -50,8 +51,8 @@ function ChoixCompte({ users, exclus = [], onChoisir, placeholder = "Chercher un
     : [];
   return (
     <div className="relative">
-      <div className="flex items-center gap-3 border-b border-encre/[0.18] pb-1.5 focus-within:border-menthe">
-        <Search className="h-3.5 w-3.5 flex-none text-brume" />
+      <div className="flex h-11 items-center gap-3 rounded-full border border-trait bg-surface px-4 focus-within:border-bord-doux">
+        <Search className="h-4 w-4 flex-none text-ardoise" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder}
           className="w-full border-none bg-transparent py-1 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
       </div>
@@ -229,7 +230,7 @@ function LigneFamille({ famille, users, onFait }) {
   const titulaire = famille.comptes.find((c) => c.titulaire);
 
   return (
-    <div className="border-t border-trait px-2 py-5">
+    <div className="border-t border-trait px-5 py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="m-0 text-[16px] text-encre">Famille de {titulaire?.full_name || titulaire?.email}</p>
         <button type="button" onClick={() => setAjout((a) => !a)} className="inline-flex items-center gap-1.5 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
@@ -288,13 +289,13 @@ export default function FamillesClients({ users = [] }) {
 
   return (
     <div>
-      <div className="mb-10 rounded-bloc border border-trait p-6 max-md:p-4">
+      <div className="mb-8 rounded-[16px] border border-trait bg-rail p-6 max-md:p-4">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <p className="m-0 text-[20px] text-encre">Nouvelle famille</p>
           <div className="flex gap-1 rounded-full bg-rail-actif p-1">
             {[["inviter", "Inviter"], ["former", "Avec des comptes existants"]].map(([k, mot]) => (
               <button key={k} type="button" onClick={() => setMode(k)}
-                className={`rounded-full px-3 py-1 text-[12.5px] ${mode === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+                className={`rounded-full px-4 py-[7px] text-[13.5px] ${mode === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
                 style={mode === k ? undefined : { background: "transparent" }}>{mot}</button>
             ))}
           </div>
@@ -302,15 +303,15 @@ export default function FamillesClients({ users = [] }) {
         {mode === "inviter" ? <InviterFamille onFait={rafraichir} /> : <FormerFamille users={users} onFait={rafraichir} />}
       </div>
 
-      <p className="m-0 mb-3 text-[11px] tracking-[.16em] uppercase text-brume">Familles · {familles.length}</p>
+      <p className="m-0 mb-3 text-[15px] text-encre">Familles <span className="text-[13.5px] tabular-nums text-ardoise">{familles.length}</span></p>
       {isLoading ? (
-        <p className="py-10 text-center text-[13.5px] text-brume"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Chargement des familles</p>
+        <Chargement titre="Les familles" />
       ) : isError ? (
         <p className="py-10 text-center text-[13.5px] text-brume">Les familles n'ont pas pu être chargées. Rechargez la page.</p>
       ) : familles.length === 0 ? (
         <p className="py-10 text-center text-[13.5px] text-brume">Aucune famille encore : invitez-en une, ou rattachez des comptes existants.</p>
       ) : (
-        <div className="border-b border-trait">
+        <div className="overflow-hidden rounded-[16px] border border-trait bg-rail [&>*:first-child]:border-t-0">
           {familles.map((f) => <LigneFamille key={f.titulaire_id} famille={f} users={users} onFait={rafraichir} />)}
         </div>
       )}

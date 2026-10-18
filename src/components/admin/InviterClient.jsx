@@ -58,18 +58,18 @@ export default function InviterClient({ onCree } = {}) {
     return (
       <button
         onClick={() => setOuvert(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 text-[11px] tracking-[0.16em] uppercase border border-menthe/50 text-menthe hover:bg-menthe/[0.08] transition-colors"
+        className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol"
       >
-        <UserPlus className="w-3.5 h-3.5" /> Inviter un client
+        <UserPlus className="h-4 w-4" /> Inviter un client
       </button>
     );
   }
 
   return (
-    <div className="w-full border border-menthe/30 bg-menthe/[0.03] p-5">
+    <div className="w-full rounded-[16px] border border-trait bg-rail p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-menthe">Inviter un client</p>
+          <p className="m-0 text-[16px] text-encre">Inviter un client</p>
           <p className="m-0 mt-1 text-[12.5px] text-ardoise">
             Le compte est créé tout de suite. La personne ouvre le lien, choisit son mot de passe, entre.
           </p>
@@ -88,30 +88,30 @@ export default function InviterClient({ onCree } = {}) {
           className="flex flex-wrap items-end gap-4"
         >
           <label className="flex-1 min-w-[180px]">
-            <span className="block text-[11px] tracking-[.16em] uppercase text-ardoise mb-1.5">Nom</span>
+            <span className="mb-1.5 block text-[12.5px] text-ardoise">Nom</span>
             <input
               value={nom}
               onChange={(e) => setNom(e.target.value)}
               placeholder="Prénom Nom"
-              className="w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
+              className="h-11 w-full rounded-full border border-trait bg-surface px-4 text-[15px] text-encre outline-none placeholder:text-brume focus:border-bord-doux max-md:text-[16px]"
             />
           </label>
           <label className="flex-1 min-w-[220px]">
-            <span className="block text-[11px] tracking-[.16em] uppercase text-ardoise mb-1.5">Adresse email</span>
+            <span className="mb-1.5 block text-[12.5px] text-ardoise">Adresse email</span>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="client@exemple.fr"
-              className="w-full bg-transparent border-0 border-b border-encre/[0.18] focus:border-menthe px-0 py-1.5 text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]"
+              className="h-11 w-full rounded-full border border-trait bg-surface px-4 text-[15px] text-encre outline-none placeholder:text-brume focus:border-bord-doux max-md:text-[16px]"
             />
           </label>
           <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={!email.trim() || mutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-menthe text-fond text-[11px] tracking-[.16em] uppercase font-medium disabled:opacity-40 rounded-full"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40"
             >
               {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               Envoyer le lien
@@ -120,7 +120,7 @@ export default function InviterClient({ onCree } = {}) {
               type="button"
               disabled={!email.trim() || mutation.isPending}
               onClick={() => mutation.mutate(false)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[11px] tracking-[.16em] uppercase hover:bg-encre/[0.06] disabled:opacity-40"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-trait px-5 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}
             >
               <Link2 className="w-3.5 h-3.5" /> Juste le lien
             </button>
@@ -141,12 +141,12 @@ export default function InviterClient({ onCree } = {}) {
             )}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <code className="text-[12.5px] text-ardoise break-all bg-fond px-3 py-2 border border-relief flex-1 min-w-[260px]">
+            <code className="min-w-[260px] flex-1 break-all rounded-[12px] border border-trait bg-surface px-3 py-2 text-[12.5px] text-ardoise">
               {resultat.lien}
             </code>
             <button
               onClick={() => copier(resultat.lien)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-bord-doux text-encre text-[11px] tracking-[.16em] uppercase hover:bg-encre/[0.06]"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}
             >
               <Copy className="w-3.5 h-3.5" /> Copier
             </button>
@@ -174,7 +174,7 @@ export function BoutonLienInvitation({ user }) {
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending}
       aria-label="Copier un lien d'invitation" title="Copier un lien d'invitation"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] tracking-[0.16em] uppercase border border-bord-doux text-ardoise hover:text-encre hover:border-bord-vif transition-colors disabled:opacity-40 flex-shrink-0"
+      className="inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-full border border-trait px-3 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}
     >
       {mutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
       Lien

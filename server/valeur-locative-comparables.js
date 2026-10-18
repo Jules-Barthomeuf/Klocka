@@ -109,8 +109,10 @@ function dansLeCercle(cercle, cible, ref) {
  * @param {Array} refsEquimmox  [{ loyer_m2, niveau: 'rue'|'quartier'|'commune', le, libelle }]
  * @returns {{ niveau, libelle, comparables, fourchette, confiance, affichee: 'klocka'|'equimmox'|null, valeur, controle }}
  */
-export function valeurParComparables(cible, refsKlocka = [], refsEquimmox = [], { maintenant = Date.now() } = {}) {
-  const klocka = refsKlocka.map((r) => ({ ...r, source: sourceDe(r), poids: POIDS[sourceDe(r)] ?? 1 }));
+export function valeurParComparables(cible, refsKlocka = [], refsEquimmox = [], { maintenant = Date.now(), poids = POIDS } = {}) {
+  // `poids` : ceux du registre des sources (Paramètres › Sources), réglables sans redéployer ; POIDS par défaut.
+  const P = { ...POIDS, ...poids };
+  const klocka = refsKlocka.map((r) => ({ ...r, source: sourceDe(r), poids: P[sourceDe(r)] ?? 1 }));
   // Le premier cercle qui réunit assez de loyers Klocka ; sinon le plus large qui en a au moins un.
   let retenu = null;
   for (const c of CERCLES) {
@@ -121,7 +123,7 @@ export function valeurParComparables(cible, refsKlocka = [], refsEquimmox = [], 
   const niveauEq = retenu?.cercle.cle === 'commune' ? 'commune' : retenu?.cercle.cle === 'quartier' ? 'quartier' : 'rue';
   const eq = refsEquimmox
     .filter((e) => Number.isFinite(e.loyer_m2))
-    .map((e) => ({ ...e, source: 'equimmox', poids: POIDS.equimmox }));
+    .map((e) => ({ ...e, source: 'equimmox', poids: P.equimmox }));
   const eqDuNiveau = eq.filter((e) => e.niveau === niveauEq);
   const comparables = [...(retenu?.dedans || []), ...(eqDuNiveau.length ? eqDuNiveau : eq.slice(0, 1))];
 

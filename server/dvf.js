@@ -168,7 +168,7 @@ async function fichiers(dep, insee) {
   return textes;
 }
 
-async function telechargerFichiers(dep, insee) {
+export async function telechargerFichiers(dep, insee) {
   const annee = new Date().getFullYear();
   // On interroge DEUX années de plus qu'il n'en faut : l'année en cours n'est
   // jamais publiée, parfois la précédente non plus, et sans cette marge on

@@ -78,6 +78,7 @@ import { monterKZoning } from './routes/kzoning.js';
 import { monterKExpertise } from './routes/kexpertise.js';
 import { monterKEstimation } from './routes/kestimation.js';
 import { monterKValeurLocative } from './routes/kvaleurlocative.js';
+import { monterSocle } from './routes/socle.js';
 import { monterKFoncier } from './routes/kfoncier.js';
 import { monterKProspective } from './routes/kprospective.js';
 import { monterLeadMagnet } from './routes/leadmagnet.js';
@@ -873,7 +874,7 @@ app.use((req, res, next) => {
   // d'équipe, déjà réservé aux administrateurs : exiger une connexion ne
   // retire rien à personne.
   if (
-    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|haka|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata|mandataire|notifications)\b/.test(
+    !/^\/api\/(entities|integrations|functions|preanalyse|alexis|mails|admin|assistant|haka|socle|monday|journal|monitoring|marche|equimmox|figaro|projets|projects|alx|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata|mandataire|notifications)\b/.test(
       req.path
     )
   ) {
@@ -891,7 +892,7 @@ app.use((req, res, next) => {
 // concernent que l'équipe. Sans ce filtre, un compte client — il y en a
 // soixante-quinze — pouvait lire les verdicts, les prix et les adresses des
 // agents, et déclencher des actions en son nom.
-const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|haka|monday|monitoring|alx|marche|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
+const PREFIXES_EQUIPE = /^\/api\/(preanalyse|alexis|mails|assistant|haka|socle|monday|monitoring|alx|marche|kzoning|kexpertise|kestimation|kvaleurlocative|kfoncier|kprospective|leadmagnets|ktransactions|kvacance|kdata)\b/;
 
 app.use((req, res, next) => {
   if (AUTH_DESACTIVEE) return next();
@@ -1297,6 +1298,9 @@ monterKZoning(app);
 monterKExpertise(app);
 monterKEstimation(app);
 monterKValeurLocative(app);
+// Le socle de la boîte à outils de Haka (18 oct. 2026, lot 1) : sources, interrupteur, local, entrepôt.
+monterSocle(app);
+import('./socle/entrepot.js').then((m) => m.planifierImports()).catch((e) => console.error('[entrepot] :', e.message));
 monterKFoncier(app);
 monterKProspective(app);
 monterLeadMagnet(app);

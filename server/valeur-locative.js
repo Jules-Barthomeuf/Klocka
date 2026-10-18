@@ -27,6 +27,7 @@ import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
 import { valeurLocative as valeurLocativeDataB, dataBConfigure } from './data-b.js';
 import { referencesKlocka } from './loyers-klocka.js';
 import { actualiserReferences, indicesIlc } from './ilc.js';
+import { sourceActive, poidsSource } from './socle/registre-sources.js';
 import { valeurParComparables, ecartDataB } from './valeur-locative-comparables.js';
 
 // --- Les loyers Klocka autour d'une adresse (18 oct. 2026) -----------------------------------
@@ -149,14 +150,14 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
   const erreurs = [];
   // Data-B en parallèle, pour la comparaison seulement (18 oct. 2026, plan de la boîte à outils) :
   // son chiffre n'est jamais affiché, l'écart à la valeur retenue est gardé avec la recherche.
-  const dataBEnCours = dataBConfigure()
+  const dataBEnCours = dataBConfigure() && sourceActive('data_b')
     ? valeurLocativeDataB(adresse.label, { forcer, user }).then((d) => (d.ok ? d.resultat : null)).catch(() => null)
     : Promise.resolve(null);
 
   // Puis Equimmox, rayon par rayon : chaque lecture est gardée à part, une
   // panne sur l'un ne perd pas les autres.
   const equimmox = {};
-  if (equimmoxConfigure()) {
+  if (equimmoxConfigure() && sourceActive('equimmox')) {
     for (const { cle: echelle, rayon } of ECHELLES) {
       surJalon(echelle);
       try {
@@ -165,14 +166,18 @@ export async function valeurLocative(texte, { forcer = false, user = null, surJa
       } catch (e) { erreurs.push(`Equimmox ${rayon} m : ${e?.message || e}`); }
     }
   } else {
-    erreurs.push("Equimmox n'est pas configuré.");
+    erreurs.push(sourceActive('equimmox') ? "Equimmox n'est pas configuré." : 'Equimmox est coupé (Paramètres › Sources).');
   }
 
   // Les loyers des dossiers Klocka, en cercles autour de l'adresse, avec Equimmox dans la même liste.
   surJalon('klocka');
   let comparables = null;
   try {
-    comparables = valeurParComparables(adresse, await referencesAutour(adresse), equimmoxEnComparables(equimmox));
+    // Les poids du registre (Paramètres › Sources) ; une source coupée n'entre pas dans la liste.
+    const poids = Object.fromEntries(['klocka_bail', 'klocka_fiche', 'equimmox'].map((k) => [k, poidsSource(k)]).filter(([, v]) => v != null));
+    poids.klocka_saisi = poids.klocka_fiche;
+    const refs = (await referencesAutour(adresse)).filter((r) => sourceActive(r.origine === 'reel' ? 'klocka_bail' : 'klocka_fiche'));
+    comparables = valeurParComparables(adresse, refs, equimmoxEnComparables(equimmox), { poids });
   } catch (e) { erreurs.push(`Loyers Klocka : ${e?.message || e}`); }
 
   const resultat = { ...composer(adresse, equimmox, null, null), comparables, valeur: comparables?.valeur ? { ...comparables.valeur, source: comparables.affichee, niveau: comparables.niveau, confiance: comparables.confiance } : null, erreurs, le: new Date().toISOString(), par: user?.email || null };

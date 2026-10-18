@@ -10,6 +10,7 @@ import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PA
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import Monitoring from "@/pages/Monitoring";
 import Competences from "@/components/haka/Competences";
+import Sources from "@/components/socle/Sources";
 import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
 import CommunesAgent from "@/components/mandataire/CommunesAgent";
@@ -347,6 +348,8 @@ export default function Personnalisation() {
     ["suivi", "Suivi", admin && !vueClient && !vueMandataire],
     // Les compétences de Haka (17 oct. 2026) : Jules seul les écrit et les publie.
     ["competences", "Compétences", !vueClient && !!user?.gere_les_acces],
+    // Les sources de la boîte à outils de Haka (18 oct. 2026, lot 1) : interrupteurs, poids, entrepôt.
+    ["sources", "Sources", admin && !vueClient && !vueMandataire],
   ].filter((x) => x[2]);
   const [sectionBrute, setSection] = useState(() => { try { return (typeof window !== "undefined" && window.location.hash === "#agent") ? "agent" : localStorage.getItem("compte.section") || "profil"; } catch { return "profil"; } });
   const section = sections.some(([k]) => k === sectionBrute) ? sectionBrute : "profil";
@@ -539,6 +542,7 @@ export default function Personnalisation() {
       </section>
       )}
       {section === "competences" && <Competences />}
+      {section === "sources" && <Sources peutRegler={!!user?.gere_les_acces} />}
       </div>
     </div>
   );

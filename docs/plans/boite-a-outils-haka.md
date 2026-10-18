@@ -1,21 +1,47 @@
 # Boîte à outils d'analyse de Haka
 
-## Contrat Data-B
-
-| Champ | Valeur |
-| --- | --- |
-| Date d'échéance | _à compléter (JJ/MM/AAAA)_ |
-| Durée du préavis | _à compléter (en mois ou en jours)_ |
-| Reconduction tacite | _à compléter (oui / non)_ |
-| **Résilier au plus tard le** | **échéance − préavis = _à calculer dès que les deux champs sont remplis_** |
-
-Ne pas résilier avant que tous les usages listés plus bas aient basculé ; avec une reconduction tacite, laisser passer la date ci-dessus engage une période de plus.
-
 Plan de Jules du 18 oct. 2026 : remplacer Data-B par neuf outils internes que Haka appelle comme les autres, au contrat commun (entrée, valeur en fourchette, confiance, sources datées, détail vérifiable, date). Le code calcule, l'IA explique ; pas de chiffre sans détail ; les données Klocka priment.
 
 Ce fichier garde le plan, l'état des lieux de la phase 0 et les décisions prises. Le texte complet du plan est dans la conversation du 18 oct. ; ce qui suit en est la version de travail.
 
-## Décisions
+## Plan validé (18 oct. 2026)
+
+Le plan validé de Jules (section 0 de son document) fait foi : décisions, sources débranchables, dix lots, validation par comparaison avec Data-B.
+
+- **Zone** : Alpes-Maritimes d'abord ; les autres départements au fil des dossiers.
+- **Sources payantes** : Google Places et Equimmox. Pas de Pappers (dirigeants et comptes par le Registre national des entreprises, API INPI), pas de Mytraffic (le flux reste un indice estimé).
+- **Annonces** : collecte automatique (lot 3), risque juridique assumé par Klocka : des faits seulement, rythme lent, robots.txt, un interrupteur par site, usage interne.
+- **Data-B** : reste utilisable comme une source parmi les autres, mais doit pouvoir être débranché sans aucun impact ; tout passe par un adaptateur unique avec un interrupteur (lot 2).
+- **Contrat Data-B** : hors du plan.
+- **Validation** : comparaison avec Data-B seulement, toujours sur le résultat calculé **Data-B coupé** ; 30 adresses des Alpes-Maritimes par outil ; seuils du plan (§ 0.4).
+- **Poids de départ des loyers** : bail Klocka 3, fiche ou saisie 1,5, Equimmox 1, Data-B 1, annonce 1 ; réglables dans Paramètres › Sources.
+- **Ordre des lots** : 1 socle, 2 Data-B débranchable, 3 collecte d'annonces, 4 Valeur locative (finition), 5 Estimation, 6 K-Transactions et K-Foncier, 7 inventaire et vacance, 8 K-Zoning et K-Expertise, 9 K-Prospective, 10 intégration dans Haka. Si le comptage des loyers sur Render est faible dans le 06, la collecte d'annonces passe juste après le lot 1 (Jules le dira).
+
+## Lot 1, socle commun : compte rendu (18 oct. 2026)
+
+Livré derrière l'interrupteur de la boîte à outils (`BOITE_OUTILS=1` ou Paramètres › Sources, éteint par défaut).
+
+- **Registre des sources** (`server/socle/registre-sources.js`) : chaque source avec son interrupteur et son poids, réglables sans redéployer (Paramètres › Sources, Jules seul) ; `viaSource` : une source coupée ou en panne rend « rien », jamais une erreur. `SOURCES_COUPEES` coupe au démarrage.
+- **Identifiant de local** (`server/socle/local.js`) : `L-<identifiant BAN>`, rattaché à la parcelle (cadastre IGN), au tronçon (BD TOPO, noms abrégés reconnus), à l'IRIS et au carreau de 200 m ; gardé 90 jours (LocalKlocka). `GET /api/socle/local`.
+- **Format commun** (`server/socle/format-commun.js`) : un adaptateur par outil, les neuf.
+- **Entrepôt** (`server/socle/entrepot.js`) : jeux datés (source, millésime, date d'import, licence) ; imports de la nuit sur le 06, de 1 h à 6 h, sur Render : communes, ventes de locaux DVF, contours IRIS, SIRENE et BODACC ; un import raté notifie l'équipe. Cadastre, tronçons, carreaux, personnes morales et ILC se lisent à la demande.
+- **Valeur locative** : poids lus dans le registre ; Equimmox et Data-B passent par leurs interrupteurs.
+- **Critère de fin** : `npm run socle:verifier -- --data-b-coupe` (toutes les adresses des dossiers du 06 en identifiant de local) ; `npm run socle:format -- --data-b-coupe` (le format commun sur les vrais résultats).
+- **Test « Data-B coupé »** : dans `npm test` (une source coupée ne lève rien ; aucun module du socle n'importe Data-B). Le test complet des neuf outils sur dix adresses vient avec le lot 2 (l'adaptateur Data-B).
+
+Reste du lot 1 :
+- Les caches par adresse des outils ne sont pas encore remplacés par l'identifiant de local : chaque outil le recevra en passant à son lot (4 à 9).
+- Imports en masse non faits : cadastre, personnes morales, carreaux Filosofi, équipements INSEE, horaires de transport, Géorisques, DVF+ (lus à la demande ou avec leur lot).
+- SIRENE et BODACC demandent `INSEE_SIRENE_CLE` : absente en local, à vérifier sur Render.
+- K-Vacance, K-Foncier, K-Transactions et K-Zoning ne gardent pas leur résultat : le format commun se vérifie sur un appel en direct, pas sur la base.
+
+## À ranger dans le lot 4 (Valeur locative), à ne pas traiter avant
+
+1. Vérifier que le loyer de chaque lot est le loyer en cours à la date du dossier ; si c'est un loyer de signature de bail, actualiser depuis la date du bail.
+2. Trouver ce que Data-B mesure à la rue et au quartier : loyers demandés ou signés, surface pondérée ou utile, HT/HC, nombre de références. Le dire à Jules avant de changer quoi que ce soit. D'ici là, comparer Valeur locative et Data-B à l'échelle de la ville seulement.
+3. Afficher le nombre de comparables réels derrière chaque fourchette.
+
+## Décisions antérieures
 
 - 18 oct. 2026 : premier département chargé, **Alpes-Maritimes (06)**.
 
@@ -52,7 +78,7 @@ Fondations déjà là, à réunir plutôt qu'à créer :
 - F3 : des caches par outil, datés, sans registre commun des jeux de données ni des résultats.
 - Données Klocka : loyers, prix et surfaces dans `deal.lots[].lot`, au format `{valeur, citation, confiance}`. Pas d'entité « bail », pas de statut « signé » sur un dossier ; les projets portent l'aboutissement.
 
-## Usages de Data-B hors des neuf outils, à basculer un par un avant la résiliation
+## Usages de Data-B hors des neuf outils (à faire passer par l'adaptateur au lot 2)
 
 | Usage | Où | Produit Data-B | Bascule prévue |
 | --- | --- | --- | --- |

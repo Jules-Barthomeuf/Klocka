@@ -80,6 +80,9 @@ export async function resoudreAdresse(texte) {
   const k = p.concordance || {};
   return {
     label: p.label,
+    // L'identifiant de la BAN (« 06029_0420_00045 ») : la clé de l'identifiant de local (18 oct. 2026).
+    ban_id: p.id || null,
+    type: p.type || null,
     // Le code INSEE de la commune : c'est lui qui adresse les pages du Figaro.
     code_insee: p.citycode || '',
     numero: p.housenumber || '',

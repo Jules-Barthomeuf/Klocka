@@ -1,4 +1,5 @@
 import React from "react";
+import FondHalo from "@/components/projet/FondHalo";
 
 /**
  * La barrière d'erreur de l'application.
@@ -31,41 +32,50 @@ export default class BarriereErreur extends React.Component {
   render() {
     if (!this.state.erreur) return this.props.children;
 
+    // L'écran prend le fond et les réglages du compte (18 oct. 2026, Jules) : le même Halo que les pages, les jetons de
+    // l'interface, des pilules. Hors de Layout et du fournisseur de préférences, mais le thème, le fond et les boutons
+    // sont posés sur <html> dès le chargement.
     return (
-      <div className="min-h-screen bg-fond flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
-          <div className="w-10 h-0.5 bg-menthe mx-auto mb-8 rounded-full" />
-          <h1 className="m-0 text-[24px] font-light tracking-[-.02em] text-encre">
-            Cet écran n’a pas pu s’afficher
-          </h1>
-          <p className="m-0 mt-4 text-[13.5px] leading-[1.7] text-ardoise">
-            Le reste de l’application fonctionne. Revenez en arrière, ou
-            rechargez cette page — si cela se reproduit, signalez-le nous.
-          </p>
-          <div className="mt-8 flex items-center justify-center gap-3 max-md:flex-wrap">
-            <button
-              onClick={() => this.setState({ erreur: null })}
-              className="px-5 py-2.5 border border-menthe/50 text-[11px] tracking-[.16em] uppercase text-menthe hover:bg-menthe/[0.08] transition-colors"
-            >
-              Réessayer
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-5 py-2.5 border border-[#2a2d35] text-[11px] tracking-[.16em] uppercase text-ardoise hover:bg-white/[0.04] transition-colors"
-            >
-              Recharger
-            </button>
+      <div className="relative min-h-screen bg-fond text-encre">
+        <FondHalo />
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-6 py-10">
+          <div className="w-full max-w-[520px] text-center">
+            <img src="/avatars/ak.png" alt="" draggable={false} className="mx-auto mb-7 h-12 w-12 rounded-full object-cover" />
+            <h1 className="m-0 text-[28px] font-normal leading-[1.15] tracking-[-0.02em] text-encre max-md:text-[24px]">
+              Cet écran n’a pas pu s’afficher
+            </h1>
+            <p className="m-0 mt-4 text-[15px] leading-[1.6] text-ardoise">
+              Le reste de l’application fonctionne. Revenez en arrière, ou rechargez cette page. Si cela se reproduit,
+              signalez-le nous.
+            </p>
+            <div className="mt-8 flex items-center justify-center gap-3 max-md:flex-wrap">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="h-12 rounded-full bg-encre px-7 text-[15px] text-fond transition-opacity hover:opacity-90"
+              >
+                Recharger
+              </button>
+              <button
+                type="button"
+                onClick={() => this.setState({ erreur: null })}
+                className="h-12 rounded-full border border-trait px-7 text-[15px] text-craie transition-colors hover:border-bord-vif hover:text-encre"
+                style={{ background: "transparent" }}
+              >
+                Réessayer
+              </button>
+            </div>
+            {/* Le détail technique reste à portée de main sans encombrer l'écran :
+                c'est ce qu'on demandera de copier en cas de signalement. */}
+            <details className="mt-8 rounded-[16px] border border-trait bg-rail px-5 py-3 text-left">
+              <summary className="cursor-pointer text-[13px] text-ardoise hover:text-encre">
+                Détail technique
+              </summary>
+              <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[12px] leading-[1.6] text-brume">
+                {String(this.state.erreur?.stack || this.state.erreur)}
+              </pre>
+            </details>
           </div>
-          {/* Le détail technique reste à portée de main sans encombrer l'écran :
-              c'est ce qu'on demandera de copier en cas de signalement. */}
-          <details className="mt-8 text-left">
-            <summary className="cursor-pointer text-[11px] tracking-[.16em] uppercase text-brume hover:text-ardoise">
-              Détail technique
-            </summary>
-            <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-[1.6] text-brume">
-              {String(this.state.erreur?.stack || this.state.erreur)}
-            </pre>
-          </details>
         </div>
       </div>
     );

@@ -236,9 +236,24 @@ export async function analyser(texte, { annees = ANNEES_DEFAUT, rayon = 500, use
   catch (e) { return { ok: false, error: e.message }; }
   if (!adresse) return { ok: false, error: `Adresse introuvable dans la Base Adresse Nationale : « ${String(texte || '').slice(0, 80)} ».` };
 
+  // Boîte à outils allumée (lot 6, 18 oct. 2026) : les murs par cercles autour du local (parcelle, rue, IRIS,
+  // commune), prix aberrants écartés, ventes Klocka signées ; éteinte, le rayon de toujours.
+  const { boiteOutilsActive } = await import('./socle/drapeaux.js');
+  const boite = boiteOutilsActive();
+  let idLocal = null;
   const [murs, fonds, locaux] = await Promise.all([
     (async () => {
       try {
+        if (boite) {
+          const { resoudreLocal } = await import('./socle/local.js');
+          const l = await resoudreLocal(adresse.label);
+          if (l.ok) {
+            idLocal = l.local.id_local || null;
+            const { mursAutour } = await import('./ktransactions-murs.js');
+            const r = await mursAutour(l.local);
+            return r.ok ? r.resultat : { erreur: r.error };
+          }
+        }
         const { ventesAutour } = await import('./dvf.js');
         const r = await ventesAutour(adresse.label, { rayon, user });
         return r.ok ? r.resultat : { erreur: r.error };
@@ -270,6 +285,7 @@ export async function analyser(texte, { annees = ANNEES_DEFAUT, rayon = 500, use
   return {
     ok: true,
     point,
+    id_local: idLocal,
     annees,
     rayon,
     murs: murs?.erreur ? null : murs,

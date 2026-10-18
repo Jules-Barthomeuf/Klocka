@@ -92,7 +92,7 @@ function Resultat({ r, onRetour }) {
       <button onClick={onRetour} className="mb-3 text-[12.5px] text-ardoise hover:text-encre">Toutes les analyses</button>
       <h1 className="m-0 text-[24px] font-light tracking-[-0.01em] text-encre max-md:text-[20px]">{r.point.label}</h1>
       <p className="m-0 mt-1 mb-6 text-[12.5px] text-ardoise">
-        murs vendus dans {r.rayon} m · fonds cédés dans la commune sur {r.annees} ans
+        {murs?.cercle ? `murs vendus dans ${murs.cercle_libelle}` : `murs vendus dans ${r.rayon} m`} · fonds cédés dans la commune sur {r.annees} ans
       </p>
 
       {/* Le plan des ventes de murs. Les fonds n'y figurent pas : le BODACC ne
@@ -167,8 +167,34 @@ function Resultat({ r, onRetour }) {
                 <Chiffre titre="Prix médian" valeur={murs.prix_m2 ? `${euros(murs.prix_m2.median)} / m²` : "—"}
                   detail={murs.prix_m2 ? `de ${euros(murs.prix_m2.bas)} à ${euros(murs.prix_m2.haut)}` : `moins de ${murs.n_minimum} ventes`} />
                 <Chiffre titre="Ventes" valeur={String(murs.n)} detail={murs.annees?.join(", ")} />
-                <Chiffre titre="Rayon" valeur={`${murs.rayon} m`} detail={murs.commune} />
+                {murs.cercle ? (
+                  // Boîte à outils (18 oct. 2026) : la recherche par cercles, du plus serré au plus large, jusqu'à 5 ventes.
+                  <Chiffre titre="Cherché dans" valeur={murs.cercle_libelle.charAt(0).toUpperCase() + murs.cercle_libelle.slice(1)}
+                    detail={(murs.essais || []).map((e) => `${e.cercle === "iris" ? "IRIS" : e.cercle} ${e.n}`).join(" · ") + (murs.klocka ? ` · dont ventes Klocka` : "")} />
+                ) : (
+                  <Chiffre titre="Rayon" valeur={`${murs.rayon} m`} detail={murs.commune} />
+                )}
               </div>
+              {murs.cercle && (
+                <div className={`${CARTE} mb-3 p-4`}>
+                  <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.14em] text-brume">La dernière vente de la parcelle</p>
+                  {murs.derniere_vente_parcelle ? (
+                    <p className="m-0 text-[13px] text-encre">
+                      {quand(murs.derniere_vente_parcelle.date)} · {euros(murs.derniere_vente_parcelle.prix)}
+                      {murs.derniere_vente_parcelle.types?.length ? <span className="text-ardoise"> · {murs.derniere_vente_parcelle.types.join(", ")}{murs.derniere_vente_parcelle.lots > 1 ? ` · ${murs.derniere_vente_parcelle.lots} lots` : ""}</span> : null}
+                    </p>
+                  ) : <p className="m-0 text-[12.5px] text-ardoise">Aucune vente de la parcelle dans les {murs.annees?.length || 5} dernières années.</p>}
+                  {murs.par_annee?.length > 1 && (
+                    <p className="m-0 mt-3 text-[12px] leading-[1.6] text-ardoise">
+                      Médiane par année : {murs.par_annee.map((a) => `${a.annee} ${euros(a.median)} (${a.n})`).join(" · ")}.
+                      {!murs.actualise && " Prix non actualisés : il n'existe pas d'indice public des prix des murs commerciaux."}
+                    </p>
+                  )}
+                  {murs.ecartees?.aberrantes > 0 && murs.bornes_commune && (
+                    <p className="m-0 mt-1 text-[12px] text-brume">{murs.ecartees.aberrantes} vente{murs.ecartees.aberrantes > 1 ? "s" : ""} écartée{murs.ecartees.aberrantes > 1 ? "s" : ""}, hors de {euros(murs.bornes_commune.bas)} à {euros(murs.bornes_commune.haut)} / m² (5e–95e centile de la commune).</p>
+                  )}
+                </div>
+              )}
               {r.rotation && (
                 <Repere titre="Est-ce beaucoup ?"
                   phrase={<>À ce rythme, un local du quartier change de main <span className="font-semibold">tous les {fr(r.rotation.periode_ans)} ans</span>.</>}
@@ -188,6 +214,7 @@ function Resultat({ r, onRetour }) {
                         <span className="flex items-center gap-1.5 truncate text-encre">
                           {Number.isFinite(v.lat) && <MapPin className="h-3 w-3 flex-shrink-0 text-brume" />}
                           {v.adresse || v.commune || "Vente"}
+                          {v.source === "klocka" && <span className="ml-1 rounded-full bg-menthe/15 px-1.5 text-[10.5px] text-menthe">Klocka</span>}
                         </span>
                         <span className="block text-[11px] text-brume">{quand(v.date)}{v.surface ? ` · ${v.surface} m²` : ""}{v.distance_m != null ? ` · ${v.distance_m} m` : ""}</span>
                       </span>
@@ -198,6 +225,9 @@ function Resultat({ r, onRetour }) {
                     </button>
                   ))}
                 </div>
+                {murs.ventes_rue?.length > 0 && murs.cercle !== "rue" && (
+                  <p className="m-0 mt-2 text-[12px] text-ardoise">{murs.ventes_rue.length} vente{murs.ventes_rue.length > 1 ? "s" : ""} dans la rue même.</p>
+                )}
                 {murs.lien && <a href={murs.lien} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[.1em] text-ardoise hover:text-encre"><ExternalLink className="h-3.5 w-3.5" />Voir sur DVF</a>}
               </div>
             </>

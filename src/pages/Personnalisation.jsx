@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { vueDe } from "@/lib/vue";
-import { Check, Eye, EyeOff, Grip, Pipette, RotateCcw } from "lucide-react";
+import { Check, Eye, EyeOff, Grip, Maximize2, Pipette, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, PERSONNAGES_HAKA, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
@@ -310,6 +311,7 @@ function SignatureMails({ email }) {
 export default function Personnalisation() {
   const user = useUser();
   const { prefs, changer, reinitialiser, etat, connecte } = usePersonnalisation();
+  const [portraitsGrands, setPortraitsGrands] = useState(false);
   const admin = user?.role === "admin";
   // La vue client (un client, ou un admin qui regarde comme lui) : pas de page
   // d'ouverture, d'entrées de menu ni de bulle d'assistant, et tout dans une
@@ -444,7 +446,7 @@ export default function Personnalisation() {
           </label>
         </Reglage>
         <Reglage titre="Personnage de Haka" note="Son portrait dans les chats.">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {OPTIONS.personnage_haka.map(([v, mot]) => {
               const actif = prefs.personnage_haka === v;
               return (
@@ -456,8 +458,30 @@ export default function Personnalisation() {
                 </button>
               );
             })}
+            <button type="button" onClick={() => setPortraitsGrands(true)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+              <Maximize2 className="h-3.5 w-3.5" /> Voir en grand
+            </button>
           </div>
         </Reglage>
+        {/* Les portraits en grand (18 oct. 2026, Jules) : un clic en choisit un. */}
+        <Dialog open={portraitsGrands} onOpenChange={setPortraitsGrands}>
+          <DialogContent className="max-w-[880px]">
+            <DialogHeader><DialogTitle>Personnage de Haka</DialogTitle></DialogHeader>
+            <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
+              {OPTIONS.personnage_haka.map(([v, mot]) => {
+                const actif = prefs.personnage_haka === v;
+                return (
+                  <button key={v} type="button" onClick={() => changer({ personnage_haka: v })} aria-pressed={actif}
+                    className={`flex flex-col items-center gap-2 rounded-[16px] border p-3 transition-colors ${actif ? "border-menthe bg-menthe/10" : "border-bord-doux hover:border-bord-vif"}`}
+                    style={{ background: actif ? undefined : "transparent" }}>
+                    <img src={PERSONNAGES_HAKA[v]} alt={mot} className="aspect-square w-full rounded-full object-cover" draggable={false} />
+                    <span className="inline-flex items-center gap-1.5 text-[13.5px] text-encre">{actif && <Check className="h-3.5 w-3.5 text-menthe" />}{mot}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
         <Reglage titre="Police" note="Partout, ALX compris.">
           <Pilules valeur={prefs.police} options={OPTIONS.police} onChoisir={(v) => changer({ police: v })} rendre={(v, mot) => <span style={{ fontFamily: POLICES[v] }}>{mot}</span>} />
         </Reglage>

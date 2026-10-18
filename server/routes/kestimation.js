@@ -34,10 +34,10 @@ export function monterKEstimation(app) {
   // Les réponses du formulaire arrivent ici, et l'estimation se calcule dans
   // la foulée : un enregistrement sans calcul laisserait une fiche à moitié
   // remplie, qu'il faudrait relancer à la main.
-  app.patch('/api/kestimation/:id', wrap((req, res) => {
+  app.patch('/api/kestimation/:id', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    const r = estimer(req.params.id, req.body?.reponses, user);
+    const r = await estimer(req.params.id, req.body?.reponses, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));

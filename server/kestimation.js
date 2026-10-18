@@ -33,7 +33,8 @@ import { geocoder } from './deal/geocodage.js';
 import { interroger, construireRequete } from './kzoning-commerces.js';
 import { habitantsDeLaZone } from './kzoning-insee.js';
 import { loyerDvf } from './loyer-dvf.js';
-import { analyseLoyer, equimmoxConfigure } from './equimmox.js';
+import { analyseLoyer, analysePrix, equimmoxConfigure } from './equimmox.js';
+import { boiteOutilsActive } from './socle/drapeaux.js';
 
 const ENTITE = 'EstimationMurs';
 
@@ -368,6 +369,23 @@ export function calculerEstimation({ marche = {}, reponses = {}, activite = null
 }
 
 const noter = (id, patch) => Records.update(ENTITE, id, patch);
+
+/**
+ * Le calcul, avec les trois valeurs de la boîte à outils quand elle est allumée : elles s'ajoutent au résultat
+ * (`trois_valeurs`) et le remplacent quand l'ancien calcul ne peut rien dire (jamais de valeur vide sans raison).
+ */
+async function calculer({ marche, reponses, activite }) {
+  const r = calculerEstimation({ marche, reponses, activite });
+  if (!boiteOutilsActive()) return r;
+  const { troisValeurs } = await import('./kestimation-boite.js');
+  const surfaces = surfacePonderee(reponses || {});
+  const taux_grille = r.ok ? r.taux.base : (() => { const b = bandeDeTaux({ ville: reponses?.ville, emplacement: reponses?.emplacement }); return (b.bande[0] + b.bande[1]) / 2; })();
+  const trois = troisValeurs({ marche: { ...marche, taux_grille }, surfaces, loyer: nombre(reponses?.loyer_annuel) });
+  // Les trois valeurs font foi (spec de Jules) ; l'ancien calcul, sur la grille de taux, reste à côté pour comparer.
+  if (r.ok) return trois.valeurs ? { ...r, valeurs: trois.valeurs, prix_m2: trois.prix_m2, valeurs_grille: r.valeurs, trois_valeurs: trois } : { ...r, trois_valeurs: trois };
+  if (!trois.valeurs) return { ...r, trois_valeurs: trois };
+  return { ok: true, statut: reponses?.statut === 'vacant' ? 'vacant' : 'loue', surface: surfaces, methodes: {}, poids: {}, coefficients: [], valeurs: trois.valeurs, prix_m2: trois.prix_m2, trois_valeurs: trois, depuis_trois_valeurs: true, raison_ancien_calcul: r.error };
+}
 const etape = (id, cle, etat, detail = null) => {
   const e = Records.get(ENTITE, id);
   const etapes = (e?.etapes || []).map((x) => (x.cle === cle ? { ...x, etat, detail, le: new Date().toISOString() } : x));
@@ -442,6 +460,24 @@ async function executer(id, user) {
   }
   noter(id, { marche });
 
+  // Boîte à outils (lot 5, 18 oct. 2026) : les murs de K-Transactions par cercles autour du local, et le
+  // rendement des projets Klocka signés de la commune, pour les trois valeurs.
+  if (boiteOutilsActive()) {
+    try {
+      const { resoudreLocal } = await import('./socle/local.js');
+      const l = await resoudreLocal(point.libelle);
+      if (l.ok) {
+        marche.id_local = l.local.id_local || null;
+        const { mursAutour } = await import('./ktransactions-murs.js');
+        const m = await mursAutour(l.local);
+        if (m.ok) marche.murs = { prix_m2: m.resultat.prix_m2, n: m.resultat.n, cercle_libelle: m.resultat.cercle_libelle, ventes: m.resultat.ventes.map((v) => ({ prix_m2: v.prix_m2, surface: v.surface, date: v.date, source: v.source })) };
+        const { rendementKlocka } = await import('./kestimation-boite.js');
+        marche.rendement_klocka = rendementKlocka(Records.list('Project'), { code_insee: l.local.adresse?.code_insee, ville: l.local.adresse?.ville });
+      }
+    } catch { /* les trois valeurs diront ce qui manque */ }
+    noter(id, { marche });
+  }
+
   etape(id, 'concurrence', 'en_cours');
   try {
     const brut = await interroger(construireRequete([{ cle: 'shop', valeurs: null }], point.lat, point.lon, RAYON_CONCURRENCE));
@@ -484,16 +520,16 @@ async function executer(id, user) {
  * à surface comparable vaut mieux que celle de la rue, et elle prend une
  * minute. L'écran suit les étapes, comme au premier calcul.
  */
-export function estimer(id, reponses, user = null) {
+export async function estimer(id, reponses, user = null) {
   const e = Records.get(ENTITE, id);
   if (!e) return { ok: false, error: "Cette estimation n'existe plus." };
   const rep = reponses || {};
-  const r = calculerEstimation({ marche: e.marche || {}, reponses: rep, activite: e.activite });
+  const r = await calculer({ marche: e.marche || {}, reponses: rep, activite: e.activite });
   if (!r.ok) return r;
   const resultat = { ...r, calcule_le: new Date().toISOString() };
   const surface = surfacePonderee(rep).totale;
 
-  if (equimmoxConfigure() && surface > 0 && !e.marche?.vlm_equimmox_pour?.[surface]) {
+  if (equimmoxConfigure() && surface > 0 && (!e.marche?.vlm_equimmox_pour?.[surface] || (boiteOutilsActive() && !e.marche?.prix_equimmox_pour?.[surface]))) {
     Records.update(ENTITE, id, {
       reponses: rep, resultat,
       etat: 'en_cours', progression: 0,
@@ -525,8 +561,15 @@ async function affiner(id, surface, user) {
   } catch (err) {
     etape(id, 'equimmox', 'ratee', err?.message || String(err));
   }
+  // Boîte à outils : le prix des murs Equimmox (offres), la troisième valeur.
+  if (boiteOutilsActive() && !marche.prix_equimmox_pour?.[surface]) {
+    try {
+      const p = await analysePrix(e.libelle || e.adresse, { surface, user });
+      if (p.ok) { marche.prix_equimmox = p.resultat; marche.prix_equimmox_pour = { ...(marche.prix_equimmox_pour || {}), [surface]: true }; }
+    } catch { /* la troisième valeur manquera, et le dira */ }
+  }
   etape(id, 'calcul', 'en_cours');
-  const r = calculerEstimation({ marche, reponses: e.reponses || {}, activite: e.activite });
+  const r = await calculer({ marche, reponses: e.reponses || {}, activite: e.activite });
   const resultat = r.ok ? { ...r, calcule_le: new Date().toISOString() } : e.resultat;
   etape(id, 'calcul', 'faite', r.ok ? `${r.valeurs.moyenne.toLocaleString('fr-FR')} € en valeur moyenne` : r.error);
   noter(id, { marche, resultat, etat: 'terminee', fini_le: new Date().toISOString(), progression: 100 });

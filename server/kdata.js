@@ -131,7 +131,7 @@ const OUTILS = {
       // valorisation, plutôt que de rendre une lecture de marché à finir à la
       // main. Laissé vierge, l'outil s'arrête au marché, comme avant.
       if (formulaireEntame('kestimation', reglages)) {
-        const calcul = estimer(r.id, reponses, user);
+        const calcul = await estimer(r.id, reponses, user);
         if (!calcul.ok) throw new Error(calcul.error);
         e = await attendreFiche(() => lireEstimation(r.id));
       }

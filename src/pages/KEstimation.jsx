@@ -248,12 +248,13 @@ function Resultat({ estimation: e }) {
   const r = e.resultat;
   const m = r.methodes || {};
   const t = r.taux;
-  const nMethodes = Object.keys(m).length;
+  const tv = r.trois_valeurs;
+  const nMethodes = tv?.valeurs ? Object.values(tv.methodes).filter((x) => !x.redondante).length : Object.keys(m).length;
 
   return (
     <div className={`${CARTE} p-7 max-md:p-4`}>
       <p className="alx-mont m-0 mb-3 text-[10.5px] uppercase tracking-[.14em] text-menthe-texte">
-        Fourchette retenue · {r.statut === "vacant" ? "local vacant" : "local loué"} · {nMethodes} méthode{nMethodes > 1 ? "s" : ""} croisée{nMethodes > 1 ? "s" : ""}
+        Fourchette retenue · {r.statut === "vacant" ? "local vacant" : "local loué"} · {nMethodes} méthode{nMethodes > 1 ? "s" : ""} croisée{nMethodes > 1 ? "s" : ""}{tv?.valeurs ? ` · confiance ${tv.confiance.niveau}` : ""}
       </p>
       <div className="grid gap-3 md:grid-cols-3">
         {[["Estimation basse", r.valeurs.basse], ["Estimation moyenne", r.valeurs.moyenne], ["Estimation haute", r.valeurs.haute]].map(([titre, valeur], i) => (
@@ -266,7 +267,7 @@ function Resultat({ estimation: e }) {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["Taux retenu", pct(t.retenu)],
+          ["Taux retenu", tv?.valeurs && tv.methodes.capitalisation ? pct(tv.methodes.capitalisation.taux) : t ? pct(t.retenu) : "—"],
           ["Loyer de référence", r.loyer_annuel ? `${euros(r.loyer_annuel)} / an` : r.vlm?.loyer ? `${euros(r.vlm.loyer.moyen)} / an (marché)` : "—"],
           ["Surface", r.surface?.totale ? `${r.surface.totale} m²${r.surface.ponderee !== r.surface.totale ? ` · ${r.surface.ponderee} m² pondérés` : ""}` : "Non renseignée"],
           ["Prix au m²", r.prix_m2 != null ? `${r.prix_m2.toLocaleString("fr-FR")} €` : "—"],
@@ -278,8 +279,32 @@ function Resultat({ estimation: e }) {
         ))}
       </div>
 
+      {/* Boîte à outils (lot 5, 18 oct. 2026) : comparaison, capitalisation, Equimmox ; la confiance par l'écart. */}
+      {r.trois_valeurs && (
+        <>
+          <h3 className="alx-mont mt-8 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">
+            Les trois valeurs · confiance {r.trois_valeurs.confiance.niveau}
+          </h3>
+          <div className="grid gap-3">
+            {Object.entries(r.trois_valeurs.methodes).map(([k, mm]) => (
+              <div key={k}>
+                <Fourchette titre={mm.libelle} m={mm} accent={k === "comparaison"} />
+                <p className="m-0 mt-1.5 text-[11.5px] leading-[1.6] text-ardoise">
+                  {mm.prix_m2 ? `${euros(mm.prix_m2.bas)} à ${euros(mm.prix_m2.haut)} / m², médiane ${euros(mm.prix_m2.median)}. ` : ""}
+                  {k === "capitalisation" ? `${euros(mm.loyer)} de loyer annuel à ${pct(mm.taux)} ; taux : ${mm.taux_origine}.` : `Source : ${mm.source}.`}
+                  {mm.redondante && <span className="block text-brume">{mm.note}</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="m-0 mt-2 text-[11.5px] leading-[1.6] text-ardoise">{r.trois_valeurs.confiance.raison} {r.trois_valeurs.regle}</p>
+          {r.trois_valeurs.manques.length > 0 && <p className="m-0 mt-1 text-[11.5px] leading-[1.6] text-ambre">Manque : {r.trois_valeurs.manques.join(" ; ")}.</p>}
+          {r.depuis_trois_valeurs && r.raison_ancien_calcul && <p className="m-0 mt-1 text-[11.5px] text-brume">La fourchette ci-dessus vient des trois valeurs : {r.raison_ancien_calcul.charAt(0).toLowerCase() + r.raison_ancien_calcul.slice(1)}</p>}
+        </>
+      )}
+
       {/* Les trois méthodes, côte à côte, chacune avec son poids. */}
-      <h3 className="alx-mont mt-8 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Les méthodes croisées</h3>
+      <h3 className="alx-mont mt-8 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">{r.valeurs_grille ? `L'ancien calcul, sur la grille de taux, pour comparer · ${euros(r.valeurs_grille.moyenne)}` : "Les méthodes croisées"}</h3>
       <div className="grid gap-3">
         {m.capitalisation && (
           <div>
@@ -331,7 +356,8 @@ function Resultat({ estimation: e }) {
         )}
       </div>
 
-      {/* Le taux, du plus large au plus fin : la bande, la place, les ajustements. */}
+      {/* Le taux, du plus large au plus fin : la bande, la place, les ajustements (absent quand seules les trois valeurs répondent). */}
+      {t && <>
       <h3 className="alx-mont mt-8 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">Pourquoi ce taux</h3>
       <div className="rounded-[12px] border border-trait bg-relief px-4 py-3">
         <div className="flex items-baseline justify-between border-b border-trait py-2 text-[13px] max-md:gap-3">
@@ -351,6 +377,7 @@ function Resultat({ estimation: e }) {
           <span className="font-semibold tabular-nums text-menthe-texte">{pct(r.statut === "vacant" ? t.vacant : t.retenu)}</span>
         </div>
       </div>
+      </>}
 
       {/* La matrice d'ajustements sur la valeur. */}
       <h3 className="alx-mont mt-8 mb-3 text-[10.5px] uppercase tracking-[.14em] text-brume">La matrice d&apos;ajustements</h3>

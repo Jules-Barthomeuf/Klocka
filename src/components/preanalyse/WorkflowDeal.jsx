@@ -22,6 +22,7 @@ import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/GrilleCriteres";
+import SyntheseAnalyse, { HistoriqueAnalyse, useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
@@ -36,9 +37,11 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // Les parties de l'analyse : une par famille de pièces.
 // Une partie par famille de pièces ; chaque tableau d'une partie a son cadre.
 // Le bien et le simulateur ouvrent la série, à gauche du bail.
+// Le module d'analyse (spec du 17 oct. 2026) : Synthèse en tête, le Simulateur après le Marché (il consomme tous les
+// onglets précédents), l'Historique à la fin.
 const GRILLES_ANALYSE = [
+  { id: "synthese", titre: "Synthèse", grilles: null },
   { id: "bien", titre: "Bien", grilles: null },
-  { id: "simulateur", titre: "Simulateur", grilles: null },
   { id: "bail", titre: "Bail", grilles: [{ id: "bail", titre: "Bail" }] },
   { id: "quittances", titre: "Quittances", grilles: [{ id: "quittances", titre: "Quittances", sousTitre: "La situation actuelle, tirée des quittances." }] },
   { id: "copropriete", titre: "Copropriété", grilles: [
@@ -49,6 +52,7 @@ const GRILLES_ANALYSE = [
   // Ce que disent les services extérieurs sur le loyer : le secteur pour la
   // fourchette de la rue, Equimmox pour les baux comparables autour.
   { id: "marche", titre: "Marché", grilles: null },
+  { id: "simulateur", titre: "Simulateur", grilles: null },
 ];
 import { Tiroir } from "@/components/preanalyse/MatriceDossier";
 import { Onglets } from "@/components/ui/kit";
@@ -342,7 +346,10 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // Sans dossier (dépôt direct d'une fiche) l'étape se lit sur la porte ; avec un dossier, sur la frise.
   const montre = (id) => (dossier ? vue === id : PORTE[id] === etape);
   const [preuveGrille, setPreuveGrille] = useState(null);
-  const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "bail"; } catch { return "bail"; } });
+  const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "synthese"; } catch { return "synthese"; } });
+  // Chaque onglet dit dans son titre combien de signalements y restent à traiter.
+  const synthese = useSyntheseAnalyse(dossier?.deal_id, { enabled: !apercu });
+  const reste = (id) => synthese.data?.par_onglet?.[id] || 0;
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
   const colonneVide = !!dossier && vue === "analyse" && !(dossier.dossier_mandataire_id && !apercu);
@@ -590,12 +597,13 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           <div id="tables-analyse" className="space-y-5">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
             <Onglets
-              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: g.titre })), ...ongletsKData, { cle: "historique", titre: "Historique" }]}
+              items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData, { cle: "historique", titre: "Historique" }]}
               valeur={grilleAnalyse}
               onChange={(cle) => (cle.startsWith("kdata:") ? setAnalyseKData(analysesKData.find((a) => `kdata:${a.id}` === cle) || null) : setGrilleAnalyse(cle))}
               taille="page"
             />
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
+            {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} />}
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}
             {grilleAnalyse === "marche" && (
               <div className="flex flex-col gap-4">
@@ -608,6 +616,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {/* L'Intelligence (14 oct. 2026) : ce qui a été dit, décidé ou promis sur ce dossier, avec sa source. */}
             {grilleAnalyse === "historique" && (
               <div className="flex flex-col gap-4">
+                <HistoriqueAnalyse dealId={dossier?.deal_id} />
                 <CeQueKlockaSait type="dossier" id={dossier?.deal_id} titre="Synthèse de l'Intelligence" />
                 <HistoriqueLayer type="dossier" id={dossier?.deal_id} />
               </div>

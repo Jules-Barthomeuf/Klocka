@@ -810,6 +810,30 @@ export function monterPreanalyse(app) {
     ok(res, { ok: true });
   }));
 
+  // Le module d'analyse, onglet Synthèse (spec du 17 oct. 2026) : lu dans le cache des grilles, sans appel au modèle.
+  const SY = () => import('../deal/synthese-analyse.js');
+  const rep = (res, r) => (r.ok ? ok(res, r) : res.status(r.statut || 400).json({ error: r.error }));
+  app.get('/api/preanalyse/dossiers/:dealId/synthese', wrap(async (req, res) => {
+    const s = await (await SY()).syntheseDu(req.params.dealId);
+    if (!s) return res.status(404).json({ error: 'Dossier introuvable' });
+    ok(res, s);
+  }));
+  app.get('/api/preanalyse/dossiers/:dealId/historique-analyse', wrap(async (req, res) => {
+    ok(res, { entrees: (await SY()).historique(req.params.dealId) });
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/synthese/retenir', wrap(async (req, res) => {
+    rep(res, (await SY()).retenir(req.params.dealId, String(req.body?.cle || ''), { valeur: req.body?.valeur, source: req.body?.source }, currentUser(req)));
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/synthese/decider', wrap(async (req, res) => {
+    rep(res, (await SY()).decider(req.params.dealId, String(req.body?.cle || ''), { decision: req.body?.decision || null, motif: req.body?.motif || '' }, currentUser(req)));
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/synthese/demander', wrap(async (req, res) => {
+    rep(res, (await SY()).demanderDocument(req.params.dealId, String(req.body?.cle || ''), currentUser(req)));
+  }));
+  app.post('/api/preanalyse/dossiers/:dealId/synthese/valider', wrap(async (req, res) => {
+    rep(res, await (await SY()).valider(req.params.dealId, currentUser(req)));
+  }));
+
   app.get('/api/preanalyse/dossiers/:dealId/grille/:id', wrap(async (req, res) => {
     const { lireGrilleFormatee } = await import('../deal/grilles.js');
     const g = await lireGrilleFormatee(req.params.dealId, req.params.id, { user: currentUser(req), force: req.query.force === '1' });

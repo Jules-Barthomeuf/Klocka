@@ -164,7 +164,7 @@ function empreinte(m, brut, id, parChamp) {
 }
 
 /** Les valeurs formatées d'une grille, mises en cache sur le dossier tant que la lecture ne change pas. */
-export async function formaterGrille(dealId, id, { user, force = false } = {}) {
+export async function formaterGrille(dealId, id, { user, force = false, cacheSeul = false } = {}) {
   const grille = GRILLES[id];
   if (!grille) return null;
   const brut = Records.findBy('Deal', 'deal_id', dealId);
@@ -177,6 +177,8 @@ export async function formaterGrille(dealId, id, { user, force = false } = {}) {
   const cle = empreinte(m, brut, id, parChamp);
   const cache = brut.grilles_formatees?.[id];
   if (!force && cache && cache.cle === cle) return cache.valeurs;
+  // La Synthèse (18 oct. 2026) lit ce qui a déjà été mis en forme, sans jamais appeler le modèle.
+  if (cacheSeul) return cache?.valeurs || {};
   const lot = brut.lots?.[0]?.lot || {};
   const contexte = { loyer_fiche_commerciale_ht_an: val(lot.loyer_annuel_ht_hc), surface_fiche: val(lot.surface_m2), locataire_fiche: val(lot.locataire_nom), date_du_jour: new Date().toISOString().slice(0, 10) };
   const consigne = `Tu mets en forme, pour l'équipe Klocka, ce que la lecture des pièces a trouvé. Cette grille porte sur : ${grille.categories.join(', ')} — retiens ce que DISENT CES PIÈCES-LÀ, jamais ce qu'une autre pièce dit à leur place. Une valeur simple par critère, au format demandé, en français. Jamais de citation : ce qui est demandé est ce que c'est, pas le texte de la pièce. Si rien ne répond, texte vide et champs à null. Ne devine rien. Dates au format JJ/MM/AAAA. Aujourd'hui : ${contexte.date_du_jour}.`;
@@ -279,7 +281,7 @@ function texteDe(id, cid, x) {
 }
 
 /** Une grille lue : lignes formatées, statuts, sources, résumé. */
-export async function lireGrilleFormatee(dealId, id, { user, force = false } = {}) {
+export async function lireGrilleFormatee(dealId, id, { user, force = false, cacheSeul = false } = {}) {
   const grille = GRILLES[id];
   if (!grille) return null;
   const brut = Records.findBy('Deal', 'deal_id', dealId);
@@ -294,10 +296,10 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     ids
       .flatMap((x) => (champs.get(x)?.preuves || []).map((p) => ({ champ: x, document_id: p.document_id, document_nom: p.document_nom, document_url: p.document_url, page: p.page, citation: p.citation, reponse: p.reponse, categorie: p.categorie })))
       .sort((a, b) => (grille.categories.includes(b.categorie) ? 1 : 0) - (grille.categories.includes(a.categorie) ? 1 : 0));
-  const valeurs = lu.length ? (await formaterGrille(dealId, id, { user, force })) || {} : {};
+  const valeurs = lu.length ? (await formaterGrille(dealId, id, { user, force, cacheSeul })) || {} : {};
   // Le contexte des règles : fiche commerciale, bail, quittances.
   const lot = brut.lots?.[0]?.lot || {};
-  const bailValeurs = id === 'quittances' ? ((await formaterGrille(dealId, 'bail', { user })) || {}) : valeurs;
+  const bailValeurs = id === 'quittances' ? ((await formaterGrille(dealId, 'bail', { user, cacheSeul })) || {}) : valeurs;
   const quittancesLignes = m.lignes.filter((l) => !l.perime && /quittance/i.test(l.categorie || ''));
   const texteQ = quittancesLignes.map((l) => `${l.cellules?.paiements?.reponse || ''} ${l.cellules?.loyer?.reponse || ''} ${l.cellules?.mode_reglement?.reponse || ''}`).join(' ');
   const periodiciteQ = !quittancesLignes.length ? null : /trimestr/i.test(texteQ) ? 'trimestriel' : /mensuel|mois|janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre/i.test(texteQ) ? 'mensuel' : 'inconnu';
@@ -340,7 +342,7 @@ export async function lireGrilleFormatee(dealId, id, { user, force = false } = {
     return { id: c.id, libelle: c.libelle, regle: c.regle, format: c.format, valeur, valeur_lue: texteDe(id, c.id, x), correction, note, statut, statut_calcule: statutCalcule, decision, motif, details, masquee, lue_dans: (propre || dehors)?.retenue_de || null, hors_grille: !!dehors, preuves: preuvesDe(c.champs).slice(0, 6) };
   }).filter((l) => !l.masquee);
   const nb = (s) => lignes.filter((l) => l.statut === s).length;
-  return { id, titre: grille.titre, lignes, resume: { ok: nb('ok'), a_checker: nb('a_checker'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
+  return { id, titre: grille.titre, valeurs_brutes: valeurs, lignes, resume: { ok: nb('ok'), a_checker: nb('a_checker'), warning: nb('warning'), a_verifier: nb('a_verifier'), no_go: nb('no_go'), vide: nb('vide'), non_lu: nb('non_lu') }, formatee_le: cache?.le || null, remplissage: m.remplissage, non_lues: grille.criteres.flatMap((c) => c.champs).filter((ch) => !lu.includes(ch)).length };
 }
 
 /** Les questions du gabarit jamais lues sur ce dossier. */

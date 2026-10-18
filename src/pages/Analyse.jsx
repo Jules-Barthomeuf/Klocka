@@ -11,7 +11,6 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
-import CartesCompetences from "@/components/haka/CartesCompetences";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
@@ -302,9 +301,10 @@ export default function Analyse() {
   useEffect(() => {
     if (!scinde) return undefined;
     // Sans « k-sobre » : le fond « Halo » reste, le même que sur Projets (18 oct. 2026, Jules).
-    document.documentElement.classList.add("k-sans-barre", "k-sans-ak");
+    // Sans « k-sans-barre » : la barre de navigation reste à gauche du chat, repliée en rail (18 oct. 2026, Jules).
+    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak");
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre", "k-sans-ak");
+    return () => document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak");
   }, [scinde]);
 
   // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
@@ -373,8 +373,7 @@ export default function Analyse() {
           {!chatOuvert && (
             <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto py-6">
               <h1 className="m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Une question sur ce dossier ?</h1>
-              {/* Les compétences de Haka qui s'appliquent à un dossier (17 oct. 2026). */}
-              <CartesCompetences declencheur="dossier" contexte={{ deal_id: dealId, titre: dossier?.titre || dossier?.nom || null }} />
+              {/* Plus de cartes de compétences ici : la question et la saisie suffisent (18 oct. 2026, Jules). */}
             </div>
           )}
           <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>

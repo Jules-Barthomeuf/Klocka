@@ -836,6 +836,8 @@ html.k-sans-ak .k-ak-flottant { display: none !important; }
    pour que rien de noir n'apparaisse derrière ses coins arrondis. */
 html.k-sans-barre .k-contenu { margin-left: 0 !important; padding-left: 0 !important; }
 html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
+/* Un dossier en mode IA garde la barre latérale mais ne défile pas : le chat et le dossier défilent chacun dans sa colonne. */
+html.k-sans-defilement, html.k-sans-defilement body { overflow: hidden; }
 
 /* La barre du haut des aperçus (avis de valeur, mandat) : noire en sombre ;
    en clair, la surface claire, sinon le texte gris du thème y serait illisible. */

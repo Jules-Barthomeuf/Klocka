@@ -12,7 +12,7 @@ import ChoixDossier from "@/components/haka/ChoixDossier";
 import { BasculeSortie, BoutonSources, Depliant } from "@/components/haka/ReglagesDemande";
 import { sourceDe } from "@/lib/sources";
 import { avis, poser, toast } from "@/components/ui/avis";
-import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ArrowUp, BarChart3, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, FolderOpen, History, LayoutGrid, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, ScanSearch, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
@@ -809,20 +809,31 @@ function Etapes({ etapes, courante = null }) {
       </button>
     );
   }
+  const vues = enCours ? etapes.slice(0, courante + 1) : etapes;
   return (
-    <div className="mb-4 space-y-3">
-      {(enCours ? etapes.slice(0, courante + 1) : etapes).map((e, i) => {
+    <div className="mb-4">
+      {vues.map((e, i) => {
         const faite = !enCours || i < courante;
         const ici = enCours && i === courante;
+        const derniere = i === vues.length - 1;
+        const Icone = iconeEtape(e);
         return (
-          // Chaque nouvelle ligne glisse un peu vers le haut en fondu (0,35 s), puis prend son tour le carré animé (16 oct. 2026).
+          // La frise de raisonnement (18 oct. 2026, Jules) : une coche dans un rond blanc pour l'étape faite, l'icône de ce que Haka
+          // fait pour l'étape en cours, dont le texte est balayé d'un reflet ; un trait relie les étapes.
           <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut", delay: enCours ? 0 : i * 0.03 }}
-            className="flex items-center gap-3.5 text-[15px] transition-colors duration-300"
-            style={{ color: faite ? J["craie"] : ici ? J["encre"] : J["brume"], opacity: faite || ici ? 1 : 0.55 }}>
-            <span className="grid h-4 w-4 flex-none place-items-center">
-              {ici ? <PointsEnCours /> : faite ? <PointFait anime={enCours} /> : <span className="h-1.5 w-1.5 rounded-full" style={{ background: J["bord-vif"] }} />}
+            className="flex items-stretch gap-3.5 text-[15px]">
+            <span className="flex w-5 flex-none flex-col items-center">
+              <span className="grid h-5 w-5 flex-none place-items-center">
+                {faite ? (
+                  <motion.span initial={enCours ? { scale: 0.4, opacity: 0 } : false} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 22 }}
+                    className="grid h-5 w-5 place-items-center rounded-full" style={{ background: J["encre"], color: J["fond"] }}><Check className="h-3 w-3" strokeWidth={3} /></motion.span>
+                ) : (
+                  <Icone className="h-[18px] w-[18px]" strokeWidth={1.7} style={{ color: J["craie"] }} />
+                )}
+              </span>
+              {(!derniere || ici) && <motion.span initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.3, ease: "easeOut" }} className="my-1 w-px flex-1 origin-top" style={{ background: J["bord-vif"], minHeight: 14 }} />}
             </span>
-            {e}
+            <span className={`pb-2.5 leading-[20px] ${ici ? "k-raisonne" : ""}`} style={faite ? { color: J["encre"] } : undefined}>{e}</span>
           </motion.div>
         );
       })}
@@ -834,6 +845,13 @@ function Etapes({ etapes, courante = null }) {
     </div>
   );
 }
+
+/** L'icône de ce que Haka est en train de faire, d'après le libellé de l'étape (repli : le tableau). */
+const ICONES_ETAPES = [
+  [/mail|courrier|envoi/i, Mail], [/fiche|document|pi[eè]ce|bail|lis|lecture|extrai/i, FileText], [/march|dvf|equimmox|loyer|prix|vacance/i, BarChart3],
+  [/dossier|cr[ée]/i, FolderOpen], [/analys|v[ée]rifi|crit[eè]re/i, ScanSearch], [/cherch|recherch|trouv/i, Search], [/rédig|redig|écri|prépar|prepar/i, Pencil],
+];
+const iconeEtape = (libelle) => ICONES_ETAPES.find(([re]) => re.test(libelle))?.[1] || LayoutGrid;
 
 /** Une action faite : son titre, son détail, de quoi l'ouvrir. */
 function CarteAction({ c, onOuvrir }) {

@@ -322,7 +322,9 @@ function LayoutContent({ children, currentPageName }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => prefs.barre === "repliee");
   // Off-market (10 oct. 2026) : la carte et la liste veulent toute la largeur,
   // la barre se replie en arrivant et reprend le réglage en partant.
-  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || prefs.barre === "repliee"); }, [prefs.barre, currentPageName]);
+  // Un dossier ouvert (18 oct. 2026, Jules) : la barre se ferme d'elle-même en y entrant, et reprend le réglage en en sortant.
+  const dansDossier = currentPageName === "Analyse" && !!new URLSearchParams(location.search).get("deal_id");
+  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || dansDossier || prefs.barre === "repliee"); }, [prefs.barre, currentPageName, dansDossier]);
   // La recherche (⌘K) : projets et dossiers, de n'importe quelle page.
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   useEffect(() => {

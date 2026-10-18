@@ -1092,3 +1092,17 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
   100% { background-position: 0% 0; }
 }
 @media (prefers-reduced-motion: reduce) { .k-balayage { animation: none; background-position: 0% 0; } }
+
+/* Le texte de l'étape en cours de raisonnement (18 oct. 2026, Jules : la frise « Building Excel model ») : gris, balayé
+   d'un reflet clair de gauche à droite en boucle. Les gris et le clair sont les jetons brume et encre. */
+.k-raisonne {
+  color: transparent;
+  background-image: linear-gradient(100deg, rgb(var(--k-brume-rgb)) 35%, rgb(var(--k-encre-rgb)) 50%, rgb(var(--k-brume-rgb)) 65%);
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: k-raisonne 2s linear infinite;
+}
+@keyframes k-raisonne { from { background-position: 100% 0; } to { background-position: -60% 0; } }
+@media (prefers-reduced-motion: reduce) { .k-raisonne { animation: none; color: rgb(var(--k-brume-rgb)); background-image: none; } }

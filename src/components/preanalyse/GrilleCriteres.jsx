@@ -8,6 +8,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import PenseeIA from "@/components/PenseeIA";
+import { Depliant } from "@/components/haka/ReglagesDemande";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import { J } from "@/design/jetons";
 
@@ -143,13 +144,14 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
       <div className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
         <span>Ligne</span><span>Ce qu'on y lit</span><span>{sansSources ? "" : "Sources"}</span><span>Statut</span>
       </div>
+      <div className="k-cascade">
       {g.lignes.map((l, iLigne) => {
         const [mot, classe, puce] = statutAffiche(l);
         return (
-          <div key={l.id} className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3.5 max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
+          <div key={l.id} className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
             <div className="min-w-0">
               <button type="button" onClick={() => bascule(l.id)} className="text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l.libelle}</button>
-              {ouverts.has(l.id) && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{l.regle}</p>}
+              <Depliant ouvert={ouverts.has(l.id)}><p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{l.regle}</p></Depliant>
             </div>
             <div className={`min-w-0 group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
               {edition?.id === l.id ? (
@@ -171,10 +173,12 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
               {l.motif && l.statut_calcule !== "ok" && l.valeur && <p className={`m-0 mt-0.5 text-[13px] leading-[1.45] ${l.statut === "no_go" ? "text-alerte" : "text-ambre"}`}>{l.motif}{l.details ? <span className="text-brume"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
               {l.hors_grille && l.lue_dans && edition?.id !== l.id && <p className="m-0 mt-0.5 text-[12.5px] text-ambre">Lu dans « {l.lue_dans} », pas dans les pièces de cette partie.</p>}
               {l.correction && edition?.id !== l.id && <p className="m-0 mt-0.5 text-[12.5px] text-brume">Corrigée par {l.correction.par ? l.correction.par.split("@")[0] : "l'équipe"} : verrouillée{l.valeur_lue ? ` (lu : ${String(l.valeur_lue).slice(0, 80)})` : ""}</p>}
-              {l.details && details.has(l.id) && (
-                <ul className="m-0 mt-1.5 list-none p-0 text-[13px]">
-                  {l.details.map((d, i) => <li key={i} className="flex items-baseline justify-between gap-4 py-0.5"><span className="text-brume">{d.libelle}</span><span className="tabular-nums text-encre">{d.valeur}</span></li>)}
-                </ul>
+              {l.details && (
+                <Depliant ouvert={details.has(l.id)}>
+                  <ul className="m-0 mt-1.5 list-none p-0 text-[13px]">
+                    {l.details.map((d, i) => <li key={i} className="flex items-baseline justify-between gap-4 py-0.5"><span className="text-brume">{d.libelle}</span><span className="tabular-nums text-encre">{d.valeur}</span></li>)}
+                  </ul>
+                </Depliant>
               )}
               {/* La note de l'analyste, sous la valeur. */}
               {note?.id === l.id ? (
@@ -218,6 +222,7 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

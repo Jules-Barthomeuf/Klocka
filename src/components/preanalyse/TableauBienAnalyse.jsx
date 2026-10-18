@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { Depliant } from "@/components/haka/ReglagesDemande";
 
 // L'onglet Bien du module d'analyse (18 oct. 2026, maquette de Jules) : une ligne par information,
 // ce qu'on y lit, ses sources en pastilles (document et page, ou calcul), et son statut. Une ligne
@@ -26,7 +27,7 @@ function Ligne({ l }) {
   const [ouvert, setOuvert] = useState(false);
   const [mot, classe] = STATUT[l.statut] || STATUT.info;
   return (
-    <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px] gap-x-6 border-t border-trait px-5 py-3.5 max-lg:grid-cols-1 max-lg:gap-y-1.5">
+    <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px] gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5">
       <p className="m-0 text-[14.5px] text-craie">{l.ligne}</p>
       <div className="min-w-0">
         <p className={`m-0 text-[14.5px] leading-[1.5] ${l.statut === "non_trouve" ? "text-ardoise" : "text-encre"}`}>{l.valeur}</p>
@@ -38,7 +39,7 @@ function Ligne({ l }) {
             <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className="mt-1 inline-flex items-center gap-1 text-[12.5px] text-menthe" style={{ background: "transparent" }}>
               <ChevronRight className={`h-3 w-3 transition-transform ${ouvert ? "rotate-90" : ""}`} />{l.par_document.length} valeurs, une par document
             </button>
-            {ouvert && <ul className="m-0 mt-1 list-none p-0 text-[13px] text-craie">{l.par_document.map((x, i) => <li key={i} className="py-0.5"><span className="text-brume">{x.source} · </span>{x.valeur}</li>)}</ul>}
+            <Depliant ouvert={ouvert}><ul className="m-0 mt-1 list-none p-0 text-[13px] text-craie">{l.par_document.map((x, i) => <li key={i} className="py-0.5"><span className="text-brume">{x.source} · </span>{x.valeur}</li>)}</ul></Depliant>
           </>
         )}
       </div>
@@ -57,7 +58,7 @@ export default function TableauBienAnalyse({ dealId }) {
       <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px] gap-x-6 px-5 py-3 text-[13px] text-ardoise max-lg:hidden">
         <span>Ligne</span><span>Ce qu'on y lit</span><span>Sources</span><span>Statut</span>
       </div>
-      {lignes.map((l) => <Ligne key={l.id} l={l} />)}
+      <div className="k-cascade">{lignes.map((l) => <Ligne key={l.id} l={l} />)}</div>
     </section>
   );
 }

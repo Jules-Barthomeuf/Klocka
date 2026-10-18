@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { X as IconeFermer } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -604,6 +605,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               taille="page"
             />
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
+            {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
+            <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
             {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} onOnglet={(id) => setGrilleAnalyse(id)} />}
             {/* L'onglet Bien (18 oct. 2026, maquette de Jules) : le tableau Ligne / Ce qu'on y lit / Sources / Statut, puis la fiche commerciale. */}
             {grilleAnalyse === "bien" && !apercu && <TableauBienAnalyse dealId={dossier?.deal_id} />}
@@ -632,6 +635,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {GRILLES_ANALYSE.filter((g) => g.id === grilleAnalyse && g.grilles).map((g) => (
               <GrilleCriteres key={g.id} grilles={g.grilles} dossier={dossier} apercu={apercu} onPreuve={(p) => setPreuveGrille(p)} />
             ))}
+            </motion.div>
             {preuveGrille && (
               <div className="animate-in slide-in-from-right duration-300 ease-out panneau-source fixed inset-y-0 right-0 z-[60] w-full sm:w-[720px] bg-fond border-l border-bord shadow-[-24px_0_60px_rgba(0,0,0,.6)] overflow-y-auto overscroll-contain p-4 max-md:p-3 max-md:pt-[max(12px,env(safe-area-inset-top))]">
                 <Tiroir cellule={{ page: preuveGrille.page, citation: preuveGrille.citation }} ligne={{ document_id: preuveGrille.document_id, document_nom: preuveGrille.document_nom, document_url: preuveGrille.document_url }} onFermer={() => setPreuveGrille(null)} dealId={dossier?.deal_id || null} />

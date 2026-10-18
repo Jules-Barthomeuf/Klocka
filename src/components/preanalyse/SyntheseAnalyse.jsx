@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Depliant } from "@/components/haka/ReglagesDemande";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleAlert, Loader2, Mail, OctagonX } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -23,7 +25,7 @@ function Signalement({ s, onDecider, onRetenir, enCours }) {
   const [motif, setMotif] = useState("");
   const bloquant = s.niveau === "bloquant";
   return (
-    <div className="flex flex-col gap-2 border-t border-trait px-5 py-3.5 first:border-t-0">
+    <motion.div layout transition={{ duration: 0.25 }} className="flex flex-col gap-2 border-t border-trait px-5 py-3.5 first:border-t-0">
       <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
         <span className={`mt-0.5 flex-none ${bloquant ? "text-alerte" : "text-ambre"}`}>{bloquant ? <OctagonX className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}</span>
         <div className="min-w-0 flex-1">
@@ -31,6 +33,8 @@ function Signalement({ s, onDecider, onRetenir, enCours }) {
           {s.motif && <p className="m-0 mt-0.5 text-[13px] text-ardoise">{s.motif}</p>}
           {s.source && <p className="m-0 mt-0.5 text-[12px] text-brume">{s.source}</p>}
         </div>
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.span key={bloquant ? "b" : s.decision ? `d-${s.decision.decision}` : s.choix?.length ? "c" : "a"} className="flex flex-none" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.2 }}>
         {bloquant ? (
           <span className="flex-none rounded-full border border-alerte/50 px-2.5 py-0.5 text-[12px] text-alerte">Bloquant · à corriger ou arrêter</span>
         ) : s.choix?.length ? (
@@ -55,15 +59,17 @@ function Signalement({ s, onDecider, onRetenir, enCours }) {
               className="h-8 rounded-full border border-trait px-3 text-[12.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Écarter</button>
           </span>
         )}
+        </motion.span>
+        </AnimatePresence>
       </div>
-      {ecarter && !s.decision && (
+      <Depliant ouvert={ecarter && !s.decision}>
         <form onSubmit={(e) => { e.preventDefault(); if (motif.trim()) onDecider({ decision: "ecarter", motif }); }} className="ml-7 flex flex-wrap gap-2">
           <input autoFocus value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Le motif : « le vendeur prend la toiture à sa charge »"
             className="h-9 min-w-[260px] flex-1 rounded-[10px] border border-trait bg-surface px-3 text-[13.5px] text-encre outline-none focus:border-menthe max-md:text-[16px]" />
           <button type="submit" disabled={!motif.trim()} className="h-9 rounded-full bg-menthe px-4 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Écarter</button>
         </form>
-      )}
-    </div>
+      </Depliant>
+    </motion.div>
   );
 }
 
@@ -86,7 +92,7 @@ function Croisements({ s, retenir, apercu }) {
               <th className="px-5 py-2 font-normal">Retenu</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="k-cascade">
             {s.croisements.map((c) => (
               <React.Fragment key={c.cle}>
                 <tr onClick={() => setOuverte(ouverte === c.cle ? null : c.cle)} className="cursor-pointer border-t border-trait align-top transition-colors hover:bg-encre/[0.03]">
@@ -95,7 +101,7 @@ function Croisements({ s, retenir, apercu }) {
                   <td className={`px-5 py-3 ${c.retenue ? "text-menthe" : c.ecart ? (c.bloquant ? "text-alerte" : "text-ambre") : "text-craie"}`}>{c.resume}</td>
                 </tr>
                 {ouverte === c.cle && (
-                  <tr className="border-t border-trait bg-surface-pleine/40">
+                  <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="border-t border-trait bg-surface-pleine/40">
                     <td colSpan={COLONNES.length + 2} className="px-5 py-3">
                       <div className="flex flex-col gap-2">
                         {c.sources.map((src) => (
@@ -110,7 +116,7 @@ function Croisements({ s, retenir, apercu }) {
                         ))}
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 )}
               </React.Fragment>
             ))}
@@ -141,7 +147,7 @@ export default function SyntheseAnalyse({ dossier, apercu = false, onOnglet = nu
   const parOnglet = s.signalements.reduce((acc, x) => { (acc[x.onglet_titre] = acc[x.onglet_titre] || []).push(x); return acc; }, {});
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="k-cascade flex flex-col gap-5">
       {/* 1. Verdict et documents */}
       <section className={`${cadre} px-5 py-4`}>
         <p className="m-0 text-[18px] tracking-[-0.01em] text-encre">
@@ -186,7 +192,7 @@ export default function SyntheseAnalyse({ dossier, apercu = false, onOnglet = nu
                   {onglet}
                   {onOnglet && liste[0].onglet !== "synthese" && <button type="button" onClick={() => onOnglet(liste[0].onglet)} className="text-[12px] text-menthe hover:underline" style={{ background: "transparent" }}>Ouvrir l'onglet ›</button>}
                 </p>
-                {liste.map((x) => <Signalement key={x.cle} s={x} enCours={decider.isPending || retenir.isPending || apercu} onDecider={(d) => decider.mutate({ cle: x.cle, ...d })} onRetenir={(c) => retenir.mutate({ cle: x.croisement, valeur: c.valeur, source: c.source })} />)}
+                <AnimatePresence initial={false}>{liste.map((x) => <Signalement key={x.cle} s={x} enCours={decider.isPending || retenir.isPending || apercu} onDecider={(d) => decider.mutate({ cle: x.cle, ...d })} onRetenir={(c) => retenir.mutate({ cle: x.croisement, valeur: c.valeur, source: c.source })} />)}</AnimatePresence>
               </div>
             ))}
           </div>
@@ -223,7 +229,7 @@ export function HistoriqueAnalyse({ dealId }) {
             className={`h-7 rounded-full border px-3 text-[12px] transition-colors ${filtre === k ? "border-menthe/60 bg-menthe/10 text-encre" : "border-trait text-craie hover:text-encre"}`} style={filtre === k ? undefined : { background: "transparent" }}>{mot}</button>)}
         </span>
       </div>
-      <div className="mt-2">
+      <div className="k-cascade mt-2">
         {entrees.map((e, i) => (
           <div key={`${e.le}-${i}`} className="flex gap-3 border-t border-trait px-5 py-2.5 text-[13.5px]">
             <span className="w-[120px] flex-none text-[12.5px] tabular-nums text-brume">{new Date(e.le).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>

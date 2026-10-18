@@ -1110,3 +1110,15 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 /* La marque de Klocka OS : trois losanges (le dessus, le milieu doré, le dessous). */
 :root { --k-marque-haut: #ecebe6; --k-marque-milieu: #c1a470; --k-marque-bas: #6f7175; }
 :root[data-theme="clair"] { --k-marque-haut: #111111; --k-marque-milieu: #a98650; --k-marque-bas: #b4b3ad; }
+
+/* Les transitions de l'analyse (18 oct. 2026, Jules : « des transitions partout ») : les lignes d'un tableau
+   montent en fondu l'une après l'autre (`.k-cascade`), une par une sur les douze premières. */
+@keyframes k-monte { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.k-cascade > * { animation: k-monte 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.k-cascade > *:nth-child(2) { animation-delay: 25ms; } .k-cascade > *:nth-child(3) { animation-delay: 50ms; }
+.k-cascade > *:nth-child(4) { animation-delay: 75ms; } .k-cascade > *:nth-child(5) { animation-delay: 100ms; }
+.k-cascade > *:nth-child(6) { animation-delay: 125ms; } .k-cascade > *:nth-child(7) { animation-delay: 150ms; }
+.k-cascade > *:nth-child(8) { animation-delay: 175ms; } .k-cascade > *:nth-child(9) { animation-delay: 200ms; }
+.k-cascade > *:nth-child(10) { animation-delay: 225ms; } .k-cascade > *:nth-child(11) { animation-delay: 250ms; }
+.k-cascade > *:nth-child(n+12) { animation-delay: 275ms; }
+@media (prefers-reduced-motion: reduce) { .k-cascade > * { animation: none; } }

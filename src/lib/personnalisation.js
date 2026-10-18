@@ -69,11 +69,11 @@ export const OPTIONS = {
   grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes et mode appel"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
   points_actions: [["oui", "Avec des points"], ["non", "Sans points"]],
   agent_testeur: [["oui", "Affiché"], ["non", "Masqué"]],
-  personnage_haka: [["haka-1", "Haka"]],
+  personnage_haka: [["haka-1", "Boucles"], ["haka-2", "Barbe"], ["haka-3", "Chignon"]],
 };
 
 /** Les personnages de Haka (18 oct. 2026, Jules) : le portrait de chaque clé, dans public/avatars/haka. */
-export const PERSONNAGES_HAKA = { "haka-1": "/avatars/haka/haka-1.png" };
+export const PERSONNAGES_HAKA = { "haka-1": "/avatars/haka/haka-1.png", "haka-2": "/avatars/haka/haka-2.png", "haka-3": "/avatars/haka/haka-3.png" };
 
 /** Les polices, telles que le CSS les lit. Toutes sont déjà chargées (index.html). */
 export const POLICES = {

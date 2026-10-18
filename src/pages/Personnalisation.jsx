@@ -443,7 +443,7 @@ export default function Personnalisation() {
             <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.cartes_opacite} %</span>
           </label>
         </Reglage>
-        <Reglage titre="Personnage de Haka" note="Son portrait dans les chats. D'autres personnages viendront.">
+        <Reglage titre="Personnage de Haka" note="Son portrait dans les chats.">
           <div className="flex flex-wrap gap-3">
             {OPTIONS.personnage_haka.map(([v, mot]) => {
               const actif = prefs.personnage_haka === v;

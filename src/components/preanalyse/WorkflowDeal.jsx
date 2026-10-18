@@ -604,7 +604,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               taille="page"
             />
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
-            {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} />}
+            {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} onOnglet={(id) => setGrilleAnalyse(id)} />}
             {/* L'onglet Bien (18 oct. 2026, maquette de Jules) : le tableau Ligne / Ce qu'on y lit / Sources / Statut, puis la fiche commerciale. */}
             {grilleAnalyse === "bien" && !apercu && <TableauBienAnalyse dealId={dossier?.deal_id} />}
             {grilleAnalyse === "bien" && <SectionBien dossier={dossier} apercu={apercu} onSaisie={(saisie) => onSaisie?.(0, saisie)} enCours={enCours} onRefresh={onRefresh} />}

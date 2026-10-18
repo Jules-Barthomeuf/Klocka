@@ -78,6 +78,35 @@ export function useFermerAuClicAilleurs(ouvert, fermer) {
   return zone;
 }
 export const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
+/** Les colonnes du tableau, les mêmes que l'onglet Bien. */
+const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_110px]";
+/** Le statut d'une ligne en mot : [mot, classes, en pastille ?]. « Info » pour une ligne d'information. */
+export function statutAffiche(l) {
+  const info = /^information/i.test(String(l.regle || ""));
+  switch (l.statut) {
+    case "ok": return info ? ["Info", "bg-rail-actif text-craie", true] : ["OK", "text-menthe", false];
+    case "a_checker": return info ? ["Info", "bg-rail-actif text-craie", true] : ["À checker", "bg-rail-actif text-craie", true];
+    case "warning": case "a_verifier": return ["Signalé", "bg-ambre/15 text-ambre", true];
+    case "no_go": return ["Bloquant", "bg-alerte/15 text-alerte", true];
+    case "non_lu": return ["Non lu", "text-brume", false];
+    default: return ["Non trouvé", "text-brume", false];
+  }
+}
+/** Le nom court d'une pièce pour sa pastille (« Bail », « Avenant », « PV d'AG »…). */
+export function nomPiece(p) {
+  const c = String(p.categorie || "").toLowerCase(); const n = String(p.document_nom || "").toLowerCase();
+  if (/avenant/.test(c + n)) return "Avenant";
+  if (/bail/.test(c) || /\bbail/.test(n)) return "Bail";
+  if (/quittance/.test(c + n)) return "Quittances";
+  if (/pv d.?ag/.test(c) || /\bpv\b/.test(n)) return "PV d'AG";
+  if (/r[eè]glement|edd/.test(c) || /\brcp\b|edd/.test(n)) return "Règlement";
+  if (/taxe/.test(c) || /\btf\b/.test(n)) return "Avis TF";
+  if (/\bdpe\b/.test(n)) return "DPE";
+  if (/amiante|\bdta/.test(n)) return "Amiante";
+  if (/\berp/.test(n)) return "ERP";
+  if (/kbis/.test(c + n)) return "Kbis";
+  return String(p.document_nom || "Pièce").replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").slice(0, 22);
+}
 export const Th = ({ children, className = "" }) => <th className={`text-left text-[11px] font-semibold tracking-[.02em] text-ardoise px-4 py-2.5 border-b border-r border-trait last:border-r-0 ${className}`}>{children}</th>;
 
 export function TableCriteres({ g, onPreuve = undefined, sansSources = false, titre = null, dealId = null, lectureSeule = false }) {
@@ -109,100 +138,86 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
   return (
     <div>
       {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-encre">{titre}</p>}
-      {/* Au téléphone, le tableau garde ses colonnes et défile de côté. */}
-      <div className="overflow-x-auto">
-      <table className="w-full border-collapse max-md:min-w-[760px]">
-        <thead><tr><Th className="w-[220px]">Critère</Th><Th>Valeur lue</Th><Th className="w-[150px]">Statut</Th><Th className="w-[200px]">Notes</Th>{!sansSources && <Th className="w-[190px]">Source</Th>}</tr></thead>
-        <tbody>
-          {g.lignes.map((l, iLigne) => (
-            <tr key={l.id} className="align-top">
-              <td className="px-4 py-3 border-b border-r border-trait">
-                <button onClick={() => bascule(l.id)} className="text-left text-[13.5px] text-encre hover:text-menthe">{l.libelle}</button>
-                {ouverts.has(l.id) && <p className="m-0 mt-1 text-[11px] leading-[1.45] text-brume">{l.regle}</p>}
-              </td>
-              <td className={`px-4 py-3 border-b border-r border-trait group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
-                {edition?.id === l.id ? (
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }} rows={Math.min(8, Math.max(2, edition.texte.split("\n").length))} className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[13.5px] leading-[1.55] text-encre resize-y max-md:text-[16px]" />
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
-                      <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
-                      {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="inline-flex items-center gap-1 text-[12.5px] text-ardoise hover:text-encre ml-auto"><RotateCcw className="w-3 h-3" /> Revenir à la valeur lue</button>}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    {l.valeur ? <p className="m-0 flex-1 text-[13.5px] leading-[1.55] text-encre whitespace-pre-line">{l.valeur}</p> : <span className="flex-1 text-[12.5px] text-brume">—</span>}
-                    {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} aria-label="Modifier la valeur" title="Modifier la valeur" className="flex-none text-brume hover:text-encre opacity-0 group-hover:opacity-100 focus:opacity-100 max-md:opacity-100 transition-opacity mt-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
-                  </div>
-                )}
-                {/* Une valeur venue d'une pièce qui ne relève pas de cette
-                    grille : on le dit, sinon elle passe pour une lecture de la
-                    pièce attendue. */}
-                {l.hors_grille && l.lue_dans && edition?.id !== l.id && (
-                  <p className="m-0 mt-1 text-[11px] text-ambre">lu dans « {l.lue_dans} », pas dans les pièces de cette partie</p>
-                )}
-                {l.correction && edition?.id !== l.id && <p className="m-0 mt-1 text-[11px] text-ambre">corrigé à la main{l.correction.par ? ` · ${l.correction.par.split("@")[0]}` : ""}{l.valeur_lue ? <span className="text-brume"> · lu : {String(l.valeur_lue).slice(0, 60)}{String(l.valeur_lue).length > 60 ? "…" : ""}</span> : null}</p>}
-                {l.motif && l.statut_calcule !== "ok" && <p className="m-0 mt-1 text-[12.5px] leading-[1.45] text-ardoise">{l.motif}{l.details ? <span className="text-brume"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
-                {l.details && details.has(l.id) && (
-                  <div className="mt-2 border border-bord-doux rounded-lg px-3 py-2 space-y-1">
-                    {l.details.map((d, i) => <p key={i} className="m-0 flex items-baseline justify-between gap-4 text-[12.5px]"><span className="text-ardoise">{d.libelle}</span><span className="text-encre tabular-nums font-light text-[13.5px]">{d.valeur}</span></p>)}
-                  </div>
-                )}
-              </td>
-              <td className={`px-4 py-3 border-b border-r border-trait relative ${lectureSeule || !dealId ? "" : "cursor-pointer"}`} style={{ background: FOND[l.statut] || FOND.vide }} onClick={() => !lectureSeule && dealId && setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}>
-                <span className="text-[12.5px] font-medium" style={{ color: teinteDe(l.statut) }}>{MOT[l.statut] || l.statut}</span>
-                {l.decision && <span className="block text-[11px] text-ardoise">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
-                {/* Sur les deux dernières lignes, le menu s'ouvre vers le
-                    haut : posé en dessous, il sortait du tableau et les statuts
-                    n'étaient plus cliquables. */}
-                {choix === l.id && (
-                  <div ref={menu} className={`absolute left-2 z-20 bg-surface border border-bord-doux rounded-lg shadow-[0_12px_30px_rgba(0,0,0,.5)] p-1.5 flex flex-col gap-1 min-w-[150px] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`} onClick={(e) => e.stopPropagation()}>
-                    {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "À vérifier"], ["no_go", "No go"]].map(([st, mot]) => (
-                      <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="rounded-md px-3 py-1.5 text-left text-[12.5px] font-medium" style={{ background: FOND[st], color: teinteDe(st) }}>{mot}</button>
-                    ))}
-                    {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="text-left text-[12.5px] text-ardoise hover:text-encre px-3 py-1">Revenir au calcul</button>}
-                  </div>
-                )}
-              </td>
-              <td className={`px-4 py-3 border-b border-trait group ${sansSources ? "" : "border-r"}`}>
-                {note?.id === l.id ? (
-                  <div>
-                    <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }} rows={Math.min(6, Math.max(2, note.texte.split("\n").length))} placeholder="Votre commentaire…" className="w-full bg-transparent border border-bord-vif focus:border-encre rounded-md px-2.5 py-1.5 outline-none text-[12.5px] leading-[1.5] text-encre resize-y placeholder:text-brume max-md:text-[16px]" />
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 text-[12.5px] px-2.5 py-1 bg-menthe rounded-full text-sur-menthe font-semibold rounded-md"><Check className="w-3 h-3" /> OK</button>
-                      <button onClick={() => setNote(null)} className="text-[12.5px] text-ardoise hover:text-encre">Annuler</button>
-                    </div>
-                  </div>
-                ) : lectureSeule || !dealId ? (
-                  l.note ? <p className="m-0 text-[12.5px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</p> : <span className="text-[12.5px] text-brume">—</span>
-                ) : (
-                  <button onClick={() => setNote({ id: l.id, texte: l.note?.texte || "" })} aria-label={l.note ? "Modifier la note" : "Écrire une note"} title={l.note ? "Modifier la note" : "Écrire une note"} className="w-full text-left">
-                    {l.note ? (
-                      <>
-                        <span className="block text-[12.5px] leading-[1.5] text-craie whitespace-pre-line">{l.note.texte}</span>
-                        {l.note.par && <span className="block mt-1 text-[11px] text-brume">{l.note.par.split("@")[0]}</span>}
-                      </>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px] text-brume group-hover:text-ardoise transition-colors"><Pencil className="w-3 h-3" /> Ajouter une note</span>
-                    )}
-                  </button>
-                )}
-              </td>
-              {!sansSources && (
-                <td className="px-4 py-3 border-b border-trait">
-                  <div className="flex flex-col gap-1">
-                    {l.preuves?.length ? l.preuves.slice(0, 3).map((p, i) => (
-                      <button key={i} onClick={() => onPreuve?.(p)} aria-label={p.citation || p.reponse} title={p.citation || p.reponse} className="text-left text-[12.5px] text-ardoise hover:text-encre truncate max-w-[190px]">{(p.document_nom || "").replace(/\.pdf$/i, "")}{p.page ? ` · p. ${p.page}` : ""}</button>
-                    )) : <span className="text-[12.5px] text-brume">—</span>}
-                  </div>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Le style du tableau de l'onglet Bien (18 oct. 2026, Jules : « partout ailleurs dans l'analyse ») :
+          Ligne / Ce qu'on y lit / Sources / Statut, les sources en pastilles, le statut en mot. */}
+      <div className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
+        <span>Ligne</span><span>Ce qu'on y lit</span><span>{sansSources ? "" : "Sources"}</span><span>Statut</span>
       </div>
+      {g.lignes.map((l, iLigne) => {
+        const [mot, classe, puce] = statutAffiche(l);
+        return (
+          <div key={l.id} className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3.5 max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
+            <div className="min-w-0">
+              <button type="button" onClick={() => bascule(l.id)} className="text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l.libelle}</button>
+              {ouverts.has(l.id) && <p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{l.regle}</p>}
+            </div>
+            <div className={`min-w-0 group ${l.details ? "cursor-pointer" : ""}`} onClick={() => l.details && !edition && basculeDetail(l.id)} title={l.details ? "Voir les valeurs comparées" : undefined}>
+              {edition?.id === l.id ? (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <textarea autoFocus value={edition.texte} onChange={(e) => setEdition({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); corriger.mutate({ critere: l.id, valeur: edition.texte }); } if (e.key === "Escape") setEdition(null); }}
+                    rows={Math.min(6, Math.max(2, edition.texte.split("\n").length))} className="w-full resize-y rounded-[10px] border border-menthe bg-surface px-3 py-2 text-[14px] text-encre outline-none max-md:text-[16px]" />
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <button onClick={() => corriger.mutate({ critere: l.id, valeur: edition.texte })} disabled={corriger.isPending} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12.5px] font-semibold text-sur-menthe"><Check className="h-3 w-3" /> Enregistrer</button>
+                    <button onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+                    {l.correction && <button onClick={() => corriger.mutate({ critere: l.id, valeur: "" })} className="ml-auto inline-flex items-center gap-1 text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><RotateCcw className="h-3 w-3" /> Valeur lue</button>}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  {l.valeur ? <p className="m-0 flex-1 whitespace-pre-line text-[14.5px] leading-[1.5] text-encre">{l.valeur}</p> : <span className="flex-1 text-[14.5px] text-ardoise">Non trouvé</span>}
+                  {!lectureSeule && dealId && <button onClick={(e) => { e.stopPropagation(); setEdition({ id: l.id, texte: l.valeur || "" }); }} aria-label="Corriger la valeur" title="Corriger la valeur" className="flex-none p-0.5 text-brume opacity-0 transition-opacity hover:text-encre group-hover:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}><Pencil className="h-3.5 w-3.5" /></button>}
+                </div>
+              )}
+              {l.motif && l.statut_calcule !== "ok" && l.valeur && <p className={`m-0 mt-0.5 text-[13px] leading-[1.45] ${l.statut === "no_go" ? "text-alerte" : "text-ambre"}`}>{l.motif}{l.details ? <span className="text-brume"> · {details.has(l.id) ? "replier" : "voir les valeurs"}</span> : null}</p>}
+              {l.hors_grille && l.lue_dans && edition?.id !== l.id && <p className="m-0 mt-0.5 text-[12.5px] text-ambre">Lu dans « {l.lue_dans} », pas dans les pièces de cette partie.</p>}
+              {l.correction && edition?.id !== l.id && <p className="m-0 mt-0.5 text-[12.5px] text-brume">Corrigée par {l.correction.par ? l.correction.par.split("@")[0] : "l'équipe"} : verrouillée{l.valeur_lue ? ` (lu : ${String(l.valeur_lue).slice(0, 80)})` : ""}</p>}
+              {l.details && details.has(l.id) && (
+                <ul className="m-0 mt-1.5 list-none p-0 text-[13px]">
+                  {l.details.map((d, i) => <li key={i} className="flex items-baseline justify-between gap-4 py-0.5"><span className="text-brume">{d.libelle}</span><span className="tabular-nums text-encre">{d.valeur}</span></li>)}
+                </ul>
+              )}
+              {/* La note de l'analyste, sous la valeur. */}
+              {note?.id === l.id ? (
+                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                  <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }}
+                    rows={2} placeholder="Une note pour l'équipe" className="w-full resize-y rounded-[10px] border border-menthe bg-surface px-3 py-2 text-[13.5px] text-encre outline-none max-md:text-[16px]" />
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12.5px] font-semibold text-sur-menthe"><Check className="h-3 w-3" /> Enregistrer</button>
+                    <button onClick={() => setNote(null)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+                  </div>
+                </div>
+              ) : l.note ? (
+                <button type="button" onClick={(e) => { e.stopPropagation(); if (!lectureSeule && dealId) setNote({ id: l.id, texte: l.note.texte }); }} className="mt-1 block text-left text-[12.5px] text-craie" style={{ background: "transparent" }}>
+                  <span className="text-brume">Note{l.note.par ? ` · ${l.note.par.split("@")[0]}` : ""} : </span>{l.note.texte}
+                </button>
+              ) : !lectureSeule && dealId ? (
+                <button type="button" onClick={(e) => { e.stopPropagation(); setNote({ id: l.id, texte: "" }); }} className="mt-1 inline-flex items-center gap-1 text-[12px] text-brume opacity-0 transition-opacity hover:text-ardoise group-hover:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}><Pencil className="h-3 w-3" /> Note</button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap content-start gap-1.5">
+              {!sansSources && (l.preuves?.length ? l.preuves.slice(0, 3).map((pv, i) => (
+                <button key={i} type="button" onClick={() => onPreuve?.(pv)} title={pv.citation || pv.reponse || undefined}
+                  className="inline-flex h-7 max-w-full items-center truncate rounded-full border border-trait px-2.5 text-[12.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+                  {nomPiece(pv)}{pv.page ? ` p. ${pv.page}` : ""}
+                </button>
+              )) : null)}
+            </div>
+            <div className="relative">
+              <button type="button" disabled={lectureSeule || !dealId} onClick={() => setChoix(choix === l.id ? null : l.id)} title={lectureSeule || !dealId ? undefined : "Changer le statut"}
+                className={`${puce ? `inline-flex h-7 items-center rounded-full px-3 ${classe}` : classe} text-[13px]`} style={puce ? undefined : { background: "transparent" }}>{mot}</button>
+              {l.decision && <span className="block text-[11px] text-brume">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
+              {choix === l.id && (
+                <div ref={menu} className={`absolute right-0 z-20 flex min-w-[160px] flex-col gap-1 rounded-[12px] border border-bord-doux bg-surface p-1.5 shadow-[0_12px_30px_rgb(0_0_0/0.35)] ${iLigne >= g.lignes.length - 2 ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                  {[["ok", "OK"], ["a_checker", "À checker"], ["a_verifier", "Signalé"], ["no_go", "Bloquant"]].map(([st, m]) => (
+                    <button key={st} onClick={() => decider.mutate({ critere: l.id, statut: st })} className="rounded-[8px] px-3 py-1.5 text-left text-[12.5px] font-medium hover:bg-encre/[0.05]" style={{ background: "transparent", color: teinteDe(st) }}>{m}</button>
+                  ))}
+                  {l.decision && <button onClick={() => decider.mutate({ critere: l.id, statut: null })} className="px-3 py-1 text-left text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Revenir au calcul</button>}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -278,9 +293,9 @@ export default function GrilleCriteres({ dossier, grilles: demandees, ids, titre
                   <span className="flex flex-wrap items-center gap-3 text-[12.5px] text-craie">
                     <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.ok }} />{resume.ok} OK</span>
                     {resume.a_checker > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.a_checker }} />{resume.a_checker} à checker</span>}
-                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} à vérifier</span>
-                    {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} no go</span>}
-                    {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} sans valeur</span>}
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.warning }} />{resume.warning} signalé{resume.warning > 1 ? "s" : ""}</span>
+                    {resume.no_go > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.no_go }} />{resume.no_go} bloquant{resume.no_go > 1 ? "s" : ""}</span>}
+                    {resume.vide > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: TEINTE.vide }} />{resume.vide} non trouvé{resume.vide > 1 ? "s" : ""}</span>}
                   </span>
                 )}
                 {enCours ? (

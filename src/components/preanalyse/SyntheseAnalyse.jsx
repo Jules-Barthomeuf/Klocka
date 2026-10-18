@@ -18,7 +18,7 @@ export function useSyntheseAnalyse(dealId, { enabled = true } = {}) {
   return useQuery({ queryKey: ["synthese-analyse", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/synthese`), enabled: !!dealId && enabled, staleTime: 30_000, retry: false });
 }
 
-function Signalement({ s, onDecider, enCours }) {
+function Signalement({ s, onDecider, onRetenir, enCours }) {
   const [ecarter, setEcarter] = useState(false);
   const [motif, setMotif] = useState("");
   const bloquant = s.niveau === "bloquant";
@@ -33,6 +33,13 @@ function Signalement({ s, onDecider, enCours }) {
         </div>
         {bloquant ? (
           <span className="flex-none rounded-full border border-alerte/50 px-2.5 py-0.5 text-[12px] text-alerte">Bloquant · à corriger ou arrêter</span>
+        ) : s.choix?.length ? (
+          <span className="flex flex-none flex-wrap gap-1.5">
+            {s.choix.map((c) => (
+              <button key={c.valeur} type="button" disabled={enCours} onClick={() => onRetenir(c)} title={c.source ? `Source : ${c.source}` : undefined}
+                className="h-8 rounded-full border border-trait px-3 text-[12.5px] text-craie transition-colors hover:border-menthe hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Retenir {c.valeur}</button>
+            ))}
+          </span>
         ) : s.decision ? (
           <span className="flex flex-none items-center gap-2 text-[12.5px] text-craie">
             <Check className="h-3.5 w-3.5 text-menthe" />{MOTS[s.decision.decision]}{s.decision.motif ? ` · ${s.decision.motif}` : ""}
@@ -60,7 +67,61 @@ function Signalement({ s, onDecider, enCours }) {
   );
 }
 
-export default function SyntheseAnalyse({ dossier, apercu = false }) {
+const COLONNES = [["fiche", "Fiche"], ["bail", "Bail"], ["quittances", "Quittances"], ["copropriete", "Copropriété"], ["diagnostics", "Diagnostics"], ["bien", "Bien (Kbis, avis, Pappers)"]];
+
+function Croisements({ s, retenir, apercu }) {
+  const [ouverte, setOuverte] = useState(null);
+  return (
+    <section className={cadre}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4">
+        <p className={titreBloc}>Croisements entre sources</p>
+        <p className="m-0 text-[12.5px] text-brume">Les informations présentes dans plusieurs onglets, côte à côte. Cliquez une ligne pour voir les citations.</p>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[1000px] border-collapse text-left text-[13.5px]">
+          <thead>
+            <tr className="text-[12.5px] text-ardoise">
+              <th className="px-5 py-2 font-normal">Information</th>
+              {COLONNES.map(([k, mot]) => <th key={k} className="px-3 py-2 font-normal">{mot}</th>)}
+              <th className="px-5 py-2 font-normal">Retenu</th>
+            </tr>
+          </thead>
+          <tbody>
+            {s.croisements.map((c) => (
+              <React.Fragment key={c.cle}>
+                <tr onClick={() => setOuverte(ouverte === c.cle ? null : c.cle)} className="cursor-pointer border-t border-trait align-top transition-colors hover:bg-encre/[0.03]">
+                  <td className="px-5 py-3 text-craie">{c.information}</td>
+                  {COLONNES.map(([k]) => <td key={k} className="max-w-[200px] px-3 py-3 text-encre"><span className="line-clamp-2">{c.colonnes[k]?.valeur ?? <span className="text-brume">·</span>}</span></td>)}
+                  <td className={`px-5 py-3 ${c.retenue ? "text-menthe" : c.ecart ? (c.bloquant ? "text-alerte" : "text-ambre") : "text-craie"}`}>{c.resume}</td>
+                </tr>
+                {ouverte === c.cle && (
+                  <tr className="border-t border-trait bg-surface-pleine/40">
+                    <td colSpan={COLONNES.length + 2} className="px-5 py-3">
+                      <div className="flex flex-col gap-2">
+                        {c.sources.map((src) => (
+                          <div key={src.colonne} className="flex flex-wrap items-baseline gap-x-3 text-[13px]">
+                            <span className="w-[220px] flex-none text-brume">{src.nom}</span>
+                            <span className="min-w-0 flex-1 text-encre">{src.valeur}{src.citation ? <span className="block text-[12.5px] text-ardoise">« {String(src.citation).slice(0, 240)} »</span> : null}</span>
+                            {c.ecart && !c.bloquant && (
+                              <button type="button" disabled={apercu || retenir.isPending} onClick={(e) => { e.stopPropagation(); retenir.mutate({ cle: c.cle, valeur: c.retenue?.source === src.nom ? "" : src.valeur, source: src.nom }); }}
+                                className="text-[12.5px] text-menthe hover:underline disabled:opacity-40" style={{ background: "transparent" }}>{c.retenue?.source === src.nom ? "Ne plus retenir" : "Retenir"}</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+export default function SyntheseAnalyse({ dossier, apercu = false, onOnglet = null }) {
   const dealId = dossier?.deal_id;
   const qc = useQueryClient();
   const q = useSyntheseAnalyse(dealId, { enabled: !apercu });
@@ -108,46 +169,24 @@ export default function SyntheseAnalyse({ dossier, apercu = false }) {
         </div>
       </section>
 
-      {/* 2. Croisements */}
-      {s.croisements.length > 0 && (
-        <section className={cadre}>
-          <p className={`${titreBloc} px-5 pt-4`}>Croisements entre sources</p>
-          <div className="mt-2">
-            {s.croisements.map((c) => (
-              <div key={c.cle} className="border-t border-trait px-5 py-3 first:border-t-0">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="m-0 text-[14.5px] text-encre">{c.information}</p>
-                  {c.ecart ? <span className={`text-[12.5px] ${c.bloquant ? "text-alerte" : "text-ambre"}`}>{c.motif}</span> : <span className="text-[12.5px] text-menthe">Concordant</span>}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {c.sources.map((src) => {
-                    const choisie = c.retenue?.source === src.nom;
-                    return (
-                      <button key={src.nom} type="button" disabled={apercu || !c.ecart || retenir.isPending}
-                        onClick={() => retenir.mutate({ cle: c.cle, valeur: choisie ? "" : src.valeur, source: src.nom })}
-                        title={c.ecart ? (choisie ? "Valeur retenue · cliquer pour revenir" : "Retenir cette valeur") : undefined}
-                        className={`flex min-w-[180px] flex-col items-start rounded-[12px] border px-3 py-2 text-left transition-colors ${choisie ? "border-menthe/60 bg-menthe/10" : "border-trait bg-surface-pleine"} ${c.ecart ? "hover:border-bord-vif" : "cursor-default"}`}>
-                        <span className="text-[11.5px] text-brume">{src.nom}{choisie ? " · retenue" : ""}</span>
-                        <span className="mt-0.5 text-[13.5px] text-encre">{String(src.valeur).slice(0, 140)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* 2. Croisements, en tableau (maquette de Jules, 18 oct. 2026) : une ligne par information, une colonne par onglet, ce qui est retenu. */}
+      {s.croisements.length > 0 && <Croisements s={s} retenir={retenir} apercu={apercu} />}
 
       {/* 3. Signalements à traiter */}
       <section className={cadre}>
-        <p className={`${titreBloc} px-5 pt-4`}>Signalements à traiter · {v.signalements - v.traites + v.bloquants}</p>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4">
+          <p className={titreBloc}>Signalements à traiter · {v.signalements - v.traites + v.bloquants}</p>
+          <p className="m-0 text-[12.5px] text-brume">Accepter : risque pris tel quel. Négocier : condition de la LOI et scénario du Simulateur. Écarter : avec un motif.</p>
+        </div>
         {!s.signalements.length ? <p className="m-0 px-5 pb-5 pt-3 text-[13.5px] text-brume">Rien de signalé dans les pièces lues.</p> : (
           <div className="mt-2">
             {Object.entries(parOnglet).map(([onglet, liste]) => (
               <div key={onglet}>
-                <p className="m-0 border-t border-trait bg-surface-pleine/40 px-5 py-1.5 text-[12px] text-ardoise">{onglet}</p>
-                {liste.map((x) => <Signalement key={x.cle} s={x} enCours={decider.isPending || apercu} onDecider={(d) => decider.mutate({ cle: x.cle, ...d })} />)}
+                <p className="m-0 flex items-baseline justify-between border-t border-trait bg-surface-pleine/40 px-5 py-1.5 text-[12px] text-ardoise">
+                  {onglet}
+                  {onOnglet && liste[0].onglet !== "synthese" && <button type="button" onClick={() => onOnglet(liste[0].onglet)} className="text-[12px] text-menthe hover:underline" style={{ background: "transparent" }}>Ouvrir l'onglet ›</button>}
+                </p>
+                {liste.map((x) => <Signalement key={x.cle} s={x} enCours={decider.isPending || retenir.isPending || apercu} onDecider={(d) => decider.mutate({ cle: x.cle, ...d })} onRetenir={(c) => retenir.mutate({ cle: x.croisement, valeur: c.valeur, source: c.source })} />)}
               </div>
             ))}
           </div>

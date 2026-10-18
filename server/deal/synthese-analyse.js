@@ -11,6 +11,7 @@
 
 import { Records } from '../db.js';
 import { prixFai } from './prix.js';
+import { nomCourt } from './bien-analyse.js';
 
 const val = (c) => (c && c.absent === false ? c.valeur : null);
 const sans = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -66,72 +67,115 @@ export function nombreDe(t) {
 const MOTS_VIDES = new Set(['toutes', 'activites', 'activite', 'commerce', 'commerces', 'locaux', 'local', 'sauf', 'avec', 'sans', 'vente', 'exception', 'exercice', 'autorisee', 'autorisees', 'interdite', 'interdites', 'aucune', 'dans', 'pour', 'ainsi', 'leurs', 'cette', 'celles', 'ceux', 'notamment', 'produits', 'services', 'nature', 'toute']);
 const motsDe = (t) => new Set(sans(t).split(/[^a-z]+/).filter((m) => m.length >= 5 && !MOTS_VIDES.has(m)));
 
+/** Les colonnes du tableau des croisements, dans l'ordre de l'écran (maquette du 18 oct. 2026). */
+export const COLONNES = [['fiche', 'Fiche'], ['bail', 'Bail'], ['quittances', 'Quittances'], ['copropriete', 'Copropriété'], ['diagnostics', 'Diagnostics'], ['bien', 'Bien (Kbis, avis, Pappers)']];
+
+/** La colonne d'une pièce lue, d'après son nom court. */
+const colonneDe = (l) => {
+  const n = nomCourt(l);
+  if (['Bail', 'Avenant'].includes(n)) return 'bail';
+  if (/quittance/i.test(`${l.categorie} ${l.document_nom}`)) return 'quittances';
+  if (['Règlement', 'PV d\'AG', 'Appel de fonds'].includes(n)) return 'copropriete';
+  if (['DPE', 'Diagnostic'].includes(n) || /diagnostic|amiante|dta|crep|erp/i.test(`${l.categorie} ${l.document_nom}`)) return 'diagnostics';
+  if (['Avis TF', 'Kbis'].includes(n)) return 'bien';
+  return null;
+};
+
 /**
- * Pure : les croisements entre sources (spec § 6, bloc 2). Chaque ligne : les valeurs côte à côte,
- * s'il y a un écart, et la valeur retenue par l'analyste s'il en a choisi une.
- * @param {{bail?: object, quittances?: object, pv_ag?: object, rcp?: object, diagnostics?: object}} v  valeurs brutes des grilles
+ * Pure : les croisements entre sources (spec § 6, bloc 2), en tableau : une ligne par information,
+ * une colonne par onglet, et ce qui est retenu. `pieces` : les pièces lues (la matrice), pour les
+ * valeurs qui ne sont pas dans une grille (surfaces, avis de taxe foncière, Kbis).
  */
-export function croisements({ v = {}, lot = {}, retenues = {}, corrections = {} }) {
+export function croisements({ v = {}, lot = {}, retenues = {}, corrections = {}, pieces = [] }) {
   const out = [];
-  const ajouter = (cle, information, sources, ecart, motif, extra = {}) => {
-    const s = sources.filter((x) => x.valeur != null && x.valeur !== '');
-    if (!s.length) return;
-    out.push({ cle, information, sources: s, ecart: !!ecart, motif: ecart ? motif : null, retenue: retenues[cle] || null, ...extra });
+  const cellules = (col) => pieces.flatMap((l) => (l.cellules?.[col]?.reponse ? [{ l, c: l.cellules[col], colonne: colonneDe(l) }] : []));
+  const ajouter = (cle, information, colonnes, { ecart = false, motif = null, bloquant = false, coherent = null, choix = null } = {}) => {
+    const remplies = Object.fromEntries(Object.entries(colonnes).filter(([, x]) => x && x.valeur != null && x.valeur !== ''));
+    if (!Object.keys(remplies).length) return;
+    const sources = COLONNES.filter(([k]) => remplies[k]).map(([k, nom]) => ({ colonne: k, nom: remplies[k].nom || nom, valeur: remplies[k].valeur, nombre: remplies[k].nombre ?? null, citation: remplies[k].citation || null }));
+    const retenue = retenues[cle] || null;
+    const resume = retenue ? `${retenue.valeur} · retenu` : ecart ? (bloquant ? motif : 'Écart : choisir la valeur') : coherent;
+    out.push({ cle, information, colonnes: remplies, sources, ecart: !!ecart, bloquant: !!bloquant, motif: ecart ? motif : null, retenue, resume, choix });
   };
 
-  // Loyer annuel HC HT : fiche, bail (loyer de signature), quittances × 12 (ou × 4).
+  // Loyer annuel HC HT : fiche, bail (loyer de signature), quittances × 12 (ou × 4). Une valeur corrigée à la main l'emporte.
   const loyerFiche = Number(val(lot.loyer_annuel_ht_hc)) || null;
-  // Une valeur corrigée à la main l'emporte sur la lecture : elle est verrouillée.
   const loyerBail = nombreDe(corrections['bail.loyer_signature']) || Number(v.bail?.loyer_signature?.annuel_ht) || nombreDe(v.bail?.loyer_signature?.texte);
   const qLu = v.quittances?.loyer_hc_ht;
-  const q = corrections['quittances.loyer_hc_ht'] && nombreDe(corrections['quittances.loyer_hc_ht']) ? { ...qLu, montant: nombreDe(corrections['quittances.loyer_hc_ht']), periodicite: /trimestr/i.test(corrections['quittances.loyer_hc_ht']) ? 'trimestriel' : /an\b|annuel/i.test(corrections['quittances.loyer_hc_ht']) ? 'annuel' : (qLu?.periodicite || 'mensuel') } : qLu;
-  const loyerQ = q?.montant ? (q.periodicite === 'trimestriel' ? q.montant * 4 : q.periodicite === 'annuel' ? q.montant : q.montant * 12) : null;
+  const corrQ = corrections['quittances.loyer_hc_ht'];
+  const q = corrQ && nombreDe(corrQ) ? { ...qLu, montant: nombreDe(corrQ), periodicite: /trimestr/i.test(corrQ) ? 'trimestriel' : /an\b|annuel/i.test(corrQ) ? 'annuel' : (qLu?.periodicite || 'mensuel') } : qLu;
+  const fois = q?.periodicite === 'trimestriel' ? 4 : q?.periodicite === 'annuel' ? 1 : 12;
+  const loyerQ = q?.montant ? q.montant * fois : null;
   const loyers = [loyerFiche, loyerBail, loyerQ].filter(Boolean);
   const ecartLoyer = loyers.length > 1 && (Math.max(...loyers) - Math.min(...loyers)) / Math.min(...loyers) > 0.02;
-  ajouter('loyer', 'Loyer annuel HC HT', [
-    { nom: 'Fiche commerciale', valeur: loyerFiche ? eur(loyerFiche) : null, nombre: loyerFiche },
-    { nom: 'Bail · Loyer de signature', valeur: loyerBail ? eur(loyerBail) : null, nombre: loyerBail },
-    { nom: 'Quittances · Prix du loyer', valeur: loyerQ ? `${eur(loyerQ)} (${eur(q.montant)} × ${q.periodicite === 'trimestriel' ? 4 : q.periodicite === 'annuel' ? 1 : 12})` : null, nombre: loyerQ },
-  ], ecartLoyer, `Plus de 2 % d'écart entre ${eur(Math.min(...loyers))} et ${eur(Math.max(...loyers))}.`);
+  ajouter('loyer', 'Loyer annuel HC HT', {
+    fiche: loyerFiche ? { valeur: eur(loyerFiche), nombre: loyerFiche, nom: 'Fiche commerciale' } : null,
+    bail: loyerBail ? { valeur: eur(loyerBail), nombre: loyerBail, nom: 'Bail · Loyer de signature' } : null,
+    quittances: loyerQ ? { valeur: `${eur(loyerQ)} (${eur(q.montant)} × ${fois})`, nombre: loyerQ, nom: 'Quittances · Prix du loyer' } : null,
+  }, { ecart: ecartLoyer, motif: `Plus de 2 % d'écart entre ${eur(Math.min(...loyers))} et ${eur(Math.max(...loyers))}.`, coherent: loyers.length ? `${eur(loyers[0])} · cohérent` : null,
+    choix: ecartLoyer ? [...new Set(loyers)].map((n) => ({ valeur: eur(n), source: [loyerFiche === n && 'fiche', loyerBail === n && 'bail', loyerQ === n && 'quittances'].filter(Boolean).join(', ') })) : null });
 
-  // TVA : bail et quittances.
-  const tvaB = v.bail?.tva?.oui; const tvaQ = v.quittances?.tva?.oui;
-  const ouiNon = (x) => (x === true ? 'OUI' : x === false ? 'NON' : null);
-  ajouter('tva', 'TVA sur le loyer', [{ nom: 'Bail', valeur: ouiNon(tvaB) }, { nom: 'Quittances', valeur: ouiNon(tvaQ) }], tvaB != null && tvaQ != null && tvaB !== tvaQ, 'Le bail et les quittances ne disent pas la même chose.');
+  // Surface : la fiche et chaque pièce qui la donne ; plus de 5 % d'écart.
+  const sFiche = Number(val(lot.surface_m2)) || null;
+  const parCol = {};
+  for (const x of cellules('surface')) { const n = nombreDe(x.c.reponse); if (n && x.colonne && !parCol[x.colonne]) parCol[x.colonne] = { valeur: `${String(n).replace('.', ',')} m²`, nombre: n, citation: x.c.citation || null }; }
+  const surfaces = [sFiche, ...Object.values(parCol).map((x) => x.nombre)].filter(Boolean);
+  const ecartS = surfaces.length > 1 && (Math.max(...surfaces) - Math.min(...surfaces)) / Math.min(...surfaces) > 0.05;
+  ajouter('surface', 'Surface', { fiche: sFiche ? { valeur: `${String(sFiche).replace('.', ',')} m²`, nombre: sFiche } : null, ...parCol },
+    { ecart: ecartS, motif: `Écart de ${surfaces.length ? Math.round(((Math.max(...surfaces) - Math.min(...surfaces)) / Math.min(...surfaces)) * 100) : 0} % entre les sources.`, coherent: surfaces.length ? `${String(surfaces[0]).replace('.', ',')} m² · cohérent` : null,
+      choix: ecartS ? [...new Set(surfaces)].map((n) => ({ valeur: `${String(n).replace('.', ',')} m²`, source: n === sFiche ? 'fiche' : 'pièces' })) : null });
 
-  // Fréquence de paiement : bail (mode de règlement) et quittances.
-  const freqB = v.bail?.mode_reglement?.periodicite; const freqQ = q?.periodicite;
-  const libre = (x) => (x && x !== 'inconnu' ? x : null);
-  ajouter('frequence', 'Fréquence de paiement', [{ nom: 'Bail · Mode de règlement', valeur: libre(freqB) }, { nom: 'Quittances', valeur: libre(freqQ) }], libre(freqB) && libre(freqQ) && freqB !== freqQ, 'Fréquences différentes.');
-
-  // Provision pour charges : quittances (et bail si lu).
-  ajouter('provision', 'Provision pour charges', [{ nom: 'Quittances', valeur: v.quittances?.provision?.montant ? eur(v.quittances.provision.montant) : v.quittances?.provision?.texte || null }], false, null);
-
-  // Locataire : fiche et bail (les parties).
+  // Locataire : fiche, bail (les parties), quittances, Kbis.
   const locFiche = val(lot.locataire_nom);
   const locBail = v.bail?.parties?.texte || null;
-  const communs = locFiche && locBail ? [...motsDe(locFiche)].filter((m) => motsDe(locBail).has(m)) : null;
-  ajouter('locataire', 'Locataire', [{ nom: 'Fiche commerciale', valeur: locFiche }, { nom: 'Bail · Les parties', valeur: locBail }],
-    !!(locFiche && locBail && communs && !communs.length && motsDe(locFiche).size), 'Les noms ne se recoupent pas : sans acte de cession, à vérifier.');
+  const locKbis = cellules('parties').find((x) => x.colonne === 'bien' && nomCourt(x.l) === 'Kbis');
+  const locQ = cellules('parties').find((x) => x.colonne === 'quittances');
+  const noms = [locFiche, locBail, locKbis?.c.reponse, locQ?.c.reponse].filter(Boolean);
+  const communs = noms.length > 1 ? [...motsDe(noms[0])].filter((m) => noms.slice(1).every((n) => motsDe(n).has(m))) : null;
+  const ecartLoc = !!(noms.length > 1 && communs && !communs.length && motsDe(noms[0]).size);
+  ajouter('locataire', 'Locataire', {
+    fiche: locFiche ? { valeur: locFiche } : null, bail: locBail ? { valeur: locBail, nom: 'Bail · Les parties' } : null,
+    quittances: locQ ? { valeur: locQ.c.reponse, citation: locQ.c.citation } : null, bien: locKbis ? { valeur: locKbis.c.reponse, citation: locKbis.c.citation, nom: 'Kbis' } : null,
+  }, { ecart: ecartLoc, motif: 'Les noms ne se recoupent pas : sans acte de cession, à vérifier.', coherent: noms.length > 1 ? 'Même société partout' : 'Une seule source' });
 
-  // Activité : destination du bail face aux activités interdites par le règlement de copropriété.
+  // Activité : fiche, destination du bail, activités interdites par le règlement ; interdite → bloquant.
   const destination = v.bail?.destination?.texte || null;
   const interdites = v.rcp?.activites_interdites?.texte || null;
   const touche = destination && interdites && !/^aucune/i.test(sans(interdites)) ? [...motsDe(destination)].filter((m) => motsDe(interdites).has(m)) : [];
-  ajouter('activite', 'Activité', [{ nom: 'Bail · Destination', valeur: destination }, { nom: 'Copropriété · Activités non autorisées', valeur: interdites }], touche.length > 0,
-    `L'activité du bail est citée parmi les activités interdites (${touche.slice(0, 3).join(', ')}).`, { bloquant: touche.length > 0 });
+  ajouter('activite', 'Activité', {
+    fiche: val(lot.type_actif) ? { valeur: val(lot.type_actif) } : null, bail: destination ? { valeur: destination, nom: 'Bail · Destination' } : null,
+    copropriete: interdites ? { valeur: `Interdites : ${interdites}`, nom: 'Copropriété · Activités non autorisées' } : null,
+  }, { ecart: touche.length > 0, bloquant: touche.length > 0, motif: `L'activité du bail est citée parmi les activités interdites (${touche.slice(0, 3).join(', ')}).`, coherent: interdites ? 'Compatible avec le règlement' : 'Pas de règlement lu' });
+
+  // TVA, provision, fréquence : bail et quittances.
+  const ouiNon = (x) => (x === true ? 'OUI' : x === false ? 'NON' : null);
+  const tvaB = v.bail?.tva?.oui; const tvaQ = v.quittances?.tva?.oui;
+  ajouter('tva', 'TVA', { bail: { valeur: ouiNon(tvaB) }, quittances: { valeur: ouiNon(tvaQ) } }, { ecart: tvaB != null && tvaQ != null && tvaB !== tvaQ, motif: 'Le bail et les quittances ne disent pas la même chose.', coherent: tvaB === true || tvaQ === true ? 'Assujetti · cohérent' : 'Non assujetti · cohérent' });
+  const provQ = v.quittances?.provision?.montant;
+  ajouter('provision', 'Provision pour charges', { quittances: { valeur: provQ ? `${eur(provQ)} / mois` : v.quittances?.provision?.texte || null } }, { coherent: provQ ? `${eur(provQ)} / mois` : 'Une seule source' });
+  const libre = (x) => (x && x !== 'inconnu' ? x : null);
+  const freqB = libre(v.bail?.mode_reglement?.periodicite); const freqQ = libre(q?.periodicite);
+  ajouter('frequence', 'Fréquence de paiement', { bail: { valeur: freqB }, quittances: { valeur: freqQ } }, { ecart: freqB && freqQ && freqB !== freqQ, motif: 'Fréquences différentes.', coherent: freqB || freqQ ? `${freqB || freqQ} · cohérent` : null });
 
   // Travaux à la charge du propriétaire : bail, PV d'AG, DTG ; chiffrés quand il y en a.
   const items = v.bail?.charges_bailleur?.items || [];
-  ajouter('travaux', 'Travaux à la charge du propriétaire', [
-    { nom: 'Bail · Charges restant au bailleur', valeur: items.length ? items.join(' ; ') : null },
-    { nom: "PV d'AG · Travaux votés", valeur: v.pv_ag?.travaux_votes?.texte && !/^aucun/i.test(sans(v.pv_ag.travaux_votes.texte)) ? v.pv_ag.travaux_votes.texte : null, nombre: nombreDe(v.pv_ag?.travaux_votes?.texte) },
-    { nom: 'Diagnostics · DTG', valeur: v.diagnostics?.dtg?.texte || null },
-  ], !!(v.pv_ag?.travaux_votes?.article_606 || v.diagnostics?.dtg?.travaux_606), 'Des gros travaux reviennent au propriétaire : à chiffrer.');
+  const votes = v.pv_ag?.travaux_votes?.texte && !/^aucun/i.test(sans(v.pv_ag.travaux_votes.texte)) ? v.pv_ag.travaux_votes.texte : null;
+  const discussion = v.pv_ag?.travaux_discussion?.texte && !/^aucun/i.test(sans(v.pv_ag.travaux_discussion.texte)) ? v.pv_ag.travaux_discussion.texte : null;
+  const dtg = v.diagnostics?.dtg?.texte || null;
+  const montant = nombreDe(votes);
+  ajouter('travaux', 'Travaux à la charge du propriétaire', {
+    bail: items.length ? { valeur: items.join(' ; '), nom: 'Bail · Charges restant au bailleur' } : null,
+    copropriete: votes || discussion ? { valeur: [votes, discussion && `en discussion : ${discussion}`].filter(Boolean).join(' · ') } : null,
+    diagnostics: { valeur: dtg || (items.length || votes ? 'DTG non fourni' : null) },
+  }, { ecart: !!(v.pv_ag?.travaux_votes?.article_606 || v.diagnostics?.dtg?.travaux_606), motif: montant ? `${eur(montant)} chiffrés${discussion ? ' + travaux en discussion à chiffrer' : ''}` : 'Des gros travaux reviennent au propriétaire : à chiffrer.', coherent: 'Rien de chiffré' });
 
-  // Taxe foncière : refacturée ou non (bail).
+  // Taxe foncière : refacturée ou non (bail), montant de l'avis.
   const tf = v.bail?.taxes?.taxe_fonciere_refacturee;
-  ajouter('taxe_fonciere', 'Taxe foncière', [{ nom: 'Bail · Taxes refacturées', valeur: tf === true ? 'Refacturée au locataire' : tf === false ? 'Reste au bailleur' : null }], tf === false, 'La taxe foncière reste au bailleur.');
+  const avis = cellules('taxe_fonciere').map((x) => ({ ...x, n: nombreDe(x.c.reponse) })).find((x) => x.n);
+  ajouter('taxe_fonciere', 'Taxe foncière', {
+    bail: { valeur: tf === true ? 'Refacturée au locataire' : tf === false ? 'Au bailleur' : null },
+    bien: avis ? { valeur: `Avis ${eur(avis.n)}`, citation: avis.c.citation, nom: 'Avis de taxe foncière' } : null,
+  }, { ecart: tf === false, motif: avis ? `${eur(avis.n)} / an à charge` : 'Reste au bailleur', coherent: tf === true ? 'Refacturée · cohérent' : avis ? `Avis ${eur(avis.n)}` : null });
   return out;
 }
 
@@ -140,10 +184,10 @@ const STATUT_SIGNALE = { warning: 'signale', a_verifier: 'signale', no_go: 'bloq
 /**
  * Pure : la synthèse complète. `grilles` : les grilles formatées (lignes et valeurs brutes) par id.
  */
-export function synthese({ grilles = {}, lot = {}, documents = [], copropriete = true, retenues = {}, decisions = {}, demandes = [], validee = null }) {
+export function synthese({ grilles = {}, lot = {}, documents = [], copropriete = true, retenues = {}, decisions = {}, demandes = [], validee = null, pieces = [] }) {
   const v = Object.fromEntries(Object.entries(grilles).map(([id, g]) => [id, g?.valeurs_brutes || {}]));
   const corrections = Object.fromEntries(Object.entries(grilles).flatMap(([id, g]) => (g?.lignes || []).filter((l) => l.correction?.valeur).map((l) => [`${id}.${l.id}`, l.correction.valeur])));
-  const cr = croisements({ v, lot, retenues, corrections });
+  const cr = croisements({ v, lot, retenues, corrections, pieces });
 
   // Les signalements : chaque ligne signalée de chaque onglet, puis les écarts des croisements, puis les bloquants calculés.
   const sig = [];
@@ -157,8 +201,8 @@ export function synthese({ grilles = {}, lot = {}, documents = [], copropriete =
       }
     }
   }
-  for (const c of cr.filter((x) => x.ecart)) {
-    sig.push({ cle: `croisement.${c.cle}`, onglet: 'synthese', onglet_titre: 'Croisements', ligne: c.information, valeur: c.retenue?.valeur || c.sources.map((s) => `${s.nom} : ${s.valeur}`).join(' · '), motif: c.motif, source: c.sources.map((s) => s.nom).join(', '), niveau: c.bloquant ? 'bloquant' : 'signale' });
+  for (const c of cr.filter((x) => x.ecart && (x.bloquant || !x.retenue))) {
+    sig.push({ cle: `croisement.${c.cle}`, onglet: 'synthese', onglet_titre: 'Croisements', ligne: c.information, valeur: c.sources.map((s) => `${s.valeur} (${s.nom})`).join(' · '), motif: c.motif, source: c.sources.map((s) => s.nom).join(', '), niveau: c.bloquant ? 'bloquant' : 'signale', choix: c.choix || null, croisement: c.cle });
   }
   // Bloquant : rendement brut sous 5 %, sur le loyer retenu s'il y en a un, sinon celui de la fiche.
   const prix = prixFai(lot);
@@ -202,7 +246,7 @@ export async function syntheseDu(dealId) {
   }
   const documents = [...(d.documents_espace || []), ...((d.matrice?.lignes || []).map((l) => ({ nom: l.document_nom, categorie: l.categorie })))];
   const copropriete = d.copropriete !== false;
-  return synthese({ grilles, lot: d.lots?.[0]?.lot || {}, documents, copropriete, retenues: d.valeurs_retenues || {}, decisions: d.decisions_signalements || {}, demandes: d.documents_a_demander || [], validee: d.analyse_validee || null });
+  return synthese({ grilles, pieces: (d.matrice?.lignes || []).filter((l) => !l.perime), lot: d.lots?.[0]?.lot || {}, documents, copropriete, retenues: d.valeurs_retenues || {}, decisions: d.decisions_signalements || {}, demandes: d.documents_a_demander || [], validee: d.analyse_validee || null });
 }
 
 function tracer(d, entree) {

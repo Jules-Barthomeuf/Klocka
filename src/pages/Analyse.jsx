@@ -301,9 +301,10 @@ export default function Analyse() {
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
   useEffect(() => {
     if (!scinde) return undefined;
-    document.documentElement.classList.add("k-sans-barre", "k-sobre", "k-sans-ak");
+    // Sans « k-sobre » : le fond « Halo » reste, le même que sur Projets (18 oct. 2026, Jules).
+    document.documentElement.classList.add("k-sans-barre", "k-sans-ak");
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre", "k-sans-ak");
+    return () => document.documentElement.classList.remove("k-sans-barre", "k-sans-ak");
   }, [scinde]);
 
   // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
@@ -412,8 +413,7 @@ export default function Analyse() {
 
   return (
     <div className="relative min-h-screen text-encre w-full max-w-full overflow-x-hidden">
-      {/* Une lumière dans le coin, en haut à gauche, sur le dossier ouvert. */}
-      {enWorkflow && <div aria-hidden className="k-halo pointer-events-none absolute -left-[260px] -top-[260px] h-[680px] w-[900px]" style={{ background: "radial-gradient(closest-side,rgba(150,192,184,0.13),transparent)" }} />}
+      {/* Plus de lumière propre dans le coin : le fond « Halo » commun suffit (18 oct. 2026). */}
       <div
         key={`${dealId || (nouveau ? "nouveau" : "accueil")}-${modeIA ? "ia" : "normal"}`}
         className="px-5 py-6 md:px-10 md:py-9 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out"
@@ -573,7 +573,7 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
   const n = etapeFrise(d);
   const verdict = d.lots?.[0]?.verdict;
   return (
-    <article className="relative cursor-pointer rounded-[14px] border border-trait bg-fond p-3.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+    <article className="relative cursor-pointer rounded-[14px] border border-trait bg-rail p-3.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
       <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
       <p className="m-0 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ardoise">
         <span className="inline-flex items-center gap-1.5 text-craie"><span className="h-1.5 w-1.5 rounded-full bg-menthe" />{ecarte ? (d.statut === "abandonne" ? "Abandonné" : "NO-GO") : FRISE[n - 1].label}</span>

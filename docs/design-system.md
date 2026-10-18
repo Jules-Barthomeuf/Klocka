@@ -618,7 +618,7 @@ Remplace les quatre points qui tournent du 16 oct. (ci-dessous, gardés pour les
 
 **La barre de navigation se ferme en entrant dans un dossier** (Jules, 18 oct. 2026) : ouvrir un dossier replie la barre latérale en rail d'icônes ; en sortir rend le réglage de la personne. On peut la rouvrir à la main pendant la visite. Repliée, elle garde toujours le choix Klocka | Outils : deux icônes l'une sur l'autre (la marque, la clé), l'active sur fond `surface-pleine`.
 
-**Un seul fond « Halo » partout** (Jules, 18 oct. 2026 : « le même que dans la page projets ») : le réglage Halo allumé, chaque page montre le même fond, `FondHalo` posé par `Layout` et passé sous la barre latérale. La page Haka n'ajoute plus ses deux ellipses (`accueil-halo-a/b`) derrière le salut. Une page ne dessine pas son propre halo.
+**Un seul fond « Halo » partout** (Jules, 18 oct. 2026 : « le même que dans la page projets ») : le réglage Halo allumé, chaque page montre le même fond, `FondHalo` posé par `Layout` et passé sous la barre latérale. La page Haka n'ajoute plus ses deux ellipses (`accueil-halo-a/b`) derrière le salut. Une page ne dessine pas son propre halo. Le dossier ouvert en écran scindé ne pose plus `k-sobre` (qui éteignait le fond) et n'a plus sa lumière dans le coin : il montre le même fond que Projets.
 
 ### Les étapes d'AK quand il réfléchit (16 oct. 2026)
 

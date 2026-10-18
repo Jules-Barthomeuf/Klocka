@@ -13,6 +13,7 @@
 // dériver la famille d'un accent (clair, survol, foncé, texte posé dessus).
 import jetons from "@/design/jetons.json";
 import { pageDeChemin } from "@/lib/adresses";
+import { OPACITE_DEFAUT, opaciteCartes } from "@/lib/opacite-cartes";
 
 export const CLE_LOCALE = "klocka-personnalisation";
 // L'ancienne clé du thème seul : reprise une fois, pour qui avait choisi le clair.
@@ -45,6 +46,7 @@ export const DEFAUT = Object.freeze({
   assistant: "droite", // droite | gauche | masquee
   grille: ["panneaux", "listes"], // où poser la grille de points : panneaux | listes | barre | fond
   grille_intensite: 50, // la force des points, de 10 (à peine) à 100 (marqués) ; 50 : celle d'origine
+  cartes_opacite: OPACITE_DEFAUT, // l'opacité des cartes de la page Dossiers, de 10 (presque transparentes) à 100 (pleines) (18 oct. 2026)
   points_actions: "oui", // les points dans la fenêtre des actions proposées (8 oct. 2026) : oui | non
   agent_testeur: "oui", // le bouton « Tester cette page avec l'agent », pour un super admin (12 oct. 2026) : oui | non
 });
@@ -96,6 +98,7 @@ export function normaliser(brut) {
   p.grille = Array.isArray(p.grille) ? [...new Set(p.grille.map(String).filter((z) => CHOIX.grille.includes(z)))] : [...DEFAUT.grille];
   const force = Math.round(Number(p.grille_intensite));
   p.grille_intensite = Number.isFinite(force) ? Math.min(100, Math.max(10, force)) : DEFAUT.grille_intensite;
+  p.cartes_opacite = opaciteCartes(p.cartes_opacite);
   p.accueil = typeof p.accueil === "string" && /^[A-Za-z]{2,40}$/.test(p.accueil) ? p.accueil : DEFAUT.accueil;
   p.menu_masques = Array.isArray(p.menu_masques) ? p.menu_masques.map(String).slice(0, 40) : [];
   p.menu_ordre = Array.isArray(p.menu_ordre) ? p.menu_ordre.map(String).slice(0, 40) : [];
@@ -351,6 +354,8 @@ export function appliquerPrefs(brut) {
   racine.dataset.pointsActions = p.points_actions;
   // Leur force : 50 rend les points d'origine, 100 les double.
   poser("--k-grid-force", p.grille_intensite === 50 ? null : String(p.grille_intensite / 50));
+  // L'opacité des cartes (classe .k-carte-rail, index.css) : 100 les laisse pleines.
+  poser("--k-carte-opacite", p.cartes_opacite === 100 ? null : String(p.cartes_opacite / 100));
   // La taille : tout grossit d'un bloc, texte et espacements.
   st.zoom = p.taille === 100 ? "" : String(p.taille / 100);
 }

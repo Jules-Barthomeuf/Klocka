@@ -435,6 +435,14 @@ export default function Personnalisation() {
         <Reglage titre="Surfaces" note="Les blocs et les cartes : du verre qui laisse voir le fond, ou des aplats.">
           <Pilules valeur={prefs.surfaces} options={OPTIONS.surfaces} onChoisir={(v) => changer({ surfaces: v })} />
         </Reglage>
+        <Reglage titre="Transparence des cartes" note="Les cartes de la page Dossiers : pleines à 100 %, de plus en plus transparentes en descendant ; le fond se devine à travers.">
+          <label className="flex w-full max-w-[420px] items-center gap-3">
+            <span className="flex-none text-[12px] text-brume">Opacité</span>
+            <input type="range" min={10} max={100} step={5} value={prefs.cartes_opacite}
+              onChange={(e) => changer({ cartes_opacite: Number(e.target.value) })} aria-label="Opacité des cartes" className="min-w-0 flex-1" />
+            <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.cartes_opacite} %</span>
+          </label>
+        </Reglage>
         <Reglage titre="Police" note="Partout, ALX compris.">
           <Pilules valeur={prefs.police} options={OPTIONS.police} onChoisir={(v) => changer({ police: v })} rendre={(v, mot) => <span style={{ fontFamily: POLICES[v] }}>{mot}</span>} />
         </Reglage>

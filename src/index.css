@@ -1124,3 +1124,10 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-cascade > *:nth-child(10) { animation-delay: 225ms; } .k-cascade > *:nth-child(11) { animation-delay: 250ms; }
 .k-cascade > *:nth-child(n+12) { animation-delay: 275ms; }
 @media (prefers-reduced-motion: reduce) { .k-cascade > * { animation: none; } }
+
+/* Les cartes de la page Dossiers (18 oct. 2026, Jules) : la couleur de la barre de navigation, avec l'opacité réglée dans Personnalisation. */
+.k-carte-rail {
+  background-color: rgb(var(--k-rail-rgb) / var(--k-carte-opacite, 1));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}

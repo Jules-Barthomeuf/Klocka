@@ -573,7 +573,7 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
   const n = etapeFrise(d);
   const verdict = d.lots?.[0]?.verdict;
   return (
-    <article className="relative cursor-pointer rounded-[14px] border border-trait bg-rail p-3.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
+    <article className="relative cursor-pointer rounded-[14px] border border-trait k-carte-rail p-3.5 pr-9 transition-colors hover:border-bord-doux" onClick={onOuvrir}>
       <p className="m-0 flex items-center gap-2 text-[15px] text-encre"><span className="truncate" title={d.titre}>{d.titre || d.nom_fichier || d.deal_id}</span><PointNouveau n={d.fil_non_lus || 0} /></p>
       <p className="m-0 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ardoise">
         <span className="inline-flex items-center gap-1.5 text-craie"><span className="h-1.5 w-1.5 rounded-full bg-menthe" />{ecarte ? (d.statut === "abandonne" ? "Abandonné" : "NO-GO") : FRISE[n - 1].label}</span>
@@ -618,7 +618,7 @@ function QuestionsMandataires() {
       <div className="mt-3 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
         {sansDossier.map((c) => (
           <Link key={c.id} to={`/Conversations?dossier=${c.id}`}
-            className="flex items-center gap-3.5 rounded-[16px] border border-trait bg-rail px-4 py-3.5 transition-colors hover:border-bord-doux">
+            className="flex items-center gap-3.5 rounded-[16px] border border-trait k-carte-rail px-4 py-3.5 transition-colors hover:border-bord-doux">
             <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-relief text-[12px] font-semibold text-craie">{initiales(c.mandataire_nom)}</span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="flex justify-between gap-2"><span className="truncate text-[15px] font-medium text-encre">{String(c.bien).replace(/\s*\(.*?\)\s*/g, " ").trim()}</span><span className="flex-none text-[12px] text-brume">{quand(c.activite)}</span></span>

@@ -10,7 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-18",
     items: [
-      { titre: "Le visage de Haka", texte: "Haka a un portrait dans les chats. Dans Paramètres, onglet Affichage, « Personnage de Haka » : trois portraits au choix.", page: "Personnalisation" },
+      { titre: "Le visage de Haka", texte: "Haka a un portrait dans les chats. Dans Paramètres, onglet Affichage, « Personnage de Haka » : six portraits au choix.", page: "Personnalisation" },
       { titre: "Corriger la fiche, directement dans le tableau", texte: "Dans la Pré-analyse, chaque valeur de la Fiche du bien se modifie d'un clic et relance l'analyse. Changer l'adresse relit le prix et le loyer du marché, et déplace Street View et le plan, désormais à droite du tableau.", page: "Analyse" },
       { titre: "Convertir un fichier dans la Data Room", texte: "Dans un dossier, glissez un fichier sur la Data Room en tenant Maj : une roue s'ouvre, lâchez-le sur un format. PDF en Word, JPG, PNG ou texte ; images en JPG, PNG, WEBP, PDF, compressées ou réduites ; Word et texte en PDF. Tout se fait dans le navigateur, le fichier converti arrive dans vos téléchargements. Aussi par le bouton « Convertir » et le menu ⋯ d'une pièce.", page: "Analyse" },
       { titre: "La police Inter", texte: "Une police de plus dans Personnalisation : Inter, à côté d'Instrument Sans, Figtree et Montserrat. Elle s'applique partout dès qu'on la choisit.", page: "Personnalisation" },

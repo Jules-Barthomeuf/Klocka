@@ -54,6 +54,16 @@ Conditions d'utilisation et robots.txt relevés le 18 oct. 2026 (pages gardées 
 
 Voies sûres : Equimmox en mode « Offre » (les annonces, déjà sous notre abonnement), les fiches reçues des agents, un flux sous licence (Melo, Yanport), des accords directs (Bpifrance, CessionPME, agences).
 
+## Lot 3, sites des agences du 06 : vérification (18 oct. 2026)
+
+Décision de Jules : collecte directe sur les sites des agences du 06, pas les portails. On ne collecte que là où rien ne l'interdit ; une mention « reproduction interdite » sans parler d'extraction est « douteuse » et Jules tranche sur la phrase exacte. Vérification gardée par site (SiteAgence : date, phrase, page lue), refaite tous les mois ; un site devenu interdit sort de la collecte de lui-même (`server/annonces/verification.js`, `npm run annonces:verifier -- 06`).
+
+507 sites (carnet des agences de la Prospection, 06) : **227 autorisés, 135 douteux, 68 interdits, 77 injoignables**. Liste complète, avec la phrase lue et la page, dans `docs/plans/lot3-sites-agences-06.csv`.
+
+- Un hébergeur commun (212.83.187.x, 126 sites, très probablement Apimo) a fermé sa porte après la rafale du second passage : pour ces sites, le verdict du premier passage est repris et à revérifier au calme. La vérification va désormais au rythme d'un serveur (une requête à la fois par adresse IP, 4 s entre deux sites) ; la collecte fera de même.
+- Logiciels vus au premier passage (avant le blocage) : Apimo en tête (96 sites autorisés), puis Hektor, WordPress, Netty, Adapt Immo, Twimmo, Immo-Facile, Ubiflow.
+- Les douteux tiennent surtout en une phrase, celle du gabarit Hektor (61 sites) : « Par conséquent, leur exploitation offline ou online, à titre gratuit ou onéreux, de tout ou partie de ces données sans le consentement exprès de l'Éditeur est interdite. » Puis celle de Netty (11 sites) : « La reproduction ou représentation, intégrale ou partielle, de ce site sur un support électronique ou tout autre support quel qu'il soit est formellement interdite sauf autorisation expresse de la société Netty. »
+
 ## À ranger dans le lot 4 (Valeur locative), à ne pas traiter avant
 
 1. Vérifier que le loyer de chaque lot est le loyer en cours à la date du dossier ; si c'est un loyer de signature de bail, actualiser depuis la date du bail.

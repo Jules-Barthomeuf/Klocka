@@ -156,6 +156,20 @@ const commun = (outil, entree, champs) => resultatCommun({ outil, entree: entree
  */
 function kzoning(brut = {}, entree = {}) {
   const b = brut || {};
+  // La zone de chalandise du lot 8 (outils-kd/zoning.js) : trois zones à pied, concurrence, indice de flux.
+  if (Array.isArray(b.zones) && b.flux) {
+    const date = dateDe(b.le, entree.date);
+    const lues = b.zones.filter((z) => z.habitants != null).length;
+    return commun('kzoning', { ...entree, id_local: entree.id_local || b.id_local || null }, {
+      valeur: { habitants_5min: b.zones[0]?.habitants ?? null, habitants_10min: b.zones[1]?.habitants ?? null, habitants_15min: b.zones[2]?.habitants ?? null, commerces: b.commerces_zone_primaire ?? null, concurrents: b.concurrence?.nombre ?? null, indice_flux: b.flux.indice ?? null },
+      fourchette: null,
+      unite: null,
+      confiance: confianceDe({ n: lues + (b.commerces_zone_primaire != null ? 1 : 0), min_haute: 4, min_moyenne: 2, age_jours: ageJours(date), age_max_jours: 30 }),
+      sources: sources(...(b.sources || []).map((l) => sourceDepuisLibelle(l, { le: b.le || null }))),
+      detail: { zones: b.zones, concurrence: b.concurrence, gares: b.gares || [], arrets: b.arrets || [], flux: b.flux, manques: b.manques || [] },
+      date,
+    });
+  }
   const insee = b.insee || null;
   const equipements = b.equipements || null;
   const commerces = Array.isArray(b.commerces) ? b.commerces : null;
@@ -243,7 +257,8 @@ function kestimation(brut = {}, entree = {}) {
     fourchette: v ? { bas: v.basse, central: v.moyenne, haut: v.haute } : null,
     unite: v ? '€' : null,
     // Trois méthodes croisées au plus : plus elles sont nombreuses, plus la valeur tient.
-    confiance: confianceDe({ n: Object.keys(methodes).length, min_haute: 3, min_moyenne: 2, age_jours: ageJours(date), age_max_jours: 30 }),
+    // Sous la boîte à outils (lot 5), l'Estimation calcule elle-même sa confiance par l'écart entre ses trois valeurs.
+    confiance: ['haute', 'moyenne', 'faible'].includes(r.trois_valeurs?.confiance) ? r.trois_valeurs.confiance : confianceDe({ n: Object.keys(methodes).length, min_haute: 3, min_moyenne: 2, age_jours: ageJours(date), age_max_jours: 30 }),
     sources: libelles.map((l) => sourceDepuisLibelle(l, { le: /equimmox/i.test(l) ? marche.vlm_equimmox?.le || null : null })),
     detail: {
       methodes,

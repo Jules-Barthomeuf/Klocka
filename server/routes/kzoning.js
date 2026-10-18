@@ -103,6 +103,19 @@ export function monterKZoning(app) {
    * d'après OpenStreetMap. Les deux sources partent ensemble ; l'une qui tombe
    * n'empêche pas l'autre d'être rendue.
    */
+  // La zone de chalandise d'une adresse (lot 8, 18 oct. 2026, boîte à outils allumée) : zones à pied, concurrence,
+  // gares et arrêts, indice de flux ; rendue aussi au format commun.
+  app.post('/api/kzoning/chalandise', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { boiteOutilsActive } = await import('../socle/drapeaux.js');
+    if (!boiteOutilsActive()) return res.status(404).json({ error: 'La boîte à outils est éteinte.' });
+    const { chalandiseDe } = await import('../outils-kd/zoning.js');
+    const r = await chalandiseDe(String(req.body?.adresse || ''), { activite: req.body?.activite || null, forcer: !!req.body?.forcer });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    const { versFormatCommun } = await import('../socle/format-commun.js');
+    ok(res, { ...r, commun: versFormatCommun('kzoning', r.resultat, { adresse: r.resultat.adresse }) });
+  }));
+
   app.get('/api/kzoning/zones/:id/lecture', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     const zone = Records.get('ZoneKData', req.params.id);

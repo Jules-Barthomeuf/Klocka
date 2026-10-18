@@ -552,7 +552,59 @@ function PanneauConcurrence({ zone, onCommerces, commerceOuvert, setCommerceOuve
   );
 }
 
+/**
+ * La zone de chalandise d'une adresse (lot 8, 18 oct. 2026, boîte à outils allumée) : trois zones à pied,
+ * concurrence de l'activité choisie, gares et arrêts, indice de flux. Un panneau à droite de la carte.
+ */
+function PanneauChalandise({ point, onFermer }) {
+  const [activite, setActivite] = useState("");
+  const q = useMutation({
+    mutationFn: () => base44.request("POST", "/api/kzoning/chalandise", { body: { adresse: point.libelle, activite: activite || null } }),
+    onError: (e) => toast.error(e?.message || "Zone de chalandise impossible"),
+  });
+  const r = q.data?.resultat;
+  const nombre = (n) => (n == null ? "—" : Math.round(n).toLocaleString("fr-FR"));
+  return (
+    <div className="absolute right-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/85 backdrop-blur max-md:left-3 max-md:right-3 max-md:w-auto">
+      <div className="flex items-start justify-between gap-3 border-b border-trait px-4 py-3">
+        <div className="min-w-0">
+          <p className="m-0 text-[13.5px] text-encre">Zone de chalandise</p>
+          <p className="m-0 truncate text-[12px] text-ardoise">{point.libelle}</p>
+        </div>
+        <button type="button" onClick={onFermer} className="text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Fermer</button>
+      </div>
+      <div className="flex items-center gap-2 px-4 py-3">
+        <input value={activite} onChange={(e) => setActivite(e.target.value)} placeholder="Activité (ex. Boulangerie), facultatif"
+          className="h-8 min-w-0 flex-1 rounded-full border border-bord bg-surface px-3 text-[12.5px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+        <button type="button" onClick={() => q.mutate()} disabled={q.isPending} className="h-8 flex-none rounded-full bg-menthe px-3.5 text-[12.5px] text-sur-menthe disabled:opacity-60">
+          {q.isPending ? "Lecture…" : "Lire"}
+        </button>
+      </div>
+      {r && (
+        <div className="min-h-0 flex-1 overflow-y-auto border-t border-trait px-4 py-3 text-[13px]">
+          <p className="m-0 text-[22px] font-semibold tabular-nums text-encre">{r.flux?.indice ?? "—"} <span className="text-[13px] font-normal text-ardoise">/ 100, indice de flux</span></p>
+          <p className="m-0 text-[11.5px] text-brume">{r.flux?.nature} ; {r.flux?.sur}</p>
+          {(r.zones || []).map((z) => (
+            <div key={z.cle} className="mt-3 border-t border-trait pt-2">
+              <p className="m-0 text-[12px] uppercase tracking-[.08em] text-ardoise">{z.marche}</p>
+              <p className="m-0 text-encre">{nombre(z.habitants)} habitants · {nombre(z.menages)} ménages · niveau de vie {nombre(z.niveau_de_vie_moyen)} €</p>
+              <p className="m-0 text-[12px] text-ardoise">moins de 18 ans {z.part_moins_18 ?? "—"} % · 65 ans et plus {z.part_65_plus ?? "—"} % · CSP+ {z.csp_plus_part ?? "—"} %</p>
+            </div>
+          ))}
+          <div className="mt-3 border-t border-trait pt-2">
+            <p className="m-0 text-encre">{nombre(r.commerces_zone_primaire)} commerces à 5 minutes{r.concurrence ? `, dont ${r.concurrence.nombre} « ${r.activite} »` : ""}</p>
+            {r.gares?.[0] && <p className="m-0 text-[12px] text-ardoise">Gare : {r.gares[0].nom}, {r.gares[0].distance_m} m{r.gares[0].voyageurs ? `, ${nombre(r.gares[0].voyageurs)} voyageurs en ${r.gares[0].annee}` : ""}</p>}
+            <p className="m-0 text-[12px] text-ardoise">{(r.arrets || []).filter((a) => a.distance_m <= 300).length} arrêts à moins de 300 m</p>
+          </div>
+          <p className="m-0 mt-3 text-[11px] text-brume">Sources : {(r.sources || []).join(", ")}{r.du_cache ? " · déjà lue" : ""}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function KZoning() {
+  const [chalandise, setChalandise] = useState(false);
   const user = useUser();
   const qc = useQueryClient();
   // Le fond : un type de carte Google (plan, satellite, hybride, relief).
@@ -655,6 +707,7 @@ export default function KZoning() {
         />
       </div>
       <SelecteurFond type={typeCarte} setType={setTypeCarte} cacheMobile={!!zoneOuverte} />
+      {chalandise && point && <PanneauChalandise key={point.libelle} point={point} onFermer={() => setChalandise(false)} />}
       <BoutonMecanique etapes={ETAPES_MECANIQUE} className={zoneOuverte ? "max-md:hidden" : ""} />
 
       {/* La fiche d'une société : plein écran, par-dessus la carte. */}
@@ -667,6 +720,11 @@ export default function KZoning() {
       <div className={`absolute left-4 top-4 z-[500] flex max-h-[calc(100%-2rem)] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-[16px] border border-bord bg-fond/70 backdrop-blur-xl max-md:left-3 max-md:right-3 max-md:top-3 max-md:max-h-[55%] max-md:w-auto max-md:max-w-none ${zoneOuverte ? "max-md:hidden" : ""}`}>
         <div className="flex-shrink-0 p-3">
           <ChercheAdresse key={rechercheNeuve} onChoisi={(s) => { setPoint(s); setRayon(RAYON_DEFAUT); }} />
+          {point && (
+            <button type="button" onClick={() => setChalandise(true)} className="mt-2 inline-flex h-8 items-center rounded-full border border-bord px-3 text-[12px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+              Zone de chalandise de cette adresse
+            </button>
+          )}
           {point && (
             <ReglageRayon
               point={point} rayon_m={rayon} setRayon={setRayon}

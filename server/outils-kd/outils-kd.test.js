@@ -36,3 +36,15 @@ test('les sources : risques rangés, urbanisme lu, gares rapprochées par le cod
   const g = rapprocherGares([{ nom: 'Cannes', position_geographique: { lat: 43.55, lon: 7.01 }, codes_uic: '87757625' }], [{ code_uic_complet: '0087757625', total_voyageurs_2024: 5622415 }]);
   assert.equal(g[0].voyageurs, 5622415);
 });
+
+test('K-Zoning : une zone lisible, et la chalandise au format commun', async () => {
+  const { zoneLisible } = await import('./zoning.js');
+  const { versFormatCommun } = await import('../socle/format-commun.js');
+  const z = zoneLisible({ cle: 'primaire', nom: 'Zone primaire', marche: '5 minutes à pied', insee: { population: { habitants: 1086, part_moins_18: 10.7, part_65_plus: 35.8 }, menages: { menages: 661 }, revenus: { niveau_de_vie_moyen: 22297 } }, recensement: { population: 1100, csp_plus: 188, taux_chomage: 14.1 } });
+  assert.equal(z.habitants, 1086);
+  assert.equal(z.csp_plus_part, 17.1);
+  const c = versFormatCommun('kzoning', { id_local: 'L-1', zones: [z, { habitants: 5393 }, { habitants: 13971 }], commerces_zone_primaire: 484, concurrence: { nombre: 10 }, flux: { indice: 72 }, sources: ['OpenStreetMap (commerces)'], le: new Date().toISOString() }, { adresse: 'x' });
+  assert.equal(c.valeur.indice_flux, 72);
+  assert.equal(c.valeur.concurrents, 10);
+  assert.equal(c.confiance, 'haute');
+});

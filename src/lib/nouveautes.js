@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-18",
     items: [
+      { titre: "Les courbes des clients", texte: "En tête de la page Utilisateurs : le nombre de clients jour après jour (comptes, et ceux qui se sont déjà connectés), et leur temps de connexion, sur 30 jours, 90 jours ou un an.", page: "AdminUtilisateurs" },
       { titre: "Le Suivi dans Administration", texte: "Le Suivi (usage, audience, appels, réunion, mandataires, chat, Haka) n'est plus dans Paramètres : c'est le quatrième onglet d'Administration, après Automatismes.", page: "Monitoring" },
       { titre: "Haka à votre façon", texte: "Paramètres, onglet Haka : son portrait (six au choix), la longueur de ses réponses (très courtes, courtes, détaillées) et les tableaux. Sous chaque réponse, un pouce se pose d'un clic.", page: "Personnalisation" },
       { titre: "Corriger la fiche, directement dans le tableau", texte: "Dans la Pré-analyse, chaque valeur de la Fiche du bien se modifie d'un clic et relance l'analyse. Changer l'adresse relit le prix et le loyer du marché, et déplace Street View et le plan, désormais à droite du tableau.", page: "Analyse" },

@@ -7,6 +7,7 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import InviterClient, { BoutonLienInvitation } from "@/components/admin/InviterClient";
 import FamillesClients from "@/components/admin/FamillesClients";
+import CourbesClients from "@/components/admin/CourbesClients";
 import { DialogueAssignerProjets } from "@/components/admin/AssignationProjets";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -506,6 +507,8 @@ export default function AdminUtilisateurs() {
       <p className="m-0 -mt-3 text-[14px] text-ardoise">Les comptes de la plateforme : les clients et leur étape, les invitations à envoyer, les familles qui partagent un dossier, l'équipe.</p>
 
       {onglet === "familles" ? <FamillesClients users={users} /> : <>
+      {/* Les courbes des clients (18 oct. 2026, Jules) : le nombre de clients, et leur temps de connexion. */}
+      <CourbesClients />
       <div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex h-12 min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:basis-full">

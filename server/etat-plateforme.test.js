@@ -65,7 +65,8 @@ test("l'écran le plus ouvert est nommé, avec sa part", () => {
 test('les leviers qui attendent sont séparés de ceux qui sont posés', () => {
   const md = enMarkdown(ETAT);
   assert.match(md, /Ne les reproposez pas comme des idées neuves/);
-  assert.match(md, /\*\*L'espacement de la veille\*\* \(un réglage\)/);
+  // La veille à quinze minutes est posée depuis le 18 oct. 2026 : elle a rejoint « Déjà en place ».
+  assert.match(md, /Déjà en place, à ne pas défaire : .*la veille toutes les quinze minutes/);
   assert.match(md, /\*\*Le traitement différé\*\* \(une décision\)/);
   assert.match(md, /Déjà en place, à ne pas défaire : le cache des pièces/);
 });

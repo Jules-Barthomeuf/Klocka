@@ -199,7 +199,8 @@ export async function pousserBien(deal, { motif, par = null } = {}) {
   if (r?.id && r.id !== deal.monday_item_id) {
     Records.update('Deal', deal.id, { monday_item_id: String(r.id) });
   }
-  if (r?.id) completerAnnonce('Deal', deal, bienPourAnnonce, r.id);
+  // L'annonce en ligne (recherche web, la plus chère des tâches de fond) : seulement quand quelqu'un pousse le bien (18 oct. 2026, Jules).
+  if (r?.id && par) completerAnnonce('Deal', deal, bienPourAnnonce, r.id);
   return r;
 }
 

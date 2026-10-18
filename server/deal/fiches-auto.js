@@ -182,7 +182,7 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
       const auteur = Records.filter('User', { email: mail.compte })[0] || null;
       // Une fiche transférée par l'équipe n'a pas d'agent dedans.
       const interne = mail.interne || estInterne(mail.de_email);
-      const dossier = await faire(mail, { user: auteur, uploadDir, contactEmail: interne ? null : undefined });
+      const dossier = await faire(mail, { user: auteur, uploadDir, contactEmail: interne ? null : undefined, automatique: true });
       // preanalyserMail a sa propre garde (conversation, doublon) : le mail
       // a rejoint un dossier déjà existant, il n'y en a pas de nouveau.
       if (dossier.repris_conversation || dossier.doublon) {

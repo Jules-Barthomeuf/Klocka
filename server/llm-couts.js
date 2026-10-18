@@ -392,12 +392,12 @@ export const LEVIERS = [
   },
   {
     cle: 'espacement_veille',
-    etat: 'regler',
-    titre: "L'espacement de la veille",
+    etat: 'pose',
+    titre: "La veille toutes les quinze minutes",
     effet: '{{mediane:veille}} par mail douteux',
     effet_defaut: 'quelques centimes par passage',
-    ou: 'Variable MAIL_VEILLE_MINUTES · 5 minutes aujourd\'hui',
-    texte: "Depuis que les mails écartés sont mémorisés, un passage sans nouveau mail ne coûte rien. Quinze minutes suffiraient probablement, et rien ne serait perdu : un mail reçu à 9 h 02 entrerait à 9 h 15.",
+    ou: `Posé le 18 octobre · MAIL_VEILLE_MINUTES ${process.env.MAIL_VEILLE_MINUTES || 15}`,
+    texte: "Le 18 octobre, Jules demande de limiter ce qu'on ne déclenche pas : la veille passe de cinq à quinze minutes par défaut (un mail reçu à 9 h 02 entre à 9 h 15). Le même jour, une fiche analysée sans clic (veille, Haka) ne lance plus le point de marché par recherche web, et l'annonce en ligne ne se cherche plus que quand quelqu'un pousse le bien dans Monday.",
   },
   {
     cle: 'differe',
@@ -413,7 +413,7 @@ export const LEVIERS = [
     titre: 'Des réponses courtes, une réflexion moyenne',
     effet: 'Moins de jetons de sortie par demande au chat (réflexion comprise)',
     ou: `Posé le 18 octobre · consigne d'AK (un ou deux paragraphes au plus) · AK_EFFORT ${process.env.AK_EFFORT || 'medium'}`,
-    texte: "Le 18 octobre, Jules demande de baisser les crédits le plus possible : le chat répond en un ou deux paragraphes au plus, sans liste numérotée, tableau ni calcul détaillé sauf demande, et sa réflexion passe de « high » à « medium » (elle se paie au prix de la sortie). Le coût par demande d'AK se lira ici avant et après.",
+    texte: "Le 18 octobre, Jules demande de baisser les crédits le plus possible : le chat répond en un ou deux paragraphes au plus (un petit tableau quand il dit les chiffres plus vite), sans longue liste ni calcul détaillé sauf demande, et sa réflexion passe de « high » à « medium » (elle se paie au prix de la sortie). Le coût par demande d'AK se lira ici avant et après.",
   },
   {
     cle: 'modele_moins_cher',

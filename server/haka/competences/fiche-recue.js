@@ -41,7 +41,7 @@ async function creerDepuisMail(mail, { user, uploadDir, contactEmail }) {
     return dossier;
   }
   const { preanalyserMail } = await import('../../deal/preanalyser-mail.js');
-  return preanalyserMail(mail, { user, uploadDir, contactEmail });
+  return preanalyserMail(mail, { user, uploadDir, contactEmail, automatique: true });
 }
 
 taches.enregistrer(COMPETENCE, {

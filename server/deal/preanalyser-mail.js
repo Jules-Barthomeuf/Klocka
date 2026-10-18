@@ -17,7 +17,9 @@ import { ajouterSuivi } from './lifecycle.js';
  * @returns {Promise<object>} le premier dossier ; avec plusieurs fiches, sa
  *   propriété `dossiers` les liste tous, dans l'ordre des pièces.
  */
-export async function preanalyserMail(mailRecu, { user = null, uploadDir = null, contactEmail = undefined } = {}) {
+// `automatique` (18 oct. 2026, Jules : « limite les coûts des actions qu'on ne déclenche pas ») : sans clic,
+// l'analyse saute le point de marché par recherche web ; il se fait quand quelqu'un relance l'analyse.
+export async function preanalyserMail(mailRecu, { user = null, uploadDir = null, contactEmail = undefined, automatique = false } = {}) {
   if (mailRecu.deal_id) throw new Error('Ce mail a déjà été préanalysé.');
 
   // Une réponse dans la conversation d'un dossier, ou la même fiche déjà
@@ -49,7 +51,7 @@ export async function preanalyserMail(mailRecu, { user = null, uploadDir = null,
       const buffer = await telechargerPieceJointe(mailRecu.compte, mailRecu.gmail_message_id, p.piece_id);
       const dossier = await analyserFiche(
         { buffer, filename: p.nom, mimetype: p.mime || undefined, contactEmail: contact },
-        { user, uploadDir }
+        { user, uploadDir, automatique }
       );
       Records.update('Deal', Records.findBy('Deal', 'deal_id', dossier.deal_id).id, { source_mail: { ...origine, piece: p.nom } });
       dossiers.push(dossier);
@@ -61,7 +63,7 @@ export async function preanalyserMail(mailRecu, { user = null, uploadDir = null,
   const buffer = await telechargerRaw(mailRecu.compte, mailRecu.gmail_message_id);
   const dossier = await analyserFiche(
     { buffer, filename: `${(mailRecu.objet || 'mail').slice(0, 60)}.eml`, mimetype: 'message/rfc822', contactEmail: contact },
-    { user, uploadDir }
+    { user, uploadDir, automatique }
   );
   Records.update('MailRecu', mailRecu.id, { deal_id: dossier.deal_id });
   Records.update('Deal', Records.findBy('Deal', 'deal_id', dossier.deal_id).id, { source_mail: origine });

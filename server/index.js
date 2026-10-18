@@ -1412,7 +1412,7 @@ import('./deal/veille-mails.js').then(({ demarrerVeille }) => {
   const active = demarrerVeille();
   console.log(
     active
-      ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 5} min)`
+      ? `  ▸ Veille des boîtes mail active (toutes les ${process.env.MAIL_VEILLE_MINUTES || 15} min)`
       : '  ▸ Veille des boîtes mail inactive (GOOGLE_GMAIL_READ absent)'
   );
 }).catch((e) => console.warn(`[démarrage] veille des boîtes mail : ${e?.message || e}`));

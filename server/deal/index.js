@@ -146,7 +146,8 @@ export async function analyserFiche(entree, ctx = {}) {
   }
   // Jamais attendu : l'analyse répond tout de suite, le contexte marché
   // apparaît au prochain rafraîchissement du dossier.
-  completerContexteMarche(dossier);
+  // Sans clic (veille des boîtes, Haka), pas de recherche web : le point de marché attend un geste (18 oct. 2026).
+  if (!ctx.automatique) completerContexteMarche(dossier);
   // L'agent, lui, est attendu : c'est à lui qu'on écrit ensuite, et celui
   // qui a déposé la fiche doit savoir s'il est au dossier et dans Monday.
   // Un dossier venu d'un mandataire K Partners n'a pas d'agent immobilier :

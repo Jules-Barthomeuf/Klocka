@@ -21,7 +21,7 @@ import { ingererEnAttente } from './pieces-mails.js';
 // Un dossier clos ne reçoit plus de réponse : inutile d'y rattacher un mail.
 const OUVERTS = ['analyse', 'documents_demandes', 'documents_recus', 'depouille'];
 
-const MINUTES = Math.max(1, Number(process.env.MAIL_VEILLE_MINUTES || 5));
+const MINUTES = Math.max(1, Number(process.env.MAIL_VEILLE_MINUTES || 15));
 
 // La veille tourne sans requête HTTP : elle résout elle-même le dossier des
 // uploads, plutôt que de dépendre d'un paramètre transmis.

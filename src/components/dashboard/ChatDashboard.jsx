@@ -1843,7 +1843,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 disabled={!enCours && !texte.trim() && !fichier && !reglages?.competence}
                 aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
-                className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe-pale text-sur-menthe-pale transition-opacity disabled:opacity-70"
+                className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:cursor-default"
               >
                 {enCours ? <Square className="h-3 w-3" fill="currentColor" /> : <ArrowUp className="h-4 w-4" strokeWidth={2} />}
               </button>

@@ -298,10 +298,12 @@ export function supprimerProspection(id) {
   return { ok: true };
 }
 
-export function lancerProspection({ adresse, activite = null, rayon_m = RAYON_DEFAUT, criteres = {} }, user = null) {
+export function lancerProspection({ adresse, activite = null, rayon_m = RAYON_DEFAUT, criteres = {}, zone = 'adresse' }, user = null) {
   const texte = String(adresse || '').trim();
-  if (texte.length < 5) return { ok: false, error: 'Il faut une adresse précise : numéro, rue, ville.' };
-  const rayon = Math.min(RAYON_MAX, Math.max(100, Number(rayon_m) || RAYON_DEFAUT));
+  // Une commune entière (lot 9, 18 oct. 2026, boîte à outils allumée) : le nom de la commune suffit.
+  const commune = zone === 'commune' && boiteOutilsActive();
+  if (commune ? texte.length < 2 : texte.length < 5) return { ok: false, error: commune ? 'Il faut le nom de la commune.' : 'Il faut une adresse précise : numéro, rue, ville.' };
+  const rayon = commune ? null : Math.min(RAYON_MAX, Math.max(100, Number(rayon_m) || RAYON_DEFAUT));
   const propres = {};
   for (const g of CRITERES) {
     const v = (criteres?.[g.cle] || []).filter((x) => g.options.some((op) => op.valeur === x && !op.indisponible));
@@ -310,7 +312,7 @@ export function lancerProspection({ adresse, activite = null, rayon_m = RAYON_DE
   const e = Records.create(ENTITE, {
     adresse: texte, libelle: texte,
     activite: String(activite || '').trim() || TOUS_LES_COMMERCES.nom,
-    rayon_m: rayon, criteres: propres,
+    rayon_m: rayon, criteres: propres, zone: commune ? 'commune' : 'adresse',
     etat: 'en_cours', progression: 0,
     etapes: (boiteOutilsActive() ? [...ETAPES, { cle: 'contacts', nom: 'À qui l\'on parle : coordonnées, signaux, historique Klocka, intérêt' }] : ETAPES).map((x) => ({ ...x, etat: 'a_faire', detail: null })),
     cree_le: new Date().toISOString(), fini_le: null, par: user?.email || null,
@@ -326,13 +328,33 @@ async function executer(id) {
 
   etape(id, 'adresse', 'en_cours');
   let point = null;
-  try { point = await resoudreAdresse(e.adresse); } catch (err) { etape(id, 'adresse', 'ratee', err?.message || String(err)); noter(id, { etat: 'echec', fini_le: new Date().toISOString(), erreur: err?.message || String(err) }); return; }
+  // Une commune entière se cherche dans l'entrepôt des communes, pas comme une adresse : « Antibes » n'est pas la rue d'Antibes.
+  if (e.zone === 'commune') {
+    const { communeParNom } = await import('./outils-kd/prospective.js');
+    const c = communeParNom(e.adresse);
+    if (c) point = { lat: c.lat, lon: c.lon, label: c.nom, code_insee: c.code };
+  }
+  if (!point) try { point = await resoudreAdresse(e.adresse); } catch (err) { etape(id, 'adresse', 'ratee', err?.message || String(err)); noter(id, { etat: 'echec', fini_le: new Date().toISOString(), erreur: err?.message || String(err) }); return; }
   if (!point) {
     etape(id, 'adresse', 'ratee', 'adresse introuvable dans la Base Adresse Nationale');
     noter(id, { etat: 'echec', fini_le: new Date().toISOString(), erreur: `Adresse introuvable : « ${e.adresse} ».` });
     return;
   }
   const codeInsee = point.code_insee || null;
+  // Une commune entière : le rayon couvre son emprise (entrepôt des communes, 8 km au plus), et l'on ne garde
+  // que les commerces dans l'emprise. Une approximation par la boîte de la commune, dite à l'écran.
+  let emprise = null;
+  if (e.zone === 'commune') {
+    const { empriseCommune } = await import('./outils-kd/prospective.js');
+    emprise = empriseCommune(codeInsee);
+    if (!emprise) {
+      etape(id, 'adresse', 'ratee', 'commune absente de l\'entrepôt (Alpes-Maritimes seulement pour l\'instant)');
+      noter(id, { etat: 'echec', fini_le: new Date().toISOString(), erreur: `Commune non chargée : « ${e.adresse} ».` });
+      return;
+    }
+    noter(id, { rayon_m: emprise.rayon_m });
+    e.rayon_m = emprise.rayon_m;
+  }
   noter(id, { point: { lat: point.lat, lon: point.lon, label: point.label, code_insee: codeInsee }, libelle: point.label });
   etape(id, 'adresse', 'faite', point.label);
 
@@ -340,7 +362,7 @@ async function executer(id) {
   const metier = e.activite === TOUS_LES_COMMERCES.nom ? null : METIERS.find((m) => m.nom === e.activite)?.nom || null;
   const r = await commercesDeLaZone({ lat: point.lat, lon: point.lon, rayon_m: e.rayon_m, filtres: filtresDe(metier ? [metier] : []) });
   if (!r.ok) { etape(id, 'commerces', 'ratee', r.error); noter(id, { etat: 'echec', fini_le: new Date().toISOString(), erreur: r.error }); return; }
-  let commerces = (r.commerces || []).filter((c) => !c.vacant).map((c) => ({ ...c, metier: nomDe(c.genre), categorie: categorieDe(nomDe(c.genre)) }));
+  let commerces = (r.commerces || []).filter((c) => !c.vacant).filter((c) => !emprise || (c.lon >= emprise.ouest && c.lon <= emprise.est && c.lat >= emprise.sud && c.lat <= emprise.nord)).map((c) => ({ ...c, metier: nomDe(c.genre), categorie: categorieDe(nomDe(c.genre)) }));
   etape(id, 'commerces', 'faite', `${commerces.length} commerces dans ${e.rayon_m} m`);
   noter(id, { commerces, nb_commerces: commerces.length });
 
@@ -418,7 +440,7 @@ async function executer(id) {
       const total = Object.keys(criteres).length;
       const parId = new Map(commerces.map((c) => [c.id, c]));
       // Un retenu remplit tous les critères demandés.
-      const enrichis = await enrichirRetenus(retenus.map((i) => ({ ...parId.get(i), criteres_remplis: total })).filter((c) => c.id), { ville: (String(Records.get(ENTITE, id)?.point?.label || '').match(/\d{5}\s+(.+)$/) || [])[1] || null, criteresTotal: total });
+      const enrichis = await enrichirRetenus(retenus.map((i) => ({ ...parId.get(i), criteres_remplis: total })).filter((c) => c.id), { ville: (() => { const l = String(Records.get(ENTITE, id)?.point?.label || ''); return e.zone === 'commune' ? l : (l.match(/\d{5}\s+(.+)$/) || [])[1] || null; })(), criteresTotal: total });
       for (const x of enrichis) parId.set(x.id, x);
       commerces = commerces.map((c) => parId.get(c.id) || c);
       ordre = [...enrichis.map((x) => x.id), ...retenus.filter((i) => !enrichis.some((x) => x.id === i))];

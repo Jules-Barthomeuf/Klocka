@@ -85,3 +85,30 @@ export async function enrichirRetenus(commerces, { ville = null, max = 40, crite
   }
   return sortie.sort((a, b) => b.interet.total - a.interet.total);
 }
+
+/** L'emprise d'une commune de l'entrepôt (API Géo) : sa boîte et le rayon qui la couvre depuis son centre, 8 km au plus. */
+export function empriseCommune(codeInsee) {
+  if (!codeInsee) return null;
+  try {
+    const c = db.prepare('SELECT bbox FROM entrepot_commune WHERE code = ?').get(codeInsee);
+    const pts = JSON.parse(c?.bbox || 'null')?.coordinates?.[0];
+    if (!pts?.length) return null;
+    const lons = pts.map((p) => p[0]); const lats = pts.map((p) => p[1]);
+    const b = { ouest: Math.min(...lons), est: Math.max(...lons), sud: Math.min(...lats), nord: Math.max(...lats) };
+    const dLat = (b.nord - b.sud) * 111320; const dLon = (b.est - b.ouest) * 111320 * Math.cos((((b.nord + b.sud) / 2) * Math.PI) / 180);
+    return { ...b, rayon_m: Math.min(8000, Math.round(Math.hypot(dLat, dLon) / 2)) };
+  } catch { return null; }
+}
+
+/** Une commune de l'entrepôt par son nom (sans accents ni casse) ou son code : code, nom, centre de son emprise. */
+export function communeParNom(texte) {
+  const norme = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  try {
+    const t = norme(texte);
+    const lignes = db.prepare('SELECT code, nom, bbox FROM entrepot_commune').all();
+    const c = lignes.find((x) => x.code === String(texte).trim()) || lignes.find((x) => norme(x.nom) === t);
+    if (!c) return null;
+    const e = empriseCommune(c.code);
+    return e ? { code: c.code, nom: c.nom, lat: (e.sud + e.nord) / 2, lon: (e.ouest + e.est) / 2, label: c.nom } : null;
+  } catch { return null; }
+}

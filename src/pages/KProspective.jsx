@@ -90,7 +90,7 @@ function Chargement({ prospection: p }) {
     <div className="mx-auto max-w-[620px] px-4 pt-16 text-center">
       <p className="alx-mont m-0 text-[11px] uppercase tracking-[.2em] text-menthe-texte">Prospection en cours</p>
       <h2 className="mt-2 mb-1 text-[24px] font-light text-encre">{p?.libelle || p?.adresse}</h2>
-      <p className="m-0 text-[13px] text-ardoise">{p?.activite} · {p?.rayon_m} m</p>
+      <p className="m-0 text-[13px] text-ardoise">{p?.activite} · {p?.zone === "commune" ? `commune entière (emprise, ${p?.rayon_m} m)` : `${p?.rayon_m} m`}</p>
       <div className="mx-auto mt-8 h-3 w-full overflow-hidden rounded-full bg-relief">
         <div className="h-full rounded-full bg-menthe transition-[width] duration-700" style={{ width: `${Math.max(4, p?.progression || 0)}%` }} />
       </div>
@@ -292,6 +292,8 @@ export default function KProspective() {
   const [activite, setActivite] = useState("");
   const [adresse, setAdresse] = useState("");
   const [rayon, setRayon] = useState(500);
+  // Autour d'une adresse, ou une commune entière (lot 9, 18 oct. 2026 ; boîte à outils allumée côté serveur).
+  const [zone, setZone] = useState("adresse");
   const [suggestions, setSuggestions] = useState([]);
   const choisie = useRef("");
   const [criteres, setCriteres] = useState({});
@@ -328,7 +330,7 @@ export default function KProspective() {
   }, [adresse]);
 
   const lancer = useMutation({
-    mutationFn: () => base44.request("POST", "/api/kprospective", { body: { adresse, activite, rayon_m: rayon, criteres } }),
+    mutationFn: () => base44.request("POST", "/api/kprospective", { body: { adresse, activite, rayon_m: rayon, criteres, zone } }),
     onSuccess: (r) => { setOuverte(r.id); setSuggestions([]); qc.invalidateQueries({ queryKey: ["kprospective"], exact: true }); },
     onError: (err) => toast.error(err?.message || "Lancement impossible"),
   });
@@ -376,11 +378,18 @@ export default function KProspective() {
             <datalist id="metiers-prospective">{metiers.map((m) => <option key={m} value={m} />)}</datalist>
           </div>
           <div>
-            <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Adresse</label>
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label className="alx-mont block text-[10.5px] uppercase tracking-[.14em] text-encre">{zone === "commune" ? "Commune" : "Adresse"}</label>
+              <span className="flex gap-1 text-[11.5px]">
+                {[["adresse", "Autour d'une adresse"], ["commune", "Commune entière"]].map(([v, mot]) => (
+                  <button key={v} type="button" onClick={() => setZone(v)} className={`rounded-full px-2 py-0.5 ${zone === v ? "bg-menthe/[0.14] text-menthe-texte" : "text-ardoise hover:text-encre"}`} style={{ background: zone === v ? undefined : "transparent" }}>{mot}</button>
+                ))}
+              </span>
+            </div>
             <div className="relative">
               <div className="flex items-center gap-2 rounded-[10px] border border-bord bg-surface px-3 focus-within:border-menthe">
                 <Search className="h-4 w-4 flex-shrink-0 text-brume" />
-                <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder="49 rue Dabray, 06000 Nice"
+                <input value={adresse} onChange={(ev) => setAdresse(ev.target.value)} placeholder={zone === "commune" ? "Cannes" : "49 rue Dabray, 06000 Nice"}
                   className="h-11 w-full bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
               {suggestions.length > 0 && (
@@ -390,7 +399,7 @@ export default function KProspective() {
               )}
             </div>
           </div>
-          <div>
+          <div className={zone === "commune" ? "invisible" : ""}>
             <label className="alx-mont mb-1.5 block text-[10.5px] uppercase tracking-[.14em] text-encre">Rayon</label>
             <div className="flex h-11 items-center gap-1 rounded-[10px] border border-bord bg-surface px-1">
               {RAYONS.map((r) => <button key={r} type="button" onClick={() => setRayon(r)} className={`flex-1 rounded-[8px] py-1.5 text-[12px] tabular-nums ${rayon === r ? "bg-menthe/[0.14] text-menthe-texte" : "text-ardoise hover:text-encre"}`}>{r >= 1000 ? `${r / 1000} km` : `${r} m`}</button>)}

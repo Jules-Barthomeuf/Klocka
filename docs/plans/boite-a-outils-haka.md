@@ -212,4 +212,6 @@ Reste : l'étalonnage du classement (8 cas sur 10 face à Data-B, Data-B coupé,
 - **Savoir à qui l'on parle** (`server/outils-kd/prospective.js`), étape « contacts » derrière BOITE_OUTILS : téléphone, site et statut sur Google Places (retenus seulement, quarante au plus), signaux de vacance déjà relevés (vacance_signal), historique avec Klocka (cible ALX), score d'intérêt sur 100 ; les retenus sont classés par intérêt. Essai réel, boulangeries à 500 m du 45 rue d'Antibes : 11 trouvées, 11 joignables.
 - Page : intérêt, signaux, coordonnées, « déjà chez Klocka ».
 
-Reste : la recherche par commune et par rue (aujourd'hui un cercle autour d'une adresse), l'export vers la page Appels, la phrase d'accroche de Haka (lot 10), et le remplacement de la Prospective Data-B des mandataires (quatre écrans, contacts et solvabilité).
+- Recherche par **commune entière** (choix sur la page) : la commune vient de l'entrepôt (pas de la BAN, qui prenait « Antibes » pour la rue d'Antibes), le rayon couvre son emprise (8 km au plus) et seuls les commerces dans l'emprise restent. Essai réel : 31 opticiens à Antibes, 31 joignables.
+
+Reste : la recherche par rue, l'export vers la page Appels, la phrase d'accroche de Haka (lot 10), et le remplacement de la Prospective Data-B des mandataires (quatre écrans, contacts et solvabilité).

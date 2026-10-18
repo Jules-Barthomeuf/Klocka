@@ -325,7 +325,9 @@ function LayoutContent({ children, currentPageName }) {
   // la barre se replie en arrivant et reprend le réglage en partant.
   // Un dossier ouvert (18 oct. 2026, Jules) : la barre se ferme d'elle-même en y entrant, et reprend le réglage en en sortant.
   const dansDossier = currentPageName === "Analyse" && !!new URLSearchParams(location.search).get("deal_id");
-  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || dansDossier || prefs.barre === "repliee"); }, [prefs.barre, currentPageName, dansDossier]);
+  // Un projet ouvert en modification garde aussi la barre, repliée en rail, comme un dossier (18 oct. 2026, Jules).
+  const dansProjet = currentPageName === "AdminProjets" && !!new URLSearchParams(location.search).get("id");
+  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || dansDossier || dansProjet || prefs.barre === "repliee"); }, [prefs.barre, currentPageName, dansDossier, dansProjet]);
   // La recherche (⌘K) : projets et dossiers, de n'importe quelle page.
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   useEffect(() => {

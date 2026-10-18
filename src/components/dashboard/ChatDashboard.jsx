@@ -127,7 +127,7 @@ const ESPACES = {
   // Un dossier ouvert (équipe, 17 oct. 2026) : AK à gauche, le dossier à droite, à toutes les étapes.
   dossier: { api: "/api/assistant", page: "dossiers", modesAGauche: true, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Une question sur ce dossier ? « Qu'est-ce qui manque ? », « Le loyer est de 24 000 € HT »" },
   // L'éditeur de projet (équipe, 14 oct. 2026) : le chat d'AK retouche les chiffres du projet ouvert à droite, avec leurs sources.
-  projet: { api: "/api/assistant", page: "projets", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Que corriger ? « Le loyer est trop bas, va chercher des chiffres plus cohérents »" },
+  projet: { api: "/api/assistant", page: "projets", modesAGauche: true, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Que corriger ? « Le loyer est trop bas, va chercher des chiffres plus cohérents »" },
   // La présentation vue du client (16 oct. 2026, Jules : « le même design que la partie admin ») : le même chat,
   // sur sa route à lui ; AK n'y touche qu'à la présentation ouverte à droite.
   presentation_client: { api: "/api/client/ak", client: true, modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: null, mailsTypes: false, placeholder: "Que voulez-vous changer ? « Raccourcissez le texte de la couverture », « mettez le titre plus simplement »…" },

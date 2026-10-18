@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-18",
     items: [
+      { titre: "Modifier un projet, comme un dossier en mode IA", texte: "En modification de projet, la barre de navigation reste à gauche, et le chat reprend celui d'un dossier en mode IA : la question au centre, la saisie avec « + » pour joindre une pièce, les sources et l'historique.", page: "AdminProjets" },
       { titre: "Les courbes des clients", texte: "En tête de la page Utilisateurs : le nombre de clients jour après jour (comptes, et ceux qui se sont déjà connectés), et leur temps de connexion, sur 30 jours, 90 jours ou un an.", page: "AdminUtilisateurs" },
       { titre: "Le Suivi dans Administration", texte: "Le Suivi (usage, audience, appels, réunion, mandataires, chat, Haka) n'est plus dans Paramètres : c'est le quatrième onglet d'Administration, après Automatismes.", page: "Monitoring" },
       { titre: "Haka à votre façon", texte: "Paramètres, onglet Haka : son portrait (six au choix), la longueur de ses réponses (très courtes, courtes, détaillées) et les tableaux. Sous chaque réponse, un pouce se pose d'un clic.", page: "Personnalisation" },

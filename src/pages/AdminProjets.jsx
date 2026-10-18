@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Depliant, PanneauSources } from "@/components/haka/ReglagesDemande";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -1256,13 +1257,23 @@ export default function AdminProjets() {
     return () => window.removeEventListener("keydown", clavier);
   });
 
-  // Le chat à gauche, le projet à droite : le fond uni de Présentations, sans la barre de navigation.
+  // Le chat à gauche, le projet à droite. Comme le mode IA d'un dossier (18 oct. 2026, Jules) : la barre de
+  // navigation reste à gauche, repliée en rail (Layout), et le fond Halo reste ; la page ne défile pas.
   useEffect(() => {
     if (!scindeProjet) return undefined;
-    document.documentElement.classList.add("k-sans-barre", "k-sobre");
+    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak");
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre");
+    return () => document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak");
   }, [scindeProjet]);
+  // Les réglages du chat, ceux du mode IA d'un dossier : sources « Auto » ou choisies, panneau au-dessus de la saisie.
+  const [chatOuvert, setChatOuvert] = useState(false);
+  const [sourcesChat, setSourcesChat] = useState([]);
+  const [sourcesOuvert, setSourcesOuvert] = useState(false);
+  const reglagesChat = useMemo(() => ({
+    sources: sourcesChat, sortie: null, sourcesOuvert,
+    onOuvrirSources: () => setSourcesOuvert((o) => !o), competence: null, eteintes: [], choisirCompetence: () => {},
+    panneau: <PanneauSources sources={sourcesChat} onChange={setSourcesChat} />,
+  }), [sourcesChat, sourcesOuvert]);
   const CLE_LARGEUR = "klocka.projets.largeur-chat";
   const bornerChat = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
   const tirerChat = (e) => {
@@ -1724,12 +1735,22 @@ export default function AdminProjets() {
     }
     if (scindeProjet) {
       return (
-        <div className={`k-page-presentation relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
-          <div className="k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5">
-            {/* Le chat s'ouvre en fil (14 oct. 2026, Jules) : Dashboard et Historique en haut, la saisie en bas. */}
-            <ChatDashboard espace="projet" onReponse={surReponseAK} onTravail={setTravailAK}
-              barreApercu filVide="Par où commence-t-on ?" contexte={{ projet_id: editingProject.id }} lireEcran={lireEcran}
-              retour={{ libelle: "Retour", onClick: () => { envoyerRef.current?.(); setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); } }} />
+        <div className={`k-page-presentation k-dossier-ia relative grid h-[100dvh] w-full overflow-hidden text-encre ${tireChat ? "select-none" : ""}`} style={{ gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` }}>
+          {/* À gauche, la colonne du mode IA d'un dossier (18 oct. 2026, Jules) : la question au centre, la saisie en bas
+              avec « + », les sources et l'historique ; la barre du haut n'apparaît qu'une fois la conversation lancée. */}
+          <div className="k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5">
+            {!chatOuvert && (
+              <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 overflow-y-auto py-6">
+                <h1 className="k-balayage m-0 text-center font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 28px)" }}>Par où commence-t-on ?</h1>
+              </div>
+            )}
+            <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>
+              {!chatOuvert && <Depliant ouvert={sourcesOuvert}><div className="pb-4"><PanneauSources sources={sourcesChat} onChange={setSourcesChat} /></div></Depliant>}
+              <ChatDashboard key={editingProject.id} espace="projet" onReponse={surReponseAK} onTravail={setTravailAK}
+                onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
+                contexte={{ projet_id: editingProject.id }} lireEcran={lireEcran}
+                retour={{ libelle: "Tous les projets", onClick: () => { envoyerRef.current?.(); setIsDialogOpen(false); resetForm(); navigate(createPageUrl("AdminProjets")); } }} />
+            </div>
           </div>
           {/* Le projet, un écran dans l'écran : une carte posée sur le fond, à côté du chat. */}
           <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">

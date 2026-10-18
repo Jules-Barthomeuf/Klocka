@@ -1995,7 +1995,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           {/* En bas de l'écran, ce qui accompagne la barre passe au-dessus d'elle. */}
           {sousBarre && <div className="mb-3 max-h-[30vh] overflow-y-auto [&>div]:mt-0">{sousBarre}</div>}
           {/* Les sources de Haka, ouvertes depuis la barre pendant une conversation. */}
-          {reglages?.panneau && <Depliant ouvert={!!reglages.sourcesOuvert}><div className="mb-3 max-h-[40vh] overflow-y-auto rounded-[16px] border border-trait bg-rail p-4">{reglages.panneau}</div></Depliant>}
+          {/* Sans cadre (18 oct. 2026, Jules) : les pastilles à même le chat, le fil remonte au-dessus d'elles. */}
+          {reglages?.panneau && <Depliant ouvert={!!reglages.sourcesOuvert}><div className="pb-4 pt-1">{reglages.panneau}</div></Depliant>}
           {/* L'élément cliqué dans l'avis, à côté : « ça » le désigne dans le message. */}
           {estimation && selectionAvis?.chemin && (
             <div className="mb-2 flex items-center gap-1.5 text-[12.5px] text-menthe">

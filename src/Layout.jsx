@@ -13,6 +13,7 @@ import {
   BookUser,
   Contact,
   LayoutDashboard,
+  Wrench,
   Workflow,
   LayoutGrid,
   Magnet,
@@ -596,6 +597,21 @@ function LayoutContent({ children, currentPageName }) {
         {/* Klocka | K-Data : deux espaces, un compte. Choisir K-Data quitte
             cette barre pour la barre du haut de K-Data. Un client n'a pas
             K-Data : la vue client ne le propose pas. */}
+        {/* Barre repliée (18 oct. 2026, Jules : « garde toujours Outils et Klocka ») : le même choix, en deux icônes l'une sur l'autre. */}
+        {isAdmin && !showClientView && replie && (
+          <div className="mx-auto mt-2 flex flex-col gap-0.5 rounded-[12px] bg-rail-actif p-1">
+            {[["klocka", "Klocka", null], ["kdata", "Outils", Wrench]].map(([k, mot, Icone]) => {
+              const actif = k === "kdata" ? enKData : !enKData;
+              return (
+                <button key={k} type="button" onClick={() => navigate(k === "kdata" ? createPageUrl("KData") : createPageUrl("Dashboard"))} aria-pressed={actif} aria-label={mot} title={mot}
+                  className={`grid h-8 w-8 place-items-center rounded-[9px] transition-colors ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
+                  style={actif ? undefined : { background: "transparent" }}>
+                  {Icone ? <Icone className="h-4 w-4" strokeWidth={1.7} /> : <MarqueKlocka className="h-4 w-4" titre="Klocka" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {isAdmin && !showClientView && !replie && (
           <div className="mx-3 mt-1 grid grid-cols-2 rounded-[12px] bg-rail-actif p-1">
             {/* K-Data s'appelle Outils depuis le 16 oct. 2026 (Jules). */}

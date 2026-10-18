@@ -606,7 +606,7 @@ moins d'animations.
 
 Remplace les quatre points qui tournent du 16 oct. (ci-dessous, gardés pour les notifications). Une étape faite : un rond plein `encre` de 20 px avec une coche (`fond`), qui arrive en ressort, le texte en `encre`. L'étape en cours : l'icône de ce que Haka fait (Mail, Fiche, Marché, Dossier, Analyse, Recherche, Rédaction, sinon la grille ; 18 px `craie`), son texte en `brume` balayé d'un reflet `encre` de gauche à droite en boucle de 2 s (`.k-raisonne`, arrêté si le système demande moins de mouvement). Un trait vertical de 1 px (`bord-vif`) relie les étapes, il se déroule en 0,3 s sous la nouvelle. Un fil relu montre les coches sans animation.
 
-**La barre de navigation se ferme en entrant dans un dossier** (Jules, 18 oct. 2026) : ouvrir un dossier replie la barre latérale en rail d'icônes ; en sortir rend le réglage de la personne. On peut la rouvrir à la main pendant la visite.
+**La barre de navigation se ferme en entrant dans un dossier** (Jules, 18 oct. 2026) : ouvrir un dossier replie la barre latérale en rail d'icônes ; en sortir rend le réglage de la personne. On peut la rouvrir à la main pendant la visite. Repliée, elle garde toujours le choix Klocka | Outils : deux icônes l'une sur l'autre (la marque, la clé), l'active sur fond `surface-pleine`.
 
 ### Les étapes d'AK quand il réfléchit (16 oct. 2026)
 

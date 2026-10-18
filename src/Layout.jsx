@@ -805,7 +805,7 @@ function LayoutContent({ children, currentPageName }) {
         data-zone="fond"
         style={{ "--k-grid-marge": "0px" }}
         className={`k-points k-contenu relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
-          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:ml-[64px] md:transition-[margin-left] md:duration-200" : "md:ml-[228px] md:transition-[margin-left] md:duration-200") : ""
+          modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:pl-[64px] md:transition-[padding-left] md:duration-200" : "md:pl-[228px] md:transition-[padding-left] md:duration-200") : ""
         } ${
           modoKData
             ? (enCadre ? "" : "pt-[calc(3.5rem+env(safe-area-inset-top))]")

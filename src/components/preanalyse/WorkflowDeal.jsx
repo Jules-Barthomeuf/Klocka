@@ -322,15 +322,35 @@ function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
   const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.dossier.etapes") === "ouvert"; } catch { return false; } });
   const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.dossier.etapes", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
   const ici = Math.max(0, items.findIndex((o) => o.cle === valeur));
+  // Tenir le haut et glisser : le menu monte ou descend le long du bord droit ; la position est gardée.
+  const [decalage, setDecalage] = useState(() => { try { return Number(localStorage.getItem("klocka.dossier.etapes.y")) || 0; } catch { return 0; } });
+  const glisse = useRef(false);
+  const attraper = (e) => {
+    if (e.button !== 0) return;
+    const depart = e.clientY; const base = decalage; glisse.current = false;
+    const limite = Math.max(0, window.innerHeight / 2 - 120);
+    const bouger = (ev) => {
+      const dy = ev.clientY - depart;
+      if (Math.abs(dy) > 4) glisse.current = true;
+      if (glisse.current) setDecalage(Math.max(-limite, Math.min(limite, base + dy)));
+    };
+    const lacher = () => {
+      window.removeEventListener("pointermove", bouger); window.removeEventListener("pointerup", lacher);
+      setDecalage((d) => { try { localStorage.setItem("klocka.dossier.etapes.y", String(Math.round(d))); } catch { /* navigation privée */ } return d; });
+    };
+    window.addEventListener("pointermove", bouger); window.addEventListener("pointerup", lacher);
+  };
+  // Un clic qui suit un glissement n'ouvre ni ne ferme rien.
+  const cliquer = () => { if (glisse.current) { glisse.current = false; return; } basculer(); };
   return (
-    <div className="fixed right-4 top-1/2 z-40 -translate-y-1/2 max-md:hidden">
+    <div className="fixed right-4 top-1/2 z-40 max-md:hidden" style={{ transform: `translateY(calc(-50% + ${decalage}px))` }}>
       <AnimatePresence mode="wait" initial={false}>
         {ouvert ? (
           <motion.div key="ouvert" initial={{ opacity: 0, x: 16, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 16, scale: 0.98 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="w-[220px] overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
-            <div className="flex items-center justify-between border-b border-trait px-4 py-2.5">
+            <div onPointerDown={attraper} title="Tenir et glisser pour déplacer" className="flex cursor-grab touch-none select-none items-center justify-between border-b border-trait px-4 py-2.5 active:cursor-grabbing">
               <span className="text-[11px] uppercase tracking-[.16em] text-brume">Étapes · {ici + 1}/{items.length}</span>
-              <button type="button" onClick={basculer} aria-label="Fermer le menu des étapes" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
+              <button type="button" onClick={cliquer} aria-label="Fermer le menu des étapes" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
             </div>
             <nav className="flex flex-col p-1.5">
               {items.map((o) => {
@@ -350,7 +370,7 @@ function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
         ) : (
           <motion.div key="ferme" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
             className="flex w-[44px] flex-col items-center gap-3 rounded-[16px] border border-bord-doux bg-rail py-3 shadow-[0_16px_40px_rgb(0_0_0/0.3)]">
-            <button type="button" onClick={basculer} aria-label="Ouvrir le menu des étapes" title="Étapes du dossier" className="grid h-6 w-6 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onPointerDown={attraper} onClick={cliquer} aria-label="Ouvrir le menu des étapes" title="Cliquer pour ouvrir · tenir et glisser pour déplacer" className="grid h-6 w-6 cursor-grab touch-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre active:cursor-grabbing" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
             {items.map((o) => {
               const actif = valeur === o.cle;
               return (

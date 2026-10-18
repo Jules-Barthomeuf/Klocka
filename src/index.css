@@ -832,7 +832,9 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 html.k-sans-barre .k-barre-laterale { display: none !important; }
 /* Un dossier en mode IA (17 oct. 2026, Jules) : pas d'AK flottant en bas à gauche, le chat du dossier est déjà là. */
 html.k-sans-ak .k-ak-flottant { display: none !important; }
-html.k-sans-barre .k-contenu { margin-left: 0 !important; }
+/* Le fond du contenu passe sous la barre latérale (18 oct. 2026) : le contenu s'en écarte par un padding, plus par une marge,
+   pour que rien de noir n'apparaisse derrière ses coins arrondis. */
+html.k-sans-barre .k-contenu { margin-left: 0 !important; padding-left: 0 !important; }
 html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
 
 /* La barre du haut des aperçus (avis de valeur, mandat) : noire en sombre ;

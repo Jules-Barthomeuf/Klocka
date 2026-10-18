@@ -276,6 +276,8 @@ export default function Analyse() {
   const reglagesChat = useMemo(() => ({
     sources: sourcesChat, sortie: null, sourcesOuvert,
     onOuvrirSources: () => setSourcesOuvert((o) => !o), competence: null, eteintes: [], choisirCompetence: () => {},
+    // Pendant une conversation, le chat pose ce panneau juste au-dessus de la saisie (18 oct. 2026, Jules) : le fil remonte, la barre du haut ne bouge pas.
+    panneau: <PanneauSources sources={sourcesChat} onChange={setSourcesChat} />,
   }), [sourcesChat, sourcesOuvert]);
   // Passer du mode normal au mode IA fait glisser le dossier vers la droite et apparaître le chat (18 oct. 2026, Jules).
   const glisse = useRef(false);
@@ -392,7 +394,7 @@ export default function Analyse() {
             </div>
           )}
           <div className={chatOuvert ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5"}>
-            <Depliant ouvert={sourcesOuvert}><div className="pb-4"><PanneauSources sources={sourcesChat} onChange={setSourcesChat} /></div></Depliant>
+            {!chatOuvert && <Depliant ouvert={sourcesOuvert}><div className="pb-4"><PanneauSources sources={sourcesChat} onChange={setSourcesChat} /></div></Depliant>}
             <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
               retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
               contexte={{ deal_id: dealId, etape: vueDossier }}

@@ -125,7 +125,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -338,7 +338,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
           une carte en verre pour les deux chiffres et le simulateur. Masqué en
           aperçu d'onglet seulement : l'éditeur montre la page entière. */}
       {!apercuOnglet && (
-      <div className="px-4 pt-4 max-md:px-3 max-md:pt-3">
+      <div className={sansBarreOnglets ? "" : "px-4 pt-4 max-md:px-3 max-md:pt-3"}>
       <div className="relative flex min-h-[440px] max-md:min-h-[380px] flex-col gap-8 max-md:gap-6 overflow-hidden rounded-[18px] bg-relief pt-5 pb-6 pl-10 pr-6 max-md:px-4 max-md:pb-4">
         {streetView ? (
           <StreetViewRue project={project} />
@@ -438,10 +438,19 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
 
       <div className={apercuOnglet
         ? "px-3 py-3"
-        : "px-[clamp(20px,4vw,56px)] pt-7 pb-[72px] max-md:px-4"}>
+        : sansBarreOnglets ? "pt-6 pb-[72px]" : "px-[clamp(20px,4vw,56px)] pt-7 pb-[72px] max-md:px-4"}>
         <div className="min-w-0">
         <Tabs value={ongletActif} onValueChange={(v) => { setOngletActif(v); onOngletChange?.(v); }} className="w-full">
-          {!apercuOnglet && (
+          {/* L'éditeur en écran scindé a ses onglets soulignés dans son en-tête (18 oct. 2026) : ici, seul le simulateur reste, sous la photo. */}
+          {!apercuOnglet && sansBarreOnglets && (
+            <div className="mb-10 max-md:mb-7">
+              <button onClick={() => navigate(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`)}
+                className="h-11 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+                Simulateur complet →
+              </button>
+            </div>
+          )}
+          {!apercuOnglet && !sansBarreOnglets && (
           // La barre reste en haut au défilement, sans bande de fond : seules
           // les deux pilules, en verre, passent au-dessus du contenu.
           // Page publique : pas de barre du haut au téléphone, la barre colle en haut.

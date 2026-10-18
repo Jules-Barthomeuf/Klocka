@@ -336,6 +336,8 @@ export default function Personnalisation() {
     ["agent", "Agent IA", vueMandataire],
     ["couleurs", "Couleurs", true],
     ["affichage", "Affichage", true],
+    // Haka à sa façon (18 oct. 2026, Jules) : son portrait, la longueur de ses réponses, les tableaux.
+    ["haka", "Haka", !vueClient],
     ["navigation", "Navigation", !vueClient],
     ["signature", "Signature", admin && !vueClient],
     // Ses mails après un appel (13 oct. 2026) : à partir de ceux de l'équipe.
@@ -445,43 +447,6 @@ export default function Personnalisation() {
             <span className="w-10 flex-none text-right text-[12px] tabular-nums text-brume">{prefs.cartes_opacite} %</span>
           </label>
         </Reglage>
-        <Reglage titre="Personnage de Haka" note="Son portrait dans les chats.">
-          <div className="flex flex-wrap items-center gap-3">
-            {OPTIONS.personnage_haka.map(([v, mot]) => {
-              const actif = prefs.personnage_haka === v;
-              return (
-                <button key={v} type="button" onClick={() => changer({ personnage_haka: v })} aria-pressed={actif} title={mot}
-                  className={`flex flex-col items-center gap-1.5 rounded-[14px] border p-2.5 transition-colors ${actif ? "border-menthe bg-menthe/10" : "border-bord-doux hover:border-bord-vif"}`}
-                  style={{ background: actif ? undefined : "transparent" }}>
-                  <img src={PERSONNAGES_HAKA[v]} alt="" className="h-14 w-14 rounded-full object-cover" draggable={false} />
-                  <span className="text-[12.5px] text-craie">{mot}</span>
-                </button>
-              );
-            })}
-            <button type="button" onClick={() => setPortraitsGrands(true)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
-              <Maximize2 className="h-3.5 w-3.5" /> Voir en grand
-            </button>
-          </div>
-        </Reglage>
-        {/* Les portraits en grand (18 oct. 2026, Jules) : un clic en choisit un. */}
-        <Dialog open={portraitsGrands} onOpenChange={setPortraitsGrands}>
-          <DialogContent className="max-w-[880px]">
-            <DialogHeader><DialogTitle>Personnage de Haka</DialogTitle></DialogHeader>
-            <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
-              {OPTIONS.personnage_haka.map(([v, mot]) => {
-                const actif = prefs.personnage_haka === v;
-                return (
-                  <button key={v} type="button" onClick={() => changer({ personnage_haka: v })} aria-pressed={actif}
-                    className={`flex flex-col items-center gap-2 rounded-[16px] border p-3 transition-colors ${actif ? "border-menthe bg-menthe/10" : "border-bord-doux hover:border-bord-vif"}`}
-                    style={{ background: actif ? undefined : "transparent" }}>
-                    <img src={PERSONNAGES_HAKA[v]} alt={mot} className="aspect-square w-full rounded-full object-cover" draggable={false} />
-                    <span className="inline-flex items-center gap-1.5 text-[13.5px] text-encre">{actif && <Check className="h-3.5 w-3.5 text-menthe" />}{mot}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </DialogContent>
-        </Dialog>
         <Reglage titre="Police" note="Partout, ALX compris.">
           <Pilules valeur={prefs.police} options={OPTIONS.police} onChoisir={(v) => changer({ police: v })} rendre={(v, mot) => <span style={{ fontFamily: POLICES[v] }}>{mot}</span>} />
         </Reglage>
@@ -526,6 +491,53 @@ export default function Personnalisation() {
       {section === "mails" && <MesMails />}
       {section === "habilitations" && <ProfilCompte user={user} partie="habilitations" />}
       {section === "suivi" && <div className="-mx-4 md:-mx-8"><Monitoring /></div>}
+      {section === "haka" && (
+      <section className="rounded-[16px] border border-trait k-grid px-5 py-2 md:px-6">
+        <Reglage titre="Personnage de Haka" note="Son portrait dans les chats.">
+          <div className="flex flex-wrap items-center gap-3">
+            {OPTIONS.personnage_haka.map(([v, mot]) => {
+              const actif = prefs.personnage_haka === v;
+              return (
+                <button key={v} type="button" onClick={() => changer({ personnage_haka: v })} aria-pressed={actif} title={mot}
+                  className={`flex flex-col items-center gap-1.5 rounded-[14px] border p-2.5 transition-colors ${actif ? "border-menthe bg-menthe/10" : "border-bord-doux hover:border-bord-vif"}`}
+                  style={{ background: actif ? undefined : "transparent" }}>
+                  <img src={PERSONNAGES_HAKA[v]} alt="" className="h-14 w-14 rounded-full object-cover" draggable={false} />
+                  <span className="text-[12.5px] text-craie">{mot}</span>
+                </button>
+              );
+            })}
+            <button type="button" onClick={() => setPortraitsGrands(true)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
+              <Maximize2 className="h-3.5 w-3.5" /> Voir en grand
+            </button>
+          </div>
+        </Reglage>
+        {/* Les portraits en grand (18 oct. 2026, Jules) : un clic en choisit un. */}
+        <Dialog open={portraitsGrands} onOpenChange={setPortraitsGrands}>
+          <DialogContent className="max-w-[880px]">
+            <DialogHeader><DialogTitle>Personnage de Haka</DialogTitle></DialogHeader>
+            <div className="grid grid-cols-3 gap-4 max-md:grid-cols-2">
+              {OPTIONS.personnage_haka.map(([v, mot]) => {
+                const actif = prefs.personnage_haka === v;
+                return (
+                  <button key={v} type="button" onClick={() => changer({ personnage_haka: v })} aria-pressed={actif}
+                    className={`flex flex-col items-center gap-2 rounded-[16px] border p-3 transition-colors ${actif ? "border-menthe bg-menthe/10" : "border-bord-doux hover:border-bord-vif"}`}
+                    style={{ background: actif ? undefined : "transparent" }}>
+                    <img src={PERSONNAGES_HAKA[v]} alt={mot} className="aspect-square w-full rounded-full object-cover" draggable={false} />
+                    <span className="inline-flex items-center gap-1.5 text-[13.5px] text-encre">{actif && <Check className="h-3.5 w-3.5 text-menthe" />}{mot}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+        <Reglage titre="Longueur des réponses" note="Pour vous seul. Plus c'est court, moins Haka coûte.">
+          <Pilules valeur={prefs.haka_longueur} options={OPTIONS.haka_longueur} onChoisir={(v) => changer({ haka_longueur: v })} />
+        </Reglage>
+        <Reglage titre="Tableaux" note="Un petit tableau quand il dit les chiffres plus vite qu'une phrase, ou jamais.">
+          <Pilules valeur={prefs.haka_tableaux} options={OPTIONS.haka_tableaux} onChoisir={(v) => changer({ haka_tableaux: v })} />
+        </Reglage>
+      </section>
+      )}
       {section === "competences" && <Competences />}
       </div>
     </div>

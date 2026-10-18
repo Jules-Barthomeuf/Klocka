@@ -20,6 +20,7 @@ import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
 import PenseeIA from "@/components/PenseeIA";
 import AvatarAK from "@/components/AvatarAK";
+import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import Message from "@/components/MessageIA";
 import SourcesLoi from "@/components/offres/SourcesLoi";
 import { J, alpha } from "@/design/jetons";
@@ -1008,6 +1009,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   useEffect(() => { onDossier?.(dossierChoisi); }, [dossierChoisi, onDossier]);
   const pageEnvoi = E.page || (choixDossier && dossierChoisi ? "dossiers" : null);
   // Les réglages de Haka (sources, répondre ou produire), tenus par la page : ils partent avec chaque demande.
+  // Paramètres > Haka (18 oct. 2026) : la longueur des réponses et les tableaux partent avec chaque demande.
+  const { prefs: prefsHaka } = usePersonnalisation();
   const reglagesRef = useRef(reglages);
   reglagesRef.current = reglages;
   const avecContexte = !!(pageEnvoi || reglages);
@@ -1490,7 +1493,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     let ecran = null;
     try { ecran = lireEcran?.() || null; } catch { ecran = null; }
     const r = reglagesRef.current;
-    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })), ...(r.competence ? { competence: r.competence.cle, sources_eteintes: (r.eteintes || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}) };
+    return { page: pageEnvoi, ...(choixDossier && dossierChoisi ? { deal_id: dossierChoisi.deal_id } : {}), ...(r ? { sortie: r.sortie, sources: (r.sources || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })), ...(r.competence ? { competence: r.competence.cle, sources_eteintes: (r.eteintes || []).map((c) => ({ cle: c, nom: sourceDe(c).nom })) } : {}) } : {}), ...(contexte || {}), ...(ecran ? { ecran } : {}), haka: { longueur: prefsHaka.haka_longueur, tableaux: prefsHaka.haka_tableaux } };
   };
   const conversation = (!!onConversation && fil.some((m) => m.role === "user" || m.reprise)) || !!filVide;
   useEffect(() => { onConversation?.(conversation); }, [conversation, onConversation]);

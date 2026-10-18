@@ -376,8 +376,8 @@ function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
               return (
                 <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-label={o.titre} title={o.titre}
                   className="grid h-4 w-4 place-items-center" style={{ background: "transparent" }}>
-                  <motion.span layout transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                    className={`block rounded-full ${actif ? "h-3 w-3 bg-encre" : o.faite ? "h-2 w-2 bg-menthe" : "h-2 w-2 bg-encre/[0.18]"}`} />
+                  {/* Un simple span : avec `layout`, le déplacement de la barre (transform du parent) était pris pour un changement de place des points, qui la rattrapaient en différé (18 oct. 2026, Jules). */}
+                  <span className={`block rounded-full transition-[width,height,background-color] duration-200 ${actif ? "h-3 w-3 bg-encre" : o.faite ? "h-2 w-2 bg-menthe" : "h-2 w-2 bg-encre/[0.18]"}`} />
                 </button>
               );
             })}

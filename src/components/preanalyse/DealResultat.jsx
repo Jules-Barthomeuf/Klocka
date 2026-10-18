@@ -9,7 +9,7 @@ const SUIVANT = { ok: "a_verifier", a_verifier: "no_go", warning: "no_go", no_go
 const COLONNES_FICHE = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2fr)_120px_minmax(0,1.6fr)]";
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -112,6 +112,45 @@ const eurosM2 = (n, suffixe = "") => (n == null ? "—" : `${Math.round(n).toLoc
  * d'où vient la zone comparée, la flèche se retourne ; « Voir la source »
  * n'apparaît qu'à ce niveau-là, et ouvre la liste des ventes en dessous.
  */
+/**
+ * Le marché saisi à la main (18 oct. 2026, Jules : « mettre ce que je veux ») : un chiffre au m², qui l'emporte
+ * sur la lecture ; « Revenir à la lecture » le retire.
+ */
+function MarcheSaisi({ dealId, index = 0, cle, marche, suffixe = "", apercu = false }) {
+  const queryClient = useQueryClient();
+  const [edition, setEdition] = useState(null);
+  const poser = useMutation({
+    mutationFn: (v) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/lots/${index}/marche-manuel`, { body: { [cle]: v } }),
+    onSuccess: () => { setEdition(null); queryClient.invalidateQueries({ queryKey: ["marche-comparaison", dealId] }); },
+    onError: (e) => toast.error(e?.message || "Enregistrement impossible"),
+  });
+  if (!dealId || apercu) return null;
+  const valider = () => { const n = Number(String(edition).replace(/\s/g, "").replace(",", ".")); poser.mutate(n > 0 ? n : null); };
+  if (edition !== null) {
+    return (
+      <span className="mt-1.5 inline-flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <input autoFocus inputMode="decimal" value={edition} onChange={(e) => setEdition(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") valider(); if (e.key === "Escape") setEdition(null); }}
+          placeholder="€/m²" className="w-[110px] border-b border-bord-vif bg-transparent text-[13.5px] text-encre outline-none focus:border-encre max-md:text-[16px]" />
+        <span className="text-[12px] text-brume">€/m²{suffixe}</span>
+        <button type="button" onClick={valider} disabled={poser.isPending} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12.5px] text-sur-menthe disabled:opacity-60">
+          {poser.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} OK
+        </button>
+        <button type="button" onClick={() => setEdition(null)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+      </span>
+    );
+  }
+  return (
+    <span className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[12px]" onClick={(e) => e.stopPropagation()}>
+      <button type="button" onClick={() => setEdition(marche?.median != null ? String(Math.round(marche.median)) : "")} className="group inline-flex items-baseline gap-1.5 text-brume hover:text-encre" style={{ background: "transparent" }}>
+        {marche?.manuel ? <>marché saisi <span className="text-encre">{eurosM2(marche.median, suffixe)}</span></> : "Mettre mon chiffre"}
+        <Pencil className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100 max-md:opacity-100" />
+      </button>
+      {marche?.manuel && <button type="button" onClick={() => poser.mutate(null)} disabled={poser.isPending} className="text-menthe-clair hover:text-encre" style={{ background: "transparent" }}>Revenir à la lecture</button>}
+    </span>
+  );
+}
+
 function FaceAuMarche({ bien, marche, suffixe = "", libelleBien, libelleMarche, chargement, sourceOuverte = false, onSource, manque = null, adresseComparaison = null }) {
   const [detail, setDetail] = useState(false);
   // Plus de « Lecture du marché autour… » (18 oct. 2026, Jules : « on arrive, on voit direct le contenu ») : la dernière comparaison gardée s'affiche, la nouvelle la remplace sans bruit.
@@ -313,7 +352,8 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
     queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/lots/${lot.index ?? 0}/marche-comparaison`),
     enabled: !!dealId && !apercu,
     // La comparaison gardée sur le lot s'affiche tout de suite ; la relecture se fait derrière, sans message.
-    initialData: lot.comparaison_marche ? { ok: true, ...lot.comparaison_marche } : undefined,
+    // Un marché saisi à la main ne vit pas dans la comparaison gardée : on relit alors le serveur, qui l'applique.
+    initialData: lot.comparaison_marche && !lot.marche_manuel ? { ok: true, ...lot.comparaison_marche } : undefined,
     initialDataUpdatedAt: lot.comparaison_marche?.le ? Date.parse(lot.comparaison_marche.le) : undefined,
     placeholderData: (precedent) => precedent,
     staleTime: 10 * 60 * 1000,
@@ -351,7 +391,12 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
           </div>
         );
       case "prix_marche":
-        return <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche="ventes autour" chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} adresseComparaison={marche?.adresse} />;
+        return (
+          <div>
+            <FaceAuMarche bien={marche?.bien?.prix_m2} marche={marche?.prix} libelleBien="le bien" libelleMarche={marche?.prix?.manuel ? "le marché saisi" : "ventes autour"} chargement={marcheEnLecture} sourceOuverte={source === "prix"} onSource={() => setSource(source === "prix" ? null : "prix")} manque={marche?.manque} adresseComparaison={marche?.adresse} />
+            <MarcheSaisi dealId={dealId} index={lot.index ?? 0} cle="prix_m2" marche={marche?.prix} apercu={apercu} />
+          </div>
+        );
       case "rendement":
         return (
           <span className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13.5px]" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -361,7 +406,12 @@ function TableauBien({ lot, dealId = null, onSaisie, enCours, apercu, onVerifier
         );
       case "loyer": return champ("loyer_annuel_ht_hc");
       case "loyer_marche":
-        return <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche="le marché" chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} manque={marche?.manque} adresseComparaison={marche?.adresse} />;
+        return (
+          <div>
+            <FaceAuMarche bien={marche?.bien?.loyer_m2} marche={marche?.loyer} suffixe="/an" libelleBien="le bien" libelleMarche={marche?.loyer?.manuel ? "le marché saisi" : "le marché"} chargement={marcheEnLecture} sourceOuverte={source === "loyer"} onSource={() => setSource(source === "loyer" ? null : "loyer")} manque={marche?.manque} adresseComparaison={marche?.adresse} />
+            <MarcheSaisi dealId={dealId} index={lot.index ?? 0} cle="loyer_m2" marche={marche?.loyer} suffixe="/an" apercu={apercu} />
+          </div>
+        );
       case "occupe": return champ("occupe");
       case "activite": return champ("locataire_activite");
       case "enseigne":

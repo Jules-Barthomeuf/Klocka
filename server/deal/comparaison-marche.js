@@ -178,7 +178,33 @@ async function loyerDeLaRue(adresse) {
  * ventes DVF ne bougent pas d'une heure à l'autre.
  * @returns {Promise<object>}
  */
-export async function comparerAuMarche(deal, index = 0, { forcer = false } = {}) {
+/**
+ * Pure : le marché saisi à la main l'emporte sur la lecture (18 oct. 2026, Jules : « mettre ce que je veux »).
+ * `manuel` : { prix_m2, loyer_m2, par, le } posé sur le lot ; une valeur absente laisse la lecture.
+ */
+export function appliquerMarcheManuel(resultat, manuel) {
+  if (!resultat || !manuel) return resultat;
+  const bien = resultat.bien || {};
+  const saisi = (v, valeurBien, lu) => ({
+    ...(lu || {}), median: v, bas: null, haut: null, manuel: true, par: manuel.par || null, le: manuel.le || null,
+    approche: null, reserve: null, kdata_en_cours: false,
+    source: `Saisi à la main${manuel.par ? ` par ${String(manuel.par).split('@')[0]}` : ''}`,
+    lu: lu ? { median: lu.median ?? null, bas: lu.bas ?? null, haut: lu.haut ?? null, source: lu.source || null } : null,
+    jugement: jugement(valeurBien, { median: v }),
+  });
+  const r = { ...resultat };
+  if (Number(manuel.prix_m2) > 0) r.prix = saisi(Number(manuel.prix_m2), bien.prix_m2, resultat.prix);
+  if (Number(manuel.loyer_m2) > 0) r.loyer = saisi(Number(manuel.loyer_m2), bien.loyer_m2, resultat.loyer);
+  return r;
+}
+
+export async function comparerAuMarche(deal, index = 0, options = {}) {
+  const r = await comparerAuMarcheLu(deal, index, options);
+  const manuel = deal?.lots?.[index]?.marche_manuel;
+  return r?.ok && manuel ? appliquerMarcheManuel(r, manuel) : r;
+}
+
+async function comparerAuMarcheLu(deal, index = 0, { forcer = false } = {}) {
   const entree = deal?.lots?.[index];
   if (!entree) return { ok: false, error: 'Lot introuvable' };
   let adresse = adresseDuLot(entree);
@@ -266,4 +292,17 @@ export async function comparerAuMarche(deal, index = 0, { forcer = false } = {})
     Records.update('Deal', deal.id, { lots });
   }
   return { ok: true, ...resultat };
+}
+
+/** Pose ou retire le marché saisi à la main sur un lot. `null` ou 0 retire la valeur. */
+export function poserMarcheManuel(deal, index, { prix_m2, loyer_m2 } = {}, par = null) {
+  const frais = Records.get('Deal', deal.id) || deal;
+  const lots = [...(frais.lots || [])];
+  if (!lots[index]) return { ok: false, error: 'Lot introuvable' };
+  const avant = lots[index].marche_manuel || {};
+  const nombre = (v, garde) => (v === undefined ? garde ?? null : Number(v) > 0 ? Math.round(Number(v)) : null);
+  const suivant = { prix_m2: nombre(prix_m2, avant.prix_m2), loyer_m2: nombre(loyer_m2, avant.loyer_m2), par, le: new Date().toISOString() };
+  lots[index] = { ...lots[index], marche_manuel: suivant.prix_m2 || suivant.loyer_m2 ? suivant : null };
+  Records.update('Deal', frais.id, { lots });
+  return { ok: true, marche_manuel: lots[index].marche_manuel };
 }

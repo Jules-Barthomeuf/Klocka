@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { jugement, prixFaiDuLot, adresseDuLot, quartiles } from './comparaison-marche.js';
+import { jugement, prixFaiDuLot, adresseDuLot, quartiles, appliquerMarcheManuel } from './comparaison-marche.js';
 
 const champ = (valeur) => ({ valeur, absent: false });
 
@@ -31,4 +31,19 @@ test("l'adresse : la rue, sinon le repère de la fiche", () => {
 test('les quartiles', () => {
   assert.deepEqual(quartiles([1000, 2000, 3000, 4000, 5000]), { bas: 2000, median: 3000, haut: 4000 });
   assert.equal(quartiles([]), null);
+});
+
+test('le marché saisi à la main l\'emporte sur la lecture et se juge contre le bien', () => {
+  const lu = { ok: true, bien: { prix_m2: 1400, loyer_m2: 136 }, prix: { median: 860, bas: 700, haut: 1000, source: 'DVF' }, loyer: { median: 120, source: 'Equimmox' } };
+  const r = appliquerMarcheManuel(lu, { prix_m2: 1350, loyer_m2: null, par: 'jules.b@klocka.immo' });
+  assert.equal(r.prix.median, 1350);
+  assert.equal(r.prix.manuel, true);
+  assert.equal(r.prix.jugement.sens, 'juste');
+  assert.equal(r.prix.lu.median, 860);
+  assert.match(r.prix.source, /jules\.b/);
+  // Le loyer non saisi reste celui lu.
+  assert.equal(r.loyer.median, 120);
+  assert.equal(r.loyer.manuel, undefined);
+  // Sans saisie, rien ne change.
+  assert.equal(appliquerMarcheManuel(lu, null), lu);
 });

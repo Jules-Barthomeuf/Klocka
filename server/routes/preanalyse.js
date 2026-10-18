@@ -180,6 +180,16 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
+  // Le prix et le loyer de marché saisis à la main (18 oct. 2026, Jules) : ils l'emportent sur la lecture.
+  app.post('/api/preanalyse/dossiers/:dealId/lots/:index/marche-manuel', wrap(async (req, res) => {
+    const deal = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!deal) return res.status(404).json({ error: 'Dossier introuvable' });
+    const { poserMarcheManuel } = await import('../deal/comparaison-marche.js');
+    const r = poserMarcheManuel(deal, Number(req.params.index) || 0, req.body || {}, currentUser(req)?.email || null);
+    if (!r.ok) return res.status(404).json(r);
+    ok(res, r);
+  }));
+
   app.post('/api/preanalyse/dossiers/:dealId/lots/:index', wrap(async (req, res) => {
     const r = await reevaluerLot(req.params.dealId, Number(req.params.index), req.body || {});
     if (r.error) return res.status(404).json(r);

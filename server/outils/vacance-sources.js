@@ -20,11 +20,13 @@
 import { ErreurSource } from '../marche/erreurs.js';
 import { lireEtablissement, sireneConfigure, MESSAGE_SANS_CLE } from '../insee-sirene.js';
 import { sourceActive } from '../socle/registre-sources.js';
+import { boiteOutilsActive } from '../socle/drapeaux.js';
 import { communeChargee, etablissementsDeCommune, etablissementsDeSirens, versApi } from '../socle/imports/sirene-stock.js';
 
 // Le stock SIRENE mensuel de l'entrepôt (boîte à outils, 18 oct. 2026) : quand la commune y est et que la source
 // « sirene_stock » est active, le registre se lit là, sans clé ni quota ; sinon, l'API comme avant.
-const stockPour = (code) => sourceActive('sirene_stock') && communeChargee(code);
+const stockActif = () => boiteOutilsActive() && sourceActive('sirene_stock');
+const stockPour = (code) => stockActif() && communeChargee(code);
 const depuisStock = (lignes) => lignes.map((x) => lireEtablissementVacance(versApi(x))).filter(Boolean);
 
 const BODACC = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
@@ -168,7 +170,7 @@ export async function etablissementsParSirens(sirens, { surProgres = null } = {}
   let propres = [...new Set((sirens || []).map((s) => String(s).replace(/\D/g, '')).filter((s) => /^\d{9}$/.test(s)))];
   const sortie = [];
   // Le stock d'abord (les établissements des départements chargés) ; l'API, s'il y a une clé, pour le reste.
-  if (sourceActive('sirene_stock') && propres.length) {
+  if (stockActif() && propres.length) {
     const lus = etablissementsDeSirens(propres);
     sortie.push(...depuisStock(lus));
     const vus = new Set(lus.map((x) => x.siren));

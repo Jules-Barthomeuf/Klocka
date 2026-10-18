@@ -27,7 +27,7 @@
 
 import { Records } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
-import { etablissementsDeLaCommune, sireneConfigure, MESSAGE_SANS_CLE } from './insee-sirene.js';
+import { etablissementsDeLaCommune, lireEtablissement, sireneConfigure, MESSAGE_SANS_CLE } from './insee-sirene.js';
 
 const RECHERCHE = 'RechercheVacance';
 const RAYON_DEFAUT = 400;
@@ -571,10 +571,25 @@ export async function analyser(texte, { rayon = RAYON_DEFAUT, user = null } = {}
 
   const { commercesDeLaZone, vacanceDeLaCommune } = await import('./kzoning-commerces.js');
   const { TOUS_LES_COMMERCES } = await import('./kzoning-metiers.js');
+  // Boîte à outils (18 oct. 2026) : le registre se lit dans le stock SIRENE de l'entrepôt quand la commune y est
+  // (sans clé ni quota) ; sinon l'API, comme avant.
+  const registreStock = async () => {
+    const { boiteOutilsActive } = await import('./socle/drapeaux.js');
+    const { sourceActive } = await import('./socle/registre-sources.js');
+    if (!boiteOutilsActive() || !sourceActive('sirene_stock')) return null;
+    const S = await import('./socle/imports/sirene-stock.js');
+    if (!S.communeChargee(adresse.code_insee)) return null;
+    const depuis = new Date(); depuis.setFullYear(depuis.getFullYear() - ANNEES_FERMETURE);
+    const jour = depuis.toISOString().slice(0, 10);
+    const commence = (naf) => { const c = String(naf || '').replace(/\./g, ''); return NAF_COMMERCE.some((p) => c.startsWith(String(p).replace(/\./g, ''))); };
+    const lignes = S.etablissementsDeCommune(adresse.code_insee).filter((r) => commence(r.naf) && (r.etat === 'A' || String(r.date_debut || '') >= jour));
+    return { ok: true, etablissements: lignes.map((r) => lireEtablissement(S.versApi(r))).filter(Boolean), garde_le: lignes[0]?.millesime || null, du_stock: true };
+  };
+  const stock = await registreStock().catch(() => null);
   const [osm, osmCommune, sirene] = await Promise.all([
     commercesDeLaZone({ lat: adresse.lat, lon: adresse.lon, rayon_m: rayon, filtres: TOUS_LES_COMMERCES.filtres }).catch((e) => ({ ok: false, error: e?.message || String(e) })),
     vacanceDeLaCommune(adresse.code_insee, TOUS_LES_COMMERCES.filtres).catch((e) => ({ ok: false, error: e?.message || String(e) })),
-    sireneConfigure()
+    stock ? Promise.resolve(stock) : sireneConfigure()
       ? etablissementsDeLaCommune(adresse.code_insee, { prefixes: NAF_COMMERCE, anneesFermeture: ANNEES_FERMETURE }).catch((e) => ({ ok: false, error: e?.message || String(e) }))
       : Promise.resolve({ ok: false, error: MESSAGE_SANS_CLE }),
   ]);
@@ -618,12 +633,7 @@ export async function analyser(texte, { rayon = RAYON_DEFAUT, user = null } = {}
   const verdict = verdictVacance({ visible, registre: registre || {}, rythme: rythme || {} });
   if (!sirene.ok) verdict.reserves.push(`Le registre n'a pas été lu : ${sirene.error}`);
 
-  const existante = Records.list(RECHERCHE).find((x) => x.adresse === adresse.label);
-  const le = aujourdhui.toISOString();
-  if (existante) Records.update(RECHERCHE, existante.id, { le, par: user?.email || existante.par });
-  else Records.create(RECHERCHE, { adresse: adresse.label, point, le, par: user?.email || null }, user?.email);
-
-  return {
+  const resultat = {
     ok: true,
     point,
     rayon,
@@ -633,6 +643,8 @@ export async function analyser(texte, { rayon = RAYON_DEFAUT, user = null } = {}
     registre,
     rythme,
     source_registre: sirene.ok ? 'insee' : null,
+    // D'où vient le registre : le stock mensuel de l'entrepôt, ou l'API.
+    registre_origine: sirene.ok ? (sirene.du_stock ? 'stock' : 'api') : null,
     sirene_erreur: sirene.ok ? null : sirene.error,
     vacance,
     vacance_erreur: osm.ok ? null : osm.error,
@@ -643,6 +655,30 @@ export async function analyser(texte, { rayon = RAYON_DEFAUT, user = null } = {}
     fermetures: fermetures.slice(0, 80),
     erreurs,
   };
+
+  // Le résultat est gardé avec la recherche (boîte à outils, 18 oct. 2026 : « garder ses résultats en base »), avec
+  // l'identifiant de local ; éteinte, seules l'adresse et la date, comme avant.
+  const existante = Records.list(RECHERCHE).find((x) => x.adresse === adresse.label);
+  const le = aujourdhui.toISOString();
+  let garde = {};
+  const { boiteOutilsActive } = await import('./socle/drapeaux.js');
+  if (boiteOutilsActive()) {
+    let id_local = null;
+    try { const { resoudreLocal } = await import('./socle/local.js'); const l = await resoudreLocal(adresse.label); id_local = l.ok ? l.local.id_local || null : null; } catch { /* sans identifiant */ }
+    garde = { resultat, id_local };
+    resultat.id_local = id_local;
+  }
+  if (existante) Records.update(RECHERCHE, existante.id, { le, par: user?.email || existante.par, ...garde });
+  else Records.create(RECHERCHE, { adresse: adresse.label, point, le, par: user?.email || null, ...garde }, user?.email);
+  return resultat;
+}
+
+/** Le dernier résultat gardé pour une adresse ou un identifiant de local (null s'il n'y en a pas). */
+export function derniereAnalyse({ adresse = null, id_local = null } = {}) {
+  const x = Records.list(RECHERCHE)
+    .filter((r) => r.resultat && ((id_local && r.id_local === id_local) || (adresse && r.adresse === adresse)))
+    .sort((a, b) => String(b.le).localeCompare(String(a.le)))[0];
+  return x ? { ...x.resultat, le: x.le } : null;
 }
 
 export function listerRecherches(limite = 30) {

@@ -190,7 +190,8 @@ Derrière `BOITE_OUTILS`. `server/kestimation-boite.js`, appelé par `kestimatio
 - `outils/vacance-sources.js` lit ce stock d'abord (vitrines, fermetures, établissements par SIREN) quand la commune y est et que la source est active ; sinon l'API comme avant. Plus besoin de `INSEE_SIRENE_CLE` pour le 06.
 - Import réel du 06 (base locale, 18 oct. 2026) : 2 minutes, 44 282 364 lignes lues, 555 243 établissements gardés sur 163 communes (356 854 actifs, 198 389 fermés depuis moins de 8 ans), 461 714 entreprises toutes nommées, 88 % géolocalisés ; la base locale passe à 521 Mo. Cannes sans clé : 8 255 établissements à vitrine, 6 545 fermetures depuis 2024, lus en 1,4 s.
 - Sur Render : lire en flux comme ici, vérifier la place sur /var/data avant le premier passage de nuit, garder le rythme de 30 jours.
-- Reste : garder en base le résultat de K-Vacance (aujourd'hui seulement l'adresse et la date) ; BPE.
+- K-Vacance lit aussi son registre dans ce stock (champ `registre_origine` : stock ou api) et garde son résultat avec la recherche, avec l'identifiant de local (`derniereAnalyse`). Tout derrière `BOITE_OUTILS`. Essai sans clé, 45 rue d'Antibes à Cannes : 1 935 établissements dans la zone, 8 383 dans la commune, taux au registre de 5,7 %.
+- Reste : BPE.
 
 
 

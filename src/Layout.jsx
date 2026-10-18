@@ -572,7 +572,7 @@ function LayoutContent({ children, currentPageName }) {
               <span className="flex items-center gap-2">
                 <span className="text-[18px] font-normal tracking-[-0.02em] text-encre">Klocka</span>
                 {/* « OS » dans un cadre arrondi (18 oct. 2026, Jules, deux maquettes). */}
-                <span className="inline-flex h-[22px] items-center rounded-[7px] border-[1.75px] border-encre px-1.5 text-[11.5px] font-semibold leading-none tracking-[.02em] text-encre" aria-label="OS">OS</span>
+                <span className="inline-flex h-[22px] items-center rounded-[7px] border border-encre px-1.5 text-[11.5px] font-semibold leading-none tracking-[.02em] text-encre" aria-label="OS">OS</span>
               </span>
             )}
           </Link>

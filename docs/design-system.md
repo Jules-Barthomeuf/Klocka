@@ -521,7 +521,7 @@ puis des lignes libellé / valeur en 13,5 px : rendement brut, « Acte en main �
 
 **Pas d'attente à l'ouverture d'un onglet** (Jules, 18 oct. 2026) : plus de « Lecture du marché autour… » ; la dernière comparaison au marché gardée sur le lot s'affiche tout de suite, la relecture se fait derrière et remplace sans message. Toutes les grilles de l'analyse (Bail, Quittances, Copropriété, Diagnostics) et le journal du Marché se chargent à l'ouverture du dossier, pas au clic sur l'onglet ; plus de « Lecture… » en attendant.
 
-**« OS » dans un cadre** (Jules, 18 oct. 2026, deux maquettes) : dans la barre, le nom s'écrit « Klocka » suivi de « OS » dans un cadre arrondi (22 px de haut, rayon 7, trait de 1,75 px et texte en `encre`, 11,5 px gras), noir en thème clair, blanc en thème sombre.
+**« OS » dans un cadre** (Jules, 18 oct. 2026, deux maquettes) : dans la barre, le nom s'écrit « Klocka » suivi de « OS » dans un cadre arrondi (22 px de haut, rayon 7, trait fin de 1 px et texte en `encre`, 11,5 px gras), noir en thème clair, blanc en thème sombre.
 
 **La marque de Klocka OS** (Jules, 18 oct. 2026, deux maquettes fournies) : trois losanges empilés à coins arrondis, à gauche du nom dans la barre (22 px, `MarqueKlocka.jsx`, SVG en ligne). Thème sombre : dessus blanc cassé, milieu doré, dessous gris ; thème clair : dessus noir, milieu doré plus foncé, dessous gris clair. Les trois couleurs sont les variables `--k-marque-haut`, `--k-marque-milieu`, `--k-marque-bas` de `index.css` : un logo n'est pas une couleur du système, il ne les prend pas aux jetons. Elle remplace l'ancien logo, y compris dans le rail replié.
 

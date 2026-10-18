@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { X as IconeFermer, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { X as IconeFermer } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -312,37 +312,60 @@ function etapeDebloquee(dossier) {
  * @param apercu    bool — mode aperçu : les cinq étapes sont ouvertes et
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
-/** Les étapes du dossier, à droite de la page (18 oct. 2026, Jules) : un menu vertical, collant en haut, repliable (choix gardé dans le navigateur). */
+/**
+ * Les étapes du dossier, à droite (18 oct. 2026, Jules, maquette) : par-dessus la page, jamais dans sa mise en page.
+ * Fermé : une fine pilule collée au bord droit, un chevron, un point par étape (faite en couleur d'accent, ouverte
+ * en blanc et plus grande, à venir en gris) et « 4/8 » ; un point mène à son étape. Ouvert : le menu, en surimpression,
+ * avec une ombre. Le choix ouvert / fermé est gardé dans le navigateur.
+ */
 function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
-  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.dossier.etapes") !== "ferme"; } catch { return true; } });
+  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.dossier.etapes") === "ouvert"; } catch { return false; } });
   const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.dossier.etapes", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
+  const ici = Math.max(0, items.findIndex((o) => o.cle === valeur));
   return (
-    <motion.aside layout transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className={`sticky top-4 flex-none ${ouvert ? "w-[210px]" : "w-10"} max-md:hidden`}>
-      {ouvert ? (
-        <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden rounded-[16px] border border-trait bg-rail">
-          <div className="flex items-center justify-between border-b border-trait px-4 py-2.5">
-            <span className="text-[11px] uppercase tracking-[.16em] text-brume">Étapes</span>
-            <button type="button" onClick={basculer} aria-label="Fermer le menu des étapes" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><PanelRightClose className="h-4 w-4" /></button>
-          </div>
-          <nav className="flex flex-col p-1.5">
+    <div className="fixed right-4 top-1/2 z-40 -translate-y-1/2 max-md:hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        {ouvert ? (
+          <motion.div key="ouvert" initial={{ opacity: 0, x: 16, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 16, scale: 0.98 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="w-[220px] overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
+            <div className="flex items-center justify-between border-b border-trait px-4 py-2.5">
+              <span className="text-[11px] uppercase tracking-[.16em] text-brume">Étapes · {ici + 1}/{items.length}</span>
+              <button type="button" onClick={basculer} aria-label="Fermer le menu des étapes" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
+            </div>
+            <nav className="flex flex-col p-1.5">
+              {items.map((o) => {
+                const actif = valeur === o.cle;
+                return (
+                  <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
+                    className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
+                    <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${actif ? "border-encre bg-encre text-fond" : o.faite ? "border-menthe/50 text-menthe" : "border-encre/[0.18] text-brume"}`}>
+                      {o.faite && !actif ? <Check className="h-3 w-3" /> : o.n}
+                    </span>
+                    <span className="min-w-0 truncate">{o.titre}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </motion.div>
+        ) : (
+          <motion.div key="ferme" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
+            className="flex w-[44px] flex-col items-center gap-3 rounded-[16px] border border-bord-doux bg-rail py-3 shadow-[0_16px_40px_rgb(0_0_0/0.3)]">
+            <button type="button" onClick={basculer} aria-label="Ouvrir le menu des étapes" title="Étapes du dossier" className="grid h-6 w-6 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
             {items.map((o) => {
               const actif = valeur === o.cle;
               return (
-                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
-                  className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
-                  <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${actif ? "border-encre bg-encre text-fond" : o.faite ? "border-menthe/50 text-menthe" : "border-encre/[0.18] text-brume"}`}>
-                    {o.faite && !actif ? <Check className="h-3 w-3" /> : o.n}
-                  </span>
-                  <span className="min-w-0 truncate">{o.titre}</span>
+                <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-label={o.titre} title={o.titre}
+                  className="grid h-4 w-4 place-items-center" style={{ background: "transparent" }}>
+                  <motion.span layout transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                    className={`block rounded-full ${actif ? "h-3 w-3 bg-encre" : o.faite ? "h-2 w-2 bg-menthe" : "h-2 w-2 bg-encre/[0.18]"}`} />
                 </button>
               );
             })}
-          </nav>
-        </motion.div>
-      ) : (
-        <button type="button" onClick={basculer} aria-label="Ouvrir le menu des étapes" title="Étapes du dossier" className="grid h-10 w-10 place-items-center rounded-full border border-trait bg-rail text-ardoise transition-colors hover:text-encre"><PanelRightOpen className="h-4 w-4" /></button>
-      )}
-    </motion.aside>
+            <span className="text-[11.5px] tabular-nums text-ardoise">{ici + 1}/{items.length}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -605,8 +628,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
 
       {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}
-      <div className="flex items-start gap-5">
-      <div className="min-w-0 flex-1">
+      <div>
+      <div>
       <div className={dossier && !pleineLargeur ? `grid items-start gap-8 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_340px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}

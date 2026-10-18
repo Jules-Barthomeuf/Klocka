@@ -53,6 +53,15 @@ export async function parcellesAutour(lat, lon, rayon_m = RAYON_PARCELLES) {
 
 /** Les locaux des personnes morales d'une section, au dernier millésime servi. */
 export async function locauxDeSection(codeInsee, section) {
+  // Boîte à outils (18 oct. 2026) : le fichier DGFiP du département dans l'entrepôt (millésime récent) d'abord ;
+  // sinon le miroir Opendatasoft, qui sert le millésime 2021.
+  const { boiteOutilsActive } = await import('./socle/drapeaux.js');
+  const { sourceActive } = await import('./socle/registre-sources.js');
+  if (boiteOutilsActive() && sourceActive('majic')) {
+    const { lignesSection } = await import('./socle/imports/personnes-morales.js');
+    const s = lignesSection(codeInsee, section);
+    if (s) return { cle: `${codeInsee}-${section}`, code_insee: codeInsee, section, annee: s.annee, lignes: s.lignes, le: new Date().toISOString(), origine: 'entrepot' };
+  }
   const cle = `${codeInsee}-${section}`;
   const garde = Records.filter(CACHE_SECTION, { cle })[0];
   if (garde && Date.now() - Date.parse(garde.le) < CACHE_JOURS * 86400000) return garde;

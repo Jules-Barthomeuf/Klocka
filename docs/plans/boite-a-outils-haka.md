@@ -171,7 +171,8 @@ Derrière `BOITE_OUTILS`. `server/kfoncier-local.js`, branché dans `kfoncier.an
 
 - Fait : parcelle du local ; propriétaires personnes morales de la parcelle (miroir du fichier DGFiP) ; société par SIREN, sinon par nom et commune dans l'annuaire des entreprises avec un score (seuil 0,6, montré) ; dirigeants (RNE via l'annuaire) ; alertes BODACC (procédures collectives, cessions, radiations, décès) ; dernière mutation DVF de la parcelle ; sans personne morale : « Personne physique, non identifiable ».
 - Essais réels : 20 avenue Jean Médecin (Groupe GT par SIREN, deux dirigeants ; SCI NICIM sans SIREN, introuvable à l'annuaire, dit comme tel) ; 45 rue d'Antibes (société par SIREN) ; place Masséna (personne physique).
-- Reste : le miroir sert le millésime 2021 du fichier des personnes morales ; importer le fichier DGFiP du 06 (plus récent) dans l'entrepôt ; l'API RNE de l'INPI en direct (compte gratuit à créer) ; la comparaison avec Data-B.
+- Fichier DGFiP récent (18 oct. 2026) : `server/socle/imports/personnes-morales.js` lit le répertoire du zip national de data.gouv.fr (situation 2025, 200 Mo) puis seulement le fichier du département par une requête de plage (5 Mo pour le 06) ; table `entrepot_pm`, jeu `personnes_morales_dgfip` (180 jours). K-Foncier le lit avant le miroir de 2021. Import réel du 06 : 455 933 locaux en 10 s. Au 20 avenue Jean Médecin, la SCI sans SIREN en 2021 devient « Société civile NICIM », SIREN 402313944, trois dirigeants.
+- Reste : l'API RNE de l'INPI en direct (compte gratuit à créer) ; la comparaison avec Data-B.
 
 ## Lot 5, Estimation : compte rendu (18 oct. 2026)
 

@@ -50,6 +50,8 @@ export const JEUX = [
   { cle: 'sirene_bodacc', nom: 'Établissements SIRENE et annonces BODACC', source: 'sirene', licence: 'Licence ouverte', mode: 'import', portee: 'commune', rythme_jours: 7 },
   // Le stock SIRENE mensuel de data.gouv.fr, sans clé, lu en flux et filtré par département (imports/sirene-stock.js).
   { cle: 'sirene_stock', nom: 'Stock SIRENE des établissements (mensuel)', source: 'sirene_stock', licence: 'Licence ouverte', mode: 'import', portee: 'departement', rythme_jours: 30 },
+  // Le fichier des locaux des personnes morales, millésime récent, seul le fichier du département (imports/personnes-morales.js).
+  { cle: 'personnes_morales_dgfip', nom: 'Locaux des personnes morales (DGFiP, annuel)', source: 'majic', licence: 'Licence ouverte', mode: 'import', portee: 'departement', rythme_jours: 180 },
   { cle: 'cadastre', nom: 'Parcelles cadastrales', source: 'cadastre_ign', licence: 'Licence ouverte', mode: 'demande', portee: 'local' },
   { cle: 'troncons', nom: 'Tronçons de route (BD TOPO)', source: 'bdtopo', licence: 'Licence ouverte', mode: 'demande', portee: 'local' },
   { cle: 'carreaux', nom: 'Carreaux de 200 m (Filosofi)', source: 'insee_filosofi', licence: 'Licence ouverte', mode: 'demande', portee: 'local' },
@@ -128,7 +130,12 @@ async function importerSireneStockDep(departement) {
   return { lignes: r.lignes, millesime: r.millesime };
 }
 
-const IMPORTEURS = { dvf: importerDvf, iris: importerIris, sirene_bodacc: importerSireneBodacc, sirene_stock: importerSireneStockDep };
+async function importerPersonnesMoralesDep(departement) {
+  const { importerPersonnesMorales } = await import('./imports/personnes-morales.js');
+  return importerPersonnesMorales({ departement });
+}
+
+const IMPORTEURS = { dvf: importerDvf, iris: importerIris, sirene_bodacc: importerSireneBodacc, sirene_stock: importerSireneStockDep, personnes_morales_dgfip: importerPersonnesMoralesDep };
 
 /** Importe un jeu pour une commune (ou le département pour « communes »), à travers l'interrupteur de sa source. */
 export async function importer(cleJeu, cibleCode) {

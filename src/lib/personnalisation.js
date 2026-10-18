@@ -34,7 +34,7 @@ export const DEFAUT = Object.freeze({
   barre_clair: "origine",
   halo: false,
   surfaces: "verre", // verre | plein
-  police: "instrument", // instrument | figtree | montserrat | systeme
+  police: "instrument", // instrument | inter | figtree | montserrat | systeme
   boutons: "pilule", // pilule | arrondi | carre
   taille: 100, // 90 | 100 | 110 | 120
   animations: "normales", // normales | reduites
@@ -59,7 +59,7 @@ export const OPTIONS = {
   fond_clair: [["perle", "Gris perle"], ["blanc", "Blanc"]],
   halo: [[true, "Avec"], [false, "Sans"]],
   surfaces: [["verre", "Verre translucide"], ["plein", "Aplats opaques"]],
-  police: [["instrument", "Instrument Sans"], ["figtree", "Figtree"], ["montserrat", "Montserrat"], ["systeme", "Celle du système"]],
+  police: [["instrument", "Instrument Sans"], ["inter", "Inter"], ["figtree", "Figtree"], ["montserrat", "Montserrat"], ["systeme", "Celle du système"]],
   boutons: [["pilule", "Pilules"], ["arrondi", "Angles arrondis"], ["carre", "Carrés"]],
   taille: [[90, "90 %"], [100, "100 %"], [110, "110 %"], [120, "120 %"]],
   animations: [["normales", "Normales"], ["reduites", "Réduites"]],
@@ -73,6 +73,7 @@ export const OPTIONS = {
 /** Les polices, telles que le CSS les lit. Toutes sont déjà chargées (index.html). */
 export const POLICES = {
   instrument: "'Instrument Sans', Inter, system-ui, sans-serif",
+  inter: "Inter, 'Instrument Sans', system-ui, sans-serif",
   figtree: "Figtree, 'Instrument Sans', system-ui, sans-serif",
   montserrat: "Montserrat, 'Instrument Sans', system-ui, sans-serif",
   systeme: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",

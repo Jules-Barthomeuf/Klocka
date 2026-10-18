@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-18",
     items: [
+      { titre: "La police Inter", texte: "Une police de plus dans Personnalisation : Inter, à côté d'Instrument Sans, Figtree et Montserrat. Elle s'applique partout dès qu'on la choisit.", page: "Personnalisation" },
       { titre: "Le mail « Ma journée »", texte: "Chaque matin ouvré vers 8 h : les nouveautés de la plateforme (plus de fenêtre à l'arrivée), vos relances à faire aujourd'hui et ce qu'il y a à faire dans Dossiers. Rien ne part s'il n'y a rien à dire.", page: "Dashboard" },
     ],
   },

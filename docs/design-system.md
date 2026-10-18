@@ -620,7 +620,7 @@ Remplace les quatre points qui tournent du 16 oct. (ci-dessous, gardés pour les
 
 **Un seul fond « Halo » partout** (Jules, 18 oct. 2026 : « le même que dans la page projets ») : le réglage Halo allumé, chaque page montre le même fond, `FondHalo` posé par `Layout` et passé sous la barre latérale. La page Haka n'ajoute plus ses deux ellipses (`accueil-halo-a/b`) derrière le salut. Une page ne dessine pas son propre halo. Le dossier ouvert en écran scindé ne pose plus `k-sobre` (qui éteignait le fond) et n'a plus sa lumière dans le coin : il montre le même fond que Projets.
 
-**Le dossier en mode IA garde la barre de navigation** (Jules, 18 oct. 2026) : la barre reste à gauche du chat, repliée en rail comme dans tout dossier ; la page ne défile pas, chaque colonne défile seule. La colonne du chat n'a plus de cartes de compétences : la question et la saisie suffisent.
+**Le dossier en mode IA garde la barre de navigation** (Jules, 18 oct. 2026) : la barre reste à gauche du chat, repliée en rail comme dans tout dossier ; la page ne défile pas, chaque colonne défile seule. La colonne du chat n'a plus de cartes de compétences : la question et la saisie suffisent. À droite, le dossier s'affiche comme en mode normal (titre, retour « Tous les dossiers », contenu), sans carte posée sur la page : une fine ligne verticale (`border-trait`) le sépare du chat.
 
 ### Les étapes d'AK quand il réfléchit (16 oct. 2026)
 

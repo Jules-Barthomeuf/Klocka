@@ -446,12 +446,7 @@ export default function Analyse() {
                 </button>
               </div>
               <h1 className="m-0 text-[30px] font-normal leading-[1.1] tracking-[-0.02em] text-encre max-md:text-[26px]">Dossiers</h1>
-              <nav className="inline-flex max-w-full gap-1 self-center overflow-x-auto rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Parties des dossiers">
-                {/* Un seul onglet (18 oct. 2026, Jules) : « À traiter », « Pipeline » et « Écartés par AK » sont retirés. */}
-                <span className="inline-flex h-9 flex-none items-center gap-2 rounded-full bg-encre px-4 text-[14px] text-fond">
-                  Dossiers<span className="text-[12px] tabular-nums opacity-70">{tous.length}</span>
-                </span>
-              </nav>
+              {/* La pilule « Dossiers · n » retirée (18 oct. 2026, Jules) : le titre suffit. */}
             </header>
 
             {/* Recherche, et ce que fait la page toute seule. */}

@@ -29,7 +29,9 @@ const SCHEMA = {
  * Enregistre un avis et fait rédiger le prompt de correction.
  * @param {{pouce:'haut'|'bas', question:string, reponse:string, surface:string, deal_id?:string, precision?:string, user?:object}} avis
  */
-export async function enregistrerAvis({ pouce, question, reponse, surface = 'dossier', deal_id = null, precision = '', user } = {}) {
+// `rediger` : le prompt de correction n'est rédigé par le modèle que sur demande ; un pouce seul est noté sans appel
+// (18 oct. 2026, Jules : « juste mettre un pouce rapidement », et limiter les crédits).
+export async function enregistrerAvis({ pouce, question, reponse, surface = 'dossier', deal_id = null, precision = '', user, rediger = false } = {}) {
   const bas = pouce === 'bas';
   const q = String(question || '').trim().slice(0, 6000);
   const r = String(reponse || '').trim().slice(0, 12000);
@@ -65,7 +67,7 @@ ${r}
 ${precision ? `\n--- CE QUE L'UTILISATEUR REPROCHE ---\n${String(precision).trim().slice(0, 2000)}` : ''}`;
 
   let resultat = null;
-  try {
+  if (rediger) try {
     const { resultat: rr } = await mesurer(
       { operation: 'avis sur une réponse', par: user?.email || null, sur: deal_id },
       () => invokeLLM({ prompt, response_json_schema: SCHEMA })
@@ -91,6 +93,13 @@ ${precision ? `\n--- CE QUE L'UTILISATEUR REPROCHE ---\n${String(precision).trim
     prompt_correction: promptCorrection,
     client_email: user?.email || null,
     client_name: user?.full_name || user?.email || null,
+  });
+  // Le pouce devient aussi une leçon proposée pour Haka (18 oct. 2026) : gardée dans Suivi > Chat, elle est relue
+  // avant chaque réponse, comme les « non, pas ça » et les « nickel » écrits dans le chat.
+  Records.create('AkLecon', {
+    verdict: bas ? 'correction' : 'bien', demande: q, reponse: r,
+    retour: precision ? String(precision).trim().slice(0, 400) : bas ? 'pouce en bas : réponse à ne pas refaire' : 'pouce en haut : réponse à refaire ainsi',
+    par: user?.full_name || user?.email || null, espace: surface, le: new Date().toISOString(), etat: 'proposee', origine: 'pouce',
   });
 
   return { ok: true, remarque, prompt: promptCorrection, resume };

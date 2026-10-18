@@ -566,7 +566,7 @@ function LayoutContent({ children, currentPageName }) {
         <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
             <img src="/logo-klocka.svg" alt="Klocka OS" className="h-6 w-6 rounded-[6px]" draggable={false} />
-            {!replie && <span className="text-[17px] font-semibold tracking-[-0.01em] text-encre">Klocka OS</span>}
+            {!replie && <span className="text-[18px] font-normal tracking-[-0.02em] text-encre">Klocka OS</span>}
           </Link>
           {!isMobile && !replie && (
             <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Replier le menu" title="Replier le menu" className={`ml-auto ${bouton}`} style={{ background: "transparent" }}>

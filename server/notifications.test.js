@@ -5,7 +5,7 @@ import os from 'os';
 import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-notif-'));
-const { notifier, mesNotifications, marquer, toutLire } = await import('./notifications.js');
+const { notifier, mesNotifications, marquer, toutLire, supprimer, toutSupprimer } = await import('./notifications.js');
 
 const JULES = { email: 'jules.b@klocka.immo', role: 'admin' };
 const NORA = { email: 'nora.l@klocka.immo', role: 'admin' };
@@ -36,4 +36,18 @@ test('vue puis lue, chacun pour soi', () => {
   assert.equal(marquer(n.id, MARC, 'lue').ok, false);
   toutLire(NORA);
   assert.equal(mesNotifications(NORA).non_lues, 0);
+});
+
+test("supprimer : une notification d'équipe ne part que de sa liste, une personnelle disparaît", () => {
+  const equipe = notifier({ titre: 'Fiche à voir', cle: 'fiche:sup' });
+  const perso = notifier({ pour: JULES.email, titre: 'Pour Jules seul' });
+  assert.equal(supprimer(equipe.id, JULES).ok, true);
+  assert.ok(!mesNotifications(JULES).notifications.some((n) => n.id === equipe.id));
+  assert.ok(mesNotifications(NORA).notifications.some((n) => n.id === equipe.id), 'Nora la garde');
+  assert.equal(supprimer(perso.id, NORA).ok, false, 'pas la sienne');
+  supprimer(perso.id, JULES);
+  assert.ok(!mesNotifications(JULES).notifications.some((n) => n.id === perso.id));
+  toutSupprimer(NORA);
+  assert.equal(mesNotifications(NORA).notifications.length, 0);
+  assert.equal(mesNotifications(MARC).notifications.length, 1, 'le mandataire garde la sienne');
 });

@@ -38,7 +38,7 @@ const pourMoi = (n, user) => (n.pour ? n.pour === String(user?.email || '').toLo
 export function mesNotifications(user, { limite = 30 } = {}) {
   const email = String(user?.email || '').toLowerCase();
   const toutes = Records.list('Notification')
-    .filter((n) => pourMoi(n, user))
+    .filter((n) => pourMoi(n, user) && !(n.supprimee_par || []).includes(email))
     .sort((a, b) => String(b.le).localeCompare(String(a.le)));
   return {
     notifications: toutes.slice(0, limite).map((n) => ({
@@ -63,6 +63,22 @@ export function marquer(id, user, quoi = 'lue') {
 
 export function toutLire(user) {
   for (const n of mesNotifications(user, { limite: PLAFOND }).notifications.filter((x) => !x.lue)) marquer(n.id, user, 'lue');
+  return { ok: true };
+}
+
+/** Supprimer une notification de sa liste (19 oct. 2026, Jules). Une notification d'équipe reste chez les autres. */
+export function supprimer(id, user) {
+  const n = Records.get('Notification', id);
+  if (!n || !pourMoi(n, user)) return { ok: false, error: 'Notification introuvable.' };
+  const email = String(user.email).toLowerCase();
+  if (n.pour) Records.delete('Notification', n.id);
+  else if (!(n.supprimee_par || []).includes(email)) Records.update('Notification', n.id, { supprimee_par: [...(n.supprimee_par || []), email] });
+  return { ok: true };
+}
+
+/** Vider sa liste. */
+export function toutSupprimer(user) {
+  for (const n of mesNotifications(user, { limite: PLAFOND }).notifications) supprimer(n.id, user);
   return { ok: true };
 }
 

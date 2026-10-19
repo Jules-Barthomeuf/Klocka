@@ -330,6 +330,16 @@ export function monterAssistant(app) {
     const { toutLire } = await import('../notifications.js');
     ok(res, toutLire(currentUser(req)));
   }));
+  app.post('/api/notifications/effacer', wrap(async (req, res) => {
+    const { toutSupprimer } = await import('../notifications.js');
+    ok(res, toutSupprimer(currentUser(req)));
+  }));
+  app.delete('/api/notifications/:id', wrap(async (req, res) => {
+    const { supprimer } = await import('../notifications.js');
+    const r = supprimer(req.params.id, currentUser(req));
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/notifications/:id/:quoi', wrap(async (req, res) => {
     const { marquer } = await import('../notifications.js');
     const r = marquer(req.params.id, currentUser(req), req.params.quoi === 'vue' ? 'vue' : 'lue');

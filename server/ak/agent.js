@@ -84,6 +84,18 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'regrouper_dossiers',
+    description: "Met plusieurs dossiers existants dans un nouveau dossier à plusieurs lots (« mets le disquaire et le coiffeur rue de Cheverus dans un nouveau dossier ») : chaque lot garde sa pré-analyse, ses pièces et ses chiffres ; les dossiers d'origine sont archivés avec le lien, rien n'est supprimé, leurs mails suivent. Trouver d'abord les dossiers (chercher_dossier), puis regrouper sans redemander quand la demande est claire.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_ids: { type: 'array', items: { type: 'string' }, description: 'les deal_id des dossiers à regrouper, deux au moins' },
+        nom: { type: 'string', description: 'facultatif ; sinon « Disquaire + Coiffeur - Bordeaux »' },
+      },
+      required: ['deal_ids'],
+    },
+  },
+  {
     name: 'analyser_fiche',
     description: "Crée un dossier de préanalyse à partir d'une fiche commerciale, d'un teaser ou d'un investment memorandum (« crée ce dossier », « fais la pré-analyse ») : lecture, extraction du bien, synthèse. Seulement quand la fiche est là (jointe, collée ou en image) : sinon demande-la, n'appelle pas l'outil. La fiche est soit une pièce jointe (donner son chemin tel qu'il est donné dans le message), soit collée dans le message lui-même (mettre texte_du_message à vrai : le texte complet du message est pris, inutile de le recopier). Une minute environ.",
     input_schema: { type: 'object', properties: { chemin: { type: 'string', description: 'le chemin de la pièce jointe, tel que donné' }, texte_du_message: { type: 'boolean', description: 'vrai quand la fiche est le texte du message' }, texte: { type: 'string', description: 'la fiche recopiée par toi, quand elle est sur une image (capture d\'un mail, d\'une annonce) : tout ce que tu y lis, sans rien inventer' } } },
@@ -822,6 +834,11 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
       },
     });
     return { ok: true, cree: true, deal_id: dossier.deal_id, nom: dossier.nom, lien: lien(`/Analyse?deal_id=${dossier.deal_id}`) };
+  }
+  if (name === 'regrouper_dossiers') {
+    const { regrouperDossiers } = await import('../deal/regrouper.js');
+    const r = regrouperDossiers(input.deal_ids, { nom: input.nom || null, user });
+    return r.ok ? { ...r, lien: lien(`/Analyse?deal_id=${r.deal_id}`) } : r;
   }
   if (name === 'analyser_fiche' || name === 'ajouter_document') {
     const chemin = String(input.chemin || '');

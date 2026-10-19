@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Vos notifications dans la cloche", texte: "La cloche montre vos notifications sous ce qui vous attend : un clic ouvre la page, la croix en supprime une, « Tout effacer » vide la liste.", page: "Dashboard" },
       { titre: "Haka corrige vraiment les cases du bail", texte: "Quand vous demandez à Haka de corriger une case du bail (loyer de signature, TVA…), dans un projet ou dans les tableaux d'un dossier, la correction s'affiche à l'écran, y compris en vert sous le titre de la clause. Le loyer de signature ne reprend plus celui de la fiche de l'agent : seul le bail compte.", page: "AdminProjets" },
       { titre: "Les fiches reçues attendent votre accord", texte: "Une fiche arrivée par mail n'est plus pré-analysée toute seule : la cloche la montre avec « Pré-analyser » ou « Pas une fiche ». Haka reconnaît aussi mieux ce qui est une fiche commerciale.", page: "AValider" },
       { titre: "Votre couleur de barre, toujours lisible", texte: "Dans Paramètres > Couleurs, « Personnaliser » la barre donne deux curseurs, la teinte et l'intensité ; la barre reste lisible.", page: "Personnalisation" },

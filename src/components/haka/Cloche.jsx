@@ -8,6 +8,7 @@ import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { useCompteHaka, usePropositions } from "@/components/haka/useFileHaka";
 import { ilYa } from "@/components/dashboard/ChatDashboard";
+import NotificationsVolet from "@/components/haka/NotificationsVolet";
 
 // La cloche, dans la barre du haut (17 oct. 2026, Jules, variante B : « l'accueil reste celui de Max, ce qui
 // attend passe par une cloche »). Entre les boîtes connectées et le mode appel, sur toutes les pages de
@@ -143,6 +144,8 @@ export default function Cloche({ className = "" }) {
                       ) : null}
                     </motion.div>
                   ))}
+                  {/* Mes notifications, sous ce qui attend (19 oct. 2026, Jules) : chacune se lit ou s'efface d'un clic. */}
+                  <NotificationsVolet onOuvrir={(lien) => { setOuvert(false); navigate(lien); }} />
                 </div>
               </motion.div>
             </>

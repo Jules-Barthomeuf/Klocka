@@ -55,3 +55,7 @@ ml/sortie/
 
 # Écrit au build (scripts/nouveautes.mjs)
 server/nouveautes.json
+
+# Exports qui contiennent des noms et des numéros réels (scripts/exporter-appels.mjs)
+exports-prives/
+docs/appels/

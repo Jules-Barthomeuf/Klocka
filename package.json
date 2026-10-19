@@ -14,6 +14,8 @@
     "socle:format": "node scripts/format-commun-verifier.mjs",
     "annonces:verifier": "node scripts/verifier-sites-agences.mjs",
     "vacance:verifier": "node scripts/vacance-verifier.mjs",
+    "appels:exporter": "node scripts/exporter-appels.mjs",
+    "appels:effort": "node scripts/appels-effort.mjs",
     "annonces:trancher": "node scripts/annonces-trancher.mjs",
     "recap": "node server/recap/recap.js",
     "ak:epreuves": "node server/ak/epreuves.js",

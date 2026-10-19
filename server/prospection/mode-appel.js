@@ -888,6 +888,11 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if ((lu.appel.biens || []).length && issue === 'a_des_murs') actions.push({ id: 'signaler_bien', type: 'signaler_bien', titre: `Noter le bien évoqué : ${lu.appel.biens[0]}`, biens: lu.appel.biens, coche: false, ...(lu.appel.citations?.biens ? { source: lu.appel.citations.biens } : {}) });
   // Le téléphone : le direct s'il a été dit, sinon le numéro appelé.
   if (!compris.champs?.telephone && (numero || numeroDe(a))) compris.champs = { ...(compris.champs || {}), telephone: { valeur: numero || numeroDe(a), source: 'Numéro appelé', appele: true } };
+  // Le « parce que » des actions que le code décide (APPELS_V2) : jamais une action sans raison à l'écran.
+  if (lu.appel.lecture_v2) {
+    const V2 = await import('./appels-v2.js');
+    for (const p of actions) if (!p.parce_que && V2.PARCE_QUE_REGLE[p.type]) p.parce_que = V2.PARCE_QUE_REGLE[p.type](p);
+  }
   // Les étapes que cette personne a retirées une fois ne reviennent plus, dans aucune ville (19 oct. 2026, Jules).
   {
     const P = await import('./preferences-appel.js');
@@ -926,6 +931,7 @@ export async function validerIssue(x) {
 async function validerUneFois({ appel_id, passe = null, choix = [], mail = null, relance_le = null, relance2_le = null, monday_ligne = null, monday_cases = null, note = '', corrections = [], cle = null, session_id = null, agence_id = null, user, issue = null, depuisFenetre = false, etapesVues = null, maintenantD = new Date() }) {
   // « Ce qui s'est passé », réécrit par l'analyste : c'est sa phrase qui part dans Monday et le journal.
   const passeTapee = passe != null ? String(passe).trim() : null;
+  const passeAvant = Records.get(APPEL, appel_id)?.passe ?? null;
   if (passeTapee != null && passeTapee !== String(Records.get(APPEL, appel_id)?.passe || '')) Records.update(APPEL, appel_id, { passe: passeTapee || null, passe_corrigee: true });
   const appel = Records.get(APPEL, appel_id);
   const A = await import('./appel.js');
@@ -1072,6 +1078,16 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
       ajoutees: visibles.filter((p) => p.coche === false && pris.has(p.id)).map((p) => p.type),
     } });
   } catch { /* le suivi ne bloque jamais une validation */ }
+
+  // Le journal des corrections, complet (APPELS_V2, 19 oct. 2026) : quelle action décochée ou ajoutée, texte d'origine et
+  // corrigé, raison donnée d'un clic.
+  try {
+    const V2 = await import('./appels-v2.js');
+    if (V2.appelsV2Actif() && !essai) {
+      const frais = Records.get(APPEL, appel.id);
+      V2.noterCorrection(V2.journalDeCorrection({ appel: frais, actions, pris, mail, relanceChoisie: relance_le, passeAvant, passeApres: passeTapee, corrections, issueFinale: issueTapee, raisons: frais?.raisons || {} }));
+    }
+  } catch (e) { console.warn(`[appels-v2] journal des corrections non écrit : ${e?.message || e}`); }
 
   // La qualité d'AK (9 oct. 2026) : ce que l'analyste a corrigé de ce qu'AK proposait.
   try {

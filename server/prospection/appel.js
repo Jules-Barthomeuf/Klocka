@@ -166,12 +166,18 @@ export function objectionDe(lu, transcription) {
 }
 
 /** Lit l'appel (transcription ou récit) et rend ce qu'AK en retient. */
-async function lire(a, texte, { par, maintenant, issueTapee = null, entrant = false }) {
+export async function lire(a, texte, { par, maintenant, issueTapee = null, entrant = false, final = false }) {
   const { invokeLLM, llmEnabled } = await import('../llm.js');
   if (!llmEnabled) return { resume: texte.slice(0, 300), issue: 'autre' };
   const r = reglages();
   const u = Records.filter('User', { email: par })[0];
-  return invokeLLM({
+  // Deuxième version (19 oct. 2026) : la compétence publiée et ce qu'on sait déjà de l'agent, derrière APPELS_V2.
+  const V2 = await import('./appels-v2.js');
+  const v2 = V2.appelsV2Actif();
+  const competence = v2 ? await V2.competencePubliee() : null;
+  const contexte = v2 ? V2.contexteDeLaBase(a, tousLesAgents()) : null;
+  const effort = v2 && final ? V2.effortFinal() : 'low';
+  const lu = await invokeLLM({
     prompt: `Tu es l'alternant de Klocka (investissement en murs commerciaux). ${NOTE_KLOCKA} ${entrant ? `Un agent immobilier vient de rappeler ${u?.full_name || par}` : `${u?.full_name || par} vient d'appeler un agent immobilier`}. Lis l'appel et dis ce qu'il en ressort, en français, sans rien inventer.
 
 L'issue, une seule :
@@ -196,17 +202,19 @@ ${r.criteres || '(pas encore écrits)'}
 L'agent : ${a.nom}${a.agence ? `, ${a.agence}` : ''}${a.ville ? `, ${a.ville}` : ''}. Secteurs connus : ${(a.secteurs || []).join(', ') || 'aucun'}. Ses annonces Equimmox : ${a.annonces || 0}.
 Ce qu'on sait déjà :
 ${lignesJournal(a)}
-
+${v2 ? `\n${V2.blocDuPrompt({ competence, contexte })}\n` : ''}
 Aujourd'hui : ${R.jourDe(maintenant)}${issueTapee ? `. L'analyste a tapé l'issue « ${R.ISSUES[issueTapee] || issueTapee} » : elle ne change pas, remplis seulement les détails, et dis dans issue_entendue ce que la conversation dit vraiment` : ''}.
 
 L'appel :
 ${texte}`,
-    response_json_schema: SCHEMA,
+    response_json_schema: v2 ? { ...SCHEMA, properties: { ...SCHEMA.properties, ...V2.SCHEMA_V2 } } : SCHEMA,
     // Réflexion réduite (8 oct. 2026) : l'analyste attend devant « Je lis l'appel ».
     // Mesuré sur trois appels types : les mêmes champs, l'issue et les dates
     // identiques, en 2,6 à 6,9 s au lieu de 7,6 à 14,3 s. Haiku n'allait pas plus vite.
-    effort: 'low',
+    effort,
   });
+  // Ce qui a servi à lire, gardé sur l'appel (et dans le journal des corrections).
+  return v2 ? { ...lu, lecture_v2: { competence_version: competence?.version ?? null, effort, contexte: true } } : lu;
 }
 
 
@@ -217,6 +225,11 @@ ${texte}`,
 export function propositions(a, lu, { maintenant = new Date(), criteres = '', objet_criteres, autres_de_l_agence = [] } = {}) {
   const issue = lu.issue && R.ISSUES[lu.issue] ? lu.issue : 'autre';
   const suite = R.suiteDeLIssue(issue, { tentatives: a.tentatives || 0, maintenant, date_dite: lu.date_dite || null, statut: a.statut || null });
+  // La date que le modèle a conseillée, déjà vérifiée par le code (appels-v2.js) : elle remplace la date par défaut.
+  if (lu.relance_conseillee_le && suite.prochaine && !lu.date_dite) {
+    suite.prochaine = { ...suite.prochaine, le: lu.relance_conseillee_le, date_conseillee: true, date_par_defaut_etait: suite.prochaine.le };
+    suite.date_par_defaut = false;
+  }
   const out = [];
   const a_email = R.normEmail(lu.email_donne) || a.emails?.[0] || null;
   out.push({ id: 'statut', type: 'statut', titre: `Noter l'appel : ${R.ISSUES[issue].toLowerCase()}${suite.statut !== a.statut ? `, statut « ${R.STATUTS[suite.statut]} »` : ''}`, issue, statut: suite.statut, tentatives: suite.tentatives });
@@ -250,6 +263,12 @@ export function propositions(a, lu, { maintenant = new Date(), criteres = '', ob
   if (suite.autre_contact) {
     if (lu.autre_contact) out.push({ id: 'autre_contact', type: 'note', titre: `Autre contact cité : ${lu.autre_contact}`, texte: `autre contact cité : ${lu.autre_contact}`, ...(lu.citations?.autre_contact ? { source: lu.citations.autre_contact } : {}) });
     for (const x of autres_de_l_agence.slice(0, 2)) out.push({ id: `autre_${x.id}`, type: 'autre_agent', titre: `Appeler plutôt ${x.nom}, même agence (${x.telephones?.[0] || x.emails?.[0] || ''})`, agent_id: x.id });
+  }
+  // Le « parce que » de chaque proposition (APPELS_V2) : la raison du modèle quand il en a donné une.
+  if (lu.parce_que) {
+    const PAR_TYPE = { statut: lu.parce_que.issue, mail: lu.parce_que.mail, relance: lu.relance_conseillee_parce_que || lu.parce_que.relance, fiche: lu.parce_que.fiche };
+    for (const p of out) if (PAR_TYPE[p.type]) p.parce_que = String(PAR_TYPE[p.type]).trim().slice(0, 300);
+    for (const p of out) if (p.type === 'relance' && lu.relance_conseillee_le) p.conseillee = true;
   }
   return { issue, propositions: out };
 }
@@ -376,13 +395,15 @@ async function lireOuReprendre(a, texte, opts) {
   const cle = cleAvance(opts.par, a.id, opts.entrant);
   const x = AVANCE.get(cle);
   for (const [k, v] of AVANCE) if (Date.now() - (v.le || Date.now()) > DUREE_AVANCE_MS) AVANCE.delete(k);
-  if (x?.enCours && x.texteEnCours && finSansEnjeu(x.texteEnCours, texte)) {
+  // Un effort final plus élevé que celui du direct (APPEL_EFFORT_FINAL, derrière APPELS_V2) : la lecture finale se refait.
+  const refaire = (await import('./appels-v2.js')).appelsV2Actif() && (await import('./appels-v2.js')).effortFinal() !== 'low';
+  if (!refaire && x?.enCours && x.texteEnCours && finSansEnjeu(x.texteEnCours, texte)) {
     const lu = await x.enCours;
     if (lu) { AVANCE.delete(cle); return { ...lu, lu_en_avance: true }; }
   }
-  if (x?.lu && x.texte && finSansEnjeu(x.texte, texte)) { AVANCE.delete(cle); return { ...x.lu, lu_en_avance: true }; }
+  if (!refaire && x?.lu && x.texte && finSansEnjeu(x.texte, texte)) { AVANCE.delete(cle); return { ...x.lu, lu_en_avance: true }; }
   AVANCE.delete(cle);
-  return lire(a, texte, opts);
+  return lire(a, texte, { ...opts, final: true });
 }
 
 /**
@@ -420,9 +441,9 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
   } else if (issueTapee && R.ISSUES[issueTapee]) {
     // L'issue tapée par l'analyste fait foi (mode appel) : la lecture ne sert
     // qu'à remplir les détails autour, jamais à la contredire.
-    lu = vide || ['pas_de_reponse', 'repondeur', 'agent_prevenu'].includes(issueTapee) ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant, issueTapee, entrant })), issue: issueTapee };
+    lu = vide || ['pas_de_reponse', 'repondeur', 'agent_prevenu'].includes(issueTapee) ? { resume: `${R.ISSUES[issueTapee]}.`, issue: issueTapee } : { ...(await lire(a, texte, { par, maintenant, issueTapee, entrant, final: true })), issue: issueTapee };
   } else {
-    lu = sans_reponse || vide ? { resume: 'pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant });
+    lu = sans_reponse || vide ? { resume: 'pas de réponse.', issue: 'pas_de_reponse' } : await lire(a, texte, { par, maintenant, final: true });
   }
   // Ce qui a été compris : le code garde ce qui a une phrase, vérifie les
   // formats, calcule la date. La date d'AK n'est jamais prise telle quelle.
@@ -431,6 +452,13 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
   const compris = comprisDe(lu, { issue: lu.issue, connus, maintenant });
   // L'échéance d'un mandat à venir fait sa propre relance : elle ne repousse pas celle de la fiche.
   lu.date_dite = compris.champs.mandat?.date && compris.champs.mandat.date === compris.date_dite && lu.issue === 'a_des_murs' ? null : compris.date_dite;
+  // La date de relance conseillée par le modèle (APPELS_V2) : le code la vérifie avant de la reprendre.
+  const V2 = await import('./appels-v2.js');
+  if (lu.lecture_v2) {
+    const rc = V2.relanceConseillee(lu.relance_conseillee, { issue: lu.issue, date_dite: lu.date_dite, maintenant });
+    if (rc?.ok) { lu.relance_conseillee_le = rc.le; lu.relance_conseillee_parce_que = rc.parce_que; }
+    else if (rc) lu.lecture_v2 = { ...lu.lecture_v2, relance_refusee: rc.refus };
+  }
   const r = reglages();
   const autres = tousLesAgents().filter((x) => x.id !== a.id && a.agence && R.norm(x.agence) === R.norm(a.agence) && x.statut !== 'archive' && x.telephones?.length);
   const { issue, propositions: props } = propositions(a, lu, { maintenant, criteres: r.criteres, objet_criteres: r.objet_criteres, autres_de_l_agence: autres });
@@ -447,6 +475,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
     objection: objectionDe(lu, transcription),
     canal_prefere: ['sms', 'mail'].includes(lu.canal_prefere) ? lu.canal_prefere : null,
     propositions: props, message, etat: 'a_valider',
+    ...(lu.lecture_v2 ? { lecture_v2: lu.lecture_v2, parce_que: lu.parce_que || null } : {}),
   });
   // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus
   // d'envoi dans le chat privé, qui faisait doublon.

@@ -895,6 +895,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Étapes d'un appel : ne plus proposer** (Jules, 19 oct. 2026) : chaque étape retirable (Email, SMS, Liste de diffusion, bien évoqué, contact donné, relances, prévenir un collègue) porte une petite croix `brume` à droite de son interrupteur, `alerte` au survol ; décocher vaut pour cet appel, la croix vaut pour tous les suivants de la personne. Sous les étapes, « Ne sera plus proposé : … Rétablir » (lien menthe). Le micro d'enregistrement (`MicroEcoute`) prend l'accent choisi (`bg-menthe`, plus `menthe-pale`).
 
+**Après un appel : le « parce que » et la raison d'un clic** (Jules, 19 oct. 2026, derrière APPELS_V2) : sous le libellé de chaque étape, une ligne `ardoise` de 12,5 px « Parce que : … » (la raison du modèle, ou celle de la règle du code) ; sous la phrase de l'issue, la raison de l'issue. Quand l'analyste décoche une étape, change la date de relance ou retouche le mail, une rangée « Pourquoi ? » de six pastilles à contour (Trop tôt, Trop tard, Mauvais ton, Déjà fait, Il a dit autre chose, Autre) apparaît sous l'étape ; un clic enregistre la raison, la pastille choisie passe en menthe. Rien ne l'impose : on peut valider sans répondre.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

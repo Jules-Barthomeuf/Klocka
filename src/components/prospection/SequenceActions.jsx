@@ -59,12 +59,17 @@ const BoutonOeil = ({ onClick }) => (
  * l'œil), sauf ce qui demande un regard (adresse manquante, contact à
  * choisir), dit en ambre dessous ; puis l'œil et l'interrupteur.
  */
+// Les raisons qu'on donne d'un clic quand on change ce que Haka proposait (APPELS_V2, 19 oct. 2026, Jules).
+const RAISONS = [["trop_tot", "Trop tôt"], ["trop_tard", "Trop tard"], ["mauvais_ton", "Mauvais ton"], ["deja_fait", "Déjà fait"], ["a_dit_autre_chose", "Il a dit autre chose"], ["autre", "Autre"]];
+
 function Etape({ e }) {
   return (
-    <div className="flex min-h-[40px] items-center gap-1.5 py-0.5">
+    <div className="py-0.5">
+    <div className="flex min-h-[40px] items-center gap-1.5">
       <span className={`flex min-w-0 flex-1 flex-col gap-0.5 transition-opacity ${e.on ? "" : "opacity-40"}`}>
         <span className={`text-[15.5px] text-encre ${e.on ? "" : "line-through"}`}>{e.label}</span>
         {e.warn && e.on && e.detail && <span className="text-[12.5px] text-ambre">{e.detail}</span>}
+        {e.parce && <span className="text-[12.5px] leading-[1.4] text-ardoise">Parce que : {e.parce}</span>}
       </span>
       <BoutonOeil onClick={e.voir} />
       {e.basculer && <Interrupteur on={e.on} onChange={e.basculer} label={`${e.on ? "Retirer" : "Remettre"} : ${e.label}`} />}
@@ -74,6 +79,16 @@ function Etape({ e }) {
           <X className="h-3.5 w-3.5" />
         </button>
       )}
+    </div>
+    {e.demandeRaison && (
+      <div className="flex flex-wrap items-center gap-1.5 pb-2 pl-0.5">
+        <span className="text-[12px] text-brume">Pourquoi ?</span>
+        {RAISONS.map(([k, mot]) => (
+          <button key={k} type="button" onClick={() => e.choisirRaison(k)} aria-pressed={e.raison === k}
+            className={`h-7 rounded-full border px-2.5 text-[12px] transition-colors ${e.raison === k ? "border-menthe text-menthe" : "border-trait text-ardoise hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>{mot}</button>
+        ))}
+      </div>
+    )}
     </div>
   );
 }
@@ -726,7 +741,14 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
     return { kicker: "ÉTAPE", titre: q.titre, cases: [{ label: "Détail", valeur: q.texte || q.titre, large: true }] };
   };
 
-  const etape = (q, champs) => ({ k: q.id, q, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: () => setOuverte(q.id), retirer: !q.toujours && RETIRABLES.includes(q.type) ? retirer(q) : null, ...champs });
+  // La raison d'un changement, d'un clic : décocher une étape, changer la date de relance, retoucher le mail.
+  const [raisons, setRaisons] = useState({});
+  const v2 = !!appel.lecture_v2;
+  const choisirRaison = (cle) => (k) => {
+    setRaisons((x) => ({ ...x, [cle]: k }));
+    base44.request("POST", `/api/prospection/mode-appel/appels/${appel.id}/raison`, { body: { cle, raison: k } }).catch(() => {});
+  };
+  const etape = (q, champs) => ({ parce: v2 ? q.parce_que || null : null, raison: raisons[q.type] || null, choisirRaison: choisirRaison(q.type), demandeRaison: v2 && !!appel.id && ((!(q.toujours || coches.has(q.id)) && q.coche !== false) || (q.type === "relance" && !!relanceLe && relanceLe !== q.prochaine?.le) || (q.type === "mail" && !!modifie)), k: q.id, q, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: () => setOuverte(q.id), retirer: !q.toujours && RETIRABLES.includes(q.type) ? retirer(q) : null, ...champs });
   const maintenant = [];
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
@@ -766,6 +788,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
           {(onChangerIssue || setEdits) && <button type="button" onClick={() => setChoixIssue((x) => !x)} disabled={changementEnCours} className="shrink-0 p-0 text-[13px] text-ardoise underline hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>changer</button>}
         </span>
       </div>
+      {v2 && appel.parce_que?.issue && <p className="m-0 mb-2 px-1 text-[12.5px] leading-[1.4] text-ardoise">Parce que : {appel.parce_que.issue}</p>}
       {choixIssue && (
         <div className="mb-3 flex flex-col gap-2 px-1">
           {setEdits && (

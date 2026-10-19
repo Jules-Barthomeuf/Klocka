@@ -450,6 +450,25 @@ export function monterProspection(app) {
   // L'issue tapée en raccrochant, avec le vocal pour les vraies conversations.
   // La transcription en direct (7 oct. 2026) : un morceau de quelques
   // secondes, transcrit et rendu tout de suite. L'audio n'est pas gardé.
+  // L'analyse d'appel, deuxième version (19 oct. 2026) : l'interrupteur (Jules seul) et la raison d'un changement, d'un clic.
+  app.get('/api/prospection/appels-v2', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const V2 = await import('../prospection/appels-v2.js');
+    ok(res, { actif: V2.appelsV2Actif(), effort_final: V2.effortFinal(), competence: !!(await V2.competencePubliee()) });
+  }));
+  app.post('/api/prospection/appels-v2/interrupteur', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const { SUPER_ADMINS } = await import('../acces-pages.js');
+    if (!SUPER_ADMINS.includes(String(user.email || '').toLowerCase())) return res.status(403).json({ error: 'Réservé à Jules.' });
+    ok(res, { actif: (await import('../prospection/appels-v2.js')).poserAppelsV2(!!req.body?.actif) });
+  }));
+  app.post('/api/prospection/mode-appel/appels/:id/raison', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await import('../prospection/appels-v2.js')).noterRaison(req.params.id, req.body?.cle, req.body?.raison);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   // Les étapes retirées par la personne (19 oct. 2026) : elles ne sont plus proposées après un appel.
   app.get('/api/prospection/mode-appel/preferences', wrap(async (req, res) => {
     const user = admin(req, res);

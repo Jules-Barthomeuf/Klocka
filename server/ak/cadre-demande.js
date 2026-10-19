@@ -3,6 +3,12 @@
 // dans la conversation, ou « Produire » un livrable qui finit dans À valider).
 // Pure : rend le texte ajouté au cadre de la page, vide quand rien n'est réglé.
 
+const GESTES = {
+  'geste:creer-projet': { nom: 'Créer un projet', consigne: "Crée le projet de la plateforme depuis le dossier dont elle parle (trouver_bien, puis creer_projet_depuis_dossier) et donne son lien. Sans dossier pour ce bien, dis-le et demande la fiche." },
+  'geste:mail': { nom: 'Drafter un email', consigne: "Rédige le mail qu'elle demande : à un agent pour un dossier (mail_agent), sinon un mail libre (mail_libre). C'est un brouillon à relire : rien ne part sans son accord." },
+  'geste:drive': { nom: 'Créer un dossier Drive', consigne: "Crée le dossier Drive du bien dont elle parle (creer_drive_dossier, après trouver_bien) ; s'il existe déjà, donne son lien sans en créer un second." },
+};
+
 const propre = (x) => String(x || '').replace(/[\n\r]+/g, ' ').trim().slice(0, 60);
 
 /**
@@ -18,6 +24,9 @@ export function cadreDemande(contexte, { competence = null } = {}) {
     t += `\n\nLA PERSONNE A CHOISI LA COMPÉTENCE « ${propre(competence.nom)} ». Suis sa méthode à la lettre ; elle est publiée, elle fait foi :\n${String(competence.texte).slice(0, 12000)}`;
     if (eteintes.length) t += `\n\nSOURCES ÉTEINTES POUR CE LANCEMENT : ${eteintes.join(', ')}. N'appelle pas ces sources, et DIS-LE dans le livrable (par exemple « analyse faite sans ${eteintes[0]} »).`;
   }
+  // Les trois gestes fixes des raccourcis (19 oct. 2026, Jules) : pas des compétences publiées, une consigne chacun.
+  const geste = GESTES[String(contexte?.competence || '')];
+  if (geste) t += `\n\nLA PERSONNE A CHOISI LE RACCOURCI « ${geste.nom} ». ${geste.consigne}`;
   if (sources.length) {
     t += `\n\nSOURCES CHOISIES PAR LA PERSONNE : ${sources.join(', ')}. Appuie-toi sur elles seules ; n'appelle aucun autre outil de données. Si elles ne suffisent pas, dis-le et dis ce qui manque, au lieu de chercher ailleurs. Cite la source de chaque chiffre.`;
   }

@@ -18,6 +18,13 @@ const REPLI = [
   { cle: "presentation-bancaire", nom: "Dossier bancaire", format: "presentation" },
 ];
 const D_ABORD = ["pre-analyse-fiche", "data-room", "loi", "presentation-bancaire"];
+// Trois gestes fixes après les compétences (19 oct. 2026, Jules) : ce ne sont pas des compétences publiées, Haka
+// reçoit le geste choisi (« geste:… ») et sait quel outil prendre (server/ak/cadre-demande.js).
+const GESTES = [
+  { cle: "geste:creer-projet", nom: "Créer un projet", icone: Building2, outils: [] },
+  { cle: "geste:mail", nom: "Drafter un email", icone: Mail, outils: [] },
+  { cle: "geste:drive", nom: "Créer un dossier Drive", icone: FolderOpen, outils: [] },
+];
 const rang = (cle) => { const i = D_ABORD.indexOf(cle); return i < 0 ? D_ABORD.length : i; };
 const PILULE = "inline-flex h-9 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 text-[13.5px] text-encre transition-[border-color,transform] duration-300 hover:border-bord-vif";
 
@@ -26,11 +33,11 @@ export default function RaccourcisHaka({ choisie = null, onChoisir, sourcesOuver
   const q = useQuery({ queryKey: ["haka-competences", "chat"], queryFn: () => base44.request("GET", "/api/haka/competences?declencheur=chat"), staleTime: 5 * 60_000, retry: false });
   const actives = q.data?.competences || [];
   // Les plus utilisées d'abord, à égalité l'ordre des raccourcis d'origine.
-  const liste = (actives.length ? [...actives].sort((a, b) => (b.usage || 0) - (a.usage || 0) || rang(a.cle) - rang(b.cle)) : REPLI).slice(0, 5);
+  const liste = [...(actives.length ? [...actives].sort((a, b) => (b.usage || 0) - (a.usage || 0) || rang(a.cle) - rang(b.cle)) : REPLI).slice(0, 4), ...GESTES];
   return (
     <nav aria-label="Raccourcis" className={`flex flex-wrap justify-center gap-2 ${className}`}>
       {liste.map((c) => {
-        const Icone = ICONES[c.format] || Sparkles;
+        const Icone = c.icone || ICONES[c.format] || Sparkles;
         const sel = choisie === c.cle;
         return (
           <button key={c.cle} type="button" onClick={() => onChoisir(c)} aria-pressed={sel}

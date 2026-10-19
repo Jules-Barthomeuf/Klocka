@@ -36,6 +36,10 @@ test('une compétence choisie : sa méthode fait foi, et les sources éteintes s
 
 test('Paramètres > Haka : la longueur et les tableaux de la personne entrent dans le cadre', () => {
   assert.match(cadreDemande({ haka: { longueur: 'tres_courte', tableaux: 'jamais' } }), /TRÈS COURTES[\s\S]*PAS DE TABLEAU/);
+  // Les gestes fixes des raccourcis (19 oct. 2026) : chacun sa consigne ; une clé inconnue n'ajoute rien.
+  assert.match(cadreDemande({ competence: 'geste:creer-projet' }), /RACCOURCI « Créer un projet »[\s\S]*creer_projet_depuis_dossier/);
+  assert.match(cadreDemande({ competence: 'geste:drive' }), /creer_drive_dossier/);
+  assert.equal(cadreDemande({ competence: 'geste:inconnu' }), '');
   // Une ou deux lignes (19 oct. 2026) : la consigne la plus courte, et elle seule.
   assert.match(cadreDemande({ haka: { longueur: 'deux_lignes' } }), /UNE OU DEUX LIGNES AU PLUS/);
   assert.doesNotMatch(cadreDemande({ haka: { longueur: 'deux_lignes' } }), /TRÈS COURTES/);

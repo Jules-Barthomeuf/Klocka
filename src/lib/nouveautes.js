@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Le Simulateur, comme dans un dossier", texte: "La page Simulateur reprend le cadre de celui d'un dossier (la carte, le rail à gauche, les onglets soulignés), et la barre de navigation se replie quand on l'ouvre.", page: "SimulateurRentabilite" },
       { titre: "Haka pour les mandataires", texte: "L'accueil des mandataires reprend celui de l'équipe : choisir un de ses dossiers, « Répondre » ou « Produire », et des raccourcis (estimation, mandat, dossier, mail au propriétaire, appel, demandes des clients).", page: "Dashboard" },
       { titre: "Le menu des mandataires, comme celui de l'équipe", texte: "Six entrées : Haka (l'accueil, sur la mise en page de celui de l'équipe), Prospection (avec l'Off-market en onglet), Biens (Estimation, Mandat, Dossiers, Mise en marché en onglets), Clients, Projets, Simulateur ; Feedback dans « Autre », Paramètres en bas de la barre. Le Simulateur entre aussi dans le menu de l'équipe.", page: "Dashboard" },
       { titre: "L'usage de la plateforme, personne par personne", texte: "Suivi > Usage : cinq chiffres et leurs courbes (temps passé, personnes, connexions, durée moyenne, pages), le temps par page et l'heure de la semaine, puis un tableau par personne. Un clic sur une ligne montre ses sessions, page par page, avec le temps passé sur chacune.", page: "Monitoring" },

@@ -496,10 +496,14 @@ export default function SimulateurRentabilite() {
         </div>
       )}
 
-      <div className={`flex flex-col min-h-screen pt-3 md:pt-14 ${isEtape2 ? 'blur-md' : ''}`}>
-        <div className="flex flex-1 min-h-0">
+      {/* Le cadre du simulateur d'un dossier (19 oct. 2026, Jules : « comme dans le simulateur dans le dossier ») : une carte
+          sur le fond, le rail à gauche derrière un filet, les onglets soulignés, un seul fond pour les cartes du dedans. */}
+      <div className={`mx-auto flex max-w-[1500px] flex-col px-5 pb-10 pt-9 md:px-8 md:pt-12 ${isEtape2 ? 'blur-md' : ''}`}>
+        <h1 className="m-0 mb-5 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Simulateur</h1>
+        <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail">
+        <div className="flex min-h-0">
           {/* Left control rail */}
-          <aside className="hidden md:block w-[260px] flex-shrink-0">
+          <aside className="hidden w-[250px] flex-shrink-0 border-r border-trait md:block">
             {rail}
           </aside>
           <SimReglagesMobile>{rail}</SimReglagesMobile>
@@ -507,7 +511,7 @@ export default function SimulateurRentabilite() {
           {/* Main area */}
           <main className="flex-1 w-0 min-w-0 overflow-hidden">
             {/* Tab bar + actions */}
-            <div className="flex items-center justify-between gap-3 px-4 h-11 sticky top-0 max-md:static z-10 max-md:bg-fond/90 max-md:backdrop-blur-xl max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-trait px-3 h-10 sticky top-0 max-md:static z-10 max-md:h-auto max-md:py-1 max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
               <div className="flex items-center gap-2 min-w-0">
               {/* Venu d'un projet (« Simulateur complet ») : la flèche y ramène.
                   L'historique d'abord, pour retrouver la page telle qu'on l'a
@@ -521,19 +525,17 @@ export default function SimulateurRentabilite() {
                   <ChevronLeft className="w-3.5 h-3.5" /> Projet
                 </button>
               )}
-              <div className="flex items-center gap-0.5 p-0.5 rounded-full border border-trait min-w-0 overflow-x-auto flex-shrink-0 max-md:flex-shrink">
+              <div className="flex h-10 min-w-0 flex-shrink-0 items-center gap-4 overflow-x-auto max-md:h-9 max-md:flex-shrink">
                 {tabs.map((t) => {
                   const active = activeTab === t.id;
                   return (
                     <button
                       key={t.id}
                       onClick={() => { setActiveTab(t.id); if (t.id !== "scenarios") setScenarioNegoPct(0); }}
-                      className={`relative px-3 h-7 rounded-full text-xs whitespace-nowrap transition-colors duration-200 ${active ? "text-encre" : "text-ardoise hover:text-craie"}`}
+                      className={`flex h-full items-center whitespace-nowrap border-b-2 text-xs transition-colors ${active ? "border-menthe text-encre" : "border-transparent text-ardoise hover:text-craie"}`}
+                      style={{ background: "transparent" }}
                     >
-                      {/* Pastille sans layoutId : l'animation partagée de framer-motion
-                          bloquait la sortie de page (écran noir en quittant le simulateur). */}
-                      <span className={`absolute inset-0 rounded-full border transition-all duration-200 ${active ? "bg-menthe/15 border-menthe/40 opacity-100" : "bg-transparent border-transparent opacity-0"}`} />
-                      <span className="relative">{t.label}</span>
+                      {t.label}
                     </button>
                   );
                 })}
@@ -594,7 +596,7 @@ export default function SimulateurRentabilite() {
             </div>
           </main>
         </div>
-
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { toast } from "@/components/ui/avis";
 import { createPortal } from "react-dom";
 import { Check, Eye, Info, Loader2, X } from "lucide-react";
 import jetons from "@/design/jetons.json";
+import { base44 } from "@/api/base44Client";
 import Calendrier from "@/components/ui/calendrier";
 
 // Les actions proposées après un appel abouti, en séquence (maquette de
@@ -67,9 +68,19 @@ function Etape({ e }) {
       </span>
       <BoutonOeil onClick={e.voir} />
       {e.basculer && <Interrupteur on={e.on} onChange={e.basculer} label={`${e.on ? "Retirer" : "Remettre"} : ${e.label}`} />}
+      {e.retirer && (
+        <button type="button" onClick={e.retirer} aria-label={`Ne plus proposer : ${e.label}`} title="Ne plus proposer cette étape, ici ni dans les prochains appels"
+          className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume transition-colors hover:text-alerte" style={{ background: "transparent" }}>
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
+
+// Les étapes qu'on peut ne plus se faire proposer (les mêmes que server/prospection/preferences-appel.js).
+const RETIRABLES = ["mail", "sms", "diffusion", "signaler_bien", "nouveau_contact", "relance", "relance_suivante", "prevenir"];
+const NOMS_RETIRABLES = { mail: "Email", sms: "SMS", diffusion: "Liste de diffusion", signaler_bien: "Noter le bien évoqué", nouveau_contact: "Appeler le contact donné", relance: "Relance", relance_suivante: "Seconde relance", prevenir: "Prévenir un collègue" };
 
 /** Une carte d'étapes : elle apparaît tout de suite, déjà bordée ; son moment est écrit au-dessus, hors d'elle. */
 function Carte({ etapes }) {
@@ -438,7 +449,21 @@ function Panneau({ pas, ouverte, setOuverte, contenuDe, onFermer, onValider = nu
 export default function SequenceActions({ appel, agence, issue, coches, setCoches, mail, setMail, relanceLe, setRelanceLe, relance2Le, setRelance2Le, ligneMonday, setLigneMonday, edits = null, setEdits = null, onChangerIssue = null, changementEnCours = false, issuesEnPlus = null, onLancer, envoi = false, envoiFenetre = null, onQuitterEnvoi = null }) {
   // Relances (8 oct. 2026) : « Agent prévenu » s'ajoute aux issues pour un bien retenu ou refusé.
   const ISS = issuesEnPlus ? { ...ISSUES, ...issuesEnPlus } : ISSUES;
-  const props = appel.propositions || [];
+  // Une étape retirée (19 oct. 2026, Jules) : elle part de cet appel, et le serveur ne la propose plus à cette
+  // personne, dans aucune ville ; « Rétablir » la fait revenir.
+  const [retirees, setRetirees] = useState(() => new Set());
+  const props = (appel.propositions || []).filter((x) => !retirees.has(x.type));
+  const retirer = (q) => () => {
+    setRetirees((st) => new Set([...st, q.type]));
+    setCoches((st) => { const n = new Set(st); n.delete(q.id); return n; });
+    base44.request("POST", "/api/prospection/mode-appel/preferences/retirer", { body: { type: q.type } }).catch(() => toast.error("Pas enregistré : l'étape reviendra au prochain appel"));
+  };
+  const retablir = (type) => {
+    setRetirees((st) => { const n = new Set(st); n.delete(type); return n; });
+    const q = (appel.propositions || []).find((x) => x.type === type);
+    if (q?.coche) setCoches((st) => new Set([...st, q.id]));
+    base44.request("POST", "/api/prospection/mode-appel/preferences/retablir", { body: { type } }).catch(() => {});
+  };
   const par = (t) => props.find((p) => p.type === t);
   const pm = par("mail");
   const pr = par("relance");
@@ -701,7 +726,7 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
     return { kicker: "ÉTAPE", titre: q.titre, cases: [{ label: "Détail", valeur: q.texte || q.titre, large: true }] };
   };
 
-  const etape = (q, champs) => ({ k: q.id, q, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: () => setOuverte(q.id), ...champs });
+  const etape = (q, champs) => ({ k: q.id, q, on: q.toujours || coches.has(q.id), basculer: q.toujours ? null : basculer(q.id), voir: () => setOuverte(q.id), retirer: !q.toujours && RETIRABLES.includes(q.type) ? retirer(q) : null, ...champs });
   const maintenant = [];
   if (pmo) {
     const detail = ligne?.etat === "trouvee" ? `${ligne.ligne.nom?.replace(/\u200b/g, "").trim() || "Contact sans nom"}, retrouvé par ${ligne.par}` : ligne?.etat === "nouvelle" ? "Nouveau contact" : ligne?.etat === "doute" ? (choisie ? `Contact choisi : ${choisie.nom}` : "C'est bien ce contact ? Choisissez") : ligne?.texte || "";
@@ -777,6 +802,13 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         </>
       )}
 
+      {retirees.size > 0 && (
+        <p className="m-0 mt-4 px-1 text-[13px] text-ardoise">
+          Ne sera plus proposé : {[...retirees].map((t, i) => (
+            <React.Fragment key={t}>{i > 0 && ", "}{NOMS_RETIRABLES[t] || t} <button type="button" onClick={() => retablir(t)} className="p-0 text-[13px] text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Rétablir</button></React.Fragment>
+          ))}
+        </p>
+      )}
       {doute && <p className="m-0 mt-4 px-1 text-[14px] text-ambre">Monday a plusieurs contacts possibles : ouvrez « Contact Monday » et choisissez le bon.</p>}
       <Trait p={p("v2")} />
       <button type="button" onClick={() => onLancer({ vues: [...vues.current] })} disabled={envoi || !n || doute}

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Ne plus se faire proposer une étape", texte: "Après un appel, chaque étape proposée (Email, Liste de diffusion, Relance…) a une croix : l'étape part de cet appel et ne vous est plus proposée ensuite, dans aucune ville. « Rétablir » la fait revenir. Le micro des appels prend aussi la couleur choisie dans les Paramètres.", page: "Prospection" },
       { titre: "Le projet en aperçu dans le dossier", texte: "Une fois le deal entré dans la plateforme, l'étape Plateforme du dossier montre la carte du projet (photo, étape, prix de revient, rendement, surface), où il en est, et trois gestes : ouvrir le projet, la vue client, le simulateur.", page: "Analyse" },
       { titre: "Le Mode appel toujours à portée dans les Listes", texte: "Dans Appels > Listes, le bouton Mode appel reste à droite des villes, même quand elles sont nombreuses, et la rangée reste en haut de l'écran quand on descend dans une longue liste.", page: "Prospection", requete: "?partie=listes" },
       { titre: "Trois raccourcis de plus sous Haka", texte: "Sur l'accueil de Haka : « Créer un projet », « Drafter un email » et « Créer un dossier Drive », à côté de la pré-analyse, de la data room, de la LOI et du dossier bancaire.", page: "Dashboard" },

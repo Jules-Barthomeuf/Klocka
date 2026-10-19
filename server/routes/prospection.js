@@ -450,6 +450,20 @@ export function monterProspection(app) {
   // L'issue tapée en raccrochant, avec le vocal pour les vraies conversations.
   // La transcription en direct (7 oct. 2026) : un morceau de quelques
   // secondes, transcrit et rendu tout de suite. L'audio n'est pas gardé.
+  // Les étapes retirées par la personne (19 oct. 2026) : elles ne sont plus proposées après un appel.
+  app.get('/api/prospection/mode-appel/preferences', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, { retirees: [...(await import('../prospection/preferences-appel.js')).retirees(user.email)] });
+  }));
+  app.post('/api/prospection/mode-appel/preferences/:quoi', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const P = await import('../prospection/preferences-appel.js');
+    const r = req.params.quoi === 'retablir' ? P.retablir(user.email, String(req.body?.type || '')) : P.retirer(user.email, String(req.body?.type || ''));
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/prospection/mode-appel/morceau', upload.single('audio'), wrap(async (req, res) => {
     if (!admin(req, res)) return;
     if (!req.file) return res.status(400).json({ error: 'Morceau vide.' });

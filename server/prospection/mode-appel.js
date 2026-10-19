@@ -888,6 +888,12 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if ((lu.appel.biens || []).length && issue === 'a_des_murs') actions.push({ id: 'signaler_bien', type: 'signaler_bien', titre: `Noter le bien évoqué : ${lu.appel.biens[0]}`, biens: lu.appel.biens, coche: false, ...(lu.appel.citations?.biens ? { source: lu.appel.citations.biens } : {}) });
   // Le téléphone : le direct s'il a été dit, sinon le numéro appelé.
   if (!compris.champs?.telephone && (numero || numeroDe(a))) compris.champs = { ...(compris.champs || {}), telephone: { valeur: numero || numeroDe(a), source: 'Numéro appelé', appele: true } };
+  // Les étapes que cette personne a retirées une fois ne reviennent plus, dans aucune ville (19 oct. 2026, Jules).
+  {
+    const P = await import('./preferences-appel.js');
+    const gardees = P.sansRetirees(actions, P.retirees(moi));
+    actions.splice(0, actions.length, ...gardees);
+  }
   Records.update(APPEL, lu.appel.id, { propositions: actions, monday_prevu: monday, compris });
   etape('Tout est prêt : à vous de vérifier et valider');
   const avant = f ? { statut: R.STATUTS[f.statut] || null, interlocuteur: f.nom || null, email: (f.emails || [])[0] || null, prochaine: f.prochaine || null, dernier_contact_le: f.dernier_contact_le || null, referent: f.referent || null } : null;

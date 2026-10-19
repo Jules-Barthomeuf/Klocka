@@ -893,6 +893,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Étape Plateforme d'un dossier entré** (Jules, 19 oct. 2026) : plus de bloc centré avec un bouton ; un cadre `surface` en deux colonnes, à gauche la carte du projet (`CarteProjet`, la même que la page Projets, cliquable), à droite l'étiquette « Dans la plateforme » en menthe, la phrase, l'étape et la suivante, puis « Ouvrir le projet » (menthe) et deux boutons à contour (Vue client, Simulateur).
 
+**Étapes d'un appel : ne plus proposer** (Jules, 19 oct. 2026) : chaque étape retirable (Email, SMS, Liste de diffusion, bien évoqué, contact donné, relances, prévenir un collègue) porte une petite croix `brume` à droite de son interrupteur, `alerte` au survol ; décocher vaut pour cet appel, la croix vaut pour tous les suivants de la personne. Sous les étapes, « Ne sera plus proposé : … Rétablir » (lien menthe). Le micro d'enregistrement (`MicroEcoute`) prend l'accent choisi (`bg-menthe`, plus `menthe-pale`).
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

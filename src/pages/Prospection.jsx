@@ -977,7 +977,8 @@ export default function Prospection() {
   // Le nombre de relances dues, pour l'intercalaire « Relances dues » des listes.
   const relancesDues = useQuery({ queryKey: ["relances"], queryFn: () => base44.request("GET", "/api/prospection/relances"), refetchInterval: 60_000, retry: false });
   // Le Mode appel n'est plus un onglet : « Démarrer les appels » l'ouvre à la place de la page, « Retour » la rend.
-  const [enAppel, setEnAppel] = useState(false);
+  // `?appel=1` (la pilule « Appel » du coin, 19 oct. 2026) : la page s'ouvre en mode appel.
+  const [enAppel, setEnAppel] = useState(() => new URLSearchParams(window.location.search).get("appel") === "1");
   // La transition (17 oct. 2026, Jules : « simple, smooth ») : un fondu enchaîné, la page sortante s'efface (180 ms), l'autre apparaît (300 ms).
   const [sortant, setSortant] = useState(false);
   const basculer = (v) => {

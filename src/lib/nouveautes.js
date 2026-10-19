@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "L'icône Appel ouvre deux choix", texte: "En haut à droite, survolez l'icône d'appel : « Il me rappelle » enregistre un appel entrant, « Démarrer les appels » ouvre la Prospection en mode appel.", page: "Prospection" },
       { titre: "Haka répond au milieu, la navigation reste", texte: "Une demande à Haka garde le menu à gauche et le chat au centre ; la colonne de droite n'apparaît que si Haka a produit quelque chose. Dites-lui votre programme du jour : il reprend les étapes et demande par quoi commencer. « Rappelle-moi … » pose un rappel.", page: "Dashboard" },
       { titre: "Une colonne Notes dans les tableaux du dossier", texte: "Bien, Bail, Quittances, Copropriété, Diagnostics et les croisements de la Synthèse ont une colonne Notes : survolez une ligne, « Ajouter », écrivez une note pour l'équipe.", page: "Dossiers" },
       { titre: "Des effets doux dans les dossiers", texte: "La liste des dossiers entre en douceur, les cartes se soulèvent au survol, et quand AK analyse une fiche, son orbe et un reflet sur la phrase montrent que le travail avance.", page: "Dossiers" },

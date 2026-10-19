@@ -1183,6 +1183,35 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 :root[data-animations="reduites"] .k-scintille { animation: none; background-position: 0 0; }
 @media (prefers-reduced-motion: reduce) { .k-scintille { animation: none; } }
 
+/* La pilule « Appel » en haut à droite (19 oct. 2026, Jules) : au survol, elle grossit de 8 % depuis son centre,
+   s'éclaircit, son filet ressort et une ombre la soulève (0,18 s). Le panneau des deux modes se déplie dessous
+   depuis son coin droit : fondu (0,16 s), 6 px de descente et 97 % → 100 % (0,18 s) ; à l'envers à la fermeture.
+   Les deux modes s'éclaircissent au survol (0,14 s). Des fonds opaques : la teinte du rail, éclaircie par un voile. */
+.k-pilule-appel {
+  background-color: rgb(var(--k-rail-rgb)); background-image: linear-gradient(var(--k-surface), var(--k-surface));
+  border-color: var(--k-bord-doux);
+  transition: transform .18s ease, background-image .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.k-pilule-appel:hover, .k-pilule-appel[aria-expanded="true"] {
+  transform: scale(1.08);
+  background-image: linear-gradient(var(--k-relief), var(--k-relief)), linear-gradient(var(--k-surface), var(--k-surface));
+  border-color: var(--k-bord-vif);
+  box-shadow: 0 10px 30px rgb(0 0 0 / .45);
+}
+.k-panneau-appel {
+  opacity: 0; transform: translateY(-6px) scale(.97); transform-origin: top right; pointer-events: none; visibility: hidden;
+  transition: opacity .16s ease, transform .18s ease, visibility 0s linear .18s;
+}
+.k-panneau-appel.k-ouvert { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity .16s ease, transform .18s ease, visibility 0s; }
+.k-mode-appel {
+  background-color: var(--k-surface); border-color: var(--k-trait);
+  transition: background-color .14s ease, border-color .14s ease;
+}
+.k-mode-appel:hover, .k-mode-appel:focus-visible { background-color: var(--k-relief); border-color: var(--k-bord-vif); }
+:root[data-animations="reduites"] :is(.k-pilule-appel, .k-panneau-appel, .k-mode-appel) { transition: none; }
+:root[data-animations="reduites"] .k-pilule-appel:hover { transform: none; }
+@media (prefers-reduced-motion: reduce) { :is(.k-pilule-appel, .k-panneau-appel, .k-mode-appel) { transition: none; } .k-pilule-appel:hover { transform: none; } }
+
 /* Dossier en mode IA (19 oct. 2026, Jules) : le bouton « … » est un rond de 38 px comme la cloche, et il prend sa
    colonne : la cloche est à 16 px du bord de l'écran, le contenu du dossier à 32 px. */
 .k-dossier-ia .k-actions-dossier { margin-right: -16px; }

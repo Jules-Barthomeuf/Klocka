@@ -445,7 +445,7 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null, pourquoi_relance: lu.pourquoi_relance || null,
     compris, transcription_echec: transcriptionEchec,
     objection: objectionDe(lu, transcription),
-    canal_prefere: lu.canal_prefere === 'sms' ? 'sms' : null,
+    canal_prefere: ['sms', 'mail'].includes(lu.canal_prefere) ? lu.canal_prefere : null,
     propositions: props, message, etat: 'a_valider',
   });
   // La suite se choisit dans la page, sous l'appel (5 oct. 2026) : plus

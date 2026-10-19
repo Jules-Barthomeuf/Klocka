@@ -414,7 +414,9 @@ export default function RappelEntrant() {
     const nom = (t.match(/(?:je suis|c'est|ici)\s+((?:\p{Lu}[\p{L}'-]+)(?:\s+\p{Lu}[\p{L}'-]+)?)/u) || t.match(/((?:\p{Lu}[\p{L}'-]+)(?:\s+\p{Lu}[\p{L}'-]+)?)\s+à l'appareil/u) || [])[1] || "";
     const email = (notes.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/) || [])[0] || "";
     const tel = (notes.match(/(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}/) || [])[0] || "";
-    setNouveau({ agence_id: null, agence: "", ville: "", nom, telephone: tel, email });
+    // « Manon de l'agence Primo Immobilier », « Paul de chez Foncia » : le prénom et l'agence, tels que dits (19 oct. 2026).
+    const pres = t.match(/(\p{Lu}[\p{L}'-]+)\s+(?:de\s+l'agence|de\s+chez|de\s+l'|chez)\s+((?:\p{Lu}[\p{L}'&-]*)(?:\s+\p{Lu}[\p{L}'&-]*){0,3})/u);
+    setNouveau({ agence_id: null, agence: pres?.[2] || "", ville: "", nom: nom || pres?.[1] || "", telephone: tel, email });
   };
 
   // --- Rendu -----------------------------------------------------------------------------------------

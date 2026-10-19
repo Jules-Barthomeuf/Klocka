@@ -242,3 +242,26 @@ test('le nom entendu passe devant le dernier appel sans réponse, même mal tran
   assert.equal(RP.nomEntendu('Jean Roux', 'jean roux'), 'complet');
   assert.equal(RP.nomEntendu('Sophie Martin', 'rien a voir'), null);
 });
+
+test("« Manon de l'agence Primo Immobilier » : l'agence qui se présente l'emporte, la ville dictée dans un mail ne désigne pas une agence (19 oct. 2026)", () => {
+  const texte = "Oui, bonjour, Manon de l'agence Primo Immobilier. Vous avez tenté de nous joindre ? Les commerciaux ne sont pas là, envoyez-moi un mail. Donc c'est Lyon, comme la ville, arobase, agence, point com.";
+  const t = (x) => x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  assert.equal(RP.agenceEntendue('Primo Immobilier', t(texte), 'Lyon'), 'presentee');
+  assert.equal(RP.agenceEntendue('Agence Lyon Immo', t(texte), 'Lyon'), null, 'la ville seule ne compte pas');
+  assert.equal(RP.agenceEntendue('Orpi Primo', t(texte), 'Villeurbanne'), null);
+  const agences = [
+    { id: 'g1', nom: 'Primo Immobilier', ville: 'Lyon' },
+    { id: 'g3', nom: 'Agence Lyon Immo', ville: 'Lyon' },
+    { id: 'g2', nom: 'Century 21 Lyon Centre', ville: 'Lyon' },
+  ];
+  const maintenantD = new Date('2026-10-19T15:00:00Z');
+  const sansReponse = [
+    { agence_id: 'g3', agent: 'Agence Lyon Immo', issue: 'sans_reponse', le: '2026-10-19T14:40:00Z' },
+    { agence_id: 'g2', agent: 'Century 21 Lyon Centre', issue: 'sans_reponse', le: '2026-10-19T14:20:00Z' },
+  ];
+  for (const sr of [sansReponse, []]) {
+    const c = RP.classer({ sansReponse: sr, agents: [], agences, texte, maintenantD });
+    assert.equal(c[0].agence, 'Primo Immobilier');
+    assert.equal(c[0].probable, true);
+  }
+});

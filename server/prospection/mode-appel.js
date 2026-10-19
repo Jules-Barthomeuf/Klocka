@@ -826,7 +826,10 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
   const MO = await import('./modeles-appel.js');
   // Un mail demandé dans les notes (« envoyer un mail ») : le mail de présentation est proposé, quelle que soit l'issue (13 oct. 2026).
-  const mailDemande = /\b(e-?mail|mail|courriel)\b/i.test(String(notes || '')) && !/\b(pas|ne|sans)\b[^.]{0,20}\b(e-?mail|mail|courriel)/i.test(String(notes || ''));
+  // Ou demandé pendant l'appel (19 oct. 2026, Jules : « envoyez-moi un mail, je le transmets aux commerciaux », l'adresse
+  // dictée, et aucun mail proposé parce que l'issue était « à rappeler ») : le modèle l'a noté, ou une adresse a été dictée.
+  const mailDemande = (/\b(e-?mail|mail|courriel)\b/i.test(String(notes || '')) && !/\b(pas|ne|sans)\b[^.]{0,20}\b(e-?mail|mail|courriel)/i.test(String(notes || '')))
+    || lu.appel.canal_prefere === 'mail' || !!valeurSure(compris, 'email');
   const choixModele = MO.MODELES_DE_L_ISSUE[issue] || (mailDemande && issue !== 'pas_interesse' ? { defaut: 'presentation-cahier' } : null);
   const emailSur = valeurSure(compris, 'email');
   const emailIncertain = !emailSur && compris.champs?.email ? compris.champs.email.valeur : null;

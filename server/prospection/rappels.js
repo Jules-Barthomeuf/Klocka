@@ -120,6 +120,22 @@ export function entendu(nom, texteNorm, { personne = false } = {}) {
   return m.every((x) => new RegExp(`\\b${x}\\b`).test(texteNorm));
 }
 
+/**
+ * Pure : l'agence dans ce qui a été dit (19 oct. 2026, Jules : « Manon de l'agence Primo Immobilier » finissait en
+ * nouveau contact). « présentée » quand la personne se présente par elle (« de l'agence Primo », « chez Primo ») :
+ * elle pèse comme un nom entendu. Le nom de la ville de l'agence ne compte pas : « Lyon, comme la ville » dans une
+ * adresse dictée ne désigne pas « Agence Lyon Immo ».
+ */
+export function agenceEntendue(nom, texteNorm, ville = null) {
+  const villeMots = new Set(R.norm(ville || '').split(' ').filter(Boolean));
+  const m = mots(nom).filter((x) => !villeMots.has(x));
+  if (!m.length) return null;
+  const t = String(texteNorm || '');
+  if (!m.every((x) => new RegExp(`\\b${x}\\b`).test(t))) return null;
+  const presente = new RegExp(`\\b(?:de|chez|du|d)\\s+(?:l\\s+)?(?:(?:agence|cabinet|groupe|immobiliere?)\\s+)?${m[0]}\\b`).test(t);
+  return presente ? 'presentee' : 'entendue';
+}
+
 /** Pure : deux mots égaux, ou à une lettre près quand ils sont longs (« Dupond » pour « Dupont », la transcription). */
 function procheDe(a, b) {
   if (a === b) return true;
@@ -170,7 +186,9 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
     const n = nomEntendu(a.nom, t);
     if (n === 'complet') ajouter(a.id, base, 60, 'nom entendu');
     else if (n === 'famille') ajouter(a.id, base, 30, 'nom de famille entendu');
-    if (a.agence && entendu(a.agence, t)) ajouter(a.id, base, 15, 'agence entendue');
+    const ag = a.agence ? agenceEntendue(a.agence, t, a.ville) : null;
+    if (ag === 'presentee') ajouter(a.id, base, 45, 'se présente de son agence');
+    else if (ag === 'entendue') ajouter(a.id, base, 15, 'agence entendue');
   }
   // L'heure ou le jour de notre appel, s'ils ont été dits, départagent les sans-réponse ; un appel qui ne colle pas sort du lot.
   const dit = momentDit(`${texte} ${notes}`);
@@ -201,7 +219,11 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
     if (g.carnet_id && scores.has(g.carnet_id)) continue;
     const base = { cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: g.monday_connu?.nom || null, agence: g.nom, ville: g.ville || null, telephone: g.telephone || null, ne_plus_appeler: !!g.ne_plus_appeler };
     if (tel && [g.telephone, ...(g.agents || []).map((x) => x.telephone)].some((x) => R.normTel(x) === tel)) ajouter(base.cle, base, 100, 'numéro des notes');
-    else if (entendu(g.nom, t)) ajouter(base.cle, base, 15, 'agence entendue');
+    else {
+      const ag = agenceEntendue(g.nom, t, g.ville);
+      if (ag === 'presentee') ajouter(base.cle, base, 45, 'se présente de son agence');
+      else if (ag === 'entendue') ajouter(base.cle, base, 15, 'agence entendue');
+    }
   }
   // Un candidat sans rien pour lui (un appel qui ne colle pas à l'heure dite) ne se propose pas.
   const t3 = [...scores.values()].filter((x) => x.score > 0).sort((x, y) => y.score - x.score).slice(0, 3);

@@ -28,7 +28,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
 test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration, le reste dans Autre", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels']);
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels', 'Simulateur']);
   // À valider (Haka) se masque quand Haka n'est pas allumé : le Layout passe la clé dans les masques.
   assert.ok(!menuAdmin(['AValider']).principal.some((x) => x.cle === 'AValider'));
   assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Suivi']]]);
@@ -52,3 +52,23 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
   assert.equal(groupeDe('Cerveau').groupe, 'Administration');
   assert.equal(groupeDe('Dashboard'), null);
 });
+
+test('le menu des mandataires : la structure de l’équipe, Prospection et Biens en groupes, Feedback dans Autre', async () => {
+  const { menuMandataire, groupeDe } = await import('../src/lib/menu.js');
+  const { principal, autre } = menuMandataire();
+  assert.deepEqual(principal.map((x) => x.label), ['Dashboard', 'Prospection', 'Biens', 'Clients', 'Projets', 'Simulateur']);
+  assert.deepEqual(principal.find((x) => x.groupe === 'Biens').entrees.map((e) => e.label), ['Estimation', 'Mandat', 'Dossiers', 'Mise en marché']);
+  assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);
+  assert.equal(groupeDe('MandataireMandat', 'mandataire').groupe, 'Biens');
+  assert.equal(groupeDe('MandataireOffMarket', 'mandataire').groupe, 'Prospection');
+  assert.equal(groupeDe('MandataireMandat'), null);
+  // Une page masquée disparaît du groupe ; un groupe vidé disparaît.
+  assert.ok(!menuMandataire(['MandataireProspection', 'MandataireOffMarket']).principal.some((x) => x.groupe === 'Prospection'));
+});
+
+test('le Simulateur reste dans les deux menus, même masqué dans d’anciennes préférences', async () => {
+  const { menuAdmin, menuMandataire } = await import('../src/lib/menu.js');
+  assert.ok(menuAdmin(['SimulateurRentabilite']).principal.some((x) => x.cle === 'SimulateurRentabilite'));
+  assert.ok(menuMandataire(['SimulateurRentabilite']).principal.some((x) => x.cle === 'SimulateurRentabilite'));
+});
+

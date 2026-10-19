@@ -83,6 +83,8 @@ export const MENU_ADMIN = [
   { cle: "Analyse", label: "Dossiers" },
   { cle: "AValider", label: "À valider" },
   { cle: "Prospection", label: "Appels" },
+  // Le Simulateur dans le menu de gauche (18 oct. 2026, Jules) : toujours là, même masqué dans d'anciennes préférences.
+  { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
   // Un groupe est une seule entrée du menu (17 oct. 2026, Jules : « pas un truc déroulant ») : un clic ouvre sa
   // première page, et des onglets en tête de page passent de l'une à l'autre.
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
@@ -90,8 +92,38 @@ export const MENU_ADMIN = [
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
     { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
 ];
-/** Pure : le groupe du menu de l'équipe auquel une page appartient, ou null. */
-export const groupeDe = (page) => MENU_ADMIN.find((x) => x.groupe && x.entrees.some((e) => e.cle === page || e.aussi?.includes(page))) || null;
+/**
+ * Le menu des mandataires, sur la structure de celui de l'équipe (18 oct. 2026, Jules) : des entrées simples et
+ * des groupes (une entrée, des onglets en tête de page), « Autre » pour le reste, Paramètres en bas de la barre.
+ * Un bien se suit au même endroit de l'estimation à la mise en marché ; la prospection et l'off-market se
+ * rejoignent.
+ */
+export const MENU_MANDATAIRE = [
+  { cle: "Dashboard", label: "Dashboard" },
+  { groupe: "Prospection", cle: "GroupeProspection", label: "Prospection", entrees: [{ cle: "MandataireProspection", label: "Prospection" }, { cle: "MandataireOffMarket", label: "Off-market" }] },
+  { groupe: "Biens", cle: "GroupeBiens", label: "Biens", entrees: [{ cle: "MandataireEstimation", label: "Estimation" }, { cle: "MandataireMandat", label: "Mandat" }, { cle: "MandataireDossier", label: "Dossiers" }, { cle: "MandataireMarche", label: "Mise en marché" }] },
+  { cle: "MandataireClients", label: "Clients" },
+  { cle: "MandataireProjets", label: "Projets" },
+  { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
+];
+const HORS_MENU_MANDATAIRE = ["Personnalisation"];
+
+/** Pure : le groupe du menu (équipe ou mandataires) auquel une page appartient, ou null. */
+export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : MENU_ADMIN)
+  .find((x) => x.groupe && x.entrees.some((e) => e.cle === page || e.aussi?.includes(page))) || null;
+
+/** Pure : le menu des mandataires, ses groupes, et « Autre » (ce qui reste de leurs pages). */
+export function menuMandataire(masques = []) {
+  const garde = (e) => e.fixe || !masques.includes(e.cle);
+  const places = new Set(HORS_MENU_MANDATAIRE);
+  const principal = MENU_MANDATAIRE.map((x) => {
+    if (x.groupe) { x.entrees.forEach((e) => places.add(e.cle)); return { ...x, entrees: x.entrees.filter(garde) }; }
+    places.add(x.cle);
+    return x;
+  }).filter((x) => (x.groupe ? x.entrees.length : garde(x)));
+  const autre = ENTREES_MANDATAIRE.filter((e) => !places.has(e.cle) && garde(e));
+  return { principal, autre };
+}
 
 /** Hors du menu : l'Agenda (pastille du Dashboard), Paramètres (en bas de la barre). Le Suivi est dans Administration depuis le 18 oct. 2026. */
 const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
@@ -101,7 +133,7 @@ const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
  * Les pages masquées dans Paramètres disparaissent, un groupe vide aussi.
  */
 export function menuAdmin(masques = []) {
-  const garde = (e) => !masques.includes(e.cle);
+  const garde = (e) => e.fixe || !masques.includes(e.cle);
   const places = new Set(HORS_MENU_ADMIN);
   const principal = MENU_ADMIN.map((x) => {
     if (x.groupe) { x.entrees.forEach((e) => places.add(e.cle)); return { ...x, entrees: x.entrees.filter(garde) }; }

@@ -44,7 +44,7 @@ import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephon
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, themeEffectif } from "@/lib/personnalisation";
-import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, menuAdmin, repartir } from "@/lib/menu";
+import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, ENTREES_MANDATAIRE, groupeDe, menuAdmin, menuMandataire, repartir } from "@/lib/menu";
 import { apercuAdmin, choisirApercu } from "@/lib/vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -558,8 +558,10 @@ function LayoutContent({ children, currentPageName }) {
     // Le menu principal et « Autre », tels que la personne les a rangés dans
     // Personnalisation (glisser-déposer d'un groupe à l'autre).
     // L'équipe (17 oct. 2026, Jules) : un menu fixe, avec ses groupes Relations et Administration, et Paramètres en bas.
-    const menuEquipe = vue === "admin" && !showClientView;
-    const { principal: entrees, autre: autres } = menuEquipe ? menuAdmin([...(prefs.menu_masques || []), ...(hakaActif ? [] : ["AValider"])]) : repartir(
+    // Les mandataires (18 oct. 2026, Jules) : la même structure, leur menu à eux.
+    const menuEquipe = (vue === "admin" && !showClientView) || vue === "mandataire";
+    const { principal: entrees, autre: autres } = vue === "mandataire" ? menuMandataire(prefs.menu_masques || [])
+      : menuEquipe ? menuAdmin([...(prefs.menu_masques || []), ...(hakaActif ? [] : ["AValider"])]) : repartir(
       vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },
@@ -658,7 +660,7 @@ function LayoutContent({ children, currentPageName }) {
                   to={DETAILS[premiere.cle]?.to} icon={ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />, recents];
                 return <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e}
-                  to={DETAILS[premiere.cle]?.to} icon={e.groupe === "Relations" ? Handshake : ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
+                  to={DETAILS[premiere.cle]?.to} icon={{ Relations: Handshake, Prospection: MapPin, Biens: Folder }[e.groupe] || ShieldCheck} actif={e.entrees.some((x) => DETAILS[x.cle]?.actif)}
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
@@ -831,10 +833,10 @@ function LayoutContent({ children, currentPageName }) {
             sous les cartes qui, elles, tombent juste. */}
         <div key={`${location.pathname}|${vue}`} className={`animate-in fade-in slide-in-from-right-4 duration-300 ease-out ${modoKData ? (enCadre ? "min-h-[100dvh]" : "min-h-[calc(100dvh-3.5rem)]") : "min-h-screen"}`}>
           {/* Les pages d'un groupe du menu (Relations, Administration) : leurs onglets en tête, pour passer de l'une à l'autre. */}
-          {vue === "admin" && !showClientView && !hideNavbar && groupeDe(currentPageName) && (
-            <nav aria-label={groupeDe(currentPageName).groupe} className="flex justify-center px-4 pt-6 max-md:pt-4">
+          {((vue === "admin" && !showClientView) || vue === "mandataire") && !hideNavbar && groupeDe(currentPageName, vue) && (
+            <nav aria-label={groupeDe(currentPageName, vue).groupe} className="flex justify-center px-4 pt-6 max-md:pt-4">
               <div className="inline-flex gap-1 rounded-full border border-trait bg-surface-pleine/60 p-[5px] backdrop-blur-xl">
-                {groupeDe(currentPageName).entrees.map((x) => {
+                {groupeDe(currentPageName, vue).entrees.map((x) => {
                   const ici = currentPageName === x.cle || DETAILS[x.cle]?.actif;
                   return (
                     <Link key={x.cle} to={DETAILS[x.cle]?.to || createPageUrl(x.cle)} aria-current={ici ? "page" : undefined}

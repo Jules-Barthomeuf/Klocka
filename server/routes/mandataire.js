@@ -111,7 +111,7 @@ export function monterMandataire(app) {
       try {
         const piece = await chargerPiece(flux.etape);
         const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte, prospection_id: req.body?.prospection_id || null })
+          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
         );
         flux.fin(resultat);
       } catch (e) {
@@ -121,7 +121,7 @@ export function monterMandataire(app) {
     }
     const piece = await chargerPiece();
     const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-      discuter({ historique: req.body?.historique, texte, user, piece, prospection_id: req.body?.prospection_id || null })
+      discuter({ historique: req.body?.historique, texte, user, piece, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
     );
     ok(res, resultat);
   }));

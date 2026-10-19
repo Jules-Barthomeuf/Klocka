@@ -779,7 +779,7 @@ const OUTIL_AFFINER = {
   input_schema: { type: 'object', properties: { demande: { type: 'string', description: 'La demande du mandataire, telle quelle' } }, required: ['demande'] },
 };
 
-export async function discuter({ historique = [], texte, user, surEtape = null, surAction = null, estAnnule = null, signal = null, surTexte = null, piece = null, prospection_id = null }) {
+export async function discuter({ historique = [], texte, user, surEtape = null, surAction = null, estAnnule = null, signal = null, surTexte = null, piece = null, prospection_id = null, dossier_id = null, sortie = null, competence = null }) {
   // Une pièce jointe : son nom et ce qu'on y a lu accompagnent le message.
   if (piece) {
     surEtape?.(`Lecture de ${piece.nom}`);
@@ -805,11 +805,21 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   const surPage = ouverte
     ? `\n\nLe mandataire regarde sa prospection « ${ouverte.nom} » (${ouverte.criteres?.ville || 'son secteur'} ; activités : ${(ouverte.criteres?.activites || []).join(', ') || 'toutes'} ; emplacement : ${ouverte.criteres?.emplacement == null ? 'tous' : ouverte.criteres.emplacement === 1.5 ? '1 bis' : `n°${ouverte.criteres.emplacement}`}). Une demande qui change ce qu'on cherche (activité, emplacement) passe par affiner_prospection ; réponds ensuite en une phrase ce qui a changé.`
     : '';
+  // Haka du mandataire (19 oct. 2026) : le dossier choisi dans la saisie (le sien seulement), et « Produire ».
+  const dm = dossier_id ? Records.get('DossierMandataire', dossier_id) : null;
+  const dossierOuvert = dm && String(dm.mandataire_email || '').toLowerCase() === String(user?.email || '').toLowerCase() ? dm : null;
+  const surDossier = dossierOuvert
+    ? `\n\nLe mandataire a choisi le dossier « ${dossierOuvert.bien || 'sans nom'} »${dossierOuvert.adresse ? `, ${dossierOuvert.adresse}` : ''}${dossierOuvert.proprietaire ? ` (propriétaire : ${dossierOuvert.proprietaire})` : ''}, au statut « ${dossierOuvert.statut || 'inconnu'} » : sa demande porte sur ce bien. mes_dossiers donne son estimation, son mandat et ses pièces.`
+    : '';
+  const surSortie = sortie === 'produire'
+    ? "\n\nLe mandataire a choisi « Produire » : il attend un livrable, pas une réponse. Fais-le avec tes outils (l'avis de valeur par lancer_estimation, le mandat par demander_mandat, un mail par preparer_mail, une relance ou un rendez-vous par noter_relance ou noter_rdv), puis dis en deux lignes ce qui est prêt et où le trouver."
+    : '';
+  const surCompetence = competence ? `\n\nLe mandataire a choisi le raccourci « ${String(competence).slice(0, 60)} » : c'est la tâche qu'il demande.` : '';
   let prospectionModifiee = false;
   const trace = [];
   const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal, surTexte,
     // La consigne stable en cache ; la date, le secteur et la prospection ouverte après (1.7, 12 oct. 2026).
-    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}` }],
+    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}${surDossier}${surSortie}${surCompetence}` }],
     cache: true,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,

@@ -11,13 +11,24 @@ import { J } from "@/design/jetons";
 /**
  * @param {{ valeur: {deal_id: string, titre?: string}|null, onChoisir: (d: {deal_id: string, titre: string}|null) => void, versLeHaut?: boolean }} props
  */
-export default function ChoixDossier({ valeur, onChoisir, versLeHaut = false }) {
+export default function ChoixDossier({ valeur, onChoisir, versLeHaut = false, mandataire = false }) {
   const [ouvert, setOuvert] = useState(false);
   const [cherche, setCherche] = useState("");
   // La même liste que la page Dossiers : une seule requête pour les deux.
-  const { data, isLoading } = useQuery({ queryKey: ["preanalyse-pipeline"], queryFn: () => base44.request("GET", "/api/preanalyse/pipeline"), enabled: ouvert, staleTime: 60_000 });
+  // Un mandataire (19 oct. 2026) : ses dossiers à lui, jamais ceux de l'équipe.
+  const { data, isLoading } = useQuery({
+    queryKey: mandataire ? ["mandataire-dossiers-choix"] : ["preanalyse-pipeline"],
+    queryFn: () => base44.request("GET", mandataire ? "/api/mandataire/dossiers" : "/api/preanalyse/pipeline"),
+    enabled: ouvert, staleTime: 60_000,
+  });
   const liste = useMemo(() => {
     const q = cherche.trim().toLowerCase();
+    if (mandataire) {
+      return (data?.dossiers || [])
+        .map((d) => ({ ...d, deal_id: d.id, titre: [d.bien, d.adresse].filter(Boolean).join(" · ") || d.id }))
+        .filter((d) => !q || d.titre.toLowerCase().includes(q))
+        .slice(0, 40);
+    }
     return (data?.dossiers || [])
       .filter((d) => !d.archived && !d.test)
       .filter((d) => !q || String(d.titre || "").toLowerCase().includes(q))

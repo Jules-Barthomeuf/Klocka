@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Haka pour les mandataires", texte: "L'accueil des mandataires reprend celui de l'équipe : choisir un de ses dossiers, « Répondre » ou « Produire », et des raccourcis (estimation, mandat, dossier, mail au propriétaire, appel, demandes des clients).", page: "Dashboard" },
       { titre: "Le menu des mandataires, comme celui de l'équipe", texte: "Six entrées : Haka (l'accueil, sur la mise en page de celui de l'équipe), Prospection (avec l'Off-market en onglet), Biens (Estimation, Mandat, Dossiers, Mise en marché en onglets), Clients, Projets, Simulateur ; Feedback dans « Autre », Paramètres en bas de la barre. Le Simulateur entre aussi dans le menu de l'équipe.", page: "Dashboard" },
       { titre: "L'usage de la plateforme, personne par personne", texte: "Suivi > Usage : cinq chiffres et leurs courbes (temps passé, personnes, connexions, durée moyenne, pages), le temps par page et l'heure de la semaine, puis un tableau par personne. Un clic sur une ligne montre ses sessions, page par page, avec le temps passé sur chacune.", page: "Monitoring" },
       { titre: "K-Vacance, la carte des signaux", texte: "K-Vacance reprend les Signaux de vacance : sur une carte, ce qui annonce qu'un local va se libérer, avec le taux de vacance de la zone, de la rue et de la commune. Il n'y a plus qu'une entrée dans les outils.", page: "KVacance" },

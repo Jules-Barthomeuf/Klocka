@@ -1178,6 +1178,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         form.append("texte", t || "");
         form.append("historique", JSON.stringify(historique()));
         if (prospectionId) form.append("prospection_id", prospectionId);
+        if (espace === "mandataire" && reglagesRef.current?.sortie) form.append("sortie", reglagesRef.current.sortie);
+        if (espace === "mandataire" && choixDossier && dossierChoisi) form.append("dossier_id", dossierChoisi.deal_id);
+        if (espace === "mandataire" && reglagesRef.current?.competence) form.append("competence", reglagesRef.current.competence.nom);
         if (estimation && mode) form.append("mode", mode);
         if ((estimation || mandatEspace) && conversationId) form.append("conversation_id", conversationId);
         if (estimation && selectionAvis?.chemin) form.append("selection", JSON.stringify({ chemin: selectionAvis.chemin, texte: selectionAvis.texte || null }));
@@ -1229,7 +1232,11 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         return r;
       }
       const r = mandataire
-        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}), ...(E.client ? { presentation_id: contexte?.presentation_id || null } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
+        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}),
+          // Haka du mandataire (19 oct. 2026) : « Répondre / Produire » et le dossier choisi partent avec le message.
+          ...(espace === "mandataire" && reglagesRef.current?.sortie ? { sortie: reglagesRef.current.sortie } : {}),
+          ...(espace === "mandataire" && choixDossier && dossierChoisi ? { dossier_id: dossierChoisi.deal_id } : {}),
+          ...(espace === "mandataire" && reglagesRef.current?.competence ? { competence: reglagesRef.current.competence.nom } : {}), ...(E.client ? { presentation_id: contexte?.presentation_id || null } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
         : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: pageEnvoi ? "assistant" : type, ...(avecContexte ? { contexte: contexteEnvoye() } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
@@ -1700,7 +1707,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 <button onClick={() => setFichier(null)} className="flex-none text-brume hover:text-alerte" aria-label="Retirer la pièce jointe" title="Retirer" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
               </span>
             )}
-            {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation} />}
+            {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation} mandataire={espace === "mandataire"} />}
             {reglages?.competence && (
               <span className="inline-flex h-8 min-w-0 max-w-[260px] items-center gap-1.5 rounded-full bg-menthe/10 pl-2.5 pr-1 text-[13px] text-encre">
                 <Sparkles className="h-3.5 w-3.5 flex-none text-menthe" />
@@ -1758,7 +1765,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
 
             <div className="ml-auto flex items-center gap-1.5">
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
-              {reglages && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
+              {reglages && espace !== "mandataire" && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
               {!E.modesAGauche && !reglages && (
               <div className="relative">
                 <button

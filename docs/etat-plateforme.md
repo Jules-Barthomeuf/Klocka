@@ -6,15 +6,15 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-16 personnes, 2 718 pages ouvertes, 3 demandes à l'assistant, 138 actions exécutées.
+16 personnes, 2 696 pages ouvertes, 3 demandes à l'assistant, 138 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 214 | 3 | 48 | 19/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 228 | 3 | 48 | 19/10/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
-| jules.btmf@gmail.com (équipe) | 130 | 0 | 0 | 21/09/2026 |
+| jules.btmf@gmail.com (équipe) | 111 | 0 | 0 | 21/09/2026 |
 | test.mandataire@kpartners.fr | 101 | 0 | 0 | 10/10/2026 |
-| admin@klocka.local (équipe) | 76 | 0 | 0 | 11/10/2026 |
+| admin@klocka.local (équipe) | 59 | 0 | 0 | 11/10/2026 |
 | alexis.p@klocka.immo (équipe) | 38 | 0 | 0 | 28/09/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
 | maxime.p@klocka.immo | 2 | 0 | 0 | 25/09/2026 |
@@ -27,10 +27,10 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 424 (16 %)
-- **Dashboard** — 349 (13 %)
-- **Prospection** — 207 (8 %)
-- **AdminProjets** — 198 (7 %)
+- **Analyse** — 426 (16 %)
+- **Dashboard** — 358 (13 %)
+- **Prospection** — 208 (8 %)
+- **AdminProjets** — 184 (7 %)
 - **Personnalisation** — 165 (6 %)
 - **Emailing** — 140 (5 %)
 - **MandataireProspection** — 102 (4 %)
@@ -39,7 +39,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **ProjetDetail** — 69 (3 %)
 - **MandataireDossier** — 68 (3 %)
 - **AdminPresentations** — 57 (2 %)
-- Le reste, sous 2 % : KData, ALX, MandataireMandat, Home, AdminMandataires, OffMarket, ConversationsMandataires, Cerveau, Monitoring, AdminClients, Relances, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, KVacance, AdminLeadMagnets, KZoning, FichesCommerciales, SimulateurPublic, FeuilleDeRoute, AdminSuggestions, KFoncier, SuiviAppels, ALXAtelier, Semaine, KEstimation, Agents, MesProjets, MonAssistant, KExpertise, AdminUtilisateurs, KProspective, Validations, MandataireMarche, Vision, MandataireProjets, ALXCible, ValeurLocative, Automatismes, SuiviAudience, CoutsIA, AdminEquipe, SuiviMandataires, KTransactions, SuiviReunion, SuiviTesteur, Comparateur, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources, analyse
+- Le reste, sous 2 % : KData, ALX, MandataireMandat, Home, AdminMandataires, OffMarket, ConversationsMandataires, Cerveau, Monitoring, AdminClients, Relances, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, KVacance, KZoning, FichesCommerciales, AdminSuggestions, Semaine, KFoncier, SuiviAppels, ALXAtelier, SimulateurPublic, KEstimation, Agents, AdminLeadMagnets, MesProjets, MonAssistant, KExpertise, AdminUtilisateurs, KProspective, Validations, MandataireMarche, Vision, FeuilleDeRoute, MandataireProjets, ALXCible, ValeurLocative, Automatismes, SuiviAudience, CoutsIA, AdminEquipe, SuiviMandataires, KTransactions, SuiviReunion, SuiviTesteur, Comparateur, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources, analyse
 
 ## Ce que l'IA coûte
 

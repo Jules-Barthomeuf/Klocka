@@ -269,6 +269,17 @@ export const OUTILS = [
     },
   },
   {
+    // 19 oct. 2026 (Jules) : « à combien négocier pour être à 7 % ? » se calculait à la main, faux.
+    name: 'prix_pour_rendement',
+    description:
+      "Le prix négocié qui donne un rendement net voulu (« à combien négocier pour être à 7 % ? »), calculé par le simulateur du projet lui-même : même prix de revient, mêmes frais, même indexation, même apport par défaut. Le rendement net est celui que la page du simulateur affiche (moyenne sur la détention des loyers nets indexés ÷ prix de revient) ; l'année 1 est donnée à côté. `loyer` : essayer un autre loyer annuel. Ne refais jamais ce calcul à la main : cite les chiffres rendus.",
+    input_schema: {
+      type: 'object',
+      properties: { projet_id: { type: 'string' }, rendement_cible: { type: 'number', description: 'en %, ex. 7' }, loyer: { type: 'number', description: 'un autre loyer annuel HT HC à essayer, en €' } },
+      required: ['projet_id', 'rendement_cible'],
+    },
+  },
+  {
     name: 'verifier',
     description:
       "Passe en revue un dossier ou un projet et rend ce qui manque, avec l'action qui le lève : dossier Drive absent, bien pas dans Monday, agent sans fiche, documents non extraits, chiffres introuvables… À utiliser dès qu'on demande « vérifie », « qu'est-ce qui manque », « où ça en est vraiment », et avant de proposer quoi que ce soit sur un dossier ou un projet.",
@@ -814,6 +825,14 @@ export async function executerOutil({ name, input }, user) {
     };
   }
 
+  if (name === 'prix_pour_rendement') {
+    const projet = Records.get('Project', input.projet_id);
+    if (!projet) return { erreur: 'Projet introuvable' };
+    const { prixPourRendement } = await import('./simulation-projet.js');
+    const r = prixPourRendement(projet, input.rendement_cible, { loyer: Number(input.loyer) || null });
+    return r || { erreur: "Le simulateur du projet n'a ni prix ni loyer : impossible de chercher un prix." };
+  }
+
   if (name === 'etat_projet') {
     const projet = Records.get('Project', input.projet_id);
     if (!projet) return { erreur: 'Projet introuvable' };
@@ -832,7 +851,9 @@ export async function executerOutil({ name, input }, user) {
       prix,
       loyer_annuel_ht: loyer,
       surface_m2: surface,
-      rendement: prix && loyer ? Math.round((loyer / prix) * 10000) / 100 : null,
+      // « rendement » est le brut, loyer ÷ prix ; le simulateur (rendement net, moyenne sur la détention) est dans `simulateur`.
+      rendement_brut: prix && loyer ? Math.round((loyer / prix) * 10000) / 100 : null,
+      simulateur: await (async () => { const { simulationDuProjet } = await import('./simulation-projet.js'); const s = simulationDuProjet(projet); return s && { prix_negocie: s.prix_negocie, prix_fai: s.prix_fai, prix_revient: s.prix_revient, rendement_net: s.rendement_global_net, rendement_an1: s.rendement_an1, cash_flow_mensuel_an1: s.cash_flow_mensuel_an1, apport: s.apport, mensualite: s.mensualite, tri: s.tri }; })(),
       locataire: projet.nom_locataire || null,
       activite: projet.activite_locataire || null,
       echeance_bail: projet.echeance_bail || null,

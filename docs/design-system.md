@@ -891,6 +891,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Listes de la Prospection, rangée collante** (Jules, 19 oct. 2026) : la rangée des intercalaires de villes reste collée sous la cloche (64 px du haut, en haut au téléphone, fond `fond`) quand on descend dans une liste, et l'interrupteur « Mode appel » se tient à sa droite, hors de la partie qui défile à l'horizontale : il est toujours visible.
 
+**Étape Plateforme d'un dossier entré** (Jules, 19 oct. 2026) : plus de bloc centré avec un bouton ; un cadre `surface` en deux colonnes, à gauche la carte du projet (`CarteProjet`, la même que la page Projets, cliquable), à droite l'étiquette « Dans la plateforme » en menthe, la phrase, l'étape et la suivante, puis « Ouvrir le projet » (menthe) et deux boutons à contour (Vue client, Simulateur).
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

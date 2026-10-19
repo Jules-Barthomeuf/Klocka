@@ -26,6 +26,7 @@ import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/Grill
 import SyntheseAnalyse, { HistoriqueAnalyse, useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
 import TableauBienAnalyse from "@/components/preanalyse/TableauBienAnalyse";
 import SectionBien from "@/components/preanalyse/SectionBien";
+import ApercuProjetPlateforme from "@/components/preanalyse/ApercuProjetPlateforme";
 import ValeurLocativeMarche from "@/components/preanalyse/ValeurLocativeMarche";
 import AnalyseLoyerEquimmox from "@/components/preanalyse/AnalyseLoyerEquimmox";
 import TransactionsFonds from "@/components/preanalyse/TransactionsFonds";
@@ -1521,21 +1522,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
     return (
       <>
       {titre}
-      <div className="bg-surface border border-bord rounded-md p-6 text-center">
-        <span className="w-10 h-10 rounded-md bg-encre/[0.05] text-ardoise flex items-center justify-center mx-auto mb-3">
-          <Briefcase className="w-5 h-5" />
-        </span>
-        <p className="text-encre text-sm font-medium mb-1">Le deal est entré dans la plateforme</p>
-        <p className="text-ardoise text-xs mb-4">
-          Suivez l'avancement client (message envoyé, retour oui/non) depuis la fiche projet.
-        </p>
-        <Button
-          onClick={() => navigate(`/Projets?id=${dossier.projet_id}`)}
-          className="bg-menthe hover:bg-menthe-survol text-sur-menthe rounded-full"
-        >
-          <ExternalLink className="w-4 h-4 mr-2" /> Ouvrir le projet
-        </Button>
-      </div>
+      <ApercuProjetPlateforme projetId={dossier.projet_id} />
       <BlocVideoPresentation dossier={dossier} apercu={apercu} />
       </>
     );

@@ -10,7 +10,7 @@ import CarteOffMarket from "./CarteOffMarket";
 import FacadeLocal from "./FacadeLocal";
 import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone";
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
-import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, comprendre, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
 import Chargement from "@/components/ui/Chargement";
 
 // Off-market, le mode Simple (spec de Jules du 11 oct. 2026) : la carte de la
@@ -111,49 +111,6 @@ function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activit
     </div>
   );
 }
-
-/** Pure : le titre de la notification, « les boulangeries », « les exploitants propriétaires », « les 12 commerces ». */
-function titreRecherche(f, compris, n) {
-  if (f.activites.length === 1) {
-    const premier = f.activites[0].split(/[,(]/)[0].trim().toLowerCase();
-    const pluriel = n > 1 ? premier.replace(/(\w+)/, (m) => (/[sxz]$/.test(m) ? m : `${m}s`)) : premier;
-    return `${n > 1 ? "les" : "le seul commerce :"} ${pluriel}${f.liens.includes("exploitant") ? " dont l'exploitant possède les murs" : ""}`;
-  }
-  if (!f.activites.length && f.liens.length === 1 && f.liens[0] === "exploitant") return "les exploitants propriétaires de leurs murs";
-  return `les ${pl(n, "commerce")} trouvés`;
-}
-
-/** La barre du bas : on dit ce qu'on cherche, la carte et le tableau ne gardent que ça. */
-function BarreRecherche({ activites, onFiltres, total, ville, onCommerce = null }) {
-  const [texte, setTexte] = useState("");
-  const envoyer = (e) => {
-    e.preventDefault();
-    if (!texte.trim()) return;
-    const { filtres, compris } = comprendre(texte, activites);
-    // Rien de reconnu comme filtre : c'est le nom d'un commerce qu'on veut prospecter (« Uja »).
-    if (!compris.length) { onCommerce?.(texte.trim()); setTexte(""); return; }
-    const n = onFiltres(filtres);
-    toast.success(n ? `Voici ${titreRecherche(filtres, compris, n)}${ville ? ` à ${ville}` : ""}` : `Aucun commerce ne correspond${ville ? ` à ${ville}` : ""}`, { description: `${pl(n, "commerce")} sur ${total} · ${compris.join(" · ")}` });
-    setTexte("");
-  };
-  // La barre est tout en bas de l'écran : le bandeau « Rappel à terminer » remonte au-dessus d'elle.
-  useEffect(() => {
-    document.documentElement.style.setProperty("--k-bas-chat", "76px");
-    return () => document.documentElement.style.removeProperty("--k-bas-chat");
-  }, []);
-  return (
-    // Un fond plein sous la barre, qui s'efface vers le haut : le tableau glisse dessous sans qu'une ligne dépasse au-dessous ni ne coupe la barre.
-    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[55] md:left-[var(--k-barre-largeur,0px)]" style={{ background: "linear-gradient(to top, rgb(var(--k-fond-rgb)) 0%, rgb(var(--k-fond-rgb)) 62%, rgb(var(--k-fond-rgb) / 0) 100%)" }}>
-      <div className="mx-auto w-[760px] max-w-[calc(100vw-32px)] pb-[calc(16px+var(--k-bas-mobile,0px))] pt-10 md:pb-4">
-        <form onSubmit={envoyer} className="k-barre-degrade pointer-events-auto flex items-center gap-3 rounded-full bg-surface-pleine py-2 pl-6 pr-2 shadow-[0_18px_40px_rgb(0_0_0/0.35)]">
-          <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Que cherchez-vous ? Par exemple : boulangerie, propriétaire exploitant, ou le nom d'un commerce" className="h-11 min-w-0 flex-1 border-0 bg-transparent text-[15px] text-encre outline-none placeholder:text-ardoise max-md:text-[16px]" />
-          <button type="submit" disabled={!texte.trim()} aria-label="Chercher" className="grid h-11 w-11 flex-none place-items-center rounded-full bg-ardoise/30 text-encre transition-colors hover:bg-ardoise/45 disabled:opacity-70"><ArrowUp className="h-5 w-5" /></button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 
 /**
  * Une ligne du tableau de la fiche : le libellé, la valeur en une ligne, et
@@ -451,7 +408,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
   );
 
   return (
-    <div className="flex flex-col gap-4 pb-36">
+    <div className="flex flex-col gap-4 pb-10">
       <div className="flex flex-wrap items-center gap-2 md:pr-16">
         <div className="relative">
           <button type="button" onClick={() => setMenuVille((m) => !m)} aria-expanded={menuVille} className="inline-flex h-10 min-w-[240px] items-center justify-between gap-2 rounded-full border border-bord-vif bg-fond px-3.5 text-[14px] text-encre hover:border-menthe max-md:min-w-0">
@@ -590,7 +547,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
               : <Vide>Aucun commerce avec ces filtres.</Vide>)}
           </div>
         </section>
-        <BarreRecherche activites={activites} total={dansZone.length} ville={territoire?.nom} onCommerce={trouver} onFiltres={(f) => { const g = { ...f, emplacement: filtres.emplacement }; setFiltres(g); return commerces.filter((c) => passeSimple(c, g)).length; }} />
+        {/* La barre « Que cherchez-vous ? » en bas de page est retirée (19 oct. 2026, Jules) : la recherche du haut et les filtres suffisent. */}
         {versListe && <FenetreListe ids={[...coches]} onFermer={() => setVersListe(false)} onFait={() => { setVersListe(false); setCoches(new Set()); qc.invalidateQueries({ queryKey: ["off-market", "simple", "etat"] }); }} />}
       </>)}
     </div>

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Une alerte quand un agent répond", texte: "Quand un mail arrive sur un dossier en cours (réponse d'un agent, pièces jointes), la personne responsable du dossier reçoit une notification avec le lien. Les nouvelles fiches en prévenaient déjà.", page: "Dossiers" },
       { titre: "Des effets doux, le Simulateur d'abord", texte: "Le Simulateur entre en douceur : le titre, la carte, le rail par la gauche, les blocs l'un après l'autre. Les indicateurs montent vers leur valeur et glissent quand on déplace un curseur, les sections de gauche s'ouvrent et se ferment en douceur. Rien ne bouge si vous avez choisi des animations réduites.", page: "SimulateurRentabilite" },
       { titre: "Le Simulateur, comme dans un dossier", texte: "La page Simulateur reprend le cadre de celui d'un dossier (la carte, le rail à gauche, les onglets soulignés), et la barre de navigation se replie quand on l'ouvre.", page: "SimulateurRentabilite" },
       { titre: "Haka pour les mandataires", texte: "L'accueil des mandataires reprend celui de l'équipe : choisir un de ses dossiers, « Répondre » ou « Produire », et des raccourcis (estimation, mandat, dossier, mail au propriétaire, appel, demandes des clients).", page: "Dashboard" },

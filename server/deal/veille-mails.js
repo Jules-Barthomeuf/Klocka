@@ -84,6 +84,19 @@ export async function rattacherMailsOrphelins() {
       null
     );
     rattaches += 1;
+    // Dans l'application : la réponse d'un agent arrive sur son dossier, la personne responsable le sait (19 oct. 2026, Jules).
+    try {
+      const { notifier } = await import('../notifications.js');
+      const pj = (mail.pieces_jointes || []).length;
+      notifier({
+        pour: deal.responsable_email || null,
+        titre: `Réponse sur ${deal.nom || 'un dossier'}`,
+        texte: [`De ${String(mail.de || mail.de_email).replace(/<[^>]*>/g, '').trim()}.`, mail.objet ? `« ${String(mail.objet).slice(0, 100)} »` : null, pj ? `${pj} pièce(s) jointe(s).` : null].filter(Boolean).join(' '),
+        lien: `/Dossiers?deal_id=${deal.deal_id}`, action: 'Ouvrir le dossier', genre: 'mail', cle: `mail-rattache:${mail.id}`,
+      });
+    } catch (e) {
+      console.warn(`[veille] notification non posée : ${e?.message || e}`);
+    }
   }
   return rattaches;
 }

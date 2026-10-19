@@ -200,8 +200,12 @@ export const communeChargee = (commune) => !!db.prepare('SELECT 1 FROM entrepot_
 /** Les établissements de plusieurs entreprises, depuis l'entrepôt. */
 export function etablissementsDeSirens(sirens = []) {
   if (!sirens.length) return [];
-  const q = db.prepare(`SELECT * FROM entrepot_sirene WHERE siren IN (${sirens.map(() => '?').join(',')})`);
+  // Une requête préparée par paquet : avec plus de 500 SIREN, un seul `IN (?,?…)` de la taille de la liste recevait
+  // 500 valeurs et levait « Too few parameter values » (Cannes, 19 oct. 2026).
   const out = [];
-  for (let i = 0; i < sirens.length; i += 500) out.push(...q.all(...sirens.slice(i, i + 500)));
+  for (let i = 0; i < sirens.length; i += 500) {
+    const paquet = sirens.slice(i, i + 500);
+    out.push(...db.prepare(`SELECT * FROM entrepot_sirene WHERE siren IN (${paquet.map(() => '?').join(',')})`).all(...paquet));
+  }
   return out;
 }

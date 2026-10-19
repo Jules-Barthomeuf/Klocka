@@ -49,3 +49,13 @@ test("le stock : lu en flux depuis le zip, filtré (département, diffusion, fer
     assert.equal(S.etablissementsDeSirens(['123456789']).length, 2);
   } finally { serveur.close(); }
 });
+
+test('plus de 500 SIREN à la fois : lus par paquets, sans « Too few parameter values » (Cannes, 19 oct. 2026)', async () => {
+  const dbm = (await import('./db.js')).default;
+  const ins = dbm.prepare("INSERT INTO entrepot_sirene (siret, siren, departement, commune, etat) VALUES (?, ?, '99', ?, ?)");
+  const sirens = [];
+  dbm.transaction(() => { for (let i = 0; i < 1200; i++) { const s = String(900000000 + i); sirens.push(s); ins.run(`${s}00011`, s, '99999', 'A'); } })();
+  const lignes = S.etablissementsDeSirens(sirens);
+  assert.equal(lignes.length, 1200);
+  dbm.prepare("DELETE FROM entrepot_sirene WHERE commune = '99999'").run();
+});

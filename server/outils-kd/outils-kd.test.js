@@ -57,3 +57,46 @@ test("K-Prospective : le score d'intérêt monte avec un signal, un propriétair
   assert.equal(ecarte.total, 0);
   assert.equal(scoreInteret({}).total, 0);
 });
+
+test('K-Vacance, la vérification : intervalle de Wilson, rétro-test des signaux, évaluation de la feuille de terrain', async () => {
+  const V = await import('./vacance-verif.js');
+  const w = V.wilson(18, 20);
+  assert.equal(w.pct, 90);
+  assert.ok(w.bas > 68 && w.bas < 72 && w.haut > 97 && w.haut < 99);
+  assert.equal(V.wilson(0, 0).pct, null);
+
+  const etat = new Map([['1', { etat: 'F', date_fin: '2026-02-01' }], ['2', { etat: 'A' }], ['3', { etat: 'F', date_fin: '2026-09-01' }]]);
+  const r = V.retroTest([
+    { type: 'liquidation', date: '2025-10-01', siret: '1' },
+    { type: 'liquidation', date: '2025-10-01', siret: '2' },
+    { type: 'liquidation', date: '2026-09-20', siret: '3' }, // trop récent : écarté
+    { type: 'fermeture', date: '2025-01-01', siret: '1' },   // pas un signal fort
+    { type: 'radiation', date: '2025-06-01', siret: '9' },   // établissement inconnu
+  ], etat, { aujourdhui: Date.parse('2026-10-19') });
+  assert.deepEqual([r.par_type.liquidation.n, r.par_type.liquidation.fermes, r.par_type.liquidation.pct, r.par_type.liquidation.delai_median_mois], [2, 1, 50, 4]);
+  assert.equal(r.sans_etablissement, 1);
+
+  const locaux = [...Array(30)].map((_, i) => ({ adresse: `${i} rue A`, etat: 'vacant', lat: 1, lon: 2 })).concat([...Array(60)].map((_, i) => ({ adresse: `${i} rue B`, etat: 'occupe' })));
+  const e = V.echantillonner(locaux, { vacants: 10, occupes: 10, incertains: 5 });
+  assert.equal(e.filter((l) => l.etat === 'vacant').length, 10);
+  assert.equal(e.length, 20);
+  assert.deepEqual(V.echantillonner(locaux, { vacants: 10, occupes: 10 }), e);
+
+  const csv = V.feuilleCsv(e.slice(0, 2), { commune: 'Cannes', date: '2026-10-19' });
+  const relu = V.lireFeuille(csv.replace(/""\n/g, '"vide";""\n').replace(/;"";""\n/g, ';"vide";""\n'));
+  assert.equal(relu.length, 2);
+  assert.equal(relu[0].etat_outil, 'vacant');
+
+  const feuille = [
+    ...Array(8).fill({ etat_outil: 'vacant', constat: 'vide' }), ...Array(2).fill({ etat_outil: 'vacant', constat: 'occupe' }),
+    ...Array(19).fill({ etat_outil: 'occupe', constat: 'occupe' }), { etat_outil: 'occupe', constat: 'vide' },
+    { etat_outil: 'occupe', constat: '' },
+  ];
+  const ev = V.evaluerFeuille(feuille, { vacants: 20, occupes: 280, incertains: 0 });
+  assert.equal(ev.constats, 30);
+  assert.equal(ev.precision_vacants.pct, 80);
+  assert.equal(ev.faux_occupes.pct, 5);
+  assert.equal(ev.taux_corrige.taux_outil, 6.7);
+  // 20 vacants à 80 % de précision + 280 occupés à 5 % de faux : 16 + 14 = 30 locaux vides sur 300, soit 10 % (l'outil en annonçait 6,7 %).
+  assert.equal(ev.taux_corrige.taux_corrige, 10);
+});

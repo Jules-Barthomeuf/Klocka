@@ -8,7 +8,7 @@ import { J } from "@/design/jetons";
 
 // Le taux de vacance est dans Vacance, panneau de droite (14 oct. 2026, Jules : « un seul onglet »).
 const PAGES = [
-  { to: "/Outils", mot: "Vacance", outil: null },
+  { to: "/KVacance", mot: "K-Vacance", outil: null },
 ];
 
 export default function OngletsOutils({ className = "" }) {
@@ -17,7 +17,7 @@ export default function OngletsOutils({ className = "" }) {
   return (
     <div className={`flex items-center gap-6 ${className}`}>
       {PAGES.map((p) => {
-        const actif = pathname.toLowerCase() === "/outils" && (p.outil == null || outil === p.outil);
+        const actif = pathname.toLowerCase() === "/kvacance" && (p.outil == null || outil === p.outil);
         return (
           <Link
             key={p.to}

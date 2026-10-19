@@ -288,7 +288,7 @@ export default function Vacance() {
       <div className="flex-none border-b border-trait px-5 pt-4 md:px-8">
         {/* Le titre seul (14 oct. 2026, Jules) : ni onglet « Vacance », ni compte des signaux. */}
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <h1 className="m-0 text-[clamp(22px,2.1vw,30px)] font-normal tracking-[-0.02em] text-encre">Vacance locative</h1>
+          <h1 className="m-0 text-[clamp(22px,2.1vw,30px)] font-normal tracking-[-0.02em] text-encre">K-Vacance</h1>
           {sousTitre && <p className="m-0 text-[13.5px] text-ardoise">{sousTitre}</p>}
         </div>
 

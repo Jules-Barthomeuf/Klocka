@@ -8,6 +8,12 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-19",
+    items: [
+      { titre: "K-Vacance, la carte des signaux", texte: "K-Vacance reprend les Signaux de vacance : sur une carte, ce qui annonce qu'un local va se libérer, avec le taux de vacance de la zone, de la rue et de la commune. Il n'y a plus qu'une entrée dans les outils.", page: "KVacance" },
+    ],
+  },
+  {
     jour: "2026-10-18",
     items: [
       { titre: "Modifier un projet, comme un dossier en mode IA", texte: "En modification de projet, la barre de navigation reste à gauche, et le chat reprend celui d'un dossier en mode IA : la question au centre, la saisie avec « + » pour joindre une pièce, les sources et l'historique.", page: "AdminProjets" },

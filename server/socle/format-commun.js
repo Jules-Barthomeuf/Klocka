@@ -303,6 +303,26 @@ function kprospective(brut = {}, entree = {}) {
 /** K-Vacance : le retour d'analyser() (verdict, visible, registre, rythme, fermetures...). */
 function kvacance(brut = {}, entree = {}) {
   const b = brut || {};
+  // K-Vacance d'après le 19 oct. 2026 : les signaux et le taux de vacance (outils-kd/vacance.js).
+  if (b.signaux && 'taux' in b) {
+    const t = b.taux || null;
+    const date = dateDe(b.le, entree.date);
+    return commun('kvacance', { ...entree, id_local: entree.id_local || b.id_local || null }, {
+      valeur: { taux_vacance: t?.taux ?? null, locaux: t?.locaux ?? null, vacants: t?.vacants ?? null, signaux: b.signaux.total ?? null },
+      fourchette: null,
+      unite: '%',
+      // Dix locaux au moins pour un taux « fiable » (règle de l'outil) ; une commune lue il y a moins de 30 jours.
+      confiance: t ? (t.fiable && t.locaux >= 100 ? 'haute' : t.fiable ? 'moyenne' : 'faible') : 'faible',
+      sources: sources(
+        sourceDepuisLibelle('BODACC', { le: b.commune?.chargee_le || null }),
+        sourceDepuisLibelle('Sirene', { le: b.commune?.chargee_le || null }),
+        b.taux?.osm && sourceDepuisLibelle('OpenStreetMap', { le: b.taux?.recense_le || null }),
+        b.taux?.google?.verifies && sourceDepuisLibelle('Google Places', { le: b.le || null }),
+      ),
+      detail: { locaux_vides: b.locaux_vides || [], signaux: b.signaux, rues: t?.rues || [], parametres: t?.parametres || null, erreur_taux: b.taux_erreur || null },
+      date,
+    });
+  }
   const verdict = b.verdict || null;
   const visibleZone = b.visible?.zone || null;
   const registreZone = b.registre?.zone || null;

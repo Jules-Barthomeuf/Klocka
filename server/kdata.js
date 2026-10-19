@@ -72,6 +72,13 @@ export function resumerValeurLocative(r) {
 }
 
 export function resumerVacance(r) {
+  // K-Vacance version signaux (19 oct. 2026) : le taux de la zone, les locaux vides, les signaux autour.
+  if (r?.signaux && 'taux' in r) {
+    const m = [];
+    if (r.taux?.taux != null) m.push(`${virg(r.taux.taux)} % de vacance (${r.nb_locaux_vides ?? r.taux.vacants} locaux vides sur ${r.taux.locaux})`);
+    if (r.signaux.total) m.push(`${r.signaux.total} signal${r.signaux.total > 1 ? 'ux' : ''} à ${r.rayon_m} m`);
+    return m.join(' · ') || 'aucun signal autour';
+  }
   // Le verdict d'abord : c'est la réponse à la question posée.
   if (r?.verdict?.niveau && r.verdict.niveau !== 'inconnue') {
     const mot = r.verdict.niveau === 'moyenne' ? 'dans la moyenne' : r.verdict.niveau;
@@ -177,10 +184,11 @@ const OUTILS = {
   },
   kvacance: {
     nom: 'K-Vacance',
-    lien: (a) => `/kvacance?adresse=${encodeURIComponent(a.libelle || a.adresse)}`,
+    // La page K-Vacance rouvre la recherche à l'adresse (19 oct. 2026) : elle lit le point dans l'adresse de la page.
+    lien: (a) => `/KVacance?q=${encodeURIComponent(a.libelle || a.adresse)}${a.point?.lat != null ? `&lon=${a.point.lon}&lat=${a.point.lat}` : ''}`,
     async lancer(adresse, point, user, reglages = {}) {
-      const { analyser } = await import('./kvacance.js');
-      const r = await analyser(point.label, { rayon: Number(reglages.rayon) || undefined, user });
+      const { vacanceDeLAdresse } = await import('./outils-kd/vacance.js');
+      const r = await vacanceDeLAdresse(point.label, { rayon: Number(reglages.rayon) || undefined, user });
       if (!r.ok) throw new Error(r.error);
       return { ref: { type: 'adresse' }, resume: resumerVacance(r), libelle: r.point?.label || point.label };
     },
@@ -267,7 +275,7 @@ export function lancerAnalyses({ adresse, outils, reglages = {} }, user = null) 
     await Promise.all(analyses.map(async (a) => {
       try {
         const r = await OUTILS[a.outil].lancer(texte, point, user, propres[a.outil] || {});
-        noter(a.id, { etat: 'terminee', ref: r.ref, resume: r.resume, libelle: r.libelle || point.label, fini_le: new Date().toISOString() });
+        noter(a.id, { etat: 'terminee', ref: r.ref, resume: r.resume, libelle: r.libelle || point.label, point: point?.lat != null ? { lat: point.lat, lon: point.lon } : undefined, fini_le: new Date().toISOString() });
       } catch (e) {
         noter(a.id, { etat: 'echec', erreur: e?.message || String(e), fini_le: new Date().toISOString() });
       }

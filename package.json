@@ -13,6 +13,7 @@
     "socle:verifier": "node scripts/socle-verifier.mjs",
     "socle:format": "node scripts/format-commun-verifier.mjs",
     "annonces:verifier": "node scripts/verifier-sites-agences.mjs",
+    "vacance:verifier": "node scripts/vacance-verifier.mjs",
     "annonces:trancher": "node scripts/annonces-trancher.mjs",
     "recap": "node server/recap/recap.js",
     "ak:epreuves": "node server/ak/epreuves.js",

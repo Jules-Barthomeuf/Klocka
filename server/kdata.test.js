@@ -35,7 +35,9 @@ test('chaque outil se résume en une ligne, et ne dit rien quand il ne sait rien
 test("une analyse prête s'ouvre dans son outil, par sa fiche ou par son adresse", () => {
   assert.equal(lienDe({ outil: 'kzoning', etat: 'terminee', ref: { id: 'z1' } }), '/kzoning?zone=z1');
   assert.equal(lienDe({ outil: 'kexpertise', etat: 'terminee', ref: { id: 'e1' } }), '/kexpertise?id=e1');
-  assert.equal(lienDe({ outil: 'kvacance', etat: 'terminee', libelle: '49 Rue Dabray 06000 Nice' }), '/kvacance?adresse=49%20Rue%20Dabray%2006000%20Nice');
+  assert.equal(lienDe({ outil: 'kvacance', etat: 'terminee', libelle: '49 Rue Dabray 06000 Nice' }), '/KVacance?q=49%20Rue%20Dabray%2006000%20Nice');
+  // Avec le point gardé, la page K-Vacance rouvre la recherche directement (19 oct. 2026).
+  assert.equal(lienDe({ outil: 'kvacance', etat: 'terminee', libelle: 'x', point: { lat: 43.7, lon: 7.26 } }), '/KVacance?q=x&lon=7.26&lat=43.7');
   // Valeur locative rouvre sa recherche par identifiant, sans crédit ; sans identifiant, par l'adresse.
   assert.equal(lienDe({ outil: 'valeur-locative', etat: 'terminee', ref: { id: 'r1' } }), '/valeurlocative?id=r1');
   assert.equal(lienDe({ outil: 'valeur-locative', etat: 'terminee', ref: { id: null }, libelle: 'Nice' }), '/valeurlocative?adresse=Nice');

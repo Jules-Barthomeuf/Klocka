@@ -1,4 +1,4 @@
-import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed, Radar } from "lucide-react";
+import { Map, Gauge, Calculator, TrendingUp, LandPlot, Banknote, Store, DoorClosed } from "lucide-react";
 
 // Les applications d'Outils (K-Data jusqu'au 16 oct. 2026), décrites une seule fois : le tableau de
 // bord en fait des cartes, la barre du haut de K-Data en fait un menu.
@@ -56,7 +56,7 @@ export const MODULES_KDATA = [
     nom: "K-Vacance",
     icone: DoorClosed,
     image: "/img/kdata/kvacance.jpg",
-    phrase: "Les locaux vides d'un quartier, et le rythme auquel ses commerces tournent.",
+    phrase: "Sur une carte, les signaux publics qui annoncent qu'un local va se libérer, et le taux de vacance de la zone, de la rue et de la commune.",
     chemin: "/KVacance",
     etat: "Ouvert",
   },
@@ -90,18 +90,6 @@ export const MODULES_KDATA = [
     chemin: "/KTransactions",
     etat: "Ouvert",
   },
-  {
-    // L'ancienne entrée « Outils » du menu (13 oct. 2026), rangée ici le 16 oct. 2026 (Jules).
-    cle: "signaux-vacance",
-    pageName: "Outils",
-    nom: "Signaux de vacance",
-    icone: Radar,
-    image: "/img/kdata/signaux-vacance.jpg",
-    phrase: "Sur une carte, les signaux publics qui annoncent qu'un local va se libérer, et le taux de vacance de la commune.",
-    chemin: "/Outils",
-    etat: "Ouvert",
-    lancable: false,
-  },
 ];
 
 /** Les outils que le composeur lance sur une adresse. */
@@ -110,4 +98,5 @@ export const MODULES_LANCABLES = MODULES_KDATA.filter((m) => m.lancable !== fals
 // Les pages du côté Outils, tableau de bord compris : sert à savoir si l'on
 // s'y trouve, dans Layout, pour échanger la barre latérale contre la barre
 // du haut.
-export const PAGES_KDATA = ["KData", ...MODULES_KDATA.map((m) => m.pageName)];
+// « Outils » reste dans la liste : l'ancienne adresse redirige vers K-Vacance, sans changer de barre entre-temps.
+export const PAGES_KDATA = ["KData", "Outils", ...MODULES_KDATA.map((m) => m.pageName)];

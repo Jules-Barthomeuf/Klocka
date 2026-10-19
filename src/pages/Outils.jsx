@@ -1,10 +1,9 @@
 import React from "react";
-import Vacance from "@/components/outils/Vacance";
+import { Navigate, useLocation } from "react-router-dom";
 
-// Outils (13 oct. 2026) : le menu des outils de terrain de l'équipe. Le
-// premier, Vacance, montre sur une carte les signaux publics qui annoncent
-// qu'un local va se libérer autour d'une adresse.
+// « Outils » (13 oct. 2026) a rejoint K-Vacance le 19 oct. 2026 : les anciennes adresses /Outils?… mènent à la même
+// recherche dans K-Vacance.
 export default function OutilsPage() {
-  // Le taux de vacance est dans Vacance, panneau de droite (14 oct. 2026).
-  return <Vacance />;
+  const { search } = useLocation();
+  return <Navigate to={`/KVacance${search}`} replace />;
 }

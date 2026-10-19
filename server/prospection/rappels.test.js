@@ -194,3 +194,25 @@ test("chercher à plusieurs mots, et les appels déjà faits par l'équipe : un 
   assert.equal(RP.appelsFaits('2233', { maintenantD: MAINTENANT })[0].agent_id, f.id, 'par les derniers chiffres');
   assert.equal(RP.appelsFaits('inconnue', { maintenantD: MAINTENANT }).length, 0);
 });
+
+test("appel rapide et échange raconté : le même chemin qu'un rappel, seul le sens change (19 oct. 2026)", async () => {
+  const f = Records.create('AgentImmo', { nom: 'Martin Sens', agence: 'ERA Cannes', telephones: ['0633333333'], statut: 'en_discussion' });
+  // L'appel rapide : on l'appelle, le reste est un rappel.
+  const o = RP.ouvrir(NORA, { sens: 'sortant' });
+  assert.equal(o.rappel.sens, 'sortant');
+  await RP.finir(o.rappel.id, { morceaux: ['Allô ? Oui.'], notes: '' }, NORA);
+  await RP.identifier(o.rappel.id, { agent_id: f.id }, NORA);
+  await RP.analyser(o.rappel.id, {}, NORA);
+  await RP.rienDeNouveau(o.rappel.id, NORA, { maintenantD: MAINTENANT });
+  assert.ok((Records.get('AgentImmo', f.id).journal || []).some((j) => /Appel rapide : rien de nouveau/.test(j.texte)) || Records.list('AppelAgent').some((x) => x.agent_id === f.id && x.issue === 'rien_de_nouveau'));
+  // Un sens inconnu redevient un rappel entrant.
+  assert.equal(RP.ouvrir(NORA, { sens: 'nimporte' }).rappel.sens, 'entrant');
+  // Raconté : le récit tient lieu d'appel, l'agent est proposé par son nom.
+  assert.equal((await RP.raconter('ok', NORA)).ok, false, 'un récit vide est refusé');
+  const r = await RP.raconter("Martin Sens d'ERA Cannes m'a écrit : le bail est renouvelé, il m'envoie le dossier lundi.", NORA);
+  assert.equal(r.ok, true);
+  assert.equal(r.rappel.sens, 'raconte');
+  assert.equal(r.rappel.etat, 'a_identifier');
+  assert.ok(r.rappel.candidats.some((c) => c.agent_id === f.id || c.id === f.id), 'Martin Sens est proposé');
+  RP.abandonner(r.rappel.id, NORA);
+});

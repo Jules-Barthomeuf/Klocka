@@ -343,7 +343,7 @@ const OUTILS_AK = [
   // Ce que le tri d'avant AK faisait seul (12 oct. 2026, 1.8) : désormais AK choisit, avec ces trois outils.
   {
     name: 'note_d_appel',
-    description: "Une note dictée ou collée dans le chat après un appel avec un agent immobilier ou un contact (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi », « eu au tel l'agent de Dieppe, pas de nouvelles »). Met à jour sa fiche dans Monday (date, remarques, prochaine relance) et le dossier si un bien est décrit. Le texte de la note tel quel.",
+    description: "Une note dictée ou collée dans le chat après un appel avec un agent immobilier ou un contact (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi », « eu au tel l'agent de Dieppe, pas de nouvelles »). Met à jour sa fiche dans Monday (date, remarques, prochaine relance) et le dossier si un bien est décrit. Le texte de la note tel quel. Pour ce qu'un agent immobilier a dit, préférer noter_appel : le même chemin qu'un appel (fiche agent, Intelligence, actions à valider).",
     input_schema: { type: 'object', properties: { texte: { type: 'string', description: 'la note, telle qu’écrite ou dictée' } }, required: ['texte'] },
   },
   {
@@ -665,7 +665,7 @@ const OUTILS_AK = [
   },
   {
     name: 'noter_appel',
-    description: "Un appel de prospection raconté après coup (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre », « Century 21 Cannes a pas décroché ») : retrouve l'agent au carnet, lit le récit comme AK lit un appel enregistré, et prépare les propositions (mail, relance, fiche) que la personne choisit sur la page Prospection. Rien n'est envoyé. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel.",
+    description: "Ce qu'un agent a dit, raconté à Haka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Monday, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
     input_schema: {
       type: 'object',
       properties: {
@@ -912,19 +912,19 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     };
   }
   if (name === 'noter_appel') {
+    // Le même chemin qu'un rappel ou un appel rapide (19 oct. 2026, Jules) : un échange raconté, identifié, puis l'écran de l'appel.
     const P = await import('../prospection/index.js');
     let id = input.agent_id || null;
-    if (!id) {
-      const trouves = P.trouver(P.agents(), input.agent || '');
-      if (!trouves.length) return { ok: false, error: `Personne ne correspond à « ${input.agent || ''} » dans le carnet. ajouter_prospect d'abord ?` };
+    if (!id && input.agent) {
+      const trouves = P.trouver(P.agents(), input.agent);
       if (trouves.length > 1) return { ok: false, plusieurs: true, candidats: trouves.slice(0, 5).map((a) => ({ agent_id: a.id, nom: a.nom, agence: a.agence, ville: a.ville, telephone: a.telephones?.[0] || null })) };
-      id = trouves[0].id;
+      if (trouves.length === 1) id = trouves[0].id;
     }
-    const r = await P.analyserAppel({ agent_id: id, recit: input.recit, par: user?.email });
+    const RP = await import('../prospection/rappels.js');
+    const r = await RP.raconter(input.recit, user);
     if (!r.ok) return r;
-    apres(`${r.appel.message}
-choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
-    return { ok: true, propositions_postees_dans_le_chat: true };
+    if (id) { const i = await RP.identifier(r.rappel.id, { agent_id: id }, user); if (!i.ok) return i; }
+    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que Haka a compris et les actions à cocher (fiche agent, Monday, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
   }
   if (name === 'ajouter_prospect') {
     const P = await import('../prospection/index.js');
@@ -1604,7 +1604,7 @@ LE MARCHÉ, DATA-B ET K-DATA
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
 - Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Monday de l'agent à jour. Une ligne pour dire ce qui est fait.
-- « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Un appel de la liste du jour de la Prospection raconté après coup (« j'ai eu Rosario, pas de murs, mandat fin octobre ») : noter_appel avec le récit dans ses mots ; tes propositions sont postées par le code, ne les recopie pas. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
+- « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Ce qu'un agent a dit, raconté (« j'ai eu Rosario, pas de murs, mandat fin octobre », ou un échange sans téléphone : « Martin m'a écrit que… ») : noter_appel avec le récit dans ses mots et le nom de l'agent ; c'est le même chemin qu'un rappel ou un appel rapide, l'écran de l'appel s'ouvre sur les actions ; donne le lien d'ouverture en une ligne. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 
 LES TÂCHES DE FOND

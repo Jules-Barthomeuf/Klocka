@@ -186,7 +186,7 @@ export function monterProspection(app) {
   app.post('/api/prospection/rappels', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
-    ok(res, (await RP()).ouvrir(user));
+    ok(res, (await RP()).ouvrir(user, { sens: req.body?.sens, notes: req.body?.notes }));
   }));
   app.get('/api/prospection/rappels/chercher', wrap(async (req, res) => {
     if (!admin(req, res)) return;

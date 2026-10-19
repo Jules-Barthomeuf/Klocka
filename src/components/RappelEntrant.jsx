@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
+import { ExternalLink, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -34,7 +34,18 @@ const MODIFIABLES = [["interlocuteur", "Interlocuteur"], ["telephone", "Téléph
 
 /** Le bouton « Rappel », en haut de chaque page : il démarre l'enregistrement dans le même geste (le micro l'exige). */
 /** Ouvre l'écran « Il me rappelle » (le même que l'icône du coin). */
-export const enregistrerUnRappel = () => window.dispatchEvent(new Event(EVT));
+export const enregistrerUnRappel = () => window.dispatchEvent(new CustomEvent(EVT, { detail: { sens: "entrant" } }));
+/** L'appel rapide (19 oct. 2026, Jules) : on appelle un agent pour un dossier, un point ; le même écran, le même chemin. */
+export const appelRapide = () => window.dispatchEvent(new CustomEvent(EVT, { detail: { sens: "sortant" } }));
+/** Raconter un échange sans l'avoir eu au téléphone : les notes tiennent lieu d'appel, puis le même chemin. */
+export const raconterUnEchange = (notes = "") => window.dispatchEvent(new CustomEvent(EVT, { detail: { sens: "raconte", notes } }));
+
+// Qui a parlé à qui : le seul écart entre les trois entrées.
+const SENS = {
+  entrant: { icone: PhoneIncoming, titre: "Rappel entrant" },
+  sortant: { icone: PhoneOutgoing, titre: "Appel rapide" },
+  raconte: { icone: MessageSquareText, titre: "Échange raconté" },
+};
 
 export function BoutonRappel({ compact = false }) {
   // Une icône seule au téléphone, dans la barre du haut : un tap enregistre l'appel entrant.
@@ -59,11 +70,11 @@ function PiluleAppel() {
   const choisir = (faire) => { clearTimeout(minuterie.current); setOuvert(false); faire(); };
   const modes = [
     { cle: "entrant", icone: PhoneIncoming, titre: "Il me rappelle", detail: "Enregistrer l'appel entrant", faire: enregistrerUnRappel },
-    { cle: "sortant", icone: PhoneOutgoing, titre: "Démarrer les appels", detail: "Le mode appel de la Prospection", faire: () => { window.location.assign("/Prospection?appel=1"); } },
+    { cle: "sortant", icone: PhoneOutgoing, titre: "Appel rapide", detail: "J'appelle un agent : enregistrer l'appel", faire: appelRapide },
   ];
   return (
     <div className="relative" onMouseEnter={entrer} onMouseLeave={sortir}>
-      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="menu" aria-label="Appel : enregistrer un appel entrant ou démarrer les appels"
+      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-haspopup="menu" aria-label="Appel : un agent me rappelle, ou j'appelle un agent"
         className="k-pilule-appel grid h-11 w-11 place-items-center rounded-full border text-menthe">
         <PhoneIncoming className="h-5 w-5" strokeWidth={1.8} />
       </button>
@@ -117,6 +128,7 @@ export default function RappelEntrant() {
   const queryClient = useQueryClient();
   const [ouvert, setOuvert] = useState(false);
   const [ecran, setEcran] = useState(null); // enregistrement | transcription | identification | actions | rien | recu
+  const [sens, setSens] = useState("entrant"); // entrant | sortant | raconte
   const [rappel, setRappel] = useState(null);
   const [notes, setNotes] = useState("");
   const [secondes, setSecondes] = useState(0);
@@ -214,16 +226,23 @@ export default function RappelEntrant() {
   };
 
   // Un seul tap : le micro est demandé dans le geste même, le rappel se crée en parallèle.
-  const demarrer = () => {
+  const demarrer = (e) => {
     if (ouvert) return;
+    const s = SENS[e?.detail?.sens] ? e.detail.sens : "entrant";
     reinitialiser();
+    setSens(s);
     setOuvert(true); setEcran("enregistrement"); setRappel(null);
     debut.current = Date.now();
     clearInterval(minuteur.current);
-    minuteur.current = setInterval(() => setSecondes(Math.round((Date.now() - debut.current) / 1000)), 1000);
-    const micro = navigator.mediaDevices?.getUserMedia ? navigator.mediaDevices.getUserMedia({ audio: true }) : Promise.reject(new Error("micro"));
-    micro.then(enregistrer).catch(() => setMicroKo(true));
-    base44.request("POST", API).then((r) => { idRef.current = r.rappel.id; setRappel(r.rappel); }).catch(() => setErreur("Le rappel n'a pas pu être créé : il le sera au Stop."));
+    if (s === "raconte") {
+      // Rien à enregistrer : on écrit (ou dicte) ce que l'agent a dit, puis Analyser.
+      setMicroKo(true); setNotes(e?.detail?.notes || "");
+    } else {
+      minuteur.current = setInterval(() => setSecondes(Math.round((Date.now() - debut.current) / 1000)), 1000);
+      const micro = navigator.mediaDevices?.getUserMedia ? navigator.mediaDevices.getUserMedia({ audio: true }) : Promise.reject(new Error("micro"));
+      micro.then(enregistrer).catch(() => setMicroKo(true));
+    }
+    base44.request("POST", API, { body: { sens: s } }).then((r) => { idRef.current = r.rappel.id; setRappel(r.rappel); }).catch(() => setErreur("L'appel n'a pas pu être créé : il le sera à l'analyse."));
   };
   useEffect(() => {
     window.addEventListener(EVT, demarrer);
@@ -232,6 +251,14 @@ export default function RappelEntrant() {
   // Le raccourci de l'écran d'accueil : la plateforme s'ouvre et l'enregistrement démarre.
   useEffect(() => {
     const u = new URL(window.location.href);
+    // Un échange raconté à Haka dans le chat (19 oct. 2026) : son lien rouvre l'écran là où il en est.
+    const id = u.searchParams.get("rappel");
+    if (id) {
+      u.searchParams.delete("rappel");
+      window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
+      reprendre.mutate(id);
+      return;
+    }
     if (!u.searchParams.has("il-me-rappelle")) return;
     u.searchParams.delete("il-me-rappelle");
     window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
@@ -248,7 +275,7 @@ export default function RappelEntrant() {
       const t0 = Date.now();
       await new Promise((ok) => setTimeout(ok, 400));
       while (morceaux.current.some((x) => x.etat === "envoi") && Date.now() - t0 < 20000) await new Promise((ok) => setTimeout(ok, 250));
-      if (!idRef.current) { const r = await base44.request("POST", API); idRef.current = r.rappel.id; }
+      if (!idRef.current) { const r = await base44.request("POST", API, { body: { sens } }); idRef.current = r.rappel.id; }
       const f = new FormData();
       f.append("morceaux", JSON.stringify(morceaux.current.map((x) => (x.etat === "ok" ? x.texte || "" : x.wav ? null : ""))));
       morceaux.current.filter((x) => x.etat !== "ok" && x.wav).forEach((x, k) => f.append("audio", x.wav, `m${k}.wav`));
@@ -368,7 +395,7 @@ export default function RappelEntrant() {
     onSuccess: (x) => {
       reinitialiser();
       const rp = x.rappel;
-      idRef.current = rp.id; setRappel(rp); setNotes(rp.notes || ""); setOuvert(true);
+      idRef.current = rp.id; setRappel(rp); setNotes(rp.notes || ""); setOuvert(true); setSens(rp.sens || "entrant");
       if (rp.etat === "enregistrement") { setMicroKo(true); setEcran("enregistrement"); }
       else if (rp.etat === "a_identifier") setEcran("identification");
       else if (rp.appel) ouvrirActions(rp.appel);
@@ -394,19 +421,20 @@ export default function RappelEntrant() {
   const bandeau = !ouvert && enAttente && createPortal(
     <div className="fixed bottom-[calc(16px+var(--k-bas-mobile,0px)+var(--k-bas-chat,0px))] left-1/2 z-[60] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-3 rounded-full border border-ambre/50 bg-surface-pleine px-4 py-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:left-[calc(50%+var(--k-barre-largeur,0px)/2)]">
       <PhoneIncoming className="h-4 w-4 flex-none text-ambre" />
-      <span className="min-w-0 truncate text-[14px] text-encre">Rappel à terminer · {enAttente.agent || "agent à identifier"}</span>
+      <span className="min-w-0 truncate text-[14px] text-encre">Appel à terminer · {enAttente.agent || "agent à identifier"}</span>
       <button type="button" onClick={() => reprendre.mutate(enAttente.id)} disabled={reprendre.isPending} className="h-8 flex-none rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">Reprendre</button>
     </div>,
     document.body,
   );
 
   if (!ouvert) return bandeau || null;
+  const IconeSens = SENS[sens].icone;
 
   const zoneNotes = (
     <label className="flex flex-col gap-1.5">
       <span className="flex items-center justify-between gap-2">
         <span className={etiquette}>NOTES</span>
-        {dictee.supporte && ecran !== "enregistrement" && ecran !== "transcription" && (
+        {dictee.supporte && (sens === "raconte" || (ecran !== "enregistrement" && ecran !== "transcription")) && (
           <button type="button" onClick={(e) => { e.preventDefault(); dicter(); }} aria-label={dictee.ecoute ? "Arrêter la dictée" : "Dicter les notes"} title={dictee.ecoute ? "Arrêter la dictée" : "Dicter les notes"}
             className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${dictee.ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={dictee.ecoute ? undefined : { background: "transparent" }}>
             {dictee.ecoute ? <Square className="h-3 w-3" fill="currentColor" /> : dictee.finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
@@ -414,12 +442,12 @@ export default function RappelEntrant() {
         )}
       </span>
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => { if (rappel?.id && ecran !== "enregistrement" && notes !== (rappel.notes || "")) garderNotes.mutate(); }} rows={4}
-        placeholder="Ce que le micro capte mal : email, numéro, orthographe d'un nom, une précision" className={champ} />
+        placeholder={sens === "raconte" ? "« Martin d'ERA Cannes m'a écrit : le bail est renouvelé, il m'envoie le dossier lundi »" : "Ce que le micro capte mal : email, numéro, orthographe d'un nom, une précision"} className={champ} />
       {(rappel?.notes_avertissements || []).map((x) => <span key={x} className="text-[12.5px] text-ambre">{x}</span>)}
     </label>
   );
   // Pendant l'appel : le panneau du mode appel, à l'identique (13 oct. 2026). Après : la transcription finale.
-  const transcription = ecran === "enregistrement" || ecran === "transcription" ? (
+  const transcription = sens === "raconte" ? null : ecran === "enregistrement" || ecran === "transcription" ? (
     <PanneauTranscription direct={direct} notes={!microKo} fin={finDirect} enDirect tape />
   ) : (
     <div className="flex min-h-[120px] flex-col gap-2 rounded-[16px] border border-trait p-4">
@@ -431,15 +459,15 @@ export default function RappelEntrant() {
   );
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-fond md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label="Rappel entrant">
+    <div className="fixed inset-0 z-[70] overflow-y-auto bg-fond md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label={SENS[sens].titre}>
       <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(16px+env(safe-area-inset-top))] md:px-6">
         {/* Le bandeau : qui appelle, une fois connu. */}
         <div className="flex items-center justify-between gap-3 rounded-full border border-trait px-4 py-2.5">
           <span className="flex min-w-0 items-center gap-2.5 text-[14.5px]">
-            <PhoneIncoming className="h-4 w-4 flex-none text-menthe" />
-            <span className="min-w-0 truncate text-encre">Rappel entrant · {agent ? [agent.nom, agent.agence].filter(Boolean).join(" · ") : "agent à identifier"}</span>
+            <IconeSens className="h-4 w-4 flex-none text-menthe" />
+            <span className="min-w-0 truncate text-encre">{SENS[sens].titre} · {agent ? [agent.nom, agent.agence].filter(Boolean).join(" · ") : "agent à identifier"}</span>
           </span>
-          {ecran !== "enregistrement" && ecran !== "transcription" && (
+          {(sens === "raconte" || (ecran !== "enregistrement" && ecran !== "transcription")) && (
             <button type="button" onClick={fermer} aria-label="Fermer : le rappel reste à terminer" title="Plus tard : le rappel reste dans le bandeau" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
           )}
         </div>
@@ -459,8 +487,8 @@ export default function RappelEntrant() {
             <div className="flex flex-col items-center gap-4 rounded-[20px] border border-trait px-5 py-8">
               {microKo ? (
                 <>
-                  <span className="text-[15px] text-ambre">Enregistrement pas lancé</span>
-                  <span className="max-w-[300px] text-center text-[13.5px] text-ardoise">Écrivez l'essentiel dans les notes, puis Analyser.</span>
+                  <span className={`text-[15px] ${sens === "raconte" ? "text-encre" : "text-ambre"}`}>{sens === "raconte" ? "Ce que l'agent a dit" : "Enregistrement pas lancé"}</span>
+                  <span className="max-w-[300px] text-center text-[13.5px] text-ardoise">{sens === "raconte" ? "Écrivez ou dictez l'échange dans les notes, avec le nom de l'agent, puis Analyser." : "Écrivez l'essentiel dans les notes, puis Analyser."}</span>
                 </>
               ) : (
                 <>
@@ -468,7 +496,7 @@ export default function RappelEntrant() {
                   <span className="font-mono text-[28px] tabular-nums text-encre">{chrono(secondes)}</span>
                 </>
               )}
-              <button type="button" onClick={() => stop.mutate()} disabled={stop.isPending} className="h-14 w-full max-w-[300px] rounded-full bg-alerte text-[17px] text-white hover:opacity-90 disabled:opacity-50">{microKo ? "Analyser" : "Stop"}</button>
+              <button type="button" onClick={() => stop.mutate()} disabled={stop.isPending} className={`h-14 w-full max-w-[300px] rounded-full text-[17px] hover:opacity-90 disabled:opacity-50 ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
             </div>
             <div className="flex flex-col gap-4">{transcription}{zoneNotes}</div>
           </div>

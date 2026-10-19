@@ -278,7 +278,7 @@ function vue(r) {
   const agent = r.agent_id ? Records.get('AgentImmo', r.agent_id) : null;
   const agence = r.agence_id ? Records.get(AGENCE, r.agence_id) : null;
   return {
-    id: r.id, etat: r.etat, debut: r.debut, fin: r.fin || null, duree_s: r.duree_s || null,
+    id: r.id, etat: r.etat, sens: sensDe(r.sens), debut: r.debut, fin: r.fin || null, duree_s: r.duree_s || null,
     notes: r.notes || '', notes_analysees: r.notes_analysees ?? null, transcription: r.transcription || null, transcription_echec: r.transcription_echec || null,
     candidats: r.candidats || [], appel_id: r.appel_id || null, rien_de_nouveau: !!r.rien_de_nouveau,
     agent: agent ? { id: agent.id, nom: agent.nom, agence: agent.agence || agence?.nom || null, telephone: (agent.telephones || [])[0] || null } : null,
@@ -296,9 +296,27 @@ function appelAValider(r, agence) {
   return { id: a.id, agent_id: a.agent_id, agence: agence?.nom || a.agent, issue: a.issue, issue_tapee: a.issue_tapee || a.issue, issue_deduite: true, resume: a.resume, compris: a.compris, propositions: a.propositions || [], biens: a.biens || [], citations: a.citations || null, rappel_entrant: true };
 }
 
-export function ouvrir(user) {
-  const r = Records.create(ENTITE, { par: moiDe(user), debut: maintenant(), etat: 'enregistrement', notes: '' });
+/**
+ * Qui a parlé à qui (19 oct. 2026, Jules : « la différence entre rappel et appel rapide, c'est qui appelle ; ça doit
+ * toujours donner la même chose »). entrant : l'agent rappelle ; sortant : l'appel rapide, on l'appelle pour un
+ * dossier ou un point ; raconte : on raconte à Haka ce qu'il a dit, sans l'avoir eu au téléphone. Le reste du
+ * chemin est le même : identifier l'agent, analyser, cocher les actions, valider (fiche agent, Monday, Intelligence).
+ */
+export const SENS = ['entrant', 'sortant', 'raconte'];
+export const LIBELLE_SENS = { entrant: 'Rappel entrant', sortant: 'Appel rapide', raconte: 'Échange raconté' };
+const sensDe = (x) => (SENS.includes(x) ? x : 'entrant');
+
+export function ouvrir(user, { sens = 'entrant', notes = '' } = {}) {
+  const r = Records.create(ENTITE, { par: moiDe(user), debut: maintenant(), etat: 'enregistrement', notes: String(notes || '').slice(0, 4000), sens: sensDe(sens) });
   return { ok: true, rappel: vue(r) };
+}
+
+/** Raconter à Haka ce qu'a dit un agent : le récit tient lieu d'appel, et la suite est celle d'un rappel. */
+export async function raconter(texte, user) {
+  const t = String(texte || '').trim();
+  if (t.length < 10) return { ok: false, error: 'Racontez ce que l\'agent a dit, en une ou deux phrases au moins.' };
+  const { rappel } = ouvrir(user, { sens: 'raconte', notes: t });
+  return finir(rappel.id, { morceaux: [], audios: [], notes: t, duree_s: null }, user);
 }
 
 export function lire(id, user) {
@@ -450,7 +468,7 @@ export async function analyser(id, { remplace = null, titre = null, issue = 'aut
   });
   if (!lu.ok) return lu;
   const propositions = (lu.appel.propositions || []).map((p) => (p.type === 'ne_plus_appeler' ? { ...p, coche: false, toujours: false } : p));
-  Records.update(APPEL, lu.appel.id, { propositions, rappel_id: id, rappel_entrant: true, transcription_gardee: String(r.transcription || '').trim().slice(0, 30000) || null, ...(titre ? { resume: String(titre).slice(0, 600) } : {}) });
+  Records.update(APPEL, lu.appel.id, { propositions, rappel_id: id, rappel_entrant: true, sens: sensDe(r.sens), transcription_gardee: String(r.transcription || '').trim().slice(0, 30000) || null, ...(titre ? { resume: String(titre).slice(0, 600) } : {}) });
   Records.update(ENTITE, id, { appel_id: lu.appel.id, notes_analysees: r.notes || '', rien_de_nouveau: false });
   return { ok: true, appel: { ...lu.appel, propositions, rappel_entrant: true }, rappel: vue(Records.get(ENTITE, id)) };
 }
@@ -477,7 +495,7 @@ export async function rienDeNouveau(id, user, { maintenantD = new Date() } = {})
   const iso = maintenantD.toISOString();
   const retentative = f.prochaine && (/essai \d|sans réponse|message laissé/i.test(f.prochaine.quoi || '') || ['a_rappeler', 'nouveau'].includes(f.statut));
   C.majAgent(f.id, { dernier_contact_le: iso, tentatives: 0, ...(retentative ? { prochaine: { quoi: 'point du mois : a-t-il rentré des murs ?', le: R.ouvre(R.plusJours(R.jourDe(maintenantD), 30)) } } : {}), ...(['a_rappeler', 'nouveau'].includes(f.statut) ? { statut: 'en_discussion' } : {}) });
-  C.journal(f.id, { type: 'appel', texte: 'Rappel entrant : rien de nouveau', par: moiDe(user), le: iso });
+  C.journal(f.id, { type: 'appel', texte: `${LIBELLE_SENS[sensDe(r.sens)]} : rien de nouveau`, par: moiDe(user), le: iso });
   const appel = Records.create(APPEL, { transcription_gardee: String(r.transcription || '').trim().slice(0, 30000) || null, agent_id: f.id, agence_id: r.agence_id, agent: f.nom, par: moiDe(user), le: iso, issue: 'rien_de_nouveau', issue_tapee: 'rien_de_nouveau', resume: 'Rappel entrant : rien de nouveau.', etat: 'valide', valide_le: iso, rappel_id: id, rappel_entrant: true, source: 'rappel', duree_s: r.duree_s || null, enregistre: !!String(r.transcription || '').trim(), notes: r.notes || null });
   await (await import('./relances.js')).apresAppel({ agent_id: f.id, agence_id: r.agence_id, issue: 'rien_de_nouveau', user, maintenantD });
   if (r.appel_id) { const a = Records.get(APPEL, r.appel_id); if (a?.etat === 'a_valider') Records.update(APPEL, a.id, { etat: 'remplace', remplace_par: appel.id }); }

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Appel rapide, et raconter un échange à Haka", texte: "L'icône d'appel en haut à droite propose « Il me rappelle » et « Appel rapide » (vous appelez un agent pour un dossier, un point) : le même écran, la même suite, la fiche agent et l'Intelligence se mettent à jour. Un agent vous a écrit ou parlé sans téléphone ? Racontez-le à Haka dans le chat : l'écran de l'appel s'ouvre sur les actions à valider.", page: "Dashboard" },
       { titre: "La fiche se corrige d'un bloc", texte: "Dans la pré-analyse, modifiez tous les champs que vous voulez : ils s'affichent tout de suite, marqués « modifié ». Une barre en bas compte les changements ; « OK, refaire la pré-analyse » relance tout en une fois, « Annuler » efface le brouillon.", page: "Analyse" },
       { titre: "Vos notifications dans la cloche", texte: "La cloche montre vos notifications sous ce qui vous attend : un clic ouvre la page, la croix en supprime une, « Tout effacer » vide la liste.", page: "Dashboard" },
       { titre: "Haka corrige vraiment les cases du bail", texte: "Quand vous demandez à Haka de corriger une case du bail (loyer de signature, TVA…), dans un projet ou dans les tableaux d'un dossier, la correction s'affiche à l'écran, y compris en vert sous le titre de la clause. Le loyer de signature ne reprend plus celui de la fiche de l'agent : seul le bail compte.", page: "AdminProjets" },

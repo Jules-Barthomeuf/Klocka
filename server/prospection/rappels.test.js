@@ -216,3 +216,29 @@ test("appel rapide et échange raconté : le même chemin qu'un rappel, seul le 
   assert.ok(r.rappel.candidats.some((c) => c.agent_id === f.id || c.id === f.id), 'Martin Sens est proposé');
   RP.abandonner(r.rappel.id, NORA);
 });
+
+// « Ça se trompe pour reconnaître qui a appelé » (19 oct. 2026, Jules) : ce que la personne dit d'elle l'emporte.
+test('le nom entendu passe devant le dernier appel sans réponse, même mal transcrit ou réduit au nom de famille', () => {
+  const MAINTENANT = new Date('2026-10-19T09:00:00Z');
+  const agents = [
+    { id: 'paul', nom: 'Paul Lefebvre', agence: 'Azur Immo', ville: 'Nice' },
+    { id: 'sophie', nom: 'Sophie Martin', agence: 'Riviera Commerce', ville: 'Nice' },
+  ];
+  const sansReponse = [{ agent_id: 'paul', le: '2026-10-19T08:30:00Z' }];
+  const c = RP.classer({ sansReponse, agents, texte: 'Oui bonjour, Sophie Martin, vous avez cherché à me joindre ?', maintenantD: MAINTENANT });
+  assert.equal(c[0].agent_id, 'sophie');
+  assert.equal(c[0].probable, true);
+  // Une lettre de travers dans la transcription.
+  assert.equal(RP.classer({ sansReponse, agents, texte: 'Bonjour, Sophie Martain à l appareil.', maintenantD: MAINTENANT })[0].agent_id, 'sophie');
+  // Le nom de famille seul, avec l'agence.
+  const f = RP.classer({ sansReponse, agents, texte: 'Madame Martin, de Riviera Commerce.', maintenantD: MAINTENANT });
+  assert.equal(f[0].agent_id, 'sophie');
+  assert.match(f[0].raison, /nom de famille entendu/);
+  // Sans rien de dit, l'appel sans réponse reste candidat, mais pas « Probablement ».
+  const r = RP.classer({ sansReponse, agents, texte: 'Bonjour, vous m avez appelé ?', maintenantD: MAINTENANT });
+  assert.equal(r[0].agent_id, 'paul');
+  assert.equal(r[0].probable, false);
+  assert.equal(RP.nomEntendu('Sophie Martin', 'bonjour sophie martain'), 'complet');
+  assert.equal(RP.nomEntendu('Jean Roux', 'jean roux'), 'complet');
+  assert.equal(RP.nomEntendu('Sophie Martin', 'rien a voir'), null);
+});

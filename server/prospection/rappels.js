@@ -120,6 +120,31 @@ export function entendu(nom, texteNorm, { personne = false } = {}) {
   return m.every((x) => new RegExp(`\\b${x}\\b`).test(texteNorm));
 }
 
+/** Pure : deux mots égaux, ou à une lettre près quand ils sont longs (« Dupond » pour « Dupont », la transcription). */
+function procheDe(a, b) {
+  if (a === b) return true;
+  if (a.length < 6 || b.length < 6 || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && a[i] === b[i]) i += 1;
+  return a.slice(i + 1) === b.slice(i + 1) || a.slice(i + 1) === b.slice(i) || a.slice(i) === b.slice(i + 1);
+}
+
+/**
+ * Pure : comment le nom d'une personne a été entendu (19 oct. 2026, Jules : « ça se trompe pour reconnaître qui a
+ * appelé ») : 'complet' (tous ses mots, à une lettre près pour les longs), 'famille' (son nom de famille seul, cinq
+ * lettres au moins), ou null.
+ */
+export function nomEntendu(nom, texteNorm) {
+  const m = mots(nom);
+  if (!m.length) return null;
+  const jetons = String(texteNorm || '').split(' ').filter(Boolean);
+  const vu = (x) => jetons.some((j) => procheDe(x, j));
+  if (m.every(vu) && (m.length >= 2 || m[0].length >= 6)) return 'complet';
+  const famille = m[m.length - 1];
+  if (m.length >= 2 && famille.length >= 5 && vu(famille)) return 'famille';
+  return null;
+}
+
 /**
  * Pure : les candidats, classés. Un numéro tapé dans les notes est une
  * preuve : il passe devant. Puis les appels sans réponse de l'analyste (les
@@ -140,8 +165,12 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
   for (const a of agents) {
     const base = { cle: a.id, agent_id: a.id, agence_id: a.agence_id || null, nom: a.nom, agence: a.agence || null, ville: a.ville || null, telephone: (a.telephones || [])[0] || null, ne_plus_appeler: !!a.ne_plus_appeler || a.statut === 'archive' };
     if (tel && (a.telephones || []).some((x) => R.normTel(x) === tel)) ajouter(a.id, base, 100, 'numéro des notes');
-    if (entendu(a.nom, t, { personne: true })) ajouter(a.id, base, 20, 'nom entendu');
-    else if (a.agence && entendu(a.agence, t)) ajouter(a.id, base, 8, 'agence entendue');
+    // Ce que la personne dit d'elle passe devant nos appels sans réponse (19 oct. 2026) : un nom entendu pèse plus
+    // que la récence d'un appel ; le nom de famille seul, ou l'agence, un peu moins.
+    const n = nomEntendu(a.nom, t);
+    if (n === 'complet') ajouter(a.id, base, 60, 'nom entendu');
+    else if (n === 'famille') ajouter(a.id, base, 30, 'nom de famille entendu');
+    if (a.agence && entendu(a.agence, t)) ajouter(a.id, base, 15, 'agence entendue');
   }
   // L'heure ou le jour de notre appel, s'ils ont été dits, départagent les sans-réponse ; un appel qui ne colle pas sort du lot.
   const dit = momentDit(`${texte} ${notes}`);
@@ -154,7 +183,8 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
     const base = a
       ? { cle: a.id, agent_id: a.id, agence_id: x.agence_id || a.agence_id || null, nom: a.nom, agence: a.agence || null, ville: a.ville || null, telephone: (a.telephones || [])[0] || null, ne_plus_appeler: !!a.ne_plus_appeler || a.statut === 'archive' }
       : { cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: g.monday_connu?.nom || x.agent || null, agence: g.nom, ville: g.ville || null, telephone: x.numero || g.telephone || null, ne_plus_appeler: !!g.ne_plus_appeler };
-    let points = 40 - i;
+    // La récence seule ne fait pas « Probablement » : elle départage, elle ne désigne pas.
+    let points = 25 - i;
     let raison = `appelé ${quandDit(x.le, maintenantD)}`;
     if (dit.minutes != null) {
       const ecart = Math.abs(minutesParis(x.le) - dit.minutes);
@@ -171,7 +201,7 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
     if (g.carnet_id && scores.has(g.carnet_id)) continue;
     const base = { cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: g.monday_connu?.nom || null, agence: g.nom, ville: g.ville || null, telephone: g.telephone || null, ne_plus_appeler: !!g.ne_plus_appeler };
     if (tel && [g.telephone, ...(g.agents || []).map((x) => x.telephone)].some((x) => R.normTel(x) === tel)) ajouter(base.cle, base, 100, 'numéro des notes');
-    else if (entendu(g.nom, t)) ajouter(base.cle, base, 8, 'agence entendue');
+    else if (entendu(g.nom, t)) ajouter(base.cle, base, 15, 'agence entendue');
   }
   // Un candidat sans rien pour lui (un appel qui ne colle pas à l'heure dite) ne se propose pas.
   const t3 = [...scores.values()].filter((x) => x.score > 0).sort((x, y) => y.score - x.score).slice(0, 3);

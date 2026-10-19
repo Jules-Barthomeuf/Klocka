@@ -28,3 +28,11 @@ test('une version garde la fiche ; la restaurer la remet, et garde d\'abord l\'�
   assert.equal(liste[0].donnees, undefined, 'la liste ne porte pas le contenu');
   assert.equal(V.restaurerVersion('autre', v1.version.id).ok, false, 'une version d\'un autre projet ne se restaure pas');
 });
+
+
+test('versions créées à la même milliseconde : la dernière créée passe toujours en tête (19 oct. 2026)', () => {
+  const p = Records.create('Project', { titre: 'Rang' });
+  const noms = [];
+  for (let i = 0; i < 40; i++) { const nom = `v${i}`; noms.push(nom); V.creerVersion(p.id, { nom }); }
+  assert.deepEqual(V.versionsDu(p.id).map((v) => v.nom), [...noms].reverse());
+});

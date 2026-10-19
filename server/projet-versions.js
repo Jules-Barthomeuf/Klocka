@@ -16,13 +16,17 @@ export function ficheDe(projet) {
   return Object.fromEntries(Object.entries(projet || {}).filter(([k]) => !HORS_FICHE.has(k)));
 }
 
+// Le rang d'une version : strictement croissant, même quand deux versions naissent à la même milliseconde (19 oct.
+// 2026) : le départage par l'ordre de lecture de la base n'est pas garanti, et un test échouait une fois sur quelques-unes.
+let dernierRang = 0;
+const nouveauRang = () => { dernierRang = Math.max(dernierRang + 1, Date.now() * 1000); return dernierRang; };
+/** Pure : le rang d'une version, ou celui que sa date donne pour celles d'avant. */
+const rangDe = (v) => (Number.isFinite(v.rang) ? v.rang : Date.parse(v.le) * 1000 || 0);
+const recentesDAbord = (liste) => [...liste].sort((a, b) => rangDe(b) - rangDe(a));
+
 /** Les versions d'un projet, la plus récente d'abord, sans leur contenu. */
 export function versionsDu(projetId) {
-  // À la même milliseconde, la dernière créée d'abord (la liste les rend dans l'ordre de création).
-  return Records.list(ENTITE)
-    .filter((v) => v.projet_id === projetId)
-    .reverse()
-    .sort((a, b) => String(b.le).localeCompare(String(a.le)))
+  return recentesDAbord(Records.list(ENTITE).filter((v) => v.projet_id === projetId))
     .map(({ id, le, par, nom, auto }) => ({ id, le, par, nom: nom || null, auto: !!auto }));
 }
 
@@ -30,8 +34,8 @@ export function versionsDu(projetId) {
 export function creerVersion(projetId, { par = null, nom = null, auto = false } = {}) {
   const projet = Records.get('Project', projetId);
   if (!projet) return { ok: false, error: 'Projet introuvable.' };
-  const v = Records.create(ENTITE, { projet_id: projetId, le: new Date().toISOString(), par, nom: nom ? String(nom).slice(0, 80) : null, auto, donnees: ficheDe(projet) });
-  const toutes = Records.list(ENTITE).filter((x) => x.projet_id === projetId).reverse().sort((a, b) => String(b.le).localeCompare(String(a.le)));
+  const v = Records.create(ENTITE, { projet_id: projetId, le: new Date().toISOString(), rang: nouveauRang(), par, nom: nom ? String(nom).slice(0, 80) : null, auto, donnees: ficheDe(projet) });
+  const toutes = recentesDAbord(Records.list(ENTITE).filter((x) => x.projet_id === projetId));
   for (const vieille of toutes.slice(LIMITE)) Records.delete(ENTITE, vieille.id);
   return { ok: true, version: { id: v.id, le: v.le, par, nom: v.nom, auto } };
 }

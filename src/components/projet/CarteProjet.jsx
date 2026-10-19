@@ -87,8 +87,8 @@ export const ETAPES_PROJET = ["prospect", "analyse", "negociation", "financement
 
 /**
  * @param {object} project
- * @param {() => void} onOuvrir        « Ouvrir le projet », et un clic sur la photo ou le titre
- * @param {() => void} onEtapeSuivante « Étape suivante » (admin) ; absent, le bouton ne s'affiche pas
+ * @param {() => void} onOuvrir        un clic sur la carte (plus de bouton « Ouvrir le projet » depuis le 19 oct. 2026)
+ * @param {() => void} onEtapeSuivante gardé pour les appelants ; le bouton « Étape suivante » est retiré (19 oct. 2026)
  * @param {string|null} avatar         la photo du conseiller, en haut à droite
  * @param {React.ReactNode} sousLigne  une ligne de plus sous l'adresse
  * @param {React.ReactNode} actions    les boutons qui apparaissent au survol de la photo
@@ -104,11 +104,14 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
   const derniere = rang >= ETAPES_PROJET.length - 1;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-[18px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux">
+    // Plus de boutons « Ouvrir le projet » ni « Étape suivante » sous la carte (19 oct. 2026, Jules) : la carte entière
+    // ouvre le projet ; un bouton ou un lien posé dedans garde son propre geste.
+    <div onClick={(e) => { if (onOuvrir && !e.target.closest("button, a, input, select, textarea, label")) onOuvrir(); }}
+      className={`group flex flex-col overflow-hidden rounded-[18px] border border-trait bg-surface-pleine transition-colors duration-300 hover:border-bord-doux ${onOuvrir ? "cursor-pointer" : ""}`}>
       {/* La photo porte le titre (maquette) : l'étape en pastille en haut, le
           titre, l'adresse et le client en bas, en blanc sous un voile sombre.
           k-sur-photo garde ces textes clairs en mode clair. */}
-      <div className="k-sur-photo relative h-[230px] cursor-pointer overflow-hidden max-md:h-[200px]" onClick={onOuvrir}>
+      <div className="k-sur-photo relative h-[230px] overflow-hidden max-md:h-[200px]">
         {photo
           ? <img src={photo} alt="" onError={() => setPhotoKo(true)} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
           : <TramePhoto mot="" />}
@@ -153,15 +156,6 @@ export default function CarteProjet({ project, onOuvrir, onEtapeSuivante = null,
         </div>
         {pied}
       </div>
-
-      {onOuvrir && (
-        <div className="flex items-center gap-2.5 border-t border-trait px-6 py-4">
-          <button type="button" onClick={onOuvrir} className="flex-1 rounded-full bg-encre px-4 py-2 text-[13.5px] text-fond transition-opacity hover:opacity-90">Ouvrir le projet</button>
-          {onEtapeSuivante && !derniere && (
-            <button type="button" onClick={onEtapeSuivante} title={`Passer en « ${statutLabels[ETAPES_PROJET[rang + 1]]} »`} className="rounded-full border border-bord px-4 py-2 text-[13.5px] text-encre transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>Étape suivante</button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

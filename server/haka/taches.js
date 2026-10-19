@@ -213,6 +213,8 @@ export async function executerExterne(tacheId, nom, { user = null, charge = null
       db.prepare(`UPDATE haka_etapes SET etat = 'sautee' WHERE tache_id = ? AND etat = 'a_faire' AND nom IN (${r.sauter.map(() => '?').join(',')})`).run(tacheId, ...r.sauter);
     }
     if (r.fin) { sauterRestants(tacheId, e.ordre); majTache(tacheId, { etat: 'faite', finie_le: maintenant() }); return r; }
+    // `enFond` (19 oct. 2026) : la suite est longue (une pré-analyse) ; le clic rend la main, la tâche repart dans la file.
+    if (r.enFond) { majTache(tacheId, { etat: 'en_attente', apres: null }); if (AUTO) setImmediate(() => tourner().catch(() => {})); return r; }
     await avancer(tacheAJour(tacheId), { declencheur: 'validation', user });
     return r;
   } catch (err) {

@@ -38,12 +38,31 @@ const mailRecu = (n, { compte = 'nora@test.local', fichier = fixture } = {}) => 
 });
 let premierDossier = null;
 
+// Depuis le 19 oct. 2026, la fiche attend d'abord un clic : « Pré-analyser » ou « Pas une fiche ».
+const propositionDeFiche = (mail) => Records.list('HakaProposition').find((p) => p.cle === `preanalyser:${mail.id}`);
+async function accepter(mail, qui = jules) {
+  await T.tourner();
+  const p = propositionDeFiche(mail);
+  assert.ok(p, 'la fiche attend dans la file');
+  assert.equal(p.type, 'preanalyser_fiche');
+  const r = await F.valider(p.id, qui, { choix: 'preanalyser' });
+  assert.equal(r.ok, true, r.error);
+  await T.tourner();
+}
+
 test('une fiche dans la boîte de Nora : dossier à son nom, demande de documents à valider, mail depuis sa boîte', async () => {
   const mail = mailRecu(1);
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
   assert.equal(t.pour, 'nora@test.local');
   assert.equal(Records.get('MailRecu', mail.id).haka_tache_id, t.id);
+  // Rien n'est créé avant le clic.
   await T.tourner();
+  assert.equal(T.tache(t.id).etat, 'en_attente_validation');
+  assert.equal(T.tache(t.id).etape, 'accepter_preanalyse');
+  assert.equal(Records.get('MailRecu', mail.id).deal_id, undefined);
+  assert.equal(propositionDeFiche(mail).pour, 'nora@test.local');
+  assert.deepEqual(propositionDeFiche(mail).choix.map((c) => c.cle), ['preanalyser', 'ignorer']);
+  await accepter(mail);
   const tache = T.tache(t.id);
   assert.equal(tache.etat, 'en_attente_validation', tache.erreur || '');
   assert.equal(tache.etape, 'envoyer_demande_documents');
@@ -53,7 +72,7 @@ test('une fiche dans la boîte de Nora : dossier à son nom, demande de document
   assert.equal(deal.responsable_email, 'nora@test.local');
   assert.deepEqual(deal.responsables, ['Nora L']);
   assert.equal(deal.par_haka.competence, 'fiche_recue');
-  assert.equal(deal.par_haka.version, '1');
+  assert.equal(deal.par_haka.version, '2');
   assert.equal(deal.apports[0].de, 'agent1@exemple.fr');
   assert.equal(deal.lots[0].par_haka, true);
   assert.equal(Records.get('MailRecu', mail.id).deal_id, deal.deal_id);
@@ -85,7 +104,7 @@ test('le même bien reçu d\'un autre agent dans la boîte commune : rattaché, 
   const mail = mailRecu(2, { compte: 'sourcing@klocka.immo' });
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
   assert.equal(t.pour, null);
-  await T.tourner();
+  await accepter(mail);
   const tache = T.tache(t.id);
   assert.equal(tache.etat, 'faite', tache.erreur || '');
   const existant = Records.findBy('Deal', 'deal_id', premierDossier);
@@ -112,7 +131,7 @@ test('le même bien reçu d\'un autre agent dans la boîte commune : rattaché, 
 test('même adresse, autre prix : Haka demande (rattacher ou créer) ; « créer » continue jusqu\'au mail', async () => {
   const mail = mailRecu(3, { fichier: fixtureAutrePrix });
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
-  await T.tourner();
+  await accepter(mail);
   const tache = T.tache(t.id);
   assert.equal(tache.etat, 'en_attente_validation', tache.erreur || '');
   assert.equal(tache.etape, 'trancher_doublon');
@@ -134,7 +153,7 @@ test('même adresse, autre prix : Haka demande (rattacher ou créer) ; « créer
 test('le plafond du jour : la fiche de trop attend demain, Jules est prévenu une fois', async () => {
   const mail = mailRecu(4);
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
-  await T.tourner();
+  await accepter(mail);
   const tache = T.tache(t.id);
   assert.equal(tache.etat, 'differee');
   assert.ok(tache.apres > new Date().toISOString());
@@ -152,4 +171,16 @@ test('surReleve : la même fiche relevée deux fois ne fait qu\'une tâche', asy
   assert.equal(b.en_file, 0);
   assert.ok(Records.get('MailRecu', mail.id).haka_tache_id);
   assert.equal(T.tachesDuJour('fiche_recue'), 5);
+});
+
+test('« Pas une fiche » : rien n\'est créé, le mail le garde, la tâche est finie', async () => {
+  const mail = mailRecu(6);
+  const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
+  await T.tourner();
+  const p = propositionDeFiche(mail);
+  const r = await F.valider(p.id, nora, { choix: 'ignorer' });
+  assert.equal(r.ok, true, r.error);
+  assert.equal(T.tache(t.id).etat, 'faite');
+  assert.equal(Records.get('MailRecu', mail.id).deal_id, undefined);
+  assert.equal(Records.get('MailRecu', mail.id).fiche_refusee.par, 'nora@test.local');
 });

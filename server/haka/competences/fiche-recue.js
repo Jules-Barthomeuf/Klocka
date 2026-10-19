@@ -1,6 +1,9 @@
 // Haka, compétence « fiche reçue », version 1 (17 oct. 2026, Jules).
 //
 // Une fiche commerciale arrive dans la boîte d'un analyste :
+//   0. proposer_preanalyse  (19 oct. 2026, Jules : « au lieu de faire la préanalyse tout seul, une notification
+//                           qu'on accepte ou pas ») la fiche attend dans la file : « Pré-analyser » ou « Pas une fiche »
+//      accepter_preanalyse  (externe) la réponse ; « Pas une fiche » clôt, le mail le garde (`fiche_refusee`)
 //   1. creer_dossier        le dossier naît, attribué à l'analyste de la boîte, pré-analysé
 //   2. preanalyse           la provenance « par Haka » est posée, la personne est prévenue
 //   3. verifier_doublon     même adresse et même prix → rattaché au dossier existant, dit dans la file ;
@@ -20,9 +23,10 @@ import * as file from '../file.js';
 import { sourceMail, sourceFiche, sourceEvaluation, source } from '../sources.js';
 import { bienDuDossier, chercherDoublons } from '../doublons.js';
 import { proprietaireDeLaBoite, boiteQuiEnvoie } from '../proprietaire.js';
+import { piecesFiche } from '../../deal/fiches-auto.js';
 
 export const COMPETENCE = 'fiche_recue';
-export const VERSION = '1';
+export const VERSION = '2';
 
 const val = (x) => (x && typeof x === 'object' && 'valeur' in x ? (x.absent ? null : x.valeur) : x);
 const lienDossier = (id) => `/Dossiers?deal_id=${id}`;
@@ -48,6 +52,37 @@ taches.enregistrer(COMPETENCE, {
   competence: 'pre-analyse-fiche',
   version: VERSION,
   etapes: [
+    {
+      nom: 'proposer_preanalyse',
+      async run({ tache, charge }) {
+        const mail = Records.get('MailRecu', charge.mail_id);
+        if (!mail) throw new Error('Mail introuvable');
+        // Déjà un dossier (un passage interrompu, ou un autre chemin) : rien à demander.
+        if (mail.deal_id) return { sauter: ['accepter_preanalyse'] };
+        const pour = proprietaireDeLaBoite(mail.compte)?.email || null;
+        const de = String(mail.de || mail.de_email || 'un agent').replace(/<[^>]*>/g, '').trim() || mail.de_email;
+        const pieces = piecesFiche(mail).map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean);
+        const p = await file.proposer({
+          type: 'preanalyser_fiche', titre: `Fiche reçue de ${de} : pré-analyser ?`,
+          resume: [mail.objet ? `« ${String(mail.objet).slice(0, 140)} »` : null, pieces.length ? `Pièce${pieces.length > 1 ? 's' : ''} : ${pieces.slice(0, 4).join(', ')}.` : null].filter(Boolean).join(' '),
+          charge: { de, de_email: mail.de_email || null, compte: mail.compte || null, objet: mail.objet || '', pieces, extrait: String(mail.texte || '').replace(/\s+/g, ' ').trim().slice(0, 400) },
+          sources: [sourceMail(mail)], pour, competence: COMPETENCE, version: VERSION, tache_id: tache.id, etape: 'accepter_preanalyse',
+          cle: `preanalyser:${mail.id}`, actions: ['choisir'], choix: [{ cle: 'preanalyser', libelle: 'Pré-analyser' }, { cle: 'ignorer', libelle: 'Pas une fiche' }],
+        });
+        return { attendre: 'validation', proposition_id: p.id, pour };
+      },
+    },
+    {
+      // Externe : la décision de la personne. « Pas une fiche » clôt sans rien créer ; « Pré-analyser » repart en fond.
+      nom: 'accepter_preanalyse', externe: true,
+      async run({ tache, charge, user }) {
+        if (charge.choix === 'ignorer') {
+          Records.update('MailRecu', tache.charge.mail_id, { fiche_refusee: { par: user?.email || null, le: new Date().toISOString() } });
+          return { choix: 'ignorer', fin: true };
+        }
+        return { choix: 'preanalyser', enFond: true };
+      },
+    },
     {
       nom: 'creer_dossier',
       async run({ tache, charge }) {

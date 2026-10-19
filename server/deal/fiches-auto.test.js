@@ -9,7 +9,7 @@ import path from 'path';
 
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-fiches-auto-'));
 const { Records, Meta } = await import('../db.js');
-const { piecesFiche, dossierDeLaConversation, porteUneFiche, estUneNouvelleFiche, doublonDe, preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
+const { nomDitFiche, parleDUnBien, piecesFiche, dossierDeLaConversation, porteUneFiche, estUneNouvelleFiche, doublonDe, preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
 const { rattacherMailsOrphelins } = await import('./veille-mails.js');
 
 const piece = (nom) => ({ nom, piece_id: `p-${nom}` });
@@ -115,4 +115,23 @@ test('le rattachement par l\'agent ne prend jamais une fiche : elle fait un nouv
   assert.equal(Records.get('MailRecu', bail.id).deal_id, 'lyon-aout', 'un bail de l\'agent suit l\'agent');
   assert.equal(Records.get('MailRecu', texte.id).deal_id, 'lyon-aout', 'un mail sans fiche suit l\'agent');
   assert.equal(porteUneFiche(Records.get('MailRecu', fiche.id)), true);
+});
+
+// La détection reprise (19 oct. 2026, Jules : « ça ne détecte pas bien ce qu'est une fiche commerciale »).
+test('un nom qui dit la fiche l\'emporte ; devis, CV, mandat, présentation d\'agence n\'en sont pas', () => {
+  const noms = (m) => piecesFiche(m).map((p) => p.nom);
+  // « vente » ou « loyer » dans le nom d'une fiche n'en font ni un acte ni une quittance.
+  assert.deepEqual(noms({ pieces_jointes: [piece('Fiche vente murs Lorient.pdf'), piece('Présentation local loyer 24k.pdf')] }), ['Fiche vente murs Lorient.pdf', 'Présentation local loyer 24k.pdf']);
+  assert.deepEqual(noms({ pieces_jointes: [piece('Devis travaux.pdf'), piece('CV Paul.pdf'), piece('Mandat de vente.pdf'), piece('Présentation agence Robic.pdf'), piece('Facture 1234.pdf'), piece('Attestation assurance.pdf')] }), []);
+  assert.equal(nomDitFiche(piece('Teaser_murs_Nice.pdf')), true);
+  assert.equal(nomDitFiche(piece('scan001.pdf')), false);
+});
+
+test('un PDF au nom muet n\'est une fiche que si le mail parle d\'un bien à vendre', () => {
+  const muet = { pieces_jointes: [piece('scan001.pdf')] };
+  assert.equal(porteUneFiche({ ...muet, objet: 'Document', texte: 'Bonjour, voici le document signé.' }), false);
+  assert.equal(porteUneFiche({ ...muet, objet: 'Murs occupés à Lorient', texte: 'Local loué à la MACSF, rendement 6,5 %.' }), true);
+  assert.equal(parleDUnBien({ objet: 'Réunion jeudi', texte: 'On se voit à 10 h.' }), false);
+  // Un nom qui dit la fiche suffit, même sans un mot du bien.
+  assert.equal(porteUneFiche({ pieces_jointes: [piece('Fiche_produit_1.pdf')], objet: 'Pour vous', texte: '' }), true);
 });

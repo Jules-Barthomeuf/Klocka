@@ -32,17 +32,35 @@ const DOCUMENT_DE_DOSSIER = /\bdiag\b|\bdt\b|\bdpe\b|\bkbis\b|\bstatuts\b|\brib\
 const REPONSE = /^\s*(re|ré|aw|sv|antw)\s*:/i;
 const COMPLEMENT = /compl[ée]ment|doc(ument)?s?\s+compl|pi[èe]ces?\s+(compl|suppl)|suite\s+(à|a)\s+(notre|votre)|comme\s+convenu|ci-joint\s+(le|les)\s+(bail|pv|diag)/i;
 
-const nomPiece = (p) => String((typeof p === 'string' ? p : p?.nom) || '');
+// La détection reprise le 19 oct. 2026 (Jules : « ça ne détecte pas bien ce qu'est une fiche commerciale »).
+// Un nom qui DIT la fiche l'emporte sur le classement par type : « Fiche vente murs » n'est pas un acte,
+// « Présentation local loyer 24k » n'est pas une quittance.
+const NOM_DE_FICHE = /\bfiche|teaser|plaquette|pr[ée]sentation|annonce|descriptif|opportunit|\bdossier de (vente|pr[ée]sentation|commercialisation)/i;
+// Ce qui n'est jamais une fiche, quel que soit le mail : papiers d'agence, de gestion ou de personne.
+const PAS_UNE_FICHE = /\bcv\b|curriculum|\bdevis\b|\bfacture|honoraires|bar[èe]me|\btarifs?\b|\bcgv\b|conditions g[ée]n[ée]rales|attestation|assurance|\bcontrat\b|relev[ée]|\brib\b|invitation|newsletter|carte de visite|organigramme|comptes? (annuels?|de r[ée]sultat)|grand livre|inventaire|[ée]tat des lieux|convocation|ordre du jour|appel de fonds|avis d.(imposition|[ée]ch[ée]ance)|\bstatuts\b|lettre d.intention|\bloi\b|offre d.achat|proposition d.achat|mandat\b|pr[ée]sentation (de |d.)?(l.|notre |votre )?agence|nos services/i;
+// Le vocabulaire d'un bien à vendre, dans l'objet ou le début du mail : il fait d'un PDF au nom muet une fiche.
+const BIEN_A_VENDRE = /\bmurs?\b|local (commercial|d.activit[ée])|\blocaux\b|\bcommerce|boutique|[àa] vendre|en vente|mise en vente|cession|investissement|investisseur|rendement|rentabilit|\bloyer|bail commercial|net vendeur|\bfai\b|\blou[ée]\b|occup[ée]|locataire|off.?market|opportunit|\bm²|\bm2\b|pied d.immeuble|emplacement/i;
 
-/** Pure : les pièces qui peuvent être la fiche. Un bail, un PV, un diagnostic n'en sont pas. */
+const nomPiece = (p) => String((typeof p === 'string' ? p : p?.nom) || '');
+const lisibleDe = (nom) => nom.replace(/[_\-.()]+/g, ' ');
+
+/** Pure : une pièce que son nom désigne comme une fiche (« Fiche », « Teaser », « Présentation »…). */
+export const nomDitFiche = (p) => NOM_DE_FICHE.test(lisibleDe(nomPiece(p))) && !PAS_UNE_FICHE.test(lisibleDe(nomPiece(p)));
+
+/** Pure : les pièces qui peuvent être la fiche. Un bail, un PV, un diagnostic, un devis, un CV n'en sont pas. */
 export function piecesFiche(mail) {
   return (mail?.pieces_jointes || []).filter((p) => {
     const nom = nomPiece(p);
     if (!FICHE.test(nom) || PARASITES.test(nom)) return false;
-    const lisible = nom.replace(/[_\-.()]+/g, ' ');
+    const lisible = lisibleDe(nom);
+    if (PAS_UNE_FICHE.test(lisible)) return false;
+    if (NOM_DE_FICHE.test(lisible)) return true;
     return !typeDepuisCategorie(null, nom) && !DOCUMENT_DE_DOSSIER.test(lisible);
   });
 }
+
+/** Pure : le mail parle-t-il d'un bien à vendre (objet, début du texte) ? */
+export const parleDUnBien = (mail) => BIEN_A_VENDRE.test(`${mail?.objet || ''} ${String(mail?.texte || '').slice(0, 1500)}`);
 
 const sansPrefixes = (objet) => {
   let t = String(objet || '').trim();
@@ -99,7 +117,11 @@ export function dossierDeLaConversation(mail, { mails = [], envois = [], deals =
  */
 export function porteUneFiche(mail) {
   if (COMPLEMENT.test(`${mail?.objet || ''} ${String(mail?.texte || '').slice(0, 400)}`)) return false;
-  return piecesFiche(mail).length > 0;
+  const pieces = piecesFiche(mail);
+  if (!pieces.length) return false;
+  // Un nom qui dit la fiche suffit ; un PDF au nom muet (« scan001.pdf », « document.pdf ») ne compte que si
+  // le mail parle d'un bien à vendre (19 oct. 2026).
+  return pieces.some(nomDitFiche) || parleDUnBien(mail);
 }
 
 /** Pure : une nouvelle fiche, à préanalyser : elle ne continue la conversation d'aucun dossier. */

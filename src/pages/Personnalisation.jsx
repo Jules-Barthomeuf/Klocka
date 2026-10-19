@@ -6,6 +6,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
 import { CLAIR, OPTIONS, PERSONNAGES_HAKA, POLICES, accentHex, barreHex, barreLisible, hexVersHsv, hsvVersHex, themeEffectif } from "@/lib/personnalisation";
 import jetons from "@/design/jetons.json";
+import { TEINTE_DEPART, barreDepuisTeinte, degradeIntensite, degradeTeintes, teinteDeBarre } from "@/lib/teinte-barre";
 import { ENTREES_ADMIN, ENTREES_AUTRE, ENTREES_CLIENT, PAGES_OUVERTURE_ADMIN, PAGES_OUVERTURE_CLIENT, TOUJOURS_VISIBLE, repartir } from "@/lib/menu";
 import ProfilCompte from "@/components/compte/ProfilCompte";
 import Competences from "@/components/haka/Competences";
@@ -176,6 +177,49 @@ function SelecteurCouleur({ valeur, onChoisir }) {
   );
 }
 
+/** Un curseur horizontal sur un dégradé : la valeur de 0 à `max`, au glisser comme au clavier. */
+function Curseur({ libelle, valeur, max, fond, onChange }) {
+  const zone = useRef(null);
+  const lire = (ev) => { const r = zone.current.getBoundingClientRect(); onChange(Math.round(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)) * max)); };
+  const prendre = (e) => {
+    const el = zone.current;
+    if (!el) return;
+    el.setPointerCapture?.(e.pointerId);
+    lire(e);
+    const fin = () => { el.removeEventListener("pointermove", lire); el.removeEventListener("pointerup", fin); el.removeEventListener("pointercancel", fin); };
+    el.addEventListener("pointermove", lire);
+    el.addEventListener("pointerup", fin);
+    el.addEventListener("pointercancel", fin);
+  };
+  const clavier = (e) => {
+    const pas = e.shiftKey ? 10 : 1;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); onChange(Math.min(max, valeur + pas)); }
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); onChange(Math.max(0, valeur - pas)); }
+  };
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[12.5px] text-ardoise">{libelle}</span>
+      <div ref={zone} role="slider" tabIndex={0} aria-label={libelle} aria-valuemin={0} aria-valuemax={max} aria-valuenow={valeur} onPointerDown={prendre} onKeyDown={clavier}
+        className="relative h-4 cursor-pointer touch-none rounded-full border border-bord-doux" style={{ backgroundImage: fond }}>
+        <span className="pointer-events-none absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-encre shadow-sm" style={{ left: `${(valeur / max) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/** La barre personnalisée : la teinte et l'intensité, la clarté tenue par le mode (src/lib/teinte-barre.js). */
+function TeinteBarre({ valeur, mode, onChoisir }) {
+  const [reglage, setReglage] = useState(() => teinteDeBarre(valeur, mode));
+  const poser = (r) => { setReglage(r); onChoisir(barreDepuisTeinte(r.teinte, r.intensite, mode)); };
+  return (
+    <div className="flex w-full max-w-[340px] flex-col gap-4">
+      <Curseur libelle="Teinte" valeur={reglage.teinte} max={359} fond={degradeTeintes(mode)} onChange={(t) => poser({ ...reglage, teinte: t })} />
+      <Curseur libelle="Intensité" valeur={reglage.intensite} max={100}
+        fond={degradeIntensite(reglage.teinte, mode)} onChange={(i) => poser({ ...reglage, intensite: i })} />
+    </div>
+  );
+}
+
 /**
  * La couleur de la barre latérale pour un mode : les teintes proposées, puis
  * « Personnaliser », qui ouvre le sélecteur. Les panneaux de l'application
@@ -196,15 +240,17 @@ function ChoixBarre({ mode, prefs, changer, theme }) {
           <span className="h-6 w-6 rounded-full border border-bord-vif" style={{ background: t.teinte }} />{t.nom}
         </button>
       ))}
-      <button type="button" onClick={() => { setOuvert(true); if (!perso) changer({ [cle]: hex }); }} aria-pressed={perso} className={pastille(perso)} style={{ background: "transparent" }}>
-        <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: perso ? choix : "conic-gradient(hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 60%), hsl(180 85% 60%), hsl(240 85% 60%), hsl(300 85% 60%), hsl(360 85% 60%))" }}>
+      {/* « Personnaliser » (19 oct. 2026, Jules : « ne marche pas, change-le ») : une teinte visible se pose tout de suite,
+          puis deux curseurs, la teinte et l'intensité ; la clarté reste celle d'une barre lisible dans ce mode. */}
+      <button type="button" onClick={() => { setOuvert(true); if (!perso) changer({ [cle]: barreDepuisTeinte(TEINTE_DEPART.teinte, TEINTE_DEPART.intensite, mode) }); }} aria-pressed={perso} className={pastille(perso)} style={{ background: "transparent" }}>
+        <span className="grid h-6 w-6 place-items-center rounded-full border border-bord-vif" style={{ background: perso ? choix : "conic-gradient(hsl(0 85% 60%), hsl(60 85% 60%), hsl(120 85% 60%), hsl(180 85% 60%), hsl(240 85% 60%), hsl(300 85% 60%), hsl(360 85% 60%))" }}>
           {!perso && <Pipette className="h-3 w-3" style={{ color: "rgb(255 255 255)" }} />}
         </span>
         Personnaliser
       </button>
       {perso && ouvert && (
         <div className="k-monte mt-2 flex w-full flex-wrap items-start gap-5">
-          <SelecteurCouleur valeur={choix} onChoisir={(v) => changer({ [cle]: v })} />
+          <TeinteBarre valeur={choix} mode={mode} onChoisir={(v) => changer({ [cle]: v })} />
           <div className="flex flex-col gap-2 text-[12.5px]">
             <span className="text-ardoise">Aperçu</span>
             <span className="flex h-[74px] w-[140px] overflow-hidden rounded-[10px] border border-bord-doux">
@@ -410,7 +456,7 @@ export default function Personnalisation() {
           <span className="mt-1 w-full text-[12px] text-brume">En clair</span>
           <Pilules valeur={prefs.fond_clair} options={OPTIONS.fond_clair} onChoisir={(v) => changer({ fond_clair: v })} />
         </Reglage>
-        <Reglage titre="Couleur de la barre" note="La barre de gauche, et avec elle le fond des listes, du mode appel, des dossiers, des fiches et de la barre de chat. Une teinte proposée, ou n'importe laquelle.">
+        <Reglage titre="Couleur de la barre" note="La barre de gauche, et avec elle le fond des listes, du mode appel, des dossiers, des fiches et de la barre de chat. Une teinte proposée, ou la vôtre : la teinte et son intensité, toujours lisible.">
           <span className="w-full text-[12px] text-brume">En sombre</span>
           <ChoixBarre mode="sombre" prefs={prefs} changer={changer} theme={theme} />
           <span className="mt-1 w-full text-[12px] text-brume">En clair</span>

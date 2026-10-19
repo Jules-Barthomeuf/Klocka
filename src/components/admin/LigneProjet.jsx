@@ -124,8 +124,6 @@ export default function LigneProjet({ project, clients = null, chargement = fals
               )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button type="button" onClick={(e) => geste(e, () => onEdit(project))} className="rounded-full bg-encre px-4 py-1.5 text-[13px] text-fond transition-opacity hover:opacity-90">Ouvrir le projet</button>
-              {suivant && <button type="button" onClick={etapeSuivante} title={`Passer en « ${statutLabels[suivant]} »`} className="rounded-full border border-bord px-4 py-1.5 text-[13px] text-encre hover:border-bord-vif" style={{ background: "transparent" }}>Étape suivante</button>}
               {shadowRecord?.shadow_data && <button type="button" onClick={(e) => geste(e, () => setRapport(true))} className="inline-flex items-center gap-1.5 rounded-full border border-bord px-4 py-1.5 text-[13px] text-encre hover:border-bord-vif" style={{ background: "transparent" }}><FileSearch className="h-3.5 w-3.5" />Voir le rapport</button>}
               <span className="ml-auto flex items-center gap-1.5">
                 <button type="button" onClick={(e) => geste(e, () => window.open(`${createPageUrl("SimulateurRentabilite")}?projectId=${project.id}`, "_blank"))} className={icone} style={{ background: "transparent" }} title="Simulateur" aria-label="Simulateur"><Calculator className="h-3.5 w-3.5" /></button>

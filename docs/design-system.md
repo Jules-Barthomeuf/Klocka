@@ -1005,3 +1005,11 @@ s'impriment et ne suivent pas le thème.
 **Frise de la chronologie** (Jules, 19 oct. 2026) : les colonnes s'étirent sur toute la largeur de la carte ; la dernière garde ses 230 px et la ligne s'arrête à son point. Plus de blanc après « Fin du bail ».
 
 **Le nom à l'écran** (Jules, 19 oct. 2026) : les libellés de travail disent « Haka » et non « AK » (« Haka lit votre demande », « Haka lit l'appel », « Haka rassemble les chiffres », « Haka prépare les mails »).
+
+**Fiches reçues : une notification, pas une pré-analyse** (Jules, 19 oct. 2026) : une fiche arrivée dans une boîte n'est plus pré-analysée toute seule. Haka la pose dans « À valider » et dans la cloche, avec deux boutons : « Pré-analyser » (la pré-analyse part en fond, puis la suite habituelle) et « Pas une fiche » (rien n'est créé, le mail garde la réponse). Les fiches d'une boîte commune sonnent aussi dans la cloche.
+
+**Détection des fiches** (Jules, 19 oct. 2026) : un nom qui dit la fiche (« Fiche », « Teaser », « Plaquette », « Présentation », « Annonce », « Descriptif », « Dossier de vente ») l'emporte sur le classement par type ; un devis, un CV, une facture, un mandat, une attestation, une présentation d'agence n'en sont jamais ; un PDF au nom muet ne compte que si le mail parle d'un bien à vendre (murs, local, loyer, rendement, à vendre…).
+
+**Couleur de la barre, « Personnaliser »** (Jules, 19 oct. 2026) : plus de sélecteur libre (une couleur vive inondait les panneaux, un clic ne changeait rien de visible). Deux curseurs, la teinte et l'intensité ; la clarté est tenue par le mode (sombre en sombre, claire en clair), et une teinte se pose dès le clic.
+
+**Cartes de projets** (Jules, 19 oct. 2026) : plus de boutons « Ouvrir le projet » ni « Étape suivante » ; un clic sur la carte (ou la ligne) ouvre le projet.

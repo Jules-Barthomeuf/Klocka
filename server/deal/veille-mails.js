@@ -145,15 +145,14 @@ async function releverVraiment(uploadDir = null) {
     const dossierUploads = uploadDir || CHEMIN_UPLOADS;
     let fiches = { crees: 0, rejoints: 0, lignes: [] };
     try {
-      // Haka (17 oct. 2026) : sous HAKA_FICHES, chaque fiche entre en file (une tâche par mail, reprise au démarrage,
-      // le mail à l'agent attend un clic dans À valider) ; sinon l'ancienne passe, qui crée et préanalyse tout de suite.
-      const { FICHES } = await import('../haka/drapeaux.js');
-      if (FICHES) {
+      // Haka (17 oct. 2026) : chaque fiche entre en file (une tâche par mail, reprise au démarrage). Depuis le
+      // 19 oct. 2026 (Jules : « au lieu de faire la préanalyse tout seul, une notification qu'on accepte ou pas »),
+      // la tâche commence par demander : rien n'est pré-analysé sans un clic. Dès que la file existe (HAKA_FILE),
+      // c'est ce chemin ; sans elle, plus de pré-analyse automatique : l'ancienne passe ne tourne plus.
+      const { FICHES, FILE } = await import('../haka/drapeaux.js');
+      if (FICHES || FILE) {
         const { surReleve } = await import('../haka/declencheurs.js');
         fiches = await surReleve({ uploadDir: dossierUploads });
-      } else {
-        const { preanalyserLesNouvellesFiches } = await import('./fiches-auto.js');
-        fiches = await preanalyserLesNouvellesFiches({ uploadDir: dossierUploads });
       }
       erreurs.push(...(fiches.erreurs || []));
       echecs.push(...(fiches.echecs || []));

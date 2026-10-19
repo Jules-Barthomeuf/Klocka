@@ -10,6 +10,8 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Les fiches reçues attendent votre accord", texte: "Une fiche arrivée par mail n'est plus pré-analysée toute seule : la cloche la montre avec « Pré-analyser » ou « Pas une fiche ». Haka reconnaît aussi mieux ce qui est une fiche commerciale.", page: "AValider" },
+      { titre: "Votre couleur de barre, toujours lisible", texte: "Dans Paramètres > Couleurs, « Personnaliser » la barre donne deux curseurs, la teinte et l'intensité ; la barre reste lisible.", page: "Personnalisation" },
       { titre: "Un menu Autre réduit à Feedback", texte: "Offres, Emailing, Présentations et les autres pages rangées dans Autre ne sont plus dans le menu : il ne reste que Feedback. Les pages existent toujours, par leur adresse.", page: "AdminSuggestions" },
       { titre: "Regrouper des dossiers en un seul", texte: "Demandez à Haka « mets le disquaire et le coiffeur rue de Cheverus dans un nouveau dossier » : un dossier à plusieurs lots naît, chaque lot garde sa pré-analyse ; les deux dossiers d'origine sont archivés, rien n'est supprimé.", page: "Analyse" },
       { titre: "Le menu des trois points passe au premier plan", texte: "Dans la liste des dossiers, le menu des trois points s'ouvre par-dessus la page : plus aucune carte voisine ne le cache ni ne le coupe.", page: "Analyse" },

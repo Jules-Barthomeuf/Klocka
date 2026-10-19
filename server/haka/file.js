@@ -32,6 +32,7 @@ export const TYPES = {
   mail_exterieur: { libelle: 'Mail reçu sur sourcing@', externe: false },
   rattacher_ou_creer: { libelle: 'Même adresse : rattacher ou créer ?', externe: false },
   meme_bien_recu: { libelle: "Même bien reçu d'un autre agent", externe: false },
+  preanalyser_fiche: { libelle: 'Fiche reçue : pré-analyser ?', externe: false },
 };
 
 /**

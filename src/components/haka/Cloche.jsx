@@ -27,7 +27,10 @@ export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } 
     if (p.type === "relance_mail") continue;
     const info = Array.isArray(p.actions) && p.actions.length === 1 && p.actions[0] === "vu";
     const dossier = p.dossier ? `/Dossiers?deal_id=${p.dossier}` : null;
-    if (p.type === "meme_bien_recu") {
+    if (p.type === "preanalyser_fiche") {
+      // Une fiche reçue (19 oct. 2026, Jules) : on accepte ou pas, ici même ; rien n'est pré-analysé sans ce clic.
+      lignes.push({ cle: p.id, teinte: orange, phrase: p.titre, lieu: p.resume || "Fiche reçue", quand: ilYa(p.cree_le), lien: null, fiche: p.id, action: true, le: p.cree_le });
+    } else if (p.type === "meme_bien_recu") {
       lignes.push({ cle: p.id, teinte: vert, phrase: p.titre, lieu: "Dossier", quand: ilYa(p.cree_le), lien: dossier || `/AValider?id=${p.id}`, vu: p.id, action: false, le: p.cree_le });
     } else if (p.type === "demande_documents") {
       lignes.push({ cle: p.id, teinte: orange, phrase: "Demande de documents prête", lieu: `Dossier · ${String(p.titre || "").replace(/^Demander les documents\s*[·:-]?\s*/i, "") || "ouvrir"}`, quand: ilYa(p.cree_le), lien: dossier || `/AValider?id=${p.id}`, action: true, le: p.cree_le });
@@ -55,12 +58,15 @@ export default function Cloche({ className = "" }) {
   const user = useUser();
   const actif = !!useCompteHaka().data?.actif;
   const moi = usePropositions("moi");
+  // Les fiches reçues dans une boîte commune (sourcing@) n'ont pas de propriétaire : elles sonnent aussi.
+  const commun = usePropositions("commun");
   const alertes = useQuery({ queryKey: ["haka-alertes"], queryFn: () => base44.request("GET", "/api/haka/alertes"), refetchInterval: 120_000, retry: false });
   const attend = useQuery({ queryKey: ["ce-qui-attend"], queryFn: () => base44.request("GET", "/api/assistant/attend"), refetchInterval: 60_000, staleTime: 30_000 });
   const lignes = useMemo(() => {
     const dues = (attend.data?.lignes || []).filter((l) => l.nouveau || (l.dans != null && l.dans <= 0));
-    return lignesDeLaCloche({ propositions: actif ? moi.data?.propositions || [] : [], dues, alertes: alertes.data?.alertes || [] });
-  }, [actif, moi.data, attend.data, alertes.data]);
+    const fichesCommunes = (commun.data?.propositions || []).filter((p) => p.type === "preanalyser_fiche");
+    return lignesDeLaCloche({ propositions: actif ? [...(moi.data?.propositions || []), ...fichesCommunes] : [], dues, alertes: alertes.data?.alertes || [] });
+  }, [actif, moi.data, commun.data, attend.data, alertes.data]);
   const n = compteurDeLaCloche(lignes);
 
   useEffect(() => {
@@ -75,6 +81,14 @@ export default function Cloche({ className = "" }) {
     // Une information se lit en ouvrant l'objet, puis disparaît.
     if (l.vu) base44.request("POST", `/api/haka/propositions/${l.vu}/valider`, { body: {} }).catch(() => {});
     if (l.lien) navigate(l.lien);
+  };
+  // Pré-analyser ou non une fiche reçue : la ligne part, la pré-analyse tourne en fond et prévient quand elle est prête.
+  const [decidees, setDecidees] = useState(() => new Set());
+  const trancher = (l, choix) => {
+    setDecidees((s) => new Set([...s, l.fiche]));
+    base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix } })
+      .then(() => { moi.refetch(); commun.refetch(); })
+      .catch(() => setDecidees((s) => { const n = new Set(s); n.delete(l.fiche); return n; }));
   };
   const fait = (l) => {
     base44.request("POST", `/api/assistant/attend/${l.ancien.source}/${encodeURIComponent(l.ancien.id)}/fait`).then(() => attend.refetch()).catch(() => {});
@@ -109,7 +123,7 @@ export default function Cloche({ className = "" }) {
                 <div className="max-h-[min(60vh,520px)] overflow-y-auto px-2 py-1.5">
                   {!lignes.length ? (
                     <p className="m-0 px-3 py-6 text-center text-[13.5px] text-brume">Rien n'attend votre action pour l'instant.</p>
-                  ) : lignes.map((l, i) => (
+                  ) : lignes.filter((l) => !decidees.has(l.fiche)).map((l, i) => (
                     <motion.div key={l.cle} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
                       className="flex items-start gap-3 rounded-[12px] px-3 py-3 transition-colors hover:bg-encre/[0.04]">
                       <span className={`mt-[7px] h-[7px] w-[7px] flex-none rounded-full ${l.teinte}`} aria-label={l.action ? "Action attendue" : "Information"} />
@@ -117,7 +131,12 @@ export default function Cloche({ className = "" }) {
                         <p className="m-0 text-[14.5px] leading-[1.4] text-encre">{l.phrase}</p>
                         <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{[l.lieu, l.quand].filter(Boolean).join(" · ")}</p>
                       </div>
-                      {l.lien ? (
+                      {l.fiche ? (
+                        <div className="flex flex-none flex-col items-stretch gap-1.5">
+                          <button type="button" onClick={() => trancher(l, "preanalyser")} className="inline-flex h-8 items-center justify-center rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol">Pré-analyser</button>
+                          <button type="button" onClick={() => trancher(l, "ignorer")} className="inline-flex h-8 items-center justify-center rounded-full border border-trait px-3.5 text-[13px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas une fiche</button>
+                        </div>
+                      ) : l.lien ? (
                         <button type="button" onClick={() => ouvrir(l)} className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-3.5 text-[13px] text-encre transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>Ouvrir</button>
                       ) : l.ancien ? (
                         <button type="button" onClick={() => fait(l)} className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-3.5 text-[13px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Fait</button>

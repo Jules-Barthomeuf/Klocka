@@ -37,14 +37,9 @@ export const PROPOSITIONS = [
     oui: null,
     non: 'avec lui ou elle, pas d\'argot ni d\'abréviations (dcp, pr, bg) : des phrases simples et correctes',
   },
-  {
-    id: 'prenom',
-    theme: 'Ses réponses',
-    titre: 'Son prénom en début de réponse',
-    exemple: "Jules, c'est fait : la LOI Devred est dans le chat.",
-    oui: 'commence tes réponses par son prénom',
-    non: null,
-  },
+  // « Son prénom en début de réponse » retiré (19 oct. 2026, Jules : « il dit encore Jules au départ de chaque
+  // réponse, enlève ça ») : la réponse « oui » passait avant la consigne, qui l'interdit. Une réponse déjà
+  // enregistrée ne compte plus : la proposition n'existe plus.
   {
     id: 'emojis',
     theme: 'Ses réponses',

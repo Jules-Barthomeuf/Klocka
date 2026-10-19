@@ -13,6 +13,7 @@ import { PointNouveau } from "@/components/conversations/DossiersMandataire";
 import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
+import PenseeIA from "@/components/PenseeIA";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
@@ -372,9 +373,9 @@ export default function Analyse() {
         />
         </>
       ) : (
-        <div className="bg-surface border border-trait rounded-md p-8 text-center">
-          <Loader2 className="w-6 h-6 text-ardoise animate-spin mx-auto mb-3" />
-          <p className="text-ardoise text-sm">Ouverture du dossier…</p>
+        <div className="k-entree flex flex-col items-center gap-3 p-8 text-center" role="status">
+          <PenseeIA etat="searching" taille={48} />
+          <p className="k-scintille m-0 text-sm">Ouverture du dossier…</p>
         </div>
       )}
     </div>
@@ -437,7 +438,7 @@ export default function Analyse() {
               </div>
             )}
             {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
-            <header className="relative mb-8 flex flex-col items-center gap-6 text-center">
+            <header className="k-entree relative mb-8 flex flex-col items-center gap-6 text-center">
               <div className="flex flex-wrap items-center justify-end gap-2.5 self-end md:absolute md:right-14 md:top-0 md:self-auto">
                 <span className={`text-[14px] max-md:text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
                 <button onClick={() => setCreationOuverte(true)}
@@ -450,28 +451,34 @@ export default function Analyse() {
             </header>
 
             {/* Recherche, et ce que fait la page toute seule. */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pb-2">
+            <div className="k-entree flex flex-wrap items-center gap-x-5 gap-y-3 pb-2" style={{ "--k-delai": ".1s" }}>
               <div className="flex h-12 min-w-[240px] max-w-[460px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:max-w-none max-md:basis-full">
                 <Search className="h-4 w-4 flex-shrink-0 text-ardoise" />
                 <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Adresse, agent, ville" className="w-full border-none bg-transparent text-[15px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
               </div>
-              <p className="m-0 flex-1 text-[14px] text-ardoise">
-                {analyserFiche.isPending ? "AK analyse la fiche…" : "Les fiches reçues par mail sont triées par AK. Glisse une fiche n'importe où pour l'ajouter."}
-              </p>
+              {/* La fiche en cours d'analyse : l'orbe d'AK et un reflet qui passe sur la phrase (19 oct. 2026). */}
+              {analyserFiche.isPending ? (
+                <p key="analyse" className="k-entree m-0 inline-flex flex-1 items-center gap-2.5 text-[14px]" role="status">
+                  <PenseeIA etat="working" taille={22} />
+                  <span className="k-scintille">AK analyse la fiche…</span>
+                </p>
+              ) : (
+                <p key="repos" className="k-entree m-0 flex-1 text-[14px] text-ardoise">Les fiches reçues par mail sont triées par AK. Glisse une fiche n'importe où pour l'ajouter.</p>
+              )}
             </div>
 
             {/* Les cartes */}
             <QuestionsMandataires />
             {isLoading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-6 h-6 text-ardoise animate-spin" />
+              <div className="k-entree flex justify-center py-16">
+                <PenseeIA etat="searching" taille={40} />
               </div>
             ) : nbDossiers === 0 ? (
               <p className="text-brume text-sm text-center py-16">
                 Aucun dossier — créez le premier avec « Nouveau dossier ».
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 pt-6 duration-300 ease-out animate-in fade-in-0 slide-in-from-bottom-1 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="k-serie k-serie-leve grid grid-cols-1 gap-2.5 pt-6 sm:grid-cols-2 lg:grid-cols-3">
                 {tous.map((d) => <CarteCompacte key={d.deal_id} d={d} qui={qui(d)} ecarte={estEcarte(d)} onOuvrir={() => montrerDeal(d.deal_id)} menu={<MenuDossier d={d} bouton="top-3.5 right-3" place="top-9 right-3" />} />)}
                 {!tous.length && <p className="m-0 col-span-full py-12 text-center text-[14px] text-brume">Aucun dossier ne correspond.</p>}
               </div>
@@ -616,7 +623,7 @@ function QuestionsMandataires() {
         {!ouvert && nonLus > 0 && <PointNouveau n={nonLus} />}
       </button>
       {ouvert && (
-      <div className="mt-3 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+      <div className="k-serie k-serie-leve mt-3 grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
         {sansDossier.map((c) => (
           <Link key={c.id} to={`/Conversations?dossier=${c.id}`}
             className="flex items-center gap-3.5 rounded-[16px] border border-trait k-carte-rail px-4 py-3.5 transition-colors hover:border-bord-doux">

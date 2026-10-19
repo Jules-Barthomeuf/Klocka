@@ -1169,6 +1169,20 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 :root[data-animations="reduites"] :is(.k-leve, .k-serie-leve > *):hover { translate: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { :is(.k-entree, .k-glisse, .k-serie > *) { animation: none !important; opacity: 1 !important; transform: none !important; } :is(.k-leve, .k-serie-leve > *):hover { translate: none; } }
 
+/* Le travail en cours (19 oct. 2026, le Dossier) : un reflet clair passe en boucle sur la phrase gris ardoise
+   (« AK analyse la fiche… », les étapes de lecture). À l'arrêt en animations réduites. */
+.k-scintille {
+  background-image: linear-gradient(100deg, rgb(var(--k-ardoise-rgb)) 0%, rgb(var(--k-ardoise-rgb)) 40%, rgb(var(--k-encre-rgb)) 50%, rgb(var(--k-ardoise-rgb)) 60%, rgb(var(--k-ardoise-rgb)) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: k-scintille 2.4s ease-in-out infinite;
+}
+@keyframes k-scintille { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+:root[data-animations="reduites"] .k-scintille { animation: none; background-position: 0 0; }
+@media (prefers-reduced-motion: reduce) { .k-scintille { animation: none; } }
+
 /* Dossier en mode IA (19 oct. 2026, Jules) : le bouton « … » est un rond de 38 px comme la cloche, et il prend sa
    colonne : la cloche est à 16 px du bord de l'écran, le contenu du dossier à 32 px. */
 .k-dossier-ia .k-actions-dossier { margin-right: -16px; }

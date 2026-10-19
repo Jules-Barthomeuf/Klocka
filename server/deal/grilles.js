@@ -391,6 +391,16 @@ export function noterCritere(dealId, grilleId, critereId, texte, user) {
   return { ok: true };
 }
 
+/**
+ * Les notes de tous les tableaux du dossier, par « tableau.ligne » (19 oct. 2026, Jules : une colonne Notes dans
+ * chaque tableau). Les grilles y gardent leurs clés ; le tableau Bien écrit sous « bien-analyse », les
+ * croisements de la Synthèse sous « croisements ».
+ */
+export function notesDuDossier(dealId) {
+  const brut = Records.findBy('Deal', 'deal_id', dealId);
+  return brut ? { ok: true, notes: brut.grilles_notes || {} } : { ok: false, error: 'Dossier introuvable' };
+}
+
 /** Les questions du gabarit derrière une grille : ce qu'il faut relire pour elle. */
 export function colonnesDeGrille(id) {
   const grille = GRILLES[id];

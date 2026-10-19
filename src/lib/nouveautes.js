@@ -10,6 +10,8 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Une colonne Notes dans les tableaux du dossier", texte: "Bien, Bail, Quittances, Copropriété, Diagnostics et les croisements de la Synthèse ont une colonne Notes : survolez une ligne, « Ajouter », écrivez une note pour l'équipe.", page: "Dossiers" },
+      { titre: "Des effets doux dans les dossiers", texte: "La liste des dossiers entre en douceur, les cartes se soulèvent au survol, et quand AK analyse une fiche, son orbe et un reflet sur la phrase montrent que le travail avance.", page: "Dossiers" },
       { titre: "Une alerte quand un agent répond", texte: "Quand un mail arrive sur un dossier en cours (réponse d'un agent, pièces jointes), la personne responsable du dossier reçoit une notification avec le lien. Les nouvelles fiches en prévenaient déjà.", page: "Dossiers" },
       { titre: "Des effets doux, le Simulateur d'abord", texte: "Le Simulateur entre en douceur : le titre, la carte, le rail par la gauche, les blocs l'un après l'autre. Les indicateurs montent vers leur valeur et glissent quand on déplace un curseur, les sections de gauche s'ouvrent et se ferment en douceur. Rien ne bouge si vous avez choisi des animations réduites.", page: "SimulateurRentabilite" },
       { titre: "Le Simulateur, comme dans un dossier", texte: "La page Simulateur reprend le cadre de celui d'un dossier (la carte, le rail à gauche, les onglets soulignés), et la barre de navigation se replie quand on l'ouvre.", page: "SimulateurRentabilite" },

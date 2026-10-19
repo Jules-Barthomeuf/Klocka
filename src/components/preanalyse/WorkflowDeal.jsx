@@ -1021,8 +1021,9 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
     );
 
   // --- Deal existant : résultat + décision ---------------------------------
+  // Les blocs du résultat entrent l'un après l'autre (19 oct. 2026) : à la fin d'une analyse, le verdict se pose.
   return (
-    <>
+    <div className="k-serie space-y-5">
       {titre}
       {dossier.source?.avertissements?.length > 0 && (
         <Bandeau type="info" items={dossier.source.avertissements} />
@@ -1052,7 +1053,7 @@ function EtapePreanalyse({ dossier, onSaisie, enCours, onRefresh, apercu, onAnal
       ))}
 
       {/* Les boutons Abandonner / Poursuivre retirés le 17 oct. 2026 (Jules). */}
-    </>
+    </div>
   );
 }
 
@@ -1076,7 +1077,8 @@ function AttenteAnalyse() {
   return (
     <div className="mt-6 py-4 flex flex-col items-center gap-3" role="status" aria-live="polite">
       <PenseeIA etat={etape === 0 ? "searching" : "working"} taille={64} />
-      <p className="m-0 text-[13.5px] text-craie text-center">{ETAPES_LECTURE[etape]}</p>
+      {/* Chaque étape remplace la précédente en montant ; un reflet passe dessus tant qu'elle dure (19 oct. 2026). */}
+      <p key={etape} className="k-entree m-0 text-[13.5px] text-center"><span className="k-scintille">{ETAPES_LECTURE[etape]}</span></p>
       <div className="flex gap-1.5" aria-hidden>
         {ETAPES_LECTURE.map((_, k) => (
           <span key={k} className={`h-1 rounded-full transition-all duration-500 ${k <= etape ? "w-5 bg-menthe" : "w-2 bg-bord"}`} />
@@ -1611,9 +1613,9 @@ function PreanalyseDepuisDocuments({ dossier, onRefresh, apercu }) {
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         {enCours ? (
-          <span className="inline-flex items-center gap-2 text-[12.5px] text-ardoise">
+          <span className="k-entree inline-flex items-center gap-2 text-[12.5px] text-ardoise" role="status">
             <PenseeIA etat="searching" taille={20} />
-            {etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}
+            <span className="k-scintille">{etat?.phase === "analyse" ? "Fiche composée, pré-analyse en cours…" : etat?.total ? `Lecture des pièces ${etat.fait}/${etat.total} — ${etat.document || ""}` : "Lecture des pièces…"}</span>
           </span>
         ) : (
           <button onClick={() => lancer.mutate()} disabled={apercu} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-menthe rounded-full text-sur-menthe text-[12.5px] font-semibold hover:bg-menthe-survol disabled:opacity-40">

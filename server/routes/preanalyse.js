@@ -878,6 +878,12 @@ export function monterPreanalyse(app) {
     ok(res, r);
   }));
 
+  app.get('/api/preanalyse/dossiers/:dealId/notes-tableaux', wrap(async (req, res) => {
+    const r = (await import('../deal/grilles.js')).notesDuDossier(req.params.dealId);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+
   // Valeur locative du secteur : la fourchette de loyer au m² d'une adresse.
   // Sur un lot, le résultat est gardé avec lui ; l'adresse peut être celle du
   // dossier ou une autre, saisie à la main.

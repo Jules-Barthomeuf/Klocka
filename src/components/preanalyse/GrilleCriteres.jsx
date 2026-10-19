@@ -5,6 +5,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import NoteCellule from "@/components/preanalyse/NoteCellule";
 import { toast } from "@/components/ui/avis";
 import { Check, Loader2, Pencil, RefreshCw, RotateCcw } from "lucide-react";
 import PenseeIA from "@/components/PenseeIA";
@@ -81,7 +82,7 @@ export function useFermerAuClicAilleurs(ouvert, fermer) {
 export const MOT = { ok: "OK", a_checker: "À checker", warning: "À vérifier", a_verifier: "À vérifier", no_go: "No go", vide: "Non trouvé", non_lu: "Non lu" };
 /** Les colonnes du tableau, les mêmes que l'onglet Bien. */
 const STATUT_SUIVANT = { ok: "a_verifier", a_checker: "a_verifier", a_verifier: "no_go", warning: "no_go", no_go: "ok", vide: "ok", non_lu: "ok" };
-const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_110px]";
+const COLONNES = "grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_110px_minmax(0,1.3fr)]";
 /** Le statut d'une ligne en mot : [mot, classes, en pastille ?]. « Info » pour une ligne d'information. */
 export function statutAffiche(l) {
   const info = /^information/i.test(String(l.regle || ""));
@@ -128,26 +129,19 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["grille"] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
-  // La note : un commentaire libre, ce qu'on veut, à côté de la valeur.
-  const [note, setNote] = useState(null); // { id, texte }
-  const noter = useMutation({
-    mutationFn: ({ critere, texte }) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/grille/${g.id}/note/${critere}`, { body: { texte } }),
-    onSuccess: () => { setNote(null); queryClient.invalidateQueries({ queryKey: ["grille"] }); },
-    onError: (e) => toast.error(e?.message || "Impossible"),
-  });
   return (
     <div>
       {titre && <p className="m-0 px-5 pt-4 pb-2 text-[15px] font-semibold text-encre">{titre}</p>}
       {/* Le style du tableau de l'onglet Bien (18 oct. 2026, Jules : « partout ailleurs dans l'analyse ») :
           Ligne / Ce qu'on y lit / Sources / Statut, les sources en pastilles, le statut en mot. */}
       <div className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3 text-[13px] text-ardoise max-lg:hidden`}>
-        <span>Ligne</span><span>Ce qu'on y lit</span><span>{sansSources ? "" : "Sources"}</span><span>Statut</span>
+        <span>Ligne</span><span>Ce qu'on y lit</span><span>{sansSources ? "" : "Sources"}</span><span>Statut</span><span>Notes</span>
       </div>
       <div className="k-cascade">
       {g.lignes.map((l, iLigne) => {
         const [mot, classe, puce] = statutAffiche(l);
         return (
-          <div key={l.id} className={`grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
+          <div key={l.id} className={`group/ligne grid ${COLONNES} gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5`}>
             <div className="min-w-0">
               <button type="button" onClick={() => bascule(l.id)} className="text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l.libelle}</button>
               <Depliant ouvert={ouverts.has(l.id)}><p className="m-0 mt-1 text-[12px] leading-[1.45] text-brume">{l.regle}</p></Depliant>
@@ -179,23 +173,6 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
                   </ul>
                 </Depliant>
               )}
-              {/* La note de l'analyste, sous la valeur. */}
-              {note?.id === l.id ? (
-                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                  <textarea autoFocus value={note.texte} onChange={(e) => setNote({ id: l.id, texte: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); noter.mutate({ critere: l.id, texte: note.texte }); } if (e.key === "Escape") setNote(null); }}
-                    rows={2} placeholder="Une note pour l'équipe" className="w-full resize-y rounded-[10px] border border-menthe bg-surface px-3 py-2 text-[13.5px] text-encre outline-none max-md:text-[16px]" />
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <button onClick={() => noter.mutate({ critere: l.id, texte: note.texte })} disabled={noter.isPending} className="inline-flex items-center gap-1 rounded-full bg-menthe px-2.5 py-1 text-[12.5px] font-semibold text-sur-menthe"><Check className="h-3 w-3" /> Enregistrer</button>
-                    <button onClick={() => setNote(null)} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
-                  </div>
-                </div>
-              ) : l.note ? (
-                <button type="button" onClick={(e) => { e.stopPropagation(); if (!lectureSeule && dealId) setNote({ id: l.id, texte: l.note.texte }); }} className="mt-1 block text-left text-[12.5px] text-craie" style={{ background: "transparent" }}>
-                  <span className="text-brume">Note{l.note.par ? ` · ${l.note.par.split("@")[0]}` : ""} : </span>{l.note.texte}
-                </button>
-              ) : !lectureSeule && dealId ? (
-                <button type="button" onClick={(e) => { e.stopPropagation(); setNote({ id: l.id, texte: "" }); }} className="mt-1 inline-flex items-center gap-1 text-[12px] text-brume opacity-0 transition-opacity hover:text-ardoise group-hover:opacity-100 max-md:opacity-100" style={{ background: "transparent" }}><Pencil className="h-3 w-3" /> Note</button>
-              ) : null}
             </div>
             <div className="flex flex-wrap content-start gap-1.5">
               {!sansSources && (l.preuves?.length ? l.preuves.slice(0, 3).map((pv, i) => (
@@ -212,6 +189,8 @@ export function TableCriteres({ g, onPreuve = undefined, sansSources = false, ti
               <span className={`${puce ? `inline-flex h-7 items-center rounded-full px-3 ${classe}` : classe} text-[13px]`}>{mot}</span>
               {l.decision && <span className="mt-0.5 block text-[11px] text-brume">décidé{l.decision.par ? ` · ${l.decision.par.split("@")[0]}` : ""}</span>}
             </button>
+            {/* La note de l'analyste, dans sa colonne (19 oct. 2026, Jules). */}
+            <div className="min-w-0"><NoteCellule dealId={dealId} tableau={g.id} ligne={l.id} note={l.note} lectureSeule={lectureSeule} /></div>
           </div>
         );
       })}

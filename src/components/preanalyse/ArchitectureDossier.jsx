@@ -95,7 +95,7 @@ export function ColonneDroite({ dossier, apercu = false, onAller = null, vue = n
     onRefresh?.();
   } : null;
   return (
-    <aside aria-label="Autour du dossier" className="flex flex-col gap-4 lg:self-start">
+    <aside aria-label="Autour du dossier" className="k-serie flex flex-col gap-4 lg:self-start">
       {/* Haka (17 oct. 2026) : ce qu'il propose pour ce dossier, en tête. */}
       {dossier?.deal_id && !apercu && <PanneauAValiderDossier dealId={dossier.deal_id} />}
       {/* Pré-analyse : Street View et le plan, l'un sous l'autre (18 oct. 2026, Jules). */}

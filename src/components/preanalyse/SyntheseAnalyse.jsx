@@ -4,6 +4,7 @@ import { Depliant } from "@/components/haka/ReglagesDemande";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleAlert, Loader2, Mail, OctagonX } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { toast } from "@/components/ui/avis";
 
 // L'onglet Synthèse du module d'analyse (spec du 17 oct. 2026, Jules) : l'écran d'arrivée. Quatre blocs,
@@ -75,8 +76,9 @@ function Signalement({ s, onDecider, onRetenir, enCours }) {
 
 const COLONNES = [["fiche", "Fiche"], ["bail", "Bail"], ["quittances", "Quittances"], ["copropriete", "Copropriété"], ["diagnostics", "Diagnostics"], ["bien", "Bien (Kbis, avis, Pappers)"]];
 
-function Croisements({ s, retenir, apercu }) {
+function Croisements({ s, retenir, apercu, dealId }) {
   const [ouverte, setOuverte] = useState(null);
+  const notes = useNotesTableaux(dealId);
   return (
     <section className={cadre}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4">
@@ -84,25 +86,27 @@ function Croisements({ s, retenir, apercu }) {
         <p className="m-0 text-[12.5px] text-brume">Les informations présentes dans plusieurs onglets, côte à côte. Cliquez une ligne pour voir les citations.</p>
       </div>
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[1000px] border-collapse text-left text-[13.5px]">
+        <table className="w-full min-w-[1180px] border-collapse text-left text-[13.5px]">
           <thead>
             <tr className="text-[12.5px] text-ardoise">
               <th className="px-5 py-2 font-normal">Information</th>
               {COLONNES.map(([k, mot]) => <th key={k} className="px-3 py-2 font-normal">{mot}</th>)}
               <th className="px-5 py-2 font-normal">Retenu</th>
+              <th className="min-w-[180px] px-5 py-2 font-normal">Notes</th>
             </tr>
           </thead>
           <tbody className="k-cascade">
             {s.croisements.map((c) => (
               <React.Fragment key={c.cle}>
-                <tr onClick={() => setOuverte(ouverte === c.cle ? null : c.cle)} className="cursor-pointer border-t border-trait align-top transition-colors hover:bg-encre/[0.03]">
+                <tr onClick={() => setOuverte(ouverte === c.cle ? null : c.cle)} className="group/ligne cursor-pointer border-t border-trait align-top transition-colors hover:bg-encre/[0.03]">
                   <td className="px-5 py-3 text-craie">{c.information}</td>
                   {COLONNES.map(([k]) => <td key={k} className="max-w-[200px] px-3 py-3 text-encre"><span className="line-clamp-2">{c.colonnes[k]?.valeur ?? <span className="text-brume">·</span>}</span></td>)}
                   <td className={`px-5 py-3 ${c.retenue ? "text-menthe" : c.ecart ? (c.bloquant ? "text-alerte" : "text-ambre") : "text-craie"}`}>{c.resume}</td>
+                  <td className="px-5 py-3"><NoteCellule dealId={dealId} tableau="croisements" ligne={c.cle} note={notes[`croisements.${c.cle}`]} lectureSeule={apercu} /></td>
                 </tr>
                 {ouverte === c.cle && (
                   <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="border-t border-trait bg-surface-pleine/40">
-                    <td colSpan={COLONNES.length + 2} className="px-5 py-3">
+                    <td colSpan={COLONNES.length + 3} className="px-5 py-3">
                       <div className="flex flex-col gap-2">
                         {c.sources.map((src) => (
                           <div key={src.colonne} className="flex flex-wrap items-baseline gap-x-3 text-[13px]">
@@ -176,7 +180,7 @@ export default function SyntheseAnalyse({ dossier, apercu = false, onOnglet = nu
       </section>
 
       {/* 2. Croisements, en tableau (maquette de Jules, 18 oct. 2026) : une ligne par information, une colonne par onglet, ce qui est retenu. */}
-      {s.croisements.length > 0 && <Croisements s={s} retenir={retenir} apercu={apercu} />}
+      {s.croisements.length > 0 && <Croisements s={s} retenir={retenir} apercu={apercu} dealId={dealId} />}
 
       {/* 3. Signalements à traiter */}
       <section className={cadre}>

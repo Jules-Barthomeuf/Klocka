@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Depliant } from "@/components/haka/ReglagesDemande";
+import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 
 // L'onglet Bien du module d'analyse (18 oct. 2026, maquette de Jules) : une ligne par information,
 // ce qu'on y lit, ses sources en pastilles (document et page, ou calcul), et son statut. Une ligne
@@ -23,11 +24,11 @@ function Pastille({ s }) {
     : <span title={s.citation || undefined}>{corps}</span>;
 }
 
-function Ligne({ l }) {
+function Ligne({ l, dealId, note }) {
   const [ouvert, setOuvert] = useState(false);
   const [mot, classe] = STATUT[l.statut] || STATUT.info;
   return (
-    <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px] gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5">
+    <div className="group/ligne grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px_minmax(0,1.3fr)] gap-x-6 border-t border-trait px-5 py-3.5 transition-colors duration-200 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5">
       <p className="m-0 text-[14.5px] text-craie">{l.ligne}</p>
       <div className="min-w-0">
         <p className={`m-0 text-[14.5px] leading-[1.5] ${l.statut === "non_trouve" ? "text-ardoise" : "text-encre"}`}>{l.valeur}</p>
@@ -45,6 +46,7 @@ function Ligne({ l }) {
       </div>
       <div className="flex flex-wrap content-start gap-1.5">{l.sources.map((s, i) => <Pastille key={i} s={s} />)}</div>
       <div>{l.statut === "ok" || l.statut === "non_trouve" ? <span className={`text-[13px] ${classe}`}>{mot}</span> : <span className={`inline-flex h-7 items-center rounded-full px-3 text-[13px] ${classe}`}>{mot}</span>}</div>
+      <div className="min-w-0"><NoteCellule dealId={dealId} tableau="bien-analyse" ligne={l.id} note={note} /></div>
     </div>
   );
 }
@@ -52,13 +54,14 @@ function Ligne({ l }) {
 export default function TableauBienAnalyse({ dealId }) {
   const q = useQuery({ queryKey: ["bien-analyse", dealId], queryFn: () => base44.request("GET", `/api/preanalyse/dossiers/${dealId}/bien`), enabled: !!dealId, staleTime: 60_000, retry: false });
   const lignes = q.data?.lignes || [];
+  const notes = useNotesTableaux(dealId);
   if (!lignes.length) return null;
   return (
     <section className="overflow-hidden rounded-[16px] border border-trait bg-rail">
-      <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px] gap-x-6 px-5 py-3 text-[13px] text-ardoise max-lg:hidden">
-        <span>Ligne</span><span>Ce qu'on y lit</span><span>Sources</span><span>Statut</span>
+      <div className="grid grid-cols-[minmax(150px,0.9fr)_minmax(0,2.4fr)_minmax(0,1.4fr)_96px_minmax(0,1.3fr)] gap-x-6 px-5 py-3 text-[13px] text-ardoise max-lg:hidden">
+        <span>Ligne</span><span>Ce qu'on y lit</span><span>Sources</span><span>Statut</span><span>Notes</span>
       </div>
-      <div className="k-cascade">{lignes.map((l) => <Ligne key={l.id} l={l} />)}</div>
+      <div className="k-cascade">{lignes.map((l) => <Ligne key={l.id} l={l} dealId={dealId} note={notes[`bien-analyse.${l.id}`]} />)}</div>
     </section>
   );
 }

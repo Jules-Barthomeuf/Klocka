@@ -451,6 +451,21 @@ const OUTILS_AK = [
     },
   },
   {
+    name: 'corriger_tableau',
+    description: "Corrige une case des tableaux d'analyse d'un dossier (Bail, Quittances, PV d'AG, RCP, Diagnostics), comme la correction à la main de l'écran : « sous Conditions financières : loyer de signature, mets 16 464 € », « le loyer n'est pas assujetti à TVA ». C'est la SEULE voie qui change ce que la ligne affiche : modifier_dossier change les chiffres de la fiche et du simulateur, pas ces tableaux. valeur vide : revenir à la valeur lue. Rend la ligne telle qu'elle s'affiche après : la dire, sans demander à la personne de vérifier.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_id: { type: 'string' },
+        tableau: { type: 'string', enum: ['bail', 'quittances', 'pv_ag', 'rcp', 'diagnostics'] },
+        ligne: { type: 'string', description: "l'id ou le libellé de la ligne, ex. « loyer_signature » ou « Conditions financières : loyer de signature », « tva »" },
+        valeur: { type: 'string', description: "le texte à afficher, au format de la ligne : « 16 464 € / an », « NON »" },
+        statut: { type: 'string', enum: ['ok', 'a_verifier', 'no_go'], description: 'facultatif : le statut décidé' },
+      },
+      required: ['deal_id', 'tableau', 'ligne'],
+    },
+  },
+  {
     name: 'modifier_dossier',
     description:
       "Modifie un fait d'un dossier de préanalyse — loyer annuel HT HC, prix FAI, surface, honoraires, occupé, locataire, activité, type et échéance de bail, type d'actif, adresse — par la même voie que l'écran Analyse : le verdict, les rendements et le simulateur se recalculent. Chercher le dossier d'abord (chercher_biens) ; un doute sur lequel : demander.",
@@ -1205,6 +1220,11 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     if (choix.length > 1) return { ok: true, plusieurs: choix.slice(0, 10), note: 'Plusieurs fiches : choisis d\'après le contexte (rappelle lire_fiche_monday avec monday_id) ou demande laquelle.' };
     return { ok: true, fiche: await lireFiche(choix[0].monday_id) };
   }
+  if (name === 'corriger_tableau') {
+    const { corrigerCase } = await import('../deal/grilles.js');
+    const r = await corrigerCase(input, { user });
+    return r.ok ? { ...r, lien: lien(`/Analyse?deal_id=${r.deal_id}`) } : r;
+  }
   if (name === 'modifier_dossier') {
     // Un id recopié à la main arrive souvent tronqué : un préfixe qui ne
     // désigne qu'un seul dossier suffit, l'ambiguïté se redemande.
@@ -1384,6 +1404,14 @@ choisis sur ${lien('/Prospection')} : rien ne part sans toi.`);
     // Un chiffre sans source n'est pas écrit par AK : le mode Sources de l'éditeur doit pouvoir le dire.
     const sans = (input.changements || []).filter((c) => !/^(surface_detail|marche_quartier_nom|ville_secteur_champ1|activite_locataire|nom_locataire|description_)/.test(String(c?.champ || '')) && c?.valeur != null && c.valeur !== '' && !String(c?.source || '').trim());
     if (sans.length) return { ok: false, error: `Source manquante pour ${sans.map((c) => c.champ).join(', ')} : dis d'où vient chaque chiffre, ou ne l'écris pas.` };
+    // Une case du résumé n'existe que sous son id (bail.loyer_signature, pas bail.loyer) : un id inconnu s'écrivait sans rien afficher.
+    const { casesDuProjet } = await import('../projet-cases.js');
+    const zones = casesDuProjet({}, { sansSources: true });
+    const inconnues = (input.changements || []).map((c) => String(c?.champ || '').split('.')).filter((k) => k[0] === 'cases_forcees' && !(zones[k[1]] || []).some?.((x) => x.id === k[2]));
+    if (inconnues.length) {
+      const liste = Object.entries(zones).filter(([, l]) => Array.isArray(l) && l.length).map(([z, l]) => `${z} : ${l.map((x) => x.id).join(', ')}`).join(' ; ');
+      return { ok: false, error: `Case inconnue : ${inconnues.map((k) => k.join('.')).join(', ')}. Les cases : ${liste}. Chemin : cases_forcees.<zone>.<id>.valeur.` };
+    }
     const E = await import('../projet-edition.js');
     const r = E.modifierChamps(String(input.projet_id || ''), input.changements || [], { par: 'AK' });
     return r.ok ? { ok: true, projet_id: String(input.projet_id), faits: r.faits } : r;

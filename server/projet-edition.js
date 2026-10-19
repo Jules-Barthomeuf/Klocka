@@ -47,11 +47,21 @@ export function valeurRangee(champ, valeur) {
   return Number.isFinite(n) ? n : String(valeur);
 }
 
-const lireChemin = (o, chemin) => String(chemin).split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
+/**
+ * Pure : les clés d'un chemin pointé. Une case corrigée se range sous une clé plate « zone.id »
+ * (cases_forcees["bail.loyer_signature"].valeur), comme l'écran l'écrit et le lit : découpée à chaque point,
+ * la correction d'AK partait dans cases_forcees.bail.loyer_signature, que la page ne lit pas (19 oct. 2026).
+ */
+export function clesDuChemin(chemin) {
+  const cles = String(chemin).split('.');
+  return cles[0] === 'cases_forcees' && cles.length >= 3 ? ['cases_forcees', `${cles[1]}.${cles[2]}`, ...cles.slice(3)] : cles;
+}
+
+const lireChemin = (o, chemin) => clesDuChemin(chemin).reduce((x, k) => (x == null ? undefined : x[k]), o);
 
 /** Pure : écrit une valeur par chemin pointé sans muter l'objet (« valeurs_forcees.prix_revient »). */
 export function ecrireChemin(objet, chemin, valeur) {
-  const cles = String(chemin).split('.');
+  const cles = clesDuChemin(chemin);
   const copie = { ...objet };
   let o = copie;
   for (let i = 0; i < cles.length - 1; i++) {

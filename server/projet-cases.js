@@ -351,7 +351,9 @@ export function casesDuProjet(projet, { fiche = null, lot = null, maintenant = n
   const debut = isoDe(projet.bail_date_debut) || lus.debut || null;
   const fin = isoDe(projet.bail_date_echeance) || isoDe(projet.echeance_bail) || lus.fin || null;
   // Le loyer de signature est celui du bail signé : un loyer lu dans l'annonce n'en est pas un.
-  const signature = Number(projet.bail_loyer_initial) || (champs.get('loyer')?.preuves?.length ? loyerHorsTaxes(v('loyer')) : null) || null;
+  // Seule une preuve tirée du bail ou d'un avenant compte : la fiche de l'agent (« 48 000 € HT/an ») passait pour un bail dès qu'elle était citée (19 oct. 2026).
+  const duBail = (champs.get('loyer')?.preuves || []).find((p) => (/bail|avenant/i.test(String(p.categorie || '')) || ((!p.categorie || p.categorie === 'Autre') && /bail|avenant/i.test(String(p.document_nom || '')))));
+  const signature = Number(projet.bail_loyer_initial) || (duBail ? loyerHorsTaxes(duBail.reponse || v('loyer')) : null) || null;
   const provision = v('provision_charges') || (/provision/i.test(v('charges_copro')) ? v('charges_copro') : '');
   const bail = [
     cas('echeance', 'Échéance', fin && { valeur: dateLongue(fin) }, v('dates_bail'), ['dates_bail']),

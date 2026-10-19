@@ -406,3 +406,40 @@ export function colonnesDeGrille(id) {
   const grille = GRILLES[id];
   return grille ? [...new Set(grille.criteres.flatMap((c) => c.champs))] : [];
 }
+
+const sansAccents = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Pure : la ligne d'une grille désignée par son id ou par son libellé (« Conditions financières : loyer de signature »). */
+export function trouverCritere(grilleId, ligne) {
+  const g = GRILLES[grilleId];
+  if (!g) return null;
+  const t = sansAccents(ligne);
+  return g.criteres.find((c) => c.id === ligne || sansAccents(c.id) === t)
+    || g.criteres.find((c) => sansAccents(c.libelle) === t)
+    || g.criteres.find((c) => t && sansAccents(c.libelle).includes(t))
+    || g.criteres.find((c) => t && t.includes(sansAccents(c.libelle).split(' ').slice(-3).join(' ')))
+    || null;
+}
+
+/**
+ * Corriger une case d'un tableau pour l'assistant (19 oct. 2026, Jules : Haka écrivait le loyer de signature dans
+ * des champs que la page ne lit pas, trois fois de suite). Même voie que l'écran (grilles_valeurs, grilles_statuts),
+ * puis la ligne relue telle qu'elle s'affiche, pour que l'assistant dise ce qui est à l'écran.
+ */
+export async function corrigerCase({ deal_id, tableau, ligne, valeur = '', statut = null }, { user = null } = {}) {
+  const deal = Records.findBy('Deal', 'deal_id', deal_id);
+  if (!deal) return { ok: false, error: 'Dossier introuvable : cherche-le pour avoir son deal_id.' };
+  if (!GRILLES[tableau]) return { ok: false, error: `Tableau inconnu : ${tableau}. Tableaux : ${Object.keys(GRILLES).join(', ')}.` };
+  const c = trouverCritere(tableau, ligne);
+  if (!c) return { ok: false, error: `Ligne introuvable dans ${GRILLES[tableau].titre}. Lignes : ${GRILLES[tableau].criteres.map((x) => `${x.id} (${x.libelle})`).join(' ; ')}.` };
+  const r = corrigerValeur(deal_id, tableau, c.id, valeur, user);
+  if (!r.ok) return r;
+  if (statut) deciderStatut(deal_id, tableau, c.id, statut, user);
+  const lue = await lireGrilleFormatee(deal_id, tableau, { user, cacheSeul: true }).catch(() => null);
+  const affichee = lue?.lignes?.find((l) => l.id === c.id) || null;
+  return {
+    ok: true, deal_id, tableau: GRILLES[tableau].titre, ligne: c.libelle,
+    affiche: affichee ? { valeur: affichee.valeur, statut: affichee.statut, valeur_lue: affichee.valeur_lue } : { valeur: String(valeur || '').trim() || null },
+    note: String(valeur || '').trim() ? 'La ligne affiche maintenant cette valeur à l\'écran.' : 'La ligne revient à la valeur lue dans les pièces.',
+  };
+}

@@ -575,7 +575,9 @@ function AnalyseBail({ lignes, cases, project, onSource }) {
   if (!clauses.length) return null;
   const i = Math.min(ouverte, clauses.length - 1);
   const c = clauses[i];
-  const chapeau = chapeauDeClause(c.id, c.texte, cases?.bail);
+  // Le chapeau est la case du résumé : corrigée à la main (cases_forcees), elle l'est ici aussi (19 oct. 2026, Jules).
+  const forcees = project?.cases_forcees || {};
+  const chapeau = chapeauDeClause(c.id, c.texte, (cases?.bail || []).map((x) => fusionner(x, forcees[`bail.${x.id}`])));
 
   return (
     <div className="grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] gap-6 max-md:gap-4 items-start">

@@ -126,3 +126,13 @@ test('charges refacturées, phrase simple et PV d\'AG : un mot, jamais le pâté
   assert.equal(nbsp(impaye.detail), '12 400 €');
   assert.equal(phraseSimple('Bail commercial soumis au statut (art. L.145-1 et s. C. com.). Congé triennal.'), 'Bail commercial soumis au statut (art. L.145-1 et s. C. com.).');
 });
+
+test("le loyer de signature vient du bail, jamais de la fiche de l'agent (19 oct. 2026)", async () => {
+  const { casesDuProjet } = await import('./projet-cases.js');
+  const fiche = (preuves) => ({ blocs: [{ champs: [{ id: 'loyer', valeur: '48 000 € HT /an', preuves }] }] });
+  const agent = { document_nom: 'Fiche VP2343.pdf', categorie: 'Fiche commerciale', reponse: '48 000 € HT /an', document_url: '/u/f.pdf' };
+  const bail = { document_nom: 'Bail 2005.pdf', categorie: 'Bail commercial', reponse: '16 464 € HT HC par an', document_url: '/u/b.pdf' };
+  const sig = (preuves) => casesDuProjet({}, { fiche: fiche(preuves), sansSources: true }).bail.find((c) => c.id === 'loyer_signature').valeur;
+  assert.equal(sig([agent]), null, 'la fiche seule ne fait pas un loyer de signature');
+  assert.match(String(sig([agent, bail])).replace(/\s/g, ' '), /16 464/);
+});

@@ -81,3 +81,11 @@ test('les contrôles : un texte généré avant un changement, un écart avec le
   E.modifierChamps(p.id, [{ champ: 'analyse_bail', valeur: 'Bail de 10 ans dont 6 ferme.', source: 'Indiqué par Jules' }], { par: 'AK' });
   assert.doesNotMatch(S.controlesPourAK(Records.get('Project', p.id)), /synthèse du bail/, 'réécrite depuis : à jour');
 });
+
+test('une case corrigée par AK se range sous la clé plate que la page lit (19 oct. 2026)', async () => {
+  const { appliquer, clesDuChemin } = await import('./projet-edition.js');
+  assert.deepEqual(clesDuChemin('cases_forcees.bail.loyer_signature.valeur'), ['cases_forcees', 'bail.loyer_signature', 'valeur']);
+  assert.deepEqual(clesDuChemin('valeurs_forcees.prix_revient'), ['valeurs_forcees', 'prix_revient']);
+  const r = appliquer({ id: 'p' }, [{ champ: 'cases_forcees.bail.loyer_signature.valeur', valeur: '16 464 € HT/an', source: 'Bail 2005' }]);
+  assert.equal(r.projet.cases_forcees['bail.loyer_signature'].valeur, '16 464 € HT/an');
+});

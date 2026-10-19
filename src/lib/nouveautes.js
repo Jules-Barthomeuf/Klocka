@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Le Mode appel toujours à portée dans les Listes", texte: "Dans Appels > Listes, le bouton Mode appel reste à droite des villes, même quand elles sont nombreuses, et la rangée reste en haut de l'écran quand on descend dans une longue liste.", page: "Prospection", requete: "?partie=listes" },
       { titre: "Trois raccourcis de plus sous Haka", texte: "Sur l'accueil de Haka : « Créer un projet », « Drafter un email » et « Créer un dossier Drive », à côté de la pré-analyse, de la data room, de la LOI et du dossier bancaire.", page: "Dashboard" },
       { titre: "Haka en une ou deux lignes", texte: "Paramètres > Haka > Longueur des réponses : « Une ou deux lignes » et Haka ne donne que la réponse, sans liste ni explication.", page: "Personnalisation" },
       { titre: "Le document joint se voit dans le chat", texte: "Un PDF ou une image joints à un message apparaissent en vignette au-dessus de votre question, avec leur type.", page: "Dashboard" },

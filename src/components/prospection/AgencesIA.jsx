@@ -236,13 +236,15 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
   const surRelances = !!relances && ouverte === RELANCES;
   const active = surRelances ? RELANCES : ouverte && listes.some((l) => l.id === ouverte) ? ouverte : listes[0]?.id || null;
   if (isLoading) return <Chargement />;
-  if (!listes.length && !relances) return <div className="pb-16"><div className="flex items-end"><span aria-hidden className="w-3 flex-none" /><AjoutVille onCree={onOuvrir} /></div><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : le « + » en haut à gauche cherche une ville.</p></div>;
+  if (!listes.length && !relances) return <div className="pb-16"><div className="flex items-end"><span aria-hidden className="w-3 flex-none" /><AjoutVille onCree={onOuvrir} /><span aria-hidden className="flex-1" />{onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}</div><p className="py-12 text-center text-[14px] text-brume">Aucune liste encore : le « + » en haut à gauche cherche une ville.</p></div>;
   // Le classeur des listes du mandataire : les intercalaires en haut, l'ouvert
   // raccordé à la page à points (rail-actif), le tableau sur le rail.
   return (
     <div className="w-full pb-16">
       {supprimer.fenetre}
-      <div role="tablist" aria-label="Les listes par ville" className="flex items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Le Mode appel reste à droite, hors de la rangée qui défile : beaucoup de villes ne le cachent plus (19 oct. 2026, Jules). */}
+      <div className="sticky top-[64px] z-20 flex items-end bg-fond pt-2 max-md:top-0">
+      <div role="tablist" aria-label="Les listes par ville" className="flex min-w-0 flex-1 items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}
         <span aria-hidden className="w-3 flex-none" />
         <AjoutVille onCree={onOuvrir} />
@@ -281,6 +283,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
           );
         })}
         <span aria-hidden className="min-w-3 flex-1" />
+      </div>
         {onBasculer && <span className="ml-3 flex-none self-center pb-1"><BasculeModeAppel actif={false} onChange={onBasculer} /></span>}
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">

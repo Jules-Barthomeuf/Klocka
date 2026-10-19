@@ -1917,6 +1917,6 @@ export default function AdminProjets() {
 /** Pure : le titre de l'écran d'attente, d'après les étapes d'AK (comme Présentations). */
 function titreTravailAK(etapes = []) {
   if (etapes.some((e) => /^Retouche du projet/i.test(e))) return "Le projet se met à jour";
-  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "AK rassemble les chiffres";
-  return "AK lit votre demande";
+  if (etapes.some((e) => /Equimmox|Data-B|chiffres de la commune|INSEE|Figaro|DVF|loyer|prix/i.test(e))) return "Haka rassemble les chiffres";
+  return "Haka lit votre demande";
 }

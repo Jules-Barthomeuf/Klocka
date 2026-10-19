@@ -32,7 +32,7 @@ export function useEtapesVives() {
 }
 
 /** La chaîne pendant la lecture : le titre au-dessus, les étapes dessous. */
-export function ChaineEtapes({ etapes, titre = "AK lit l'appel", attente = "Je lis l'appel" }) {
+export function ChaineEtapes({ etapes, titre = "Haka lit l'appel", attente = "Je lis l'appel" }) {
   const liste = etapes.length ? etapes : [attente];
   return (
     <div className="flex flex-col gap-5 rounded-[20px] border border-bord-doux bg-transparent px-7 py-8 max-md:px-5">

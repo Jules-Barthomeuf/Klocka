@@ -474,7 +474,7 @@ export default function RappelEntrant() {
           </div>
         )}
 
-        {ecran === "transcription" && <ChaineEtapes etapes={["Je termine la transcription et je cherche qui a appelé"]} titre="AK lit l'appel" />}
+        {ecran === "transcription" && <ChaineEtapes etapes={["Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}
         {ecran === "identification" && rappel && (

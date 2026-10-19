@@ -1296,7 +1296,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* L'écran de raisonnement (9 oct. 2026) : le raisonnement seul, au milieu, sur le fond des listes ; pas de transcription. */}
             {ecran === "analyse" && a && (
               <div className="mx-auto w-full max-w-[640px] py-6 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
-                <ChaineEtapes etapes={chaine.etapes} titre={`AK lit l'appel · ${a.nom}`} />
+                <ChaineEtapes etapes={chaine.etapes} titre={`Haka lit l'appel · ${a.nom}`} />
               </div>
             )}
 

@@ -222,7 +222,7 @@ function VueSequence({ id, onEmail, onSupprimee }) {
         const panneau = (
           <div className="flex h-full w-[400px] max-w-full flex-col border-l border-trait bg-fond max-md:w-full max-md:border-l-0">
             <div className="flex items-center justify-between border-b border-trait px-4 py-2.5 max-md:pt-[calc(10px+env(safe-area-inset-top))]">
-              <span className="inline-flex items-center gap-2 text-[13.5px] text-encre"><Sparkles className="h-4 w-4 text-menthe" />AK écrit avec vous</span>
+              <span className="inline-flex items-center gap-2 text-[13.5px] text-encre"><Sparkles className="h-4 w-4 text-menthe" />Haka écrit avec vous</span>
               <button type="button" onClick={() => setAk(false)} aria-label="Replier" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:h-10 max-md:w-10"><X className="h-4 w-4" /></button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">

@@ -439,7 +439,7 @@ function Atelier({ id: id0 = null, mailId: mail0 = null, onFermer }) {
           {maj && id ? (
             <MiseAJourDocument surtitre="Mise à jour de la newsletter" titre="La newsletter s'adapte" etapes={travail?.etapes || []} enCours={enCours} />
           ) : maj ? (
-            <MiseAJourDocument surtitre="Nouvelle newsletter" titre="AK prépare les mails" etapes={travail?.etapes || []} enCours={enCours} />
+            <MiseAJourDocument surtitre="Nouvelle newsletter" titre="Haka prépare les mails" etapes={travail?.etapes || []} enCours={enCours} />
           ) : mail ? (
             <MailOuvert n={mail.n} mail={mail.n.mails.find((x) => x.id === mail.mailId)} index={mail.n.mails.findIndex((x) => x.id === mail.mailId)} avecAK={false}
               onFermer={fermerMail}

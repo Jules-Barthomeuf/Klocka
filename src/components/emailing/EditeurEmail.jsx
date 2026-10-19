@@ -685,7 +685,7 @@ function PanneauAK({ email, bloc, onBloc, onObjet, onFermer }) {
   const texteDuBloc = bloc ? (bloc.type === "colonnes" ? `${bloc.gauche}\n\n${bloc.droite}` : bloc.texte) : "";
   const appeler = async (cle, chemin, corps, apres) => {
     setEnCours(cle);
-    try { apres(await req("POST", `/ia/${chemin}`, corps)); } catch (e) { toast.error(e?.message || "AK n'a pas pu répondre"); } finally { setEnCours(null); }
+    try { apres(await req("POST", `/ia/${chemin}`, corps)); } catch (e) { toast.error(e?.message || "Haka n'a pas pu répondre"); } finally { setEnCours(null); }
   };
   const action = (cle, mot, corps) => (
     <button type="button" disabled={!texteDuBloc || !!enCours} onClick={() => appeler(cle, "retoucher", { texte: texteDuBloc, ...corps }, (r) => setProposition(r.texte))} className={`${bouton} h-8 text-[12.5px]`}>

@@ -79,19 +79,20 @@ export default function ChronologieBien({ project, friseLue = null }) {
     <Carte grille={false} className="p-7 max-md:p-5">
       <TitreCarte titre="Chronologie" sous="L'histoire des murs et du locataire, puis ce qui attend le bail" />
 
-      {/* Bureau : une frise horizontale, qui défile si elle déborde. */}
+      {/* Bureau : une frise horizontale, qui défile si elle déborde. Les colonnes s'étirent sur toute la largeur ; la
+          dernière garde ses 230 px, et la ligne s'arrête à son point : pas de blanc après la fin du bail (19 oct. 2026, Jules). */}
       <div className="mt-6 overflow-x-auto pb-2 max-md:hidden [scrollbar-width:thin]">
-        <div className="relative flex min-w-max items-start gap-0">
-          <span className="absolute left-0 right-0 top-[15.5px] h-px bg-encre" />
+        <div className="relative flex w-full min-w-max items-start gap-0">
+          <span className={`absolute left-0 top-[15.5px] h-px bg-encre ${apres.length ? "right-[222px]" : "right-0"}`} />
           {avant.map((e) => (
-            <div key={e.cle} className="flex w-[230px] flex-none flex-col gap-4 pr-6">
+            <div key={e.cle} className="flex w-[230px] flex-[1_0_auto] flex-col gap-4 pr-6">
               <div className="flex h-8 items-center"><Point e={e} /></div>
               <Evenement e={e} />
             </div>
           ))}
-          <div className="flex flex-none flex-col gap-4 pr-6"><div className="flex h-8 items-center"><Aujourdhui /></div></div>
-          {apres.map((e) => (
-            <div key={e.cle} className="flex w-[230px] flex-none flex-col gap-4 pr-6">
+          <div className={`flex flex-none flex-col gap-4 ${apres.length ? "pr-6" : ""}`}><div className="flex h-8 items-center"><Aujourdhui /></div></div>
+          {apres.map((e, i) => (
+            <div key={e.cle} className={`flex w-[230px] flex-col gap-4 pr-6 ${i === apres.length - 1 ? "flex-none" : "flex-[1_0_auto]"}`}>
               <div className="flex h-8 items-center"><Point e={e} /></div>
               <Evenement e={e} />
             </div>

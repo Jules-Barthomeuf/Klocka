@@ -460,7 +460,7 @@ export default function Analyse() {
               {analyserFiche.isPending ? (
                 <p key="analyse" className="k-entree m-0 inline-flex flex-1 items-center gap-2.5 text-[14px]" role="status">
                   <PenseeIA etat="working" taille={22} />
-                  <span className="k-scintille">AK analyse la fiche…</span>
+                  <span className="k-scintille">Haka analyse la fiche…</span>
                 </p>
               ) : (
                 <p key="repos" className="k-entree m-0 flex-1 text-[14px] text-ardoise">Les fiches reçues par mail sont triées par AK. Glisse une fiche n'importe où pour l'ajouter.</p>

@@ -79,7 +79,7 @@ function Synthese({ s, peut }) {
           {faire.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{s ? "Refaire la synthèse" : "Faire la synthèse"}
         </button>
       </div>
-      {!s ? <p className="m-0 text-[13px] text-brume">{peut ? "AK lit toutes les réponses et en tire ce qui revient et ce qu'il faut changer dans le module d'appel." : "Aucune réponse à lire encore : la synthèse viendra avec les premières réponses."}</p> : (
+      {!s ? <p className="m-0 text-[13px] text-brume">{peut ? "Haka lit toutes les réponses et en tire ce qui revient et ce qu'il faut changer dans le module d'appel." : "Aucune réponse à lire encore : la synthèse viendra avec les premières réponses."}</p> : (
         <>
           <p className="m-0 mb-3 text-[12px] text-brume">Faite le {quand(s.genere_le)} sur {s.n_reponses} réponse{s.n_reponses > 1 ? "s" : ""}{s.a_jour ? "" : " · de nouvelles réponses sont arrivées depuis"}.</p>
           <div className="grid grid-cols-2 gap-6 max-md:grid-cols-1">

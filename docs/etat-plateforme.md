@@ -6,15 +6,15 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-16 personnes, 2 696 pages ouvertes, 3 demandes à l'assistant, 138 actions exécutées.
+16 personnes, 2 720 pages ouvertes, 3 demandes à l'assistant, 138 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 228 | 3 | 48 | 19/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 260 | 3 | 48 | 19/10/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
-| jules.btmf@gmail.com (équipe) | 111 | 0 | 0 | 21/09/2026 |
+| jules.btmf@gmail.com (équipe) | 105 | 0 | 0 | 21/09/2026 |
 | test.mandataire@kpartners.fr | 101 | 0 | 0 | 10/10/2026 |
-| admin@klocka.local (équipe) | 59 | 0 | 0 | 11/10/2026 |
+| admin@klocka.local (équipe) | 57 | 0 | 0 | 11/10/2026 |
 | alexis.p@klocka.immo (équipe) | 38 | 0 | 0 | 28/09/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
 | maxime.p@klocka.immo | 2 | 0 | 0 | 25/09/2026 |
@@ -27,11 +27,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 426 (16 %)
-- **Dashboard** — 358 (13 %)
+- **Analyse** — 440 (16 %)
+- **Dashboard** — 361 (13 %)
 - **Prospection** — 208 (8 %)
-- **AdminProjets** — 184 (7 %)
-- **Personnalisation** — 165 (6 %)
+- **AdminProjets** — 187 (7 %)
+- **Personnalisation** — 176 (6 %)
 - **Emailing** — 140 (5 %)
 - **MandataireProspection** — 102 (4 %)
 - **MandataireEstimation** — 77 (3 %)
@@ -39,11 +39,11 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **ProjetDetail** — 69 (3 %)
 - **MandataireDossier** — 68 (3 %)
 - **AdminPresentations** — 57 (2 %)
-- Le reste, sous 2 % : KData, ALX, MandataireMandat, Home, AdminMandataires, OffMarket, ConversationsMandataires, Cerveau, Monitoring, AdminClients, Relances, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, KVacance, KZoning, FichesCommerciales, AdminSuggestions, Semaine, KFoncier, SuiviAppels, ALXAtelier, SimulateurPublic, KEstimation, Agents, AdminLeadMagnets, MesProjets, MonAssistant, KExpertise, AdminUtilisateurs, KProspective, Validations, MandataireMarche, Vision, FeuilleDeRoute, MandataireProjets, ALXCible, ValeurLocative, Automatismes, SuiviAudience, CoutsIA, AdminEquipe, SuiviMandataires, KTransactions, SuiviReunion, SuiviTesteur, Comparateur, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources, analyse
+- Le reste, sous 2 % : KData, ALX, MandataireMandat, Home, AdminMandataires, OffMarket, ConversationsMandataires, Cerveau, Monitoring, AdminClients, Relances, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, KVacance, KZoning, FichesCommerciales, AdminSuggestions, Semaine, KFoncier, SuiviAppels, ALXAtelier, SimulateurPublic, KEstimation, Agents, MesProjets, MonAssistant, AdminLeadMagnets, KExpertise, AdminUtilisateurs, KProspective, Validations, MandataireMarche, Vision, MandataireProjets, ALXCible, ValeurLocative, Automatismes, SuiviAudience, CoutsIA, AdminEquipe, SuiviMandataires, FeuilleDeRoute, SuiviReunion, SuiviTesteur, Comparateur, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources, analyse, KTransactions
 
 ## Ce que l'IA coûte
 
-39,16 € sur la période, 1 505 appels, 9 346 k jetons. 38 % part en tâche de fond, sans que personne clique. 54 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+39,17 € sur la période, 1 507 appels, 9 348 k jetons. 38 % part en tâche de fond, sans que personne clique. 54 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -57,7 +57,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 | Extraire un document déposé | 0,03 € par document | 12 | 0,88 € | 36 s |
 | Lire une pièce du dossier | 0,05 € par document | 9 | 0,63 € | 44 s |
 | Demander quelque chose à l'assistant | 0,11 € par demande | 3 | 0,38 € | 12 s |
-| Analyser une fiche commerciale | 0,03 € par fiche | 9 | 0,32 € | 12 s |
+| Analyser une fiche commerciale | 0,03 € par fiche | 10 | 0,33 € | 11 s |
 | Éprouver AK | 0,01 € par essai | 13 | 0,29 € | 8 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "L'usage de la plateforme, personne par personne", texte: "Suivi > Usage : cinq chiffres et leurs courbes (temps passé, personnes, connexions, durée moyenne, pages), le temps par page et l'heure de la semaine, puis un tableau par personne. Un clic sur une ligne montre ses sessions, page par page, avec le temps passé sur chacune.", page: "Monitoring" },
       { titre: "K-Vacance, la carte des signaux", texte: "K-Vacance reprend les Signaux de vacance : sur une carte, ce qui annonce qu'un local va se libérer, avec le taux de vacance de la zone, de la rue et de la commune. Il n'y a plus qu'une entrée dans les outils.", page: "KVacance" },
     ],
   },

@@ -67,7 +67,7 @@ export function Legende({ items }) {
   );
 }
 
-function Bulle({ titre, lignes }) {
+export function Bulle({ titre, lignes }) {
   return (
     <div className="min-w-[150px] rounded-[10px] border border-bord bg-surface-pleine px-3 py-2 text-[12px] shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
       <p className="m-0 mb-1 text-craie">{titre}</p>
@@ -81,7 +81,7 @@ function Bulle({ titre, lignes }) {
   );
 }
 
-const axe = (c) => ({ stroke: c.trait, tick: { fill: c.ardoise, fontSize: 11 }, tickLine: false, axisLine: { stroke: c.trait } });
+export const axe = (c) => ({ stroke: c.trait, tick: { fill: c.ardoise, fontSize: 11 }, tickLine: false, axisLine: { stroke: c.trait } });
 
 /**
  * La couleur de chaque personne : son rang dans l'équipe triée par adresse,

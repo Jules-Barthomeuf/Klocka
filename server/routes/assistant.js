@@ -184,6 +184,18 @@ export function monterAssistant(app) {
     ok(res, synthese(Number(req.query.jours) || 30));
   }));
 
+  // L'usage par personne et par session (19 oct. 2026), puis les sessions d'une personne, page par page.
+  app.get('/api/monitoring/usage', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+    const jours = Math.min(Math.max(Number(req.query.jours) || 30, 1), 365);
+    ok(res, (await import('../usage-sessions.js')).usage({ jours }));
+  }));
+  app.get('/api/monitoring/usage/sessions', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: 'Réservé aux administrateurs.' });
+    if (!req.query.email) return res.status(400).json({ error: 'Personne manquante.' });
+    ok(res, (await import('../usage-sessions.js')).sessionsDe({ email: String(req.query.email), limite: Math.min(Number(req.query.limite) || 60, 300) }));
+  }));
+
   // L'historique complet des échanges avec l'assistant.
   app.get('/api/monitoring/requetes', wrap(async (req, res) => {
     const user = currentUser(req);

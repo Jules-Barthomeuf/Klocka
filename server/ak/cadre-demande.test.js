@@ -36,6 +36,9 @@ test('une compétence choisie : sa méthode fait foi, et les sources éteintes s
 
 test('Paramètres > Haka : la longueur et les tableaux de la personne entrent dans le cadre', () => {
   assert.match(cadreDemande({ haka: { longueur: 'tres_courte', tableaux: 'jamais' } }), /TRÈS COURTES[\s\S]*PAS DE TABLEAU/);
+  // Une ou deux lignes (19 oct. 2026) : la consigne la plus courte, et elle seule.
+  assert.match(cadreDemande({ haka: { longueur: 'deux_lignes' } }), /UNE OU DEUX LIGNES AU PLUS/);
+  assert.doesNotMatch(cadreDemande({ haka: { longueur: 'deux_lignes' } }), /TRÈS COURTES/);
   assert.match(cadreDemande({ haka: { longueur: 'detaillee' } }), /PLUS DÉTAILLÉES/);
   // « Courtes » est la consigne de base : rien à ajouter.
   assert.equal(cadreDemande({ haka: { longueur: 'courte', tableaux: 'utiles' } }), '');

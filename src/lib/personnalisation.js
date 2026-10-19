@@ -50,7 +50,7 @@ export const DEFAUT = Object.freeze({
   points_actions: "oui", // les points dans la fenêtre des actions proposées (8 oct. 2026) : oui | non
   agent_testeur: "oui", // le bouton « Tester cette page avec l'agent », pour un super admin (12 oct. 2026) : oui | non
   personnage_haka: "haka-1", // le portrait de Haka dans les chats (18 oct. 2026) : une clé de PERSONNAGES_HAKA
-  haka_longueur: "courte", // la longueur des réponses de Haka (18 oct. 2026) : tres_courte | courte | detaillee
+  haka_longueur: "courte", // la longueur des réponses de Haka (18 oct. 2026) : deux_lignes (19 oct.) | tres_courte | courte | detaillee
   haka_tableaux: "utiles", // les tableaux dans ses réponses : utiles | jamais
 });
 
@@ -71,7 +71,7 @@ export const OPTIONS = {
   grille: [["panneaux", "Panneaux et fenêtres"], ["listes", "Listes et mode appel"], ["barre", "Barre latérale"], ["fond", "Fond des pages"]],
   points_actions: [["oui", "Avec des points"], ["non", "Sans points"]],
   agent_testeur: [["oui", "Affiché"], ["non", "Masqué"]],
-  haka_longueur: [["tres_courte", "Très courtes"], ["courte", "Courtes"], ["detaillee", "Détaillées"]],
+  haka_longueur: [["deux_lignes", "Une ou deux lignes"], ["tres_courte", "Très courtes"], ["courte", "Courtes"], ["detaillee", "Détaillées"]],
   haka_tableaux: [["utiles", "Quand ils aident"], ["jamais", "Jamais"]],
   personnage_haka: [["haka-1", "Boucles"], ["haka-2", "Barbe"], ["haka-3", "Chignon"], ["haka-4", "Coupe courte"], ["haka-5", "Lunettes"], ["haka-6", "Cravate"]],
 };

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Haka en une ou deux lignes", texte: "Paramètres > Haka > Longueur des réponses : « Une ou deux lignes » et Haka ne donne que la réponse, sans liste ni explication.", page: "Personnalisation" },
       { titre: "Le document joint se voit dans le chat", texte: "Un PDF ou une image joints à un message apparaissent en vignette au-dessus de votre question, avec leur type.", page: "Dashboard" },
       { titre: "Appel rapide, et raconter un échange à Haka", texte: "L'icône d'appel en haut à droite propose « Il me rappelle » et « Appel rapide » (vous appelez un agent pour un dossier, un point) : le même écran, la même suite, la fiche agent et l'Intelligence se mettent à jour. Un agent vous a écrit ou parlé sans téléphone ? Racontez-le à Haka dans le chat : l'écran de l'appel s'ouvre sur les actions à valider.", page: "Dashboard" },
       { titre: "La fiche se corrige d'un bloc", texte: "Dans la pré-analyse, modifiez tous les champs que vous voulez : ils s'affichent tout de suite, marqués « modifié ». Une barre en bas compte les changements ; « OK, refaire la pré-analyse » relance tout en une fois, « Annuler » efface le brouillon.", page: "Analyse" },

@@ -19,6 +19,9 @@ test('les sources cochées bornent la recherche ; produire demande un livrable',
 
 test('répondre : une réponse, pas de document', () => {
   assert.match(cadreDemande({ sortie: 'repondre' }), /Ne crée ni ne modifie de document/);
+  // Un programme dit à Haka : une réponse et une question, rien de lancé (19 oct. 2026).
+  assert.match(cadreDemande({ sortie: 'repondre' }), /ne lance rien.*demande ce qu'elle veut faire maintenant.*rappel/s);
+  assert.doesNotMatch(cadreDemande({ sortie: 'produire' }), /ne lance rien/);
   assert.equal(cadreDemande({ sources: ['a\nb'.repeat(1)] }).includes('\nb'), false);
 });
 

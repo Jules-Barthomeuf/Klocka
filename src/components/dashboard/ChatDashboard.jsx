@@ -1578,7 +1578,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     // Aussi pendant la relecture finale (« finalisation ») : le texte propre ne
     // doit pas revenir remplir le champ après l'envoi.
     if (ecoute || finalisation) { envoiFait.current = true; if (ecoute) arreter(); }
-    if (mode === "rappel" && !fichier && !mandataire) {
+    // « Rappelle-moi demain de… » dit dans le fil (19 oct. 2026) : un rappel, comme en mode Rappel.
+    const ditUnRappel = !mode && espace === "admin" && /^\s*(rappelle[- ]moi|(mets|pose)[- ](moi )?un rappel)\b/i.test(t);
+    if ((mode === "rappel" || ditUnRappel) && !fichier && !mandataire) {
       if (!t) return;
       annoncer("rappel");
       pousser({ role: "user", contenu: t });

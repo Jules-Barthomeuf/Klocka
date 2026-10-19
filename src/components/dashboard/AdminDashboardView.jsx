@@ -7,7 +7,7 @@ import BoiteMail from "@/components/dashboard/BoiteMail";
 import ObjectionsAResoudre from "@/components/dashboard/ObjectionsAResoudre";
 import QuestionsDAK from "@/components/dashboard/QuestionsDAK";
 import RaccourcisHaka from "@/components/haka/RaccourcisHaka";
-import LivrableAccueil from "@/components/haka/LivrableAccueil";
+import LivrableAccueil, { usePropositionsNees } from "@/components/haka/LivrableAccueil";
 import { Depliant, PanneauSources, PastilleSource } from "@/components/haka/ReglagesDemande";
 import { useCompteHaka } from "@/components/haka/useFileHaka";
 import PastilleAgenda from "@/components/dashboard/PastilleAgenda";
@@ -20,8 +20,9 @@ import { base44 } from "@/api/base44Client";
 // haut en bas : l'Agenda et les boîtes, le salut, la saisie (avec le dossier
 // en contexte), les raccourcis, les cartes de compétences, puis « À valider »
 // et « Fait par Haka ». Aucun chiffre de pilotage : ils ont leurs pages.
-// Une demande envoyée, l'écran se scinde : Haka à gauche, le livrable à
-// droite, comme Offres et Présentations.
+// Une demande envoyée (19 oct. 2026, Jules) : la barre de navigation reste, le fond Halo aussi, et le chat
+// prend la mise en page du dossier en mode IA, au milieu. L'écran ne se scinde (Haka à gauche, le livrable à
+// droite) que quand Haka a produit quelque chose : une carte qui s'ouvre, un dossier, une proposition.
 
 const CLE_LARGEUR = "klocka.accueil.largeur-chat";
 const LARGEUR_DEFAUT = 420;
@@ -100,14 +101,17 @@ export default function AdminDashboardView() {
     }).catch(() => {});
   }, [search]);
 
-  // L'écran scindé : la barre latérale s'efface, chaque colonne défile seule.
-  const scinde = large && conversation;
+  // En conversation, la page ne défile plus : le chat (et le livrable) défilent chacun dans sa colonne ; la barre
+  // latérale reste. L'écran se scinde seulement quand quelque chose a été produit.
+  const nees = usePropositionsNees(conversation ? depuis : null, null);
+  const enConversation = large && conversation;
+  const scinde = enConversation && (livrables.length > 0 || nees.length > 0);
   useEffect(() => {
-    if (!scinde) return undefined;
-    document.documentElement.classList.add("k-sans-barre");
+    if (!enConversation) return undefined;
+    document.documentElement.classList.add("k-sans-defilement");
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre");
-  }, [scinde]);
+    return () => document.documentElement.classList.remove("k-sans-defilement");
+  }, [enConversation]);
   const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
   const [tire, setTire] = useState(false);
   const derniere = useRef(largeurChat);
@@ -127,12 +131,12 @@ export default function AdminDashboardView() {
   const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
 
   return (
-    <div className={scinde ? `k-page-presentation relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
-      style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
+    <div className={enConversation ? `k-page-presentation k-accueil-ia relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : "relative min-h-screen md:h-[100dvh] md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
+      style={enConversation ? { gridTemplateColumns: scinde ? `${largeurChat}px minmax(0,1fr)` : "minmax(0,1fr)" } : undefined}>
       {/* L'Agenda, tout à gauche de la page (17 oct. 2026, Jules : « plus à gauche »), hors de la colonne centrée. */}
       {!conversation && <div className="absolute left-5 top-4 z-10 md:left-6"><PastilleAgenda /></div>}
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
-      <div className={scinde ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pt-4 max-md:pb-14"}`}>
+      <div className={scinde ? "k-colonne-chat h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : enConversation ? "k-colonne-chat mx-auto h-[100dvh] min-h-0 w-full max-w-[860px] overflow-hidden px-5" : `mx-auto max-w-[1100px] px-5 md:px-8 ${conversation ? "" : "pt-4 max-md:pb-14"}`}>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
           {/* Les boîtes d'envoi, en haut à droite : dans le coin sur ordinateur, à droite de l'Agenda au téléphone. */}
           {!conversation && (
@@ -149,7 +153,7 @@ export default function AdminDashboardView() {
             conversation={conversation}
             historique={historique ? <HistoriqueColonne /> : null}
             chat={<ChatDashboard onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} onTravail={surTravail}
-              barreApercu={scinde} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Haka" reglages={reglages}
+              barreApercu={enConversation} sansSkills choixDossier onDossier={setDossier} libelleAccueil="Haka" reglages={reglages}
               placeholderAccueil={hakaActif ? "Collez une note, déposez une fiche, ou demandez à Haka…" : null} />}
             apresChat={(
               <>

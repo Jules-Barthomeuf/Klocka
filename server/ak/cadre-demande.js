@@ -25,6 +25,9 @@ export function cadreDemande(contexte, { competence = null } = {}) {
     t += '\n\nLA PERSONNE VEUT UN LIVRABLE : produis-le avec l\'outil qui le crée (dossier analysé, LOI, page plateforme, présentation, mail préparé…), pas seulement une réponse. Dis en une phrase ce que tu as produit et où il se trouve ; rien ne part vers l\'extérieur sans sa validation.';
   } else if (sortie === 'repondre') {
     t += '\n\nLA PERSONNE VEUT UNE RÉPONSE DANS LA CONVERSATION, avec ses sources. Ne crée ni ne modifie de document, sauf si elle le demande expressément.';
+    // Un programme dit à Haka (19 oct. 2026, Jules : « aujourd'hui je dois analyser et créer le projet de Lorient
+    // MACSF puis décider à qui le proposer ») : une réponse dans le chat, pas un travail lancé.
+    t += '\n\nSI LA PERSONNE DIT CE QU\'ELLE A À FAIRE (« aujourd\'hui je dois… », « il faut que je… ») : ne lance rien. Reprends ses étapes en une courte liste, avec ce que tu sais déjà de chacune (le dossier existe-t-il, où il en est), puis demande ce qu\'elle veut faire maintenant : commencer par l\'une des étapes avec toi, ou poser un rappel (elle écrit « rappelle-moi … » en disant quand, et le rappel se pose).';
   }
   // Haka à la façon de la personne (Paramètres > Haka, 18 oct. 2026).
   const longueur = contexte?.haka?.longueur;

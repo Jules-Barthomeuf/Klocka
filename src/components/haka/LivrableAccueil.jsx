@@ -43,20 +43,26 @@ function Livrable({ l }) {
   );
 }
 
+/** Ce que Haka a mis dans « À valider » depuis `depuis` (le début de la conversation), ou sur le dossier choisi. */
+export function usePropositionsNees(depuis = null, dossier = null) {
+  const actif = !!useCompteHaka().data?.actif;
+  const pourMoi = usePropositions("moi");
+  const commun = usePropositions("commun");
+  if (!actif) return [];
+  return [...(pourMoi.data?.propositions || []), ...(commun.data?.propositions || [])]
+    .filter((p, i, t) => t.findIndex((x) => x.id === p.id) === i)
+    .filter((p) => (depuis && String(p.cree_le || "") >= depuis) || (dossier && p.dossier === dossier.deal_id));
+}
+
 /**
  * @param {{ livrables: Array<{titre: string, detail?: string, lien?: string, etat?: string, action?: string}>, dossier: {deal_id: string, titre?: string}|null, depuis: string|null, travail: boolean }} props
  */
 export default function LivrableAccueil({ livrables = [], dossier = null, depuis = null, travail = false }) {
   const user = useUser();
   const moi = String(user?.email || "").toLowerCase();
-  const actif = !!useCompteHaka().data?.actif;
-  const pourMoi = usePropositions("moi");
-  const commun = usePropositions("commun");
   const gestes = useGestesHaka();
   // Ce qui est né pendant cette conversation, ou porte sur le dossier choisi.
-  const nees = actif ? [...(pourMoi.data?.propositions || []), ...(commun.data?.propositions || [])]
-    .filter((p, i, t) => t.findIndex((x) => x.id === p.id) === i)
-    .filter((p) => (depuis && String(p.cree_le || "") >= depuis) || (dossier && p.dossier === dossier.deal_id)) : [];
+  const nees = usePropositionsNees(depuis, dossier);
   const vide = !livrables.length && !nees.length && !dossier;
 
   return (

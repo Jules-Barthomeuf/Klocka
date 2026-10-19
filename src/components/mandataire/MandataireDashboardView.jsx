@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import PlanDeTravail from "@/components/dashboard/PlanDeTravail";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
-import JourMandataire from "./JourMandataire";
 
 // Haka, l'accueil du mandataire K Partners (19 oct. 2026, Jules : « mets Haka comme dans l'admin ») : la mise en
 // page de l'Accueil de l'équipe (le salut centré, la saisie au milieu, puis ce qui attend), avec le chat du
 // mandataire derrière. Son agent garde ses outils à lui (server/mandataire.js) : jamais l'assistant de l'équipe,
-// c'est ce qui le cloisonne. Dessous, ses rappels et ce qu'il a à faire.
+// c'est ce qui le cloisonne. Rien dessous : ni rappels, ni « À faire ».
 
 export default function MandataireDashboardView() {
   const [conversation, setConversation] = useState(false);
@@ -22,7 +21,8 @@ export default function MandataireDashboardView() {
             chat={<ChatDashboard espace="mandataire" onConversation={setConversation} onHistorique={setHistorique} libelleAccueil="Haka" sansSkills
               placeholderAccueil="Notez un appel, une relance, un rendez-vous, ou demandez à Haka…" />}
             apresChat={<div />}
-            bas={<div className="mt-2"><JourMandataire /></div>}
+            // Ni rappels ni « À faire » sous la saisie (19 oct. 2026, Jules : « enlève tout ça »). Un élément vide, pas null : sans lui, le plan de travail remettrait « Ce qui vous attend ».
+            bas={<></>}
           />
         </motion.div>
       </div>

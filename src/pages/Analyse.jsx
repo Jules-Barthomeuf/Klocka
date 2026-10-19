@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
@@ -52,6 +53,7 @@ export default function Analyse() {
   const [nomDossier, setNomDossier] = useState("");
   const [adminsChoisis, setAdminsChoisis] = useState([]);
   const [menuCarte, setMenuCarte] = useState(null); // deal_id du menu ⋯ ouvert
+  const [posMenu, setPosMenu] = useState(null); // position du bouton ⋯ ouvert (le menu est posé en fixe sur la page)
   // Changer les responsables d'un dossier : le dossier visé et la sélection en cours.
   const [proprio, setProprio] = useState(null); // { deal_id, titre, choix: [] }
 
@@ -198,17 +200,19 @@ export default function Analyse() {
   const MenuDossier = ({ d, bouton, place }) => {
     const ouvert = menuCarte === d.deal_id;
     const zone = useFermerAuClicAilleurs(ouvert, () => setMenuCarte(null));
+    // Le menu est posé sur la page (portail, position fixe) : aucune carte voisine ni aucun cadre ne le recouvre ni ne le coupe (19 oct. 2026, Jules).
+    const r = ouvert ? posMenu : null;
     return (
     <div ref={zone} className="contents">
     <button
-      onClick={(e) => { e.stopPropagation(); setMenuCarte(ouvert ? null : d.deal_id); }}
+      onClick={(e) => { e.stopPropagation(); const b = e.currentTarget.getBoundingClientRect(); setPosMenu({ bottom: b.bottom, right: b.right }); setMenuCarte(ouvert ? null : d.deal_id); }}
       className={`absolute ${bouton} text-ardoise hover:text-encre transition-colors max-md:-m-2.5 max-md:p-2.5`}
       aria-label="Actions" title="Actions" style={{ background: "transparent" }}
     >
       <MoreHorizontal className="w-4 h-4" />
     </button>
-    {ouvert && (
-      <div className={`absolute ${place} z-20 rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]`}>
+    {ouvert && r && createPortal(
+      <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "fixed", top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) }} className="z-[1000] rounded-[14px] border border-trait bg-surface-pleine py-1.5 min-w-[190px] shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
         <button
           onClick={() => {
             setMenuCarte(null);
@@ -261,7 +265,8 @@ export default function Analyse() {
             <Trash2 className="w-3.5 h-3.5" /> Supprimer
           </button>
         )}
-      </div>
+      </div>,
+      document.body
     )}
     </div>
     );

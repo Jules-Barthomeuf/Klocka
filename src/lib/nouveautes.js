@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Le menu des trois points passe au premier plan", texte: "Dans la liste des dossiers, le menu des trois points s'ouvre par-dessus la page : plus aucune carte voisine ne le cache ni ne le coupe.", page: "Analyse" },
       { titre: "L'icône Appel ouvre deux choix", texte: "En haut à droite, survolez l'icône d'appel : « Il me rappelle » enregistre un appel entrant, « Démarrer les appels » ouvre la Prospection en mode appel.", page: "Prospection" },
       { titre: "Haka répond au milieu, la navigation reste", texte: "Une demande à Haka garde le menu à gauche et le chat au centre ; la colonne de droite n'apparaît que si Haka a produit quelque chose. Dites-lui votre programme du jour : il reprend les étapes et demande par quoi commencer. « Rappelle-moi … » pose un rappel.", page: "Dashboard" },
       { titre: "Une colonne Notes dans les tableaux du dossier", texte: "Bien, Bail, Quittances, Copropriété, Diagnostics et les croisements de la Synthèse ont une colonne Notes : survolez une ligne, « Ajouter », écrivez une note pour l'équipe.", page: "Dossiers" },

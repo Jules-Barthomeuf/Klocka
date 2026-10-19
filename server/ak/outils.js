@@ -439,6 +439,41 @@ export function ordonnerMails(mails) {
   return [...(mails || [])].sort((a, b) => (pdfs(b) > 0) - (pdfs(a) > 0) || String(a.date || '').localeCompare(String(b.date || '')));
 }
 
+const sansAccents = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const MOTS_VOIE = new Set(['rue', 'avenue', 'av', 'bd', 'boulevard', 'place', 'pl', 'cours', 'allee', 'chemin', 'quai', 'impasse', 'route', 'rte', 'square', 'passage', 'du', 'de', 'des', 'la', 'le', 'les', 'd', 'l', 'bis', 'ter']);
+const FORMES = new Set(['sas', 'sasu', 'sarl', 'eurl', 'sa', 'sci', 'snc', 'la', 'le', 'les', 'societe', 'ste']);
+
+/** Pure : ce qui nomme un bien dans un mail (le nom de sa rue, son enseigne, le début du nom du dossier). */
+export function marqueursDuBien(deal) {
+  const l = deal?.lots?.[0]?.lot || {};
+  const a = val(l.adresse);
+  const rue = typeof a === 'object' && a ? a.rue : typeof a === 'string' ? a.split(',')[0] : '';
+  const voie = sansAccents(rue).split(' ').filter((m) => m && !/^\d+[a-z]?$/.test(m) && !MOTS_VOIE.has(m)).join(' ');
+  const enseigne = sansAccents(val(l.locataire_nom)).split(' ').filter((m) => m && !FORMES.has(m)).join(' ');
+  const nom = sansAccents(String(deal?.nom || deal?.titre || '').split(/\s+-\s+|\s+—\s+/)[0]);
+  return [...new Set([voie, enseigne, nom].filter((m) => m.length >= 4))];
+}
+
+/**
+ * Pure : un mail de plus va-t-il dans le dossier ? (19 oct. 2026, Jules : « tous les documents du projet MACSF »
+ * avait pris toutes les fiches de Sébastien Robic, celles des autres adresses comprises.) Il y va s'il est déjà
+ * rattaché à ce dossier, s'il est du même fil que le premier mail, ou s'il nomme le bien (sa rue, son enseigne,
+ * le nom du dossier). Il n'y va pas s'il est rattaché à un autre dossier, ou s'il porte une autre fiche sans
+ * nommer le bien. Un mail de compléments qui ne nomme rien (« voici le bail ») reste accepté.
+ * @returns {{ garde: boolean, raison: string|null }}
+ */
+export function garderPourLeBien(mail, { premier = null, dealId = null, deal = null, dossierExiste = () => false, aUneFiche = () => false } = {}) {
+  const siens = [mail?.deal_id, ...(mail?.deal_ids || [])].filter(Boolean);
+  if (dealId && siens.includes(dealId)) return { garde: true, raison: null };
+  if (premier?.thread_id && mail?.thread_id === premier.thread_id) return { garde: true, raison: null };
+  const ailleurs = siens.find((id) => id !== dealId && dossierExiste(id));
+  if (ailleurs) return { garde: false, raison: 'autre_dossier', dossier: ailleurs };
+  const texte = sansAccents([mail?.objet, mail?.texte, ...(mail?.pieces_jointes || []).map((p) => p?.nom)].join(' '));
+  if (marqueursDuBien(deal).some((m) => ` ${texte} `.includes(` ${m} `))) return { garde: true, raison: null };
+  if (aUneFiche(mail)) return { garde: false, raison: 'autre_fiche' };
+  return { garde: true, raison: null };
+}
+
 /**
  * D'un ou plusieurs mails reçus, ou de pièces jointes du chat : le dossier de
  * préanalyse, son dossier Drive avec les pièces d'origine, et K-Data lancé
@@ -496,11 +531,23 @@ export async function faireTout({ mail_id = null, mail_ids = [], chemins = [], o
       // Un agent par fiche, souvent le même : chaque phrase une seule fois.
       if (!repris) for (const p of new Set((d.dossiers || [d]).map((x) => x.agent_fiche?.phrase).filter(Boolean))) etapes.push(p);
     }
-    // Les pièces de tous les mails, pour le Drive ; celles des autres mails
-    // sont aussi déposées sur le dossier (bail, PV, diagnostics…).
+    // Les pièces de tous les mails du même bien, pour le Drive ; celles des autres mails sont aussi déposées sur
+    // le dossier (bail, PV, diagnostics…). Un mail d'un autre bien est laissé de côté, et c'est dit.
     const { telechargerPieceJointe } = await import('../gmail-inbox.js');
     const { deposerDocument } = await import('../deal/deposer-document.js');
-    for (const m of [premier, ...autres]) {
+    const { piecesFiche } = await import('../deal/fiches-auto.js');
+    const dealPremier = Records.findBy('Deal', 'deal_id', dealId);
+    const retenus = autres.filter((m) => {
+      const g = garderPourLeBien(m, { premier, dealId, deal: dealPremier, dossierExiste: (id) => !!Records.findBy('Deal', 'deal_id', id), aUneFiche: (x) => piecesFiche(x).length > 0 });
+      if (g.garde) return true;
+      const sujet = m.objet ? `« ${String(m.objet).slice(0, 80)} »` : `du ${String(m.date || '').slice(0, 10)}`;
+      const autre = g.dossier ? Records.findBy('Deal', 'deal_id', g.dossier) : null;
+      etapes.push(g.raison === 'autre_dossier'
+        ? `mail ${sujet} laissé de côté : il appartient au dossier « ${autre?.nom || autre?.titre || g.dossier} »`
+        : `mail ${sujet} laissé de côté : il porte une autre fiche et rien n'y nomme ce bien`);
+      return false;
+    });
+    for (const m of [premier, ...retenus]) {
       let deposees = 0;
       for (const p of m.pieces_jointes || []) {
         if (!p?.piece_id) continue;
@@ -608,6 +655,15 @@ export async function deposerMail({ mail_id, deal_id, user = null }) {
   if (!m) return { ok: false, error: 'Mail introuvable.' };
   const deal = Records.findBy('Deal', 'deal_id', deal_id);
   if (!deal) return { ok: false, error: 'Dossier introuvable.' };
+  // Le même garde-fou que « fais tout » (19 oct. 2026) : pas les pièces d'un autre bien dans ce dossier ni son Drive.
+  const { piecesFiche } = await import('../deal/fiches-auto.js');
+  const g = garderPourLeBien(m, { dealId: deal_id, deal, dossierExiste: (id) => !!Records.findBy('Deal', 'deal_id', id), aUneFiche: (x) => piecesFiche(x).length > 0 });
+  if (!g.garde) {
+    const autre = g.dossier ? Records.findBy('Deal', 'deal_id', g.dossier) : null;
+    return { ok: false, error: g.raison === 'autre_dossier'
+      ? `Ce mail appartient au dossier « ${autre?.nom || autre?.titre || g.dossier} », pas à « ${deal.nom || deal_id} » : rien n'est déposé.`
+      : `Ce mail porte une autre fiche et rien n'y nomme « ${deal.nom || deal_id} » : rien n'est déposé. Si c'est bien ce bien, la pièce se dépose depuis la page du dossier.` };
+  }
   const { telechargerPieceJointe } = await import('../gmail-inbox.js');
   const { deposerDocument } = await import('../deal/deposer-document.js');
   const { CHEMIN_UPLOADS } = await import('../db.js');

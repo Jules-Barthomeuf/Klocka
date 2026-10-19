@@ -99,7 +99,8 @@ export const MENU_ADMIN = [
  * rejoignent.
  */
 export const MENU_MANDATAIRE = [
-  { cle: "Dashboard", label: "Dashboard" },
+  // Haka, comme pour l'équipe (19 oct. 2026, Jules).
+  { cle: "Dashboard", label: "Haka" },
   { groupe: "Prospection", cle: "GroupeProspection", label: "Prospection", entrees: [{ cle: "MandataireProspection", label: "Prospection" }, { cle: "MandataireOffMarket", label: "Off-market" }] },
   { groupe: "Biens", cle: "GroupeBiens", label: "Biens", entrees: [{ cle: "MandataireEstimation", label: "Estimation" }, { cle: "MandataireMandat", label: "Mandat" }, { cle: "MandataireDossier", label: "Dossiers" }, { cle: "MandataireMarche", label: "Mise en marché" }] },
   { cle: "MandataireClients", label: "Clients" },

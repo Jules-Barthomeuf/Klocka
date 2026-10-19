@@ -56,7 +56,7 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
 test('le menu des mandataires : la structure de l’équipe, Prospection et Biens en groupes, Feedback dans Autre', async () => {
   const { menuMandataire, groupeDe } = await import('../src/lib/menu.js');
   const { principal, autre } = menuMandataire();
-  assert.deepEqual(principal.map((x) => x.label), ['Dashboard', 'Prospection', 'Biens', 'Clients', 'Projets', 'Simulateur']);
+  assert.deepEqual(principal.map((x) => x.label), ['Haka', 'Prospection', 'Biens', 'Clients', 'Projets', 'Simulateur']);
   assert.deepEqual(principal.find((x) => x.groupe === 'Biens').entrees.map((e) => e.label), ['Estimation', 'Mandat', 'Dossiers', 'Mise en marché']);
   assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);
   assert.equal(groupeDe('MandataireMandat', 'mandataire').groupe, 'Biens');

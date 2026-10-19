@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-19",
     items: [
+      { titre: "Un menu Autre réduit à Feedback", texte: "Offres, Emailing, Présentations et les autres pages rangées dans Autre ne sont plus dans le menu : il ne reste que Feedback. Les pages existent toujours, par leur adresse.", page: "AdminSuggestions" },
       { titre: "Regrouper des dossiers en un seul", texte: "Demandez à Haka « mets le disquaire et le coiffeur rue de Cheverus dans un nouveau dossier » : un dossier à plusieurs lots naît, chaque lot garde sa pré-analyse ; les deux dossiers d'origine sont archivés, rien n'est supprimé.", page: "Analyse" },
       { titre: "Le menu des trois points passe au premier plan", texte: "Dans la liste des dossiers, le menu des trois points s'ouvre par-dessus la page : plus aucune carte voisine ne le cache ni ne le coupe.", page: "Analyse" },
       { titre: "L'icône Appel ouvre deux choix", texte: "En haut à droite, survolez l'icône d'appel : « Il me rappelle » enregistre un appel entrant, « Démarrer les appels » ouvre la Prospection en mode appel.", page: "Prospection" },

@@ -25,7 +25,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
   assert.deepEqual(cles(r.autre), []);
 });
 
-test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration, le reste dans Autre", async () => {
+test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration, Feedback seul dans Autre (19 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
   assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels', 'Simulateur']);
@@ -34,11 +34,12 @@ test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administratio
   assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Suivi']]]);
   const cles = autre.map((e) => e.cle);
   for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
-  for (const dedans of ['Offres', 'ALX', 'AdminPresentations']) assert.ok(cles.includes(dedans), dedans);
+  assert.deepEqual(cles, ['AdminSuggestions'], 'Offres, Emailing, Présentations… ne sont plus dans le menu');
   // Une page masquée disparaît ; un groupe vidé aussi.
   const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'Monitoring', 'Offres']);
   assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
   assert.ok(!m.autre.some((e) => e.cle === 'Offres'));
+  assert.deepEqual(menuAdmin(['AdminSuggestions']).autre, [], 'Feedback masqué : plus rien dans Autre');
 });
 
 test('un groupe est une entrée ; une page sait son groupe', async () => {

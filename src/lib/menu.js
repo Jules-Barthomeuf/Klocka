@@ -130,7 +130,13 @@ export function menuMandataire(masques = []) {
 const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
 
 /**
- * Pure : le menu de l'équipe, ses groupes, et « Autre » (tout ce qui n'y est pas).
+ * Ce que « Autre » montre à l'équipe (19 oct. 2026, Jules : « masque Offres, Emailing, Présentations… laisse
+ * juste Feedback »). Les autres pages restent là, par leur adresse et leurs accès ; elles ne sont plus dans le menu.
+ */
+const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions"];
+
+/**
+ * Pure : le menu de l'équipe, ses groupes, et « Autre » (Feedback seulement).
  * Les pages masquées dans Paramètres disparaissent, un groupe vide aussi.
  */
 export function menuAdmin(masques = []) {
@@ -141,7 +147,7 @@ export function menuAdmin(masques = []) {
     places.add(x.cle);
     return x;
   }).filter((x) => (x.groupe ? x.entrees.length : garde(x)));
-  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => !places.has(e.cle) && garde(e));
+  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => AUTRE_VISIBLE_ADMIN.includes(e.cle) && !places.has(e.cle) && garde(e));
   return { principal, autre };
 }
 

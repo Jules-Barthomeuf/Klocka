@@ -11,6 +11,7 @@
 import { resoudreLocal } from '../socle/local.js';
 import { rechercher } from '../outils/vacance.js';
 import { tauxDeVacance } from '../outils/vacance-taux.js';
+import { FIABILITE_SIGNAUX } from './vacance-verif.js';
 
 const ATTENTE_MAX_MS = 8 * 60 * 1000;
 const SONDAGE_MS = 4000;
@@ -64,6 +65,8 @@ export async function vacanceDeLAdresse(texte, { rayon = 300, user = null } = {}
     rayon_m: base.rayon_m,
     commune: s.zone ? { nom: s.zone.nom || adresse.ville, chargee_le: s.zone.chargee_le || null } : null,
     signaux: resumerSignaux(s),
+    // Un signal n'est pas une certitude : ce que le contrôle du 19 oct. 2026 a mesuré, à redire avec le résultat.
+    fiabilite_signaux: FIABILITE_SIGNAUX,
     taux: taux ? { ...taux.taux, rues: (taux.rues || []).slice(0, 6), recense_le: taux.recense_le || null, osm: taux.osm || null, google: taux.google || null, parametres: taux.parametres || null } : null,
     taux_erreur: taux ? null : t?.error || 'Le taux de vacance ne s\'est pas calculé.',
     locaux_vides: locauxVides(taux),

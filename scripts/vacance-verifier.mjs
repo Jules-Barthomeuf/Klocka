@@ -30,6 +30,7 @@ if (commande === 'retro') {
   const r = await vacanceDeLAdresse(argument, { rayon });
   if (!r.ok) { console.error(r.error); process.exit(1); }
   const t = await tauxDeVacance({ commune: l.local.adresse.code_insee, lat: l.local.point.lat, lon: l.local.point.lon, rayon_m: rayon });
+  if (!t.ok) { console.error(`Le taux ne s'est pas calculé : ${t.error || 'erreur inconnue'}`); process.exit(1); }
   const ech = V.echantillonner(t.locaux);
   const nom = `k-vacance-${(l.local.adresse.ville || 'zone').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}`;
   fs.mkdirSync('docs/validation', { recursive: true });

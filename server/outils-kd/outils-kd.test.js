@@ -100,3 +100,13 @@ test('K-Vacance, la vérification : intervalle de Wilson, rétro-test des signau
   // 20 vacants à 80 % de précision + 280 occupés à 5 % de faux : 16 + 14 = 30 locaux vides sur 300, soit 10 % (l'outil en annonçait 6,7 %).
   assert.equal(ev.taux_corrige.taux_corrige, 10);
 });
+
+test('K-Vacance, la vérification par Google Maps : fermé, toujours ouvert, local réoccupé, introuvable', async () => {
+  const V = await import('./vacance-verif.js');
+  const etab = { denomination: 'LA PETITE BOUTIQUE BY SOPHIE SARL', adresse: '7 RUE DES HALLES 06400 CANNES' };
+  assert.equal(V.classerPlace(etab, [{ displayName: { text: 'La Petite Boutique by Sophie' }, businessStatus: 'CLOSED_PERMANENTLY', formattedAddress: '7 Rue des Halles, 06400 Cannes' }]).statut, 'ferme');
+  assert.equal(V.classerPlace(etab, [{ displayName: { text: 'La Petite Boutique' }, businessStatus: 'OPERATIONAL', formattedAddress: '7 Rue des Halles' }]).statut, 'ouvert');
+  assert.equal(V.classerPlace(etab, [{ displayName: { text: 'Pizza Napoli' }, businessStatus: 'OPERATIONAL', formattedAddress: '7 Rue des Halles, 06400 Cannes' }]).statut, 'autre_commerce');
+  assert.equal(V.classerPlace(etab, [{ displayName: { text: 'Pizza Napoli' }, businessStatus: 'OPERATIONAL', formattedAddress: '12 Avenue de Grasse, 06400 Cannes' }]).statut, 'introuvable');
+  assert.equal(V.classerPlace(etab, []).statut, 'introuvable');
+});

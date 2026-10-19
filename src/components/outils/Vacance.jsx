@@ -526,6 +526,10 @@ export default function Vacance() {
                 })}
               </tbody>
             </table>
+            {/* Un signal n'est pas une certitude (contrôle du 19 oct. 2026, voir docs/validation/k-vacance.md). */}
+            <p className="m-0 mt-3 text-[11.5px] leading-[1.55] text-brume">
+              Fiabilité mesurée : une radiation est suivie d'une fermeture au registre dans 91 % des cas ; une liquidation ou un redressement de plus de six mois n'a libéré le local que dans 44 % des cas (30 à 59 %, 41 commerces contrôlés sur Google Maps). Un signal dit où regarder, pas ce qui va se libérer.
+            </p>
           </div>
         </div>
       )}

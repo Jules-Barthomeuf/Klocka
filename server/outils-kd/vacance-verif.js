@@ -123,3 +123,57 @@ export function lireFeuille(texte) {
   const iA = idx('adresse'); const iE = idx('etat_outil'); const iC = idx('constat');
   return corps.map((c) => ({ adresse: c[iA] || '', etat_outil: (c[iE] || '').trim().toLowerCase(), constat: (c[iC] || '').trim().toLowerCase() }));
 }
+
+const norme = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const FORMES = new Set(['sas', 'sasu', 'sarl', 'eurl', 'sci', 'snc', 'sa', 'ste', 'societe', 'la', 'le', 'les', 'de', 'du', 'des', 'et', 'l', 'd', 'by', 'chez']);
+const jetons = (x) => new Set(norme(x).split(' ').filter((m) => m.length > 1 && !FORMES.has(m)));
+
+/** Pure : le recouvrement des noms (0 à 1), sur les mots qui portent le sens. */
+export function memeNom(a, b) {
+  const A = jetons(a); const B = jetons(b);
+  if (!A.size || !B.size) return 0;
+  return [...A].filter((m) => B.has(m)).length / Math.min(A.size, B.size);
+}
+
+/** Pure : le numéro de rue d'une adresse (« 7 RUE DES HALLES 06400 CANNES » → « 7 »). */
+const numeroDe = (adresse) => (String(adresse || '').match(/^\s*(\d{1,4})\b/) || [])[1] || null;
+
+/**
+ * Pure : ce que Google Maps dit d'un établissement que les signaux annoncent fermé. `places` : les réponses de la
+ * recherche textuelle ([{ displayName, formattedAddress, businessStatus }]).
+ *  - ferme : le lieu au même nom est « fermé définitivement » ;
+ *  - ouvert : le lieu au même nom est ouvert (le signal annonçait à tort une fermeture) ;
+ *  - autre_commerce : un autre commerce ouvert occupe l'adresse (le local est réoccupé) ;
+ *  - introuvable : rien à ce nom ni à ce numéro (cessation ancienne, souvent).
+ */
+export function classerPlace(etab, places = []) {
+  const noms = [etab.enseigne, etab.denomination].filter(Boolean);
+  const meilleur = places
+    .map((p) => ({ p, score: Math.max(0, ...noms.map((n) => memeNom(n, p.displayName?.text ?? p.displayName))) }))
+    .sort((x, y) => y.score - x.score)[0];
+  if (meilleur && meilleur.score >= 0.5) return { statut: meilleur.p.businessStatus === 'CLOSED_PERMANENTLY' ? 'ferme' : 'ouvert', lieu: meilleur.p.displayName?.text ?? meilleur.p.displayName ?? null };
+  const num = numeroDe(etab.adresse);
+  const voisin = num && places.find((p) => p.businessStatus === 'OPERATIONAL' && numeroDe(p.formattedAddress) === num && memeNom(String(etab.adresse).replace(/^\s*\d+\s*/, ''), p.formattedAddress) >= 0.5);
+  if (voisin) return { statut: 'autre_commerce', lieu: voisin.displayName?.text ?? voisin.displayName ?? null };
+  return { statut: 'introuvable', lieu: null };
+}
+
+/**
+ * Ce que la vérification du 19 oct. 2026 a mesuré, à redire partout où un signal s'affiche : un signal n'est pas une
+ * certitude. À refaire (npm run vacance:verifier) quand les données ou la méthode changent.
+ */
+export const FIABILITE_SIGNAUX = {
+  mesure_le: '2026-10-19',
+  liquidation_redressement: {
+    n: 41, libere_pct: 44, bas: 30, haut: 59, ferme_confirme_pct: 20,
+    lecture: "Sur 41 commerces du 06 annoncés en liquidation ou en redressement depuis au moins six mois, Google Maps montre le local libéré (fermé, repris par un autre commerce ou introuvable) dans 44 % des cas ; 56 % sont encore ouverts sous le même nom (poursuite d'activité, reprise par un franchisé, cession).",
+  },
+  radiation: { n: 8231, suivie_fermeture_registre_pct: 91, lecture: "Une radiation est suivie d'une fermeture au registre SIRENE dans 91 % des cas : le signal est presque une certitude." },
+};
+
+/** Pure : la phrase de fiabilité d'un type de signal, ou null si on ne l'a pas mesuré. */
+export function fiabiliteDe(type) {
+  if (type === 'liquidation' || type === 'redressement') return FIABILITE_SIGNAUX.liquidation_redressement.lecture;
+  if (type === 'radiation') return FIABILITE_SIGNAUX.radiation.lecture;
+  return null;
+}

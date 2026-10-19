@@ -1502,11 +1502,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       const details = [
         r.analyse ? `${r.analyse.documents} document(s) extrait(s), ${r.analyse.donnees} donnée(s)` : null,
         r.champs_remplis?.length ? `${r.champs_remplis.length} champ(s) pré-rempli(s)` : null,
-        r.photos ? `${r.photos} image(s) du bien et de la ville` : null,
       ].filter(Boolean);
-      // Une clé Maps absente ou une adresse sans Street View : on le dit, le
-      // projet est créé quand même et les photos s'ajoutent à la main.
-      (r.photos_raisons || []).forEach((m) => toast.message("Images automatiques", { description: m }));
       toast.success(`Projet créé : ${r.titre}`, details.length ? { description: details.join(" · ") } : undefined);
       onRefresh?.();
       navigate(`/Projets?id=${r.project_id}`);

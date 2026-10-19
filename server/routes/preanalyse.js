@@ -675,29 +675,13 @@ export function monterPreanalyse(app) {
     const r = creerProjetDepuisDeal(req.params.dealId, Number(req.params.index), user);
     if (!r.ok) return res.status(r.project_id ? 409 : 400).json({ error: r.error, project_id: r.project_id });
 
-    // Les images du bien et de la ville se cherchent toutes seules : devanture
-    // Street View, quartier vu du ciel, plan de la ville. Jamais bloquant.
-    let photos = { photos: [], raisons: [] };
-    try {
-      const { photosDuBien } = await import('../deal/photos-auto.js');
-      photos = await photosDuBien({
-        adresse: r.project.adresse_complete || null,
-        lat: r.project.latitude ?? null,
-        lon: r.project.longitude ?? null,
-        ville: r.project.ville_secteur_champ1 || null,
-      }, UPLOAD_DIR);
-      if (photos.photos.length) Records.update('Project', r.project.id, { photos: photos.photos });
-    } catch (e) {
-      photos.raisons = [`images automatiques indisponibles : ${e?.message || e}`];
-    }
-
+    // Plus d'images automatiques à la création (19 oct. 2026, Jules) : ni Street View, ni vue du ciel, ni plan
+    // Google Maps. Les photos du projet s'ajoutent à la main. (deal/photos-auto.js reste, il ne sert plus ici.)
     ok(res, {
       project_id: r.project.id,
       titre: r.project.titre,
       champs_remplis: r.champs_remplis,
       analyse,
-      photos: photos.photos.length,
-      photos_raisons: photos.raisons,
     });
   }));
 

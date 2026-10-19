@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { apercuDuFichier, genreDeFichier, pieceDuTexte } from "@/lib/apercu-fichier";
 import { PointsEnCours, PointFait } from "@/components/ui/PointsEtape";
 import { motion } from "framer-motion";
 import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
@@ -992,6 +993,32 @@ function SeparateurJour({ iso }) {
   );
 }
 
+/** La carte d'une pièce jointe : la vignette du document (première page d'un PDF, l'image), son type en pastille. */
+function CartePiece({ piece }) {
+  return (
+    <div className="relative h-[120px] w-[120px] overflow-hidden rounded-[14px] border border-bord-doux" style={{ background: J["barre"] }} title={piece.nom}>
+      {piece.apercu
+        ? <img src={piece.apercu} alt={piece.nom} className="h-full w-full object-cover object-top" />
+        : <span className="grid h-full w-full place-items-center px-3 text-center text-[12px] leading-[1.35] text-ardoise"><span className="line-clamp-3 break-all">{piece.nom}</span></span>}
+      <span className="absolute bottom-2 left-2 rounded-[6px] bg-black/60 px-1.5 py-0.5 text-[11px] font-medium tracking-[.04em] text-white">{piece.genre}</span>
+    </div>
+  );
+}
+
+/** Le message de la personne : la carte de la pièce s'il y en a une, puis la phrase seule dans la bulle. */
+function MessageAvecPiece({ m }) {
+  const lue = m.piece || null;
+  const duTexte = lue ? null : pieceDuTexte(m.contenu);
+  const piece = lue || (duTexte ? { nom: duTexte.nom, genre: genreDeFichier(duTexte.nom), apercu: null } : null);
+  const texte = piece ? (lue ? pieceDuTexte(m.contenu)?.texte ?? "" : duTexte.texte) : m.contenu;
+  return (
+    <>
+      {piece && <CartePiece piece={piece} />}
+      {texte && <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre"] }}>{texte}</div>}
+    </>
+  );
+}
+
 export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
@@ -1111,6 +1138,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
 
   const historique = () => fil.filter((m) => m.role === "user" || m.role === "assistant").slice(-12);
   const pousser = (m) => setFil((f) => [...f, m.le ? m : { ...m, le: new Date().toISOString() }]);
+  // Une pièce jointe envoyée (19 oct. 2026, Jules) : le texte reste « 📎 nom — phrase » (titre, historique pour
+  // Haka) ; l'écran montre la vignette du document au-dessus de la bulle, calculée juste après l'envoi.
+  const pousserPiece = (f, t) => {
+    const pid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    pousser({ role: "user", contenu: `📎 ${f.name}${t ? ` — ${t}` : ""}`, piece: { pid, nom: f.name, genre: genreDeFichier(f.name, f.type), apercu: null } });
+    apercuDuFichier(f).then((apercu) => {
+      if (apercu) setFil((l) => l.map((x) => (x.piece?.pid === pid ? { ...x, piece: { ...x.piece, apercu } } : x)));
+    });
+  };
 
   const rafraichir = () => {
     for (const k of prospectionId
@@ -1589,7 +1625,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       return;
     }
     if (fichier && mandataire && !prospection) {
-      pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
+      pousserPiece(fichier, t);
       setTexte("");
       setSuites([]);
       setEnCoursTexte("Je lis la pièce…");
@@ -1601,7 +1637,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     }
     // Une pièce, avec ou sans phrase (1.8) : AK la lit et décide (fiche à analyser, préz à vérifier, pièce à ranger…).
     if (fichier && !prospection) {
-      pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
+      pousserPiece(fichier, t);
       setTexte("");
       setSuites([]);
       setEnCoursTexte("Je lis la pièce…");
@@ -1612,7 +1648,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       return;
     }
     if (fichier) {
-      pousser({ role: "user", contenu: `📎 ${fichier.name}${t ? ` — ${t}` : ""}` });
+      pousserPiece(fichier, t);
       setTexte("");
       setEnCoursTexte("Je lis la fiche et passe le bien à la grille…");
       annoncer("fiche");
@@ -1951,8 +1987,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           {fil.map((m, i) => [
             compact && jourDe(m) && jourDe(m) !== jourDe(fil.slice(0, i).reverse().find((x) => jourDe(x))) && <SeparateurJour key={`j-${i}`} iso={m.le || m.ak_le} />,
             m.role === "user" ? (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex justify-end">
-                <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre"] }}>{m.contenu}</div>
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col items-end gap-2">
+                <MessageAvecPiece m={m} />
               </motion.div>
             ) : m.role === "bloc" ? (
               <div key={i} className={compact ? "" : "pl-[3.25rem]"}>

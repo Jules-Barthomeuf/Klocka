@@ -1136,3 +1136,41 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
+
+/* --- Les effets doux (19 oct. 2026, Jules : « des effets soft partout ») -------------------------------------
+   Une boîte à outils de mouvements discrets, à poser page par page (le Simulateur d'abord). Les survols et les
+   transitions des boutons, liens et champs existent déjà partout (plus haut) : ici, l'ENTRÉE des éléments et le
+   soulèvement des cartes.
+   - .k-entree : l'élément monte de 10 px en fondu, une fois (0,55 s).
+   - .k-serie : ses enfants entrent l'un après l'autre, 70 ms d'écart, dix au plus.
+   - .k-glisse : entre par le côté (rail, panneau) ; --k-glisse règle le sens et la distance.
+   - .k-leve : au survol, la carte se soulève d'un pixel, son filet s'éclaircit et une ombre très douce se pose ;
+     .k-serie-leve : la même chose pour tous les enfants d'un conteneur.
+   Rien ne fait de mise en page. Les réglages « animations réduites » et celui du système les posent à leur état final. */
+@keyframes k-entree { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes k-glisse { from { opacity: 0; transform: translateX(var(--k-glisse, -14px)); } to { opacity: 1; transform: none; } }
+.k-entree { animation: k-entree .55s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--k-delai, 0s); }
+.k-glisse { animation: k-glisse .6s cubic-bezier(.22, 1, .36, 1) both; animation-delay: var(--k-delai, 0s); }
+.k-serie > * { animation: k-entree .55s cubic-bezier(.22, 1, .36, 1) both; }
+.k-serie > :nth-child(1) { animation-delay: .05s; }
+.k-serie > :nth-child(2) { animation-delay: .12s; }
+.k-serie > :nth-child(3) { animation-delay: .19s; }
+.k-serie > :nth-child(4) { animation-delay: .26s; }
+.k-serie > :nth-child(5) { animation-delay: .33s; }
+.k-serie > :nth-child(6) { animation-delay: .40s; }
+.k-serie > :nth-child(7) { animation-delay: .47s; }
+.k-serie > :nth-child(8) { animation-delay: .54s; }
+.k-serie > :nth-child(n+9) { animation-delay: .6s; }
+/* Le soulèvement passe par `translate`, pas `transform` : une entrée qui vient de se jouer garde son `transform`
+   final, qui écraserait le survol. `.k-serie-leve` donne le même survol à tous les enfants d'une série. */
+:is(.k-leve, .k-serie-leve > *) { transition: translate .25s cubic-bezier(.22, 1, .36, 1), border-color .25s ease, box-shadow .3s ease; }
+:is(.k-leve, .k-serie-leve > *):hover { translate: 0 -1px; border-color: var(--k-bord-doux); box-shadow: 0 10px 28px rgb(0 0 0 / .10); }
+:root[data-animations="reduites"] :is(.k-entree, .k-glisse, .k-serie > *) { animation: none !important; opacity: 1 !important; transform: none !important; }
+:root[data-animations="reduites"] :is(.k-leve, .k-serie-leve > *):hover { translate: none; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { :is(.k-entree, .k-glisse, .k-serie > *) { animation: none !important; opacity: 1 !important; transform: none !important; } :is(.k-leve, .k-serie-leve > *):hover { translate: none; } }
+
+/* Dossier en mode IA (19 oct. 2026, Jules) : le bouton « … » est un rond de 38 px comme la cloche, et il prend sa
+   colonne : la cloche est à 16 px du bord de l'écran, le contenu du dossier à 32 px. */
+.k-dossier-ia .k-actions-dossier { margin-right: -16px; }
+@media (max-width: 1023px) { .k-dossier-ia .k-actions-dossier { margin-right: 0; } }
+

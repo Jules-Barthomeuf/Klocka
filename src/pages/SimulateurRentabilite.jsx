@@ -499,11 +499,11 @@ export default function SimulateurRentabilite() {
       {/* Le cadre du simulateur d'un dossier (19 oct. 2026, Jules : « comme dans le simulateur dans le dossier ») : une carte
           sur le fond, le rail à gauche derrière un filet, les onglets soulignés, un seul fond pour les cartes du dedans. */}
       <div className={`mx-auto flex max-w-[1500px] flex-col px-5 pb-10 pt-9 md:px-8 md:pt-12 ${isEtape2 ? 'blur-md' : ''}`}>
-        <h1 className="m-0 mb-5 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Simulateur</h1>
-        <div data-zone="listes" className="k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail">
+        <h1 className="k-entree m-0 mb-5 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[26px]">Simulateur</h1>
+        <div data-zone="listes" className="k-entree k-points relative overflow-hidden rounded-[16px] border border-trait bg-rail [&_.bg-surface]:!bg-transparent [&_.sticky]:!bg-rail" style={{ "--k-delai": ".08s" }}>
         <div className="flex min-h-0">
           {/* Left control rail */}
-          <aside className="hidden w-[250px] flex-shrink-0 border-r border-trait md:block">
+          <aside className="k-glisse hidden w-[250px] flex-shrink-0 border-r border-trait md:block" style={{ "--k-delai": ".18s" }}>
             {rail}
           </aside>
           <SimReglagesMobile>{rail}</SimReglagesMobile>
@@ -556,7 +556,7 @@ export default function SimulateurRentabilite() {
               </div>
             </div>
 
-            <div key={`${activeTab}-${animKey}`} className={`p-4 max-md:pb-24 space-y-4 max-w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out`}>
+            <div key={`${activeTab}-${animKey}`} className="k-serie k-serie-leve p-4 max-md:pb-24 space-y-4 max-w-full overflow-hidden">
               {negoActive && (
                 <div className="flex items-center gap-2 text-xs text-menthe bg-menthe/10 border border-menthe/25 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-500 ease-out">
                   Négociation -{scenarioNegoPct}% appliquée : le tableau détaillé ci-dessous reflète ce scénario.

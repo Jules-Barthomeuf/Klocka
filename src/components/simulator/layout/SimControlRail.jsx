@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ChevronDown } from "lucide-react";
+import { Depliant } from "@/components/haka/ReglagesDemande";
 import { AnimatePresence, motion } from "framer-motion";
 import SimSlider from "./SimSlider";
 
@@ -202,7 +203,9 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
         {groups.map((g) => (
           <div key={g.title}>
             <SectionHeader title={g.title} open={isOpen(g.title)} onToggle={() => toggleSection(g.title)} />
-            {isOpen(g.title) && horsCredit(g.items).map((it) => (
+            {/* Une section s'ouvre et se ferme en douceur : la hauteur glisse, le contenu apparaît en fondu (19 oct. 2026, Jules). */}
+            <Depliant ouvert={isOpen(g.title)}>
+            {horsCredit(g.items).map((it) => (
               <SimSlider
                 key={it.key}
                 label={it.label}
@@ -216,21 +219,19 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
                 alerte={alertes[it.key] || null}
               />
             ))}
-            {isOpen(g.title) && g.title === "LOCATION" && (
+            {g.title === "LOCATION" && (
               <div className="mt-1 space-y-0">
                 <ToggleRow label="Loyer soumis TVA" checked={advanced.loyerSoumisTVA} onChange={advanced.setLoyerSoumisTVA} />
                 <ToggleRow label="Charges refacturables" checked={advanced.chargesCoproRefacturables} onChange={advanced.setChargesCoproRefacturables} />
                 <ToggleRow label="Taxe foncière refact." checked={advanced.taxeFonciereRefacturable} onChange={advanced.setTaxeFonciereRefacturable} />
                 <ToggleRow label="Revalorisation" checked={advanced.revalorisationActive} onChange={advanced.setRevalorisationActive} />
-                {advanced.revalorisationActive && (
-                  <>
-                    <SimSlider label="Année revalorisation" value={advanced.anneeRevalorisation || 1} onChange={advanced.setAnneeRevalorisation} min={1} max={25} step={1} unit="" />
-                    <SimSlider label="Loyer revalorisé" value={advanced.loyerRevalorise} onChange={advanced.setLoyerRevalorise} min={0} max={200000} step={1000} unit=" €" />
-                  </>
-                )}
+                <Depliant ouvert={!!advanced.revalorisationActive}>
+                  <SimSlider label="Année revalorisation" value={advanced.anneeRevalorisation || 1} onChange={advanced.setAnneeRevalorisation} min={1} max={25} step={1} unit="" />
+                  <SimSlider label="Loyer revalorisé" value={advanced.loyerRevalorise} onChange={advanced.setLoyerRevalorise} min={0} max={200000} step={1000} unit=" €" />
+                </Depliant>
               </div>
             )}
-            {isOpen(g.title) && g.title === "FINANCEMENT" && (
+            {g.title === "FINANCEMENT" && (
               <div className="mt-1 space-y-0">
                 <ToggleRow label="Achat comptant" checked={advanced.sansCredit} onChange={advanced.setSansCredit} />
                 {advanced.sansCredit ? (
@@ -242,20 +243,19 @@ export default function SimControlRail({ projects = [], selectedProjectId, onSel
                   <>
                     <ToggleRow label="Prêt in fine" checked={advanced.pretInFine} onChange={advanced.setPretInFine} />
                     <ToggleRow label="Renégociation" checked={advanced.renegociationActive} onChange={advanced.setRenegociationActive} />
-                    {advanced.renegociationActive && (
-                      <>
-                        <SimSlider label="Année renégociation" value={advanced.anneeRenegociation} onChange={advanced.setAnneeRenegociation} min={1} max={values.dureeCredit || 20} step={1} unit="" />
-                        <SimSlider label="Nouveau taux" value={advanced.nouveauTauxRenegociation} onChange={advanced.setNouveauTauxRenegociation} min={0} max={10} step={0.1} unit="%" />
-                        <SimSlider label="IRA (mois)" value={advanced.iraRenegociation} onChange={advanced.setIraRenegociation} min={0} max={12} step={1} unit="" />
-                      </>
-                    )}
+                    <Depliant ouvert={!!advanced.renegociationActive}>
+                      <SimSlider label="Année renégociation" value={advanced.anneeRenegociation} onChange={advanced.setAnneeRenegociation} min={1} max={values.dureeCredit || 20} step={1} unit="" />
+                      <SimSlider label="Nouveau taux" value={advanced.nouveauTauxRenegociation} onChange={advanced.setNouveauTauxRenegociation} min={0} max={10} step={0.1} unit="%" />
+                      <SimSlider label="IRA (mois)" value={advanced.iraRenegociation} onChange={advanced.setIraRenegociation} min={0} max={12} step={1} unit="" />
+                    </Depliant>
                   </>
                 )}
               </div>
             )}
-            {isOpen(g.title) && g.title === "LOCATION" && values.loyerInitialHTHC > 0 && values.surface > 0 && (
+            {g.title === "LOCATION" && values.loyerInitialHTHC > 0 && values.surface > 0 && (
               <p className="text-[11px] text-brume -mt-0.5">{Math.round(values.loyerInitialHTHC / values.surface)} €/m²/an</p>
             )}
+            </Depliant>
           </div>
         ))}
       </div>

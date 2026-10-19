@@ -620,7 +620,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
                 </Badge>
               )}
             </div>
-            <div className="flex flex-none items-center gap-2">
+            {/* k-actions-dossier : en mode IA, le « … » se range sous la cloche (index.css), même taille, même colonne. */}
+            <div className="k-actions-dossier flex flex-none items-center gap-2">
             {actionsBarre}
             {!apercu && (
               <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}

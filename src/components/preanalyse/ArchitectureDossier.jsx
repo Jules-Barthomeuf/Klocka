@@ -219,7 +219,7 @@ export function MenuActionsDossier({ dossier, abandonne, onAbandonner, onSupprim
   return (
     <div ref={zone} className="relative flex-none">
       <button type="button" onClick={() => setOuvert((o) => !o)} aria-haspopup="menu" aria-expanded={ouvert} aria-label="Actions du dossier" title="Actions du dossier"
-        className="grid h-10 w-10 place-items-center rounded-full border border-trait text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+        className="grid h-[38px] w-[38px] place-items-center rounded-full border border-trait text-ardoise hover:text-encre" style={{ background: "transparent" }}>
         <MoreHorizontal className="h-4 w-4" />
       </button>
       {ouvert && (

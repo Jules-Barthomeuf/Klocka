@@ -215,3 +215,14 @@ Reste : l'étalonnage du classement (8 cas sur 10 face à Data-B, Data-B coupé,
 - Recherche par **commune entière** (choix sur la page) : la commune vient de l'entrepôt (pas de la BAN, qui prenait « Antibes » pour la rue d'Antibes), le rayon couvre son emprise (8 km au plus) et seuls les commerces dans l'emprise restent. Essai réel : 31 opticiens à Antibes, 31 joignables.
 
 Reste : la recherche par rue, l'export vers la page Appels, la phrase d'accroche de Haka (lot 10), et le remplacement de la Prospective Data-B des mandataires (quatre écrans, contacts et solvabilité).
+
+
+## K-Foncier : vérification (19 oct. 2026, Jules : « vérifie que ça marche bien »)
+
+Méthode : 60 adresses du 06 (15 par ville : Nice, Cannes, Antibes, Menton) prises parmi les cibles d'ALX dont le propriétaire vient de Data-B Foncier (stocké le 13 sept.), une par parcelle, tirage régulier. Chaque adresse passe par K-Foncier (boîte allumée) ; on compare le SIREN du propriétaire et la parcelle. Data-B n'est pas rappelé : la référence est ce qu'il avait déjà rendu.
+
+- Premier passage : **40 propriétaires retrouvés sur 58** personnes morales de la référence (2 des 60 sont des personnes physiques, que le fichier de l'administration ne contient pas par construction), 69 %, sous le seuil de 90 % du plan.
+- Défaut trouvé : la parcelle de l'adresse était prise au point de la BAN, qui tombe souvent sur la parcelle voisine (16 écarts sur 18 : le bon propriétaire était sur la bonne parcelle dans nos données). Corrigé dans `socle/local.js` : la parcelle vient d'abord du fichier de l'administration (entrepot_pm, par numéro et nom de voie), le point en repli ; K-Foncier rend aussi les propriétaires des autres parcelles qui portent la même adresse, et ne dit « personne physique » que si la section a été lue (sinon « propriétaire non lu »).
+- Deuxième défaut, plus large : `adresse.js` résolvait « 5 rue de France, Nice » en « 5 rue de Nice, Drancy » (« france » était un mot vide). Corrigé et testé ; touchait tous les outils.
+- Après correction : **45 sur 58 (78 %)**. Les 13 écarts : 8 portent sur une parcelle dont le fichier donne un autre numéro de rue que celui demandé (de 2 à 49 numéros d'écart : la référence décrit un immeuble voisin), 3 n'ont pas de numéro dans la référence, 1 est un restaurant, 1 est un vrai écart (7 promenade des Anglais). Sur les adresses où la référence et nous parlons du même numéro, **45 sur 47**. Ce second chiffre est une lecture de nos écarts, pas une preuve indépendante : la preuve passe par un contrôle à la main de quelques cas (cadastre.gouv.fr, Street View).
+- Ce que K-Foncier ne donne pas, par choix légal : le nom des personnes physiques, que Data-B donne parfois (« Monsieur … »).

@@ -90,3 +90,17 @@ test('on repose la question sans le code postal quand il mène à côté', () =>
   // Sans code postal dans la demande, il n'y a rien à retirer.
   assert.equal(redemanderSansCodePostal('place de bethune lille', mauvais), null);
 });
+
+
+test('« rue de France » à Nice garde son nom : la voie de la BAN passe avant « rue de Nice » à Drancy (19 oct. 2026)', async () => {
+  const { classer } = await import('./adresse.js');
+  const nice = { label: '5 Rue de France 06000 Nice', street: 'Rue de France', city: 'Nice', postcode: '06000', housenumber: '5', score: 0.985 };
+  const drancy = { label: '5 Rue de Nice 93700 Drancy', street: 'Rue de Nice', city: 'Drancy', postcode: '93700', housenumber: '5', score: 0.6 };
+  assert.equal(classer('5 rue de France 06000 Nice', [drancy, nice])[0].label, nice.label);
+  // Le pays écrit à la fin reste un mot vide : il ne coûte rien à la bonne adresse.
+  const paris = { label: '10 Rue de la Paix 75002 Paris', street: 'Rue de la Paix', city: 'Paris', postcode: '75002', housenumber: '10', score: 0.95 };
+  const autre = { label: '10 Rue de la Paix 69002 Lyon', street: 'Rue de la Paix', city: 'Lyon', postcode: '69002', housenumber: '10', score: 0.5 };
+  const [meilleur] = classer('10 rue de la Paix 75002 Paris France', [autre, paris]);
+  assert.equal(meilleur.label, paris.label);
+  assert.equal(meilleur.concordance.part, 1);
+});

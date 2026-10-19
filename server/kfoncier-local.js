@@ -49,6 +49,9 @@ export const alertesDe = (evenements = []) => evenements.filter((e) => ALERTES.h
 /** Pure : le constat quand la parcelle n'a aucune personne morale connue. */
 export const PERSONNE_PHYSIQUE = { type: 'personne_physique', libelle: 'Personne physique, non identifiable', raison: "Aucune personne morale au fichier de la DGFiP pour cette parcelle. Les personnes physiques n'y figurent pas : aucune source légale ne les donne." };
 
+/** Pure : le constat quand la section de la parcelle n'a pas pu être lue : on ne conclut rien. */
+export const NON_LU = { type: 'non_lu', libelle: 'Propriétaire non lu', raison: "Le fichier de la DGFiP n'a pas pu être lu pour la section de cette parcelle : on ne dit rien du propriétaire." };
+
 async function chercherParNom(nom, adresse) {
   const r = await fetch(`${ANNUAIRE}?${new URLSearchParams({ q: nom, per_page: '5' })}`, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(20000) });
   if (!r.ok) throw new Error(`annuaire ${r.status}`);
@@ -94,7 +97,32 @@ export async function proprietaireDuLocal(local, parcelles = []) {
   const idu = local?.parcelle?.idu || null;
   if (!idu) return { ok: false, error: "La parcelle de l'adresse n'a pas pu être trouvée au cadastre." };
   const p = parcelles.find((x) => x.idu === idu) || null;
-  const proprietaires = p?.proprietaires || [];
+  let proprietaires = p?.proprietaires || [];
+  // La parcelle retenue peut être hors du rayon lu (19 oct. 2026) : on lit alors sa section. « Personne physique »
+  // ne se dit que si la section a bien été lue ; sinon : « propriétaire non lu ».
+  let lu = !!p;
+  if (!p && local.parcelle.section && local.parcelle.numero) {
+    try {
+      const { locauxDeSection, grouperProprietaires } = await import('./kfoncier.js');
+      const doc = await locauxDeSection(local.adresse?.code_insee || idu.slice(0, 5), local.parcelle.section);
+      proprietaires = grouperProprietaires(doc.lignes)[String(local.parcelle.numero).padStart(4, '0')] || [];
+      lu = true;
+    } catch { lu = false; }
+  }
+  // Une adresse portée par plusieurs parcelles (un immeuble sur deux parcelles, « 7 » et « 7 bis » voisins) : on ne
+  // choisit pas, on rend les propriétaires des autres parcelles à côté, sans les enrichir (nom, SIREN, forme).
+  const autres = [];
+  for (const a of (local.parcelle.autres || []).slice(0, 3)) {
+    const idA = `${local.adresse?.code_insee || idu.slice(0, 5)}000${a.section}${a.plan}`;
+    let propsA = parcelles.find((x) => x.idu === idA)?.proprietaires || null;
+    if (!propsA) {
+      try {
+        const { locauxDeSection, grouperProprietaires } = await import('./kfoncier.js');
+        propsA = grouperProprietaires((await locauxDeSection(local.adresse?.code_insee || idu.slice(0, 5), a.section)).lignes)[String(a.plan).padStart(4, '0')] || [];
+      } catch { propsA = null; }
+    }
+    autres.push({ idu: idA, section: a.section, numero: a.plan, locaux_a_l_adresse: a.locaux, lu: propsA != null, proprietaires: (propsA || []).slice(0, 6).map(({ nom, siren, forme, droit }) => ({ nom, siren, forme, droit })) });
+  }
   const [enrichis, mutation] = await Promise.all([
     Promise.all(proprietaires.slice(0, 6).map(enrichir)),
     viaSource('dvf', async () => {
@@ -107,7 +135,10 @@ export async function proprietaireDuLocal(local, parcelles = []) {
     id_local: local.id_local || null,
     parcelle: { idu, section: local.parcelle.section, numero: local.parcelle.numero, contenance: local.parcelle.contenance ?? p?.contenance ?? null },
     proprietaires: enrichis,
-    constat: enrichis.length ? null : PERSONNE_PHYSIQUE,
+    // Les autres parcelles qui portent la même adresse (fichier de la DGFiP), pour ne pas en choisir une à tort.
+    autres_parcelles: autres,
+    parcelle_origine: local.parcelle.origine || null,
+    constat: enrichis.length ? null : lu ? PERSONNE_PHYSIQUE : NON_LU,
     derniere_mutation: mutation.valeur || null,
   };
 }

@@ -75,3 +75,21 @@ test('le socle n\'appelle jamais Data-B directement : tout passe par le registre
     assert.doesNotMatch(texte, /from ['"]\.\.\/data-b[^'"]*['"]|import\(['"]\.\.\/data-b/, `${f} importe Data-B`);
   }
 });
+
+test('la parcelle de l\'adresse vient du fichier de l\'administration : numéro et nom de voie, la parcelle du point en repli', async () => {
+  const { numeroEtIndice, parcelleDesLignes } = await import('./local.js');
+  assert.deepEqual(numeroEtIndice('211bis'), { numero: '211', indice: 'B' });
+  assert.deepEqual(numeroEtIndice('7'), { numero: '7', indice: null });
+  assert.equal(numeroEtIndice('sans'), null);
+  // « 211 bis Promenade des Anglais » : le point de la BAN tombe sur NE 0175, le fichier dit NE 0174.
+  const lignes = [{ section: 'NE', plan: '0174', voie: 'DES ANGLAIS', indice: null, n: 6 }, { section: 'NE', plan: '0090', voie: 'DE FRANCE', indice: null, n: 3 }];
+  const p = parcelleDesLignes(lignes, 'Promenade des Anglais', { indice: 'B', parcelleDuPoint: { section: 'NE', numero: '0175' } });
+  assert.deepEqual([p.section, p.plan], ['NE', '0174']);
+  // Un autre nom de voie au même numéro ne compte pas.
+  assert.equal(parcelleDesLignes(lignes, 'Rue Inconnue'), null);
+  // Deux parcelles à la même adresse : la mieux fournie d'abord, l'autre rendue à côté ; celle du point gagne à égalité.
+  const deux = [{ section: 'KT', plan: '0341', voie: 'HALEVY', indice: null, n: 5 }, { section: 'KT', plan: '0343', voie: 'HALEVY', indice: 'B', n: 5 }];
+  const r = parcelleDesLignes(deux, 'Rue Halévy', { parcelleDuPoint: { section: 'KT', numero: '0343' } });
+  assert.equal(r.plan, '0343');
+  assert.equal(r.autres.length, 1);
+});

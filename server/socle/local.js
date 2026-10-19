@@ -11,7 +11,7 @@
 // vérifiées le 18 oct. 2026 sur un point de Cannes. Chaque rattachement passe par l'interrupteur de sa
 // source : coupée ou en panne, la case reste vide, le reste se résout.
 
-import { Records } from '../db.js';
+import db, { Records } from '../db.js';
 import { resoudreAdresse } from '../adresse-ban.js';
 import { boiteDe } from '../kzoning-insee.js';
 import { viaSource } from './registre-sources.js';
@@ -21,6 +21,8 @@ const UA = 'Klocka/1.0 (sourcing@klocka.immo)';
 const DELAI_MS = 45000;
 const ENTITE = 'LocalKlocka';
 const CACHE_JOURS = 90;
+// Version 2 (19 oct. 2026) : la parcelle vient du fichier de l'administration quand il porte l'adresse.
+const VERSION = 2;
 
 const COUCHES = {
   parcelle: 'CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle',
@@ -144,6 +146,53 @@ export function identifiantLocal(adresse, parcelle = null) {
   return null;
 }
 
+// --- La parcelle de l'adresse, par le fichier de l'administration (19 oct. 2026) --------------------------------
+// Le point de la BAN tombe souvent sur la parcelle voisine : sur 60 adresses comparées à Data-B Foncier, 16 sur
+// 18 écarts venaient de là (« 211 Promenade des Anglais » : NE 0175 au lieu de NE 0174). Le fichier des locaux des
+// personnes morales (entrepot_pm) porte l'adresse de chaque local : le numéro et le nom de la voie y désignent la
+// parcelle sans passer par un point.
+
+/** Pure : le numéro et son indice, d'après le numéro d'adresse de la BAN (« 211 », « 211 bis »). */
+export function numeroEtIndice(numero) {
+  const m = String(numero || '').toLowerCase().replace(/\s+/g, '').match(/^(\d{1,4})(bis|ter|quater|[a-z])?$/);
+  return m ? { numero: m[1], indice: m[2] ? ({ bis: 'B', ter: 'T', quater: 'Q' }[m[2]] || m[2].toUpperCase()) : null } : null;
+}
+
+/**
+ * Pure : la parcelle qui porte l'adresse, parmi les lignes du fichier (commune, numéro) déjà lues. Le nom de la voie
+ * départage ; à égalité, la parcelle qui compte le plus de locaux à ce numéro, puis celle du point si elle en fait partie.
+ * @param {Array<{section, plan, voie, indice, n}>} lignes
+ */
+export function parcelleDesLignes(lignes, rue, { indice = null, parcelleDuPoint = null } = {}) {
+  const nom = nomDeVoie(rue);
+  const memeVoie = (lignes || []).filter((l) => nom && nomDeVoie(l.voie) === nom);
+  if (!memeVoie.length) return null;
+  const parParcelle = new Map();
+  for (const l of memeVoie) {
+    const k = `${l.section}${l.plan}`;
+    const e = parParcelle.get(k) || { section: l.section, plan: l.plan, n: 0, indice: false };
+    e.n += l.n || 1;
+    if (indice && String(l.indice || '').toUpperCase() === indice) e.indice = true;
+    parParcelle.set(k, e);
+  }
+  const classees = [...parParcelle.values()].sort((a, b) => Number(b.indice) - Number(a.indice) || b.n - a.n);
+  const duPoint = parcelleDuPoint ? classees.find((c) => `${c.section}${c.plan}` === `${parcelleDuPoint.section}${parcelleDuPoint.numero}`) : null;
+  // Si la parcelle du point fait partie des candidates à égalité de locaux, on la garde ; sinon la mieux fournie.
+  const meilleure = duPoint && duPoint.n >= classees[0].n && Number(duPoint.indice) >= Number(classees[0].indice) ? duPoint : classees[0];
+  return { section: meilleure.section, plan: meilleure.plan, locaux: meilleure.n, autres: classees.filter((c) => c !== meilleure).slice(0, 3).map((c) => ({ section: c.section, plan: c.plan, locaux: c.n })) };
+}
+
+/** Lit entrepot_pm (si le jeu est importé pour cette commune) et rend la parcelle de l'adresse, ou null. */
+export function parcelleParAdresseDgfip({ code_insee, numero, rue }, parcelleDuPoint = null) {
+  const ni = numeroEtIndice(numero);
+  if (!ni || !code_insee || !rue) return null;
+  try {
+    const lignes = db.prepare('SELECT section, plan, voie, indice, count(*) AS n FROM entrepot_pm WHERE commune = ? AND numero = ? GROUP BY section, plan, voie, indice').all(code_insee, ni.numero);
+    const r = parcelleDesLignes(lignes, rue, { indice: ni.indice, parcelleDuPoint });
+    return r ? { ...r, idu: `${code_insee}000${r.section}${r.plan}` } : null;
+  } catch { return null; }
+}
+
 // --- Le réseau ------------------------------------------------------------------------------------
 
 async function wfs(couche, point, rayon_m) {
@@ -169,7 +218,7 @@ export async function resoudreLocal(texte, { forcer = false } = {}) {
   if (!cle) return { ok: false, error: 'Adresse vide.' };
   if (!forcer) {
     const garde = Records.filter(ENTITE, { cle_adresse: cle })[0];
-    if (garde && Date.now() - Date.parse(garde.resolu_le) < CACHE_JOURS * 86400000) return { ok: true, local: garde, du_cache: true };
+    if (garde && garde.version === VERSION && Date.now() - Date.parse(garde.resolu_le) < CACHE_JOURS * 86400000) return { ok: true, local: garde, du_cache: true };
   }
   const ban = await viaSource('ban', () => resoudreAdresse(texte));
   const adresse = ban.valeur;
@@ -183,6 +232,13 @@ export async function resoudreLocal(texte, { forcer = false } = {}) {
     viaSource('bdtopo', async () => choisirTroncon(await wfs(COUCHES.troncon, point, 80), point, adresse.rue)),
   ]);
 
+  // La parcelle de l'adresse : celle du fichier de l'administration quand il la donne, le point de la BAN sinon.
+  const dgfip = parcelleParAdresseDgfip({ code_insee: adresse.code_insee, numero: adresse.numero, rue: adresse.rue }, parcelle.valeur);
+  if (dgfip && dgfip.idu !== parcelle.valeur?.idu) {
+    parcelle.valeur = { idu: dgfip.idu, section: dgfip.section, numero: dgfip.plan, contenance: null, code_insee: adresse.code_insee, origine: 'adresse_dgfip', locaux: dgfip.locaux, autres: dgfip.autres, du_point: parcelle.valeur ? { idu: parcelle.valeur.idu } : null };
+  } else if (parcelle.valeur) {
+    parcelle.valeur = { ...parcelle.valeur, origine: dgfip ? 'adresse_dgfip' : 'point_ban' };
+  }
   const id_local = identifiantLocal(adresse, parcelle.valeur);
   const manques = [['parcelle', parcelle], ['iris', iris], ['carreau', carreau], ['troncon', troncon]]
     .filter(([, r]) => !r.valeur).map(([k, r]) => ({ cle: k, raison: r.coupee ? 'source coupée' : r.panne || 'rien à cet endroit' }));
@@ -196,6 +252,7 @@ export async function resoudreLocal(texte, { forcer = false } = {}) {
     carreau: carreau.valeur,
     troncon: troncon.valeur,
     manques,
+    version: VERSION,
     resolu_le: new Date().toISOString(),
   };
   // Le même local sous une autre écriture de l'adresse : on le met à jour plutôt que de le doubler.

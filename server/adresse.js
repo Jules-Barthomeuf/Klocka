@@ -41,7 +41,10 @@ const ABREGES = {
 // « bis » et « ter » précisent le numéro, pas le nom de la voie : les compter
 // comme des mots à retrouver faisait passer « 31 bis rue Michel Ange » pour
 // une demande à moitié comprise.
-const VIDES = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'et', 'a', 'au', 'aux', 'france', 'sur', 'sous', 'en', 'bis', 'ter', 'quater']);
+// « france » n'en fait plus partie (19 oct. 2026) : c'est le nom de « 5 rue de France » à Nice, qui n'avait alors plus
+// aucun mot à retrouver et perdait contre « 5 rue de Nice » à Drancy. Le pays dit à la fin d'une adresse
+// (« … 06000 Nice, France ») se retire dans concordance(), là où l'on sait ce qui précède.
+const VIDES = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'et', 'a', 'au', 'aux', 'sur', 'sous', 'en', 'bis', 'ter', 'quater']);
 
 export const normaliser = (s) => String(s || '')
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -95,7 +98,12 @@ export function concordance(requete, candidat) {
   // laisser parmi les mots à retrouver faisait passer « 49 rue Dabray » pour
   // une demande à moitié comprise.
   const numero = numeroDe(motsRequete);
-  const corps = numero ? motsRequete.slice(1) : motsRequete;
+  const corpsBrut = numero ? motsRequete.slice(1) : motsRequete;
+  // Un « France » final qui suit un code postal ou la ville est le pays, pas la voie : on le retire.
+  // « rue de France », « avenue Anatole France » le gardent : rien de tel ne le précède.
+  const dernier = corpsBrut[corpsBrut.length - 1];
+  const avant = corpsBrut[corpsBrut.length - 2];
+  const corps = dernier === 'france' && avant && (estCodePostal(avant) || ville.has(racine(avant))) ? corpsBrut.slice(0, -1) : corpsBrut;
   // La ville n'est pas un mot de la voie : elle ne compte ni comme trouvée ni
   // comme superflue, qu'elle ait été tapée ou non.
   const demandes = utiles(corps, ville);

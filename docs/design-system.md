@@ -887,6 +887,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Prospection et Relances, une seule page** (Jules, 16 oct. 2026) : la page Prospection a quatre onglets en pilule, Aujourd'hui (ouvert par défaut), Mode appel, Listes, Suivi. Aujourd'hui : à gauche la file (À appeler, puis « Relances dues » en tableau sur `bg-rail` à points, avec « Pris par »), à droite le panneau À envoyer (mails d'AK, puis « Relances par mail » à valider) et la fiabilité d'AK. Un clic sur une relance la prend et ouvre le Mode appel dessus ; sans ligne prise, le Mode appel est la file des villes. Listes (renommé le 17 oct. 2026) : les listes par ville ; un « + » en tête des intercalaires ouvre une barre de recherche, on y met une ville et l'agent IA en crée la liste (plus de bouton « Chercher une ville avec l'agent IA »). L'entrée Relances n'est plus au menu ; son adresse renvoie à la Prospection.
 
+**Fiche du bien corrigée d'un bloc** (Jules, 19 oct. 2026) : modifier un champ de la pré-analyse ne relance plus rien ; le champ prend sa nouvelle valeur, marqué « modifié » en menthe. Une barre flottante en bas, au centre (pilule `bg-surface-pleine`, contour `bord-doux`), dit « N champs modifiés », avec « Annuler » (texte ardoise) et « OK, refaire la pré-analyse » (bouton menthe) : un seul recalcul pour tout le brouillon. Reprendre ce motif pour toute saisie qui déclenche un calcul coûteux.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

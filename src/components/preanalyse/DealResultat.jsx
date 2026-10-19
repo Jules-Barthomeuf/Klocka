@@ -1160,7 +1160,7 @@ export function ChampFiche({ champ, lot, onSaisie, enCours, apercu = false, sans
     >
       <span className="truncate">{absent ? "non renseigné" : afficherValeur(champ, c.valeur)}</span>
       {!sansNote && !absent && c.confiance === "basse" && <span className="text-[11px] text-ambre font-normal">confiance basse</span>}
-      {!sansNote && !absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
+      {c?.en_attente ? <span className="text-[11px] text-menthe font-normal">modifié</span> : !sansNote && !absent && c.saisi_a_la_main && <span className="text-[11px] text-ambre font-normal">saisi à la main</span>}
       {modifiable && <Pencil className="w-3 h-3 text-brume opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity flex-none" />}
     </button>
   );

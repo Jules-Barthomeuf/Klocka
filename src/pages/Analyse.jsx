@@ -16,6 +16,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import PenseeIA from "@/components/PenseeIA";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
+import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 
 // Dossiers (architecture du 17 oct. 2026) : la liste en trois blocs de cartes,
 // À traiter (à toi d'agir, en attente d'un tiers), Pipeline (Tri, Qualification,
@@ -151,6 +152,20 @@ export default function Analyse() {
   const recharger = () => {
     if (dealId) ouvrirDossier.mutate(dealId);
     rafraichirListes();
+  };
+
+  // Le brouillon de la fiche (19 oct. 2026, Jules) : chaque champ modifié s'y ajoute et s'affiche tout de suite ;
+  // la pré-analyse ne se refait qu'au clic sur OK, une fois pour tous les champs (un appel au modèle, pas un par champ).
+  const [brouillons, setBrouillons] = useState({});
+  useEffect(() => { setBrouillons({}); }, [dealId]);
+  const enAttente = champsEnAttente(brouillons);
+  const dossierVu = useMemo(() => dossierAvecBrouillon(dossier, brouillons), [dossier, brouillons]);
+  const validerBrouillon = async () => {
+    const lots = Object.entries(brouillons).filter(([, saisie]) => Object.keys(saisie).length);
+    try {
+      for (const [index, saisie] of lots) await majLot.mutateAsync({ index: Number(index), saisie });
+      setBrouillons({});
+    } catch { /* le toast d'erreur le dit ; le brouillon reste, à renvoyer */ }
   };
 
   const majLot = useMutation({
@@ -368,14 +383,24 @@ export default function Analyse() {
       ) : dossier?.deal_id === dealId ? (
         <>
         <WorkflowDeal
-          dossier={dossier}
+          dossier={dossierVu}
           enCours={majLot.isPending}
-          onSaisie={(index, saisie) => majLot.mutate({ index, saisie })}
+          onSaisie={(index, saisie) => setBrouillons((b) => ajouterAuBrouillon(b, index, saisie))}
           onRefresh={recharger}
           onLargeur={setLarge}
           onVue={setVueDossier}
           actionsBarre={choixMode}
         />
+        {enAttente > 0 && createPortal(
+          <div role="status" className="k-entree fixed bottom-6 left-1/2 z-[45] flex -translate-x-1/2 items-center gap-3 rounded-full border border-bord-doux bg-surface-pleine py-2 pl-5 pr-2 shadow-[0_18px_40px_rgb(0_0_0/0.22)] max-md:bottom-4 max-md:w-[calc(100vw-2rem)] max-md:justify-between">
+            <span className="text-[13.5px] text-craie">{enAttente} champ{enAttente > 1 ? "s" : ""} modifié{enAttente > 1 ? "s" : ""}</span>
+            <button type="button" onClick={() => setBrouillons({})} disabled={majLot.isPending} className="h-9 rounded-full px-3.5 text-[13.5px] text-ardoise transition-colors hover:text-encre disabled:opacity-40" style={{ background: "transparent" }}>Annuler</button>
+            <button type="button" onClick={validerBrouillon} disabled={majLot.isPending} className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-60">
+              {majLot.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />} OK, refaire la pré-analyse
+            </button>
+          </div>,
+          document.body,
+        )}
         </>
       ) : (
         <div className="k-entree flex flex-col items-center gap-3 p-8 text-center" role="status">

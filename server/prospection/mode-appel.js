@@ -991,7 +991,14 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
   for (const c of (Array.isArray(corrections) ? corrections : []).slice(0, 8)) {
     if (c?.libelle && String(c.valeur || '').trim()) journal(appel.agent_id, { type: 'note', texte: `Corrigé à la validation · ${String(c.libelle).slice(0, 40)} : ${String(c.valeur).trim().slice(0, 300)}`, par: moi });
   }
-  if (corrige.interlocuteur) majAgent(appel.agent_id, { nom: corrige.interlocuteur });
+  // L'interlocuteur corrigé (19 oct. 2026, Jules) : il ne renomme plus la fiche d'un agent nommé, il s'ajoute à ses
+  // contacts ; seule une fiche qui portait le nom de l'agence (personne de connu) prend son nom.
+  if (corrige.interlocuteur) {
+    const f0 = Records.get('AgentImmo', appel.agent_id);
+    const sansNom = !f0?.nom || R.norm(f0.nom) === R.norm(f0.agence || '') || R.norm(f0.nom) === R.norm(ag?.nom || '');
+    if (sansNom) majAgent(appel.agent_id, { nom: corrige.interlocuteur });
+    else if (f0 && !(f0.contacts || []).some((x) => R.norm(x.nom) === R.norm(corrige.interlocuteur))) majAgent(appel.agent_id, { contacts: [...(f0.contacts || []), { nom: corrige.interlocuteur, telephone: corrige.telephone || null, email: corrige.email || null, ajoute_le: maintenantD.toISOString(), par: moi }] });
+  }
   const a = agentDe(appel.agent_id);
 
   const extras = [];
@@ -1359,7 +1366,7 @@ const estCommerces = (agence) => !!agence && Records.get(LISTE, agence.liste_id)
 const estEssai = (agence) => !!agence && (!!Records.get(LISTE, agence.liste_id)?.essai || estCommerces(agence));
 
 /** La fiche fictive d'une agence d'essai : créée la première fois, hors du carnet. */
-function ficheEssai(a) {
+export function ficheEssai(a) {
   const deja = a.carnet_id ? Records.get('AgentImmo', a.carnet_id) : null;
   if (deja) return deja;
   const fiche = Records.create('AgentImmo', {

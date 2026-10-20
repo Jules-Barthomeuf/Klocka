@@ -186,11 +186,14 @@ export function monterProspection(app) {
   app.post('/api/prospection/rappels', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
+    if (req.body?.essai) return ok(res, await (await RP()).ouvrirEssaiRappel(user, { sens: req.body?.sens }));
     ok(res, (await RP()).ouvrir(user, { sens: req.body?.sens, notes: req.body?.notes }));
   }));
   app.get('/api/prospection/rappels/chercher', wrap(async (req, res) => {
     if (!admin(req, res)) return;
-    ok(res, { resultats: (await RP()).chercher(String(req.query.q || '')) });
+    const { Records } = await import('../db.js');
+    const r = req.query.rappel ? Records.get('RappelEntrant', String(req.query.rappel)) : null;
+    ok(res, { resultats: (await RP()).chercher(String(req.query.q || ''), { essaiListeId: r?.essai ? r.essai_liste_id : null }) });
   }));
   app.get('/api/prospection/rappels/appels', wrap(async (req, res) => {
     if (!admin(req, res)) return;
@@ -221,6 +224,11 @@ export function monterProspection(app) {
     if (!user) return;
     const b = req.body || {};
     reponse(res, await (await RP()).identifier(req.params.id, { agent_id: b.agent_id || null, agence_id: b.agence_id || null, nouveau: b.nouveau || null }, user));
+  }));
+  app.post('/api/prospection/rappels/:id/reidentifier', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    reponse(res, (await RP()).reidentifier(req.params.id, user));
   }));
   app.post('/api/prospection/rappels/:id/lever', wrap(async (req, res) => {
     const user = admin(req, res);

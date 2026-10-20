@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
+import { ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
+import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -39,6 +40,10 @@ export const enregistrerUnRappel = () => window.dispatchEvent(new CustomEvent(EV
 export const appelRapide = () => window.dispatchEvent(new CustomEvent(EVT, { detail: { sens: "sortant" } }));
 /** Raconter un échange sans l'avoir eu au téléphone : les notes tiennent lieu d'appel, puis le même chemin. */
 export const raconterUnEchange = (notes = "") => window.dispatchEvent(new CustomEvent(EVT, { detail: { sens: "raconte", notes } }));
+/** L'essai (19 oct. 2026, Jules) : un rappel ou un appel rapide joué, sans appel réel, dans la liste fictive. */
+export const essayerUnAppel = () => window.dispatchEvent(new CustomEvent(EVT, { detail: { essai: true } }));
+// Au téléphone, pendant un appel, le micro est pris par l'appel : on le dit à l'écran.
+const tactile = () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
 // Qui a parlé à qui : le seul écart entre les trois entrées.
 const SENS = {
@@ -71,6 +76,7 @@ function PiluleAppel() {
   const modes = [
     { cle: "entrant", icone: PhoneIncoming, titre: "Il me rappelle", detail: "Enregistrer l'appel entrant", faire: enregistrerUnRappel },
     { cle: "sortant", icone: PhoneOutgoing, titre: "Appel rapide", detail: "J'appelle un agent : enregistrer l'appel", faire: appelRapide },
+    { cle: "essai", icone: FlaskConical, titre: "Essai, sans appel", detail: "Jouer un rappel ou un appel rapide", faire: essayerUnAppel },
   ];
   return (
     <div className="relative" onMouseEnter={entrer} onMouseLeave={sortir}>
@@ -111,7 +117,7 @@ function LigneRecu({ l }) {
 }
 
 /** Un candidat : nom, agence, ville, pourquoi, et le geste pour le confirmer. */
-function Candidat({ c, premier = false, onConfirmer, occupe }) {
+function Candidat({ c, premier = false, onConfirmer, occupe, libelle = null }) {
   return (
     <div className={`flex flex-wrap items-center justify-between gap-3 ${premier ? "rounded-[14px] border border-menthe/40 px-4 py-3.5" : "border-t border-trait py-3"}`}>
       <span className="min-w-0">
@@ -119,7 +125,7 @@ function Candidat({ c, premier = false, onConfirmer, occupe }) {
         <span className="block text-[13px] text-ardoise">{[c.ville, c.raison].filter(Boolean).join(" · ")}</span>
         {c.ne_plus_appeler && <span className="mt-1 inline-block rounded-[7px] bg-alerte/15 px-2 py-0.5 text-[12px] text-alerte">Ne plus appeler</span>}
       </span>
-      <button type="button" onClick={() => onConfirmer(c)} disabled={occupe} className={premier ? principal : secondaire} style={premier ? undefined : { background: "transparent" }}>Confirmer</button>
+      <button type="button" onClick={() => onConfirmer(c)} disabled={occupe} className={premier ? principal : secondaire} style={premier ? undefined : { background: "transparent" }}>{libelle || (premier ? "C'est lui" : "Confirmer")}</button>
     </div>
   );
 }
@@ -129,6 +135,12 @@ export default function RappelEntrant() {
   const [ouvert, setOuvert] = useState(false);
   const [ecran, setEcran] = useState(null); // enregistrement | transcription | identification | actions | rien | recu
   const [sens, setSens] = useState("entrant"); // entrant | sortant | raconte
+  // L'essai (19 oct. 2026) : un scénario joué phrase par phrase, dans la liste fictive.
+  const [essai, setEssai] = useState(false);
+  const [scenario, setScenario] = useState(null);
+  const lecture = useRef(null);
+  const ecranRef = useRef(null);
+  useEffect(() => { ecranRef.current = ecran; }, [ecran]);
   const [rappel, setRappel] = useState(null);
   const [notes, setNotes] = useState("");
   const [secondes, setSecondes] = useState(0);
@@ -213,6 +225,7 @@ export default function RappelEntrant() {
     tour();
   };
   const couper = () => {
+    clearInterval(lecture.current);
     const r0 = rec.current;
     if (!r0) return;
     r0.actif = false;
@@ -230,6 +243,15 @@ export default function RappelEntrant() {
     if (ouvert) return;
     const s = SENS[e?.detail?.sens] ? e.detail.sens : "entrant";
     reinitialiser();
+    setEssai(!!e?.detail?.essai); setScenario(null);
+    // L'essai : d'abord le choix du scénario.
+    if (e?.detail?.essai) { setSens("entrant"); setOuvert(true); setEcran("essai"); setRappel(null); idRef.current = null; return; }
+    // L'appel rapide : on sait qui on appelle, on le choisit d'abord ; l'enregistrement part au clic sur la personne.
+    if (s === "sortant") {
+      setSens(s); setOuvert(true); setEcran("choix"); setRappel(null); idRef.current = null;
+      base44.request("POST", API, { body: { sens: s } }).then((r) => { idRef.current = r.rappel.id; setRappel(r.rappel); }).catch(() => setErreur("L'appel n'a pas pu être créé : réessayez."));
+      return;
+    }
     setSens(s);
     setOuvert(true); setEcran("enregistrement"); setRappel(null);
     debut.current = Date.now();
@@ -244,6 +266,39 @@ export default function RappelEntrant() {
     }
     base44.request("POST", API, { body: { sens: s } }).then((r) => { idRef.current = r.rappel.id; setRappel(r.rappel); }).catch(() => setErreur("L'appel n'a pas pu être créé : il le sera à l'analyse."));
   };
+  // Lance l'enregistrement (ou, en essai, la lecture du scénario) une fois la personne choisie.
+  const jouer = (sc) => {
+    morceaux.current = []; montrerDirect();
+    let n = 0;
+    clearInterval(lecture.current);
+    lecture.current = setInterval(() => {
+      if (n >= sc.phrases.length) { clearInterval(lecture.current); return; }
+      morceaux.current.push({ i: n, texte: sc.phrases[n], etat: "ok" }); n += 1; montrerDirect();
+    }, 1800);
+  };
+  const lancer = (micro, sc = scenario) => {
+    setEcran("enregistrement");
+    debut.current = Date.now();
+    clearInterval(minuteur.current);
+    minuteur.current = setInterval(() => setSecondes(Math.round((Date.now() - debut.current) / 1000)), 1000);
+    if (sc) jouer(sc);
+    else if (micro) micro.then(enregistrer).catch(() => setMicroKo(true));
+    else setMicroKo(true);
+  };
+  const demanderMicro = () => (navigator.mediaDevices?.getUserMedia ? navigator.mediaDevices.getUserMedia({ audio: true }) : Promise.reject(new Error("micro")));
+  const choisirScenario = (sc) => {
+    setScenario(sc); setSens(sc.sens); setErreur(null);
+    base44.request("POST", API, { body: { sens: sc.sens, essai: true } }).then((r) => {
+      idRef.current = r.rappel.id; setRappel(r.rappel);
+      if (sc.sens === "sortant") setEcran("choix"); else lancer(null, sc);
+    }).catch((e) => setErreur(e?.message || "L'essai n'a pas pu démarrer."));
+  };
+  // Appel rapide : la personne choisie (ou créée), puis l'enregistrement. Le micro se demande dans le clic même.
+  const choisirPuisLancer = (corps) => {
+    const micro = scenario ? null : demanderMicro();
+    identifier.mutate(corps, { onSuccess: () => lancer(micro) });
+  };
+
   useEffect(() => {
     window.addEventListener(EVT, demarrer);
     return () => window.removeEventListener(EVT, demarrer);
@@ -275,7 +330,7 @@ export default function RappelEntrant() {
       const t0 = Date.now();
       await new Promise((ok) => setTimeout(ok, 400));
       while (morceaux.current.some((x) => x.etat === "envoi") && Date.now() - t0 < 20000) await new Promise((ok) => setTimeout(ok, 250));
-      if (!idRef.current) { const r = await base44.request("POST", API, { body: { sens } }); idRef.current = r.rappel.id; }
+      if (!idRef.current) { const r = await base44.request("POST", API, { body: { sens, essai } }); idRef.current = r.rappel.id; }
       const f = new FormData();
       f.append("morceaux", JSON.stringify(morceaux.current.map((x) => (x.etat === "ok" ? x.texte || "" : x.wav ? null : ""))));
       morceaux.current.filter((x) => x.etat !== "ok" && x.wav).forEach((x, k) => f.append("audio", x.wav, `m${k}.wav`));
@@ -283,7 +338,8 @@ export default function RappelEntrant() {
       f.append("duree_s", String(Math.round((Date.now() - debut.current) / 1000)));
       return base44.request("POST", `${API}/${idRef.current}/fin`, { body: f, isForm: true });
     },
-    onSuccess: (r) => { setRappel(r.rappel); setNotes(r.rappel.notes || ""); setEcran("identification"); },
+    // Identifié pendant l'appel, ou choisi avant (appel rapide) : l'analyse part tout de suite.
+    onSuccess: (r) => { setRappel(r.rappel); setNotes(r.rappel.notes || ""); if (r.rappel.etat === "identifie") analyser.mutate({}); else setEcran("identification"); },
     onError: (e) => { setErreur(erreurReseau(e) ? "Pas de réseau : l'appel est gardé à l'écran, réessayez au retour du réseau." : e?.message || "La transcription a échoué."); setEcran("identification"); },
   });
 
@@ -294,10 +350,15 @@ export default function RappelEntrant() {
   });
 
   // --- L'agent ---------------------------------------------------------------------------------------
-  const trouves = useQuery({ queryKey: ["rappel-chercher", recherche], queryFn: () => base44.request("GET", `${API}/chercher?q=${encodeURIComponent(recherche)}`), enabled: ecran === "identification" && recherche.trim().length >= 2 });
+  const trouves = useQuery({ queryKey: ["rappel-chercher", recherche], queryFn: () => base44.request("GET", `${API}/chercher?q=${encodeURIComponent(recherche)}${idRef.current ? `&rappel=${idRef.current}` : ""}`), enabled: ["identification", "enregistrement", "choix"].includes(ecran) && recherche.trim().length >= 2 });
   // Les appels déjà faits par l'équipe (13 oct. 2026, Jules) : les derniers d'abord, à chercher par nom ou numéro.
   const appelsFaits = useQuery({ queryKey: ["rappel-appels", rechercheAppels], queryFn: () => base44.request("GET", `${API}/appels?q=${encodeURIComponent(rechercheAppels)}`), enabled: ecran === "identification" });
   const [tousLesAppels, setTousLesAppels] = useState(false);
+  // Appel rapide : vos personnes du jour (à relancer, à rappeler) ; en essai, les agences de la liste fictive.
+  const jour = useQuery({ queryKey: ["prospection-aujourdhui", false], queryFn: () => base44.request("GET", "/api/prospection/aujourdhui"), enabled: ecran === "choix" && !essai });
+  const fictives = useQuery({ queryKey: ["rappel-essai-agences", rappel?.id], queryFn: () => base44.request("GET", `${API}/chercher?q=&rappel=${idRef.current}`), enabled: ecran === "choix" && essai && !!rappel?.id });
+  const suggestions = essai ? fictives.data?.resultats || []
+    : [...(jour.data?.relancer || []), ...(jour.data?.rappeler || [])].slice(0, 8).map((l) => ({ cle: l.id, agent_id: l.id, agence_id: null, nom: l.nom, agence: l.agence, ville: l.ville, telephone: l.telephone, raison: l.quoi }));
   const ouvrirActions = (ap) => {
     const props = ap.propositions || [];
     setAppel(ap); setIssue(ap.issue_tapee || ap.issue); setTitre(ap.resume || ""); setCle(nouvelleCle());
@@ -315,10 +376,13 @@ export default function RappelEntrant() {
   });
   const identifier = useMutation({
     mutationFn: async (corps) => {
-      if (notes !== (rappel.notes || "")) await base44.request("POST", `${API}/${rappel.id}/notes`, { body: { notes } });
-      return base44.request("POST", `${API}/${rappel.id}/identifier`, { body: corps });
+      const id = idRef.current || rappel?.id;
+      if (!id) throw new Error("L'appel se crée encore : réessayez dans une seconde.");
+      if (ecranRef.current !== "enregistrement" && notes !== (rappel?.notes || "")) await base44.request("POST", `${API}/${id}/notes`, { body: { notes } });
+      return base44.request("POST", `${API}/${id}/identifier`, { body: corps });
     },
-    onSuccess: (r) => { setRappel(r.rappel); setNouveau(null); setRecherche(""); setRechercheAppels(""); analyser.mutate({}); },
+    // Pendant l'appel ou avant un appel rapide : la personne est notée, l'analyse attendra le Stop.
+    onSuccess: (r) => { setRappel(r.rappel); setNouveau(null); setRecherche(""); setRechercheAppels(""); if (!["enregistrement", "choix"].includes(ecranRef.current)) analyser.mutate({}); },
     onError: (e) => toast.error(e?.message || "Identification impossible"),
   });
   const confirmer = (c) => identifier.mutate({ agent_id: c.agent_id, agence_id: c.agence_id });
@@ -384,6 +448,13 @@ export default function RappelEntrant() {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
+  // « Pas la bonne personne » (19 oct. 2026) : on revient au choix, l'appel et ses notes restent ; la nouvelle analyse remplacera l'ancienne.
+  const reidentifier = useMutation({
+    mutationFn: () => base44.request("POST", `${API}/${idRef.current || rappel.id}/reidentifier`),
+    onSuccess: (r) => { setRappel(r.rappel); setAppel(null); setEcran(ecranRef.current === "enregistrement" ? "enregistrement" : "identification"); },
+    onError: (e) => toast.error(e?.message || "Impossible"),
+  });
+
   const fermer = () => {
     couper(); clearInterval(minuteur.current); clearInterval(compte.current);
     setOuvert(false); setEcran(null); setRappel(null); idRef.current = null;
@@ -395,7 +466,7 @@ export default function RappelEntrant() {
     onSuccess: (x) => {
       reinitialiser();
       const rp = x.rappel;
-      idRef.current = rp.id; setRappel(rp); setNotes(rp.notes || ""); setOuvert(true); setSens(rp.sens || "entrant");
+      idRef.current = rp.id; setRappel(rp); setNotes(rp.notes || ""); setOuvert(true); setSens(rp.sens || "entrant"); setEssai(!!rp.essai);
       if (rp.etat === "enregistrement") { setMicroKo(true); setEcran("enregistrement"); }
       else if (rp.etat === "a_identifier") setEcran("identification");
       else if (rp.appel) ouvrirActions(rp.appel);
@@ -467,9 +538,10 @@ export default function RappelEntrant() {
         <div className="flex items-center justify-between gap-3 rounded-full border border-trait px-4 py-2.5">
           <span className="flex min-w-0 items-center gap-2.5 text-[14.5px]">
             <IconeSens className="h-4 w-4 flex-none text-menthe" />
+            {essai && <span className="flex-none rounded-full bg-ambre/15 px-2.5 py-0.5 text-[12px] text-ambre">Essai</span>}
             <span className="min-w-0 truncate text-encre">{SENS[sens].titre} · {agent ? [agent.nom, agent.agence].filter(Boolean).join(" · ") : "agent à identifier"}</span>
           </span>
-          {(sens === "raconte" || (ecran !== "enregistrement" && ecran !== "transcription")) && (
+          {(sens === "raconte" || essai || ["essai", "choix"].includes(ecran) || (ecran !== "enregistrement" && ecran !== "transcription")) && (
             <button type="button" onClick={fermer} aria-label="Fermer : le rappel reste à terminer" title="Plus tard : le rappel reste dans le bandeau" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
           )}
         </div>
@@ -483,10 +555,57 @@ export default function RappelEntrant() {
           </div>
         ))}
 
-        {/* Pendant l'appel : le micro, Stop, le chronomètre ; la transcription viendra à la fin ; les notes. */}
+        {/* Le choix d'un essai (19 oct. 2026) : un scénario joué, rien ne sort de la liste fictive. */}
+        {ecran === "essai" && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[["entrant", "Il me rappelle"], ["sortant", "Appel rapide"]].map(([k, mot]) => (
+              <div key={k} className="flex flex-col gap-2 rounded-[18px] border border-trait p-4">
+                <span className={etiquette}>{mot.toUpperCase()}</span>
+                {SCENARIOS_RAPPEL.filter((x) => x.sens === k).map((x) => (
+                  <button key={x.cle} type="button" onClick={() => choisirScenario(x)} className="flex flex-col gap-0.5 rounded-[12px] border border-trait px-4 py-3 text-left transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>
+                    <span className="text-[15px] text-encre">{x.titre}</span>
+                    <span className="text-[13px] leading-[1.45] text-ardoise">{x.aide}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+            <p className="m-0 text-[13px] text-brume md:col-span-2">L'appel se joue phrase par phrase, Haka le lit pour de vrai. Tout reste dans la liste fictive : ni Monday, ni mail, ni carnet réel.</p>
+          </div>
+        )}
+
+        {/* Appel rapide : qui appelez-vous ? On choisit, ou on crée, puis l'enregistrement part. */}
+        {ecran === "choix" && (
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <div className="flex min-w-0 flex-col gap-3 rounded-[18px] border border-trait p-5">
+              <span className={etiquette}>QUI APPELEZ-VOUS ?</span>
+              <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
+                <Search className="h-4 w-4 flex-none text-ardoise" />
+                <input autoFocus value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Nom, agence, ou 4 derniers chiffres" aria-label="Chercher la personne" className="w-full border-0 bg-transparent text-[15px] text-encre outline-none" />
+              </span>
+              {(recherche.trim().length >= 2 ? trouves.data?.resultats || [] : suggestions).map((c) => (
+                <Candidat key={c.cle} c={c} onConfirmer={(x) => choisirPuisLancer({ agent_id: x.agent_id, agence_id: x.agence_id })} occupe={identifier.isPending} libelle="Appeler" />
+              ))}
+              {recherche.trim().length >= 2 && trouves.data && !trouves.data.resultats.length && <span className="text-[13px] text-brume">Personne à ce nom ou ce numéro : créez le contact à droite.</span>}
+            </div>
+            <div className="flex min-w-0 flex-col gap-2 rounded-[18px] border border-trait p-5">
+              <span className={etiquette}>PAS EN BASE ?</span>
+              <input value={nouveau?.nom || ""} onChange={(e) => setNouveau((x) => ({ agence_id: null, agence: "", ville: "", telephone: "", email: "", ...(x || {}), nom: e.target.value }))} placeholder="Nom de la personne" className={champ} />
+              <input value={nouveau?.agence || ""} onChange={(e) => setNouveau((x) => ({ ville: "", nom: "", telephone: "", email: "", ...(x || {}), agence: e.target.value, agence_id: null }))} placeholder="Agence" className={champ} />
+              {!essai && (nouveau?.agence || "").trim().length >= 2 && !nouveau?.agence_id && <ChoixAgence q={nouveau.agence} onChoisir={(g) => setNouveau((x) => ({ ...x, agence_id: g.agence_id, agence: g.agence, ville: g.ville || "" }))} />}
+              <input value={nouveau?.telephone || ""} onChange={(e) => setNouveau((x) => ({ agence_id: null, agence: "", ville: "", nom: "", email: "", ...(x || {}), telephone: e.target.value }))} placeholder="Téléphone" inputMode="tel" className={champ} />
+              <button type="button" onClick={() => choisirPuisLancer({ nouveau })} disabled={!nouveau?.nom?.trim() || identifier.isPending} className={`${principal} mt-1 self-start`}>Créer et appeler</button>
+              <span className="text-[12.5px] text-brume">S'il existe déjà (même numéro, même nom dans la même agence), sa fiche est reprise.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Pendant l'appel, comme au Mode appel : la transcription à gauche, le micro à droite ; on peut dire qui appelle sans attendre. */}
         {ecran === "enregistrement" && (
-          <div className="grid gap-4 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
+            <div className="flex min-w-0 flex-col gap-4">{transcription}{zoneNotes}</div>
+            <div className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-col items-center gap-4 rounded-[20px] border border-trait px-5 py-8">
+              {agent?.telephone && sens === "sortant" && !essai && <span className="text-center text-[14px] text-ardoise">Composez le <span className="font-mono text-[18px] text-encre">{agent.telephone}</span></span>}
               {microKo ? (
                 <>
                   <span className={`text-[15px] ${sens === "raconte" ? "text-encre" : "text-ambre"}`}>{sens === "raconte" ? "Ce que l'agent a dit" : "Enregistrement pas lancé"}</span>
@@ -499,8 +618,29 @@ export default function RappelEntrant() {
                 </>
               )}
               <button type="button" onClick={() => stop.mutate()} disabled={stop.isPending} className={`h-14 w-full max-w-[300px] rounded-full text-[17px] hover:opacity-90 disabled:opacity-50 ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
+              {!essai && sens !== "raconte" && tactile() && <span className="max-w-[300px] text-center text-[12.5px] leading-[1.45] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</span>}
             </div>
-            <div className="flex flex-col gap-4">{transcription}{zoneNotes}</div>
+              {sens !== "raconte" && (
+                <div className="flex flex-col gap-2 rounded-[18px] border border-trait p-4">
+                  <span className={etiquette}>{sens === "sortant" ? "VOUS APPELEZ" : "QUI APPELLE ?"}</span>
+                  {agent ? (
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 text-[15px] text-encre">{[agent.nom, agent.agence].filter(Boolean).join(" · ")}</span>
+                      <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending} className="flex-none p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Changer</button>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
+                        <Search className="h-4 w-4 flex-none text-ardoise" />
+                        <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Dès qu'il dit son nom ou son agence" aria-label="Qui appelle" className="w-full border-0 bg-transparent text-[15px] text-encre outline-none" />
+                      </span>
+                      {(trouves.data?.resultats || []).slice(0, 4).map((c) => <Candidat key={c.cle} c={c} onConfirmer={confirmer} occupe={identifier.isPending} libelle="C'est lui" />)}
+                      <span className="text-[12.5px] text-brume">Sinon, Haka propose qui c'est au Stop.</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -572,6 +712,7 @@ export default function RappelEntrant() {
               {transcription}
               {zoneNotes}
               {notesChangees && <button type="button" onClick={() => reanalyser.mutate()} disabled={reanalyser.isPending} className={`${secondaire} self-start`} style={{ background: "transparent" }}>Ré-analyser</button>}
+              {sens !== "raconte" && <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending || analyser.isPending} className={`${secondaire} self-start`} style={{ background: "transparent" }}>Pas la bonne personne</button>}
               <button type="button" onClick={() => abandonner.mutate()} disabled={abandonner.isPending} className="self-start p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Abandonner ce rappel</button>
             </div>
             <div className="flex min-w-0 flex-col gap-4 max-md:order-first">

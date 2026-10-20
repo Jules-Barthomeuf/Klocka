@@ -22,7 +22,7 @@ const LISTE = 'ListeAgences';
 const APPEL = 'AppelAgent';
 const SANS_REPONSE = ['pas_de_reponse', 'repondeur'];
 const OUVERTS = ['enregistrement', 'a_identifier', 'identifie'];
-const TROIS_JOURS = 3 * 86400000;
+const SEPT_JOURS = 7 * 86400000;
 
 const maintenant = () => new Date().toISOString();
 const moiDe = (user) => String(user?.email || '').toLowerCase();
@@ -169,7 +169,7 @@ export function nomEntendu(nom, texteNorm) {
  * entendus seuls. Deux homonymes restent deux candidats, chacun avec son
  * agence et sa ville : jamais de choix automatique.
  */
-export function classer({ sansReponse = [], agents = [], agences = [], texte = '', notes = '', maintenantD = new Date() }) {
+export function classer({ sansReponse = [], agents = [], agences = [], texte = '', notes = '', maintenantD = new Date(), moi = null }) {
   const t = R.norm(`${texte} ${notes}`);
   const tel = lireNotes(notes).telephone ? R.normTel(lireNotes(notes).telephone) : null;
   const scores = new Map();
@@ -204,7 +204,7 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
       : { cle: g.carnet_id || `ag:${g.id}`, agent_id: g.carnet_id || null, agence_id: g.id, nom: g.monday_connu?.nom || x.agent || null, agence: g.nom, ville: g.ville || null, telephone: x.numero || g.telephone || null, ne_plus_appeler: !!g.ne_plus_appeler };
     // La récence seule ne fait pas « Probablement » : elle départage, elle ne désigne pas.
     let points = 25 - i;
-    let raison = `appelé ${quandDit(x.le, maintenantD)}`;
+    let raison = `appelé ${quandDit(x.le, maintenantD)}${x.par && moi && String(x.par).toLowerCase() !== String(moi).toLowerCase() ? ` par ${prenomDe(x.par)}` : ''}`;
     if (dit.minutes != null) {
       const ecart = Math.abs(minutesParis(x.le) - dit.minutes);
       if (ecart <= 60) { points += 30; raison += ', l\'heure dite'; } else points -= 60;
@@ -234,6 +234,12 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
 
 /** Les candidats d'un rappel, lus dans la base. */
 function candidatsDe(rappel, maintenantD = new Date()) {
+  if (rappel.essai) {
+    const agencesEssai = Records.list(AGENCE).filter((g) => g.liste_id === rappel.essai_liste_id).map((g) => ({ ...g, ville: 'Essai' }));
+    const agentsEssai = agencesEssai.filter((g) => g.carnet_id).map((g) => Records.get('AgentImmo', g.carnet_id)).filter(Boolean)
+      .map((a) => ({ ...a, agence_id: agencesEssai.find((g) => g.carnet_id === a.id)?.id || null }));
+    return classer({ sansReponse: [], agents: agentsEssai, agences: agencesEssai.filter((g) => !g.carnet_id), texte: rappel.transcription || '', notes: rappel.notes || '', maintenantD, moi: rappel.par });
+  }
   const listes = new Map(Records.list(LISTE).filter((l) => !l.essai).map((l) => [l.id, l]));
   const agencesTout = Records.list(AGENCE).filter((g) => (g.liste_id ? listes.has(g.liste_id) : g.hors_liste));
   const parCarnet = new Map(agencesTout.filter((g) => g.carnet_id).map((g) => [g.carnet_id, g]));
@@ -241,18 +247,20 @@ function candidatsDe(rappel, maintenantD = new Date()) {
     const g = parCarnet.get(a.id);
     return { ...a, agence_id: g?.id || null, agence: a.agence || g?.nom || null, ville: a.ville || (g ? listes.get(g.liste_id)?.ville || g.ville : null) };
   });
-  const depuis = new Date(maintenantD.getTime() - TROIS_JOURS).toISOString();
+  // Les appels manqués de toute l'équipe (19 oct. 2026, Jules) : l'agence rappelle souvent quelqu'un d'autre que celui qui l'a appelée.
+  const depuis = new Date(maintenantD.getTime() - SEPT_JOURS).toISOString();
   const sansReponse = Records.list(APPEL)
-    .filter((x) => x.par === rappel.par && SANS_REPONSE.includes(x.issue) && !x.essai && String(x.le) >= depuis)
+    .filter((x) => SANS_REPONSE.includes(x.issue) && !x.essai && String(x.le) >= depuis)
     .sort((x, y) => String(y.le).localeCompare(String(x.le)))
     .filter((x, i, t) => t.findIndex((y) => y.agent_id === x.agent_id) === i);
   const agences = agencesTout.map((g) => ({ ...g, ville: g.liste_id ? listes.get(g.liste_id)?.ville : g.ville }));
-  return classer({ sansReponse, agents, agences, texte: rappel.transcription || '', notes: rappel.notes || '', maintenantD });
+  return classer({ sansReponse, agents, agences, texte: rappel.transcription || '', notes: rappel.notes || '', maintenantD, moi: rappel.par });
 }
 
 /** Chercher l'agent : les 4 derniers chiffres de son numéro, son nom, ou son agence. */
-export function chercher(q, { max = 8 } = {}) {
+export function chercher(q, { max = 8, essaiListeId = null } = {}) {
   const brut = String(q || '').trim();
+  if (essaiListeId) return chercherEssai(brut, essaiListeId, max);
   const chiffres = brut.replace(/\D/g, '');
   const t = R.norm(brut);
   if (chiffres.length < 4 && t.length < 2) return [];
@@ -278,6 +286,17 @@ export function chercher(q, { max = 8 } = {}) {
     if (out.length >= max * 3) break;
   }
   return out.slice(0, max);
+}
+
+/** En essai : les agences de la liste fictive (et leurs fiches), rien du carnet réel. Sans texte : toutes. */
+function chercherEssai(brut, listeId, max) {
+  const t = R.norm(brut);
+  const chiffres = brut.replace(/\D/g, '');
+  return Records.list(AGENCE).filter((g) => g.liste_id === listeId)
+    .map((g) => ({ g, f: g.carnet_id ? Records.get('AgentImmo', g.carnet_id) : null }))
+    .filter(({ g, f }) => !t || (chiffres.length >= 4 ? [g.telephone, ...(f?.telephones || [])].some((x) => R.normTel(x || '').endsWith(chiffres.slice(-4))) : R.norm(`${g.nom} ${f?.nom || ''} ${(g.gerants || []).map((x) => x.nom).join(' ')}`).includes(t)))
+    .slice(0, max)
+    .map(({ g, f }) => ({ cle: f?.id || `ag:${g.id}`, agent_id: f?.id || null, agence_id: g.id, nom: f?.nom || g.gerants?.[0]?.nom || null, agence: g.nom, ville: 'Essai', telephone: g.telephone || null, ne_plus_appeler: false }));
 }
 
 /**
@@ -331,7 +350,7 @@ function vue(r) {
   const agent = r.agent_id ? Records.get('AgentImmo', r.agent_id) : null;
   const agence = r.agence_id ? Records.get(AGENCE, r.agence_id) : null;
   return {
-    id: r.id, etat: r.etat, sens: sensDe(r.sens), debut: r.debut, fin: r.fin || null, duree_s: r.duree_s || null,
+    id: r.id, etat: r.etat, sens: sensDe(r.sens), essai: !!r.essai, debut: r.debut, fin: r.fin || null, duree_s: r.duree_s || null,
     notes: r.notes || '', notes_analysees: r.notes_analysees ?? null, transcription: r.transcription || null, transcription_echec: r.transcription_echec || null,
     candidats: r.candidats || [], appel_id: r.appel_id || null, rien_de_nouveau: !!r.rien_de_nouveau,
     agent: agent ? { id: agent.id, nom: agent.nom, agence: agent.agence || agence?.nom || null, telephone: (agent.telephones || [])[0] || null } : null,
@@ -361,6 +380,20 @@ const sensDe = (x) => (SENS.includes(x) ? x : 'entrant');
 
 export function ouvrir(user, { sens = 'entrant', notes = '' } = {}) {
   const r = Records.create(ENTITE, { par: moiDe(user), debut: maintenant(), etat: 'enregistrement', notes: String(notes || '').slice(0, 4000), sens: sensDe(sens) });
+  return { ok: true, rappel: vue(r) };
+}
+
+/**
+ * Un rappel ou un appel rapide pour s'entraîner (19 oct. 2026, Jules : « un mode pour tester sans passer d'appel
+ * réel ») : la liste fictive du mode Essai (quatre agences), remise à zéro ; on cherche, on identifie et on crée des
+ * contacts dans cette liste seulement, et la validation ne touche ni Monday, ni les mails, ni le carnet réel.
+ */
+export async function ouvrirEssaiRappel(user, { sens = 'entrant' } = {}) {
+  const MA = await import('./mode-appel.js');
+  MA.ouvrirEssai(user);
+  const moi = moiDe(user);
+  const liste = Records.list(LISTE).find((x) => x.essai && (x.essai_par || null) === moi);
+  const r = Records.create(ENTITE, { par: moi, debut: maintenant(), etat: 'enregistrement', notes: '', sens: sensDe(sens), essai: true, essai_liste_id: liste?.id || null });
   return { ok: true, rappel: vue(r) };
 }
 
@@ -420,9 +453,11 @@ export async function finir(id, { morceaux = [], audios = [], notes = null, dure
   }
   const transcription = textes.filter(Boolean).join('\n').trim() || null;
   const base = { ...r, transcription, notes: notes != null ? String(notes).slice(0, 4000) : r.notes };
+  // Identifié pendant l'appel (ou choisi avant, pour un appel rapide) : il le reste, l'analyse peut suivre.
+  const deja = r.etat === 'identifie' && r.agent_id;
   const r2 = Records.update(ENTITE, id, {
-    etat: 'a_identifier', fin: maintenant(), duree_s, transcription, transcription_echec: echec,
-    notes: base.notes, candidats: candidatsDe(base),
+    etat: deja ? 'identifie' : 'a_identifier', fin: maintenant(), duree_s, transcription, transcription_echec: echec,
+    notes: base.notes, candidats: deja ? r.candidats || [] : candidatsDe(base),
   });
   return { ok: true, rappel: vue(r2) };
 }
@@ -445,15 +480,27 @@ export async function identifier(id, { agent_id = null, agence_id = null, nouvea
   if (!r || r.par !== moiDe(user) || !OUVERTS.includes(r.etat)) return { ok: false, error: 'Rappel introuvable.' };
   let agentId = agent_id;
   let agence = agence_id ? Records.get(AGENCE, agence_id) : null;
-  if (nouveau) {
+  if (nouveau && r.essai) {
+    // En essai : le contact et son agence naissent dans la liste fictive, jamais dans le carnet réel.
+    const nom = String(nouveau.nom || '').trim();
+    if (!nom) return { ok: false, error: 'Le nom du contact manque.' };
+    const g = nouveau.agence_id ? Records.get(AGENCE, nouveau.agence_id) : Records.create(AGENCE, { liste_id: r.essai_liste_id, nom: String(nouveau.agence || '').trim() || nom, telephone: nouveau.telephone || null, email: nouveau.email || null, gerants: [], sources: ['Essai'], agents: [], cree_le: maintenant() });
+    const fiche = Records.create('AgentImmo', { essai: true, nom, agence: g.nom, ville: 'Essai', telephones: [nouveau.telephone].filter(Boolean), emails: [nouveau.email].filter(Boolean), statut: 'nouveau', tentatives: 0, secteurs: [], journal: [], source: 'Mode essai', cree_le: maintenant() });
+    if (!g.carnet_id) Records.update(AGENCE, g.id, { carnet_id: fiche.id });
+    agentId = fiche.id;
+    agence = Records.get(AGENCE, g.id);
+  } else if (nouveau) {
     const nom = String(nouveau.nom || '').trim();
     if (!nom) return { ok: false, error: 'Le nom du contact manque.' };
     const g = nouveau.agence_id ? Records.get(AGENCE, nouveau.agence_id) : null;
     const notes = lireNotes(r.notes);
     const C = await import('./carnet.js');
     const c = { nom, agence: g?.nom || String(nouveau.agence || '').trim() || null, ville: nouveau.ville || g?.ville || null, telephone: nouveau.telephone || notes.telephone || null, email: nouveau.email || notes.email || null, source: 'Rappel entrant' };
+    // Une fiche qui existe déjà (même numéro, même email, même nom dans la même agence) est reprise, jamais doublée.
+    const connu = R.clesDe(c).length ? R.dejaConnu(R.indexer(C.agents()), c) : null;
     const integre = R.clesDe(c).length ? C.integrer([c]) : null;
-    const fiche = integre?.crees[0] || (integre ? C.agents().find((a) => (c.telephone && (a.telephones || []).map(R.normTel).includes(R.normTel(c.telephone))) || (c.email && (a.emails || []).includes(R.normEmail(c.email)))) : null)
+    const fiche = (connu && Records.get('AgentImmo', connu.id)) || integre?.crees[0]
+      || (integre ? C.agents().find((a) => (c.telephone && (a.telephones || []).map(R.normTel).includes(R.normTel(c.telephone))) || (c.email && (a.emails || []).includes(R.normEmail(c.email)))) : null)
       || Records.create('AgentImmo', C.ficheDuCandidat(c));
     agentId = fiche.id;
     agence = g || null;
@@ -461,6 +508,7 @@ export async function identifier(id, { agent_id = null, agence_id = null, nouvea
     C.journal(fiche.id, { type: 'note', texte: 'Nouveau contact, depuis un rappel entrant', par: moiDe(user) });
   }
   if (!agentId && agence?.carnet_id) agentId = agence.carnet_id;
+  if (!agentId && agence && r.essai) agentId = (await import('./mode-appel.js')).ficheEssai(agence).id;
   if (!agentId && agence) {
     // Une agence jamais appelée : elle entre au carnet, comme au premier appel sortant.
     const IA = await import('./agent-ia.js');
@@ -485,6 +533,17 @@ export async function identifier(id, { agent_id = null, agence_id = null, nouvea
     RL.liberer(`ag:${agence.id}`);
   }
   const r2 = Records.update(ENTITE, id, { etat: 'identifie', agent_id: f.id, agence_id: agence.id, avertissements });
+  return { ok: true, rappel: vue(r2) };
+}
+
+/**
+ * « Pas la bonne personne » (19 oct. 2026, Jules) : après l'analyse, on revient à l'identification sans perdre
+ * l'appel ; la nouvelle analyse remplacera la précédente (même transcription, mêmes notes).
+ */
+export function reidentifier(id, user) {
+  const r = Records.get(ENTITE, id);
+  if (!r || r.par !== moiDe(user) || !OUVERTS.includes(r.etat)) return { ok: false, error: 'Rappel introuvable.' };
+  const r2 = Records.update(ENTITE, id, { etat: 'a_identifier', agent_id: null, agence_id: null, avertissements: [], candidats: candidatsDe({ ...r }) });
   return { ok: true, rappel: vue(r2) };
 }
 

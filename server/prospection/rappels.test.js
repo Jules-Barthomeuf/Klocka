@@ -265,3 +265,42 @@ test("« Manon de l'agence Primo Immobilier » : l'agence qui se présente l'emp
     assert.equal(c[0].probable, true);
   }
 });
+
+test("essai, identification avant le Stop, « Pas la bonne personne », pas de doublon (19 oct. 2026)", async () => {
+  const JULES = { email: 'jules.b@klocka.immo', role: 'admin' };
+  // Essai : la liste fictive, ses agences pour la recherche, un nouveau contact qui reste dans l'essai.
+  const e = await RP.ouvrirEssaiRappel(JULES, { sens: 'sortant' });
+  assert.equal(e.rappel.essai, true);
+  const r0 = Records.get('RappelEntrant', e.rappel.id);
+  const trouves = RP.chercher('Riviera', { essaiListeId: r0.essai_liste_id });
+  assert.equal(trouves[0].agence, 'Riviera Test Immobilier');
+  assert.ok(!RP.chercher('', { essaiListeId: r0.essai_liste_id }).some((x) => !/Essai|Test|Démo|Fictive/.test(x.agence)), 'rien du carnet réel');
+  const avant = Records.list('AgentImmo').filter((a) => !a.essai).length;
+  const n = await RP.identifier(e.rappel.id, { nouveau: { nom: 'Paul Inconnu', agence: 'Agence Nouvelle Vague', telephone: '0611223344' } }, JULES);
+  assert.equal(n.ok, true);
+  assert.equal(Records.list('AgentImmo').filter((a) => !a.essai).length, avant, 'le carnet réel ne bouge pas');
+  // Identifié pendant l'appel : il le reste au Stop.
+  const f = await RP.finir(e.rappel.id, { morceaux: ['Allô Paul, c\'est Jules de Klocka, je vous appelle pour faire le point.'], notes: '' }, JULES);
+  assert.equal(f.rappel.etat, 'identifie');
+  // Pas la bonne personne : retour à l'identification.
+  const ri = RP.reidentifier(e.rappel.id, JULES);
+  assert.equal(ri.rappel.etat, 'a_identifier');
+  assert.equal(ri.rappel.agent, null);
+  // Hors essai : un nouveau contact qui existe déjà (même numéro) est repris, pas doublé.
+  const existant = Records.create('AgentImmo', { nom: 'Claire Double', agence: 'Agence Double', telephones: ['0677889900'], statut: 'nouveau' });
+  const o = RP.ouvrir(JULES);
+  await RP.finir(o.rappel.id, { morceaux: [], notes: 'Claire, 06 77 88 99 00' }, JULES);
+  const id = await RP.identifier(o.rappel.id, { nouveau: { nom: 'Claire D.', agence: 'Agence Double', telephone: '06 77 88 99 00' } }, JULES);
+  assert.equal(id.ok, true);
+  assert.equal(Records.get('RappelEntrant', o.rappel.id).agent_id, existant.id);
+  RP.abandonner(o.rappel.id, JULES);
+});
+
+test("les appels manqués d'un collègue comptent, et disent qui a appelé", () => {
+  const c = RP.classer({
+    sansReponse: [{ agence_id: 'g1', agent: 'Primo Immobilier', issue: 'pas_de_reponse', le: '2026-10-19T09:00:00Z', par: 'maxime.p@klocka.immo' }],
+    agents: [], agences: [{ id: 'g1', nom: 'Primo Immobilier', ville: 'Lyon' }], texte: 'Bonjour, vous avez essayé de nous joindre ?', maintenantD: new Date('2026-10-19T15:00:00Z'), moi: 'nora.l@klocka.immo',
+  });
+  assert.equal(c[0].agence, 'Primo Immobilier');
+  assert.match(c[0].raison, /par Maxime/);
+});

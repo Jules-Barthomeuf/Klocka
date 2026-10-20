@@ -44,6 +44,52 @@ export function monterHaka(app) {
     ok(res, { vue, propositions: (await F()).lister(user, vue) });
   }));
 
+  // Une fiche reçue, ouverte avant d'être acceptée (20 oct. 2026, Jules : « on clique et on voit soit l'email soit la
+  // fiche commerciale ») : le mail, puis chacune de ses pièces. Seulement pour qui peut décider de la proposition.
+  const mailDeProposition = async (req, res) => {
+    const user = admin(req, res);
+    if (!user || !actif(res)) return null;
+    const f = await F();
+    const p = f.proposition(req.params.id);
+    if (!p || p.type !== 'preanalyser_fiche') { res.status(404).json({ error: 'Proposition introuvable.' }); return null; }
+    if (!f.peutDecider(user, p)) { res.status(403).json({ error: "Cette proposition n'est pas à vous." }); return null; }
+    const { Records } = await import('../db.js');
+    const mailId = p.charge?.mail_id || (p.tache_id ? (await T()).tache(p.tache_id)?.charge?.mail_id : null);
+    const mail = mailId ? Records.get('MailRecu', mailId) : null;
+    if (!mail) { res.status(404).json({ error: 'Le mail de cette fiche est introuvable.' }); return null; }
+    return mail;
+  };
+  app.get('/api/haka/propositions/:id/mail', wrap(async (req, res) => {
+    const mail = await mailDeProposition(req, res);
+    if (!mail) return;
+    const { piecesFiche } = await import('../deal/fiches-auto.js');
+    const fiches = new Set(piecesFiche(mail).map((x) => x?.nom));
+    ok(res, {
+      de: mail.de || mail.de_email || null, compte: mail.compte || null, objet: mail.objet || '', date: mail.date || null,
+      texte: String(mail.texte || '').slice(0, 20000),
+      pieces: (mail.pieces_jointes || []).map((x, n) => ({ n, nom: x?.nom || `pièce ${n + 1}`, mime: x?.mime || null, fiche: fiches.has(x?.nom) })).filter((x) => mail.pieces_jointes[x.n]?.piece_id),
+    });
+  }));
+  app.get('/api/haka/propositions/:id/piece/:n', wrap(async (req, res) => {
+    const mail = await mailDeProposition(req, res);
+    if (!mail) return;
+    const piece = (mail.pieces_jointes || [])[Number(req.params.n)];
+    if (!piece?.piece_id) return res.status(404).json({ error: 'Pièce introuvable.' });
+    let buffer;
+    if (String(piece.piece_id).startsWith('local:')) {
+      const fs = await import('node:fs');
+      buffer = fs.readFileSync(String(piece.piece_id).slice('local:'.length));
+    } else {
+      const { telechargerPieceJointe } = await import('../gmail-inbox.js');
+      buffer = await telechargerPieceJointe(mail.compte, mail.gmail_message_id, piece.piece_id);
+    }
+    const mime = piece.mime || (/\.pdf$/i.test(piece.nom || '') ? 'application/pdf' : 'application/octet-stream');
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(piece.nom || 'piece')}`);
+    res.setHeader('Cache-Control', 'private, max-age=600');
+    res.end(buffer);
+  }));
+
   app.get('/api/haka/propositions/dossier/:dealId', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;

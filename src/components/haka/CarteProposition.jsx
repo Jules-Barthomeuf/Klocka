@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import ApercuFicheRecue from "@/components/haka/ApercuFicheRecue";
 import { Link } from "react-router-dom";
 import { Check, Loader2, Pencil, Hand } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -47,6 +48,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
   const [charge, setCharge] = useState(p.charge || {});
   const [rejet, setRejet] = useState(false);
   const [motif, setMotif] = useState("");
+  const [apercu, setApercu] = useState(false);
   const aChoix = Array.isArray(p.choix) && p.choix.length > 0;
   const information = Array.isArray(p.actions) && p.actions.length === 1 && p.actions[0] === "vu";
   const estMail = p.type === "demande_documents" || p.type === "relance_mail";
@@ -74,6 +76,13 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
             <div className="rounded-[12px] border border-trait px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-brume">La demande</p><p className="m-0 mt-1 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-craie">{p.charge?.demande}</p></div>
             <div className="rounded-[12px] border border-menthe/40 px-4 py-3"><p className="m-0 text-[11px] uppercase tracking-[.14em] text-menthe">La réponse de Haka</p><p className="m-0 mt-1 whitespace-pre-wrap text-[14px] leading-[1.55] text-encre">{p.charge?.reponse}</p></div>
           </div>
+        )}
+        {/* Une fiche reçue (20 oct. 2026, Jules) : on la regarde, fiche ou mail, avant de la rentrer. */}
+        {p.type === "preanalyser_fiche" && (
+          <button type="button" onClick={() => setApercu(true)} className="flex w-full items-center justify-between gap-3 rounded-[12px] border border-trait px-4 py-3 text-left hover:border-bord-vif" style={{ background: "transparent" }}>
+            <span className="min-w-0"><span className="block truncate text-[14px] text-encre">{p.charge?.objet || "(sans objet)"}</span><span className="block truncate text-[12.5px] text-ardoise">De {p.charge?.de || p.charge?.de_email}</span></span>
+            <span className="flex-none text-[13px] text-menthe">Voir la fiche ou le mail</span>
+          </button>
         )}
         {p.type === "mail_exterieur" && (
           <div className="rounded-[12px] border border-trait px-4 py-3"><p className="m-0 text-[12.5px] text-ardoise"><span className="text-brume">De</span> {p.charge?.de}</p><p className="m-0 mt-1 text-[14.5px] text-encre">{p.charge?.objet}</p><p className="m-0 mt-2 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-craie">{p.charge?.extrait}</p></div>
@@ -124,6 +133,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
         )}
       </div>
 
+      {apercu && <ApercuFicheRecue proposition={p} onFermer={() => setApercu(false)} onTrancher={(choix) => { setApercu(false); onValider({ choix }); }} />}
       <AlertDialog open={rejet} onOpenChange={(o) => { if (!o) setRejet(false); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>

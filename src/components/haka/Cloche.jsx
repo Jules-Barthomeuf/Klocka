@@ -9,6 +9,7 @@ import { useUser } from "@/components/providers/UserProvider";
 import { useCompteHaka, usePropositions } from "@/components/haka/useFileHaka";
 import { ilYa } from "@/components/dashboard/ChatDashboard";
 import NotificationsVolet from "@/components/haka/NotificationsVolet";
+import ApercuFicheRecue from "@/components/haka/ApercuFicheRecue";
 
 // La cloche, dans la barre du haut (17 oct. 2026, Jules, variante B : « l'accueil reste celui de Max, ce qui
 // attend passe par une cloche »). Entre les boîtes connectées et le mode appel, sur toutes les pages de
@@ -29,8 +30,10 @@ export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } 
     const info = Array.isArray(p.actions) && p.actions.length === 1 && p.actions[0] === "vu";
     const dossier = p.dossier ? `/Dossiers?deal_id=${p.dossier}` : null;
     if (p.type === "preanalyser_fiche") {
-      // Une fiche reçue (19 oct. 2026, Jules) : on accepte ou pas, ici même ; rien n'est pré-analysé sans ce clic.
-      lignes.push({ cle: p.id, teinte: orange, phrase: p.titre, lieu: p.resume || "Fiche reçue", quand: ilYa(p.cree_le), lien: null, fiche: p.id, action: true, le: p.cree_le });
+      // Une fiche reçue (19 oct. 2026, Jules) : rien n'est pré-analysé sans un clic. Depuis le 20 oct. : « Voir » ouvre la
+      // fiche ou le mail, et c'est là qu'on la rentre ou non (un humain dans la boucle).
+      const de = p.charge?.de || p.charge?.de_email || null;
+      lignes.push({ cle: p.id, teinte: orange, phrase: "Une nouvelle fiche commerciale est arrivée", lieu: [de && `De ${de}`, p.charge?.objet].filter(Boolean).join(" · ") || p.resume || "Fiche reçue", quand: ilYa(p.cree_le), lien: null, fiche: p.id, proposition: p, action: true, le: p.cree_le });
     } else if (p.type === "meme_bien_recu") {
       lignes.push({ cle: p.id, teinte: vert, phrase: p.titre, lieu: "Dossier", quand: ilYa(p.cree_le), lien: dossier || `/AValider?id=${p.id}`, vu: p.id, action: false, le: p.cree_le });
     } else if (p.type === "demande_documents") {
@@ -85,6 +88,7 @@ export default function Cloche({ className = "" }) {
   };
   // Pré-analyser ou non une fiche reçue : la ligne part, la pré-analyse tourne en fond et prévient quand elle est prête.
   const [decidees, setDecidees] = useState(() => new Set());
+  const [apercu, setApercu] = useState(null); // la proposition ouverte
   const trancher = (l, choix) => {
     setDecidees((s) => new Set([...s, l.fiche]));
     base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix } })
@@ -133,10 +137,7 @@ export default function Cloche({ className = "" }) {
                         <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{[l.lieu, l.quand].filter(Boolean).join(" · ")}</p>
                       </div>
                       {l.fiche ? (
-                        <div className="flex flex-none flex-col items-stretch gap-1.5">
-                          <button type="button" onClick={() => trancher(l, "preanalyser")} className="inline-flex h-8 items-center justify-center rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol">Pré-analyser</button>
-                          <button type="button" onClick={() => trancher(l, "ignorer")} className="inline-flex h-8 items-center justify-center rounded-full border border-trait px-3.5 text-[13px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas une fiche</button>
-                        </div>
+                        <button type="button" onClick={() => { setOuvert(false); setApercu(l.proposition); }} className="inline-flex h-8 flex-none items-center rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol">Voir</button>
                       ) : l.lien ? (
                         <button type="button" onClick={() => ouvrir(l)} className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-3.5 text-[13px] text-encre transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>Ouvrir</button>
                       ) : l.ancien ? (
@@ -153,6 +154,7 @@ export default function Cloche({ className = "" }) {
         </AnimatePresence>,
         document.body,
       )}
+      {apercu && <ApercuFicheRecue proposition={apercu} onFermer={() => setApercu(null)} onTrancher={(choix) => { trancher({ fiche: apercu.id }, choix); setApercu(null); }} />}
     </div>
   );
 }

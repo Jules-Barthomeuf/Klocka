@@ -1027,3 +1027,5 @@ s'impriment et ne suivent pas le thème.
 **Cartes de projets** (Jules, 19 oct. 2026) : plus de boutons « Ouvrir le projet » ni « Étape suivante » ; un clic sur la carte (ou la ligne) ouvre le projet.
 
 **Pièce jointe dans le chat** (Jules, 19 oct. 2026) : un document joint à un message s'affiche en carte de 120 px au-dessus de la bulle, coins de 14 px : la première page d'un PDF ou l'image elle-même (JPEG de 240 px, quelques Ko, gardé dans le fil), et son type en pastille en bas à gauche (PDF, IMG, DOC, MAIL…). Un Word ou un mail n'ont pas de vignette : la carte montre leur nom. La bulle ne garde que la phrase.
+
+**Une fiche reçue s'ouvre avant d'être rentrée** (Jules, 20 oct. 2026, « un humain dans la boucle ») : la cloche dit « Une nouvelle fiche commerciale est arrivée », de qui et l'objet, avec un bouton « Voir ». L'aperçu (fenêtre de 960 px, fond rail) a deux vues en pilule, Fiche (la pièce, PDF ou image, dans la page ; une pièce par pastille s'il y en a plusieurs) et Email (expéditeur, boîte, objet, texte) ; en bas, « Pas une fiche » et « Pré-analyser ». La même carte dans « À valider » ouvre le même aperçu.

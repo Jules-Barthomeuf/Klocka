@@ -63,9 +63,11 @@ taches.enregistrer(COMPETENCE, {
         const de = String(mail.de || mail.de_email || 'un agent').replace(/<[^>]*>/g, '').trim() || mail.de_email;
         const pieces = piecesFiche(mail).map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean);
         const p = await file.proposer({
-          type: 'preanalyser_fiche', titre: `Fiche reçue de ${de} : pré-analyser ?`,
+          // « Une nouvelle fiche commerciale est arrivée, je la rentre ? » (20 oct. 2026, Jules) : on l'ouvre (la fiche
+          // ou le mail) avant de dire oui. Le mail et ses pièces se lisent par /api/haka/propositions/:id/mail et /piece/:n.
+          type: 'preanalyser_fiche', titre: `Nouvelle fiche commerciale de ${de} : je la rentre ?`,
           resume: [mail.objet ? `« ${String(mail.objet).slice(0, 140)} »` : null, pieces.length ? `Pièce${pieces.length > 1 ? 's' : ''} : ${pieces.slice(0, 4).join(', ')}.` : null].filter(Boolean).join(' '),
-          charge: { de, de_email: mail.de_email || null, compte: mail.compte || null, objet: mail.objet || '', pieces, extrait: String(mail.texte || '').replace(/\s+/g, ' ').trim().slice(0, 400) },
+          charge: { mail_id: mail.id, de, de_email: mail.de_email || null, compte: mail.compte || null, objet: mail.objet || '', pieces, extrait: String(mail.texte || '').replace(/\s+/g, ' ').trim().slice(0, 400) },
           sources: [sourceMail(mail)], pour, competence: COMPETENCE, version: VERSION, tache_id: tache.id, etape: 'accepter_preanalyse',
           cle: `preanalyser:${mail.id}`, actions: ['choisir'], choix: [{ cle: 'preanalyser', libelle: 'Pré-analyser' }, { cle: 'ignorer', libelle: 'Pas une fiche' }],
         });

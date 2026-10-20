@@ -8,6 +8,12 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-20",
+    items: [
+      { titre: "Voir la fiche avant de la rentrer", texte: "Quand une fiche commerciale arrive, la cloche dit « Une nouvelle fiche commerciale est arrivée ». « Voir » ouvre la fiche ou le mail ; puis « Pré-analyser » ou « Pas une fiche ».", page: "AValider" },
+    ],
+  },
+  {
     jour: "2026-10-19",
     items: [
       { titre: "Ne plus se faire proposer une étape", texte: "Après un appel, chaque étape proposée (Email, Liste de diffusion, Relance…) a une croix : l'étape part de cet appel et ne vous est plus proposée ensuite, dans aucune ville. « Rétablir » la fait revenir. Le micro des appels prend aussi la couleur choisie dans les Paramètres.", page: "Prospection" },

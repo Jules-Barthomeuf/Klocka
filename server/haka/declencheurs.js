@@ -7,7 +7,8 @@
 // reprises au démarrage, et le mail à l'agent attend un clic dans la file.
 
 import { Records, Meta } from '../db.js';
-import { contexteDesConversations, estUneNouvelleFiche, piecesFiche } from '../deal/fiches-auto.js';
+import { contexteDesConversations, dossierDeLaConversation, estUneNouvelleFiche, piecesFiche } from '../deal/fiches-auto.js';
+import { memoire, verdictAppris } from './apprentissage-fiches.js';
 import { proprietaireDeLaBoite } from './proprietaire.js';
 import * as taches from './taches.js';
 import './competences/fiche-recue.js';
@@ -43,8 +44,22 @@ export async function surReleve({ uploadDir = null } = {}) {
   let depuis = Meta.get(CLE_DEPUIS);
   if (!depuis) { depuis = new Date().toISOString(); Meta.set(CLE_DEPUIS, depuis); }
   const contexte = contexteDesConversations();
+  // Ce que Haka a appris des Oui et des Non (20 oct. 2026) : un expéditeur déjà accepté est proposé même pour un PDF
+  // au nom muet ; une pièce ou un expéditeur appris comme « pas une fiche » n'est plus proposé, et c'est noté sur le mail.
+  const decisions = memoire();
   const candidats = contexte.mails
-    .filter((m) => !m.haka_tache_id && !m.haka_ignore && Date.parse(m.date || 0) >= Date.parse(depuis) && estUneNouvelleFiche(m, contexte))
+    .filter((m) => !m.haka_tache_id && !m.haka_ignore && !m.fiche_ecartee && Date.parse(m.date || 0) >= Date.parse(depuis))
+    .filter((m) => {
+      const v = verdictAppris(m, decisions);
+      const regles = estUneNouvelleFiche(m, contexte);
+      if (regles && v.proposer === false) {
+        Records.update('MailRecu', m.id, { fiche_ecartee: { raison: v.raison, le: new Date().toISOString() } });
+        bilan.ecartees_apprises = (bilan.ecartees_apprises || 0) + 1;
+        return false;
+      }
+      if (regles) return true;
+      return v.proposer === true && !m.deal_id && !m.dossier_supprime_le && !dossierDeLaConversation(m, contexte) && piecesFiche(m).length > 0;
+    })
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
   for (const mail of candidats) {
     try {

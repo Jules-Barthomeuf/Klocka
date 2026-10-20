@@ -89,9 +89,9 @@ export default function Cloche({ className = "" }) {
   // Pré-analyser ou non une fiche reçue : la ligne part, la pré-analyse tourne en fond et prévient quand elle est prête.
   const [decidees, setDecidees] = useState(() => new Set());
   const [apercu, setApercu] = useState(null); // la proposition ouverte
-  const trancher = (l, choix) => {
+  const trancher = (l, choix, extra = {}) => {
     setDecidees((s) => new Set([...s, l.fiche]));
-    base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix } })
+    base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix, ...extra } })
       .then(() => { moi.refetch(); commun.refetch(); })
       .catch(() => setDecidees((s) => { const n = new Set(s); n.delete(l.fiche); return n; }));
   };
@@ -154,7 +154,7 @@ export default function Cloche({ className = "" }) {
         </AnimatePresence>,
         document.body,
       )}
-      {apercu && <ApercuFicheRecue proposition={apercu} onFermer={() => setApercu(null)} onTrancher={(choix) => { trancher({ fiche: apercu.id }, choix); setApercu(null); }} />}
+      {apercu && <ApercuFicheRecue proposition={apercu} onFermer={() => setApercu(null)} onTrancher={(choix, extra) => { trancher({ fiche: apercu.id }, choix, extra); setApercu(null); }} />}
     </div>
   );
 }

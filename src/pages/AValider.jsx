@@ -56,7 +56,7 @@ export default function AValider() {
           {liste.map((p) => (
             <div key={p.id} id={`proposition-${p.id}`} className={cible === p.id ? "rounded-[18px] ring-1 ring-menthe/60" : ""}>
               <CarteProposition proposition={p} moi={String(user?.email || "").toLowerCase()} enCours={gestes.enCours(p.id)}
-                onValider={({ charge = null, choix = null } = {}) => gestes.valider.mutate({ id: p.id, charge, choix })}
+                onValider={({ charge = null, choix = null, motif = null, categorie = null } = {}) => gestes.valider.mutate({ id: p.id, charge, choix, motif, categorie })}
                 onRejeter={(motif) => gestes.rejeter.mutate({ id: p.id, motif })}
                 onPrendre={!p.pour ? () => gestes.prendre.mutate({ id: p.id }) : null} />
             </div>

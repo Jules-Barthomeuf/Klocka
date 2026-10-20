@@ -100,7 +100,7 @@ export function monterHaka(app) {
   app.post('/api/haka/propositions/:id/valider', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user || !actif(res)) return;
-    repondre(res, await (await F()).valider(req.params.id, user, { charge: req.body?.charge || null, choix: req.body?.choix || null }));
+    repondre(res, await (await F()).valider(req.params.id, user, { charge: req.body?.charge || null, choix: req.body?.choix || null, motif: req.body?.motif || null, categorie: req.body?.categorie || null }));
   }));
 
   app.post('/api/haka/propositions/:id/rejeter', wrap(async (req, res) => {

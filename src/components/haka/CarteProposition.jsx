@@ -49,7 +49,9 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
   const [rejet, setRejet] = useState(false);
   const [motif, setMotif] = useState("");
   const [apercu, setApercu] = useState(false);
-  const aChoix = Array.isArray(p.choix) && p.choix.length > 0;
+  // Une fiche reçue se décide dans son aperçu (Oui, ou Non avec sa raison) : pas de boutons de choix ni de Rejeter ici.
+  const fiche = p.type === "preanalyser_fiche";
+  const aChoix = !fiche && Array.isArray(p.choix) && p.choix.length > 0;
   const information = Array.isArray(p.actions) && p.actions.length === 1 && p.actions[0] === "vu";
   const estMail = p.type === "demande_documents" || p.type === "relance_mail";
   const prenom = (e) => String(e || "").split("@")[0].split(".")[0].replace(/^\w/, (c) => c.toUpperCase());
@@ -101,7 +103,11 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
       <ListeSources sources={p.sources} className="mt-4" />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        {information ? (
+        {fiche ? (
+          <button type="button" onClick={() => setApercu(true)} disabled={enCours} className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+            {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Voir et décider
+          </button>
+        ) : information ? (
           <button type="button" onClick={() => onValider({})} disabled={enCours} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-4 text-[13px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
             {enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}Vu
           </button>
@@ -125,7 +131,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
             )}
           </>
         )}
-        {!information && (
+        {!information && !fiche && (
           <button type="button" onClick={() => setRejet(true)} className="ml-auto h-10 px-2 text-[13.5px] text-alerte hover:underline" style={{ background: "transparent" }}>Rejeter</button>
         )}
         {!p.pour && onPrendre && (
@@ -133,7 +139,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
         )}
       </div>
 
-      {apercu && <ApercuFicheRecue proposition={p} onFermer={() => setApercu(false)} onTrancher={(choix) => { setApercu(false); onValider({ choix }); }} />}
+      {apercu && <ApercuFicheRecue proposition={p} onFermer={() => setApercu(false)} onTrancher={(choix, extra = {}) => { setApercu(false); onValider({ choix, ...extra }); }} />}
       <AlertDialog open={rejet} onOpenChange={(o) => { if (!o) setRejet(false); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>

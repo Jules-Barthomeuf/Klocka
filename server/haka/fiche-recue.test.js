@@ -178,9 +178,20 @@ test('« Pas une fiche » : rien n\'est créé, le mail le garde, la tâche est 
   const t = surFicheRecue(mail, { uploadDir: uploads, lancer: false });
   await T.tourner();
   const p = propositionDeFiche(mail);
-  const r = await F.valider(p.id, nora, { choix: 'ignorer' });
+  // Un « Non » sans raison est refusé (20 oct. 2026) : la proposition reste à décider.
+  const sans = await F.valider(p.id, nora, { choix: 'ignorer' });
+  assert.equal(sans.ok, false);
+  assert.match(sans.error, /Dites pourquoi/);
+  assert.equal(F.proposition(p.id).etat, 'proposee');
+  const r = await F.valider(p.id, nora, { choix: 'ignorer', categorie: 'pas_une_fiche', motif: "C'est la plaquette de l'agence" });
   assert.equal(r.ok, true, r.error);
   assert.equal(T.tache(t.id).etat, 'faite');
   assert.equal(Records.get('MailRecu', mail.id).deal_id, undefined);
   assert.equal(Records.get('MailRecu', mail.id).fiche_refusee.par, 'nora@test.local');
+  assert.equal(F.proposition(p.id).motif_rejet, "C'est la plaquette de l'agence");
+  // La réponse est gardée pour l'apprentissage, avec sa raison.
+  const d = Records.list('FicheDecision').find((x) => x.mail_id === mail.id);
+  assert.equal(d.choix, 'ignorer');
+  assert.equal(d.categorie, 'pas_une_fiche');
+  assert.ok(Records.list('FicheDecision').some((x) => x.choix === 'preanalyser'), 'les Oui aussi sont gardés');
 });

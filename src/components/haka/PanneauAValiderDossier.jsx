@@ -21,7 +21,7 @@ export default function PanneauAValiderDossier({ dealId, onFait = null }) {
       <p className="m-0 text-[11px] uppercase tracking-[.16em] text-menthe">À valider · {propositions.length}</p>
       {propositions.map((p) => (
         <CarteProposition key={p.id} proposition={p} compacte moi={String(user?.email || "").toLowerCase()} enCours={gestes.enCours(p.id)}
-          onValider={({ charge = null, choix = null } = {}) => gestes.valider.mutate({ id: p.id, charge, choix })}
+          onValider={({ charge = null, choix = null, motif = null, categorie = null } = {}) => gestes.valider.mutate({ id: p.id, charge, choix, motif, categorie })}
           onRejeter={(motif) => gestes.rejeter.mutate({ id: p.id, motif })}
           onPrendre={!p.pour ? () => gestes.prendre.mutate({ id: p.id }) : null} />
       ))}

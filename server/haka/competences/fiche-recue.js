@@ -78,10 +78,18 @@ taches.enregistrer(COMPETENCE, {
       // Externe : la décision de la personne. « Pas une fiche » clôt sans rien créer ; « Pré-analyser » repart en fond.
       nom: 'accepter_preanalyse', externe: true,
       async run({ tache, charge, user }) {
+        // Chaque réponse est gardée : Haka en apprend ce qu'est une fiche (haka/apprentissage-fiches.js). Un « Non »
+        // sans raison n'est pas accepté (20 oct. 2026, Jules : « on est obligé de répondre »).
+        const { enregistrer } = await import('../apprentissage-fiches.js');
+        const mail = Records.get('MailRecu', tache.charge.mail_id);
         if (charge.choix === 'ignorer') {
-          Records.update('MailRecu', tache.charge.mail_id, { fiche_refusee: { par: user?.email || null, le: new Date().toISOString() } });
-          return { choix: 'ignorer', fin: true };
+          const motif = String(charge.motif || '').trim();
+          if (motif.length < 3) throw new Error("Dites pourquoi vous ne la rentrez pas : c'est ce qui apprend à Haka ce qu'est une fiche.");
+          Records.update('MailRecu', tache.charge.mail_id, { fiche_refusee: { par: user?.email || null, le: new Date().toISOString(), categorie: charge.categorie || null, motif } });
+          enregistrer(mail, { choix: 'ignorer', categorie: charge.categorie, motif, par: user?.email || null });
+          return { choix: 'ignorer', categorie: charge.categorie || null, motif, fin: true };
         }
+        enregistrer(mail, { choix: 'preanalyser', par: user?.email || null });
         return { choix: 'preanalyser', enFond: true };
       },
     },

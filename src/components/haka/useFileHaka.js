@@ -25,7 +25,7 @@ export function useGestesHaka({ onFait } = {}) {
   const qc = useQueryClient();
   const raf = () => { CLES.forEach((k) => qc.invalidateQueries({ queryKey: k })); onFait?.(); };
   const valider = useMutation({
-    mutationFn: ({ id, charge = null, choix = null }) => base44.request("POST", `/api/haka/propositions/${id}/valider`, { body: { charge, choix } }),
+    mutationFn: ({ id, charge = null, choix = null, motif = null, categorie = null }) => base44.request("POST", `/api/haka/propositions/${id}/valider`, { body: { charge, choix, motif, categorie } }),
     onSuccess: (r) => {
       const res = r?.resultat || {};
       toast.success(res.simule ? "Validé (envoi simulé)" : res.envoye ? "Envoyé" : "Validé");

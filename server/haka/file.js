@@ -96,17 +96,18 @@ export const proposition = (id) => Records.get(ENTITE, id) || null;
  * `p.choix` (`choix`). Exécute le pas externe de la tâche, et garde le résultat.
  * Si l'action échoue, la proposition revient en attente avec l'erreur.
  */
-export async function valider(id, user, { charge = null, choix = null } = {}) {
+export async function valider(id, user, { charge = null, choix = null, motif = null, categorie = null } = {}) {
   const p = proposition(id);
   if (!p) return { ok: false, statut: 404, error: 'Proposition introuvable.' };
   if (!peutDecider(user, p)) return { ok: false, statut: 403, error: "Cette proposition n'est pas à vous." };
   if (p.etat !== 'proposee') return { ok: false, statut: 409, error: `Déjà décidée (${p.etat}).` };
   if (Array.isArray(p.choix) && p.choix.length && !p.choix.some((c) => c.cle === choix)) return { ok: false, statut: 400, error: 'Choisissez une des options.' };
   const etat = charge ? 'modifiee' : 'validee';
-  Records.update(ENTITE, p.id, { etat, charge_finale: charge || null, choix_fait: choix || null, decidee_par: norm(user.email), decidee_le: maintenant(), erreur: null });
+  // Un « Non » motivé (une fiche reçue qu'on ne rentre pas, 20 oct. 2026) : le motif reste sur la proposition.
+  Records.update(ENTITE, p.id, { etat, charge_finale: charge || null, choix_fait: choix || null, decidee_par: norm(user.email), decidee_le: maintenant(), erreur: null, ...(motif ? { motif_rejet: String(motif).slice(0, 500), categorie_rejet: categorie || null } : {}) });
   if (!p.tache_id || !p.etape) return { ok: true, proposition: proposition(p.id) };
   try {
-    const resultat = await taches.executerExterne(p.tache_id, p.etape, { user, charge: { ...(charge || p.charge || {}), ...(choix ? { choix } : {}), proposition_id: p.id } });
+    const resultat = await taches.executerExterne(p.tache_id, p.etape, { user, charge: { ...(charge || p.charge || {}), ...(choix ? { choix } : {}), ...(motif ? { motif, categorie } : {}), proposition_id: p.id } });
     Records.update(ENTITE, p.id, { resultat: resultat || {} });
     return { ok: true, proposition: proposition(p.id), resultat };
   } catch (e) {

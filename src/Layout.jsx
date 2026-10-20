@@ -1,4 +1,5 @@
 import Cloche from "@/components/haka/Cloche";
+import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
 import MarqueKlocka from "@/components/MarqueKlocka";
 import DossiersRecents from "@/components/DossiersRecents";
 import React, { useState, useEffect, useRef } from "react";
@@ -879,6 +880,8 @@ function LayoutContent({ children, currentPageName }) {
           {boutonRappel && <div className="fixed right-3 top-3 z-40 max-md:hidden"><BoutonRappel /></div>}
           {/* La cloche (17 oct. 2026, Jules) : entre les boîtes connectées et le mode appel, sur toutes les pages de l'équipe. */}
           <Cloche className={`fixed ${boutonRappel ? "right-[68px]" : "right-4"} top-4 max-md:hidden`} />
+          {/* Une fiche commerciale arrivée : « je la rentre ? Oui / Non », en fenêtre, d'elle-même (20 oct. 2026, Jules). */}
+          <PopupFicheRecue />
         </>
       )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}

@@ -1,21 +1,21 @@
 # État de la plateforme
 
-Écrit le 19/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 20/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-16 personnes, 2 711 pages ouvertes, 3 demandes à l'assistant, 138 actions exécutées.
+16 personnes, 2 657 pages ouvertes, 3 demandes à l'assistant, 138 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 269 | 3 | 48 | 19/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 295 | 3 | 48 | 20/10/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
 | test.mandataire@kpartners.fr | 101 | 0 | 0 | 10/10/2026 |
-| jules.btmf@gmail.com (équipe) | 93 | 0 | 0 | 21/09/2026 |
-| admin@klocka.local (équipe) | 51 | 0 | 0 | 11/10/2026 |
+| jules.btmf@gmail.com (équipe) | 44 | 0 | 0 | 21/09/2026 |
 | alexis.p@klocka.immo (équipe) | 38 | 0 | 0 | 28/09/2026 |
+| admin@klocka.local (équipe) | 20 | 0 | 0 | 11/10/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
 | maxime.p@klocka.immo | 2 | 0 | 0 | 25/09/2026 |
 | client.demo@klocka.local | 1 | 0 | 0 | 28/09/2026 |
@@ -27,11 +27,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 442 (16 %)
-- **Dashboard** — 364 (13 %)
+- **Analyse** — 424 (16 %)
+- **Dashboard** — 360 (14 %)
 - **Prospection** — 209 (8 %)
-- **AdminProjets** — 187 (7 %)
-- **Personnalisation** — 178 (7 %)
+- **Personnalisation** — 184 (7 %)
+- **AdminProjets** — 184 (7 %)
 - **Emailing** — 140 (5 %)
 - **MandataireProspection** — 102 (4 %)
 - **MandataireEstimation** — 77 (3 %)
@@ -39,15 +39,15 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **ProjetDetail** — 69 (3 %)
 - **MandataireDossier** — 68 (3 %)
 - **AdminPresentations** — 57 (2 %)
-- Le reste, sous 2 % : KData, ALX, MandataireMandat, Home, AdminMandataires, OffMarket, ConversationsMandataires, Cerveau, Monitoring, AdminClients, Relances, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, FichesCommerciales, KZoning, KVacance, AdminSuggestions, Semaine, SuiviAppels, ALXAtelier, SimulateurPublic, KFoncier, Agents, MesProjets, MonAssistant, AdminLeadMagnets, AdminUtilisateurs, Validations, MandataireMarche, Vision, KEstimation, KExpertise, KProspective, MandataireProjets, ALXCible, Automatismes, SuiviAudience, CoutsIA, AdminEquipe, SuiviMandataires, FeuilleDeRoute, ValeurLocative, SuiviReunion, SuiviTesteur, Comparateur, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources, analyse
+- Le reste, sous 2 % : ALX, MandataireMandat, Monitoring, Home, AdminMandataires, OffMarket, Cerveau, ConversationsMandataires, AdminClients, Relances, SimulateurRentabilite, MandataireOffMarket, KData, MandataireClients, MesPresentations, Offres, FichesCommerciales, SuiviAppels, AdminSuggestions, Semaine, ALXAtelier, SimulateurPublic, KZoning, Agents, KVacance, MesProjets, MonAssistant, AdminUtilisateurs, Validations, MandataireMarche, Vision, AdminLeadMagnets, SuiviAudience, KProspective, MandataireProjets, ALXCible, KEstimation, KExpertise, Automatismes, CoutsIA, AdminEquipe, SuiviMandataires, FeuilleDeRoute, ValeurLocative, KFoncier, SuiviReunion, SuiviTesteur, Comparateur, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, AdminPortail, AdminRessources
 
 ## Ce que l'IA coûte
 
-39,27 € sur la période, 1 509 appels, 9 350 k jetons. 37 % part en tâche de fond, sans que personne clique. 54 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+39,61 € sur la période, 1 528 appels, 9 459 k jetons. 38 % part en tâche de fond, sans que personne clique. 53 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,01 € par appel | 627 | 11,56 € | — |
+| Non attribué (fond) | 0,01 € par appel | 645 | 11,86 € | — |
 | Trier ce qu’on colle dans la boîte | 0,07 € par dépôt | 87 | 10,28 € | 23 s |
 | Demander quelque chose à AK | 0,06 € par demande | 42 | 4,27 € | 14 s |
 | Demander quelque chose à l'assistant (mandataire) | 0,01 € par demande | 107 | 2,53 € | 22 s |
@@ -62,7 +62,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 
-Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,64 €) · relecture de préz (0,48 €) · cerveau (0,19 €) · POST /api/prospection/mode-appel/pre-lecture (0,14 €) · fil dossier (0,04 €) · template depuis une capture (0,03 €).
+Pas encore rangé dans un geste, à classer dans `server/llm-couts.js` : POST /api/prospection/mode-appel/issue (0,64 €) · relecture de préz (0,48 €) · cerveau (0,19 €) · POST /api/prospection/mode-appel/pre-lecture (0,14 €) · fil dossier (0,04 €) · POST /api/haka/competences/depuis-exemple (0,04 €).
 
 ## Les leviers sur la dépense
 
@@ -89,5 +89,5 @@ Tâches de fond : 7 lancées, 7 finies, 0 ratées (loi 5, kdata 2).
 
 - L'écran de travail, c'est **Analyse** : 16 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,07 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 37 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 38 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

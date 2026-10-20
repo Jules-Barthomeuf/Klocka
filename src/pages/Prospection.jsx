@@ -10,6 +10,7 @@ import { useDictee, versWav } from "@/lib/dictee";
 import { OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
 import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
+import AujourdhuiDivise from "@/components/prospection/AujourdhuiDivise";
 import RelancesParMail from "@/components/prospection/RelancesParMail";
 import { FileRelances, ModeAppelUnique } from "@/components/prospection/FileRelances";
 import SuiviAppels from "@/pages/SuiviAppels";
@@ -1047,8 +1048,8 @@ export default function Prospection() {
       <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0">
       {partie === "journee" && (
         <>
-        <div className="mb-5 flex justify-end"><BasculeModeAppel actif={false} onChange={basculer} /></div>
-        <MaJournee onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
+        {/* Une page divisée, à relancer et à rappeler, chacun ses personnes (19 oct. 2026, Jules). */}
+        <AujourdhuiDivise enTete={<BasculeModeAppel actif={false} onChange={basculer} />} onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
           sousLesEnvois={<section className="rounded-[16px] border border-trait bg-surface-pleine p-5"><p className="m-0 mb-3 text-[15px] text-encre">Relances par mail</p><RelancesParMail /></section>} />
         </>
       )}

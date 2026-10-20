@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-20",
     items: [
+      { titre: "Aujourd'hui : à relancer, à rappeler", texte: "L'onglet Aujourd'hui des Appels est coupé en deux : à gauche ceux à relancer (on s'est parlé, la suite tombe aujourd'hui), à droite ceux à rappeler (on n'a pas eu la bonne personne). Chacun voit ses personnes, « Toute l'équipe » montre tout le monde. « Transcription » ouvre ce qui a été dit, mot pour mot, appel par appel : la transcription est gardée entière.", page: "Prospection", requete: "?partie=journee" },
       { titre: "Voir la fiche avant de la rentrer", texte: "Quand une fiche commerciale arrive, la cloche dit « Une nouvelle fiche commerciale est arrivée ». « Voir » ouvre la fiche ou le mail ; puis « Pré-analyser » ou « Pas une fiche ».", page: "AValider" },
     ],
   },

@@ -677,6 +677,18 @@ export function monterProspection(app) {
   }));
 
   // Ma journée : la ville, qui appeler, l'avancement, « À envoyer », la fiabilité d'AK.
+  // Aujourd'hui (19 oct. 2026, Jules) : à relancer, à rappeler, les miens ou toute l'équipe ; et les appels d'un agent, transcriptions complètes.
+  app.get('/api/prospection/aujourdhui', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, (await import('../prospection/aujourdhui.js')).aujourdhuiDeLaBase({ pour: user.email, tous: req.query.tous === '1' }));
+  }));
+  app.get('/api/prospection/agents/:id/appels', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = (await import('../prospection/aujourdhui.js')).appelsDeLAgent(req.params.id);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.get('/api/prospection/ma-journee', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;

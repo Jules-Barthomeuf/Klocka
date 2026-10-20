@@ -7,6 +7,7 @@
 // a été demandé. Un échec reste orange et se réessaie seul.
 
 import { Records } from '../db.js';
+import { TRANSCRIPTION_MAX } from './aujourdhui.js';
 import * as R from './regles.js';
 import { ligneDeRemarque } from './monday-agents.js';
 
@@ -790,7 +791,7 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     lecture_ms: Date.now() - debutLecture,
   };
   // La transcription se garde avec l'appel (13 oct. 2026, Jules : « un journal d'appels par analyste, les notes, les transcriptions »).
-  const transcriptionGardee = String(transcription || lu.appel.transcription || '').trim().slice(0, 30000) || null;
+  const transcriptionGardee = String(transcription || lu.appel.transcription || '').trim().slice(0, TRANSCRIPTION_MAX) || null;
   Records.update(APPEL, lu.appel.id, { agence_id: a.id, session_id, issue_tapee: issue, numero: numero || numeroDe(a), ...usage, transcription_gardee: transcriptionGardee, ...(essai ? { essai: true, monday_essai: ecrireEssai } : {}) });
   // Le coach (tuto après une objection non levée) retiré le 17 oct. 2026 (Jules) : server/coaching.js reste, rien ne l'appelle plus.
   if (remplace) { const ancien = Records.get(APPEL, remplace); if (ancien && ancien.etat === 'a_valider') Records.update(APPEL, ancien.id, { etat: 'remplace', remplace_par: lu.appel.id }); }

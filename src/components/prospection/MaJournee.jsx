@@ -74,7 +74,7 @@ function LigneAppel({ a, onAppeler, enCours, onFiche, rang = 0 }) {
   );
 }
 
-function AEnvoyer({ envois }) {
+export function AEnvoyer({ envois }) {
   const queryClient = useQueryClient();
   const raf = () => ["prospection-ma-journee", "prospection-jour", "prospection-envois"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
   const envoyer = useMutation({
@@ -105,7 +105,7 @@ function AEnvoyer({ envois }) {
   );
 }
 
-function Fiabilite({ f }) {
+export function Fiabilite({ f }) {
   if (!f) return null;
   const max = Math.max(...f.semaines.map((s) => s.taux ?? 0), 1);
   return (

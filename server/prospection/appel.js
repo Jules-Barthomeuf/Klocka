@@ -469,7 +469,8 @@ export async function analyserAppel({ agent_id, audio = null, recit = null, tran
   // prise de notes. Ils repartent une fois vers l'écran, pour relecture.
   const appel = Records.create(ENTITE, {
     agent_id: a.id, agent: a.nom, par, le: new Date(maintenant).toISOString(), duree_s,
-    transcription: null, recit: null, resume: lu.resume || null, passe: String(lu.ce_qui_s_est_passe || '').trim().slice(0, 300) || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
+    // La transcription complète se garde (19 oct. 2026, Jules : « au lieu d'un résumé de trois lignes que l'IA écrit parfois mal ») ; un récit tapé aussi.
+    transcription: null, recit: null, transcription_gardee: String(transcription || recit || '').trim().slice(0, 200000) || null, resume: lu.resume || null, passe: String(lu.ce_qui_s_est_passe || '').trim().slice(0, 300) || null, issue, issue_deduite: !!lu.issue_deduite, date_dite: lu.date_dite || null,
     biens: lu.biens || [], autre_contact: lu.autre_contact || null, citations: lu.citations || null, pourquoi_relance: lu.pourquoi_relance || null,
     compris, transcription_echec: transcriptionEchec,
     objection: objectionDe(lu, transcription),

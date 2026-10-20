@@ -897,6 +897,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Après un appel : le « parce que » et la raison d'un clic** (Jules, 19 oct. 2026, derrière APPELS_V2) : sous le libellé de chaque étape, une ligne `ardoise` de 12,5 px « Parce que : … » (la raison du modèle, ou celle de la règle du code) ; sous la phrase de l'issue, la raison de l'issue. Quand l'analyste décoche une étape, change la date de relance ou retouche le mail, une rangée « Pourquoi ? » de six pastilles à contour (Trop tôt, Trop tard, Mauvais ton, Déjà fait, Il a dit autre chose, Autre) apparaît sous l'étape ; un clic enregistre la raison, la pastille choisie passe en menthe. Rien ne l'impose : on peut valider sans répondre.
 
+**Appels, onglet Aujourd'hui** (Jules, 19 oct. 2026) : une page divisée, deux colonnes séparées par un filet `trait` : « À relancer » à gauche, « À rappeler » à droite, chacune avec son compte et une aide en `brume`. En tête, à droite, « Les miens / Toute l'équipe » (pilule à deux choix, l'actif en `encre`) puis l'interrupteur Mode appel. Une ligne : initiales, nom (ouvre la fiche), agence, retard en `ambre` ; la suite prévue ; « Dernier appel le … par … · issue ». À droite : Appeler (`encre`) et « Transcription » (pilule à contour). La transcription s'ouvre dans un panneau à droite (620 px, `bg-rail`) : chaque appel, le plus récent d'abord, ses notes, puis le texte entier ; jamais un résumé à la place. Dessous : À envoyer, Relances par mail, Fiabilité, en trois colonnes.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

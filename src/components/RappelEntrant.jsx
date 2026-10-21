@@ -656,7 +656,7 @@ export default function RappelEntrant() {
               <EnteteEnLigne etat={SENS[sens].titre} secondes={secondes} essai={essai} nom={nom} sousTitre={sous}
                 ecoute={!microKo} onRaccrocher={arreter} occupe={stop.isPending} raccrocher={microKo ? "Analyser" : "Raccrocher"}
                 action={sens === "sortant" && agent ? <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending} className="ml-2 p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Changer</button> : null} />
-              {agent?.telephone && sens === "sortant" && !essai && <p className="m-0 -mt-3 text-center text-[14px] text-ardoise">Composez le <span className="font-mono text-[16px] text-encre">{agent.telephone}</span></p>}
+              {agent?.telephone && sens === "sortant" && !essai && <p className="m-0 -mt-3 text-center text-[14px] text-ardoise">Composez le <span className="tabular-nums text-[16px] text-encre">{agent.telephone}</span></p>}
               {microKo && <p className="m-0 -mt-3 text-center text-[13.5px] text-ambre">Enregistrement pas lancé : écrivez l'essentiel dans les notes, puis Analyser.</p>}
               {!essai && tactile() && !microKo && <p className="m-0 -mt-3 text-center text-[12.5px] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</p>}
               <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
@@ -675,7 +675,7 @@ export default function RappelEntrant() {
             <div className="flex min-w-0 flex-col gap-4">{transcription}{zoneNotes}</div>
             <div className="flex min-w-0 flex-col">
             <div className={`flex flex-col items-center gap-4 px-5 py-8 ${CARTE}`}>
-              {agent?.telephone && sens === "sortant" && !essai && <span className="text-center text-[14px] text-ardoise">Composez le <span className="font-mono text-[18px] text-encre">{agent.telephone}</span></span>}
+              {agent?.telephone && sens === "sortant" && !essai && <span className="text-center text-[14px] text-ardoise">Composez le <span className="tabular-nums text-[18px] text-encre">{agent.telephone}</span></span>}
               {microKo ? (
                 <>
                   <span className={`text-[15px] ${sens === "raconte" ? "text-encre" : "text-ambre"}`}>{sens === "raconte" ? "Ce que l'agent a dit" : "Enregistrement pas lancé"}</span>
@@ -684,7 +684,7 @@ export default function RappelEntrant() {
               ) : (
                 <>
                   <MicroEcoute taille={220}><Mic className="h-11 w-11" strokeWidth={1.8} /></MicroEcoute>
-                  <span className="font-mono text-[28px] tabular-nums text-encre">{chrono(secondes)}</span>
+                  <span className="text-[28px] tabular-nums text-encre">{chrono(secondes)}</span>
                 </>
               )}
               

@@ -521,7 +521,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
           {essai && <span className="max-w-[260px] text-center text-[14px] leading-[1.5] text-ardoise">Touchez le micro pour simuler un appel</span>}
           {/* Pas de lien tel: (7 oct. 2026) : l'application n'est qu'un micro, on compose sur son téléphone. */}
           <span className="flex flex-col items-center gap-1.5">
-            <span className="select-all whitespace-nowrap font-mono text-[26px] leading-none tracking-[.04em] text-encre tabular-nums max-md:text-[22px]">{numero || "—"}</span>
+            <span className="select-all whitespace-nowrap text-[26px] leading-none text-encre tabular-nums max-md:text-[22px]">{numero || "—"}</span>
             {personne?.nom && <span className="text-[13px] text-brume">{personne.nom}</span>}
           </span>
           {!essai && <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />}
@@ -1211,7 +1211,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                     <span className={ETIQUETTE}>EN LIGNE</span>
                     <p className="m-0 break-words text-[20px] leading-[1.25] text-encre">{a.nom}</p>
                     {contactChoisi && !contactChoisi.standard && <p className="m-0 text-[14px] text-craie">{contactChoisi.nom}</p>}
-                    <span className="select-all font-mono text-[15px] tracking-[.04em] text-ardoise">{numeroAppel}</span>
+                    <span className="select-all tabular-nums text-[15px] text-ardoise">{numeroAppel}</span>
                     {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit avant d'appeler. */}
                     {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro d'une autre région · ${a.telephone_source}` : a.telephone_source}</span>}
                   </div>
@@ -1221,7 +1221,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                       {autresNumeros.length > 0 && <span className={ETIQUETTE}>AUTRES NUMÉROS</span>}
                       {autresNumeros.map((x) => (
                         <span key={x.telephone} className="flex flex-col">
-                          <span className="select-all font-mono text-[14px] tracking-[.04em] text-encre">{x.telephone}</span>
+                          <span className="select-all tabular-nums text-[14px] text-encre">{x.telephone}</span>
                           {x.nom && <span className="truncate text-[12.5px] text-ardoise">{x.nom}</span>}
                         </span>
                       ))}

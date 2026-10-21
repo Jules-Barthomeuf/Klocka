@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "Le rappel, comme sur la maquette", texte: "Pendant un rappel ou un appel rapide, tout est centré : le nom de la personne dès qu'elle se présente, le micro en simple contour, Raccrocher. La transcription dit qui parle et surligne les chiffres et les lieux ; à côté, la calculatrice reprend le loyer entendu et donne le prix pour viser 5, 6 ou 7 %.", page: "Prospection" },
       { titre: "Écrans d'appel harmonisés", texte: "Le rappel, l'appel rapide et l'appel en cours du Mode appel prennent le style des actions proposées : mêmes cartes, mêmes étiquettes, un trait qui relie les étapes, et Stop ou Raccrocher en grand bouton.", page: "Prospection" },
       { titre: "Les actions d'un appel toujours à l'écran", texte: "Après un appel, Email, liste de diffusion et relance sont toujours proposés. Quand l'issue ne les prévoit pas (pas de mail à envoyer, pas intéressé…), ils sont là mais décochés : un clic suffit pour les ajouter.", page: "Prospection" },
       { titre: "Le rappel ne devine plus", texte: "Après « Stop », dites en quinze secondes qui c'était et ce qu'il faut faire : Haka retrouve la fiche d'après votre note (numéro, nom, agence) et prépare la suite. Personne ne correspond : le nouveau contact est déjà rempli.", page: "Prospection" },

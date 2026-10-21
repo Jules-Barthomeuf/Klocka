@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
 import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
 import { CARTE, CHAMP_CARTE, ETIQUETTE, GROS_BOUTON, TraitAppel } from "@/components/prospection/StyleAppel";
+import { CalculatriceEnLigne, EnteteEnLigne, NotesEnLigne, TranscriptionEnLigne, presentation } from "@/components/prospection/EcranEnLigne";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -179,7 +180,7 @@ export default function RappelEntrant() {
   // La transcription en direct (13 oct. 2026, Jules) : chaque morceau s'affiche dès qu'il est transcrit.
   const [direct, setDirect] = useState([]);
   // Les morceaux comme au mode appel : en cours, transcrits, ratés ; le panneau les tape au fil de l'eau.
-  const montrerDirect = () => setDirect(morceaux.current.map((x) => ({ i: x.i, texte: x.texte, etat: x.etat })));
+  const montrerDirect = () => setDirect(morceaux.current.map((x) => ({ i: x.i, texte: x.texte, etat: x.etat, qui: x.qui || null })));
   const finDirect = useRef(null);
   useEffect(() => { finDirect.current?.scrollIntoView({ block: "nearest" }); }, [direct.length, direct.filter((x) => x.texte).length]);
   const minuteur = useRef(null);
@@ -283,7 +284,7 @@ export default function RappelEntrant() {
     clearInterval(lecture.current);
     lecture.current = setInterval(() => {
       if (n >= sc.phrases.length) { clearInterval(lecture.current); return; }
-      morceaux.current.push({ i: n, texte: sc.phrases[n], etat: "ok" }); n += 1; montrerDirect();
+      morceaux.current.push({ i: n, texte: sc.phrases[n], etat: "ok", qui: n % 2 === 0 ? "autre" : "vous" }); n += 1; montrerDirect();
     }, 1800);
   };
   const lancer = (micro, sc = scenario) => {
@@ -569,6 +570,7 @@ export default function RappelEntrant() {
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-fond md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label={SENS[sens].titre}>
       <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(16px+env(safe-area-inset-top))] md:px-6">
         {/* Le bandeau : qui appelle, une fois connu. */}
+        {!(ecran === "enregistrement" && sens !== "raconte") && (
         <div className="flex items-center justify-between gap-3 rounded-full border border-trait px-4 py-2.5">
           <span className="flex min-w-0 items-center gap-2.5 text-[14.5px]">
             <IconeSens className="h-4 w-4 flex-none text-menthe" />
@@ -578,7 +580,7 @@ export default function RappelEntrant() {
           {(sens === "raconte" || essai || ["essai", "choix"].includes(ecran) || (ecran !== "enregistrement" && ecran !== "transcription")) && (
             <button type="button" onClick={fermer} aria-label="Fermer : le rappel reste à terminer" title="Plus tard : le rappel reste dans le bandeau" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
           )}
-        </div>
+        </div>)}
         {erreur && <p className="m-0 rounded-[14px] border border-ambre/40 px-4 py-2.5 text-[14px] text-ambre">{erreur}</p>}
         {(rappel?.avertissements || []).map((x) => (
           <div key={x.genre} className={`flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-4 py-3 ${x.genre === "ne_plus_appeler" ? "border-alerte/50 text-alerte" : "border-ambre/40 text-ambre"}`}>
@@ -634,7 +636,32 @@ export default function RappelEntrant() {
         )}
 
         {/* Pendant l'appel, comme au Mode appel : la transcription à gauche, le micro à droite ; on peut dire qui appelle sans attendre. */}
-        {ecran === "enregistrement" && (
+        {/* L'appel en cours, rappel ou appel rapide (maquette de Jules, 21 oct. 2026) : centré dès l'appel. */}
+        {ecran === "enregistrement" && sens !== "raconte" && (() => {
+          const dit = presentation(direct.filter((x) => x.texte).map((x) => x.texte).join(" "));
+          const nom = agent?.nom || dit?.nom || (sens === "sortant" ? "Appel rapide" : "Appel entrant");
+          const sous = agent ? [agent.agence, sens === "entrant" && !rappel?.identifie_par ? null : null].filter(Boolean).join(" · ") || null
+            : dit ? `${dit.agence} · agent à confirmer` : "Il dira qui il est : la note d'après l'appel le confirme.";
+          return (
+            <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-7 duration-500 animate-in fade-in-0">
+              <EnteteEnLigne etat={SENS[sens].titre} secondes={secondes} essai={essai} nom={nom} sousTitre={sous}
+                ecoute={!microKo} onRaccrocher={arreter} occupe={stop.isPending} raccrocher={microKo ? "Analyser" : "Raccrocher"}
+                action={sens === "sortant" && agent ? <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending} className="ml-2 p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Changer</button> : null} />
+              {agent?.telephone && sens === "sortant" && !essai && <p className="m-0 -mt-3 text-center text-[14px] text-ardoise">Composez le <span className="font-mono text-[16px] text-encre">{agent.telephone}</span></p>}
+              {microKo && <p className="m-0 -mt-3 text-center text-[13.5px] text-ambre">Enregistrement pas lancé : écrivez l'essentiel dans les notes, puis Analyser.</p>}
+              {!essai && tactile() && !microKo && <p className="m-0 -mt-3 text-center text-[12.5px] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</p>}
+              <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                <TranscriptionEnLigne morceaux={direct} interlocuteur={(agent?.nom || dit?.nom || "Agent").split(/\s+/)[0]} attend={!!scenario && direct.length < (scenario?.phrases?.length || 0)} />
+                <div className="flex min-w-0 flex-col gap-5">
+                  <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notes]} />
+                  <NotesEnLigne valeur={notes} onChange={setNotes} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {ecran === "enregistrement" && sens === "raconte" && (
           <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
             <div className="flex min-w-0 flex-col gap-4">{transcription}{zoneNotes}</div>
             <div className="flex min-w-0 flex-col">

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
+import { AudioLines, ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
 import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -242,7 +242,7 @@ export default function RappelEntrant() {
     rec.current = null;
   };
   const reinitialiser = () => {
-    morceaux.current = []; setDirect([]); setNotes(""); setSecondes(0); setMicroKo(false); setErreur(null); setRecherche(""); setNouveau(null); setConfirmerLever(false);
+    morceaux.current = []; setDirect([]); setNotes(""); setVoirTranscription(false); setChercherAilleurs(false); setNoteVocale(""); setSecondes(0); setMicroKo(false); setErreur(null); setRecherche(""); setNouveau(null); setConfirmerLever(false);
     setAppel(null); setTitre(""); setIssue(null); setCoches(new Set()); setMail(null); setRelanceLe(null); setRelance2Le(null); setLigneMonday(null); setEdits({}); setCle(null); setRecu(null);
   };
 
@@ -380,6 +380,9 @@ export default function RappelEntrant() {
   // Les appels déjà faits par l'équipe (13 oct. 2026, Jules) : les derniers d'abord, à chercher par nom ou numéro.
   const appelsFaits = useQuery({ queryKey: ["rappel-appels", rechercheAppels], queryFn: () => base44.request("GET", `${API}/appels?q=${encodeURIComponent(rechercheAppels)}`), enabled: ecran === "identification" });
   const [tousLesAppels, setTousLesAppels] = useState(false);
+  // Comme le mode appel (21 oct. 2026) : les actions seules ; « Transcription » ouvre le reste à gauche.
+  const [voirTranscription, setVoirTranscription] = useState(false);
+  const [chercherAilleurs, setChercherAilleurs] = useState(false);
   // Appel rapide : vos personnes du jour (à relancer, à rappeler) ; en essai, les agences de la liste fictive.
   const jour = useQuery({ queryKey: ["prospection-aujourdhui", false], queryFn: () => base44.request("GET", "/api/prospection/aujourdhui"), enabled: ecran === "choix" && !essai });
   const fictives = useQuery({ queryKey: ["rappel-essai-agences", rappel?.id], queryFn: () => base44.request("GET", `${API}/chercher?q=&rappel=${idRef.current}`), enabled: ecran === "choix" && essai && !!rappel?.id });
@@ -477,7 +480,8 @@ export default function RappelEntrant() {
   // « Pas la bonne personne » (19 oct. 2026) : on revient au choix, l'appel et ses notes restent ; la nouvelle analyse remplacera l'ancienne.
   const reidentifier = useMutation({
     mutationFn: () => base44.request("POST", `${API}/${idRef.current || rappel.id}/reidentifier`),
-    onSuccess: (r) => { setRappel(r.rappel); setAppel(null); setEcran(ecranRef.current === "enregistrement" ? "enregistrement" : "identification"); },
+    // « Pas la bonne personne » : la note s'est trompée de fiche, on cherche dans le carnet.
+    onSuccess: (r) => { setRappel(r.rappel); setAppel(null); setChercherAilleurs(true); setEcran(ecranRef.current === "enregistrement" ? "enregistrement" : "identification"); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
@@ -646,9 +650,11 @@ export default function RappelEntrant() {
               <button type="button" onClick={arreter} disabled={stop.isPending} className={`h-14 w-full max-w-[300px] rounded-full text-[17px] hover:opacity-90 disabled:opacity-50 ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
               {!essai && sens !== "raconte" && tactile() && <span className="max-w-[300px] text-center text-[12.5px] leading-[1.45] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</span>}
             </div>
-              {sens !== "raconte" && (
+              {/* Pendant un rappel entrant, plus de « Qui appelle ? » (21 oct. 2026, Jules) : la note d'après l'appel le dit.
+                  L'appel rapide garde « Vous appelez » : on sait déjà qui. */}
+              {sens === "sortant" && (
                 <div className="flex flex-col gap-2 rounded-[18px] border border-trait p-4">
-                  <span className={etiquette}>{sens === "sortant" ? "VOUS APPELEZ" : "QUI APPELLE ?"}</span>
+                  <span className={etiquette}>VOUS APPELEZ</span>
                   {agent ? (
                     <span className="flex items-center justify-between gap-2">
                       <span className="min-w-0 text-[15px] text-encre">{[agent.nom, agent.agence].filter(Boolean).join(" · ")}</span>
@@ -692,7 +698,34 @@ export default function RappelEntrant() {
         {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}
-        {ecran === "identification" && rappel && (
+        {/* Une note dite, mais personne d'unique dans le carnet : les fiches qui correspondent à la note, ou un seul bouton
+            pour créer le contact qu'elle décrit (21 oct. 2026, Jules : « juste un bouton »). Chercher ailleurs reste possible. */}
+        {ecran === "identification" && rappel?.note_vocale && !chercherAilleurs && (
+          <div className="mx-auto flex w-full max-w-[680px] flex-col gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
+            <p className="m-0 text-[14px] leading-[1.55] text-ardoise">Votre note : <span className="text-craie">« {rappel.note_vocale} »</span></p>
+            {candidats.length > 0 && (
+              <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+                <span className={etiquette}>{candidats.length > 1 ? "LEQUEL ?" : "C'EST ELLE OU LUI ?"}</span>
+                {candidats.map((c, i) => <Candidat key={c.cle} c={c} premier={i === 0 && candidats.length === 1} onConfirmer={confirmer} occupe={identifier.isPending} />)}
+              </div>
+            )}
+            {(() => {
+              const n = nouveau || rappel.nouveau_propose;
+              if (!n?.nom) return <p className="m-0 text-[14px] text-brume">La note ne dit pas de nom : cherchez la fiche, ou dictez une note plus précise.</p>;
+              return (
+                <button type="button" onClick={() => identifier.mutate({ nouveau: { agence_id: null, agence: "", ville: "", telephone: "", email: "", ...n } })} disabled={identifier.isPending}
+                  className={`${candidats.length ? secondaire : principal} self-start`} style={candidats.length ? { background: "transparent" } : undefined}>
+                  {identifier.isPending ? "Création…" : `Créer le contact : ${[n.nom, n.agence].filter(Boolean).join(" · ")}`}
+                </button>
+              );
+            })()}
+            <span className="flex flex-wrap gap-x-5 gap-y-2">
+              <button type="button" onClick={() => setChercherAilleurs(true)} className="p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Chercher dans le carnet</button>
+              <button type="button" onClick={() => abandonner.mutate()} disabled={abandonner.isPending} className="p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Abandonner ce rappel</button>
+            </span>
+          </div>
+        )}
+        {ecran === "identification" && rappel && (!rappel.note_vocale || chercherAilleurs) && (
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col gap-4">{transcription}{zoneNotes}</div>
             <div className="flex min-w-0 flex-col gap-4">
@@ -752,31 +785,35 @@ export default function RappelEntrant() {
 
         {/* L'agent confirmé : le même écran qu'un appel sortant. */}
         {ecran === "actions" && (
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-            <div className="flex min-w-0 flex-col gap-4">
-              {transcription}
-              {zoneNotes}
-              {notesChangees && <button type="button" onClick={() => reanalyser.mutate()} disabled={reanalyser.isPending} className={`${secondaire} self-start`} style={{ background: "transparent" }}>Ré-analyser</button>}
-              {sens !== "raconte" && <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending || analyser.isPending} className={`${secondaire} self-start`} style={{ background: "transparent" }}>Pas la bonne personne</button>}
-              <button type="button" onClick={() => abandonner.mutate()} disabled={abandonner.isPending} className="self-start p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Abandonner ce rappel</button>
+          // Le même écran que le mode appel (21 oct. 2026, Jules) : les actions seules au centre ; « Transcription » les fait
+          // glisser à droite et montre à gauche la transcription et les notes. Plus de « Compris », plus de colonne de gauche.
+          <div className={`grid gap-y-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3 md:transition-[grid-template-columns,column-gap] md:duration-700 md:ease-[cubic-bezier(.22,1,.36,1)] max-md:grid-cols-1 ${voirTranscription ? "md:grid-cols-[1fr_1fr] md:gap-x-4" : "md:grid-cols-[0fr_1fr] md:gap-x-0"}`}>
+            <div className={`flex min-w-0 flex-col gap-4 overflow-hidden transition-opacity duration-500 max-md:order-last ${voirTranscription ? "opacity-100 delay-200" : "pointer-events-none opacity-0 max-md:hidden"}`} aria-hidden={!voirTranscription}>
+              {voirTranscription && (<>
+                {appel && <ChaineRepliee etapes={etapesFinies} />}
+                {transcription}
+                {zoneNotes}
+                {notesChangees && <button type="button" onClick={() => reanalyser.mutate()} disabled={reanalyser.isPending} className={`${secondaire} self-start`} style={{ background: "transparent" }}>Ré-analyser</button>}
+              </>)}
             </div>
-            <div className="flex min-w-0 flex-col gap-4 max-md:order-first">
+            <div className="mx-auto flex w-full min-w-0 max-w-[680px] flex-col gap-3">
+              <button type="button" onClick={() => setVoirTranscription((x) => !x)} aria-pressed={voirTranscription}
+                className={`inline-flex h-8 items-center gap-1.5 self-start rounded-full border px-3 text-[13px] transition-colors ${voirTranscription ? "border-menthe/60 text-menthe" : "border-bord-doux text-craie hover:border-bord-vif hover:text-encre"}`} style={{ background: "transparent" }}>
+                <AudioLines className="h-3.5 w-3.5" />Transcription
+              </button>
               {!appel || analyser.isPending || reanalyser.isPending ? (
                 <ChaineEtapes etapes={chaine.etapes} />
               ) : (
-                <>
-                  <ChaineRepliee etapes={etapesFinies} />
-                  <label className="flex flex-col gap-1.5">
-                    <span className={etiquette}>COMPRIS</span>
-                    <input value={titre} onChange={(e) => setTitre(e.target.value)} aria-label="Ce qui a été compris" className={champ} />
-                  </label>
-                  <SequenceActions appel={appel} agence={{ nom: agent?.agence || appel.agence }} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
-                    relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
-                    edits={edits} setEdits={setEdits}
-                    onChangerIssue={(k) => (["pas_de_reponse", "repondeur"].includes(k) ? toast.error("Il vous a appelé : ce n'est pas un sans-réponse") : analyser.mutate({ issue: k, remplace: appel.id }))} changementEnCours={analyser.isPending}
-                    onLancer={() => (agent ? valider.mutate() : toast.error("Confirmez d'abord l'agent"))} envoi={valider.isPending} />
-                </>
+                <SequenceActions appel={appel} agence={{ nom: agent?.agence || appel.agence }} issue={issue} coches={coches} setCoches={setCoches} mail={mail} setMail={setMail}
+                  relanceLe={relanceLe} setRelanceLe={setRelanceLe} relance2Le={relance2Le} setRelance2Le={setRelance2Le} ligneMonday={ligneMonday} setLigneMonday={setLigneMonday}
+                  edits={edits} setEdits={setEdits}
+                  onChangerIssue={(k) => (["pas_de_reponse", "repondeur"].includes(k) ? toast.error("Il vous a appelé : ce n'est pas un sans-réponse") : analyser.mutate({ issue: k, remplace: appel.id }))} changementEnCours={analyser.isPending}
+                  onLancer={() => (agent ? valider.mutate() : toast.error("Confirmez d'abord l'agent"))} envoi={valider.isPending} />
               )}
+              <span className="mt-1 flex flex-wrap gap-x-5 gap-y-2">
+                {sens !== "raconte" && <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending || analyser.isPending} className="p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Pas la bonne personne</button>}
+                <button type="button" onClick={() => abandonner.mutate()} disabled={abandonner.isPending} className="p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Abandonner ce rappel</button>
+              </span>
             </div>
           </div>
         )}

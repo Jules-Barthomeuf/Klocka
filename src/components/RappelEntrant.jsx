@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
 import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
@@ -312,22 +313,24 @@ export default function RappelEntrant() {
     window.addEventListener(EVT, demarrer);
     return () => window.removeEventListener(EVT, demarrer);
   });
-  // Le raccourci de l'écran d'accueil : la plateforme s'ouvre et l'enregistrement démarre.
+  // Le raccourci de l'écran d'accueil (?il-me-rappelle=1) et le lien d'un échange raconté à Haka (?rappel=<id>).
+  // Lus à chaque navigation (21 oct. 2026) : la barre ne se remonte plus d'une page à l'autre, cet écran non plus.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const traites = useRef(new Set());
   useEffect(() => {
-    const u = new URL(window.location.href);
+    const params = new URLSearchParams(location.search);
+    const id = params.get("rappel");
+    const raccourci = params.has("il-me-rappelle");
+    if (!id && !raccourci) return;
+    const cle = id || `raccourci:${location.key}`;
+    if (traites.current.has(cle)) return;
+    traites.current.add(cle);
+    params.delete("rappel"); params.delete("il-me-rappelle");
+    navigate({ pathname: location.pathname, search: params.toString() ? `?${params}` : "", hash: location.hash }, { replace: true });
     // Un échange raconté à Haka dans le chat (19 oct. 2026) : son lien rouvre l'écran là où il en est.
-    const id = u.searchParams.get("rappel");
-    if (id) {
-      u.searchParams.delete("rappel");
-      window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
-      reprendre.mutate(id);
-      return;
-    }
-    if (!u.searchParams.has("il-me-rappelle")) return;
-    u.searchParams.delete("il-me-rappelle");
-    window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
-    demarrer();
-  }, []);
+    if (id) reprendre.mutate(id); else demarrer();
+  }, [location.search]);
   useEffect(() => () => { couper(); clearInterval(minuteur.current); clearInterval(compte.current); }, []);
 
   // --- Stop : la transcription se termine, AK propose qui a appelé ---------------------------------

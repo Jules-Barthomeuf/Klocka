@@ -212,7 +212,7 @@ export function monterProspection(app) {
     try { morceaux = JSON.parse(req.body?.morceaux || '[]'); } catch { morceaux = []; }
     const audios = (req.files || []).map((f) => f.buffer || (f.path ? fs.readFileSync(f.path) : null)).filter(Boolean);
     for (const f of req.files || []) if (f.path) fs.unlink(f.path, () => {});
-    reponse(res, await (await RP()).finir(req.params.id, { morceaux, audios, notes: req.body?.notes ?? null, duree_s: Number(req.body?.duree_s) || null }, user));
+    reponse(res, await (await RP()).finir(req.params.id, { morceaux, audios, notes: req.body?.notes ?? null, duree_s: Number(req.body?.duree_s) || null, note_vocale: req.body?.note_vocale || null }, user));
   }));
   app.post('/api/prospection/rappels/:id/notes', wrap(async (req, res) => {
     const user = admin(req, res);

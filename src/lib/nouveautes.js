@@ -8,6 +8,13 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-21",
+    items: [
+      { titre: "Les actions d'un appel toujours à l'écran", texte: "Après un appel, Email, liste de diffusion et relance sont toujours proposés. Quand l'issue ne les prévoit pas (pas de mail à envoyer, pas intéressé…), ils sont là mais décochés : un clic suffit pour les ajouter.", page: "Prospection" },
+      { titre: "Le rappel ne devine plus", texte: "Après « Stop », dites en quinze secondes qui c'était et ce qu'il faut faire : Haka retrouve la fiche d'après votre note (numéro, nom, agence) et prépare la suite. Personne ne correspond : le nouveau contact est déjà rempli.", page: "Prospection" },
+    ],
+  },
+  {
     jour: "2026-10-20",
     items: [
       { titre: "Nouvelle fiche : la rentrer ? Oui / Non", texte: "Quand une fiche commerciale arrive, une fenêtre s'ouvre avec la fiche et le mail : Oui la rentre ; Non demande pourquoi (obligatoire). Haka retient vos réponses et ne propose plus ce qui n'est pas une fiche.", page: "AValider" },

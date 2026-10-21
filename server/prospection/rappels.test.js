@@ -304,3 +304,38 @@ test("les appels manqués d'un collègue comptent, et disent qui a appelé", () 
   assert.equal(c[0].agence, 'Primo Immobilier');
   assert.match(c[0].raison, /par Maxime/);
 });
+
+// La note vocale (21 oct. 2026, Jules : « il ne faut pas que ça devine ») : ce qui est dit, cherché à l'identique.
+test('trouverDepuisNote : le numéro, puis le nom avec l\'agence ; sinon les fiches de la note et un contact rempli, jamais une devinette', () => {
+  const agents = [
+    { id: 'manon', nom: 'Manon Dupuis', agence: 'Primo Immobilier', ville: 'Lyon', telephones: ['06 12 34 56 78'] },
+    { id: 'manon2', nom: 'Manon Leroy', agence: 'Azur Immo', ville: 'Nice' },
+    { id: 'paul', nom: 'Paul Martin', agence: 'Primo Immobilier', ville: 'Lyon' },
+  ];
+  const agences = [{ id: 'g-primo', nom: 'Primo Immobilier', ville: 'Lyon' }, { id: 'g-neuf', nom: 'Cabinet Rhône', ville: 'Lyon' }];
+  // Le prénom et l'agence suffisent quand ils désignent une seule fiche.
+  assert.deepEqual(RP.trouverDepuisNote({ nom: 'Manon', agence: 'Primo' }, { agents, agences }).agent_id, 'manon');
+  // Le numéro dit l'emporte.
+  assert.equal(RP.trouverDepuisNote({ nom: 'Quelqu\'un', telephone: '0612345678' }, { agents, agences }).agent_id, 'manon');
+  // « Manon » sans agence : deux fiches, on demande, on ne choisit pas.
+  const deux = RP.trouverDepuisNote({ nom: 'Manon' }, { agents, agences });
+  assert.equal(deux.agent_id, undefined);
+  assert.deepEqual(deux.candidats.map((c) => c.agent_id).sort(), ['manon', 'manon2']);
+  // Une personne inconnue d'une agence connue : un nouveau contact rattaché à l'agence, rempli avec la note.
+  const nouvelle = RP.trouverDepuisNote({ nom: 'Julie Bernard', agence: 'Cabinet Rhône', ville: 'Lyon', email: 'julie@rhone.fr' }, { agents, agences });
+  assert.equal(nouvelle.agent_id, undefined);
+  assert.equal(nouvelle.nouveau.agence_id, 'g-neuf');
+  assert.equal(nouvelle.nouveau.email, 'julie@rhone.fr');
+  assert.equal(nouvelle.nouveau.nom, 'Julie Bernard');
+});
+
+test('finir avec une note vocale : la note en tête des notes, et l\'appel identifié d\'après elle', async () => {
+  const fiche = Records.create('AgentImmo', { nom: 'Sandrine Note', agence: 'Agence Témoin', ville: 'Annecy', telephones: ['06 98 76 54 32'] });
+  const { rappel } = RP.ouvrir(NORA);
+  const r = await RP.finir(rappel.id, { morceaux: ['Bonjour, oui, je vous rappelle pour le local.'], audios: [], notes: '', duree_s: 40, note_vocale: "C'était Sandrine, de l'agence Témoin, au 06 98 76 54 32, elle veut le dossier par mail." }, NORA);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.rappel.etat, 'identifie');
+  assert.equal(r.rappel.agent.id, fiche.id);
+  assert.match(r.rappel.notes, /^C'était Sandrine/);
+  assert.ok(r.rappel.note_vocale);
+});

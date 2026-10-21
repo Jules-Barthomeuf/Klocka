@@ -233,11 +233,97 @@ export function classer({ sansReponse = [], agents = [], agences = [], texte = '
 }
 
 /** Les candidats d'un rappel, lus dans la base. */
-function candidatsDe(rappel, maintenantD = new Date()) {
+// ---------------------------------------------------------------------------
+// La note vocale : on ne devine plus (21 oct. 2026, Jules)
+// ---------------------------------------------------------------------------
+// « Il ne faut pas que ça devine » : après l'appel, l'analyste dit en une quinzaine de secondes qui c'était et ce
+// qu'il faut faire. La note fait foi : l'IA n'en tire que ce qui est dit (nom, agence, ville, numéro, email), puis
+// on cherche ce contact dans le carnet, à l'identique. Trouvé une seule fois : l'appel est identifié et l'analyse
+// part, la note en tête. Sinon : les fiches qui correspondent à la note, et un nouveau contact déjà rempli.
+
+const SCHEMA_NOTE = {
+  type: 'object',
+  properties: {
+    nom: { type: 'string', description: "le nom de la personne qui a appelé, tel que dit (prénom, nom, ou les deux) ; vide s'il n'est pas dit" },
+    agence: { type: 'string', description: "son agence ou sa société, telle que dite ; vide si non dite" },
+    ville: { type: 'string', description: 'la ville dite, vide sinon' },
+    telephone: { type: 'string', description: 'un numéro dit, vide sinon' },
+    email: { type: 'string', description: 'un email dit (épelé : « lyon arobase agence point com » → lyon@agence.com), vide sinon' },
+  },
+  required: ['nom', 'agence', 'ville', 'telephone', 'email'],
+};
+
+/** Ce que la note dit de la personne : l'IA lit la note seule, rien d'autre ; le numéro et l'email tapés l'emportent. */
+export async function lireNote(note) {
+  const tape = lireNotes(note);
+  let lu = {};
+  try {
+    const { invokeLLM } = await import('../llm.js');
+    lu = await invokeLLM({
+      prompt: `Un analyste immobilier vient de raccrocher et dicte une note sur l'appel. Relève UNIQUEMENT ce que la note dit de la personne qui a appelé : son nom, son agence, sa ville, un numéro, un email. N'invente rien, ne complète rien : un champ non dit reste vide.
+
+La note :
+${String(note || '').slice(0, 2000)}`,
+      response_json_schema: SCHEMA_NOTE, max_tokens: 400,
+    }) || {};
+  } catch { lu = {}; }
+  const propre = (v) => String(v || '').trim() || null;
+  return { nom: propre(lu.nom), agence: propre(lu.agence), ville: propre(lu.ville), telephone: tape.telephone || propre(lu.telephone), email: tape.email || propre(lu.email) };
+}
+
+const motsDe = (s) => R.norm(s).split(' ').filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
+/** Pure : tous les mots dits sont dans le nom de la fiche (à une lettre près pour les longs). */
+function ditDans(dit, nomFiche) {
+  const a = motsDe(dit);
+  const b = motsDe(nomFiche);
+  return a.length > 0 && b.length > 0 && a.every((x) => b.some((y) => procheDe(x, y)));
+}
+
+/**
+ * Pure : la personne de la note, cherchée dans le carnet sans rien deviner. Rend `{ agent_id }` quand une seule fiche
+ * correspond, sinon `{ candidats, nouveau }` : les fiches qui correspondent à ce qui est dit (cinq au plus), et un
+ * nouveau contact rempli avec la note (rattaché à l'agence si elle est connue).
+ */
+export function trouverDepuisNote(qui, { agents = [], agences = [] } = {}) {
+  const tel = qui?.telephone ? R.normTel(qui.telephone) : null;
+  const mail = qui?.email ? R.normEmail(qui.email) : null;
+  const fiche = (a, raison) => ({ cle: a.id, agent_id: a.id, agence_id: a.agence_id || null, nom: a.nom, agence: a.agence || null, ville: a.ville || null, telephone: (a.telephones || [])[0] || null, raison, probable: false });
+  const parCle = agents.filter((a) => (tel && (a.telephones || []).some((t) => R.normTel(t) === tel)) || (mail && (a.emails || []).some((e) => R.normEmail(e) === mail)));
+  if (parCle.length === 1) return { agent_id: parCle[0].id, raison: tel && (parCle[0].telephones || []).some((t) => R.normTel(t) === tel) ? 'numéro de la note' : 'email de la note' };
+  const agenceOk = (nomAgence) => !!qui?.agence && (ditDans(qui.agence, nomAgence) || ditDans(nomAgence, qui.agence));
+  const villeOk = (v) => !qui?.ville || !v || ditDans(qui.ville, v);
+  const nomOk = (n) => !!qui?.nom && ditDans(qui.nom, n);
+  let lot = agents.filter((a) => nomOk(a.nom) && (qui.agence ? agenceOk(a.agence) : true) && villeOk(a.ville));
+  if (lot.length === 1) return { agent_id: lot[0].id, raison: qui.agence ? 'nom et agence de la note' : 'nom de la note' };
+  if (!lot.length) lot = agents.filter((a) => (qui?.nom && nomOk(a.nom)) || (qui?.agence && agenceOk(a.agence) && villeOk(a.ville)));
+  const agence = qui?.agence ? agences.filter((g) => agenceOk(g.nom) && villeOk(g.ville)) : [];
+  return {
+    candidats: lot.slice(0, 5).map((a) => fiche(a, nomOk(a.nom) ? (agenceOk(a.agence) ? 'nom et agence de la note' : 'nom de la note') : 'agence de la note')),
+    nouveau: { nom: qui?.nom || '', agence: agence[0]?.nom || qui?.agence || '', agence_id: agence.length === 1 ? agence[0].id : null, ville: qui?.ville || agence[0]?.ville || '', telephone: qui?.telephone || '', email: qui?.email || '' },
+  };
+}
+
+/** Le carnet où chercher qui a appelé : la liste fictive en essai, sinon les agents et les agences des listes réelles. */
+function annuaireDe(rappel) {
   if (rappel.essai) {
     const agencesEssai = Records.list(AGENCE).filter((g) => g.liste_id === rappel.essai_liste_id).map((g) => ({ ...g, ville: 'Essai' }));
     const agentsEssai = agencesEssai.filter((g) => g.carnet_id).map((g) => Records.get('AgentImmo', g.carnet_id)).filter(Boolean)
       .map((a) => ({ ...a, agence_id: agencesEssai.find((g) => g.carnet_id === a.id)?.id || null }));
+    return { agents: agentsEssai, agences: agencesEssai };
+  }
+  const listes = new Map(Records.list(LISTE).filter((l) => !l.essai).map((l) => [l.id, l]));
+  const agencesTout = Records.list(AGENCE).filter((g) => (g.liste_id ? listes.has(g.liste_id) : g.hors_liste));
+  const parCarnet = new Map(agencesTout.filter((g) => g.carnet_id).map((g) => [g.carnet_id, g]));
+  const agents = Records.list('AgentImmo').filter((a) => !a.essai).map((a) => {
+    const g = parCarnet.get(a.id);
+    return { ...a, agence_id: g?.id || null, agence: a.agence || g?.nom || null, ville: a.ville || (g ? listes.get(g.liste_id)?.ville || g.ville : null) };
+  });
+  return { agents, agences: agencesTout.map((g) => ({ ...g, ville: g.liste_id ? listes.get(g.liste_id)?.ville : g.ville })) };
+}
+
+function candidatsDe(rappel, maintenantD = new Date()) {
+  if (rappel.essai) {
+    const { agents: agentsEssai, agences: agencesEssai } = annuaireDe(rappel);
     return classer({ sansReponse: [], agents: agentsEssai, agences: agencesEssai.filter((g) => !g.carnet_id), texte: rappel.transcription || '', notes: rappel.notes || '', maintenantD, moi: rappel.par });
   }
   const listes = new Map(Records.list(LISTE).filter((l) => !l.essai).map((l) => [l.id, l]));
@@ -353,6 +439,8 @@ function vue(r) {
     id: r.id, etat: r.etat, sens: sensDe(r.sens), essai: !!r.essai, debut: r.debut, fin: r.fin || null, duree_s: r.duree_s || null,
     notes: r.notes || '', notes_analysees: r.notes_analysees ?? null, transcription: r.transcription || null, transcription_echec: r.transcription_echec || null,
     candidats: r.candidats || [], appel_id: r.appel_id || null, rien_de_nouveau: !!r.rien_de_nouveau,
+    // La note vocale (21 oct. 2026) : ce qu'elle dit, ce qu'on en a lu, et le contact qu'elle remplit si personne ne correspond.
+    note_vocale: r.note_vocale || null, qui_note: r.qui_note || null, nouveau_propose: r.nouveau_propose || null, identifie_par: r.identifie_par || null,
     agent: agent ? { id: agent.id, nom: agent.nom, agence: agent.agence || agence?.nom || null, telephone: (agent.telephones || [])[0] || null } : null,
     agence: agence ? { id: agence.id, nom: agence.nom } : null,
     avertissements: r.avertissements || [],
@@ -439,7 +527,7 @@ export function noter(id, notes, user) {
  * Stop : la transcription se termine (les morceaux déjà transcrits pendant
  * l'appel, et ceux qui ne l'étaient pas encore), puis les candidats.
  */
-export async function finir(id, { morceaux = [], audios = [], notes = null, duree_s = null }, user) {
+export async function finir(id, { morceaux = [], audios = [], notes = null, duree_s = null, note_vocale = null }, user) {
   const r = Records.get(ENTITE, id);
   if (!r || r.par !== moiDe(user)) return { ok: false, error: 'Rappel introuvable.' };
   let k = 0;
@@ -452,9 +540,23 @@ export async function finir(id, { morceaux = [], audios = [], notes = null, dure
     if (b) { try { textes.push(await transcrire(b)); } catch (e) { echec = String(e?.message || e).slice(0, 200); } }
   }
   const transcription = textes.filter(Boolean).join('\n').trim() || null;
-  const base = { ...r, transcription, notes: notes != null ? String(notes).slice(0, 4000) : r.notes };
+  // La note vocale passe en tête des notes : elles font foi sur la transcription, pour l'identité comme pour les actions.
+  const note = note_vocale ? String(note_vocale).trim().slice(0, 2000) : null;
+  const notesSaisies = notes != null ? String(notes) : r.notes || '';
+  const base = { ...r, transcription, notes: (note ? [note, notesSaisies].filter((x) => String(x || '').trim()).join('\n') : notesSaisies).slice(0, 4000) };
   // Identifié pendant l'appel (ou choisi avant, pour un appel rapide) : il le reste, l'analyse peut suivre.
   const deja = r.etat === 'identifie' && r.agent_id;
+  if (note && !deja) {
+    const qui = await lireNote(note);
+    const t = trouverDepuisNote(qui, annuaireDe(r));
+    Records.update(ENTITE, id, { fin: maintenant(), duree_s, transcription, transcription_echec: echec, notes: base.notes, note_vocale: note, qui_note: qui });
+    if (t.agent_id) {
+      const ident = await identifier(id, { agent_id: t.agent_id }, user);
+      if (ident.ok) return { ...ident, rappel: vue(Records.update(ENTITE, id, { identifie_par: t.raison })) };
+    }
+    const r3 = Records.update(ENTITE, id, { etat: 'a_identifier', candidats: t.candidats || [], nouveau_propose: t.nouveau || null });
+    return { ok: true, rappel: vue(r3) };
+  }
   const r2 = Records.update(ENTITE, id, {
     etat: deja ? 'identifie' : 'a_identifier', fin: maintenant(), duree_s, transcription, transcription_echec: echec,
     notes: base.notes, candidats: deja ? r.candidats || [] : candidatsDe(base),

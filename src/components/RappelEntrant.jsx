@@ -189,6 +189,14 @@ export default function RappelEntrant() {
   const baseDictee = useRef("");
   const dictee = useDictee({ onTexte: (t) => setNotes([baseDictee.current, t].filter(Boolean).join(baseDictee.current ? " " : "")) });
   const dicter = () => { if (dictee.ecoute) { dictee.arreter(); return; } baseDictee.current = notes.trim(); dictee.demarrer(); };
+  // La note vocale d'après l'appel (21 oct. 2026, Jules : « il ne faut pas que ça devine ») : qui c'était, et quoi faire.
+  const [noteVocale, setNoteVocale] = useState("");
+  const dicteeNote = useDictee({ onTexte: (t) => setNoteVocale(t), onFin: (t) => setNoteVocale(t) });
+  useEffect(() => {
+    if (!dicteeNote.ecoute) return undefined;
+    const t = setTimeout(() => dicteeNote.arreter(), 30000);
+    return () => clearTimeout(t);
+  }, [dicteeNote.ecoute]);
   const enCours = useQuery({ queryKey: ["rappels-en-cours"], queryFn: () => base44.request("GET", `${API}/en-cours`), refetchInterval: 60_000, enabled: !ouvert });
 
   // --- L'enregistrement : des morceaux de huit secondes, transcrits pendant l'appel ---------------
@@ -323,7 +331,7 @@ export default function RappelEntrant() {
 
   // --- Stop : la transcription se termine, AK propose qui a appelé ---------------------------------
   const stop = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (note = null) => {
       couper();
       clearInterval(minuteur.current);
       setEcran("transcription");
@@ -335,13 +343,31 @@ export default function RappelEntrant() {
       f.append("morceaux", JSON.stringify(morceaux.current.map((x) => (x.etat === "ok" ? x.texte || "" : x.wav ? null : ""))));
       morceaux.current.filter((x) => x.etat !== "ok" && x.wav).forEach((x, k) => f.append("audio", x.wav, `m${k}.wav`));
       f.append("notes", notes);
+      if (note) f.append("note_vocale", note);
       f.append("duree_s", String(Math.round((Date.now() - debut.current) / 1000)));
       return base44.request("POST", `${API}/${idRef.current}/fin`, { body: f, isForm: true });
     },
     // Identifié pendant l'appel, ou choisi avant (appel rapide) : l'analyse part tout de suite.
-    onSuccess: (r) => { setRappel(r.rappel); setNotes(r.rappel.notes || ""); if (r.rappel.etat === "identifie") analyser.mutate({}); else setEcran("identification"); },
+    onSuccess: (r) => {
+      setRappel(r.rappel); setNotes(r.rappel.notes || "");
+      if (r.rappel.etat === "identifie") { analyser.mutate({}); return; }
+      // Personne dans le carnet ne correspond à la note : le nouveau contact est déjà rempli avec ce qu'elle dit.
+      if (r.rappel.nouveau_propose && !(r.rappel.candidats || []).length) setNouveau({ ...r.rappel.nouveau_propose });
+      setEcran("identification");
+    },
     onError: (e) => { setErreur(erreurReseau(e) ? "Pas de réseau : l'appel est gardé à l'écran, réessayez au retour du réseau." : e?.message || "La transcription a échoué."); setEcran("identification"); },
   });
+
+  // Stop : l'appel s'arrête, puis la note vocale (21 oct. 2026). Sauf si l'on sait déjà qui c'est (appel rapide, ou
+  // choisi pendant l'appel), pour un échange raconté (les notes sont la note) ou sans micro.
+  const arreter = () => {
+    if (sens === "raconte" || microKo || rappel?.etat === "identifie") { stop.mutate(); return; }
+    couper();
+    clearInterval(minuteur.current);
+    setNoteVocale("");
+    setEcran("note");
+    if (dicteeNote.supporte) dicteeNote.demarrer();
+  };
 
   // Les notes : enregistrées en partant du champ ; tant que l'agent n'est pas confirmé, les candidats se recalculent.
   const garderNotes = useMutation({
@@ -617,7 +643,7 @@ export default function RappelEntrant() {
                   <span className="font-mono text-[28px] tabular-nums text-encre">{chrono(secondes)}</span>
                 </>
               )}
-              <button type="button" onClick={() => stop.mutate()} disabled={stop.isPending} className={`h-14 w-full max-w-[300px] rounded-full text-[17px] hover:opacity-90 disabled:opacity-50 ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
+              <button type="button" onClick={arreter} disabled={stop.isPending} className={`h-14 w-full max-w-[300px] rounded-full text-[17px] hover:opacity-90 disabled:opacity-50 ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
               {!essai && sens !== "raconte" && tactile() && <span className="max-w-[300px] text-center text-[12.5px] leading-[1.45] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</span>}
             </div>
               {sens !== "raconte" && (
@@ -644,7 +670,26 @@ export default function RappelEntrant() {
           </div>
         )}
 
-        {ecran === "transcription" && <ChaineEtapes etapes={["Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
+        {ecran === "note" && (
+          <div className="mx-auto flex w-full max-w-[600px] flex-col items-center gap-5 py-4 text-center">
+            <p className="m-0 text-[24px] font-normal tracking-[-0.01em] text-encre">Qui c'était, et que faut-il faire ?</p>
+            <p className="m-0 max-w-[480px] text-[14px] leading-[1.55] text-ardoise">En une quinzaine de secondes : le nom, l'agence, et la suite (un mail, une relance, un rendez-vous). C'est votre note qui fait foi, pas la transcription.</p>
+            {dicteeNote.supporte && (
+              <button type="button" onClick={() => (dicteeNote.ecoute ? dicteeNote.arreter() : dicteeNote.demarrer())} aria-label={dicteeNote.ecoute ? "Arrêter la note" : "Dicter la note"} className="rounded-full" style={{ background: "transparent" }}>
+                {dicteeNote.ecoute
+                  ? <MicroEcoute taille={150}><Square className="h-8 w-8" fill="currentColor" /></MicroEcoute>
+                  : <span className="grid h-[110px] w-[110px] place-items-center rounded-full bg-menthe text-sur-menthe">{dicteeNote.finalisation ? <Loader2 className="h-8 w-8 animate-spin" /> : <Mic className="h-9 w-9" strokeWidth={1.8} />}</span>}
+              </button>
+            )}
+            <textarea value={noteVocale} onChange={(e) => setNoteVocale(e.target.value)} rows={3}
+              placeholder="« C'était Manon, de Primo Immobilier à Lyon. Elle veut le dossier à lyon@agence.com, relance dans quinze jours. »"
+              className={`${champ} w-full resize-y py-2.5 text-left`} />
+            <button type="button" disabled={noteVocale.trim().length < 5 || dicteeNote.finalisation || stop.isPending}
+              onClick={() => { if (dicteeNote.ecoute) dicteeNote.arreter(); stop.mutate(noteVocale.trim()); }}
+              className="h-12 w-full max-w-[300px] rounded-full bg-menthe text-[16px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Valider la note</button>
+          </div>
+        )}
+        {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}
         {ecran === "identification" && rappel && (

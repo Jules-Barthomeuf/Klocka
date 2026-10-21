@@ -1059,3 +1059,5 @@ s'impriment et ne suivent pas le thème.
 **Le mode du dossier suit l'étape** (Jules, 21 oct. 2026) : on arrive en mode IA sur la Pré-analyse et l'Analyse, en mode normal sur la Data Room ; les autres étapes gardent le dernier choix. L'étape ouverte se garde le temps de la session, par dossier.
 
 **Les intercalaires de la Prospection** (Jules, 21 oct. 2026) : plus de fond derrière les onglets au repos (« Relances dues », les villes, le « + ») ; seul l'onglet ouvert garde la teinte du classeur.
+
+**Data Room et Synthèse** (Jules, 21 oct. 2026) : dans la Data Room, l'état (« Analysé »), le type (« PDF ») et la date d'un document ouvrent le fichier réel dans un nouvel onglet ; une corbeille à côté du « … » le supprime, après confirmation. Dans la Synthèse, plus de « Demander à l'agent » sous les documents manquants (un document déjà demandé le reste dit).

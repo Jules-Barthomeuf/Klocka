@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus, ArrowLeftRight } from "lucide-react";
+import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus, ArrowLeftRight, Trash2 } from "lucide-react";
 import { Roue, ZoneConversion } from "@/components/preanalyse/RoueConversion";
 import { typeDe } from "@/lib/conversions";
 
@@ -303,7 +303,10 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                       />
                     </td>
                     <td className="py-3 pl-4 text-right whitespace-nowrap">
+                      {/* L'état, le type et la date ouvrent le vrai fichier (21 oct. 2026, Jules). */}
                       {d.extraction?.statut ? (
+                        <a href={d.url || undefined} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (!d.url) e.preventDefault(); }}
+                          className={`underline-offset-4 ${d.url ? "cursor-pointer hover:underline" : "cursor-default"}`} title={d.url ? "Ouvrir le fichier" : undefined}>
                         <span
                           className={`text-[12.5px] ${ETATS[d.extraction.statut]?.classe || "text-ardoise"}`}
                           title={d.extraction.erreur || (d.extraction.statut === "fait" ? `${d.extraction.lignes ?? 0} donnée(s) relevée(s)` : undefined)}
@@ -312,14 +315,26 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                           {ETATS[d.extraction.statut]?.libelle || d.extraction.statut}
                           {d.extraction.statut === "fait" && d.extraction.lignes != null ? ` · ${d.extraction.lignes}` : ""}
                         </span>
+                        </a>
                       ) : (
                         <span className="text-[12.5px] text-brume">—</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">{typeLisible(d.mime)}</td>
-                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">{isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR")}</td>
+                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">
+                      {d.url ? <a href={d.url} target="_blank" rel="noopener noreferrer" title="Ouvrir le fichier" className="underline-offset-4 transition-colors hover:text-encre hover:underline">{typeLisible(d.mime)}</a> : typeLisible(d.mime)}
+                    </td>
+                    <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-ardoise">
+                      {(() => { const date = isNaN(new Date(d.ajoute_le)) ? "—" : new Date(d.ajoute_le).toLocaleDateString("fr-FR"); return d.url ? <a href={d.url} target="_blank" rel="noopener noreferrer" title="Ouvrir le fichier" className="underline-offset-4 transition-colors hover:text-encre hover:underline">{date}</a> : date; })()}
+                    </td>
                     <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
-                    <td className="relative py-3 pl-6 text-right">
+                    <td className="relative whitespace-nowrap py-3 pl-6 text-right">
+                      {/* Supprimer d'un clic, sans passer par le menu (21 oct. 2026, Jules). */}
+                      {!apercu && (
+                        <button onClick={() => { if (window.confirm(`Supprimer « ${d.nom} » ?`)) supprimer.mutate(d.id); }} disabled={supprimer.isPending}
+                          className="mr-3 align-middle text-brume transition-colors hover:text-alerte max-md:-m-2 max-md:p-2" aria-label={`Supprimer ${d.nom}`} title="Supprimer ce document">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                       <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors max-md:-m-2 max-md:p-2" aria-label="Actions" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Depliant } from "@/components/haka/ReglagesDemande";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, CircleAlert, Loader2, Mail, OctagonX } from "lucide-react";
+import { Check, CircleAlert, Loader2, OctagonX } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import NoteCellule, { useNotesTableaux } from "@/components/preanalyse/NoteCellule";
 import { toast } from "@/components/ui/avis";
@@ -139,7 +139,6 @@ export default function SyntheseAnalyse({ dossier, apercu = false, onOnglet = nu
   const useGeste = (chemin) => useMutation({ mutationFn: (body) => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/synthese/${chemin}`, { body }), onSuccess: raf, onError: (e) => toast.error(e?.message || "Impossible") });
   const decider = useGeste("decider");
   const retenir = useGeste("retenir");
-  const demander = useGeste("demander");
   const valider = useMutation({
     mutationFn: () => base44.request("POST", `/api/preanalyse/dossiers/${dealId}/synthese/valider`, { body: {} }),
     onSuccess: () => { toast.success("Analyse validée : la fiche deal est produite"); raf(); qc.invalidateQueries({ queryKey: ["preanalyse-pipeline"] }); },
@@ -170,10 +169,8 @@ export default function SyntheseAnalyse({ dossier, apercu = false, onOnglet = nu
             <div key={d.cle} className="flex items-center gap-2.5 border-t border-trait py-2 text-[13.5px]">
               <span className={`grid h-4 w-4 flex-none place-items-center rounded-full ${d.recu ? "bg-menthe text-sur-menthe" : "border border-bord-vif"}`}>{d.recu && <Check className="h-2.5 w-2.5" strokeWidth={3} />}</span>
               <span className={`min-w-0 flex-1 truncate ${d.recu ? "text-encre" : "text-ardoise"}`} title={d.documents.join(", ")}>{d.nom}{!d.obligatoire && <span className="text-brume"> · facultatif</span>}</span>
-              {!d.recu && (d.demande
-                ? <span className="flex-none text-[12px] text-brume">demandé</span>
-                : <button type="button" onClick={() => demander.mutate({ cle: d.cle })} disabled={apercu || demander.isPending} title="L'ajouter à la relance de l'agent"
-                    className="inline-flex flex-none items-center gap-1 text-[12px] text-menthe hover:underline disabled:opacity-40" style={{ background: "transparent" }}><Mail className="h-3 w-3" />Demander à l'agent</button>)}
+              {/* « Demander à l'agent » retiré de la Synthèse (21 oct. 2026, Jules) : un document déjà demandé le reste dit. */}
+              {!d.recu && d.demande && <span className="flex-none text-[12px] text-brume">demandé</span>}
             </div>
           ))}
         </div>

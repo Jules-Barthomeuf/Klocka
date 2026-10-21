@@ -11,6 +11,7 @@ import Calculatrice from "@/components/prospection/Calculatrice";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
+import { ETIQUETTE, GROS_BOUTON } from "@/components/prospection/StyleAppel";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
@@ -189,7 +190,7 @@ export function PanneauTranscription({ direct, notes, fin, enDirect = false, rep
   return (
     <div className={`flex min-w-0 flex-col gap-3 ${nu ? "" : "rounded-[18px] border border-bord-doux bg-transparent p-6"}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className={nu ? "text-[11px] tracking-[.16em] text-brume" : "m-0 text-[12px] tracking-[.14em] text-ardoise"}>{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
+        <span className={ETIQUETTE}>{enDirect ? "TRANSCRIPTION EN DIRECT" : "TRANSCRIPTION"}</span>
         {replie ? <button type="button" onClick={() => setOuvert((x) => !x)} className="p-0 text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>{ouvert ? "Replier" : "Afficher"}</button>
           : enCours && <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />}
       </div>
@@ -242,7 +243,7 @@ function CarteAgence({ a, recherches, cahier }) {
 function ZoneNotes({ valeur, onChange, nu = false }) {
   return (
     <label className={`flex min-w-0 flex-col gap-2 ${nu ? "" : "rounded-[18px] border border-bord-doux bg-transparent p-6 max-md:p-5"}`}>
-      <span className={nu ? "text-[11px] tracking-[.16em] text-brume" : "m-0 text-[12px] tracking-[.14em] text-ardoise"}>NOTES</span>
+      <span className={ETIQUETTE}>NOTES</span>
       <textarea value={valeur} onChange={(e) => onChange(e.target.value)} rows={3}
         placeholder={nu ? "Email, numéro, nom, date : elles l'emportent sur la transcription" : "Email, numéro, nom, date : ce qui compte et que le micro capte mal. Les notes l'emportent sur la transcription."}
         className={`w-full resize-y px-3.5 py-3 text-[15px] leading-[1.5] text-encre outline-none max-md:text-[16px] ${nu ? "rounded-[14px] border border-bord-doux bg-transparent placeholder:text-brume focus:border-bord-vif" : "rounded-champ border border-bord-doux bg-transparent focus:border-bord-vif"}`} />
@@ -1196,10 +1197,10 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* Pendant l'appel (refait le 9 oct. 2026, au registre de la fiche) : une seule carte, trois colonnes.
                 L'agence et ses numéros, la transcription en direct et les notes, puis le micro là où on l'a touché. */}
             {ecran === "appel" && a && (
-              <div className="grid overflow-hidden rounded-bloc border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
+              <div className="grid overflow-hidden rounded-[18px] border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
                 <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-6 max-lg:order-3 max-lg:border-t lg:border-r">
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-[11px] tracking-[.16em] text-brume">EN LIGNE</span>
+                    <span className={ETIQUETTE}>EN LIGNE</span>
                     <p className="m-0 break-words text-[20px] leading-[1.25] text-encre">{a.nom}</p>
                     {contactChoisi && !contactChoisi.standard && <p className="m-0 text-[14px] text-craie">{contactChoisi.nom}</p>}
                     <span className="select-all font-mono text-[15px] tracking-[.04em] text-ardoise">{numeroAppel}</span>
@@ -1209,7 +1210,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
                   {(autresNumeros.length > 0 || a.site) && (
                     <div className="flex flex-col gap-2 border-t border-trait pt-4">
-                      {autresNumeros.length > 0 && <span className="text-[11px] tracking-[.16em] text-brume">AUTRES NUMÉROS</span>}
+                      {autresNumeros.length > 0 && <span className={ETIQUETTE}>AUTRES NUMÉROS</span>}
                       {autresNumeros.map((x) => (
                         <span key={x.telephone} className="flex flex-col">
                           <span className="select-all font-mono text-[14px] tracking-[.04em] text-encre">{x.telephone}</span>
@@ -1243,12 +1244,14 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   <div className="flex flex-wrap items-center justify-center gap-2.5 [&>button]:whitespace-nowrap">
                     {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
                     <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
-                    <button type="button" onClick={raccrocher} className="h-10 rounded-full bg-alerte px-5 text-[14px] text-white hover:opacity-90">Raccrocher</button>
+                    
                     <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
                     {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
                     <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
                       className="grid h-10 w-10 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
                   </div>
+                  {/* Raccrocher, comme « Valider » des actions proposées (21 oct. 2026, Jules) : un grand bouton, seul. */}
+                  <button type="button" onClick={raccrocher} className={`${GROS_BOUTON} max-w-[360px] bg-alerte text-white`}>Raccrocher</button>
                 </div>
               </div>
             )}

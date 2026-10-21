@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic, PhoneIncoming, PhoneOutgoing, Search, Square, X } from "lucide-react";
 import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
+import { CARTE, CHAMP_CARTE, ETIQUETTE, GROS_BOUTON, TraitAppel } from "@/components/prospection/StyleAppel";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -27,7 +28,7 @@ const MA = "/api/prospection/mode-appel";
 const EVT = "klocka:il-me-rappelle";
 const nouvelleCle = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `v-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 const chrono = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-const etiquette = "m-0 text-[11px] tracking-[.16em] text-brume";
+const etiquette = ETIQUETTE;
 const champ = "w-full rounded-champ border border-trait bg-fond px-3 py-2.5 text-[15px] text-encre outline-none focus:border-menthe max-md:text-[16px]";
 const secondaire = "h-10 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50";
 const principal = "h-10 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50";
@@ -545,7 +546,7 @@ export default function RappelEntrant() {
         )}
       </span>
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => { if (rappel?.id && ecran !== "enregistrement" && notes !== (rappel.notes || "")) garderNotes.mutate(); }} rows={4}
-        placeholder={sens === "raconte" ? "« Martin d'ERA Cannes m'a écrit : le bail est renouvelé, il m'envoie le dossier lundi »" : "Ce que le micro capte mal : email, numéro, orthographe d'un nom, une précision"} className={champ} />
+        placeholder={sens === "raconte" ? "« Martin d'ERA Cannes m'a écrit : le bail est renouvelé, il m'envoie le dossier lundi »" : "Ce que le micro capte mal : email, numéro, orthographe d'un nom, une précision"} className={CHAMP_CARTE} />
       {(rappel?.notes_avertissements || []).map((x) => <span key={x} className="text-[12.5px] text-ambre">{x}</span>)}
     </label>
   );
@@ -553,7 +554,7 @@ export default function RappelEntrant() {
   const transcription = sens === "raconte" ? null : ecran === "enregistrement" || ecran === "transcription" ? (
     <PanneauTranscription direct={direct} notes={!microKo} fin={finDirect} enDirect tape />
   ) : (
-    <div className="flex min-h-[120px] flex-col gap-2 rounded-[16px] border border-trait p-4">
+    <div className="flex min-h-[120px] flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
       <span className={etiquette}>TRANSCRIPTION</span>
       {rappel?.transcription ? <p className="m-0 max-h-[320px] overflow-y-auto whitespace-pre-line text-[14.5px] leading-[1.55] text-craie">{rappel.transcription}</p>
         : <p className="m-0 text-[14px] text-brume">{microKo ? "Pas d'enregistrement : écrivez l'essentiel dans les notes." : "Rien n'a été entendu."}</p>}
@@ -589,7 +590,7 @@ export default function RappelEntrant() {
         {ecran === "essai" && (
           <div className="grid gap-4 md:grid-cols-2">
             {[["entrant", "Il me rappelle"], ["sortant", "Appel rapide"]].map(([k, mot]) => (
-              <div key={k} className="flex flex-col gap-2 rounded-[18px] border border-trait p-4">
+              <div key={k} className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                 <span className={etiquette}>{mot.toUpperCase()}</span>
                 {SCENARIOS_RAPPEL.filter((x) => x.sens === k).map((x) => (
                   <button key={x.cle} type="button" onClick={() => choisirScenario(x)} className="flex flex-col gap-0.5 rounded-[12px] border border-trait px-4 py-3 text-left transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>
@@ -606,7 +607,7 @@ export default function RappelEntrant() {
         {/* Appel rapide : qui appelez-vous ? On choisit, ou on crée, puis l'enregistrement part. */}
         {ecran === "choix" && (
           <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-            <div className="flex min-w-0 flex-col gap-3 rounded-[18px] border border-trait p-5">
+            <div className="flex min-w-0 flex-col gap-3 rounded-[18px] border border-bord-doux p-5">
               <span className={etiquette}>QUI APPELEZ-VOUS ?</span>
               <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
                 <Search className="h-4 w-4 flex-none text-ardoise" />
@@ -617,7 +618,7 @@ export default function RappelEntrant() {
               ))}
               {recherche.trim().length >= 2 && trouves.data && !trouves.data.resultats.length && <span className="text-[13px] text-brume">Personne à ce nom ou ce numéro : créez le contact à droite.</span>}
             </div>
-            <div className="flex min-w-0 flex-col gap-2 rounded-[18px] border border-trait p-5">
+            <div className="flex min-w-0 flex-col gap-2 rounded-[18px] border border-bord-doux p-5">
               <span className={etiquette}>PAS EN BASE ?</span>
               <input value={nouveau?.nom || ""} onChange={(e) => setNouveau((x) => ({ agence_id: null, agence: "", ville: "", telephone: "", email: "", ...(x || {}), nom: e.target.value }))} placeholder="Nom de la personne" className={champ} />
               <input value={nouveau?.agence || ""} onChange={(e) => setNouveau((x) => ({ ville: "", nom: "", telephone: "", email: "", ...(x || {}), agence: e.target.value, agence_id: null }))} placeholder="Agence" className={champ} />
@@ -633,8 +634,8 @@ export default function RappelEntrant() {
         {ecran === "enregistrement" && (
           <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
             <div className="flex min-w-0 flex-col gap-4">{transcription}{zoneNotes}</div>
-            <div className="flex min-w-0 flex-col gap-4">
-            <div className="flex flex-col items-center gap-4 rounded-[20px] border border-trait px-5 py-8">
+            <div className="flex min-w-0 flex-col">
+            <div className={`flex flex-col items-center gap-4 px-5 py-8 ${CARTE}`}>
               {agent?.telephone && sens === "sortant" && !essai && <span className="text-center text-[14px] text-ardoise">Composez le <span className="font-mono text-[18px] text-encre">{agent.telephone}</span></span>}
               {microKo ? (
                 <>
@@ -647,13 +648,14 @@ export default function RappelEntrant() {
                   <span className="font-mono text-[28px] tabular-nums text-encre">{chrono(secondes)}</span>
                 </>
               )}
-              <button type="button" onClick={arreter} disabled={stop.isPending} className={`h-14 w-full max-w-[300px] rounded-full text-[17px] hover:opacity-90 disabled:opacity-50 ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
+              
               {!essai && sens !== "raconte" && tactile() && <span className="max-w-[300px] text-center text-[12.5px] leading-[1.45] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</span>}
             </div>
               {/* Pendant un rappel entrant, plus de « Qui appelle ? » (21 oct. 2026, Jules) : la note d'après l'appel le dit.
                   L'appel rapide garde « Vous appelez » : on sait déjà qui. */}
+              {sens === "sortant" && <TraitAppel moment="En ligne" />}
               {sens === "sortant" && (
-                <div className="flex flex-col gap-2 rounded-[18px] border border-trait p-4">
+                <div className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                   <span className={etiquette}>VOUS APPELEZ</span>
                   {agent ? (
                     <span className="flex items-center justify-between gap-2">
@@ -672,6 +674,8 @@ export default function RappelEntrant() {
                   )}
                 </div>
               )}
+              <TraitAppel moment="Fin de l'appel" />
+              <button type="button" onClick={arreter} disabled={stop.isPending} className={`${GROS_BOUTON} ${sens === "raconte" ? "bg-menthe text-sur-menthe" : "bg-alerte text-white"}`}>{microKo ? "Analyser" : "Stop"}</button>
             </div>
           </div>
         )}
@@ -689,10 +693,10 @@ export default function RappelEntrant() {
             )}
             <textarea value={noteVocale} onChange={(e) => setNoteVocale(e.target.value)} rows={3}
               placeholder="« C'était Manon, de Primo Immobilier à Lyon. Elle veut le dossier à lyon@agence.com, relance dans quinze jours. »"
-              className={`${champ} w-full resize-y py-2.5 text-left`} />
+              className={`${CHAMP_CARTE} text-left`} />
             <button type="button" disabled={noteVocale.trim().length < 5 || dicteeNote.finalisation || stop.isPending}
               onClick={() => { if (dicteeNote.ecoute) dicteeNote.arreter(); stop.mutate(noteVocale.trim()); }}
-              className="h-12 w-full max-w-[300px] rounded-full bg-menthe text-[16px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">Valider la note</button>
+              className={`${GROS_BOUTON} max-w-[420px] bg-encre text-fond`}>Valider la note</button>
           </div>
         )}
         {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
@@ -704,7 +708,7 @@ export default function RappelEntrant() {
           <div className="mx-auto flex w-full max-w-[680px] flex-col gap-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3">
             <p className="m-0 text-[14px] leading-[1.55] text-ardoise">Votre note : <span className="text-craie">« {rappel.note_vocale} »</span></p>
             {candidats.length > 0 && (
-              <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+              <div className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                 <span className={etiquette}>{candidats.length > 1 ? "LEQUEL ?" : "C'EST ELLE OU LUI ?"}</span>
                 {candidats.map((c, i) => <Candidat key={c.cle} c={c} premier={i === 0 && candidats.length === 1} onConfirmer={confirmer} occupe={identifier.isPending} />)}
               </div>
@@ -729,13 +733,13 @@ export default function RappelEntrant() {
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col gap-4">{transcription}{zoneNotes}</div>
             <div className="flex min-w-0 flex-col gap-4">
-              <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+              <div className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                 <span className={etiquette}>QUI A APPELÉ</span>
                 {candidats.length ? candidats.map((c, i) => <Candidat key={c.cle} c={c} premier={i === 0} onConfirmer={confirmer} occupe={identifier.isPending} />)
                   : <p className="m-0 text-[14px] text-brume">Aucun candidat : cherchez-le, ou créez le contact.</p>}
               </div>
               {/* Un appel déjà fait : celui qu'il rappelle, retrouvé en un clic, même passé par un collègue. */}
-              <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+              <div className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                 <span className={etiquette}>APPELS DÉJÀ FAITS</span>
                 <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
                   <Search className="h-4 w-4 flex-none text-ardoise" />
@@ -745,7 +749,7 @@ export default function RappelEntrant() {
                 {!rechercheAppels.trim() && !tousLesAppels && (appelsFaits.data?.resultats || []).length > 4 && <button type="button" onClick={() => setTousLesAppels(true)} className="self-start p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Voir plus d'appels</button>}
                 {appelsFaits.data && !appelsFaits.data.resultats.length && <span className="text-[13px] text-brume">{rechercheAppels.trim() ? "Aucun appel à ce nom ou ce numéro sur les trente derniers jours." : "Aucun appel sur les trente derniers jours."}</span>}
               </div>
-              <div className="flex flex-col gap-2 rounded-[16px] border border-trait p-4">
+              <div className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                 <span className={etiquette}>TOUT LE CARNET</span>
                 <span className="flex items-center gap-2 rounded-full border border-trait bg-fond px-3.5 py-2 focus-within:border-menthe">
                   <Search className="h-4 w-4 flex-none text-ardoise" />

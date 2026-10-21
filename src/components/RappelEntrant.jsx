@@ -6,6 +6,7 @@ import { AudioLines, ExternalLink, FlaskConical, Loader2, MessageSquareText, Mic
 import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
 import { CARTE, CHAMP_CARTE, ETIQUETTE, GROS_BOUTON, TraitAppel } from "@/components/prospection/StyleAppel";
 import { CalculatriceEnLigne, EnteteEnLigne, NotesEnLigne, TranscriptionEnLigne, presentation } from "@/components/prospection/EcranEnLigne";
+import FondHalo from "@/components/projet/FondHalo";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -45,6 +46,8 @@ export const appelRapide = () => window.dispatchEvent(new CustomEvent(EVT, { det
 export const raconterUnEchange = (notes = "") => window.dispatchEvent(new CustomEvent(EVT, { detail: { sens: "raconte", notes } }));
 /** L'essai (19 oct. 2026, Jules) : un rappel ou un appel rapide joué, sans appel réel, dans la liste fictive. */
 export const essayerUnAppel = () => window.dispatchEvent(new CustomEvent(EVT, { detail: { essai: true } }));
+// Le halo du fond, comme le Layout : ni en thème clair, ni quand la personne l'a éteint.
+const haloVisible = () => typeof document !== "undefined" && document.documentElement.dataset.theme !== "clair" && document.documentElement.dataset.halo !== "0";
 // Au téléphone, pendant un appel, le micro est pris par l'appel : on le dit à l'écran.
 const tactile = () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
@@ -568,9 +571,12 @@ export default function RappelEntrant() {
 
   return createPortal(
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-fond md:left-[var(--k-barre-largeur,0px)]" role="dialog" aria-modal="true" aria-label={SENS[sens].titre}>
-      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-5 px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(16px+env(safe-area-inset-top))] md:px-6">
+      {/* Le fond choisi dans les Paramètres, halo compris (21 oct. 2026, Jules) : le même que derrière les pages. */}
+      {/* Cadré dans l'écran (transform) : le halo, fixe, ne déborde pas sur la barre de gauche. */}
+      {haloVisible() && <div className="pointer-events-none absolute inset-0 overflow-hidden [transform:translateZ(0)]"><FondHalo /></div>}
+      <div className="mx-auto relative z-[1] flex w-full max-w-[1180px] flex-col gap-5 px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(16px+env(safe-area-inset-top))] md:px-6">
         {/* Le bandeau : qui appelle, une fois connu. */}
-        {!(ecran === "enregistrement" && sens !== "raconte") && (
+        {!((ecran === "enregistrement" && sens !== "raconte") || ecran === "note") && (
         <div className="flex items-center justify-between gap-3 rounded-full border border-trait px-4 py-2.5">
           <span className="flex min-w-0 items-center gap-2.5 text-[14.5px]">
             <IconeSens className="h-4 w-4 flex-none text-menthe" />
@@ -718,7 +724,7 @@ export default function RappelEntrant() {
               <button type="button" onClick={() => (dicteeNote.ecoute ? dicteeNote.arreter() : dicteeNote.demarrer())} aria-label={dicteeNote.ecoute ? "Arrêter la note" : "Dicter la note"} className="rounded-full" style={{ background: "transparent" }}>
                 {dicteeNote.ecoute
                   ? <MicroEcoute taille={150}><Square className="h-8 w-8" fill="currentColor" /></MicroEcoute>
-                  : <span className="grid h-[110px] w-[110px] place-items-center rounded-full bg-menthe text-sur-menthe">{dicteeNote.finalisation ? <Loader2 className="h-8 w-8 animate-spin" /> : <Mic className="h-9 w-9" strokeWidth={1.8} />}</span>}
+                  : <span className="grid h-[110px] w-[110px] place-items-center rounded-full border-2 border-menthe text-menthe transition-colors hover:bg-menthe/10">{dicteeNote.finalisation ? <Loader2 className="h-8 w-8 animate-spin" /> : <Mic className="h-9 w-9" strokeWidth={1.8} />}</span>}
               </button>
             )}
             <textarea value={noteVocale} onChange={(e) => setNoteVocale(e.target.value)} rows={3}

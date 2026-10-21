@@ -7,6 +7,7 @@ import { SCENARIOS_RAPPEL } from "@/components/prospection/scenarios-rappel";
 import { CARTE, CHAMP_CARTE, ETIQUETTE, GROS_BOUTON, TraitAppel } from "@/components/prospection/StyleAppel";
 import { CalculatriceEnLigne, EnteteEnLigne, NotesEnLigne, TranscriptionEnLigne, presentation } from "@/components/prospection/EcranEnLigne";
 import FondHalo from "@/components/projet/FondHalo";
+import NoteApresAppel from "@/components/prospection/NoteApresAppel";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -369,7 +370,9 @@ export default function RappelEntrant() {
   // Stop : l'appel s'arrête, puis la note vocale (21 oct. 2026). Sauf si l'on sait déjà qui c'est (appel rapide, ou
   // choisi pendant l'appel), pour un échange raconté (les notes sont la note) ou sans micro.
   const arreter = () => {
-    if (sens === "raconte" || microKo || rappel?.etat === "identifie") { stop.mutate(); return; }
+    if (sens === "raconte" || microKo) { stop.mutate(); return; }
+    // Déjà identifié (appel rapide, ou choisi pendant l'appel) : la note de cinq secondes, facultative (21 oct. 2026).
+    if (rappel?.etat === "identifie") { couper(); clearInterval(minuteur.current); setEcran("note-courte"); return; }
     couper();
     clearInterval(minuteur.current);
     setNoteVocale("");
@@ -576,7 +579,7 @@ export default function RappelEntrant() {
       {haloVisible() && <div className="pointer-events-none absolute inset-0 overflow-hidden [transform:translateZ(0)]"><FondHalo /></div>}
       <div className="mx-auto relative z-[1] flex w-full max-w-[1180px] flex-col gap-5 px-4 pb-[calc(24px+env(safe-area-inset-bottom))] pt-[calc(16px+env(safe-area-inset-top))] md:px-6">
         {/* Le bandeau : qui appelle, une fois connu. */}
-        {!((ecran === "enregistrement" && sens !== "raconte") || ecran === "note") && (
+        {!((ecran === "enregistrement" && sens !== "raconte") || ecran === "note" || ecran === "note-courte") && (
         <div className="flex items-center justify-between gap-3 rounded-full border border-trait px-4 py-2.5">
           <span className="flex min-w-0 items-center gap-2.5 text-[14.5px]">
             <IconeSens className="h-4 w-4 flex-none text-menthe" />
@@ -716,6 +719,7 @@ export default function RappelEntrant() {
           </div>
         )}
 
+        {ecran === "note-courte" && <NoteApresAppel onFin={(note) => stop.mutate(note || null)} />}
         {ecran === "note" && (
           <div className="mx-auto flex w-full max-w-[600px] flex-col items-center gap-5 py-4 text-center">
             <p className="m-0 text-[24px] font-normal tracking-[-0.01em] text-encre">Qui c'était, et que faut-il faire ?</p>

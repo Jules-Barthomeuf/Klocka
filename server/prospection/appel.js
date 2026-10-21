@@ -203,7 +203,7 @@ L'agent : ${a.nom}${a.agence ? `, ${a.agence}` : ''}${a.ville ? `, ${a.ville}` :
 Ce qu'on sait déjà :
 ${lignesJournal(a)}
 ${v2 ? `\n${V2.blocDuPrompt({ competence, contexte })}\n` : ''}
-Aujourd'hui : ${R.jourDe(maintenant)}${issueTapee ? `. L'analyste a tapé l'issue « ${R.ISSUES[issueTapee] || issueTapee} » : elle ne change pas, remplis seulement les détails, et dis dans issue_entendue ce que la conversation dit vraiment` : ''}.
+Aujourd'hui : ${R.jourDe(maintenant)}, ${new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }).format(maintenant)} (heure de Paris)${issueTapee ? `. L'analyste a tapé l'issue « ${R.ISSUES[issueTapee] || issueTapee} » : elle ne change pas, remplis seulement les détails, et dis dans issue_entendue ce que la conversation dit vraiment` : ''}.
 
 L'appel :
 ${texte}`,

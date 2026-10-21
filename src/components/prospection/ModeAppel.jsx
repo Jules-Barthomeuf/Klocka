@@ -12,6 +12,7 @@ import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare"
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
 import { ETIQUETTE, GROS_BOUTON } from "@/components/prospection/StyleAppel";
+import NoteApresAppel from "@/components/prospection/NoteApresAppel";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
@@ -864,10 +865,17 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     clearInterval(chrono.current);
     couperMicro(false);
     if (!notes) { setEcran("issue"); return; }
-    // Une courte transition (« Appel terminé ») avant la lecture, pendant qu'AK commence déjà à lire.
+    // La note vocale d'après l'appel, avant toute action (21 oct. 2026, Jules) : cinq secondes, facultatives.
+    setEcran("note");
+  };
+  // La note dite (ou rien) : elle rejoint les notes, qui font foi, puis Haka lit et propose.
+  const apresNote = (note) => {
+    const avec = note ? [notesAppel.trim(), `Note dite après l'appel : ${note}`].filter(Boolean).join("\n") : null;
+    if (avec) setNotesAppel(avec);
+    // Une courte transition (« Appel terminé ») avant la lecture ; sans note, la lecture faite pendant l'appel resert.
     setEcran("raccroche");
     setTimeout(() => setEcran((e) => (e === "raccroche" ? "analyse" : e)), 1100);
-    noter.mutate({ issue: "auto" });
+    noter.mutate({ issue: "auto", ...(avec ? { notes: avec } : {}) });
   };
   // Message laissé (13 oct. 2026, Jules) : rien à lire, l'issue est posée et les actions proposées s'ouvrent.
   const messageLaisse = () => {
@@ -1288,6 +1296,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
               </div>
             )}
 
+            {ecran === "note" && a && <NoteApresAppel onFin={apresNote} />}
             {ecran === "raccroche" && a && (
               <div className="flex flex-col items-center justify-center gap-5 rounded-[20px] border border-trait bg-transparent px-5 py-20 text-center duration-500 animate-in fade-in-0">
                 <span className="grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe duration-500 animate-in zoom-in-50"><Check className="h-10 w-10" strokeWidth={2.2} /></span>

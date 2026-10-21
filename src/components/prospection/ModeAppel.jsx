@@ -13,7 +13,6 @@ import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospe
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
 import { ETIQUETTE, GROS_BOUTON } from "@/components/prospection/StyleAppel";
 import NoteApresAppel from "@/components/prospection/NoteApresAppel";
-import { CalculatriceEnLigne, EnteteEnLigne, NotesEnLigne, TranscriptionEnLigne } from "@/components/prospection/EcranEnLigne";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
@@ -1205,37 +1204,62 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {/* Pendant l'appel : le micro qui écoute, la transcription en direct à droite. */}
             {/* Pendant l'appel (refait le 9 oct. 2026, au registre de la fiche) : une seule carte, trois colonnes.
                 L'agence et ses numéros, la transcription en direct et les notes, puis le micro là où on l'a touché. */}
-            {/* Pendant l'appel, le même écran que le rappel et l'appel rapide (21 oct. 2026, Jules) : centré, le nom et le numéro
-                en tête, le micro en contour, Raccrocher ; la transcription à gauche, la calculatrice et les notes à droite. */}
             {ecran === "appel" && a && (
-              <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-7 duration-500 animate-in fade-in-0">
-                <EnteteEnLigne etat={a.relance?.motif?.libelle ? `Relance · ${a.relance.motif.libelle}` : "Appel en cours"} secondes={secondes} essai={!!session?.essai}
-                  nom={a.nom} ecoute={notes} onRaccrocher={raccrocher}
-                  sousTitre={[contactChoisi && !contactChoisi.standard ? contactChoisi.nom : null, numeroAppel].filter(Boolean).join(" · ") || null}
-                  detail={(
-                    <div className="flex flex-col items-center gap-1 text-[12.5px]">
-                      {numeroAppel === a.telephone && a.telephone_source && <span className={a.telephone_autre_region ? "text-ambre" : "text-brume"}>{a.telephone_autre_region ? `Numéro d'une autre région · ${a.telephone_source}` : a.telephone_source}</span>}
-                      {autresNumeros.length > 0 && <span className="text-ardoise">Autres numéros : {autresNumeros.map((x) => `${x.telephone}${x.nom ? ` (${x.nom})` : ""}`).join(" · ")}</span>}
-                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="text-menthe hover:underline">{String(a.site).replace(/^https?:\/\//, "").replace(/\/$/, "")}</a>}
-                      {!simule && moi?.role === "admin" && <span className="text-brume">Écran enregistré pendant l'appel</span>}
+              <div className="grid overflow-hidden rounded-[18px] border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
+                <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-6 max-lg:order-3 max-lg:border-t lg:border-r">
+                  <div className="flex flex-col gap-1.5">
+                    <span className={ETIQUETTE}>EN LIGNE</span>
+                    <p className="m-0 break-words text-[20px] leading-[1.25] text-encre">{a.nom}</p>
+                    {contactChoisi && !contactChoisi.standard && <p className="m-0 text-[14px] text-craie">{contactChoisi.nom}</p>}
+                    <span className="select-all tabular-nums text-[15px] text-ardoise">{numeroAppel}</span>
+                    {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit avant d'appeler. */}
+                    {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro d'une autre région · ${a.telephone_source}` : a.telephone_source}</span>}
+                  </div>
+                  {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
+                  {(autresNumeros.length > 0 || a.site) && (
+                    <div className="flex flex-col gap-2 border-t border-trait pt-4">
+                      {autresNumeros.length > 0 && <span className={ETIQUETTE}>AUTRES NUMÉROS</span>}
+                      {autresNumeros.map((x) => (
+                        <span key={x.telephone} className="flex flex-col">
+                          <span className="select-all tabular-nums text-[14px] text-encre">{x.telephone}</span>
+                          {x.nom && <span className="truncate text-[12.5px] text-ardoise">{x.nom}</span>}
+                        </span>
+                      ))}
+                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-[14px] text-menthe hover:underline ${autresNumeros.length ? "mt-2" : ""}`}>{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
                     </div>
                   )}
-                  secondaires={(
-                    <>
-                      {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
-                      <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-9 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
-                      <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-9 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
-                      {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
-                      <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
-                        className="grid h-9 w-9 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-                    </>
-                  )} />
-                <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-                  <TranscriptionEnLigne morceaux={direct} interlocuteur={String(contactChoisi && !contactChoisi.standard ? contactChoisi.nom : "Agent").split(/\s+/)[0]} attend={simule && !!scJoue && direct.length < (scJoue?.phrases?.length || 0)} />
-                  <div className="flex min-w-0 flex-col gap-5">
-                    <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
-                    <NotesEnLigne valeur={notesAppel} onChange={setNotesAppel} placeholder="Email, numéro, nom, date : elles l'emportent sur la transcription" />
+                  {/* La calculatrice (16 oct. 2026, Jules) : une fenêtre devant la barre de gauche, ouverte seule dès qu'un prix ou un loyer est entendu. */}
+                  <Calculatrice textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
+                </div>
+                <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-7 max-lg:order-2 max-lg:border-t max-md:p-5 lg:border-r">
+                  <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect nu />
+                  <div className="border-t border-trait pt-5"><ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu /></div>
+                </div>
+                {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
+                <div className="flex min-w-0 flex-col items-center justify-center gap-6 p-6 max-lg:order-1 max-md:p-5">
+                  <div className="flex flex-col items-center gap-3">
+                    {/* Le micro de la fiche, à l'identique (9 oct. 2026) : mêmes cercles, même menthe ; pendant l'écoute, les anneaux respirent. */}
+                    <span className={`grid h-[220px] w-[220px] place-items-center rounded-full border max-md:h-[184px] max-md:w-[184px] ${notes ? "k-anneau border-menthe/30" : "border-bord-doux"}`} role="img" aria-label={notes ? "Enregistrement en cours" : "Sans enregistrement"}>
+                      <span className={`grid h-[78%] w-[78%] place-items-center rounded-full border ${notes ? "k-anneau border-menthe/40" : "border-bord-doux"}`} style={notes ? { animationDelay: "0.6s" } : undefined}>
+                        <span className={`grid h-[74%] w-[74%] place-items-center rounded-full ${notes ? "bg-menthe text-sur-menthe" : "border border-bord-doux text-ardoise"}`}><IconeMicro taille={38} /></span>
+                      </span>
+                    </span>
+                    <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
+                    {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
+                    {!simule && moi?.role === "admin" && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
                   </div>
+                  {/* Les boutons passent à la ligne quand la colonne est étroite, jamais coupés ni sur deux lignes (16 oct. 2026). */}
+                  <div className="flex flex-wrap items-center justify-center gap-2.5 [&>button]:whitespace-nowrap">
+                    {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
+                    <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
+                    
+                    <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+                    {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
+                    <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
+                      className="grid h-10 w-10 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+                  </div>
+                  {/* Raccrocher, comme « Valider » des actions proposées (21 oct. 2026, Jules) : un grand bouton, seul. */}
+                  <button type="button" onClick={raccrocher} className={`${GROS_BOUTON} max-w-[360px] bg-alerte text-white`}>Raccrocher</button>
                 </div>
               </div>
             )}

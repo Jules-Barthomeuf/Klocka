@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Square, X } from "lucide-react";
+import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Phone, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
@@ -367,33 +367,38 @@ function ResumeAppel({ onAnalyser, onSansReponse, occupe }) {
   const { supporte, ecoute, demarrer, arreter, finalisation } = useDictee({ onTexte: (t) => setTexte([base.current, t].filter(Boolean).join(base.current ? " " : "")) });
   const dicter = () => { if (ecoute) { arreter(); return; } base.current = texte.trim(); demarrer(); };
   const pret = texte.trim().length >= 8 && !ecoute && !finalisation && !occupe;
+  // « Déjà appelé ? » (maquette de Jules, 21 oct. 2026) : une grande carte pour dire ou écrire l'appel, la dictée en bas à
+  // gauche, Analyser en bas à droite ; dessous, « Pas de réponse ou répondeur » sur toute la largeur.
   return (
-    <div className="flex w-full max-w-[420px] flex-col gap-2">
-      <span className="text-[13px] text-ardoise">Déjà appelé ? Dites ou écrivez ce qui s'est dit</span>
-      <div className={`flex flex-col rounded-[14px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
-        <textarea
-          value={texte}
-          onChange={(e) => setTexte(e.target.value)}
-          rows={3}
-          aria-label="Ce qui s'est dit pendant l'appel"
-          className="resize-none bg-transparent px-3.5 pt-3 text-[14px] leading-[1.5] text-encre outline-none placeholder:text-brume"
-        />
-        <div className="flex items-center justify-between gap-2 px-2 pb-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className={`flex min-h-[240px] flex-1 flex-col rounded-[18px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
+        <textarea value={texte} onChange={(e) => setTexte(e.target.value)} aria-label="Ce qui s'est dit pendant l'appel" placeholder="Dites ou écrivez ce qui s'est dit"
+          className="min-h-[160px] flex-1 resize-none bg-transparent px-5 pt-4 text-[15px] leading-[1.55] text-encre outline-none placeholder:text-brume" />
+        <div className="flex items-center justify-between gap-2 px-3 pb-3">
           {supporte ? (
             <button type="button" onClick={dicter} aria-label={ecoute ? "Arrêter la dictée" : "Dicter"} title={ecoute ? "Arrêter la dictée" : "Dicter le résumé"}
-              className={`grid h-8 w-8 place-items-center rounded-full transition-colors ${ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={ecoute ? undefined : { background: "transparent" }}>
+              className={`grid h-9 w-9 place-items-center rounded-full transition-colors ${ecoute ? "bg-menthe text-sur-menthe" : "text-ardoise hover:bg-relief hover:text-encre"}`} style={ecoute ? undefined : { background: "transparent" }}>
               {ecoute ? <Square className="h-3 w-3" fill="currentColor" /> : finalisation ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
             </button>
           ) : <span />}
           <button type="button" disabled={!pret} onClick={() => onAnalyser(texte.trim())}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
-            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Analyser<ArrowRight className="h-3.5 w-3.5" />
+            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-menthe px-5 text-[14.5px] text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
+            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Analyser<ArrowRight className="h-4 w-4" />
           </button>
         </div>
       </div>
-      <button type="button" onClick={onSansReponse} className="self-start p-0 text-[12.5px] text-brume underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
+      <button type="button" onClick={onSansReponse} className="h-12 w-full rounded-full border border-bord-doux text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
     </div>
   );
+}
+
+/** Pure : une recherche client en deux parts, ce qu'elle cherche à gauche, le budget à droite (« Murs de commerce · PACA » / « 200 k€ à 250 k€ »). */
+export function ligneRecherche(q) {
+  const parts = String(q || "").split(/,\s+/).map((x) => x.trim()).filter(Boolean);
+  const i = parts.findIndex((x) => /€/.test(x));
+  const droite = i >= 0 ? parts[i].replace(/^de\s+/, "") : null;
+  const gauche = parts.filter((_, k) => k !== i).join(" · ");
+  return { gauche: gauche.charAt(0).toUpperCase() + gauche.slice(1), droite };
 }
 
 function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null }) {
@@ -433,101 +438,117 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
       )}
     </>
   );
-  const ligne = "grid grid-cols-[minmax(0,110px)_minmax(0,1fr)] items-baseline gap-4 border-t border-trait py-3.5";
+  const etiq2 = "m-0 text-[12.5px] tracking-[.14em] text-ardoise";
+  // La fiche d'avant l'appel (maquette de Jules, 21 oct. 2026) : une carte ; en tête l'origine et l'état, le nom, la
+  // personne et son numéro, à droite le micro, Appeler et Passer ; dessous trois colonnes : interlocuteurs et
+  // historique, l'accroche et les recherches clients, « Déjà appelé ? ».
   return (
-    <div className="grid overflow-hidden rounded-bloc border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
-      {/* Les interlocuteurs et l'historique. */}
-      <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-6 max-lg:order-4 max-lg:border-t lg:border-r">
-        <div className="flex flex-col gap-1.5">
-          <span className={`${etiq} px-3`}>INTERLOCUTEURS</span>
-          {contacts.map((x) => {
-            const actif = choisi?.id === x.id;
-            return (
-              <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={x.nom}
-                className={`flex w-full min-w-0 flex-col items-start gap-0.5 rounded-champ px-3 py-2.5 text-left transition-colors ${actif ? "bg-menthe/10" : "hover:bg-relief"}`} style={actif ? undefined : { background: "transparent" }}>
-                {/* Un nom sans espace (une adresse mail) ne déborde pas : coupé, en entier au survol. */}
-                <span className="block w-full truncate text-[15px] text-encre">{x.nom}</span>
-                <span className={`block w-full truncate text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
-              </button>
-            );
-          })}
-          {!contacts.length && <span className="px-3 pt-1 text-[13.5px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className={`${etiq} px-3`}>HISTORIQUE</span>
-          {histo.map((h, k) => (
-            <div key={k} className="flex gap-3 px-3 py-2">
-              <span className="mt-[7px] h-1.5 w-1.5 flex-none rounded-full bg-bord-vif" />
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-[14px] text-encre">{h.quoi}</span>
-                <span className="text-[12.5px] text-ardoise">{[h.quand, h.qui].filter(Boolean).join(" · ")}</span>
-              </span>
-            </div>
-          ))}
-          {!histo.length && <span className="px-3 pt-1 text-[13.5px] text-brume">Jamais appelée</span>}
-        </div>
-        {/* L'Intelligence (phase 6, 15 oct. 2026) : avant d'appeler, ce qu'on sait de l'agence et ce qu'on lui doit. */}
-        {!essai && <CeQueKlockaSait type="agence" id={a.id} className="px-3" />}
-      </div>
-
-      {/* La fiche. */}
-      <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-7 max-lg:order-1 max-md:p-5 lg:border-r">
-        <div className="flex flex-col gap-3">
-          <span className={etiq}>{relances ? "RELANCES" : "TABLEAU PROSPECTION"} · {String(a.ville || "").toUpperCase()}</span>
-          <p className="m-0 break-words text-[clamp(24px,2.2vw,32px)] font-normal leading-[1.15] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <span className={`rounded-full px-2.5 py-0.5 text-[12.5px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>
-            {a.secteur && <span className="text-[13.5px] text-ardoise">{a.secteur}</span>}
-          </div>
-        </div>
-        <div className="flex flex-col border-b border-trait">
-          <div className={ligne}>
-            <span className="text-[13.5px] text-ardoise">Interlocuteur</span>
-            <span className={`break-words text-[15px] ${personne ? "text-encre" : "text-brume"}`}>{personne?.nom || "Non connu"}</span>
-          </div>
-          {personne?.fonction && (
-            <div className={ligne}>
-              <span className="text-[13.5px] text-ardoise">Fonction</span>
-              <span className="text-[15px] text-encre">{personne.fonction}</span>
+    <div className="overflow-hidden rounded-[24px] border border-bord-doux bg-transparent">
+      <div className="flex flex-wrap items-end justify-between gap-6 px-9 py-8 max-md:px-5 max-md:py-6">
+        <div className="flex min-w-0 flex-col gap-3">
+          <span className="flex flex-wrap items-center gap-3 text-[14px] text-ardoise">
+            {relances ? "Relances" : "Tableau prospection"}{a.ville ? ` · ${a.ville}` : ""}
+            <span className={`rounded-full px-3 py-1 text-[13px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>
+          </span>
+          <p className="m-0 break-words text-[clamp(30px,3.2vw,46px)] font-normal leading-[1.08] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
+          <p className="m-0 text-[16px] text-ardoise">
+            {[personne?.nom || "Interlocuteur non connu", personne?.fonction].filter(Boolean).join(" · ")}
+            {numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
+          </p>
+          {(a.raison || a.reseau) && (
+            <div className="flex flex-col gap-1">
+              {a.raison && <span className="text-[13.5px] leading-[1.5] text-ambre">{a.raison}</span>}
+              {a.reseau && <span className="text-[13.5px] leading-[1.5] text-ambre">{a.reseau}</span>}
             </div>
           )}
         </div>
-        {(a.raison || a.reseau) && (
-          <div className="flex flex-col gap-1.5">
-            {a.raison && <span className="text-[13.5px] leading-[1.5] text-ambre">{a.raison}</span>}
-            {a.reseau && <span className="text-[13.5px] leading-[1.5] text-ambre">{a.reseau}</span>}
-          </div>
-        )}
-        {a.relance ? <PourquoiRelance a={a} /> : <div className="max-lg:hidden">{suite}</div>}
+        <div className="flex flex-none items-center gap-3">
+          <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
+            className="grid h-14 w-14 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
+            <Mic className="h-5 w-5" strokeWidth={1.8} />
+          </button>
+          {/* Appeler : composer sur son téléphone, l'écoute part (pas de lien tel:, 7 oct. 2026) ; en essai, l'appel se joue. */}
+          <button type="button" onClick={onMicro} title={essai ? "Simuler l'appel" : "Composez le numéro sur votre téléphone : l'écoute démarre"}
+            className="inline-flex h-14 items-center gap-2.5 rounded-full bg-menthe px-7 text-[17px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+            <Phone className="h-5 w-5" strokeWidth={1.8} />Appeler
+          </button>
+          {onRetour
+            ? <button type="button" onClick={onRetour} className="h-14 rounded-full border border-bord-doux px-6 text-[16px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
+            // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
+            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-14 rounded-full border border-bord-doux px-6 text-[16px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+        </div>
       </div>
 
-      {/* Le micro et le numéro. */}
-      <div className="flex min-w-0 flex-col p-6 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <span />
-          {/* En relances, on quitte sans appeler : la ligne se libère pour les autres. */}
-          {onRetour
-            ? <button type="button" onClick={onRetour} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>Retour à la liste</button>
-            // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
-            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-9 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+      {/* Des filets en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css), la maquette les veut. */}
+      <div aria-hidden className="h-px bg-bord-doux" />
+      <div className="grid lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.8fr)_minmax(300px,1.25fr)]">
+        {/* Les interlocuteurs et l'historique. */}
+        <div className="flex min-w-0 flex-col gap-7 border-bord-doux p-8 max-lg:order-3 max-lg:border-t max-md:p-5 lg:border-r">
+          <div className="flex flex-col gap-2">
+            <span className={etiq2}>INTERLOCUTEURS</span>
+            {contacts.map((x) => {
+              const actif = choisi?.id === x.id;
+              return (
+                <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={x.nom}
+                  className={`flex w-full min-w-0 flex-col items-start gap-0.5 rounded-[14px] px-4 py-3 text-left transition-colors ${actif ? "bg-relief" : "hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
+                  <span className="block w-full break-words text-[16px] leading-[1.3] text-encre">{x.nom}</span>
+                  <span className={`block w-full truncate text-[13.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
+                </button>
+              );
+            })}
+            {!contacts.length && <span className="pt-1 text-[14px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className={etiq2}>HISTORIQUE</span>
+            {histo.map((h, k) => (
+              <div key={k} className="flex gap-3 py-1.5">
+                <span className="mt-[8px] h-1.5 w-1.5 flex-none rounded-full bg-bord-vif" />
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-[14.5px] text-encre">{h.quoi}</span>
+                  <span className="text-[13px] text-ardoise">{[h.quand, h.qui].filter(Boolean).join(" · ")}</span>
+                </span>
+              </div>
+            ))}
+            {!histo.length && <span className="text-[15px] text-ardoise">Jamais appelée</span>}
+          </div>
+          {/* L'Intelligence (phase 6, 15 oct. 2026) : avant d'appeler, ce qu'on sait de l'agence et ce qu'on lui doit. */}
+          {!essai && <CeQueKlockaSait type="agence" id={a.id} />}
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 max-md:py-8">
-          <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
-            className="group grid h-[220px] w-[220px] place-items-center rounded-full border border-menthe/20 max-md:h-[184px] max-md:w-[184px]" style={{ background: "transparent" }}>
-            <span className="grid h-[78%] w-[78%] place-items-center rounded-full border border-menthe/30">
-              <span className="grid h-[74%] w-[74%] place-items-center rounded-full bg-menthe text-sur-menthe transition-transform group-hover:scale-[1.04]"><IconeMicro taille={38} /></span>
-            </span>
-          </button>
-          {essai && <span className="max-w-[260px] text-center text-[14px] leading-[1.5] text-ardoise">Touchez le micro pour simuler un appel</span>}
-          {/* Pas de lien tel: (7 oct. 2026) : l'application n'est qu'un micro, on compose sur son téléphone. */}
-          <span className="flex flex-col items-center gap-1.5">
-            <span className="select-all whitespace-nowrap text-[26px] leading-none text-encre tabular-nums max-md:text-[22px]">{numero || "—"}</span>
-            {personne?.nom && <span className="text-[13px] text-brume">{personne.nom}</span>}
-          </span>
-          {!essai && <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />}
+
+        {/* L'accroche et les recherches clients (ou, en relance, ce qu'on s'est dit). */}
+        <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-10 max-lg:order-1 max-md:p-5 lg:border-r">
+          {a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
+            <div className="flex flex-col gap-5">
+              <span className={etiq2}>L'ACCROCHE</span>
+              <p className="m-0 text-[26px] leading-[1.45] tracking-[-0.01em] text-encre [text-wrap:pretty] max-md:text-[21px]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</p>
+              {recherches.length > 0 && (
+                <div className="flex flex-col">
+                  {recherches.map((q) => {
+                    const l = ligneRecherche(q);
+                    return (
+                      <React.Fragment key={q}>
+                        <div aria-hidden className="h-px bg-bord-doux" />
+                        <div className="flex items-baseline justify-between gap-6 py-4 text-[16px]">
+                          <span className="min-w-0 text-encre">{l.gauche}</span>
+                          {l.droite && <span className="flex-none text-right tabular-nums text-encre">{l.droite}</span>}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          {essai && <span className="text-[14px] leading-[1.5] text-ardoise">Essai : touchez Appeler pour simuler l'appel.</span>}
+        </div>
+
+        {/* Déjà appelé ? */}
+        <div className="flex min-w-0 flex-col gap-4 p-8 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
+          <span className={etiq2}>DÉJÀ APPELÉ ?</span>
+          {!essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
+            : <span className="text-[14px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
         </div>
       </div>
-      {!a.relance && <div className="border-t border-bord-doux p-5 max-lg:order-3 lg:hidden">{suite}</div>}
     </div>
   );
 }

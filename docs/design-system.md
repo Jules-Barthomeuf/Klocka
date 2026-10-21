@@ -911,6 +911,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Listes de la Prospection, toutes visibles** (Jules, 21 oct. 2026) : la rangée des intercalaires de villes passe à la ligne au lieu de défiler, toutes les listes se voient toujours ; celles qu'on ne consulte pas sont sur un voile clair (`encre` à 6 %, 10 % au survol), celle qu'on consulte garde la teinte sombre du classeur (`bg-rail`), raccordée au tableau.
 
+**La fiche d'avant l'appel, en Mode appel** (maquette de Jules, 21 oct. 2026) : une carte arrondie à 24 px. En tête, « Tableau prospection · ville » et l'état en pastille (`menthe`, `ambre` en relance), le nom en grand (30 à 46 px), la personne, sa fonction et son numéro en `encre` ; à droite le micro en rond à contour, « Appeler » en pilule `menthe` avec le téléphone, « Passer » à contour. Un filet, puis trois colonnes : interlocuteurs (l'actif sur `relief`, sa source en `menthe`) et historique ; l'accroche en 26 px puis les recherches clients en lignes (ce qu'elles cherchent à gauche, le budget à droite) ; « Déjà appelé ? » : une grande carte pour dire ou écrire l'appel (dictée en bas à gauche, Analyser en pilule `menthe`), et « Pas de réponse ou répondeur » sur toute la largeur. Les filets horizontaux sont des `h-px bg-bord-doux`, pas des bordures : la grille de points efface les bordures horizontales. L'appel en cours garde ses trois parties.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

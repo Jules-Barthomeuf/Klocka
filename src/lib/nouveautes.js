@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "La fiche du Mode appel, redessinée", texte: "Avant d'appeler, la fiche montre l'agence en grand, la personne et son numéro, Appeler et Passer en haut ; dessous, les interlocuteurs, l'accroche avec les recherches clients et leur budget, et « Déjà appelé ? » pour dire ce qui s'est dit.", page: "Prospection", requete: "?appel=1" },
       { titre: "La cloche se range", texte: "Survolez une ligne de « Ce qui t'attend » : la croix la retire, le réveil la remet à demain, lundi ou dans une semaine (un rappel revient ce jour-là).", page: "Dashboard" },
       { titre: "Pourquoi une fiche n'a pas sonné", texte: "Administration › Automatismes liste les mails reçus avec une pièce ces trois derniers jours, et ce que Haka en a fait : proposée, au prochain relevé, ou pas proposée et pourquoi.", page: "Automatismes" },
       { titre: "Le dossier s'ouvre en mode IA", texte: "La pré-analyse et l'analyse d'un dossier arrivent en mode IA ; la Data Room en mode normal.", page: "Analyse" },

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "Plus de « Teaser client » dans le dossier", texte: "L'étape Plateforme d'un dossier ne propose plus de générer la vidéo de vingt secondes : il reste l'aperçu du projet et ses gestes.", page: "Analyse" },
       { titre: "Une précision après l'appel, en cinq secondes", texte: "Au raccrochage, le micro s'ouvre cinq secondes : dites « il me rappelle dans dix minutes » ou « c'était son associé », Haka en tient compte avec la transcription, l'historique et l'heure. Rien à dire ? L'écran passe seul et tout continue comme avant. À essayer dans Appels, onglet Essai.", page: "Prospection" },
       { titre: "Le rappel, comme sur la maquette", texte: "Pendant un rappel ou un appel rapide, tout est centré : le nom de la personne dès qu'elle se présente, le micro en simple contour, Raccrocher. La transcription dit qui parle et surligne les chiffres et les lieux ; à côté, la calculatrice reprend le loyer entendu et donne le prix pour viser 5, 6 ou 7 %.", page: "Prospection" },
       { titre: "Écrans d'appel harmonisés", texte: "Le rappel, l'appel rapide et l'appel en cours du Mode appel prennent le style des actions proposées : mêmes cartes, mêmes étiquettes, un trait qui relie les étapes, et Stop ou Raccrocher en grand bouton.", page: "Prospection" },

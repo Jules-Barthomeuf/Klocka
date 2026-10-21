@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 const src = (await import('node:fs')).readFileSync(new URL('../src/components/prospection/EcranEnLigne.jsx', import.meta.url), 'utf8');
 const corps = (nom) => { const i = src.indexOf(`export function ${nom}(`); let p = src.indexOf('{', src.indexOf(')', i)); let n = 0; let j = p; for (; j < src.length; j += 1) { if (src[j] === '{') n += 1; if (src[j] === '}') { n -= 1; if (!n) break; } } return src.slice(i, j + 1).replace(/^export /, ''); };
 const marques = src.slice(src.indexOf('const MARQUES'), src.indexOf('];', src.indexOf('const MARQUES')) + 2);
-// eslint-disable-next-line no-new-func
 const { presentation, surligner } = new Function(`${marques}\n${corps('presentation')}\n${corps('surligner')}\nreturn { presentation, surligner };`)();
 
 test("qui se présente : le nom et l'agence, avec ou sans majuscule à « agence »", () => {

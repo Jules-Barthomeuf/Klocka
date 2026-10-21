@@ -1523,7 +1523,7 @@ function EtapePlateforme({ dossier, onRefresh, apercu }) {
       <>
       {titre}
       <ApercuProjetPlateforme projetId={dossier.projet_id} />
-      <BlocVideoPresentation dossier={dossier} apercu={apercu} />
+      {/* Le « Teaser client » (vidéo de vingt secondes) est retiré de l'étape Plateforme (21 oct. 2026, Jules) ; BlocVideoPresentation reste dans ce fichier. */}
       </>
     );
   }

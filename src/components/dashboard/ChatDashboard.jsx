@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { apercuDuFichier, genreDeFichier, pieceDuTexte } from "@/lib/apercu-fichier";
 import { PointsEnCours, PointFait } from "@/components/ui/PointsEtape";
+import { iconeEtape } from "@/lib/icone-etape";
 import { motion } from "framer-motion";
 import PiecesBrouillon, { brouillonDepuis, envoiDepuis } from "@/components/mails/PiecesBrouillon";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import ChoixDossier from "@/components/haka/ChoixDossier";
 import { BasculeSortie, BoutonSources, Depliant } from "@/components/haka/ReglagesDemande";
 import { sourceDe } from "@/lib/sources";
 import { avis, poser, toast } from "@/components/ui/avis";
-import { ArrowLeftRight, ArrowRight, ArrowUp, BarChart3, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, FolderOpen, History, LayoutGrid, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, ScanSearch, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
 import BordureEcoute from "@/components/BordureEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
@@ -848,12 +849,6 @@ function Etapes({ etapes, courante = null }) {
   );
 }
 
-/** L'icône de ce que Haka est en train de faire, d'après le libellé de l'étape (repli : le tableau). */
-const ICONES_ETAPES = [
-  [/mail|courrier|envoi/i, Mail], [/fiche|document|pi[eè]ce|bail|lis|lecture|extrai/i, FileText], [/march|dvf|equimmox|loyer|prix|vacance/i, BarChart3],
-  [/dossier|cr[ée]/i, FolderOpen], [/analys|v[ée]rifi|crit[eè]re/i, ScanSearch], [/cherch|recherch|trouv/i, Search], [/rédig|redig|écri|prépar|prepar/i, Pencil],
-];
-const iconeEtape = (libelle) => ICONES_ETAPES.find(([re]) => re.test(libelle))?.[1] || LayoutGrid;
 
 /** Une action faite : son titre, son détail, de quoi l'ouvrir. */
 function CarteAction({ c, onOuvrir }) {

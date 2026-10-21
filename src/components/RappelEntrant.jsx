@@ -724,7 +724,7 @@ export default function RappelEntrant() {
           </div>
         )}
 
-        {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
+        {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" centre />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}
         {/* Une note dite, mais personne d'unique dans le carnet : les fiches qui correspondent à la note, ou un seul bouton

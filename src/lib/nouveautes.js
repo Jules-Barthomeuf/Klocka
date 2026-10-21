@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "« Haka lit l'appel », comme dans le chat", texte: "Après un appel, la lecture de Haka s'affiche dans une carte au milieu de l'écran, avec la même frise que dans le chat : l'icône de ce qu'il fait et son texte qui brille, une coche pour chaque étape finie, un trait qui les relie.", page: "Prospection", requete: "?appel=1" },
       { titre: "L'appel en cours, dans la fiche", texte: "Quand vous appelez depuis le Mode appel, la fiche reste la même : le micro respire pour dire que l'appel est écouté, Raccrocher remplace Appeler, la transcription prend la place de l'accroche, et à droite la calculatrice et les notes. Au raccrochage, la précision de cinq secondes s'affiche en haut de la même carte.", page: "Prospection", requete: "?appel=1" },
       { titre: "La fiche du Mode appel, redessinée", texte: "Avant d'appeler, la fiche montre l'agence en grand, la personne et son numéro, Appeler et Passer en haut ; dessous, les interlocuteurs, l'accroche avec les recherches clients et leur budget, et « Déjà appelé ? » pour dire ce qui s'est dit.", page: "Prospection", requete: "?appel=1" },
       { titre: "La cloche se range", texte: "Survolez une ligne de « Ce qui t'attend » : la croix la retire, le réveil la remet à demain, lundi ou dans une semaine (un rappel revient ce jour-là).", page: "Dashboard" },

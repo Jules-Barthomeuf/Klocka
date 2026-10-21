@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
+import { iconeEtape } from "@/lib/icone-etape";
 
 // La chaîne de raisonnement d'AK quand il lit un appel (8 oct. 2026), comme
 // dans le chat : chaque étape arrive au moment où le serveur la fait (« Je lis
@@ -31,28 +32,42 @@ export function useEtapesVives() {
   return { etapes, pousser, reinitialiser, vider, lire: () => vues.current };
 }
 
-/** La chaîne pendant la lecture : le titre au-dessus, les étapes dessous. */
-export function ChaineEtapes({ etapes, titre = "Haka lit l'appel", attente = "Je lis l'appel" }) {
+/**
+ * La chaîne pendant la lecture : le titre au-dessus, les étapes dessous, à la frise du chat (21 oct. 2026, Jules :
+ * « la même animation que quand Haka réfléchit ») : faite, une coche dans un rond plein ; en cours, l'icône de ce que
+ * Haka fait et son texte balayé d'un reflet (`.k-raisonne`) ; un trait relie les étapes. `centre` : la carte seule au
+ * milieu de l'écran.
+ */
+export function ChaineEtapes({ etapes, titre = "Haka lit l'appel", attente = "Je lis l'appel", centre = false }) {
   const liste = etapes.length ? etapes : [attente];
-  return (
-    <div className="flex flex-col gap-5 rounded-[20px] border border-bord-doux bg-transparent px-7 py-8 max-md:px-5">
-      <p className="m-0 text-[20px] text-encre">{titre}</p>
-      <div className="flex flex-col gap-3">
+  const carte = (
+    <div className={`flex flex-col gap-6 rounded-[24px] border border-bord-doux bg-transparent px-8 py-8 max-md:px-5 ${centre ? "w-full max-w-[560px]" : ""}`}>
+      <p className="m-0 text-[20px] leading-[1.3] tracking-[-0.01em] text-encre">{titre}</p>
+      <div className="flex flex-col">
         {liste.map((e, i) => {
           const ici = i === liste.length - 1;
+          const Icone = iconeEtape(e);
           return (
-            <motion.div key={`${i}-${e}`} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}
-              className={`flex items-center gap-3.5 text-[15px] ${ici ? "text-encre" : "text-craie"}`}>
-              <span className="grid h-4 w-4 flex-none place-items-center">
-                {ici ? <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-menthe-pale" /> : <Check className="h-4 w-4 text-menthe" strokeWidth={2} />}
+            <motion.div key={`${i}-${e}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}
+              className="flex items-stretch gap-3.5 text-[15px]">
+              <span className="flex w-5 flex-none flex-col items-center">
+                <span className="grid h-5 w-5 flex-none place-items-center">
+                  {ici ? <Icone className="h-[18px] w-[18px] text-craie" strokeWidth={1.7} /> : (
+                    <motion.span initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 420, damping: 22 }}
+                      className="grid h-5 w-5 place-items-center rounded-full bg-encre text-fond"><Check className="h-3 w-3" strokeWidth={3} /></motion.span>
+                  )}
+                </span>
+                <motion.span initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.3, ease: "easeOut" }} className="my-1 w-px flex-1 origin-top bg-bord-vif" style={{ minHeight: 14 }} />
               </span>
-              <span className="min-w-0 break-words">{e}</span>
+              <span className={`min-w-0 break-words pb-3 leading-[20px] ${ici ? "k-raisonne" : "text-encre"}`}>{e}</span>
             </motion.div>
           );
         })}
       </div>
     </div>
   );
+  if (!centre) return carte;
+  return <div className="grid min-h-[min(62vh,560px)] w-full place-items-center py-6">{carte}</div>;
 }
 
 /** Une fois prêt : « Analyse terminée · n étapes », qui se déplie. */

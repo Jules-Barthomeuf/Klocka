@@ -223,7 +223,7 @@ export function monterProspection(app) {
     const user = admin(req, res);
     if (!user) return;
     const b = req.body || {};
-    reponse(res, await (await RP()).identifier(req.params.id, { agent_id: b.agent_id || null, agence_id: b.agence_id || null, nouveau: b.nouveau || null }, user));
+    reponse(res, await (await RP()).identifier(req.params.id, { agent_id: b.agent_id || null, agence_id: b.agence_id || null, nouveau: b.nouveau || null, monday_ligne_id: b.monday_ligne_id || null }, user));
   }));
   app.post('/api/prospection/rappels/:id/reidentifier', wrap(async (req, res) => {
     const user = admin(req, res);

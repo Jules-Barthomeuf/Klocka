@@ -339,3 +339,27 @@ test('finir avec une note vocale : la note en tête des notes, et l\'appel ident
   assert.match(r.rappel.notes, /^C'était Sandrine/);
   assert.ok(r.rappel.note_vocale);
 });
+
+// « Il est dans Monday, je ne vais pas créer un contact » (21 oct. 2026, Jules) : le tableau Agent immobilier est lu.
+test('trouverDansMonday : le nom dicté retrouve la ligne, trait d\'union compris ; plusieurs lignes : on demande', () => {
+  const lignes = [
+    { id: '11', nom: 'Louis de la Roche-Baron', prenom: '', entreprise: 'Barnes Côte Basque', ville: 'Biarritz', telephone: '06 11 22 33 44', emails: [] },
+    { id: '12', nom: 'Martin', prenom: 'Sophie', entreprise: 'Riviera Commerce', ville: 'Nice', telephone: '', emails: ['sophie@riviera.fr'] },
+    { id: '13', nom: 'Martin', prenom: 'Paul', entreprise: 'Azur Immo', ville: 'Cannes', telephone: '', emails: [] },
+  ];
+  assert.equal(RP.trouverDansMonday({ nom: 'Louis de la Roche Baron' }, lignes).ligne.id, '11');
+  // Comme dans le vrai Monday : « Louis de LARROCHE BARON », dicté « Louis de la Roche-Baron », ou le nom seul.
+  const vrai = [{ id: '29', nom: 'Louis de LARROCHE BARON', prenom: 'Louis', entreprise: '', ville: 'Bordeaux', telephone: '', emails: [] }, ...lignes.slice(1)];
+  assert.equal(RP.trouverDansMonday({ nom: 'Louis de la Roche-Baron' }, vrai).ligne.id, '29');
+  assert.equal(RP.trouverDansMonday({ nom: 'de la Roche Baron' }, vrai).ligne.id, '29');
+  assert.equal(RP.trouverDansMonday({ nom: 'Roche Baron' }, vrai).ligne.id, '29');
+  // Une ressemblance lointaine ne suffit pas.
+  assert.equal(RP.trouverDansMonday({ nom: 'Louis Rocher' }, vrai).ligne, undefined);
+  assert.equal(RP.trouverDansMonday({ nom: 'Sophie Martin', agence: 'Riviera' }, lignes).ligne.id, '12');
+  assert.equal(RP.trouverDansMonday({ nom: 'X', email: 'sophie@riviera.fr' }, lignes).ligne.id, '12');
+  assert.deepEqual(RP.trouverDansMonday({ nom: 'Martin' }, lignes).lignes.map((l) => l.id), ['12', '13']);
+  assert.equal(RP.nomMonday(lignes[1]), 'Sophie Martin');
+  assert.equal(RP.nomMonday(lignes[0]), 'Louis de la Roche-Baron');
+  // Au carnet local aussi, le trait d'union ne sépare plus.
+  assert.equal(RP.trouverDepuisNote({ nom: 'Louis de la Roche Baron' }, { agents: [{ id: 'l', nom: 'Louis DE LA ROCHE-BARON', agence: 'Barnes' }], agences: [] }).agent_id, 'l');
+});

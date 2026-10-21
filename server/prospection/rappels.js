@@ -271,12 +271,41 @@ ${String(note || '').slice(0, 2000)}`,
   return { nom: propre(lu.nom), agence: propre(lu.agence), ville: propre(lu.ville), telephone: tape.telephone || propre(lu.telephone), email: tape.email || propre(lu.email) };
 }
 
-const motsDe = (s) => R.norm(s).split(' ').filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
-/** Pure : tous les mots dits sont dans le nom de la fiche (à une lettre près pour les longs). */
+// Les traits d'union séparent les mots : « Roche-Baron » au carnet, « Roche Baron » dicté (21 oct. 2026).
+const motsDe = (s) => R.norm(s).replace(/-/g, ' ').split(' ').filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
+/** Pure : la distance d'édition entre deux mots (lettres ajoutées, retirées ou changées). */
+function distance(a, b) {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    let prec = d[0];
+    d[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const t = d[j];
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prec + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prec = t;
+    }
+  }
+  return d[b.length];
+}
+const colle = (s) => R.norm(s).replace(/[^a-z]/g, '');
+
+/**
+ * Pure : le nom dit désigne-t-il la fiche ? Tous les mots dits y sont (à une lettre près pour les longs), ou le nom
+ * entier, collé, est le même à une ou deux lettres près : « Louis de la Roche-Baron » dicté, « Louis de LARROCHE
+ * BARON » dans Monday (21 oct. 2026). Le nom de famille seul se compare aussi à la fiche sans son prénom.
+ */
 function ditDans(dit, nomFiche) {
   const a = motsDe(dit);
   const b = motsDe(nomFiche);
-  return a.length > 0 && b.length > 0 && a.every((x) => b.some((y) => procheDe(x, y)));
+  if (a.length > 0 && b.length > 0 && a.every((x) => b.some((y) => procheDe(x, y)))) return true;
+  const x = colle(dit);
+  if (x.length < 8) return false;
+  const tolere = Math.max(1, Math.floor(x.length / 8));
+  const sansPrenom = R.norm(nomFiche).split(' ').slice(1).join(' ');
+  const entier = colle(nomFiche);
+  // Le nom de famille seul (« Roche Baron ») contre la fin du nom de la fiche, à la même longueur près.
+  const fins = [x.length - 1, x.length, x.length + 1].filter((n) => n > 0 && n <= entier.length).map((n) => entier.slice(-n));
+  return [entier, colle(sansPrenom), ...fins].some((y) => y.length >= 6 && distance(x, y) <= tolere);
 }
 
 /**
@@ -301,6 +330,52 @@ export function trouverDepuisNote(qui, { agents = [], agences = [] } = {}) {
     candidats: lot.slice(0, 5).map((a) => fiche(a, nomOk(a.nom) ? (agenceOk(a.agence) ? 'nom et agence de la note' : 'nom de la note') : 'agence de la note')),
     nouveau: { nom: qui?.nom || '', agence: agence[0]?.nom || qui?.agence || '', agence_id: agence.length === 1 ? agence[0].id : null, ville: qui?.ville || agence[0]?.ville || '', telephone: qui?.telephone || '', email: qui?.email || '' },
   };
+}
+
+/**
+ * Pure : la personne de la note dans le tableau Monday « Agent immobilier » (21 oct. 2026, Jules : « il est dans
+ * Monday, je ne vais pas créer un contact »). Le numéro ou l'email d'abord, puis le nom (avec l'agence si elle est
+ * dite). Rend `{ ligne }` si une seule ligne correspond, sinon `{ lignes }` (cinq au plus).
+ */
+export function trouverDansMonday(qui, lignes = []) {
+  const tel = qui?.telephone ? R.normTel(qui.telephone) : null;
+  const mail = qui?.email ? R.normEmail(qui.email) : null;
+  const parCle = lignes.filter((l) => (tel && String(l.telephone || '').split(/[,;/]/).some((t) => R.normTel(t) === tel)) || (mail && (l.emails || []).includes(mail)));
+  if (parCle.length === 1) return { ligne: parCle[0] };
+  if (!qui?.nom) return { lignes: [] };
+  const nomOk = (l) => ditDans(qui.nom, nomMonday(l));
+  const agenceOk = (l) => !qui.agence || !l.entreprise || ditDans(qui.agence, l.entreprise) || ditDans(l.entreprise, qui.agence);
+  const villeOk = (l) => !qui.ville || !l.ville || ditDans(qui.ville, l.ville);
+  const lot = lignes.filter((l) => nomOk(l) && agenceOk(l) && villeOk(l));
+  return lot.length === 1 ? { ligne: lot[0] } : { lignes: lot.slice(0, 5) };
+}
+
+/** Pure : le nom d'une ligne Monday, le prénom devant s'il n'y est pas déjà. */
+export const nomMonday = (l) => (l?.prenom && !R.norm(l.nom).includes(R.norm(l.prenom)) ? `${l.prenom} ${l.nom || ''}`.trim() : l?.nom || l?.entreprise || 'Agent');
+
+/** La fiche locale d'une ligne Monday : reprise (par la ligne, le numéro ou l'email), sinon créée depuis Monday. */
+async function ficheDeMonday(l) {
+  const tels = String(l.telephone || '').split(/[,;/]/).map(R.normTel).filter(Boolean);
+  const existante = Records.list('AgentImmo').find((a) => !a.essai && (a.monday_ligne_id === l.id
+    || (a.telephones || []).some((t) => tels.includes(R.normTel(t)))
+    || (a.emails || []).some((e) => (l.emails || []).includes(R.normEmail(e)))));
+  if (existante) {
+    if (!existante.monday_ligne_id) Records.update('AgentImmo', existante.id, { monday_ligne_id: l.id });
+    return existante.id;
+  }
+  const C = await import('./carnet.js');
+  const f = Records.create('AgentImmo', { ...C.ficheDuCandidat({ nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: tels[0] || null, email: (l.emails || [])[0] || null, source: 'Monday' }), monday_ligne_id: l.id });
+  C.journal(f.id, { type: 'note', texte: 'Repris de Monday (Agent immobilier), depuis un rappel', par: null });
+  return f.id;
+}
+
+/** Les lignes Monday des agents, si Monday est branché ; une liste vide sinon (jamais d'erreur). */
+async function lignesMonday() {
+  try {
+    const MA = await import('./monday-agents.js');
+    if (!(await MA.mondayAgentsBranche())) return [];
+    return await MA.lignes();
+  } catch { return []; }
 }
 
 /** Le carnet où chercher qui a appelé : la liste fictive en essai, sinon les agents et les agences des listes réelles. */
@@ -548,7 +623,16 @@ export async function finir(id, { morceaux = [], audios = [], notes = null, dure
   const deja = r.etat === 'identifie' && r.agent_id;
   if (note && !deja) {
     const qui = await lireNote(note);
-    const t = trouverDepuisNote(qui, annuaireDe(r));
+    let t = trouverDepuisNote(qui, annuaireDe(r));
+    // Personne d'unique au carnet : on cherche dans Monday avant de proposer de créer quoi que ce soit.
+    if (!t.agent_id && !r.essai) {
+      const m = trouverDansMonday(qui, await lignesMonday());
+      if (m.ligne) t = { agent_id: await ficheDeMonday(m.ligne), raison: 'fiche Monday' };
+      else if (m.lignes?.length) {
+        const deMonday = m.lignes.map((l) => ({ cle: `monday:${l.id}`, agent_id: null, agence_id: null, monday_ligne_id: l.id, nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: l.telephone || null, raison: 'Monday', probable: false }));
+        t = { ...t, candidats: [...(t.candidats || []), ...deMonday.filter((x) => !(t.candidats || []).some((c) => c.nom === x.nom && c.agence === x.agence))].slice(0, 5) };
+      }
+    }
     Records.update(ENTITE, id, { fin: maintenant(), duree_s, transcription, transcription_echec: echec, notes: base.notes, note_vocale: note, qui_note: qui });
     if (t.agent_id) {
       const ident = await identifier(id, { agent_id: t.agent_id }, user);
@@ -577,10 +661,16 @@ async function agenceDe(agentId) {
  * Avertissements : « Ne plus appeler » en rouge, et la relance qu'un collègue
  * avait prise, libérée : le rappel est prioritaire.
  */
-export async function identifier(id, { agent_id = null, agence_id = null, nouveau = null }, user) {
+export async function identifier(id, { agent_id = null, agence_id = null, nouveau = null, monday_ligne_id = null }, user) {
   const r = Records.get(ENTITE, id);
   if (!r || r.par !== moiDe(user) || !OUVERTS.includes(r.etat)) return { ok: false, error: 'Rappel introuvable.' };
   let agentId = agent_id;
+  // Une ligne Monday choisie parmi celles de la note : sa fiche locale, reprise ou créée depuis Monday.
+  if (!agentId && monday_ligne_id) {
+    const l = (await lignesMonday()).find((x) => String(x.id) === String(monday_ligne_id));
+    if (!l) return { ok: false, error: 'Cette ligne Monday est introuvable.' };
+    agentId = await ficheDeMonday(l);
+  }
   let agence = agence_id ? Records.get(AGENCE, agence_id) : null;
   if (nouveau && r.essai) {
     // En essai : le contact et son agence naissent dans la liste fictive, jamais dans le carnet réel.

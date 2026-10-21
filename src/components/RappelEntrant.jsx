@@ -414,7 +414,7 @@ export default function RappelEntrant() {
     onSuccess: (r) => { setRappel(r.rappel); setNouveau(null); setRecherche(""); setRechercheAppels(""); if (!["enregistrement", "choix"].includes(ecranRef.current)) analyser.mutate({}); },
     onError: (e) => toast.error(e?.message || "Identification impossible"),
   });
-  const confirmer = (c) => identifier.mutate({ agent_id: c.agent_id, agence_id: c.agence_id });
+  const confirmer = (c) => identifier.mutate({ agent_id: c.agent_id, agence_id: c.agence_id, monday_ligne_id: c.monday_ligne_id || null });
   const lever = useMutation({
     mutationFn: () => base44.request("POST", `${API}/${rappel.id}/lever`),
     onSuccess: (r) => { setRappel((x) => ({ ...x, ...r.rappel, appel: x.appel })); setConfirmerLever(false); toast.success("« Ne plus appeler » levé"); },

@@ -1,5 +1,6 @@
 import Cloche from "@/components/haka/Cloche";
 import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
+import { precharger } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
 import DossiersRecents from "@/components/DossiersRecents";
 import React, { useState, useEffect, useRef } from "react";
@@ -120,6 +121,9 @@ function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label
     <Link
       to={to || d.to}
       onClick={onNaviguer}
+      // Au survol, la page se télécharge déjà : le clic l'ouvre sans attendre (21 oct. 2026).
+      onMouseEnter={() => precharger(cle)}
+      onFocus={() => precharger(cle)}
       data-actif={ici ? "1" : undefined}
       title={ferme ? `${label} : accès réservé` : replie ? label : undefined}
       aria-label={ferme ? `${label}, accès réservé` : label}

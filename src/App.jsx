@@ -1,5 +1,5 @@
 import './App.css'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { appliquerPrefs, lirePrefs } from '@/lib/personnalisation'
 import { adresseDe, pageDeChemin } from '@/lib/adresses'
 import { createPageUrl } from '@/utils'
@@ -10,7 +10,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, Outlet, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -57,6 +57,8 @@ const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
 const AdminPresentations = lazy(() => import('@/pages/AdminPresentations'));
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
+import { MENU_ADMIN, MENU_MANDATAIRE } from '@/lib/menu';
+import { prechargerEnFond } from '@/lib/precharger';
 import { PersonnalisationProvider, usePersonnalisation } from '@/components/providers/PersonnalisationProvider';
 import Chargement from "@/components/ui/Chargement";
 
@@ -77,6 +79,34 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
+// L'attente d'une page, dans la page seulement (21 oct. 2026, Jules : « naviguer est super lent ») : la barre et le
+// cadre restent, et rien ne s'affiche les 300 premières millisecondes, pour ne pas faire clignoter un chargement court.
+const PageEnChargement = () => {
+  const [voir, setVoir] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVoir(true), 300); return () => clearTimeout(t); }, []);
+  return voir ? <div className="flex min-h-[60vh] items-center justify-center"><Chargement titre="Je prépare la page" /></div> : null;
+};
+
+// Le cadre (barre latérale, cloche, fenêtres) monté une fois pour toutes les pages : il ne se reconstruit plus à
+// chaque clic, et ses requêtes ne repartent plus. La page change dans l'Outlet ; on remonte en haut à chaque page.
+const CadrePersistant = () => {
+  const location = useLocation();
+  const page = pageDeChemin(location.pathname) || mainPageKey;
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  // Les pages du menu se téléchargent en fond, une fois l'application ouverte : le premier clic n'attend plus.
+  const { data: moi } = useCurrentUser();
+  useEffect(() => {
+    if (!moi?.role) return undefined;
+    const menu = moi.role === 'mandataire' ? MENU_MANDATAIRE : moi.role === 'admin' ? MENU_ADMIN : [];
+    return prechargerEnFond(menu.flatMap((x) => [x.cle, ...(x.entrees || []).flatMap((e) => [e.cle, ...(e.aussi || [])])]));
+  }, [moi?.role]);
+  return (
+    <LayoutWrapper currentPageName={page}>
+      <Suspense fallback={<PageEnChargement />}><Outlet /></Suspense>
+    </LayoutWrapper>
+  );
+};
+
 // La page d'ouverture : celle que la personne a choisie dans Personnalisation,
 // sinon la page principale. Elle ne vaut que pour la racine : un lien direct
 // vers une page reste un lien direct.
@@ -84,7 +114,7 @@ const PageDOuverture = () => {
   const { prefs } = usePersonnalisation();
   // Une page d'ouverture qui n'existe plus (Fiches, Import de projets, Validations, retirées le 14 oct. 2026) est ignorée.
   if (prefs.accueil && prefs.accueil !== mainPageKey && (Pages[prefs.accueil] || PAGES_MANUELLES[prefs.accueil])) return <Navigate to={createPageUrl(prefs.accueil)} replace />;
-  return <LayoutWrapper currentPageName={mainPageKey}><MainPage /></LayoutWrapper>;
+  return <MainPage />;
 };
 
 // Une ancienne adresse (/Dashboard, /Preanalyse…) renvoie à la nouvelle, en
@@ -200,11 +230,11 @@ const AuthenticatedApp = () => {
   return (
     <Suspense fallback={<EnChargement />}>
     <Routes>
-      <Route path="/" element={<PageDOuverture />} />
-      {Object.entries(Pages).flatMap(([page, Page]) =>
-        routesDe(page, <LayoutWrapper currentPageName={page}><Page /></LayoutWrapper>))}
-      {Object.entries(PAGES_MANUELLES).flatMap(([page, Page]) =>
-        routesDe(page, <LayoutWrapper currentPageName={page}><Page /></LayoutWrapper>))}
+      <Route element={<CadrePersistant />}>
+        <Route path="/" element={<PageDOuverture />} />
+        {Object.entries(Pages).flatMap(([page, Page]) => routesDe(page, <Page />))}
+        {Object.entries(PAGES_MANUELLES).flatMap(([page, Page]) => routesDe(page, <Page />))}
+      </Route>
       {Object.entries(PAGES_PUBLIQUES).flatMap(([page, element]) => routesDe(page, element))}
       {/* Préanalyse est devenue Dossiers. */}
       <Route path="/Preanalyse" element={<VersAdresse page="Analyse" />} />

@@ -1060,4 +1060,4 @@ s'impriment et ne suivent pas le thème.
 
 **Les intercalaires de la Prospection** (Jules, 21 oct. 2026) : plus de fond derrière les onglets au repos (« Relances dues », les villes, le « + ») ; seul l'onglet ouvert garde la teinte du classeur.
 
-**Data Room et Synthèse** (Jules, 21 oct. 2026) : dans la Data Room, l'état (« Analysé »), le type (« PDF ») et la date d'un document ouvrent le fichier réel dans un nouvel onglet ; une corbeille à côté du « … » le supprime, après confirmation. Dans la Synthèse, plus de « Demander à l'agent » sous les documents manquants (un document déjà demandé le reste dit).
+**Data Room et Synthèse** (Jules, 21 oct. 2026) : dans la Data Room, l'état (« Analysé »), le type (« PDF ») et la date d'un document ouvrent le fichier réel dans un nouvel onglet ; le menu « … » de la ligne propose Renommer, Convertir, Ouvrir et Supprimer (après confirmation) ; pas de corbeille à part. Dans la Synthèse, plus de « Demander à l'agent » sous les documents manquants (un document déjà demandé le reste dit).

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus, ArrowLeftRight, Trash2 } from "lucide-react";
+import { Upload, Loader2, MoreHorizontal, Check, ExternalLink, FolderPlus, ArrowLeftRight } from "lucide-react";
 import { Roue, ZoneConversion } from "@/components/preanalyse/RoueConversion";
 import { typeDe } from "@/lib/conversions";
 
@@ -328,13 +328,6 @@ export default function DocumentsDossier({ dossier, coches = [], onCocher, onRef
                     </td>
                     <td className="whitespace-nowrap py-3 pl-6 text-right text-[12.5px] text-encre">{tailleLisible(d.taille)}</td>
                     <td className="relative whitespace-nowrap py-3 pl-6 text-right">
-                      {/* Supprimer d'un clic, sans passer par le menu (21 oct. 2026, Jules). */}
-                      {!apercu && (
-                        <button onClick={() => { if (window.confirm(`Supprimer « ${d.nom} » ?`)) supprimer.mutate(d.id); }} disabled={supprimer.isPending}
-                          className="mr-3 align-middle text-brume transition-colors hover:text-alerte max-md:-m-2 max-md:p-2" aria-label={`Supprimer ${d.nom}`} title="Supprimer ce document">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
                       <button onClick={() => setMenu(menu === d.id ? null : d.id)} className="text-brume hover:text-encre transition-colors max-md:-m-2 max-md:p-2" aria-label="Actions" title="Actions">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>

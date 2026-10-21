@@ -243,7 +243,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
     <div className="w-full pb-16">
       {supprimer.fenetre}
       {/* Le Mode appel reste à droite, hors de la rangée qui défile : beaucoup de villes ne le cachent plus (19 oct. 2026, Jules). */}
-      <div className="sticky top-[64px] z-20 flex items-end bg-fond pt-2 max-md:top-0">
+      <div className="flex items-end">
       {/* Plus de fond derrière les intercalaires au repos (21 oct. 2026, Jules) : seul l'ouvert garde la teinte du classeur. */}
       <div role="tablist" aria-label="Les listes par ville" className="flex min-w-0 flex-1 items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}

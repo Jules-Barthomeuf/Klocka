@@ -889,7 +889,7 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Fiche du bien corrigée d'un bloc** (Jules, 19 oct. 2026) : modifier un champ de la pré-analyse ne relance plus rien ; le champ prend sa nouvelle valeur, marqué « modifié » en menthe. Une barre flottante en bas, au centre (pilule `bg-surface-pleine`, contour `bord-doux`), dit « N champs modifiés », avec « Annuler » (texte ardoise) et « OK, refaire la pré-analyse » (bouton menthe) : un seul recalcul pour tout le brouillon. Reprendre ce motif pour toute saisie qui déclenche un calcul coûteux.
 
-**Listes de la Prospection, rangée collante** (Jules, 19 oct. 2026) : la rangée des intercalaires de villes reste collée sous la cloche (64 px du haut, en haut au téléphone, fond `fond`) quand on descend dans une liste, et l'interrupteur « Mode appel » se tient à sa droite, hors de la partie qui défile à l'horizontale : il est toujours visible.
+**Listes de la Prospection, rangée collante** (Jules, 19 oct. 2026) : la rangée des intercalaires de villes n'est plus collée ni posée sur une bande de fond (retiré le 21 oct. 2026, Jules : la bande se voyait derrière les listes) ; l'interrupteur « Mode appel » se tient à sa droite, hors de la partie qui défile à l'horizontale : il est toujours visible.
 
 **Étape Plateforme d'un dossier entré** (Jules, 19 oct. 2026) : plus de bloc centré avec un bouton ; un cadre `surface` en deux colonnes, à gauche la carte du projet (`CarteProjet`, la même que la page Projets, cliquable), à droite l'étiquette « Dans la plateforme » en menthe, la phrase, l'étape et la suivante, puis « Ouvrir le projet » (menthe) et deux boutons à contour (Vue client, Simulateur).
 

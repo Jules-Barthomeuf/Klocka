@@ -74,12 +74,7 @@ function Etape({ e }) {
       </span>
       <BoutonOeil onClick={e.voir} />
       {e.basculer && <Interrupteur on={e.on} onChange={e.basculer} label={`${e.on ? "Retirer" : "Remettre"} : ${e.label}`} />}
-      {e.retirer && (
-        <button type="button" onClick={e.retirer} aria-label={`Ne plus proposer : ${e.label}`} title="Ne plus proposer cette étape, ici ni dans les prochains appels"
-          className="grid h-8 w-8 flex-none place-items-center rounded-full text-brume transition-colors hover:text-alerte" style={{ background: "transparent" }}>
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
+      {/* La petite croix « Ne plus proposer » à droite de l'interrupteur, retirée (21 oct. 2026, Jules) : l'interrupteur suffit. */}
     </div>
     {e.demandeRaison && (
       <div className="flex flex-wrap items-center gap-1.5 pb-2 pl-0.5">
@@ -846,7 +841,9 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
         {envoi ? "Validation…" : `Valider · ${n} étape${n > 1 ? "s" : ""}`}
       </button>
 
-      {ouverte && pas.some((x) => x.k === ouverte) && <Panneau pas={pas} ouverte={ouverte} setOuverte={setOuverte} contenuDe={contenuDe} onFermer={() => setOuverte(null)} onValider={(o) => onLancer({ ...(o || {}), vues: [...vues.current] })} validable={!!n && !doute} envoi={envoi} envoiFenetre={envoiFenetre} onQuitterEnvoi={onQuitterEnvoi} onVoir={(k) => vues.current.add(k)} />}
+      {/* L'aperçu (l'œil) ne parcourt que les étapes activées (21 oct. 2026, Jules : « le mail désactivé, on ne doit plus le
+          voir dans l'aperçu ») ; une étape désactivée ne s'y montre que si l'on ouvre son propre œil. */}
+      {ouverte && pas.some((x) => x.k === ouverte) && <Panneau pas={pas.filter((x) => x.on || x.k === ouverte)} ouverte={ouverte} setOuverte={setOuverte} contenuDe={contenuDe} onFermer={() => setOuverte(null)} onValider={(o) => onLancer({ ...(o || {}), vues: [...vues.current] })} validable={!!n && !doute} envoi={envoi} envoiFenetre={envoiFenetre} onQuitterEnvoi={onQuitterEnvoi} onVoir={(k) => vues.current.add(k)} />}
     </div>
   );
 }

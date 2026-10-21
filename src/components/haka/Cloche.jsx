@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, X } from "lucide-react";
+import { AlarmClock, Bell, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useUser } from "@/components/providers/UserProvider";
 import { useCompteHaka, usePropositions } from "@/components/haka/useFileHaka";
@@ -71,7 +71,6 @@ export default function Cloche({ className = "" }) {
     const fichesCommunes = (commun.data?.propositions || []).filter((p) => p.type === "preanalyser_fiche");
     return lignesDeLaCloche({ propositions: actif ? [...(moi.data?.propositions || []), ...fichesCommunes] : [], dues, alertes: alertes.data?.alertes || [] });
   }, [actif, moi.data, commun.data, attend.data, alertes.data]);
-  const n = compteurDeLaCloche(lignes);
 
   useEffect(() => {
     if (!ouvert) return undefined;
@@ -89,6 +88,28 @@ export default function Cloche({ className = "" }) {
   // Pré-analyser ou non une fiche reçue : la ligne part, la pré-analyse tourne en fond et prévient quand elle est prête.
   const [decidees, setDecidees] = useState(() => new Set());
   const [apercu, setApercu] = useState(null); // la proposition ouverte
+  // Retirer une ligne, ou la remettre à plus tard (21 oct. 2026, Jules) : pour soi seul, gardé côté serveur.
+  const masques = useQuery({ queryKey: ["cloche-masques"], queryFn: () => base44.request("GET", "/api/haka/cloche/masques"), staleTime: 60_000, retry: false });
+  const [retirees, setRetirees] = useState(() => new Set());
+  const [rappelDe, setRappelDe] = useState(null); // la clé de la ligne dont le menu « Me le rappeler » est ouvert
+  const cachees = new Set([...(masques.data?.cles || []), ...retirees]);
+  const retirer = (l, jusqua = null) => {
+    setRetirees((s) => new Set([...s, l.cle]));
+    setRappelDe(null);
+    base44.request("POST", "/api/haka/cloche/masquer", { body: { cle: l.cle, jusqua, phrase: jusqua ? l.phrase : null, lien: jusqua ? l.lien || null : null } })
+      .then(() => { masques.refetch(); attend.refetch(); })
+      .catch(() => setRetirees((s) => { const n = new Set(s); n.delete(l.cle); return n; }));
+  };
+  // Les dates proposées : demain, lundi, dans une semaine, à 9 h.
+  const aNeufHeures = (d) => { d.setHours(9, 0, 0, 0); return d.toISOString(); };
+  const dates = () => {
+    const demain = new Date(); demain.setDate(demain.getDate() + 1);
+    const lundi = new Date(); lundi.setDate(lundi.getDate() + (((8 - lundi.getDay()) % 7) || 7));
+    const semaine = new Date(); semaine.setDate(semaine.getDate() + 7);
+    return [["Demain", aNeufHeures(demain)], ["Lundi", aNeufHeures(lundi)], ["Dans une semaine", aNeufHeures(semaine)]];
+  };
+  // Le compteur ne compte que ce qui reste : ni les lignes retirées ou remises à plus tard, ni les fiches tranchées.
+  const n = compteurDeLaCloche(lignes.filter((l) => !cachees.has(l.cle) && !decidees.has(l.fiche)));
   const trancher = (l, choix, extra = {}) => {
     setDecidees((s) => new Set([...s, l.fiche]));
     base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix, ...extra } })
@@ -128,9 +149,9 @@ export default function Cloche({ className = "" }) {
                 <div className="max-h-[min(60vh,520px)] overflow-y-auto px-2 py-1.5">
                   {!lignes.length ? (
                     <p className="m-0 px-3 py-6 text-center text-[13.5px] text-brume">Rien n'attend votre action pour l'instant.</p>
-                  ) : lignes.filter((l) => !decidees.has(l.fiche)).map((l, i) => (
+                  ) : lignes.filter((l) => !decidees.has(l.fiche) && !cachees.has(l.cle)).map((l, i) => (
                     <motion.div key={l.cle} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
-                      className="flex items-start gap-3 rounded-[12px] px-3 py-3 transition-colors hover:bg-encre/[0.04]">
+                      className="group relative flex items-start gap-3 rounded-[12px] px-3 py-3 transition-colors hover:bg-encre/[0.04]">
                       <span className={`mt-[7px] h-[7px] w-[7px] flex-none rounded-full ${l.teinte}`} aria-label={l.action ? "Action attendue" : "Information"} />
                       <div className="min-w-0 flex-1">
                         <p className="m-0 text-[14.5px] leading-[1.4] text-encre">{l.phrase}</p>
@@ -143,6 +164,19 @@ export default function Cloche({ className = "" }) {
                       ) : l.ancien ? (
                         <button type="button" onClick={() => fait(l)} className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-3.5 text-[13px] text-ardoise transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Fait</button>
                       ) : null}
+                      <span className="flex flex-none items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 max-md:opacity-100">
+                        <button type="button" onClick={() => setRappelDe((k) => (k === l.cle ? null : l.cle))} aria-label="Me le rappeler plus tard" title="Me le rappeler plus tard"
+                          className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><AlarmClock className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => retirer(l)} aria-label="Retirer de la liste" title="Retirer de la liste"
+                          className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+                      </span>
+                      {rappelDe === l.cle && (
+                        <div className="absolute right-3 top-[calc(100%-6px)] z-10 flex flex-col overflow-hidden rounded-[14px] border border-bord-doux bg-surface-pleine py-1 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+                          {dates().map(([mot, iso]) => (
+                            <button key={mot} type="button" onClick={() => retirer(l, iso)} className="px-4 py-2 text-left text-[13.5px] text-craie hover:bg-relief hover:text-encre" style={{ background: "transparent" }}>{mot}</button>
+                          ))}
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                   {/* Mes notifications, sous ce qui attend (19 oct. 2026, Jules) : chacune se lit ou s'efface d'un clic. */}

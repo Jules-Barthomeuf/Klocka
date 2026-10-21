@@ -10,6 +10,10 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "La cloche se range", texte: "Survolez une ligne de « Ce qui t'attend » : la croix la retire, le réveil la remet à demain, lundi ou dans une semaine (un rappel revient ce jour-là).", page: "Dashboard" },
+      { titre: "Pourquoi une fiche n'a pas sonné", texte: "Administration › Automatismes liste les mails reçus avec une pièce ces trois derniers jours, et ce que Haka en a fait : proposée, au prochain relevé, ou pas proposée et pourquoi.", page: "Automatismes" },
+      { titre: "Le dossier s'ouvre en mode IA", texte: "La pré-analyse et l'analyse d'un dossier arrivent en mode IA ; la Data Room en mode normal.", page: "Analyse" },
+      { titre: "Vous validez les étapes du dossier", texte: "Dans le menu des étapes, plus rien n'est coché d'office : un check à droite de chaque étape la valide, et valider la 4 coche aussi les trois d'avant. Le rond se remplit, le check de droite disparaît.", page: "Analyse" },
       { titre: "Plus de « Teaser client » dans le dossier", texte: "L'étape Plateforme d'un dossier ne propose plus de générer la vidéo de vingt secondes : il reste l'aperçu du projet et ses gestes.", page: "Analyse" },
       { titre: "Une précision après l'appel, en cinq secondes", texte: "Au raccrochage, le micro s'ouvre cinq secondes : dites « il me rappelle dans dix minutes » ou « c'était son associé », Haka en tient compte avec la transcription, l'historique et l'heure. Rien à dire ? L'écran passe seul et tout continue comme avant. À essayer dans Appels, onglet Essai.", page: "Prospection" },
       { titre: "Le rappel, comme sur la maquette", texte: "Pendant un rappel ou un appel rapide, tout est centré : le nom de la personne dès qu'elle se présente, le micro en simple contour, Raccrocher. La transcription dit qui parle et surligne les chiffres et les lieux ; à côté, la calculatrice reprend le loyer entendu et donne le prix pour viser 5, 6 ou 7 %.", page: "Prospection" },

@@ -907,6 +907,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **La note d'après l'appel, avant toute action** (Jules, 21 oct. 2026, `NoteApresAppel.jsx`) : au raccrochage (Mode appel, appel rapide, rappel déjà identifié), un écran centré « Une précision ? » ; le micro s'ouvre seul (simple contour, `menthe` quand il écoute), une barre fine se vide en cinq secondes (« Haka continue dans N s »), un champ pour l'écrire, « Continuer avec cette note » en grand bouton `encre`, « Passer » en lien. Rien dit ni tapé : l'écran passe seul et l'analyse suit comme avant. Une phrase dite rejoint les notes, qui font foi.
 
+**Étapes du dossier validées à la main** (Jules, 21 oct. 2026) : le menu des étapes (rail à droite, frise au téléphone) n'a plus d'étape cochée d'office. Chaque étape non validée porte à droite un petit rond à contour avec un check ; un clic le valide, le rond de l'étape se remplit de `menthe` avec son check (même si c'est l'étape ouverte), et le check de droite disparaît. Valider l'étape n valide aussi toutes celles d'avant. L'état est gardé sur le dossier (`frise_validee`), indépendamment de l'avancement calculé par le serveur.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont
@@ -1049,3 +1051,11 @@ s'impriment et ne suivent pas le thème.
 **Le rappel cherche dans Monday** (Jules, 21 oct. 2026, « il est dans Monday, je ne vais pas créer un contact ») : la personne de la note se cherche au carnet, puis, si personne d'unique, dans le tableau Monday « Agent immobilier » (numéro, email, puis nom avec l'agence). Le nom se compare aussi collé, à une ou deux lettres près, et le nom de famille seul contre la fin du nom (« Roche-Baron » dicté, « LARROCHE BARON » dans Monday). Une seule ligne : sa fiche locale est reprise ou créée depuis Monday, et l'appel est identifié ; plusieurs : on choisit. « Créer le contact » ne vient qu'après.
 
 **Navigation rapide** (Jules, 21 oct. 2026, « sur la version live, naviguer entre les pages est super lent ») : le cadre (barre latérale, cloche, fenêtres) est monté une fois et ne se reconstruit plus à chaque page (`CadrePersistant` dans App.jsx, la page change dans l'Outlet). Une page pas encore téléchargée s'attend dans sa zone, la barre reste, et rien ne s'affiche les 300 premières millisecondes ; l'écran plein « Klocka s'ouvre » ne sert plus qu'à l'ouverture de l'application. Les pages du menu se téléchargent en fond quelques secondes après l'ouverture, et une page au survol de son lien (`src/lib/precharger.js`), sauf connexion lente ou économie de données. (Pas de durée de fraîcheur globale des requêtes : celles qui partent d'un `initialData` ne chargeraient plus.)
+
+**La cloche se range** (Jules, 21 oct. 2026) : au survol d'une ligne de « Ce qui t'attend », un réveil (« Me le rappeler » : demain, lundi, dans une semaine, à 9 h) et une croix (« Retirer »). Retirer vaut pour soi seul et ne supprime rien à la source ; remettre pose aussi un rappel à la date. Le compteur ne compte que ce qui reste.
+
+**Les mails reçus, ce que Haka en a fait** (Jules, 21 oct. 2026) : en bas d'Administration › Automatismes, les mails des trois derniers jours qui portent une pièce, avec leur sort en clair : « Proposée » (une notification est partie), « Au prochain relevé », ou « Pas proposée » et la raison (pas de pièce, pièce qui n'est pas une fiche, conversation d'un dossier, automatisme en pause, appris comme pas une fiche…).
+
+**Le mode du dossier suit l'étape** (Jules, 21 oct. 2026) : on arrive en mode IA sur la Pré-analyse et l'Analyse, en mode normal sur la Data Room ; les autres étapes gardent le dernier choix. L'étape ouverte se garde le temps de la session, par dossier.
+
+**Les intercalaires de la Prospection** (Jules, 21 oct. 2026) : plus de fond derrière les onglets au repos (« Relances dues », les villes, le « + ») ; seul l'onglet ouvert garde la teinte du classeur.

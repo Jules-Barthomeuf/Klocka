@@ -303,6 +303,14 @@ export default function Analyse() {
   // Passer du mode normal au mode IA fait glisser le dossier vers la droite et apparaître le chat (18 oct. 2026, Jules).
   const glisse = useRef(false);
   const setModeIA = (v) => { glisse.current = v && !modeIA; setModeIABrut(v); try { localStorage.setItem("klocka.dossier.mode", v ? "ia" : "normal"); } catch { /* navigation privée */ } };
+  // L'étape décide du mode à l'arrivée (21 oct. 2026, Jules : « sur la pré-analyse, on doit arriver en mode IA directement,
+  // pareil pour l'analyse, pas la data room ») : Pré-analyse et Analyse en mode IA, Data Room en normal ; les autres
+  // étapes gardent le dernier choix. Un clic sur le sélecteur vaut jusqu'au prochain changement d'étape.
+  useEffect(() => {
+    if (!dealId || !vueDossier) return;
+    if (vueDossier === "preanalyse" || vueDossier === "analyse") setModeIABrut(true);
+    else if (vueDossier === "documents") setModeIABrut(false);
+  }, [dealId, vueDossier]);
   const choixMode = ecranLarge ? (
     <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1" role="group" aria-label="Mode d'affichage du dossier">
       {[[true, "Mode IA"], [false, "Normal"]].map(([v, mot]) => (

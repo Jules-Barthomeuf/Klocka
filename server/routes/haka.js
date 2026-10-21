@@ -226,6 +226,25 @@ export function monterHaka(app) {
     const jour = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date || '')) ? req.query.date : new Date().toISOString().slice(0, 10);
     ok(res, { jour, executions: (await A()).detail(req.params.slug, { jour }) });
   }));
+  // Les mails reçus avec une pièce, et ce que Haka en a fait (21 oct. 2026) : pour comprendre une fiche sans notification.
+  app.get('/api/haka/fiches/recentes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    ok(res, { mails: await (await import('../haka/declencheurs.js')).etatDesFiches({ jours: Math.min(14, Number(req.query.jours) || 3) }) });
+  }));
+
+  // La cloche : les lignes que chacun a retirées, et le retrait (ou le rappel à une date) d'une ligne (21 oct. 2026).
+  app.get('/api/haka/cloche/masques', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    ok(res, { cles: (await import('../haka/cloche.js')).masquesDe(user.email) });
+  }));
+  app.post('/api/haka/cloche/masquer', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const b = req.body || {};
+    repondre(res, await (await import('../haka/cloche.js')).masquer(user, { cle: b.cle, jusqua: b.jusqua || null, phrase: b.phrase || null, lien: b.lien || null }));
+  }));
+
   app.get('/api/haka/alertes', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;

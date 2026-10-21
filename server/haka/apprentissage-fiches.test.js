@@ -32,3 +32,15 @@ test('un expéditeur refusé deux fois n\'est plus proposé, sauf une pièce qui
   assert.equal(verdictAppris(mail('robic@pro.bzh', 'scan.pdf'), [oui('robic@pro.bzh', 'autre')]).proposer, true);
   assert.equal(verdictAppris(mail('robic@pro.bzh'), [oui('robic@pro.bzh', 'autre')]).proposer, null, 'sans pièce, rien');
 });
+
+// Ce que Haka a fait d'un mail reçu (21 oct. 2026, Jules : « j'ai reçu une fiche, je n'ai pas eu de notification »).
+test('verdictDuMail : chaque mail dit pourquoi il a été proposé ou non', async () => {
+  const { verdictDuMail } = await import('./declencheurs.js');
+  const base = { id: 'm', de_email: 'a@agence.fr', objet: 'Murs à vendre', texte: 'Local loué, rendement 6 %', date: new Date().toISOString() };
+  assert.equal(verdictDuMail({ ...base, pieces_jointes: [] }).verdict, 'ecartee');
+  assert.match(verdictDuMail({ ...base, pieces_jointes: [] }).raison, /Aucune pièce jointe/);
+  assert.match(verdictDuMail({ ...base, pieces_jointes: [{ nom: 'photo.jpg', piece_id: 'x' }] }).raison, /ne ressemble à une fiche/);
+  assert.equal(verdictDuMail({ ...base, pieces_jointes: [{ nom: 'Fiche.pdf', piece_id: 'x' }] }).verdict, 'en_attente');
+  assert.match(verdictDuMail({ ...base, haka_ignore: 'x', pieces_jointes: [{ nom: 'Fiche.pdf', piece_id: 'x' }] }).raison, /en pause/);
+  assert.equal(verdictDuMail({ ...base, haka_tache_id: 't', pieces_jointes: [{ nom: 'Fiche.pdf', piece_id: 'x' }] }, { tache: { etat: 'en_attente_validation', etape: 'accepter_preanalyse' } }).verdict, 'proposee');
+});

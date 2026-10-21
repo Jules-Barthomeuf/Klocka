@@ -79,6 +79,37 @@ function Detail({ a, peutAgir, onFermer }) {
   );
 }
 
+// Les mails reçus avec une pièce, et ce que Haka en a fait (21 oct. 2026, Jules : « j'ai reçu une fiche, je n'ai pas eu
+// de notification ») : proposée, en attente du prochain relevé, ou écartée, et pourquoi, en clair.
+const VERDICTS = { proposee: ["Proposée", "text-menthe"], en_attente: ["Au prochain relevé", "text-ambre"], ecartee: ["Pas proposée", "text-ardoise"] };
+function FichesRecues() {
+  const q = useQuery({ queryKey: ["haka-fiches-recentes"], queryFn: () => base44.request("GET", "/api/haka/fiches/recentes?jours=3"), refetchInterval: 60_000, retry: false });
+  const mails = q.data?.mails || [];
+  return (
+    <section className="mt-10">
+      <p className="m-0 text-[17px] text-encre">Mails reçus avec une pièce, ces trois derniers jours</p>
+      <p className="m-0 mt-1 text-[13px] text-ardoise">Ce que Haka en a fait : une fiche proposée vous a envoyé une notification ; sinon, la raison.</p>
+      {q.isLoading ? <p className="m-0 py-6 text-[13.5px] text-brume">Lecture…</p> : !mails.length ? <p className="m-0 py-6 text-[13.5px] text-brume">Aucun mail avec une pièce ces trois derniers jours.</p> : (
+        <div className="mt-3 flex flex-col">
+          {mails.map((m) => {
+            const [mot, teinte] = VERDICTS[m.verdict] || VERDICTS.ecartee;
+            return (
+              <div key={m.id} className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.6fr)] gap-x-5 border-t border-trait py-3 max-md:grid-cols-1 max-md:gap-y-1">
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] text-encre">{m.objet || "(sans objet)"}</span>
+                  <span className="block truncate text-[12.5px] text-ardoise">{[String(m.de || "").replace(/<[^>]*>/g, "").trim(), m.date ? ilYa(m.date) : null].filter(Boolean).join(" · ")}</span>
+                </span>
+                <span className="min-w-0 truncate text-[13px] text-craie" title={m.pieces.join(", ")}>{m.pieces.join(", ")}</span>
+                <span className="min-w-0 text-[13px] leading-[1.45]"><span className={teinte}>{mot}</span><span className="text-ardoise"> · {m.raison}</span></span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Automatismes() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["haka-automatismes"], queryFn: () => base44.request("GET", "/api/haka/automatismes"), refetchInterval: 30_000, retry: false });
@@ -156,6 +187,7 @@ export default function Automatismes() {
           {!vues.length && <p className="m-0 py-8 text-center text-[13.5px] text-brume">Rien dans ce filtre aujourd'hui.</p>}
         </>
       )}
+      <FichesRecues />
       <AnimatePresence>{ouverte && <Detail key={ouverte.cle} a={ouverte} peutAgir={peutAgir} onFermer={() => setOuvert(null)} />}</AnimatePresence>
     </div>
   );

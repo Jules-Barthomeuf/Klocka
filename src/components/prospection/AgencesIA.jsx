@@ -210,7 +210,7 @@ function AjoutVille({ onCree }) {
   return (
     <>
       <button type="button" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert} aria-label="Ajouter une ville" title="Ajouter une ville"
-        className={`grid h-9 w-9 flex-none place-items-center self-end rounded-t-[10px] text-[16px] transition-colors ${ouvert ? "bg-rail text-encre" : "bg-surface text-ardoise hover:bg-rail hover:text-encre"}`}>
+        className={`grid h-9 w-9 flex-none place-items-center self-end rounded-t-[10px] text-[16px] transition-colors ${ouvert ? "bg-rail text-encre" : "bg-transparent text-ardoise hover:text-encre"}`}>
         <Plus className={`h-4 w-4 transition-transform duration-300 ${ouvert ? "rotate-45" : ""}`} />
       </button>
       {ouvert && (
@@ -244,6 +244,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
       {supprimer.fenetre}
       {/* Le Mode appel reste à droite, hors de la rangée qui défile : beaucoup de villes ne le cachent plus (19 oct. 2026, Jules). */}
       <div className="sticky top-[64px] z-20 flex items-end bg-fond pt-2 max-md:top-0">
+      {/* Plus de fond derrière les intercalaires au repos (21 oct. 2026, Jules) : seul l'ouvert garde la teinte du classeur. */}
       <div role="tablist" aria-label="Les listes par ville" className="flex min-w-0 flex-1 items-end overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* Le premier onglet se tient au-delà de l'arrondi du classeur. */}
         <span aria-hidden className="w-3 flex-none" />
@@ -253,7 +254,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
         {relances && (
           <>
             <button type="button" role="tab" aria-selected={surRelances} onClick={() => onOuvrir(RELANCES)}
-              className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${surRelances ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+              className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${surRelances ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-transparent py-2 text-ardoise hover:text-encre"}`}>
               <span className="truncate">Relances dues</span>
               <span className={`flex-none text-[11.5px] tabular-nums ${surRelances ? "text-menthe" : relances.n ? "text-ambre" : "text-brume"}`}>{relances.n}</span>
             </button>
@@ -266,7 +267,7 @@ export function OngletListesAgences({ ouverte, onOuvrir, onAppeler, onBasculer, 
             <React.Fragment key={l.id}>
               {i > 0 && <span aria-hidden className="w-1 flex-none" />}
               <button type="button" role="tab" aria-selected={actif} onClick={() => onOuvrir(l.id)}
-                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-surface py-2 text-ardoise hover:bg-rail hover:text-encre"}`}>
+                className={`flex max-w-[240px] flex-none items-center gap-2 rounded-t-[10px] px-4 text-left text-[13px] transition-colors ${actif ? "bg-rail pb-[11px] pt-2.5 text-encre" : "bg-transparent py-2 text-ardoise hover:text-encre"}`}>
                 <span className="truncate">{l.ville}</span>
                 <span className={`flex-none text-[11.5px] tabular-nums ${actif ? "text-menthe" : "text-brume"}`}>{l.agences}</span>
                 {l.etat === "en_cours" && <span className="h-1.5 w-1.5 flex-none animate-pulse rounded-full bg-menthe" />}

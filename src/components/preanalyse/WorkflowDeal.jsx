@@ -420,7 +420,14 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     try { if (cleEtape && !apercu) localStorage.setItem(cleEtape, String(n)); } catch { /* sans mémoire */ }
   };
   // L'étape de la frise ouverte (17 oct. 2026) : huit étapes sur les cinq portes du serveur.
-  const [vue, setVue] = useState(() => vueDeLaPorte(etape, dossier));
+  // Gardée le temps de la session, par dossier (21 oct. 2026) : passer du mode IA au mode normal reconstruit ce
+  // composant ; sans elle, la Data Room (même porte que l'Analyse) rouvrait sur l'Analyse.
+  const cleVue = dossier?.deal_id && !apercu ? `klocka_vue_${dossier.deal_id}` : null;
+  const [vue, setVueBrut] = useState(() => {
+    try { const g = cleVue ? sessionStorage.getItem(cleVue) : null; if (g && PORTE[g] === etape) return g; } catch { /* sans mémoire */ }
+    return vueDeLaPorte(etape, dossier);
+  });
+  const setVue = (v) => { setVueBrut(v); try { if (cleVue) sessionStorage.setItem(cleVue, v); } catch { /* sans mémoire */ } };
   useEffect(() => { if (dossier && PORTE[vue] !== etape) setVue(vueDeLaPorte(etape, dossier)); }, [etape]);
   useEffect(() => { onVue?.(dossier ? vue : null); }, [vue, dossier?.deal_id]);
   // Sans dossier (dépôt direct d'une fiche) l'étape se lit sur la porte ; avec un dossier, sur la frise.

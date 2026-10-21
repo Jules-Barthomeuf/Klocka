@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "L'appel en cours, dans la fiche", texte: "Quand vous appelez depuis le Mode appel, la fiche reste la même : le micro respire pour dire que l'appel est écouté, Raccrocher remplace Appeler, la transcription prend la place de l'accroche, et à droite la calculatrice et les notes. Au raccrochage, la précision de cinq secondes s'affiche en haut de la même carte.", page: "Prospection", requete: "?appel=1" },
       { titre: "La fiche du Mode appel, redessinée", texte: "Avant d'appeler, la fiche montre l'agence en grand, la personne et son numéro, Appeler et Passer en haut ; dessous, les interlocuteurs, l'accroche avec les recherches clients et leur budget, et « Déjà appelé ? » pour dire ce qui s'est dit.", page: "Prospection", requete: "?appel=1" },
       { titre: "La cloche se range", texte: "Survolez une ligne de « Ce qui t'attend » : la croix la retire, le réveil la remet à demain, lundi ou dans une semaine (un rappel revient ce jour-là).", page: "Dashboard" },
       { titre: "Pourquoi une fiche n'a pas sonné", texte: "Administration › Automatismes liste les mails reçus avec une pièce ces trois derniers jours, et ce que Haka en a fait : proposée, au prochain relevé, ou pas proposée et pourquoi.", page: "Automatismes" },

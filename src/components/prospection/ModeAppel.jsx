@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CeQueKlockaSait from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Phone, Square, X } from "lucide-react";
+import { ArrowRight, AudioLines, Check, ExternalLink, Loader2, Mic, Phone, PhoneOff, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { useDictee, versWav } from "@/lib/dictee";
 import { garder, enAttente, retirer, erreurReseau } from "@/lib/file-hors-ligne";
 import SequenceActions from "@/components/prospection/SequenceActions";
-import Calculatrice from "@/components/prospection/Calculatrice";
 import ToutPrepare, { lignesDuRecu } from "@/components/prospection/ToutPrepare";
 import { ChaineEtapes, ChaineRepliee, useEtapesVives } from "@/components/prospection/ChaineEtapes";
 import { GROUPES_ESSAI, SCENARIOS_ESSAI, scenarioEssai } from "@/components/prospection/scenarios-essai";
-import { ETIQUETTE, GROS_BOUTON } from "@/components/prospection/StyleAppel";
+import { ETIQUETTE } from "@/components/prospection/StyleAppel";
 import NoteApresAppel from "@/components/prospection/NoteApresAppel";
+import { CalculatriceEnLigne } from "@/components/prospection/EcranEnLigne";
 import { useAuth } from "@/lib/AuthContext";
 import * as Ecran from "@/lib/enregistrement-ecran";
 import { fusionnerWav, OCTETS_MAX } from "@/lib/parole";
@@ -285,15 +285,6 @@ function NotesApres({ valeur, onChange, change, onReanalyser, occupe }) {
   );
 }
 
-/** Le micro : il appelle et prend les notes. */
-function IconeMicro({ taille = 34 }) {
-  return (
-    <svg width={taille * 0.76} height={taille} viewBox="0 0 22 28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <rect x="6" y="1" width="10" height="16" rx="5" /><path d="M2 13a9 9 0 0 0 18 0" /><line x1="11" y1="22" x2="11" y2="27" />
-    </svg>
-  );
-}
-
 /** Une ligne du reçu : vert vérifié, orange en cours ou à faire, rouge raté. Jamais de coche sans relecture. */
 function LigneRecu({ l, lien = null, detail = null, children = null }) {
   const [ouvert, setOuvert] = useState(false);
@@ -401,7 +392,7 @@ export function ligneRecherche(q) {
   return { gauche: gauche.charAt(0).toUpperCase() + gauche.slice(1), droite };
 }
 
-function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null }) {
+function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro, onSansNotes, onResume, resumeEnCours, passerOuvert, setPasserOuvert, raisons, onPasser, passerEnCours, onRetour = null, enLigne = null }) {
   const contacts = (a.contacts || []).filter((x) => !x.standard);
   const standard = (a.contacts || []).find((x) => x.standard)?.telephone || a.telephone;
   const numero = choisi?.telephone || standard;
@@ -442,13 +433,27 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
   // La fiche d'avant l'appel (maquette de Jules, 21 oct. 2026) : une carte ; en tête l'origine et l'état, le nom, la
   // personne et son numéro, à droite le micro, Appeler et Passer ; dessous trois colonnes : interlocuteurs et
   // historique, l'accroche et les recherches clients, « Déjà appelé ? ».
+  // Pendant l'appel (21 oct. 2026, Jules : « comme dans la liste ») : la même carte ; le micro respire comme au rappel,
+  // Raccrocher prend la place d'Appeler, la transcription celle de l'accroche, la calculatrice et les notes celle de
+  // « Déjà appelé ? ». Après le raccrochage, la note de cinq secondes prend la place de l'en-tête.
+  const enCours = !!enLigne;
   return (
     <div className="overflow-hidden rounded-[24px] border border-bord-doux bg-transparent">
+      {enLigne?.apres ? (
+        <div className="px-7 py-6 max-md:px-5 max-md:py-5">
+          <NoteApresAppel key="note" onFin={enLigne.onNote} titre="Une précision avant que Haka lise l'appel ?" />
+        </div>
+      ) : (
       <div className="flex flex-wrap items-end justify-between gap-6 px-7 py-6 max-md:px-5 max-md:py-5">
         <div className="flex min-w-0 flex-col gap-3">
           <span className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-ardoise">
             {relances ? "Relances" : "Tableau prospection"}{a.ville ? ` · ${a.ville}` : ""}
-            <span className={`rounded-full px-2.5 py-0.5 text-[12px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>
+            {enCours ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-2.5 py-0.5 text-[12px] text-craie">
+                <span className={`h-1.5 w-1.5 rounded-full bg-alerte ${enLigne.ecoute ? "animate-pulse" : ""}`} />{enLigne.ecoute ? "En ligne" : "En ligne, sans écoute"}
+              </span>
+            ) : <span className={`rounded-full px-2.5 py-0.5 text-[12px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>}
+            {enLigne?.essai && <span className="rounded-full bg-ambre/15 px-2.5 py-0.5 text-[12px] text-ambre">Essai</span>}
           </span>
           <p className="m-0 break-words text-[clamp(22px,2.1vw,30px)] font-normal leading-[1.15] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
           <p className="m-0 text-[13.5px] text-ardoise">
@@ -462,6 +467,25 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             </div>
           )}
         </div>
+        {enCours ? (
+          <div className="flex flex-none flex-col items-end gap-2">
+            <div className="flex items-center gap-3">
+              {/* Le micro, comme au rappel : en simple contour à la couleur choisie, il respire tant qu'on écoute. */}
+              <span role="img" aria-label={enLigne.ecoute ? "Enregistrement en cours" : "Sans enregistrement"} title={enLigne.ecoute ? "L'appel est écouté" : "Sans enregistrement"}
+                className={`grid h-11 w-11 place-items-center rounded-full border ${enLigne.ecoute ? "k-anneau border-menthe text-menthe" : "border-bord-doux text-brume"}`}>
+                <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              </span>
+              <button type="button" onClick={enLigne.onRaccrocher} className="inline-flex h-11 items-center gap-2 rounded-full bg-alerte px-5 text-[14.5px] text-fond transition-opacity hover:opacity-90">
+                <PhoneOff className="h-4 w-4" strokeWidth={2} />Raccrocher
+              </button>
+              {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
+              <button type="button" onClick={enLigne.onAnnuler} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
+                className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+            </div>
+            {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
+            {enLigne.ecranEnregistre && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
+          </div>
+        ) : (
         <div className="flex flex-none items-center gap-3">
           <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
             className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
@@ -477,7 +501,9 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
             : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-11 rounded-full border border-bord-doux px-5 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
         </div>
+        )}
       </div>
+      )}
 
       {/* Des filets en fond, pas en bordure : la grille de points efface les bordures horizontales (index.css), la maquette les veut. */}
       <div aria-hidden className="h-px bg-bord-doux" />
@@ -511,13 +537,14 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
             ))}
             {!histo.length && <span className="text-[14px] text-ardoise">Jamais appelée</span>}
           </div>
+          {enLigne?.gauche}
           {/* L'Intelligence (phase 6, 15 oct. 2026) : avant d'appeler, ce qu'on sait de l'agence et ce qu'on lui doit. */}
           {!essai && <CeQueKlockaSait type="agence" id={a.id} />}
         </div>
 
         {/* L'accroche et les recherches clients (ou, en relance, ce qu'on s'est dit). */}
         <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-7 max-lg:order-1 max-md:p-5 lg:border-r">
-          {a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
+          {enCours ? enLigne.milieu : a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
             <div className="flex flex-col gap-5">
               <span className={etiq2}>L'ACCROCHE</span>
               <p className="m-0 text-[20px] leading-[1.45] tracking-[-0.01em] text-encre [text-wrap:pretty] max-md:text-[17px]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</p>
@@ -539,13 +566,13 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
               )}
             </div>
           )}
-          {essai && <span className="text-[13.5px] leading-[1.5] text-ardoise">Essai : touchez Appeler pour simuler l'appel.</span>}
+          {essai && !enCours && <span className="text-[13.5px] leading-[1.5] text-ardoise">Essai : touchez Appeler pour simuler l'appel.</span>}
         </div>
 
         {/* Déjà appelé ? */}
         <div className="flex min-w-0 flex-col gap-4 p-6 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
-          <span className={etiq2}>DÉJÀ APPELÉ ?</span>
-          {!essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
+          {enCours ? enLigne.droite : <span className={etiq2}>DÉJÀ APPELÉ ?</span>}
+          {enCours ? null : !essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
             : <span className="text-[13.5px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
         </div>
       </div>
@@ -1210,7 +1237,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {message && <p className="m-0 flex items-start gap-2.5 px-1 text-[14px] text-ardoise"><span className="text-menthe">✓</span><span className="min-w-0 break-words">{message}</span></p>}
 
             {/* Chaque écran entre en fondu, avec une légère montée (8 oct. 2026) : la clé change, l'animation rejoue. */}
-            <div key={ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
+            <div key={ecran === "note" ? "appel" : ecran} className="flex flex-col gap-4 duration-500 ease-out animate-in fade-in-0 slide-in-from-bottom-2">
             {/* La fiche et le panneau d'appel. */}
             {ecran === "fiche" && !a && !relances && !session.essai && <p className="m-0 py-12 text-center text-[14px] text-craie">Plus personne à appeler ici pour l'instant.</p>}
             {ecran === "fiche" && a && (
@@ -1222,67 +1249,43 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 onRetour={relances ? () => onRetour?.() : null} />
             )}
 
-            {/* Pendant l'appel : le micro qui écoute, la transcription en direct à droite. */}
-            {/* Pendant l'appel (refait le 9 oct. 2026, au registre de la fiche) : une seule carte, trois colonnes.
-                L'agence et ses numéros, la transcription en direct et les notes, puis le micro là où on l'a touché. */}
-            {ecran === "appel" && a && (
-              <div className="grid overflow-hidden rounded-[18px] border border-bord-doux bg-transparent lg:grid-cols-[minmax(210px,0.75fr)_minmax(0,1.9fr)_minmax(280px,1.15fr)]">
-                <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-6 max-lg:order-3 max-lg:border-t lg:border-r">
-                  <div className="flex flex-col gap-1.5">
-                    <span className={ETIQUETTE}>EN LIGNE</span>
-                    <p className="m-0 break-words text-[20px] leading-[1.25] text-encre">{a.nom}</p>
-                    {contactChoisi && !contactChoisi.standard && <p className="m-0 text-[14px] text-craie">{contactChoisi.nom}</p>}
-                    <span className="select-all tabular-nums text-[15px] text-ardoise">{numeroAppel}</span>
-                    {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit avant d'appeler. */}
-                    {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro d'une autre région · ${a.telephone_source}` : a.telephone_source}</span>}
-                  </div>
-                  {/* Les autres numéros trouvés et le site, pour rebondir si la ligne ne répond pas. */}
-                  {(autresNumeros.length > 0 || a.site) && (
-                    <div className="flex flex-col gap-2 border-t border-trait pt-4">
-                      {autresNumeros.length > 0 && <span className={ETIQUETTE}>AUTRES NUMÉROS</span>}
+            {/* Pendant l'appel et la note d'après (21 oct. 2026, Jules) : la fiche de la liste, à l'identique, en ligne. */}
+            {(ecran === "appel" || ecran === "note") && a && (
+              <FicheAppel a={a} relances={relances} recherches={recherches} essai={!!session.essai}
+                choisi={contactChoisi} onChoisir={setChoisi}
+                enLigne={{
+                  apres: ecran === "note", onNote: apresNote, ecoute: notes, essai: simule,
+                  onRaccrocher: raccrocher, onAnnuler: annulerAppel,
+                  ecranEnregistre: !simule && moi?.role === "admin",
+                  gauche: (autresNumeros.length > 0 || a.site || (numeroAppel === a.telephone && a.telephone_source)) ? (
+                    <div className="flex flex-col gap-2">
+                      <span className="m-0 text-[11px] tracking-[.14em] text-brume">{autresNumeros.length ? "AUTRES NUMÉROS" : "LE NUMÉRO"}</span>
+                      {/* D'où vient le numéro (12 oct. 2026) : un numéro d'annonce, ou d'une autre région, se voit. */}
+                      {numeroAppel === a.telephone && a.telephone_source && <span className={`text-[12.5px] ${a.telephone_autre_region ? "text-ambre" : "text-ardoise"}`}>{a.telephone_autre_region ? `Numéro appelé d'une autre région · ${a.telephone_source}` : `Numéro appelé : ${a.telephone_source}`}</span>}
                       {autresNumeros.map((x) => (
                         <span key={x.telephone} className="flex flex-col">
                           <span className="select-all tabular-nums text-[14px] text-encre">{x.telephone}</span>
                           {x.nom && <span className="truncate text-[12.5px] text-ardoise">{x.nom}</span>}
                         </span>
                       ))}
-                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-[14px] text-menthe hover:underline ${autresNumeros.length ? "mt-2" : ""}`}>{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
+                      {a.site && <a href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1.5 text-[14px] text-menthe hover:underline">{String(a.site).replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "")}<ExternalLink className="h-3.5 w-3.5" /></a>}
                     </div>
-                  )}
-                  {/* La calculatrice (16 oct. 2026, Jules) : une fenêtre devant la barre de gauche, ouverte seule dès qu'un prix ou un loyer est entendu. */}
-                  <Calculatrice textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
-                </div>
-                <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-7 max-lg:order-2 max-lg:border-t max-md:p-5 lg:border-r">
-                  <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect nu />
-                  <div className="border-t border-trait pt-5"><ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu /></div>
-                </div>
-                {/* Pas de chronomètre (7 oct. 2026, il stressait) : le micro qui pulse, « Je vous écoute ». */}
-                <div className="flex min-w-0 flex-col items-center justify-center gap-6 p-6 max-lg:order-1 max-md:p-5">
-                  <div className="flex flex-col items-center gap-3">
-                    {/* Le micro de la fiche, à l'identique (9 oct. 2026) : mêmes cercles, même menthe ; pendant l'écoute, les anneaux respirent. */}
-                    <span className={`grid h-[220px] w-[220px] place-items-center rounded-full border max-md:h-[184px] max-md:w-[184px] ${notes ? "k-anneau border-menthe/30" : "border-bord-doux"}`} role="img" aria-label={notes ? "Enregistrement en cours" : "Sans enregistrement"}>
-                      <span className={`grid h-[78%] w-[78%] place-items-center rounded-full border ${notes ? "k-anneau border-menthe/40" : "border-bord-doux"}`} style={notes ? { animationDelay: "0.6s" } : undefined}>
-                        <span className={`grid h-[74%] w-[74%] place-items-center rounded-full ${notes ? "bg-menthe text-sur-menthe" : "border border-bord-doux text-ardoise"}`}><IconeMicro taille={38} /></span>
-                      </span>
-                    </span>
-                    <span className={`text-[16px] ${notes ? "text-encre" : "text-ardoise"}`}>{notes ? "Je vous écoute" : "Je n'écoute pas"}</span>
-                    {/* L'analyste sait que son écran est enregistré pendant l'appel (14 oct. 2026). */}
-                    {!simule && moi?.role === "admin" && <span className="text-[12px] text-brume">Écran enregistré pendant l'appel</span>}
-                  </div>
-                  {/* Les boutons passent à la ligne quand la colonne est étroite, jamais coupés ni sur deux lignes (16 oct. 2026). */}
-                  <div className="flex flex-wrap items-center justify-center gap-2.5 [&>button]:whitespace-nowrap">
-                    {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
-                    <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
-                    
-                    <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-10 rounded-full border border-bord-doux px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
-                    {/* Annuler : retour à la fiche, comme si l'agence n'avait pas été appelée (rien n'est noté, l'écoute s'efface). */}
-                    <button type="button" onClick={annulerAppel} aria-label="Annuler l'appel" title="Annuler : revenir à la fiche, rien n'est noté"
-                      className="grid h-10 w-10 flex-none place-items-center rounded-full border border-bord-doux text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
-                  </div>
-                  {/* Raccrocher, comme « Valider » des actions proposées (21 oct. 2026, Jules) : un grand bouton, seul. */}
-                  <button type="button" onClick={raccrocher} className={`${GROS_BOUTON} max-w-[360px] bg-alerte text-white`}>Raccrocher</button>
-                </div>
-              </div>
+                  ) : null,
+                  milieu: <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect nu />,
+                  droite: (
+                    <>
+                      <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
+                      <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu />
+                      {ecran === "appel" && (
+                        <div className="grid grid-cols-2 gap-2.5 [&>button]:whitespace-nowrap">
+                          {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}
+                          <button type="button" onClick={() => dire(`Recomposez le ${numeroAppel || "numéro"} sur votre téléphone : l'écoute continue`)} className="h-11 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Rappeler</button>
+                          <button type="button" onClick={messageLaisse} disabled={noter.isPending} title="Répondeur : le message est laissé, les actions proposées s'ouvrent" className="h-11 rounded-full border border-bord-doux px-4 text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Message laissé</button>
+                        </div>
+                      )}
+                    </>
+                  ),
+                }} />
             )}
 
             {/* Au raccrochage : l'issue, tapée par l'analyste. */}
@@ -1317,7 +1320,6 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
               </div>
             )}
 
-            {ecran === "note" && a && <NoteApresAppel onFin={apresNote} />}
             {ecran === "raccroche" && a && (
               <div className="flex flex-col items-center justify-center gap-5 rounded-[20px] border border-trait bg-transparent px-5 py-20 text-center duration-500 animate-in fade-in-0">
                 <span className="grid h-[104px] w-[104px] place-items-center rounded-full bg-menthe text-sur-menthe duration-500 animate-in zoom-in-50"><Check className="h-10 w-10" strokeWidth={2.2} /></span>

@@ -55,7 +55,7 @@ export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
                 className="group block w-full text-left" style={{ background: "transparent" }}>
                 <span className="flex items-center">
                   <span className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-full border text-[11px] tabular-nums transition-colors duration-300 ${ouverte ? "border-encre bg-encre text-fond" : faite ? "border-menthe/60 bg-menthe/25 text-menthe" : "border-bord-doux text-transparent group-hover:border-bord-vif"}`}>
-                    {faite && !ouverte ? <Check className="h-3 w-3" /> : ouverte ? e.n : null}
+                    {faite ? <Check className="h-3 w-3" /> : ouverte ? e.n : null}
                   </span>
                   {!derniere && <span className={`mx-2.5 h-px flex-1 transition-colors duration-500 ${faite ? "bg-menthe/50" : "bg-encre/[0.14]"}`} />}
                 </span>

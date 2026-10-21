@@ -319,7 +319,7 @@ function etapeDebloquee(dossier) {
  * en blanc et plus grande, à venir en gris) et « 4/8 » ; un point mène à son étape. Ouvert : le menu, en surimpression,
  * avec une ombre. Le choix ouvert / fermé est gardé dans le navigateur.
  */
-function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
+function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onValider = null }) {
   const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.dossier.etapes") === "ouvert"; } catch { return false; } });
   const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.dossier.etapes", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
   const ici = Math.max(0, items.findIndex((o) => o.cle === valeur));
@@ -357,13 +357,22 @@ function MenuEtapesDroite({ items, valeur, onChange, occupe = false }) {
               {items.map((o) => {
                 const actif = valeur === o.cle;
                 return (
-                  <button key={o.cle} type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
-                    className={`flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
-                    <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${actif ? "border-encre bg-encre text-fond" : o.faite ? "border-menthe/50 text-menthe" : "border-encre/[0.18] text-brume"}`}>
-                      {o.faite && !actif ? <Check className="h-3 w-3" /> : o.n}
+                  <div key={o.cle} className="flex items-center gap-1">
+                  <button type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
+                    className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
+                    <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${o.faite ? "border-menthe bg-menthe text-sur-menthe" : actif ? "border-encre bg-encre text-fond" : "border-encre/[0.18] text-brume"}`}>
+                      {o.faite ? <Check className="h-3 w-3" /> : o.n}
                     </span>
                     <span className="min-w-0 truncate">{o.titre}</span>
                   </button>
+                    {/* Le check à droite : valider cette étape, et celles d'avant (21 oct. 2026, Jules). */}
+                    {onValider && !o.faite && (
+                      <button type="button" onClick={() => onValider(o.n)} aria-label={`Valider l'étape ${o.n} : ${o.titre}`} title={`Valider « ${o.titre} »${o.n > 1 ? " et les étapes d'avant" : ""}`}
+                        className="grid h-7 w-7 flex-none place-items-center rounded-full border border-bord-doux text-brume transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </nav>
@@ -551,6 +560,15 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   };
   const passerEtapeSuivante = () => passerVersEtape(null);
   // Un clic sur la frise : une étape pas encore atteinte débloque les précédentes.
+  // Les étapes validées à la main (21 oct. 2026, Jules) : aucun rond coché en arrivant ; le check à droite d'une
+  // étape la valide, avec toutes celles d'avant.
+  const [etapesValidees, setEtapesValidees] = useState(() => Number(dossier?.frise_validee) || 0);
+  useEffect(() => { setEtapesValidees(Number(dossier?.frise_validee) || 0); }, [dossier?.deal_id, dossier?.frise_validee]);
+  const validerEtape = (n) => {
+    const avant = etapesValidees;
+    setEtapesValidees(n);
+    base44.request("POST", `/api/preanalyse/dossiers/${dossier.deal_id}/frise`, { body: { n } }).catch(() => { setEtapesValidees(avant); toast.error("Étape non enregistrée"); });
+  };
   const allerA = async (id) => {
     const porte = PORTE[id];
     if (dossier && !apercu && porte > debloquee) {
@@ -644,7 +662,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             </div>
           </div>}
           {/* Les étapes passent dans le menu de droite (18 oct. 2026, Jules) ; au téléphone, la frise reste en haut. */}
-          <div className="md:hidden"><FriseDossier vue={vue} atteinte={etapeFrise(dossier)} onAller={allerA} occupe={deblocageEnCours} /></div>
+          <div className="md:hidden"><FriseDossier vue={vue} atteinte={etapesValidees + 1} onAller={allerA} occupe={deblocageEnCours} /></div>
         </>
       )}
 
@@ -746,7 +764,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       </div>
       </div>
       {dossier && (
-        <MenuEtapesDroite items={FRISE.map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: e.n < etapeFrise(dossier) }))} valeur={vue} onChange={allerA} occupe={deblocageEnCours} />
+        <MenuEtapesDroite items={FRISE.map((e) => ({ cle: e.id, titre: e.label, n: e.n, faite: e.n <= etapesValidees }))} valeur={vue} onChange={allerA} occupe={deblocageEnCours} onValider={apercu ? null : validerEtape} />
       )}
       </div>
       {/* Le simulateur de la pré-analyse passe sous les deux colonnes : toute la largeur, la colonne de droite comprise. */}

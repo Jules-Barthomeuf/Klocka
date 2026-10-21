@@ -227,6 +227,16 @@ export function monterPreanalyse(app) {
     ok(res, { nom });
   }));
 
+  // Les étapes du dossier validées à la main (21 oct. 2026, Jules) : valider l'étape n valide aussi celles d'avant.
+  app.post('/api/preanalyse/dossiers/:dealId/frise', wrap((req, res) => {
+    const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);
+    if (!brut) return res.status(404).json({ error: 'Dossier introuvable' });
+    const n = Math.max(0, Math.min(8, Math.round(Number(req.body?.n) || 0)));
+    Records.update('Deal', brut.id, { frise_validee: n });
+    if (n) ajouterSuiviDeal(Records.get('Deal', brut.id), { type: 'etape_validee', detail: `Étape ${n} validée` }, currentUser(req));
+    ok(res, { frise_validee: n });
+  }));
+
   // Changer qui s'occupe du dossier : la liste des responsables, remplacée.
   app.post('/api/preanalyse/dossiers/:dealId/responsables', wrap((req, res) => {
     const brut = Records.findBy('Deal', 'deal_id', req.params.dealId);

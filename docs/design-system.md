@@ -911,6 +911,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Listes de la Prospection, toutes visibles** (Jules, 21 oct. 2026) : la rangée des intercalaires de villes passe à la ligne au lieu de défiler, toutes les listes se voient toujours ; celles qu'on ne consulte pas sont sur un voile clair (`encre` à 6 %, 10 % au survol), celle qu'on consulte garde la teinte sombre du classeur (`bg-rail`), raccordée au tableau.
 
+**Un seul écran d'appel en cours** (Jules, 21 oct. 2026) : le Mode appel prend l'écran du rappel et de l'appel rapide (`EcranEnLigne.jsx`) à la place de sa carte en trois colonnes. En tête : l'état (« Appel en cours » ou le motif de la relance), le chrono, Essai, le nom de l'agence, le contact et le numéro, puis en petit d'où vient le numéro, les autres numéros, le site, « Écran enregistré » ; le micro en contour et Raccrocher ; dessous, Rappeler, Message laissé et annuler en petites pilules. La calculatrice flottante cède la place à la carte de calculatrice à droite.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

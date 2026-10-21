@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-21",
     items: [
+      { titre: "Le Mode appel prend l'écran du rappel", texte: "Pendant un appel en Mode appel, l'écran est le même que pour un rappel ou un appel rapide : l'agence et le numéro au centre, le micro et Raccrocher, la transcription à gauche, la calculatrice et les notes à droite.", page: "Prospection" },
       { titre: "La cloche se range", texte: "Survolez une ligne de « Ce qui t'attend » : la croix la retire, le réveil la remet à demain, lundi ou dans une semaine (un rappel revient ce jour-là).", page: "Dashboard" },
       { titre: "Pourquoi une fiche n'a pas sonné", texte: "Administration › Automatismes liste les mails reçus avec une pièce ces trois derniers jours, et ce que Haka en a fait : proposée, au prochain relevé, ou pas proposée et pourquoi.", page: "Automatismes" },
       { titre: "Le dossier s'ouvre en mode IA", texte: "La pré-analyse et l'analyse d'un dossier arrivent en mode IA ; la Data Room en mode normal.", page: "Analyse" },

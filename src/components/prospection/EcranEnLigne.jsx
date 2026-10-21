@@ -49,7 +49,7 @@ export function surligner(texte) {
   return out;
 }
 
-export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, ecoute = true, onRaccrocher, occupe = false, raccrocher = "Raccrocher", action = null }) {
+export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, ecoute = true, onRaccrocher, occupe = false, raccrocher = "Raccrocher", action = null, detail = null, secondaires = null }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       <span className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie">
@@ -59,6 +59,7 @@ export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, e
       </span>
       <h2 className="m-0 text-[34px] font-normal leading-[1.15] tracking-[-0.02em] text-encre max-md:text-[28px]">{nom}</h2>
       {sousTitre && <p className="m-0 text-[14px] text-ardoise">{sousTitre}{action}</p>}
+      {detail}
       <div className="mt-1 flex items-center gap-3">
         {/* Le micro, en simple contour à la couleur choisie : il dit qu'on écoute, il ne remplit rien. */}
         <span role="img" aria-label={ecoute ? "Micro actif" : "Micro coupé"} className={`grid h-11 w-11 place-items-center rounded-full border ${ecoute ? "k-anneau border-menthe text-menthe" : "border-bord-doux text-brume"}`}>
@@ -68,6 +69,8 @@ export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, e
           <PhoneOff className="h-4 w-4" strokeWidth={2} />{raccrocher}
         </button>
       </div>
+      {/* Les gestes propres à un écran (Mode appel : rappeler, message laissé, annuler), en petites pilules sous la rangée. */}
+      {secondaires && <div className="flex flex-wrap items-center justify-center gap-2 [&>button]:whitespace-nowrap">{secondaires}</div>}
     </div>
   );
 }

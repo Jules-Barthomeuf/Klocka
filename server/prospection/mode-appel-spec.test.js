@@ -149,9 +149,10 @@ test('scénario 12 : « Annuler » dans les 10 secondes remet tout comme avant',
 test('scénario 5 : « Pas intéressé » : ne plus appeler, aucune relance, absente des files', async () => {
   const { L, ag } = ville('Grasse');
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_interesse', user: nora });
-  assert.ok(!r.appel.propositions.some((p) => ['mail', 'diffusion', 'relance'].includes(p.id)));
+  // 21 oct. 2026 : mail, liste et relance restent à l'écran, décochés ; on valide ce qui est coché.
+  assert.ok(['mail', 'diffusion', 'relance'].every((id) => r.appel.propositions.some((p) => p.id === id && p.coche === false)));
   assert.ok(r.appel.propositions.some((p) => p.id === 'ne_plus_appeler'));
-  const v = await MA.validerIssue({ appel_id: r.appel.id, choix: r.appel.propositions.map((p) => p.id), user: nora, issue: 'pas_interesse' });
+  const v = await MA.validerIssue({ appel_id: r.appel.id, choix: r.appel.propositions.filter((p) => p.coche !== false).map((p) => p.id), user: nora, issue: 'pas_interesse' });
   assert.match(v.recu.relance.texte, /Ne plus appeler/);
   const agentId = Records.get('AgenceProspect', ag.id).carnet_id;
   assert.equal(Records.get('AgentImmo', agentId).prochaine, null);
@@ -283,7 +284,20 @@ test("13 oct. : « envoyer un mail » dans les notes propose le mail, même apr�
   const { ag } = ville('Cagnes');
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'repondeur', notes: 'Message laissé, lui envoyer un mail de présentation', user: nora });
   assert.equal(r.ok, true);
-  assert.ok(r.appel.propositions.some((p) => p.type === 'mail'), 'le mail de présentation est proposé');
+  assert.ok(r.appel.propositions.some((p) => p.type === 'mail' && p.coche !== false), 'le mail de présentation est proposé, coché');
   const r2 = await MA.noterIssue({ agence_id: ag.id, issue: 'repondeur', notes: 'pas de mail pour lui', user: nora });
-  assert.equal(r2.appel.propositions.some((p) => p.type === 'mail'), false);
+  assert.ok(r2.appel.propositions.some((p) => p.type === 'mail' && p.coche === false), 'toujours là, mais décoché');
+});
+
+test("21 oct. : l'email, la liste et la relance sont toujours à l'écran, décochés quand l'issue ne les prévoit pas", async () => {
+  const { ag } = ville('Vence');
+  const r = await MA.noterIssue({ agence_id: ag.id, issue: 'a_rappeler', recit: 'Le secrétariat transmet au responsable, rappeler la semaine prochaine', user: nora });
+  assert.equal(r.ok, true);
+  const p = (id) => r.appel.propositions.find((x) => x.id === id);
+  assert.ok(p('mail') && p('mail').coche === false, 'Email décoché');
+  assert.ok(p('diffusion') && p('diffusion').coche === false, 'liste décochée');
+  assert.ok(p('relance'), 'la relance prévue pour « à rappeler »');
+  const v = await MA.validerIssue({ appel_id: r.appel.id, choix: r.appel.propositions.filter((x) => x.coche !== false).map((x) => x.id), user: nora, issue: 'a_rappeler' });
+  assert.equal(v.ok, true);
+  assert.equal(v.recu.mail, null, 'décoché : aucun mail ne part');
 });

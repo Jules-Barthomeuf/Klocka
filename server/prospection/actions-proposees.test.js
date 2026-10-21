@@ -188,7 +188,8 @@ test("Pas intéressé : Monday « Ne plus appeler », relance vidée, liste de d
   const ag = agence();
   const avant = envoyes.length;
   const { r, v } = await appeler(ag, 'pas_interesse');
-  assert.ok(!r.appel.propositions.some((p) => ['mail', 'diffusion'].includes(p.id)));
+  // 21 oct. 2026 : le mail et la liste restent à l'écran, décochés ; rien ne part tant qu'on ne les coche pas.
+  assert.ok(['mail', 'diffusion'].every((id) => r.appel.propositions.some((p) => p.id === id && p.coche === false)));
   assert.equal(v.recu.monday.etat, 'ok', v.recu.monday.erreur);
   const l = ligneDe(faux, ag);
   assert.equal(l.colonnes.statut, 'Ne plus appeler');

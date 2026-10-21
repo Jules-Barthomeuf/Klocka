@@ -831,7 +831,10 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // dictée, et aucun mail proposé parce que l'issue était « à rappeler ») : le modèle l'a noté, ou une adresse a été dictée.
   const mailDemande = (/\b(e-?mail|mail|courriel)\b/i.test(String(notes || '')) && !/\b(pas|ne|sans)\b[^.]{0,20}\b(e-?mail|mail|courriel)/i.test(String(notes || '')))
     || lu.appel.canal_prefere === 'mail' || !!valeurSure(compris, 'email');
-  const choixModele = MO.MODELES_DE_L_ISSUE[issue] || (mailDemande && issue !== 'pas_interesse' ? { defaut: 'presentation-cahier' } : null);
+  const choixPropose = MO.MODELES_DE_L_ISSUE[issue] || (mailDemande && issue !== 'pas_interesse' ? { defaut: 'presentation-cahier' } : null);
+  // Toujours à l'écran (21 oct. 2026, Jules : « on n'envoie pas de mail, ça met quand même Email, mais décoché ») : sans
+  // mail prévu pour l'issue, le mail de présentation est là, décoché ; l'analyste le coche s'il le veut.
+  const choixModele = choixPropose || { defaut: 'presentation-cahier' };
   const emailSur = valeurSure(compris, 'email');
   const emailIncertain = !emailSur && compris.champs?.email ? compris.champs.email.valeur : null;
   const destinataire = emailSur || (f?.emails || [])[0] || a.email || emailIncertain || null;
@@ -850,10 +853,10 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
     }
     if (variantes.length) {
       const m = variantes[0];
-      actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!destinataire });
+      actions.push({ id: 'mail', type: 'mail', titre: 'Email', depuis: await expediteurDe(moi), a: destinataire, ...(destinataire && destinataire === emailIncertain ? { a_incertain: compris.champs.email.incertain } : {}), objet: m.objet, corps: m.corps, contexte: m.contexte, modele: m.slug, variantes, coche: !!choixPropose && !!destinataire, prevu: !!choixPropose });
     }
-    actions.push({ id: 'diffusion', type: 'diffusion', titre: 'Ajouter à la liste de diffusion agents', liste: LISTE_DIFFUSION, a: destinataire, coche: !!destinataire });
-    if (variantes.length) etape(destinataire ? `Je prépare l'email pour ${destinataire}` : 'Je prépare l\'email (il manque son adresse)');
+    actions.push({ id: 'diffusion', type: 'diffusion', titre: 'Ajouter à la liste de diffusion agents', liste: LISTE_DIFFUSION, a: destinataire, coche: !!choixPropose && !!destinataire && issue !== 'pas_interesse' });
+    if (variantes.length && choixPropose) etape(destinataire ? `Je prépare l'email pour ${destinataire}` : 'Je prépare l\'email (il manque son adresse)');
   }
   // Il veut un SMS, pas un mail (16 oct. 2026, Jules) : le mail proposé devient un SMS, envoyé depuis le téléphone.
   const iMail = actions.findIndex((x) => x.type === 'mail');
@@ -868,6 +871,11 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   if (relance) {
     actions.push({ ...relance, titre: 'Planifier la relance', coche: true });
     etape(`Je mets la relance au ${jourLong(relance.prochaine.le)} dans le calendrier`);
+  } else {
+    // Pas de relance pour cette issue (pas intéressé, mauvais numéro, que du résidentiel, il rappelle) : elle reste
+    // proposée, décochée, dans un mois ; la cocher la pose (21 oct. 2026, Jules).
+    const le = R.ouvre(R.plusJours(R.jourDe(new Date()), 30));
+    actions.push({ id: 'relance', type: 'relance', titre: 'Planifier la relance', prochaine: { quoi: 'rappeler', le }, coche: false, incertain: 'pas de relance prévue pour cette issue : à cocher si besoin' });
   }
   // Un mandat annoncé en plus du bien : une seconde relance, pour faire le point, à l'échéance dite ou dans trois semaines.
   const mandat = compris.champs?.mandat;

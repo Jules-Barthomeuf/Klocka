@@ -68,7 +68,8 @@ function Etape({ e }) {
     <div className="flex min-h-[40px] items-center gap-1.5">
       <span className={`flex min-w-0 flex-1 flex-col gap-0.5 transition-opacity ${e.on ? "" : "opacity-40"}`}>
         <span className={`text-[15.5px] text-encre ${e.on ? "" : "line-through"}`}>{e.label}</span>
-        {e.warn && e.on && e.detail && <span className="text-[12.5px] text-ambre">{e.detail}</span>}
+        {/* Un mail décoché faute d'adresse dit pourquoi (21 oct. 2026) : on saisit l'adresse dans l'étape, puis on coche. */}
+        {e.warn && e.detail && (e.on || e.q?.type === "mail") && <span className="text-[12.5px] text-ambre">{e.detail}</span>}
         {e.parce && <span className="text-[12.5px] leading-[1.4] text-ardoise">Parce que : {e.parce}</span>}
       </span>
       <BoutonOeil onClick={e.voir} />
@@ -519,6 +520,12 @@ export default function SequenceActions({ appel, agence, issue, coches, setCoche
   const p = (k) => { const sg = segments.out[k]; return sg ? Math.max(0, Math.min(1, (t - sg[0]) / sg[1])) : 0; };
 
   const basculer = (id) => () => setCoches((st) => { const n = new Set(st); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // Un mail prévu par l'appel mais décoché faute d'adresse (21 oct. 2026) : il se coche dès qu'une adresse est saisie, une fois.
+  const mailCoche = useRef(false);
+  useEffect(() => {
+    if (!pm?.prevu || pm.coche !== false || mailCoche.current) return;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(mail?.a || "").trim())) { mailCoche.current = true; setCoches((st) => new Set([...st, pm.id])); }
+  }, [mail?.a, pm?.prevu, pm?.coche, pm?.id, setCoches]);
   const modifie = pm && mail && (mail.objet !== pm.objet || mail.corps !== pm.corps || (mail.a || "") !== (pm.a || ""));
   const dateRelance = relanceLe || pr?.prochaine?.le;
   const choisie = ligneMonday ? (ligneMonday === "nouvelle" ? { nom: "Nouveau contact" } : (ligne?.candidates || []).find((c) => c.id === ligneMonday)) : null;

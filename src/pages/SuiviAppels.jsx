@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
 import OngletsSuivi from "@/components/OngletsSuivi";
 import RetoursAnalystes from "@/components/monitoring/RetoursAnalystes";
@@ -56,9 +57,15 @@ const COLONNES = [
 /** « 42 s », « 2 min 05 ». */
 const secondesLisibles = (ms) => { const s = Math.round(ms / 1000); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}`; };
 
-function DetailAppel({ x, modifiable = true }) {
+function DetailAppel({ x, modifiable = true, base = "/api/monitoring/appels" }) {
   // Validé ou non, à la main (13 oct. 2026, Jules) : seul l'état change, rien n'est envoyé ni écrit ailleurs.
   const queryClient = useQueryClient();
+  // Supprimer l'appel du journal (21 oct. 2026, Jules) : son auteur, ou Jules ; ce qui est déjà parti reste parti.
+  const supprimer = useMutation({
+    mutationFn: () => base44.request("DELETE", `${base}/${encodeURIComponent(x.id)}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["suivi-appels"] }); toast.success("Appel supprimé du journal"); },
+    onError: (e) => toast.error(e?.message || "Suppression impossible"),
+  });
   const marquer = useMutation({
     mutationFn: (valide) => base44.request("POST", `/api/monitoring/appels/${x.id}/validation`, { body: { valide } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["suivi-appels"] }),
@@ -108,6 +115,12 @@ function DetailAppel({ x, modifiable = true }) {
       {v && <div className={ligne}><span className="text-ardoise">Validation</span><span className="text-craie">{v.depuis_fenetre ? "Depuis la fenêtre des actions" : "Depuis la page"} · {v.vues ?? "?"} étape{(v.vues || 0) > 1 ? "s" : ""} ouverte{(v.vues || 0) > 1 ? "s" : ""} sur {v.etapes}{v.retirees?.length ? ` · retirées : ${v.retirees.join(", ")}` : ""}{v.ajoutees?.length ? ` · ajoutées : ${v.ajoutees.join(", ")}` : ""}{x.annulations ? ` · annulé ${x.annulations} fois` : ""}</span></div>}
       {m && <div className={ligne}><span className="text-ardoise">Corrections d'AK</span><span className="text-craie">{!m.propose_par_ak ? "Issue tapée à la main : AK n'a rien proposé" : !m.corrige ? "Aucune" : [m.issue && "issue changée", m.champs?.length && `champs : ${m.champs.join(", ")}`, m.date && "date retouchée", m.mail && "mail retouché"].filter(Boolean).join(" · ")}</span></div>}
       {x.recu && <div className={ligne}><span className="text-ardoise">Reçu</span><span className="flex flex-col gap-0.5 text-craie">{x.recu.monday && <span>Monday : {x.recu.monday.texte}</span>}{x.recu.mail && <span>Mail : {x.recu.mail.texte}</span>}{x.recu.relance && <span>{x.recu.relance}</span>}</span></div>}
+      <div className="flex justify-end border-t border-trait pt-2.5">
+        <button type="button" onClick={() => { if (window.confirm("Supprimer cet appel du journal ? Ce qui est déjà parti (Monday, mail) n'est pas défait.")) supprimer.mutate(); }} disabled={supprimer.isPending}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] text-ardoise transition-colors hover:text-alerte disabled:opacity-50" style={{ background: "transparent" }}>
+          {supprimer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Supprimer l'appel
+        </button>
+      </div>
     </div>
   );
 }
@@ -407,7 +420,7 @@ export default function SuiviAppels({ dansProspection = false }) {
                         <span className="text-ardoise">{!x.mesure_ak ? "—" : !x.mesure_ak.propose_par_ak ? "Tapée" : x.mesure_ak.corrige ? <span className="text-ambre">Corrigé</span> : "Juste"}</span>
                         <ChevronDown className={`h-3.5 w-3.5 text-brume transition-transform ${ouvert === x.id ? "rotate-180" : ""}`} />
                       </button>
-                      {ouvert === x.id && <DetailAppel x={x} modifiable={!dansProspection} />}
+                      {ouvert === x.id && <DetailAppel x={x} modifiable={!dansProspection} base={base} />}
                     </div>
                   ))}
                   {!journal.length && <p className="m-0 py-8 text-center text-[13px] text-brume">Aucun appel sur la période.</p>}

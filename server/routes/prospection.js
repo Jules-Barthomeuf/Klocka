@@ -165,6 +165,16 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
+  // Supprimer un appel du journal (21 oct. 2026) : son auteur, ou Jules. Le même pour Suivi et Prospection > Suivi.
+  for (const chemin of ['/api/monitoring/appels/:id', '/api/prospection/suivi-appels/:id']) {
+    app.delete(chemin, wrap(async (req, res) => {
+      const user = admin(req, res);
+      if (!user) return;
+      const r = await (await import('../prospection/suivi-appels.js')).supprimerAppel(req.params.id, user);
+      if (!r.ok) return res.status(r.statut || 400).json({ error: r.error });
+      ok(res, r);
+    }));
+  }
   app.post('/api/monitoring/appels/tout-afficher', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     (await import('../prospection/suivi-appels.js')).toutAfficher();

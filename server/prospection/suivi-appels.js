@@ -323,6 +323,31 @@ export function contexteAppels(appels, { sources = [], faits = [], liens = [] } 
  * dans le journal du Suivi. Seul l'état change : rien n'est envoyé ni écrit
  * ailleurs (ni mail, ni Monday) ; la main est notée sur l'appel.
  */
+/**
+ * Supprimer un appel du journal (21 oct. 2026, Jules : « on doit pouvoir supprimer les appels qu'on veut dans le
+ * journal d'appels »). Un appel, ou un rappel resté sans appel (`rappel:<id>`). Seul son auteur le peut, ou Jules.
+ * L'appel quitte le journal, les chiffres et l'historique de la fiche ; son écran rejoué part avec lui. Ce qui
+ * était déjà parti (une ligne Monday, un mail) n'est pas défait.
+ */
+export async function supprimerAppel(id, user) {
+  const email = String(user?.email || '').toLowerCase();
+  const { estSuperAdmin } = await import('../acces-pages.js');
+  const peut = (par) => estSuperAdmin(user) || String(par || '').toLowerCase() === email;
+  if (String(id).startsWith('rappel:')) {
+    const r = Records.get('RappelEntrant', String(id).slice('rappel:'.length));
+    if (!r) return { ok: false, statut: 404, error: 'Rappel introuvable.' };
+    if (!peut(r.par)) return { ok: false, statut: 403, error: "Ce rappel n'est pas le vôtre." };
+    Records.delete('RappelEntrant', r.id);
+    return { ok: true };
+  }
+  const x = Records.get('AppelAgent', id);
+  if (!x) return { ok: false, statut: 404, error: 'Appel introuvable.' };
+  if (!peut(x.par)) return { ok: false, statut: 403, error: "Cet appel n'est pas le vôtre." };
+  for (const e of Records.list('EnregistrementEcran').filter((e) => e.appel_id === x.id)) Records.delete('EnregistrementEcran', e.id);
+  Records.delete('AppelAgent', x.id);
+  return { ok: true };
+}
+
 export function marquerValidation(id, valide, user) {
   const x = Records.get('AppelAgent', id);
   if (!x) return { ok: false, error: 'Appel introuvable.' };

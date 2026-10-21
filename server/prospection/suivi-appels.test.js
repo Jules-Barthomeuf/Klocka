@@ -261,3 +261,20 @@ test("Mes appels : `par` ne garde que les appels, sessions et rappels de la pers
   assert.equal(moi.analystes.find((a) => a.email === 'maxime.p@klocka.immo')?.appels || 0, 0);
   assert.ok(moi.par_jour.some((j) => j.parole_pct === 40), 'la part de parole du jour');
 });
+
+// Supprimer un appel du journal (21 oct. 2026, Jules) : son auteur ou Jules, et son écran rejoué avec lui.
+test('supprimerAppel : l\'auteur ou Jules, pas un collègue ; le rappel sans appel aussi', async () => {
+  process.env.SUPER_ADMIN_EMAILS = 'jules.b@klocka.immo';
+  const a = Records.create('AppelAgent', { par: 'nora.l@klocka.immo', le: '2026-10-21T09:00:00Z', issue: 'interesse', etat: 'valide' });
+  Records.create('EnregistrementEcran', { appel_id: a.id });
+  assert.equal((await S.supprimerAppel(a.id, { email: 'maxime@klocka.immo' })).statut, 403);
+  assert.equal((await S.supprimerAppel(a.id, { email: 'nora.l@klocka.immo' })).ok, true);
+  assert.equal(Records.get('AppelAgent', a.id), null);
+  assert.equal(Records.list('EnregistrementEcran').filter((e) => e.appel_id === a.id).length, 0);
+  const b = Records.create('AppelAgent', { par: 'nora.l@klocka.immo', le: '2026-10-21T09:00:00Z' });
+  assert.equal((await S.supprimerAppel(b.id, { email: 'jules.b@klocka.immo' })).ok, true, 'Jules peut tout supprimer');
+  const r = Records.create('RappelEntrant', { par: 'nora.l@klocka.immo', debut: '2026-10-21T09:00:00Z', etat: 'abandonne' });
+  assert.equal((await S.supprimerAppel(`rappel:${r.id}`, { email: 'nora.l@klocka.immo' })).ok, true);
+  assert.equal(Records.get('RappelEntrant', r.id), null);
+  assert.equal((await S.supprimerAppel('inconnu', { email: 'nora.l@klocka.immo' })).statut, 404);
+});

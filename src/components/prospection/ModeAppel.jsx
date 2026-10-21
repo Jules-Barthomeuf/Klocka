@@ -371,9 +371,9 @@ function ResumeAppel({ onAnalyser, onSansReponse, occupe }) {
   // gauche, Analyser en bas à droite ; dessous, « Pas de réponse ou répondeur » sur toute la largeur.
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className={`flex min-h-[240px] flex-1 flex-col rounded-[18px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
+      <div className={`flex min-h-[200px] flex-1 flex-col rounded-[16px] border bg-transparent transition-colors ${ecoute ? "border-menthe/60" : "border-bord-doux focus-within:border-bord-vif"}`}>
         <textarea value={texte} onChange={(e) => setTexte(e.target.value)} aria-label="Ce qui s'est dit pendant l'appel" placeholder="Dites ou écrivez ce qui s'est dit"
-          className="min-h-[160px] flex-1 resize-none bg-transparent px-5 pt-4 text-[15px] leading-[1.55] text-encre outline-none placeholder:text-brume" />
+          className="min-h-[140px] flex-1 resize-none bg-transparent px-4 pt-3.5 text-[14px] leading-[1.55] text-encre outline-none placeholder:text-brume" />
         <div className="flex items-center justify-between gap-2 px-3 pb-3">
           {supporte ? (
             <button type="button" onClick={dicter} aria-label={ecoute ? "Arrêter la dictée" : "Dicter"} title={ecoute ? "Arrêter la dictée" : "Dicter le résumé"}
@@ -382,12 +382,12 @@ function ResumeAppel({ onAnalyser, onSansReponse, occupe }) {
             </button>
           ) : <span />}
           <button type="button" disabled={!pret} onClick={() => onAnalyser(texte.trim())}
-            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-menthe px-5 text-[14.5px] text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
-            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Analyser<ArrowRight className="h-4 w-4" />
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe transition-opacity hover:bg-menthe-survol disabled:opacity-40">
+            {occupe ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Analyser<ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      <button type="button" onClick={onSansReponse} className="h-12 w-full rounded-full border border-bord-doux text-[14.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
+      <button type="button" onClick={onSansReponse} className="h-11 w-full rounded-full border border-bord-doux text-[13.5px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Pas de réponse ou répondeur</button>
     </div>
   );
 }
@@ -438,20 +438,20 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
       )}
     </>
   );
-  const etiq2 = "m-0 text-[12.5px] tracking-[.14em] text-ardoise";
+  const etiq2 = "m-0 text-[11px] tracking-[.14em] text-brume";
   // La fiche d'avant l'appel (maquette de Jules, 21 oct. 2026) : une carte ; en tête l'origine et l'état, le nom, la
   // personne et son numéro, à droite le micro, Appeler et Passer ; dessous trois colonnes : interlocuteurs et
   // historique, l'accroche et les recherches clients, « Déjà appelé ? ».
   return (
     <div className="overflow-hidden rounded-[24px] border border-bord-doux bg-transparent">
-      <div className="flex flex-wrap items-end justify-between gap-6 px-9 py-8 max-md:px-5 max-md:py-6">
+      <div className="flex flex-wrap items-end justify-between gap-6 px-7 py-6 max-md:px-5 max-md:py-5">
         <div className="flex min-w-0 flex-col gap-3">
-          <span className="flex flex-wrap items-center gap-3 text-[14px] text-ardoise">
+          <span className="flex flex-wrap items-center gap-2.5 text-[12.5px] text-ardoise">
             {relances ? "Relances" : "Tableau prospection"}{a.ville ? ` · ${a.ville}` : ""}
-            <span className={`rounded-full px-3 py-1 text-[13px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>
+            <span className={`rounded-full px-2.5 py-0.5 text-[12px] ${relance ? "bg-ambre/15 text-ambre" : "bg-menthe/15 text-menthe"}`}>{a.badge || a.statut?.libelle}</span>
           </span>
-          <p className="m-0 break-words text-[clamp(30px,3.2vw,46px)] font-normal leading-[1.08] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
-          <p className="m-0 text-[16px] text-ardoise">
+          <p className="m-0 break-words text-[clamp(22px,2.1vw,30px)] font-normal leading-[1.15] tracking-[-0.02em] text-encre [text-wrap:balance]">{nomLisible(a.nom)}</p>
+          <p className="m-0 text-[13.5px] text-ardoise">
             {[personne?.nom || "Interlocuteur non connu", personne?.fonction].filter(Boolean).join(" · ")}
             {numero && <> · <span className="select-all tabular-nums text-encre">{numero}</span></>}
           </p>
@@ -464,18 +464,18 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
         </div>
         <div className="flex flex-none items-center gap-3">
           <button type="button" onClick={onMicro} aria-label="Enregistrer l'appel" title="Enregistrer quand l'agent décroche"
-            className="grid h-14 w-14 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
-            <Mic className="h-5 w-5" strokeWidth={1.8} />
+            className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
+            <Mic className="h-4 w-4" strokeWidth={1.8} />
           </button>
           {/* Appeler : composer sur son téléphone, l'écoute part (pas de lien tel:, 7 oct. 2026) ; en essai, l'appel se joue. */}
           <button type="button" onClick={onMicro} title={essai ? "Simuler l'appel" : "Composez le numéro sur votre téléphone : l'écoute démarre"}
-            className="inline-flex h-14 items-center gap-2.5 rounded-full bg-menthe px-7 text-[17px] text-sur-menthe transition-colors hover:bg-menthe-survol">
-            <Phone className="h-5 w-5" strokeWidth={1.8} />Appeler
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
+            <Phone className="h-4 w-4" strokeWidth={1.8} />Appeler
           </button>
           {onRetour
-            ? <button type="button" onClick={onRetour} className="h-14 rounded-full border border-bord-doux px-6 text-[16px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
+            ? <button type="button" onClick={onRetour} className="h-11 rounded-full border border-bord-doux px-5 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Retour</button>
             // Passer d'un clic (13 oct. 2026, Jules) : l'agence suivante, sans raison à donner ; celle-ci revient demain.
-            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-14 rounded-full border border-bord-doux px-6 text-[16px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
+            : <button type="button" onClick={() => onPasser("plus_tard")} disabled={passerEnCours} className="h-11 rounded-full border border-bord-doux px-5 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>Passer</button>}
         </div>
       </div>
 
@@ -483,20 +483,20 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
       <div aria-hidden className="h-px bg-bord-doux" />
       <div className="grid lg:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.8fr)_minmax(300px,1.25fr)]">
         {/* Les interlocuteurs et l'historique. */}
-        <div className="flex min-w-0 flex-col gap-7 border-bord-doux p-8 max-lg:order-3 max-lg:border-t max-md:p-5 lg:border-r">
+        <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-6 max-lg:order-3 max-lg:border-t max-md:p-5 lg:border-r">
           <div className="flex flex-col gap-2">
             <span className={etiq2}>INTERLOCUTEURS</span>
             {contacts.map((x) => {
               const actif = choisi?.id === x.id;
               return (
                 <button key={x.id} type="button" onClick={() => onChoisir(x.id)} aria-pressed={actif} title={x.nom}
-                  className={`flex w-full min-w-0 flex-col items-start gap-0.5 rounded-[14px] px-4 py-3 text-left transition-colors ${actif ? "bg-relief" : "hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
-                  <span className="block w-full break-words text-[16px] leading-[1.3] text-encre">{x.nom}</span>
-                  <span className={`block w-full truncate text-[13.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
+                  className={`flex w-full min-w-0 flex-col items-start gap-0.5 rounded-[12px] px-3.5 py-2.5 text-left transition-colors ${actif ? "bg-relief" : "hover:bg-relief/60"}`} style={actif ? undefined : { background: "transparent" }}>
+                  <span className="block w-full break-words text-[14.5px] leading-[1.3] text-encre">{x.nom}</span>
+                  <span className={`block w-full truncate text-[12.5px] ${actif ? "text-menthe" : "text-ardoise"}`}>{x.source}</span>
                 </button>
               );
             })}
-            {!contacts.length && <span className="pt-1 text-[14px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
+            {!contacts.length && <span className="pt-1 text-[13.5px] leading-[1.5] text-brume">Personne de connu : demandez le responsable commerce.</span>}
           </div>
           <div className="flex flex-col gap-2">
             <span className={etiq2}>HISTORIQUE</span>
@@ -504,23 +504,23 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
               <div key={k} className="flex gap-3 py-1.5">
                 <span className="mt-[8px] h-1.5 w-1.5 flex-none rounded-full bg-bord-vif" />
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[14.5px] text-encre">{h.quoi}</span>
-                  <span className="text-[13px] text-ardoise">{[h.quand, h.qui].filter(Boolean).join(" · ")}</span>
+                  <span className="text-[14px] text-encre">{h.quoi}</span>
+                  <span className="text-[12.5px] text-ardoise">{[h.quand, h.qui].filter(Boolean).join(" · ")}</span>
                 </span>
               </div>
             ))}
-            {!histo.length && <span className="text-[15px] text-ardoise">Jamais appelée</span>}
+            {!histo.length && <span className="text-[14px] text-ardoise">Jamais appelée</span>}
           </div>
           {/* L'Intelligence (phase 6, 15 oct. 2026) : avant d'appeler, ce qu'on sait de l'agence et ce qu'on lui doit. */}
           {!essai && <CeQueKlockaSait type="agence" id={a.id} />}
         </div>
 
         {/* L'accroche et les recherches clients (ou, en relance, ce qu'on s'est dit). */}
-        <div className="flex min-w-0 flex-col gap-6 border-bord-doux p-10 max-lg:order-1 max-md:p-5 lg:border-r">
+        <div className="flex min-w-0 flex-col gap-5 border-bord-doux p-7 max-lg:order-1 max-md:p-5 lg:border-r">
           {a.relance ? <PourquoiRelance a={a} /> : relances ? suite : (
             <div className="flex flex-col gap-5">
               <span className={etiq2}>L'ACCROCHE</span>
-              <p className="m-0 text-[26px] leading-[1.45] tracking-[-0.01em] text-encre [text-wrap:pretty] max-md:text-[21px]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</p>
+              <p className="m-0 text-[20px] leading-[1.45] tracking-[-0.01em] text-encre [text-wrap:pretty] max-md:text-[17px]">Nos recherches clients actives sur {a.ville || "la ville"}, pour recevoir leurs biens avant la mise en ligne.</p>
               {recherches.length > 0 && (
                 <div className="flex flex-col">
                   {recherches.map((q) => {
@@ -528,7 +528,7 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
                     return (
                       <React.Fragment key={q}>
                         <div aria-hidden className="h-px bg-bord-doux" />
-                        <div className="flex items-baseline justify-between gap-6 py-4 text-[16px]">
+                        <div className="flex items-baseline justify-between gap-6 py-3 text-[13.5px]">
                           <span className="min-w-0 text-encre">{l.gauche}</span>
                           {l.droite && <span className="flex-none text-right tabular-nums text-encre">{l.droite}</span>}
                         </div>
@@ -539,14 +539,14 @@ function FicheAppel({ a, relances, recherches, essai, choisi, onChoisir, onMicro
               )}
             </div>
           )}
-          {essai && <span className="text-[14px] leading-[1.5] text-ardoise">Essai : touchez Appeler pour simuler l'appel.</span>}
+          {essai && <span className="text-[13.5px] leading-[1.5] text-ardoise">Essai : touchez Appeler pour simuler l'appel.</span>}
         </div>
 
         {/* Déjà appelé ? */}
-        <div className="flex min-w-0 flex-col gap-4 p-8 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
+        <div className="flex min-w-0 flex-col gap-4 p-6 max-lg:order-2 max-lg:border-t max-lg:border-bord-doux max-md:p-5">
           <span className={etiq2}>DÉJÀ APPELÉ ?</span>
           {!essai ? <ResumeAppel onAnalyser={onResume} onSansReponse={onSansNotes} occupe={resumeEnCours} />
-            : <span className="text-[14px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
+            : <span className="text-[13.5px] leading-[1.5] text-brume">En essai, l'appel se joue tout seul : touchez Appeler.</span>}
         </div>
       </div>
     </div>

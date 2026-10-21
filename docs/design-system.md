@@ -909,6 +909,8 @@ jugé prend un contour menthe (intéressant) ou ardoise (pas intéressant).
 
 **Étapes du dossier validées à la main** (Jules, 21 oct. 2026) : le menu des étapes (rail à droite, frise au téléphone) n'a plus d'étape cochée d'office. Chaque étape non validée porte à droite un petit rond à contour avec un check ; un clic le valide, le rond de l'étape se remplit de `menthe` avec son check (même si c'est l'étape ouverte), et le check de droite disparaît. Valider l'étape n valide aussi toutes celles d'avant. L'état est gardé sur le dossier (`frise_validee`), indépendamment de l'avancement calculé par le serveur.
 
+**Listes de la Prospection, toutes visibles** (Jules, 21 oct. 2026) : la rangée des intercalaires de villes passe à la ligne au lieu de défiler, toutes les listes se voient toujours ; celles qu'on ne consulte pas sont sur un voile clair (`encre` à 6 %, 10 % au survol), celle qu'on consulte garde la teinte sombre du classeur (`bg-rail`), raccordée au tableau.
+
 ## 7. Les documents imprimés
 
 L'avis de valeur (`avis-valeur.css`) et le mandat (`mandat-mynotary.css`) ont

@@ -363,3 +363,19 @@ test('trouverDansMonday : le nom dicté retrouve la ligne, trait d\'union compri
   // Au carnet local aussi, le trait d'union ne sépare plus.
   assert.equal(RP.trouverDepuisNote({ nom: 'Louis de la Roche Baron' }, { agents: [{ id: 'l', nom: 'Louis DE LA ROCHE-BARON', agence: 'Barnes' }], agences: [] }).agent_id, 'l');
 });
+
+// Les essais de Jules (21 oct. 2026) : en mode Essai, la note retrouve le vrai contact, et c'est une copie d'essai
+// qui est identifiée ; le vrai carnet n'est pas touché.
+test('en essai, la note retrouve le vrai carnet et identifie une copie d\'essai, jamais « Créer le contact »', async () => {
+  const vrai = Records.create('AgentImmo', { nom: 'Louis de LARROCHE BARON', agence: 'Barnes Bordeaux', ville: 'Bordeaux', telephones: ['06 55 44 33 22'] });
+  const avant = Records.list('AgentImmo').filter((a) => !a.essai).length;
+  const o = await RP.ouvrirEssaiRappel(NORA, { sens: 'entrant' });
+  assert.equal(o.ok, true, o.error);
+  const r = await RP.finir(o.rappel.id, { morceaux: [], audios: [], notes: '', duree_s: 20, note_vocale: "C'était Louis de la Roche-Baron, il rappelle pour le local." }, NORA);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.rappel.etat, 'identifie');
+  assert.notEqual(r.rappel.agent.id, vrai.id, 'une copie, pas la vraie fiche');
+  assert.match(r.rappel.agent.nom, /LARROCHE BARON/);
+  assert.equal(Records.get('AgentImmo', r.rappel.agent.id).essai, true);
+  assert.equal(Records.list('AgentImmo').filter((a) => !a.essai).length, avant, 'le vrai carnet n\'a rien gagné');
+});

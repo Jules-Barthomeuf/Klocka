@@ -624,16 +624,31 @@ export async function finir(id, { morceaux = [], audios = [], notes = null, dure
   if (note && !deja) {
     const qui = await lireNote(note);
     let t = trouverDepuisNote(qui, annuaireDe(r));
+    // En essai (21 oct. 2026, Jules : « à chaque fois ça crée le contact ») : la liste fictive ne connaît personne.
+    // On lit aussi le vrai carnet et Monday, sans rien y toucher ; la personne trouvée devient une copie d'essai.
+    const copieEssai = async (c, raison) => {
+      const ident = await identifier(id, { nouveau: { nom: c.nom, agence: c.agence || '', ville: c.ville || '', telephone: c.telephone || '', email: c.email || '' } }, user);
+      return ident.ok ? { agent_id: ident.rappel?.agent?.id || Records.get(ENTITE, id)?.agent_id, raison, deja_identifie: true } : t;
+    };
+    if (!t.agent_id && r.essai) {
+      const reel = trouverDepuisNote(qui, annuaireDe({ ...r, essai: false }));
+      const a = reel.agent_id ? Records.get('AgentImmo', reel.agent_id) : null;
+      if (a) t = await copieEssai({ nom: a.nom, agence: a.agence, ville: a.ville, telephone: (a.telephones || [])[0], email: (a.emails || [])[0] }, 'carnet (copie d\'essai)');
+    }
     // Personne d'unique au carnet : on cherche dans Monday avant de proposer de créer quoi que ce soit.
-    if (!t.agent_id && !r.essai) {
+    if (!t.agent_id) {
       const m = trouverDansMonday(qui, await lignesMonday());
-      if (m.ligne) t = { agent_id: await ficheDeMonday(m.ligne), raison: 'fiche Monday' };
-      else if (m.lignes?.length) {
+      if (m.ligne) {
+        t = r.essai
+          ? await copieEssai({ nom: nomMonday(m.ligne), agence: m.ligne.entreprise, ville: m.ligne.ville, telephone: String(m.ligne.telephone || '').split(/[,;/]/)[0], email: (m.ligne.emails || [])[0] }, 'Monday (copie d\'essai)')
+          : { agent_id: await ficheDeMonday(m.ligne), raison: 'fiche Monday' };
+      } else if (m.lignes?.length) {
         const deMonday = m.lignes.map((l) => ({ cle: `monday:${l.id}`, agent_id: null, agence_id: null, monday_ligne_id: l.id, nom: nomMonday(l), agence: l.entreprise || null, ville: l.ville || null, telephone: l.telephone || null, raison: 'Monday', probable: false }));
         t = { ...t, candidats: [...(t.candidats || []), ...deMonday.filter((x) => !(t.candidats || []).some((c) => c.nom === x.nom && c.agence === x.agence))].slice(0, 5) };
       }
     }
     Records.update(ENTITE, id, { fin: maintenant(), duree_s, transcription, transcription_echec: echec, notes: base.notes, note_vocale: note, qui_note: qui });
+    if (t.agent_id && t.deja_identifie) return { ok: true, rappel: vue(Records.update(ENTITE, id, { identifie_par: t.raison })) };
     if (t.agent_id) {
       const ident = await identifier(id, { agent_id: t.agent_id }, user);
       if (ident.ok) return { ...ident, rappel: vue(Records.update(ENTITE, id, { identifie_par: t.raison })) };
@@ -669,6 +684,8 @@ export async function identifier(id, { agent_id = null, agence_id = null, nouvea
   if (!agentId && monday_ligne_id) {
     const l = (await lignesMonday()).find((x) => String(x.id) === String(monday_ligne_id));
     if (!l) return { ok: false, error: 'Cette ligne Monday est introuvable.' };
+    // En essai, la ligne Monday choisie devient une copie d'essai : rien de réel n'est touché.
+    if (r.essai) return identifier(id, { nouveau: { nom: nomMonday(l), agence: l.entreprise || '', ville: l.ville || '', telephone: String(l.telephone || '').split(/[,;/]/)[0] || '', email: (l.emails || [])[0] || '' } }, user);
     agentId = await ficheDeMonday(l);
   }
   let agence = agence_id ? Records.get(AGENCE, agence_id) : null;

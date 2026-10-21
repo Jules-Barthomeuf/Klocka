@@ -381,7 +381,8 @@ async function lignesMonday() {
 /** Le carnet où chercher qui a appelé : la liste fictive en essai, sinon les agents et les agences des listes réelles. */
 function annuaireDe(rappel) {
   if (rappel.essai) {
-    const agencesEssai = Records.list(AGENCE).filter((g) => g.liste_id === rappel.essai_liste_id).map((g) => ({ ...g, ville: 'Essai' }));
+    // Sans ville : « Essai » n'en est pas une, et la retirer des mots du nom effaçait « Agence Essai Commerces » (21 oct. 2026).
+    const agencesEssai = Records.list(AGENCE).filter((g) => g.liste_id === rappel.essai_liste_id).map((g) => ({ ...g, ville: null }));
     const agentsEssai = agencesEssai.filter((g) => g.carnet_id).map((g) => Records.get('AgentImmo', g.carnet_id)).filter(Boolean)
       .map((a) => ({ ...a, agence_id: agencesEssai.find((g) => g.carnet_id === a.id)?.id || null }));
     return { agents: agentsEssai, agences: agencesEssai };

@@ -377,7 +377,6 @@ export default function RappelEntrant() {
     clearInterval(minuteur.current);
     setNoteVocale("");
     setEcran("note");
-    if (dicteeNote.supporte) dicteeNote.demarrer();
   };
 
   // Les notes : enregistrées en partant du champ ; tant que l'agent n'est pas confirmé, les candidats se recalculent.
@@ -646,21 +645,27 @@ export default function RappelEntrant() {
 
         {/* Pendant l'appel, comme au Mode appel : la transcription à gauche, le micro à droite ; on peut dire qui appelle sans attendre. */}
         {/* L'appel en cours, rappel ou appel rapide (maquette de Jules, 21 oct. 2026) : centré dès l'appel. */}
-        {ecran === "enregistrement" && sens !== "raconte" && (() => {
+        {["enregistrement", "note", "note-courte"].includes(ecran) && sens !== "raconte" && (() => {
+          const apres = ecran !== "enregistrement";
           const dit = presentation(direct.filter((x) => x.texte).map((x) => x.texte).join(" "));
           const nom = agent?.nom || dit?.nom || (sens === "sortant" ? "Appel rapide" : "Appel entrant");
           const sous = agent ? [agent.agence, sens === "entrant" && !rappel?.identifie_par ? null : null].filter(Boolean).join(" · ") || null
             : dit ? `${dit.agence} · agent à confirmer` : "Il dira qui il est : la note d'après l'appel le confirme.";
           return (
             <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-7 duration-500 animate-in fade-in-0">
-              <EnteteEnLigne etat={SENS[sens].titre} secondes={secondes} essai={essai} nom={nom} sousTitre={sous}
+              {/* Raccroché (21 oct. 2026, Jules) : l'écran de l'appel reste, la note se dit dans une bande compacte et passe seule. */}
+              {apres ? (
+                <NoteApresAppel key={ecran} onFin={(note) => stop.mutate(note || null)}
+                  titre={ecran === "note" ? "Qui c'était, et que faut-il faire ?" : "Une précision ?"}
+                  aide={ecran === "note" ? "Le nom, l'agence, et la suite (un mail, une relance). Rien à dire ? Haka cherche qui c'était dans l'appel." : undefined} />
+              ) : <EnteteEnLigne etat={SENS[sens].titre} secondes={secondes} essai={essai} nom={nom} sousTitre={sous}
                 ecoute={!microKo} onRaccrocher={arreter} occupe={stop.isPending} raccrocher={microKo ? "Analyser" : "Raccrocher"}
-                action={sens === "sortant" && agent ? <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending} className="ml-2 p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Changer</button> : null} />
-              {agent?.telephone && sens === "sortant" && !essai && <p className="m-0 -mt-3 text-center text-[14px] text-ardoise">Composez le <span className="tabular-nums text-[16px] text-encre">{agent.telephone}</span></p>}
-              {microKo && <p className="m-0 -mt-3 text-center text-[13.5px] text-ambre">Enregistrement pas lancé : écrivez l'essentiel dans les notes, puis Analyser.</p>}
-              {!essai && tactile() && !microKo && <p className="m-0 -mt-3 text-center text-[12.5px] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</p>}
+                action={sens === "sortant" && agent ? <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending} className="ml-2 p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Changer</button> : null} />}
+              {!apres && agent?.telephone && sens === "sortant" && !essai && <p className="m-0 -mt-3 text-center text-[14px] text-ardoise">Composez le <span className="tabular-nums text-[16px] text-encre">{agent.telephone}</span></p>}
+              {!apres && microKo && <p className="m-0 -mt-3 text-center text-[13.5px] text-ambre">Enregistrement pas lancé : écrivez l'essentiel dans les notes, puis Analyser.</p>}
+              {!apres && !essai && tactile() && !microKo && <p className="m-0 -mt-3 text-center text-[12.5px] text-ambre">Au téléphone, pendant un appel, le micro est pris par l'appel : enregistrez depuis l'ordinateur en haut-parleur, ou écrivez l'essentiel dans les notes.</p>}
               <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-                <TranscriptionEnLigne morceaux={direct} interlocuteur={(agent?.nom || dit?.nom || "Agent").split(/\s+/)[0]} attend={!!scenario && direct.length < (scenario?.phrases?.length || 0)} />
+                <TranscriptionEnLigne morceaux={direct} interlocuteur={(agent?.nom || dit?.nom || "Agent").split(/\s+/)[0]} attend={!apres && !!scenario && direct.length < (scenario?.phrases?.length || 0)} />
                 <div className="flex min-w-0 flex-col gap-5">
                   <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notes]} />
                   <NotesEnLigne valeur={notes} onChange={setNotes} />
@@ -719,26 +724,6 @@ export default function RappelEntrant() {
           </div>
         )}
 
-        {ecran === "note-courte" && <NoteApresAppel onFin={(note) => stop.mutate(note || null)} />}
-        {ecran === "note" && (
-          <div className="mx-auto flex w-full max-w-[600px] flex-col items-center gap-5 py-4 text-center">
-            <p className="m-0 text-[24px] font-normal tracking-[-0.01em] text-encre">Qui c'était, et que faut-il faire ?</p>
-            <p className="m-0 max-w-[480px] text-[14px] leading-[1.55] text-ardoise">En une quinzaine de secondes : le nom, l'agence, et la suite (un mail, une relance, un rendez-vous). C'est votre note qui fait foi, pas la transcription.</p>
-            {dicteeNote.supporte && (
-              <button type="button" onClick={() => (dicteeNote.ecoute ? dicteeNote.arreter() : dicteeNote.demarrer())} aria-label={dicteeNote.ecoute ? "Arrêter la note" : "Dicter la note"} className="rounded-full" style={{ background: "transparent" }}>
-                {dicteeNote.ecoute
-                  ? <MicroEcoute taille={150}><Square className="h-8 w-8" fill="currentColor" /></MicroEcoute>
-                  : <span className="grid h-[110px] w-[110px] place-items-center rounded-full border-2 border-menthe text-menthe transition-colors hover:bg-menthe/10">{dicteeNote.finalisation ? <Loader2 className="h-8 w-8 animate-spin" /> : <Mic className="h-9 w-9" strokeWidth={1.8} />}</span>}
-              </button>
-            )}
-            <textarea value={noteVocale} onChange={(e) => setNoteVocale(e.target.value)} rows={3}
-              placeholder="« C'était Manon, de Primo Immobilier à Lyon. Elle veut le dossier à lyon@agence.com, relance dans quinze jours. »"
-              className={`${CHAMP_CARTE} text-left`} />
-            <button type="button" disabled={noteVocale.trim().length < 5 || dicteeNote.finalisation || stop.isPending}
-              onClick={() => { if (dicteeNote.ecoute) dicteeNote.arreter(); stop.mutate(noteVocale.trim()); }}
-              className={`${GROS_BOUTON} max-w-[420px] bg-encre text-fond`}>Valider la note</button>
-          </div>
-        )}
         {ecran === "transcription" && <ChaineEtapes etapes={[noteVocale.trim() ? "Je lis votre note et je retrouve la fiche" : "Je termine la transcription et je cherche qui a appelé"]} titre="Haka lit l'appel" />}
 
         {/* Qui a appelé : trois candidats au plus, chercher, ou un nouveau contact. */}

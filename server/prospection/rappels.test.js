@@ -379,3 +379,11 @@ test('en essai, la note retrouve le vrai carnet et identifie une copie d\'essai,
   assert.equal(Records.get('AgentImmo', r.rappel.agent.id).essai, true);
   assert.equal(Records.list('AgentImmo').filter((a) => !a.essai).length, avant, 'le vrai carnet n\'a rien gagné');
 });
+
+test("essai : l'agence fictive qui se présente sort en candidate (la « ville » Essai n'efface plus son nom, 21 oct. 2026)", async () => {
+  const JULES = { email: 'jules.b@klocka.immo', role: 'admin' };
+  const e = await RP.ouvrirEssaiRappel(JULES, { sens: 'entrant' });
+  const r = await RP.finir(e.rappel.id, { morceaux: ["Allô, bonjour, Sophie Essai de l'Agence Essai Commerces, vous m'avez appelée hier ?"], notes: '' }, JULES);
+  assert.ok((r.rappel.candidats || []).some((c) => c.agence === 'Agence Essai Commerces'), JSON.stringify(r.rappel.candidats));
+  RP.abandonner(e.rappel.id, JULES);
+});

@@ -322,6 +322,11 @@ export default function AdminProjets() {
     sim_travaux_annee5: null,
     sim_travaux_montant5: 0,
   });
+  // Ce qu'on change à la main dans les champs s'enregistre (21 oct. 2026, Jules : « quand on modifie une information,
+  // ça ne s'enregistre pas ») : l'envoi automatique ne partait qu'après un événement de saisie, que les menus, les
+  // interrupteurs, les cases et les dates n'émettent pas. Les formulaires reçoivent ces deux setters, qui le disent.
+  const setFormDataSaisi = useCallback((u) => { setFormData(u); setModifieDepuis(true); }, []);
+  const setTravauxListSaisi = useCallback((u) => { setTravauxList(u); setModifieDepuis(true); }, []);
 
   const queryClient = useQueryClient();
 
@@ -1554,7 +1559,7 @@ export default function AdminProjets() {
               <div className="grid items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]" onInput={() => setModifieDepuis(true)}>
                 {!champsOuverts && (
                   <div className="k-sobre rounded-[16px] border border-trait bg-rail p-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-220px)] xl:overflow-y-auto">
-                    <ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} />
+                    <ProjectFormSimulateurTab formData={formData} setFormData={setFormDataSaisi} travauxList={travauxList} setTravauxList={setTravauxListSaisi} />
                   </div>
                 )}
                 <ProjectSimulatorPreview formData={formData} travauxList={travauxList} />
@@ -1577,7 +1582,7 @@ export default function AdminProjets() {
               onPhotos={() => { setPhotosBrouillon([...(formData.photos || [])]); setPhotosOuvertes(true); }}
               editeurDocuments={!champsOuverts && vueProjet === "edition" && (
                 <div className="k-sobre mb-6 rounded-[16px] border border-trait bg-rail p-4" onInput={() => setModifieDepuis(true)}>
-                  <ProjectFormDocumentsTab formData={formData} setFormData={setFormData} />
+                  <ProjectFormDocumentsTab formData={formData} setFormData={setFormDataSaisi} />
                 </div>
               )}
             />
@@ -1650,7 +1655,9 @@ export default function AdminProjets() {
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >
-          <div className="flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0 max-md:px-4 max-md:pt-3">
+          {/* À côté du chat, le panneau monte jusqu'en haut de l'écran : ses onglets laissent la place de la cloche et de
+              l'icône d'appel, fixées en haut à droite (21 oct. 2026, Jules : elles les recouvraient). */}
+          <div className={`flex gap-1.5 px-[18px] pt-4 pb-2.5 overflow-x-auto flex-shrink-0 max-md:px-4 max-md:pt-3 ${scindeProjet ? "md:mr-[124px]" : ""}`}>
             {editorTabs.map((t) => (
               <button key={t.value} onClick={() => { clicDroite.current = true; setActiveTab(t.value); const p = PAGE_PAR_FORM[t.value]; if (p) setOngletPage(p); }}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors border ${activeTab === t.value ? "bg-encre text-fond border-encre" : "bg-surface-pleine text-craie border-trait hover:text-encre hover:border-bord-vif"}`}>
@@ -1671,7 +1678,7 @@ export default function AdminProjets() {
                   panneau suivent ceux de la page projet. Leur contenu reste, le
                   jour où on leur redonnera une porte d'entrée. */}
               <TabsContent value="general" className="space-y-3 mt-0">
-                <ProjectFormGeneralTab formData={formData} setFormData={setFormData} users={users} />
+                <ProjectFormGeneralTab formData={formData} setFormData={setFormDataSaisi} users={users} />
               </TabsContent>
 
               <TabsContent value="ai-extract" className="space-y-6 mt-0">
@@ -1722,18 +1729,18 @@ export default function AdminProjets() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="informations"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormInfoTab formData={formData} setFormData={setFormData} users={users} /></motion.div></TabsContent>
+              <TabsContent value="informations"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormInfoTab formData={formData} setFormData={setFormDataSaisi} users={users} /></motion.div></TabsContent>
 
-              <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><DatesBailPanneau formData={formData} setFormData={setFormData} /><div className="mt-5"><CasesPanneau zone="bail" formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div><AnalyseBailPanneau formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></div></motion.div></TabsContent>
-              <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
-              <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormData} projetId={editingProject?.id} /></motion.div></TabsContent>
-              <TabsContent value="docs_projet"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDocumentsTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="images"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormImagesTab formData={formData} setFormData={setFormData} /></motion.div></TabsContent>
-              <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormData} travauxList={travauxList} setTravauxList={setTravauxList} /></motion.div></TabsContent>
+              <TabsContent value="locataire"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormLocataireTab formData={formData} setFormData={setFormDataSaisi} /></motion.div></TabsContent>
+              <TabsContent value="bail"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><div className="mt-6"><DatesBailPanneau formData={formData} setFormData={setFormDataSaisi} /><div className="mt-5"><CasesPanneau zone="bail" formData={formData} setFormData={setFormDataSaisi} projetId={editingProject?.id} /></div><AnalyseBailPanneau formData={formData} setFormData={setFormDataSaisi} projetId={editingProject?.id} /></div></motion.div></TabsContent>
+              <TabsContent value="copropriete"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormCoproTab formData={formData} setFormData={setFormDataSaisi} projetId={editingProject?.id} /></motion.div></TabsContent>
+              <TabsContent value="marche"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormMarcheTab formData={formData} setFormData={setFormDataSaisi} projetId={editingProject?.id} /></motion.div></TabsContent>
+              <TabsContent value="docs_projet"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormDocumentsTab formData={formData} setFormData={setFormDataSaisi} /></motion.div></TabsContent>
+              <TabsContent value="images"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormImagesTab formData={formData} setFormData={setFormDataSaisi} /></motion.div></TabsContent>
+              <TabsContent value="simulateur"><motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}><ProjectFormSimulateurTab formData={formData} setFormData={setFormDataSaisi} travauxList={travauxList} setTravauxList={setTravauxListSaisi} /></motion.div></TabsContent>
             </Tabs>
           </div>
-          <div className="px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center">
+          <div className={`px-[18px] py-2.5 border-t border-trait flex-shrink-0 text-center ${scindeProjet ? "md:pr-[84px]" : ""}`}>
             <span className="text-[12.5px] text-brume">{editingProject ? "La page suit ce que vous tapez ; chaque champ s'enregistre seul." : "La page de gauche suit ce que vous tapez ; rien n'est enregistré avant Enregistrer."}</span>
           </div>
         </aside>}

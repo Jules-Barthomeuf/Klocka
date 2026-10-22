@@ -53,7 +53,9 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
   const fiche = p.type === "preanalyser_fiche";
   const aChoix = !fiche && Array.isArray(p.choix) && p.choix.length > 0;
   const information = Array.isArray(p.actions) && p.actions.length === 1 && p.actions[0] === "vu";
-  const estMail = p.type === "demande_documents" || p.type === "relance_mail";
+  // Haka ambiant (22 oct. 2026) : Oui / Non ; une réponse préparée se relit et se retouche comme un mail.
+  const ouiNon = Array.isArray(p.actions) && p.actions.includes("oui_non");
+  const estMail = p.type === "demande_documents" || p.type === "relance_mail" || (ouiNon && p.charge?.geste === "mail");
   const prenom = (e) => String(e || "").split("@")[0].split(".")[0].replace(/^\w/, (c) => c.toUpperCase());
   return (
     <article className={`rounded-[16px] border border-trait bg-rail ${compacte ? "p-4" : "p-5"}`}>
@@ -85,6 +87,14 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
             <span className="min-w-0"><span className="block truncate text-[14px] text-encre">{p.charge?.objet || "(sans objet)"}</span><span className="block truncate text-[12.5px] text-ardoise">De {p.charge?.de || p.charge?.de_email}</span></span>
             <span className="flex-none text-[13px] text-menthe">Voir la fiche ou le mail</span>
           </button>
+        )}
+        {ouiNon && (
+          <div className="mb-2 rounded-[12px] border border-trait px-4 py-3">
+            <p className="m-0 text-[12.5px] text-ardoise"><span className="text-brume">Mail reçu de</span> {p.charge?.de_mail}</p>
+            <p className="m-0 mt-1 text-[14.5px] text-encre">{p.charge?.objet_mail || "(sans objet)"}</p>
+            {p.charge?.geste === "ranger" && <p className="m-0 mt-2 text-[13.5px] text-craie">{(p.charge.pieces || []).map((x) => x.nom).join(", ")}</p>}
+            {p.charge?.geste === "rappel" && <p className="m-0 mt-2 text-[13.5px] text-craie">Rappel : {p.charge.quoi}, le {new Date(`${p.charge.jour}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à {p.charge.heure}</p>}
+          </div>
         )}
         {p.type === "mail_exterieur" && (
           <div className="rounded-[12px] border border-trait px-4 py-3"><p className="m-0 text-[12.5px] text-ardoise"><span className="text-brume">De</span> {p.charge?.de}</p><p className="m-0 mt-1 text-[14.5px] text-encre">{p.charge?.objet}</p><p className="m-0 mt-2 whitespace-pre-wrap text-[13.5px] leading-[1.5] text-craie">{p.charge?.extrait}</p></div>
@@ -122,7 +132,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
           <>
             <button type="button" onClick={() => onValider(edition ? { charge } : {})} disabled={enCours || (estMail && !String(charge.a || "").trim())}
               className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
-              {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{edition ? "Valider la version modifiée" : "Valider"}
+              {enCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}{edition ? "Valider la version modifiée" : ouiNon ? "Oui" : "Valider"}
             </button>
             {estMail && (
               <button type="button" onClick={() => setEdition((v) => !v)} className="inline-flex h-10 items-center gap-2 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>
@@ -132,7 +142,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
           </>
         )}
         {!information && !fiche && (
-          <button type="button" onClick={() => setRejet(true)} className="ml-auto h-10 px-2 text-[13.5px] text-alerte hover:underline" style={{ background: "transparent" }}>Rejeter</button>
+          <button type="button" onClick={() => setRejet(true)} className="ml-auto h-10 px-2 text-[13.5px] text-alerte hover:underline" style={{ background: "transparent" }}>{ouiNon ? "Non" : "Rejeter"}</button>
         )}
         {!p.pour && onPrendre && (
           <button type="button" onClick={onPrendre} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-3.5 text-[13px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}><Hand className="h-3.5 w-3.5" />Je prends</button>

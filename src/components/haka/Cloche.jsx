@@ -34,6 +34,9 @@ export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } 
       // fiche ou le mail, et c'est là qu'on la rentre ou non (un humain dans la boucle).
       const de = p.charge?.de || p.charge?.de_email || null;
       lignes.push({ cle: p.id, teinte: orange, phrase: "Une nouvelle fiche commerciale est arrivée", lieu: [de && `De ${de}`, p.charge?.objet].filter(Boolean).join(" · ") || p.resume || "Fiche reçue", quand: ilYa(p.cree_le), lien: null, fiche: p.id, proposition: p, action: true, le: p.cree_le });
+    } else if (Array.isArray(p.actions) && p.actions.includes("oui_non")) {
+      // Haka ambiant (22 oct. 2026, Jules) : un mail lu, un geste prêt ; Oui ou Non dans la ligne, Non dit pourquoi.
+      lignes.push({ cle: p.id, teinte: orange, phrase: p.titre, lieu: [p.charge?.de_mail && `De ${p.charge.de_mail}`, p.charge?.objet_mail].filter(Boolean).join(" · ") || p.resume || "Mail reçu", quand: ilYa(p.cree_le), lien: `/AValider?id=${p.id}`, ouiNon: p, action: true, le: p.cree_le });
     } else if (p.type === "meme_bien_recu") {
       lignes.push({ cle: p.id, teinte: vert, phrase: p.titre, lieu: "Dossier", quand: ilYa(p.cree_le), lien: dossier || `/AValider?id=${p.id}`, vu: p.id, action: false, le: p.cree_le });
     } else if (p.type === "demande_documents") {
@@ -109,12 +112,23 @@ export default function Cloche({ className = "" }) {
     return [["Demain", aNeufHeures(demain)], ["Lundi", aNeufHeures(lundi)], ["Dans une semaine", aNeufHeures(semaine)]];
   };
   // Le compteur ne compte que ce qui reste : ni les lignes retirées ou remises à plus tard, ni les fiches tranchées.
-  const n = compteurDeLaCloche(lignes.filter((l) => !cachees.has(l.cle) && !decidees.has(l.fiche)));
+  const n = compteurDeLaCloche(lignes.filter((l) => !cachees.has(l.cle) && !decidees.has(l.fiche) && !decidees.has(l.cle)));
   const trancher = (l, choix, extra = {}) => {
     setDecidees((s) => new Set([...s, l.fiche]));
     base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix, ...extra } })
       .then(() => { moi.refetch(); commun.refetch(); })
       .catch(() => setDecidees((s) => { const n = new Set(s); n.delete(l.fiche); return n; }));
+  };
+  // Oui / Non d'une question de Haka ambiant : la ligne part tout de suite ; Non demande d'abord pourquoi.
+  const [motifDe, setMotifDe] = useState(null);
+  const [motif, setMotif] = useState("");
+  const repondre = (l, oui) => {
+    const id = l.ouiNon.id;
+    setDecidees((s) => new Set([...s, l.cle]));
+    setMotifDe(null); setMotif("");
+    base44.request("POST", `/api/haka/propositions/${id}/${oui ? "valider" : "rejeter"}`, { body: oui ? {} : { motif: motif.trim() } })
+      .then(() => { moi.refetch(); commun.refetch(); attend.refetch(); })
+      .catch(() => setDecidees((s) => { const n = new Set(s); n.delete(l.cle); return n; }));
   };
   const fait = (l) => {
     base44.request("POST", `/api/assistant/attend/${l.ancien.source}/${encodeURIComponent(l.ancien.id)}/fait`).then(() => attend.refetch()).catch(() => {});
@@ -149,7 +163,7 @@ export default function Cloche({ className = "" }) {
                 <div className="max-h-[min(60vh,520px)] overflow-y-auto px-2 py-1.5">
                   {!lignes.length ? (
                     <p className="m-0 px-3 py-6 text-center text-[13.5px] text-brume">Rien n'attend votre action pour l'instant.</p>
-                  ) : lignes.filter((l) => !decidees.has(l.fiche) && !cachees.has(l.cle)).map((l, i) => (
+                  ) : lignes.filter((l) => !decidees.has(l.fiche) && !decidees.has(l.cle) && !cachees.has(l.cle)).map((l, i) => (
                     <motion.div key={l.cle} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
                       className="group relative flex items-start gap-3 rounded-[12px] px-3 py-3 transition-colors hover:bg-encre/[0.04]">
                       <span className={`mt-[7px] h-[7px] w-[7px] flex-none rounded-full ${l.teinte}`} aria-label={l.action ? "Action attendue" : "Information"} />
@@ -157,7 +171,12 @@ export default function Cloche({ className = "" }) {
                         <p className="m-0 text-[14.5px] leading-[1.4] text-encre">{l.phrase}</p>
                         <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{[l.lieu, l.quand].filter(Boolean).join(" · ")}</p>
                       </div>
-                      {l.fiche ? (
+                      {l.ouiNon ? (
+                        <span className="flex flex-none items-center gap-1.5">
+                          <button type="button" onClick={() => { setMotifDe((k) => (k === l.cle ? null : l.cle)); setMotif(""); }} aria-expanded={motifDe === l.cle} className="inline-flex h-8 items-center rounded-full border border-trait px-3.5 text-[13px] text-craie transition-colors hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}>Non</button>
+                          <button type="button" onClick={() => repondre(l, true)} className="inline-flex h-8 items-center rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol">Oui</button>
+                        </span>
+                      ) : l.fiche ? (
                         <button type="button" onClick={() => { setOuvert(false); setApercu(l.proposition); }} className="inline-flex h-8 flex-none items-center rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe transition-colors hover:bg-menthe-survol">Voir</button>
                       ) : l.lien ? (
                         <button type="button" onClick={() => ouvrir(l)} className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-3.5 text-[13px] text-encre transition-colors hover:border-bord-vif" style={{ background: "transparent" }}>Ouvrir</button>
@@ -170,6 +189,12 @@ export default function Cloche({ className = "" }) {
                         <button type="button" onClick={() => retirer(l)} aria-label="Retirer de la liste" title="Retirer de la liste"
                           className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
                       </span>
+                      {motifDe === l.cle && (
+                        <form onSubmit={(e) => { e.preventDefault(); if (motif.trim().length >= 3) repondre(l, false); }} className="absolute inset-x-3 top-[calc(100%-4px)] z-10 flex items-center gap-2 rounded-[14px] border border-bord-doux bg-surface-pleine p-2 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
+                          <input autoFocus value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Pourquoi non ? (Haka en apprend)" className="h-9 min-w-0 flex-1 rounded-full border border-trait bg-surface px-3.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
+                          <button type="submit" disabled={motif.trim().length < 3} className="inline-flex h-9 flex-none items-center rounded-full bg-encre px-3.5 text-[13px] text-fond disabled:opacity-40">Confirmer</button>
+                        </form>
+                      )}
                       {rappelDe === l.cle && (
                         <div className="absolute right-3 top-[calc(100%-6px)] z-10 flex flex-col overflow-hidden rounded-[14px] border border-bord-doux bg-surface-pleine py-1 shadow-[0_18px_40px_rgb(0_0_0/0.18)]">
                           {dates().map(([mot, iso]) => (

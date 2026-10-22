@@ -12,7 +12,8 @@ import { ilYa } from "@/components/dashboard/ChatDashboard";
 export default function NotificationsVolet({ onOuvrir }) {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["notifications"], queryFn: () => base44.request("GET", "/api/notifications"), refetchInterval: 30_000, staleTime: 15_000 });
-  const liste = data?.notifications || [];
+  // Une question de Haka est déjà dans « Ce qui t'attend » : elle ne se répète pas ici.
+  const liste = (data?.notifications || []).filter((n) => n.genre !== "question_haka");
   const retirer = (ids) => qc.setQueryData(["notifications"], (d) => (d ? { ...d, notifications: d.notifications.filter((n) => !ids.includes(n.id)) } : d));
   const supprimer = (n) => { retirer([n.id]); base44.request("DELETE", `/api/notifications/${n.id}`).catch(() => qc.invalidateQueries({ queryKey: ["notifications"] })); };
   const toutEffacer = () => { retirer(liste.map((n) => n.id)); base44.request("POST", "/api/notifications/effacer").catch(() => qc.invalidateQueries({ queryKey: ["notifications"] })); };

@@ -152,6 +152,30 @@ export function departApres(email, jour, ctx) {
   return periodeAutour(email, ouvreSuivant(jour, 1), ctx);
 }
 
+/**
+ * Le premier jour ouvré, à partir de `jour`, où la personne est là (22 oct. 2026, Jules : « la relance tombe pendant
+ * que Maxime n'est pas là : mets-la le premier jour de son retour »). Lit les absences posées par Jules et, s'il répond
+ * en moins de `attente` ms, l'agenda Google ; sinon les absences posées seules : l'analyse d'un appel n'attend pas.
+ * Rend `{ jour, absence }` : `absence` (du, au, motif, libelle) quand il a fallu décaler, sinon null.
+ */
+export async function premierJourPresent(email, jour, { ctx = null, attente = 4000 } = {}) {
+  let c = ctx;
+  if (!c) {
+    const agenda = await Promise.race([
+      lireAgendas(jourParis(), plusJours(jour, 60)).catch(() => null),
+      new Promise((ok) => { setTimeout(() => ok(null), attente).unref?.(); }),
+    ]);
+    c = { declarees: absencesDeclarees(), agenda: agenda?.jours || new Map() };
+  }
+  const debut = estOuvre(jour) ? jour : ouvreSuivant(jour, 1);
+  if (!absentLe(email, debut, c)) return { jour: debut, absence: null };
+  let k = debut;
+  let au = debut;
+  for (let n = 0; absentLe(email, k, c) && n < 120; n += 1) { au = k; k = ouvreSuivant(k, 1); }
+  const motif = statutDuJour(email, debut, c).motif;
+  return { jour: k, absence: { du: periodeAutour(email, debut, c)?.du || debut, au, motif, libelle: MOTIFS[motif] || 'Absent' } };
+}
+
 async function contexte(du, au) {
   const agenda = await lireAgendas(du, au).catch(() => ({ etat: 'partiel', jours: new Map() }));
   return { declarees: absencesDeclarees(), agenda: agenda.jours, etatAgenda: agenda.etat, detailAgenda: agenda.detail || null };

@@ -810,7 +810,24 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Les propositions d'AK gardées : le statut, la relance (date modifiable), la fiche. Le mail vient des modèles.
   const base = lu.appel.propositions.filter((p) => ['statut', 'relance', 'fiche'].includes(p.type));
   const actions = [];
-  const relance = base.find((p) => p.type === 'relance');
+  // La relance tombe pendant une absence de l'analyste (agenda de l'équipe) : elle passe au premier jour de son
+  // retour, et c'est dit (22 oct. 2026, Jules : « des petits détails comme ça qui vont vraiment le bluffer »).
+  const { premierJourPresent } = await import('../equipe-semaine.js');
+  const prenomAnalyste = String(analyste || '').split(' ')[0] || 'Vous';
+  const auRetour = async (prochaine) => {
+    if (!prochaine?.le) return { prochaine, note: null };
+    try {
+      const p = await premierJourPresent(moi, prochaine.le);
+      if (!p.absence || p.jour === prochaine.le) return { prochaine, note: null };
+      const court = (j) => new Date(`${j}T12:00:00Z`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+      const absence = p.absence.du === p.absence.au ? `le ${court(p.absence.du)}` : `du ${court(p.absence.du)} au ${court(p.absence.au)}`;
+      const note = `${prenomAnalyste} n'est pas là ${absence} (${p.absence.libelle.toLowerCase()}) : la relance passe au ${jourLong(p.jour)}, le jour de son retour.`;
+      return { prochaine: { ...prochaine, le: p.jour, date_avant_absence: prochaine.le }, note };
+    } catch { return { prochaine, note: null }; }
+  };
+  const relance0 = base.find((p) => p.type === 'relance');
+  const decalee = relance0 ? await auRetour(relance0.prochaine) : null;
+  const relance = relance0 && decalee ? { ...relance0, prochaine: decalee.prochaine, ...(decalee.note ? { pourquoi: [relance0.pourquoi, decalee.note].filter(Boolean).join('\n\n'), parce_que: decalee.note } : {}) } : relance0;
   const appelPourMonday = { ...lu.appel, compris, rappel_entrant: !!entrant, numero: numero || numeroDe(a) };
   const emailPrevu = valeurSure(compris, 'email') || (f?.emails || [])[0] || a.email || null;
   const d0 = donneesMonday({ appel: appelPourMonday, agence: a, fiche: f, issue, user, relance: relance?.prochaine?.le || null, email: emailPrevu, diffusion: issue === 'pas_interesse' ? false : !!emailPrevu });
@@ -870,17 +887,17 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   }
   if (relance) {
     actions.push({ ...relance, titre: 'Planifier la relance', coche: true });
-    etape(`Je mets la relance au ${jourLong(relance.prochaine.le)} dans le calendrier`);
+    etape(decalee?.note || `Je mets la relance au ${jourLong(relance.prochaine.le)} dans le calendrier`);
   } else {
     // Pas de relance pour cette issue (pas intéressé, mauvais numéro, que du résidentiel, il rappelle) : elle reste
     // proposée, décochée, dans un mois ; la cocher la pose (21 oct. 2026, Jules).
-    const le = R.ouvre(R.plusJours(R.jourDe(new Date()), 30));
-    actions.push({ id: 'relance', type: 'relance', titre: 'Planifier la relance', prochaine: { quoi: 'rappeler', le }, coche: false, incertain: 'pas de relance prévue pour cette issue : à cocher si besoin' });
+    const mois = await auRetour({ quoi: 'rappeler', le: R.ouvre(R.plusJours(R.jourDe(new Date()), 30)) });
+    actions.push({ id: 'relance', type: 'relance', titre: 'Planifier la relance', prochaine: mois.prochaine, coche: false, incertain: 'pas de relance prévue pour cette issue : à cocher si besoin', ...(mois.note ? { pourquoi: mois.note } : {}) });
   }
   // Un mandat annoncé en plus du bien : une seconde relance, pour faire le point, à l'échéance dite ou dans trois semaines.
   const mandat = compris.champs?.mandat;
   if (mandat && issue === 'a_des_murs') {
-    const le = mandat.date && mandat.date > (relance?.prochaine?.le || '') ? mandat.date : R.plusJoursOuvres(R.jourDe(new Date()), 15);
+    const le = (await auRetour({ le: mandat.date && mandat.date > (relance?.prochaine?.le || '') ? mandat.date : R.plusJoursOuvres(R.jourDe(new Date()), 15) })).prochaine.le;
     etape(`Je prépare la seconde relance, le ${jourLong(le)}, pour faire le point sur le mandat`);
     actions.push({ id: 'relance_2', type: 'relance_suivante', titre: 'Planifier la seconde relance', prochaine: { quoi: `faire le point sur le mandat annoncé : ${mandat.valeur}`, le }, source: mandat.source, phrase: mandat.source || null, pourquoi: lu.appel.pourquoi_relance || null, ...(mandat.date ? {} : { incertain: 'date par défaut : trois semaines' }), coche: true });
   }

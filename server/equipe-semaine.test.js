@@ -131,3 +131,21 @@ test('une absence d\'un seul jour ne demande ni points ni résumé', async () =>
   assert.deepEqual((await S.tourDuMatin({ aujourdhui: '2026-11-13', invoke: async () => ({}) })).fait, []);
   assert.equal(S.joursOuvres('2026-11-06', '2026-11-09'), 2);
 });
+
+// La relance tombe pendant une absence (22 oct. 2026, Jules) : elle passe au premier jour du retour.
+test('premierJourPresent : une relance pendant la semaine d\'école de Maxime passe au lundi de son retour', async () => {
+  const S2 = await import('./equipe-semaine.js');
+  const maxime = 'maxime.p@klocka.immo';
+  // Absent du lundi 26 au vendredi 30 octobre 2026 (école), présent le lundi 2 novembre.
+  const declarees = ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'].map((jour) => ({ email: maxime, jour, motif: 'ecole' }));
+  const ctx = { declarees, agenda: new Map() };
+  const r = await S2.premierJourPresent(maxime, '2026-10-28', { ctx });
+  assert.equal(r.jour, '2026-11-02');
+  assert.deepEqual({ du: r.absence.du, au: r.absence.au, libelle: r.absence.libelle }, { du: '2026-10-26', au: '2026-10-30', libelle: 'École' });
+  // Un jour où il est là : rien ne bouge.
+  const la = await S2.premierJourPresent(maxime, '2026-10-23', { ctx });
+  assert.equal(la.jour, '2026-10-23');
+  assert.equal(la.absence, null);
+  // Un samedi : le lundi suivant, sans absence à dire.
+  assert.equal((await S2.premierJourPresent('nora.l@klocka.immo', '2026-10-24', { ctx })).jour, '2026-10-26');
+});

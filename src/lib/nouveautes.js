@@ -8,6 +8,12 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-22",
+    items: [
+      { titre: "La relance attend votre retour", texte: "Après un appel, si la relance tombe pendant une de vos absences (Agenda), elle passe au premier jour de votre retour, et Haka vous dit pourquoi.", page: "Prospection" },
+    ],
+  },
+  {
     jour: "2026-10-21",
     items: [
       { titre: "« Haka lit l'appel », comme dans le chat", texte: "Après un appel, la lecture de Haka s'affiche dans une carte au milieu de l'écran, avec la même frise que dans le chat : l'icône de ce qu'il fait et son texte qui brille, une coche pour chaque étape finie, un trait qui les relie.", page: "Prospection", requete: "?appel=1" },

@@ -108,7 +108,9 @@ export async function envoyerSiNouveau({ maintenant = new Date(), envoyer = null
   const aujourdhui = jourParis(maintenant);
   // Le tour tourne toutes les 15 minutes : un passage complet fait aujourd'hui n'est pas refait.
   if (Meta.get(`${CLE}:passe`) === aujourdhui) return { envoye: 0, raison: 'déjà fait' };
-  const journees = journeesAEnvoyer(Meta.get(CLE), aujourdhui);
+  // Plus de tour des nouveautés dans le mail (22 oct. 2026, Jules : « enlève le truc de mails automatiques pour faire le
+  // tour d'horizon des nouveautés ») : restent les relances du jour et les dossiers. NOUVEAUTES_DANS_LE_MAIL=true les remet.
+  const journees = process.env.NOUVEAUTES_DANS_LE_MAIL === 'true' ? journeesAEnvoyer(Meta.get(CLE), aujourdhui) : [];
   const { envoyerPlateforme } = await import('./emailing/index.js');
   const { URL_CANONIQUE } = await import('./contexte.js');
   const { classer } = await import('../src/lib/dossiers-architecture.js');

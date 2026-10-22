@@ -37,19 +37,33 @@ test('l’équipe seulement, sans les comptes de test', () => {
   assert.deepEqual(d, ['nora.l@klocka.immo']);
 });
 
+test('par défaut (22 oct.) : plus de nouveautés dans le mail ; un matin sans relance ni dossier, rien ne part', async () => {
+  const envoyes = [];
+  const envoyer = async (cle, { a }) => { envoyes.push(a); return { ok: true }; };
+  Records.create('User', { email: 'coralie.t@klocka.immo', role: 'admin' });
+  const r = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T07:00:00Z'), envoyer, relances: async () => [], dossiers: async () => [] });
+  assert.equal(r.envoye, 0);
+  assert.equal(r.raison, 'rien à dire');
+  assert.deepEqual(envoyes, []);
+  const { Meta } = await import('./db.js');
+  Meta.set('nouveautes:mail:dernier_jour:passe', '');
+});
+
 test('envoyé une fois : le lendemain, rien ne repart', async () => {
+  process.env.NOUVEAUTES_DANS_LE_MAIL = 'true';
   Records.create('User', { email: 'nora.l@klocka.immo', role: 'admin' });
   Records.create('User', { email: 'maxime.p@klocka.immo', role: 'admin' });
   const envoyes = [];
   const envoyer = async (cle, { a, vars }) => { envoyes.push([cle, a, vars.objet]); return { ok: true }; };
   const vide = { relances: async () => [], dossiers: async () => [] };
   const r = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T07:00:00Z'), envoyer, ...vide });
-  assert.equal(r.envoye, 2);
+  assert.equal(r.envoye, 3);
   assert.equal(envoyes[0][0], 'ma_journee');
   assert.equal((await M.envoyerSiNouveau({ maintenant: new Date('2026-10-19T09:00:00Z'), envoyer, ...vide })).envoye, 0);
   const { Meta } = await import('./db.js');
   Meta.set('nouveautes:mail:dernier_jour', '');
   Meta.set('nouveautes:mail:dernier_jour:passe', '');
+  Meta.set('nouveautes:mail:dernier_jour:partis', '');
 });
 
 test('ni samedi ni dimanche ; le lundi reprend le vendredi et le week-end', async () => {
@@ -63,6 +77,7 @@ test('ni samedi ni dimanche ; le lundi reprend le vendredi et le week-end', asyn
   assert.equal((await M.envoyerSiNouveau({ maintenant: new Date('2026-10-17T09:00:00Z'), envoyer, ...vide })).raison, 'week-end');
   const lundi = await M.envoyerSiNouveau({ maintenant: new Date('2026-10-20T07:00:00Z'), envoyer, ...vide });
   assert.ok(lundi.journees.includes('2026-10-16'), 'le vendredi part le lundi');
+  delete process.env.NOUVEAUTES_DANS_LE_MAIL;
 });
 
 test('Ma journée : les trois parties, seulement celles qui ont quelque chose à dire', async () => {

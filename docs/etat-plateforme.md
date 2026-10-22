@@ -6,11 +6,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 ## Qui travaille
 
-13 personnes, 2 641 pages ouvertes, 3 demandes à l'assistant, 113 actions exécutées.
+13 personnes, 2 633 pages ouvertes, 3 demandes à l'assistant, 113 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 335 | 3 | 48 | 22/10/2026 |
+| jules.b@klocka.immo (équipe) | 2 327 | 3 | 48 | 22/10/2026 |
 | admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
 | test.mandataire@kpartners.fr | 101 | 0 | 0 | 10/10/2026 |
 | alexis.p@klocka.immo (équipe) | 38 | 0 | 0 | 28/09/2026 |
@@ -27,11 +27,11 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Analyse** — 388 (15 %)
-- **Dashboard** — 377 (14 %)
+- **Analyse** — 386 (15 %)
+- **Dashboard** — 375 (14 %)
 - **Prospection** — 239 (9 %)
+- **AdminProjets** — 184 (7 %)
 - **Personnalisation** — 184 (7 %)
-- **AdminProjets** — 181 (7 %)
 - **Emailing** — 140 (5 %)
 - **MandataireProspection** — 102 (4 %)
 - **MandataireEstimation** — 77 (3 %)
@@ -39,11 +39,11 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 - **ProjetDetail** — 69 (3 %)
 - **MandataireDossier** — 68 (3 %)
 - **AdminPresentations** — 57 (2 %)
-- Le reste, sous 2 % : ALX, MandataireMandat, Monitoring, Cerveau, Home, AdminMandataires, OffMarket, ConversationsMandataires, Relances, AdminClients, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, SuiviAppels, FichesCommerciales, KData, Semaine, ALXAtelier, AdminUtilisateurs, SimulateurPublic, Agents, KZoning, MesProjets, AdminSuggestions, MonAssistant, Validations, MandataireMarche, Vision, SuiviAudience, KProspective, MandataireProjets, ALXCible, Automatismes, CoutsIA, AdminEquipe, SuiviMandataires, KFoncier, SuiviReunion, SuiviTesteur, FeuilleDeRoute, Comparateur, ValeurLocative, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, KEstimation, AdminPortail, AdminRessources, AdminLeadMagnets, KVacance
+- Le reste, sous 2 % : ALX, MandataireMandat, Monitoring, Cerveau, Home, AdminMandataires, OffMarket, ConversationsMandataires, Relances, AdminClients, SimulateurRentabilite, MandataireOffMarket, MandataireClients, MesPresentations, Offres, SuiviAppels, FichesCommerciales, Semaine, ALXAtelier, AdminUtilisateurs, KData, SimulateurPublic, Agents, MesProjets, AdminSuggestions, MonAssistant, KZoning, Validations, MandataireMarche, Vision, SuiviAudience, MandataireProjets, ALXCible, Automatismes, CoutsIA, AdminEquipe, SuiviMandataires, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, Comparateur, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, KEstimation, AdminPortail, AdminRessources, AdminLeadMagnets, ValeurLocative
 
 ## Ce que l'IA coûte
 
-34,86 € sur la période, 1 437 appels, 8 583 k jetons. 40 % part en tâche de fond, sans que personne clique. 55 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+34,85 € sur la période, 1 436 appels, 8 582 k jetons. 40 % part en tâche de fond, sans que personne clique. 55 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
@@ -58,7 +58,7 @@ L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le so
 | Lire une pièce du dossier | 0,05 € par document | 9 | 0,63 € | 44 s |
 | Demander quelque chose à l'assistant | 0,11 € par demande | 3 | 0,38 € | 12 s |
 | Analyser une fiche commerciale | 0,03 € par fiche | 10 | 0,33 € | 11 s |
-| Juger un mail entrant (fond) | 0,0035 € par mail douteux | 19 | 0,12 € | 15 s |
+| Juger un mail entrant (fond) | 0,0034 € par mail douteux | 18 | 0,11 € | 17 s |
 
 Le prix courant est la médiane : un dossier hors norme ne doit pas fausser ce qu'on paie d'habitude.
 

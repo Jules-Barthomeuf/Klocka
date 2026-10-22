@@ -6,20 +6,21 @@ import "leaflet/dist/leaflet.css";
 import { Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { J, JL } from "@/design/jetons";
-import { FONDS } from "@/lib/tuiles";
+import { useFondDeCarte } from "@/lib/tuiles";
 
 // La carte de Klocka (22 oct. 2026, Jules : « une carte de France interactive avec tous les points : nos projets, ce
 // qu'on a prospecté, nos clients, nos deals ») : la même carte dans la Prospection, les Projets et les Clients ; la page
 // met sa couche devant (`focus`), les autres restent à un clic. Les points viennent de la plateforme et de Monday
-// (server/carte.js). Le fond Esri couvre le monde : un client à New York ou à Londres y a sa place.
+// (server/carte.js). Le fond est le plan Google Maps (Jules, 22 oct. : « utilise Maps »), comme l'outil Vacance, l'IGN
+// en repli : il couvre le monde, un client à New York ou à Londres y a sa place. Fond clair : des teintes franches,
+// cerclées de blanc comme les repères de Google.
 
 const COUCHES = [
-  { cle: "projets", nom: "Projets", couleur: J.menthe, trait: JL.menthe },
-  { cle: "prospection", nom: "Prospection", couleur: J.bleu, trait: JL.bleu },
-  { cle: "clients", nom: "Clients", couleur: J.ambre, trait: JL.ambre },
-  { cle: "deals", nom: "Deals", couleur: J.jaune, trait: JL.jaune },
+  { cle: "projets", nom: "Projets", couleur: J["menthe-fonce"], trait: JL["menthe-fonce"] },
+  { cle: "prospection", nom: "Prospection", couleur: J["emplacement-1"], trait: JL["emplacement-1"] },
+  { cle: "clients", nom: "Clients", couleur: J["emplacement-1bis"], trait: JL["emplacement-1bis"] },
+  { cle: "deals", nom: "Deals", couleur: J["emplacement-2"], trait: JL["emplacement-2"] },
 ];
-const FOND = FONDS.find((f) => f.cle === "esri") || FONDS[0];
 const FRANCE = { centre: [46.6, 2.5], zoom: 6 };
 
 export default function CarteKlocka({ focus = null, hauteur = 600, className = "" }) {
@@ -29,17 +30,17 @@ export default function CarteKlocka({ focus = null, hauteur = 600, className = "
   const basculer = (cle) => setVisibles((s) => { const n = new Set(s); if (n.has(cle)) n.delete(cle); else n.add(cle); return n; });
   // La couche de la page se dessine en dernier : ses points passent devant.
   const ordre = useMemo(() => [...COUCHES].sort((a, b) => (a.cle === focus) - (b.cle === focus)), [focus]);
-  const clair = typeof document !== "undefined" && document.documentElement.dataset.theme === "clair";
+  const { fond, surErreur } = useFondDeCarte({ google: true });
   const ouvrir = (lien) => { if (!lien) return; if (/^https?:/.test(lien)) window.open(lien, "_blank", "noopener"); else navigate(lien); };
   const rayon = (c, p) => (c === "prospection" ? Math.min(22, Math.max(5, Math.sqrt(p.poids || 1) * 2.4)) : c === focus ? 7 : 5.5);
 
   return (
-    <div className={`k-carte-rues ${clair ? "k-carte-claire" : ""} relative overflow-hidden rounded-[16px] border border-trait ${className}`} style={{ height: hauteur }}>
+    <div className={`k-carte-rues k-carte-claire ${fond.google ? "k-carte-google" : ""} relative overflow-hidden rounded-[16px] border border-trait ${className}`} style={{ height: hauteur }}>
       <MapContainer center={FRANCE.centre} zoom={FRANCE.zoom} minZoom={2} worldCopyJump zoomControl className="h-full w-full" attributionControl={false} preferCanvas>
-        <TileLayer url={FOND.url} maxZoom={FOND.zoom_max || 16} />
+        <TileLayer key={fond.cle} url={fond.url} maxZoom={fond.zoom_max || 16} eventHandlers={{ tileerror: surErreur }} />
         {ordre.filter((c) => visibles.has(c.cle)).map((c) => (q.data?.[c.cle] || []).map((p) => (
           <CircleMarker key={`${c.cle}:${p.id}`} center={[p.lat, p.lon]} radius={rayon(c.cle, p)}
-            pathOptions={{ color: c.trait, fillColor: c.trait, fillOpacity: c.cle === focus ? 0.85 : 0.6, weight: 1.5, opacity: 0.95 }}
+            pathOptions={{ color: JL.encre, fillColor: c.trait, fillOpacity: c.cle === focus ? 0.92 : 0.75, weight: 1.5, opacity: 0.95 }}
             eventHandlers={{ click: () => ouvrir(p.lien) }}>
             <Tooltip direction="top" offset={[0, -6]} opacity={1}>
               <span className="block text-[13px] font-medium">{p.titre}</span>
@@ -72,7 +73,7 @@ export default function CarteKlocka({ focus = null, hauteur = 600, className = "
       )}
       {q.isError && <p className="absolute bottom-3 left-3 z-[600] m-0 rounded-full bg-surface-pleine px-3 py-1.5 text-[12.5px] text-alerte">La carte n'a pas pu se charger : {q.error?.message || "réessayez"}</p>}
       {q.data?.erreurs?.length > 0 && <p className="absolute bottom-3 left-3 z-[600] m-0 max-w-[60%] rounded-[10px] bg-surface-pleine px-3 py-1.5 text-[12px] text-ambre">Incomplète : {q.data.erreurs.join(" · ")}</p>}
-      <span className="absolute bottom-1.5 right-2 z-[500] text-[10.5px] text-brume">© Esri · Monday · Klocka</span>
+      <span className="absolute bottom-1.5 right-2 z-[500] text-[10.5px] text-brume">{fond.attribution} · Monday · Klocka</span>
     </div>
   );
 }

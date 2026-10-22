@@ -1469,6 +1469,17 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
   }, 60_000).unref?.();
 }
 
+// L'entretien du disque (22 oct. 2026) : copies du bac à sable oubliées, recherches DVF périmées, journaux trop
+// gros, journal d'écriture de SQLite. Rien que l'application relise. Cinq minutes après le démarrage, puis chaque jour.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  const entretien = () => import('./entretien-disque.js').then(({ entretenir }) => {
+    const b = entretenir();
+    if (b.libere || b.lignes.length) console.log(`[entretien] ${(b.libere / 1e6).toFixed(0)} Mo libérés · ${b.lignes.join(' · ')}`);
+  }).catch((e) => console.warn('[entretien]', e?.message || e));
+  setTimeout(entretien, 5 * 60_000).unref?.();
+  setInterval(entretien, 24 * 3600_000).unref?.();
+}
+
 // La veille mandataire : ALX parcourt le secteur, les propriétaires et leurs
 // numéros se cherchent à l'avance, la liste du jour se pose chaque matin.
 setInterval(() => {

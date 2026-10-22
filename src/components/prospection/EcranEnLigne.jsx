@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Mic, PhoneOff } from "lucide-react";
+import { Mic, PhoneOff, X } from "lucide-react";
 import { chiffresEntendus, calculer } from "@/lib/chiffres-entendus";
 import seuils from "../../../server/ak/seuils.json";
 import { CARTE, ETIQUETTE } from "@/components/prospection/StyleAppel";
@@ -49,7 +49,7 @@ export function surligner(texte) {
   return out;
 }
 
-export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, ecoute = true, onRaccrocher, occupe = false, raccrocher = "Raccrocher", action = null }) {
+export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, ecoute = true, onRaccrocher, occupe = false, raccrocher = "Raccrocher", action = null, onAbandonner = null }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       <span className="inline-flex items-center gap-2 rounded-full border border-bord-doux px-3.5 py-1.5 text-[12.5px] text-craie">
@@ -67,6 +67,11 @@ export function EnteteEnLigne({ etat, secondes, essai = false, nom, sousTitre, e
         <button type="button" onClick={onRaccrocher} disabled={occupe} className="inline-flex h-11 items-center gap-2 rounded-full bg-alerte px-5 text-[14.5px] text-fond transition-opacity hover:opacity-90 disabled:opacity-50">
           <PhoneOff className="h-4 w-4" strokeWidth={2} />{raccrocher}
         </button>
+        {/* Abandonner (22 oct. 2026, Jules) : la croix, comme au Mode appel ; rien n'est fait, la transcription s'efface. */}
+        {onAbandonner && (
+          <button type="button" onClick={onAbandonner} disabled={occupe} aria-label="Abandonner l'appel" title="Abandonner : rien n'est fait, la transcription s'efface"
+            className="grid h-11 w-11 place-items-center rounded-full border border-bord-doux text-craie transition-colors hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
+        )}
       </div>
     </div>
   );

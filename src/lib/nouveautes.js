@@ -11,6 +11,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-22",
     items: [
+      { titre: "Une croix pour abandonner un rappel", texte: "Pendant un rappel, la croix à côté de Raccrocher abandonne l'appel : rien n'est fait et la transcription s'efface. Les notes passent au-dessus de la calculatrice, au rappel comme au Mode appel.", page: "Prospection" },
       { titre: "Moins de notifications", texte: "Vous ne recevez plus que les vôtres : plus de copies de ce qui arrive aux autres. Deux cartes au plus, qui se ferment seules après huit secondes ; le reste attend dans la cloche." },
       { titre: "La carte de Klocka", texte: "Prospection › Carte, Projets › Carte et Clients › Carte : tous nos projets, les villes prospectées, nos clients (en France et ailleurs) et nos deals sur une même carte. Un clic sur un point ouvre sa fiche.", page: "Prospection" },
       { titre: "La relance attend votre retour", texte: "Après un appel, si la relance tombe pendant une de vos absences (Agenda), elle passe au premier jour de votre retour, et Haka vous dit pourquoi.", page: "Prospection" },

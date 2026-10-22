@@ -482,7 +482,8 @@ export default function RappelEntrant() {
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
   const abandonner = useMutation({
-    mutationFn: () => base44.request("POST", `${API}/${rappel.id}/abandonner`),
+    // Pendant l'appel, le rappel peut ne pas encore exister côté serveur (créé à l'analyse) : rien à abandonner, on ferme.
+    mutationFn: () => { const id = idRef.current || rappel?.id; return id ? base44.request("POST", `${API}/${id}/abandonner`) : Promise.resolve({ ok: true }); },
     onSuccess: () => { toast.success("Rappel abandonné : rien n'a été fait"); fermer(); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
@@ -659,7 +660,8 @@ export default function RappelEntrant() {
                   titre={ecran === "note" ? "Qui c'était, et que faut-il faire ?" : "Une précision ?"}
                   aide={ecran === "note" ? "Le nom, l'agence, et la suite (un mail, une relance). Rien à dire ? Haka cherche qui c'était dans l'appel." : undefined} />
               ) : <EnteteEnLigne etat={SENS[sens].titre} secondes={secondes} essai={essai} nom={nom} sousTitre={sous}
-                ecoute={!microKo} onRaccrocher={arreter} occupe={stop.isPending} raccrocher={microKo ? "Analyser" : "Raccrocher"}
+                ecoute={!microKo} onRaccrocher={arreter} occupe={stop.isPending || abandonner.isPending}
+                onAbandonner={() => { couper(); abandonner.mutate(); }} raccrocher={microKo ? "Analyser" : "Raccrocher"}
                 action={sens === "sortant" && agent ? <button type="button" onClick={() => reidentifier.mutate()} disabled={reidentifier.isPending} className="ml-2 p-0 text-[13px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Changer</button> : null} />}
               {!apres && agent?.telephone && sens === "sortant" && !essai && <p className="m-0 -mt-3 text-center text-[14px] text-ardoise">Composez le <span className="tabular-nums text-[16px] text-encre">{agent.telephone}</span></p>}
               {!apres && microKo && <p className="m-0 -mt-3 text-center text-[13.5px] text-ambre">Enregistrement pas lancé : écrivez l'essentiel dans les notes, puis Analyser.</p>}
@@ -667,8 +669,9 @@ export default function RappelEntrant() {
               <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
                 <TranscriptionEnLigne morceaux={direct} interlocuteur={(agent?.nom || dit?.nom || "Agent").split(/\s+/)[0]} attend={!apres && !!scenario && direct.length < (scenario?.phrases?.length || 0)} />
                 <div className="flex min-w-0 flex-col gap-5">
-                  <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notes]} />
+                  {/* Les notes au-dessus de la calculatrice (22 oct. 2026, Jules). */}
                   <NotesEnLigne valeur={notes} onChange={setNotes} />
+                  <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notes]} />
                 </div>
               </div>
             </div>

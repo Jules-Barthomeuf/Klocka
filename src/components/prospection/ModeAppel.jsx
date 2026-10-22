@@ -1274,8 +1274,9 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                   milieu: <PanneauTranscription direct={direct} notes={notes} fin={directFin} enDirect nu />,
                   droite: (
                     <>
-                      <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
+                      {/* Les notes au-dessus de la calculatrice (22 oct. 2026, Jules). */}
                       <ZoneNotes valeur={notesAppel} onChange={setNotesAppel} nu />
+                      <CalculatriceEnLigne textes={[...direct.filter((x) => x.texte).map((x) => x.texte), notesAppel]} />
                       {ecran === "appel" && (
                         <div className="grid grid-cols-2 gap-2.5 [&>button]:whitespace-nowrap">
                           {/* L'appel a coupé : on rappelle le même numéro, l'écoute continue. */}

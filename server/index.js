@@ -1374,11 +1374,30 @@ if (fs.existsSync(DIST_DIR)) {
   });
 }
 
-// En production, le premier rendu vidéo paie le téléchargement du navigateur
-// et le bundle webpack : on les préchauffe en arrière-plan dès le démarrage.
-// En local, inutile — le premier clic les construit en quelques secondes.
+// Le préchauffage vidéo (navigateur Remotion + bundle webpack) n'est plus lancé au démarrage (22 oct. 2026) : le
+// « Teaser client » a quitté l'écran le 21 oct., et le bundle gardait des centaines de mégaoctets pour rien sur un
+// serveur tué plusieurs fois par jour faute de mémoire. Le premier rendu, s'il revient, le construit.
+
+// La mémoire, écrite dans le journal (22 oct. 2026, Jules : « 502 Bad Gateway tout le temps ») : celle de tout le
+// conteneur (Node, Chromium, processus enfants) comme Render la compte, et celle de Node. Toutes les heures, et toutes
+// les dix minutes au-dessus de 1,4 Go : un prochain arrêt pour mémoire dira ce qui tournait.
 if (EN_PRODUCTION) {
-  import('./video/index.js').then((m) => m.prechaufferVideo()).catch(() => {});
+  const lireConteneur = () => {
+    for (const f of ['/sys/fs/cgroup/memory.current', '/sys/fs/cgroup/memory/memory.usage_in_bytes']) {
+      try { return Number(fs.readFileSync(f, 'utf8').trim()) || null; } catch { /* pas ce cgroup */ }
+    }
+    return null;
+  };
+  let dernier = 0;
+  setInterval(() => {
+    const m = process.memoryUsage();
+    const c = lireConteneur();
+    const haut = (c || m.rss) > 1.4e9;
+    if (!haut && Date.now() - dernier < 3600_000) return;
+    dernier = Date.now();
+    const mo = (n) => `${Math.round(n / 1e6)} Mo`;
+    console.log(`[memoire] conteneur ${c ? mo(c) : '?'} · Node ${mo(m.rss)} (tas ${mo(m.heapUsed)}/${mo(m.heapTotal)}, hors tas ${mo(m.external)})${haut ? ' · HAUT' : ''}`);
+  }, 10 * 60_000).unref();
 }
 
 // Extractions interrompus par un arrêt du serveur : on les reprend, sinon

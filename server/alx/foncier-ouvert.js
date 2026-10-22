@@ -31,6 +31,7 @@ import { dejaLa, lire, parParcelle, PREMIERE_ANNEE } from './personnes-morales.j
 import { locauxDeSection, grouperProprietaires } from '../kfoncier.js';
 import fs from 'fs';
 import path from 'path';
+import { MapBornee } from '../map-bornee.js';
 
 export const SOURCE = 'DGFiP · locaux des personnes morales';
 /** Où demander qui possède une parcelle quand aucune société n'y est publiée. */
@@ -146,7 +147,8 @@ export function millesimeExtrait(dept) {
   return null;
 }
 
-const indexParDept = new Map();
+// Deux départements au plus : un fichier des sociétés indexé tient des centaines de mégaoctets.
+const indexParDept = new MapBornee(2);
 /** L'index parcelle → propriétaires d'un département extrait, gardé en mémoire. */
 function indexDgfip(dept, annee) {
   const cle = `${dept}|${annee}`;
@@ -169,7 +171,7 @@ async function proprietairesDeLaParcelle(id) {
   return { proprietaires: groupes.map(enProprietaire), millesime: doc.annee ? Number(doc.annee) : null, lecture: 'MAJIC par section, en ligne' };
 }
 
-const indexCadastre = new Map();
+const indexCadastre = new MapBornee(6);
 async function parcelleDuPoint(insee, lat, lon) {
   if (!indexCadastre.has(insee)) indexCadastre.set(insee, indexerParcelles(await chargerParcelles(insee)));
   return indexCadastre.get(insee).parcelleProche(lat, lon);

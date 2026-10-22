@@ -26,6 +26,7 @@
 import { Records } from './db.js';
 import { resoudreAdresse } from './adresse-ban.js';
 import { ErreurSource, SANS_DONNEE } from './marche/erreurs.js';
+import { MapBornee } from './map-bornee.js';
 
 // DVF paraît deux fois par an : un cache plus long que les autres sources n'a
 // aucun coût de fraîcheur, et évite de retélécharger cinq fichiers.
@@ -145,11 +146,11 @@ export function ventesCommerciales(lignes) {
 // ALX lit cinquante adresses de la même commune d'affilée, et chaque fichier
 // annuel pèse plusieurs mégaoctets.
 const MEMO_MS = 6 * 3600 * 1000;
-const memoFichiers = new Map();
+const memoFichiers = new MapBornee(12);
 
 // Les ventes commerciales d'une commune, lues et triées une fois : l'analyse
 // des fichiers coûte plus que leur téléchargement.
-const memoVentes = new Map();
+const memoVentes = new MapBornee(12);
 function ventesDeCommune(dep, insee, millesimes) {
   const cle = `${dep}/${insee}/${millesimes.map((m) => m.annee).join(',')}`;
   const connu = memoVentes.get(cle);
@@ -195,7 +196,7 @@ export async function telechargerFichiers(dep, insee) {
 
 // Les lignes d'une commune, lues une fois : cinq fichiers à découper à chaque
 // cible ferait le même travail cinquante fois par rue.
-const memoLignes = new Map();
+const memoLignes = new MapBornee(12);
 function lignesDeCommune(dep, insee, millesimes) {
   const cle = `${dep}/${insee}/${millesimes.map((m) => m.annee).join(',')}`;
   const connu = memoLignes.get(cle);

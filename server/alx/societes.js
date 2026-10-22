@@ -24,6 +24,7 @@ import { Records } from '../db.js';
 import { distanceM } from '../dvf.js';
 import { scorer } from './score-ml.js';
 import { contexteVille, variablesDeParcelle, tranchesDe, trancheDe, rangDans, raisonsDe, villeLisible } from './score-ville.js';
+import { MapBornee } from '../map-bornee.js';
 
 const GARDE_MS = 6 * 3600 * 1000;
 const GARDE_ANNUAIRE_MS = 30 * 86400000;
@@ -113,7 +114,8 @@ export function accrocheDe({ nom, ville, murs, profils = [] }) {
 // Une ville : toutes ses sociétés
 // ---------------------------------------------------------------------------
 
-const memo = new Map();
+// Trois villes au plus : le contexte d'une ville (DVF, cadastre, sociétés) pèse des centaines de mégaoctets.
+const memo = new MapBornee(3);
 const ATTENTE_MS = 8000;
 
 /**
@@ -344,7 +346,7 @@ export function commercesProches(etablissements, point, { rayon_m = 60, max = 12
     .sort((a, b) => (b.commerce ? 1 : 0) - (a.commerce ? 1 : 0) || (a.distance_m ?? 1e9) - (b.distance_m ?? 1e9))
     .slice(0, max);
 }
-const commercesMemo = new Map();
+const commercesMemo = new MapBornee(200);
 
 /** Ce qu'il y a sur une parcelle : les vitrines relevées, l'annuaire, et les cibles ALX. */
 export async function commercesDeParcelle(villeId, parcelle, { rayon_m = 60 } = {}) {

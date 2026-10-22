@@ -14,12 +14,13 @@ import { contexteVille, zoneFeatures } from './features.js';
 import { JUGEMENT, ajusterApresJugement, modeleActif, scorer } from './modele.js';
 import { hasard } from './logistique.js';
 import { RAISONS, RAISONS_VISUELLES, VERDICTS, raisonsValides } from './raisons.js';
+import { MapBornee } from '../../map-bornee.js';
 
 export const EXEMPLE = 'ZoneExemple';
 const maintenant = () => new Date().toISOString();
 
 // Le contexte d'une ville (grille, grande rue) se calcule une fois, puis se garde tant que la ville n'a pas changé.
-const contextes = new Map();
+const contextes = new MapBornee(4);
 function contexteDe(villeId) {
   const commerces = Records.filter(COMMERCE, { ville_id: villeId });
   const ville = Records.get('Ville', villeId);

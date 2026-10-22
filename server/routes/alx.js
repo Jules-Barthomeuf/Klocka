@@ -310,14 +310,10 @@ export function monterAlx(app) {
     ok(res, r);
   }));
 
-  // Le score appris vieillit avec DVF, le BODACC et le fichier des sociétés :
-  // une passe trente secondes après le démarrage, puis une par jour.
-  const passeScores = () => import('../alx/score-ville.js')
-    .then(({ rescorerToutesLesVilles }) => rescorerToutesLesVilles({ journal: (t) => console.log(t) }))
-    .catch((e) => console.error('[alx] passe des scores appris :', e.message));
+  // Le score appris vieillit avec DVF, le BODACC et le fichier des sociétés : une passe par nuit, dans un processus
+  // à part (22 oct. 2026 : lancée au démarrage dans le serveur, elle le poussait vers sa limite de mémoire).
   if (process.env.NODE_ENV !== 'test') {
-    setTimeout(passeScores, 30_000).unref();
-    setInterval(passeScores, 24 * 3600 * 1000).unref();
+    import('../alx/passe-scores.js').then((m) => m.planifierPassesScores()).catch((e) => console.error('[alx] passe des scores appris :', e.message));
   }
   app.put('/api/alx/cibles/:id', wrap((req, res) => {
     const r = mettreAJourCible(req.params.id, req.body || {}, currentUser(req));

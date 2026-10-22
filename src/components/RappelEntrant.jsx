@@ -82,8 +82,8 @@ function PiluleAppel() {
   const choisir = (faire) => { clearTimeout(minuterie.current); setOuvert(false); faire(); };
   const modes = [
     { cle: "entrant", icone: PhoneIncoming, titre: "Il me rappelle", detail: "Enregistrer l'appel entrant", faire: enregistrerUnRappel },
-    { cle: "sortant", icone: PhoneOutgoing, titre: "Appel rapide", detail: "J'appelle un agent : enregistrer l'appel", faire: appelRapide },
-    { cle: "essai", icone: FlaskConical, titre: "Essai, sans appel", detail: "Jouer un rappel ou un appel rapide", faire: essayerUnAppel },
+    // « Appel rapide » retiré du panneau (22 oct. 2026, Jules) ; appelRapide() reste pour Haka et les liens.
+    { cle: "essai", icone: FlaskConical, titre: "Essai, sans appel", detail: "Jouer un rappel", faire: essayerUnAppel },
   ];
   return (
     <div className="relative" onMouseEnter={entrer} onMouseLeave={sortir}>
@@ -602,7 +602,7 @@ export default function RappelEntrant() {
         {/* Le choix d'un essai (19 oct. 2026) : un scénario joué, rien ne sort de la liste fictive. */}
         {ecran === "essai" && (
           <div className="grid gap-4 md:grid-cols-2">
-            {[["entrant", "Il me rappelle"], ["sortant", "Appel rapide"]].map(([k, mot]) => (
+            {[["entrant", "Il me rappelle"]].map(([k, mot]) => (
               <div key={k} className="flex flex-col gap-2 rounded-[18px] border border-bord-doux px-[18px] py-4">
                 <span className={etiquette}>{mot.toUpperCase()}</span>
                 {SCENARIOS_RAPPEL.filter((x) => x.sens === k).map((x) => (

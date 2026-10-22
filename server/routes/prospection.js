@@ -643,10 +643,7 @@ export function monterProspection(app) {
     const O = await import('../objections.js');
     const r = O.deposer({ appel_id: req.params.id, wav, par: user.email });
     if (!r.ok) return res.status(400).json({ error: r.error });
-    if (!r.deja) {
-      const { notifier } = await import('../notifications.js');
-      notifier({ titre: `Objection à résoudre${r.objection.agence ? ` · ${r.objection.agence}` : ''}`, texte: `« ${r.objection.phrase} » : quinze secondes à écouter, une réponse à trouver.`, lien: '/TableauDeBord', action: 'Écouter', cle: `objection-${r.objection.id}` });
-    }
+    // Plus de notification (22 oct. 2026, Jules : « il faut juste que je voie mes notifications ») : l'objection attend sur le Dashboard.
     ok(res, r);
   }));
   // Les objections sur le Dashboard : toute l'équipe les écoute et y répond.

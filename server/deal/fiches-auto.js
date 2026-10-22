@@ -226,6 +226,7 @@ export async function preanalyserLesNouvellesFiches({ uploadDir, maintenant = ne
         const verdict = deal?.lots?.[0]?.synthese?.verdict || deal?.lots?.[0]?.evaluation?.verdict || null;
         const de = String(mail.de || mail.de_email || '').replace(/<[^>]*>/g, '').trim();
         notifier({
+          pour: auteur?.email || mail.compte || null,
           titre: 'Nouvelle fiche commerciale',
           texte: [`Reçue de ${de || 'un agent'}.`, [nom || 'Le bien', typeof prix === 'number' ? `${Math.round(prix).toLocaleString('fr-FR')} €` : null].filter(Boolean).join(', ') + '.', `Pré-analyse faite${verdict ? ` : ${verdict}` : ''}.`].join(' '),
           lien: `/Dossiers?deal_id=${dossier.deal_id}`,

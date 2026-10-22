@@ -149,7 +149,7 @@ test('Jules : toutes les réponses, par motif, et la synthèse', async () => {
   assert.equal(Q.retours({ jours: 90, maintenant: T0 }).synthese.a_jour, false);
 });
 
-test('Jules voit les questions posées aux autres, en lecture seule, et en est prévenu', async () => {
+test('Jules voit les questions posées aux autres, en lecture seule, sans en être prévenu (22 oct.)', async () => {
   const JULES = { email: 'jules.b@klocka.immo' };
   const ouvertes = Q.questionsEquipe(JULES, { maintenant: T0 });
   assert.ok(ouvertes.length >= 1);
@@ -160,14 +160,13 @@ test('Jules voit les questions posées aux autres, en lecture seule, et en est p
   Q.surveiller({ maintenant: T0 });
   assert.ok(Q.questionsEquipe(JULES, { maintenant: T0 }).some((q) => q.appel_id === a.id && q.par === NORA));
   assert.ok(!Q.mesQuestions({ email: MAXIME }, { maintenant: T0 }).some((q) => q.appel_id === a.id));
-  // Un tour prévient Jules d'une question nouvelle.
+  // Un tour ne prévient plus Jules d'une question posée à un autre : chacun ne reçoit que les siennes.
   const b = appel({ par: MAXIME, modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], le: il_y_a(120) });
   await Q.tour({ invoke: async () => ({ resume: 'r', questions: [] }), maintenant: T0 });
   const q = Records.list('QuestionAppel').find((x) => x.appel_id === b.id);
-  const notes = Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${q.id}`));
-  assert.equal(notes.length, 1);
-  assert.equal(notes[0].pour, 'jules.b@klocka.immo');
-  assert.match(notes[0].titre, /question à Maxime/);
+  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel-jules:${q.id}`)).length, 0);
+  assert.equal(Records.list('Notification').filter((n) => String(n.cle).startsWith(`question-appel:${q.id}`) && n.pour === 'jules.b@klocka.immo').length, 0);
+  assert.match(Records.list('Notification').find((n) => String(n.cle).startsWith(`question-appel:${q.id}`)).titre, /^Haka a une question/);
   // Les siennes ne lui sont pas annoncées deux fois.
   const c = appel({ par: 'jules.b@klocka.immo', modifie: true, corrections: [{ champ: 'Mail', avant: 'proposé', apres: 'réécrit' }], le: il_y_a(130) });
   await Q.tour({ invoke: async () => ({ resume: 'r', questions: [] }), maintenant: T0 });
@@ -196,7 +195,7 @@ test('relecture du 16 oct. : annonce quel que soit le chemin, réannonce d\'un m
   assert.ok((await Q.annoncer()) >= 1);
   const pour = (n) => Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel:${q.id}:`) && x.pour === n).length;
   assert.equal(pour(NORA), 1);
-  assert.equal(Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel-jules:${q.id}:`)).length, 1);
+  assert.equal(Records.list('Notification').filter((x) => String(x.cle).startsWith(`question-appel-jules:${q.id}:`)).length, 0);
   await Q.annoncer();
   assert.equal(pour(NORA), 1);
   // Validé une heure plus tard : « pas validé » s'efface, « validation longue » arrive ; même nombre de motifs, réannoncée.

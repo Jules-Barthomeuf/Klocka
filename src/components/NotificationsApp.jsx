@@ -7,10 +7,13 @@ import { poser } from "@/components/ui/avis";
 // Les notifications de l'application (ce qui arrivait avant dans Google
 // Chat) : relevées toutes les trente secondes, chacune montrée une fois en
 // carte en haut à droite, avec son bouton. Onglet caché : la notification du
-// système, si elle est autorisée. Une notification de plus d'un jour ne se
-// montre plus en carte : elle n'apprendrait plus rien.
+// système, si elle est autorisée.
+// Moins de cartes (22 oct. 2026, Jules : « à chaque fois on est obligé de fermer, c'est trop énervant ; il faut
+// vraiment que ça soit utile, sinon on ne les regarde plus ») : deux au plus, huit secondes, et seulement ce qui
+// vient d'arriver (moins de deux heures). Le reste attend dans la cloche, sans carte « N autres ».
 
-const UN_JOUR = 24 * 3600 * 1000;
+const FRAICHE_MS = 2 * 3600 * 1000;
+const CARTES_MAX = 2;
 
 export default function NotificationsApp() {
   const navigate = useNavigate();
@@ -23,14 +26,10 @@ export default function NotificationsApp() {
   });
 
   useEffect(() => {
-    const fraiches = (data?.notifications || []).filter((n) => !n.vue && !montrees.current.has(n.id) && Date.now() - Date.parse(n.le) <= UN_JOUR);
-    // Trois cartes au plus : au-delà, une seule carte dit le reste.
-    const trop = fraiches.length > 3 ? fraiches.slice(3) : [];
-    if (trop.length) {
-      for (const n of trop) { montrees.current.add(n.id); base44.request("POST", `/api/notifications/${n.id}/vue`).catch(() => {}); }
-      poser("information", `${trop.length} autres notifications`, { description: "Le reste vous attend dans l'application.", duration: 12000 });
-    }
-    for (const n of fraiches.slice(0, 3)) {
+    const fraiches = (data?.notifications || []).filter((n) => !n.vue && !montrees.current.has(n.id) && Date.now() - Date.parse(n.le) <= FRAICHE_MS);
+    // Au-delà de deux : vues sans carte, elles restent dans la cloche.
+    for (const n of fraiches.slice(CARTES_MAX)) { montrees.current.add(n.id); base44.request("POST", `/api/notifications/${n.id}/vue`).catch(() => {}); }
+    for (const n of fraiches.slice(0, CARTES_MAX)) {
       montrees.current.add(n.id);
       base44.request("POST", `/api/notifications/${n.id}/vue`).catch(() => {});
       const ouvrir = () => {
@@ -46,7 +45,7 @@ export default function NotificationsApp() {
       }
       poser(n.genre === "erreur" ? "erreur" : "information", n.titre, {
         description: n.texte,
-        duration: 20000,
+        duration: 8000,
         ...(n.lien ? { action: { mot: "Voir", faire: ouvrir } } : {}),
       });
     }

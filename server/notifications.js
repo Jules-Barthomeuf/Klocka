@@ -7,13 +7,14 @@
 // s'y déclenche : elle dit, elle ne fait pas.
 
 import { Records } from './db.js';
+import { SUPER_ADMINS } from './acces-pages.js';
 
 const PLAFOND = 300;
 
 /**
  * Pose une notification.
  * @param {{pour?: string|null, titre: string, texte?: string, lien?: string, action?: string, genre?: string, cle?: string}} n
- *   `pour` : l'adresse de la personne ; sans elle, toute l'équipe (les admins).
+ *   `pour` : l'adresse de la personne ; sans elle, Jules seul (22 oct. 2026 : chacun ne voit que les siennes).
  *   `cle` : une même clé ne notifie qu'une fois (une fiche, un dossier).
  */
 export function notifier({ pour = null, titre, texte = null, lien = null, action = null, genre = 'info', cle = null }) {
@@ -32,7 +33,14 @@ export function notifier({ pour = null, titre, texte = null, lien = null, action
   return n;
 }
 
-const pourMoi = (n, user) => (n.pour ? n.pour === String(user?.email || '').toLowerCase() : user?.role === 'admin');
+// Chacun ne voit que ses notifications (22 oct. 2026, Jules : « je ne dois pas voir les notifications que reçoivent
+// les autres ») : une notification sans destinataire va à Jules seul, plus à tous les admins. Les copies qu'il
+// recevait des questions posées aux analystes ne se montrent plus.
+const pourMoi = (n, user) => {
+  const email = String(user?.email || '').toLowerCase();
+  if (String(n.cle || '').startsWith('question-appel-jules:')) return false;
+  return n.pour ? n.pour === email : email === SUPER_ADMINS[0];
+};
 
 /** Les notifications d'une personne, les plus récentes d'abord. */
 export function mesNotifications(user, { limite = 30 } = {}) {

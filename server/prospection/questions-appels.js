@@ -94,9 +94,9 @@ export function chronologie(appel, { agence = null } = {}) {
   const qui = [appel.agent, agence].filter(Boolean).join(', ');
   l.push({ quoi: `Appel${qui ? ` à ${qui}` : ''}`, detail: `${heureFr(appel.le)}${Number(appel.duree_s) ? `, ${duree(Number(appel.duree_s) * 1000)}` : ''}${appel.enregistre ? ', enregistré' : ''}` });
   const issue = R.ISSUES?.[appel.issue] || appel.issue;
-  if (appel.mesure_ak?.propose_par_ak) l.push({ quoi: appel.mesure_ak.issue ? 'AK avait compris une autre issue ; tu l\'as changée' : 'AK a compris l\'issue', detail: issue });
-  else if (issue) l.push({ quoi: 'Issue', detail: `${issue}${appel.issue_deduite ? ' (comprise par AK)' : ''}` });
-  if (appel.resume) l.push({ quoi: 'Ce qu\'AK a retenu', detail: court(appel.resume, 220) });
+  if (appel.mesure_ak?.propose_par_ak) l.push({ quoi: appel.mesure_ak.issue ? 'Haka avait compris une autre issue ; tu l\'as changée' : 'Haka a compris l\'issue', detail: issue });
+  else if (issue) l.push({ quoi: 'Issue', detail: `${issue}${appel.issue_deduite ? ' (comprise par Haka)' : ''}` });
+  if (appel.resume) l.push({ quoi: 'Ce que Haka a retenu', detail: court(appel.resume, 220) });
   const t = appel.temps || {};
   if (Number.isFinite(t.pret_ms)) l.push({ quoi: 'Actions proposées par AK', detail: `prêtes ${duree(t.pret_ms)} après le raccrochage${(appel.propositions || []).length ? `, ${(appel.propositions || []).length} propositions` : ''}` });
   for (const c of appel.corrections || []) l.push({ quoi: `Tu as corrigé : ${c.champ || 'un champ'}`, detail: `${court(c.avant, 90) || '(vide)'} → ${court(c.apres, 90) || '(vide)'}` });
@@ -425,23 +425,18 @@ Français simple, sans tiret long.`;
 export const cleAnnonce = (q) => [...(q.motifs || [])].sort().join(',');
 
 /**
- * Prévient l'analyste, et Jules, de chaque question ouverte pas encore annoncée
+ * Prévient l'analyste de chaque question ouverte pas encore annoncée (lui seul depuis le 22 oct. 2026, Jules :
+ * « je ne dois pas voir les notifications que reçoivent les autres » ; Suivi > Appels > Retours les garde toutes)
  * pour ses motifs actuels. Appelée à chaque surveillance (Dashboard, tour) :
  * une question née à l'ouverture du Dashboard est annoncée comme les autres.
  */
 export async function annoncer() {
   const { notifier } = await import('../notifications.js');
-  const { SUPER_ADMINS } = await import('../acces-pages.js');
-  const juleses = SUPER_ADMINS.filter((x) => x.endsWith('@klocka.immo'));
   let n = 0;
   for (const q of Records.list(ENTITE).filter((x) => x.etat === 'ouverte' && x.annonce !== cleAnnonce(x))) {
     const cle = cleAnnonce(q);
     const quoi = `${q.agence || q.agent || 'Un appel'} : ${q.motifs.map((m) => MOTIFS[m].toLowerCase()).join(', ')}`;
-    notifier({ pour: q.par, titre: 'AK a une question sur un de tes appels', texte: `${quoi}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${cle}` });
-    // Jules reçoit aussi chaque question posée aux analystes (il n'y répond pas : il voit et il teste).
-    for (const j of juleses.filter((x) => x !== q.par)) {
-      notifier({ pour: j, titre: `AK a posé une question à ${q.par.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase())}`, texte: `${quoi}. Dans Suivi > Appels > Retours, avec son écran.`, lien: '/SuiviAppels?vue=retours', cle: `question-appel-jules:${q.id}:${cle}:${j}` });
-    }
+    notifier({ pour: q.par, titre: 'Haka a une question sur un de tes appels', texte: `${quoi}. L'écran enregistré t'attend sur le Dashboard.`, lien: '/Dashboard', cle: `question-appel:${q.id}:${cle}` });
     Records.update(ENTITE, q.id, { annonce: cle });
     n += 1;
   }

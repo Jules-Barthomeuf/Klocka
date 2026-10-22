@@ -20,7 +20,7 @@ const cheminDe = (id) => path.join(DOSSIER, `${String(id).replace(/[^a-zA-Z0-9-]
 export function deposer({ appel_id, wav, par }) {
   const appel = Records.get('AppelAgent', appel_id);
   if (!appel) return { ok: false, error: 'Appel introuvable.' };
-  if (!appel.objection?.phrase) return { ok: false, error: "AK n'a relevé aucune objection sur cet appel." };
+  if (!appel.objection?.phrase) return { ok: false, error: "Haka n'a relevé aucune objection sur cet appel." };
   if (!wav?.length || wav.length > TAILLE_MAX || wav.toString('ascii', 0, 4) !== 'RIFF') return { ok: false, error: 'Clip audio invalide.' };
   const deja = Records.list(ENTITE).find((o) => o.appel_id === appel_id);
   if (deja) return { ok: true, objection: deja, deja: true };

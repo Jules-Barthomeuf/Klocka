@@ -290,4 +290,22 @@ export function monterHaka(app) {
     const tache = surFicheRecue(mail, { uploadDir: (await import('../contexte.js')).UPLOAD_DIR, lancer: true });
     ok(res, { mail_id: mail.id, tache_id: tache.id });
   }));
+
+  // Haka ambiant (22 oct. 2026) : un mail simulé (réponse, documents, rendez-vous, client), en simulation seulement.
+  app.post('/api/haka/simuler-mail', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user || !actif(res)) return;
+    if (!SIMULER) return res.status(403).json({ error: 'Seulement en simulation (HAKA_SIMULER).' });
+    const { Records } = await import('../db.js');
+    const b = req.body || {};
+    const mail = Records.create('MailRecu', {
+      compte: String(b.compte || user.email).toLowerCase(), gmail_message_id: `simule-${Date.now()}`, thread_id: null,
+      de: b.de || 'Agent Test <agent@exemple.fr>', de_email: String(b.de_email || 'agent@exemple.fr').toLowerCase(),
+      objet: b.objet || 'Mail simulé', texte: b.texte || '', date: new Date().toISOString(), retenu_parce_que: 'simulation Haka', simule: true,
+      deal_id: b.deal_id || null, pieces_jointes: (b.pieces || []).map((nom) => ({ nom, mime: 'application/pdf', taille: 1000 })),
+    });
+    const { surMail } = await import('../haka/ambiant.js');
+    const tache = surMail(mail, { uploadDir: (await import('../contexte.js')).UPLOAD_DIR, lancer: true, lecture: b.lecture || null });
+    ok(res, { mail_id: mail.id, tache_id: tache.id });
+  }));
 }

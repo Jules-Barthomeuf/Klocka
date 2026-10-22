@@ -33,6 +33,7 @@ export const TYPES = {
   rattacher_ou_creer: { libelle: 'Même adresse : rattacher ou créer ?', externe: false },
   meme_bien_recu: { libelle: "Même bien reçu d'un autre agent", externe: false },
   preanalyser_fiche: { libelle: 'Fiche reçue : pré-analyser ?', externe: false },
+  mail_ambiant: { libelle: 'Mail reçu : je fais le geste ?', externe: true },
 };
 
 /**
@@ -54,7 +55,9 @@ export async function proposer({ type, titre, resume = null, charge = {}, source
   });
   try {
     const { notifier } = await import('../notifications.js');
-    notifier({ pour: p.pour, titre: `Haka : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: 'haka', cle: `haka:${p.id}` });
+    // `question_haka` : la carte se montre, mais la cloche ne la redit pas sous « Notifications » : la question y est déjà,
+    // dans « Ce qui t'attend » (22 oct. 2026).
+    notifier({ pour: p.pour, titre: `Haka : ${p.titre}`, texte: p.resume, lien: `/AValider?id=${p.id}`, action: 'Décider', genre: p.pour ? 'question_haka' : 'haka', cle: `haka:${p.id}` });
   } catch (e) {
     console.warn(`[haka] notification non posée : ${e?.message || e}`);
   }
@@ -134,6 +137,18 @@ export async function rejeter(id, user, motif) {
     }
   }
   return { ok: true, proposition: proposition(p.id) };
+}
+
+/**
+ * Retire une proposition devenue sans objet (le mail a été traité à la main, 22 oct. 2026) : elle quitte la cloche et
+ * À valider, sa tâche s'annule, la raison reste sur la proposition.
+ */
+export function retirer(id, raison) {
+  const p = proposition(id);
+  if (!p || p.etat !== 'proposee') return { ok: false };
+  Records.update(ENTITE, p.id, { etat: 'retiree', motif_rejet: String(raison || 'Sans objet').slice(0, 300), decidee_le: maintenant() });
+  if (p.tache_id) { try { taches.annuler(p.tache_id, raison); } catch { /* la tâche est déjà close */ } }
+  return { ok: true };
 }
 
 /** Prendre une proposition du Commun : elle devient à soi. */

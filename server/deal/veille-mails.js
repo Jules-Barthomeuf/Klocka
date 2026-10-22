@@ -85,7 +85,10 @@ export async function rattacherMailsOrphelins() {
     );
     rattaches += 1;
     // Dans l'application : la réponse d'un agent arrive sur son dossier, la personne responsable le sait (19 oct. 2026, Jules).
+    // Haka ambiant la traite (22 oct. 2026) : sa question oui / non suffit, pas de seconde notification.
     try {
+      const { ambiantPour, FILE } = await import('../haka/drapeaux.js');
+      if (FILE && (ambiantPour('reponse') || ambiantPour('documents'))) continue;
       const { notifier } = await import('../notifications.js');
       const pj = (mail.pieces_jointes || []).length;
       notifier({
@@ -161,6 +164,20 @@ async function releverVraiment(uploadDir = null) {
     }
     const rattaches = await rattacherMailsOrphelins();
 
+    // Haka ambiant (22 oct. 2026) : chaque mail retenu, une fois rattaché, devient une question oui / non. Avant
+    // l'ingestion : des pièces qui attendent le oui ne se rangent pas seules.
+    let ambiant = null;
+    try {
+      const { AMBIANT, FILE } = await import('../haka/drapeaux.js');
+      if (AMBIANT && FILE) {
+        const { surReleveAmbiant } = await import('../haka/ambiant.js');
+        ambiant = await surReleveAmbiant({ uploadDir: uploadDir || CHEMIN_UPLOADS });
+        erreurs.push(...(ambiant.erreurs || []));
+      }
+    } catch (e) {
+      erreurs.push(`Haka ambiant : ${e?.message || e}`);
+    }
+
     // Les pièces jointes des réponses entrent dans leur dossier et partent au
     // extraction : quand l'analyste ouvre le dossier, les données sont là.
     let pieces = { mails: 0, documents: 0 };
@@ -187,7 +204,7 @@ async function releverVraiment(uploadDir = null) {
     // Les agents entrent au CRM tout seuls : l'information est déjà sur les
     // dossiers, personne n'a à la ressaisir.
     const crm = synchroniserAgents();
-    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, preanalyses: fiches.crees, pieces, engagements, crm, erreurs };
+    dernier = { le: new Date().toISOString(), nouveaux, ecartes, rattaches, preanalyses: fiches.crees, pieces, engagements, crm, ambiant, erreurs };
 
     // Ce que la veille a fait sans personne devant l'écran doit pouvoir se
     // relire : sinon un document apparaît dans un dossier sans qu'on sache d'où.

@@ -227,7 +227,8 @@ async function ranger(mail, deposes, user) {
  */
 export async function ingererEnAttente(uploadDir, user = null) {
   const aTraiter = Records.list('MailRecu').filter(
-    (m) => m.deal_id && !m.pieces_ingerees && (m.pieces_jointes || []).length
+    // Des pièces qui attendent le oui de Haka ambiant (22 oct. 2026) ne se rangent pas seules.
+    (m) => m.deal_id && !m.pieces_ingerees && !m.haka_attente_rangement && (m.pieces_jointes || []).length
   );
 
   let documents = 0;

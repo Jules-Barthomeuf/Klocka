@@ -13,6 +13,7 @@ import { proprietaireDeLaBoite } from './proprietaire.js';
 import * as taches from './taches.js';
 import './competences/fiche-recue.js';
 import './competences/relances-matin.js';
+import { verdictAmbiant } from './ambiant.js';
 import { BOITES_COMMUNES } from './drapeaux.js';
 import { membreDeLEquipe, signalerExterieur } from './competences/demande-equipe.js';
 import { porteUneFiche } from '../deal/fiches-auto.js';
@@ -101,6 +102,9 @@ export async function surReleve({ uploadDir = null } = {}) {
 export function verdictDuMail(m, { depuis = null, contexte = {}, decisions = [], tache = null, enPause = false } = {}) {
   const pieces = (m.pieces_jointes || []).map((p) => (typeof p === 'string' ? p : p?.nom)).filter(Boolean);
   const v = (verdict, raison) => ({ id: m.id, date: m.date || null, de: m.de || m.de_email || null, compte: m.compte || null, objet: m.objet || '', pieces, verdict, raison });
+  // Haka ambiant (22 oct. 2026) : ce qu'il a fait d'un mail qui n'est pas une fiche.
+  const amb = !m.haka_tache_id ? verdictAmbiant(m) : null;
+  if (amb) return v(amb.verdict, amb.raison);
   if (m.haka_tache_id) {
     if (tache?.etat === 'en_attente_validation' && tache?.etape === 'accepter_preanalyse') return v('proposee', 'Proposée : elle attend « Je la rentre ? » dans la cloche et À valider.');
     if (m.fiche_refusee) return v('ecartee', `Vous avez répondu Non${m.fiche_refusee.motif ? ` : « ${m.fiche_refusee.motif} »` : ''}.`);
@@ -127,7 +131,7 @@ export async function etatDesFiches({ jours = 3 } = {}) {
   const pause = enPause('pre-analyse-fiche');
   const limite = Date.now() - jours * 86400000;
   return contexte.mails
-    .filter((m) => Date.parse(m.date || 0) >= limite && (m.pieces_jointes || []).length > 0 && !m.interne)
+    .filter((m) => Date.parse(m.date || 0) >= limite && ((m.pieces_jointes || []).length > 0 || m.haka_ambiant) && !m.interne)
     .sort((a, b) => String(b.date).localeCompare(String(a.date)))
     .slice(0, 60)
     .map((m) => verdictDuMail(m, { depuis, contexte, decisions, tache: m.haka_tache_id ? taches.tache(m.haka_tache_id) : null, enPause: pause }));

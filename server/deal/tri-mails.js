@@ -186,9 +186,21 @@ export function referentielTri() {
   // Les boîtes où l'équipe écrit à Haka, quand la file est allumée.
   let commandes = new Set();
   try { const D = requireDrapeaux(); if (D.FILE) commandes = D.BOITES_COMMUNES; } catch { /* pas de Haka */ }
+  // Haka ambiant (22 oct. 2026) : les agents des dossiers ouverts et les clients connus entrent, signal ou pas.
+  let ambiant = { agents: new Set(), clients: new Set() };
+  try {
+    const D = requireDrapeaux();
+    if (D.FILE && D.AMBIANT) {
+      if (D.ambiantPour('reponse') || D.ambiantPour('rdv') || D.ambiantPour('documents')) {
+        ambiant.agents = new Set(Records.list('Deal').filter((d) => !d.archived && d.contact_agent_email && !['refuse', 'abandonne', 'clos', 'perdu'].includes(d.statut)).map((d) => String(d.contact_agent_email).toLowerCase()));
+      }
+      if (D.ambiantPour('client')) ambiant.clients = new Set(Records.list('DemandeClient').map((c) => String(c.client_email || '').toLowerCase()).filter(Boolean));
+    }
+  } catch { /* pas de Haka */ }
   return {
     internes,
     domaines,
+    ambiant,
     agents: adressesAgents(),
     attendus: agentsAttendus(),
     ignores: new Set(EXPEDITEURS_IGNORES),
@@ -234,6 +246,8 @@ export function trierMail(mail, ref) {
   // dossier, lui, est examiné comme les autres : il envoie de bons biens ET des
   // mails sans intérêt, et les deux ne se valent pas.
   if (ref.attendus?.has(email)) return { garder: true, raison: 'réponse attendue' };
+  if (ref.ambiant?.clients?.has(email)) return { garder: true, raison: 'client connu (Haka)' };
+  if (ref.ambiant?.agents?.has(email)) return { garder: true, raison: "agent d'un dossier ouvert (Haka)" };
 
   const pieces = (mail.pieces_jointes || []).filter(
     (p) => PIECES_UTILES.test(p.nom || '') && !PIECES_INUTILES.test(p.nom || '')

@@ -10,6 +10,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-22",
     items: [
+      { titre: "La carte de Klocka", texte: "Prospection › Carte, Projets › Carte et Clients › Carte : tous nos projets, les villes prospectées, nos clients (en France et ailleurs) et nos deals sur une même carte. Un clic sur un point ouvre sa fiche.", page: "Prospection" },
       { titre: "La relance attend votre retour", texte: "Après un appel, si la relance tombe pendant une de vos absences (Agenda), elle passe au premier jour de votre retour, et Haka vous dit pourquoi.", page: "Prospection" },
     ],
   },

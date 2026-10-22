@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import CarteKlocka from "@/components/carte/CarteKlocka";
 import { createPortal } from "react-dom";
 import FicheContact from "@/components/prospection/FicheContact";
 import { Link } from "react-router-dom";
@@ -966,7 +967,8 @@ export default function Prospection() {
   // Trois onglets (le Mode appel est un bouton depuis le 17 oct. 2026 ; 16 oct. 2026, Jules : Prospection et Relances fusionnées) :
   // Aujourd'hui (une seule file, À envoyer à droite), Mode appel (un seul),
   // Listes (le « + » cherche une ville et crée sa liste), Suivi.
-  const PARTIES = [["journee", "Aujourd'hui"], ["listes", "Listes"], ["suivi", "Suivi"]];
+  // « Carte » (22 oct. 2026, Jules) : où on a prospecté, avec les projets, les clients et les deals.
+  const PARTIES = [["journee", "Aujourd'hui"], ["listes", "Listes"], ["carte", "Carte"], ["suivi", "Suivi"]];
   // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
   const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
@@ -1055,6 +1057,7 @@ export default function Prospection() {
       )}
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
+      {partie === "carte" && <CarteKlocka focus="prospection" hauteur="calc(100vh - 220px)" className="min-h-[520px]" />}
       {partie === "listes" && <OngletListesAgences ouverte={listeOuverte} onOuvrir={setListeOuverte} onAppeler={(id) => prendre.mutate({ id })} onBasculer={basculer}
         relances={{ n: relancesDues.data?.lignes?.length || 0, contenu: <FileRelances integre onOuvrir={(c) => { setCourante(c); basculer(true); }} /> }} />}
       </div>

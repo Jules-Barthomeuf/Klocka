@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import CarteKlocka from "@/components/carte/CarteKlocka";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Download, Mic, Plus, Search, X } from "lucide-react";
@@ -352,7 +353,7 @@ export default function AdminClients() {
           <button type="button" onClick={() => setAppel({ client: null, mode: "enregistrer" })} className="inline-flex h-11 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol"><Mic className="h-4 w-4" />Enregistrer un appel</button>
           <button type="button" onClick={() => setNouveau(true)} className="inline-flex h-11 items-center gap-1.5 rounded-full border border-trait px-4 text-[14px] text-craie hover:border-bord-vif hover:text-encre" style={{ background: "transparent" }}><Plus className="h-4 w-4" />Nouveau client</button>
           <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Affichage">
-            {[["cartes", "Cartes"], ["tableau", "Tableau"]].map(([cle, mot]) => (
+            {[["cartes", "Cartes"], ["tableau", "Tableau"], ["carte", "Carte"]].map(([cle, mot]) => (
               <button key={cle} type="button" role="tab" aria-selected={vue === cle} onClick={() => changerVue(cle)}
                 className={`rounded-full px-4 py-[9px] text-[14px] ${vue === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`} style={vue === cle ? undefined : { background: "transparent" }}>{mot}</button>
             ))}
@@ -374,7 +375,9 @@ export default function AdminClients() {
         ))}
       </div>
 
-      {isLoading && <Chargement taille="grand" />}
+      {/* La carte (22 oct. 2026, Jules) : où sont nos clients, en France et ailleurs, avec les projets, la prospection et les deals. */}
+      {vue === "carte" && <CarteKlocka focus="clients" hauteur="calc(100vh - 300px)" className="min-h-[520px]" />}
+      {isLoading && vue !== "carte" && <Chargement taille="grand" />}
       {!isLoading && !clients.length && <p className="m-0 text-[14px] text-brume">Aucun client encore. Enregistrez un appel : le client naît de ce qu'il dit.</p>}
       {!isLoading && clients.length > 0 && !lignes.length && <p className="m-0 rounded-[18px] border border-dashed border-trait p-12 text-center text-[15px] text-brume">Aucun client ne correspond.</p>}
       {lignes.length > 0 && vue === "cartes" && <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">{lignes.map((x) => <CarteClient key={x.id} d={x} onOuvrir={() => setOuvert(x.id)} />)}</div>}

@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, PanelRight } from "lucide-react";
+import { Map as MapIcon, Search, Building2, Plus, Upload, X, CheckCircle2, MoreHorizontal, Sparkles, Loader2, FileText, Brain, GripVertical, FolderSearch, Eye, Archive, Undo2, ArrowLeft, ArrowRight, Undo2 as Annuler, Redo2, History, UserPlus, PanelRight } from "lucide-react";
+import CarteKlocka from "@/components/carte/CarteKlocka";
 import { toast } from "@/components/ui/avis";
 import AdminProjectCard from "../components/admin/AdminProjectCard";
 import ClientsCorrespondants from "../components/admin/ClientsCorrespondants";
@@ -137,6 +138,7 @@ export default function AdminProjets() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
+  const [voirCarte, setVoirCarte] = useState(false);
   const [csvData, setCsvData] = useState("");
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [shadowDialogOpen, setShadowDialogOpen] = useState(false);
@@ -1835,12 +1837,19 @@ export default function AdminProjets() {
               </button>
             )}
           </div>
+          {/* La carte des projets (22 oct. 2026, Jules), avec la prospection, les clients et les deals. */}
+          <button onClick={() => setVoirCarte((v) => !v)} aria-pressed={voirCarte}
+            className={`ml-auto inline-flex items-center gap-1.5 text-[14px] transition-colors ${voirCarte ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
+            <MapIcon className="w-4 h-4" />{voirCarte ? "Masquer la carte" : "Carte"}
+          </button>
           <button onClick={() => setShowArchived(!showArchived)}
             className={`inline-flex items-center gap-1.5 text-[14px] transition-colors ${showArchived ? "text-menthe" : "text-ardoise hover:text-encre"}`} style={{ background: "transparent" }}>
             <Archive className="w-4 h-4" />
             {showArchived ? "Masquer les archivés" : "Archivés"} <span className="text-brume">{nbArchives}</span>
           </button>
         </div>
+
+        {voirCarte && <CarteKlocka focus="projets" hauteur={560} className="mb-6 k-entree" />}
 
         {/* Grille */}
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6 max-md:gap-4 items-start">

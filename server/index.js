@@ -1469,6 +1469,14 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
   }, 60_000).unref?.();
 }
 
+// La carte (22 oct. 2026) : préparée deux minutes après le démarrage, puis toutes les 30 minutes ; la première
+// géolocalisation des villes prend une minute, personne ne l'attend devant l'écran.
+if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {
+  const preparerCarte = () => import('./carte.js').then(({ carte }) => carte({ frais: true })).catch((e) => console.warn('[carte]', e?.message || e));
+  setTimeout(preparerCarte, 2 * 60_000).unref?.();
+  setInterval(preparerCarte, 30 * 60_000).unref?.();
+}
+
 // L'entretien du disque (22 oct. 2026) : copies du bac à sable oubliées, recherches DVF périmées, journaux trop
 // gros, journal d'écriture de SQLite. Rien que l'application relise. Cinq minutes après le démarrage, puis chaque jour.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

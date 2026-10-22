@@ -29,6 +29,12 @@ export function monterMonday(app) {
     });
   }));
 
+  // La carte de Klocka (22 oct. 2026) : projets, prospection, clients et deals, pour l'équipe.
+  app.get('/api/carte', wrap(async (req, res) => {
+    if (currentUser(req)?.role !== 'admin') return res.status(403).json({ error: "Réservé à l'équipe." });
+    ok(res, await (await import('../carte.js')).carte({ frais: req.query.frais === '1' }));
+  }));
+
   // À qui correspond chaque projet, d'après les investisseurs tenus dans Monday.
   // Un seul appel pour toute la page : la liste des investisseurs est en cache,
   // une requête par projet la relirait pour rien.

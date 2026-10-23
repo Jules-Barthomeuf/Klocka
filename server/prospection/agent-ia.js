@@ -27,7 +27,7 @@ import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { norm, normEmail, normTel, telAffiche } from './regles.js';
 import * as MA from './mode-appel.js';
-import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder, lireCollage, RESEAUX } from './mandataires.js';
+import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder, lireCollage, RESEAUX, clePersonne } from './mandataires.js';
 import { ANALYSTES } from '../fil-dossier.js';
 
 const LISTE = 'ListeAgences';
@@ -467,6 +467,16 @@ export function migrerMandataires(listeId) {
       continue;
     }
     const reseau = reseauDe(a.nom);
+    // « Olivier Trompette - immobilier - iad France » (sa fiche Google Maps) : un conseiller, pas une agence.
+    const tete = String(a.nom || '').split(/\s+[-–—|]\s+/)[0];
+    if (reseau && tete !== a.nom && estUnePersonne(tete) && !reseauDe(tete)) {
+      Records.update(AGENCE, a.id, { genre: 'mandataire', nom: nomPersonne(tete), nom_avant: a.nom, reseau: reseau.cle, reseau_nom: reseau.nom, telephone_source: a.telephone ? a.telephone_source || (a.place_id ? 'maps' : 'annonce') : null, agents: [] });
+      for (const x of (a.agents || []).filter((y) => (y.telephone || y.email) && estUnePersonne(y.nom || nomDuMail(y.email)) && clePersonne(y.nom || '') !== clePersonne(tete))) {
+        rangerMandataire(listeId, { nom: nomPersonne(x.nom || nomDuMail(x.email)), reseau: reseau.cle, reseau_nom: reseau.nom, email: x.email || null, telephone: x.telephone || null, telephone_source: 'annonce', annonces: x.annonces || 0, annonces_commerce: x.annonces_commerce || 0, sources: ['Equimmox'] });
+      }
+      n += 1;
+      continue;
+    }
     if (!reseau || a.place_id || !(a.agents || []).length) continue;
     for (const x of a.agents) {
       if ((!x.telephone && !x.email) || !estUnePersonne(x.nom || nomDuMail(x.email))) continue;
@@ -1061,7 +1071,7 @@ export function collerMandataires(listeId, { texte, reseau }, user = null) {
   let nouveaux = 0;
   let completes = 0;
   for (const g of gens) {
-    const x = rangerMandataire(listeId, { nom: g.nom, reseau: r.cle, reseau_nom: r.nom, telephone: g.telephone, telephone_source: 'annuaire', sources: [`Annuaire ${r.nom}`], colle_par: user?.email || null });
+    const x = rangerMandataire(listeId, { nom: g.nom, reseau: r.cle, reseau_nom: r.nom, telephone: g.telephone, telephone_source: 'annuaire', code_postal: g.code_postal || null, sources: [`Annuaire ${r.nom}`], colle_par: user?.email || null });
     if (x.nouveau) nouveaux += 1; else completes += 1;
   }
   noter(l, `Annuaire ${r.nom} collé${user?.email ? ` par ${user.email.split('@')[0]}` : ''} : ${gens.length} conseillers lus, ${nouveaux} nouveaux, ${completes} déjà connus complétés, ${gens.filter((g) => g.telephone).length} avec un numéro.`, 'succes');

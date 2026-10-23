@@ -135,3 +135,25 @@ test('coller une page d’annuaire : chacun entre comme mandataire du réseau, n
   assert.equal(IA.collerMandataires(l.id, { texte: 'rien à lire ici 123', reseau: 'iad' }).ok, false);
   assert.equal(IA.collerMandataires(l.id, { texte: 'Claire Martin', reseau: 'inconnu' }).ok, false);
 });
+
+test('la vraie page IAD de Nice (sans numéros affichés) : les 15 conseillers, aucun libellé de la page', () => {
+  const page = fs.readFileSync(new URL('./fixtures/annuaire-iad-nice.txt', import.meta.url), 'utf8');
+  const gens = M.lireCollage(page);
+  assert.equal(gens.length, 15);
+  assert.deepEqual(gens.slice(0, 3), [{ nom: 'Claire Bourgeois', telephone: null, code_postal: '06000' }, { nom: 'Alix Verna', telephone: null, code_postal: '06000' }, { nom: 'Adrien Combes', telephone: null, code_postal: '06300' }]);
+  assert.ok(gens.some((g) => g.nom === 'Marc-Henry Paturot'));
+  assert.ok(!gens.some((g) => /compromis|mentions|cookies|g[ée]rer|unis|localisation/i.test(g.nom)));
+});
+
+test('un conseiller avec sa fiche Maps (« Olivier Trompette - immobilier - iad France ») devient un mandataire, ses agents aussi', () => {
+  const l = Records.create('ListeAgences', { ville: 'Nice', etat: 'fini', journal: [] });
+  const a = Records.create('AgenceProspect', { liste_id: l.id, nom: 'Olivier Trompette - immobilier - iad France', place_id: 'p9', telephone: '06 75 17 05 55', sources: ['Google Maps', 'Equimmox'], agents: [{ nom: 'Marc-Henry Paturot', telephone: '06 00 11 22 33', annonces: 5 }] });
+  IA.reparerListe(l.id);
+  const x = Records.get('AgenceProspect', a.id);
+  assert.equal(x.genre, 'mandataire');
+  assert.equal(x.nom, 'Olivier Trompette');
+  assert.equal(x.reseau_nom, 'IAD');
+  assert.equal(x.telephone_source, 'maps');
+  assert.ok(Records.list('AgenceProspect').some((y) => y.liste_id === l.id && y.nom === 'Marc-Henry Paturot' && y.genre === 'mandataire' && y.reseau === 'iad'));
+});
+

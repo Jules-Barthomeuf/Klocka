@@ -61,7 +61,7 @@ export const estUnePersonne = (nom) => { const t = nomPersonne(nom); return t.sp
 export const estEnNomPropre = (nom) => CIVILITE.test(String(nom || '').trim());
 
 /** L'ordre des sources du téléphone : la plus sûre d'abord. */
-export const ORDRE_TELEPHONE = ['annuaire', 'annonce', 'registre', 'apollo'];
+export const ORDRE_TELEPHONE = ['annuaire', 'annonce', 'maps', 'registre', 'apollo'];
 
 /** Pure : le téléphone à garder entre l'ancien et le nouveau, selon la source. */
 export function telephoneAGarder(ancien, nouveau) {
@@ -104,6 +104,8 @@ export const ANNUAIRES = RESEAUX.map((r) => ({ reseau: r.cle, nom: r.nom, origin
 const TEL = /(?:\+33\s?\(?0?\)?\s?|0)[1-9](?:[\s.-]?\d{2}){4}/g;
 const PAS_UN_NOM = /\b(conseill[eè]re?|mandataire|immobilier|immobili[eè]re|agent|commercial|afficher|voir|contacter|contact|num[ée]ro|t[ée]l[ée]phone|profil|annonces?|biens?|secteur|nice|france|iad|safti|capifrance|optimhome|megagence|efficity|bsk|r[ée]seau|propri[ée]t[ée]s|priv[ée]es|avis|note|[ée]toiles?|km|ville|rechercher|r[ée]sultats?|trier|filtrer|page|suivant|pr[ée]c[ée]dent|accueil|menu)\b/i;
 
+const PARTICULES = new Set(['de', 'du', 'des', 'la', 'le', 'van', 'von', 'der', 'den', 'di', 'da', 'dos', 'del']);
+
 /** Pure : une ligne qui peut être un nom de personne (deux à quatre mots, sans chiffre ni mot de page). */
 export function ligneNom(l) {
   const t = String(l || '').replace(/[•·|]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -111,8 +113,10 @@ export function ligneNom(l) {
   const mots = t.split(' ');
   if (mots.length < 2 || mots.length > 4) return null;
   if (!mots.every((m) => /^[A-ZÀ-Ýa-zà-ÿ][A-Za-zÀ-ÿ'’-]*$/.test(m))) return null;
-  // Au moins un mot qui commence par une majuscule (« Claire MARTIN », « Claire Martin »).
-  if (!mots.some((m) => /^[A-ZÀ-Ý]/.test(m))) return null;
+  // Chaque mot d'un nom prend une majuscule (« Claire MARTIN », « Marc-Henry Paturot ») ; seule une particule, jamais
+  // en tête, s'écrit en minuscules (« Anne de Villiers »). Les libellés d'une page (« Sous compromis », « Mentions
+  // légales », « Faire gérer ») ont un mot en minuscules : ce ne sont pas des personnes.
+  if (!mots.every((m, i) => /^[A-ZÀ-Ý]/.test(m) || (i > 0 && i < mots.length - 1 && PARTICULES.has(m)))) return null;
   return nomPersonne(t);
 }
 
@@ -133,16 +137,24 @@ export function lireCollage(texte) {
   for (const brute of String(texte || '').split(/\r?\n/)) {
     const tels = (brute.match(TEL) || []).map(telFrancais).filter(Boolean);
     const sansTel = brute.replace(TEL, ' ');
+    // « Claire BourgeoisNice (06000) » (la fiche IAD) : le nom collé à sa ville et son code postal.
+    const derniere = gens[gens.length - 1];
+    const cp = String(brute).trim().match(/\((\d{5})\)\s*$/);
+    if (derniere && cp && sansAccentsBas(brute).startsWith(sansAccentsBas(derniere.nom_brut || derniere.nom))) {
+      if (!derniere.code_postal) derniere.code_postal = cp[1];
+      continue;
+    }
     const nom = ligneNom(sansTel);
     if (nom) {
       const deja = gens.find((g) => clePersonne(g.nom) === clePersonne(nom));
-      if (!deja) gens.push({ nom, telephone: null });
+      if (!deja) gens.push({ nom, nom_brut: sansTel.replace(/\s+/g, ' ').trim(), telephone: null });
     }
     for (const tel of tels) {
       const cible = [...gens].reverse().find((g) => !g.telephone);
       if (cible && !gens.some((g) => g.telephone === tel)) cible.telephone = tel;
     }
   }
-  return gens;
+  return gens.map(({ nom_brut, ...g }) => (g.code_postal ? g : { nom: g.nom, telephone: g.telephone }));
 }
+const sansAccentsBas = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 

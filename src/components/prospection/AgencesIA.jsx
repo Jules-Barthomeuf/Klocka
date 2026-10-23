@@ -31,7 +31,7 @@ const ilYa = (iso) => {
 const INDEPENDANT = /^(monsieur|madame|mademoiselle)\s+/i;
 const estMandataire = (a) => a.genre === "mandataire";
 const nomPropre = (a) => String(a.nom || "").replace(INDEPENDANT, "");
-const SOURCES_TEL = { annuaire: "annuaire du réseau", annonce: "annonce", registre: "registre", apollo: "Apollo" };
+const SOURCES_TEL = { annuaire: "annuaire du réseau", annonce: "annonce", maps: "Google Maps", registre: "registre", apollo: "Apollo" };
 /** Déjà en contact : appelée par nous, ou reconnue dans Monday. */
 const dejaEnContact = (a) => ["contact", "relance"].includes(a.statut?.etat) || !!a.statut?.appelee;
 

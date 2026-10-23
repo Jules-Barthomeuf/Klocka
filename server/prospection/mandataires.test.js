@@ -157,3 +157,31 @@ test('un conseiller avec sa fiche Maps (« Olivier Trompette - immobilier - iad 
   assert.ok(Records.list('AgenceProspect').some((y) => y.liste_id === l.id && y.nom === 'Marc-Henry Paturot' && y.genre === 'mandataire' && y.reseau === 'iad'));
 });
 
+
+test('les liens des fiches IAD de Nice : un mandataire par lien, nommé par le lien, sa fiche à un clic', () => {
+  const texte = fs.readFileSync(new URL('./fixtures/liens-iad-nice.txt', import.meta.url), 'utf8');
+  const liens = M.lireLiens(texte);
+  assert.equal(liens.length, 59);
+  assert.deepEqual(liens[0], { nom: 'Claire Bourgeois', reseau: 'iad', reseau_nom: 'IAD', fiche_url: 'https://www.iadfrance.fr/conseiller-immobilier/claire.bourgeois', telephone: null });
+  assert.ok(liens.some((x) => x.nom === 'Marc-Henry Paturot'));
+  assert.ok(liens.some((x) => x.nom === 'Yann Le-Clech'));
+  assert.ok(liens.some((x) => x.nom === 'Jean-Luc Marcelino'));
+  assert.equal(M.nomDuLien('conseiller-immobilier'), null, 'un segment sans point n’est pas un nom');
+  assert.deepEqual(M.lireLiens('https://www.orpi.com/agence/claire.martin'), [], 'pas un réseau de mandataires');
+
+  const l = Records.create('ListeAgences', { ville: 'Nice', etat: 'fini', journal: [] });
+  // Déjà connue par le registre, sans accent dans le lien : la même personne.
+  IA.rangerMandataire(l.id, { nom: 'Valérie Ferrer', raison_sociale: 'Madame Valérie FERRER', siren: '900000003', sources: ['Data-B'] });
+  const r = IA.collerMandataires(l.id, { texte, reseau: null });
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual([r.lus, r.nouveaux, r.completes], [59, 58, 1]);
+  const valerie = Records.list('AgenceProspect').find((x) => x.liste_id === l.id && x.siren === '900000003');
+  assert.equal(valerie.fiche_url, 'https://www.iadfrance.fr/conseiller-immobilier/valerie.ferrer');
+  assert.equal(valerie.reseau_nom, 'IAD');
+  // Le même collage une seconde fois ne double personne.
+  assert.equal(IA.collerMandataires(l.id, { texte, reseau: null }).nouveaux, 0);
+  // Le numéro vu sur la fiche, noté à la main.
+  assert.equal(IA.noterNumero(valerie.id, '06 1').ok, false);
+  assert.equal(IA.noterNumero(valerie.id, '+33 6 12 34 56 78').telephone, '06 12 34 56 78');
+  assert.equal(Records.get('AgenceProspect', valerie.id).telephone_source, 'annuaire');
+});

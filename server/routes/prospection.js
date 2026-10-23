@@ -991,6 +991,14 @@ export function monterProspection(app) {
     if (!r.ok) return res.status(400).json({ error: r.error });
     ok(res, r);
   }));
+  // Le numéro vu sur la fiche du réseau, noté à la main.
+  app.post('/api/prospection/agent-ia/mandataires/:id/telephone', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await IA()).noterNumero(req.params.id, req.body?.telephone, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   // Le numéro d'un mandataire par Apollo, au clic (payant, en dernier recours).
   app.post('/api/prospection/agent-ia/mandataires/:id/apollo', wrap(async (req, res) => {
     if (!admin(req, res)) return;

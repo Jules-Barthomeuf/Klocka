@@ -27,7 +27,7 @@ import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { norm, normEmail, normTel, telAffiche } from './regles.js';
 import * as MA from './mode-appel.js';
-import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder, lireCollage, RESEAUX, clePersonne } from './mandataires.js';
+import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder, lireCollage, lireLiens, telFrancais, RESEAUX, clePersonne } from './mandataires.js';
 import { ANALYSTES } from '../fil-dossier.js';
 
 const LISTE = 'ListeAgences';
@@ -1064,18 +1064,36 @@ export async function numeroApollo(id, { chercher = null } = {}) {
 export function collerMandataires(listeId, { texte, reseau }, user = null) {
   const l = Records.get(LISTE, listeId);
   if (!l) return { ok: false, error: 'Liste introuvable.' };
-  const r = RESEAUX.find((x) => x.cle === reseau);
+  // Des liens de fiches (« iadfrance.fr/conseiller-immobilier/claire.bourgeois ») : le réseau vient du lien.
+  const liens = lireLiens(texte);
+  const r = RESEAUX.find((x) => x.cle === (liens[0]?.reseau || reseau));
   if (!r) return { ok: false, error: 'Choisissez le réseau.' };
-  const gens = lireCollage(texte);
-  if (!gens.length) return { ok: false, error: "Je ne lis aucun nom dans ce texte : copiez la page de résultats (les fiches, avec les numéros affichés)." };
+  const gens = liens.length ? liens : lireCollage(texte);
+  if (!gens.length) return { ok: false, error: "Je ne lis aucun nom dans ce texte : collez les liens des fiches, ou la page de résultats." };
   let nouveaux = 0;
   let completes = 0;
   for (const g of gens) {
-    const x = rangerMandataire(listeId, { nom: g.nom, reseau: r.cle, reseau_nom: r.nom, telephone: g.telephone, telephone_source: 'annuaire', code_postal: g.code_postal || null, sources: [`Annuaire ${r.nom}`], colle_par: user?.email || null });
+    const rg = RESEAUX.find((x) => x.cle === g.reseau) || r;
+    const x = rangerMandataire(listeId, { nom: g.nom, reseau: rg.cle, reseau_nom: rg.nom, telephone: g.telephone, telephone_source: 'annuaire', code_postal: g.code_postal || null, fiche_url: g.fiche_url || null, sources: [`Annuaire ${rg.nom}`], colle_par: user?.email || null });
+    // Un mandataire déjà connu (registre, annonces) prend le lien de sa fiche.
+    if (!x.nouveau && g.fiche_url && !x.mandataire.fiche_url) Records.update(AGENCE, x.mandataire.id, { fiche_url: g.fiche_url, reseau: x.mandataire.reseau || rg.cle, reseau_nom: x.mandataire.reseau_nom || rg.nom });
     if (x.nouveau) nouveaux += 1; else completes += 1;
   }
   noter(l, `Annuaire ${r.nom} collé${user?.email ? ` par ${user.email.split('@')[0]}` : ''} : ${gens.length} conseillers lus, ${nouveaux} nouveaux, ${completes} déjà connus complétés, ${gens.filter((g) => g.telephone).length} avec un numéro.`, 'succes');
   return { ok: true, lus: gens.length, nouveaux, completes, avec_numero: gens.filter((g) => g.telephone).length, sans_numero: gens.filter((g) => !g.telephone).map((g) => g.nom) };
+}
+
+/**
+ * Le numéro vu sur la fiche du réseau, noté par quelqu'un de l'équipe (23 oct. 2026) : source « annuaire », la plus
+ * sûre ; il remplace un numéro du registre, d'une annonce ou d'Apollo.
+ */
+export function noterNumero(id, telephone, user = null) {
+  const a = Records.get(AGENCE, id);
+  if (!a || a.genre !== 'mandataire') return { ok: false, error: 'Mandataire introuvable.' };
+  const tel = telFrancais(telephone);
+  if (!tel) return { ok: false, error: 'Numéro illisible : dix chiffres, « 06 12 34 56 78 ».' };
+  Records.update(AGENCE, a.id, { telephone: tel, telephone_source: 'annuaire', telephone_par: user?.email || null, telephone_le: maintenant() });
+  return { ok: true, telephone: tel };
 }
 
 /** Pure : la fiche de carnet d'un mandataire : la personne, son réseau en guise d'agence. */

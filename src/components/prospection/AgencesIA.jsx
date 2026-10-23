@@ -31,6 +31,26 @@ const ilYa = (iso) => {
 const INDEPENDANT = /^(monsieur|madame|mademoiselle)\s+/i;
 const estMandataire = (a) => a.genre === "mandataire";
 const nomPropre = (a) => String(a.nom || "").replace(INDEPENDANT, "");
+/** Le numéro vu sur la fiche du réseau, noté à la main (23 oct. 2026) : source « annuaire ». */
+function NumeroAuClavier({ mandataire: a, onFait }) {
+  const [tel, setTel] = useState("");
+  const m = useMutation({
+    mutationFn: () => base44.request("POST", `${API}/mandataires/${a.id}/telephone`, { body: { telephone: tel } }),
+    onSuccess: (r) => { toast.success(`Numéro noté : ${r.telephone}`); setTel(""); onFait?.(); },
+    onError: (e) => toast.error(e?.message || "Numéro non noté"),
+  });
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); if (tel.replace(/\D/g, "").length >= 10) m.mutate(); }} onClick={(e) => e.stopPropagation()} className="mt-2 flex flex-wrap items-center gap-2">
+      {a.fiche_url && <a href={a.fiche_url} target="_blank" rel="noreferrer" className="text-[12.5px] text-bleu hover:underline">Ouvrir sa fiche {a.reseau_nom || ""} ↗</a>}
+      <input value={tel} onChange={(e) => setTel(e.target.value)} inputMode="tel" placeholder="Numéro vu sur la fiche" aria-label="Numéro vu sur la fiche"
+        className="h-8 w-[190px] rounded-full border border-trait bg-surface px-3 text-[13px] tabular-nums text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
+      <button type="submit" disabled={m.isPending || tel.replace(/\D/g, "").length < 10} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-menthe px-3 text-[12.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
+        {m.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Noter
+      </button>
+    </form>
+  );
+}
+
 const SOURCES_TEL = { annuaire: "annuaire du réseau", annonce: "annonce", maps: "Google Maps", registre: "registre", apollo: "Apollo" };
 /** Déjà en contact : appelée par nous, ou reconnue dans Monday. */
 const dejaEnContact = (a) => ["contact", "relance"].includes(a.statut?.etat) || !!a.statut?.appelee;
@@ -531,20 +551,20 @@ function TableauAgences({ id, onAppeler }) {
         <p className="m-0 mt-3 text-[12.5px] text-ardoise">
           Annuaires des réseaux : {annuaires.data.annuaires.map((x) => `${x.nom} ${x.categorie === "autorise" ? (x.lecteur ? "lu" : "autorisé") : x.categorie === "interdit" ? "interdit" : x.categorie === "douteux" ? "à trancher" : x.categorie === "injoignable" ? "injoignable" : "à vérifier"}`).join(" · ")}.
           <span className="text-brume"> Les numéros viennent pour l'instant des annonces et du registre.</span>
-          <button type="button" onClick={() => setCollage((c) => (c ? null : { reseau: "iad", texte: "" }))} className="ml-2 text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Coller une page d'annuaire</button>
+          <button type="button" onClick={() => setCollage((c) => (c ? null : { reseau: "iad", texte: "" }))} className="ml-2 text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Coller des liens de fiches</button>
         </p>
       )}
       {genre === "mandataires" && collage && (
         <div className="mt-3 rounded-[16px] border border-trait bg-rail p-4 duration-300 animate-in fade-in-0 slide-in-from-top-1">
-          <p className="m-0 text-[14px] text-encre">Faites la recherche sur le site du réseau ({data.ville}), cliquez « Afficher le numéro » sur les fiches, puis copiez la page et collez-la ici.</p>
-          <p className="m-0 mt-1 text-[12.5px] text-ardoise">Klocka lit les noms et les numéros ; chacun entre comme mandataire du réseau, son numéro marqué « annuaire ». Ceux déjà dans la liste sont complétés, pas doublés.</p>
+          <p className="m-0 text-[14px] text-encre">Collez les liens des fiches des conseillers ({data.ville}), un par ligne, ou la page de résultats du réseau.</p>
+          <p className="m-0 mt-1 text-[12.5px] text-ardoise">Chacun entre comme mandataire du réseau, avec sa fiche à un clic (le numéro s'y affiche) ; ceux déjà dans la liste sont complétés, pas doublés. Klocka n'ouvre jamais les fiches lui-même.</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {(annuaires.data?.annuaires || []).map((x) => (
               <button key={x.reseau} type="button" aria-pressed={collage.reseau === x.reseau} onClick={() => setCollage((c) => ({ ...c, reseau: x.reseau }))}
                 className={`h-8 rounded-full border px-3.5 text-[13px] ${collage.reseau === x.reseau ? "border-menthe/60 bg-menthe/10 text-encre" : "border-trait text-craie hover:border-bord-vif"}`} style={collage.reseau === x.reseau ? undefined : { background: "transparent" }}>{x.nom}</button>
             ))}
           </div>
-          <textarea value={collage.texte} onChange={(e) => setCollage((c) => ({ ...c, texte: e.target.value }))} rows={7} placeholder={"Claire Martin\nConseillère immobilier IAD · Nice\n06 12 34 56 78\n…"}
+          <textarea value={collage.texte} onChange={(e) => setCollage((c) => ({ ...c, texte: e.target.value }))} rows={7} placeholder={"https://www.iadfrance.fr/conseiller-immobilier/claire.bourgeois\nhttps://www.iadfrance.fr/conseiller-immobilier/alix.verna\n…"}
             className="mt-3 w-full resize-y rounded-[12px] border border-trait bg-surface px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
           <div className="mt-2 flex items-center justify-end gap-2">
             <button type="button" onClick={() => setCollage(null)} className="h-9 px-3 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
@@ -597,7 +617,8 @@ function TableauAgences({ id, onAppeler }) {
                     </td>
                     <td className="max-w-[220px] px-4 py-4 text-craie">{a.adresse || <span className="text-bord-vif">—</span>}</td>
                     <td className="max-w-[180px] truncate px-4 py-4">
-                      {domaine ? <a onClick={(e) => e.stopPropagation()} href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="text-bleu hover:underline">{domaine}</a> : <span className="text-bord-vif">—</span>}
+                      {a.fiche_url ? <a onClick={(e) => e.stopPropagation()} href={a.fiche_url} target="_blank" rel="noreferrer" title="La fiche du conseiller : son numéro y est" className="text-bleu hover:underline">Fiche {a.reseau_nom || "réseau"} ↗</a>
+                        : domaine ? <a onClick={(e) => e.stopPropagation()} href={/^https?:/.test(a.site) ? a.site : `https://${a.site}`} target="_blank" rel="noreferrer" className="text-bleu hover:underline">{domaine}</a> : <span className="text-bord-vif">—</span>}
                     </td>
                     <td className="px-4 py-4">
                       {a.maps_url ? <a onClick={(e) => e.stopPropagation()} href={a.maps_url} target="_blank" rel="noreferrer" aria-label="Fiche Google Maps" title="Fiche Google Maps" className="text-craie hover:text-encre"><MapPin className="h-4 w-4" /></a> : <span className="text-bord-vif">—</span>}
@@ -631,6 +652,7 @@ function TableauAgences({ id, onAppeler }) {
                             ) : estMandataire(a) ? (
                               <div>
                                 <p className="m-0 text-[13px] text-craie">{[a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre", a.telephone_source ? `numéro de ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : "pas encore de numéro", `trouvé par ${(a.sources || []).join(", ")}`].join(" · ")}.</p>
+                                {!a.telephone && <NumeroAuClavier mandataire={a} onFait={() => queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] })} />}
                                 {!a.telephone && !a.apollo_le && (
                                   <button type="button" onClick={() => apollo.mutate(a.id)} disabled={apollo.isPending} title="Une recherche Apollo coûte des crédits : seulement quand ni l'annonce ni le registre n'ont donné de numéro"
                                     className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>

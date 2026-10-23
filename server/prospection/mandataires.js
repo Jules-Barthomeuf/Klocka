@@ -158,3 +158,39 @@ export function lireCollage(texte) {
 }
 const sansAccentsBas = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
+// ---------------------------------------------------------------------------
+// Les liens des fiches (23 oct. 2026, Jules : « je te donne tous les liens, tu les mets dans les listes ; on clique
+// sur le lien et on voit le numéro, on le fait nous-mêmes »). Klocka garde le lien et en tire le nom ; il n'ouvre
+// jamais la page : c'est la personne de l'équipe qui clique.
+// ---------------------------------------------------------------------------
+
+const LIEN = /https?:\/\/[^\s<>"')]+/gi;
+
+/** Pure : « claire.bourgeois », « jean-luc.marcelino », « yann.le-clech » → le nom de la personne. */
+export function nomDuLien(slug) {
+  const t = decodeURIComponent(String(slug || '')).replace(/[?#].*$/, '').replace(/\/+$/, '');
+  if (!/^[a-z][a-z'-]*([._][a-z][a-z'-]*)+$/i.test(t)) return null;
+  return t.split(/[._]/).map((m) => m.split('-').map((x) => (x ? x[0].toUpperCase() + x.slice(1).toLowerCase() : x)).join('-')).join(' ');
+}
+
+/** Pure : les fiches de conseillers d'un texte collé (liens d'un réseau connu, dont le dernier segment est un nom). */
+export function lireLiens(texte) {
+  const vus = new Set();
+  const out = [];
+  for (const brut of String(texte || '').match(LIEN) || []) {
+    const url = brut.replace(/[.,;]+$/, '');
+    let u;
+    try { u = new URL(url); } catch { continue; }
+    const reseau = reseauDe(u.hostname);
+    if (!reseau) continue;
+    const segments = u.pathname.split('/').filter(Boolean);
+    const nom = nomDuLien(segments[segments.length - 1]);
+    if (!nom || segments.length < 2) continue;
+    const propre = `${u.protocol}//${u.hostname}${u.pathname.replace(/\/+$/, '')}`;
+    if (vus.has(propre)) continue;
+    vus.add(propre);
+    out.push({ nom, reseau: reseau.cle, reseau_nom: reseau.nom, fiche_url: propre, telephone: null });
+  }
+  return out;
+}
+

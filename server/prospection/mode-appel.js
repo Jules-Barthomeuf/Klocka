@@ -125,11 +125,13 @@ export function statutDeLAgence(a, { fiche = null, appels = [], maintenantD = ne
 // pas une agence qu'on appelle.
 const PERSONNE = /^(monsieur|madame|mademoiselle|m\.|mme)\s+/i;
 
-/** Pure : ce qu'est une ligne : une agence, un agent indépendant, une société sans vitrine, ou un nom d'annonce. */
+/** Pure : ce qu'est une ligne : une agence, un mandataire (23 oct. 2026), une société sans vitrine, ou un nom d'annonce. */
 export function genreDe(a) {
+  if (a?.genre === 'mandataire') return 'mandataire';
   // Un commerce envoyé depuis Off-market : on appelle son propriétaire, il compte comme une ligne à appeler.
   if (a?.genre === 'proprietaire' || a?.commerce_id) return 'agence';
-  if (PERSONNE.test(String(a?.raison_sociale || '')) || PERSONNE.test(String(a?.nom || ''))) return 'independant';
+  // Un agent immatriculé en nom propre : un mandataire (souvent d'un réseau), une personne à appeler.
+  if (PERSONNE.test(String(a?.raison_sociale || '')) || PERSONNE.test(String(a?.nom || ''))) return 'mandataire';
   if (!a?.telephone && !a?.site && !(a?.agents || []).some((x) => x.telephone) && (a?.sources || []).every((x) => x === 'Equimmox')) return 'annonceur';
   // Une agence a une vitrine : une fiche Google Maps, ou des annonces publiées
   // sur Equimmox. Une société trouvée seulement au registre (Data-B) ou chez
@@ -147,7 +149,7 @@ export function genreDe(a) {
 export function ordreDeLaVille(lignes) {
   const rang = (x) => (x.statut.etat === 'relance' ? 0 : x.statut.etat === 'morte' ? 2 : 1);
   // Les agences d'abord, puis les indépendants, puis les noms d'annonces.
-  const genre = (x) => ({ agence: 0, societe: 1, independant: 2, annonceur: 3 })[x.genre || 'agence'] ?? 0;
+  const genre = (x) => ({ agence: 0, societe: 1, mandataire: 2, annonceur: 3 })[x.genre || 'agence'] ?? 0;
   return [...lignes].sort((x, y) => rang(x) - rang(y)
     || genre(x) - genre(y)
     || y.pertinence.score - x.pertinence.score
@@ -162,7 +164,7 @@ export function ordreDeLaVille(lignes) {
  * annonces, le nom. Rien qui dépende d'un appel passé.
  */
 export function ordreStable(lignes) {
-  const genre = (x) => ({ agence: 0, societe: 1, independant: 2, annonceur: 3 })[x.genre || 'agence'] ?? 0;
+  const genre = (x) => ({ agence: 0, societe: 1, mandataire: 2, annonceur: 3 })[x.genre || 'agence'] ?? 0;
   return [...lignes].sort((x, y) => genre(x) - genre(y)
     || (y.pertinence?.score || 0) - (x.pertinence?.score || 0)
     || (y.annonces || 0) - (x.annonces || 0)
@@ -231,7 +233,8 @@ export function chiffresDeLaVille(lignes) {
     interessees: vivantes.filter((x) => x.statut.interessee).length,
     a_rappeler: vivantes.filter((x) => x.statut.a_rappeler).length,
     mortes: agences.length - vivantes.length,
-    independants: lignes.filter((x) => x.genre === 'independant').length,
+    mandataires: lignes.filter((x) => x.genre === 'mandataire').length,
+    mandataires_commerce: lignes.filter((x) => x.genre === 'mandataire' && (x.annonces_commerce || 0) > 0).length,
     annonceurs: lignes.filter((x) => x.genre === 'annonceur').length,
     societes: lignes.filter((x) => x.genre === 'societe').length,
   };

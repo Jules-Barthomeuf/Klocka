@@ -1,0 +1,91 @@
+// Les mandataires de la Prospection (23 oct. 2026) : reconnaître le réseau, la personne, le bon numéro, et ranger
+// chacun à part des agences, sans doublon ; les listes d'avant se corrigent seules.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-mandataires-'));
+process.env.MONDAY_TOKEN = '';
+const { Records } = await import('../db.js');
+const M = await import('./mandataires.js');
+const IA = await import('./agent-ia.js');
+const MA = await import('./mode-appel.js');
+
+test('pure : le réseau, la personne, le numéro le plus sûr', () => {
+  assert.equal(M.reseauDe('IAD France')?.cle, 'iad');
+  assert.equal(M.reseauDe('Capi France')?.cle, 'capifrance');
+  assert.equal(M.reseauDe('Propriétés Privées')?.cle, 'proprietes_privees');
+  assert.equal(M.reseauDe(null, 'vito.schiavone@iadfrance.fr')?.cle, 'iad', 'le domaine du mail suffit');
+  assert.equal(M.reseauDe('Orpi Nice', 'jean@orpi.fr'), null);
+  assert.equal(M.reseauDe('https://cedric-theveniaud.optimhome.com/')?.cle, 'optimhome', 'le site du conseiller');
+  assert.equal(M.reseauDe('expfrance.fr')?.cle, 'exp');
+  assert.equal(M.reseauDe('Tiad Immobilier'), null, 'pas un mot dans un autre');
+  assert.equal(M.nomPersonne('Monsieur VITO SCHIAVONE'), 'Vito Schiavone');
+  assert.equal(M.clePersonne('Schiavone Vito'), M.clePersonne('Monsieur Vito SCHIAVONE'));
+  assert.equal(M.estEnNomPropre('Madame Claire Martin'), true);
+  assert.equal(M.estEnNomPropre('Martin Immobilier'), false);
+  assert.equal(M.estUnePersonne('Recup Email'), false, 'une adresse de service');
+  assert.equal(M.estUnePersonne('Christian Arione'), true);
+  assert.equal(M.estUnePersonne('Christian'), false, 'un prénom seul');
+  assert.equal(M.telephoneAGarder({ telephone: '01', source: 'registre' }, { telephone: '06', source: 'annonce' }).telephone, '06', "l'annonce passe devant le registre");
+  assert.equal(M.telephoneAGarder({ telephone: '06', source: 'annonce' }, { telephone: '07', source: 'apollo' }).telephone, '06', 'Apollo en dernier');
+  assert.equal(M.telephoneAGarder(null, { telephone: '07', source: 'apollo' }).telephone, '07');
+});
+
+test('un mandataire du registre et le même dans les annonces : une seule ligne, le numéro de l’annonce', () => {
+  const l = Records.create('ListeAgences', { ville: 'Nice', etat: 'fini', journal: [] });
+  const a = IA.rangerMandataire(l.id, { nom: 'Vito Schiavone', raison_sociale: 'Monsieur VITO SCHIAVONE', siren: '812345678', telephone: '04 93 11 11 11', telephone_source: 'registre', sources: ['Data-B'] });
+  assert.equal(a.nouveau, true);
+  const b = IA.rangerMandataire(l.id, { nom: 'Vito Schiavone', reseau: 'iad', reseau_nom: 'IAD', telephone: '06 12 34 56 78', telephone_source: 'annonce', annonces: 4, annonces_commerce: 2, sources: ['Equimmox'] });
+  assert.equal(b.nouveau, false);
+  const x = Records.get('AgenceProspect', a.mandataire.id);
+  assert.equal(x.genre, 'mandataire');
+  assert.equal(x.telephone, '06 12 34 56 78');
+  assert.equal(x.telephone_source, 'annonce');
+  assert.equal(x.reseau_nom, 'IAD');
+  assert.equal(x.siren, '812345678');
+  assert.equal(x.publie_commerce, true);
+  assert.deepEqual(x.sources.sort(), ['Data-B', 'Equimmox']);
+  // Un homonyme d'un autre réseau est une autre personne.
+  assert.equal(IA.rangerMandataire(l.id, { nom: 'Vito Schiavone', reseau: 'safti', reseau_nom: 'SAFTI', telephone: '07 00 00 00 00', sources: ['Equimmox'] }).nouveau, true);
+  assert.equal(MA.genreDe(x), 'mandataire');
+  assert.equal(IA.contactMandataire(x).agence, 'IAD (mandataire)');
+  assert.match(IA.contactMandataire(x).remarque, /Mandataire IAD · SIREN 812345678 · publie du commerce/);
+});
+
+test('une liste faite avant : « IAD France » rend ses agents, les « Monsieur X » deviennent des mandataires', () => {
+  const l = Records.create('ListeAgences', { ville: 'Lyon', etat: 'fini', journal: [] });
+  const iad = Records.create('AgenceProspect', { liste_id: l.id, nom: 'Iad France', sources: ['Equimmox'], agents: [{ nom: 'Claire Martin', telephone: '06 11 11 11 11', annonces: 3, annonces_commerce: 1 }, { nom: 'Paul Roux', email: 'paul.roux@iadfrance.fr', telephone: '06 22 22 22 22' }] });
+  const orpi = Records.create('AgenceProspect', { liste_id: l.id, nom: 'Orpi Lyon 6', place_id: 'p1', telephone: '04 78 00 00 00', sources: ['Google Maps'], agents: [] });
+  const nomPropre = Records.create('AgenceProspect', { liste_id: l.id, nom: 'Madame Claire MARTIN', raison_sociale: 'Madame Claire MARTIN', siren: '900000001', sources: ['Data-B'], agents: [] });
+  IA.reparerListe(l.id);
+  assert.equal(Records.get('AgenceProspect', iad.id).hors_cible, true);
+  assert.match(Records.get('AgenceProspect', iad.id).retiree_motif, /réseau de mandataires \(IAD\)/);
+  assert.equal(Records.get('AgenceProspect', orpi.id).hors_cible, undefined, 'une vraie agence ne bouge pas');
+  const mandataires = Records.list('AgenceProspect').filter((x) => x.liste_id === l.id && x.genre === 'mandataire' && !x.hors_cible);
+  assert.deepEqual(mandataires.map((x) => x.nom).sort(), ['Claire Martin', 'Paul Roux']);
+  const claire = mandataires.find((x) => x.nom === 'Claire Martin');
+  assert.equal(claire.siren, '900000001', 'le registre et l’annonce se sont fondus');
+  assert.equal(claire.telephone, '06 11 11 11 11');
+  assert.equal(Records.get('AgenceProspect', nomPropre.id).genre, 'mandataire');
+  const liste = IA.liste(l.id);
+  assert.equal(liste.chiffres.mandataires, 2);
+  assert.equal(liste.chiffres.mandataires_commerce, 1);
+  assert.equal(liste.chiffres.agences, 1);
+});
+
+test('Apollo, au clic et en dernier : il complète un numéro manquant, jamais celui d’une annonce', async () => {
+  const l = Records.create('ListeAgences', { ville: 'Rennes', etat: 'fini', journal: [] });
+  const sans = IA.rangerMandataire(l.id, { nom: 'Lucie Bernard', reseau: 'safti', reseau_nom: 'SAFTI', sources: ['Equimmox'], email: 'lucie@exemple.fr' }).mandataire;
+  const demandes = [];
+  const chercher = async (q) => { demandes.push(q); return { telephone: '06 99 99 99 99', email: null }; };
+  const r = await IA.numeroApollo(sans.id, { chercher });
+  assert.equal(r.telephone, '06 99 99 99 99');
+  assert.deepEqual(demandes[0], { prenom: 'Lucie', nom: 'Bernard', organisation: 'SAFTI', ville: 'Rennes' });
+  assert.equal(Records.get('AgenceProspect', sans.id).telephone_source, 'apollo');
+  const avec = IA.rangerMandataire(l.id, { nom: 'Marc Petit', reseau: 'iad', reseau_nom: 'IAD', telephone: '06 11 22 33 44', telephone_source: 'annonce', sources: ['Equimmox'] }).mandataire;
+  await IA.numeroApollo(avec.id, { chercher });
+  assert.equal(Records.get('AgenceProspect', avec.id).telephone, '06 11 22 33 44', "l'annonce reste");
+});

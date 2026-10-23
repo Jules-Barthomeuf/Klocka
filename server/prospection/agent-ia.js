@@ -27,6 +27,7 @@ import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { norm, normEmail, normTel, telAffiche } from './regles.js';
 import * as MA from './mode-appel.js';
+import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder } from './mandataires.js';
 import { ANALYSTES } from '../fil-dossier.js';
 
 const LISTE = 'ListeAgences';
@@ -224,6 +225,42 @@ export function ranger(listeId, a, { autorite = [] } = {}) {
   return { agence: Records.update(AGENCE, deja.id, champs), nouvelle: false };
 }
 
+// --- Ranger un mandataire, sans doublon (23 oct. 2026) ------------------------
+
+/**
+ * Range un mandataire : une personne, pas une agence. On complète ce qui manque ; le téléphone se remplace par celui
+ * d'une source plus sûre (annuaire, annonce, registre, Apollo) ; les annonces gardent le plus grand compte vu.
+ */
+export function rangerMandataire(listeId, m) {
+  // Le réseau se lit aussi dans le site ou le mail (« cedric-theveniaud.optimhome.com », « expfrance.fr »).
+  if (!m.reseau) { const r = reseauDe(m.site, m.email); if (r) m = { ...m, reseau: r.cle, reseau_nom: r.nom }; }
+  const deja = retrouverMandataire(agencesDe(listeId, { toutes: true }), m, { normTel });
+  const tel = m.telephone ? { telephone: m.telephone, source: m.telephone_source || 'annonce' } : null;
+  const commerce = (m.annonces_commerce || 0) > 0;
+  if (!deja) {
+    // Déjà au carnet (appelé comme agent d'une agence) : la ligne le sait, son statut suit.
+    const t = normTel(m.telephone);
+    const mail = normEmail(m.email || '');
+    const carnet = Records.list('AgentImmo').find((y) => (t && (y.telephones || []).map(normTel).includes(t)) || (mail && (y.emails || []).map(normEmail).includes(mail))) || null;
+    return { mandataire: Records.create(AGENCE, { liste_id: listeId, agents: [], gerants: [], sources: [], ...m, genre: 'mandataire', telephone: tel?.telephone || null, telephone_source: tel?.source || null, publie_commerce: commerce, carnet_id: m.carnet_id || carnet?.id || null, cree_le: maintenant() }), nouveau: true };
+  }
+  const champs = {};
+  for (const [k, v] of Object.entries(m)) {
+    if (v == null || v === '' || Array.isArray(v) || ['telephone', 'telephone_source', 'annonces', 'annonces_commerce', 'sources', 'nom'].includes(k)) continue;
+    if (deja[k] == null || deja[k] === '') champs[k] = v;
+  }
+  const garde = telephoneAGarder(deja.telephone ? { telephone: deja.telephone, source: deja.telephone_source } : null, tel);
+  if (garde && garde.telephone !== deja.telephone) { champs.telephone = garde.telephone; champs.telephone_source = garde.source; }
+  // Un nom d'annonce (« Vito Schiavone ») vaut mieux que celui du registre en capitales.
+  if (m.nom && (!deja.nom || (deja.sources || []).every((x) => x === 'Data-B'))) champs.nom = m.nom;
+  champs.annonces = Math.max(deja.annonces || 0, m.annonces || 0);
+  champs.annonces_commerce = Math.max(deja.annonces_commerce || 0, m.annonces_commerce || 0);
+  champs.publie_commerce = champs.annonces_commerce > 0;
+  champs.genre = 'mandataire';
+  champs.sources = [...new Set([...(deja.sources || []), ...(m.sources || [])])];
+  return { mandataire: Records.update(AGENCE, deja.id, champs), nouveau: false };
+}
+
 // --- 1. Google Maps -----------------------------------------------------------
 
 async function parMaps(l, { chercher = null } = {}) {
@@ -263,11 +300,22 @@ async function parDataB(l, user) {
   if (!r?.ok) { noter(l, `Data-B n'a pas rendu ses résultats : ${r?.error || 'délai dépassé'}.`, 'alerte'); return 0; }
   let nouvelles = 0;
   let ecartes = 0;
+  let mandatairesNes = 0;
   for (let page = 1; page <= Math.min(r.pages, 40); page += 1) {
     const res = page === 1 ? r : await M.resultats(p.prospective.jeton, { page, user });
     if (!res.ok) { noter(l, `Data-B : page ${page} illisible (${res.error}).`, 'alerte'); break; }
     for (const d of res.resultats) {
       if (!estAgence(d)) { ecartes += 1; continue; }
+      // Un agent en nom propre (« Monsieur Vito Schiavone ») : un mandataire, une personne à appeler (23 oct. 2026).
+      if (estEnNomPropre(d.nom) || estEnNomPropre(d.enseigne)) {
+        const r = rangerMandataire(l.id, {
+          nom: nomPersonne(d.enseigne || d.nom), raison_sociale: d.nom || null, siren: d.siren || null, siret: d.siret || null,
+          adresse: d.adresse ? casse(d.adresse) : null, code_postal: d.code_postal || null, telephone: d.telephone ? telAffiche(d.telephone) : null, telephone_source: 'registre',
+          email: (d.emails || [])[0] || null, creation: d.creation || null, ape: d.ape || null, lat: d.lat ?? null, lon: d.lon ?? null, sources: ['Data-B'],
+        });
+        if (r.nouveau) mandatairesNes += 1;
+        continue;
+      }
       const { nouvelle } = ranger(l.id, {
         nom: casse(d.enseigne || d.nom), raison_sociale: d.nom || null, siret: d.siret || null, siren: d.siren || null,
         adresse: d.adresse ? casse(d.adresse) : null, code_postal: d.code_postal || null,
@@ -278,7 +326,7 @@ async function parDataB(l, user) {
     }
     Records.update(LISTE, l.id, { etape: `Data-B : page ${page} sur ${r.pages}` });
   }
-  noter(l, `Data-B : ${r.total} établissements « Immobilier » lus, ${ecartes} écartés (syndics, gestion, promotion, SCI…), ${nouvelles} nouvelles agences dans la liste.`, 'succes');
+  noter(l, `Data-B : ${r.total} établissements « Immobilier » lus, ${ecartes} écartés (syndics, gestion, promotion, SCI…), ${nouvelles} nouvelles agences et ${mandatairesNes} mandataires en nom propre dans la liste.`, 'succes');
   return nouvelles;
 }
 
@@ -347,6 +395,7 @@ async function parEquimmox(l) {
   let rattaches = 0;
   let nees = 0;
   let ecartes = 0;
+  let mandataires = 0;
   for (const ag of agents) {
     // Equimmox ne nomme pas l'agent : son mail le dit souvent (« jean.dupont@… » → Jean Dupont).
     const agent = { nom: nomDuMail(ag.email), email: ag.email || null, telephone: ag.telephone ? telAffiche(ag.telephone) : null, annonces: ag.annonces || 0, annonces_commerce: commerce.get(normEmail(ag.email) || normTel(ag.telephone)) || 0 };
@@ -355,10 +404,19 @@ async function parEquimmox(l) {
     const lib = agenceDuLibelle(ag.agence, { ville: l.ville });
     if (lib.agent) { ag.agence = lib.agence; agent.nom = lib.agent; }
     if (!agent.email && !agent.telephone) continue;
+    // « Prénom Nom - IAD France » (23 oct. 2026, Jules) : un mandataire IAD de la ville, pas une agence IAD.
+    const reseau = reseauDe(ag.agence, agent.email);
+    if (reseau) {
+      // Sans nom de personne (« recup.email@capifrance.fr »), c'est le standard du réseau : personne à appeler ici.
+      if (!estUnePersonne(lib.agent || agent.nom)) { ecartes += 1; continue; }
+      const r = rangerMandataire(l.id, { nom: nomPersonne(lib.agent || agent.nom), reseau: reseau.cle, reseau_nom: reseau.nom, email: agent.email, telephone: agent.telephone, telephone_source: 'annonce', annonces: agent.annonces, annonces_commerce: agent.annonces_commerce, sources: ['Equimmox'] });
+      if (r.nouveau) mandataires += 1;
+      continue;
+    }
     if (PAS_UNE_AGENCE.test(String(ag.agence || '').replace(/\s*\([^)]*\)\s*$/, '').trim())) continue;
     // Le nom de l'annonce ne suffit plus : sur un co-mandat, il rangeait un
     // agent CBRE chez « Berge Immobilier ». Le mail professionnel tranche.
-    const ici = agencesDe(l.id);
+    const ici = agencesDe(l.id).filter((x) => x.genre !== 'mandataire');
     // Par le nom, si le mail ne le contredit pas ; sinon l'agence de son domaine.
     const parNom = ag.agence ? ici.find((x) => cleAgence(x.nom) === cleAgence(ag.agence)) : null;
     let a = (parNom && agentVaAvec(agent, parNom, l.ville) ? parNom : null) || agenceDuDomaine(agent, ici, l.ville);
@@ -376,6 +434,7 @@ async function parEquimmox(l) {
     Records.update(AGENCE, a.id, { agents: agentsMaj, annonces: agentsMaj.reduce((n, x) => n + (x.annonces || 0), 0), annonces_commerce: agentsMaj.reduce((n, x) => n + (x.annonces_commerce || 0), 0), sources: [...new Set([...(a.sources || []), 'Equimmox'])] });
     rattaches += 1;
   }
+  if (mandataires) noter(l, `Equimmox : ${mandataires} mandataires de réseau qui publient à ${r.ville} (IAD, SAFTI, Capifrance…), chacun à part, avec son numéro d'annonce.`, 'succes');
   noter(l, `Equimmox : ${agents.length} agents qui publient à ${r.ville}, ${rattaches} rangés dans leur agence${nees ? ` (${nees} agences en plus)` : ''}${ecartes ? `, ${ecartes} laissés de côté (leur mail n'est pas celui de l'agence de l'annonce)` : ''}.`, 'succes');
   reparerListe(l.id);
 }
@@ -390,8 +449,54 @@ const siteComplet = (x) => String(x || '').toLowerCase().replace(/^https?:\/\//,
  * perd : un agent qu'aucune agence ne reconnaît passe dans `agents_ecartes`,
  * une fiche fusionnée reste en base, cachée (`fusionnee_dans`).
  */
+/**
+ * Les mandataires d'une liste faite avant le 23 oct. 2026 : un agent en nom propre rangé comme une agence devient un
+ * mandataire ; une « agence » qui est un réseau (IAD France, sans fiche Maps) rend ses agents, mandataires de la ville ;
+ * deux fiches de la même personne se fondent. Rend le nombre de lignes changées.
+ */
+export function migrerMandataires(listeId) {
+  let n = 0;
+  for (const a of agencesDe(listeId)) {
+    // Un mandataire sans réseau connu : son site ou son mail le disent peut-être.
+    if (a.genre === 'mandataire' && !a.reseau) { const r = reseauDe(a.site, a.email); if (r) Records.update(AGENCE, a.id, { reseau: r.cle, reseau_nom: r.nom }); }
+    if (a.genre === 'mandataire') continue;
+    if (estEnNomPropre(a.raison_sociale) || estEnNomPropre(a.nom)) {
+      const r = reseauDe(a.site, a.email, ...(a.agents || []).map((x) => x.email));
+      Records.update(AGENCE, a.id, { genre: 'mandataire', nom: nomPersonne(a.nom), raison_sociale: a.raison_sociale || a.nom, telephone_source: a.telephone ? a.telephone_source || 'registre' : null, ...(r ? { reseau: r.cle, reseau_nom: r.nom } : {}) });
+      n += 1;
+      continue;
+    }
+    const reseau = reseauDe(a.nom);
+    if (!reseau || a.place_id || !(a.agents || []).length) continue;
+    for (const x of a.agents) {
+      if ((!x.telephone && !x.email) || !estUnePersonne(x.nom || nomDuMail(x.email))) continue;
+      rangerMandataire(listeId, { nom: nomPersonne(x.nom || nomDuMail(x.email)), reseau: reseau.cle, reseau_nom: reseau.nom, email: x.email || null, telephone: x.telephone || null, telephone_source: 'annonce', annonces: x.annonces || 0, annonces_commerce: x.annonces_commerce || 0, ...(x.monday ? { monday: x.monday } : {}), sources: ['Equimmox'] });
+      n += 1;
+    }
+    // Une ligne déjà suivie (au carnet, associée à quelqu'un) reste ; sinon elle sort, la raison dite.
+    if (!a.carnet_id && !(a.pour || []).length) Records.update(AGENCE, a.id, { hors_cible: true, retiree_motif: `réseau de mandataires (${reseau.nom}) : ses conseillers sont rangés à part`, retiree_le: maintenant(), retiree_par: 'automatique' });
+  }
+  // Les doublons d'une même personne (registre et annonce) : la fiche la plus renseignée garde tout.
+  const vus = [];
+  for (const m of agencesDe(listeId).filter((x) => x.genre === 'mandataire')) {
+    const deja = retrouverMandataire(vus, m, { normTel });
+    if (!deja) { vus.push(m); continue; }
+    const garde = Records.get(AGENCE, deja.id);
+    const champs = {};
+    for (const [k, v] of Object.entries(m)) if (!['id', 'nom', 'sources', 'agents', 'gerants', 'created_date', 'updated_date', 'cree_le'].includes(k) && v != null && v !== '' && (garde[k] == null || garde[k] === '')) champs[k] = v;
+    const t = telephoneAGarder(garde.telephone ? { telephone: garde.telephone, source: garde.telephone_source } : null, m.telephone ? { telephone: m.telephone, source: m.telephone_source } : null);
+    if (t && t.telephone !== garde.telephone) { champs.telephone = t.telephone; champs.telephone_source = t.source; }
+    if ((garde.sources || []).every((x) => x === 'Data-B') && m.nom) champs.nom = m.nom;
+    Records.update(AGENCE, garde.id, { ...champs, sources: [...new Set([...(garde.sources || []), ...(m.sources || [])])], annonces: Math.max(garde.annonces || 0, m.annonces || 0), annonces_commerce: Math.max(garde.annonces_commerce || 0, m.annonces_commerce || 0), pour: [...new Set([...(garde.pour || []), ...(m.pour || [])])] });
+    Records.update(AGENCE, m.id, { hors_cible: true, fusionnee_dans: garde.id });
+    n += 1;
+  }
+  return n;
+}
+
 export function reparerListe(listeId) {
   const ville = Records.get(LISTE, listeId)?.ville || null;
+  const mandatairesRanges = migrerMandataires(listeId);
   let deplaces = 0;
   let ecartes = 0;
   let fusions = 0;
@@ -401,7 +506,8 @@ export function reparerListe(listeId) {
   // commun ; un nom relevé sur des annonces Equimmox, sans numéro ni site,
   // rattaché à l'agence dont c'est le nom ou le domaine. Les groupes se
   // fondent dans la fiche la plus renseignée.
-  const actives = () => agencesDe(listeId);
+  // Les mandataires sont des personnes : les règles de fusion des agences ne les touchent pas.
+  const actives = () => agencesDe(listeId).filter((x) => x.genre !== 'mandataire');
   const tout = actives();
   const parent = new Map(tout.map((a) => [a.id, a.id]));
   const racine = (id) => { let r = id; while (parent.get(r) !== r) r = parent.get(r); parent.set(id, r); return r; };
@@ -499,7 +605,7 @@ export function reparerListe(listeId) {
   // lointains : Saint-Barthélemy dans la liste de Nice) sort de la liste.
   const dep = MA.departementDe(actives());
   if (dep) {
-    for (const a of actives()) {
+    for (const a of agencesDe(listeId)) {
       const cp = String(a.code_postal || String(a.adresse || '').match(/\b\d{5}\b/)?.[0] || '');
       if (!/^\d{5}$/.test(cp)) continue;
       const d = cp.startsWith('20') ? (Number(cp) < 20200 ? '2A' : '2B') : cp.slice(0, 2);
@@ -534,7 +640,7 @@ export function reparerListe(listeId) {
       ...(ecartesIci.length ? { agents_ecartes: [...(Records.get(AGENCE, a.id).agents_ecartes || []), ...ecartesIci] } : {}),
     });
   }
-  return { deplaces, ecartes, fusions, ...(horsDep ? { hors_departement: horsDep } : {}) };
+  return { deplaces, ecartes, fusions, ...(horsDep ? { hors_departement: horsDep } : {}), ...(mandatairesRanges ? { mandataires: mandatairesRanges } : {}) };
 }
 
 // --- 5. Monday : qui est déjà en contact ------------------------------------
@@ -922,6 +1028,31 @@ export { parMaps as _parMaps };
  * (Equimmox), ou l'agence elle-même par son standard. Le carnet dédoublonne
  * par mail et par téléphone.
  */
+/**
+ * Le numéro d'un mandataire par Apollo (23 oct. 2026), au clic seulement : payant, il passe après l'annuaire du
+ * réseau, l'annonce et le registre. Un numéro trouvé ne remplace jamais celui d'une source plus sûre.
+ */
+export async function numeroApollo(id, { chercher = null } = {}) {
+  const a = Records.get(AGENCE, id);
+  if (!a || a.genre !== 'mandataire') return { ok: false, error: 'Mandataire introuvable.' };
+  const l = Records.get(LISTE, a.liste_id);
+  const mots = String(a.nom || '').trim().split(/\s+/);
+  const A = await import('./agences-apollo.js');
+  if (!chercher && !A.apolloConfigure()) return { ok: false, error: "Apollo n'est pas branché (APOLLO_API_KEY)." };
+  const r = await (chercher || A.numeroDUnePersonne)({ prenom: mots.length > 1 ? mots[0] : null, nom: mots.length > 1 ? mots.slice(1).join(' ') : mots[0], organisation: a.reseau_nom || null, ville: l?.ville || null });
+  Records.update(AGENCE, a.id, { apollo_le: maintenant() });
+  if (!r?.telephone && !r?.email) return { ok: true, trouve: false };
+  const garde = telephoneAGarder(a.telephone ? { telephone: a.telephone, source: a.telephone_source } : null, r.telephone ? { telephone: r.telephone, source: 'apollo' } : null);
+  Records.update(AGENCE, a.id, { ...(garde && garde.telephone !== a.telephone ? { telephone: garde.telephone, telephone_source: garde.source } : {}), ...(!a.email && r.email ? { email: r.email } : {}), sources: [...new Set([...(a.sources || []), 'Apollo'])] });
+  return { ok: true, trouve: true, telephone: Records.get(AGENCE, a.id).telephone };
+}
+
+/** Pure : la fiche de carnet d'un mandataire : la personne, son réseau en guise d'agence. */
+export const contactMandataire = (a) => ({
+  nom: a.nom, agence: a.reseau_nom ? `${a.reseau_nom} (mandataire)` : 'Mandataire indépendant', email: a.email || null, telephone: a.telephone || null,
+  annonces: a.annonces || 0, remarque: [a.reseau_nom ? `Mandataire ${a.reseau_nom}` : 'Mandataire en nom propre', a.siren ? `SIREN ${a.siren}` : null, a.publie_commerce ? 'publie du commerce' : null].filter(Boolean).join(' · '),
+});
+
 export async function auCarnet(agenceId, { agent = null } = {}, user = null) {
   const a = Records.get(AGENCE, agenceId);
   if (!a) return { ok: false, error: 'Agence introuvable.' };
@@ -929,7 +1060,10 @@ export async function auCarnet(agenceId, { agent = null } = {}, user = null) {
   const C = await import('./carnet.js');
   const base = { agence: a.nom, ville: l?.ville || null, onglet: l?.ville || null, adresse: a.adresse || null, source: `Agent IA · ${(a.sources || []).join(', ')}` };
   const agents = (a.agents || []).filter((x) => agent == null || x.email === agent || x.telephone === agent);
-  const candidats = agents.length
+  // Un mandataire entre au carnet comme la personne qu'il est, avec son réseau (23 oct. 2026).
+  const candidats = a.genre === 'mandataire'
+    ? [{ ...base, ...contactMandataire(a) }]
+    : agents.length
     ? agents.map((x) => ({ ...base, nom: x.nom || a.nom, email: x.email, telephone: x.telephone, annonces: x.annonces || 0 }))
     : [{ ...base, nom: a.gerants?.[0]?.nom || a.nom, email: a.email, telephone: a.telephone, remarque: a.gerants?.[0] ? `Gérant de ${a.nom}` : null }];
   // Sans mail ni téléphone, personne à appeler : rien n'entre au carnet.
@@ -953,7 +1087,7 @@ export async function pourAppeler(agenceId, { agent = null } = {}, user = null) 
   const l = Records.get(LISTE, a.liste_id);
   const x = agent ? (a.agents || []).find((y) => y.email === agent || y.telephone === agent) : null;
   if (agent && !x) return { ok: false, error: 'Agent introuvable.' };
-  const c = x
+  const c = a.genre === 'mandataire' ? contactMandataire(a) : x
     ? { nom: x.nom || x.email || a.nom, agence: a.nom, email: x.email, telephone: x.telephone, annonces: x.annonces || 0 }
     : { nom: a.gerants?.[0]?.nom || a.nom, agence: a.nom, email: a.email, telephone: a.telephone, remarque: a.gerants?.[0] ? `Gérant de ${a.nom}` : null };
   if (!c.telephone) return { ok: false, error: 'Pas de numéro à appeler.' };

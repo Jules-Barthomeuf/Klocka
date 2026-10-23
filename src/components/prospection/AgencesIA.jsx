@@ -27,10 +27,11 @@ const ilYa = (iso) => {
   if (h < 24) return `il y a ${h} h`;
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 };
-// Un agent immatriculé en nom propre (« Monsieur Vito Schiavone ») : souvent un mandataire de réseau.
+// Un mandataire (23 oct. 2026, Jules) : une personne, d'un réseau (IAD, SAFTI…) ou en nom propre, contact à part entière.
 const INDEPENDANT = /^(monsieur|madame|mademoiselle)\s+/i;
-const estIndependant = (a) => INDEPENDANT.test(a.raison_sociale || a.nom || "");
+const estMandataire = (a) => a.genre === "mandataire";
 const nomPropre = (a) => String(a.nom || "").replace(INDEPENDANT, "");
+const SOURCES_TEL = { annuaire: "annuaire du réseau", annonce: "annonce", registre: "registre", apollo: "Apollo" };
 /** Déjà en contact : appelée par nous, ou reconnue dans Monday. */
 const dejaEnContact = (a) => ["contact", "relance"].includes(a.statut?.etat) || !!a.statut?.appelee;
 
@@ -300,8 +301,6 @@ const CHOIX_LISTE = [
   ["connues", "Agences connues", "Déjà en contact (Monday, carnet, appel)"],
   ["appelees", "Appelées", "La plus récemment appelée en tête"],
   ["relance", "Relance due", null],
-  ["agences", "Agences", null],
-  ["independants", "Indépendants", null],
   ["telephone", "Avec un numéro", null],
   ["agents", "Avec des agents", null],
   ["supprimees", "Supprimées", null],
@@ -350,7 +349,11 @@ function TableauAgences({ id, onAppeler }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState("toutes");
+  // Agences, mandataires, ou tous (23 oct. 2026) : gardé d'une visite à l'autre.
+  const [genre, setGenre] = useState(() => { try { return localStorage.getItem("prospection.genre") || "tous"; } catch { return "tous"; } });
+  const changerGenre = (g) => { setGenre(g); try { localStorage.setItem("prospection.genre", g); } catch { /* sans stockage */ } };
   const [chiffresOuverts, setChiffresOuverts] = useState(false);
+  const annuaires = useQuery({ queryKey: ["agent-ia-annuaires"], queryFn: () => base44.request("GET", `${API}/annuaires`), enabled: genre === "mandataires", staleTime: 10 * 60_000 });
   const { data, isLoading } = useQuery({
     queryKey: ["agent-ia-liste", id],
     queryFn: () => base44.request("GET", `${API}/listes/${id}`),
@@ -420,6 +423,12 @@ function TableauAgences({ id, onAppeler }) {
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
   // Appeler : l'agence (ou l'agent) entre au carnet si besoin, puis le panneau d'appel s'ouvre.
+  // Le numéro d'un mandataire par Apollo (23 oct. 2026) : payant, au clic, en dernier recours.
+  const apollo = useMutation({
+    mutationFn: (mid) => base44.request("POST", `${API}/mandataires/${mid}/apollo`),
+    onSuccess: (r) => { if (r.trouve) toast.success(r.telephone ? `Numéro trouvé : ${r.telephone}` : "Apollo a trouvé un mail, pas de numéro"); else toast.info("Apollo ne le connaît pas"); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
+    onError: (e) => toast.error(e?.message || "Apollo n'a pas répondu"),
+  });
   const appeler = useMutation({
     mutationFn: ({ agence, agent }) => base44.request("POST", `${API}/agences/${agence}/appeler`, { body: { agent: agent ?? null } }),
     onSuccess: (r) => { onAppeler?.(r.agent_id); queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] }); },
@@ -432,11 +441,12 @@ function TableauAgences({ id, onAppeler }) {
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
     const base = (data?.lignes || []).filter((a) => !a.fermee)
-      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "independants" ? estIndependant(a) : filtre === "agences" ? !estIndependant(a) : filtre === "inconnues" ? aAppeler(a) : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
+      .filter((a) => genre === "tous" || (genre === "mandataires" ? estMandataire(a) : !estMandataire(a)))
+      .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "inconnues" ? aAppeler(a) : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
       .filter((a) => !t || [a.nom, a.adresse, a.telephone, a.email, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email])].filter(Boolean).join(" ").toLowerCase().includes(t));
     // « Appelées » : la plus récemment appelée en tête. Ailleurs, l'ordre fixe de la liste.
     return filtre === "appelees" ? [...base].sort((x, y) => String(y.statut?.quand || "").localeCompare(String(x.statut?.quand || ""))) : base;
-  }, [data, q, filtre, moiEmail]);
+  }, [data, q, filtre, genre, moiEmail]);
   if (isLoading || !data) return <Chargement />;
 
   return (
@@ -449,10 +459,18 @@ function TableauAgences({ id, onAppeler }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Agence, gérant, agent, numéro"
             className="w-full border-none bg-transparent text-[14px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
         </div>
+        <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Agences ou mandataires">
+          {[["agences", "Agences"], ["mandataires", "Mandataires"], ["tous", "Tous"]].map(([cle, mot]) => (
+            <button key={cle} type="button" role="tab" aria-selected={genre === cle} onClick={() => changerGenre(cle)}
+              className={`rounded-full px-4 py-[7px] text-[13.5px] ${genre === cle ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`} style={genre === cle ? undefined : { background: "transparent" }}>
+              {mot}{cle === "mandataires" && data.chiffres?.mandataires ? <span className="ml-1.5 tabular-nums text-ardoise">{data.chiffres.mandataires}</span> : null}
+            </button>
+          ))}
+        </div>
         {/* « Trier par » : une pilule, les choix dans un menu (12 oct. 2026). */}
         <TrierPar valeur={filtre} onChange={setFiltre} />
         <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
-          {data.etat === "en_cours" ? <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span> : `${lignes.length} agence${lignes.length > 1 ? "s" : ""}${data.deja_monday ? ` · ${data.deja_monday} déjà en contact` : ""}${data.fini_le ? ` · mise à jour ${ilYa(data.fini_le)}` : ""}`}
+          {data.etat === "en_cours" ? <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{data.etape || "L'agent cherche"}</span> : `${lignes.length} ${genre === "mandataires" ? "mandataire" : genre === "agences" ? "agence" : "ligne"}${lignes.length > 1 ? "s" : ""}${data.deja_monday ? ` · ${data.deja_monday} déjà en contact` : ""}${data.fini_le ? ` · mise à jour ${ilYa(data.fini_le)}` : ""}`}
         </span>
         <button type="button" onClick={() => completer.mutate()} disabled={completer.isPending || data.etat === "en_cours"} title="Remplir les cases vides (adresse, site, Maps, téléphone, gérants, agents) sans toucher au reste"
           className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
@@ -490,6 +508,13 @@ function TableauAgences({ id, onAppeler }) {
           <button type="button" onClick={() => setCoches(new Set())} className="text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tout décocher</button>
         </div>
       )}
+      {/* Les annuaires des réseaux (23 oct. 2026) : vérifiés sur le serveur avant toute lecture ; dit en une ligne. */}
+      {genre === "mandataires" && annuaires.data?.annuaires && (
+        <p className="m-0 mt-3 text-[12.5px] text-ardoise">
+          Annuaires des réseaux : {annuaires.data.annuaires.map((x) => `${x.nom} ${x.categorie === "autorise" ? (x.lecteur ? "lu" : "autorisé") : x.categorie === "interdit" ? "interdit" : x.categorie === "douteux" ? "à trancher" : x.categorie === "injoignable" ? "injoignable" : "à vérifier"}`).join(" · ")}.
+          <span className="text-brume"> Les numéros viennent pour l'instant des annonces et du registre.</span>
+        </p>
+      )}
       {filtre === "supprimees" ? <Supprimees listeId={id} /> : (<>
       <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait">
         <table className="w-full min-w-[1200px] border-collapse text-left text-[14px]">
@@ -501,7 +526,7 @@ function TableauAgences({ id, onAppeler }) {
                   <Case oui={lignes.length > 0 && lignes.every((a) => coches.has(a.id))} />
                 </button>
               </th>
-              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", "Gérants"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal text-encre">{t}</th>)}
+              {["Associé à", "Nom", "Adresse", "Site", "Maps", "Téléphone", genre === "mandataires" ? "SIREN" : genre === "tous" ? "Gérants / SIREN" : "Gérants"].map((t) => <th key={t} className="border-b border-trait px-4 py-3.5 font-normal text-encre">{t}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -518,6 +543,13 @@ function TableauAgences({ id, onAppeler }) {
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}><CellulePour agence={a} listeId={id} /></td>
                     <td className="max-w-[260px] px-4 py-4">
                       <p className="m-0 text-encre">{nomPropre(a)}{(a.agents || []).length > 1 && <span className="ml-1.5 text-[12.5px] text-ardoise">· {a.agents.length} agents</span>}</p>
+                      {estMandataire(a) && (
+                        <p className="m-0 mt-1 flex flex-wrap gap-1">
+                          <span className="rounded-[6px] bg-bleu/15 px-1.5 py-px text-[11.5px] text-bleu">{a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre"}</span>
+                          {(a.annonces_commerce || 0) > 0 && <span className="rounded-[6px] bg-menthe/15 px-1.5 py-px text-[11.5px] text-menthe">Publie du commerce · {a.annonces_commerce}</span>}
+                          {(a.annonces || 0) > 0 && !(a.annonces_commerce > 0) && <span className="rounded-[6px] bg-relief px-1.5 py-px text-[11.5px] text-craie">{a.annonces} annonce{a.annonces > 1 ? "s" : ""}</span>}
+                        </p>
+                      )}
                       {/* Qui est dessus en ce moment (13 oct. 2026) : pour ne pas se croiser. */}
                       {a.en_appel_par && <p className="m-0 mt-1"><span className="inline-flex items-center gap-1 rounded-[6px] bg-menthe/15 px-1.5 py-px text-[11.5px] text-menthe"><Lock className="h-3 w-3" />{a.en_appel_par === moiEmail ? "Vous l'appelez" : `En appel · ${prenomDe(a.en_appel_par)}`}</span></p>}
                       {/* Sous le nom, une seule chose : déjà en contact, ou rien (6 oct. 2026). */}
@@ -531,8 +563,11 @@ function TableauAgences({ id, onAppeler }) {
                     <td className="px-4 py-4">
                       {a.maps_url ? <a onClick={(e) => e.stopPropagation()} href={a.maps_url} target="_blank" rel="noreferrer" aria-label="Fiche Google Maps" title="Fiche Google Maps" className="text-craie hover:text-encre"><MapPin className="h-4 w-4" /></a> : <span className="text-bord-vif">—</span>}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-4 tabular-nums text-encre">{tel || <span className="text-bord-vif">—</span>}</td>
-                    <td className="px-4 py-4 text-craie">{(a.gerants || []).length ? a.gerants.map((g) => g.nom).join(", ") : <span className="text-bord-vif">—</span>}</td>
+                    <td className="whitespace-nowrap px-4 py-4 tabular-nums text-encre" title={a.telephone_source ? `Numéro : ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : undefined}>
+                      {tel || <span className="text-bord-vif">—</span>}
+                      {estMandataire(a) && a.telephone_source && <span className="block text-[11.5px] text-brume">{SOURCES_TEL[a.telephone_source] || a.telephone_source}</span>}
+                    </td>
+                    <td className="px-4 py-4 text-craie">{estMandataire(a) ? (a.siren ? <span className="tabular-nums">SIREN {a.siren}{a.creation ? <span className="block text-[11.5px] text-brume">depuis {String(a.creation).slice(0, 4)}</span> : null}</span> : <span className="text-bord-vif">—</span>) : (a.gerants || []).length ? a.gerants.map((g) => g.nom).join(", ") : <span className="text-bord-vif">—</span>}</td>
                   </tr>
                   {ouvert && (
                     <tr className="[&>td]:border-b [&>td]:border-trait">
@@ -554,6 +589,17 @@ function TableauAgences({ id, onAppeler }) {
                                   </li>
                                 ))}
                               </ul>
+                            ) : estMandataire(a) ? (
+                              <div>
+                                <p className="m-0 text-[13px] text-craie">{[a.reseau_nom ? `Mandataire ${a.reseau_nom}` : "Mandataire en nom propre", a.telephone_source ? `numéro de ${SOURCES_TEL[a.telephone_source] || a.telephone_source}` : "pas encore de numéro", `trouvé par ${(a.sources || []).join(", ")}`].join(" · ")}.</p>
+                                {!a.telephone && !a.apollo_le && (
+                                  <button type="button" onClick={() => apollo.mutate(a.id)} disabled={apollo.isPending} title="Une recherche Apollo coûte des crédits : seulement quand ni l'annonce ni le registre n'ont donné de numéro"
+                                    className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
+                                    {apollo.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}Chercher son numéro (Apollo, payant)
+                                  </button>
+                                )}
+                                {!a.telephone && a.apollo_le && <p className="m-0 mt-1 text-[12px] text-brume">Apollo cherché le {new Date(a.apollo_le).toLocaleDateString("fr-FR")} : rien trouvé.</p>}
+                              </div>
                             ) : <p className="m-0 text-[13px] text-craie">{a.gerants?.[0]?.nom ? `Au nom de ${a.gerants[0].nom}` : "L'agence, par son standard"}.</p>}
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -635,10 +681,10 @@ function BarreVille({ ville, chiffres }) {
         <div className={bloc}><p className="m-0 text-[24px] leading-none text-encre" style={{ fontVariantNumeric: "tabular-nums" }}>{chiffres.a_rappeler}</p><p className="m-0 mt-1.5 text-[12.5px] text-ardoise">à rappeler</p></div>
       </div>
       {/* Ce qui n'est pas compté comme agence, dit pour qu'on sache d'où vient le reste des lignes. */}
-      {(chiffres.independants > 0 || chiffres.societes > 0 || chiffres.annonceurs > 0 || chiffres.mortes > 0) && (
+      {(chiffres.mandataires > 0 || chiffres.societes > 0 || chiffres.annonceurs > 0 || chiffres.mortes > 0) && (
         <p className="m-0 mt-2 text-[12.5px] text-brume">
           À part : {[
-            chiffres.independants ? `${chiffres.independants} agent${chiffres.independants > 1 ? "s" : ""} en nom propre` : null,
+            chiffres.mandataires ? `${chiffres.mandataires} mandataire${chiffres.mandataires > 1 ? "s" : ""}${chiffres.mandataires_commerce ? `, dont ${chiffres.mandataires_commerce} qui publie${chiffres.mandataires_commerce > 1 ? "nt" : ""} du commerce` : ""}` : null,
             chiffres.societes ? `${chiffres.societes} société${chiffres.societes > 1 ? "s" : ""} sans vitrine (ni fiche Google, ni annonce)` : null,
             chiffres.annonceurs ? `${chiffres.annonceurs} nom${chiffres.annonceurs > 1 ? "s" : ""} d'annonces` : null,
             chiffres.mortes ? `${chiffres.mortes} morte${chiffres.mortes > 1 ? "s" : ""}` : null,

@@ -60,17 +60,17 @@ test('la barre de la ville compte ce qui compte', () => {
     { statut: { etat: 'relance', a_rappeler: true } },
     { statut: { etat: 'morte' } },
   ]);
-  assert.deepEqual(c, { agences: 4, appelees: 2, fait_pourcent: 67, interessees: 1, a_rappeler: 1, mortes: 1, independants: 0, annonceurs: 0, societes: 0 });
+  assert.deepEqual(c, { agences: 4, appelees: 2, fait_pourcent: 67, interessees: 1, a_rappeler: 1, mortes: 1, mandataires: 0, mandataires_commerce: 0, annonceurs: 0, societes: 0 });
   // Une société seulement au registre, sans fiche Google ni annonce, n'est pas une agence ; suivie, elle le redevient.
   assert.equal(MA.genreDe({ nom: 'Mh Services', telephone: '04 93 00 00 00', sources: ['Data-B'] }), 'societe');
   assert.equal(MA.genreDe({ nom: 'Mh Services', sources: ['Data-B', 'Google Maps'] }), 'agence');
   assert.equal(MA.genreDe({ nom: 'Mh Services', sources: ['Data-B'], pour: ['nora.l@klocka.immo'] }), 'agence');
   // Les mandataires en nom propre et les noms d'annonces se comptent à part.
-  assert.equal(MA.genreDe({ nom: 'Monsieur Nicolas Mouette', raison_sociale: 'MONSIEUR NICOLAS MOUETTE', sources: ['Data-B'] }), 'independant');
+  assert.equal(MA.genreDe({ nom: 'Monsieur Nicolas Mouette', raison_sociale: 'MONSIEUR NICOLAS MOUETTE', sources: ['Data-B'] }), 'mandataire');
   assert.equal(MA.genreDe({ nom: 'Bnp', sources: ['Equimmox'] }), 'annonceur');
   assert.equal(MA.genreDe({ nom: 'Azurea Commerces', telephone: '04 93 35 08 68', sources: ['Google Maps'] }), 'agence');
-  const d = MA.chiffresDeLaVille([{ genre: 'agence', statut: { etat: 'jamais' } }, { genre: 'independant', statut: { etat: 'jamais' } }, { genre: 'annonceur', statut: { etat: 'jamais' } }]);
-  assert.deepEqual([d.agences, d.independants, d.annonceurs], [1, 1, 1]);
+  const d = MA.chiffresDeLaVille([{ genre: 'agence', statut: { etat: 'jamais' } }, { genre: 'mandataire', statut: { etat: 'jamais' } }, { genre: 'annonceur', statut: { etat: 'jamais' } }]);
+  assert.deepEqual([d.agences, d.mandataires, d.annonceurs], [1, 1, 1]);
 });
 
 test('les recherches clients de la zone, en une ligne chacune', () => {

@@ -163,6 +163,8 @@ test('le plafond du jour : la fiche de trop attend demain, Jules est prévenu un
 });
 
 test('surReleve : la même fiche relevée deux fois ne fait qu\'une tâche', async () => {
+  // La mise en route de Haka est posée avant le mail : sous charge, « maintenant » pouvait tomber une milliseconde après.
+  (await import('../db.js')).Meta.set('mail.preanalyse_auto.depuis', new Date(Date.now() - 60000).toISOString());
   const mail = mailRecu(5);
   const a = await surReleve({ uploadDir: uploads });
   assert.equal(a.en_file, 1);

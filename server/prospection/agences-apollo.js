@@ -148,3 +148,19 @@ export async function contactsDeLAgence(domaine, ville, { max = 2, lire = fetch 
     return out;
   }) || [];
 }
+
+/**
+ * Le numéro d'un mandataire (23 oct. 2026), en dernier recours : une recherche de la personne (prénom, nom, réseau,
+ * ville). Payant : seulement au clic, et la réponse est gardée 90 jours. Rend { telephone, email } ou null.
+ */
+export async function numeroDUnePersonne({ prenom, nom, organisation = null, ville = null }, { lire = fetch } = {}) {
+  if (!apolloConfigure() || !nom) return null;
+  return enMemoire(`personne|${prenom || ''}|${nom}|${organisation || ''}|${ville || ''}`.toLowerCase(), async () => {
+    const m = await appeler('/people/match', { corps: { first_name: prenom || undefined, last_name: nom, organization_name: organisation || undefined, ...(ville ? { city: ville } : {}) }, lire });
+    const p = m.person;
+    if (!p) return null;
+    const tel = (p.phone_numbers || p.contact?.phone_numbers || [])[0]?.sanitized_number || null;
+    const email = p.email && !/^email_not_unlocked/.test(p.email) ? p.email : null;
+    return tel || email ? { telephone: tel ? telAffiche(tel) : null, email } : null;
+  });
+}

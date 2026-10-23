@@ -9,6 +9,12 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-23",
+    items: [
+      { titre: "Les mandataires dans la Prospection", texte: "Dans chaque liste de ville, Agences, Mandataires ou Tous : les conseillers des réseaux (IAD, SAFTI, Capifrance…) et les agents en nom propre, chacun à part avec son réseau, son numéro et s'il publie du commerce.", page: "Prospection", requete: "?partie=listes" },
+    ],
+  },
+  {
     jour: "2026-10-22",
     items: [
       { titre: "Une croix pour abandonner un rappel", texte: "Pendant un rappel, la croix à côté de Raccrocher abandonne l'appel : rien n'est fait et la transcription s'efface. Les notes passent au-dessus de la calculatrice, au rappel comme au Mode appel.", page: "Prospection" },

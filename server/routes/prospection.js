@@ -983,6 +983,21 @@ export function monterProspection(app) {
 
   // --- L'agent IA : les agences immobilières d'une ville, en listes partagées ---
   const IA = () => import('../prospection/agent-ia.js');
+  // Le numéro d'un mandataire par Apollo, au clic (payant, en dernier recours).
+  app.post('/api/prospection/agent-ia/mandataires/:id/apollo', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const r = await (await IA()).numeroApollo(req.params.id);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // Les annuaires des réseaux de mandataires (23 oct. 2026) : où en est leur vérification (robots.txt, conditions).
+  app.get('/api/prospection/agent-ia/annuaires', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { ANNUAIRES } = await import('../prospection/mandataires.js');
+    const { Records } = await import('../db.js');
+    const sites = Records.list('SiteAgence');
+    ok(res, { annuaires: ANNUAIRES.map((a) => { const s = sites.find((x) => x.origine === a.origine); return { reseau: a.reseau, nom: a.nom, origine: a.origine, lecteur: !!a.lecteur, categorie: s?.categorie || null, motif: s?.motif || null, phrase: s?.phrase || null, verifie_le: s?.verifie_le || null }; }) });
+  }));
   app.get('/api/prospection/agent-ia/listes', wrap(async (req, res) => {
     if (!admin(req, res)) return;
     ok(res, { listes: (await IA()).listes() });

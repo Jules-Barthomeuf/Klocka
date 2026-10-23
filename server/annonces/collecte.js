@@ -160,6 +160,14 @@ export async function tourDeCollecte({ max = 20 } = {}) {
 /** La revérification mensuelle, au même rythme par serveur : un site vu il y a plus de 30 jours est relu. */
 export async function tourDeVerification({ max = 5 } = {}) {
   if (!boiteOutilsActive() || !sourceActive('annonces')) return { actif: false };
+  // Les annuaires des réseaux de mandataires (23 oct. 2026) : vérifiés une première fois, un par tour, dans le même cadre.
+  const { ANNUAIRES } = await import('../prospection/mandataires.js');
+  const connus = new Set(sitesVerifies().map((s) => s.origine));
+  for (const a of ANNUAIRES.filter((x) => !connus.has(x.origine)).slice(0, 1)) {
+    const ip = await ipDe(a.origine);
+    if (!serveurDisponible(lireServeurs()[ip])) continue;
+    await verifierSite(a.origine, { agences: [`Réseau ${a.nom} (annuaire des mandataires)`], pause: 3000 });
+  }
   const vieux = sitesVerifies().filter((s) => Date.now() - Date.parse(s.verifie_le) > 30 * 86400000).slice(0, max);
   for (const s of vieux) {
     const ip = await ipDe(s.origine);

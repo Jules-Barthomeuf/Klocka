@@ -983,6 +983,14 @@ export function monterProspection(app) {
 
   // --- L'agent IA : les agences immobilières d'une ville, en listes partagées ---
   const IA = () => import('../prospection/agent-ia.js');
+  // Une page d'annuaire de réseau collée (23 oct. 2026) : ses conseillers entrent dans la liste de la ville.
+  app.post('/api/prospection/agent-ia/listes/:id/mandataires/coller', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const r = (await IA()).collerMandataires(req.params.id, { texte: String(req.body?.texte || '').slice(0, 400000), reseau: req.body?.reseau }, user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
   // Le numéro d'un mandataire par Apollo, au clic (payant, en dernier recours).
   app.post('/api/prospection/agent-ia/mandataires/:id/apollo', wrap(async (req, res) => {
     if (!admin(req, res)) return;

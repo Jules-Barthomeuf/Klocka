@@ -89,3 +89,49 @@ test('Apollo, au clic et en dernier : il complète un numéro manquant, jamais c
   await IA.numeroApollo(avec.id, { chercher });
   assert.equal(Records.get('AgenceProspect', avec.id).telephone, '06 11 22 33 44', "l'annonce reste");
 });
+
+test('une page d’annuaire collée : les noms, leurs numéros, sans les mots de la page', () => {
+  const page = `Trouver un conseiller
+Nice (06000)
+90 résultats
+Claire MARTIN
+Conseillère immobilier
+Nice
+06 12 34 56 78
+Voir le profil
+Paul Roux
+Conseiller immobilier · Nice Ouest
+Afficher le numéro
+DUPONT Jean-Marc
+Mandataire immobilier
++33 7 11 22 33 44
+Note 4,9 ★ (12 avis)
+Claire Martin
+06 12 34 56 78
+Page suivante`;
+  const gens = M.lireCollage(page);
+  assert.deepEqual(gens, [
+    { nom: 'Claire Martin', telephone: '06 12 34 56 78' },
+    { nom: 'Paul Roux', telephone: null },
+    { nom: 'Dupont Jean-Marc', telephone: '07 11 22 33 44' },
+  ]);
+  assert.equal(M.ligneNom('Conseillère immobilier'), null);
+  assert.equal(M.ligneNom('Afficher le numéro'), null);
+  assert.equal(M.telFrancais('+33 (0)6 12 34 56 78'), '06 12 34 56 78');
+});
+
+test('coller une page d’annuaire : chacun entre comme mandataire du réseau, numéro « annuaire », sans doublon', () => {
+  const l = Records.create('ListeAgences', { ville: 'Nice', etat: 'fini', journal: [] });
+  IA.rangerMandataire(l.id, { nom: 'Claire Martin', raison_sociale: 'Madame Claire MARTIN', siren: '900000002', telephone: '04 93 00 00 01', telephone_source: 'registre', sources: ['Data-B'] });
+  const r = IA.collerMandataires(l.id, { texte: 'Claire MARTIN\n06 12 34 56 78\nPaul Roux\nAfficher le numéro', reseau: 'iad' });
+  assert.equal(r.ok, true);
+  assert.deepEqual([r.lus, r.nouveaux, r.completes, r.avec_numero], [2, 1, 1, 1]);
+  assert.deepEqual(r.sans_numero, ['Paul Roux']);
+  const claire = Records.list('AgenceProspect').find((x) => x.liste_id === l.id && x.nom === 'Claire Martin');
+  assert.equal(claire.telephone, '06 12 34 56 78', "l'annuaire passe devant le registre");
+  assert.equal(claire.telephone_source, 'annuaire');
+  assert.equal(claire.reseau_nom, 'IAD');
+  assert.equal(claire.siren, '900000002');
+  assert.equal(IA.collerMandataires(l.id, { texte: 'rien à lire ici 123', reseau: 'iad' }).ok, false);
+  assert.equal(IA.collerMandataires(l.id, { texte: 'Claire Martin', reseau: 'inconnu' }).ok, false);
+});

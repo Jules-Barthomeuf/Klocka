@@ -94,3 +94,55 @@ export function retrouverMandataire(lignes, m, { normTel = (t) => String(t || ''
  * n'est écrit qu'après, pour un réseau autorisé, sur la structure réelle de sa page.
  */
 export const ANNUAIRES = RESEAUX.map((r) => ({ reseau: r.cle, nom: r.nom, origine: `https://www.${r.domaines[0]}`, lecteur: null }));
+
+// ---------------------------------------------------------------------------
+// Coller une page d'annuaire (23 oct. 2026, Jules : « sur IAD à Nice il y en a 90, j'en cherche une, elle n'est pas
+// dans la liste »). La personne fait sa recherche sur le site du réseau, comme d'habitude, copie la page (ou les
+// fiches, numéros affichés) et la colle : Klocka lit les noms et les numéros. Rien n'est lu par une machine sur le site.
+// ---------------------------------------------------------------------------
+
+const TEL = /(?:\+33\s?\(?0?\)?\s?|0)[1-9](?:[\s.-]?\d{2}){4}/g;
+const PAS_UN_NOM = /\b(conseill[eè]re?|mandataire|immobilier|immobili[eè]re|agent|commercial|afficher|voir|contacter|contact|num[ée]ro|t[ée]l[ée]phone|profil|annonces?|biens?|secteur|nice|france|iad|safti|capifrance|optimhome|megagence|efficity|bsk|r[ée]seau|propri[ée]t[ée]s|priv[ée]es|avis|note|[ée]toiles?|km|ville|rechercher|r[ée]sultats?|trier|filtrer|page|suivant|pr[ée]c[ée]dent|accueil|menu)\b/i;
+
+/** Pure : une ligne qui peut être un nom de personne (deux à quatre mots, sans chiffre ni mot de page). */
+export function ligneNom(l) {
+  const t = String(l || '').replace(/[•·|]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t || t.length > 60 || /[\d@:/]/.test(t) || PAS_UN_NOM.test(t)) return null;
+  const mots = t.split(' ');
+  if (mots.length < 2 || mots.length > 4) return null;
+  if (!mots.every((m) => /^[A-ZÀ-Ýa-zà-ÿ][A-Za-zÀ-ÿ'’-]*$/.test(m))) return null;
+  // Au moins un mot qui commence par une majuscule (« Claire MARTIN », « Claire Martin »).
+  if (!mots.some((m) => /^[A-ZÀ-Ý]/.test(m))) return null;
+  return nomPersonne(t);
+}
+
+/** Pure : un numéro français écrit « 06 12 34 56 78 ». */
+export function telFrancais(t) {
+  let d = String(t || '').replace(/\D/g, '');
+  if (d.startsWith('33')) d = `0${d.slice(2).replace(/^0/, '')}`;
+  if (d.length !== 10 || !d.startsWith('0')) return null;
+  return d.match(/.{2}/g).join(' ');
+}
+
+/**
+ * Pure : les personnes d'une page collée, dans l'ordre. Chaque numéro va au dernier nom vu qui n'en a pas encore ;
+ * un nom sans numéro est gardé (on saura qu'il existe). Les doublons d'une même page se fondent.
+ */
+export function lireCollage(texte) {
+  const gens = [];
+  for (const brute of String(texte || '').split(/\r?\n/)) {
+    const tels = (brute.match(TEL) || []).map(telFrancais).filter(Boolean);
+    const sansTel = brute.replace(TEL, ' ');
+    const nom = ligneNom(sansTel);
+    if (nom) {
+      const deja = gens.find((g) => clePersonne(g.nom) === clePersonne(nom));
+      if (!deja) gens.push({ nom, telephone: null });
+    }
+    for (const tel of tels) {
+      const cible = [...gens].reverse().find((g) => !g.telephone);
+      if (cible && !gens.some((g) => g.telephone === tel)) cible.telephone = tel;
+    }
+  }
+  return gens;
+}
+

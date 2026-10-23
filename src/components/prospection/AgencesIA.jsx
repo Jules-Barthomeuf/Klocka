@@ -423,6 +423,17 @@ function TableauAgences({ id, onAppeler }) {
     onError: (e) => toast.error(e?.message || "Envoi impossible"),
   });
   // Appeler : l'agence (ou l'agent) entre au carnet si besoin, puis le panneau d'appel s'ouvre.
+  // Coller une page d'annuaire de réseau (23 oct. 2026, Jules) : la recherche se fait sur le site du réseau, à la main.
+  const [collage, setCollage] = useState(null); // { reseau, texte }
+  const coller = useMutation({
+    mutationFn: () => base44.request("POST", `${API}/listes/${id}/mandataires/coller`, { body: collage }),
+    onSuccess: (r) => {
+      toast.success(`${r.lus} conseiller${r.lus > 1 ? "s" : ""} lu${r.lus > 1 ? "s" : ""} : ${r.nouveaux} nouveau${r.nouveaux > 1 ? "x" : ""}, ${r.completes} complété${r.completes > 1 ? "s" : ""}`, { description: `${r.avec_numero} avec un numéro.${r.sans_numero.length ? ` Sans numéro : ${r.sans_numero.slice(0, 5).join(", ")}${r.sans_numero.length > 5 ? "…" : ""} (cliquez « Afficher le numéro » sur la page avant de copier).` : ""}` });
+      setCollage(null);
+      queryClient.invalidateQueries({ queryKey: ["agent-ia-liste", id] });
+    },
+    onError: (e) => toast.error(e?.message || "Rien n'a été ajouté"),
+  });
   // Le numéro d'un mandataire par Apollo (23 oct. 2026) : payant, au clic, en dernier recours.
   const apollo = useMutation({
     mutationFn: (mid) => base44.request("POST", `${API}/mandataires/${mid}/apollo`),
@@ -439,11 +450,18 @@ function TableauAgences({ id, onAppeler }) {
   const aAppeler = (a) => a.statut?.etat === "jamais" && !a.statut?.appelee && !a.en_relance && !a.ne_plus_appeler
     && !(a.en_appel_par && a.en_appel_par !== moiEmail) && !((a.pour || []).length && moiEmail && !(a.pour || []).includes(moiEmail));
   const lignes = useMemo(() => {
-    const t = q.trim().toLowerCase();
+    // Mot par mot, sans accents (23 oct. 2026, Jules : « Julia Meyer » doit trouver « Julia Suzanne Lisa Meyer »).
+    const sansAccents = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const mots = sansAccents(q).split(/[\s,;]+/).filter(Boolean);
+    const t = mots.length > 0;
     const base = (data?.lignes || []).filter((a) => !a.fermee)
       .filter((a) => genre === "tous" || (genre === "mandataires" ? estMandataire(a) : !estMandataire(a)))
       .filter((a) => filtre === "toutes" || (filtre === "agents" ? (a.agents || []).length : filtre === "telephone" ? a.telephone : filtre === "inconnues" ? aAppeler(a) : filtre === "connues" ? ["contact", "relance"].includes(a.statut?.etat) : filtre === "appelees" ? a.statut?.appelee : filtre === "relance" ? a.statut?.etat === "relance" : filtre === "supprimees" ? true : !a.carnet_id))
-      .filter((a) => !t || [a.nom, a.adresse, a.telephone, a.email, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email])].filter(Boolean).join(" ").toLowerCase().includes(t));
+      .filter((a) => {
+        if (!t) return true;
+        const texte = sansAccents([a.nom, a.raison_sociale, a.reseau_nom, a.adresse, a.telephone, String(a.telephone || "").replace(/\D/g, ""), a.email, a.siren, ...(a.gerants || []).map((g) => g.nom), ...(a.agents || []).flatMap((x) => [x.nom, x.email, String(x.telephone || "").replace(/\D/g, "")])].filter(Boolean).join(" "));
+        return mots.every((m) => texte.includes(m.replace(/\D/g, "").length >= 6 && /^[\d\s.+-]+$/.test(m) ? m.replace(/\D/g, "") : m));
+      });
     // « Appelées » : la plus récemment appelée en tête. Ailleurs, l'ordre fixe de la liste.
     return filtre === "appelees" ? [...base].sort((x, y) => String(y.statut?.quand || "").localeCompare(String(x.statut?.quand || ""))) : base;
   }, [data, q, filtre, genre, moiEmail]);
@@ -513,7 +531,28 @@ function TableauAgences({ id, onAppeler }) {
         <p className="m-0 mt-3 text-[12.5px] text-ardoise">
           Annuaires des réseaux : {annuaires.data.annuaires.map((x) => `${x.nom} ${x.categorie === "autorise" ? (x.lecteur ? "lu" : "autorisé") : x.categorie === "interdit" ? "interdit" : x.categorie === "douteux" ? "à trancher" : x.categorie === "injoignable" ? "injoignable" : "à vérifier"}`).join(" · ")}.
           <span className="text-brume"> Les numéros viennent pour l'instant des annonces et du registre.</span>
+          <button type="button" onClick={() => setCollage((c) => (c ? null : { reseau: "iad", texte: "" }))} className="ml-2 text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Coller une page d'annuaire</button>
         </p>
+      )}
+      {genre === "mandataires" && collage && (
+        <div className="mt-3 rounded-[16px] border border-trait bg-rail p-4 duration-300 animate-in fade-in-0 slide-in-from-top-1">
+          <p className="m-0 text-[14px] text-encre">Faites la recherche sur le site du réseau ({data.ville}), cliquez « Afficher le numéro » sur les fiches, puis copiez la page et collez-la ici.</p>
+          <p className="m-0 mt-1 text-[12.5px] text-ardoise">Klocka lit les noms et les numéros ; chacun entre comme mandataire du réseau, son numéro marqué « annuaire ». Ceux déjà dans la liste sont complétés, pas doublés.</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {(annuaires.data?.annuaires || []).map((x) => (
+              <button key={x.reseau} type="button" aria-pressed={collage.reseau === x.reseau} onClick={() => setCollage((c) => ({ ...c, reseau: x.reseau }))}
+                className={`h-8 rounded-full border px-3.5 text-[13px] ${collage.reseau === x.reseau ? "border-menthe/60 bg-menthe/10 text-encre" : "border-trait text-craie hover:border-bord-vif"}`} style={collage.reseau === x.reseau ? undefined : { background: "transparent" }}>{x.nom}</button>
+            ))}
+          </div>
+          <textarea value={collage.texte} onChange={(e) => setCollage((c) => ({ ...c, texte: e.target.value }))} rows={7} placeholder={"Claire Martin\nConseillère immobilier IAD · Nice\n06 12 34 56 78\n…"}
+            className="mt-3 w-full resize-y rounded-[12px] border border-trait bg-surface px-3.5 py-2.5 text-[13.5px] text-encre outline-none focus:border-bord-vif max-md:text-[16px]" />
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <button type="button" onClick={() => setCollage(null)} className="h-9 px-3 text-[13.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+            <button type="button" onClick={() => coller.mutate()} disabled={coller.isPending || collage.texte.trim().length < 10} className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-50">
+              {coller.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Ajouter à la liste
+            </button>
+          </div>
+        </div>
       )}
       {filtre === "supprimees" ? <Supprimees listeId={id} /> : (<>
       <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait">

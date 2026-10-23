@@ -27,7 +27,7 @@ import { fileURLToPath } from 'url';
 import { Records } from '../db.js';
 import { norm, normEmail, normTel, telAffiche } from './regles.js';
 import * as MA from './mode-appel.js';
-import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder } from './mandataires.js';
+import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder, lireCollage, RESEAUX } from './mandataires.js';
 import { ANALYSTES } from '../fil-dossier.js';
 
 const LISTE = 'ListeAgences';
@@ -1045,6 +1045,27 @@ export async function numeroApollo(id, { chercher = null } = {}) {
   const garde = telephoneAGarder(a.telephone ? { telephone: a.telephone, source: a.telephone_source } : null, r.telephone ? { telephone: r.telephone, source: 'apollo' } : null);
   Records.update(AGENCE, a.id, { ...(garde && garde.telephone !== a.telephone ? { telephone: garde.telephone, telephone_source: garde.source } : {}), ...(!a.email && r.email ? { email: r.email } : {}), sources: [...new Set([...(a.sources || []), 'Apollo'])] });
   return { ok: true, trouve: true, telephone: Records.get(AGENCE, a.id).telephone };
+}
+
+/**
+ * Une page d'annuaire collée par quelqu'un de l'équipe (23 oct. 2026) : chaque personne lue entre dans la liste comme
+ * mandataire du réseau choisi, son numéro marqué « annuaire » (la source la plus sûre). Rend ce qui a été fait.
+ */
+export function collerMandataires(listeId, { texte, reseau }, user = null) {
+  const l = Records.get(LISTE, listeId);
+  if (!l) return { ok: false, error: 'Liste introuvable.' };
+  const r = RESEAUX.find((x) => x.cle === reseau);
+  if (!r) return { ok: false, error: 'Choisissez le réseau.' };
+  const gens = lireCollage(texte);
+  if (!gens.length) return { ok: false, error: "Je ne lis aucun nom dans ce texte : copiez la page de résultats (les fiches, avec les numéros affichés)." };
+  let nouveaux = 0;
+  let completes = 0;
+  for (const g of gens) {
+    const x = rangerMandataire(listeId, { nom: g.nom, reseau: r.cle, reseau_nom: r.nom, telephone: g.telephone, telephone_source: 'annuaire', sources: [`Annuaire ${r.nom}`], colle_par: user?.email || null });
+    if (x.nouveau) nouveaux += 1; else completes += 1;
+  }
+  noter(l, `Annuaire ${r.nom} collé${user?.email ? ` par ${user.email.split('@')[0]}` : ''} : ${gens.length} conseillers lus, ${nouveaux} nouveaux, ${completes} déjà connus complétés, ${gens.filter((g) => g.telephone).length} avec un numéro.`, 'succes');
+  return { ok: true, lus: gens.length, nouveaux, completes, avec_numero: gens.filter((g) => g.telephone).length, sans_numero: gens.filter((g) => !g.telephone).map((g) => g.nom) };
 }
 
 /** Pure : la fiche de carnet d'un mandataire : la personne, son réseau en guise d'agence. */

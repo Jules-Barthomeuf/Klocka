@@ -61,10 +61,12 @@ test('le menu des mandataires : la structure de l’équipe, Prospection et Bien
   assert.deepEqual(principal.find((x) => x.groupe === 'Biens').entrees.map((e) => e.label), ['Estimation', 'Mandat', 'Dossiers', 'Mise en marché']);
   assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);
   assert.equal(groupeDe('MandataireMandat', 'mandataire').groupe, 'Biens');
-  assert.equal(groupeDe('MandataireOffMarket', 'mandataire').groupe, 'Prospection');
+  // L'Off-market est dans la Prospection (23 oct. 2026) : plus d'entrée à part, ni dans « Autre ».
+  assert.ok(!principal.some((x) => x.cle === 'MandataireOffMarket' || (x.entrees || []).some((e) => e.cle === 'MandataireOffMarket')));
+  assert.ok(!autre.some((e) => e.cle === 'MandataireOffMarket'));
   assert.equal(groupeDe('MandataireMandat'), null);
   // Une page masquée disparaît du groupe ; un groupe vidé disparaît.
-  assert.ok(!menuMandataire(['MandataireProspection', 'MandataireOffMarket']).principal.some((x) => x.groupe === 'Prospection'));
+  assert.ok(!menuMandataire(['MandataireProspection']).principal.some((x) => x.cle === 'MandataireProspection'));
 });
 
 test('le Simulateur reste dans les deux menus, même masqué dans d’anciennes préférences', async () => {

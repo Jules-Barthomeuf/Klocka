@@ -1,9 +1,9 @@
 import React from "react";
-import OffMarket from "@/components/off-market/OffMarket";
+import { Navigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
-// Off-market, côté mandataire K Partners : les villes de son secteur, son
-// propre pipeline. Le nom de la page commence par « Mandataire » : c'est ce
-// qui l'ouvre à ce rôle.
+// Off-market, côté mandataire : depuis le 23 oct. 2026 (Jules), il vit dans la Prospection, vue « Commerces ».
+// L'ancienne adresse y mène, pour les liens et les notifications d'avant.
 export default function MandataireOffMarket() {
-  return <OffMarket espace="mandataire" />;
+  return <Navigate to={`${createPageUrl("MandataireProspection")}?vue=commerces`} replace />;
 }

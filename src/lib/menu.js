@@ -101,13 +101,15 @@ export const MENU_ADMIN = [
 export const MENU_MANDATAIRE = [
   // Haka, comme pour l'équipe (19 oct. 2026, Jules).
   { cle: "Dashboard", label: "Haka" },
-  { groupe: "Prospection", cle: "GroupeProspection", label: "Prospection", entrees: [{ cle: "MandataireProspection", label: "Prospection" }, { cle: "MandataireOffMarket", label: "Off-market" }] },
+  // La Prospection reprend l'Off-market (23 oct. 2026, Jules) : une seule entrée, Commerces et Rues dans la page.
+  { cle: "MandataireProspection", label: "Prospection" },
   { groupe: "Biens", cle: "GroupeBiens", label: "Biens", entrees: [{ cle: "MandataireEstimation", label: "Estimation" }, { cle: "MandataireMandat", label: "Mandat" }, { cle: "MandataireDossier", label: "Dossiers" }, { cle: "MandataireMarche", label: "Mise en marché" }] },
   { cle: "MandataireClients", label: "Clients" },
   { cle: "MandataireProjets", label: "Projets" },
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
 ];
-const HORS_MENU_MANDATAIRE = ["Personnalisation"];
+// Off-market n'est plus une page à part pour un mandataire (23 oct. 2026) : son adresse mène à la Prospection.
+const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket"];
 
 /** Pure : le groupe du menu (équipe ou mandataires) auquel une page appartient, ou null. */
 export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : MENU_ADMIN)

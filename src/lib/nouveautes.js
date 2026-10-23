@@ -11,6 +11,7 @@ export const NOUVEAUTES = [
   {
     jour: "2026-10-23",
     items: [
+      { titre: "Prospection : Commerces et Rues", texte: "Côté mandataire, l'Off-market entre dans la Prospection : la vue Commerces (les murs et leurs propriétaires) et la vue Rues (vos prospections rue par rue) se basculent d'un clic.", page: "MandataireProspection" },
       { titre: "Les mandataires dans la Prospection", texte: "Dans chaque liste de ville, Agences, Mandataires ou Tous : les conseillers des réseaux (IAD, SAFTI, Capifrance…) et les agents en nom propre, chacun à part avec son réseau, son numéro et s'il publie du commerce.", page: "Prospection", requete: "?partie=listes" },
     ],
   },

@@ -1488,6 +1488,13 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
   }, 60_000).unref?.();
 }
 
+// Les liens de fiches de mandataires donnés par Jules (23 oct. 2026) : rangés dans la liste de leur ville au démarrage.
+if (!process.env.NODE_TEST_CONTEXT) {
+  setTimeout(() => import('./prospection/agent-ia.js')
+    .then((m) => { for (const b of m.importerAnnuairesFournis()) if (!b.deja) console.log('[mandataires]', JSON.stringify(b).slice(0, 300)); })
+    .catch((e) => console.warn('[mandataires]', e?.message || e)), 20_000).unref?.();
+}
+
 // La carte (22 oct. 2026) : préparée deux minutes après le démarrage, puis toutes les 30 minutes ; la première
 // géolocalisation des villes prend une minute, personne ne l'attend devant l'écran.
 if (!process.env.NODE_TEST_CONTEXT && !process.env.KLOCKA_BAC_A_SABLE) {

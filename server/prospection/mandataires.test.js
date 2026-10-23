@@ -185,3 +185,15 @@ test('les liens des fiches IAD de Nice : un mandataire par lien, nommé par le l
   assert.equal(IA.noterNumero(valerie.id, '+33 6 12 34 56 78').telephone, '06 12 34 56 78');
   assert.equal(Records.get('AgenceProspect', valerie.id).telephone_source, 'annuaire');
 });
+
+test('les liens fournis (menton.iad.txt) se rangent au démarrage dans la liste de leur ville, une fois', () => {
+  const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'annuaires-'));
+  fs.writeFileSync(path.join(dossier, 'menton.iad.txt'), 'https://www.iadfrance.fr/conseiller-immobilier/claire.bourgeois\nhttps://www.iadfrance.fr/conseiller-immobilier/alix.verna\n');
+  fs.writeFileSync(path.join(dossier, 'cannes.iad.txt'), 'https://www.iadfrance.fr/conseiller-immobilier/x.y\n');
+  const nice = Records.create('ListeAgences', { ville: 'Menton', etat: 'fini', journal: [] });
+  const b = IA.importerAnnuairesFournis({ dossier });
+  assert.equal(b.find((x) => x.fichier === 'menton.iad.txt').nouveaux, 2);
+  assert.match(b.find((x) => x.fichier === 'cannes.iad.txt').ignore, /pas de liste/);
+  assert.equal(IA.importerAnnuairesFournis({ dossier }).find((x) => x.fichier === 'menton.iad.txt').deja, true);
+  assert.ok(IA.liste(nice.id).lignes.some((x) => x.nom === 'Claire Bourgeois' && x.fiche_url?.endsWith('/claire.bourgeois')));
+});

@@ -24,7 +24,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Records } from '../db.js';
+import { Records, Meta } from '../db.js';
 import { norm, normEmail, normTel, telAffiche } from './regles.js';
 import * as MA from './mode-appel.js';
 import { reseauDe, nomPersonne, estEnNomPropre, estUnePersonne, retrouverMandataire, telephoneAGarder, lireCollage, lireLiens, telFrancais, RESEAUX, clePersonne } from './mandataires.js';
@@ -1081,6 +1081,31 @@ export function collerMandataires(listeId, { texte, reseau }, user = null) {
   }
   noter(l, `Annuaire ${r.nom} collé${user?.email ? ` par ${user.email.split('@')[0]}` : ''} : ${gens.length} conseillers lus, ${nouveaux} nouveaux, ${completes} déjà connus complétés, ${gens.filter((g) => g.telephone).length} avec un numéro.`, 'succes');
   return { ok: true, lus: gens.length, nouveaux, completes, avec_numero: gens.filter((g) => g.telephone).length, sans_numero: gens.filter((g) => !g.telephone).map((g) => g.nom) };
+}
+
+/**
+ * Les liens de fiches donnés par Jules (23 oct. 2026 : « je t'ai donné tous les liens, mets-les dans les listes ») :
+ * un fichier par ville et par réseau dans server/prospection/annuaires-fournis (« nice.iad.txt »), rangé au démarrage
+ * du serveur dans la liste de cette ville, une fois par contenu (un fichier complété est relu). Rien n'est ouvert sur
+ * le site du réseau. Rend ce qui a été fait, par fichier.
+ */
+export function importerAnnuairesFournis({ dossier = path.join(path.dirname(fileURLToPath(import.meta.url)), 'annuaires-fournis') } = {}) {
+  const bilan = [];
+  let fichiers = [];
+  try { fichiers = fs.readdirSync(dossier).filter((f) => /^[a-z0-9-]+\.[a-z_]+\.txt$/i.test(f)); } catch { return bilan; }
+  for (const f of fichiers) {
+    const [villeFichier, reseau] = f.replace(/\.txt$/, '').split('.');
+    const texte = fs.readFileSync(path.join(dossier, f), 'utf8');
+    const empreinte = `${texte.length}:${[...texte].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)}`;
+    const cle = `annuaires-fournis:${f}`;
+    const l = Records.list(LISTE).find((x) => !x.essai && norm(x.ville) === norm(villeFichier.replace(/-/g, ' ')));
+    if (!l) { bilan.push({ fichier: f, ignore: `pas de liste « ${villeFichier} »` }); continue; }
+    if (Meta.get(`${cle}:${l.id}`) === empreinte) { bilan.push({ fichier: f, deja: true }); continue; }
+    const r = collerMandataires(l.id, { texte, reseau }, { email: 'liens fournis par Jules' });
+    if (r.ok) Meta.set(`${cle}:${l.id}`, empreinte);
+    bilan.push({ fichier: f, ville: l.ville, ...r });
+  }
+  return bilan;
 }
 
 /**

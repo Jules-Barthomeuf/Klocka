@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Maximize2, Minimize2, Pencil, X } from "lucide-react";
+import { BarChart3, Loader2, Maximize2, Minimize2, Pencil, X } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { TEINTE_RUE } from "@/components/mandataire/CarteProspection";
 import { chargerGoogleMaps, TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
 import { JL } from "@/design/jetons";
 
@@ -171,7 +173,14 @@ export function analyser(locaux) {
   };
 }
 
-export default function CarteOffMarket({ locaux, centre = null, ouvertId = null, onOuvrir, numerotes = null, polygone = null, onPolygone, libellesProfils = {}, dessinPoint = null, legende = null, bulle: texteBulle = null, outils = true, className = "" }) {
+/** Les rues d'un territoire, lues une fois par ville et gardées le temps de la page. */
+const RUES = new Map();
+const ruesDe = (villeId) => {
+  if (!RUES.has(villeId)) RUES.set(villeId, base44.request("GET", `/api/off-market/rues?ville=${encodeURIComponent(villeId)}`).then((r) => r.rues || []).catch((e) => { RUES.delete(villeId); throw e; }));
+  return RUES.get(villeId);
+};
+
+export default function CarteOffMarket({ villeId = null, locaux, centre = null, ouvertId = null, onOuvrir, numerotes = null, polygone = null, onPolygone, libellesProfils = {}, dessinPoint = null, legende = null, bulle: texteBulle = null, outils = true, className = "" }) {
   const conteneur = useRef(null);
   const carte = useRef(null);
   const couche = useRef(null);
@@ -182,6 +191,11 @@ export default function CarteOffMarket({ locaux, centre = null, ouvertId = null,
   const [type, setType] = useState("roadmap");
   const [plein, setPlein] = useState(false);
   const [analyse, setAnalyse] = useState(false);
+  // Les rues colorées (23 oct. 2026) : un bouton à gauche du plein écran ; le choix est gardé.
+  const [voirRues, setVoirRues] = useState(() => { try { return localStorage.getItem("off-market.rues") === "1"; } catch { return false; } });
+  const basculerRues = () => setVoirRues((v) => { try { localStorage.setItem("off-market.rues", v ? "0" : "1"); } catch { /* sans stockage */ } return !v; });
+  const [rues, setRues] = useState({ etat: "repos", liste: [] });
+  const traitsRues = useRef([]);
   const [dessinBrut, setDessin] = useState(false);
   // Sans les outils (mode Simple), jamais de tracé : ni viseur, ni clics qui posent des sommets.
   const dessin = outils && dessinBrut;
@@ -233,6 +247,25 @@ export default function CarteOffMarket({ locaux, centre = null, ouvertId = null,
   }, []);
 
   useEffect(() => { carte.current?.setMapTypeId(type); }, [type]);
+  // Les rues : lues quand on les demande, dessinées sous les points, effacées quand on les cache.
+  useEffect(() => {
+    if (!voirRues || !villeId) { setRues({ etat: "repos", liste: [] }); return undefined; }
+    let vivant = true;
+    setRues((r) => ({ ...r, etat: "lecture" }));
+    ruesDe(villeId).then((liste) => { if (vivant) setRues({ etat: "pret", liste }); }).catch(() => { if (vivant) setRues({ etat: "erreur", liste: [] }); });
+    return () => { vivant = false; };
+  }, [voirRues, villeId]);
+  useEffect(() => {
+    for (const t of traitsRues.current) t.setMap(null);
+    traitsRues.current = [];
+    const g = window.google?.maps;
+    if (!prete || !g || !carte.current || !voirRues) return;
+    for (const r of rues.liste) {
+      for (const troncon of r.trace || []) {
+        traitsRues.current.push(new g.Polyline({ map: carte.current, path: troncon.map(([lat, lon]) => ({ lat, lng: lon })), strokeColor: TEINTE_RUE[r.classe], strokeOpacity: 0.8, strokeWeight: 4, zIndex: 2, clickable: false }));
+      }
+    }
+  }, [prete, voirRues, rues.liste]);
   // La main pour naviguer ; le viseur seulement pendant un tracé.
   useEffect(() => { carte.current?.setOptions({ draggableCursor: dessin ? "crosshair" : "grab", draggingCursor: "grabbing" }); }, [dessin, prete]);
 
@@ -288,7 +321,8 @@ export default function CarteOffMarket({ locaux, centre = null, ouvertId = null,
           <button type="button" onClick={() => { if (dessin) terminer(); else { setDessin(true); setSommets([]); } }} aria-pressed={dessin} title={dessin ? "Terminer la zone" : "Tracer une zone"} className={rond(dessin)} style={voile}><Pencil className="h-4 w-4" /></button>
           {(polygone?.length > 0 || dessin) && <button type="button" onClick={() => { setDessin(false); setSommets([]); onPolygone?.(null); }} title="Effacer la zone" className={rond(false)} style={voile}><X className="h-4 w-4" /></button>}
         </div>}
-        <div className="absolute right-3 top-3 flex items-center gap-2">
+        {/* Au-dessus du voile « Les commerces de … » : les rues et le plein écran restent à portée pendant le chargement. */}
+        <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
           <div ref={bulle} className="pointer-events-none hidden max-w-[320px] truncate rounded-full px-3 py-1.5 text-[12px] text-encre backdrop-blur" style={voile} />
           {outils && <div className="relative">
             <button type="button" onClick={() => setAnalyse((a) => !a)} aria-expanded={analyse} className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12.5px] backdrop-blur ${analyse ? "border-menthe text-encre" : "border-bord-vif text-craie hover:text-encre"}`} style={voile}><BarChart3 className="h-4 w-4" />Analyse</button>
@@ -302,10 +336,23 @@ export default function CarteOffMarket({ locaux, centre = null, ouvertId = null,
               </div>
             )}
           </div>}
+          {villeId && (
+            <button type="button" onClick={basculerRues} aria-pressed={voirRues} title={voirRues ? "Cacher les rues" : "Voir les rues, dans la teinte de leur emplacement"}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[12.5px] backdrop-blur transition-colors ${voirRues ? "border-menthe text-encre" : "border-bord-vif text-craie hover:text-encre"}`} style={voile}>
+              {rues.etat === "lecture" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Rues
+            </button>
+          )}
           <button type="button" onClick={() => setPlein((p) => !p)} title={plein ? "Quitter le plein écran" : "Plein écran"} className={rond(plein)} style={voile}>{plein ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</button>
         </div>
         <div className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap items-center gap-2">
           <div className="pointer-events-auto flex items-center gap-1.5">{TYPES_CARTE.slice(0, 2).map((t) => <button key={t.cle} type="button" onClick={() => setType(t.cle)} className={pastille(type === t.cle)} style={voile}>{t.nom}</button>)}</div>
+          {voirRues && (
+            <div className="flex items-center gap-3 rounded-full px-3 py-1.5 text-[11.5px] text-craie backdrop-blur" style={voile}>
+              {rues.etat === "pret" && !rues.liste.length ? <span>Aucune rue classée pour cette ville</span> : rues.etat === "erreur" ? <span>Rues indisponibles</span> : [[1, "N°1"], [1.5, "N°1 bis"], [2, "N°2"]].map(([c, mot]) => (
+                <span key={c} className="inline-flex items-center gap-1.5"><span className="inline-block h-[3px] w-4 rounded-full" style={{ background: TEINTE_RUE[c] }} />{mot}</span>
+              ))}
+            </div>
+          )}
           {legende || (<div className="flex items-center gap-3 rounded-full px-3 py-1.5 text-[11.5px] text-craie backdrop-blur" style={voile}>
             <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-menthe" />motivation forte</span>
             <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full bg-craie" />faible</span>

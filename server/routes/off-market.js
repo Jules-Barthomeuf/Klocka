@@ -195,6 +195,17 @@ export function monterOffMarket(app) {
     const villes = (demandees.length ? demandees : [...visibles]).filter((v) => visibles.has(v));
     ok(res, { locaux: await Lm.listerLocaux(villes, { contacts: Sm.contactsDe(Sm.espaceDe(user)) }) });
   }));
+  // Les rues d'un territoire, dans la teinte de leur emplacement (23 oct. 2026, Jules : « un bouton Rues à gauche du
+  // plein écran, on clique et on voit les rues colorées ») : celles qu'ALX a classées 1, 1 bis ou 2, avec leur tracé.
+  app.get('/api/off-market/rues', wrap(async (req, res) => {
+    const user = compte(req, res); if (!user) return;
+    const visibles = await villesDe(user);
+    const id = String(req.query.ville || '');
+    if (!visibles.has(id)) return res.status(404).json({ error: 'Ville introuvable.' });
+    const { Records } = await import('../db.js');
+    const v = Records.get('Ville', id);
+    ok(res, { rues: (v?.rues || []).filter((r) => [1, 1.5, 2].includes(r.classe) && (r.trace || []).length).map(({ nom, classe, trace }) => ({ nom, classe, trace })) });
+  }));
   app.get('/api/off-market/locaux/:id', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
     const Lm = await L(); const Sm = await S();

@@ -17,13 +17,11 @@ import KProspectiveDataB from "@/components/mandataire/KProspectiveDataB";
 import { J, JL, alpha } from "@/design/jetons";
 
 // La Prospection du mandataire, en deux moitiés.
-//  - Prospecter, en deux vues qui se basculent (23 oct. 2026, Jules : « un mix avec l'Off-market, sa structure, mais
-//    on peut aussi voir les rues ») :
-//      Commerces : l'Off-market du mandataire (les villes de son secteur, les murs, les propriétaires) ;
-//      Rues : le chat. « Les boulangeries à Lyon » (ou un, plusieurs clients) lance ALX sur la ville ; la page de la
-//      prospection suit le parcours en direct (les rues n°1, 1 bis, 2, puis les commerces lus), on coche ce qu'on
-//      garde et on l'exporte vers une liste.
-//    L'Off-market n'a plus de page à part pour un mandataire : son ancienne adresse mène ici, vue Commerces.
+//  - Prospecter : l'Off-market du mandataire (23 oct. 2026, Jules : « supprime Commerces et Rues, juste un bouton
+//    Rues à gauche du plein écran, on clique et on voit les rues colorées »). Les villes de son secteur, les murs,
+//    les propriétaires ; le bouton Rues de la carte dessine les rues n°1, 1 bis et 2. L'Off-market n'a plus de page
+//    à part pour un mandataire : son ancienne adresse mène ici. Le chat qui lançait ALX (« Les boulangeries à Lyon »)
+//    n'est plus affiché ; une prospection lancée depuis Clients s'ouvre toujours sur sa page.
 //  - Listes : ce qu'on a gardé, pour appeler.
 
 const API = "/api/mandataire";
@@ -43,13 +41,7 @@ export default function MandataireProspection() {
   const [vueId, setVueId] = useState(null); // la prospection ALX ouverte
   const [vueDataB, setVueDataB] = useState(null); // le jeton de la prospective Data-B ouverte
   const [onglet, setOnglet] = useState("prospecter");
-  // Commerces (l'Off-market) ou Rues (les prospections d'ALX) : ?vue= d'abord, sinon le dernier choix.
-  const [vue, setVueBrute] = useState(() => {
-    const v = params.get("vue");
-    if (v === "commerces" || v === "rues") return v;
-    try { return localStorage.getItem("mandataire.prospecter.vue") || "commerces"; } catch { return "commerces"; }
-  });
-  const setVue = (v) => { setVueBrute(v); try { localStorage.setItem("mandataire.prospecter.vue", v); } catch { /* sans stockage */ } };
+  // ?vue= des anciens liens (l'ancienne page Off-market) : sans objet aujourd'hui, l'adresse l'oublie.
   useEffect(() => {
     if (!params.get("vue")) return;
     setParams((p) => { const n = new URLSearchParams(p); n.delete("vue"); return n; }, { replace: true });
@@ -79,7 +71,6 @@ export default function MandataireProspection() {
     const id = params.get("demande");
     if (!id || lanceeDepuisClients.current) return;
     lanceeDepuisClients.current = true;
-    setVue("rues");
     base44.request("POST", `${API}/prospections/lancer`, { body: { demande_ids: [id] } })
       .then((r) => { queryClient.invalidateQueries({ queryKey: ["mandataire-prospections"] }); setVueId(r.prospection_id); })
       .catch((e) => toast.error(e?.message || "Prospection impossible"))
@@ -93,8 +84,8 @@ export default function MandataireProspection() {
   // La page est un fil, comme le tableau de bord : on écrit, les étapes
   // défilent, puis les résultats s'ouvrent sur leur page à eux (carte, liste,
   // étiquettes), d'où l'on revient à la conversation.
-  const ouvrirResultats = (id) => { setOnglet("prospecter"); setVue("rues"); setVueId(id); };
-  const commerces = !vueId && !vueDataB && !conversation && onglet === "prospecter" && vue === "commerces";
+  const ouvrirResultats = (id) => { setOnglet("prospecter"); setVueId(id); };
+  const commerces = !vueId && !vueDataB && !conversation && onglet === "prospecter";
 
   return (
     // Les listes sont des tableaux : elles prennent toute la largeur de la page.
@@ -128,17 +119,6 @@ export default function MandataireProspection() {
                 </button>
               );
             })}
-          </div>
-        </div>
-      )}
-      {/* Commerces ou Rues : les deux vues de Prospecter (23 oct. 2026). */}
-      {!vueId && !vueDataB && !conversation && onglet === "prospecter" && (
-        <div className="mt-3 flex justify-center">
-          <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Commerces ou rues">
-            {[["commerces", "Commerces"], ["rues", "Rues"]].map(([k, mot]) => (
-              <button key={k} type="button" role="tab" aria-selected={vue === k} onClick={() => setVue(k)}
-                className={`rounded-full px-4 py-[7px] text-[13.5px] ${vue === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`} style={vue === k ? undefined : { background: "transparent" }}>{mot}</button>
-            ))}
           </div>
         </div>
       )}

@@ -442,7 +442,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         <div ref={haut} className="grid scroll-mt-4 gap-4 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_520px]">
           <div className="relative">
             {q.isLoading && <div className="absolute inset-0 z-10 grid place-items-center rounded-bloc bg-fond/60"><p className="m-0 inline-flex items-center gap-2 text-[14px] text-encre"><Loader2 className="h-4 w-4 animate-spin text-menthe" />Les commerces {deVille(territoire.nom)}</p></div>}
-            <CarteOffMarket locaux={surCarte} centre={territoire.centre} ouvertId={ouvert} onOuvrir={(c) => setOuvert(c.id)} outils={false} dessinPoint={dessin} legende={legende} bulle={(c) => `${c.enseigne || c.nom} · ${c.activite || ""} · ${LIENS[c.lien]?.mot || "en cours"}`} className="h-[62vh] min-h-[460px] max-md:h-[380px] max-md:min-h-0" />
+            <CarteOffMarket villeId={territoire.id} locaux={surCarte} centre={territoire.centre} ouvertId={ouvert} onOuvrir={(c) => setOuvert(c.id)} outils={false} dessinPoint={dessin} legende={legende} bulle={(c) => `${c.enseigne || c.nom} · ${c.activite || ""} · ${LIENS[c.lien]?.mot || "en cours"}`} className="h-[62vh] min-h-[460px] max-md:h-[380px] max-md:min-h-0" />
           </div>
           <div className="flex h-[62vh] min-h-[460px] flex-col rounded-bloc border border-trait bg-surface max-md:h-auto">
             {ouvert ? <Fiche id={ouvert} onFermer={fermerFiche} onMaj={() => qc.invalidateQueries({ queryKey: ["off-market", "simple", "etat"] })}

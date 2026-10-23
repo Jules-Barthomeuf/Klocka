@@ -35,9 +35,10 @@ const nomSur = (nom) => String(nom || 'document').replace(/[^a-zA-Z0-9._-]/g, '_
  * @param {string} uploadDir
  * @param {object} [user]
  * @param {Function} [telecharger] - injectable, pour tester sans appeler Gmail
+ * @param {{ranger?: boolean}} [options] - `ranger: false` : ni Drive ni Monday (simulation de Haka, 22 oct. 2026)
  * @returns {Promise<{ deposes: string[], ignorees: number, erreurs: string[] }>}
  */
-export async function ingererPiecesJointes(mail, uploadDir, user = null, telecharger = telechargerPieceJointe) {
+export async function ingererPiecesJointes(mail, uploadDir, user = null, telecharger = telechargerPieceJointe, { ranger: doitRanger = true } = {}) {
   const vide = { deposes: [], ignorees: 0, erreurs: [], echecs: [] };
   if (!mail?.deal_id || mail.pieces_ingerees) return vide;
 
@@ -99,7 +100,7 @@ export async function ingererPiecesJointes(mail, uploadDir, user = null, telecha
   // Les pièces sont au dossier : on les range dans le Drive et on met la fiche
   // Monday à jour dans la foulée. Ni l'un ni l'autre ne peut faire échouer la
   // récupération elle-même — un document reçu doit rester reçu.
-  const rangement = nouveaux.length
+  const rangement = nouveaux.length && doitRanger
     ? await ranger(mail, deposes, user)
     : { drive: null, monday: null, erreurs: [], echecs: [] };
   erreurs.push(...rangement.erreurs);

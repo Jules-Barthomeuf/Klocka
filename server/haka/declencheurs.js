@@ -14,7 +14,8 @@ import * as taches from './taches.js';
 import './competences/fiche-recue.js';
 import './competences/relances-matin.js';
 import { verdictAmbiant } from './ambiant.js';
-import { BOITES_COMMUNES } from './drapeaux.js';
+import { BOITES_COMMUNES, TRANSFERT } from './drapeaux.js';
+import { surTransfert } from './competences/transfert.js';
 import { membreDeLEquipe, signalerExterieur } from './competences/demande-equipe.js';
 import { porteUneFiche } from '../deal/fiches-auto.js';
 import { enPause, ignorer } from './automatismes.js';
@@ -50,6 +51,9 @@ export async function surReleve({ uploadDir = null } = {}) {
   const decisions = memoire();
   const candidats = contexte.mails
     .filter((m) => !m.haka_tache_id && !m.haka_ignore && !m.fiche_ecartee && Date.parse(m.date || 0) >= Date.parse(depuis))
+    // Par transfert (23 oct. 2026, Jules) : Haka ne lit plus les boîtes personnelles ; une fiche qu'un collègue transfère
+    // à sourcing@ passe par la compétence « transfert », qui la rentre sans redemander.
+    .filter((m) => !TRANSFERT || (BOITES_COMMUNES.has(String(m.compte || '').toLowerCase()) && !m.commande))
     .filter((m) => {
       const v = verdictAppris(m, decisions);
       const regles = estUneNouvelleFiche(m, contexte);
@@ -76,7 +80,10 @@ export async function surReleve({ uploadDir = null } = {}) {
   // Les boîtes communes (sourcing@) : une demande de l'équipe devient une tâche ; un extérieur va dans le Commun.
   for (const mail of contexte.mails.filter((m) => BOITES_COMMUNES.has(String(m.compte || '').toLowerCase()) && !m.haka_tache_id && !m.haka_vu && Date.parse(m.date || 0) >= Date.parse(depuis))) {
     try {
-      if (mail.commande && membreDeLEquipe(mail.de_email)) {
+      if (mail.commande && membreDeLEquipe(mail.de_email) && TRANSFERT) {
+        surTransfert(mail, { uploadDir });
+        bilan.transferts = (bilan.transferts || 0) + 1;
+      } else if (mail.commande && membreDeLEquipe(mail.de_email)) {
         const t = taches.enfiler('demande_equipe', { mail_id: mail.id }, { cle: `demande:${mail.id}`, pour: String(mail.de_email).toLowerCase() });
         Records.update('MailRecu', mail.id, { haka_tache_id: t.id });
         bilan.demandes = (bilan.demandes || 0) + 1;

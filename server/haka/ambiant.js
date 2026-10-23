@@ -245,7 +245,7 @@ async function rangerPieces(charge, { user, uploadDir }) {
     const mail = Records.get('MailRecu', id);
     if (!mail) continue;
     Records.update('MailRecu', id, { haka_attente_rangement: false });
-    const r = await ingererPiecesJointes(Records.get('MailRecu', id), uploadDir || CHEMIN_UPLOADS, user || null);
+    const r = await ingererPiecesJointes(Records.get('MailRecu', id), uploadDir || CHEMIN_UPLOADS, user || null, undefined, { ranger: !SIMULER });
     deposes.push(...(r.deposes || []));
     erreurs.push(...(r.erreurs || []));
   }

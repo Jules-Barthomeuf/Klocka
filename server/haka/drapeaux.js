@@ -11,6 +11,8 @@
 //   AK_CHAT_ACTIF=false    coupe le polling Google Chat d'AK sans toucher au code
 //   HAKA_AMBIANT=1         Haka lit chaque mail retenu et pose une question oui / non (22 oct. 2026, server/haka/ambiant.js)
 //   HAKA_AMBIANT_TYPES     ce qu'il traite : reponse,documents,rdv,client (défaut : les quatre)
+//   HAKA_TRANSFERT=1       l'équipe transfère ses mails à sourcing@ et Haka les rentre (23 oct. 2026) ; il ne lit plus
+//                          les boîtes personnelles pour les fiches ni pour Haka ambiant
 
 const oui = (v) => /^(1|true|oui|yes)$/i.test(String(v || ''));
 const non = (v) => /^(0|false|non|no)$/i.test(String(v || ''));
@@ -25,6 +27,7 @@ export const BOITES_COMMUNES = new Set(
 export const MATIN = FILE && (oui(process.env.HAKA_MATIN) || (!!process.env.RENDER && !non(process.env.HAKA_MATIN)));
 export const AK_CHAT_ACTIF = !non(process.env.AK_CHAT_ACTIF);
 export const AMBIANT = oui(process.env.HAKA_AMBIANT);
+export const TRANSFERT = oui(process.env.HAKA_TRANSFERT);
 export const TYPES_AMBIANT = ['reponse', 'documents', 'rdv', 'client'];
 export const AMBIANT_TYPES = new Set(
   String(process.env.HAKA_AMBIANT_TYPES || TYPES_AMBIANT.join(',')).split(',').map((x) => x.trim().toLowerCase()).filter((x) => TYPES_AMBIANT.includes(x)),
@@ -33,4 +36,4 @@ export const AMBIANT_TYPES = new Set(
 export const ambiantPour = (type) => AMBIANT && AMBIANT_TYPES.has(type);
 
 /** L'état des drapeaux, pour l'écran et le Suivi. */
-export const drapeaux = () => ({ file: FILE, fiches: FICHES, matin: MATIN, simuler: SIMULER, plafond_jour: PLAFOND_JOUR, boites_communes: [...BOITES_COMMUNES], ak_chat_actif: AK_CHAT_ACTIF, ambiant: AMBIANT, ambiant_types: AMBIANT ? [...AMBIANT_TYPES] : [] });
+export const drapeaux = () => ({ file: FILE, fiches: FICHES, matin: MATIN, simuler: SIMULER, plafond_jour: PLAFOND_JOUR, boites_communes: [...BOITES_COMMUNES], ak_chat_actif: AK_CHAT_ACTIF, ambiant: AMBIANT, ambiant_types: AMBIANT ? [...AMBIANT_TYPES] : [], transfert: TRANSFERT });

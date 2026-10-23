@@ -34,6 +34,7 @@ export const TYPES = {
   meme_bien_recu: { libelle: "Même bien reçu d'un autre agent", externe: false },
   preanalyser_fiche: { libelle: 'Fiche reçue : pré-analyser ?', externe: false },
   mail_ambiant: { libelle: 'Mail reçu : je fais le geste ?', externe: true },
+  transfert_dossier: { libelle: 'Transfert : pour quel dossier ?', externe: false },
 };
 
 /**

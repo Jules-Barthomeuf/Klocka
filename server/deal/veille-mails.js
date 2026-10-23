@@ -168,8 +168,9 @@ async function releverVraiment(uploadDir = null) {
     // l'ingestion : des pièces qui attendent le oui ne se rangent pas seules.
     let ambiant = null;
     try {
-      const { AMBIANT, FILE } = await import('../haka/drapeaux.js');
-      if (AMBIANT && FILE) {
+      const { AMBIANT, FILE, TRANSFERT } = await import('../haka/drapeaux.js');
+      // Par transfert (23 oct. 2026), Haka ne lit plus les boîtes : c'est l'équipe qui lui transmet.
+      if (AMBIANT && FILE && !TRANSFERT) {
         const { surReleveAmbiant } = await import('../haka/ambiant.js');
         ambiant = await surReleveAmbiant({ uploadDir: uploadDir || CHEMIN_UPLOADS });
         erreurs.push(...(ambiant.erreurs || []));

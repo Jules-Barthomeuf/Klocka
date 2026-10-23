@@ -103,7 +103,7 @@ export default function CarteProposition({ proposition: p, moi, onValider, onRej
           <div className="flex flex-col gap-2">
             {(p.charge?.candidats || []).map((c) => (
               <Link key={c.deal_id} to={`/Dossiers?deal_id=${c.deal_id}`} className="flex items-baseline justify-between gap-3 rounded-[12px] border border-trait px-4 py-2.5 text-[13.5px] text-encre hover:border-bord-vif">
-                <span className="truncate">{c.titre}</span><span className="flex-none text-[12px] text-ardoise">{c.niveau === "meme_adresse" ? "même adresse" : c.niveau === "identique" ? "identique" : "adresse proche"}</span>
+                <span className="truncate">{c.titre}</span><span className="flex-none text-[12px] text-ardoise">{c.niveau === "meme_adresse" ? "même adresse" : c.niveau === "identique" ? "identique" : c.niveau === "transfert" ? "dossier ouvert" : "adresse proche"}</span>
               </Link>
             ))}
           </div>

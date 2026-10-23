@@ -64,24 +64,29 @@ taches.enregistrer(COMPETENCE, {
       async run({ resultats }) {
         const r = resultats.repondre;
         if (!r?.a) return { ignore: true };
-        const template_id = `haka-reponse:${r.mail_id}`;
-        if (Records.filter('EmailLog', { template_id }).some((e) => e.statut === 'envoye')) return { deja: true };
-        const compte = [...BOITES_COMMUNES][0] || 'sourcing@klocka.immo';
-        const account = Records.filter('MailAccount', { email: compte })[0] || null;
-        const corps = `${r.texte}\n\nÀ valider : ${lienFile(r.proposition_id)}\n\nHaka`;
-        const objet = `Re: ${r.objet || 'votre demande'}`;
-        if (SIMULER || !account) {
-          const { logEmail } = await import('../../email.js');
-          logEmail({ from: compte, expediteur: compte, to: r.a, destinataire: r.a, subject: objet, sujet: objet, body: corps, contenu: corps, template_id, direction: 'sortant', statut: 'simule', error: SIMULER ? 'Simulation Haka' : 'Boîte sourcing@ non connectée', sent_at: new Date().toISOString() });
-          return { simule: true, a: r.a };
-        }
-        const { sendEmail } = await import('../../email.js');
-        const envoi = await sendEmail({ from: compte, owner: account.owner_email || account.email, to: r.a, subject: objet, body: corps, template_id });
-        return { envoye: !!envoi?.success, simule: !!envoi?.simulated, a: r.a, message_id: envoi?.messageId || null };
+        return ecrireDepuisSourcing({ a: r.a, objet: `Re: ${r.objet || 'votre demande'}`, corps: `${r.texte}\n\nÀ valider : ${lienFile(r.proposition_id)}\n\nHaka`, template_id: `haka-reponse:${r.mail_id}` });
       },
     },
   ],
 });
+
+/**
+ * Haka écrit à un collègue depuis sourcing@ (une réponse interne, qui part seule). Jamais deux fois le même
+ * `template_id`. Sans boîte sourcing@ connectée, ou en simulation, le mail est noté sans partir.
+ */
+export async function ecrireDepuisSourcing({ a, objet, corps, template_id }) {
+  if (Records.filter('EmailLog', { template_id }).some((e) => e.statut === 'envoye' || e.statut === 'simule')) return { deja: true, a };
+  const compte = [...BOITES_COMMUNES][0] || 'sourcing@klocka.immo';
+  const account = Records.filter('MailAccount', { email: compte })[0] || null;
+  if (SIMULER || !account) {
+    const { logEmail } = await import('../../email.js');
+    logEmail({ from: compte, expediteur: compte, to: a, destinataire: a, subject: objet, sujet: objet, body: corps, contenu: corps, template_id, direction: 'sortant', statut: 'simule', error: SIMULER ? 'Simulation Haka' : 'Boîte sourcing@ non connectée', sent_at: new Date().toISOString() });
+    return { simule: true, a };
+  }
+  const { sendEmail } = await import('../../email.js');
+  const envoi = await sendEmail({ from: compte, owner: account.owner_email || account.email, to: a, subject: objet, body: corps, template_id });
+  return { envoye: !!envoi?.success, simule: !!envoi?.simulated, a, message_id: envoi?.messageId || null };
+}
 
 /** Un extérieur écrit à sourcing@ : rien ne part, le mail est dans le Commun, à regarder. */
 export async function signalerExterieur(mail) {

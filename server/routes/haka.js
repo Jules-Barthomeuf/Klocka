@@ -291,6 +291,24 @@ export function monterHaka(app) {
     ok(res, { mail_id: mail.id, tache_id: tache.id });
   }));
 
+  // Haka par transfert (23 oct. 2026) : un collègue transfère un mail à sourcing@, en simulation seulement.
+  app.post('/api/haka/simuler-transfert', upload.array('fichiers', 6), wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user || !actif(res)) return;
+    if (!SIMULER) return res.status(403).json({ error: 'Seulement en simulation (HAKA_SIMULER).' });
+    const { Records } = await import('../db.js');
+    const b = req.body || {};
+    const mail = Records.create('MailRecu', {
+      compte: 'sourcing@klocka.immo', gmail_message_id: `simule-${Date.now()}`, thread_id: null,
+      de: user.full_name ? `${user.full_name} <${user.email}>` : user.email, de_email: String(user.email).toLowerCase(),
+      objet: b.objet || 'TR: transfert simulé', texte: b.texte || '', date: new Date().toISOString(), retenu_parce_que: 'simulation Haka', simule: true, interne: true, commande: true,
+      pieces_jointes: (req.files || []).map((f) => ({ nom: f.originalname, mime: f.mimetype, taille: f.size, piece_id: `local:${f.path}` })),
+    });
+    const { surTransfert } = await import('../haka/competences/transfert.js');
+    const tache = surTransfert(mail, { uploadDir: (await import('../contexte.js')).UPLOAD_DIR, lancer: true });
+    ok(res, { mail_id: mail.id, tache_id: tache.id });
+  }));
+
   // Haka ambiant (22 oct. 2026) : un mail simulé (réponse, documents, rendez-vous, client), en simulation seulement.
   app.post('/api/haka/simuler-mail', wrap(async (req, res) => {
     const user = admin(req, res);

@@ -228,7 +228,7 @@ const ALIAS_ZONES = { paca: 'provence alpes cote azur', idf: 'ile france', ara: 
 const VAGUES = new Set(['sud', 'nord', 'est', 'ouest', 'france', 'toute', 'tout', 'region', 'grand', 'grande', 'secteur', 'zone', 'autour']);
 
 /** Le département et la région d'une commune (API Géo), gardés sur la ville. */
-async function geoDe(ville) {
+export async function geoDe(ville) {
   const v = Records.list('Ville').find((x) => nz(x.nom) === nz(ville));
   if (v?.geo) return v.geo;
   try {

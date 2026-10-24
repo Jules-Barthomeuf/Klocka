@@ -59,6 +59,25 @@ export function monterOffMarket(app) {
 
   // Le mode Simple (11 oct. 2026) : les commerces d'une ville, leurs propriétaires en fond, une adresse précise, les appels.
   const Si = () => import('../off-market/simple.js');
+  // Les clients pour la ville affichée (24 oct. 2026, Jules : « on cherche en fonction des clients qu'on a ») : les
+  // demandes visibles des mandataires, anonymisées, et pour chacune si sa zone couvre la ville (ville, département,
+  // région). Les commerces qui lui répondent se trient à l'écran (src/lib/clients-commerces.js).
+  app.get('/api/off-market/simple/villes/:id/clients', wrap(async (req, res) => {
+    const user = compte(req, res); if (!user) return;
+    const visibles = await villesDe(user);
+    if (!visibles.has(req.params.id)) return res.status(404).json({ error: 'Ville introuvable.' });
+    const { Records } = await import('../db.js');
+    const v = Records.get('Ville', req.params.id);
+    const { demandesVisibles } = await import('../mandataire-espace.js');
+    const { geoDe, zoneCouvre } = await import('../mandataire-agent.js');
+    const lieu = { ville: v?.nom || '', ...(v?.nom ? await geoDe(v.nom) : {}) };
+    const clients = demandesVisibles().map((d) => {
+      const zones = (d.zones || []).filter((z) => !/toute la france|^france$/i.test(z));
+      const zone = zones.find((z) => zoneCouvre(z, lieu)) || null;
+      return { ...d, couvre: !zones.length || !!zone, zone_couverte: zone };
+    });
+    ok(res, { ville: v?.nom || null, clients });
+  }));
   app.get('/api/off-market/simple/villes/:id', wrap(async (req, res) => {
     const user = compte(req, res); if (!user) return;
     if (!(await villesDe(user)).has(req.params.id)) return res.status(404).json({ error: 'Ville introuvable.' });

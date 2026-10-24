@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, ChevronDown, ExternalLink, ListPlus, Loader2, Phone, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, ListPlus, Loader2, Phone, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
@@ -12,6 +12,7 @@ import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
 import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
 import Chargement from "@/components/ui/Chargement";
+import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
 // Off-market, le mode Simple (spec de Jules du 11 oct. 2026) : la carte de la
 // ville avec tous ses commerces, la couleur dit seulement si l'on sait qui
@@ -187,7 +188,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
   );
 }
 
-function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = null, onPasser = null }) {
+function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = null, onPasser = null, client = null }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["off-market", "simple", "commerce", id], queryFn: () => req("GET", `/simple/commerces/${id}`), refetchInterval: (x) => (["a_faire", "en_cours"].includes(x.state.data?.commerce?.etat_recherche) ? 4000 : false) });
   const c = q.data?.commerce;
@@ -227,6 +228,13 @@ function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = n
         </div>
         <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
       </div>
+      {/* Pour le client choisi (24 oct. 2026) : ce que le mandataire dit au propriétaire. */}
+      {client && pourClient({ ...c, prix: c.estimation?.prix || c.prix || null }, client) && (
+        <div className="mx-5 mt-3 rounded-[12px] border border-menthe/40 bg-menthe/[0.06] px-4 py-3">
+          <p className="m-0 text-[12px] text-ardoise">Pour votre client {client.reference} · {client.type_commerce || "tout commerce"} · {budgetDe(client)}</p>
+          <p className="m-0 mt-1.5 text-[13.5px] leading-[1.5] text-encre">« {accroche({ prix: c.estimation?.prix || c.prix || null }, client)} »</p>
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-3">
         <FacadeLocal adresse={c.adresse} ville={c.ville} lat={c.lat} lon={c.lon} nom={c.enseigne || c.nom} />
         <BlocZone id={id} zone={zone} rangAJuger={rangAJuger} onJuge={onJuge} onPasser={onPasser} />
@@ -306,6 +314,73 @@ function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = n
   );
 }
 
+/**
+ * La fiche du client pour qui l'on prospecte (24 oct. 2026) : ses critères, ce que la ville a pour lui, et le choix
+ * d'un autre client (les flèches, ou la liste). « Tous les commerces » sort de la recherche par client.
+ */
+function ClientProspection({ clients, client, nPour, ville, n, charge, onChoisir }) {
+  const [liste, setListe] = useState(false);
+  if (charge) return <p className="m-0 inline-flex items-center gap-2 text-[13px] text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Vos clients</p>;
+  if (!clients.length) return <p className="m-0 text-[13px] text-ardoise">Aucun client en recherche pour l'instant : tous les commerces sont affichés.</p>;
+  if (!client) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-[14px] border border-trait px-4 py-3">
+        <span className="text-[13.5px] text-craie">Tous les commerces {deVille(ville)}</span>
+        <button type="button" onClick={() => onChoisir(null)} className="text-[13px] text-menthe underline-offset-4 hover:underline" style={{ background: "transparent" }}>Prospecter pour un client</button>
+      </div>
+    );
+  }
+  const i = clients.findIndex((d) => d.id === client.id);
+  const aller = (k) => onChoisir(clients[(i + k + clients.length) % clients.length].id);
+  const rendement = client.rendement_min ? `${String(client.rendement_min).replace(".", ",")} %` : "—";
+  const zones = (client.zones || []).join(", ") || "Toute la France";
+  return (
+    <div className="relative overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
+      <div className="flex items-center gap-3 border-b border-trait px-4 py-3">
+        <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe/15 text-[13px] font-medium text-menthe">{String(client.reference || "?").slice(0, 3)}</span>
+        <button type="button" onClick={() => setListe((l) => !l)} aria-expanded={liste} className="min-w-0 flex-1 text-left" style={{ background: "transparent" }}>
+          <span className="block truncate text-[15px] text-encre">{client.reference} <ChevronDown className="inline h-3.5 w-3.5 text-ardoise" /></span>
+          <span className="block truncate text-[12.5px] text-ardoise">{client.profil} · client {i + 1} sur {clients.length}</span>
+        </button>
+        <button type="button" onClick={() => aller(-1)} aria-label="Client précédent" className="grid h-8 w-8 place-items-center rounded-full border border-trait text-craie hover:text-encre" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
+        <button type="button" onClick={() => aller(1)} aria-label="Client suivant" className="grid h-8 w-8 place-items-center rounded-full border border-trait text-craie hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
+      </div>
+      {liste && (
+        <div className="absolute inset-x-2 top-[60px] z-20 max-h-[320px] overflow-y-auto rounded-[12px] border border-bord-doux bg-surface-pleine p-1.5 shadow-xl">
+          {clients.map((d) => (
+            <button key={d.id} type="button" onClick={() => { onChoisir(d.id); setListe(false); }} aria-pressed={d.id === client.id}
+              className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left hover:bg-relief ${d.id === client.id ? "bg-relief" : ""}`} style={d.id === client.id ? undefined : { background: "transparent" }}>
+              <span className="min-w-0 flex-1"><span className="block truncate text-[13.5px] text-encre">{d.reference} · {d.type_commerce || "tout commerce"}</span><span className="block truncate text-[12px] text-ardoise">{budgetDe(d)}{d.couvre ? "" : " · cherche ailleurs"}</span></span>
+              <span className={`flex-none text-[13px] tabular-nums ${nPour.get(d.id) ? "text-menthe" : "text-brume"}`}>{nPour.get(d.id) || 0}</span>
+            </button>
+          ))}
+          <button type="button" onClick={() => { onChoisir("tous"); setListe(false); }} className="mt-1 w-full rounded-[10px] border-t border-trait px-3 py-2 text-left text-[13px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>Tous les commerces, sans client</button>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-x-3.5 gap-y-3 px-4 py-3.5">
+        <div className="col-span-2 flex flex-col gap-0.5"><span className="text-[12px] text-brume">Cherche</span><span className="text-[15px] text-encre">{client.type_commerce || "Tout commerce"}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-[12px] text-brume">Budget</span><span className="text-[14.5px] tabular-nums text-encre">{budgetDe(client)}</span></div>
+        <div className="flex flex-col gap-0.5"><span className="text-[12px] text-brume">Rendement min.</span><span className="text-[14.5px] tabular-nums text-encre">{rendement}</span></div>
+        <div className="col-span-2 flex flex-col gap-0.5"><span className="text-[12px] text-brume">Zones</span><span className="text-[14px] leading-[1.45] text-craie">{zones}</span></div>
+        {client.bail && <div className="col-span-2 flex flex-col gap-0.5"><span className="text-[12px] text-brume">Bail</span><span className="text-[13.5px] leading-[1.45] text-craie">{client.bail}</span></div>}
+        {(exclusionsDe(client).length > 0 || veutEmplacement1(client) || veutEnseigneNationale(client)) && (
+          <div className="col-span-2 flex flex-wrap gap-1.5">
+            {veutEmplacement1(client) && <span className="rounded-full bg-bleu/15 px-2.5 py-0.5 text-[12px] text-bleu">Emplacement n°1 seulement</span>}
+            {veutEnseigneNationale(client) && <span className="rounded-full bg-bleu/15 px-2.5 py-0.5 text-[12px] text-bleu">Enseigne nationale seulement</span>}
+            {exclusionsDe(client).map((f) => <span key={f.cle} className="rounded-full bg-ambre/15 px-2.5 py-0.5 text-[12px] text-ambre">Pas de {f.mot}</span>)}
+          </div>
+        )}
+        {client.remarque && <p className="col-span-2 m-0 text-[12.5px] leading-[1.45] text-ardoise">« {client.remarque} »</p>}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-trait px-4 py-3">
+        <span className="text-[14px]"><span className="tabular-nums text-menthe">{n}</span> <span className="text-ardoise">{n > 1 ? "commerces" : "commerce"} pour lui à {ville}</span></span>
+        <button type="button" onClick={() => onChoisir("tous")} className="text-[12.5px] text-ardoise underline-offset-4 hover:text-encre hover:underline" style={{ background: "transparent" }}>Tous les commerces</button>
+      </div>
+      {!client.couvre && <p className="m-0 border-t border-trait px-4 py-2.5 text-[12.5px] text-ambre">Il cherche ailleurs ({zones}) : changez de ville ou de client.</p>}
+    </div>
+  );
+}
+
 export default function Simple({ territoires, territoire, onTerritoire, espace, menu = null, bascule = null }) {
   const qc = useQueryClient();
   const [menuVille, setMenuVille] = useState(false);
@@ -337,11 +412,22 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
   const etat = useQuery({ queryKey: ["off-market", "simple", "etat", villeId], queryFn: () => req("GET", `/simple/villes/${villeId}/etat`), enabled: !!villeId && !!q.data, refetchInterval: (x) => ((x.state.data?.etat?.a_faire || x.state.data?.etat?.en_cours || x.state.data?.etat?.google?.etat === "en_cours" || x.state.data?.etat?.zones_en_cours) ? 5000 : x.state.data?.etat?.prix_en_cours ? 15000 : false) });
   const commerces = etat.data?.commerces || q.data?.commerces || [];
   const compte = etat.data?.etat || q.data?.etat || null;
+  // Prospecter pour un client (24 oct. 2026, Jules) : côté mandataire, la carte ne montre que les commerces qui
+  // répondent au client choisi ; sa fiche est à droite. « Tous les commerces » reste à un clic.
+  const parClient = espace === "mandataire";
+  const clientsQ = useQuery({ queryKey: ["off-market", "simple", "clients", villeId], queryFn: () => req("GET", `/simple/villes/${villeId}/clients`), enabled: parClient && !!villeId, staleTime: 5 * 60_000 });
+  const clients = useMemo(() => clientsQ.data?.clients || [], [clientsQ.data]);
+  const [clientId, setClientIdBrut] = useState(() => { try { return localStorage.getItem("off-market.client") || null; } catch { return null; } });
+  const setClientId = (id) => { setClientIdBrut(id); try { localStorage.setItem("off-market.client", id || ""); } catch { /* sans stockage */ } };
+  const nPour = useMemo(() => new Map(clients.map((d) => [d.id, commerces.filter((c) => pourClient(c, d)).length])), [clients, commerces]);
+  // Ceux qui cherchent dans cette ville d'abord, puis ceux qui y ont le plus de commerces.
+  const ordreClients = useMemo(() => [...clients].sort((a, b) => Number(b.couvre) - Number(a.couvre) || (nPour.get(b.id) || 0) - (nPour.get(a.id) || 0)), [clients, nPour]);
+  const client = !parClient || clientId === "tous" ? null : clients.find((d) => d.id === clientId) || ordreClients[0] || null;
   const visibles = useMemo(() => {
     const t = filtres.texte.trim().toLowerCase();
     const faible = (c) => masquerFaibles && zone.points[c.id]?.score_zone != null && zone.points[c.id].score_zone < seuilFaible;
-    return commerces.filter((c) => passeSimple(c, filtres) && !faible(c) && (!t || `${c.enseigne || ""} ${c.nom || ""} ${c.nom_google || ""} ${c.activite || ""} ${c.adresse || ""} ${c.proprietaire || ""}`.toLowerCase().includes(t)));
-  }, [commerces, filtres, masquerFaibles, seuilFaible, zone.points]);
+    return commerces.filter((c) => pourClient(c, client) && passeSimple(c, filtres) && !faible(c) && (!t || `${c.enseigne || ""} ${c.nom || ""} ${c.nom_google || ""} ${c.activite || ""} ${c.adresse || ""} ${c.proprietaire || ""}`.toLowerCase().includes(t)));
+  }, [commerces, filtres, masquerFaibles, seuilFaible, zone.points, client]);
   // Le tableau : trié comme on clique les en-têtes, cinquante lignes par page.
   const tries = useMemo(() => {
     if (tri.cle === "rang") return visibles;
@@ -349,7 +435,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
     return [...visibles].sort((a, b) => String(val(a)).localeCompare(String(val(b)), "fr") * tri.sens);
   }, [visibles, tri]);
   // La ville vue par l'emplacement choisi (le centre par défaut) : compteurs, choix des filtres, total.
-  const dansZone = useMemo(() => (filtres.emplacement === "partout" ? commerces : commerces.filter((c) => c.centre !== false)), [commerces, filtres.emplacement]);
+  const dansZone = useMemo(() => { const base = client ? commerces.filter((c) => pourClient(c, client)) : commerces; return filtres.emplacement === "partout" ? base : base.filter((c) => c.centre !== false); }, [commerces, filtres.emplacement, client]);
   const activites = useMemo(() => { const n = {}; for (const c of dansZone) if (c.activite) n[c.activite] = (n[c.activite] || 0) + 1; return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([v, k]) => ({ v, mot: v, n: k })); }, [dansZone]);
   const PAR_PAGE = 50;
   const pages = Math.max(1, Math.ceil(tries.length / PAR_PAGE));
@@ -446,7 +532,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
           </div>
           <div className="flex h-[62vh] min-h-[460px] flex-col rounded-bloc border border-trait bg-surface max-md:h-auto">
             {ouvert ? <Fiche id={ouvert} onFermer={fermerFiche} onMaj={() => qc.invalidateQueries({ queryKey: ["off-market", "simple", "etat"] })}
-              zone={zone} rangAJuger={file.enCours && file.courant?.id === ouvert ? file.libelle : null}
+              zone={zone} client={client} rangAJuger={file.enCours && file.courant?.id === ouvert ? file.libelle : null}
               onJuge={file.enCours && file.courant?.id === ouvert ? file.suivant : null} onPasser={file.enCours && file.courant?.id === ouvert ? file.suivant : null} /> : (<>
               <div className="flex items-center gap-2 border-b border-trait px-3 py-2.5">
                 <div className="inline-flex rounded-full border border-bord-vif p-[3px]">{[["resume", territoire.nom], ...(resultatAdresse || enCours ? [["adresse", "Adresse"]] : [])].map(([k, mot]) => <button key={k} type="button" onClick={() => setOnglet(k)} className={`h-7 rounded-full px-3 text-[12.5px] ${onglet === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`} style={onglet === k ? undefined : { background: "transparent" }}>{mot}</button>)}</div>
@@ -455,6 +541,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {onglet === "resume" && (
                   <div className="flex flex-col gap-4 p-4">
+                    {parClient && <ClientProspection clients={ordreClients} client={client} nPour={nPour} ville={territoire.nom} n={visibles.length} charge={clientsQ.isLoading} onChoisir={setClientId} />}
                     <div className="overflow-hidden rounded-[12px] border border-bord-doux">
                       {[["exploitant", "Exploitants propriétaires", resume.exploitant, LIENS.exploitant_certain.couleur], ["tiers", "Bailleurs tiers", resume.tiers, LIENS.tiers.couleur], ["inconnu", "Propriétaire inconnu", resume.inconnu, LIENS.inconnu.couleur], ["en_cours", "Recherche en cours", resume.en_cours, LIENS.null.couleur]].map(([cle, mot, n, couleur]) => (
                         <button key={cle} type="button" onClick={() => setFiltres((f) => ({ ...f, liens: basculer(f.liens, cle) }))} aria-pressed={filtres.liens.includes(cle)} className={`flex w-full items-center gap-3 border-t border-trait px-4 py-3 text-left first:border-t-0 ${filtres.liens.includes(cle) ? "bg-menthe/10" : "hover:bg-relief/40"}`} style={filtres.liens.includes(cle) ? undefined : { background: "transparent" }}>

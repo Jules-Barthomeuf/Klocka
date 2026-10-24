@@ -9,6 +9,12 @@
 
 export const NOUVEAUTES = [
   {
+    jour: "2026-10-24",
+    items: [
+      { titre: "Prospecter pour un client", texte: "Côté mandataire, la carte ne montre plus tous les commerces : elle montre ceux qui répondent au client choisi, sa fiche à droite, et la fiche d'un commerce propose la phrase pour le propriétaire (« j'ai un acquéreur qui cherche exactement ça »).", page: "MandataireProspection" },
+    ],
+  },
+  {
     jour: "2026-10-23",
     items: [
       { titre: "La Prospection reprend l'Off-market", texte: "Côté mandataire, Prospecter montre la carte des commerces et de leurs propriétaires ; le bouton « Rues », à gauche du plein écran, colore les rues n°1, 1 bis et 2.", page: "MandataireProspection" },

@@ -11,8 +11,6 @@ import { useDictee, versWav } from "@/lib/dictee";
 import { OngletListesAgences } from "@/components/prospection/AgencesIA";
 import MaJournee from "@/components/prospection/MaJournee";
 import BasculeModeAppel from "@/components/prospection/BasculeModeAppel";
-import AujourdhuiDivise from "@/components/prospection/AujourdhuiDivise";
-import RelancesParMail from "@/components/prospection/RelancesParMail";
 import { FileRelances, ModeAppelUnique } from "@/components/prospection/FileRelances";
 import SuiviAppels from "@/pages/SuiviAppels";
 import VisiteModeAppel, { CLE_VISITE } from "@/components/prospection/VisiteModeAppel";
@@ -968,13 +966,13 @@ export default function Prospection() {
   // Aujourd'hui (une seule file, À envoyer à droite), Mode appel (un seul),
   // Listes (le « + » cherche une ville et crée sa liste), Suivi.
   // « Carte » (22 oct. 2026, Jules) : où on a prospecté, avec les projets, les clients et les deals.
-  const PARTIES = [["journee", "Aujourd'hui"], ["listes", "Listes"], ["carte", "Carte"], ["suivi", "Suivi"]];
+  // « Aujourd'hui » retiré (24 oct. 2026, Jules) : on arrive sur Listes ; les relances dues y sont dans leur intercalaire.
+  const PARTIES = [["listes", "Listes"], ["carte", "Carte"], ["suivi", "Suivi"]];
   // La visite du mode appel (9 oct. 2026) : d'elle-même la première fois, puis à la demande.
   const [visite, setVisite] = useState(() => { try { return !localStorage.getItem(CLE_VISITE); } catch { return false; } });
   // « ?partie=listes&liste=<id> » (le lien « Voir la liste » d'Off-market, 11 oct. 2026) l'emporte sur la dernière partie ouverte.
   const depuisAdresse = new URLSearchParams(window.location.search);
-  const [partie, setPartie] = useState(() => { const u = ({ agent: "listes", relances: "journee" })[depuisAdresse.get("partie")] || depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "journee"; } catch { return "journee"; } });
-  const [aAppeler, setAAppeler] = useState(0);
+  const [partie, setPartie] = useState(() => { const u = ({ agent: "listes", relances: "listes", journee: "listes" })[depuisAdresse.get("partie")] || depuisAdresse.get("partie"); if (PARTIES.some(([k]) => k === u)) return u; try { const p = localStorage.getItem("prospection.partie"); return PARTIES.some(([k]) => k === p) ? p : "listes"; } catch { return "listes"; } });
   // La relance prise dans la file : le Mode appel s'ouvre dessus.
   const [courante, setCourante] = useState(null);
   // Le nombre de relances dues, pour l'intercalaire « Relances dues » des listes.
@@ -1023,7 +1021,7 @@ export default function Prospection() {
             <button key={k} type="button" onClick={() => choisirPartie(k)} aria-pressed={partie === k}
               className={`inline-flex h-9 flex-none items-center gap-2 rounded-full border-0 px-4 text-[14px] transition-colors ${partie === k ? "bg-encre text-fond" : "text-craie hover:text-encre"}`}
               style={partie === k ? undefined : { background: "transparent" }}>
-              {mot}{k === "journee" && aAppeler > 0 && <span className={`text-[12px] tabular-nums ${partie === k ? "opacity-70" : "text-brume"}`}>{aAppeler}</span>}
+              {mot}
             </button>
           ))}
         </nav>
@@ -1048,13 +1046,6 @@ export default function Prospection() {
         </div>
       )}
       <div key={`${partie}-${enAppel}`} hidden={enAppel} className="duration-300 ease-out animate-in fade-in-0">
-      {partie === "journee" && (
-        <>
-        {/* Une page divisée, à relancer et à rappeler, chacun ses personnes (19 oct. 2026, Jules). */}
-        <AujourdhuiDivise enTete={<BasculeModeAppel actif={false} onChange={basculer} />} onAppeler={(a) => prendre.mutate(a)} enCours={prendre.isPending} onCompte={setAAppeler} onFiche={(id) => setFiche({ type: "agent", id })}
-          sousLesEnvois={<section className="rounded-[16px] border border-trait bg-surface-pleine p-5"><p className="m-0 mb-3 text-[15px] text-encre">Relances par mail</p><RelancesParMail /></section>} />
-        </>
-      )}
 
       {partie === "suivi" && <SuiviAppels dansProspection />}
       {partie === "carte" && <CarteKlocka focus="prospection" hauteur="calc(100vh - 220px)" className="min-h-[520px]" />}

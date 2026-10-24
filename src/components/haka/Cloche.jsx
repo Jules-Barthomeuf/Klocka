@@ -47,7 +47,7 @@ export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } 
   }
   if (relances.length) {
     const recente = relances.map((p) => p.cree_le).sort().pop();
-    lignes.push({ cle: "relances", teinte: orange, phrase: `${relances.length} relance${relances.length > 1 ? "s" : ""} préparée${relances.length > 1 ? "s" : ""}`, lieu: "Appels", quand: ilYa(recente), lien: "/Prospection?partie=journee", action: true, n: relances.length, le: recente });
+    lignes.push({ cle: "relances", teinte: orange, phrase: `${relances.length} relance${relances.length > 1 ? "s" : ""} préparée${relances.length > 1 ? "s" : ""}`, lieu: "Appels", quand: ilYa(recente), lien: "/Prospection?partie=listes", action: true, n: relances.length, le: recente });
   }
   // Ce qui était déjà dû avant Haka (rappels, promesses, relances de dossier) : le volet le reprend.
   for (const l of dues) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import { toast } from "@/components/ui/avis";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +7,8 @@ import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import InviterClient, { BoutonLienInvitation } from "@/components/admin/InviterClient";
 import FamillesClients from "@/components/admin/FamillesClients";
+// Les mandataires se gèrent ici aussi (24 oct. 2026, Jules) : la page Mandataires, chargée seulement à l'ouverture de l'onglet (cartes Google).
+const AdminMandataires = lazy(() => import("@/pages/AdminMandataires"));
 import CourbesClients from "@/components/admin/CourbesClients";
 import { DialogueAssignerProjets } from "@/components/admin/AssignationProjets";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +69,9 @@ export default function AdminUtilisateurs() {
   const [searchTerm, setSearchTerm] = useState("");
   // Utilisateurs, ou Familles : plusieurs comptes sur un même dossier.
   const [onglet, setOnglet] = useState("utilisateurs");
+  // La fiche du mandataire à montrer en ouvrant l'onglet Mandataires depuis sa ligne.
+  const [focusMandataire, setFocusMandataire] = useState(null);
+  const gererMandataire = (user) => { setFocusMandataire(String(user.email || "").toLowerCase()); setOnglet("mandataires"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const [etapeFilter, setEtapeFilter] = useState("all");
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -176,6 +181,7 @@ export default function AdminUtilisateurs() {
   const clientsActifs = users.filter((u) => u.role !== 'admin' && (u.etape_actuelle ?? 0) > 0);
   const nbParEtape = (e) => clientsActifs.filter((u) => (u.etape_actuelle ?? 0) === e).length;
   const nbAdmins = users.filter((u) => u.role === 'admin').length;
+  const nbMandataires = users.filter((u) => u.role === 'mandataire' || u.aussi_mandataire).length;
 
   const toggleUserSelection = (userId) => {
     setSelectedUsersForCompare((prev) =>
@@ -279,6 +285,11 @@ export default function AdminUtilisateurs() {
       userId: user.id,
       data: { role: "user" }
     });
+  };
+
+  const handleRetirerMandataire = async (user) => {
+    if (!window.confirm(`Retirer le rôle mandataire à ${user.full_name || user.email} ? Son compte redevient un compte client ; ses fiches, biens et secteur restent enregistrés.`)) return;
+    await updateUserMutation.mutateAsync({ userId: user.id, data: { role: "user" } });
   };
 
   const handlePromoteToMandataire = async (user) => {
@@ -479,12 +490,12 @@ export default function AdminUtilisateurs() {
       <header className="flex flex-wrap items-center justify-between gap-4 md:pr-14">
         <div className="flex flex-wrap items-baseline gap-3.5">
           <h1 className="m-0 text-[34px] font-medium leading-[1.05] tracking-[-0.01em] text-encre max-md:text-[26px]">Utilisateurs</h1>
-          <span className="text-[15px] text-ardoise">{clientsActifs.length} client{clientsActifs.length > 1 ? "s" : ""} actif{clientsActifs.length > 1 ? "s" : ""} · {tousEnAttente.length} en attente d'activation · {nbAdmins} admin{nbAdmins > 1 ? "s" : ""}</span>
+          <span className="text-[15px] text-ardoise">{clientsActifs.length} client{clientsActifs.length > 1 ? "s" : ""} actif{clientsActifs.length > 1 ? "s" : ""} · {tousEnAttente.length} en attente d'activation · {nbAdmins} admin{nbAdmins > 1 ? "s" : ""} · {nbMandataires} mandataire{nbMandataires > 1 ? "s" : ""}</span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2.5">
           <div className="flex gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Partie">
-            {[["utilisateurs", "Utilisateurs"], ["familles", "Familles"]].map(([k, mot]) => (
-              <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setOnglet(k)}
+            {[["utilisateurs", "Utilisateurs"], ["familles", "Familles"], ["mandataires", "Mandataires"]].map(([k, mot]) => (
+              <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => { setOnglet(k); if (k !== "mandataires") setFocusMandataire(null); }}
                 className={`rounded-full px-4 py-[9px] text-[14px] ${onglet === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
                 style={onglet === k ? undefined : { background: "transparent" }}>{mot}</button>
             ))}
@@ -506,7 +517,11 @@ export default function AdminUtilisateurs() {
       </header>
       <p className="m-0 -mt-3 text-[14px] text-ardoise">Les comptes de la plateforme : les clients et leur étape, les invitations à envoyer, les familles qui partagent un dossier, l'équipe.</p>
 
-      {onglet === "familles" ? <FamillesClients users={users} /> : <>
+      {onglet === "mandataires" ? (
+        <Suspense fallback={<div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-menthe" /></div>}>
+          <AdminMandataires integre focus={focusMandataire} />
+        </Suspense>
+      ) : onglet === "familles" ? <FamillesClients users={users} /> : <>
       {/* Les courbes des clients (18 oct. 2026, Jules) : le nombre de clients, et leur temps de connexion. */}
       <CourbesClients />
       <div>
@@ -661,7 +676,7 @@ export default function AdminUtilisateurs() {
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-encre text-[15px] truncate">{user.full_name || "Sans nom"}</span>
                       {isAdmin && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-menthe">Admin</span>}
-                      {user.role === 'mandataire' && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie">Mandataire</span>}
+                      {(user.role === 'mandataire' || user.aussi_mandataire) && <span role="link" tabIndex={0} title="Gérer le mandataire" onClick={(e) => { e.stopPropagation(); gererMandataire(user); }} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); gererMandataire(user); } }} className="cursor-pointer rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie hover:text-menthe">Mandataire</span>}
                       {user.est_compte_shadow && user.compte_maitre_email && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie" title={`Voit le dossier de ${user.compte_maitre_email}`}>Famille</span>}
                       {user.comptes_lies && user.comptes_lies.length > 0 && <span className="rounded-full bg-rail-actif px-2.5 py-0.5 text-[12px] text-craie">Famille · {user.comptes_lies.length + 1}</span>}
                       {user.profil_investisseur && <span className="text-[12.5px] text-ardoise max-md:hidden">{profilLabels[user.profil_investisseur]}</span>}
@@ -796,6 +811,18 @@ export default function AdminUtilisateurs() {
                             <Users className="w-3.5 h-3.5" /> Promouvoir mandataire
                           </button>
                         </>
+                      )}
+                      {(user.role === 'mandataire' || user.aussi_mandataire) && (
+                        <button onClick={() => gererMandataire(user)}
+                          className="inline-flex items-center gap-2 text-[13.5px] text-menthe hover:text-encre transition-colors">
+                          <Users className="w-3.5 h-3.5" /> Gérer le mandataire
+                        </button>
+                      )}
+                      {user.role === 'mandataire' && (
+                        <button onClick={() => handleRetirerMandataire(user)}
+                          className="inline-flex items-center gap-2 text-[13.5px] text-ardoise hover:text-encre transition-colors">
+                          <Unlink className="w-3.5 h-3.5" /> Retirer le rôle mandataire
+                        </button>
                       )}
                       {isAdmin && (
                         <button onClick={() => handleDemoteFromAdmin(user)}

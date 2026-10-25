@@ -21,11 +21,13 @@ import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEns
 // de raisonnement ; « Ajouter à une liste » l'envoie à la Prospection. Rien n'est partagé
 // avec le mode Avancé, sauf la ville.
 
-const LIENS = { exploitant_certain: { mot: "Exploitant propriétaire", couleur: JL.menthe }, exploitant_probable: { mot: "Exploitant propriétaire (probable)", couleur: JL.menthe }, tiers: { mot: "Bailleur tiers", couleur: JL.bleu || JL.ambre }, inconnu: { mot: "Propriétaire inconnu", couleur: JL.ardoise }, null: { mot: "Recherche en cours", couleur: JL.brume } };
-const DRAPEAUX = { gerant_age: "Gérant 70+", fonds_cede: "Fonds cédé", ferme: "Fermé", transmission: "Transmission", detention_30: "Détenu 30 ans+", detention_22: "Détenu 22 ans+" };
+// La phrase « J'ai un acquéreur qui cherche exactement… » dans la fiche d'un commerce : retirée pour l'instant (24 oct. 2026, Jules).
+const ACCROCHE_CLIENT = false;
+export const LIENS = { exploitant_certain: { mot: "Exploitant propriétaire", couleur: JL.menthe }, exploitant_probable: { mot: "Exploitant propriétaire (probable)", couleur: JL.menthe }, tiers: { mot: "Bailleur tiers", couleur: JL.bleu || JL.ambre }, inconnu: { mot: "Propriétaire inconnu", couleur: JL.ardoise }, null: { mot: "Recherche en cours", couleur: JL.brume } };
+export const DRAPEAUX = { gerant_age: "Gérant 70+", fonds_cede: "Fonds cédé", ferme: "Fermé", transmission: "Transmission", detention_30: "Détenu 30 ans+", detention_22: "Détenu 22 ans+" };
 const dessinSimple = (c) => ({ couleur: LIENS[c.lien]?.couleur || JL.brume, opacite: c.lien ? 0.95 : 0.5, taille: c.drapeaux?.length ? 7 : 5 });
 const ORDRE_LIEN = { exploitant_certain: 0, exploitant_probable: 1, tiers: 2, inconnu: 3 };
-const DRAPEAUX_COURTS = { gerant_age: "Gérant 70+", fonds_cede: "Fonds cédé", ferme: "Fermé", transmission: "Transmission", detention_30: "30 ans+", detention_22: "22 ans+" };
+export const DRAPEAUX_COURTS = { gerant_age: "Gérant 70+", fonds_cede: "Fonds cédé", ferme: "Fermé", transmission: "Transmission", detention_30: "30 ans+", detention_22: "22 ans+" };
 
 /** Pure : « d'Antibes », « de Mâcon », « du Mans », « des Sables-d'Olonne ». */
 export const deVille = (nom) => {
@@ -59,7 +61,7 @@ function SectionFiltre({ titre, options, choisis, onChange, multiple = true, rec
 }
 
 /** Le bouton « Filtrer » de la barre du haut, et son menu sous le bouton. */
-function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null }) {
+export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, activites, visibles, zones = [], scoreZone = null }) {
   const [ouvert, setOuvert] = useState(false);
   const n = nbFiltres({ ...filtres, texte: "" });
   const maj = (cle) => (v) => setFiltres((f) => ({ ...f, [cle]: v }));
@@ -133,7 +135,7 @@ function Ligne({ titre, valeur, ton = "text-encre", detail = null, ouvert, onBas
 /** La page Pappers d'une société (son SIREN suffit : Pappers redirige vers la fiche), dans un autre onglet. */
 const Pappers = ({ siren, mot = "Voir sur Pappers" }) => (/^\d{9}$/.test(String(siren || "")) ? <a href={`https://www.pappers.fr/entreprise/${siren}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-bleu underline-offset-4 hover:underline">{mot}<ExternalLink className="h-3 w-3" /></a> : null);
 const Source = ({ source, date }) => (source || date ? <span className="text-[11.5px] text-brume">{[source, date ? dateCourte(date) : null].filter(Boolean).join(" · ")}</span> : null);
-const REPONSES = { proprietaire_ouvert: "Propriétaire, ouvert à en parler", proprietaire_non: "Propriétaire, mais non", pas_proprietaire: "Pas propriétaire", pas_joint: "Pas joint" };
+export const REPONSES = { proprietaire_ouvert: "Propriétaire, ouvert à en parler", proprietaire_non: "Propriétaire, mais non", pas_proprietaire: "Pas propriétaire", pas_joint: "Pas joint" };
 
 /** La liste dans la Prospection, partie Listes, dans une autre fenêtre. */
 // Les listes de l'Off-market sont celles de l'espace mandataire (12 oct. 2026), jamais celles de la Prospection admin.
@@ -188,7 +190,7 @@ export function FenetreListe({ ids, onFermer, onFait }) {
   );
 }
 
-function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = null, onPasser = null, client = null }) {
+export function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = null, onPasser = null, client = null, pourquoi = null }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["off-market", "simple", "commerce", id], queryFn: () => req("GET", `/simple/commerces/${id}`), refetchInterval: (x) => (["a_faire", "en_cours"].includes(x.state.data?.commerce?.etat_recherche) ? 4000 : false) });
   const c = q.data?.commerce;
@@ -228,14 +230,17 @@ function Fiche({ id, onFermer, onMaj, zone = null, rangAJuger = null, onJuge = n
         </div>
         <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-8 w-8 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
       </div>
-      {/* Pour le client choisi (24 oct. 2026) : ce que le mandataire dit au propriétaire. */}
-      {client && pourClient({ ...c, prix: c.estimation?.prix || c.prix || null }, client) && (
+      {/* Pour le client choisi (24 oct. 2026) : ce que le mandataire dit au propriétaire. Retiré pour l'instant le même jour
+          (Jules) : ACCROCHE_CLIENT à true le remet. */}
+      {ACCROCHE_CLIENT && client && pourClient({ ...c, prix: c.estimation?.prix || c.prix || null }, client) && (
         <div className="mx-5 mt-3 rounded-[12px] border border-menthe/40 bg-menthe/[0.06] px-4 py-3">
           <p className="m-0 text-[12px] text-ardoise">Pour votre client {client.reference} · {client.type_commerce || "tout commerce"} · {budgetDe(client)}</p>
           <p className="m-0 mt-1.5 text-[13.5px] leading-[1.5] text-encre">« {accroche({ prix: c.estimation?.prix || c.prix || null }, client)} »</p>
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-3">
+        {/* Pourquoi c'est une bonne cible, en une ligne, juste au-dessus de la façade (Prospecter pour un client, 24 oct. 2026). */}
+        {pourquoi && <p className="m-0 mb-2 truncate text-[13.5px] text-menthe" title={pourquoi}>{pourquoi}</p>}
         <FacadeLocal adresse={c.adresse} ville={c.ville} lat={c.lat} lon={c.lon} nom={c.enseigne || c.nom} />
         <BlocZone id={id} zone={zone} rangAJuger={rangAJuger} onJuge={onJuge} onPasser={onPasser} />
         <div className="mt-3 overflow-hidden rounded-[12px] border border-bord-doux bg-surface/40">
@@ -497,6 +502,8 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
   return (
     <div className="flex flex-col gap-4 pb-10">
       <div className="flex flex-wrap items-center gap-2 md:pr-16">
+        {/* La bascule de la page (Pour mes clients / Tous les commerces), en tête de la même ligne (24 oct. 2026). */}
+        {bascule}
         <div className="relative">
           <button type="button" onClick={() => setMenuVille((m) => !m)} aria-expanded={menuVille} className="inline-flex h-10 min-w-[240px] items-center justify-between gap-2 rounded-full border border-bord-vif bg-fond px-3.5 text-[14px] text-encre hover:border-menthe max-md:min-w-0">
             <span className="truncate">{territoire ? territoire.nom : "Choisir une ville"}</span>
@@ -521,7 +528,6 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         {compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
         {compte?.google?.etat === "en_cours" && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bleu/60 px-3.5 text-[12.5px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
         {compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
-        {bascule}
         {menu}
       </div>
 

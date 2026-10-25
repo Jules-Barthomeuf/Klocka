@@ -131,9 +131,10 @@ test('vers une liste du mandataire : créée par son nom, un commerce une fois p
   assert.equal(S.compact(Records.get(S.COMMERCE, ids[0]), { moi: 'j@k' }).liste.nom, 'Antibes');
   assert.equal(S.compact(Records.get(S.COMMERCE, ids[0]), { moi: 'autre@k' }).liste, null, 'la liste de Jules n\'est pas celle d\'un autre');
   assert.deepEqual((await S.listesDeCommerces(jules)).map((x) => [x.nom, x.n]), [['Antibes', ids.length]]);
-  // Un autre mandataire met le même commerce dans sa propre liste.
+  // La fiche appartient à qui a agi (24 oct. 2026, Jules) : un autre mandataire ne peut plus prendre ce commerce.
   const r3 = await S.envoyerVersListe([ids[0]], { nom: 'Ma liste', user: { email: 'autre@k' } });
-  assert.equal(r3.ajoutes, 1);
+  assert.equal(r3.ajoutes, 0);
+  assert.match(r3.refuses[0], /déjà suivi par un autre mandataire/);
   assert.equal((await S.envoyerVersListe(ids, { user: jules })).ok, false, 'sans nom ni liste');
   assert.equal((await S.envoyerVersListe(ids, { nom: 'X' })).ok, false, 'sans personne connectée');
 });

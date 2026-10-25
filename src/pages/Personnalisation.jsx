@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { vueDe } from "@/lib/vue";
-import { Check, Eye, EyeOff, Grip, Maximize2, Pipette, RotateCcw } from "lucide-react";
+import { Check, Eye, EyeOff, Grip, Maximize2, Pipette, RotateCcw, Smartphone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@/components/providers/UserProvider";
 import { usePersonnalisation } from "@/components/providers/PersonnalisationProvider";
@@ -14,6 +14,8 @@ import Sources from "@/components/socle/Sources";
 import AccesAdmins from "@/components/compte/AccesAdmins";
 import MesMails from "@/components/compte/MesMails";
 import CommunesAgent from "@/components/mandataire/CommunesAgent";
+import { estApercuTelephone } from "@/components/ApercuTelephone";
+import { createPageUrl } from "@/utils";
 
 // La page Personnalisation : chacun règle l'application pour lui. Tout
 // s'applique à l'instant, sur la page elle-même : c'est l'aperçu. Les
@@ -508,6 +510,18 @@ export default function Personnalisation() {
         <Reglage titre="Animations" note="Réduites : les transitions et les mouvements s'effacent.">
           <Pilules valeur={prefs.animations} options={OPTIONS.animations} onChoisir={(v) => changer({ animations: v })} />
         </Reglage>
+        {/* Le mode téléphone (24 oct. 2026, Jules) : l'application dans un cadre de téléphone, depuis l'ordinateur. Pas
+            dans le cadre lui-même, ni sur un vrai téléphone. */}
+        {!estApercuTelephone() && (
+          <div className="max-md:hidden">
+            <Reglage titre="Mode téléphone" note="L'application comme sur un téléphone, depuis cet ordinateur : iPhone, petit Android ou grand iPhone, on y navigue normalement, connecté.">
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("klocka:mode-telephone", { detail: { depart: createPageUrl("Dashboard") } }))}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-trait px-4 text-[13.5px] text-craie hover:border-menthe hover:text-encre" style={{ background: "transparent" }}>
+                <Smartphone className="h-4 w-4" /> Voir en mode téléphone
+              </button>
+            </Reglage>
+          </div>
+        )}
         {vueClient && (
           <Reglage titre="Barre latérale" note="Au démarrage. Le chevron la replie ou la déplie ensuite, comme avant.">
             <Pilules valeur={prefs.barre} options={OPTIONS.barre} onChoisir={(v) => changer({ barre: v })} />

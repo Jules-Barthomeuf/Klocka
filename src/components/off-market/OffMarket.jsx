@@ -22,7 +22,8 @@ import Chargement from "@/components/ui/Chargement";
 const PARTIES = [["recherche", "Rechercher"], ["aujourdhui", "Aujourd'hui"], ["listes", "Listes"], ["courriers", "Courriers"], ["pipeline", "Pipeline"], ["bilan", "Bilan"]];
 const PANNEAU = "h-[900px] max-lg:fixed max-lg:inset-0 max-lg:z-[70] max-lg:h-auto max-lg:p-3";
 
-export default function OffMarket({ espace = "klocka" }) {
+/** @param entete  posé en tête de la barre du mode Simple (la bascule « Pour mes clients / Tous les commerces » du mandataire). */
+export default function OffMarket({ espace = "klocka", entete = null }) {
   const queryClient = useQueryClient();
   // Une ville en lecture : on suit toutes les cinq secondes, les locaux arrivent au fil de l'eau.
   const base = useOffMarket(["base"], "", { refetchInterval: (q) => ((q.state.data?.territoires || []).some((v) => v.lecture?.etat === "en_cours") ? 5_000 : 60_000) });
@@ -125,7 +126,7 @@ export default function OffMarket({ espace = "klocka" }) {
         {base.data && !territoires.length && ["recherche", "listes"].includes(partie) && <Vide>{espace === "klocka" ? "Aucune ville lue : lancez la lecture d'un territoire pour commencer." : "Aucune ville lue dans votre secteur pour l'instant : demandez à Klocka d'en ouvrir une."}</Vide>}
 
         {partie === "recherche" && territoires.length > 0 && mode === "simple" && (
-          <Simple territoires={territoires} territoire={territoire} onTerritoire={(id) => { setVilleId(id); setPanneau(null); }} espace={espace} menu={null} bascule={null} />
+          <Simple territoires={territoires} territoire={territoire} onTerritoire={(id) => { setVilleId(id); setPanneau(null); }} espace={espace} menu={null} bascule={entete} />
         )}
         {partie === "recherche" && territoires.length > 0 && mode === "avance" && (
           <Recherche territoires={territoires} territoire={territoire} onTerritoire={(id) => { setVilleId(id); setPanneau(null); }} locaux={locaux} visibles={visibles} f={f} setF={setF} chargement={q.isFetching} panneau={panneau} fiche={fiche} onOuvrirLocal={ouvrirLocal} onOuvrirProprietaire={ouvrirProprietaire} onCourriers={onCourriers} statuts={statuts} rafraichir={rafraichir} menu={menu} bascule={bascule} />

@@ -49,16 +49,30 @@ export function formeDe(code) {
   return null;
 }
 
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Le dernier refus « trop d'appels » (429) de l'annuaire (24 oct. 2026) : la recherche des propriétaires, qui en
+// mène plusieurs en parallèle, ralentit d'elle-même pendant cinq minutes.
+let dernierRefus = 0;
+export const refusRecent = (ms = 5 * 60_000) => Date.now() - dernierRefus < ms;
+
 async function appeler(params) {
   const url = `${API}?${new URLSearchParams({ per_page: '5', ...params })}`;
-  let r;
-  try {
-    r = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { Accept: 'application/json' } });
-  } catch (e) {
-    throw new ErreurSource(`L'annuaire des entreprises n'a pas répondu (${e?.message || e}).`, { service: 'Annuaire des entreprises', cause: e });
+  // Un 429 se retente deux fois, de plus en plus espacé, au lieu de faire échouer la recherche du commerce.
+  for (let essai = 0; ; essai += 1) {
+    let r;
+    try {
+      r = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { Accept: 'application/json' } });
+    } catch (e) {
+      throw new ErreurSource(`L'annuaire des entreprises n'a pas répondu (${e?.message || e}).`, { service: 'Annuaire des entreprises', cause: e });
+    }
+    if (r.status === 429) {
+      dernierRefus = Date.now();
+      if (essai < 2) { await pause(1500 * (essai + 1)); continue; }
+    }
+    if (!r.ok) throw new ErreurSource(`L'annuaire des entreprises a répondu ${r.status}.`, { service: 'Annuaire des entreprises', statut: r.status });
+    return r.json();
   }
-  if (!r.ok) throw new ErreurSource(`L'annuaire des entreprises a répondu ${r.status}.`, { service: 'Annuaire des entreprises', statut: r.status });
-  return r.json();
 }
 
 /** Une année de naissance devient une tranche, et rien d'autre ne sort d'ici. */
@@ -156,7 +170,6 @@ const NEAR_POINT = 'https://recherche-entreprises.api.gouv.fr/near_point';
 const PAUSE_MS = 200;
 // Au-delà, l'annuaire tronque : on découpe le balayage.
 const SATURATION = 9500;
-const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function* pagesDe(base, params, { max_pages = 400, arreter = () => false } = {}) {
   for (let page = 1; page <= max_pages; page++) {
@@ -169,6 +182,7 @@ async function* pagesDe(base, params, { max_pages = 400, arreter = () => false }
       throw new ErreurSource(`L'annuaire des entreprises n'a pas répondu (${e?.message || e}).`, { service: 'Annuaire des entreprises', cause: e });
     }
     if (r.status === 429) {
+      dernierRefus = Date.now();
       await pause(2000);
       page -= 1;
       continue;

@@ -74,8 +74,30 @@ export function noter(email, texte, genre = 'info') {
  * secteur. Les plus peuplées d'abord : plus de commerces.
  * @returns {Promise<Array<{nom, code, population?}>>}
  */
-export async function communesDuSecteur(secteur) {
-  const choisies = (secteur.unites || []).filter((u) => u.niveau === 'commune').map((u) => ({ nom: u.nom, code: u.code || null }));
+export async function communesDuSecteur(secteur, { lire = fetch } = {}) {
+  const unites = secteur.unites || [];
+  const choisies = unites.filter((u) => u.niveau === 'commune').map((u) => ({ nom: u.nom, code: u.code || null }));
+  // Un secteur fait de départements ou de régions : toutes leurs communes, par l'API Géo (24 oct. 2026), plutôt que
+  // la grille de points qui laissait passer les petites.
+  const larges = unites.filter((u) => u.niveau === 'departement' || u.niveau === 'region');
+  if (larges.length) {
+    if (secteur.communes_auto?.length && Date.now() - Date.parse(secteur.communes_auto_le || 0) < TRENTE_JOURS) return secteur.communes_auto;
+    const parCode = new Map(choisies.map((c) => [c.code || c.nom, c]));
+    try {
+      const deps = new Set(larges.filter((u) => u.niveau === 'departement').map((u) => u.code));
+      for (const r of larges.filter((u) => u.niveau === 'region')) {
+        const rep = await lire(`https://geo.api.gouv.fr/regions/${encodeURIComponent(r.code)}/departements?fields=code`, { signal: AbortSignal.timeout(10000) });
+        for (const d of rep.ok ? await rep.json() : []) deps.add(d.code);
+      }
+      for (const d of deps) {
+        const rep = await lire(`https://geo.api.gouv.fr/departements/${encodeURIComponent(d)}/communes?fields=nom,code,population`, { signal: AbortSignal.timeout(15000) });
+        for (const c of rep.ok ? await rep.json() : []) parCode.set(c.code, { nom: c.nom, code: c.code, population: c.population || 0 });
+      }
+    } catch { /* l'API Géo muette : ce qu'on a déjà */ }
+    const communes = [...parCode.values()].sort((a, b) => (b.population || 0) - (a.population || 0));
+    if (secteur.id && communes.length > choisies.length) Records.update('SecteurMandataire', secteur.id, { communes_auto: communes, communes_auto_le: maintenant(), communes_auto_echec_le: null });
+    return communes;
+  }
   if (choisies.length) return choisies;
   if (secteur.communes_auto?.length && Date.now() - Date.parse(secteur.communes_auto_le || 0) < TRENTE_JOURS) return secteur.communes_auto;
   // L'API Géo injoignable : on ne relance pas la grille avant une heure.
@@ -241,6 +263,9 @@ export async function geoDe(ville) {
 }
 
 /** Pure : une zone dite par un client (« PACA/Rhone-Alpes », « SUD (bordeaux-lyon) ») couvre-t-elle cette commune ? */
+// Les départements dont le nom est aussi un mot d'une région (Auvergne-Rhône-Alpes, Centre-Val de Loire, Pays de la Loire).
+const DEPARTEMENTS_HOMONYMES = new Set(['rhone', 'loire']);
+
 export function zoneCouvre(zone, { ville, departement = null, region = null }) {
   const v = nz(ville).replace(/[^a-z]+/g, ' ').trim();
   const d = nz(departement).replace(/[^a-z]+/g, ' ');
@@ -251,8 +276,15 @@ export function zoneCouvre(zone, { ville, departement = null, region = null }) {
     if (!mots.length) return false;
     // Une ville nommée dans la zone (« lyon » dans « SUD (bordeaux-lyon) »).
     if (mots.some((m) => v === m || v.startsWith(`${m} `) || v.split(' ')[0] === m)) return true;
-    // Un département ou une région entière (tous ses mots y sont).
-    return mots.every((m) => d.includes(m) || r.includes(m));
+    // Un département nommé en entier : « Rhône » est le Rhône, pas les Bouches-du-Rhône ; « Savoie » n'est pas la
+    // Haute-Savoie (24 oct. 2026). Une région, ou une ancienne région qu'elle contient (« Bourgogne », « Rhône-Alpes »),
+    // mot entier par mot entier ; « Rhône » ou « Loire » seuls sont des départements, pas une région.
+    const motsDe = (x) => x.split(' ').filter((m) => m.length > 3 && !VAGUES.has(m));
+    const wd = motsDe(d);
+    if (wd.length && wd.length === mots.length && mots.every((m) => wd.includes(m))) return true;
+    if (mots.length === 1 && DEPARTEMENTS_HOMONYMES.has(mots[0])) return false;
+    const wr = motsDe(r);
+    return wr.length > 0 && mots.every((m) => wr.includes(m));
   });
 }
 

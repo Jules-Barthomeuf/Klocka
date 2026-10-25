@@ -36,14 +36,15 @@ export function echelleCadre(appareil, fenetre) {
   return Math.min(1, (fenetre.hauteur - MARGE_HAUT - MARGE_BAS) / h, (fenetre.largeur - 32) / l);
 }
 
-export default function ApercuTelephone({ onFermer }) {
+/** @param departInitial  la page où le cadre s'ouvre (Paramètres l'ouvre sur le tableau de bord) ; sinon la page en cours. */
+export default function ApercuTelephone({ onFermer, departInitial = null }) {
   const [cle, setCleBrute] = useState("iphone");
   const [fenetre, setFenetre] = useState({ largeur: window.innerWidth, hauteur: window.innerHeight });
   const [tour, setTour] = useState(0);
   const cadre = useRef(null);
   // La page de départ : celle qu'on regardait. Ensuite, le cadre navigue seul ;
   // changer d'appareil le rouvre là où il en était.
-  const [depart, setDepart] = useState(() => window.location.pathname + window.location.search + window.location.hash);
+  const [depart, setDepart] = useState(() => departInitial || window.location.pathname + window.location.search + window.location.hash);
   const ici = () => {
     try { const l = cadre.current?.contentWindow?.location; return l ? l.pathname + l.search + l.hash : depart; } catch { return depart; }
   };

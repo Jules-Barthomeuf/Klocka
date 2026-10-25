@@ -274,6 +274,10 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).retirerPhoto(req.params.id, String(req.query.url || ''), user));
   }));
+  app.patch('/api/mandataire/mandats/:id/estimation', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await P()).lierEstimationMandat(req.params.id, req.body?.estimation_id || null, user));
+  }));
   app.patch('/api/mandataire/dossiers/:id/estimation', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).lierEstimation(req.params.id, req.body?.estimation_id || null, user));

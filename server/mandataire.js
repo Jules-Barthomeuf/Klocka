@@ -779,7 +779,7 @@ const OUTIL_AFFINER = {
   input_schema: { type: 'object', properties: { demande: { type: 'string', description: 'La demande du mandataire, telle quelle' } }, required: ['demande'] },
 };
 
-export async function discuter({ historique = [], texte, user, surEtape = null, surAction = null, estAnnule = null, signal = null, surTexte = null, piece = null, prospection_id = null, dossier_id = null, sortie = null, competence = null }) {
+export async function discuter({ historique = [], texte, user, surEtape = null, surAction = null, estAnnule = null, signal = null, surTexte = null, piece = null, prospection_id = null, dossier_id = null, proprietaire_id = null, sortie = null, competence = null }) {
   // Une pièce jointe : son nom et ce qu'on y a lu accompagnent le message.
   if (piece) {
     surEtape?.(`Lecture de ${piece.nom}`);
@@ -811,6 +811,13 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   const surDossier = dossierOuvert
     ? `\n\nLe mandataire a choisi le dossier « ${dossierOuvert.bien || 'sans nom'} »${dossierOuvert.adresse ? `, ${dossierOuvert.adresse}` : ''}${dossierOuvert.proprietaire ? ` (propriétaire : ${dossierOuvert.proprietaire})` : ''}, au statut « ${dossierOuvert.statut || 'inconnu'} » : sa demande porte sur ce bien. mes_dossiers donne son estimation, son mandat et ses pièces.`
     : '';
+  // La fiche ouverte (24 oct. 2026, Jules : « le chat comme dans le dashboard Haka », dans la fiche d'un commerce) : la
+  // sienne seulement. Ce qu'il raconte sans nommer personne la concerne.
+  const fo = proprietaire_id ? Records.get('ProprietaireMandataire', proprietaire_id) : null;
+  const ficheOuverte = fo && fo.mandataire_email === String(user?.email || '').toLowerCase() ? fo : null;
+  const surFiche = ficheOuverte
+    ? `\n\nLe mandataire parle depuis la fiche « ${[ficheOuverte.commerce || ficheOuverte.nom, ficheOuverte.ville].filter(Boolean).join(' · ')} »${ficheOuverte.nom ? ` (propriétaire : ${ficheOuverte.nom})` : ''}, statut ${ficheOuverte.statut}${ficheOuverte.telephone ? `, téléphone ${ficheOuverte.telephone}` : ''}. Ce qu'il raconte sans nommer personne concerne cette fiche : pour l'issue d'un contact, resultat_appel ou noter_rdv avec qui = « ${[ficheOuverte.commerce || ficheOuverte.nom, ficheOuverte.ville].filter(Boolean).join(' ')} ». Dis en une phrase ce que tu as compris et ce que tu as fait.`
+    : '';
   const surSortie = sortie === 'produire'
     ? "\n\nLe mandataire a choisi « Produire » : il attend un livrable, pas une réponse. Fais-le avec tes outils (l'avis de valeur par lancer_estimation, le mandat par demander_mandat, un mail par preparer_mail, une relance ou un rendez-vous par noter_relance ou noter_rdv), puis dis en deux lignes ce qui est prêt et où le trouver."
     : '';
@@ -819,7 +826,7 @@ export async function discuter({ historique = [], texte, user, surEtape = null, 
   const trace = [];
   const { text, tours = null, limite = false } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire', par: user?.email || null }, signal, surTexte,
     // La consigne stable en cache ; la date, le secteur et la prospection ouverte après (1.7, 12 oct. 2026).
-    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}${surDossier}${surSortie}${surCompetence}` }],
+    system: [{ texte: consigne(), cache: true }, { texte: `Nous sommes le ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: PARIS })}, heure de Paris.${cadre}${surPage}${surDossier}${surFiche}${surSortie}${surCompetence}` }],
     cache: true,
     messages,
     tools: ouverte ? [...OUTILS_MANDATAIRE, OUTIL_AFFINER, OUTIL_RESULTATS] : OUTILS_MANDATAIRE,

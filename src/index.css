@@ -113,6 +113,8 @@ button:focus-visible {
     --k-vert-rgb: 127 209 168;
     --k-jaune-rgb: 227 207 92;
     --k-bleu-rgb: 143 182 232;
+    /* La pervenche (accent « Pervenche » des jetons) : le contour du chat dans une fiche (24 oct. 2026). */
+    --k-pervenche-rgb: 166 171 242;
     --k-appel-rgb: 201 168 137;
     --k-ecrire-rgb: 150 192 184;
     --k-surveiller-rgb: 139 147 143;
@@ -160,6 +162,7 @@ button:focus-visible {
     --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
     --k-bleu-rgb: 91 111 168;
+    --k-pervenche-rgb: 75 82 196;
     --k-appel-rgb: 168 121 74;
     --k-ecrire-rgb: 63 116 102;
     --k-surveiller-rgb: 111 113 110;
@@ -765,6 +768,7 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
     --k-vert-rgb: 47 122 85;
     --k-jaune-rgb: 150 120 10;
     --k-bleu-rgb: 91 111 168;
+    --k-pervenche-rgb: 75 82 196;
     --k-appel-rgb: 168 121 74;
     --k-ecrire-rgb: 63 116 102;
     --k-surveiller-rgb: 111 113 110;
@@ -855,6 +859,12 @@ html.k-sans-defilement, html.k-sans-defilement body { overflow: hidden; }
 /* Le dossier en mode IA (18 oct. 2026, Jules) : la barre « Tous les dossiers · Historique » laisse voir le fond Halo, sans fondu. */
 :root .k-page-presentation:is(.k-dossier-ia, .k-accueil-ia) .k-colonne-chat .k-barre-apercu { background-color: transparent; }
 :root .k-page-presentation:is(.k-dossier-ia, .k-accueil-ia) .k-colonne-chat .k-barre-apercu::after { display: none; }
+/* Un bien du mandataire (24 oct. 2026, Jules : « le même fond que le chat à gauche ») : à droite, l'avis de valeur ou le
+   mandat posé sur le fond choisi, comme le dossier de l'Analyse ; ses barres (Plan et versions, informations attendues),
+   la scène derrière les pages et le panneau du plan laissent voir ce fond. Une fine ligne les sépare du chat. */
+:root .k-bien-ia .k-apercu-bien > div,
+:root .k-bien-ia .k-apercu-bien :is(.k-barre-apercu, .avis-editeur, .avis-panneau, .bg-fond) { background: transparent !important; }
+:root .k-bien-ia .k-apercu-bien > div { border-left-color: var(--k-trait); }
 /* Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points. */
 html.k-sobre body::after,
 html.k-sobre .k-halo,

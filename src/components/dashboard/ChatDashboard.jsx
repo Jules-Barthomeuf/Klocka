@@ -1014,7 +1014,7 @@ function MessageAvecPiece({ m }) {
   );
 }
 
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null }) {
+export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1209,6 +1209,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         form.append("texte", t || "");
         form.append("historique", JSON.stringify(historique()));
         if (prospectionId) form.append("prospection_id", prospectionId);
+        if (proprietaireId) form.append("proprietaire_id", proprietaireId);
         if (espace === "mandataire" && reglagesRef.current?.sortie) form.append("sortie", reglagesRef.current.sortie);
         if (espace === "mandataire" && choixDossier && dossierChoisi) form.append("dossier_id", dossierChoisi.deal_id);
         if (espace === "mandataire" && reglagesRef.current?.competence) form.append("competence", reglagesRef.current.competence.nom);
@@ -1263,7 +1264,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         return r;
       }
       const r = mandataire
-        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}),
+        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}), ...(proprietaireId ? { proprietaire_id: proprietaireId } : {}),
           // Haka du mandataire (19 oct. 2026) : « Répondre / Produire » et le dossier choisi partent avec le message.
           ...(espace === "mandataire" && reglagesRef.current?.sortie ? { sortie: reglagesRef.current.sortie } : {}),
           ...(espace === "mandataire" && choixDossier && dossierChoisi ? { dossier_id: dossierChoisi.deal_id } : {}),
@@ -1706,7 +1707,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const barre = (
         <BordureEcoute actif={ecoute} radius="24px">
         <div
-          className={`rounded-[20px] border border-trait bg-barre px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
+          className={`rounded-[20px] border ${contour || "border-trait"} bg-barre px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
           style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
           <textarea
@@ -1740,7 +1741,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 <button onClick={() => setFichier(null)} className="flex-none text-brume hover:text-alerte" aria-label="Retirer la pièce jointe" title="Retirer" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
               </span>
             )}
-            {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation} mandataire={espace === "mandataire"} />}
+            {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation || menusVersLeHaut} mandataire={espace === "mandataire"} />}
             {reglages?.competence && (
               <span className="inline-flex h-8 min-w-0 max-w-[260px] items-center gap-1.5 rounded-full bg-menthe/10 pl-2.5 pr-1 text-[13px] text-encre">
                 <Sparkles className="h-3.5 w-3.5 flex-none text-menthe" />
@@ -1750,7 +1751,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             )}
             {/* Sans `setSortie` (le chat d'un dossier, 18 oct. 2026, Jules), pas de bascule : l'assistant choisit selon la demande. */}
             {reglages?.setSortie && <BasculeSortie sortie={reglages.sortie} onChange={reglages.setSortie} />}
-            {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation} />}
+            {E.boiteEnvoi && <BoiteEnvoi versLeHaut={conversation || menusVersLeHaut} />}
             {/* L'ampoule, en bas à gauche : des phrases toutes prêtes, posées
                 dans le champ d'un clic, jamais envoyées toutes seules. */}
             {E.suggestionsAGauche && E.commandes.length > 0 && (
@@ -1779,7 +1780,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               </div>
             )}
             {/* Une estimation lancée : le mode est choisi, il ne se rechoisit plus. */}
-            {E.modesAGauche && E.modes.length > 0 && !(estimation && conversation) && (
+            {/* `epure` (le chat d'une fiche, 24 oct. 2026) : ni modes, ni historique. */}
+            {!epure && E.modesAGauche && E.modes.length > 0 && !(estimation && conversation) && (
               <div className="flex items-center gap-0.5 rounded-full p-0.5" style={{ background: J["barre-relief"] }}>
                 {E.modes.map((m) => {
                   const Icone = m.icone;
@@ -1799,7 +1801,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             <div className="ml-auto flex items-center gap-1.5">
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
               {reglages && espace !== "mandataire" && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
-              {!E.modesAGauche && !reglages && (
+              {!epure && !E.modesAGauche && !reglages && (
               <div className="relative">
                 <button
                   type="button"
@@ -1819,7 +1821,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                     <div className="fixed inset-0 z-10" onClick={() => setCommandes(false)} />
                     <div
                       role="menu"
-                      className={`animate-in fade-in duration-150 absolute right-0 z-20 max-h-[min(70vh,560px)] w-[340px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)] ${conversation ? "bottom-full mb-3 slide-in-from-bottom-1" : "top-full mt-3 slide-in-from-top-1"}`}
+                      className={`animate-in fade-in duration-150 absolute right-0 z-20 max-h-[min(70vh,560px)] w-[340px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-bloc border border-trait text-left shadow-[0_20px_50px_rgb(0_0_0/0.16)] ${conversation || menusVersLeHaut ? "bottom-full mb-3 slide-in-from-bottom-1" : "top-full mt-3 slide-in-from-top-1"}`}
                       style={{ background: J["barre"] }}
                     >
                       <div className="border-b border-trait px-4 pb-2.5 pt-3.5">
@@ -1966,9 +1968,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           ) : (
             <p className="m-0 min-w-0 flex-1 truncate text-center text-[14px] text-encre">{titreConversation}</p>
           )}
-          <button type="button" onClick={basculerHistorique} aria-expanded={historiqueOuvert} className="inline-flex flex-none items-center gap-1.5 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
+          {!epure && <button type="button" onClick={basculerHistorique} aria-expanded={historiqueOuvert} className="inline-flex flex-none items-center gap-1.5 text-[13.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>
             <History className="h-3.5 w-3.5" /> Historique
-          </button>
+          </button>}
         </div>
         {historiqueOuvert && <div className="mx-auto w-full max-w-[760px] flex-none"><HistoriqueConversations api={E.api} qs={qs} actuelle={conversationId} onOuvrir={ouvrirConversation} onNouvelle={nouvelleConversation} /></div>}
 
@@ -2112,7 +2114,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         onDragLeave={() => setGlisse(false)}
         onDrop={(e) => { if (E.fichier) deposer(e); }}
       >
-        <div className={embarque ? "hidden" : "mb-2 flex justify-end"}>
+        <div className={embarque || epure ? "hidden" : "mb-2 flex justify-end"}>
           <button type="button" onClick={basculerHistorique} aria-expanded={historiqueOuvert} className="inline-flex items-center gap-1.5 text-[13.5px] text-craie transition-colors hover:text-encre" style={{ background: "transparent" }}>
             <History className="h-3.5 w-3.5" /> Historique
           </button>

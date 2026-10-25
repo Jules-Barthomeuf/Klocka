@@ -12,7 +12,7 @@
 // relance du propriétaire se préparent ; le mandataire les envoie lui-même.
 
 import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
-import { semerExemples, REFUS_EXEMPLE } from './mandataire-exemples.js';
+import { semerExemples, exemplesParEtape, REFUS_EXEMPLE } from './mandataire-exemples.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (user) => String(user?.email || '').toLowerCase();
@@ -29,6 +29,8 @@ function lire(entite, id, user) {
 // l'admin ne voit jamais celles des autres.
 const lister = (entite, user) => {
   if (!estAdmin(user)) semerExemples(user);
+  // Un bien d'exemple par étape de Biens, aussi pour un admin qui a des exemples (25 oct. 2026, Jules).
+  exemplesParEtape(user);
   return Records.list(entite)
     .filter((x) => (estAdmin(user) ? !x.exemple || x.mandataire_email === emailDe(user) : x.mandataire_email === emailDe(user)))
     .sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
@@ -78,7 +80,7 @@ export function modifierEstimation(id, patch, user) {
   const e = lireEstimation(id, user);
   if (!e) return { ok: false, error: 'Estimation introuvable.' };
   // Tout se retouche tant que le rapport n'est pas parti au propriétaire ; le nom, lui, toujours.
-  const seulNom = Object.keys(patch).every((k) => k === 'bien');
+  const seulNom = Object.keys(patch).every((k) => k === 'bien' || k === 'proprietaire_id');
   if (statutEstimation(e.statut) === 'envoye' && !seulNom) return { ok: false, error: 'Ce rapport est parti : il ne se modifie plus.' };
   const champs = {};
   for (const c of ['bien', 'adresse', 'infos_rdv']) if (c in patch) champs[c] = patch[c] ? String(patch[c]).trim() : null;
@@ -86,6 +88,12 @@ export function modifierEstimation(id, patch, user) {
   // Un nom choisi à la main : le chat ne le réécrit plus.
   if (champs.bien) { champs.bien = champs.bien.slice(0, 160); champs.nom_choisi = true; }
   if (patch.rapport && typeof patch.rapport === 'object') champs.rapport = { ...(e.rapport || {}), ...patch.rapport };
+  // Le propriétaire de la Prospection dont le bien est estimé (page Biens, 24 oct. 2026) : une fiche à lui seulement.
+  if ('proprietaire_id' in patch) {
+    const p = patch.proprietaire_id ? Records.get('ProprietaireMandataire', patch.proprietaire_id) : null;
+    if (patch.proprietaire_id && (!p || emailDe({ email: p.mandataire_email }) !== emailDe({ email: e.mandataire_email }))) return { ok: false, error: 'Propriétaire introuvable.' };
+    champs.proprietaire_id = p ? p.id : null;
+  }
   return { ok: true, estimation: Records.update('EstimationMandataire', e.id, champs) };
 }
 
@@ -449,6 +457,17 @@ export function lierEstimation(id, estimationId, user) {
     if (!e || emailDe({ email: e.mandataire_email }) !== emailDe({ email: d.mandataire_email })) return { ok: false, error: 'Estimation introuvable.' };
   }
   return { ok: true, dossier: Records.update('DossierMandataire', d.id, { estimation_id: estimationId || null, estimation_choisie: true }) };
+}
+
+/** L'estimation d'un mandat : le mandat né dans un bien (page Biens, 24 oct. 2026) garde l'estimation de ce bien. */
+export function lierEstimationMandat(id, estimationId, user) {
+  const m = lireMandat(id, user);
+  if (!m) return { ok: false, error: 'Mandat introuvable.' };
+  if (estimationId) {
+    const e = Records.get('EstimationMandataire', estimationId);
+    if (!e || emailDe({ email: e.mandataire_email }) !== emailDe({ email: m.mandataire_email })) return { ok: false, error: 'Estimation introuvable.' };
+  }
+  return { ok: true, mandat: Records.update('MandatMandataire', m.id, { estimation_id: estimationId || null }) };
 }
 
 /** L'estimation d'un dossier : celle qu'on a liée, sinon celle du même bien. */

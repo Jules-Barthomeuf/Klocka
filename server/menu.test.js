@@ -54,13 +54,14 @@ test('un groupe est une entrée ; une page sait son groupe', async () => {
   assert.equal(groupeDe('Dashboard'), null);
 });
 
-test('le menu des mandataires : la structure de l’équipe, Prospection et Biens en groupes, Feedback dans Autre', async () => {
+test('le menu des mandataires : la structure de l’équipe, Biens en une entrée, Feedback dans Autre', async () => {
   const { menuMandataire, groupeDe } = await import('../src/lib/menu.js');
   const { principal, autre } = menuMandataire();
   assert.deepEqual(principal.map((x) => x.label), ['Haka', 'Prospection', 'Biens', 'Clients', 'Projets', 'Simulateur']);
-  assert.deepEqual(principal.find((x) => x.groupe === 'Biens').entrees.map((e) => e.label), ['Estimation', 'Mandat', 'Dossiers', 'Mise en marché']);
+  // Biens, une seule entrée (24 oct. 2026) : les étapes sont dans la page, plus d'onglets en tête.
+  assert.equal(principal.find((x) => x.label === 'Biens').cle, 'MandataireBiens');
   assert.deepEqual(autre.map((e) => e.cle), ['Feedback']);
-  assert.equal(groupeDe('MandataireMandat', 'mandataire').groupe, 'Biens');
+  assert.equal(groupeDe('MandataireMandat', 'mandataire'), null);
   // L'Off-market est dans la Prospection (23 oct. 2026) : plus d'entrée à part, ni dans « Autre ».
   assert.ok(!principal.some((x) => x.cle === 'MandataireOffMarket' || (x.entrees || []).some((e) => e.cle === 'MandataireOffMarket')));
   assert.ok(!autre.some((e) => e.cle === 'MandataireOffMarket'));

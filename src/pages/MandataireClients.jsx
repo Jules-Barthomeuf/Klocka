@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Search, X, ArrowRight } from "lucide-react";
+import { Avatar } from "@/components/mandataire/AvatarClient";
 import { base44 } from "@/api/base44Client";
 import { createPageUrl } from "@/utils";
 import { J } from "@/design/jetons";
@@ -118,19 +119,6 @@ export default function MandataireClients() {
     </div>
   );
 }
-
-// Une icône par client, toujours la même : tirée de son identifiant, parmi
-// les 24 de public/avatars. Un visage dessiné, jamais le vrai client.
-const NB_AVATARS = 24;
-const avatarDe = (d) => {
-  let h = 0;
-  for (const c of String(d.id || d.reference || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return `/avatars/client-${String((h % NB_AVATARS) + 1).padStart(2, "0")}.png`;
-};
-
-const Avatar = ({ d, taille = "h-[38px] w-[38px]" }) => (
-  <img src={avatarDe(d)} alt="" aria-hidden="true" className={`block flex-none rounded-full ${taille}`} />
-);
 
 function PastilleEtat({ d }) {
   const n = aProspecter(d);

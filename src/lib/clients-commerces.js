@@ -15,7 +15,9 @@ export function racinesDuType(type) {
 const FAMILLES_EXCLUES = [
   { cle: "sante", mot: "santé", dit: /sant[eé]|m[eé]dical|pharmac/i, activite: /pharma|m[eé]dic|dentaire|kin[eé]|optic|laborat|infirm|orthop|audio|sant[eé]|clinique|v[eé]t[eé]rin/i },
   { cle: "restauration", mot: "restauration", dit: /restaura|food|snack|fast/i, activite: /restaura|snack|kebab|pizz|burger|sushi|traiteur|fast/i },
-  { cle: "bar", mot: "bars", dit: /\bbars?\b|d[eé]bit de boissons|nuit/i, activite: /\bbar\b|bars|pub|d[eé]bit de boissons|discoth|cav(e|iste)/i },
+  { cle: "bar", mot: "bars", dit: /\bbars?\b|d[eé]bit de boissons/i, activite: /\bbar\b|bars|pub|d[eé]bit de boissons|discoth|cav(e|iste)/i },
+  // « Pas de boîte de nuit » n'écarte que la nuit, plus les bars (24 oct. 2026, Jules).
+  { cle: "nuit", mot: "boîte de nuit", dit: /bo[iî]tes? de nuit|discoth|night|\bclubs?\b/i, activite: /discoth|bo[iî]te de nuit|dancing|night|cabaret|\bclub\b|salles? de danse/i },
   { cle: "beaute", mot: "coiffure et beauté", dit: /coiff|beaut|esth[eé]t|ongl/i, activite: /coiff|beaut|esth[eé]t|ongl|barbier|institut/i },
   { cle: "tabac", mot: "tabac", dit: /tabac|presse|cigarette/i, activite: /tabac|presse|cigarett|vapot/i },
 ];
@@ -83,3 +85,23 @@ export function accroche(c, d) {
   const budget = b === "Budget non précisé" ? "budget à préciser" : /^\d/.test(b) ? `budget ${b}` : b;
   return `J'ai un acquéreur qui cherche exactement ${quoi} dans votre secteur, ${budget}.${prix} Seriez-vous ouvert à en discuter ?`;
 }
+
+/**
+ * Pure : pourquoi ce mur est une bonne cible pour ce client, en une phrase (24 oct. 2026, Jules) : le signal le plus
+ * fort, qui possède les murs, et le prix face à son budget. `p` : un mur de « Pour mes clients ».
+ */
+export function pourquoiCible(p, d) {
+  if (!p) return null;
+  const signal = String(p.signaux?.[0] || "").replace(/\s*\([^)]*\)\s*/g, " ").trim();
+  const murs = p.lien === "exploitant_certain" || p.lien === "exploitant_probable" ? "l'exploitant possède les murs"
+    : p.proprietaire_type === "sci" ? "murs à une SCI" : p.proprietaire_type === "particulier" ? "murs à un particulier" : p.proprietaire ? "propriétaire identifié" : null;
+  const r = p.prix?.au_rendement ? ` pour ${String(p.prix.au_rendement).replace(".", ",")} %` : "";
+  const b = budgetDe(d);
+  // Le prix est indicatif (24 oct. 2026) : « dans son budget » seulement quand c'est le cas.
+  const prix = p.prix?.moyenne ? `environ ${kEuros(p.prix.moyenne)}${r}${b !== "Budget non précisé" && p.dans_budget !== false ? `, dans son budget (${b})` : b !== "Budget non précisé" ? `, hors de son budget (${b}), à vérifier` : ""}` : "prix à vérifier";
+  const morceaux = [signal, murs, prix].filter(Boolean);
+  if (!morceaux.length) return null;
+  const phrase = morceaux.join(", ");
+  return `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}.`;
+}
+

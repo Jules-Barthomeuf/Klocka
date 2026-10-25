@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { chargerGoogleMaps } from "@/components/kzoning/CarteGoogleZones";
 import { JL } from "@/design/jetons";
+import jetons from "@/design/jetons.json";
+
+// La pervenche des jetons, littérale : Google dessine en SVG (le point « vous êtes ici », 24 oct. 2026).
+const PERVENCHE = jetons.accents.pervenche.sombre;
 
 // La carte des secteurs des mandataires : Google Maps, comme K-Zoning. Même
 // chargeur, même clé, le rendu de Google tel quel. Un secteur s'y dessine
@@ -81,7 +85,11 @@ function creerCalque(g) {
  * @param {Array} points         le contour en cours
  * @param {string} type          roadmap | satellite | hybrid | terrain
  */
-export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trace = false, points = [], apercu = [], villes = [], villeActive = null, type = "roadmap", onSecteur, onPoint, onVille, onErreur }) {
+/**
+ * @param marqueurs  des points posés sur la carte ({ id, lat, lon, couleur?, titre? }) : les murs d'un client dans la
+ *                   Prospection du mandataire (24 oct. 2026). La carte les cadre quand ils changent.
+ */
+export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trace = false, points = [], apercu = [], villes = [], villeActive = null, type = "roadmap", marqueurs = [], marqueurActif = null, contourSeul = false, moi = null, suivreMoi = false, margesChoisi = { top: 80, bottom: 80, left: 380, right: 420 }, onMarqueur, onSecteur, onPoint, onVille, onErreur }) {
   const conteneur = useRef(null);
   const carte = useRef(null);
   const traces = useRef([]);
@@ -89,11 +97,13 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
   const brouillon = useRef([]);
   const traceApercu = useRef([]);
   const tracesVilles = useRef([]);
+  const tracesMarqueurs = useRef([]);
+  const tracesMoi = useRef([]);
   const cadre = useRef(false);
   const [pret, setPret] = useState(false);
   // Les rappels changent à chaque rendu : les écouteurs Google lisent la dernière version.
-  const rappels = useRef({ trace, onPoint, onSecteur, onVille });
-  rappels.current = { trace, onPoint, onSecteur, onVille };
+  const rappels = useRef({ trace, onPoint, onSecteur, onVille, onMarqueur });
+  rappels.current = { trace, onPoint, onSecteur, onVille, onMarqueur };
 
   // La carte, une fois.
   useEffect(() => {
@@ -133,15 +143,17 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
     if (!g || !carte.current) return;
     for (const t of traces.current) t.setMap(null);
     const dessines = secteurs.filter((s) => anneauxDe(s).length);
-    calque.current?.poser(dessines.map((s) => ({ anneaux: anneauxDe(s), teinte: s.teinte, motif: s.motif ?? 0, actif: s.id === choisi })));
+    // `contourSeul` (Prospecter pour un client, 24 oct. 2026) : plus de motif dans le secteur, seulement ses limites.
+    calque.current?.poser(contourSeul ? [] : dessines.map((s) => ({ anneaux: anneauxDe(s), teinte: s.teinte, motif: s.motif ?? 0, actif: s.id === choisi })));
     traces.current = dessines.map((s) => {
       const actif = s.id === choisi;
       const poly = new g.Polygon({
         map: carte.current,
         paths: chemins(anneauxDe(s)),
+        // Pendant une prospection, la limite du secteur en noir (24 oct. 2026, Jules) : le jeton le plus sombre.
         strokeColor: JL.fond,
         strokeOpacity: 1,
-        strokeWeight: actif ? 3 : 2,
+        strokeWeight: contourSeul ? 2.5 : actif ? 3 : 2,
         // Presque transparent : le motif est dessous, le polygone ne garde que le clic.
         fillColor: s.teinte,
         fillOpacity: 0.01,
@@ -154,7 +166,7 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
       });
       return poly;
     });
-  }, [secteurs, choisi, pret]);
+  }, [secteurs, choisi, contourSeul, pret]);
 
   // Le contour en cours : le trait, et ses points.
   useEffect(() => {
@@ -196,6 +208,48 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
       return m;
     });
   }, [villes, villeActive, pret]);
+
+  // Les marqueurs (les murs d'un client) : un rond cerclé de blanc, plus gros quand il est ouvert ; la carte les cadre.
+  const cleMarqueurs = marqueurs.map((m) => m.id).join("|");
+  useEffect(() => {
+    const g = window.google?.maps;
+    if (!g || !carte.current) return;
+    for (const t of tracesMarqueurs.current) t.setMap(null);
+    tracesMarqueurs.current = marqueurs.filter((m) => m.lat != null && m.lon != null).map((m) => {
+      const actif = m.id === marqueurActif;
+      const mk = new g.Marker({
+        map: carte.current, position: { lat: m.lat, lng: m.lon }, title: m.titre || "", zIndex: actif ? 90 : 80,
+        icon: { path: g.SymbolPath.CIRCLE, scale: actif ? 10 : 7.5, fillColor: m.couleur || JL.menthe, fillOpacity: 1, strokeColor: JL.fond, strokeWeight: 2.5 },
+      });
+      mk.addListener("click", () => rappels.current.onMarqueur?.(m.id));
+      return mk;
+    });
+  }, [cleMarqueurs, marqueurActif, pret]);
+  useEffect(() => {
+    const g = window.google?.maps;
+    if (!g || !carte.current || !marqueurs.length) return;
+    const bornes = new g.LatLngBounds();
+    for (const m of marqueurs) if (m.lat != null) bornes.extend({ lat: m.lat, lng: m.lon });
+    // Une marge à la mesure de la carte : une vignette de 150 px n'en supporte pas 70.
+    carte.current.fitBounds(bornes, Math.min(70, Math.round((conteneur.current?.offsetWidth || 400) / 8)));
+    if (marqueurs.length === 1) carte.current.setZoom(15);
+    // Le cadrage suit le jeu de points, pas chaque rendu.
+  }, [cleMarqueurs, pret]);
+
+  // Où je suis (`moi` : { lat, lon, precision }), en temps réel : un point bleu cerclé, et sa marge d'erreur ; la carte
+  // le suit quand `suivreMoi` (la liste en grand écran, 24 oct. 2026).
+  useEffect(() => {
+    const g = window.google?.maps;
+    if (!g || !carte.current) return;
+    for (const t of tracesMoi.current) t.setMap(null);
+    tracesMoi.current = [];
+    if (!moi || moi.lat == null) return;
+    const centre = { lat: moi.lat, lng: moi.lon };
+    if (moi.precision) tracesMoi.current.push(new g.Circle({ map: carte.current, center: centre, radius: moi.precision, strokeOpacity: 0, fillColor: PERVENCHE, fillOpacity: 0.15, clickable: false, zIndex: 95 }));
+    tracesMoi.current.push(new g.Marker({ map: carte.current, position: centre, clickable: false, zIndex: 100, title: "Vous êtes ici",
+      icon: { path: g.SymbolPath.CIRCLE, scale: 8, fillColor: PERVENCHE, fillOpacity: 1, strokeColor: JL.encre, strokeWeight: 3 } }));
+    if (suivreMoi) carte.current.panTo(centre);
+  }, [moi?.lat, moi?.lon, moi?.precision, suivreMoi, pret]);
 
   // L'aperçu des communes, départements ou régions choisis, avant l'enregistrement.
   useEffect(() => {
@@ -239,13 +293,14 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
     if (!g || !carte.current || !anneauxDe(s).length) return;
     const bornes = new g.LatLngBounds();
     for (const [lat, lng] of anneauxDe(s).flat()) bornes.extend({ lat, lng });
-    carte.current.fitBounds(bornes, { top: 80, bottom: 80, left: 380, right: 420 });
+    // Les marges laissent la place aux panneaux posés sur la carte (l'admin en a deux).
+    carte.current.fitBounds(bornes, margesChoisi);
     // Le cadrage suit le choix, pas chaque relecture de la liste.
      
   }, [choisi, pret]);
 
   useEffect(() => () => {
-    for (const lot of [traces, brouillon, traceApercu, tracesVilles]) {
+    for (const lot of [traces, brouillon, traceApercu, tracesVilles, tracesMarqueurs, tracesMoi]) {
       for (const t of lot.current) t.setMap(null);
       lot.current = [];
     }

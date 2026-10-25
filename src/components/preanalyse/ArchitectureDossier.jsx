@@ -35,39 +35,7 @@ export function vueDeLaPorte(porte, dossier) {
 const argent = (n) => (n == null ? null : `${Math.round(n).toLocaleString("fr-FR")} €`);
 const jour = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "");
 
-/**
- * La frise (maquette de Jules, 17 oct. 2026) : huit ronds reliés par un trait,
- * le numéro ou la coche dans le rond, le nom de l'étape
- * dessous (les sous-titres retirés le 17 oct. 2026) ; l'étape ouverte est pleine (sans soulignement), les étapes faites sont
- * cochées et leur trait est vert.
- */
-export function FriseDossier({ vue, atteinte, onAller, occupe = false }) {
-  return (
-    <nav aria-label="Étapes du dossier" className="overflow-x-auto py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <ol className="m-0 grid min-w-[860px] list-none grid-cols-8 gap-0 p-0">
-        {FRISE.map((e, i) => {
-          const ouverte = vue === e.id;
-          const faite = e.n < atteinte;
-          const derniere = i === FRISE.length - 1;
-          return (
-            <li key={e.id} className="min-w-0">
-              <button type="button" onClick={() => onAller(e.id)} disabled={occupe} aria-current={ouverte ? "step" : undefined}
-                className="group block w-full text-left" style={{ background: "transparent" }}>
-                <span className="flex items-center">
-                  <span className={`grid h-[22px] w-[22px] flex-none place-items-center rounded-full border text-[11px] tabular-nums transition-colors duration-300 ${ouverte ? "border-encre bg-encre text-fond" : faite ? "border-menthe/60 bg-menthe/25 text-menthe" : "border-bord-doux text-transparent group-hover:border-bord-vif"}`}>
-                    {faite ? <Check className="h-3 w-3" /> : ouverte ? e.n : null}
-                  </span>
-                  {!derniere && <span className={`mx-2.5 h-px flex-1 transition-colors duration-500 ${faite ? "bg-menthe/50" : "bg-encre/[0.14]"}`} />}
-                </span>
-                <span className={`mt-3 block truncate pr-3 text-[14px] transition-colors ${ouverte ? "text-encre" : faite ? "text-craie" : "text-brume group-hover:text-craie"}`}>{e.label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
+export { FriseDossier } from "@/components/preanalyse/EtapesDossier";
 
 function useLettres(dealId) {
   return useQuery({ queryKey: ["offres"], queryFn: () => base44.request("GET", "/api/offres"), enabled: !!dealId, select: (d) => (d.offres || []).filter((o) => o.deal_id === dealId) });

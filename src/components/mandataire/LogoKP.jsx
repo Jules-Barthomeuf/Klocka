@@ -3,7 +3,7 @@ import "./logo-kp.css";
 
 // Le logo K Partners de la charte de marque (octobre 2026) : le mot-symbole « kp » et son trait, comme un curseur
 // prêt à écrire. `fond` : « clair » (trait indigo), « nuit » (texte blanc, trait pervenche), « mono » (trait de la
-// couleur du texte). La taille suit la taille de police de l'élément.
+// couleur du texte), « theme » (dans l'application : encre et pervenche, selon le thème). La taille suit la taille de police de l'élément.
 
 export default function LogoKP({ className = "", style = undefined, fond = "clair" }) {
   return (

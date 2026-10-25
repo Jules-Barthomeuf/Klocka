@@ -18,7 +18,7 @@ import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
 
 const cleMeta = (email) => `mandataire-exemples:${String(email || '').toLowerCase()}`;
 const maintenant = () => new Date().toISOString();
-const ENTITES = ['EstimationMandataire', 'MandatMandataire', 'DossierMandataire', 'MiseEnMarche'];
+const ENTITES = ['EstimationMandataire', 'MandatMandataire', 'DossierMandataire', 'MiseEnMarche', 'ProprietaireMandataire'];
 
 /** Pure : un PDF d'une page, quelques lignes de texte (les pièces d'exemple des dossiers). */
 export function pdfSimple(lignes) {
@@ -132,6 +132,78 @@ export function semerExemples(user, { dossierUploads = CHEMIN_UPLOADS } = {}) {
     suivi_acte: [], commission: null, historique: trace(email, 'exemple posé'),
   });
   return 5;
+}
+
+/**
+ * Un bien d'exemple par étape de Biens (25 oct. 2026, Jules : « pour que je puisse visualiser chaque étape »). Une fois
+ * par mandataire (Meta), et seulement s'il a encore des exemples (retirés, ils ne reviennent pas). Les cinq exemples
+ * d'origine servent, deux sont retouchés, rien n'est supprimé :
+ *   1 Rendez-vous fixé, 2 Visité, 4 Prix d'accord : trois fiches de la Prospection (posées ici) ;
+ *   3 Estimation : l'estimation d'Avignon ; 5 Mandat : le mandat d'Avignon ; 6 Analyse : le dossier de Nîmes ;
+ *   7 Mise en marché : le dossier complet, renommé (Carpentras), au go et en préparation ;
+ *   8 Offres : la pharmacie de Montpellier ; 9 Vente : un restaurant d'Arles au compromis (posé ici).
+ * Rend le nombre de fiches créées ou retouchées.
+ */
+export function exemplesParEtape(user) {
+  const email = String(user?.email || '').toLowerCase();
+  const cle = `mandataire-exemples-etapes:${email}`;
+  if (!email || Meta.get(cle)) return 0;
+  const siens = (e) => Records.list(e).filter((x) => x.exemple && x.mandataire_email === email);
+  if (!ENTITES.some((e) => siens(e).length)) return 0;
+  Meta.set(cle, maintenant());
+  const base = { mandataire_email: email, exemple: true, cree_le: maintenant() };
+  const jour = (n) => new Date(Date.now() - n * 86400000).toISOString();
+  let n = 0;
+  const fiche = (champs, validee, histo) => {
+    Records.create('ProprietaireMandataire', {
+      ...base, statut: 'rdv_pris', source: 'Exemple', telephone_source: 'exemple', a_confirmer: {}, tentatives: 1,
+      biens: { validee, pause: null }, historique: histo.map(([j, texte]) => ({ le: jour(j), type: 'note', texte })), ...champs,
+    });
+    n += 1;
+  };
+  fiche({ nom: 'M. Henri Exemple', commerce: 'Café des Halles', activite: 'Café', adresse: '2 place des Halles', ville: 'Nîmes', telephone: '06 00 00 00 01', prochaine_action: 'Rendez-vous sur place', prochaine_action_le: jour(-3) },
+    null, [[6, 'Appelé : intéressé, il veut savoir ce que valent ses murs.'], [5, 'Rendez-vous fixé jeudi à 10 h, au café.']]);
+  fiche({ nom: 'Mme Lucie Exemple', commerce: 'Boucherie Sainte-Anne', activite: 'Boucherie', adresse: '18 rue Sainte-Anne', ville: 'Avignon', telephone: '06 00 00 00 02', prochaine_action: 'Visiter le local', prochaine_action_le: jour(-1) },
+    'rdv', [[9, 'Contactée par la SCI familiale.'], [7, 'Rendez-vous fixé pour visiter le local.']]);
+  fiche({ nom: 'SCI Exemple Cours', commerce: 'Optique du Cours', activite: 'Opticien', adresse: '40 cours Mirabeau', ville: 'Aix-en-Provence', telephone: '06 00 00 00 03', prochaine_action: "Valider le prix avec la gérante", prochaine_action_le: jour(-2) },
+    'estimation', [[20, 'Rendez-vous fixé.'], [15, 'Local visité : 85 m², bail 3-6-9 de 2019.'], [4, 'Avis de valeur envoyé : 640 000 à 700 000 €.']]);
+
+  // 7 : le dossier complet d'Avignon devient un bien au go de l'analyste, sa mise en marché en préparation. Renommé
+  // pour ne pas porter le même nom que l'estimation d'Avignon.
+  const complet = siens('DossierMandataire').find((d) => d.statut === 'complet');
+  if (complet) {
+    const bien = 'Salle de sport louée · Carpentras';
+    Records.update('DossierMandataire', complet.id, { bien, adresse: '12 avenue de l\'Exemple, 84200 Carpentras', statut: 'go' });
+    if (!siens('MiseEnMarche').some((m) => m.dossier_id === complet.id)) {
+      Records.create('MiseEnMarche', {
+        ...base, dossier_id: complet.id, deal_id: null, bien, statut: 'preparation', preparation_le: jour(1),
+        publication_validee_le: null, presente_le: null, offre_le: null,
+        livrables: { teaser: null, fiche_deal: null, data_room: null }, video: null, activite: [], offres: [], suivi_acte: [], commission: null,
+        historique: trace(email, 'exemple posé'),
+      });
+    }
+    n += 1;
+  }
+
+  // 9 : la vente, un compromis signé, l'acte à venir.
+  Records.create('MiseEnMarche', {
+    ...base, dossier_id: null, deal_id: null, bien: 'Murs d\'un restaurant · Arles',
+    statut: 'compromis', preparation_le: jour(70), publication_validee_le: jour(62), presente_le: jour(60), offre_le: jour(30),
+    livrables: { teaser: null, fiche_deal: null, data_room: null }, video: null,
+    activite: [
+      { le: jour(58), type: 'dossier_ouvert', note: null, client_nom: null },
+      { le: jour(45), type: 'visite_faite', note: 'Visite avec le restaurateur, très bon contact.', client_nom: null },
+      { le: jour(30), type: 'offre', note: null, client_nom: null },
+    ],
+    offres: [{
+      id: 'o-exemple-arles', le: jour(30), montant: 760000, conditions: 'Sans condition suspensive de prêt.',
+      argumentaire: 'Investisseur déjà propriétaire de deux murs commerciaux à Arles, fonds propres.', client_nom: null,
+      validee: true, validee_le: jour(30), reponse: 'acceptee',
+    }],
+    suivi_acte: [], commission: null, historique: trace(email, 'exemple posé'),
+  });
+  n += 1;
+  return n;
 }
 
 /** Retire tous les exemples d'un mandataire ; ils ne reviennent pas. */

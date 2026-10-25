@@ -26,7 +26,7 @@ test("à la première visite, un exemple par page ; une seule fois, et chacun ne
   assert.ok(m.questionnaire.prix > 0 && !m.questionnaire.duree_mois, 'presque complet : la durée reste à dire');
   assert.equal(P.listerEstimations(MOI).length, 1);
   assert.equal(P.listerDossiers(MOI).length, 2);
-  const marche = P.listerMarches(MOI)[0];
+  const marche = P.listerMarches(MOI).find((m) => /pharmacie/.test(m.bien));
   assert.equal(marche.statut, 'offre');
   assert.ok(marche.offres[0].validee && marche.offres[0].argumentaire);
   // Une seconde visite ne repose rien.
@@ -40,12 +40,13 @@ test("à la première visite, un exemple par page ; une seule fois, et chacun ne
 });
 
 test("un exemple ne sort pas : ni transfert à Klocka, ni MyNotary, ni Monday", async () => {
-  const d = P.listerDossiers(MOI).find((x) => x.statut === 'complet');
+  // Le dossier complet d'origine est devenu le bien en mise en marché (Carpentras, au go) le 25 oct. 2026.
+  const d = P.listerDossiers(MOI).find((x) => /Carpentras/.test(x.bien));
   assert.ok(P.checklist(d).complet, 'le dossier complet a ses pièces');
   const r = await P.soumettreDossier(d.id, MOI, {});
   assert.equal(r.ok, false);
   assert.match(r.error, /exemple/);
-  assert.equal(Records.get('DossierMandataire', d.id).statut, 'complet');
+  assert.equal(Records.get('DossierMandataire', d.id).statut, 'go');
   assert.equal((await P.pousserDossierMonday(d.id, { creer: true })).ok, false);
   const C = await import('./mandataire-mandat-chat.js');
   const m = P.listerMandats(MOI)[0];
@@ -63,7 +64,26 @@ test("les pièces d'exemple sont de vrais PDF, et un clic retire tous les exempl
   const pdf = X.pdfSimple(['EXEMPLE - Bail commercial', 'Loyer : 111 000 €']);
   assert.match(pdf.toString('latin1'), /^%PDF-1\.4[\s\S]*%%EOF\n$/);
   const r = X.retirerExemples(MOI);
-  assert.equal(r.retires, 5);
+  assert.equal(r.retires, 10, "les cinq d'origine et les cinq posés pour voir chaque étape");
   assert.equal(P.listerDossiers(MOI).filter((d) => d.exemple).length, 0);
   assert.equal(P.listerMarches(MOI).length, 0, 'ils ne reviennent pas');
+});
+
+test('un bien d’exemple par étape de Biens, une seule fois, sans rien supprimer', async () => {
+  const QUI = { email: 'etapes@kpartners.fr', role: 'mandataire' };
+  P.listerMandats(QUI);
+  const { regrouperBiens, ETAPES_BIEN } = await import('../src/lib/biens-mandataire.js');
+  const avoir = (e) => Records.list(e).filter((x) => x.mandataire_email === QUI.email);
+  const biens = regrouperBiens({
+    estimations: avoir('EstimationMandataire'), mandats: avoir('MandatMandataire'), dossiers: avoir('DossierMandataire'),
+    marches: avoir('MiseEnMarche'), proprietaires: avoir('ProprietaireMandataire'),
+  });
+  assert.deepEqual(biens.map((b) => ETAPES_BIEN[b.etape - 1].id).sort(), ETAPES_BIEN.map((e) => e.id).sort(), 'exactement un par étape');
+  assert.ok(biens.every((b) => b.exemple));
+  assert.equal(X.exemplesParEtape(QUI), 0, 'une seule fois');
+  // Retirés, ils ne reviennent pas (les fiches de la Prospection d'exemple aussi).
+  X.retirerExemples(QUI);
+  assert.equal(avoir('ProprietaireMandataire').length, 0);
+  // Un admin sans exemples n'en reçoit pas.
+  assert.equal(X.exemplesParEtape({ email: 'admin2@klocka.immo', role: 'admin' }), 0);
 });

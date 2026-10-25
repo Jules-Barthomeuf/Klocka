@@ -59,6 +59,7 @@ export const ENTREES_MANDATAIRE = [
   { cle: "Dashboard", label: "Dashboard" },
   { cle: "MandataireProspection", label: "Prospection" },
   { cle: "MandataireClients", label: "Clients" },
+  { cle: "MandataireBiens", label: "Biens" },
   { cle: "MandataireEstimation", label: "Estimation" },
   { cle: "MandataireMandat", label: "Mandat" },
   { cle: "MandataireDossier", label: "Dossiers" },
@@ -103,13 +104,16 @@ export const MENU_MANDATAIRE = [
   { cle: "Dashboard", label: "Haka" },
   // La Prospection reprend l'Off-market (23 oct. 2026, Jules) : une seule entrée, Commerces et Rues dans la page.
   { cle: "MandataireProspection", label: "Prospection" },
-  { groupe: "Biens", cle: "GroupeBiens", label: "Biens", entrees: [{ cle: "MandataireEstimation", label: "Estimation" }, { cle: "MandataireMandat", label: "Mandat" }, { cle: "MandataireDossier", label: "Dossiers" }, { cle: "MandataireMarche", label: "Mise en marché" }] },
+  // Biens, une seule entrée (24 oct. 2026, Jules) : tous les biens en cartes, puis un bien suivi comme un dossier de
+  // l'équipe, ses étapes à droite (Estimation, Mandat, Analyse, Mise en marché, Offre, Vente).
+  { cle: "MandataireBiens", label: "Biens" },
   { cle: "MandataireClients", label: "Clients" },
   { cle: "MandataireProjets", label: "Projets" },
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
 ];
 // Off-market n'est plus une page à part pour un mandataire (23 oct. 2026) : son adresse mène à la Prospection.
-const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket"];
+// Les quatre pages d'étape restent ouvertes par leur adresse (notifications, liens) ; elles vivent dans Biens.
+const HORS_MENU_MANDATAIRE = ["Personnalisation", "MandataireOffMarket", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche"];
 
 /** Pure : le groupe du menu (équipe ou mandataires) auquel une page appartient, ou null. */
 export const groupeDe = (page, vue = "admin") => (vue === "mandataire" ? MENU_MANDATAIRE : MENU_ADMIN)

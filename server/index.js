@@ -1288,6 +1288,12 @@ monterSemaine(app);
 monterQuestionsAppels(app);
 import('./prospection/questions-appels.js').then((m) => m.planifier()).catch((e) => console.error('[questions-appels] :', e.message));
 import('./equipe-semaine.js').then((m) => m.planifier()).catch((e) => console.error('[semaine] :', e.message));
+// Les clients d'essai de la Prospection (24 oct. 2026) : posés une fois, jamais effacés.
+import('./mandataire-demandes-essai.js').then((m) => { const n = m.semerClientsEssai(); if (n) console.log(`[essai] ${n} client(s) d'essai posé(s)`); }).catch((e) => console.error('[essai] :', e.message));
+// Les villes des secteurs attribués se lisent si elles ne le sont pas (24 oct. 2026), une à la fois, une minute après le démarrage.
+import('./villes-secteur.js').then((m) => m.planifier()).catch((e) => console.error('[villes du secteur] :', e.message));
+// Le matin des mandataires (24 oct. 2026) : une notification par jour ouvré, à 8 h, sur Render.
+import('./mandataire-matin.js').then((m) => m.planifier()).catch((e) => console.error('[matin] :', e.message));
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
 // Haka (17 oct. 2026) : ses tâches reprennent au démarrage ; un pas externe surpris en cours devient incertain, jamais rejoué.
 import('./haka/drapeaux.js').then(async (D) => { if (!D.FILE) return; await import('./haka/declencheurs.js'); (await import('./haka/competences/relances-matin.js')).planifier(); const r = await (await import('./haka/taches.js')).reprendre(); if (r.reprises || r.incertaines) console.log(`[haka] ${r.reprises} tâche(s) reprise(s), ${r.incertaines} incertaine(s)`); }).catch((e) => console.error('[haka] reprise :', e.message));

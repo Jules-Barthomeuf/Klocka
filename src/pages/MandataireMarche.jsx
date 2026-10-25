@@ -77,7 +77,7 @@ export default function MandataireMarche() {
   );
 }
 
-function Detail({ m, types, rafraichir }) {
+export function Detail({ m, types, rafraichir }) {
   const onErr = (e) => toast.error(e?.message || "Impossible");
   const [note, setNote] = useState("");
   const video = useMutation({ mutationFn: (f) => base44.request("POST", `${API}/${m.id}/video`, { body: formDe(f), isForm: true }), onSuccess: () => { rafraichir(); toast.success("Vidéo déposée"); }, onError: onErr });

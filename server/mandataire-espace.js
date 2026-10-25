@@ -166,6 +166,8 @@ export function poserSecteur({ id = null, nom, mandataire_email, points = [], po
       nom: nom || s.nom,
       mandataire_email: email,
       ...geometrie,
+      // Un contour redessiné : ses communes se relisent (elles étaient gardées trente jours).
+      communes_auto: null, communes_auto_le: null, communes_auto_echec_le: null,
       historique: [...(s.historique || []), { ...trace, action: 'redessiné' }],
     });
     return { ok: true, secteur };
@@ -357,6 +359,8 @@ export function demandeAnonyme(d, i = 0) {
     remarque: d.remarque || null,
     information: d.information || null,
     entre_le: d.entre_le || d.ouverte_le || null,
+    // Un client d'essai (server/mandataire-demandes-essai.js) porte la pastille « Exemple ».
+    exemple: !!d.essai,
     depuis_jours: d.ouverte_le ? Math.max(0, -dansJours(d.ouverte_le)) : null,
   };
 }
@@ -528,9 +532,11 @@ export function correspond(cible, demande) {
 // ---------------------------------------------------------------------------
 
 export const STATUTS_PROPRIETAIRE = ['a_appeler', 'contacte', 'en_discussion', 'rdv_pris', 'mandat_signe', 'pas_vendeur', 'a_recontacter'];
+// Les mots de la Prospection (24 oct. 2026, Jules) : À contacter, Contacté ; Pas d'intérêt pour en sortir ; au
+// rendez-vous fixé, la fiche passe dans Biens. Les clés anciennes restent (les fiches déjà enregistrées).
 export const LIBELLES_STATUT = {
-  a_appeler: 'À appeler', contacte: 'Contacté', en_discussion: 'En discussion', rdv_pris: 'RDV pris',
-  mandat_signe: 'Mandat signé', pas_vendeur: 'Pas vendeur', a_recontacter: 'À recontacter',
+  a_appeler: 'À contacter', contacte: 'Contacté', en_discussion: 'Contacté', rdv_pris: 'Rendez-vous fixé (dans Biens)',
+  mandat_signe: 'Mandat (dans Biens)', pas_vendeur: "Pas d'intérêt", a_recontacter: 'À contacter',
 };
 
 export const mesProprietaires = (user) =>
@@ -544,6 +550,25 @@ export function modifierProprietaire(id, patch, user) {
   for (const c of ['nom', 'telephone', 'email', 'commerce', 'remarque']) {
     if (c in (patch || {})) champs[c] = patch[c] ? String(patch[c]).trim().slice(0, 200) : null;
   }
+  // Saisi à la main dans la fiche (25 oct. 2026, Jules) : la valeur fait foi, elle n'est plus « à confirmer ».
+  const confirmes = ['telephone', 'email'].filter((c) => c in champs);
+  if (confirmes.length) {
+    const a = { ...(p.a_confirmer || {}) };
+    for (const c of confirmes) delete a[c];
+    champs.a_confirmer = a;
+    if ('telephone' in champs) champs.telephone_source = champs.telephone ? 'saisi par vous' : null;
+  }
+  // Ce que les registres disent du commerce (exploitant, propriétaire des murs, gérant) se corrige sans toucher au
+  // commerce lu : la correction se garde sur la fiche et passe devant. Vide, la lecture des registres revient.
+  const corrections = { ...(p.corrections || {}) };
+  let corrige = false;
+  for (const c of ['exploitant', 'murs', 'gerant']) {
+    if (!(c in (patch || {}))) continue;
+    const v = patch[c] ? String(patch[c]).trim().slice(0, 200) : '';
+    if (v) corrections[c] = v; else delete corrections[c];
+    corrige = true;
+  }
+  if (corrige) champs.corrections = corrections;
   if (!Object.keys(champs).length) return { ok: false, error: 'Rien à modifier.' };
   return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, champs) };
 }

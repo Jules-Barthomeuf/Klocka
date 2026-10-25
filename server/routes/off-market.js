@@ -84,6 +84,8 @@ export function monterOffMarket(app) {
     const S2 = await Si();
     const lecture = await S2.lireVilleSimple(req.params.id, { forcer: req.query.relire === '1' });
     if (!lecture.ok) return res.status(400).json({ error: lecture.error });
+    // La ville ouverte passe devant la préparation des secteurs (24 oct. 2026).
+    S2.prioriser(req.params.id);
     if (!lecture.deja || S2.etatDe(req.params.id).a_faire) S2.demarrerFond(req.params.id);
     S2.demarrerPrix(req.params.id);
     ok(res, { commerces: S2.commercesDe(req.params.id, { moi: String(user.email || '').toLowerCase() }), etat: S2.etatDe(req.params.id), lecture });

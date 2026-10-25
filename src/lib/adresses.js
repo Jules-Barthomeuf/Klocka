@@ -63,6 +63,7 @@ export const ADRESSES = {
   MandataireEstimation: "EstimationMandataire",
   MandataireMandat: "MandatMandataire",
   MandataireDossier: "DossierMandataire",
+  MandataireBiens: "Biens",
   MandataireMarche: "MiseEnMarche",
   MandataireOffMarket: "MandataireOffMarket",
   MandataireProjets: "ProjetsMandataire",

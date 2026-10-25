@@ -77,6 +77,7 @@ export default {
 			vert: 'rgb(var(--k-vert-rgb) / <alpha-value>)',
 			jaune: 'rgb(var(--k-jaune-rgb) / <alpha-value>)',
 			bleu: 'rgb(var(--k-bleu-rgb) / <alpha-value>)',
+			pervenche: 'rgb(var(--k-pervenche-rgb) / <alpha-value>)',
 			appel: 'rgb(var(--k-appel-rgb) / <alpha-value>)',
 			ecrire: 'rgb(var(--k-ecrire-rgb) / <alpha-value>)',
 			surveiller: 'rgb(var(--k-surveiller-rgb) / <alpha-value>)',

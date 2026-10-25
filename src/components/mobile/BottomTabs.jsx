@@ -1,24 +1,24 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Building2, MapPin, User, Folder, CircleUser } from "lucide-react";
+import { LayoutDashboard, Building2, MapPin, Folder, Menu, User } from "lucide-react";
 
+// Au téléphone, plus de barre du haut (24 oct. 2026, Jules) : le menu prend la dernière place de la barre du bas. Chez
+// le mandataire, à la place de Compte (Paramètres est dans le menu) ; le client garde Profil, absent de son menu.
 const TABS_CLIENT = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Projets", icon: Building2, page: "MesProjets" },
   { label: "Profil", icon: User, page: "MonCompte" },
 ];
-// Le mandataire : ses trois pages de tous les jours, et Compte, la page que
-// sa barre latérale ouvre (pas « Mon compte », qui est celle du client). Le
-// reste est dans le menu du haut.
+// Le mandataire : ses trois pages de tous les jours, puis le menu (Paramètres
+// et le reste y sont).
 const TABS_MANDATAIRE = [
   { label: "Accueil", icon: LayoutDashboard, page: "Dashboard" },
   { label: "Prospection", icon: MapPin, page: "MandataireProspection" },
-  { label: "Dossiers", icon: Folder, page: "MandataireDossier" },
-  { label: "Compte", icon: CircleUser, page: "Personnalisation" },
+  { label: "Biens", icon: Folder, page: "MandataireBiens" },
 ];
 
-export default function BottomTabs({ vue = "client" }) {
+export default function BottomTabs({ vue = "client", onMenu = null, menuOuvert = false }) {
   const tabs = vue === "mandataire" ? TABS_MANDATAIRE : TABS_CLIENT;
   const location = useLocation();
 
@@ -45,6 +45,13 @@ export default function BottomTabs({ vue = "client" }) {
             </Link>
           );
         })}
+        {onMenu && (
+          <button type="button" onClick={onMenu} aria-label={menuOuvert ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={menuOuvert}
+            className={`flex h-full flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${menuOuvert ? "text-menthe" : "text-ardoise"}`} style={{ background: "transparent" }}>
+            <Menu className="w-5 h-5" />
+            <span className="text-[11px] font-medium">Menu</span>
+          </button>
+        )}
       </div>
     </nav>
   );

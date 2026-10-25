@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, Pencil, PhoneCall, Search, Trash2, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, LocateFixed, Pencil, PhoneCall, Search, Trash2, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import PanneauAppelFiche from "@/components/mandataire/PanneauAppelFiche";
+import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
+import FicheMandataire from "@/components/mandataire/FicheMandataire";
+import { JL } from "@/design/jetons";
 
 // Une liste ouverte : la grille, comme la Prospection de l'admin — une ligne
 // par commerce, les colonnes de la Sheet (propriétaire des murs, société,
@@ -129,66 +134,50 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
  */
 function PanneauCommerce({ p, libelles, onFermer, onSansReponse, onAppeler }) {
   const c = p.cible || {};
-  const position = c.lat != null && c.lon != null ? `${c.lat},${c.lon}` : null;
+  const position = c.lat != null && c.lon != null ? `${c.lat},${c.lon}` : p.position ? `${p.position.lat},${p.position.lon}` : null;
   const adresse = [p.adresse || c.adresse, p.ville].filter(Boolean).join(", ");
   const tel = p.telephone || (c.proprietaire_occupant ? c.telephone : null) || null;
-  const faits = [
-    ["Type d'activité", c.activite || p.activite || null],
-    ["Emplacement", ROND[c.emplacement] || null],
-    ["Adresse", adresse],
-    ["Propriétaire des murs", p.nom || c.proprietaire || null],
-    ["Société", c.societe?.nom || c.societe?.forme || (c.societe?.en_nom_propre ? "En nom propre" : null)],
-    ["Numéro du propriétaire", p.telephone || null],
-    ["Numéro du commerce", c.telephone || null],
-    ["Statut", libelles[p.statut] || p.statut],
-  ].filter(([, v]) => v);
   return (
-    <div className="animate-in fade-in duration-200 fixed inset-0 z-[70] flex justify-end bg-fond/60 backdrop-blur-sm" onClick={onFermer}>
-      <div className="animate-in slide-in-from-right-6 flex h-full w-full max-w-[560px] flex-col overflow-y-auto border-l border-trait bg-surface-pleine duration-300" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 px-5 py-4">
-          <div className="min-w-0">
-            <p className="m-0 truncate text-[16px] font-medium text-encre">{p.commerce || c.enseigne || "Commerce"}</p>
-            <p className="m-0 mt-0.5 truncate text-[12.5px] text-ardoise">{adresse}</p>
-          </div>
-          <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="relative h-[320px] flex-none bg-fond max-md:h-[240px]">
-          {position && MAPS_KEY ? (
-            <iframe
-              src={`https://www.google.com/maps/embed/v1/streetview?key=${MAPS_KEY}&location=${position}&fov=85`}
-              title={`Street View · ${p.commerce || c.enseigne || adresse}`}
-              className="absolute inset-0 h-full w-full border-0"
-              allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          ) : (
-            <p className="m-0 grid h-full place-items-center text-[13.5px] text-brume">{MAPS_KEY ? "Pas de position pour ce commerce." : "Clé Google Maps absente."}</p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
-          {tel && (
-            <button type="button" onClick={() => onAppeler(p.id)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[12.5px] text-sur-menthe">
-              <PhoneCall className="h-3.5 w-3.5" /> Appeler le propriétaire
-            </button>
-          )}
-          <button type="button" onClick={() => onSansReponse(p.id)}
-            className="inline-flex h-9 items-center rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
-            Sans réponse
-          </button>
-          <a href={`https://www.google.com/maps/search/${encodeURIComponent([p.commerce || c.enseigne, adresse].filter(Boolean).join(" "))}`} target="_blank" rel="noreferrer"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe">
-            <ExternalLink className="h-3.5 w-3.5" /> Google Maps
-          </a>
-        </div>
-        <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-3 px-5 py-5 max-md:gap-x-4 max-md:px-4">
-          {faits.map(([mot, v]) => (
-            <div key={mot}><dt className="text-[11px] uppercase tracking-[.1em] text-brume">{mot}</dt><dd className="m-0 mt-0.5 text-[13.5px] leading-[1.5] text-encre">{v}</dd></div>
-          ))}
-        </dl>
-      </div>
-    </div>
+    // Une entrée et une sortie douces (25 oct. 2026, Jules : la croix referme comme elle ouvre).
+    <motion.div className="fixed inset-0 z-[70] flex justify-end bg-fond/60 backdrop-blur-sm" onClick={onFermer}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
+      <motion.div className="flex h-full w-full max-w-[560px] flex-col overflow-y-auto border-l border-trait bg-surface-pleine" onClick={(e) => e.stopPropagation()}
+        initial={{ x: 28 }} animate={{ x: 0 }} exit={{ x: 28 }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}>
+        {/* La fiche commune, celle de la carte (25 oct. 2026, Jules), avec la vitrine et les gestes sous l'adresse. */}
+        <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || c.enseigne, adresse }} media={(
+          <>
+            <div className="relative mx-6 mt-4 h-[260px] flex-none overflow-hidden rounded-[12px] bg-fond max-md:mx-5 max-md:h-[200px]">
+              {position && MAPS_KEY ? (
+                <iframe
+                  src={`https://www.google.com/maps/embed/v1/streetview?key=${MAPS_KEY}&location=${position}&fov=85`}
+                  title={`Street View · ${p.commerce || c.enseigne || adresse}`}
+                  className="absolute inset-0 h-full w-full border-0"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              ) : (
+                <p className="m-0 grid h-full place-items-center text-[13.5px] text-brume">{MAPS_KEY ? "Pas de position pour ce commerce." : "Clé Google Maps absente."}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 px-6 pt-4 max-md:px-5">
+              {tel && (
+                <button type="button" onClick={() => onAppeler(p.id)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[12.5px] text-sur-menthe">
+                  <PhoneCall className="h-3.5 w-3.5" /> Appeler le propriétaire
+                </button>
+              )}
+              <button type="button" onClick={() => onSansReponse(p.id)}
+                className="inline-flex h-9 items-center rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
+                Sans réponse
+              </button>
+              <a href={`https://www.google.com/maps/search/${encodeURIComponent([p.commerce || c.enseigne, adresse].filter(Boolean).join(" "))}`} target="_blank" rel="noreferrer"
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe">
+                <ExternalLink className="h-3.5 w-3.5" /> Google Maps
+              </a>
+            </div>
+          </>
+        )} />
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -238,16 +227,106 @@ function Cellule({ p, col, onEnregistrer }) {
 }
 
 // Les filtres de la liste, en pilule, comme ceux d'une ville de la Prospection de l'admin.
+// Les fiches dans Biens (rendez-vous fixé) et celles sans intérêt sortent des listes à prospecter (24 oct. 2026) ;
+// « Sorties » les retrouve.
+const SORTIES = ["rdv_pris", "mandat_signe", "pas_vendeur"];
 const FILTRES = [
-  ["toutes", "Toutes", () => true],
-  ["a_appeler", "À appeler", (p) => p.statut === "a_appeler"],
-  ["en_cours", "En cours", (p) => ["contacte", "en_discussion", "a_recontacter"].includes(p.statut)],
-  ["rdv", "RDV et mandats", (p) => ["rdv_pris", "mandat_signe"].includes(p.statut)],
+  ["toutes", "À prospecter", (p) => !SORTIES.includes(p.statut)],
+  ["a_appeler", "À contacter", (p) => ["a_appeler", "a_recontacter"].includes(p.statut)],
+  ["en_cours", "Contacté", (p) => ["contacte", "en_discussion"].includes(p.statut)],
+  ["rdv", "Sorties (Biens, pas d'intérêt)", (p) => SORTIES.includes(p.statut)],
   ["numero", "Avec un numéro", (p) => !!(p.telephone || p.telephone_commerce || p.cible?.telephone)],
   ["inconnu", "Propriétaire inconnu", (p) => !(p.nom || "").trim() && !p.cible?.proprietaire],
 ];
 
-export default function TableauListe({ fiches, libelles, listeId = null, onRenommer = null, onSupprimer = null, agent = false }) {
+/**
+ * La fiche d'un point de la carte (maquette de Jules, 24 oct. 2026) : la fiche commune (FicheMandataire). À l'ordinateur,
+ * à droite de la carte sur toute la hauteur ; au téléphone, au milieu de l'écran.
+ */
+function FichePoint({ fiche: p, onFermer }) {
+  const large = typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+  return (
+    <>
+      {/* Au téléphone, un voile derrière la fiche posée au milieu. */}
+      <motion.div className="absolute inset-0 z-10 bg-fond/40 md:hidden" onClick={onFermer} aria-hidden
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }} />
+      {/* Elle glisse en entrant et en sortant, doucement (24 oct. 2026) : de la droite à l'ordinateur, du centre au téléphone. */}
+      {/* Centrée au téléphone par un conteneur flex, pas par un décalage CSS : l'animation (transform) l'écraserait. */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-3 md:inset-y-0 md:left-auto md:right-0 md:block md:p-0">
+      <motion.aside initial={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }}
+        transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }} className="pointer-events-auto flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] md:h-full md:w-[420px] md:border-l md:border-trait max-md:max-h-[82dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]">
+        {/* Le défilement dans un bloc intérieur (25 oct. 2026, Jules : « à droite la card a les coins carrés ») : la barre de
+            défilement d'un bloc arrondi n'est pas coupée par ses coins ; ici le cadre arrondi la coupe. */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.nom, adresse: p.adresse }} />
+        </div>
+      </motion.aside>
+      </div>
+    </>
+  );
+}
+
+/**
+ * La liste en grand écran (24 oct. 2026, Jules) : la carte Google en plein écran avec les commerces de la liste ; un
+ * point touché dit seulement le nom du commerce ; une petite croix en haut à gauche ferme ; le bouton de localisation
+ * pose « vous êtes ici » en temps réel, pour les trouver sur le terrain.
+ */
+function CarteListeGrandEcran({ fiches, onFermer }) {
+  const [choisi, setChoisi] = useState(null);
+  const [moi, setMoi] = useState(null);
+  const [suivi, setSuivi] = useState(null); // l'identifiant de watchPosition
+  const [centrer, setCentrer] = useState(false);
+  const places = fiches.filter((p) => p.position);
+  const marqueurs = useMemo(() => places.map((p) => ({ id: p.id, lat: p.position.lat, lon: p.position.lon, titre: p.commerce || p.nom || "", couleur: JL.menthe })), [places]);
+  const fiche = places.find((p) => p.id === choisi) || null;
+  useEffect(() => {
+    const echap = (e) => { if (e.key === "Escape") onFermer(); };
+    window.addEventListener("keydown", echap);
+    const avant = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", echap); document.body.style.overflow = avant; };
+  }, [onFermer]);
+  // La position suivie s'arrête en fermant.
+  useEffect(() => () => { if (suivi != null) navigator.geolocation?.clearWatch(suivi); }, [suivi]);
+  // La carte se cale sur la position une fois, à l'activation (ou à un nouvel appui), puis laisse la main.
+  useEffect(() => { if (centrer && moi) { const t = setTimeout(() => setCentrer(false), 0); return () => clearTimeout(t); } return undefined; }, [centrer, moi]);
+  const localiser = () => {
+    if (!navigator.geolocation) { toast.error("La localisation n'est pas disponible sur cet appareil."); return; }
+    setCentrer(true);
+    if (suivi != null) return;
+    const id = navigator.geolocation.watchPosition(
+      (p) => setMoi({ lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy }),
+      (e) => { toast.error(e?.code === 1 ? "Autorisez la localisation dans le navigateur pour vous voir sur la carte." : "Position introuvable pour l'instant."); navigator.geolocation.clearWatch(id); setSuivi(null); },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
+    );
+    setSuivi(id);
+  };
+  return createPortal(
+    <motion.div className="fixed inset-0 z-[90] bg-fond" role="dialog" aria-label="Carte de la liste"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }}>
+      <CarteGoogleSecteurs secteurs={[]} marqueurs={marqueurs} marqueurActif={choisi} onMarqueur={setChoisi} moi={moi} suivreMoi={centrer} />
+      <button type="button" onClick={onFermer} aria-label="Fermer la carte" title="Fermer"
+        className="absolute left-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-trait bg-surface-pleine text-ardoise shadow-[0_4px_14px_rgb(0_0_0/0.18)] hover:text-encre"
+        style={{ marginTop: "env(safe-area-inset-top)" }}>
+        <X className="h-4 w-4" />
+      </button>
+      <button type="button" onClick={localiser} aria-label="Me localiser" title="Me localiser"
+        className={`absolute bottom-6 right-4 z-10 grid h-12 w-12 place-items-center rounded-full border shadow-[0_6px_18px_rgb(0_0_0/0.22)] ${fiche ? "md:right-[436px]" : ""} ${moi ? "border-pervenche bg-surface-pleine text-pervenche" : "border-trait bg-surface-pleine text-craie hover:text-encre"}`}
+        style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+        <LocateFixed className="h-5 w-5" />
+      </button>
+      <AnimatePresence>{fiche && <FichePoint key={fiche.id} fiche={fiche} onFermer={() => setChoisi(null)} />}</AnimatePresence>
+      {places.length < fiches.length && (
+        <span className="absolute left-14 top-4 z-10 rounded-full bg-surface-pleine/90 px-3 py-1 text-[12px] text-ardoise backdrop-blur" style={{ marginTop: "env(safe-area-inset-top)" }}>
+          {places.length} sur la carte · {fiches.length - places.length} sans position
+        </span>
+      )}
+    </motion.div>,
+    document.body,
+  );
+}
+
+export default function TableauListe({ fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onRenommer = null, onSupprimer = null, agent = false }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState("toutes");
@@ -256,11 +335,20 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
   const [coches, setCoches] = useState(() => new Set());
   const [ouvert, setOuvert] = useState(null); // la fiche ouverte en panneau Street View
   const [appelFiche, setAppelFiche] = useState(null); // la fiche dont on passe l'appel
+  const [grandEcran, setGrandEcran] = useState(false); // la carte des commerces de la liste, en plein écran
+  // L'onglet « Carte » de la page (à droite de Listes) l'ouvre ; la demande est consommée aussitôt (24 oct. 2026).
+  useEffect(() => {
+    if (!carteDemandee) return;
+    if ((fiches || []).some((p) => p.position)) setGrandEcran(true);
+    else toast.error("Aucun commerce de cette liste n'a de position à montrer sur la carte.");
+    onCarteVue?.();
+  }, [carteDemandee, fiches, onCarteVue]);
   const basculer = (id) => setCoches((c) => { const n = new Set(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // À l'ouverture, les propriétaires manquants se cherchent en fond (sources
   // ouvertes, gratuit) ; tant qu'il en manque, la liste se relit.
-  const sansProprio = (fiches || []).filter((p) => (p.cible && !p.cible.proprietaire && !(p.nom || "").trim()) || (!p.cible && p.adresse && !p.rattachement_tente_le)).length;
-  const sansNumero = (fiches || []).filter((p) => p.cible?.proprietaire && !p.telephone).length;
+  // Ce que le serveur lui-même a encore à chercher (une fiche déjà cherchée ne compte plus) ; sans lui, rien n'est annoncé.
+  const sansProprio = reste?.proprietaires || 0;
+  const sansNumero = reste?.numeros || 0;
   const [recherche, setRecherche] = useState(false);
   useEffect(() => {
     if (!listeId) return;
@@ -279,7 +367,8 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
   };
   const onErr = (e) => toast.error(e?.message || "Impossible");
   const modifier = useMutation({ mutationFn: ({ id, champs }) => base44.request("PATCH", `${API}/proprietaires/${id}`, { body: champs }), onSuccess: rafraichir, onError: onErr });
-  const statut = useMutation({ mutationFn: ({ id, statut: s }) => base44.request("POST", `${API}/proprietaires/${id}/statut`, { body: { statut: s } }), onSuccess: rafraichir, onError: onErr });
+  // Pas d'intérêt : la fiche sort des listes, une relance dans six mois (24 oct. 2026).
+  const statut = useMutation({ mutationFn: ({ id, statut: s }) => base44.request("POST", `${API}/proprietaires/${id}/statut`, { body: { statut: s, ...(s === "pas_vendeur" ? { rappel_dans_jours: 180, note: "Pas d'intérêt" } : {}) } }), onSuccess: rafraichir, onError: onErr });
   const sansReponse = useMutation({
     mutationFn: (id) => base44.request("POST", `${API}/proprietaires/${id}/sans-reponse`),
     onSuccess: (r) => { rafraichir(); toast.success(`${r.titre} · ${r.pour}`); },
@@ -342,22 +431,27 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
         </div>
       )}
 
+      <AnimatePresence>{grandEcran && <CarteListeGrandEcran key="carte" fiches={lignes} onFermer={() => setGrandEcran(false)} />}</AnimatePresence>
+
       {/* Pas de hauteur fixe : le tableau s'allonge avec ses lignes, la page défile.
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
-      <div className="mt-4 overflow-x-auto rounded-[16px] border border-trait bg-rail">
-        <table className="min-w-full border-collapse text-[13.5px]">
+      <div className="mt-4 overflow-x-auto rounded-[16px] border border-[color-mix(in_srgb,var(--k-bord-doux)_60%,transparent)] bg-rail">
+        {/* Bordures séparées, pas fusionnées (25 oct. 2026, Jules : « on voit du texte passer derrière ») : fusionnées, les traits
+            appartiennent au tableau et ne suivent pas les colonnes figées, le texte qui défile se voyait au travers ; séparées,
+            chaque cellule porte les siens, peints sur son fond opaque. */}
+        <table className="min-w-full border-separate border-spacing-0 text-[13.5px]">
           <thead>
             <tr>
-              <th className="sticky left-0 z-30 border-b border-trait bg-rail py-3.5 pl-4 pr-1" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
+              <th className="sticky left-0 z-30 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-0 py-3.5" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                 <button type="button" onClick={() => setCoches(tout ? new Set() : new Set(lignes.map((p) => p.id)))} disabled={!lignes.length}
                   aria-label={tout ? "Tout décocher" : "Tout cocher"} title={tout ? "Tout décocher" : "Tout cocher"}
-                  className="grid place-items-center disabled:opacity-40" style={{ background: "transparent" }}>
+                  className="grid w-full place-items-center disabled:opacity-40" style={{ background: "transparent" }}>
                   <Case oui={tout} />
                 </button>
               </th>
-              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-trait bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
+              <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
               {COLONNES.map((c) => (
-                <th key={c.cle} className="border-b border-trait bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
+                <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
               ))}
             </tr>
           </thead>
@@ -369,20 +463,20 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
               const enregistrer = (champs) => modifier.mutate({ id: p.id, champs });
               return (
                 <tr key={p.id} className={`group transition-colors ${coches.has(p.id) ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
-                  <td className="sticky left-0 z-10 border-b border-trait bg-rail py-4 pl-4 pr-1 align-middle" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
+                  <td className="sticky left-0 z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-0 py-4 align-middle" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                     <button type="button" onClick={() => basculer(p.id)} aria-label={`Cocher ${p.commerce || p.cible?.enseigne || "la ligne"}`}
-                      className="grid place-items-center" style={{ background: "transparent" }}>
+                      className="grid w-full place-items-center" style={{ background: "transparent" }}>
                       <Case oui={coches.has(p.id)} />
                     </button>
                   </td>
-                  <td className="sticky left-[44px] z-10 border-b border-trait bg-rail py-4 pl-2 pr-4 align-middle">
+                  <td className="sticky left-[44px] z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-4 pl-2 pr-4 align-middle">
                     <button type="button" onClick={() => setOuvert(p.id)} title="Voir la vitrine (Street View)"
                       className="block max-w-[220px] truncate border-0 p-0 text-left text-[13.5px] font-medium max-md:max-w-[124px] text-encre hover:text-menthe" style={{ background: "transparent" }}>
                       {p.commerce || p.cible?.enseigne || "Commerce"}
                     </button>
                   </td>
                   {COLONNES.map((c) => (
-                    <td key={c.cle} className="border-b border-trait px-4 py-4 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
+                    <td key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] px-4 py-4 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
                       {c.cle === "appel" ? (
                         <span className="inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
                           {tel ? (
@@ -416,7 +510,10 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
                           <ChevronDown className="h-3.5 w-3.5 flex-none opacity-70" />
                           <select aria-label={`Statut de ${p.commerce || p.nom}`} value={p.statut} onChange={(e) => statut.mutate({ id: p.id, statut: e.target.value })}
                             className="absolute inset-0 cursor-pointer opacity-0 max-md:text-[16px]">
-                            {Object.entries(libelles).map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
+                            {/* Deux statuts en Prospection, Pas d'intérêt pour sortir, et le rendez-vous qui fait passer dans Biens. */}
+                            {[["a_appeler", "À contacter"], ["contacte", "Contacté"], ["rdv_pris", "Rendez-vous fixé (passe dans Biens)"], ["pas_vendeur", "Pas d'intérêt"]]
+                              .concat(["a_appeler", "contacte", "rdv_pris", "pas_vendeur"].includes(p.statut) ? [] : [[p.statut, libelles[p.statut] || p.statut]])
+                              .map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
                           </select>
                         </span>
                       ) : c.cle === "tel_commerce" && p.cible?.telephone && !p.telephone_commerce ? (
@@ -439,10 +536,12 @@ export default function TableauListe({ fiches, libelles, listeId = null, onRenom
       {appelFiche && (fiches || []).some((p) => p.id === appelFiche) && (
         <PanneauAppelFiche p={(fiches || []).find((p) => p.id === appelFiche)} onFermer={() => setAppelFiche(null)} onFait={rafraichir} />
       )}
-      {ouvert && (fiches || []).some((p) => p.id === ouvert) && (
-        <PanneauCommerce p={(fiches || []).find((p) => p.id === ouvert)} libelles={libelles} onFermer={() => setOuvert(null)}
-          onSansReponse={(id) => sansReponse.mutate(id)} onAppeler={(id) => { setOuvert(null); setAppelFiche(id); }} />
-      )}
+      <AnimatePresence>
+        {ouvert && (fiches || []).some((p) => p.id === ouvert) && (
+          <PanneauCommerce key={ouvert} p={(fiches || []).find((p) => p.id === ouvert)} libelles={libelles} onFermer={() => setOuvert(null)}
+            onSansReponse={(id) => sansReponse.mutate(id)} onAppeler={(id) => { setOuvert(null); setAppelFiche(id); }} />
+        )}
+      </AnimatePresence>
       <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-brume">
         <ArrowRight className="h-3 w-3" />Le nom du commerce ouvre sa vitrine ; une cellule claire se modifie au clic ; « Sans rép. » pose la relance suivante (J+2 appel, J+5 mail, J+10 dernier appel).
       </p>

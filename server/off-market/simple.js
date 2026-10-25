@@ -8,7 +8,7 @@
 // d'appels (AppelSimple) : rien n'en passe au mode Avancé.
 
 import { Records } from '../db.js';
-import { etablissementsAutour, societe } from '../alx/annuaire.js';
+import { etablissementsAutour, refusRecent, societe } from '../alx/annuaire.js';
 import { piedDImmeuble, cleRue, rueDe, etablissementDe } from '../alx/commerces.js';
 import { proprietairesDe as proprietairesOuverts, choisirProprietaire } from '../alx/foncier-ouvert.js';
 import { resoudreAdresse } from '../adresse-ban.js';
@@ -70,6 +70,12 @@ export function lierProprietaire({ exploitant = null, proprietaire = null, ensei
 
 const annees = (date, maintenantMs) => (date ? (maintenantMs - Date.parse(date)) / (365.25 * 86400000) : null);
 
+/**
+ * Pure : le texte d'un signal en bon français (24 oct. 2026, Jules : « Propriétaire créé il y a 43 ans, c'est pas
+ * français »). Les signaux déjà enregistrés avec l'ancienne tournure se relisent ainsi, sans réécrire la base.
+ */
+export const texteDrapeau = (t) => String(t || '').replace(/^Propriétaire créé il y a (\d+) ans?/, (_, n) => `Société propriétaire créée il y a ${n} ans`);
+
 /** Pure : pourquoi il vendrait. Chaque drapeau porte sa source et sa date. */
 export function drapeauxDe(c, { maintenantMs = Date.now() } = {}) {
   const out = [];
@@ -87,8 +93,8 @@ export function drapeauxDe(c, { maintenantMs = Date.now() } = {}) {
   const brute = /\b(COMMUNE|VILLE DE|DEPARTEMENT|REGION|ETAT|OPH|HABITAT|HLM|METROPOLE|COMMUNAUTE)\b/i.test(String(pr.nom || '')) ? null : annees(pr.creation, maintenantMs);
   // Au-delà de 90 ans, c'est une date de création par défaut (1900), pas une détention.
   const detention = brute != null && brute > 90 ? null : brute;
-  if (detention != null && detention >= 30) out.push({ cle: 'detention_30', texte: `Propriétaire créé il y a ${Math.floor(detention)} ans`, source: 'Registre des entreprises', date: pr.creation });
-  else if (detention != null && detention >= 22) out.push({ cle: 'detention_22', texte: `Propriétaire créé il y a ${Math.floor(detention)} ans`, source: 'Registre des entreprises', date: pr.creation });
+  if (detention != null && detention >= 30) out.push({ cle: 'detention_30', texte: `Société propriétaire créée il y a ${Math.floor(detention)} ans`, source: 'Registre des entreprises', date: pr.creation });
+  else if (detention != null && detention >= 22) out.push({ cle: 'detention_22', texte: `Société propriétaire créée il y a ${Math.floor(detention)} ans`, source: 'Registre des entreprises', date: pr.creation });
   return out;
 }
 
@@ -110,13 +116,24 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function etablissementsCommerce({ lat, lon, rayon_km = 2.5, codes = NAF_COMMERCE, lire = fetch, parallele = 6, maxPages = 400 } = {}) {
   const page = async (n) => {
     const params = new URLSearchParams({ lat: String(lat), long: String(lon), radius: String(rayon_km), activite_principale: codes.join(','), etat_administratif: 'A', per_page: '25', page: String(n) });
+    // Trop d'appels (429), une erreur passagère (5xx) ou une page qui ne répond pas : trois essais, de plus en plus
+    // espacés (24 oct. 2026 : un 503 de l'annuaire faisait tomber la lecture de toute une ville).
+    let derniere = null;
     for (let essai = 0; essai < 3; essai += 1) {
-      const r = await lire(`${NEAR_POINT}?${params}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
-      if (r.status === 429) { await attendre(1500); continue; }
+      let r;
+      try {
+        r = await lire(`${NEAR_POINT}?${params}`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+      } catch (e) {
+        derniere = /abort|timeout/i.test(`${e?.name} ${e?.message}`) ? "L'annuaire ne répond pas" : (e?.message || String(e));
+        await attendre(2000 * (essai + 1));
+        continue;
+      }
+      if (r.status === 429) { derniere = "L'annuaire limite les appels : réessayez dans une minute."; await attendre(1500); continue; }
+      if (r.status >= 500) { derniere = `L'annuaire a répondu ${r.status}`; await attendre(2000 * (essai + 1)); continue; }
       if (!r.ok) throw new Error(`L'annuaire a répondu ${r.status}`);
       return r.json();
     }
-    throw new Error("L'annuaire limite les appels : réessayez dans une minute.");
+    throw new Error(derniere || "L'annuaire limite les appels : réessayez dans une minute.");
   };
   const premiere = await page(1);
   const total = Math.min(Number(premiere.total_pages) || 1, maxPages);
@@ -284,10 +301,12 @@ export function commercesDe(villeId, { moi = null } = {}) {
   return liste.map((c) => compact(c, { ...zone, moi })).sort((a, b) => (ORDRE_LIEN[a.lien] ?? 4) - (ORDRE_LIEN[b.lien] ?? 4) || b.drapeaux.length - a.drapeaux.length || String(a.enseigne || a.nom).localeCompare(String(b.enseigne || b.nom)));
 }
 
+// Un commerce interrompu (« en cours » depuis plus de dix minutes) compte comme à faire : le badge « Propriétaires :
+// 3462 sur 3466 » ne tourne plus sans fin, et la recherche le reprend (24 oct. 2026).
 export function etatDe(villeId) {
   const l = Records.filter(COMMERCE, { ville_id: villeId });
   const n = (f) => l.filter(f).length;
-  return { total: l.length, faits: n((c) => c.etat_recherche === 'fait'), en_cours: n((c) => c.etat_recherche === 'en_cours'), a_faire: n((c) => !c.etat_recherche || c.etat_recherche === 'a_faire'), erreurs: n((c) => c.etat_recherche === 'erreur'), en_fond: enFond.has(villeId), google: Records.get(VILLE, villeId)?.simple?.google || null, depuis_google: n((c) => c.source === 'Google Maps'), zones: (Records.get(VILLE, villeId)?.simple?.zones || []).map((z) => ({ nom: z.nom, genre: z.genre, pourquoi: z.pourquoi, rues: z.rues })), zones_en_cours: !Records.get(VILLE, villeId)?.simple?.zones_le, prix_en_cours: prixEnFond.has(villeId), avec_prix: n((c) => !!c.estimation?.prix) };
+  return { total: l.length, faits: n((c) => c.etat_recherche === 'fait'), en_cours: n((c) => c.etat_recherche === 'en_cours' && !aChercher(c)), a_faire: n(aChercher), erreurs: n((c) => c.etat_recherche === 'erreur'), en_fond: enFond.has(villeId), google: Records.get(VILLE, villeId)?.simple?.google || null, depuis_google: n((c) => c.source === 'Google Maps'), zones: (Records.get(VILLE, villeId)?.simple?.zones || []).map((z) => ({ nom: z.nom, genre: z.genre, pourquoi: z.pourquoi, rues: z.rues })), zones_en_cours: !Records.get(VILLE, villeId)?.simple?.zones_le, prix_en_cours: prixEnFond.has(villeId), avec_prix: n((c) => !!c.estimation?.prix) };
 }
 
 // ---------------------------------------------------------------------------
@@ -428,13 +447,41 @@ export async function resoudreCommerce(id, { complet = false, surEtape = () => {
 
 // La tâche de fond : une ville à la fois, trois commerces par tour, tant qu'il en reste.
 const enFond = new Map();
-export async function tourDeFond(villeId, { max = 3, resoudre = resoudreCommerce } = {}) {
+// La recherche des propriétaires, toutes villes confondues (24 oct. 2026, Jules : « pourquoi ça prend autant de temps ») :
+// trois commerces à la fois au lieu d'un ; un seul tant que l'annuaire a refusé un appel dans les cinq dernières minutes.
+export const PARALLELE_PROPRIETAIRES = 3;
+let actifs = 0;
+const enAttente = [];
+async function creneau(fn) {
+  while (actifs >= (refusRecent() ? 1 : PARALLELE_PROPRIETAIRES)) await new Promise((r) => enAttente.push(r));
+  actifs += 1;
+  try { return await fn(); } finally { actifs -= 1; enAttente.shift()?.(); }
+}
+
+// Une ville à la fois, menée jusqu'au bout : le fichier DGFiP des propriétaires d'un département tient des centaines
+// de mégaoctets et la mémoire n'en garde que deux (foncier-ouvert.js) ; deux villes de départements différents en
+// parallèle les faisaient se recharger sans cesse (8 s chacun). Une autre ville attend son tour, et la ville qui a la
+// main la garde tant qu'il lui reste des commerces.
+let villeAyantLaMain = null;
+/** Une ville qu'une personne ouvre passe devant : elle prend la main tout de suite. */
+export const prioriser = (villeId) => { villeAyantLaMain = villeId; };
+// Un commerce resté « en cours » plus de dix minutes a été interrompu (un redémarrage) : il se reprend.
+const aChercher = (c) => !c.etat_recherche || c.etat_recherche === 'a_faire' || (c.etat_recherche === 'en_cours' && Date.now() - Date.parse(c.updated_date || 0) > 10 * 60_000);
+
+export async function tourDeFond(villeId, { max = 3 * PARALLELE_PROPRIETAIRES, resoudre = resoudreCommerce } = {}) {
+  if (villeAyantLaMain && villeAyantLaMain !== villeId && enFond.has(villeAyantLaMain)) {
+    return Records.filter(COMMERCE, { ville_id: villeId }).filter(aChercher).length;
+  }
+  villeAyantLaMain = villeId;
   const liste = Records.filter(COMMERCE, { ville_id: villeId });
   const { centre, densite } = centreVille(liste, Records.get(VILLE, villeId));
   // Le centre-ville d'abord, les plus denses en tête : c'est là qu'on investit.
-  const aFaire = liste.filter((c) => !c.etat_recherche || c.etat_recherche === 'a_faire').sort((a, b) => Number(centre.has(b.id)) - Number(centre.has(a.id)) || (densite.get(b.id) || 0) - (densite.get(a.id) || 0)).slice(0, max);
-  for (const c of aFaire) await resoudre(c.id);
-  return Records.filter(COMMERCE, { ville_id: villeId }).filter((c) => !c.etat_recherche || c.etat_recherche === 'a_faire').length;
+  const aFaire = liste.filter(aChercher).sort((a, b) => Number(centre.has(b.id)) - Number(centre.has(a.id)) || (densite.get(b.id) || 0) - (densite.get(a.id) || 0)).slice(0, max);
+  // Les créneaux font la file, dans l'ordre (le centre d'abord).
+  await Promise.all(aFaire.map((c) => creneau(() => resoudre(c.id))));
+  const reste = Records.filter(COMMERCE, { ville_id: villeId }).filter(aChercher).length;
+  if (!reste && villeAyantLaMain === villeId) villeAyantLaMain = null;
+  return reste;
 }
 export function demarrerFond(villeId, { periode = 2500, tour = tourDeFond } = {}) {
   if (enFond.has(villeId) || process.env.NODE_TEST_CONTEXT) return false;
@@ -582,6 +629,8 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     const c = Records.get(COMMERCE, id);
     if (!c) continue;
     if (c.listes_mandataires?.[moi]) { deja.push({ id, enseigne: c.enseigne || c.nom, liste: c.listes_mandataires[moi].nom }); continue; }
+    // Un commerce dont un autre mandataire a la fiche ne se prend pas (24 oct. 2026, la fiche appartient à qui a agi).
+    if (Records.list('ProprietaireMandataire').some((p) => p.commerce_simple_id === id && p.mandataire_email !== moi)) { refuses.push(`${c.enseigne || c.nom} : déjà suivi par un autre mandataire.`); continue; }
     const ex = c.exploitant || {};
     const pr = c.proprietaire || null;
     // Le numéro du commerce n'est celui du propriétaire que si l'exploitant possède les murs.
@@ -797,7 +846,11 @@ export async function tourPrix(villeId, { estimer = estimerPrix } = {}) {
   const { centre } = centreVille(liste, Records.get(VILLE, villeId));
   // Sans prix, ou avec une surface invraisemblable d'une version précédente (sauf saisie à la main).
   const aRefaire = (c) => !c.estimation || (Array.isArray(c.estimation.surface) && c.estimation.surface_source !== 'saisie' && c.estimation.surface[0] < SURFACE_MIN);
-  const aFaire = liste.filter((c) => aRefaire(c) && (centre.has(c.id) || c.epingle) && c.etat_recherche === 'fait');
+  // Les cibles d'abord (24 oct. 2026) : un signal de vente, un propriétaire et un exploitant connus. Ce sont elles que
+  // « Pour mes clients » propose ; le plafond de rues neuves du jour ne change pas.
+  const cible = (c) => (c.drapeaux || []).length > 0 && !!c.proprietaire?.nom && !!c.exploitant?.nom;
+  const aFaire = liste.filter((c) => aRefaire(c) && (centre.has(c.id) || c.epingle) && c.etat_recherche === 'fait')
+    .sort((a, b) => Number(cible(b)) - Number(cible(a)) || (b.drapeaux || []).length - (a.drapeaux || []).length);
   if (!aFaire.length) return 0;
   const jour = new Date().toISOString().slice(0, 10);
   const cle = `prix-rues:${villeId}:${jour}`;
@@ -805,8 +858,14 @@ export async function tourPrix(villeId, { estimer = estimerPrix } = {}) {
   const deja = Number(Meta.get(cle) || 0);
   const ruesConnues = new Set(Records.list(PRIX_RUE).filter((x) => Date.now() - Date.parse(x.le) < 30 * 86400000).map((x) => x.cle));
   const cleDe = (c) => `${cleRue(numeroRue(c.adresse).rue || c.rue || '')}|${c.code_postal || c.ville_id}`;
-  // Une rue déjà lue d'abord (gratuit) ; une rue neuve tant que le plafond du jour le permet.
-  const suivant = aFaire.find((c) => ruesConnues.has(cleDe(c))) || (deja < PLAFOND_RUES_JOUR ? aFaire[0] : null);
+  // Une rue déjà lue d'abord, et jusqu'à cinq d'un coup (gratuit : ni Data-B ni plafond, 24 oct. 2026) ; puis une rue
+  // neuve tant que le plafond du jour le permet.
+  const connues = aFaire.filter((c) => ruesConnues.has(cleDe(c))).slice(0, 5);
+  if (connues.length > 1) {
+    for (const c of connues) await estimer(c.id).catch(() => Records.update(COMMERCE, c.id, { estimation: { prix: null, erreur: 'estimation impossible', le: maintenant() } }));
+    return aFaire.length - connues.length;
+  }
+  const suivant = connues[0] || (deja < PLAFOND_RUES_JOUR ? aFaire[0] : null);
   if (!suivant) return 0;
   if (!ruesConnues.has(cleDe(suivant))) Meta.set(cle, String(deja + 1));
   await estimer(suivant.id).catch(() => Records.update(COMMERCE, suivant.id, { estimation: { prix: null, erreur: 'estimation impossible', le: maintenant() } }));

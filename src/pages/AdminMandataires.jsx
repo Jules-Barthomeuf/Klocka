@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { InvestisseurLayer } from "@/components/layer/CeQueKlockaSait";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import CarteGoogleSecteurs, { MotifSecteur } from "@/components/mandataire/CarteGoogleSecteurs";
@@ -20,15 +20,22 @@ import Chargement from "@/components/ui/Chargement";
 // anonymisées, et l'œil sur leurs prospections.
 
 const API = "/api/mandataire/admin";
+const MOTS_LECTURE = { lue: "lue", en_lecture: "en lecture", en_attente: "en attente", a_lire: "pas encore lue" };
 const ONGLETS = [["secteurs", "Secteurs"], ["villes", "Villes Klocka"], ["mandataires", "Mandataires"], ["demandes", "Demandes clients"], ["prospections", "Prospections"]];
 
-export default function AdminMandataires() {
-  const [onglet, setOnglet] = useState("secteurs");
+/**
+ * @param integre  dans l'onglet Mandataires de la page Utilisateurs (24 oct. 2026, Jules : « manager les mandataires
+ *                 depuis la partie Utilisateurs ») : sans titre ni marges de page, la fiche des mandataires d'abord.
+ * @param focus    l'adresse d'un mandataire dont la fiche s'ouvre et se montre.
+ */
+export default function AdminMandataires({ integre = false, focus = null }) {
+  const [onglet, setOnglet] = useState(integre ? "mandataires" : "secteurs");
+  useEffect(() => { if (focus) setOnglet("mandataires"); }, [focus]);
   return (
-    <div className="mx-auto max-w-[1100px] px-5 pb-16 pt-6 md:px-8">
-      <h1 className="m-0 text-center text-[22px] font-medium tracking-[-0.01em] text-encre">Mandataires</h1>
-      <p className="m-0 mt-1 text-center text-[13.5px] text-ardoise">K Partners : les secteurs, les fiches, les demandes clients et leurs prospections.</p>
-      <div className="mt-5 mx-auto flex gap-1 rounded-full bg-rail-actif p-1 w-fit max-md:flex-wrap max-md:rounded-[14px]">
+    <div className={integre ? "" : "mx-auto max-w-[1100px] px-5 pb-16 pt-6 md:px-8"}>
+      {!integre && <h1 className="m-0 text-center text-[22px] font-medium tracking-[-0.01em] text-encre">Mandataires</h1>}
+      {!integre && <p className="m-0 mt-1 text-center text-[13.5px] text-ardoise">K Partners : les secteurs, les fiches, les demandes clients et leurs prospections.</p>}
+      <div className={`${integre ? "" : "mt-5 mx-auto"} flex gap-1 rounded-full bg-rail-actif p-1 w-fit max-md:flex-wrap max-md:rounded-[14px]`}>
         {ONGLETS.map(([k, mot]) => (
           <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={onglet === k}
             className={`rounded-full px-3.5 py-1.5 text-[13px] transition-colors ${onglet === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
@@ -39,7 +46,7 @@ export default function AdminMandataires() {
       </div>
       {onglet === "secteurs" && <Secteurs />}
       {onglet === "villes" && <VillesKlocka />}
-      {onglet === "mandataires" && <Mandataires />}
+      {onglet === "mandataires" && <Mandataires focus={focus} />}
       {onglet === "demandes" && <Demandes />}
       {onglet === "prospections" && <Prospections />}
     </div>
@@ -112,10 +119,76 @@ function ChoixDecoupage({ niveau, choisies, onBasculer }) {
   );
 }
 
+/**
+ * Les villes d'un secteur (24 oct. 2026, Jules) : toutes les communes du contour, à cocher ; le mandataire ne prospecte
+ * « pour mes clients » que dans celles-ci. Les Villes Klocka en tête, puis par population ; une recherche pour les longues
+ * listes (un département en a des centaines).
+ */
+function VillesDuSecteur({ secteur }) {
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError } = useQuery({ queryKey: ["admin-secteur-communes", secteur.id, secteur.unites?.length || 0, (secteur.points || []).length], queryFn: () => base44.request("GET", `${API}/secteurs/${secteur.id}/communes`) });
+  const [choix, setChoix] = useState(null);
+  const [cherche, setCherche] = useState("");
+  const communes = useMemo(() => [...(data?.communes || [])].sort((x, y) => Number(y.klocka) - Number(x.klocka) || (y.population || 0) - (x.population || 0)), [data]);
+  useEffect(() => { setChoix(null); }, [secteur.id, data]);
+  const cle = (c) => c.code || c.nom;
+  const coches = choix || new Set(communes.filter((c) => c.choisie).map(cle));
+  const change = choix && (choix.size !== communes.filter((c) => c.choisie).length || communes.some((c) => c.choisie !== choix.has(cle(c))));
+  const enregistrer = useMutation({
+    mutationFn: () => base44.request("POST", `${API}/secteurs/${secteur.id}/villes`, { body: { codes: [...coches] } }),
+    onSuccess: (r) => { toast.success(`${r.villes.length} ville${r.villes.length > 1 ? "s" : ""} pour ce secteur`); setChoix(null); queryClient.invalidateQueries({ queryKey: ["admin-secteur-communes", secteur.id] }); queryClient.invalidateQueries({ queryKey: ["admin-secteurs"] }); },
+    onError: (e) => toast.error(e?.message || "Pas enregistré"),
+  });
+  const basculer = (c) => { const n = new Set(coches); if (n.has(cle(c))) n.delete(cle(c)); else n.add(cle(c)); setChoix(n); };
+  const t = cherche.trim().toLowerCase();
+  const vues = communes.filter((c) => !t || c.nom.toLowerCase().includes(t));
+  return (
+    <div className="mt-4 border-t border-trait pt-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="alx-mont m-0 text-[10.5px] uppercase tracking-[.12em] text-brume">Villes du secteur</p>
+        <span className="text-[12px] tabular-nums text-ardoise">{coches.size} choisie{coches.size > 1 ? "s" : ""}{communes.length ? ` sur ${communes.length}` : ""}</span>
+      </div>
+      <p className="m-0 mt-1 text-[12px] leading-[1.5] text-ardoise">Le mandataire ne prospecte pour ses clients que dans les villes cochées ; elles se lisent d'elles-mêmes.</p>
+      {isLoading && <p className="m-0 mt-2 inline-flex items-center gap-2 text-[12.5px] text-ardoise"><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Les communes du contour…</p>}
+      {isError && <p className="m-0 mt-2 text-[12.5px] text-alerte">Les communes ne se chargent pas : réessayez dans un instant.</p>}
+      {communes.length > 8 && (
+        <div className="mt-2 flex h-9 items-center gap-2 rounded-full border border-trait bg-surface px-3">
+          <Search className="h-3.5 w-3.5 flex-none text-brume" />
+          <input value={cherche} onChange={(e) => setCherche(e.target.value)} placeholder="Chercher une commune" aria-label="Chercher une commune" className="w-full border-none bg-transparent text-[13px] text-encre outline-none placeholder:text-brume max-md:text-[16px]" />
+        </div>
+      )}
+      {communes.length > 0 && (
+        <div className="mt-2 max-h-[300px] overflow-y-auto rounded-[12px] border border-trait bg-surface">
+          {vues.map((c) => (
+            <label key={cle(c)} className="flex cursor-pointer items-center gap-2.5 border-b border-trait px-3 py-2 last:border-b-0 hover:bg-relief">
+              <input type="checkbox" checked={coches.has(cle(c))} onChange={() => basculer(c)} className="h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
+              <span className="min-w-0 flex-1 truncate text-[13px] text-encre">{c.nom}</span>
+              {c.klocka && <span className="flex-none rounded-full bg-menthe/15 px-2 py-0.5 text-[11px] text-menthe">Ville Klocka</span>}
+              {c.population ? <span className="flex-none text-[11.5px] tabular-nums text-brume">{Math.round(c.population).toLocaleString("fr-FR")} hab.</span> : null}
+            </label>
+          ))}
+          {!vues.length && <p className="m-0 px-3 py-3 text-[12.5px] text-brume">Aucune commune à ce nom.</p>}
+        </div>
+      )}
+      {change && (
+        <div className="mt-2 flex justify-end gap-2">
+          <button type="button" onClick={() => setChoix(null)} className="rounded-full border border-trait px-3.5 py-1.5 text-[12.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>Annuler</button>
+          <button type="button" onClick={() => enregistrer.mutate()} disabled={enregistrer.isPending}
+            className="inline-flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] font-medium text-sur-menthe hover:bg-menthe-survol disabled:opacity-40">
+            <Check className="h-3.5 w-3.5" /> Enregistrer
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Secteurs() {
   const queryClient = useQueryClient();
   const [typeCarte, setTypeCarte] = useState("roadmap");
-  const { data } = useQuery({ queryKey: ["admin-secteurs"], queryFn: () => base44.request("GET", `${API}/secteurs`) });
+  // Tant qu'une ville d'un secteur se lit, la liste se relit toutes les trente secondes.
+  const { data } = useQuery({ queryKey: ["admin-secteurs"], queryFn: () => base44.request("GET", `${API}/secteurs`),
+    refetchInterval: (q) => ((q.state.data?.secteurs || []).some((s) => (s.lectures || []).some((l) => l.etat === "en_lecture" || l.etat === "en_attente")) ? 30_000 : false) });
   const { data: mand } = useQuery({ queryKey: ["admin-mandataires"], queryFn: () => base44.request("GET", `${API}/mandataires`) });
   const secteurs = data?.secteurs || [];
   const mandataires = mand?.mandataires || [];
@@ -426,9 +499,20 @@ function Secteurs() {
                     {ouvert.unites.map((u) => (u.niveau === "departement" ? `${u.code} · ${u.nom}` : u.nom)).join(", ")}
                   </p>
                 )}
-                <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-ardoise">
-                  {ouvert.villes?.length ? ouvert.villes.join(", ") : "Aucune ville ALX dans ce contour : la prospection n'y trouvera rien tant qu'ALX n'y a pas de ville."}
-                </p>
+                {/* Les villes du secteur et leur lecture (24 oct. 2026) : les Villes Klocka du contour et les communes cochées
+                    par le mandataire se créent et se lisent d'elles-mêmes, une à la fois. */}
+                {ouvert.lectures?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {ouvert.lectures.map((l) => (
+                      <span key={l.nom} title={MOTS_LECTURE[l.etat] || ""} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] ${l.etat === "lue" ? "bg-menthe/15 text-menthe" : l.etat === "a_lire" ? "bg-relief text-ardoise" : "bg-ambre/15 text-ambre"}`}>
+                        {l.etat === "en_lecture" && <RefreshCw className="h-3 w-3 animate-spin" />}{l.nom}{l.etat !== "lue" ? ` · ${MOTS_LECTURE[l.etat] || l.etat}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="m-0 mt-3 text-[12.5px] leading-[1.6] text-ardoise">Aucune ville lue dans ce contour pour l'instant. Les Villes Klocka qui y tombent, et les communes que le mandataire coche, se lisent d'elles-mêmes une fois le secteur attribué.</p>
+                )}
+                <VillesDuSecteur secteur={ouvert} />
                 {ouvert.historique?.length > 0 && (
                   <div className="mt-4 border-t border-trait pt-3">
                     <p className="alx-mont m-0 mb-2 text-[10.5px] uppercase tracking-[.12em] text-brume">Historique</p>
@@ -500,9 +584,14 @@ const CHAMPS_AVIS = [
   ["ville_signature", "Ville de signature (« Fait à »)", "text"],
 ];
 
-function Mandataires() {
+function Mandataires({ focus = null }) {
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ["admin-mandataires"], queryFn: () => base44.request("GET", `${API}/mandataires`) });
+  // Venu d'une ligne de la page Utilisateurs : sa fiche se montre.
+  useEffect(() => {
+    if (!focus || !data) return;
+    setTimeout(() => document.getElementById(`mandataire-${focus}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+  }, [focus, data]);
   const [brouillons, setBrouillons] = useState({});
   const poser = useMutation({
     mutationFn: ({ email, champs }) => base44.request("POST", `${API}/mandataires/${encodeURIComponent(email)}`, { body: champs }),
@@ -526,7 +615,7 @@ function Mandataires() {
     <div className="mt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="m-0 text-[13px] text-ardoise">
-          Un compte devient mandataire depuis la page Clients (« Promouvoir mandataire ») ; sa fiche réglementaire se tient ici.
+          Un compte devient mandataire depuis l'onglet Utilisateurs (« Promouvoir mandataire ») ; sa fiche réglementaire se tient ici.
           Un admin peut l'être aussi, sans rien perdre de ses droits.
         </p>
         <button type="button" onClick={() => moi.mutate(!dejaMoi)} disabled={moi.isPending}
@@ -562,7 +651,7 @@ function Mandataires() {
             </label>
           );
           return (
-            <div key={m.email} className="rounded-[16px] border border-trait bg-surface px-5 py-4">
+            <div key={m.email} id={`mandataire-${m.email}`} className={`rounded-[16px] border bg-surface px-5 py-4 ${focus && focus === m.email ? "border-menthe" : "border-trait"}`}>
               <p className="m-0 text-[15px] text-encre">{m.nom || m.email}{m.admin && <span className="ml-2 text-[11px] uppercase tracking-[.14em] text-brume">admin</span>}</p>
               <p className="m-0 mt-0.5 text-[12.5px] text-ardoise">{m.email} · secteur : {m.secteur?.nom || "aucun"}</p>
               {m.alertes.length > 0 && (

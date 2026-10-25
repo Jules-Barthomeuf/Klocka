@@ -240,6 +240,14 @@ test("investisseurs : une zone dite par un client couvre la commune par ville, d
   assert.equal(zoneCouvre('SUD (bordeaux-lyon)', macon), false);
   assert.equal(zoneCouvre('Bourgogne', macon), true, 'la région');
   assert.equal(zoneCouvre('Toute la France', macon), false, 'une zone vague ne compte pas');
+  // 24 oct. 2026 : un département se nomme en entier ; « Rhône » seul n'est ni les Bouches-du-Rhône ni toute la région.
+  const marseille = { ville: 'Marseille', departement: 'Bouches-du-Rhône', region: "Provence-Alpes-Côte d'Azur" };
+  const grenoble = { ville: 'Grenoble', departement: 'Isère', region: 'Auvergne-Rhône-Alpes' };
+  assert.equal(zoneCouvre('Rhône', marseille), false);
+  assert.equal(zoneCouvre('Rhône', { ville: 'Lyon', departement: 'Rhône', region: 'Auvergne-Rhône-Alpes' }), true);
+  assert.equal(zoneCouvre('Rhône', grenoble), false);
+  assert.equal(zoneCouvre('Rhône-Alpes', grenoble), true, 'l’ancienne région reste dans la nouvelle');
+  assert.equal(zoneCouvre('Savoie', { ville: 'Annecy', departement: 'Haute-Savoie', region: 'Auvergne-Rhône-Alpes' }), false);
 });
 
 test("avis de valeur : les questions dépendent du type et de l'occupation ; les chiffres se calculent", async () => {
@@ -296,6 +304,20 @@ test('demanderMandat lit les nombres comme on les dit', async () => {
   assert.equal(r.mandat.duree_mois, 12);
   const sans = demanderMandat({ vendeur: 'M. Martin', bien: 'Presse', prix: 'bientôt', honoraires: '5 %', type: 'simple', duree_mois: 12 }, QUI);
   assert.equal(sans.ok, false, 'un prix sans chiffre reste refusé');
+});
+
+test('un mandat né dans un bien garde son estimation, jamais celle d’un autre mandataire', async () => {
+  const { demanderMandat, lierEstimationMandat, creerEstimation } = await import('./mandataire-portes.js');
+  const QUI = { email: 'bien@kpartners.fr', role: 'mandataire' };
+  const AUTRE = { email: 'autre-bien@kpartners.fr', role: 'mandataire' };
+  const m = demanderMandat({ vendeur: 'Mme Roux', bien: 'Primeur Roux', prix: 300000, honoraires: 5, type: 'exclusif', duree_mois: 12 }, QUI).mandat;
+  const e = creerEstimation({ bien: 'Primeur Roux' }, QUI).estimation;
+  const r = lierEstimationMandat(m.id, e.id, QUI);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.mandat.estimation_id, e.id);
+  const etrangere = creerEstimation({ bien: 'Ailleurs' }, AUTRE).estimation;
+  assert.equal(lierEstimationMandat(m.id, etrangere.id, QUI).ok, false);
+  assert.equal(lierEstimationMandat(m.id, e.id, AUTRE).ok, false, 'le mandat d’un autre reste introuvable');
 });
 
 test("une exception d'outil devient un refus propre, jamais une exception qui remonte", async () => {
@@ -389,4 +411,16 @@ test('avancement d’une prospection : un entonnoir, un RDV a aussi été contac
   const { avancementProspection } = await import('./mandataire-espace.js');
   const fiches = ['a_appeler', 'a_appeler', 'contacte', 'pas_vendeur', 'rdv_pris', 'mandat_signe'].map((statut) => ({ prospection_id: 'p1', statut }));
   assert.deepEqual(avancementProspection({ id: 'p1' }, [...fiches, { prospection_id: 'p2', statut: 'rdv_pris' }]), { ajoutes: 6, a_appeler: 2, contactes: 4, rdv: 2, mandats: 1 });
+});
+
+test('une estimation se rattache au propriétaire de la Prospection, le sien seulement', async () => {
+  const { creerEstimation, modifierEstimation } = await import('./mandataire-portes.js');
+  const { creerProprietaire } = await import('./mandataire-espace.js');
+  const QUI = { email: 'proprio-lien@kpartners.fr', role: 'mandataire' };
+  const AUTRE = { email: 'proprio-autre@kpartners.fr', role: 'mandataire' };
+  const p = creerProprietaire({ commerce: 'Cordonnerie du Port', ville: 'Nice' }, QUI).proprietaire;
+  const e = creerEstimation({ bien: 'Cordonnerie du Port' }, QUI).estimation;
+  assert.equal(modifierEstimation(e.id, { proprietaire_id: p.id }, QUI).estimation.proprietaire_id, p.id);
+  const sienne = creerProprietaire({ commerce: 'Ailleurs', ville: 'Nice' }, AUTRE).proprietaire;
+  assert.equal(modifierEstimation(e.id, { proprietaire_id: sienne.id }, QUI).ok, false);
 });

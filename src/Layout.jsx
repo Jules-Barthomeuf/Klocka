@@ -2,7 +2,9 @@ import Cloche from "@/components/haka/Cloche";
 import PopupFicheRecue from "@/components/haka/PopupFicheRecue";
 import { precharger } from "@/lib/precharger";
 import MarqueKlocka from "@/components/MarqueKlocka";
+import LogoKP from "@/components/mandataire/LogoKP";
 import DossiersRecents from "@/components/DossiersRecents";
+import BiensRecents from "@/components/mandataire/BiensRecents";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -313,7 +315,8 @@ function BarreKData({ user, isActivePage, clair, onBasculerTheme }) {
 // Pages that are "child" pages (show back button on mobile)
 const CHILD_PAGES = ['ProjetDetail', 'MonCompte', 'Questionnaire', 'Vision', 'SimulateurRentabilite', 'Comparateur', 'Ressources'];
 
-const PAGES_PLEINE_LARGEUR = ["OffMarket", "MandataireOffMarket", "Outils", "KVacance", "SimulateurRentabilite"];
+// La Prospection du mandataire aussi (24 oct. 2026, Jules) : la carte du secteur prend la place, la barre arrive repliée.
+const PAGES_PLEINE_LARGEUR = ["OffMarket", "MandataireOffMarket", "MandataireProspection", "Outils", "KVacance", "SimulateurRentabilite"];
 
 function LayoutContent({ children, currentPageName }) {
   const location = useLocation();
@@ -502,6 +505,12 @@ function LayoutContent({ children, currentPageName }) {
   const dansUnCadre = typeof window !== "undefined" && window.self !== window.top;
   const enCadre = dansUnCadre && !estApercuTelephone();
   const [apercuTelephone, setApercuTelephone] = useState(false);
+  // Paramètres › Affichage › Mode téléphone ouvre le cadre (24 oct. 2026).
+  useEffect(() => {
+    const ouvrir = (e) => setApercuTelephone(e?.detail?.depart || true);
+    window.addEventListener("klocka:mode-telephone", ouvrir);
+    return () => window.removeEventListener("klocka:mode-telephone", ouvrir);
+  }, []);
   const modoKData = enKData && vueAdmin && !hideNavbar;
 
 
@@ -540,6 +549,7 @@ function LayoutContent({ children, currentPageName }) {
     AdminMandataires: { to: createPageUrl("AdminMandataires"), icon: MapPin, actif: isActivePage("AdminMandataires") },
     MandataireProspection: { to: createPageUrl("MandataireProspection"), icon: MapPin, actif: isActivePage("MandataireProspection") },
     MandataireClients: { to: createPageUrl("MandataireClients"), icon: Users, actif: isActivePage("MandataireClients") },
+    MandataireBiens: { to: createPageUrl("MandataireBiens"), icon: Folder, actif: ["MandataireBiens", "MandataireEstimation", "MandataireMandat", "MandataireDossier", "MandataireMarche"].some(isActivePage), badge: nonLusMandataire || null, badgeColor: "bg-menthe text-sur-menthe" },
     MandataireEstimation: { to: createPageUrl("MandataireEstimation"), icon: Calculator, actif: isActivePage("MandataireEstimation") },
     MandataireMandat: { to: createPageUrl("MandataireMandat"), icon: FileSignature, actif: isActivePage("MandataireMandat") },
     MandataireDossier: { to: createPageUrl("MandataireDossier"), icon: Folder, actif: isActivePage("MandataireDossier"), badge: nonLusMandataire || null, badgeColor: "bg-menthe text-sur-menthe" },
@@ -583,6 +593,12 @@ function LayoutContent({ children, currentPageName }) {
       <div className="flex h-full flex-col">
         {/* La marque, et le repli. */}
         <div className={`flex h-[56px] flex-shrink-0 items-center ${replie ? "justify-center" : "gap-2.5 pl-4 pr-2.5"}`}>
+          {vue === "mandataire" ? (
+            // Côté mandataire, le logo K Partners à la place de Klocka OS (25 oct. 2026, Jules).
+            <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center" title="K Partners">
+              <LogoKP fond="theme" className={replie ? "text-[22px]" : "text-[26px]"} />
+            </Link>
+          ) : (
           <Link to={createPageUrl("Dashboard")} onClick={isMobile ? closeMobile : undefined} className="flex items-center gap-2.5" title="Klocka OS">
             {/* La marque de Klocka OS (18 oct. 2026, Jules) : trois losanges, à gauche du nom. */}
             <MarqueKlocka className="h-[22px] w-[22px]" />
@@ -594,6 +610,7 @@ function LayoutContent({ children, currentPageName }) {
               </span>
             )}
           </Link>
+          )}
           {!isMobile && !replie && (
             <button type="button" onClick={() => setSidebarCollapsed(true)} aria-label="Replier le menu" title="Replier le menu" className={`ml-auto ${bouton}`} style={{ background: "transparent" }}>
               <PanelLeft className="h-4 w-4" strokeWidth={1.7} />
@@ -669,6 +686,8 @@ function LayoutContent({ children, currentPageName }) {
                   badge={e.entrees.map((x) => DETAILS[x.cle]?.badge).find(Boolean) || null} badgeColor={e.entrees.map((x) => DETAILS[x.cle]?.badge && DETAILS[x.cle]?.badgeColor).find(Boolean)} />;
               }
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
+              // Sous « Biens » : les trois derniers biens ouverts (25 oct. 2026, Jules).
+              if (e.cle === "MandataireBiens" && !replie) return [lien, <BiensRecents key={`${e.cle}-recents`} onNaviguer={isMobile ? closeMobile : undefined} />];
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -690,6 +709,8 @@ function LayoutContent({ children, currentPageName }) {
                 <div className="animate-in fade-in slide-in-from-top-1 duration-150 mt-0.5 flex flex-col gap-0.5">
                   {autres.map((e) => {
               const lien = <LienRail details={DETAILS} replie={replie} onNaviguer={isMobile ? closeMobile : undefined} key={e.cle} e={e} ferme={pagesFermees.includes(e.cle)} />;
+              // Sous « Biens » : les trois derniers biens ouverts (25 oct. 2026, Jules).
+              if (e.cle === "MandataireBiens" && !replie) return [lien, <BiensRecents key={`${e.cle}-recents`} onNaviguer={isMobile ? closeMobile : undefined} />];
               // Feedback : au survol, le panneau s'ouvre à côté du menu, sans quitter la page.
               return ["AdminSuggestions", "Feedback"].includes(e.cle) && !isMobile ? <FeedbackSurvol key={e.cle}>{lien}</FeedbackSurvol> : lien;
             })}
@@ -742,7 +763,8 @@ function LayoutContent({ children, currentPageName }) {
   // juste au-dessus. Au bureau, rien ne les lit.
   const ongletsMobile = !hideNavbar && showClientView;
   const assistantVisible = vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName);
-  const hautMobile = hideNavbar || (modoKData && enCadre) ? "0px" : "calc(3.5rem + env(safe-area-inset-top))";
+  // Avec la barre du bas (client, mandataire), plus de barre du haut au téléphone (24 oct. 2026, Jules) : il ne reste que l'encoche.
+  const hautMobile = hideNavbar || (modoKData && enCadre) ? "0px" : ongletsMobile ? "env(safe-area-inset-top)" : "calc(3.5rem + env(safe-area-inset-top))";
   const basMobile = hideNavbar || modoKData
     ? "0px"
     : ongletsMobile
@@ -757,7 +779,7 @@ function LayoutContent({ children, currentPageName }) {
     <div className="min-h-screen flex w-full bg-fond relative overflow-x-clip" style={{ "--k-haut-mobile": hautMobile, "--k-bas-mobile": basMobile }}>
       <style>{globalTooltipStyles}</style>
       {fondHalo && <FondHalo />}
-      {apercuTelephone && <ApercuTelephone onFermer={() => setApercuTelephone(false)} />}
+      {apercuTelephone && <ApercuTelephone departInitial={typeof apercuTelephone === "string" ? apercuTelephone : null} onFermer={() => setApercuTelephone(false)} />}
 
       {modoKData ? (
         /* K-Data n'a pas de barre latérale : sa barre du haut, seule, sur
@@ -777,8 +799,9 @@ function LayoutContent({ children, currentPageName }) {
             </aside>
           )}
 
-          {/* Mobile Top Bar : sa hauteur compte l'encoche, comme le haut de main. */}
-          {!hideNavbar && (
+          {/* Mobile Top Bar : sa hauteur compte l'encoche, comme le haut de main. Seulement pour l'équipe : client et
+              mandataire ont le menu dans la barre du bas (24 oct. 2026). */}
+          {!hideNavbar && !ongletsMobile && (
             <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-fond/80 backdrop-blur-xl border-b border-trait flex items-center justify-between gap-2 px-4" style={{ height: "var(--k-haut-mobile)", paddingTop: "env(safe-area-inset-top)" }}>
               {isChildPage ? (
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-encre -ml-2">
@@ -895,7 +918,7 @@ function LayoutContent({ children, currentPageName }) {
       {vue === "mandataire" && !hideNavbar && <AccueilMandataire />}
 
       {/* Barre d'onglets mobile */}
-      {!hideNavbar && showClientView && <BottomTabs vue={vue} />}
+      {!hideNavbar && showClientView && <BottomTabs vue={vue} onMenu={() => setIsMobileMenuOpen((o) => !o)} menuOuvert={isMobileMenuOpen} />}
     </div>
   );
 }

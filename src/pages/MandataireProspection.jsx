@@ -6,13 +6,14 @@ import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDas
 import VueProspection from "@/components/mandataire/VueProspection";
 import TableauListe from "@/components/mandataire/TableauListe";
 import { TYPES_CARTE } from "@/components/kzoning/CarteGoogleZones";
-import { Sparkles, X } from "lucide-react";
+import { Map as IconeCarte, Sparkles, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ResultatsProspective } from "@/components/mandataire/ProspecterDataB";
 import AgentIA from "@/components/mandataire/AgentIA";
 import OffMarket from "@/components/off-market/OffMarket";
+import ProspecterClients from "@/components/mandataire/ProspecterClients";
 import KProspectiveDataB from "@/components/mandataire/KProspectiveDataB";
 import { J, JL, alpha } from "@/design/jetons";
 
@@ -41,6 +42,10 @@ export default function MandataireProspection() {
   const [vueId, setVueId] = useState(null); // la prospection ALX ouverte
   const [vueDataB, setVueDataB] = useState(null); // le jeton de la prospective Data-B ouverte
   const [onglet, setOnglet] = useState("prospecter");
+  // Un appui sur « Carte » : la liste ouverte montre sa carte en grand, une fois (elle consomme la demande).
+  const [carteListe, setCarteListe] = useState(false);
+  // Prospecter pour ses clients (24 oct. 2026, Jules) : le secteur et les clients d'abord ; tous les commerces d'une ville restent à un clic.
+  const [vueCommerces, setVueCommerces] = useState("clients");
   // ?vue= des anciens liens (l'ancienne page Off-market) : sans objet aujourd'hui, l'adresse l'oublie.
   useEffect(() => {
     if (!params.get("vue")) return;
@@ -92,6 +97,10 @@ export default function MandataireProspection() {
     <div className={`mx-auto px-5 md:px-8 ${vueId ? "max-w-[1440px]" : (!conversation && onglet === "listes") || commerces ? "max-w-none" : "max-w-[1100px]"} ${conversation && !vueId ? "" : "pb-14 pt-4"}`}>
       {vueId && <VueProspection key={vueId} id={vueId} retour={conversation ? "Conversation" : "Prospection"} onRetour={() => setVueId(null)} />}
 
+      {/* « Votre secteur » tout en haut de la page, au-dessus des onglets, à la place du nom du secteur (25 oct. 2026, Jules). */}
+      {commerces && vueCommerces === "clients" && (
+        <h1 className="m-0 pt-2 text-center text-[26px] font-medium tracking-[-0.01em] text-encre max-md:text-[22px]">Votre secteur</h1>
+      )}
       {/* Prospecter (le chat) ou Listes (pour appeler) : les deux moitiés de la Prospection. */}
       {!vueId && !conversation && (
         // Au téléphone, les quatre onglets ne tiennent pas : le sélecteur défile de côté.
@@ -120,10 +129,34 @@ export default function MandataireProspection() {
               );
             })}
           </div>
+          {/* La carte de la liste (24 oct. 2026, Jules) : une icône seule, hors de la pilule, à sa droite et de sa hauteur ;
+              seulement sur Listes. Elle ouvre la carte de la liste ouverte. */}
+          {onglet === "listes" && (
+            <button type="button" onClick={() => setCarteListe(true)} aria-label="Voir la carte de la liste" title="Voir la carte de la liste"
+              className="ml-2 grid h-[42px] w-[42px] flex-none self-center place-items-center rounded-full bg-rail-actif text-craie transition-colors hover:text-encre max-md:h-11 max-md:w-11">
+              <IconeCarte className="h-[18px] w-[18px]" />
+            </button>
+          )}
         </div>
       )}
-      {commerces && <div className="mt-4"><OffMarket espace="mandataire" /></div>}
-      {!vueId && !conversation && onglet === "listes" && <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} />}
+      {commerces && (
+        <div className="mt-4">
+          {/* La bascule va sur la ligne de « Filtrer », en tête (24 oct. 2026, Jules). */}
+          {(() => {
+            const bascule = (
+              <div className="flex flex-none gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Prospecter">
+                {[["clients", "Pour mes clients"], ["tous", "Tous les commerces"]].map(([k, mot]) => (
+                  <button key={k} type="button" role="tab" aria-selected={vueCommerces === k} onClick={() => setVueCommerces(k)}
+                    className={`h-8 rounded-full px-4 text-[13.5px] ${vueCommerces === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+                    style={vueCommerces === k ? undefined : { background: "transparent" }}>{mot}</button>
+                ))}
+              </div>
+            );
+            return vueCommerces === "clients" ? <ProspecterClients bascule={bascule} /> : <OffMarket espace="mandataire" entete={bascule} />;
+          })()}
+        </div>
+      )}
+      {!vueId && !conversation && onglet === "listes" && <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} carteDemandee={carteListe} onCarteVue={() => setCarteListe(false)} />}
       {!vueId && !conversation && onglet === "agent" && AGENT_IA_VISIBLE && <AgentIA />}
       {/* K Prospective : le formulaire de Data Prospective. On remplit les
           champs, la prospective se lance dans Data-B (6 oct. 2026). */}
@@ -251,7 +284,7 @@ function SqueletteListes() {
   );
 }
 
-function Listes({ demandee = null, onDemandeVue = null }) {
+function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, onCarteVue = null }) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["m-listes"], queryFn: () => base44.request("GET", `${API}/listes`) });
   const [choisie, setChoisie] = useState(demandee || lireDerniere());
@@ -312,7 +345,7 @@ function Listes({ demandee = null, onDemandeVue = null }) {
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
         <ChiffresListe l={l} />
-        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
+        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
       </div>
       <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">

@@ -18,3 +18,7 @@
 .logo-kp-nuit { color: #ffffff; }
 .logo-kp-nuit .logo-kp-trait { background: #a7abed; }
 .logo-kp-mono .logo-kp-trait { background: currentColor; }
+/* Dans l'application (25 oct. 2026, Jules : le logo K Partners en haut du menu mandataire) : il suit le thème, le
+   texte en encre et le trait en pervenche, par les jetons. */
+.logo-kp-theme { color: rgb(var(--k-encre-rgb)); }
+.logo-kp-theme .logo-kp-trait { background: rgb(var(--k-pervenche-rgb)); }

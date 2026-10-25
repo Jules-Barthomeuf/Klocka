@@ -43,7 +43,7 @@ export function PointNouveau({ n = 0, grand = false, className = "" }) {
  * À droite du dossier : ses pièces, ou la conversation avec l'analyste, d'un
  * interrupteur en haut. On arrive sur la conversation quand Klocka a écrit.
  */
-function ColonneDroite({ c, mode, onMode }) {
+export function ColonneDroite({ c, mode, onMode }) {
   const gestes = useGestes(c);
   const modifiable = ajoutPossible(c);
   const recues = c.checklist.lignes.filter((l) => l.recue).length;

@@ -111,7 +111,7 @@ export function monterMandataire(app) {
       try {
         const piece = await chargerPiece(flux.etape);
         const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
+          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, proprietaire_id: req.body?.proprietaire_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
         );
         flux.fin(resultat);
       } catch (e) {
@@ -121,11 +121,30 @@ export function monterMandataire(app) {
     }
     const piece = await chargerPiece();
     const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-      discuter({ historique: req.body?.historique, texte, user, piece, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
+      discuter({ historique: req.body?.historique, texte, user, piece, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, proprietaire_id: req.body?.proprietaire_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
     );
     ok(res, resultat);
   }));
 
+  // Le matin (24 oct. 2026) : à contacter avec signal, argument et contact, puis relances et rendez-vous du jour.
+  app.get('/api/mandataire/matin', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    ok(res, await (await import('../mandataire-matin.js')).matinDuMandataire(user));
+  }));
+  // Prospecter pour ses clients (24 oct. 2026) : le secteur, les clients qui cherchent dedans, et les points d'un client.
+  app.get('/api/mandataire/prospecter', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    ok(res, await (await import('../mandataire-prospecter.js')).prospecter(user));
+  }));
+  app.get('/api/mandataire/prospecter/clients/:id', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await import('../mandataire-prospecter.js')).pointsDuClient(user, req.params.id);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.get('/api/mandataire/jour', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
@@ -292,9 +311,14 @@ export function monterMandataire(app) {
     // Chaque commerce porte les investisseurs Klocka (anonymisés) qu'il pourrait intéresser.
     const { matcheurInvestisseurs } = await import('../mandataire-agent.js');
     const investisseurs = await matcheurInvestisseurs();
+    // Et sa fiche très courte, pour la carte en grand écran (24 oct. 2026) : exploitant, propriétaire, signal, accroche.
+    const { ficheCourte } = await import('../mandataire-matin.js');
+    const { drapeauxDe } = await import('../off-market/simple.js');
+    const { Records } = await import('../db.js');
+    const courte = (f) => ficheCourte({ p: f, commerce: f.commerce_simple_id ? Records.get('CommerceSimple', f.commerce_simple_id) : null, cible: f.cible_id ? Records.get('Cible', f.cible_id) : null, drapeaux: drapeauxDe });
     const listes = await Promise.all((await L()).mesListes(user).map(async (l) => ({
       ...l,
-      fiches: await Promise.all(l.fiches.map(async (f) => ({ ...f, investisseurs: await investisseurs({ ...(f.cible || {}), ...f, ville: f.ville || f.cible?.ville }) }))),
+      fiches: await Promise.all(l.fiches.map(async (f) => ({ ...f, courte: courte(f), investisseurs: await investisseurs({ ...(f.cible || {}), ...f, ville: f.ville || f.cible?.ville }) }))),
     })));
     ok(res, { listes, libelles: LIBELLES_STATUT });
   }));
@@ -345,6 +369,9 @@ export function monterMandataire(app) {
     if (!user) return;
     const r = await (await AG()).choisirCommunes(user, req.body?.communes || []);
     if (!r.ok) return res.status(400).json({ error: r.error });
+    // Une commune cochée se lit en fond (24 oct. 2026) : elle entre dans son secteur et « Pour mes clients ».
+    const { secteurDe } = await E();
+    (await import('../villes-secteur.js')).lireEnFond(secteurDe(user), { pour: user.email });
     ok(res, r);
   }));
   app.post('/api/mandataire/agent/actif', wrap(async (req, res) => {
@@ -496,7 +523,15 @@ export function monterMandataire(app) {
     const user = mandataire(req, res);
     if (!user) return;
     const { mesProprietaires, LIBELLES_STATUT } = await E();
-    ok(res, { proprietaires: mesProprietaires(user).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || ''))), libelles: LIBELLES_STATUT });
+    // Chaque fiche porte son signal, l'argument à dire et le moyen de la joindre (page Biens, étape Contact, 24 oct. 2026).
+    const { signauxDe, argumentDe, contactDe } = await import('../mandataire-matin.js');
+    const { drapeauxDe } = await import('../off-market/simple.js');
+    const { Records } = await import('../db.js');
+    const enrichir = (p) => {
+      const signaux = signauxDe(p.commerce_simple_id ? Records.get('CommerceSimple', p.commerce_simple_id) : null, drapeauxDe, p.cible_id ? Records.get('Cible', p.cible_id) : null);
+      return { ...p, signaux, argument: argumentDe(signaux), contact: contactDe(p) };
+    };
+    ok(res, { proprietaires: mesProprietaires(user).sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || ''))).map(enrichir), libelles: LIBELLES_STATUT });
   }));
 
   app.post('/api/mandataire/proprietaires', wrap(async (req, res) => {
@@ -553,6 +588,43 @@ export function monterMandataire(app) {
     ok(res, r);
   }));
 
+  // La fiche (24 oct. 2026) : sur une page, la dictée en deux temps, les étapes de Biens, la pause.
+  const FM = () => import('../fiche-mandataire.js');
+  const rendreFiche = (res, r) => (r.ok ? ok(res, r) : res.status(400).json({ error: r.error }));
+  app.get('/api/mandataire/proprietaires/:id/fiche', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = await (await FM()).fiche(req.params.id, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/proprietaires/:id/dictee', roleAvantDepot, upload.single('audio'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const fs = await import('fs');
+    rendreFiche(res, await (await FM()).lireDictee(req.params.id, { texte: req.body?.texte || null, audio: req.file ? fs.readFileSync(req.file.path) : null }, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/dictee/appliquer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, await (await FM()).appliquerDictee(req.params.id, req.body?.proposition || {}, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/etape', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await FM()).validerEtape(req.params.id, String(req.body?.etape || ''), user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/pause', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, await (await FM()).mettreEnPause(req.params.id, { argument: req.body?.argument || null, dans_jours: req.body?.dans_jours || 30 }, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/reprendre', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await FM()).reprendre(req.params.id, user));
+  }));
+  // Le premier geste sur un point de la carte (ajouter, passer, appeler) : la fiche naît, à ce mandataire.
+  app.post('/api/mandataire/commerces/:id/fiche', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = await (await FM()).ficheDuCommerce(req.params.id, user, { statut: req.body?.statut === 'contacte' ? 'contacte' : 'a_appeler' });
+    if (!r.ok) return res.status(409).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/mandataire/proprietaires/:id/sans-reponse', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
@@ -604,6 +676,8 @@ export function monterMandataire(app) {
     if (!user) return;
     const r = (await VK()).ajouterVilleKlocka(req.body || {}, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
+    // Une Ville Klocka ajoutée se lit dans les secteurs qui la contiennent (24 oct. 2026).
+    (await import('../villes-secteur.js')).lireTousLesSecteurs({ pour: user.email });
     ok(res, r);
   }));
   app.delete('/api/mandataire/admin/villes-klocka/:code', wrap(async (req, res) => {
@@ -615,7 +689,13 @@ export function monterMandataire(app) {
     if (!admin(req, res)) return;
     const { listerSecteurs, villesDuSecteur } = await E();
     const { anneauxSecteur } = await E();
-    ok(res, { secteurs: listerSecteurs().map((s) => ({ ...s, polygones: anneauxSecteur(s), villes: villesDuSecteur(s).map((v) => v.nom) })) });
+    const { etatVille } = await import('../villes-secteur.js');
+    const { Records } = await import('../db.js');
+    // Chaque ville avec son état de lecture (lue, en lecture, en attente) : l'équipe voit où en est le secteur.
+    ok(res, { secteurs: listerSecteurs().map((s) => {
+      const villes = villesDuSecteur(s);
+      return { ...s, polygones: anneauxSecteur(s), villes: villes.map((v) => v.nom), lectures: villes.map((v) => ({ nom: v.nom, etat: etatVille(Records.get('Ville', v.id)) })) };
+    }) });
   }));
 
   app.post('/api/mandataire/admin/secteurs', wrap(async (req, res) => {
@@ -624,15 +704,36 @@ export function monterMandataire(app) {
     const { poserSecteur } = await E();
     const r = poserSecteur(req.body || {}, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
+    // Tracé ou redessiné : ses villes se créent et se lisent en fond (24 oct. 2026).
+    if (r.secteur?.mandataire_email) (await import('../villes-secteur.js')).lireEnFond(r.secteur, { pour: user.email });
     ok(res, r);
   }));
 
+  // Les villes d'un secteur (24 oct. 2026) : toutes ses communes, et celles que l'équipe choisit pour la prospection.
+  app.get('/api/mandataire/admin/secteurs/:id/communes', wrap(async (req, res) => {
+    if (!admin(req, res)) return;
+    const { Records } = await import('../db.js');
+    const s = Records.get('SecteurMandataire', req.params.id);
+    if (!s) return res.status(404).json({ error: 'Secteur introuvable.' });
+    ok(res, { communes: await (await import('../villes-secteur.js')).communesDuChoix(s) });
+  }));
+  app.post('/api/mandataire/admin/secteurs/:id/villes', wrap(async (req, res) => {
+    const user = admin(req, res);
+    if (!user) return;
+    const VS = await import('../villes-secteur.js');
+    const r = await VS.choisirVilles(req.params.id, req.body?.codes || [], user);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    // Les villes choisies se créent et se lisent en fond, attribuées ou pas encore : tout est prêt quand le mandataire arrive.
+    VS.lireEnFond(r.secteur, { pour: user.email });
+    ok(res, r);
+  }));
   app.post('/api/mandataire/admin/secteurs/:id/mandataire', wrap(async (req, res) => {
     const user = admin(req, res);
     if (!user) return;
     const { attribuerSecteur } = await E();
     const r = attribuerSecteur(req.params.id, req.body?.mandataire_email || null, user);
     if (!r.ok) return res.status(400).json({ error: r.error });
+    if (r.secteur?.mandataire_email) (await import('../villes-secteur.js')).lireEnFond(r.secteur, { pour: user.email });
     ok(res, r);
   }));
 

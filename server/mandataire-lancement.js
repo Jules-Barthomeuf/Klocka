@@ -555,6 +555,15 @@ async function rattacherFiche(p, user) {
   Records.update('ProprietaireMandataire', p.id, { cible_id: c.cible.id, activite: activite || c.cible.activite || null });
 }
 
+/**
+ * Ce qu'il reste vraiment à chercher pour une liste, avec les mêmes règles que la recherche elle-même (24 oct. 2026,
+ * Jules : « Propriétaires au cadastre : 1 restant, c'est énervant ») : une fiche déjà cherchée, sans résultat, ne compte
+ * plus pendant sept jours.
+ */
+export function resteACompleter(listeId) {
+  return { proprietaires: fichesSansCible(listeId).length + fichesSansProprietaire(listeId).length, numeros: fichesSansNumero(listeId).length };
+}
+
 export function completerProprietairesListe(listeId, user) {
   const l = Records.get('ListeMandataire', listeId);
   if (!l || l.mandataire_email !== moi(user)) return { ok: false, error: 'Liste introuvable.' };
@@ -600,9 +609,15 @@ export function mesListes(user) {
     .map((l) => {
       const dedans = fiches
         .filter((p) => p.liste_id === l.id)
-        .map((p) => ({ ...p, cible: colonnesDeCible(p.cible_id ? Records.get('Cible', p.cible_id) : null) }));
+        .map((p) => {
+          const cible = colonnesDeCible(p.cible_id ? Records.get('Cible', p.cible_id) : null);
+          // Où est le commerce, pour la carte en grand écran de la liste (24 oct. 2026) : sa cible, sinon son commerce de l'Off-market.
+          const cs = !cible?.lat && p.commerce_simple_id ? Records.get('CommerceSimple', p.commerce_simple_id) : null;
+          const position = cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : cs?.lat != null ? { lat: cs.lat, lon: cs.lon } : null;
+          return { ...p, cible, position };
+        });
       const par = (s) => dedans.filter((p) => s.includes(p.statut)).length;
-      return { id: l.id, nom: l.nom, suggeree: !!l.suggeree, agent: !!l.agent, cree_le: l.cree_le, total: dedans.length, a_appeler: par(['a_appeler']), contactes: par(['contacte', 'en_discussion']), rdv: par(['rdv_pris', 'mandat_signe']), fiches: dedans };
+      return { id: l.id, reste: resteACompleter(l.id), nom: l.nom, suggeree: !!l.suggeree, agent: !!l.agent, cree_le: l.cree_le, total: dedans.length, a_appeler: par(['a_appeler']), contactes: par(['contacte', 'en_discussion']), rdv: par(['rdv_pris', 'mandat_signe']), fiches: dedans };
     });
 }
 

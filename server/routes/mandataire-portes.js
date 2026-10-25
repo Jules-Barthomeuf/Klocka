@@ -178,6 +178,12 @@ export function monterMandatairePortes(app) {
     const { naviguerMandat } = await import('../mandataire-mandat-chat.js');
     rendre(res, naviguerMandat(req.params.id, req.params.sens, vue(req, user)));
   }));
+  // Un champ du mandat modifié à la main dans l'aperçu (25 oct. 2026, Jules).
+  app.post('/api/mandataire/mandats/:id/questionnaire/champ', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { modifierChampMandat } = await import('../mandataire-mandat-chat.js');
+    rendre(res, modifierChampMandat(req.params.id, String(req.body?.champ || ''), req.body?.valeur, vue(req, user)));
+  }));
   app.get('/api/mandataire/mandats/:id/apercu', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const { apercuMandat } = await import('../mandataire-mandat-chat.js');

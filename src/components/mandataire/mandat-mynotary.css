@@ -116,3 +116,15 @@
   .mn-h1 { font-size: 12pt; }
   .mn-vide { min-width: 24mm; }
 }
+
+/* Modifier le mandat à la main (25 oct. 2026) : une valeur se signale au survol, s'écrit dans un cadre indigo ;
+   rien de tout cela ne s'imprime. */
+.mn-editable .mn-champ { cursor: text; border-radius: 1mm; transition: background 0.15s, box-shadow 0.15s; }
+.mn-editable .mn-champ:hover { background: rgb(93 101 214 / 0.1); box-shadow: 0 0 0 1px rgb(93 101 214 / 0.35); }
+.mn-editable .mn-champ:focus-visible { outline: none; box-shadow: 0 0 0 1.5px #5d65d6; }
+.mn-champ-edition { display: inline-block; min-width: 20mm; padding: 0 1mm; background: #ffffff; box-shadow: 0 0 0 1.5px #5d65d6; font-weight: 700; color: var(--encre); outline: none; }
+.mn-champ-choix { font: inherit; font-weight: 700; color: var(--encre); border: 1.5px solid #5d65d6; border-radius: 1mm; background: #ffffff; padding: 0 1mm; }
+@media print {
+  .mn-editable .mn-champ:hover { background: none; box-shadow: none; }
+}
+

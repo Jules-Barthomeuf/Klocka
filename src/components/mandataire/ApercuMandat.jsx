@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, FileText, Loader2, Redo2, Undo2, X } from "lucide-react";
@@ -31,21 +31,66 @@ const societeAvecForme = (forme, societe) => {
 const chiffres = (n) => Number(n).toLocaleString("fr-FR");
 
 
-/** Une valeur du mandat, ou le blanc du modèle. */
-function V({ v, court = false }) {
+// Modifier le mandat à la main (25 oct. 2026, Jules : « on doit pouvoir modifier le mandat comme on veut, juste les
+// champs qu'on remplit ») : dans l'aperçu d'un brouillon, chaque valeur du questionnaire se clique et se réécrit ;
+// le texte du modèle ne bouge pas. `onChamp(champ, valeur)` enregistre ; sans lui, le document est en lecture.
+const EditionMandat = createContext(null);
+
+/** Une valeur qui se modifie : la valeur brute à l'édition (le prix en chiffres, pas en lettres), un choix pour le type. */
+function Champ({ v, court, champ, brut, choix, ed }) {
+  const [edition, setEdition] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!edition || !el) return;
+    el.focus();
+    if (el.isContentEditable) { const r = document.createRange(); r.selectNodeContents(el); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+  }, [edition]);
+  const vide = v === undefined || v === null || v === "";
+  const initial = String(brut ?? "");
+  if (edition && choix) {
+    return (
+      <select ref={ref} className="mn-champ-choix" defaultValue={brut || ""} onChange={(e) => { setEdition(false); ed(champ, e.target.value); }} onBlur={() => setEdition(false)}>
+        <option value="">—</option>
+        {Object.entries(choix).map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
+      </select>
+    );
+  }
+  if (edition) {
+    return (
+      <span ref={ref} className="mn-champ mn-champ-edition" contentEditable suppressContentEditableWarning
+        onBlur={(e) => { const t = e.currentTarget.textContent.trim(); setEdition(false); if (t !== initial.trim()) ed(champ, t); }}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } if (e.key === "Escape") { e.currentTarget.textContent = initial; e.currentTarget.blur(); } }}>
+        {initial}
+      </span>
+    );
+  }
+  return (
+    <span role="button" tabIndex={0} title="Modifier" onClick={() => setEdition(true)} onKeyDown={(e) => { if (e.key === "Enter") setEdition(true); }}
+      className={`mn-champ${vide ? ` mn-vide${court ? " mn-vide-court" : ""}` : ""}`}>
+      {vide ? "\u00a0" : <b>{v}</b>}
+    </span>
+  );
+}
+
+/** Une valeur du mandat, ou le blanc du modèle. `champ` : la clé du questionnaire qui la porte (modifiable). */
+function V({ v, court = false, champ = null, brut = undefined, choix = null }) {
+  const ed = useContext(EditionMandat);
+  if (ed && champ) return <Champ v={v} court={court} champ={champ} brut={brut === undefined ? v : brut} choix={choix} ed={ed} />;
   if (v === undefined || v === null || v === "") return <span className={`mn-vide${court ? " mn-vide-court" : ""}`}>&nbsp;</span>;
   return <b>{v}</b>;
 }
 
 /** Le paragraphe du mandant : personne physique ou société. */
 function Mandant({ q }) {
-  const contact = [q.vendeur_telephone && <>Téléphone de contact : <b key="t">{q.vendeur_telephone}</b></>, q.vendeur_email && <>Adresse mail de contact : <b key="m">{q.vendeur_email}</b></>].filter(Boolean);
+  const ed = useContext(EditionMandat);
+  const contact = [(q.vendeur_telephone || ed) && <>Téléphone de contact : <V key="t" v={q.vendeur_telephone} champ="vendeur_telephone" /></>, (q.vendeur_email || ed) && <>Adresse mail de contact : <V key="m" v={q.vendeur_email} champ="vendeur_email" /></>].filter(Boolean);
   if (q.vendeur_societe || q.vendeur_genre === "morale") {
     return (
       <>
         <p className="mn-p">
-          La société <V v={societeAvecForme(q.vendeur_forme, q.vendeur_societe)} />, dont le siège social est situé <V v={q.vendeur_adresse} />,
-          immatriculée sous le numéro de SIREN <V v={q.vendeur_siren} court />, dont le représentant est <V v={q.vendeur_representant} />.
+          La société <V v={societeAvecForme(q.vendeur_forme, q.vendeur_societe)} champ="vendeur_societe" brut={q.vendeur_societe} />, dont le siège social est situé <V v={q.vendeur_adresse} champ="vendeur_adresse" />,
+          immatriculée sous le numéro de SIREN <V v={q.vendeur_siren} court champ="vendeur_siren" />, dont le représentant est <V v={q.vendeur_representant} champ="vendeur_representant" />.
         </p>
         {contact.map((c, i) => <p key={i} className="mn-p">{c}</p>)}
       </>
@@ -54,7 +99,9 @@ function Mandant({ q }) {
   const nom = [q.vendeur_civilite, q.vendeur_prenom, q.vendeur_nom].filter(Boolean).join(" ");
   return (
     <>
-      {nom || q.vendeur_adresse ? (
+      {ed ? (
+        <p className="mn-p"><V v={q.vendeur_civilite} court champ="vendeur_civilite" /> <V v={q.vendeur_prenom} court champ="vendeur_prenom" /> <V v={q.vendeur_nom} champ="vendeur_nom" />, demeurant <V v={q.vendeur_adresse} champ="vendeur_adresse" />.</p>
+      ) : nom || q.vendeur_adresse ? (
         <p className="mn-p"><V v={nom} />, demeurant <V v={q.vendeur_adresse} />.</p>
       ) : null}
       {contact.map((c, i) => <p key={i} className="mn-p">{c}</p>)}
@@ -73,14 +120,15 @@ function honorairesDe(q) {
 }
 
 /** Le document lui-même, fidèle au modèle MyNotary « Mandat de vente ». */
-export function DocumentMandat({ q = {}, numero = null }) {
+export function DocumentMandat({ q = {}, numero = null, onChamp = null }) {
   const type = q.type_mandat ? TYPES[q.type_mandat] : null;
   const h = honorairesDe(q);
   const prixTTC = Number(q.prix) || null;
   const acquereur = q.honoraires_charge === "acquereur";
   const totalMois = Number(q.duree_mois) || null;
   return (
-    <div className="mn-doc">
+    <EditionMandat.Provider value={onChamp}>
+    <div className={`mn-doc${onChamp ? " mn-editable" : ""}`}>
       {/* La page de garde. */}
       <section className="mn-page mn-garde">
         <div className="mn-garde-haut">
@@ -125,21 +173,21 @@ export function DocumentMandat({ q = {}, numero = null }) {
           <p className="mn-p">Le Mandataire est représenté à l'acte comme indiqué ci-dessus.</p>
 
           <h3 className="mn-h1">Objet du contrat</h3>
-          <p className="mn-p">Le Mandant confère au Mandataire un mandat <V v={type} /> de vendre le Bien qui sera désigné ci-dessous, aux conditions, prix et charges qui suivent, convenus entre les parties.<br />Ce mandat porte le n°<V v={numero} court /> au registre des mandats.</p>
+          <p className="mn-p">Le Mandant confère au Mandataire un mandat <V v={type} champ="type_mandat" brut={q.type_mandat} choix={TYPES} /> de vendre le Bien qui sera désigné ci-dessous, aux conditions, prix et charges qui suivent, convenus entre les parties.<br />Ce mandat porte le n°<V v={numero} court /> au registre des mandats.</p>
           <p className="mn-p mn-gras">Le Mandant déclare agir dans le cadre de ses activités professionnelles, les dispositions du code de la consommation sont donc inapplicables.</p>
 
           <p className="mn-h2">Désignation du bien</p>
           {(q.bien_designation || q.bien_adresse || q.bien_surface) ? (
-            <p className="mn-p"><V v={q.bien_designation} />, situé <V v={q.bien_adresse} />{q.bien_surface ? <>, d'une surface de <b>{chiffres(q.bien_surface)} m²</b></> : null}.</p>
+            <p className="mn-p"><V v={q.bien_designation} champ="bien_designation" />, situé <V v={q.bien_adresse} champ="bien_adresse" />{q.bien_surface || onChamp ? <>, d'une surface de <V v={q.bien_surface ? `${chiffres(q.bien_surface)} m²` : null} champ="bien_surface" brut={q.bien_surface} court /></> : null}.</p>
           ) : null}
           <p className="mn-p">L'intégralité de ce Bien sera désignée dans le mandat sous le terme "le Bien".</p>
 
           <p className="mn-h2 mn-italique">Disponibilité du bien</p>
-          {q.bien_occupe === true && <p className="mn-p">Le Bien est vendu occupé{q.bien_locataire ? <> par <b>{q.bien_locataire}</b></> : null}.</p>}
+          {q.bien_occupe === true && <p className="mn-p">Le Bien est vendu occupé{q.bien_locataire || onChamp ? <> par <V v={q.bien_locataire} champ="bien_locataire" /></> : null}.</p>}
           {q.bien_occupe === false && <p className="mn-p">Le Bien est vendu libre de toute occupation.</p>}
 
           <p className="mn-h2 mn-italique">Prix de vente</p>
-          <p className="mn-p">Le prix de vente du Bien est fixé à la somme de <V v={prixTTC ? eurosEnLettres(prixTTC) : null} />.</p>
+          <p className="mn-p">Le prix de vente du Bien est fixé à la somme de <V v={prixTTC ? eurosEnLettres(prixTTC) : null} champ="prix" brut={q.prix} />.</p>
           {q.prix_tva !== false ? (
             <p className="mn-p">Ce prix est exprimé Toutes Taxes Comprises, le montant hors taxe est de <V v={prixTTC && q.prix_tva === true ? eurosEnLettres(Math.round((prixTTC / 1.2) * 100) / 100) : null} />.<br />TVA immobilière en vigueur à la charge du Mandant.</p>
           ) : (
@@ -152,18 +200,18 @@ export function DocumentMandat({ q = {}, numero = null }) {
 
           <p className="mn-h2">Conditions relatives au contrat de mandat</p>
           <p className="mn-h2 mn-italique">Honoraires du Mandataire</p>
-          <p className="mn-p">En cas de réalisation de l'opération avec un Acquéreur présenté par le Mandataire, ou un Mandataire substitué ou dirigé vers lui, le Mandataire aura droit à une rémunération d'un montant représentant <V v={h.taux} court /> <b>%</b> du prix de vente, soit la somme de <b>{eurosEnLettres(h.ttc || 0)} TTC</b> ({eurosEnLettres(h.ht || 0)} HT).</p>
+          <p className="mn-p">En cas de réalisation de l'opération avec un Acquéreur présenté par le Mandataire, ou un Mandataire substitué ou dirigé vers lui, le Mandataire aura droit à une rémunération d'un montant représentant <V v={h.taux} court champ="honoraires" brut={q.honoraires} /> <b>%</b> du prix de vente, soit la somme de <b>{eurosEnLettres(h.ttc || 0)} TTC</b> ({eurosEnLettres(h.ht || 0)} HT).</p>
           <p className="mn-p">Ces honoraires sont à la charge {acquereur ? "de l'Acquéreur" : "du Vendeur"}.<br />
             {acquereur
-              ? <>Une fois la vente conclue, L'Acquéreur versera le prix de vente d'un montant de <V v={prixTTC ? eurosEnLettres(prixTTC) : null} />, ainsi que la somme de <b>{eurosEnLettres(h.ttc || 0)}</b> au Mandataire.</>
-              : <>Une fois la vente conclue, L'Acquéreur versera le prix de vente d'un montant de <V v={prixTTC ? eurosEnLettres(prixTTC) : null} /> ; le Vendeur devra au Mandataire la somme de <b>{eurosEnLettres(h.ttc || 0)}</b>.</>}
+              ? <>Une fois la vente conclue, L'Acquéreur versera le prix de vente d'un montant de <V v={prixTTC ? eurosEnLettres(prixTTC) : null} champ="prix" brut={q.prix} />, ainsi que la somme de <b>{eurosEnLettres(h.ttc || 0)}</b> au Mandataire.</>
+              : <>Une fois la vente conclue, L'Acquéreur versera le prix de vente d'un montant de <V v={prixTTC ? eurosEnLettres(prixTTC) : null} champ="prix" brut={q.prix} /> ; le Vendeur devra au Mandataire la somme de <b>{eurosEnLettres(h.ttc || 0)}</b>.</>}
           </p>
           <p className="mn-p">Il est précisé que le taux actuel de la TVA est susceptible de modification conformément à la règlementation fiscale ; le taux appliqué sera celui en vigueur le jour où les honoraires seront exigibles.</p>
           <p className="mn-p">La rémunération du Mandataire sera exigible le jour où l'opération sera effectivement conclue et réitérée par acte authentique.</p>
 
           <p className="mn-h2 mn-italique">Durée du mandat</p>
           <p className="mn-p">Le présent mandat est donné pour une durée de <b>3</b> mois à compter de sa signature.</p>
-          <p className="mn-p">A la fin de cette période, il se renouvellera automatiquement et tacitement pour une période de <b>3</b> mois, sans que la durée totale ne puisse dépasser <V v={totalMois} court /> mois.<br />Conformément à l'article L 215-4 du Code de la consommation, les dispositions des articles L 215-1 à L 215-3 et L 241-3 dudit code sont intégralement reproduites ci-après :</p>
+          <p className="mn-p">A la fin de cette période, il se renouvellera automatiquement et tacitement pour une période de <b>3</b> mois, sans que la durée totale ne puisse dépasser <V v={totalMois} court champ="duree_mois" brut={q.duree_mois} /> mois.<br />Conformément à l'article L 215-4 du Code de la consommation, les dispositions des articles L 215-1 à L 215-3 et L 241-3 dudit code sont intégralement reproduites ci-après :</p>
           <p className="mn-p mn-it">Article L 215-1 : Pour les contrats de prestations de services conclus pour une durée déterminée avec une clause de reconduction tacite, le professionnel prestataire de services informe le consommateur par écrit, par lettre nominative ou courrier électronique dédiés, au plus tôt trois mois et au plus tard un mois avant le terme de la période autorisant le rejet de la reconduction, de la possibilité de ne pas reconduire le contrat qu'il a conclu avec une clause de reconduction tacite. Cette information, délivrée dans des termes clairs et compréhensibles, mentionne, dans un encadré apparent, la date limite de non-reconduction.<br />Lorsque cette information ne lui a pas été adressée conformément aux dispositions du premier alinéa, le consommateur peut mettre gratuitement un terme au contrat, à tout moment à compter de la date de reconduction. Les avances effectuées après la dernière date de reconduction ou, s'agissant des contrats à durée indéterminée, après la date de transformation du contrat initial à durée déterminée, sont dans ce cas remboursées dans un délai de trente jours à compter de la date de résiliation, déduction faite des sommes correspondant, jusqu'à celle-ci, à l'exécution du contrat.<br />Les dispositions du présent article s'appliquent sans préjudice de celles qui soumettent légalement certains contrats à des règles particulières en ce qui concerne l'information du consommateur.<br />Article L 215-2 : Les dispositions du présent chapitre ne sont pas applicables aux exploitants des services d'eau potable et d'assainissement.<br />Article L 215-3 : Les dispositions du présent chapitre sont également applicables aux contrats conclus entre des professionnels et des non-professionnels.<br />Article L 241-3 : Lorsque le professionnel n'a pas procédé au remboursement dans les conditions prévues à l'article L 215-1, les sommes dues sont productives d'intérêts au taux légal.</p>
           <p className="mn-p">Dans toutes les hypothèses, il sera possible de dénoncer une éventuelle clause pénale, ou bien de rompre le mandat, à tout moment avec un préavis de quinze jours, par lettre recommandée avec demande d'avis de réception, et ce, <b>passé un délai de trois mois à compter de la signature du mandat.</b></p>
 
@@ -226,6 +274,7 @@ export function DocumentMandat({ q = {}, numero = null }) {
         </div>
       </section>
     </div>
+    </EditionMandat.Provider>
   );
 }
 
@@ -256,6 +305,15 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
       toast.error(e?.message || "Impossible");
     } finally {
       setEnCours(false);
+    }
+  };
+  // Un champ réécrit dans l'aperçu : enregistré tout de suite, défaisable par les flèches.
+  const modifierChamp = async (champ, valeur) => {
+    try {
+      const r = await base44.request("POST", `${API}/${id}/questionnaire/champ`, { body: { champ, valeur } });
+      queryClient.setQueryData(["m-apercu-mandat", id], r);
+    } catch (e) {
+      toast.error(e?.message || "Le champ n'est pas enregistré");
     }
   };
   const { data, isLoading } = useQuery({
@@ -313,7 +371,7 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 max-md:px-3 max-md:py-4">
-        <div className="animate-in fade-in slide-in-from-bottom-3 duration-700"><DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} /></div>
+        <div className="animate-in fade-in slide-in-from-bottom-3 duration-700"><DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} onChamp={brouillon ? modifierChamp : null} /></div>
       </div>
     </div>
   );

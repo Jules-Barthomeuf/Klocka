@@ -101,3 +101,21 @@ test('annuler / rétablir : aller-retour exact, et jamais sur le mandat d’un a
   assert.equal(r2.questionnaire.prix, 210000, 'rétablir revient exactement');
   assert.equal(naviguerMandat(c.mandat_id, 'retablir', A).ok, false, 'plus rien à rétablir');
 });
+
+test('modifier un champ à la main (25 oct.) : lu comme le chat, effaçable, défaisable, jamais chez un autre ni après envoi', async () => {
+  const { modifierChampMandat, naviguerMandat } = await import('./mandataire-mandat-chat.js');
+  const conv = 'conv-mandat-champ';
+  const c = commencerMandat({ bien: 'Boulangerie du Marché' }, A, conv);
+  noterMandat({ prix: '300 000', bien_adresse: '3 rue Neuve, Lyon' }, A, conv);
+  const r = modifierChampMandat(c.mandat_id, 'prix', '325 000 €', A);
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.questionnaire.prix, 325000, 'lu comme une réponse du chat');
+  assert.equal(modifierChampMandat(c.mandat_id, 'bien_adresse', '5 rue Neuve, Lyon', A).questionnaire.bien_adresse, '5 rue Neuve, Lyon');
+  assert.equal(modifierChampMandat(c.mandat_id, 'bien_adresse', '', A).questionnaire.bien_adresse, undefined, 'une valeur vide efface');
+  assert.equal(naviguerMandat(c.mandat_id, 'annuler', A).questionnaire.bien_adresse, '5 rue Neuve, Lyon', 'les flèches défont une saisie à la main');
+  assert.equal(modifierChampMandat(c.mandat_id, 'prix', 'beaucoup', A).ok, false, 'illisible : refusé');
+  assert.equal(modifierChampMandat(c.mandat_id, 'statut', 'signe', A).ok, false, 'pas un champ du questionnaire');
+  assert.equal(modifierChampMandat(c.mandat_id, 'prix', '1', B).ok, false, 'jamais le mandat d’un autre');
+  Records.update('MandatMandataire', c.mandat_id, { statut: 'demande_envoyee' });
+  assert.equal(modifierChampMandat(c.mandat_id, 'prix', '400 000', A).ok, false, 'parti : plus d’ici');
+});

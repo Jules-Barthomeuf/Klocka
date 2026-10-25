@@ -341,6 +341,29 @@ export async function conversationDuMandat(id, user) {
 }
 
 /**
+ * Un champ du mandat modifié à la main, dans l'aperçu (25 oct. 2026, Jules : « on doit pouvoir modifier le mandat
+ * comme on veut, juste les champs qu'on remplit »). Même lecture que les réponses du chat ; une valeur vide efface
+ * le champ ; l'état d'avant reste à portée des flèches. Seulement tant que le mandat n'est pas parti.
+ */
+export function modifierChampMandat(id, champ, valeur, user) {
+  const m = lire(id, user);
+  if (!m) return { ok: false, error: 'Mandat introuvable.' };
+  if (m.statut !== 'brouillon') return { ok: false, error: `Ce mandat est déjà parti (« ${m.statut} ») : une correction passe par le chat.` };
+  if (!CHAMPS[champ]) return { ok: false, error: 'Ce champ ne se modifie pas ici.' };
+  const q = { ...(m.questionnaire || {}) };
+  if (valeur === null || valeur === undefined || String(valeur).trim() === '') delete q[champ];
+  else {
+    const { propres, illisibles } = nettoyerReponses({ [champ]: valeur });
+    if (illisibles.length || !(champ in propres)) return { ok: false, error: `Je ne lis pas « ${String(valeur).slice(0, 60)} ».` };
+    Object.assign(q, propres);
+  }
+  const titre = q.bien_adresse || q.bien_designation ? [q.bien_designation?.split(/[,.]/)[0], q.bien_adresse].filter(Boolean).join(' · ').slice(0, 160) : m.bien;
+  const passe = [...(m.questionnaire_passe || []), { questionnaire: m.questionnaire || {}, bien: m.bien }].slice(-30);
+  Records.update(ENTITE, m.id, { questionnaire: q, bien: titre, questionnaire_passe: passe, questionnaire_futur: [] });
+  return apercuMandat(m.id, user);
+}
+
+/**
  * Les flèches de l'aperçu : revenir à la réponse d'avant, ou la rétablir.
  * Seulement tant que le mandat n'est pas parti dans MyNotary.
  */

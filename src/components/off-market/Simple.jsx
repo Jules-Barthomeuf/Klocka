@@ -484,8 +484,9 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
     } catch (err) { if (err?.name !== "AbortError") toast.error(err?.message || "Recherche impossible"); } finally { setEnCours(false); }
   };
 
+  // Au téléphone, la légende couvrait le zoom : le panneau sous la carte donne les mêmes couleurs (25 oct. 2026).
   const legende = (
-    <div className="flex items-center gap-3 rounded-full px-3 py-1.5 text-[11.5px] text-craie backdrop-blur" style={{ background: "rgb(var(--k-fond-rgb) / 0.78)" }}>
+    <div className="flex items-center gap-3 rounded-full px-3 py-1.5 text-[11.5px] text-craie backdrop-blur max-md:hidden" style={{ background: "rgb(var(--k-fond-rgb) / 0.78)" }}>
       <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full" style={{ background: LIENS.exploitant_certain.couleur }} />exploitant propriétaire</span>
       <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full" style={{ background: LIENS.tiers.couleur }} />bailleur tiers</span>
       <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full" style={{ background: LIENS.inconnu.couleur }} />inconnu</span>
@@ -516,21 +517,22 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={dansZone} tous={commerces} zones={compte?.zones || []} activites={activites} visibles={visibles.length}
           scoreZone={zone.actif ? { masquer: masquerFaibles, seuil: seuilFaible, points: zone.points, choisir: (k) => { setMasquerFaibles(k != null); if (k != null) setSeuilFaible(k); } } : null} />
         <span className="flex-1 max-md:hidden" />
-        {compte && (compte.a_faire > 0 || compte.en_cours > 0) && <span className="inline-flex h-10 items-center gap-2 rounded-full border border-menthe px-3.5 text-[12.5px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Propriétaires : {compte.faits} sur {compte.total}</span>}
-        {compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-10 items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
-        {compte?.google?.etat === "en_cours" && <span className="inline-flex h-10 items-center gap-2 rounded-full border border-bleu/60 px-3.5 text-[12.5px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
-        {compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-10 items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
+        {compte && (compte.a_faire > 0 || compte.en_cours > 0) && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-menthe px-3.5 text-[12.5px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Propriétaires : {compte.faits} sur {compte.total}</span>}
+        {compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
+        {compte?.google?.etat === "en_cours" && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bleu/60 px-3.5 text-[12.5px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
+        {compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
         {bascule}
         {menu}
       </div>
 
       {!territoire ? <Vide>Choisissez une ville, ou tapez une adresse précise.</Vide> : (<>
-        <div ref={haut} className="grid scroll-mt-4 gap-4 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_520px]">
-          <div className="relative">
+        {/* Au téléphone, une colonne qui tient dans l'écran (25 oct. 2026) : rien ne déborde à droite. */}
+        <div ref={haut} className="grid scroll-mt-4 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_520px]">
+          <div className="relative min-w-0">
             {q.isLoading && <div className="absolute inset-0 z-10 grid place-items-center rounded-bloc bg-fond/60"><p className="m-0 inline-flex items-center gap-2 text-[14px] text-encre"><Loader2 className="h-4 w-4 animate-spin text-menthe" />Les commerces {deVille(territoire.nom)}</p></div>}
             <CarteOffMarket villeId={territoire.id} locaux={surCarte} centre={territoire.centre} ouvertId={ouvert} onOuvrir={(c) => setOuvert(c.id)} outils={false} dessinPoint={dessin} legende={legende} bulle={(c) => `${c.enseigne || c.nom} · ${c.activite || ""} · ${LIENS[c.lien]?.mot || "en cours"}`} className="h-[62vh] min-h-[460px] max-md:h-[380px] max-md:min-h-0" />
           </div>
-          <div className="flex h-[62vh] min-h-[460px] flex-col rounded-bloc border border-trait bg-surface max-md:h-auto">
+          <div className="flex h-[62vh] min-h-[460px] min-w-0 flex-col rounded-bloc border border-trait bg-surface max-md:h-auto">
             {ouvert ? <Fiche id={ouvert} onFermer={fermerFiche} onMaj={() => qc.invalidateQueries({ queryKey: ["off-market", "simple", "etat"] })}
               zone={zone} client={client} rangAJuger={file.enCours && file.courant?.id === ouvert ? file.libelle : null}
               onJuge={file.enCours && file.courant?.id === ouvert ? file.suivant : null} onPasser={file.enCours && file.courant?.id === ouvert ? file.suivant : null} /> : (<>

@@ -141,7 +141,8 @@ export function monterMandataire(app) {
   app.get('/api/mandataire/prospecter/clients/:id', wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
-    const r = await (await import('../mandataire-prospecter.js')).pointsDuClient(user, req.params.id);
+    // `?prospecter=1` : le geste « Prospecter » ; sans lui, on revoit les murs d'un client déjà prospecté sans rien noter.
+    const r = await (await import('../mandataire-prospecter.js')).pointsDuClient(user, req.params.id, { noter: req.query.prospecter === '1' });
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));

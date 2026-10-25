@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronLeft, ChevronRight, ListPlus, Loader2, Radar, RefreshCw, Search, X } from "lucide-react";
@@ -50,12 +50,22 @@ export default function ProspecterClients({ bascule = null }) {
     if (!client) return;
     setProspecte(dejaLe(client) ? client.id : null);
   }, [client?.id]);
+  // Passer d'un client à l'autre ne prospecte jamais (25 oct. 2026, Jules) : seul le bouton envoie `?prospecter=1` ; un
+  // client déjà prospecté se réaffiche depuis le cache, sans attente ni rechargement visible.
+  const qc = useQueryClient();
+  const geste = useRef(null);
   const points = useQuery({
     queryKey: ["m-prospecter", "points", prospecte],
-    queryFn: () => base44.request("GET", `${API}/clients/${prospecte}`),
+    queryFn: () => {
+      const noter = geste.current === prospecte;
+      geste.current = null;
+      return base44.request("GET", `${API}/clients/${prospecte}${noter ? "?prospecter=1" : ""}`);
+    },
     enabled: !!prospecte,
+    staleTime: 5 * 60_000,
     refetchInterval: enPreparation ? 30_000 : false,
   });
+  const attente = points.isLoading;
   const murs = useMemo(() => (prospecte ? points.data?.points || [] : []), [prospecte, points.data]);
   const visibles = useMemo(() => {
     const t = filtres.texte.trim().toLowerCase();
@@ -88,8 +98,8 @@ export default function ProspecterClients({ bascule = null }) {
         )}
         {prospecte && (
           <span className="inline-flex h-10 items-center gap-2 rounded-full border border-menthe px-3.5 text-[12.5px] text-encre">
-            {points.isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" /> : <span className="h-2 w-2 rounded-full bg-menthe" />}
-            {points.isFetching ? "Les murs pour ce client…" : `${pl(visibles.length, "mur")} pour ${clientProspecte?.reference || "ce client"}`}
+            {attente ? <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" /> : <span className="h-2 w-2 rounded-full bg-menthe" />}
+            {attente ? "Les murs pour ce client…" : `${pl(visibles.length, "mur")} pour ${clientProspecte?.reference || "ce client"}`}
             <button type="button" onClick={() => { setProspecte(null); ouvrir(null); }} aria-label="Retirer les murs" title="Retirer les murs"
               className="grid h-5 w-5 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
           </span>
@@ -117,7 +127,7 @@ export default function ProspecterClients({ bascule = null }) {
             <CarteClient client={client} clients={clients} rang={clients.indexOf(client)} total={clients.length} onAller={aller} onChoisir={(k) => { setI(k); setOuvert(null); setReplie(false); }} actif={prospecte === client?.id}
               replie={replie} onReplier={() => setReplie((r) => !r)}
               prospecteLe={dejaLe(client)} prospectes={clients.filter((c) => dejaLe(c)).map((c) => c.id)} charge={points.isFetching}
-              onProspecter={() => { if (prospecte === client.id) points.refetch(); setProspecte(client.id); setVusIci((v) => ({ ...v, [client.id]: new Date().toISOString() })); ouvrir(null); }} />
+              onProspecter={() => { geste.current = client.id; if (prospecte === client.id) points.refetch(); else qc.invalidateQueries({ queryKey: ["m-prospecter", "points", client.id] }); setProspecte(client.id); setVusIci((v) => ({ ...v, [client.id]: new Date().toISOString() })); ouvrir(null); }} />
           )}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-bloc border border-trait bg-surface max-lg:min-h-[320px]">
             {/* Fermer la fiche, ou changer de point, se fait en fondu (24 oct. 2026). */}
@@ -130,7 +140,7 @@ export default function ProspecterClients({ bascule = null }) {
               <motion.div key="vide" className="grid flex-1 place-items-center px-6 py-8 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
                 <p className="m-0 max-w-[36ch] text-[13.5px] leading-[1.6] text-ardoise">
                   {prospecte
-                    ? (murs.length ? "Cliquez un point de la carte ou une ligne du tableau : la fiche du commerce s'ouvre ici." : points.isFetching ? "Les murs pour ce client arrivent…" : (points.data?.pourquoi_vide || "Aucun mur pour ce client pour l'instant."))
+                    ? (murs.length ? "Cliquez un point de la carte ou une ligne du tableau : la fiche du commerce s'ouvre ici." : attente ? "Les murs pour ce client arrivent…" : (points.data?.pourquoi_vide || "Aucun mur pour ce client pour l'instant."))
                     : "Choisissez un client, puis « Prospecter » : ses murs se posent sur la carte et dans le tableau."}
                 </p>
               </motion.div>
@@ -142,7 +152,7 @@ export default function ProspecterClients({ bascule = null }) {
 
       {/* Le tableau des murs du client, sous la carte, comme « Tous les commerces ». */}
       {prospecte && (
-        <TableauMurs murs={visibles} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={points.isFetching} />
+        <TableauMurs murs={visibles} total={murs.length} filtres={filtres} setFiltres={setFiltres} ouvert={ouvert} onOuvrir={ouvrir} charge={attente} />
       )}
     </div>
   );

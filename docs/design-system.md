@@ -1144,7 +1144,7 @@ Le chat d'une fiche est épuré (prop `epure` de ChatDashboard, Jules, 25 oct. 2
 
 - 25 oct. 2026 (Jules) : sous « Biens » dans le menu du mandataire, les trois derniers biens ouverts, au dessin des « Projets récents » de l'équipe : un titre « Biens récents » repliable (chevron), puis les biens (icône immeuble, 13,5 px, décalés), le plus récent en tête ; le bien ouvert est surligné. Gardés dans le navigateur (`BiensRecents`), cachés menu replié.
 
-- 25 oct. 2026 (Jules) : « Pour mes clients », un client déjà prospecté montre ses murs sur la carte dès qu'on arrive sur lui, sans recliquer. Sa tête porte un point menthe, sa carte dit « Prospecté le 24 octobre » et le bouton devient « Mettre à jour » (contour, icône qui tourne pendant la relecture). « Prospecter » (plein, menthe) ne reste que pour un client jamais prospecté. La date se garde côté serveur, par mandataire.
+- 25 oct. 2026 (Jules) : « Pour mes clients », un client déjà prospecté montre ses murs sur la carte dès qu'on arrive sur lui, sans recliquer, depuis le cache (pas d'attente) ; passer d'un client à l'autre ne prospecte jamais, seul le bouton date la prospection. Sa tête porte un point menthe, sa carte dit « Prospecté le 24 octobre » et le bouton devient « Mettre à jour » (contour, icône qui tourne pendant la relecture). « Prospecter » (plein, menthe) ne reste que pour un client jamais prospecté. La date se garde côté serveur, par mandataire.
 
 - 25 oct. 2026 (Jules) : « Pour mes clients » : le titre « Votre secteur » (26 px, encre, 22 px au téléphone, centré) est tout en haut de la page, au-dessus des onglets Prospecter / Listes ; le nom du secteur (« Secteur Lyonnais ») n'est plus affiché.
 

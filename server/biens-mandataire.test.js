@@ -282,3 +282,10 @@ test('les clients déjà prospectés se retiennent par mandataire, avec la date'
   assert.ok(Date.parse(P.prospectes(A)['client-1'].le));
   assert.deepEqual(P.prospectes({ email: 'autre@kpartners.fr' }), {}, 'chacun les siens');
 });
+
+test('revoir les murs d’un client ne refait pas sa prospection : seul le geste la date', async () => {
+  const src = fs.readFileSync(new URL('./mandataire-prospecter.js', import.meta.url), 'utf8');
+  assert.match(src, /if \(noter\) noterProspecte/);
+  const ecran = fs.readFileSync(new URL('../src/components/mandataire/ProspecterClients.jsx', import.meta.url), 'utf8');
+  assert.match(ecran, /\?prospecter=1/);
+});

@@ -197,7 +197,7 @@ export async function prospecter(user) {
 }
 
 /** Les points d'un client, pour la carte. Un client qui ne cherche pas dans le secteur n'en a pas. */
-export async function pointsDuClient(user, demandeId) {
+export async function pointsDuClient(user, demandeId, { noter = false } = {}) {
   const E = await import('./mandataire-espace.js');
   const secteur = E.secteurDe(user);
   if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
@@ -211,6 +211,7 @@ export async function pointsDuClient(user, demandeId) {
     const { demarrerPrix } = await import('./off-market/simple.js');
     for (const v of villes) demarrerPrix(v.id);
   }
-  noterProspecte(user, d.id, points.length);
+  // Seul le geste « Prospecter » date la prospection (25 oct. 2026, Jules) : revoir un client ne la refait pas.
+  if (noter) noterProspecte(user, d.id, points.length);
   return { ok: true, villes: villes.map((v) => v.nom), points, compte, prospecte_le: prospectes(user)[d.id]?.le || null, pourquoi_vide: points.length ? null : pourquoiVide(compte, d, villes) };
 }

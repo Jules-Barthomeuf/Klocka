@@ -1,0 +1,20 @@
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&display=swap");
+
+/* Le logo K Partners (charte de marque, version 1, octobre 2026) : « kp » en minuscules, Hanken Grotesk Medium,
+   approche −0,06 em, suivi d'un trait de 0,37 × 0,10 em posé sur la ligne de base, à 0,10 em des lettres.
+   Le trait est indigo sur clair, pervenche sur nuit, de la couleur du texte en monochrome. Couleurs du document
+   imprimé : elles ne suivent pas le thème de l'application. */
+.logo-kp {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  color: #0e0e10;
+  white-space: nowrap;
+}
+.logo-kp-trait { display: inline-block; width: 0.37em; height: 0.1em; margin-left: 0.1em; background: #3f47b8; }
+.logo-kp-nuit { color: #ffffff; }
+.logo-kp-nuit .logo-kp-trait { background: #a7abed; }
+.logo-kp-mono .logo-kp-trait { background: currentColor; }

@@ -9,6 +9,7 @@ import { eurosEnLettres } from "@/lib/nombre-en-lettres";
 import AGENCE from "@/lib/agence-klocka.json";
 import { J } from "@/design/jetons";
 import "./mandat-mynotary.css";
+import LogoKP from "./LogoKP";
 
 // Les mentions de l'agence viennent d'une seule source : src/lib/agence-klocka.json.
 // L'aperçu du mandat de vente, à droite du chat : le modèle « Mandat de
@@ -29,16 +30,6 @@ const societeAvecForme = (forme, societe) => {
 };
 const chiffres = (n) => Number(n).toLocaleString("fr-FR");
 
-/** Le monogramme Klocka du modèle : barre noire, diagonale fine, jambe vert d'eau. */
-function K({ className }) {
-  return (
-    <svg viewBox="0 0 40 50" className={className} aria-label="Klocka">
-      <rect x="2" y="2" width="5" height="46" className="mn-k-noir" />
-      <polygon points="36,2 38.5,4.5 12,30 9.5,27.5" className="mn-k-noir" />
-      <polygon points="9.5,29 14,29 38.5,48 33,48" className="mn-k-vert" />
-    </svg>
-  );
-}
 
 /** Une valeur du mandat, ou le blanc du modèle. */
 function V({ v, court = false }) {
@@ -93,12 +84,14 @@ export function DocumentMandat({ q = {}, numero = null }) {
       {/* La page de garde. */}
       <section className="mn-page mn-garde">
         <div className="mn-garde-haut">
-          <K className="mn-garde-k" />
+          {/* Aux couleurs de K Partners (charte d'octobre 2026) ; le mandat reste au nom de l'agence qui porte la carte T. */}
+          <LogoKP className="mn-garde-k" />
           <h1 className="mn-garde-titre">
             Mandat {type ? <span>{type.toUpperCase()}</span> : <span className="mn-ligne" />}<br />de vente n°{numero ? ` ${numero}` : ""}
           </h1>
           <div className="mn-garde-trait" />
           <p className="mn-garde-loi">Conformément à la loi 70-9 du 2 Janvier 1970 et au décret 72-678 du 20 Juillet 1972</p>
+          <p className="mn-garde-reseau">K Partners · un réseau Klocka</p>
           <p className="mn-garde-agence">{AGENCE.denomination.charAt(0) + AGENCE.denomination.slice(1).toLowerCase()}</p>
           <p className="mn-garde-adresse">{AGENCE.siege}</p>
         </div>
@@ -229,7 +222,7 @@ export function DocumentMandat({ q = {}, numero = null }) {
           <p className="mn-h2">Election de domicile</p>
           <p className="mn-p">Les parties soussignées font élection de domicile chacune à leur adresse respective indiquée en tête de l'acte.</p>
 
-          <div className="mn-pied"><K className="mn-pied-k" /></div>
+          <div className="mn-pied"><LogoKP className="mn-pied-k" /></div>
         </div>
       </section>
     </div>

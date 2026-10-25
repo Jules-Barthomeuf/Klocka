@@ -83,7 +83,7 @@ const placementCss = (pos, st) => {
 // document, une taille en points, gras, italique, souligné, alignement.
 const PALETTE = [["encre", "Encre", "var(--encre)"], ["sauge-fonce", "Sauge foncé", "var(--sauge-fonce)"], ["sauge", "Sauge", "var(--sauge)"], ["menthe", "Menthe", "var(--kp)"], ["ocre", "Ocre", "var(--ocre)"], ["gris", "Gris", "var(--gris)"], ["blanc", "Blanc", "var(--blanc)"]];
 const couleurCss = (c) => PALETTE.find((p) => p[0] === c)?.[2] || c;
-const POLICES = { serif: 'Georgia, "Times New Roman", serif', sans: '"Helvetica Neue", Helvetica, Arial, sans-serif', mono: '"Courier New", Courier, monospace' };
+const POLICES = { serif: 'Georgia, "Times New Roman", serif', sans: '"Hanken Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif', mono: '"Courier New", Courier, monospace' };
 const styleCss = (st) => (st ? {
   ...(st.taille ? { fontSize: `${st.taille}pt` } : {}),
   ...(POLICES[st.police] ? { fontFamily: POLICES[st.police] } : {}),
@@ -170,12 +170,9 @@ function L({ avis, k, defaut, onPose, as, className }) {
   return <T v={avis.libre?.[k] ?? defaut} chemin={`libre.${k}`} onPose={onPose} as={as} className={className} />;
 }
 
-/** Le logo K Partners, le même partout : le fichier s'il est là, sinon le tracé. */
+/** Le logo K Partners de la charte (octobre 2026), le même partout. */
 function Logo() {
-  const [image, setImage] = useState(true);
-  return image
-    ? <img className="avis-logo avis-logo-image" src="/logo-kpartners.png" alt="K Partners" onError={() => setImage(false)} />
-    : <LogoKP className="avis-logo avis-logo-trace" />;
+  return <LogoKP className="avis-logo" />;
 }
 
 function Page({ cle, num, avis, numero, children }) {
@@ -194,7 +191,7 @@ function Page({ cle, num, avis, numero, children }) {
         </div>
         <div className="avis-contenu"><PageCtx.Provider value={cle}>{children}</PageCtx.Provider></div>
         <div className="avis-pied">
-          <div className="avis-pied-trait">KP</div>
+          <div className="avis-pied-trait"><LogoKP className="avis-pied-logo" /></div>
           <span className="avis-pied-texte">Page {numero} · Avis de valeur · {avis.type_libelle} · {avis.bien.rue}, {avis.bien.ville}</span>
         </div>
       </div>

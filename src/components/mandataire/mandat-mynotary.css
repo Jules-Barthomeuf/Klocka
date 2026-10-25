@@ -38,10 +38,12 @@
 }
 
 /* --- La page de garde ------------------------------------------------------ */
-.mn-garde { height: 297mm; display: flex; flex-direction: column; }
+/* Le fond brume continue sous la découpe du panneau indigo : pas de bande blanche au-dessus de la diagonale. */
+.mn-garde { height: 297mm; display: flex; flex-direction: column; background: #eef0ff; }
 .mn-garde-haut { position: relative; flex: 1; padding: 26mm 18mm 0; background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #eef0ff 100%); }
 .mn-garde-k { position: absolute; top: 13mm; right: 13mm; font-size: 30pt; }
-.mn-garde-titre { margin: 18mm 0 0; color: var(--vert); font-weight: 500; font-size: 34pt; line-height: 1.08; letter-spacing: -0.01em; text-transform: uppercase; }
+/* Les grands titres ont la police des intertitres (« ENGAGEMENT DE NON-DISCRIMINATION ») : Hanken Grotesk demi-gras, sans resserrer. */
+.mn-garde-titre { margin: 18mm 0 0; color: var(--vert); font-weight: 600; font-size: 34pt; line-height: 1.08; letter-spacing: normal; text-transform: uppercase; }
 .mn-garde-titre .mn-ligne { display: inline-block; width: 82mm; border-bottom: 2px solid var(--vert); margin-left: 4mm; transform: translateY(-3mm); }
 .mn-garde-trait { width: 88mm; border-bottom: 2px solid var(--vert); margin: 14mm 0 9mm; }
 .mn-garde-loi { margin: 0; font-size: 13pt; color: var(--gris); line-height: 1.4; }
@@ -53,7 +55,7 @@
 
 /* --- Le corps --------------------------------------------------------------- */
 .mn-corps { padding: 16mm 11mm 18mm; }
-.mn-titre { margin: 0; text-align: center; color: var(--vert); font-weight: 500; font-size: 25pt; line-height: 1.2; text-transform: uppercase; }
+.mn-titre { margin: 0; text-align: center; color: var(--vert); font-weight: 600; letter-spacing: normal; font-size: 25pt; line-height: 1.2; text-transform: uppercase; }
 .mn-titre-num { margin: 4mm auto 0; width: 76mm; text-align: center; color: var(--vert); font-weight: 600; font-size: 14pt; border-bottom: 1px solid var(--vert); min-height: 7mm; }
 .mn-loi { margin: 4mm 0 0; text-align: center; font-size: 10pt; color: var(--gris); padding-bottom: 5mm; border-bottom: 2px solid var(--vert); }
 

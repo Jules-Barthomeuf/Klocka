@@ -17,6 +17,7 @@
 
 import { fileURLToPath } from 'url';
 import { Records } from './db.js';
+import { lienMonday } from './monday.js';
 import { ajouterSource, planifierExtraction, SOURCE } from './layer.js';
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const adresses = (v) => (Array.isArray(v) ? v : String(v || '').split(/[,;]/)).map((x) => { const m = String(x).match(/<([^>]+)>/); return (m ? m[1] : String(x)).trim().toLowerCase(); }).filter((x) => x.includes('@'));
@@ -107,7 +108,7 @@ export function depuisAppelClient(appel, { extraire = true } = {}) {
 
 // --- Monday ---------------------------------------------------------------------------------
 
-const lienLigne = (board, item) => `https://klocka-company.monday.com/boards/${board}/pulses/${item}`;
+const lienLigne = (board, item) => lienMonday(board, item);
 const tableaux = () => ({ agents: (process.env.MONDAY_BOARD_AGENTS || '').trim(), proprietes: (process.env.MONDAY_BOARD_PROPRIETES || process.env.MONDAY_BOARD_ECARTES || '').trim() });
 
 /** Le tableau visé ('agents', 'proprietes'), ou null pour un autre tableau. */

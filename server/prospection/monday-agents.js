@@ -17,6 +17,7 @@
 
 import * as R from './regles.js';
 import { telephoneInternational } from './compris.js';
+import { lienMonday } from '../monday.js';
 
 const TITRES = {
   prenom: ['Prénom'], spoc: ['SPOC', 'Analyste'], email: ['E-mail', 'Email'], telephone: ['Téléphone'],
@@ -34,7 +35,7 @@ export const CONTACT_VIDE = '\u200b';
 export const aPreciser = (agence) => String(agence || 'Agence').trim().slice(0, 250);
 const nomProvisoire = (nom, agence = null) => { const n = R.norm(nom); return n === '' || n === 'accueil' || n.startsWith('a preciser') || (!!agence && n === R.norm(agence)); };
 export const tableauAgents = () => (fauxMonday ? 'faux-tableau' : (process.env.MONDAY_BOARD_AGENTS || '').trim());
-export const lienLigne = (id, tableau = tableauAgents()) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
+export const lienLigne = (id, tableau = tableauAgents()) => lienMonday(tableau, id);
 
 /** Les colonnes d'« Agents immobiliers » telles qu'elles sont (8 oct. 2026), pour montrer en essai ce qui serait écrit. */
 export const COLONNES_DU_TABLEAU = [

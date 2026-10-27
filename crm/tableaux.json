@@ -1,0 +1,26 @@
+{
+  "_": "Les tableaux Monday migrés dans Twenty (Jules, 27 oct. 2026) : KLOCKA PRINCIPAL et KPARTNERS. Les anciens espaces (Klocka, Klocka 2.0, CRM, Real estate CRM, modèles) restent dans l'export seulement. « role » : qui voit l'objet dans Twenty ; « partage » : ouvert à tous (Propriétés Klocka).",
+  "tableaux": [
+    { "id": "2110793610", "role": "klocka" },
+    { "id": "2110621762", "role": "klocka" },
+    { "id": "2110621760", "role": "klocka" },
+    { "id": "2142814580", "role": "klocka" },
+    { "id": "2110621254", "role": "klocka" },
+    { "id": "2110621252", "role": "klocka" },
+    { "id": "5104678050", "role": "klocka" },
+    { "id": "5095859410", "role": "klocka" },
+    { "id": "5095940460", "role": "klocka" },
+    { "id": "2110822643", "role": "klocka" },
+    { "id": "5092658721", "role": "klocka" },
+    { "id": "5104680298", "role": "klocka" },
+    { "id": "2113573599", "role": "klocka" },
+    { "id": "2110792026", "role": "klocka" },
+    { "id": "5100529025", "role": "partage", "sansPrefixe": true },
+    { "id": "5091573479", "role": "kpartners" },
+    { "id": "5091576378", "role": "kpartners" },
+    { "id": "5092658091", "role": "kpartners" },
+    { "id": "5091577494", "role": "kpartners" },
+    { "id": "5091994567", "role": "kpartners" },
+    { "id": "5100528599", "role": "kpartners" }
+  ]
+}

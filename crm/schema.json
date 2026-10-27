@@ -1,0 +1,4604 @@
+{
+  "depuis": "monday-2026-10-27",
+  "objets": [
+    {
+      "mondayTableau": "2110793610",
+      "mondayNom": "Agent immobilier",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 513,
+      "nameSingular": "agentImmobilier",
+      "namePlural": "agentImmobilierListe",
+      "labelSingular": "Agent immobilier",
+      "labelPlural": "Agent immobilier",
+      "champs": [
+        {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkvez9f7",
+          "mondayType": "people"
+        },
+        {
+          "name": "prenom",
+          "label": "Prénom",
+          "type": "TEXT",
+          "mondayColonne": "text_mm5g7dnm",
+          "mondayType": "text"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date_mm5034ht",
+          "mondayType": "date"
+        },
+        {
+          "name": "eMail",
+          "label": "E-mail",
+          "type": "EMAILS",
+          "mondayColonne": "email",
+          "mondayType": "email"
+        },
+        {
+          "name": "telephone",
+          "label": "Téléphone",
+          "type": "PHONES",
+          "mondayColonne": "phone",
+          "mondayType": "phone"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "color_mm7xta8w",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "A_UN_BIEN_INTERESSANT",
+              "label": "A un bien intéressant",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "PAS_DE_BIEN_POUR_L_INSTANT",
+              "label": "Pas de bien pour l'instant",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "NE_PLUS_APPELER",
+              "label": "Ne plus appeler",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "A_RAPPELER",
+              "label": "À rappeler",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "INTERESSE",
+              "label": "Intéressé",
+              "color": "purple",
+              "position": 4
+            }
+          ]
+        },
+        {
+          "name": "dernierContact",
+          "label": "Dernier contact",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7xmyaw",
+          "mondayType": "text"
+        },
+        {
+          "name": "listeDeDiffusion",
+          "label": "Liste de diffusion",
+          "type": "SELECT",
+          "mondayColonne": "color_mm7xs4pn",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "OUI",
+              "label": "Oui",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "NON",
+              "label": "Non",
+              "color": "turquoise",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5szj0",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "ville",
+          "label": "Ville",
+          "type": "TEXT",
+          "mondayColonne": "text0",
+          "mondayType": "text"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "dropdown_mkw4w1sz",
+          "mondayType": "dropdown"
+        },
+        {
+          "name": "remarques",
+          "label": "Remarques",
+          "type": "TEXT",
+          "mondayColonne": "text4",
+          "mondayType": "text"
+        },
+        {
+          "name": "priorite",
+          "label": "Priorité",
+          "type": "SELECT",
+          "mondayColonne": "status5",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MORT",
+              "label": "MORT",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "A_RAPPELER",
+              "label": "A rappeler",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_0_OPE",
+              "label": "0 opé",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "NO_REP",
+              "label": "No rep",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "MOYENNE",
+              "label": "Moyenne",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "ELEVEE",
+              "label": "Élevée",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "FAIBLE",
+              "label": "Faible",
+              "color": "red",
+              "position": 6
+            }
+          ]
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "linkToRepertoire",
+          "label": "link to Répertoire",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv6zjv9",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProprietes",
+          "label": "link to Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkvxvj07",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToEntreprise",
+          "label": "link to Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkw4myej",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProprietes19",
+          "label": "link to Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s6mbf",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProprietes20",
+          "label": "link to Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s6jzb",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToTestPropriete",
+          "label": "link to Test propriété",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s6e3h",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2110621762",
+      "mondayNom": "Propriétés",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 388,
+      "nameSingular": "proprietes",
+      "namePlural": "proprietesListe",
+      "labelSingular": "Propriétés",
+      "labelPlural": "Propriétés",
+      "champs": [
+        {
+          "name": "personnes",
+          "label": "Personnes",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkv624cf",
+          "mondayType": "people"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date_mkv6xqzp",
+          "mondayType": "date"
+        },
+        {
+          "name": "adresse",
+          "label": "Adresse",
+          "type": "ADDRESS",
+          "mondayColonne": "location",
+          "mondayType": "location"
+        },
+        {
+          "name": "agentImmobilier",
+          "label": "Agent immobilier",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv59rn8",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "lienAnnonce",
+          "label": "Lien annonce",
+          "type": "LINKS",
+          "mondayColonne": "link_mkv6k5b7",
+          "mondayType": "link"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "NEGOCIATION",
+              "label": "Négociation",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VENDU",
+              "label": "Vendu",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "ARCHIVE",
+              "label": "Archivé",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "SOUS_OFFRE",
+              "label": "Sous offre",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "ATTENTE_DE_DOCS",
+              "label": "Attente de docs",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "ANALYSE_EN_COURS",
+              "label": "Analyse en cours",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "ATTRIBUTION_EN_COURS",
+              "label": "Attribution en cours",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "OFFRE_FAITE",
+              "label": "Offre faite",
+              "color": "orange",
+              "position": 7
+            }
+          ]
+        },
+        {
+          "name": "loyer",
+          "label": "Loyer",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkvnjean",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "prix",
+          "label": "Prix",
+          "type": "NUMBER",
+          "mondayColonne": "numbers",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "m",
+          "label": "M²",
+          "type": "NUMBER",
+          "mondayColonne": "numbers6",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "activiteLocataire",
+          "label": "Activité Locataire",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv6b9zy",
+          "mondayType": "text"
+        },
+        {
+          "name": "notes",
+          "label": "Notes",
+          "type": "TEXT",
+          "mondayColonne": "long_text_mkv69k9d",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "drive",
+          "label": "Drive",
+          "type": "LINKS",
+          "mondayColonne": "link_mkxwyyh",
+          "mondayType": "link"
+        },
+        {
+          "name": "images",
+          "label": "Images",
+          "type": "TEXT",
+          "mondayColonne": "files",
+          "mondayType": "file"
+        },
+        {
+          "name": "documents",
+          "label": "Documents",
+          "type": "TEXT",
+          "mondayColonne": "file_mkv6bbbd",
+          "mondayType": "file"
+        },
+        {
+          "name": "typeDePropriete",
+          "label": "Type de propriété",
+          "type": "SELECT",
+          "mondayColonne": "type",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MAISON_AVEC_JARDIN",
+              "label": "Maison avec jardin",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "APPARTEMENT",
+              "label": "Appartement",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "MAISON",
+              "label": "Maison",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "IMMEUBLE",
+              "label": "Immeuble",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "RESIDENTIEL",
+              "label": "Résidentiel",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "CONDO",
+              "label": "Condo",
+              "color": "pink",
+              "position": 5
+            }
+          ]
+        },
+        {
+          "name": "dureeDeLAnnonce",
+          "label": "Durée de l'annonce",
+          "type": "TEXT",
+          "mondayColonne": "timeline",
+          "mondayType": "timeline"
+        },
+        {
+          "name": "prochaineEtapeDeSuivi",
+          "label": "Prochaine étape de suivi",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "typeMonday",
+          "label": "Type",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "bedrooms1",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "BUY",
+              "label": "Buy",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VENTE",
+              "label": "Vente",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "LOCATION",
+              "label": "Location",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "chambres",
+          "label": "Chambres",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "dropdown_1",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "V_1",
+              "label": "1",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2",
+              "label": "2",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_3",
+              "label": "3",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "V_4",
+              "label": "4",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "V_5",
+              "label": "5",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "V_6",
+              "label": "6",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "V_7",
+              "label": "7",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "V_8",
+              "label": "8",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "V_9",
+              "label": "9",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "VIDE",
+              "label": "-",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "acheteursPotentiels",
+          "label": "Acheteurs potentiels",
+          "type": "TEXT",
+          "mondayColonne": "connect_boards",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "testPropriete",
+          "label": "Test propriété",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s10b0",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "sallesDeBains",
+          "label": "Salles de bains",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "bedrooms",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "V_1",
+              "label": "1",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2",
+              "label": "2",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_3",
+              "label": "3",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "V_4",
+              "label": "4",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "V_5",
+              "label": "5",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "V_6",
+              "label": "6",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "V_7",
+              "label": "7",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "V_8",
+              "label": "8",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "V_9",
+              "label": "9",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "VIDE",
+              "label": "-",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "contrats",
+          "label": "Contrats",
+          "type": "TEXT",
+          "mondayColonne": "files4",
+          "mondayType": "file"
+        },
+        {
+          "name": "connecterLesTableaux",
+          "label": "Connecter les tableaux",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3trs1f",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2110621760",
+      "mondayNom": "Clients",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 109,
+      "nameSingular": "clients",
+      "namePlural": "clientsListe",
+      "labelSingular": "Clients",
+      "labelPlural": "Clients",
+      "champs": [
+        {
+          "name": "personnes",
+          "label": "Personnes",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkv6tmmw",
+          "mondayType": "people"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5zwdr",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "eMail",
+          "label": "E-mail",
+          "type": "EMAILS",
+          "mondayColonne": "email",
+          "mondayType": "email"
+        },
+        {
+          "name": "telephone",
+          "label": "Téléphone",
+          "type": "PHONES",
+          "mondayColonne": "phone",
+          "mondayType": "phone"
+        },
+        {
+          "name": "statutClient",
+          "label": "Statut Client",
+          "type": "SELECT",
+          "mondayColonne": "status1",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "ABANDONNE",
+              "label": "Abandonné",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "PROJET_SIGNE",
+              "label": "Projet Signé",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "COMPROMIS",
+              "label": "Compromis",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "NEGOCIATION",
+              "label": "Négociation",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "INTERET",
+              "label": "Intérêt",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "MANDAT_SIGNE",
+              "label": "Mandat signé",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "DEF_STRATEGIE",
+              "label": "Def Strategie",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "STAND_BY",
+              "label": "Stand-by",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "FINANCEMENT",
+              "label": "Financement",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "RECHERCHE",
+              "label": "Recherche",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "mandatSigne",
+          "label": "Mandat Signé",
+          "type": "SELECT",
+          "mondayColonne": "color_mkv2zyy3",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MANDAT_SIGNE",
+              "label": "Mandat signé",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "OUI",
+              "label": "Oui",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "NON",
+              "label": "Non",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "patrimoine",
+          "label": "Patrimoine",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv2vxfp",
+          "mondayType": "text"
+        },
+        {
+          "name": "revenu",
+          "label": "Revenu",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv24e64",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "fondPropre",
+          "label": "Fond propre",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv27he0",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "budget",
+          "label": "Budget",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv6khwn",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "localisation",
+          "label": "Localisation",
+          "type": "ADDRESS",
+          "mondayColonne": "location_mkv2tpc2",
+          "mondayType": "location"
+        },
+        {
+          "name": "formationLcdi",
+          "label": "Formation LCDI",
+          "type": "SELECT",
+          "mondayColonne": "color_mkv2q4fv",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "COACHING",
+              "label": "Coaching",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "OUI",
+              "label": "Oui",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "NON",
+              "label": "Non",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "source",
+          "label": "Source",
+          "type": "SELECT",
+          "mondayColonne": "color_mkv2n9bh",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "PDZ",
+              "label": "PDZ",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "LINKEDIN",
+              "label": "LINKEDIN",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "WEBI",
+              "label": "WEBI",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "MDI",
+              "label": "MDI",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "PARRAIN",
+              "label": "PARRAIN",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "GROUPE_FB",
+              "label": "GROUPE FB",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "MAIL",
+              "label": "MAIL",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "CHRIS",
+              "label": "CHRIS",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "INSTAGRAM",
+              "label": "INSTAGRAM",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "FAIT",
+              "label": "Fait",
+              "color": "gray",
+              "position": 9
+            },
+            {
+              "value": "A_DEFINIR",
+              "label": "A DEFINIR",
+              "color": "green",
+              "position": 10
+            },
+            {
+              "value": "LA_MARTINGALE",
+              "label": "LA MARTINGALE",
+              "color": "turquoise",
+              "position": 11
+            }
+          ]
+        },
+        {
+          "name": "remarque",
+          "label": "Remarque",
+          "type": "TEXT",
+          "mondayColonne": "long_text_mkv2twrk",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "lieuDeRecherche",
+          "label": "Lieu de recherche",
+          "type": "TEXT",
+          "mondayColonne": "text_mkzm6pdz",
+          "mondayType": "text"
+        },
+        {
+          "name": "objectif",
+          "label": "Objectif",
+          "type": "SELECT",
+          "mondayColonne": "color_mkzm7em7",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "PATRIMONIALE",
+              "label": "Patrimoniale",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "CASHFLOW",
+              "label": "Cashflow",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "AUTO_FINANCE",
+              "label": "Auto-Finance",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "EQUILIBRE",
+              "label": "Equilibre",
+              "color": "blue",
+              "position": 3
+            }
+          ]
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "link_to_properties2",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "chiffres",
+          "label": "Chiffres",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv2zyrw",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "information",
+          "label": "Information",
+          "type": "TEXT",
+          "mondayColonne": "text_mkvngea0",
+          "mondayType": "text"
+        },
+        {
+          "name": "fonction",
+          "label": "Fonction",
+          "type": "TEXT",
+          "mondayColonne": "text_mkvnmx09",
+          "mondayType": "text"
+        },
+        {
+          "name": "linkToTestPropriete",
+          "label": "link to Test propriété",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s8rzh",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2142814580",
+      "mondayNom": "Prospects",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 295,
+      "nameSingular": "prospects",
+      "namePlural": "prospectsListe",
+      "labelSingular": "Prospects",
+      "labelPlural": "Prospects",
+      "champs": [
+        {
+          "name": "texte",
+          "label": "Texte",
+          "type": "TEXT",
+          "mondayColonne": "text_mm324cr2",
+          "mondayType": "text"
+        },
+        {
+          "name": "personnes",
+          "label": "Personnes",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkvpgyzx",
+          "mondayType": "people"
+        },
+        {
+          "name": "source",
+          "label": "Source",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "dropdown_mkvp693a",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "WEBINAIRE",
+              "label": "Webinaire",
+              "color": "green",
+              "position": 0
+            }
+          ]
+        },
+        {
+          "name": "fonction",
+          "label": "Fonction",
+          "type": "TEXT",
+          "mondayColonne": "text_mkvpz940",
+          "mondayType": "text"
+        },
+        {
+          "name": "numero",
+          "label": "Numéro",
+          "type": "PHONES",
+          "mondayColonne": "phone_mkvpvev7",
+          "mondayType": "phone"
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "EMAILS",
+          "mondayColonne": "email_mkvpa5n9",
+          "mondayType": "email"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "color_mkvvbzpv",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "A_RELANCER",
+              "label": "A Relancer",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "R1_VISIO",
+              "label": "R1 Visio",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "R2_VISIO",
+              "label": "R2 Visio",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "MANDAT_SIGNE",
+              "label": "Mandat signé",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "EN_RECHERCHE",
+              "label": "En recherche",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "INTERET",
+              "label": "Intérêt",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "NO_SHOW",
+              "label": "No show",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "OUT",
+              "label": "Out",
+              "color": "orange",
+              "position": 7
+            }
+          ]
+        },
+        {
+          "name": "source9",
+          "label": "Source",
+          "type": "SELECT",
+          "mondayColonne": "color_mm1stcp3",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MDI",
+              "label": "MDI",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "PDZ",
+              "label": "PDZ",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "WEBI",
+              "label": "WEBI",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "LINKEDIN",
+              "label": "LINKEDIN",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "PARRAIN",
+              "label": "PARRAIN",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "A_DEFINIR",
+              "label": "A DEFINIR",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "MAIL",
+              "label": "MAIL",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "INSTAGRAM",
+              "label": "INSTAGRAM",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "CHRIS",
+              "label": "CHRIS",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "LA_MARTINGALE",
+              "label": "LA MARTINGALE",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date_mkvwd1p",
+          "mondayType": "date"
+        },
+        {
+          "name": "revenu",
+          "label": "Revenu",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkvp6zt4",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "fondsPropre",
+          "label": "Fonds propre",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkvpkpv2",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "patrimoine",
+          "label": "Patrimoine",
+          "type": "TEXT",
+          "mondayColonne": "text_mkvpbre8",
+          "mondayType": "text"
+        },
+        {
+          "name": "information",
+          "label": "Information",
+          "type": "TEXT",
+          "mondayColonne": "long_text_mkvpgdkp",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "lieu",
+          "label": "Lieu",
+          "type": "ADDRESS",
+          "mondayColonne": "location_mkvp6pfz",
+          "mondayType": "location"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2110621254",
+      "mondayNom": "Répertoire",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 1004,
+      "nameSingular": "repertoire",
+      "namePlural": "repertoireListe",
+      "labelSingular": "Répertoire",
+      "labelPlural": "Répertoire",
+      "champs": [
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv6xmqr",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "typeMonday",
+          "label": "Type",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "EQUIPE",
+              "label": "Equipe",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "MANDATAIRE",
+              "label": "Mandataire",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "PARTENAIRE",
+              "label": "Partenaire",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "AGENT_IMMOBILIER",
+              "label": "Agent Immobilier",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "CLIENT",
+              "label": "Client",
+              "color": "purple",
+              "position": 4
+            }
+          ]
+        },
+        {
+          "name": "priorite",
+          "label": "Priorité",
+          "type": "SELECT",
+          "mondayColonne": "status5",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MOYENNE",
+              "label": "Moyenne",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "ELEVEE",
+              "label": "Élevée",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "FAIBLE",
+              "label": "Faible",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "commentaires",
+          "label": "Commentaires",
+          "type": "TEXT",
+          "mondayColonne": "long_text4",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "connecterLesTableaux1",
+          "label": "Connecter les tableaux 1",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv6az0j",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2110621252",
+      "mondayNom": "Entreprise",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 322,
+      "nameSingular": "entreprise",
+      "namePlural": "entrepriseListe",
+      "labelSingular": "Entreprise",
+      "labelPlural": "Entreprise",
+      "champs": [
+        {
+          "name": "contacts",
+          "label": "Contacts",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv542n9",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "TEXT",
+          "mondayColonne": "company_description",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "domaine",
+          "label": "Domaine",
+          "type": "LINKS",
+          "mondayColonne": "company_domain",
+          "mondayType": "link"
+        },
+        {
+          "name": "linkToAgentImmobilier",
+          "label": "link to Agent immobilier",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5arxq",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToRepertoire",
+          "label": "link to Répertoire",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv6cyae",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProspects",
+          "label": "link to Prospects",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkvn8e68",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5104678050",
+      "mondayNom": "Prospection Agent Immo",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 39,
+      "nameSingular": "prospectionAgentImmo",
+      "namePlural": "prospectionAgentImmoListe",
+      "labelSingular": "Prospection Agent Immo",
+      "labelPlural": "Prospection Agent Immo",
+      "champs": [
+        {
+          "name": "collaborateurs",
+          "label": "Collaborateurs",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7er9a6",
+          "mondayType": "text"
+        },
+        {
+          "name": "telephone",
+          "label": "Téléphone",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7e4mrr",
+          "mondayType": "text"
+        },
+        {
+          "name": "agence",
+          "label": "Agence",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7en6y4",
+          "mondayType": "text"
+        },
+        {
+          "name": "ville",
+          "label": "Ville",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7e9mvj",
+          "mondayType": "text"
+        },
+        {
+          "name": "adresseDuBien",
+          "label": "Adresse du bien",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7eqfn1",
+          "mondayType": "text"
+        },
+        {
+          "name": "remarques",
+          "label": "Remarques",
+          "type": "TEXT",
+          "mondayColonne": "text_mm7ek1df",
+          "mondayType": "text"
+        },
+        {
+          "name": "prioriteStatus",
+          "label": "Priorité Status",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MOYENNE",
+              "label": "Moyenne",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "CONTACT_REGULIER",
+              "label": "Contact régulier",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "MORT",
+              "label": "Mort",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "A_RECONTACTER",
+              "label": "À recontacter",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "NOUVEAU_CONTACT",
+              "label": "Nouveau contact",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "PAS_DE_REPONSE",
+              "label": "Pas de réponse",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "INTERESSE",
+              "label": "Intéressé",
+              "color": "red",
+              "position": 6
+            }
+          ]
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date4",
+          "mondayType": "date"
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date_mm7epb1k",
+          "mondayType": "date"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5095859410",
+      "mondayNom": "Emailing Agent immobilier",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 147,
+      "nameSingular": "emailingAgentImmobilier",
+      "namePlural": "emailingAgentImmobilierListe",
+      "labelSingular": "Emailing Agent immobilier",
+      "labelPlural": "Emailing Agent immobilier",
+      "champs": [
+        {
+          "name": "prenom",
+          "label": "Prénom",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33ysdn",
+          "mondayType": "text"
+        },
+        {
+          "name": "spoc",
+          "label": "SPOC",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkvez9f7",
+          "mondayType": "people"
+        },
+        {
+          "name": "eMail",
+          "label": "E-mail",
+          "type": "EMAILS",
+          "mondayColonne": "email",
+          "mondayType": "email"
+        },
+        {
+          "name": "linkedin",
+          "label": "LinkedIn",
+          "type": "TEXT",
+          "mondayColonne": "text_mm32y1t0",
+          "mondayType": "text"
+        },
+        {
+          "name": "telephone",
+          "label": "Téléphone",
+          "type": "PHONES",
+          "mondayColonne": "phone",
+          "mondayType": "phone"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "text_mm327hee",
+          "mondayType": "text"
+        },
+        {
+          "name": "ville",
+          "label": "Ville",
+          "type": "TEXT",
+          "mondayColonne": "text0",
+          "mondayType": "text"
+        },
+        {
+          "name": "remarques",
+          "label": "Remarques",
+          "type": "TEXT",
+          "mondayColonne": "text4",
+          "mondayType": "text"
+        },
+        {
+          "name": "prioriteStatut",
+          "label": "Priorité - Statut",
+          "type": "SELECT",
+          "mondayColonne": "status5",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MORT",
+              "label": "MORT",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "PAS_DE_REPONSE",
+              "label": "Pas de réponse",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "MOYENNE",
+              "label": "Moyenne",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "ELEVEE",
+              "label": "Élevée",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "FAIBLE",
+              "label": "Faible",
+              "color": "purple",
+              "position": 4
+            }
+          ]
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5szj0",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "linkToRepertoire",
+          "label": "link to Répertoire",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv6zjv9",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProprietes",
+          "label": "link to Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkvxvj07",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToEntreprise",
+          "label": "link to Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkw4myej",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProprietes16",
+          "label": "link to Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3sk86v",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToProprietes17",
+          "label": "link to Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3spn34",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "linkToTestPropriete",
+          "label": "link to Test propriété",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3sbdw7",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5095940460",
+      "mondayNom": "Prospects webinaire",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 435,
+      "nameSingular": "prospectsWebinaire",
+      "namePlural": "prospectsWebinaireListe",
+      "labelSingular": "Prospects webinaire",
+      "labelPlural": "Prospects webinaire",
+      "champs": [
+        {
+          "name": "person",
+          "label": "Person",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "WORKING_ON_IT",
+              "label": "Working on it",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "DONE",
+              "label": "Done",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "STUCK",
+              "label": "Stuck",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "firstName",
+          "label": "First name",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33kvtd",
+          "mondayType": "text"
+        },
+        {
+          "name": "lastName",
+          "label": "Last name",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33kk3s",
+          "mondayType": "text"
+        },
+        {
+          "name": "phoneNumber",
+          "label": "Phone number",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33hq4d",
+          "mondayType": "text"
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33es73",
+          "mondayType": "text"
+        },
+        {
+          "name": "source",
+          "label": "Source",
+          "type": "TEXT",
+          "mondayColonne": "text_mm336b45",
+          "mondayType": "text"
+        },
+        {
+          "name": "attendedLive",
+          "label": "Attended live",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33dm46",
+          "mondayType": "text"
+        },
+        {
+          "name": "timeToEnterLiveRoom",
+          "label": "Time to enter live room",
+          "type": "TEXT",
+          "mondayColonne": "text_mm337df0",
+          "mondayType": "text"
+        },
+        {
+          "name": "timeInLiveRoom",
+          "label": "Time in live room",
+          "type": "TEXT",
+          "mondayColonne": "text_mm33k9yk",
+          "mondayType": "text"
+        },
+        {
+          "name": "eMail",
+          "label": "E-mail",
+          "type": "EMAILS",
+          "mondayColonne": "email_mm339crf",
+          "mondayType": "email"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2110822643",
+      "mondayNom": "Transactions 2025",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 37,
+      "nameSingular": "transactions2025",
+      "namePlural": "transactions2025Liste",
+      "labelSingular": "Transactions 2025",
+      "labelPlural": "Transactions 2025",
+      "champs": [
+        {
+          "name": "personne",
+          "label": "Personne",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "annee",
+          "label": "Année",
+          "type": "SELECT",
+          "mondayColonne": "color_mm14ttzf",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "V_2026",
+              "label": "2026",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2025",
+              "label": "2025",
+              "color": "turquoise",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "name": "clients",
+          "label": "Clients",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0fvv8q",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv09yvy",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5ece2",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "prixNegocie",
+          "label": "Prix negocié",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv5p5v8",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "OFFRE_ACCEPTEE",
+              "label": "Offre acceptée",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "FINANCEMENT_OK",
+              "label": "Financement OK",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "COMPROMIS",
+              "label": "Compromis",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "OFFRE_REFUSEE",
+              "label": "Offre refusée",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "LOI_EN_COURS",
+              "label": "LOI en cours",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "FINANCEMENT_OUT",
+              "label": "Financement OUT",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "FINALISEE",
+              "label": "Finalisée",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "AVORTEE",
+              "label": "Avortée",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "PREEMPTION",
+              "label": "Préemption",
+              "color": "yellow",
+              "position": 8
+            }
+          ]
+        },
+        {
+          "name": "honoraires",
+          "label": "Honoraires",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mktyjvrn",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "retrocession",
+          "label": "Retrocession",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv6ad9r",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "dateLoiAcceptee",
+          "label": "Date LOI acceptée",
+          "type": "DATE",
+          "mondayColonne": "date_mkv6xskv",
+          "mondayType": "date"
+        },
+        {
+          "name": "loiAcceptee",
+          "label": "LOI acceptée",
+          "type": "TEXT",
+          "mondayColonne": "file_mktyc22b",
+          "mondayType": "file"
+        },
+        {
+          "name": "dateCompromis",
+          "label": "Date Compromis",
+          "type": "DATE",
+          "mondayColonne": "date_mktyj7gk",
+          "mondayType": "date"
+        },
+        {
+          "name": "compromis",
+          "label": "Compromis",
+          "type": "TEXT",
+          "mondayColonne": "file_mktyjgc8",
+          "mondayType": "file"
+        },
+        {
+          "name": "dateActeAuthentique",
+          "label": "Date Acte Authentique",
+          "type": "DATE",
+          "mondayColonne": "date_mktyanmh",
+          "mondayType": "date"
+        },
+        {
+          "name": "acteDAuthentique",
+          "label": "Acte d'authentique",
+          "type": "TEXT",
+          "mondayColonne": "file_mktypw39",
+          "mondayType": "file"
+        },
+        {
+          "name": "periode",
+          "label": "Période",
+          "type": "TEXT",
+          "mondayColonne": "timeline",
+          "mondayType": "timeline"
+        },
+        {
+          "name": "partenaires",
+          "label": "Partenaires",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5wecc",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "apporteur",
+          "label": "Apporteur",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv6hgka",
+          "mondayType": "text"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5092658721",
+      "mondayNom": "Transactions 2026",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 40,
+      "nameSingular": "transactions2026",
+      "namePlural": "transactions2026Liste",
+      "labelSingular": "Transactions 2026",
+      "labelPlural": "Transactions 2026",
+      "champs": [
+        {
+          "name": "personne",
+          "label": "Personne",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "clients",
+          "label": "Clients",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0fvv8q",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv09yvy",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5ece2",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "prixNegocie",
+          "label": "Prix negocié",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv5p5v8",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "OFFRE_ACCEPTEE",
+              "label": "Offre acceptée",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "FINANCEMENT_OK",
+              "label": "Financement OK",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "COMPROMIS",
+              "label": "Compromis",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "OFFRE_REFUSEE",
+              "label": "Offre refusée",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "LOI_EN_COURS",
+              "label": "LOI en cours",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "FINANCEMENT_OUT",
+              "label": "Financement OUT",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "FINALISEE",
+              "label": "Finalisée",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "AVORTEE",
+              "label": "Avortée",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "PREEMPTION",
+              "label": "Préemption",
+              "color": "yellow",
+              "position": 8
+            }
+          ]
+        },
+        {
+          "name": "honoraires",
+          "label": "Honoraires",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mktyjvrn",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "retrocession",
+          "label": "Retrocession",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv6ad9r",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "dateLoiAcceptee",
+          "label": "Date LOI acceptée",
+          "type": "DATE",
+          "mondayColonne": "date_mkv6xskv",
+          "mondayType": "date"
+        },
+        {
+          "name": "loiAcceptee",
+          "label": "LOI acceptée",
+          "type": "TEXT",
+          "mondayColonne": "file_mktyc22b",
+          "mondayType": "file"
+        },
+        {
+          "name": "dateCompromis",
+          "label": "Date Compromis",
+          "type": "DATE",
+          "mondayColonne": "date_mktyj7gk",
+          "mondayType": "date"
+        },
+        {
+          "name": "compromis",
+          "label": "Compromis",
+          "type": "TEXT",
+          "mondayColonne": "file_mktyjgc8",
+          "mondayType": "file"
+        },
+        {
+          "name": "dateActeAuthentique",
+          "label": "Date Acte Authentique",
+          "type": "DATE",
+          "mondayColonne": "date_mktyanmh",
+          "mondayType": "date"
+        },
+        {
+          "name": "acteDAuthentique",
+          "label": "Acte d'authentique",
+          "type": "TEXT",
+          "mondayColonne": "file_mktypw39",
+          "mondayType": "file"
+        },
+        {
+          "name": "periode",
+          "label": "Période",
+          "type": "TEXT",
+          "mondayColonne": "timeline",
+          "mondayType": "timeline"
+        },
+        {
+          "name": "partenaires",
+          "label": "Partenaires",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5wecc",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "apporteur",
+          "label": "Apporteur",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv6hgka",
+          "mondayType": "text"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5104680298",
+      "mondayNom": "Transactions 2027",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 5,
+      "nameSingular": "transactions2027",
+      "namePlural": "transactions2027Liste",
+      "labelSingular": "Transactions 2027",
+      "labelPlural": "Transactions 2027",
+      "champs": [
+        {
+          "name": "personne",
+          "label": "Personne",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "clients",
+          "label": "Clients",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0fvv8q",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv09yvy",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5ece2",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "prixNegocie",
+          "label": "Prix negocié",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv5p5v8",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "OFFRE_ACCEPTEE",
+              "label": "Offre acceptée",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "FINANCEMENT_OK",
+              "label": "Financement OK",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "COMPROMIS",
+              "label": "Compromis",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "OFFRE_REFUSEE",
+              "label": "Offre refusée",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "LOI_EN_COURS",
+              "label": "LOI en cours",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "FINANCEMENT_OUT",
+              "label": "Financement OUT",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "FINALISEE",
+              "label": "Finalisée",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "AVORTEE",
+              "label": "Avortée",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "PREEMPTION",
+              "label": "Préemption",
+              "color": "yellow",
+              "position": 8
+            }
+          ]
+        },
+        {
+          "name": "honoraires",
+          "label": "Honoraires",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mktyjvrn",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "retrocession",
+          "label": "Retrocession",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkv6ad9r",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "dateLoiAcceptee",
+          "label": "Date LOI acceptée",
+          "type": "DATE",
+          "mondayColonne": "date_mkv6xskv",
+          "mondayType": "date"
+        },
+        {
+          "name": "loiAcceptee",
+          "label": "LOI acceptée",
+          "type": "TEXT",
+          "mondayColonne": "file_mktyc22b",
+          "mondayType": "file"
+        },
+        {
+          "name": "dateCompromis",
+          "label": "Date Compromis",
+          "type": "DATE",
+          "mondayColonne": "date_mktyj7gk",
+          "mondayType": "date"
+        },
+        {
+          "name": "compromis",
+          "label": "Compromis",
+          "type": "TEXT",
+          "mondayColonne": "file_mktyjgc8",
+          "mondayType": "file"
+        },
+        {
+          "name": "dateActeAuthentique",
+          "label": "Date Acte Authentique",
+          "type": "DATE",
+          "mondayColonne": "date_mktyanmh",
+          "mondayType": "date"
+        },
+        {
+          "name": "acteDAuthentique",
+          "label": "Acte d'authentique",
+          "type": "TEXT",
+          "mondayColonne": "file_mktypw39",
+          "mondayType": "file"
+        },
+        {
+          "name": "periode",
+          "label": "Période",
+          "type": "TEXT",
+          "mondayColonne": "timeline",
+          "mondayType": "timeline"
+        },
+        {
+          "name": "partenaires",
+          "label": "Partenaires",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv5wecc",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "apporteur",
+          "label": "Apporteur",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv6hgka",
+          "mondayType": "text"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2113573599",
+      "mondayNom": "Partenaires",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 3,
+      "nameSingular": "partenaires",
+      "namePlural": "partenairesListe",
+      "labelSingular": "Partenaires",
+      "labelPlural": "Partenaires",
+      "champs": [
+        {
+          "name": "ville",
+          "label": "Ville",
+          "type": "TEXT",
+          "mondayColonne": "text0",
+          "mondayType": "text"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mktspr6w",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "text",
+          "mondayType": "text"
+        },
+        {
+          "name": "label",
+          "label": "Label",
+          "type": "SELECT",
+          "mondayColonne": "color_mkv5aqvd",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "NOTAIRE",
+              "label": "Notaire",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "COURTIER",
+              "label": "Courtier",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "BANCAIRE",
+              "label": "Bancaire",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "AVOCAT",
+              "label": "Avocat",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "APPORTEUR_D_AFFAIRES",
+              "label": "Apporteur d'affaires",
+              "color": "purple",
+              "position": 4
+            }
+          ]
+        },
+        {
+          "name": "remarques",
+          "label": "Remarques",
+          "type": "TEXT",
+          "mondayColonne": "text4",
+          "mondayType": "text"
+        },
+        {
+          "name": "telephone",
+          "label": "Téléphone",
+          "type": "PHONES",
+          "mondayColonne": "phone",
+          "mondayType": "phone"
+        },
+        {
+          "name": "eMail",
+          "label": "E-mail",
+          "type": "EMAILS",
+          "mondayColonne": "email",
+          "mondayType": "email"
+        },
+        {
+          "name": "priorite",
+          "label": "Priorité",
+          "type": "SELECT",
+          "mondayColonne": "status5",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MOYENNE",
+              "label": "Moyenne",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "ELEVEE",
+              "label": "Élevée",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "FAIBLE",
+              "label": "Faible",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "2110792026",
+      "mondayNom": "Compte",
+      "espace": "KLOCKA PRINCIPAL",
+      "role": "klocka",
+      "elements": 14,
+      "nameSingular": "compte",
+      "namePlural": "compteListe",
+      "labelSingular": "Compte",
+      "labelPlural": "Compte",
+      "champs": [
+        {
+          "name": "repertoire",
+          "label": "Répertoire",
+          "type": "TEXT",
+          "mondayColonne": "account_contact",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5100529025",
+      "mondayNom": "Propriétés Klocka",
+      "espace": "KPARTNERS",
+      "role": "partage",
+      "elements": 324,
+      "nameSingular": "proprietesKlocka",
+      "namePlural": "proprietesKlockaListe",
+      "labelSingular": "Propriétés Klocka",
+      "labelPlural": "Propriétés Klocka",
+      "champs": [
+        {
+          "name": "personnes",
+          "label": "Personnes",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkv624cf",
+          "mondayType": "people"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date_mkv6xqzp",
+          "mondayType": "date"
+        },
+        {
+          "name": "adresse",
+          "label": "Adresse",
+          "type": "ADDRESS",
+          "mondayColonne": "location",
+          "mondayType": "location"
+        },
+        {
+          "name": "agentImmobilier",
+          "label": "Agent immobilier",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv59rn8",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "lienAnnonce",
+          "label": "Lien annonce",
+          "type": "LINKS",
+          "mondayColonne": "link_mkv6k5b7",
+          "mondayType": "link"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "NEGOCIATION",
+              "label": "Négociation",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VENDU",
+              "label": "Vendu",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "ARCHIVE",
+              "label": "Archivé",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "SOUS_OFFRE",
+              "label": "Sous offre",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "ATTENTE_DE_DOCS",
+              "label": "Attente de docs",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "ANALYSE_EN_COURS",
+              "label": "Analyse en cours",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "ATTRIBUTION_EN_COURS",
+              "label": "Attribution en cours",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "OFFRE_FAITE",
+              "label": "Offre faite",
+              "color": "orange",
+              "position": 7
+            }
+          ]
+        },
+        {
+          "name": "loyer",
+          "label": "Loyer",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkvnjean",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "prix",
+          "label": "Prix",
+          "type": "NUMBER",
+          "mondayColonne": "numbers",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "m",
+          "label": "M²",
+          "type": "NUMBER",
+          "mondayColonne": "numbers6",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "activiteLocataire",
+          "label": "Activité Locataire",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv6b9zy",
+          "mondayType": "text"
+        },
+        {
+          "name": "notes",
+          "label": "Notes",
+          "type": "TEXT",
+          "mondayColonne": "long_text_mkv69k9d",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "drive",
+          "label": "Drive",
+          "type": "LINKS",
+          "mondayColonne": "link_mkxwyyh",
+          "mondayType": "link"
+        },
+        {
+          "name": "images",
+          "label": "Images",
+          "type": "TEXT",
+          "mondayColonne": "files",
+          "mondayType": "file"
+        },
+        {
+          "name": "documents",
+          "label": "Documents",
+          "type": "TEXT",
+          "mondayColonne": "file_mkv6bbbd",
+          "mondayType": "file"
+        },
+        {
+          "name": "typeDePropriete",
+          "label": "Type de propriété",
+          "type": "SELECT",
+          "mondayColonne": "type",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MAISON_AVEC_JARDIN",
+              "label": "Maison avec jardin",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "APPARTEMENT",
+              "label": "Appartement",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "MAISON",
+              "label": "Maison",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "IMMEUBLE",
+              "label": "Immeuble",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "RESIDENTIEL",
+              "label": "Résidentiel",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "CONDO",
+              "label": "Condo",
+              "color": "pink",
+              "position": 5
+            }
+          ]
+        },
+        {
+          "name": "dureeDeLAnnonce",
+          "label": "Durée de l'annonce",
+          "type": "TEXT",
+          "mondayColonne": "timeline",
+          "mondayType": "timeline"
+        },
+        {
+          "name": "prochaineEtapeDeSuivi",
+          "label": "Prochaine étape de suivi",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "typeMonday",
+          "label": "Type",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "bedrooms1",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "BUY",
+              "label": "Buy",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VENTE",
+              "label": "Vente",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "LOCATION",
+              "label": "Location",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "chambres",
+          "label": "Chambres",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "dropdown_1",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "V_1",
+              "label": "1",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2",
+              "label": "2",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_3",
+              "label": "3",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "V_4",
+              "label": "4",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "V_5",
+              "label": "5",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "V_6",
+              "label": "6",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "V_7",
+              "label": "7",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "V_8",
+              "label": "8",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "V_9",
+              "label": "9",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "VIDE",
+              "label": "-",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "acheteursPotentiels",
+          "label": "Acheteurs potentiels",
+          "type": "TEXT",
+          "mondayColonne": "connect_boards",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "testPropriete",
+          "label": "Test propriété",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s10b0",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "sallesDeBains",
+          "label": "Salles de bains",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "bedrooms",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "V_1",
+              "label": "1",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2",
+              "label": "2",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_3",
+              "label": "3",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "V_4",
+              "label": "4",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "V_5",
+              "label": "5",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "V_6",
+              "label": "6",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "V_7",
+              "label": "7",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "V_8",
+              "label": "8",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "V_9",
+              "label": "9",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "VIDE",
+              "label": "-",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "contrats",
+          "label": "Contrats",
+          "type": "TEXT",
+          "mondayColonne": "files4",
+          "mondayType": "file"
+        },
+        {
+          "name": "connecterLesTableaux",
+          "label": "Connecter les tableaux",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3trs1f",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5091573479",
+      "mondayNom": "Prospects",
+      "espace": "KPARTNERS",
+      "role": "kpartners",
+      "elements": 1615,
+      "nameSingular": "kpProspects",
+      "namePlural": "kpProspectsListe",
+      "labelSingular": "KP · Prospects",
+      "labelPlural": "KP · Prospects",
+      "champs": [
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0emb05",
+          "mondayType": "text"
+        },
+        {
+          "name": "personnes",
+          "label": "Personnes",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mm7pp3f0",
+          "mondayType": "people"
+        },
+        {
+          "name": "numero",
+          "label": "Numéro",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0ejhqn",
+          "mondayType": "text"
+        },
+        {
+          "name": "mandat",
+          "label": "Mandat",
+          "type": "SELECT",
+          "mondayColonne": "color_mm0ekshq",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "SIGNE",
+              "label": "Signé",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "EN_COURS",
+              "label": "En cours",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "NON_PROPOSE",
+              "label": "Non proposé",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "typeMonday",
+          "label": "Type",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "dropdown_mm0n2ygh",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "VENDEUR",
+              "label": "Vendeur",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "ACQUEREUR",
+              "label": "Acquéreur",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "LOCATAIRE",
+              "label": "Locataire",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "EXPLOITANT",
+              "label": "Exploitant",
+              "color": "blue",
+              "position": 3
+            }
+          ]
+        },
+        {
+          "name": "bien",
+          "label": "Bien",
+          "type": "SELECT",
+          "mondayColonne": "color_mm0f65qr",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "LOCAL_COMMERCIAL",
+              "label": "Local commercial",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "BUREAUX",
+              "label": "Bureaux",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "APPARTEMENT",
+              "label": "Appartement",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "ENTREPOT",
+              "label": "Entrepôt",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "STUDIO",
+              "label": "Studio",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "MAISON",
+              "label": "Maison",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "CHALET",
+              "label": "Châlet",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "IMMEUBLE",
+              "label": "Immeuble",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "PARKING",
+              "label": "Parking",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "HOTEL",
+              "label": "Hôtel",
+              "color": "gray",
+              "position": 9
+            },
+            {
+              "value": "TERRAIN",
+              "label": "Terrain",
+              "color": "green",
+              "position": 10
+            },
+            {
+              "value": "FOND_DE_COMMERCE",
+              "label": "Fond de commerce",
+              "color": "turquoise",
+              "position": 11
+            }
+          ]
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0p8awx",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "criteres",
+          "label": "Critères",
+          "type": "TEXT",
+          "mondayColonne": "long_text_mm0e7nsh",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "budget",
+          "label": "Budget",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0fjvz0",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "surface",
+          "label": "Surface (㎡)",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0fr6fx",
+          "mondayType": "text"
+        },
+        {
+          "name": "lieu",
+          "label": "Lieu",
+          "type": "ADDRESS",
+          "mondayColonne": "location_mm0nadd8",
+          "mondayType": "location"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0ed4fq",
+          "mondayType": "text"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date_mm0e7d4j",
+          "mondayType": "date"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5091576378",
+      "mondayNom": "Clients",
+      "espace": "KPARTNERS",
+      "role": "kpartners",
+      "elements": 8,
+      "nameSingular": "kpClients",
+      "namePlural": "kpClientsListe",
+      "labelSingular": "KP · Clients",
+      "labelPlural": "KP · Clients",
+      "champs": [
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0ekf7c",
+          "mondayType": "text"
+        },
+        {
+          "name": "numero",
+          "label": "Numéro",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0e498e",
+          "mondayType": "text"
+        },
+        {
+          "name": "mandat",
+          "label": "Mandat",
+          "type": "SELECT",
+          "mondayColonne": "color_mm0fw5ym",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "EN_COURS",
+              "label": "En cours",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "SIGNE",
+              "label": "Signé",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "BLOQUE",
+              "label": "Bloqué",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "typeMonday",
+          "label": "Type",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "dropdown_mm0gww6e",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "VENDEUR",
+              "label": "Vendeur",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "LOCATAIRE",
+              "label": "Locataire",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "ACQUEREUR",
+              "label": "Acquéreur",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "BAILLEUR",
+              "label": "Bailleur",
+              "color": "blue",
+              "position": 3
+            }
+          ]
+        },
+        {
+          "name": "bien",
+          "label": "Bien",
+          "type": "SELECT",
+          "mondayColonne": "color_mm0fexqa",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "BUREAUX",
+              "label": "Bureaux",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "LOCAL_COMMERCIAL",
+              "label": "Local commercial",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "APPARTEMENT",
+              "label": "Appartement",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "STUDIO",
+              "label": "Studio",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "ENTREPOT",
+              "label": "Entrepôt",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "MAISON",
+              "label": "Maison",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "PARKING",
+              "label": "Parking",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "CHALET",
+              "label": "Châlet",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "HOTEL",
+              "label": "Hôtel",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "FOND_DE_COMMERCE",
+              "label": "Fond de commerce",
+              "color": "gray",
+              "position": 9
+            },
+            {
+              "value": "TERRAIN",
+              "label": "Terrain",
+              "color": "green",
+              "position": 10
+            },
+            {
+              "value": "IMMEUBLE",
+              "label": "Immeuble",
+              "color": "turquoise",
+              "position": 11
+            },
+            {
+              "value": "DOMAINE_DE_RECEPTION",
+              "label": "Domaine de réception",
+              "color": "sky",
+              "position": 12
+            },
+            {
+              "value": "POLE_SANTE",
+              "label": "Pôle Santé",
+              "color": "blue",
+              "position": 13
+            }
+          ]
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0nqxba",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "criteres",
+          "label": "Critères",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0fmdnq",
+          "mondayType": "text"
+        },
+        {
+          "name": "budget",
+          "label": "Budget",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0fe0mc",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "surface",
+          "label": "Surface (㎡)",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0f59e",
+          "mondayType": "text"
+        },
+        {
+          "name": "lieu",
+          "label": "Lieu",
+          "type": "ADDRESS",
+          "mondayColonne": "location_mm0gh8tn",
+          "mondayType": "location"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5092658091",
+      "mondayNom": "Transactions ventes",
+      "espace": "KPARTNERS",
+      "role": "kpartners",
+      "elements": 2,
+      "nameSingular": "kpTransactionsVentes",
+      "namePlural": "kpTransactionsVentesListe",
+      "labelSingular": "KP · Transactions ventes",
+      "labelPlural": "KP · Transactions ventes",
+      "champs": [
+        {
+          "name": "personne",
+          "label": "Personne",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date4",
+          "mondayType": "date"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "color_mm0egr68",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "OFFRE_ACCEPTEE",
+              "label": "Offre acceptée",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "FINANCEMENT_OBTENU",
+              "label": "Financement obtenu",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "COMPROMIS",
+              "label": "Compromis",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "AVORTEE",
+              "label": "Avortée",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "PREEMPTION",
+              "label": "Préemption",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "PAS_DE_FINANCEMENT",
+              "label": "Pas de financement",
+              "color": "pink",
+              "position": 5
+            }
+          ]
+        },
+        {
+          "name": "clients",
+          "label": "Clients",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0pxqc0",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "partenaires",
+          "label": "Partenaires",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0qrvk9",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0pjtvz",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "prixNegocie",
+          "label": "Prix négocié",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0qm5pv",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "honoraires",
+          "label": "Honoraires",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0q2krk",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "dateDeSignatureDeLaLoi",
+          "label": "Date de signature de la LOI",
+          "type": "DATE",
+          "mondayColonne": "date_mm0q65rg",
+          "mondayType": "date"
+        },
+        {
+          "name": "compromisDeVente",
+          "label": "Compromis de vente",
+          "type": "DATE",
+          "mondayColonne": "date_mm0qz6jc",
+          "mondayType": "date"
+        },
+        {
+          "name": "reiteration",
+          "label": "Réitération",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0nx3ey",
+          "mondayType": "text"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5091577494",
+      "mondayNom": "Transactions locatives",
+      "espace": "KPARTNERS",
+      "role": "kpartners",
+      "elements": 1,
+      "nameSingular": "kpTransactionsLocatives",
+      "namePlural": "kpTransactionsLocativesListe",
+      "labelSingular": "KP · Transactions locatives",
+      "labelPlural": "KP · Transactions locatives",
+      "champs": [
+        {
+          "name": "personne",
+          "label": "Personne",
+          "type": "TEXT",
+          "mondayColonne": "person",
+          "mondayType": "people"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date4",
+          "mondayType": "date"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "color_mm0egr68",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "CANDIDATURE_RETENUE",
+              "label": "Candidature retenue",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "BAIL_SIGNE",
+              "label": "Bail signé",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "DOSSIER_VALIDE",
+              "label": "Dossier validé",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "DOSSIER_REFUSE",
+              "label": "Dossier refusé",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "DESISTEMENT",
+              "label": "Désistement",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "RELOCATION_PRIORITAIRE",
+              "label": "Relocation prioritaire",
+              "color": "pink",
+              "position": 5
+            }
+          ]
+        },
+        {
+          "name": "clients",
+          "label": "Clients",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0fkvzs",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0f87qp",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "proprietes7",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm0pv5e",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "loyerNegocie",
+          "label": "Loyer négocié",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0ne42m",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "pasDePorte",
+          "label": "Pas de porte",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0nqtm1",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "franchiseDeLoyer",
+          "label": "Franchise de loyer",
+          "type": "TEXT",
+          "mondayColonne": "text_mm0n3847",
+          "mondayType": "text"
+        },
+        {
+          "name": "montantDesHono",
+          "label": "Montant des hono",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0qhvs4",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "dateDeLoi",
+          "label": "Date de LOI",
+          "type": "DATE",
+          "mondayColonne": "date_mm0njv6z",
+          "mondayType": "date"
+        },
+        {
+          "name": "dateDeLaPriseDEffetDuBail",
+          "label": "Date de la prise d'effet du bail",
+          "type": "DATE",
+          "mondayColonne": "date_mm0qp40r",
+          "mondayType": "date"
+        },
+        {
+          "name": "montantDesHonoraires",
+          "label": "Montant des honoraires",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mm0qhwcr",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5091994567",
+      "mondayNom": "Partenaires",
+      "espace": "KPARTNERS",
+      "role": "kpartners",
+      "elements": 2,
+      "nameSingular": "kpPartenaires",
+      "namePlural": "kpPartenairesListe",
+      "labelSingular": "KP · Partenaires",
+      "labelPlural": "KP · Partenaires",
+      "champs": [
+        {
+          "name": "ville",
+          "label": "Ville",
+          "type": "TEXT",
+          "mondayColonne": "text0",
+          "mondayType": "text"
+        },
+        {
+          "name": "proprietes",
+          "label": "Propriétés",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mktspr6w",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "entreprise",
+          "label": "Entreprise",
+          "type": "TEXT",
+          "mondayColonne": "text",
+          "mondayType": "text"
+        },
+        {
+          "name": "label",
+          "label": "Label",
+          "type": "SELECT",
+          "mondayColonne": "color_mkv5aqvd",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "NOTAIRE",
+              "label": "Notaire",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "COURTIER",
+              "label": "Courtier",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "BANCAIRE",
+              "label": "Bancaire",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "AVOCAT",
+              "label": "Avocat",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "APPORTEUR_D_AFFAIRES",
+              "label": "Apporteur d'affaires",
+              "color": "purple",
+              "position": 4
+            }
+          ]
+        },
+        {
+          "name": "remarques",
+          "label": "Remarques",
+          "type": "TEXT",
+          "mondayColonne": "text4",
+          "mondayType": "text"
+        },
+        {
+          "name": "telephone",
+          "label": "Téléphone",
+          "type": "PHONES",
+          "mondayColonne": "phone",
+          "mondayType": "phone"
+        },
+        {
+          "name": "eMail",
+          "label": "E-mail",
+          "type": "EMAILS",
+          "mondayColonne": "email",
+          "mondayType": "email"
+        },
+        {
+          "name": "priorite",
+          "label": "Priorité",
+          "type": "SELECT",
+          "mondayColonne": "status5",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MOYENNE",
+              "label": "Moyenne",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "ELEVEE",
+              "label": "Élevée",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "FAIBLE",
+              "label": "Faible",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "prochaineRelance",
+          "label": "Prochaine relance",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    },
+    {
+      "mondayTableau": "5100528599",
+      "mondayNom": "Propriétés KPartners",
+      "espace": "KPARTNERS",
+      "role": "kpartners",
+      "elements": 1,
+      "nameSingular": "kpProprietesKpartners",
+      "namePlural": "kpProprietesKpartnersListe",
+      "labelSingular": "KP · Propriétés KPartners",
+      "labelPlural": "KP · Propriétés KPartners",
+      "champs": [
+        {
+          "name": "personnes",
+          "label": "Personnes",
+          "type": "TEXT",
+          "mondayColonne": "multiple_person_mkv624cf",
+          "mondayType": "people"
+        },
+        {
+          "name": "date",
+          "label": "Date",
+          "type": "DATE",
+          "mondayColonne": "date_mkv6xqzp",
+          "mondayType": "date"
+        },
+        {
+          "name": "adresse",
+          "label": "Adresse",
+          "type": "ADDRESS",
+          "mondayColonne": "location",
+          "mondayType": "location"
+        },
+        {
+          "name": "agentImmobilier",
+          "label": "Agent immobilier",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mkv59rn8",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "lienAnnonce",
+          "label": "Lien annonce",
+          "type": "LINKS",
+          "mondayColonne": "link_mkv6k5b7",
+          "mondayType": "link"
+        },
+        {
+          "name": "statut",
+          "label": "Statut",
+          "type": "SELECT",
+          "mondayColonne": "status",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "NEGOCIATION",
+              "label": "Négociation",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VENDU",
+              "label": "Vendu",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "ARCHIVE",
+              "label": "Archivé",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "SOUS_OFFRE",
+              "label": "Sous offre",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "ATTENTE_DE_DOCS",
+              "label": "Attente de docs",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "ANALYSE_EN_COURS",
+              "label": "Analyse en cours",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "ATTRIBUTION_EN_COURS",
+              "label": "Attribution en cours",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "SOUS_PROMESSE",
+              "label": "Sous Promesse",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "OFFRE_FAITE",
+              "label": "Offre faite",
+              "color": "yellow",
+              "position": 8
+            }
+          ]
+        },
+        {
+          "name": "loyer",
+          "label": "Loyer",
+          "type": "NUMBER",
+          "mondayColonne": "numeric_mkvnjean",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "prix",
+          "label": "Prix",
+          "type": "NUMBER",
+          "mondayColonne": "numbers",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "m",
+          "label": "M²",
+          "type": "NUMBER",
+          "mondayColonne": "numbers6",
+          "mondayType": "numbers"
+        },
+        {
+          "name": "activiteLocataire",
+          "label": "Activité Locataire",
+          "type": "TEXT",
+          "mondayColonne": "text_mkv6b9zy",
+          "mondayType": "text"
+        },
+        {
+          "name": "notes",
+          "label": "Notes",
+          "type": "TEXT",
+          "mondayColonne": "long_text_mkv69k9d",
+          "mondayType": "long_text",
+          "description": "Texte long (Monday)"
+        },
+        {
+          "name": "drive",
+          "label": "Drive",
+          "type": "LINKS",
+          "mondayColonne": "link_mkxwyyh",
+          "mondayType": "link"
+        },
+        {
+          "name": "images",
+          "label": "Images",
+          "type": "TEXT",
+          "mondayColonne": "files",
+          "mondayType": "file"
+        },
+        {
+          "name": "documents",
+          "label": "Documents",
+          "type": "TEXT",
+          "mondayColonne": "file_mkv6bbbd",
+          "mondayType": "file"
+        },
+        {
+          "name": "typeDePropriete",
+          "label": "Type de propriété",
+          "type": "SELECT",
+          "mondayColonne": "type",
+          "mondayType": "status",
+          "options": [
+            {
+              "value": "MAISON_AVEC_JARDIN",
+              "label": "Maison avec jardin",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "APPARTEMENT",
+              "label": "Appartement",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "MAISON",
+              "label": "Maison",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "IMMEUBLE",
+              "label": "Immeuble",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "RESIDENTIEL",
+              "label": "Résidentiel",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "TERRAIN_CONSTRUCTIBLE",
+              "label": "Terrain Constructible",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "CONDO",
+              "label": "Condo",
+              "color": "red",
+              "position": 6
+            }
+          ]
+        },
+        {
+          "name": "dureeDeLAnnonce",
+          "label": "Durée de l'annonce",
+          "type": "TEXT",
+          "mondayColonne": "timeline",
+          "mondayType": "timeline"
+        },
+        {
+          "name": "prochaineEtapeDeSuivi",
+          "label": "Prochaine étape de suivi",
+          "type": "DATE",
+          "mondayColonne": "date",
+          "mondayType": "date"
+        },
+        {
+          "name": "typeMonday",
+          "label": "Type",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "bedrooms1",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "BUY",
+              "label": "Buy",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "VENTE",
+              "label": "Vente",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "LOCATION",
+              "label": "Location",
+              "color": "sky",
+              "position": 2
+            }
+          ]
+        },
+        {
+          "name": "chambres",
+          "label": "Chambres",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "dropdown_1",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "V_1",
+              "label": "1",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2",
+              "label": "2",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_3",
+              "label": "3",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "V_4",
+              "label": "4",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "V_5",
+              "label": "5",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "V_6",
+              "label": "6",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "V_7",
+              "label": "7",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "V_8",
+              "label": "8",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "V_9",
+              "label": "9",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "VIDE",
+              "label": "-",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "acheteursPotentiels",
+          "label": "Acheteurs potentiels",
+          "type": "TEXT",
+          "mondayColonne": "connect_boards",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "testPropriete",
+          "label": "Test propriété",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3s10b0",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "sallesDeBains",
+          "label": "Salles de bains",
+          "type": "MULTI_SELECT",
+          "mondayColonne": "bedrooms",
+          "mondayType": "dropdown",
+          "options": [
+            {
+              "value": "V_1",
+              "label": "1",
+              "color": "green",
+              "position": 0
+            },
+            {
+              "value": "V_2",
+              "label": "2",
+              "color": "turquoise",
+              "position": 1
+            },
+            {
+              "value": "V_3",
+              "label": "3",
+              "color": "sky",
+              "position": 2
+            },
+            {
+              "value": "V_4",
+              "label": "4",
+              "color": "blue",
+              "position": 3
+            },
+            {
+              "value": "V_5",
+              "label": "5",
+              "color": "purple",
+              "position": 4
+            },
+            {
+              "value": "V_6",
+              "label": "6",
+              "color": "pink",
+              "position": 5
+            },
+            {
+              "value": "V_7",
+              "label": "7",
+              "color": "red",
+              "position": 6
+            },
+            {
+              "value": "V_8",
+              "label": "8",
+              "color": "orange",
+              "position": 7
+            },
+            {
+              "value": "V_9",
+              "label": "9",
+              "color": "yellow",
+              "position": 8
+            },
+            {
+              "value": "VIDE",
+              "label": "-",
+              "color": "gray",
+              "position": 9
+            }
+          ]
+        },
+        {
+          "name": "contrats",
+          "label": "Contrats",
+          "type": "TEXT",
+          "mondayColonne": "files4",
+          "mondayType": "file"
+        },
+        {
+          "name": "connecterLesTableaux",
+          "label": "Connecter les tableaux",
+          "type": "TEXT",
+          "mondayColonne": "board_relation_mm3trs1f",
+          "mondayType": "board_relation"
+        },
+        {
+          "name": "mondayId",
+          "label": "Id Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayGroupe",
+          "label": "Groupe Monday",
+          "type": "TEXT",
+          "systeme": true
+        },
+        {
+          "name": "mondayCreeLe",
+          "label": "Créé dans Monday le",
+          "type": "DATE_TIME",
+          "systeme": true
+        }
+      ]
+    }
+  ]
+}

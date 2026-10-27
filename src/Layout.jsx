@@ -119,9 +119,12 @@ function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label
   const ici = actif ?? d.actif;
   const pastille = badge ?? d.badge;
   if (!Icone) return null;
+  // Une entrée externe (le CRM) : un vrai lien, dans un nouvel onglet.
+  const Lien = d.href ? "a" : Link;
+  const cible = d.href ? { href: d.href, target: "_blank", rel: "noopener noreferrer" } : { to: to || d.to };
   return (
-    <Link
-      to={to || d.to}
+    <Lien
+      {...cible}
       onClick={onNaviguer}
       // Au survol, la page se télécharge déjà : le clic l'ouvre sans attendre (21 oct. 2026).
       onMouseEnter={() => precharger(cle)}
@@ -140,7 +143,7 @@ function LienRail({ details, replie, onNaviguer, e, cle = e.cle, to, icon, label
           ? <span className={`k-rail-pastille ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
           : <span className={`ml-auto rounded-full px-1.5 py-px text-[11px] font-medium tabular-nums ${badgeColor || d.badgeColor || "bg-rail-actif text-craie"}`}>{pastille}</span>
       ) : null}
-    </Link>
+    </Lien>
   );
 }
 
@@ -172,6 +175,8 @@ function BasculeTheme({ clair, onBasculer }) {
 // Onglet Double Check masqué du menu. La page /AdminBrouillons reste en place et
 // accessible par son URL : passez ce drapeau à true pour la remontrer.
 const AFFICHER_DOUBLE_CHECK = false;
+// L'adresse du CRM (Twenty, crm.klocka.immo) ; vide tant que Twenty n'est pas en ligne.
+const CRM_URL = String(import.meta.env.VITE_CRM_URL || "").trim();
 
 // Marque Klocka : monogramme officiel + capitales espacées
 function Wordmark({ collapsed = false }) {
@@ -534,6 +539,8 @@ function LayoutContent({ children, currentPageName }) {
     Feedback: { to: createPageUrl("Feedback"), icon: Lightbulb, actif: isActivePage("Feedback") },
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
+    // Le CRM (Twenty) : sans adresse configurée, l'entrée ne s'affiche pas.
+    CRM: { href: CRM_URL || null, icon: CRM_URL ? ExternalLink : null, actif: false },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
     Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },

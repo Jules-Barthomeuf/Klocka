@@ -15,7 +15,7 @@
 // rejouer une synchronisation met à jour, ne duplique pas.
 
 import { Records } from '../db.js';
-import { poserElement, lireTableau, TABLEAUX, mondayConfigure } from '../monday.js';
+import { poserElement, lireTableau, TABLEAUX, mondayConfigure, lienMonday } from '../monday.js';
 import { statutDe } from './lifecycle.js';
 import { geocoder } from './geocodage.js';
 
@@ -495,7 +495,7 @@ export async function relancesAgents({ pour = null } = {}) {
         relance,
         dans,
         remarques: l.colonnes[COL_AGENT.remarques] || '',
-        url: `https://klocka-company.monday.com/boards/${TABLEAUX.agents}/pulses/${l.id}`,
+        url: lienMonday(TABLEAUX.agents, l.id),
       };
     })
     .sort((a, b) => a.dans - b.dans);

@@ -10,6 +10,7 @@
 // vers Monday et renseigner, pas supprimer.
 
 import { Records, CHEMIN_UPLOADS } from './db.js';
+import { lienMonday } from './monday.js';
 import { runAgent } from './llm.js';
 import { statutDe } from './deal/lifecycle.js';
 import { journaliser } from './assistant-journal.js';
@@ -879,7 +880,7 @@ export async function executerOutil({ name, input }, user) {
       cree: r.cree,
       // L'élément Monday : c'est lui qu'« annule » supprime (12 oct. 2026, il manquait).
       id: r.id || null,
-      url: `https://klocka-company.monday.com/boards/${process.env.MONDAY_BOARD_PROPRIETES || ''}/pulses/${r.id}`,
+      url: lienMonday(process.env.MONDAY_BOARD_PROPRIETES || '', r.id),
     };
   }
 
@@ -1030,7 +1031,7 @@ export async function executerOutil({ name, input }, user) {
       cree: r.cree,
       // L'élément Monday : c'est lui qu'« annule » supprime (12 oct. 2026, il manquait).
       id: r.id || null,
-      url: `https://klocka-company.monday.com/boards/${process.env.MONDAY_BOARD_PROPRIETES || ''}/pulses/${r.id}`,
+      url: lienMonday(process.env.MONDAY_BOARD_PROPRIETES || '', r.id),
     };
   }
 

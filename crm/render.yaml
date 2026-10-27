@@ -1,0 +1,88 @@
+# Twenty, le CRM de Klocka (27 oct. 2026), sur Render, à côté du service Klocka et sans toucher à sa mémoire.
+# Région Virginie, comme le service Klocka (srv-da1d45ojo6nc738dmc0g). Créés le 27 oct. 2026 par l'API Render, sur ce modèle :
+#   twenty-server srv-dbgebr2vcj2c73efk45g (https://twenty-server-3rvp.onrender.com), twenty-worker srv-dbgebs59fdbs73e1iamg,
+#   twenty-db dpg-dbgeb6t9fdbs73e1hk3g-a (basic_1gb), twenty-redis red-dbgeb73l550s73b6useg (starter).
+# ENCRYPTION_KEY : tirée à la main (TWENTY_ENCRYPTION_KEY du .env), la même sur le serveur et le worker. Déploiement
+# automatique coupé : une montée de version change le tag ici et sur les deux services, puis se déploie à la main.
+# Repris du docker-compose officiel (packages/twenty-docker) : un serveur, un worker (yarn worker:prod), Postgres 16,
+# Redis en noeviction (le worker ne doit perdre aucune tâche en file). Version épinglée : le compose refuse latest.
+# Fichiers joints : stockage local sur le disque du serveur pour démarrer ; passer en S3 (STORAGE_TYPE=S_3) avant
+# d'y mettre beaucoup de pièces, le worker n'ayant pas accès à ce disque.
+
+envVarGroups:
+  - name: twenty-commun
+    envVars:
+      - key: SERVER_URL
+        value: https://crm.klocka.immo
+      # La même clé pour le serveur et le worker ; la perdre, c'est perdre les secrets chiffrés (la garder à part).
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: STORAGE_TYPE
+        value: local
+
+services:
+  - type: web
+    name: twenty-server
+    runtime: image
+    image:
+      url: docker.io/twentycrm/twenty:v2.51.0
+    region: virginia
+    plan: 1c-2g
+    healthCheckPath: /healthz
+    disk:
+      name: twenty-fichiers
+      mountPath: /app/packages/twenty-server/.local-storage
+      sizeGB: 10
+    envVars:
+      - fromGroup: twenty-commun
+      - key: NODE_PORT
+        value: "3000"
+      - key: PORT
+        value: "3000"
+      - key: PG_DATABASE_URL
+        fromDatabase:
+          name: twenty-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: twenty-redis
+          property: connectionString
+
+  - type: worker
+    name: twenty-worker
+    runtime: image
+    image:
+      url: docker.io/twentycrm/twenty:v2.51.0
+    region: virginia
+    plan: 1c-2g
+    dockerCommand: yarn worker:prod
+    envVars:
+      - fromGroup: twenty-commun
+      # Les migrations et les tâches planifiées tournent déjà sur le serveur.
+      - key: DISABLE_DB_MIGRATIONS
+        value: "true"
+      - key: DISABLE_CRON_JOBS_REGISTRATION
+        value: "true"
+      - key: PG_DATABASE_URL
+        fromDatabase:
+          name: twenty-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: twenty-redis
+          property: connectionString
+
+  - type: keyvalue
+    name: twenty-redis
+    region: virginia
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+databases:
+  - name: twenty-db
+    region: virginia
+    plan: basic_1gb
+    postgresMajorVersion: "16"

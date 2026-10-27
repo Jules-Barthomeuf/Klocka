@@ -19,11 +19,18 @@
 // L'API Monday est un unique point GraphQL. Une intégration absente n'est jamais
 // bloquante : sans jeton, chaque fonction le dit et rend la main.
 
+import * as Twenty from './crm/monday-sur-twenty.js';
+
+// Le CRM de Klocka est Twenty depuis le 27 oct. 2026 : avec CRM=twenty, chaque verbe ci-dessous passe par
+// server/crm/monday-sur-twenty.js (mêmes appels, mêmes ids de tableaux et de colonnes). L'annuaire des personnes
+// reste lu dans Monday pendant la bascule. CRM=monday (par défaut) : rien ne change.
+export const crmTwenty = () => String(process.env.CRM || '').trim().toLowerCase() === 'twenty';
+
 const API = 'https://api.monday.com/v2';
 const VERSION = process.env.MONDAY_API_VERSION || '2024-10';
 
 const TOKEN = (process.env.MONDAY_TOKEN || '').trim();
-export const mondayConfigure = () => !!TOKEN;
+export const mondayConfigure = () => (crmTwenty() ? Twenty.mondayConfigure() : !!TOKEN);
 
 // Tableaux visés, par identifiant (lus dans l'URL d'un tableau Monday).
 export const TABLEAUX = {
@@ -60,11 +67,15 @@ async function graphql(query, variables = {}) {
 }
 
 /** Une requête GraphQL brute (les webhooks du Layer, server/layer-sources.js). */
-export const requeteMonday = (query, variables = {}) => graphql(query, variables);
+export const requeteMonday = (query, variables = {}) => {
+  if (crmTwenty()) return Promise.reject(new Error('Monday est figé (CRM=twenty) : requête brute refusée'));
+  return graphql(query, variables);
+};
 
 // Les utilisateurs du compte Monday, pour retrouver qui a fait l'action. Lus
 // une fois, gardés dix minutes : une équipe ne change pas entre deux poses.
 let utilisateursCache = { le: 0, liste: [] };
+export const utilisateursMondayDirect = () => utilisateursMonday();
 export async function utilisateursMonday() {
   if (Date.now() - utilisateursCache.le < 10 * 60 * 1000 && utilisateursCache.liste.length) return utilisateursCache.liste;
   const data = await graphql(`query { users (limit: 200) { id name email enabled } }`);
@@ -96,6 +107,7 @@ export async function personneMonday({ email, nom } = {}) {
 
 /** Les identifiants des personnes déjà posées sur un élément. */
 export async function personnesDe(itemId, colonne) {
+  if (crmTwenty()) return [];
   if (!itemId) return [];
   const data = await graphql(
     `query ($ids: [ID!], $cols: [String!]) { items (ids: $ids) { column_values (ids: $cols) { value } } }`,
@@ -116,6 +128,7 @@ export async function personnesDe(itemId, colonne) {
  * d'écrire une valeur, chaque colonne étant adressée par son id.
  */
 export async function listerTableaux() {
+  if (crmTwenty()) return Twenty.listerTableaux();
   const d = await graphql(`
     query {
       boards(limit: 50, state: active) {
@@ -131,6 +144,7 @@ export async function listerTableaux() {
 
 /** Les colonnes d'un tableau, avec leurs réglages (libellés des listes fermées). */
 export async function colonnesDuTableau(boardId) {
+  if (crmTwenty()) return Twenty.colonnesDuTableau(boardId);
   const d = await graphql(
     `query ($board: ID!) { boards(ids: [$board]) { columns { id title type settings_str } } }`,
     { board: String(boardId) }
@@ -158,6 +172,7 @@ async function chercherElement(boardId, colonne, valeur) {
  * alors le droit de modifier la structure du tableau).
  */
 export async function creerElement(boardId, nom, colonnes = {}, { labels = false } = {}) {
+  if (crmTwenty()) return Twenty.creerElement(boardId, nom, colonnes);
   const d = await graphql(
     `mutation ($board: ID!, $nom: String!, $valeurs: JSON, $labels: Boolean) {
       create_item(board_id: $board, item_name: $nom, column_values: $valeurs, create_labels_if_missing: $labels) { id name }
@@ -169,6 +184,7 @@ export async function creerElement(boardId, nom, colonnes = {}, { labels = false
 
 /** Met à jour les colonnes d'un élément existant. `labels` : comme creerElement. */
 export async function majElement(boardId, itemId, colonnes = {}, { labels = false } = {}) {
+  if (crmTwenty()) return Twenty.majElement(boardId, itemId, colonnes);
   const d = await graphql(
     `mutation ($board: ID!, $item: ID!, $valeurs: JSON!, $labels: Boolean) {
       change_multiple_column_values(board_id: $board, item_id: $item, column_values: $valeurs, create_labels_if_missing: $labels) { id }
@@ -180,6 +196,7 @@ export async function majElement(boardId, itemId, colonnes = {}, { labels = fals
 
 /** Ajoute un commentaire sur un élément — le journal, pas les colonnes. */
 export async function commenter(itemId, texte) {
+  if (crmTwenty()) return Twenty.commenter(itemId, texte);
   return graphql(
     `mutation ($item: ID!, $texte: String!) { create_update(item_id: $item, body: $texte) { id } }`,
     { item: String(itemId), texte }
@@ -194,6 +211,7 @@ export async function commenter(itemId, texte) {
  * entrées les plus récentes — une fiche créée à l'instant restait introuvable.
  */
 export async function lireTableau(boardId, limite = 2000) {
+  if (crmTwenty()) return Twenty.lireTableau(boardId, limite);
   const lignes = [];
   let curseur = null;
 
@@ -245,6 +263,7 @@ export async function lireTableau(boardId, limite = 2000) {
  * Null s'il n'existe pas (ou plus).
  */
 export async function lireElement(itemId) {
+  if (crmTwenty()) return Twenty.lireElement(itemId);
   const d = await graphql(
     `query ($ids: [ID!]) { items(ids: $ids) { id name state board { id } column_values { id text } } }`,
     { ids: [String(itemId)] }
@@ -260,6 +279,7 @@ export async function lireElement(itemId) {
  * l'élément n'existe pas (ou plus).
  */
 export async function lireFiche(itemId, { notes = 5 } = {}) {
+  if (crmTwenty()) return Twenty.lireFiche(itemId, { notes });
   const d = await graphql(
     `query ($ids: [ID!], $notes: Int!) { items(ids: $ids) { id name state created_at board { id name } group { title }
       column_values { text column { title } }
@@ -273,12 +293,13 @@ export async function lireFiche(itemId, { notes = 5 } = {}) {
     tableau: it.board?.name || null, groupe: it.group?.title || null,
     colonnes: Object.fromEntries((it.column_values || []).filter((c) => String(c.text || '').trim()).map((c) => [c.column?.title || '?', c.text])),
     notes: (it.updates || []).map((u) => ({ le: u.created_at, par: u.creator?.name || null, texte: String(u.text_body || '').slice(0, 2000) })),
-    lien: it.board?.id ? `https://klocka-company.monday.com/boards/${it.board.id}/pulses/${it.id}` : null,
+    lien: it.board?.id ? lienMonday(it.board.id, it.id) : null,
   };
 }
 
 /** Supprime un élément. Réservé au nettoyage de ce qu'on a soi-même créé. */
 export async function supprimerElement(itemId) {
+  if (crmTwenty()) return Twenty.supprimerElement(itemId);
   return graphql(`mutation ($item: ID!) { delete_item(item_id: $item) { id } }`, { item: String(itemId) });
 }
 
@@ -293,6 +314,7 @@ export async function supprimerElement(itemId) {
  * @param {{ nom, colonnes, itemId?: string, cle?: {colonne, valeur} }} element
  */
 export async function poserElement(boardId, { nom, colonnes = {}, itemId = null, cle = null, recreerSiInactif = false }) {
+  if (crmTwenty()) return Twenty.poserElement(boardId, { nom, colonnes, itemId, cle });
   if (!boardId) throw new Error('Tableau Monday non configuré');
 
   if (itemId) {
@@ -325,4 +347,17 @@ export async function poserElement(boardId, { nom, colonnes = {}, itemId = null,
   }
   const cree = await creerElement(boardId, nom, colonnes);
   return { id: cree?.id, cree: true };
+}
+
+/**
+ * L'adresse d'un élément dans le CRM : la fiche Twenty pour un id Twenty, sinon la ligne Monday. Le seul endroit où
+ * se fabrique ce lien (il était recopié dans une dizaine de fichiers).
+ */
+export function lienMonday(boardId, itemId) {
+  if (!itemId) return null;
+  if (crmTwenty() || Twenty.estIdTwenty(itemId)) {
+    const l = Twenty.lienElement(boardId, itemId);
+    if (l) return l;
+  }
+  return `https://klocka-company.monday.com/boards/${boardId}/pulses/${itemId}`;
 }

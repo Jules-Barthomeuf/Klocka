@@ -9,6 +9,7 @@
 // possède les murs n'est pas un prospect vendeur. Chaque changement de statut
 // (contacté, RDV, pas vendeur, mandat) se reporte dans la colonne Mandat.
 
+import { lienMonday } from './monday.js';
 const TABLEAU = () => (process.env.MONDAY_BOARD_KPARTNERS_PROSPECTS || '5091573479').trim();
 const COL = {
   email: 'text_mm0emb05',
@@ -50,7 +51,7 @@ export function colonnesProspect(p, { personneId = null, aujourdhui = new Date()
   return c;
 }
 
-export const lienProspect = (id) => `https://klocka-company.monday.com/boards/${TABLEAU()}/pulses/${id}`;
+export const lienProspect = (id) => lienMonday(TABLEAU(), id);
 
 /**
  * Pose le propriétaire dans K Partners › Prospects.

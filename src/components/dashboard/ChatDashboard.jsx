@@ -28,6 +28,7 @@ import SourcesLoi from "@/components/offres/SourcesLoi";
 import { J, alpha } from "@/design/jetons";
 import { CarteCriteres, FenetreMulticriteres } from "@/components/mandataire/ProspecterDataB";
 import Chargement from "@/components/ui/Chargement";
+import { lienCrm } from "@/lib/crm";
 
 // Les modes du chat : on choisit d'abord ce qu'on apporte, puis on écrit.
 // Sans mode, la boîte fait le tri elle-même.
@@ -532,12 +533,12 @@ function ResultatClient({ r }) {
       )}
       {r.monday?.id && (
         <a
-          href={`https://klocka-company.monday.com/boards/2110621760/pulses/${r.monday.id}`}
+          href={lienCrm(2110621760, r.monday.id)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-[12.5px] text-menthe hover:text-encre"
         >
-          Ouvrir la fiche Monday <ArrowRight className="w-3 h-3" />
+          Ouvrir la fiche du CRM <ArrowRight className="w-3 h-3" />
         </a>
       )}
     </div>

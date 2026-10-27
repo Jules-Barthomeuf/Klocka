@@ -9,6 +9,7 @@
 // (geo.api.gouv.fr en France, Nominatim ailleurs), une fois, gardée en mémoire. La carte entière se garde 30 minutes.
 
 import { Records, Meta } from './db.js';
+import { lienMonday } from './monday.js';
 
 const UA = 'Klocka/1.0 (sourcing@klocka.immo)';
 const GARDE_MS = 30 * 60 * 1000;
@@ -77,8 +78,14 @@ export function pointMonday(valeur) {
 
 /** Un tableau Monday lu avec la valeur brute de ses colonnes (les coordonnées des colonnes « location »). */
 async function lireAvecValeurs(boardId) {
-  const { requeteMonday, colonnesDuTableau } = await import('./monday.js');
+  const { requeteMonday, colonnesDuTableau, crmTwenty, lireTableau } = await import('./monday.js');
   const colonnes = await colonnesDuTableau(boardId);
+  const par = (titre) => colonnes.find((c) => c.title === titre)?.id || null;
+  // Twenty (27 oct. 2026) : les lignes et leurs coordonnées viennent de l'adaptateur, sans requête brute.
+  if (crmTwenty()) {
+    const lu = await lireTableau(boardId, 5000);
+    return { lignes: lu.map((l) => ({ id: l.id, nom: l.nom, cols: Object.fromEntries(Object.entries(l.colonnes).map(([k, text]) => [k, { id: k, text, value: l.valeurs?.[k] || null }])) })), par };
+  }
   const lignes = [];
   let curseur = null;
   for (let page = 0; page < 10; page += 1) {
@@ -90,11 +97,10 @@ async function lireAvecValeurs(boardId) {
     curseur = p?.cursor || null;
     if (!curseur) break;
   }
-  const par = (titre) => colonnes.find((c) => c.title === titre)?.id || null;
   return { lignes, par };
 }
 
-const lien = (tableau, id) => `https://klocka-company.monday.com/boards/${tableau}/pulses/${id}`;
+const lien = (tableau, id) => lienMonday(tableau, id);
 
 async function coucheProjets() {
   const points = [];

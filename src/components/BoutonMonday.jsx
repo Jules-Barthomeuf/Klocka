@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { Loader2, Upload } from "lucide-react";
+import { lienCrm } from "@/lib/crm";
 
 // Envoyer un dossier ou un projet dans le tableau Monday « Propriétés ».
 //
@@ -17,25 +18,23 @@ export default function BoutonMonday({ dealId, projetId, dejaPose = false, class
         dealId ? `/api/monday/dossiers/${dealId}` : `/api/monday/projets/${projetId}`
       ),
     onSuccess: (r) => {
-      const url = r?.id
-        ? `https://klocka-company.monday.com/boards/2110621762/pulses/${r.id}`
-        : null;
-      toast.success(r?.cree ? "Ajouté à Monday" : "Mis à jour dans Monday", {
+      const url = lienCrm(2110621762, r?.id);
+      toast.success(r?.cree ? "Ajouté au CRM" : "Mis à jour dans le CRM", {
         action: url ? { label: "Ouvrir", onClick: () => window.open(url, "_blank", "noopener") } : undefined,
       });
     },
-    onError: (e) => toast.error(e?.message || "Envoi vers Monday impossible"),
+    onError: (e) => toast.error(e?.message || "Envoi vers le CRM impossible"),
   });
 
   return (
     <button
       onClick={() => envoyer.mutate()}
       disabled={envoyer.isPending}
-      aria-label={dejaPose ? "Mettre à jour la fiche Monday" : "Envoyer dans le tableau Monday « Propriétés »"} title={dejaPose ? "Mettre à jour la fiche Monday" : "Envoyer dans le tableau Monday « Propriétés »"}
+      aria-label={dejaPose ? "Mettre à jour la fiche du CRM" : "Envoyer dans les Propriétés du CRM"} title={dejaPose ? "Mettre à jour la fiche du CRM" : "Envoyer dans les Propriétés du CRM"}
       className={`inline-flex items-center gap-2 px-4 h-10 rounded-[10px] border border-bord-doux text-[13.5px] text-craie hover:text-encre hover:border-bord-vif disabled:opacity-50 transition-colors ${className}`}
     >
       {envoyer.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-      {dejaPose ? "Mettre à jour Monday" : "Envoyer dans Monday"}
+      {dejaPose ? "Mettre à jour le CRM" : "Envoyer dans le CRM"}
     </button>
   );
 }

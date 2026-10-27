@@ -8,6 +8,7 @@
 // bord lit les relances dans Monday : voilà tout ce qui attend, avec le résumé.
 
 import { Records } from '../db.js';
+import { lienMonday } from '../monday.js';
 
 const SCHEMA = {
   type: 'object',
@@ -247,7 +248,7 @@ export async function traiterNoteAppel(texte, { user, surEtape = null } = {}) {
     ok: !!(agent?.id || dossier),
     texte: texteReponse,
     note,
-    agent: agent?.id ? { id: agent.id, nom: agent.nom, url: `https://klocka-company.monday.com/boards/${process.env.MONDAY_BOARD_AGENTS}/pulses/${agent.id}` } : null,
+    agent: agent?.id ? { id: agent.id, nom: agent.nom, url: lienMonday(process.env.MONDAY_BOARD_AGENTS, agent.id) } : null,
     dossier,
     fait,
     rates,

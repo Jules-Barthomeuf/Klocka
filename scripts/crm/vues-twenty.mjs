@@ -1,10 +1,17 @@
-// Les colonnes des vues Twenty (27 oct. 2026) : un champ créé par l'API n'entre pas dans la vue tableau de son objet,
-// les fiches importées semblaient vides. Ajoute à la vue par défaut de chaque objet de crm/schema.json tous ses
-// champs, dans l'ordre des colonnes Monday, visibles ; les champs techniques (mondayId…) en fin de vue, masqués.
+// Les colonnes des vues Twenty, dans l'ordre des tableaux Monday (27 oct. 2026, Jules : « le bon ordre de colonnes »).
+// Un champ créé par l'API n'entre pas dans les vues de son objet, et Twenty y met ses colonnes système en tête : les
+// fiches importées semblaient vides, puis en désordre. Pour chaque objet de crm/schema.json, dans toutes ses vues
+// tableau et dans sa fiche :
+//   1. le nom, puis le Groupe (scripts/crm/groupes-twenty.mjs) ;
+//   2. les colonnes dans l'ordre du tableau Monday ; une relation (« … (fiche) ») juste après le texte de son lien ;
+//      miroirs et formules à leur place ;
+//   3. les autres champs ajoutés ensuite (les liens qui arrivent d'autres objets) ;
+//   4. masqués en fin : création, modification, id et groupe Monday.
 //   node scripts/crm/vues-twenty.mjs [nomDObjet]
-// Rejouable : une colonne déjà dans la vue est laissée telle qu'elle est (taille, ordre choisis à la main).
+// Rejouable : seules les colonnes mal placées ou masquées à tort sont touchées.
 import 'dotenv/config';
 import fs from 'node:fs';
+import path from 'node:path';
 import { twentyConfigure, objetsTwenty, requeteTwenty } from '../../server/twenty.js';
 
 if (!twentyConfigure()) {
@@ -25,33 +32,76 @@ async function tout(chemin, cle) {
   }
   return out;
 }
+
+const dernier = fs.readdirSync('exports-prives').filter((d) => /^monday-\d{4}-\d{2}-\d{2}$/.test(d)).sort().pop();
+const exportSchema = JSON.parse(fs.readFileSync(path.join('exports-prives', dernier, 'schema.json'), 'utf8'));
 const { objets } = JSON.parse(fs.readFileSync('crm/schema.json', 'utf8'));
 const twenty = await objetsTwenty();
 const vues = await tout('/metadata/views', 'views');
 const colonnes = await tout('/metadata/viewFields', 'viewFields');
 
+const MASQUES = ['createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'mondayId', 'mondayGroupe', 'mondayCreeLe'];
+const JAMAIS = new Set(['id', 'position', 'searchVector', 'deletedAt', 'timelineActivities', 'favorites', 'attachments', 'noteTargets', 'taskTargets']);
+
+/** Pure : l'ordre voulu des champs d'un objet, [{ nom, visible }]. */
+function ordreVoulu(o, meta) {
+  const parNom = new Map((meta.fields || []).map((f) => [f.name, f]));
+  const parLabel = new Map((meta.fields || []).filter((f) => f.isCustom).map((f) => [f.label, f]));
+  const ordre = [];
+  const place = new Set();
+  const poser = (f, visible = true) => {
+    if (!f || place.has(f.name) || JAMAIS.has(f.name) || f.type === 'TS_VECTOR') return;
+    place.add(f.name);
+    ordre.push({ f, visible });
+  };
+  poser(parNom.get('name'));
+  poser(parNom.get('groupe'));
+  const champParColonne = new Map(o.champs.filter((c) => c.mondayColonne).map((c) => [c.mondayColonne, c.name]));
+  const colonnesMonday = exportSchema.tableaux.find((t) => String(t.id) === o.mondayTableau)?.columns || [];
+  for (const c of colonnesMonday) {
+    const nom = champParColonne.get(c.id);
+    if (nom) poser(parNom.get(nom));
+    // Miroir ou formule : le champ texte qui porte son titre ; un lien : sa relation « … (fiche) » juste après.
+    if (c.type === 'mirror' || c.type === 'formula') poser(parLabel.get(c.title));
+    if (c.type === 'board_relation') poser(parLabel.get(`${c.title} (fiche)`));
+  }
+  for (const c of o.champs) if (!c.systeme) poser(parNom.get(c.name));
+  for (const f of (meta.fields || []).filter((x) => x.isCustom && x.isActive !== false && !MASQUES.includes(x.name))) poser(f);
+  for (const nom of MASQUES) poser(parNom.get(nom), false);
+  return ordre;
+}
+
+let touchees = 0;
 for (const o of objets.filter((x) => !seul || x.nameSingular === seul)) {
   const meta = twenty.find((x) => x.nameSingular === o.nameSingular);
-  // Toutes les vues tableau : Twenty en crée parfois une seconde « All … » avec les seules colonnes système.
-  for (const vue of vues.filter((v) => v.objectMetadataId === meta?.id && v.type === 'TABLE')) {
-  const dans = new Map(colonnes.filter((c) => c.viewId === vue.id).map((c) => [c.fieldMetadataId, c]));
-  let position = Math.max(0, ...colonnes.filter((c) => c.viewId === vue.id).map((c) => c.position ?? 0)) + 1;
-  let ajoutees = 0;
-  for (const c of o.champs) {
-    const f = (meta.fields || []).find((x) => x.name === c.name);
-    if (!f) continue;
-    const deja = dans.get(f.id);
-    if (deja) {
-      // Déjà dans la vue mais masquée (Twenty y met les champs créés après coup) : on l'affiche.
-      if (!deja.isVisible && !c.systeme) {
-        await requeteTwenty('PATCH', `/metadata/viewFields/${deja.id}`, { isVisible: true, position: position++ });
-        ajoutees++;
+  const voulu = ordreVoulu(o, meta);
+  // Les vues tableau (Twenty en crée parfois une seconde « All … ») et la fiche (FIELDS_WIDGET).
+  for (const vue of vues.filter((v) => v.objectMetadataId === meta?.id && (v.type === 'TABLE' || v.type === 'FIELDS_WIDGET'))) {
+    const dans = new Map(colonnes.filter((c) => c.viewId === vue.id).map((c) => [c.fieldMetadataId, c]));
+    let n = 0;
+    for (const [i, { f, visible }] of voulu.entries()) {
+      const vf = dans.get(f.id);
+      // Dans une fiche, le nom est déjà le titre : Twenty ne le liste pas, on n'y touche pas.
+      if (vue.type === 'FIELDS_WIDGET' && f.name === 'name') continue;
+      if (!vf) {
+        await requeteTwenty('POST', '/metadata/viewFields', { viewId: vue.id, fieldMetadataId: f.id, position: i, isVisible: visible, size: f.type === 'TEXT' && /remarque|note|commentaire|description/i.test(f.label) ? 280 : 160 });
+        n++;
+      } else if (vf.position !== i || vf.isVisible !== visible) {
+        await requeteTwenty('PATCH', `/metadata/viewFields/${vf.id}`, { position: i, isVisible: visible });
+        n++;
       }
-      continue;
     }
-    await requeteTwenty('POST', '/metadata/viewFields', { viewId: vue.id, fieldMetadataId: f.id, position: position++, isVisible: !c.systeme, size: f.type === 'TEXT' && c.mondayType === 'long_text' ? 280 : 160 });
-    ajoutees++;
-  }
-  console.log(`${o.labelPlural.padEnd(32)} ${ajoutees} colonne(s) affichée(s) dans « ${vue.name} »${vue.key === 'INDEX' ? ' (principale)' : ''}`);
+    // Ce qui reste dans la vue sans être dans l'ordre voulu (champs système de Twenty) : en fin, masqué.
+    const voulus = new Set(voulu.map((x) => x.f.id));
+    let fin = voulu.length;
+    for (const vf of [...dans.values()].filter((x) => !voulus.has(x.fieldMetadataId))) {
+      if (vf.isVisible || vf.position < voulu.length) {
+        await requeteTwenty('PATCH', `/metadata/viewFields/${vf.id}`, { position: fin++, isVisible: false });
+        n++;
+      }
+    }
+    touchees += n;
+    console.log(`${o.labelPlural.padEnd(32)} ${vue.type === 'FIELDS_WIDGET' ? 'fiche ' : 'tableau'} « ${vue.name} » : ${n} colonne(s) replacée(s)`);
   }
 }
+console.log(`\n${touchees} colonne(s) replacée(s) en tout`);

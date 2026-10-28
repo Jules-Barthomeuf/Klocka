@@ -26,24 +26,25 @@
     if (!r.ok) throw new Error(`Twenty ${r.status}`);
     return r.status === 204 ? null : r.json();
   }
-  const liste = (r, cle) => (Array.isArray(r?.data) ? r.data : r?.data?.[cle] || []);
 
   let objets = null;
   let vues = null;
   let luLe = 0;
+  // Vues et objets : par /metadata en GraphQL, le chemin de l'écran de Twenty lui-même (session par cookie).
+  const LECTURE = '{ getViews { id name key type objectMetadataId position } objects(paging:{first:1000}) { edges { node { id namePlural nameSingular fields(paging:{first:1000}) { edges { node { name type isSystem isActive options } } } } } } }';
   async function charger() {
     if (objets && Date.now() - luLe < 60_000) return;
-    const o = await api('GET', '/metadata/objects?limit=1000');
-    const v = [];
-    let apres = null;
-    for (let i = 0; i < 20; i++) {
-      const r = await api('GET', `/metadata/views?limit=200${apres ? `&starting_after=${apres}` : ''}`);
-      v.push(...liste(r, 'views'));
-      if (!r?.pageInfo?.hasNextPage) break;
-      apres = r.pageInfo.endCursor;
-    }
-    objets = liste(o, 'objects');
-    vues = v;
+    const r = await fetch('/metadata', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: LECTURE }),
+    });
+    if (!r.ok) throw new Error(`Twenty ${r.status}`);
+    const { data, errors } = await r.json();
+    if (errors?.length || !data) throw new Error(errors?.[0]?.message || 'lecture des vues impossible');
+    objets = data.objects.edges.map(({ node }) => ({ ...node, fields: node.fields.edges.map((e) => e.node) }));
+    vues = data.getViews;
     luLe = Date.now();
   }
 
@@ -98,7 +99,7 @@
     }
     const nomDe = new Map(lesVues.map((v) => [v.name, v]));
     const ancre = choixDeVue(new Set(nomDe.keys()));
-    if (!ancre) return;
+    if (!ancre) return 'nom de la vue introuvable';
     const idVue = new URLSearchParams(location.search).get('viewId') || nomDe.get(ancre.textContent.trim())?.id;
     // Le nom est dans le bouton du choix de vue (un clic dedans ouvre sa liste) : les onglets vont à côté du bouton,
     // dans la partie gauche de la barre du haut (TopBar de Twenty : flex, space-between, gauche puis droite).
@@ -108,9 +109,9 @@
       if (s.display === 'flex' && s.justifyContent === 'space-between' && barre0.childElementCount === 2) break;
       barre0 = barre0.parentElement;
     }
-    if (!barre0 || barre0 === document.body) return;
+    if (!barre0 || barre0 === document.body) return 'barre des vues introuvable';
     const section = [...barre0.children].find((c) => c.contains(ancre));
-    if (!section) return;
+    if (!section) return 'barre des vues introuvable';
     const signature = `${objet.id}|${idVue}|${lesVues.map((v) => v.id).join(',')}`;
     if (deja && deja.dataset.signature === signature && deja.parentElement === section && !deja.nextElementSibling) return;
     deja?.remove();
@@ -325,10 +326,20 @@
       }
       try {
         await charger();
-        poserOnglets();
+        const manque = poserOnglets();
+        // Après 5 s sans onglets alors que le tableau a plusieurs vues : le dire une fois, avec la raison.
+        if (manque && performance.now() > 5000 && !window.__klockaErreur) {
+          window.__klockaErreur = manque;
+          annoncer(`Klocka : onglets non posés (${manque})`, true);
+        }
         poserBandeau();
       } catch (e) {
         console.warn('[klocka]', e.message);
+        // Une fois par chargement : visible, pour que l'erreur remonte au lieu de rien afficher.
+        if (!window.__klockaErreur) {
+          window.__klockaErreur = e.message;
+          annoncer(`Klocka : onglets indisponibles (${e.message})`, true);
+        }
       }
     });
   }

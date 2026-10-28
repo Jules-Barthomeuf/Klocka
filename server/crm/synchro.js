@@ -219,18 +219,24 @@ export async function ficheVersMonday(o, geste, r, champsModifies = []) {
 
 export const EVENEMENTS = ['create_item', 'change_column_value', 'change_name', 'create_update', 'item_archived', 'item_deleted', 'item_moved_to_any_group', 'item_restored'];
 
-/** Pose (une fois) les webhooks Monday de chaque tableau migré vers `url`. Rejouable. */
+// Monday ne rend pas l'adresse d'un webhook : les nôtres sont notés dans crm/webhooks-monday.json (tableau → événement
+// → id), ce qui rend la pose rejouable sans les confondre avec ceux du Layer (server/layer-sources.js).
+const FICHIER_WEBHOOKS = path.join(RACINE, 'crm/webhooks-monday.json');
+
+/** Pose les webhooks Monday de chaque tableau migré vers `url`. Rejouable : un webhook noté et encore présent reste. */
 export async function brancherWebhooksMonday(url) {
+  const notes = fs.existsSync(FICHIER_WEBHOOKS) ? JSON.parse(fs.readFileSync(FICHIER_WEBHOOKS, 'utf8')) : {};
   const bilan = [];
   for (const o of objets()) {
     if (!o.mondayTableau) continue;
-    const deja = await M.webhooksDuTableau(o.mondayTableau);
-    const vers = (w) => { try { return JSON.parse(w.config || '{}').url; } catch { return null; } };
+    const presents = new Set((await M.webhooksDuTableau(o.mondayTableau)).map((w) => String(w.id)));
+    const n = (notes[o.mondayTableau] ||= {});
     let poses = 0;
     for (const evenement of EVENEMENTS) {
-      if (deja.some((w) => w.event === evenement && String(vers(w) || '').split('?')[0] === url.split('?')[0])) continue;
-      await M.creerWebhook(o.mondayTableau, url, evenement);
+      if (n[evenement] && presents.has(String(n[evenement]))) continue;
+      n[evenement] = String((await M.creerWebhook(o.mondayTableau, url, evenement)).id);
       poses++;
+      fs.writeFileSync(FICHIER_WEBHOOKS, `${JSON.stringify(notes, null, 2)}\n`);
     }
     bilan.push({ tableau: o.labelPlural, poses });
   }

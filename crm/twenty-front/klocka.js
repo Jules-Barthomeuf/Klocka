@@ -236,22 +236,6 @@
     await parQuatre(ids, (id) => api('PATCH', `/${objet.namePlural}/${id}`, { deplacerVers: option }));
   }
 
-  // La vue affichée filtre-t-elle sur un champ à choix (« Groupe est Clients en cours ») ? Alors retirer une fiche de
-  // la vue, c'est vider ce champ : elle reste dans le tableau (All Clients), elle sort seulement de cette vue.
-  function filtreDeVue(objet) {
-    const id = new URLSearchParams(location.search).get('viewId');
-    const vue = id && (vues || []).find((v) => v.id === id);
-    for (const filtre of vue?.viewFilters || []) {
-      const champ = (objet.fields || []).find((c) => c.id === filtre.fieldMetadataId);
-      if (champ?.type === 'SELECT' && filtre.operand === 'IS') return { vue, champ };
-    }
-    return null;
-  }
-
-  async function retirer(objet, ids, champ) {
-    await parQuatre(ids, (id) => api('PATCH', `/${objet.namePlural}/${id}`, { [champ.name]: null }));
-  }
-
   let menuOuvert = null;
   function fermerMenu() {
     menuOuvert?.remove();
@@ -343,8 +327,7 @@
       bandeau.dataset.clickOutsideId = HORS_TABLEAU;
       document.body.appendChild(bandeau);
     }
-    const filtre = filtreDeVue(objet);
-    const signature = `${objet.id}|${location.search}|${filtre ? 'f' : ''}|${[...lignes.keys()].join(',')}`;
+    const signature = `${objet.id}|${[...lignes.keys()].join(',')}`;
     if (bandeau.dataset.signature !== signature) {
       bandeau.dataset.signature = signature;
       bandeau.replaceChildren();
@@ -368,22 +351,9 @@
             annoncer(`Duplication impossible : ${e.message}`, true);
           }
         }),
-        ...(filtre
-          ? [bouton('Retirer de la vue', texte, async () => {
-            const ids = [...lignes.keys()];
-            try {
-              await retirer(objet, ids, filtre.champ);
-              decocher(lignes);
-              annoncer(`${ids.length} fiche${ids.length > 1 ? 's' : ''} retirée${ids.length > 1 ? 's' : ''} de ${filtre.vue.name}, toujours dans le tableau`);
-            } catch (e) {
-              annoncer(`Retrait impossible : ${e.message}`, true);
-            }
-          })]
-          : []),
         bouton('Supprimer', texte, async () => {
           const ids = [...lignes.keys()];
-          const partout = filtre ? ' de tout le tableau, pas seulement de cette vue' : '';
-          if (!window.confirm(`Supprimer ${ids.length} fiche${ids.length > 1 ? 's' : ''}${partout} ? Elles restent récupérables dans les fiches supprimées.`)) return;
+          if (!window.confirm(`Supprimer ${ids.length} fiche${ids.length > 1 ? 's' : ''} de toutes les vues ? ${ids.length > 1 ? 'Elles restent récupérables' : 'Elle reste récupérable'} dans les fiches supprimées.`)) return;
           try {
             await supprimer(objet, ids);
             decocher(lignes);
@@ -424,7 +394,7 @@
     const declencheur = boutonChoixDeVue();
     const ctrl = [...document.querySelectorAll('[aria-controls]')].map((e) => e.getAttribute('aria-controls')).filter((x) => /view|picker/i.test(x)).slice(0, 4);
     const menus = [...document.querySelectorAll('.hoverable-buttons [aria-expanded="true"]')].map((e) => `${e.closest('.hoverable-buttons').parentElement.textContent.trim()}>${e.getAttribute('aria-controls') || '?'}:${document.querySelectorAll('[role="menu"] [role="menuitem"]').length}`).slice(0, 2);
-    const txt = `Klocka v6 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
+    const txt = `Klocka v7 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
     if (t.textContent !== txt) t.textContent = txt;
   }
 

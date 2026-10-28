@@ -131,51 +131,59 @@
     return null;
   }
 
-  // « Épingler » / « Désépingler » sous Éditer : copie d'une ligne du menu, pour en garder l'allure.
+  // « Épingler » / « Désépingler » sous Éditer, dans le menu « … » d'une vue de la liste du choix de vue.
+  // Ce menu est un menu Base UI (id généré) : on part du bouton « … » ouvert (aria-expanded="true", dans
+  // .hoverable-buttons), la ligne qui le porte donne le nom de la vue, aria-controls donne le menu.
   const PUNAISE = '<path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4"/><path d="M9 15l-4.5 4.5"/><path d="M14.5 4l5.5 5.5"/>';
+  function vueDuNom(nom) {
+    const objet = objetCourant();
+    if (!objet || !vues) return null;
+    const memes = vues.filter((v) => v.objectMetadataId === objet.id && v.name === nom);
+    return memes.find((v) => v.key === 'INDEX') || memes[0] || null;
+  }
   function poserEpingles() {
-    for (const menu of document.querySelectorAll('[id^="view-picker-options-"]:not([id$="-options"])')) {
-      if (menu.querySelector('.klocka-epingle')) continue;
-      const idVue = menu.id.slice('view-picker-options-'.length);
-      const icone = menu.querySelector('svg');
-      if (!icone) continue;
-      // La ligne du menu : le plus haut parent de l'icône qui n'a pas d'autre icône.
-      let ligne = icone;
-      while (ligne.parentElement && ligne.parentElement !== menu && ligne.parentElement.querySelectorAll('svg').length === 1) ligne = ligne.parentElement;
-      const copie = ligne.cloneNode(true);
+    for (const declencheur of document.querySelectorAll('.hoverable-buttons [aria-expanded="true"]')) {
+      const ligneVue = declencheur.closest('.hoverable-buttons').parentElement;
+      const vue = vueDuNom(ligneVue.textContent.trim());
+      const id = declencheur.getAttribute('aria-controls');
+      const menu = (id && document.getElementById(id)) || [...document.querySelectorAll('[role="menu"]')].pop();
+      if (!vue || !menu || menu.querySelector('.klocka-epingle')) continue;
+      const items = [...menu.querySelectorAll('[role="menuitem"]')];
+      const editer = items.find((l) => /^(Éditer|Editer|Modifier|Edit)$/i.test(l.textContent.trim()));
+      const modele = editer || items[0];
+      if (!modele) continue;
+      const copie = modele.cloneNode(true);
       copie.classList.add('klocka-epingle');
       copie.removeAttribute('id');
-      copie.style.color = '';
+      copie.removeAttribute('data-highlighted');
       const svg = copie.querySelector('svg');
-      svg.innerHTML = PUNAISE;
-      svg.setAttribute('viewBox', '0 0 24 24');
-      svg.setAttribute('fill', 'none');
-      svg.setAttribute('stroke', 'currentColor');
-      // Le libellé : le dernier nœud de texte non vide de la ligne.
+      if (svg) {
+        svg.innerHTML = PUNAISE;
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+      }
+      // Le libellé : le dernier nœud de texte non vide de la ligne copiée.
       const marcheur = document.createTreeWalker(copie, NodeFilter.SHOW_TEXT);
       let libelle = null;
       while (marcheur.nextNode()) if (marcheur.currentNode.textContent.trim()) libelle = marcheur.currentNode;
-      const ecrire = () => {
-        const txt = epingles().includes(idVue) ? 'Désépingler' : 'Épingler';
-        if (libelle) libelle.textContent = txt;
-        else copie.append(txt);
-      };
-      ecrire();
-      copie.addEventListener('click', (e) => {
+      const txt = epingles().includes(vue.id) ? 'Désépingler' : 'Épingler';
+      if (libelle) libelle.textContent = txt;
+      else copie.append(txt);
+      copie.addEventListener('mouseenter', () => { copie.style.background = 'rgba(127,127,127,.1)'; });
+      copie.addEventListener('mouseleave', () => { copie.style.background = ''; });
+      const agir = (e) => {
         e.stopPropagation();
         e.preventDefault();
-        const epinglee = basculerEpingle(idVue);
-        ecrire();
-        const v = (vues || []).find((x) => x.id === idVue);
-        annoncer(`${v?.name || 'Vue'} ${epinglee ? 'épinglée à droite du choix de vue' : 'désépinglée'}`);
+        const epinglee = basculerEpingle(vue.id);
+        annoncer(`${vue.name} ${epinglee ? 'épinglée à droite du choix de vue' : 'désépinglée'}`);
         document.getElementById(ONGLETS)?.remove();
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        declencheur.click();
         passe();
-      });
-      // Juste sous Éditer ; sans Éditer (vue principale), sous la dernière ligne.
-      const lignes = [...ligne.parentElement.children];
-      const editer = lignes.find((l) => /^(Éditer|Editer|Modifier|Edit)$/i.test(l.textContent.trim()));
-      (editer || lignes[lignes.length - 1]).after(copie);
+      };
+      copie.addEventListener('pointerdown', (e) => e.stopPropagation());
+      copie.addEventListener('click', agir);
+      (editer || items[items.length - 1]).after(copie);
     }
   }
 
@@ -365,8 +373,8 @@
     const objet = objetCourant();
     const declencheur = boutonChoixDeVue();
     const ctrl = [...document.querySelectorAll('[aria-controls]')].map((e) => e.getAttribute('aria-controls')).filter((x) => /view|picker/i.test(x)).slice(0, 4);
-    const menus = [...document.querySelectorAll('[id*="view-picker"], [id*="options"]')].map((e) => e.id).slice(0, 4);
-    const txt = `Klocka v3 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
+    const menus = [...document.querySelectorAll('.hoverable-buttons [aria-expanded="true"]')].map((e) => `${e.closest('.hoverable-buttons').parentElement.textContent.trim()}>${e.getAttribute('aria-controls') || '?'}:${document.querySelectorAll('[role="menu"] [role="menuitem"]').length}`).slice(0, 2);
+    const txt = `Klocka v4 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
     if (t.textContent !== txt) t.textContent = txt;
   }
 

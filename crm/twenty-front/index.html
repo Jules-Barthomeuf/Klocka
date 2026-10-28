@@ -663,7 +663,7 @@
   let vues = null;
   let luLe = 0;
   // Vues et objets : par /metadata en GraphQL, le chemin de l'écran de Twenty lui-même (session par cookie).
-  const LECTURE = '{ getViews { id name key type objectMetadataId position viewFilters { fieldMetadataId operand value } } objects(paging:{first:1000}) { edges { node { id namePlural nameSingular fields(paging:{first:1000}) { edges { node { id name type isSystem isActive options } } } } } } }';
+  const LECTURE = '{ getViews { id name key type objectMetadataId position viewFilters { fieldMetadataId operand value } } objects(paging:{first:1000}) { edges { node { id namePlural nameSingular labelPlural fields(paging:{first:1000}) { edges { node { id name type isSystem isActive options } } } } } } }';
   async function charger() {
     if (objets && Date.now() - luLe < 60_000) return;
     const r = await fetch('/metadata', {
@@ -890,21 +890,30 @@
     menuOuvert = null;
   }
 
+  // Déplacer : d'abord vers un groupe du même tableau (Clients en cours, signés…, le champ « Groupe »), la fiche
+  // change de vue et reste dans All Clients ; puis vers un autre tableau (« Déplacer vers », fait par Klocka).
   function ouvrirMenuDeplacer(bouton, objet, lignes) {
     fermerMenu();
-    const champ = (objet.fields || []).find((f) => f.name === 'deplacerVers');
-    const options = champ?.options || [];
-    if (!options.length) return annoncer('Ce tableau ne se déplace pas', true);
+    const groupe = (objet.fields || []).find((c) => c.name === 'groupe' && c.type === 'SELECT');
+    const groupes = groupe?.options || [];
+    const tableaux = (objet.fields || []).find((c) => c.name === 'deplacerVers')?.options || [];
+    if (!groupes.length && !tableaux.length) return annoncer('Ce tableau ne se déplace pas', true);
     const { fond, texte } = couleurs();
     const m = document.createElement('div');
     m.id = 'klocka-menu';
     m.dataset.clickOutsideId = HORS_TABLEAU;
     const r = bouton.getBoundingClientRect();
-    m.style.cssText = `position:fixed;top:${r.bottom + 6}px;left:${r.left}px;z-index:2147483647;max-height:60vh;overflow:auto;min-width:220px;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);font-size:13px`;
-    for (const o of [...options].sort((a, b) => Number(a.position || 0) - Number(b.position || 0))) {
+    m.style.cssText = `position:fixed;top:${r.bottom + 6}px;left:${r.left}px;z-index:2147483647;max-height:60vh;overflow:auto;min-width:240px;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);font-size:13px`;
+    const titre = (t) => {
+      const h = document.createElement('div');
+      h.textContent = t;
+      h.style.cssText = 'padding:8px 10px 4px;font-size:11px;opacity:.55';
+      m.appendChild(h);
+    };
+    const ligne = (libelle, faire, succes) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = o.label;
+      b.textContent = libelle;
       b.style.cssText = `display:block;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:4px;background:none;color:${texte};font:inherit;cursor:pointer`;
       b.addEventListener('mouseenter', () => { b.style.background = 'rgba(127,127,127,.12)'; });
       b.addEventListener('mouseleave', () => { b.style.background = 'none'; });
@@ -912,14 +921,25 @@
         fermerMenu();
         const ids = [...lignes.keys()];
         try {
-          await deplacer(objet, ids, o.value);
+          await faire(ids);
           decocher(lignes);
-          annoncer(`${ids.length} fiche${ids.length > 1 ? 's' : ''} envoyée${ids.length > 1 ? 's' : ''} vers ${o.label}`);
+          annoncer(`${ids.length} fiche${ids.length > 1 ? 's' : ''} ${succes}`);
         } catch (e) {
           annoncer(`Déplacement impossible : ${e.message}`, true);
         }
       });
       m.appendChild(b);
+    };
+    const ordre = (l) => [...l].sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
+    if (groupes.length) {
+      titre(`Dans ${objet.labelPlural || 'ce tableau'}`);
+      for (const o of ordre(groupes)) {
+        ligne(o.label, (ids) => parQuatre(ids, (id) => api('PATCH', `/${objet.namePlural}/${id}`, { [groupe.name]: o.value })), `passée${lignes.size > 1 ? 's' : ''} dans ${o.label}`);
+      }
+    }
+    if (tableaux.length) {
+      if (groupes.length) titre('Vers un autre tableau');
+      for (const o of ordre(tableaux)) ligne(o.label, (ids) => deplacer(objet, ids, o.value), `envoyée${lignes.size > 1 ? 's' : ''} vers ${o.label}`);
     }
     document.body.appendChild(m);
     menuOuvert = m;
@@ -1036,7 +1056,7 @@
     const declencheur = boutonChoixDeVue();
     const ctrl = [...document.querySelectorAll('[aria-controls]')].map((e) => e.getAttribute('aria-controls')).filter((x) => /view|picker/i.test(x)).slice(0, 4);
     const menus = [...document.querySelectorAll('.hoverable-buttons [aria-expanded="true"]')].map((e) => `${e.closest('.hoverable-buttons').parentElement.textContent.trim()}>${e.getAttribute('aria-controls') || '?'}:${document.querySelectorAll('[role="menu"] [role="menuitem"]').length}`).slice(0, 2);
-    const txt = `Klocka v5 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
+    const txt = `Klocka v6 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
     if (t.textContent !== txt) t.textContent = txt;
   }
 

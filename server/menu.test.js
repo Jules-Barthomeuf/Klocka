@@ -28,7 +28,7 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
 test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration, Feedback seul dans Autre (19 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels', 'Simulateur', 'CRM']);
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels', 'Simulateur', 'Sunday CRM']);
   // Le CRM (27 oct. 2026) : une entrée externe, toujours là.
   assert.equal(principal.find((x) => x.cle === 'CRM')?.externe, true);
   assert.ok(menuAdmin(['CRM']).principal.some((x) => x.cle === 'CRM'));

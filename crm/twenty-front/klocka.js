@@ -322,10 +322,15 @@
     });
   }
 
-  new MutationObserver(passe).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-checked', 'data-selectable-id'] });
-  window.addEventListener('scroll', passe, true);
-  window.addEventListener('resize', passe);
-  window.addEventListener('popstate', () => { luLe = 0; passe(); });
-  document.addEventListener('click', (e) => { if (menuOuvert && !menuOuvert.contains(e.target) && !e.target.closest?.(`#${BANDEAU}`)) fermerMenu(); }, true);
-  passe();
+  // Le script est dans <head> : on démarre une fois la page lue.
+  function demarrer() {
+    new MutationObserver(passe).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-checked', 'data-selectable-id'] });
+    window.addEventListener('scroll', passe, true);
+    window.addEventListener('resize', passe);
+    window.addEventListener('popstate', () => { luLe = 0; passe(); });
+    document.addEventListener('click', (e) => { if (menuOuvert && !menuOuvert.contains(e.target) && !e.target.closest?.(`#${BANDEAU}`)) fermerMenu(); }, true);
+    passe();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
+  else demarrer();
 })();

@@ -4,7 +4,9 @@ Une application Twenty privée (twenty-sdk 2.51.3) : un bouton épinglé « Dép
 
 Le champ, le journal « Déplacements » et le webhook sont posés par `node scripts/crm/deplacer-twenty.mjs`.
 
-## Publier (Node 24 exigé par le kit)
+## Publier une nouvelle version (Node 24 exigé par le kit)
+
+Déjà publiée et installée (0.1.3, 28 oct.) : rien à relancer tant que le code ne change pas. Pour une nouvelle version, monter d'abord `version` dans `package.json`, sinon Twenty refuse (« version must be higher », « already installed »).
 
 ```bash
 cd crm/app-deplacer

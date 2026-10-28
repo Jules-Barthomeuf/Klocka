@@ -41,7 +41,7 @@ import {
   X,
   ChevronLeft,
   ChevronDown,
-  ExternalLink,
+  Globe,
   Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
@@ -540,7 +540,7 @@ function LayoutContent({ children, currentPageName }) {
     SimulateurRentabilite: { to: createPageUrl("SimulateurRentabilite"), icon: Calculator, actif: isActivePage("SimulateurRentabilite") },
     AdminClients: { to: createPageUrl("AdminClients"), icon: BookUser, actif: isActivePage("AdminClients") },
     // Le CRM (Twenty) : sans adresse configurée, l'entrée ne s'affiche pas.
-    CRM: { href: CRM_URL || null, icon: CRM_URL ? ExternalLink : null, actif: false },
+    CRM: { href: CRM_URL || null, icon: CRM_URL ? Globe : null, actif: false },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
     Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },

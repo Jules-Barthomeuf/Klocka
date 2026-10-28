@@ -46,6 +46,20 @@ function copierDansTwenty(quoi, boardId, faire) {
 }
 /** Attendre les copies en cours (scripts, tests). */
 export const copiesTwenty = () => fileCopie;
+/** La même file, pour la synchronisation des deux CRM (server/crm/synchro.js) : tout s'applique dans l'ordre. */
+export function enFileCrm(quoi, faire) {
+  fileCopie = fileCopie.then(faire).catch((e) => console.error(`[crm] ${quoi} :`, e?.message || e));
+  return fileCopie;
+}
+// Ce que Klocka vient d'écrire dans Monday (id d'élément → instant ; ids des commentaires) : le webhook Monday qui
+// en revient attend la fin de la copie, et un commentaire déjà recopié n'est pas recopié deux fois.
+export const ecrituresRecentes = new Map();
+export const commentairesKlocka = new Set();
+const noterEcriture = (id) => {
+  if (!id) return;
+  ecrituresRecentes.set(String(id), Date.now());
+  if (ecrituresRecentes.size > 2000) ecrituresRecentes.delete(ecrituresRecentes.keys().next().value);
+};
 
 // Un id Twenty (fiche née pendant la bascule) devient l'id Monday de sa jumelle ; null : pas de jumelle Monday.
 async function idPourMonday(itemId) {
@@ -198,7 +212,7 @@ async function chercherElement(boardId, colonne, valeur) {
  * liste déroulante dont le libellé n'existe pas encore le crée (Monday demande
  * alors le droit de modifier la structure du tableau).
  */
-export async function creerElement(boardId, nom, colonnes = {}, { labels = false, twentyId = null } = {}) {
+export async function creerElement(boardId, nom, colonnes = {}, { labels = false, twentyId = null, sansCopie = false } = {}) {
   if (crmTwenty()) return Twenty.creerElement(boardId, nom, colonnes);
   const d = await graphql(
     `mutation ($board: ID!, $nom: String!, $valeurs: JSON, $labels: Boolean) {
@@ -207,12 +221,13 @@ export async function creerElement(boardId, nom, colonnes = {}, { labels = false
     { board: String(boardId), nom, valeurs: JSON.stringify(colonnes), labels: !!labels }
   );
   const cree = d?.create_item || null;
-  if (cree?.id) copierDansTwenty('création', boardId, () => Twenty.copierCreation(boardId, cree.id, nom, colonnes, { twentyId }));
+  noterEcriture(cree?.id);
+  if (cree?.id && !sansCopie) copierDansTwenty('création', boardId, () => Twenty.copierCreation(boardId, cree.id, nom, colonnes, { twentyId }));
   return cree;
 }
 
 /** Met à jour les colonnes d'un élément existant. `labels` : comme creerElement. */
-export async function majElement(boardId, itemId, colonnes = {}, { labels = false } = {}) {
+export async function majElement(boardId, itemId, colonnes = {}, { labels = false, sansCopie = false } = {}) {
   if (crmTwenty()) return Twenty.majElement(boardId, itemId, colonnes);
   const idMonday = await idPourMonday(itemId);
   if (!idMonday) throw new Error(`Élément ${itemId} absent de Monday (not found) : né dans Twenty pendant la bascule`);
@@ -222,7 +237,8 @@ export async function majElement(boardId, itemId, colonnes = {}, { labels = fals
     }`,
     { board: String(boardId), item: idMonday, valeurs: JSON.stringify(colonnes), labels: !!labels }
   );
-  copierDansTwenty('mise à jour', boardId, () => Twenty.copierMaj(boardId, itemId, colonnes, async () => (await lireElement(idMonday))?.nom ?? null));
+  noterEcriture(idMonday);
+  if (!sansCopie) copierDansTwenty('mise à jour', boardId, () => Twenty.copierMaj(boardId, itemId, colonnes, async () => (await lireElement(idMonday))?.nom ?? null));
   return d?.change_multiple_column_values || null;
 }
 
@@ -233,6 +249,8 @@ export async function commenter(itemId, texte) {
   const d = idMonday
     ? await graphql(`mutation ($item: ID!, $texte: String!) { create_update(item_id: $item, body: $texte) { id } }`, { item: idMonday, texte })
     : null;
+  noterEcriture(idMonday);
+  if (d?.create_update?.id) commentairesKlocka.add(String(d.create_update.id));
   copierDansTwenty('commentaire', null, () => Twenty.commenter(itemId, texte));
   return d || (crmDouble() ? { create_update: null } : d);
 }
@@ -408,4 +426,50 @@ export function lienMonday(boardId, itemId) {
     if (l) return l;
   }
   return `https://klocka-company.monday.com/boards/${boardId}/pulses/${itemId}`;
+}
+
+// --- Pour la synchronisation des deux CRM (CRM=double, server/crm/synchro.js) ---
+
+/** Un élément tel que Monday le garde : valeurs brutes et lisibles, groupe, état. Null s'il n'existe plus. */
+export async function elementBrut(itemId) {
+  const d = await graphql(
+    `query ($ids: [ID!]) { items(ids: $ids) { id name state created_at board { id } group { id title } column_values { id text value type } } }`,
+    { ids: [String(itemId)] }
+  );
+  return d?.items?.[0] || null;
+}
+
+/** Les groupes d'un tableau (id, titre). */
+export async function groupesDuTableau(boardId) {
+  const d = await graphql(`query ($b: [ID!]) { boards(ids: $b) { groups { id title } } }`, { b: [String(boardId)] });
+  return d?.boards?.[0]?.groups || [];
+}
+
+export async function deplacerDansGroupe(itemId, groupId) {
+  noterEcriture(itemId);
+  return graphql(`mutation ($i: ID!, $g: String!) { move_item_to_group(item_id: $i, group_id: $g) { id } }`, { i: String(itemId), g: String(groupId) });
+}
+
+/** Archive un élément (récupérable dans Monday), sans le supprimer. */
+export async function archiverElement(itemId) {
+  noterEcriture(itemId);
+  return graphql(`mutation ($i: ID!) { archive_item(item_id: $i) { id } }`, { i: String(itemId) });
+}
+
+/** Le commentaire d'un élément (corps texte), pour le recopier. */
+export async function commentaire(updateId) {
+  const d = await graphql(`query ($ids: [ID!]) { updates(ids: $ids) { id text_body item_id creator { name } } }`, { ids: [String(updateId)] });
+  return d?.updates?.[0] || null;
+}
+
+/** Crée un webhook Monday sur un tableau. */
+export async function creerWebhook(boardId, url, evenement) {
+  const d = await graphql(`mutation ($b: ID!, $u: String!, $e: WebhookEventType!) { create_webhook(board_id: $b, url: $u, event: $e) { id } }`, { b: String(boardId), u: url, e: evenement });
+  return d?.create_webhook || null;
+}
+
+/** Les webhooks d'un tableau. */
+export async function webhooksDuTableau(boardId) {
+  const d = await graphql(`query ($b: ID!) { webhooks(board_id: $b) { id event config } }`, { b: String(boardId) });
+  return d?.webhooks || [];
 }

@@ -88,6 +88,17 @@ export function monterMonday(app) {
   app.post('/api/crm/webhook', wrap(async (req, res) => {
     const D = await import('../crm/deplacer.js');
     if (!D.signatureValide(req.body, req.get('x-twenty-webhook-timestamp'), req.get('x-twenty-webhook-signature'))) return res.status(403).json({ error: 'Signature refusée.' });
-    ok(res, { deplacement: D.recevoirEvenement(req.body) });
+    const S = await import('../crm/synchro.js');
+    ok(res, { deplacement: D.recevoirEvenement(req.body), synchro: S.depuisTwenty(req.body) });
+  }));
+
+  // Monday : les webhooks des tableaux migrés (scripts/crm/synchro-monday.mjs), pour que Twenty suive ce que l'équipe
+  // fait dans Monday (CRM=double). Public, ouvert par le jeton CRM_MONDAY_JETON ; Monday vérifie l'adresse par un défi.
+  app.post('/api/crm/monday', wrap(async (req, res) => {
+    const jeton = String(process.env.CRM_MONDAY_JETON || '');
+    if (!jeton || String(req.query.jeton || '') !== jeton) return res.status(403).json({ error: 'Jeton refusé.' });
+    if (req.body?.challenge) return res.json({ challenge: req.body.challenge });
+    const S = await import('../crm/synchro.js');
+    ok(res, S.depuisMonday(req.body?.event));
   }));
 }

@@ -20,7 +20,7 @@ export const SCENARIOS_ESSAI = [
   {
     cle: "pas_de_reponse", groupe: "personne", titre: "Pas de réponse",
     phrases: [],
-    attendu: "Issue « Pas de réponse » ; relance dans 2 jours ouvrés, à l'autre moment de la journée ; rien dans Monday.",
+    attendu: "Issue « Pas de réponse » ; relance dans 2 jours ouvrés, à l'autre moment de la journée ; rien dans Sunday CRM.",
   },
   {
     cle: "repondeur", groupe: "personne", titre: "Répondeur, message laissé",
@@ -30,7 +30,7 @@ export const SCENARIOS_ESSAI = [
       "Bonjour, c'est Jules de Klocka, nous achetons des murs commerciaux loués et cherchons des agents partenaires.",
       "Je vous rappelle dans quelques jours, ou rappelez-moi au 06 49 78 81 76. Bonne journée.",
     ],
-    attendu: "Issue « Répondeur » ; relance à J+3 ; rien dans Monday.",
+    attendu: "Issue « Répondeur » ; relance à J+3 ; rien dans Sunday CRM.",
   },
   {
     cle: "mauvais_numero", groupe: "personne", titre: "Mauvais numéro",
@@ -131,7 +131,7 @@ export const SCENARIOS_ESSAI = [
       "Mon mail c'est marc point demo, arobase, riviera test, point invalide.",
     ],
     notes: "email : marc.demo@riviera-test.invalid",
-    attendu: "L'email des notes (marc.demo@riviera-test.invalid) remplace celui entendu, dans le mail et dans Monday.",
+    attendu: "L'email des notes (marc.demo@riviera-test.invalid) remplace celui entendu, dans le mail et dans Sunday CRM.",
   },
   {
     cle: "nom_notes", groupe: "cas", titre: "Nom difficile, précisé dans les notes",
@@ -157,7 +157,7 @@ export const SCENARIOS_ESSAI = [
       "Ah non, nous on ne fait que du résidentiel : des appartements, des maisons, jamais de commerces ni de murs.",
       "Désolée, je ne pourrai pas vous aider. Bonne journée.",
     ],
-    attendu: "Issue « Que du résidentiel », validée d'office : ni relance, ni contact Monday, ni mail ; l'agence sort de la file.",
+    attendu: "Issue « Que du résidentiel », validée d'office : ni relance, ni contact Sunday CRM, ni mail ; l'agence sort de la file.",
   },
   {
     cle: "rappelle_bientot", groupe: "cas", titre: "Il rappelle dans dix minutes",
@@ -166,7 +166,7 @@ export const SCENARIOS_ESSAI = [
       "Écoutez, je suis en rendez-vous là. Est-ce que je peux vous rappeler dans dix minutes ?",
       "Merci, à tout de suite.",
     ],
-    attendu: "Issue « Il rappelle tout de suite », validée d'office : l'appel est noté, rien dans Monday, pas de mail, pas de relance.",
+    attendu: "Issue « Il rappelle tout de suite », validée d'office : l'appel est noté, rien dans Sunday CRM, pas de mail, pas de relance.",
   },
   {
     cle: "veut_sms", groupe: "cas", titre: "Il veut un SMS, pas un mail",

@@ -11,7 +11,7 @@ import { siteDeLAlerte, candidatsDesAnnonces } from './alertes.js';
 import { ficheDuCandidat, fusion, trouver } from './carnet.js';
 import { propositions, messageDAK, decouperWav } from './appel.js';
 import { tableauDeBord, recapitulatif } from './semaine.js';
-import { colonneParTitre, valeursAgent, etapeMonday } from './monday.js';
+import { colonneParTitre } from './monday.js';
 import { nettoyer } from './reglages.js';
 import { lireXlsx } from '../xlsx.js';
 
@@ -226,12 +226,8 @@ test('le tableau de bord et le récapitulatif du vendredi', () => {
   assert.match(r, /En attente de décision : Rambuteau\./);
 });
 
-test('Monday : colonnes par titre, valeurs d\'un agent, étape d\'un dossier', () => {
+test('Monday : colonnes par titre', () => {
   assert.equal(colonneParTitre([{ id: 'x', title: 'Prochaine relance', type: 'date' }], ['Prochaine relance'], 'date'), 'x');
-  const c = { agence: 'c1', statut: 'c2', prochaine: 'c3', prochaine_le: 'c4', score: 'c5', resume: 'c6', referent: 'c7' };
-  const v = valeursAgent(c, { agence: 'Barnes', statut: 'pas_de_murs', prochaine: { quoi: 'point du mois', le: '2026-10-26' }, score: 25, resume_dernier_appel: 'rien' }, [{ id: 1, kind: 'person' }]);
-  assert.deepEqual(v, { c1: 'Barnes', c2: { label: 'Pas de murs' }, c7: { personsAndTeams: [{ id: 1, kind: 'person' }] }, c3: 'point du mois', c4: { date: '2026-10-26' }, c5: '25', c6: { text: 'rien' } });
-  assert.deepEqual(['recue', 'recue', 'oui', 'oui', 'non', 'presente'].map((e, i) => etapeMonday({ etape: e, verdict: i === 1 ? 'GO' : null, abandonne: i === 3 })), ['Reçu', 'Préanalysé', 'Oui', 'Abandonné', 'Non', 'Présenté au client']);
 });
 
 test('des réglages bornés', () => {

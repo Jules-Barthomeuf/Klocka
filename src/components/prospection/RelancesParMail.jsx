@@ -60,7 +60,7 @@ export default function RelancesParMail({ onFait }) {
   const valider = useMutation({
     mutationFn: ({ id, v }) => base44.request("POST", `${API}/${id}/valider`, { body: v || {} }),
     onSuccess: (r) => {
-      const monday = r.recu?.monday?.etat === "ok" ? "Monday à jour" : "Monday en attente";
+      const monday = r.recu?.monday?.etat === "ok" ? "Sunday CRM à jour" : "Sunday CRM en attente";
       toast.success(`Envoyé · relance le ${dateCourte(r.relance_le)} · ${monday}`);
       rafraichir();
     },
@@ -82,7 +82,7 @@ export default function RelancesParMail({ onFait }) {
         <div className="flex min-w-0 flex-col">
           <span className="text-[15px] text-encre">{mails.length ? `${mails.length} relance${mails.length > 1 ? "s" : ""} par mail à valider` : "Aucun mail à valider"}</span>
           <span className="text-[12.5px] text-ardoise">
-            Validé, un mail compte comme une relance : contact noté, prochaine relance un mois plus tard, Monday à jour.
+            Validé, un mail compte comme une relance : contact noté, prochaine relance un mois plus tard, Sunday CRM à jour.
             {d.sans_adresse > 0 && ` ${d.sans_adresse} relance${d.sans_adresse > 1 ? "s" : ""} sans adresse : à faire au téléphone.`}
           </span>
         </div>

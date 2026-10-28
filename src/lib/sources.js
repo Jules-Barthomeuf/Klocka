@@ -16,7 +16,7 @@ export const SOURCES = {
   gmail: { nom: "Gmail", icone: Mail },
   drive: { nom: "Google Drive", icone: FolderOpen },
   agenda: { nom: "Agenda", icone: CalendarDays },
-  monday: { nom: "Monday", icone: LayoutTemplate },
+  monday: { nom: "Sunday CRM", icone: LayoutTemplate },
   web: { nom: "Web", icone: Globe },
   dvf: { nom: "DVF", icone: Home },
   equimmox: { nom: "Equimmox", icone: BarChart3 },

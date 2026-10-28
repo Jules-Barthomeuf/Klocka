@@ -62,7 +62,7 @@ export function BoutonTesteur({ compact = false, vue = "admin" }) {
               </div>
             ) : (
               <div className="mt-4 flex flex-col gap-3">
-                <p className="m-0 text-[14px] leading-[1.5] text-craie">L'agent ouvre cette page dans un bac à sable (copie de la base, mails et Monday coupés), avec la vue {vue === "admin" ? "équipe" : vue}. Il exerce chaque bouton, chaque champ et les tâches de la page, en ordinateur et au téléphone, sombre et clair ; un critique relit les captures ; vous recevez l'analyse par mail dans une vingtaine de minutes.</p>
+                <p className="m-0 text-[14px] leading-[1.5] text-craie">L'agent ouvre cette page dans un bac à sable (copie de la base, mails et Sunday CRM coupés), avec la vue {vue === "admin" ? "équipe" : vue}. Il exerce chaque bouton, chaque champ et les tâches de la page, en ordinateur et au téléphone, sombre et clair ; un critique relit les captures ; vous recevez l'analyse par mail dans une vingtaine de minutes.</p>
                 <label className="flex flex-col gap-1.5 text-[12.5px] text-ardoise">Une consigne, si vous voulez
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Concentre-toi sur le panneau de filtres. Teste comme un analyste qui découvre." className="rounded-champ border border-bord-vif bg-fond px-3 py-2 text-[14px] text-encre outline-none placeholder:text-brume focus:border-menthe" />
                 </label>

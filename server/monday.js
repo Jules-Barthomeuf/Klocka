@@ -243,7 +243,7 @@ export async function majElement(boardId, itemId, colonnes = {}, { labels = fals
 }
 
 /** Ajoute un commentaire sur un élément — le journal, pas les colonnes. */
-export async function commenter(itemId, texte) {
+export async function commenter(itemId, texte, { sansCopie = false } = {}) {
   if (crmTwenty()) return Twenty.commenter(itemId, texte);
   const idMonday = await idPourMonday(itemId);
   const d = idMonday
@@ -251,7 +251,7 @@ export async function commenter(itemId, texte) {
     : null;
   noterEcriture(idMonday);
   if (d?.create_update?.id) commentairesKlocka.add(String(d.create_update.id));
-  copierDansTwenty('commentaire', null, () => Twenty.commenter(itemId, texte));
+  if (!sansCopie) copierDansTwenty('commentaire', null, () => Twenty.commenter(itemId, texte));
   return d || (crmDouble() ? { create_update: null } : d);
 }
 

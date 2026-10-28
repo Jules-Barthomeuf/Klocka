@@ -279,13 +279,9 @@ export async function tour({ maintenant = new Date() } = {}) {
       if (alx.relances) Meta.set('alx.relances_pretes', String(alx.relances));
     } catch (e) { etat.erreur = e?.message || String(e); }
     await direLeVendredi({ maintenant });
-    let monday = null;
-    if (M.mondayConfigure()) {
-      try { monday = { agents: await M.pousserAgents(), dossiers: await M.pousserDossiers(liste) }; } catch (e) { monday = { erreur: e?.message || String(e) }; }
-    }
     etat.le = new Date().toISOString();
-    etat.erreur = monday?.erreur || null;
-    etat.dernier = { rattachees, reponses, monday };
+    etat.erreur = null;
+    etat.dernier = { rattachees, reponses };
     return etat.dernier;
   } catch (e) {
     etat.erreur = e?.message || String(e);

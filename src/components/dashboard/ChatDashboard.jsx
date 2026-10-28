@@ -48,7 +48,7 @@ const MODES = [
   { id: "fiche", label: "Fiche d'agent", icone: FileText, type: "fiche", placeholder: "Collez le mail ou l'annonce de l'agent : le dossier naît, nommé et analysé." },
   { id: "mail", label: "Mail", icone: Mail, type: "assistant", placeholder: "Décrivez le mail à écrire, ou choisissez un mail type et remplacez les valeurs entre crochets…" },
   { id: "client", label: "Client", icone: User, type: "client", placeholder: "Collez le compte rendu de l'appel de découverte : la fiche client est à valider ensuite." },
-  { id: "question", label: "Question", icone: MessageCircle, type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Monday, simulation…" },
+  { id: "question", label: "Question", icone: MessageCircle, type: "assistant", placeholder: "Une question, un ordre : dossiers, mails, Sunday CRM, simulation…" },
   { id: "rappel", label: "Rappel", icone: Bell, type: "rappel", placeholder: "Ce que vous voulez, en disant quand : « dans 3 jours, relancer Monsieur Lardeux au 06… »" },
 ];
 
@@ -482,7 +482,7 @@ function FicheClient({ champs, onChange, onValider, enCours }) {
       )}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <span className="text-[11px] text-brume">
-          {manqueEmail ? "La fiche Monday sera créée ; le compte et le lien attendent l'adresse." : "Fiche Monday, compte Klocka pré-rempli, lien d'invitation."}
+          {manqueEmail ? "La fiche Sunday CRM sera créée ; le compte et le lien attendent l'adresse." : "Fiche Sunday CRM, compte Klocka pré-rempli, lien d'invitation."}
         </span>
         <button
           onClick={onValider}
@@ -733,13 +733,13 @@ const OUTILS_LUS = {
   rediger_loi: "Rédaction de la lettre d'intention", rediger_sequence: "Rédaction de la séquence", rediger_newsletter: "Rédaction de la newsletter", avis_de_marche: "Lecture du marché", mes_rappels: "Lecture de vos rappels", mes_proprietaires: "Lecture de vos propriétaires",
 };
 const ACTIONS_FAITES = {
-  pousser_dossier_monday: "Dossier poussé dans Monday", pousser_projet_monday: "Projet poussé dans Monday", creer_drive_dossier: "Dossier Drive créé",
-  extraire_documents: "Documents lus et rangés", creer_agent_monday: "Agent ajouté dans Monday", envoyer_mail: "Mail envoyé",
+  pousser_dossier_monday: "Dossier poussé dans Sunday CRM", pousser_projet_monday: "Projet poussé dans Sunday CRM", creer_drive_dossier: "Dossier Drive créé",
+  extraire_documents: "Documents lus et rangés", creer_agent_monday: "Agent ajouté dans Sunday CRM", envoyer_mail: "Mail envoyé",
   noter_engagement: "Engagement noté", tenir_engagement: "Engagement tenu", creer_dossier: "Dossier créé",
   analyser_fiche: "Fiche analysée", faire_tout: "Mail traité de bout en bout", deposer_mail: "Mail déposé sur le dossier",
   preanalyser_mail: "Préanalyse lancée", ranger_drive: "Rangé sur le Drive", bloquer_rdv: "Rendez-vous posé dans l'agenda",
   lancer_kdata: "Analyse lancée dans Outils", generer_prez_bancaire: "Présentation bancaire en préparation",
-  lancer_alx: "Prospection ALX lancée", ajouter_document: "Document ajouté au dossier", creer_client_monday: "Client créé dans Monday",
+  lancer_alx: "Prospection ALX lancée", ajouter_document: "Document ajouté au dossier", creer_client_monday: "Client créé dans Sunday CRM",
   renommer_dossier: "Dossier renommé", supprimer_dossier: "Dossier supprimé", creer_projet_depuis_dossier: "Projet créé",
   ajouter_photos_projet: "Photos ajoutées au projet", ajouter_prospect: "Agent ajouté au carnet de prospection",
   noter_appel: "Appel noté", retenir: "Retenu", oublier: "Oublié", lancer_design: "Chantier de design lancé",
@@ -748,7 +748,7 @@ const ACTIONS_FAITES = {
 /** Les étapes réellement faites, lues dans la réponse du serveur. */
 function etapesDe(r, prevues) {
   if (r?.type === "note") {
-    return ["Lecture de la note", r.agent?.nom ? `Contact reconnu : ${r.agent.nom}` : "Contact recherché dans Monday", r.dossier ? `Dossier : ${r.dossier.titre}` : "Préparation des actions"];
+    return ["Lecture de la note", r.agent?.nom ? `Contact reconnu : ${r.agent.nom}` : "Contact recherché dans Sunday CRM", r.dossier ? `Dossier : ${r.dossier.titre}` : "Préparation des actions"];
   }
   const lus = [...new Set((r?.outils || []).map((o) => OUTILS_LUS[o] || ACTIONS_FAITES[o]).filter(Boolean))];
   return lus.length ? ["Lecture du message", ...lus.slice(0, 5)] : prevues;
@@ -1364,7 +1364,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         onReponse?.(r);
         const p = [];
         if (r.dossier?.lien) p.push({ libelle: "Ouvrir le dossier", principal: true, href: r.dossier.lien });
-        if (r.agent?.url) p.push({ libelle: "Fiche Monday de l'agent", externe: r.agent.url });
+        if (r.agent?.url) p.push({ libelle: "Fiche Sunday CRM de l'agent", externe: r.agent.url });
         setSuites(p);
       } else if (r.type === "fiche") {
         pousser({ role: "assistant", contenu: "La fiche est lue : le dossier est créé.", ...extra });
@@ -1387,7 +1387,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         for (const b of r.blocs || []) {
           if (b.type === "client") setFiche(b.champs);
           if (b.type === "echeances") pousser({ role: "bloc", type: "echeances", donnees: {} });
-          if (b.type === "note") { if (b.dossier) suitesAk.push({ libelle: "Ouvrir le dossier", principal: true, href: b.dossier }); if (b.agent) suitesAk.push({ libelle: "Fiche Monday de l'agent", externe: b.agent }); }
+          if (b.type === "note") { if (b.dossier) suitesAk.push({ libelle: "Ouvrir le dossier", principal: true, href: b.dossier }); if (b.agent) suitesAk.push({ libelle: "Fiche Sunday CRM de l'agent", externe: b.agent }); }
           if (b.type === "fiche") {
             Promise.all([
               base44.request("GET", `/api/preanalyse/dossiers/${b.deal_id}`).catch(() => null),
@@ -1441,7 +1441,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       try {
         const c = await base44.request("GET", `/api/preanalyse/dossiers/${r.deal_id}/clients`);
         clients = c?.clients || [];
-      } catch { /* sans Monday, pas de correspondance */ }
+      } catch { /* sans Sunday CRM, pas de correspondance */ }
       return { ...r, titre, clients };
     },
     onSuccess: (r) => {

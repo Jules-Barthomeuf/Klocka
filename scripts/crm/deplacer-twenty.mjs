@@ -77,7 +77,7 @@ for (const c of CHAMPS_JOURNAL) {
 // 3. Le webhook vers Klocka.
 const cible = `${KLOCKA}/api/crm/webhook`;
 // Créations et suppressions aussi : la synchronisation Twenty → Monday (server/crm/synchro.js, CRM=double) les suit.
-const operations = objets.flatMap((o) => [`${o.nameSingular}.created`, `${o.nameSingular}.updated`, `${o.nameSingular}.deleted`]);
+const operations = [...objets.flatMap((o) => [`${o.nameSingular}.created`, `${o.nameSingular}.updated`, `${o.nameSingular}.deleted`]), 'noteTarget.created'];
 const { webhooks } = await gql('{ webhooks { id targetUrl operations } }');
 const existant = webhooks.find((w) => w.targetUrl === cible);
 if (!existant) {

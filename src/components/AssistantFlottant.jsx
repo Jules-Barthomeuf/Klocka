@@ -146,7 +146,7 @@ export default function AssistantFlottant() {
 
       for (const a of agies) {
         const drive = a.name === "creer_drive_dossier";
-        toast.success(drive ? "Dossier Drive créé" : a.resultat?.cree ? "Ajouté à Monday" : "Mis à jour", {
+        toast.success(drive ? "Dossier Drive créé" : a.resultat?.cree ? "Ajouté à Sunday CRM" : "Mis à jour", {
           description: drive && a.resultat?.chemin ? a.resultat.chemin : a.resultat?.titre,
         });
       }

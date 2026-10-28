@@ -915,7 +915,6 @@ export function monterProspection(app) {
     if (!admin(req, res)) return;
     const p = await P();
     const { etatDesAlertes } = await import('../prospection/alertes.js');
-    const { tableaux } = await import('../prospection/monday.js');
     const { casse } = await import('../prospection/sources.js');
     const villes = new Map();
     for (const d of Records.list('Deal')) {
@@ -929,7 +928,6 @@ export function monterProspection(app) {
       villes_des_dossiers: [...villes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([v]) => v),
       nuit: p.derniereNuit(),
       alertes: etatDesAlertes(),
-      monday: tableaux(),
       carnet: p.agents().length,
       etat: p.etatProspection(),
     });

@@ -169,10 +169,18 @@ export function versMonday(mondayType, f, v) {
 }
 
 const GESTES = /\.(created|updated|deleted|destroyed)$/;
+let DELAI_NOTE = 60000;
 /** Un événement du webhook Twenty. Rend ce qui est prévu. */
 export function depuisTwenty(ev) {
-  if (!M.crmDouble()) return { ignore: 'CRM n’est pas en double' };
   const nom = String(ev?.eventName || '');
+  // Une note s'attache à sa fiche en naissant, vide : on la lit une minute après, une fois écrite. Le Layer la reçoit
+  // aussi après la bascule ; Monday seulement en double.
+  if (nom === 'noteTarget.created') {
+    if (!ev.workspaceMemberId) return { ignore: 'écrit par Klocka' };
+    setTimeout(() => M.enFileCrm('note Twenty → Monday', () => noteVersMonday(ev.record || {})), DELAI_NOTE).unref?.();
+    return { prevu: 'note' };
+  }
+  if (!M.crmDouble()) return { ignore: 'CRM n’est pas en double' };
   const o = objetDuNom(nom.split('.')[0]);
   if (!o || !GESTES.test(nom)) return { ignore: 'objet non synchronisé' };
   if (!ev.workspaceMemberId) return { ignore: 'écrit par Klocka' };
@@ -180,6 +188,20 @@ export function depuisTwenty(ev) {
   if (nom.endsWith('.updated') && ev.updatedFields?.length && !champs.length) return { ignore: '« Déplacer vers » seul' };
   M.enFileCrm('Twenty → Monday', () => ficheVersMonday(o, nom.split('.')[1], ev.record || {}, champs));
   return { prevu: nom };
+}
+
+/** Une note de Sunday CRM sur une fiche migrée : commentaire Monday (sans recopie) et source du Layer. */
+export async function noteVersMonday(cible) {
+  const champ = Object.keys(cible).find((k) => /^target[A-Z].*Id$/.test(k) && cible[k] && objetDuNom(k.slice(6, -2).replace(/^./, (c) => c.toLowerCase())));
+  if (!champ || !cible.noteId) return null;
+  const o = objetDuNom(champ.slice(6, -2).replace(/^./, (c) => c.toLowerCase()));
+  const [note, fiche] = await Promise.all([T.lire('notes', cible.noteId), T.lire(o.namePlural, cible[champ])]);
+  const texte = [note?.title, note?.bodyV2?.markdown].map((x) => String(x || '').trim()).filter(Boolean).join('\n\n');
+  if (!texte || !fiche) return null;
+  if (fiche.mondayId && M.crmDouble()) await M.commenter(fiche.mondayId, texte, { sansCopie: true });
+  const L = await import('../layer-sources.js');
+  L.noteDepuisTwenty({ objet: o.nameSingular, fiche, noteId: cible.noteId, texte, date: note?.createdAt || null });
+  return { mondayId: fiche.mondayId || null };
 }
 
 export async function ficheVersMonday(o, geste, r, champsModifies = []) {

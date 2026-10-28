@@ -580,14 +580,7 @@ export async function raconterAppel({ agent_id, audio, duree_s = null, par, main
   if (!lu.ok) return lu;
   const v = await validerAppel({ appel_id: lu.appel.id, choix: lu.appel.propositions.filter((p) => p.coche !== false).map((p) => p.id), envoyer: false, user: { email: par }, maintenant });
   if (!v.ok) return v;
-  let monday;
-  try {
-    const { pousserUnAgent } = await import('./monday.js');
-    monday = await pousserUnAgent(agent_id);
-  } catch (e) {
-    monday = { ok: false, error: String(e?.message || e).slice(0, 160) };
-  }
-  return { ok: true, recit, carte: carteAppel(agentDe(agent_id), lu.appel, v, monday) };
+  return { ok: true, recit, carte: carteAppel(agentDe(agent_id), lu.appel, v, null) };
 }
 
 /** Pure : la carte de confirmation, tout ce qui a été rempli après l'appel. */
@@ -623,7 +616,6 @@ export async function corrigerAppel({ appel_id, champ, valeur, user = null }) {
   const c = { ...correction, le: new Date().toISOString(), par: user?.email || null };
   Records.update(ENTITE, appel.id, { corrections: [...(appel.corrections || []), c], modifie: true });
   journal(a.id, { type: 'note', texte: `Correction : ${c.champ} ${c.avant || '(vide)'} → ${c.apres}`, par: user?.email || null });
-  try { (await import('./monday.js')).pousserUnAgent(a.id).catch(() => {}); } catch { /* Monday rattrapera au tour suivant */ }
   return { ok: true, correction: c, agent: agentDe(a.id) };
 }
 

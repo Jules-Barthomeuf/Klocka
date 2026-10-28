@@ -926,7 +926,7 @@ const LIBELLES_SUIVI = {
   documents_recus: "Documents",
   abandon: "Abandon",
   projet_cree: "Projet",
-  monday_echec: "Monday",
+  monday_echec: "Sunday CRM",
   agent: "Agent",
 };
 

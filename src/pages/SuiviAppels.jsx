@@ -85,7 +85,7 @@ function DetailAppel({ x, modifiable = true, base = "/api/monitoring/appels" }) 
             className="inline-flex h-7 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-50" style={{ background: "transparent" }}>
             {marquer.isPending && <Loader2 className="h-3 w-3 animate-spin" />}{valide ? "Marquer non validé" : "Marquer validé"}
           </button>}
-          {modifiable && <span className="text-[12px] text-brume">Seul l'état change : rien n'est envoyé ni écrit dans Monday.</span>}
+          {modifiable && <span className="text-[12px] text-brume">Seul l'état change : rien n'est envoyé ni écrit dans Sunday CRM.</span>}
         </span>
       </div>}
       <div className={ligne}><span className="text-ardoise">Résumé</span><span className="text-encre">{x.resume || "—"}</span></div>
@@ -114,9 +114,9 @@ function DetailAppel({ x, modifiable = true, base = "/api/monitoring/appels" }) 
       {x.temps && <div className={ligne}><span className="text-ardoise">Après l'appel</span><span className="text-craie">{[["pret_ms", "actions prêtes"], ["valide_ms", "validé"], ["prepare_ms", "tout préparé"]].filter(([k]) => x.temps[k] != null).map(([k, t]) => `${t} en ${secondesLisibles(x.temps[k])}`).join(" · ")}, depuis le raccrochage</span></div>}
       {v && <div className={ligne}><span className="text-ardoise">Validation</span><span className="text-craie">{v.depuis_fenetre ? "Depuis la fenêtre des actions" : "Depuis la page"} · {v.vues ?? "?"} étape{(v.vues || 0) > 1 ? "s" : ""} ouverte{(v.vues || 0) > 1 ? "s" : ""} sur {v.etapes}{v.retirees?.length ? ` · retirées : ${v.retirees.join(", ")}` : ""}{v.ajoutees?.length ? ` · ajoutées : ${v.ajoutees.join(", ")}` : ""}{x.annulations ? ` · annulé ${x.annulations} fois` : ""}</span></div>}
       {m && <div className={ligne}><span className="text-ardoise">Corrections d'AK</span><span className="text-craie">{!m.propose_par_ak ? "Issue tapée à la main : AK n'a rien proposé" : !m.corrige ? "Aucune" : [m.issue && "issue changée", m.champs?.length && `champs : ${m.champs.join(", ")}`, m.date && "date retouchée", m.mail && "mail retouché"].filter(Boolean).join(" · ")}</span></div>}
-      {x.recu && <div className={ligne}><span className="text-ardoise">Reçu</span><span className="flex flex-col gap-0.5 text-craie">{x.recu.monday && <span>Monday : {x.recu.monday.texte}</span>}{x.recu.mail && <span>Mail : {x.recu.mail.texte}</span>}{x.recu.relance && <span>{x.recu.relance}</span>}</span></div>}
+      {x.recu && <div className={ligne}><span className="text-ardoise">Reçu</span><span className="flex flex-col gap-0.5 text-craie">{x.recu.monday && <span>Sunday CRM : {x.recu.monday.texte}</span>}{x.recu.mail && <span>Mail : {x.recu.mail.texte}</span>}{x.recu.relance && <span>{x.recu.relance}</span>}</span></div>}
       <div className="flex justify-end border-t border-trait pt-2.5">
-        <button type="button" onClick={() => { if (window.confirm("Supprimer cet appel du journal ? Ce qui est déjà parti (Monday, mail) n'est pas défait.")) supprimer.mutate(); }} disabled={supprimer.isPending}
+        <button type="button" onClick={() => { if (window.confirm("Supprimer cet appel du journal ? Ce qui est déjà parti (Sunday CRM, mail) n'est pas défait.")) supprimer.mutate(); }} disabled={supprimer.isPending}
           className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] text-ardoise transition-colors hover:text-alerte disabled:opacity-50" style={{ background: "transparent" }}>
           {supprimer.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}Supprimer l'appel
         </button>
@@ -286,7 +286,7 @@ function VueEnsemble({ data, jours, c, onChoisir }) {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[["Reçus", data.rappels.total], ["Terminés", data.rappels.termines], ["Abandonnés", data.rappels.abandonnes], ["À terminer", data.rappels.en_cours]].map(([t, n]) => <div key={t}><p className="m-0 text-[11px] uppercase tracking-[.14em] text-ardoise">{t}</p><p className="m-0 mt-1 text-[22px] font-light text-encre">{n}</p></div>)}
         </div>
-        <p className="m-0 mt-3 text-[12px] text-brume">Mails partis : {e.mails_partis} · Monday écrit : {e.monday_ok} · lecture AK moyenne : {e.lecture_moyenne_ms ? `${(e.lecture_moyenne_ms / 1000).toFixed(1)} s` : "—"}</p>
+        <p className="m-0 mt-3 text-[12px] text-brume">Mails partis : {e.mails_partis} · Sunday CRM écrit : {e.monday_ok} · lecture AK moyenne : {e.lecture_moyenne_ms ? `${(e.lecture_moyenne_ms / 1000).toFixed(1)} s` : "—"}</p>
       </Cadre>
     </div>
   );

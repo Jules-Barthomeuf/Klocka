@@ -280,7 +280,7 @@ function FicheClient({ id, onFermer, onAppel }) {
                 </button>
                 {ouvert === a.id && (
                   <div className="mt-2 flex flex-col gap-2 text-[13px] text-ardoise">
-                    {a.monday && <span>Monday : {a.monday}</span>}
+                    {a.monday && <span>Sunday CRM : {a.monday}</span>}
                     {a.contenu && <p className="m-0 max-h-[280px] overflow-y-auto whitespace-pre-line rounded-[10px] border border-trait p-3 text-craie">{a.contenu}</p>}
                   </div>
                 )}
@@ -361,7 +361,7 @@ export default function AdminClients() {
         </div>
       </header>
 
-      <p className="m-0 -mt-3 text-[14px] text-ardoise">Ouvrez un client et enregistrez l'appel (ou collez son résumé) : sa fiche, Monday et ce que voient les mandataires se remplissent.</p>
+      <p className="m-0 -mt-3 text-[14px] text-ardoise">Ouvrez un client et enregistrez l'appel (ou collez son résumé) : sa fiche, Sunday CRM et ce que voient les mandataires se remplissent.</p>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-12 min-w-[240px] flex-1 items-center gap-3 rounded-full border border-trait bg-surface px-5 focus-within:border-bord-doux max-md:basis-full">

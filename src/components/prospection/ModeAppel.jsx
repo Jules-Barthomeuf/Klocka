@@ -70,8 +70,8 @@ function ChoixScenario({ choisi, onJouer, relancesDabord = false, monday = true,
         <label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-trait px-4 py-3">
           <input type="checkbox" checked={monday} onChange={(e) => setMonday(e.target.checked)} className="mt-1 h-4 w-4 accent-[rgb(var(--k-menthe-rgb))]" />
           <span className="flex flex-col gap-0.5">
-            <span className="text-[14.5px] text-encre">Écrire pour de vrai dans Monday</span>
-            <span className="text-[13px] leading-[1.45] text-ardoise">{monday ? "La ligne de l'agence fictive est créée ou mise à jour dans « Agent immobilier », marquée « (Essai) », remarque « Essai · … ». Annuler la remet comme avant." : "Monday n'est pas touché : l'écran montre seulement ce qui y serait écrit."}</span>
+            <span className="text-[14.5px] text-encre">Écrire pour de vrai dans Sunday CRM</span>
+            <span className="text-[13px] leading-[1.45] text-ardoise">{monday ? "La ligne de l'agence fictive est créée ou mise à jour dans « Agent immobilier », marquée « (Essai) », remarque « Essai · … ». Annuler la remet comme avant." : "Sunday CRM n'est pas touché : l'écran montre seulement ce qui y serait écrit."}</span>
           </span>
         </label>
       )}
@@ -127,7 +127,7 @@ function PourquoiRelance({ a }) {
         <span className={etiq}>DERNIER ÉCHANGE</span>
         {r.dernier ? (
           <>
-            <span className="text-[12.5px] text-ardoise">{[jourCourt(r.dernier.le), r.dernier.par, r.dernier.monday ? "Monday" : null, r.dernier.issue].filter(Boolean).join(" · ")}</span>
+            <span className="text-[12.5px] text-ardoise">{[jourCourt(r.dernier.le), r.dernier.par, r.dernier.monday ? "Sunday CRM" : null, r.dernier.issue].filter(Boolean).join(" · ")}</span>
             {r.dernier.resume && <span className="line-clamp-2 text-[14.5px] leading-[1.5] text-craie">{r.dernier.resume}</span>}
           </>
         ) : <span className="text-[13.5px] text-brume">Aucun échange noté</span>}
@@ -1039,7 +1039,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
       retenirEnCours(null);
       if (r.hors_ligne) return suivante(v.simple ? "Hors ligne : l'issue est gardée et partira au retour du réseau" : "Hors ligne : l'appel et sa transcription sont gardés ; les actions s'ouvriront au retour du réseau");
       // « Que du résidentiel », « Il rappelle tout de suite » (16 oct. 2026) : validés d'office, sans relance ni Monday.
-      if (r.simple && r.issue === "residentiel") return suivante("Que du résidentiel · noté, sorti de la file, ni relance ni Monday");
+      if (r.simple && r.issue === "residentiel") return suivante("Que du résidentiel · noté, sorti de la file, ni relance ni Sunday CRM");
       if (r.simple && r.issue === "rappelle_bientot") return suivante("Il rappelle tout de suite · l'appel est noté ; quand il rappelle, touchez « Rappel »");
       if (r.simple) return suivante(`${v.issue === "repondeur" ? "Message laissé" : v.issue === "agent_prevenu" ? "Agent prévenu" : "Pas de réponse"} · ${r.recu?.relance?.texte?.toLowerCase() || "relance planifiée"}`);
       envoyerParole(r.appel.id);
@@ -1103,7 +1103,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
     onMutate: () => noterTemps("valide", appel?.id),
     onSuccess: (r) => {
       if (r.hors_ligne) return suivante("Hors ligne : la validation est gardée et partira une seule fois au retour du réseau");
-      if (r.lente) return suivante("La validation est enregistrée, Monday suit : le reçu sera dans le Suivi");
+      if (r.lente) return suivante("La validation est enregistrée, Sunday CRM suit : le reçu sera dans le Suivi");
       setRecu(r.recu);
       if (!depuisFenetre.current) setEcran("recu");
       queryClient.invalidateQueries({ queryKey: ["mode-appel-suspens"] });
@@ -1156,7 +1156,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
   const ligne = useMutation({
     mutationFn: ({ id, choix }) => base44.request("POST", `${API}/appels/${id}/ligne-monday`, { body: { ligne_id: choix } }),
     onSuccess: (x) => { if (ecran === "recu") setRecu(x.recu); recap.refetch(); queryClient.invalidateQueries({ queryKey: ["mode-appel-recu"] }); },
-    onError: (e) => toast.error(e?.message || "Monday n'a pas répondu"),
+    onError: (e) => toast.error(e?.message || "Sunday CRM n'a pas répondu"),
   });
   const renvoyer = useMutation({
     mutationFn: (id) => base44.request("POST", `${API}/appels/${id}/renvoyer`),
@@ -1340,7 +1340,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {ecran === "actions" && appel && (
               <div className={`grid gap-y-4 duration-500 animate-in fade-in-0 slide-in-from-bottom-3 md:transition-[grid-template-columns,column-gap] md:duration-700 md:ease-[cubic-bezier(.22,1,.36,1)] max-md:grid-cols-1 ${voirTranscription ? "md:grid-cols-[1fr_1fr] md:gap-x-4" : "md:grid-cols-[0fr_1fr] md:gap-x-0"}`}>
                 <div className={`flex min-w-0 flex-col gap-4 overflow-hidden transition-opacity duration-500 max-md:order-last ${voirTranscription ? "opacity-100 delay-200" : "pointer-events-none opacity-0 max-md:hidden"}`} aria-hidden={!voirTranscription}>
-                {/* « Ce qu'AK a compris » retiré (7 oct. 2026) : il doublait la fenêtre de Contact Monday. */}
+                {/* « Ce qu'AK a compris » retiré (7 oct. 2026) : il doublait la fenêtre de Contact Sunday CRM. */}
                 {voirTranscription && (<>
                 <ChaineRepliee etapes={etapesFinies} />
                 <PanneauTranscription direct={direct} notes={!appel.sans_details} fin={null} tape />
@@ -1367,7 +1367,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
             {ecran === "recu" && r && (
               <div className="flex w-full max-w-[620px] flex-col gap-3.5 self-center rounded-[20px] border border-trait bg-transparent p-7 max-md:p-5">
                 <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
-                  <LigneRecu l={r.monday ? { ...r.monday, texte: r.monday.etat === "ok" ? `Monday : ${r.monday.texte}` : r.monday.texte } : null} lien={r.monday?.etat === "ok" ? r.monday.lien : null}>
+                  <LigneRecu l={r.monday ? { ...r.monday, texte: r.monday.etat === "ok" ? `Sunday CRM : ${r.monday.texte}` : r.monday.texte } : null} lien={r.monday?.etat === "ok" ? r.monday.lien : null}>
                     {r.monday?.etat === "doute" && <ChoixLigne candidates={r.monday.candidates || []} occupe={ligne.isPending} onChoisir={(choix) => ligne.mutate({ id: appel.id, choix })} />}
                   </LigneRecu>
                   <LigneRecu l={r.mail} detail={r.mail?.detail || null}>
@@ -1430,7 +1430,7 @@ export default function ModeAppel({ relances = false, relance = null, onSuivante
                 ))}
                 <p className="m-0 flex gap-2.5 text-[15px] text-craie">
                   <span className={recap.data.monday_a_jour ? "text-menthe" : "text-ambre"}>{recap.data.monday_a_jour ? "✓" : "!"}</span>
-                  {session.essai ? (mondayEssai ? "Essai : Monday écrit sur les lignes « (Essai) », aucun mail n'est parti." : "Essai : rien n'a été écrit dans Monday, aucun mail n'est parti.") : recap.data.monday_a_jour ? "Tout est à jour dans Monday" : `${pl(recap.data.monday_en_attente, "ligne Monday", "lignes Monday")} en attente : nouvel essai automatique`}
+                  {session.essai ? (mondayEssai ? "Essai : Sunday CRM écrit sur les lignes « (Essai) », aucun mail n'est parti." : "Essai : rien n'a été écrit dans Sunday CRM, aucun mail n'est parti.") : recap.data.monday_a_jour ? "Tout est à jour dans Sunday CRM" : `${pl(recap.data.monday_en_attente, "ligne Sunday CRM", "lignes Sunday CRM")} en attente : nouvel essai automatique`}
                 </p>
                 <button type="button" onClick={() => setEcran("fiche")} className="self-start rounded-full border border-trait px-[18px] py-2.5 text-[14px] text-encre hover:bg-surface" style={{ background: "transparent" }}>Reprendre la session</button>
               </div>

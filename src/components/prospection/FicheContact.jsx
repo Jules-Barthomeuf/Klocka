@@ -16,9 +16,9 @@ const etiq = "m-0 text-[11px] uppercase tracking-[.16em] text-brume";
 const STATUTS = { nouveau: "À appeler", a_rappeler: "À rappeler", en_discussion: "En discussion", pas_de_murs: "Pas de murs", envoie_des_fiches: "Envoie des fiches", pause: "En pause", archive: "Archivé" };
 const GENRES = {
   appel: { icone: Phone, nom: "Appels" }, mail_envoye: { icone: Mail, nom: "Mails" }, mail_recu: { icone: MailOpen, nom: "Mails" },
-  fiche: { icone: FileText, nom: "Fiches" }, monday: { icone: MessageSquare, nom: "Monday" }, sms: { icone: MessageSquare, nom: "Mails" },
+  fiche: { icone: FileText, nom: "Fiches" }, monday: { icone: MessageSquare, nom: "Sunday CRM" }, sms: { icone: MessageSquare, nom: "Mails" },
 };
-const FILTRES = [["tout", "Tout"], ["appel", "Appels"], ["mail", "Mails"], ["fiche", "Fiches"], ["monday", "Monday"]];
+const FILTRES = [["tout", "Tout"], ["appel", "Appels"], ["mail", "Mails"], ["fiche", "Fiches"], ["monday", "Sunday CRM"]];
 const garde = (e, f) => f === "tout" || (f === "mail" ? ["mail_envoye", "mail_recu", "sms"].includes(e.genre) : e.genre === f);
 
 const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: new Date(iso).getFullYear() === new Date().getFullYear() ? undefined : "numeric" }) : "");

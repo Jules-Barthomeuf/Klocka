@@ -75,11 +75,11 @@
 
   // Le bouton du choix de vue : l'élément de la barre du haut dont le texte est le nom d'une vue de l'objet.
   function choixDeVue(noms) {
-    const candidats = document.querySelectorAll('span, div');
+    const candidats = document.querySelectorAll('span, div, p');
     for (const el of candidats) {
       if (el.childElementCount || !noms.has(el.textContent.trim())) continue;
       const r = el.getBoundingClientRect();
-      if (r.top > 0 && r.top < 140 && r.width > 0 && !el.closest(`#${ONGLETS}, #klocka-bandeau`)) return el;
+      if (r.top > 0 && r.top < 200 && r.width > 0 && !el.closest(`#${ONGLETS}, #klocka-bandeau`)) return el;
     }
     return null;
   }
@@ -100,30 +100,41 @@
     const ancre = choixDeVue(new Set(nomDe.keys()));
     if (!ancre) return;
     const idVue = new URLSearchParams(location.search).get('viewId') || nomDe.get(ancre.textContent.trim())?.id;
-    // Le bloc du choix de vue : on remonte tant que le parent n'a que lui pour enfant.
-    let bloc = ancre;
-    while (bloc.parentElement && bloc.parentElement.childElementCount === 1 && bloc.parentElement !== document.body) bloc = bloc.parentElement;
+    // Le nom est dans le bouton du choix de vue (un clic dedans ouvre sa liste) : les onglets vont à côté du bouton,
+    // dans la partie gauche de la barre du haut (TopBar de Twenty : flex, space-between, gauche puis droite).
+    let barre0 = ancre;
+    while (barre0 && barre0 !== document.body) {
+      const s = getComputedStyle(barre0);
+      if (s.display === 'flex' && s.justifyContent === 'space-between' && barre0.childElementCount === 2) break;
+      barre0 = barre0.parentElement;
+    }
+    if (!barre0 || barre0 === document.body) return;
+    const section = [...barre0.children].find((c) => c.contains(ancre));
+    if (!section) return;
     const signature = `${objet.id}|${idVue}|${lesVues.map((v) => v.id).join(',')}`;
-    if (deja && deja.dataset.signature === signature && deja.previousElementSibling === bloc) return;
+    if (deja && deja.dataset.signature === signature && deja.parentElement === section && !deja.nextElementSibling) return;
     deja?.remove();
     const { texte } = couleurs();
     const barre = document.createElement('div');
     barre.id = ONGLETS;
     barre.dataset.signature = signature;
-    barre.style.cssText = 'display:flex;align-items:stretch;gap:2px;margin-left:8px;overflow-x:auto;scrollbar-width:none;min-width:0;align-self:stretch';
+    barre.style.cssText = 'display:flex;align-items:center;gap:2px;margin-left:8px;overflow-x:auto;scrollbar-width:none;min-width:0;height:39px';
     for (const v of lesVues) {
       const actif = v.id === idVue;
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = v.name;
       b.title = v.name;
-      b.style.cssText = `font:inherit;font-size:13px;white-space:nowrap;padding:0 10px;border:none;background:none;cursor:pointer;color:${texte};opacity:${actif ? 1 : 0.55};font-weight:${actif ? 600 : 400};border-bottom:2px solid ${actif ? texte : 'transparent'};`;
+      b.style.cssText = `font:inherit;font-size:13px;white-space:nowrap;height:100%;padding:0 10px;border:none;background:none;cursor:pointer;color:${texte};opacity:${actif ? 1 : 0.55};font-weight:${actif ? 600 : 400};border-bottom:2px solid ${actif ? texte : 'transparent'};`;
       b.addEventListener('mouseenter', () => { if (!actif) b.style.opacity = '0.85'; });
       b.addEventListener('mouseleave', () => { if (!actif) b.style.opacity = '0.55'; });
-      b.addEventListener('click', () => aller(`/objects/${objet.namePlural}?viewId=${v.id}`));
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!actif) aller(`/objects/${objet.namePlural}?viewId=${v.id}`);
+      });
       barre.appendChild(b);
     }
-    bloc.after(barre);
+    section.appendChild(barre);
   }
 
   // --- 2. Le bandeau au-dessus des lignes cochées ---

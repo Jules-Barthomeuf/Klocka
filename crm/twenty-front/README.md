@@ -19,4 +19,4 @@ Retirer `FRONTEND_INDEX_URL` du service twenty-server sur Render et redéployer 
 2. reprendre la page servie par Twenty dans `modele.html`, enlever le bloc `<script id="twenty-client-config" …>…</script>`, remettre `<!-- KLOCKA -->` avant `</head>`, relancer `assembler.mjs` ;
 3. revérifier les repères de `klocka.js` (en tête du fichier) dans la nouvelle version, puis remettre `FRONTEND_INDEX_URL`.
 
-Le site statique ne se déploie pas tout seul : déclencher son déploiement après un changement ici.
+Le site statique ne se déploie pas tout seul : déclencher son déploiement après un changement ici. Il a une règle d'en-tête `Cache-Control: no-store` sur `/*` (posée par l'API Render le 28 oct.) : sans elle, le cache de Render gardait l'ancienne page 5 minutes après un déploiement.

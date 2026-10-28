@@ -695,79 +695,120 @@
     return { fond, texte };
   }
 
-  // --- 1. Les vues en onglets ---
+  // --- 1. Les vues épinglées, en onglets à droite du choix de vue ---
+  // « Épingler » s'ajoute sous Éditer dans le menu « … » de chaque vue (liste du choix de vue). Les épingles sont
+  // celles de la personne, gardées dans son navigateur (comme les favoris de Twenty, propres à chacun).
+  // Repères stables de Twenty 2.51 : le bouton du choix de vue porte aria-controls="view-picker-<tableau>-options",
+  // le menu « … » d'une vue a pour id "view-picker-options-<id de la vue>".
   const ONGLETS = 'klocka-onglets';
+  const CLE_EPINGLES = 'klocka-vues-epinglees';
 
-  function vuesDe(objet) {
-    return (vues || [])
-      .filter((v) => v.objectMetadataId === objet.id && (v.type === 'TABLE' || v.type === 'KANBAN') && v.isActive !== false)
-      // L'import du 27 oct. a laissé une seconde vue « All … » sans colonnes : on ne garde que la principale.
-      .filter((v) => v.key === 'INDEX' || !/^All /.test(v.name))
-      .sort((a, b) => (a.key === 'INDEX' ? -1 : b.key === 'INDEX' ? 1 : Number(a.position || 0) - Number(b.position || 0)));
-  }
-
-  // Le bouton du choix de vue : l'élément de la barre du haut dont le texte est le nom d'une vue de l'objet.
-  function choixDeVue(noms) {
-    const candidats = document.querySelectorAll('span, div, p');
-    for (const el of candidats) {
-      if (el.childElementCount || !noms.has(el.textContent.trim())) continue;
-      const r = el.getBoundingClientRect();
-      if (r.top > 0 && r.top < 200 && r.width > 0 && !el.closest(`#${ONGLETS}, #klocka-bandeau`)) return el;
+  function epingles() {
+    try {
+      const v = JSON.parse(localStorage.getItem(CLE_EPINGLES) || '[]');
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
     }
-    return null;
   }
+  function basculerEpingle(idVue) {
+    const l = epingles();
+    const suite = l.includes(idVue) ? l.filter((x) => x !== idVue) : [...l, idVue];
+    try {
+      localStorage.setItem(CLE_EPINGLES, JSON.stringify(suite));
+    } catch {
+      annoncer('Épingle impossible : stockage du navigateur bloqué', true);
+    }
+    return suite.includes(idVue);
+  }
+
+  const boutonChoixDeVue = () => document.querySelector('[aria-controls^="view-picker-"]:not([aria-controls^="view-picker-options-"])');
 
   function poserOnglets() {
     const objet = objetCourant();
     const deja = document.getElementById(ONGLETS);
-    if (!objet) {
+    const declencheur = objet ? boutonChoixDeVue() : null;
+    const siennes = new Map((vues || []).filter((v) => objet && v.objectMetadataId === objet.id).map((v) => [v.id, v]));
+    const lesVues = epingles().map((id) => siennes.get(id)).filter(Boolean);
+    if (!declencheur || !lesVues.length) {
       deja?.remove();
-      return;
+      return objet && lesVues.length && !declencheur ? 'bouton du choix de vue introuvable' : null;
     }
-    const lesVues = vuesDe(objet);
-    if (lesVues.length < 2) {
-      deja?.remove();
-      return;
-    }
-    const nomDe = new Map(lesVues.map((v) => [v.name, v]));
-    const ancre = choixDeVue(new Set(nomDe.keys()));
-    if (!ancre) return 'nom de la vue introuvable';
-    const idVue = new URLSearchParams(location.search).get('viewId') || nomDe.get(ancre.textContent.trim())?.id;
-    // Le nom est dans le bouton du choix de vue (un clic dedans ouvre sa liste) : les onglets vont à côté du bouton,
-    // dans la partie gauche de la barre du haut (TopBar de Twenty : flex, space-between, gauche puis droite).
-    let barre0 = ancre;
-    while (barre0 && barre0 !== document.body) {
-      const s = getComputedStyle(barre0);
-      if (s.display === 'flex' && s.justifyContent === 'space-between' && barre0.childElementCount === 2) break;
-      barre0 = barre0.parentElement;
-    }
-    if (!barre0 || barre0 === document.body) return 'barre des vues introuvable';
-    const section = [...barre0.children].find((c) => c.contains(ancre));
-    if (!section) return 'barre des vues introuvable';
+    const index = [...siennes.values()].find((v) => v.key === 'INDEX');
+    const idVue = new URLSearchParams(location.search).get('viewId') || index?.id;
     const signature = `${objet.id}|${idVue}|${lesVues.map((v) => v.id).join(',')}`;
-    if (deja && deja.dataset.signature === signature && deja.parentElement === section && !deja.nextElementSibling) return;
+    if (deja && deja.dataset.signature === signature && deja.previousElementSibling === declencheur) return null;
     deja?.remove();
     const { texte } = couleurs();
     const barre = document.createElement('div');
     barre.id = ONGLETS;
     barre.dataset.signature = signature;
-    barre.style.cssText = 'display:flex;align-items:center;gap:2px;margin-left:8px;overflow-x:auto;scrollbar-width:none;min-width:0;height:39px';
+    barre.style.cssText = 'display:flex;align-items:center;gap:2px;margin-left:4px;overflow-x:auto;scrollbar-width:none;min-width:0;align-self:stretch';
     for (const v of lesVues) {
       const actif = v.id === idVue;
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = v.name;
       b.title = v.name;
-      b.style.cssText = `font:inherit;font-size:13px;white-space:nowrap;height:100%;padding:0 10px;border:none;background:none;cursor:pointer;color:${texte};opacity:${actif ? 1 : 0.55};font-weight:${actif ? 600 : 400};border-bottom:2px solid ${actif ? texte : 'transparent'};`;
-      b.addEventListener('mouseenter', () => { if (!actif) b.style.opacity = '0.85'; });
-      b.addEventListener('mouseleave', () => { if (!actif) b.style.opacity = '0.55'; });
+      b.style.cssText = `font:inherit;white-space:nowrap;height:100%;padding:0 10px;border:none;background:none;cursor:pointer;color:${texte};opacity:${actif ? 1 : 0.6};border-bottom:2px solid ${actif ? texte : 'transparent'};`;
+      b.addEventListener('mouseenter', () => { if (!actif) b.style.opacity = '0.9'; });
+      b.addEventListener('mouseleave', () => { if (!actif) b.style.opacity = '0.6'; });
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!actif) aller(`/objects/${objet.namePlural}?viewId=${v.id}`);
       });
       barre.appendChild(b);
     }
-    section.appendChild(barre);
+    declencheur.after(barre);
+    return null;
+  }
+
+  // « Épingler » / « Désépingler » sous Éditer : copie d'une ligne du menu, pour en garder l'allure.
+  const PUNAISE = '<path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4"/><path d="M9 15l-4.5 4.5"/><path d="M14.5 4l5.5 5.5"/>';
+  function poserEpingles() {
+    for (const menu of document.querySelectorAll('[id^="view-picker-options-"]:not([id$="-options"])')) {
+      if (menu.querySelector('.klocka-epingle')) continue;
+      const idVue = menu.id.slice('view-picker-options-'.length);
+      const icone = menu.querySelector('svg');
+      if (!icone) continue;
+      // La ligne du menu : le plus haut parent de l'icône qui n'a pas d'autre icône.
+      let ligne = icone;
+      while (ligne.parentElement && ligne.parentElement !== menu && ligne.parentElement.querySelectorAll('svg').length === 1) ligne = ligne.parentElement;
+      const copie = ligne.cloneNode(true);
+      copie.classList.add('klocka-epingle');
+      copie.removeAttribute('id');
+      copie.style.color = '';
+      const svg = copie.querySelector('svg');
+      svg.innerHTML = PUNAISE;
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      // Le libellé : le dernier nœud de texte non vide de la ligne.
+      const marcheur = document.createTreeWalker(copie, NodeFilter.SHOW_TEXT);
+      let libelle = null;
+      while (marcheur.nextNode()) if (marcheur.currentNode.textContent.trim()) libelle = marcheur.currentNode;
+      const ecrire = () => {
+        const txt = epingles().includes(idVue) ? 'Désépingler' : 'Épingler';
+        if (libelle) libelle.textContent = txt;
+        else copie.append(txt);
+      };
+      ecrire();
+      copie.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const epinglee = basculerEpingle(idVue);
+        ecrire();
+        const v = (vues || []).find((x) => x.id === idVue);
+        annoncer(`${v?.name || 'Vue'} ${epinglee ? 'épinglée à droite du choix de vue' : 'désépinglée'}`);
+        document.getElementById(ONGLETS)?.remove();
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        passe();
+      });
+      // Juste sous Éditer ; sans Éditer (vue principale), sous la dernière ligne.
+      const lignes = [...ligne.parentElement.children];
+      const editer = lignes.find((l) => /^(Éditer|Editer|Modifier|Edit)$/i.test(l.textContent.trim()));
+      (editer || lignes[lignes.length - 1]).after(copie);
+    }
   }
 
   // --- 2. Le bandeau au-dessus des lignes cochées ---
@@ -958,6 +999,7 @@
       }
       try {
         await charger();
+        poserEpingles();
         const manque = poserOnglets();
         // Après 5 s sans onglets alors que le tableau a plusieurs vues : le dire une fois, avec la raison.
         if (manque && performance.now() > 5000 && !window.__klockaErreur) {

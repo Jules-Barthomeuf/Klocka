@@ -8,16 +8,19 @@
 //     Chaque dossier est relié à son agent.
 
 import { Meta, Records } from '../db.js';
-import { TABLEAUX, colonnesDuTableau, lireTableau, creerElement, majElement, utilisateursMonday, mondayConfigure, crmTwenty } from '../monday.js';
+import { TABLEAUX, colonnesDuTableau, lireTableau, creerElement, majElement, utilisateursMonday, mondayConfigure, crmTwenty, crmDouble } from '../monday.js';
 import * as R from './regles.js';
 
 export { mondayConfigure };
 export const TABLEAU_PROSPECTION = (process.env.MONDAY_BOARD_PROSPECTION || '5104678050').trim();
 
 const TOKEN = (process.env.MONDAY_TOKEN || '').trim();
+// Coupés en mode Twenty comme en mode double (28 oct.) : la création du tableau « Dossiers (pipeline) » échouait sur une
+// colonne après avoir créé le tableau, et recommençait à chaque tour (~9 200 tableaux vides dans Monday).
+const plateformeCoupee = () => crmTwenty() || crmDouble();
 async function gql(query, variables = {}) {
   // Twenty est le CRM depuis le 27 oct. 2026 : les tableaux « plateforme » ne se créent ni ne s'écrivent plus.
-  if (crmTwenty()) throw new Error('Monday est figé (CRM=twenty)');
+  if (plateformeCoupee()) throw new Error('Tableaux « plateforme » coupés (CRM=twenty ou double)');
   const r = await fetch('https://api.monday.com/v2', {
     method: 'POST',
     headers: { Authorization: TOKEN, 'Content-Type': 'application/json', 'API-Version': process.env.MONDAY_API_VERSION || '2024-10' },
@@ -183,7 +186,7 @@ export async function pousserAgents({ max = 60 } = {}) {
   // Les tableaux « Agents (plateforme) » et « Dossiers (pipeline) » ne vivent que dans Monday (27 oct. 2026) : avec
   // Twenty, rien à pousser. C'est cette boucle qui avait laissé ~9 200 tableaux « Dossiers (pipeline) » vides
   // (une colonne refusée, le tableau était recréé au tour suivant).
-  if (crmTwenty()) return 0;
+  if (plateformeCoupee()) return 0;
   const t = await assurerTableaux();
   const { agents } = await import('./carnet.js');
   const aEnvoyer = agents().filter((a) => !a.monday_le || String(a.maj_le || '') > String(a.monday_le)).slice(0, max);
@@ -205,7 +208,7 @@ export async function pousserUnAgent(agentId) {
   if (!a) return { ok: false, error: 'Agent introuvable.' };
   // Une fiche du mode essai n'entre jamais dans Monday.
   if (a.essai) return { ok: false, essai: true, error: 'mode essai : rien écrit dans Monday' };
-  if (crmTwenty()) return { ok: false, error: 'Monday est figé : la fiche est dans Twenty' };
+  if (plateformeCoupee()) return { ok: false, error: 'Tableaux « plateforme » coupés : la fiche est dans Agent immobilier' };
   const t = await assurerTableaux();
   const id = await poserAgent(t, a);
   if (!id) return { ok: false, error: "Monday n'a pas rendu d'identifiant." };
@@ -223,7 +226,7 @@ export function etapeMonday(f) {
 
 /** Envoie à Monday les dossiers nés d'une fiche, reliés à leur agent, et leur étape quand elle change. */
 export async function pousserDossiers(fiches, { appUrl = (process.env.APP_URL || '').replace(/\/$/, '') } = {}) {
-  if (crmTwenty()) return 0;
+  if (plateformeCoupee()) return 0;
   const t = await assurerTableaux();
   const { agentParEmail } = await import('./carnet.js');
   const faits = lireJson(CLE_DOSSIERS, {});

@@ -26,6 +26,33 @@ import * as Twenty from './crm/monday-sur-twenty.js';
 // reste lu dans Monday pendant la bascule. CRM=monday (par défaut) : rien ne change.
 export const crmTwenty = () => String(process.env.CRM || '').trim().toLowerCase() === 'twenty';
 
+// CRM=double (28 oct. 2026, Jules) : Monday reste le CRM de Klocka, exactement comme avant la bascule (lectures, ids,
+// liens), et chaque écriture réussie dans Monday est recopiée dans Twenty, dans l'ordre, sans faire attendre ni
+// échouer l'appelant (un échec de copie est journalisé « [crm] copie Twenty »). Une fiche née dans Twenty pendant la
+// bascule (id Twenty gardé localement) retrouve sa jumelle Monday par le champ mondayId.
+export const crmDouble = () => ['double', 'monday+twenty'].includes(String(process.env.CRM || '').trim().toLowerCase());
+
+let copieForcee = false;
+/** Pour les tests : la copie tourne aussi sous NODE_TEST_CONTEXT, sur l'API Twenty que les tests branchent. */
+export function copieTwentyPourTests(oui = true) {
+  if (process.env.NODE_TEST_CONTEXT) copieForcee = oui;
+}
+const copieActive = () => crmDouble() && (copieForcee || (!process.env.NODE_TEST_CONTEXT && Twenty.mondayConfigure()));
+let fileCopie = Promise.resolve();
+function copierDansTwenty(quoi, boardId, faire) {
+  if (!copieActive()) return;
+  if (boardId && !Twenty.tableauMigre(boardId)) return; // tableau non migré (ex. tableaux « plateforme »)
+  fileCopie = fileCopie.then(faire).catch((e) => console.error(`[crm] copie Twenty (${quoi}) :`, e?.message || e));
+}
+/** Attendre les copies en cours (scripts, tests). */
+export const copiesTwenty = () => fileCopie;
+
+// Un id Twenty (fiche née pendant la bascule) devient l'id Monday de sa jumelle ; null : pas de jumelle Monday.
+async function idPourMonday(itemId) {
+  if (!crmDouble() || !Twenty.estIdTwenty(itemId)) return String(itemId);
+  return Twenty.mondayIdDe(itemId);
+}
+
 const API = 'https://api.monday.com/v2';
 const VERSION = process.env.MONDAY_API_VERSION || '2024-10';
 
@@ -171,7 +198,7 @@ async function chercherElement(boardId, colonne, valeur) {
  * liste déroulante dont le libellé n'existe pas encore le crée (Monday demande
  * alors le droit de modifier la structure du tableau).
  */
-export async function creerElement(boardId, nom, colonnes = {}, { labels = false } = {}) {
+export async function creerElement(boardId, nom, colonnes = {}, { labels = false, twentyId = null } = {}) {
   if (crmTwenty()) return Twenty.creerElement(boardId, nom, colonnes);
   const d = await graphql(
     `mutation ($board: ID!, $nom: String!, $valeurs: JSON, $labels: Boolean) {
@@ -179,28 +206,35 @@ export async function creerElement(boardId, nom, colonnes = {}, { labels = false
     }`,
     { board: String(boardId), nom, valeurs: JSON.stringify(colonnes), labels: !!labels }
   );
-  return d?.create_item || null;
+  const cree = d?.create_item || null;
+  if (cree?.id) copierDansTwenty('création', boardId, () => Twenty.copierCreation(boardId, cree.id, nom, colonnes, { twentyId }));
+  return cree;
 }
 
 /** Met à jour les colonnes d'un élément existant. `labels` : comme creerElement. */
 export async function majElement(boardId, itemId, colonnes = {}, { labels = false } = {}) {
   if (crmTwenty()) return Twenty.majElement(boardId, itemId, colonnes);
+  const idMonday = await idPourMonday(itemId);
+  if (!idMonday) throw new Error(`Élément ${itemId} absent de Monday (not found) : né dans Twenty pendant la bascule`);
   const d = await graphql(
     `mutation ($board: ID!, $item: ID!, $valeurs: JSON!, $labels: Boolean) {
       change_multiple_column_values(board_id: $board, item_id: $item, column_values: $valeurs, create_labels_if_missing: $labels) { id }
     }`,
-    { board: String(boardId), item: String(itemId), valeurs: JSON.stringify(colonnes), labels: !!labels }
+    { board: String(boardId), item: idMonday, valeurs: JSON.stringify(colonnes), labels: !!labels }
   );
+  copierDansTwenty('mise à jour', boardId, () => Twenty.copierMaj(boardId, itemId, colonnes, async () => (await lireElement(idMonday))?.nom ?? null));
   return d?.change_multiple_column_values || null;
 }
 
 /** Ajoute un commentaire sur un élément — le journal, pas les colonnes. */
 export async function commenter(itemId, texte) {
   if (crmTwenty()) return Twenty.commenter(itemId, texte);
-  return graphql(
-    `mutation ($item: ID!, $texte: String!) { create_update(item_id: $item, body: $texte) { id } }`,
-    { item: String(itemId), texte }
-  );
+  const idMonday = await idPourMonday(itemId);
+  const d = idMonday
+    ? await graphql(`mutation ($item: ID!, $texte: String!) { create_update(item_id: $item, body: $texte) { id } }`, { item: idMonday, texte })
+    : null;
+  copierDansTwenty('commentaire', null, () => Twenty.commenter(itemId, texte));
+  return d || (crmDouble() ? { create_update: null } : d);
 }
 
 /**
@@ -264,6 +298,11 @@ export async function lireTableau(boardId, limite = 2000) {
  */
 export async function lireElement(itemId) {
   if (crmTwenty()) return Twenty.lireElement(itemId);
+  if (crmDouble() && Twenty.estIdTwenty(itemId)) {
+    const m = await idPourMonday(itemId);
+    if (!m) return Twenty.lireElement(itemId);
+    itemId = m;
+  }
   const d = await graphql(
     `query ($ids: [ID!]) { items(ids: $ids) { id name state board { id } column_values { id text } } }`,
     { ids: [String(itemId)] }
@@ -280,6 +319,11 @@ export async function lireElement(itemId) {
  */
 export async function lireFiche(itemId, { notes = 5 } = {}) {
   if (crmTwenty()) return Twenty.lireFiche(itemId, { notes });
+  if (crmDouble() && Twenty.estIdTwenty(itemId)) {
+    const m = await idPourMonday(itemId);
+    if (!m) return Twenty.lireFiche(itemId, { notes });
+    itemId = m;
+  }
   const d = await graphql(
     `query ($ids: [ID!], $notes: Int!) { items(ids: $ids) { id name state created_at board { id name } group { title }
       column_values { text column { title } }
@@ -300,7 +344,10 @@ export async function lireFiche(itemId, { notes = 5 } = {}) {
 /** Supprime un élément. Réservé au nettoyage de ce qu'on a soi-même créé. */
 export async function supprimerElement(itemId) {
   if (crmTwenty()) return Twenty.supprimerElement(itemId);
-  return graphql(`mutation ($item: ID!) { delete_item(item_id: $item) { id } }`, { item: String(itemId) });
+  const idMonday = await idPourMonday(itemId);
+  const d = idMonday ? await graphql(`mutation ($item: ID!) { delete_item(item_id: $item) { id } }`, { item: idMonday }) : null;
+  copierDansTwenty('suppression', null, () => Twenty.supprimerElement(itemId));
+  return d;
 }
 
 /**
@@ -345,7 +392,8 @@ export async function poserElement(boardId, { nom, colonnes = {}, itemId = null,
     await majElement(boardId, existant.id, colonnes);
     return { id: existant.id, cree: false };
   }
-  const cree = await creerElement(boardId, nom, colonnes);
+  const twentyId = crmDouble() && Twenty.estIdTwenty(itemId) ? String(itemId) : null;
+  const cree = await creerElement(boardId, nom, colonnes, { twentyId });
   return { id: cree?.id, cree: true };
 }
 

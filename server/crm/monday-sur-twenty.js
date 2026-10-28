@@ -337,3 +337,45 @@ export function lienElement(boardId, itemId) {
   const o = objetsSchema().find((x) => x.mondayTableau === String(boardId)) || objetDeId.get(String(itemId));
   return o && estIdTwenty(itemId) ? T.lienFiche(o.nameSingular, itemId) : null;
 }
+
+// --- La copie dans Twenty d'une écriture faite dans Monday (CRM=double, 28 oct. 2026, Jules) ---
+// Monday reste la source : ses ids circulent dans Klocka. La fiche Twenty porte l'id Monday (mondayId) et se retrouve
+// par lui ; une fiche née dans Twenty pendant la bascule (id Twenty) est reliée à sa jumelle Monday dès qu'elle y naît.
+
+export const tableauMigre = (boardId) => objetsSchema().some((x) => x.mondayTableau === String(boardId));
+
+/** L'id Monday d'une fiche Twenty (par son id Twenty), ou null si elle n'en a pas. */
+export async function mondayIdDe(itemId) {
+  const x = await retrouver(itemId);
+  if (!x) return null;
+  const r = x.r || (await api.lire(x.o.namePlural, x.id));
+  return r?.mondayId ? String(r.mondayId) : null;
+}
+
+/** Une création Monday, recopiée. `twentyId` : la fiche Twenty déjà là, à relier plutôt qu'à doubler. */
+export async function copierCreation(boardId, mondayId, nom, colonnes = {}, { twentyId = null } = {}) {
+  const o = objetDuTableau(boardId);
+  const valeurs = { ...(await valeursTwenty(o, colonnes, nom)), mondayId: String(mondayId) };
+  const existant = twentyId ? { id: twentyId } : await api.trouver(o.namePlural, { mondayId: String(mondayId) });
+  if (existant?.id) {
+    await api.modifier(o.namePlural, existant.id, valeurs);
+    objetDeId.set(String(existant.id), o);
+    return { id: String(existant.id), cree: false };
+  }
+  const r = await api.creer(o.namePlural, valeurs);
+  objetDeId.set(String(r.id), o);
+  return { id: String(r.id), cree: true };
+}
+
+/** Une mise à jour Monday, recopiée. Absente de Twenty, la fiche y naît, avec le nom que donne `nomSiAbsente()`. */
+export async function copierMaj(boardId, itemId, colonnes = {}, nomSiAbsente = async () => null) {
+  const x = await retrouver(itemId, boardId);
+  if (x) {
+    const valeurs = await valeursTwenty(x.o, colonnes);
+    if (Object.keys(valeurs).length) await api.modifier(x.o.namePlural, x.id, valeurs);
+    return { id: x.id, cree: false };
+  }
+  if (estIdTwenty(itemId)) return null;
+  const nom = await nomSiAbsente();
+  return nom == null ? null : copierCreation(boardId, itemId, nom, colonnes);
+}

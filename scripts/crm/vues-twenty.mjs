@@ -6,7 +6,8 @@
 //   2. les colonnes dans l'ordre du tableau Monday ; une relation (« … (fiche) ») juste après le texte de son lien ;
 //      miroirs et formules à leur place ;
 //   3. les autres champs ajoutés ensuite (les liens qui arrivent d'autres objets) ;
-//   4. masqués en fin : création, modification, id et groupe Monday.
+//   4. « Déplacer vers » (scripts/crm/deplacer-twenty.mjs) : masqué dans les tableaux, en bas de la fiche ;
+//   5. masqués en fin : création, modification, id et groupe Monday.
 //   node scripts/crm/vues-twenty.mjs [nomDObjet]
 // Rejouable : seules les colonnes mal placées ou masquées à tort sont touchées.
 import 'dotenv/config';
@@ -66,7 +67,8 @@ function ordreVoulu(o, meta) {
     if (c.type === 'board_relation') poser(parLabel.get(`${c.title} (fiche)`));
   }
   for (const c of o.champs) if (!c.systeme) poser(parNom.get(c.name));
-  for (const f of (meta.fields || []).filter((x) => x.isCustom && x.isActive !== false && !MASQUES.includes(x.name))) poser(f);
+  for (const f of (meta.fields || []).filter((x) => x.isCustom && x.isActive !== false && !MASQUES.includes(x.name) && x.name !== 'deplacerVers')) poser(f);
+  poser(parNom.get('deplacerVers'), 'fiche');
   for (const nom of MASQUES) poser(parNom.get(nom), false);
   return ordre;
 }
@@ -79,8 +81,9 @@ for (const o of objets.filter((x) => !seul || x.nameSingular === seul)) {
   for (const vue of vues.filter((v) => v.objectMetadataId === meta?.id && (v.type === 'TABLE' || v.type === 'FIELDS_WIDGET'))) {
     const dans = new Map(colonnes.filter((c) => c.viewId === vue.id).map((c) => [c.fieldMetadataId, c]));
     let n = 0;
-    for (const [i, { f, visible }] of voulu.entries()) {
+    for (const [i, { f, visible: v }] of voulu.entries()) {
       const vf = dans.get(f.id);
+      const visible = v === 'fiche' ? vue.type === 'FIELDS_WIDGET' : v;
       // Dans une fiche, le nom est déjà le titre : Twenty ne le liste pas, on n'y touche pas.
       if (vue.type === 'FIELDS_WIDGET' && f.name === 'name') continue;
       if (!vf) {

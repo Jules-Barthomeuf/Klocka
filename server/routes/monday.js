@@ -82,4 +82,12 @@ export function monterMonday(app) {
     if (r?.ignore) return res.status(400).json({ error: 'Monday non configuré' });
     ok(res, r);
   }));
+
+  // Twenty : le webhook des modifications (scripts/crm/deplacer-twenty.mjs). Public, ouvert par la signature de Twenty.
+  // Réponse immédiate (Twenty coupe à 5 s) ; un « Déplacer vers » rempli déplace la fiche juste après.
+  app.post('/api/crm/webhook', wrap(async (req, res) => {
+    const D = await import('../crm/deplacer.js');
+    if (!D.signatureValide(req.body, req.get('x-twenty-webhook-timestamp'), req.get('x-twenty-webhook-signature'))) return res.status(403).json({ error: 'Signature refusée.' });
+    ok(res, { deplacement: D.recevoirEvenement(req.body) });
+  }));
 }

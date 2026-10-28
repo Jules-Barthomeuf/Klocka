@@ -1012,23 +1012,8 @@
     bandeau.style.left = `${Math.max(8, haut.left + 36)}px`;
   }
 
-  // --- Témoin provisoire (28 oct.) : ce que le script voit, en bas à gauche, pour régler les repères sur l'écran réel ---
+  // Ce que la dernière passe a vu de travers (lu par les messages d'erreur).
   const etat = { erreur: '', manque: '' };
-  function temoin() {
-    let t = document.getElementById('klocka-temoin');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'klocka-temoin';
-      t.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:2147483647;padding:4px 8px;border-radius:6px;font:11px/1.4 monospace;background:#222;color:#fff;opacity:.85;pointer-events:none;max-width:60vw';
-      document.body.appendChild(t);
-    }
-    const objet = objetCourant();
-    const declencheur = boutonChoixDeVue();
-    const ctrl = [...document.querySelectorAll('[aria-controls]')].map((e) => e.getAttribute('aria-controls')).filter((x) => /view|picker/i.test(x)).slice(0, 4);
-    const menus = [...document.querySelectorAll('.hoverable-buttons [aria-expanded="true"]')].map((e) => `${e.closest('.hoverable-buttons').parentElement.textContent.trim()}>${e.getAttribute('aria-controls') || '?'}:${document.querySelectorAll('[role="menu"] [role="menuitem"]').length}`).slice(0, 2);
-    const txt = `Klocka v7 · page ${pluriel() || '-'} · objet ${objet ? 'oui' : 'non'} · vues ${vues ? vues.length : 'non lues'} · bouton ${declencheur ? 'oui' : 'non'} · aria ${ctrl.join(',') || '-'} · menus ${menus.join(',') || '-'} · épingles ${epingles().length}${etat.manque ? ` · manque : ${etat.manque}` : ''}${etat.erreur ? ` · erreur : ${etat.erreur}` : ''}`;
-    if (t.textContent !== txt) t.textContent = txt;
-  }
 
   // --- La boucle : à chaque changement de la page, sans plus d'une passe par image ---
   let prevu = false;
@@ -1041,7 +1026,6 @@
         document.getElementById(ONGLETS)?.remove();
         document.getElementById(BANDEAU)?.remove();
         fermerMenu();
-        temoin();
         return;
       }
       // Le menu « … » ne dépend pas de la lecture des vues : posé d'abord.
@@ -1052,6 +1036,7 @@
       }
       try {
         await charger();
+        poserEpingles(); // à nouveau : à la première passe, les vues n'étaient pas encore lues
         const manque = poserOnglets();
         etat.manque = manque || '';
         // Après 5 s sans onglets alors que le tableau a plusieurs vues : le dire une fois, avec la raison.
@@ -1069,7 +1054,6 @@
           annoncer(`Klocka : onglets indisponibles (${e.message})`, true);
         }
       }
-      temoin();
     });
   }
 

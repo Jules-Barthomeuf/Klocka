@@ -91,7 +91,7 @@ export function segments(texte) {
 }
 
 /**
- * Les deux colonnes du haut : l'acquéreur, et le vendeur à qui la lettre s'adresse. Pure.
+ * Les deux colonnes du haut : l'acquéreur, et la personne à l'attention de qui la lettre est adressée. Pure.
  * `vides` : les lignes sans valeur restent (vides), pour que l'éditeur les montre à remplir.
  */
 export function parties(brut, { vides = false } = {}) {
@@ -99,7 +99,9 @@ export function parties(brut, { vides = false } = {}) {
   const garder = ([, v]) => vides || v;
   return {
     acquereur: [['acquereur_nom', c.acquereur_nom || ''], ['acquereur_societe', c.acquereur_societe || ''], ['acquereur_adresse', c.acquereur_adresse || '']].filter(garder),
-    vendeur: [['vendeur_societe', c.vendeur_societe || ''], ['vendeur_representant', c.vendeur_representant ? `Représentée par ${c.vendeur_representant}` : ''], ['vendeur_adresse', c.vendeur_adresse || '']].filter(garder),
+    // « À l'attention de » est un destinataire à part (29 oct. 2026, Jules) : il ne reprend pas le vendeur du bas,
+    // il reste vide tant qu'on n'y écrit rien. Le vendeur ne figure qu'au-dessus de sa signature.
+    attention: [['attention_nom', c.attention_nom || ''], ['attention_representant', c.attention_representant ? `Représentée par ${c.attention_representant}` : ''], ['attention_adresse', c.attention_adresse || '']].filter(garder),
   };
 }
 
@@ -213,7 +215,7 @@ export function lettre(brut) {
     .signatures{display:flex;gap:28px;margin-top:30px} .signatures div{flex:1}`;
   const corps = [
     `<div class="haut"><div><p class="label">ACQUÉREUR</p>${p.acquereur.map(([cle, v], i) => `<p>${i === 0 ? `<b>${html(v)}</b>` : html(v)}</p>`).join('')}</div>`,
-    `<div class="attention"><p class="label">À L'ATTENTION DE</p>${p.vendeur.map(([, v], i) => `<p>${i === 0 ? `<b>${html(v)}</b>` : html(v)}</p>`).join('')}</div></div>`,
+    `<div class="attention"><p class="label">À L'ATTENTION DE</p>${p.attention.map(([, v], i) => `<p>${i === 0 ? `<b>${html(v)}</b>` : html(v)}</p>`).join('')}</div></div>`,
   ];
   for (const b of blocs(c)) {
     if (b.type === 'date') corps.push(`<p class="date">${html(b.texte)}</p>`);
@@ -332,10 +334,10 @@ export async function pdf(brut) {
   police('normal', 7, GRIS); d.text('ACQUÉREUR', G, y);
   const finG = colonne(p.acquereur, G, 78);
   const xD = 112;
-  const hD = 12 + p.vendeur.reduce((n, [, v]) => n + d.splitTextToSize(String(v), 70).length * 5.2, 0);
+  const hD = 12 + p.attention.reduce((n, [, v]) => n + d.splitTextToSize(String(v), 70).length * 5.2, 0);
   d.setFillColor(...C.encart); d.rect(xD - 4, y - 5, D - xD + 4, hD, 'F');
   police('normal', 7, GRIS); d.text("À L'ATTENTION DE", xD, y);
-  const finD = colonne(p.vendeur, xD, 70);
+  const finD = colonne(p.attention, xD, 70);
   y = Math.max(finG, finD) + 6;
   for (const b of blocs(c)) {
     if (b.type === 'date') { police('normal', 10, GRIS); place(6); d.text(b.texte, D, y, { align: 'right' }); y += 10; }
@@ -392,7 +394,7 @@ export async function docx(brut) {
     margins: { top: 120, bottom: 120, left: 160, right: 160 },
     children: [para(run(label, { taille: 15, couleur: GRIS, espace: 40 }), { apres: 80 }), ...lignes.map(([, v], i) => para(run(v, { gras: i === 0, couleur: i === 2 ? GRIS : null }), { apres: 0 }))],
   });
-  const enfants = [new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: sansBord, rows: [new TableRow({ children: [cellule('ACQUÉREUR', p.acquereur), cellule("À L'ATTENTION DE", p.vendeur, C.hex.encart)] })] })];
+  const enfants = [new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: sansBord, rows: [new TableRow({ children: [cellule('ACQUÉREUR', p.acquereur), cellule("À L'ATTENTION DE", p.attention, C.hex.encart)] })] })];
   for (const b of blocs(c)) {
     if (b.type === 'date') enfants.push(para(run(b.texte, { couleur: GRIS }), { align: AlignmentType.RIGHT, avant: 240, apres: 240 }));
     else if (b.type === 'objet') enfants.push(para(run(b.texte, { taille: 26 }), { avant: 120, apres: 360 }));
@@ -485,7 +487,7 @@ function pdfMenthe(c, jsPDF) {
   };
   const finG = colonne(p.acquereur, G, y, 80);
   police('normal', 10, GRIS); d.text("À l'attention de", 108, y);
-  const finD = colonne(p.vendeur, 108, y + 5.4, 84);
+  const finD = colonne(p.attention, 108, y + 5.4, 84);
   y = Math.max(finG, finD) + 10;
   // Le titre et l'adresse.
   police('bold', 20, NOIR); d.text("Lettre d'intention d'achat", G, y); y += 8.5;
@@ -541,7 +543,7 @@ async function docxMenthe(c) {
     para(run(''), { apres: 240, bas: { style: BorderStyle.SINGLE, size: 12, color: NOIR } }),
     tableau([
       cellule(p.acquereur.map(([, v], i) => para(run(v, { gras: i === 0, couleur: i === 2 ? GRIS : null }), { apres: 0 })), 50),
-      cellule([para(run("À l'attention de", { couleur: GRIS }), { apres: 0 }), ...p.vendeur.map(([, v], i) => para(run(v, { gras: i === 0, couleur: i === p.vendeur.length - 1 && i > 0 ? GRIS : null }), { apres: 0 }))], 50),
+      cellule([para(run("À l'attention de", { couleur: GRIS }), { apres: 0 }), ...p.attention.map(([, v], i) => para(run(v, { gras: i === 0, couleur: i === p.attention.length - 1 && i > 0 ? GRIS : null }), { apres: 0 }))], 50),
     ]),
     para(run("Lettre d'intention d'achat", { gras: true, taille: 40, couleur: NOIR }), { avant: 480, apres: 0 }),
     para(run(k.adresse_courte, { gras: true, taille: 40, couleur: VERT }), { apres: 240, bas: { style: BorderStyle.SINGLE, size: 4, color: TRAIT } }),

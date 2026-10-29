@@ -21,7 +21,7 @@ const JULES = { email: 'jules.b@klocka.immo', role: 'admin', full_name: 'Jules B
 const APP = { message: { espace: `app:${JULES.email}`, auteur: { nom: JULES.email } } };
 const OFFRE = {
   acquereur_nom: 'Olivier LUCCIONI', acquereur_societe: 'FONCIERE ANGULARIS', acquereur_adresse: 'LOT 12, STILETTO, 20090 AJACCIO',
-  vendeur_societe: 'PAX AVENUE', vendeur_representant: 'Monsieur Jérôme ABECASSIS', vendeur_adresse: '85 rue de France, 06000 Nice',
+  vendeur_societe: 'PAX AVENUE', attention_representant: 'Monsieur Jérôme ABECASSIS', attention_adresse: '85 rue de France, 06000 Nice',
   adresse_bien: '1 avenue Mirabeau, 06000 Nice', surface_m2: 40, locataire: 'Cookietelier', fin_bail: '2032-04-30', prix: 200000, apport: 40000,
 };
 let id;
@@ -47,7 +47,10 @@ test("depuis l'application : la LOI est gardée, et « Votre LOI est prête » m
   assert.equal(O.listerLettres()[0].acquereur, 'Olivier LUCCIONI · FONCIERE ANGULARIS');
   const d = await O.lireLettre(id);
   assert.match(d.blocs.find((b) => b.cle === 'offre-3').texte, /\*\*200[\s\u202f]000 € \(deux cent mille euros\)\*\*/);
-  assert.equal(d.parties.vendeur[1][1], 'Représentée par Monsieur Jérôme ABECASSIS');
+  assert.equal(d.parties.attention[1][1], 'Représentée par Monsieur Jérôme ABECASSIS');
+  // Le vendeur n'est que dans la signature : « À l'attention de » ne le reprend pas.
+  assert.equal(d.parties.attention[0][1], '');
+  assert.ok(d.blocs.find((b) => b.type === 'signatures').droite.includes('PAX AVENUE'));
 });
 
 test('le chat corrige la lettre ouverte : un champ, puis un paragraphe', async () => {

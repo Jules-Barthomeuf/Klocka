@@ -187,7 +187,7 @@ export async function contexteLettre(id) {
 
 const LIBELLES = {
   acquereur_nom: "L'acquéreur", acquereur_societe: "La société de l'acquéreur", acquereur_adresse: "L'adresse de l'acquéreur",
-  vendeur_societe: 'Le vendeur', vendeur_representant: 'Le représentant du vendeur', vendeur_adresse: "L'adresse du vendeur",
+  vendeur_societe: 'Le vendeur (signature)', attention_nom: "Le destinataire (À l'attention de)", attention_representant: 'Le représentant du destinataire', attention_adresse: "L'adresse du destinataire",
   adresse_bien: 'Le bien', surface_m2: 'La surface', locataire: 'Le locataire', fin_bail: 'La fin du bail',
   prix: 'Le prix', apport: "L'apport", duree_ans: 'La durée du crédit', taux: 'Le taux', lieu: 'Le lieu de signature',
   validite: "La validité de l'offre", limite_documents: 'La remise des documents', fin_exclusivite: "La fin de l'exclusivité",
@@ -303,7 +303,7 @@ export async function sourcesDe(id) {
  */
 export const CHAMPS_EXEMPLE = {
   acquereur_nom: 'Camille Exemple', acquereur_societe: 'SCI Les Exemples', acquereur_adresse: '12 rue de la Paix, 75002 Paris',
-  vendeur_societe: 'SAS Murs du Centre', vendeur_representant: 'Mme Claire Exemple', vendeur_adresse: '8 place Bellecour, 69002 Lyon',
+  vendeur_societe: 'SAS Murs du Centre', attention_nom: 'SAS Murs du Centre', attention_representant: 'Mme Claire Exemple', attention_adresse: '8 place Bellecour, 69002 Lyon',
   adresse_bien: '24 rue de la République, 69002 Lyon', surface_m2: 85, locataire: 'Boulangerie Exemple', fin_bail: '2032-03-31',
   prix: 420000, apport: 90000, lieu: 'Lyon',
 };

@@ -193,7 +193,7 @@ const CtxLoi = createContext(null);
 // Les noms des champs, comme le serveur les dit (server/offres.js).
 const LIBELLES = {
   acquereur_nom: "L'acquéreur", acquereur_societe: "La société de l'acquéreur", acquereur_adresse: "L'adresse de l'acquéreur",
-  vendeur_societe: "Le vendeur", vendeur_representant: "Le représentant du vendeur", vendeur_adresse: "L'adresse du vendeur",
+  vendeur_societe: "Le vendeur (signature)", attention_nom: "À l'attention de", attention_representant: "Son représentant", attention_adresse: "Son adresse",
   adresse_bien: "Le bien", surface_m2: "La surface (m²)", locataire: "Le locataire", fin_bail: "La fin du bail",
   prix: "Le prix FAI TTC (€)", apport: "L'apport (€)", duree_ans: "La durée du crédit (ans)", taux: "Le taux (%)", lieu: "Le lieu de signature",
   validite: "La validité de l'offre", limite_documents: "La remise des documents", fin_exclusivite: "La fin de l'exclusivité",
@@ -334,7 +334,7 @@ function styleDe(ctx, cible) {
 // Les éléments fixes du modèle : ils ne s'écrivent pas, mais leur design se règle comme le reste.
 const ZONES = {
   logo: "Logo", "entete-titre": "Titre de l'en-tête", "entete-date": "Date de l'en-tête", "label-acquereur": "Libellé « Acquéreur »",
-  "label-attention": "Libellé « À l'attention de »", encart: "Encart du vendeur", "titre-lettre": "Titre de la lettre", pied: "Pied de page",
+  "label-attention": "Libellé « À l'attention de »", encart: "Encart « À l'attention de »", "titre-lettre": "Titre de la lettre", pied: "Pied de page",
   "signature-gauche": "Signature de l'acquéreur", "signature-droite": "Signature du vendeur", bande: "Bande du bas", num: "Numéros de section",
 };
 
@@ -420,7 +420,7 @@ function ChoixModele({ d, enCours, onChoisir, onChamp, onTexte }) {
 // Ce qu'une ligne vide des parties invite à écrire (la lettre vierge, ou une lettre incomplète).
 const VIDES = {
   acquereur_nom: "Nom de l'acquéreur", acquereur_societe: "Sa société", acquereur_adresse: "Son adresse",
-  vendeur_societe: "Le vendeur (société ou nom)", vendeur_representant: "Représentée par…", vendeur_adresse: "Son adresse",
+  vendeur_societe: "Le vendeur (société ou nom)", attention_nom: "À l'attention de (nom)", attention_representant: "Représentée par…", attention_adresse: "Son adresse",
 };
 
 // Les noms au-dessus des signatures : chacun est un champ de la lettre.
@@ -461,7 +461,7 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
   const ligne = (cleChamp, v, i, liste) => (
     <Editable key={`${cleChamp}:${v}`} valeur={v} gras={false} lecture={apercu} vide={VIDES[cleChamp]} cible={`champ:${cleChamp}`}
       className={i === 0 ? "loi-nom" : i === liste.length - 1 && /adresse/.test(cleChamp) ? "loi-adresse" : ""}
-      onGarde={(t) => onChamp(cleChamp, cleChamp === "vendeur_representant" ? t.replace(/^représentée? par\s+/i, "") : t)} />
+      onGarde={(t) => onChamp(cleChamp, cleChamp === "attention_representant" ? t.replace(/^représentée? par\s+/i, "") : t)} />
   );
   return (
     <article className={`loi-papier loi-menthe${classeMarque(d)}`} aria-label="Lettre d'intention d'achat">
@@ -474,7 +474,7 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
           <div>{parties.acquereur.map(([k, v], i, l) => ligne(k, v, i, l))}</div>
           <div>
             <Zone cle="label-attention" as="p" className="loi-m-attention">À l'attention de</Zone>
-            {parties.vendeur.map(([k, v], i, l) => ligne(k, v, i, l))}
+            {parties.attention.map(([k, v], i, l) => ligne(k, v, i, l))}
           </div>
         </div>
         <Zone cle="titre-lettre" as="p" className="loi-m-titre">Lettre d'intention d'achat</Zone>
@@ -528,7 +528,7 @@ function Paragraphe({ b, onTexte, apercu, ...par }) {
 function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
   const { parties, cadre, blocs } = d;
   const ligne = (cleChamp, v, i, liste) => {
-    const repr = cleChamp === "vendeur_representant";
+    const repr = cleChamp === "attention_representant";
     const nom = i === 0;
     const adresse = i === liste.length - 1 && /adresse/.test(cleChamp);
     return (
@@ -550,7 +550,7 @@ function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
           </div>
           <Zone cle="encart" as="div" className="loi-attention">
             <Zone cle="label-attention" as="p" className="loi-label">À l'attention de</Zone>
-            {parties.vendeur.map(([k, v], i, l) => ligne(k, v, i, l))}
+            {parties.attention.map(([k, v], i, l) => ligne(k, v, i, l))}
           </Zone>
         </div>
         {blocs.map((b) => {

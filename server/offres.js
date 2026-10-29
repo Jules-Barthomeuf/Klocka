@@ -155,16 +155,57 @@ export function supprimerLettre(id) {
   return { ok: true };
 }
 
+/**
+ * La lettre en PDF, telle que l'éditeur la montre (29 oct. 2026, Jules : « le PDF n'est pas comme le document ») :
+ * le navigateur du serveur ouvre la page d'impression (la lettre en lecture, avec son design) et l'imprime en A4.
+ * Sans navigateur, la lettre dessinée par jsPDF, sans le design.
+ */
+async function pdfParNavigateur(l, { base }) {
+  const { jetonImpression } = await import('./presentation-pdf.js');
+  const { lancerNavigateur } = await import('./marche/navigateur.js');
+  const nav = await lancerNavigateur('La LOI en PDF');
+  const contexte = await nav.newContext({ viewport: { width: 794, height: 1123 }, locale: 'fr-FR' });
+  try {
+    const page = await contexte.newPage();
+    const jeton = jetonImpression(`loi:${l.id}:${marqueDe(l) || ''}`);
+    await page.setExtraHTTPHeaders({ 'X-Klocka-Impression': jeton });
+    await page.goto(`${base}/ImpressionLoi?jeton=${jeton}`, { waitUntil: 'networkidle', timeout: 60000 });
+    await page.waitForFunction('window.__impressionPrete === true || !!window.__impressionErreur', null, { timeout: 60000 });
+    const erreur = await page.evaluate('window.__impressionErreur || null');
+    if (erreur) throw new Error(`La page d'impression n'a pas pu s'ouvrir : ${erreur}`);
+    await page.emulateMedia({ media: 'print' });
+    return await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+  } finally {
+    await contexte.close().catch(() => {});
+  }
+}
+
+/** La lettre lue par la page d'impression (jeton seul, deux minutes) : « loi:ID:marque ». */
+export async function loiParJeton(jeton) {
+  const { cibleDuJeton } = await import('./presentation-pdf.js');
+  const cible = cibleDuJeton(jeton);
+  if (!cible || !String(cible).startsWith('loi:')) return null;
+  const [, id, marque] = String(cible).split(':');
+  const l = Records.get(ENTITE, id);
+  if (!l) return null;
+  return lettreLue(marque === 'kp' ? { ...l, marque: 'kp' } : l);
+}
+
 /** Le fichier à télécharger : Word (à retoucher) ou PDF (à envoyer). */
-export async function fichierDe(id, format = 'pdf', { marque = null } = {}) {
+export async function fichierDe(id, format = 'pdf', { marque = null, base = null } = {}) {
   const brutLettre = Records.get(ENTITE, id);
   if (!brutLettre) return null;
   const l = marque === 'kp' ? { ...brutLettre, marque: 'kp' } : brutLettre;
   const { pdf, docx } = await import('./ak/loi.js');
   const brut = { ...(l.champs || {}), textes: l.textes || {}, modele: l.modele || 'classique', marque: marqueDe(l) };
-  const contenu = format === 'docx' ? await docx(brut) : await pdf(brut);
-  const base = `LOI ${String(l.champs?.adresse_bien || 'local').replace(/[^\p{L}\p{N} .,-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)}`;
-  return { contenu, nom: `${base}.${format === 'docx' ? 'docx' : 'pdf'}`, type: format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf' };
+  let contenu;
+  if (format === 'docx') contenu = await docx(brut);
+  else {
+    try { contenu = base ? await pdfParNavigateur(l, { base }) : await pdf(brut); }
+    catch (e) { console.warn(`[offres] PDF par le navigateur impossible, jsPDF en secours : ${e?.message || e}`); contenu = await pdf(brut); }
+  }
+  const nom = `LOI ${String(l.champs?.adresse_bien || 'local').replace(/[^\p{L}\p{N} .,-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)}`;
+  return { contenu, nom: `${nom}.${format === 'docx' ? 'docx' : 'pdf'}`, type: format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf' };
 }
 
 /** Ce que le chat de la page Offres sait de la lettre ouverte, pour la retoucher. */

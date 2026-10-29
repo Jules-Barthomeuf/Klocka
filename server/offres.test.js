@@ -51,6 +51,12 @@ test("depuis l'application : la LOI est gardée, et « Votre LOI est prête » m
   // Le vendeur n'est que dans la signature : « À l'attention de » ne le reprend pas.
   assert.equal(d.parties.attention[0][1], '');
   assert.ok(d.blocs.find((b) => b.type === 'signatures').droite.includes('PAX AVENUE'));
+  // La page d'impression lit la lettre par un jeton du serveur ; un jeton inconnu ne donne rien.
+  const { jetonImpression } = await import('./presentation-pdf.js');
+  const imp = await O.loiParJeton(jetonImpression(`loi:${id}:kp`));
+  assert.equal(imp.lettre.id, id);
+  assert.equal(imp.cadre.marque, 'kp');
+  assert.equal(await O.loiParJeton('inconnu'), null);
 });
 
 test('le chat corrige la lettre ouverte : un champ, puis un paragraphe', async () => {

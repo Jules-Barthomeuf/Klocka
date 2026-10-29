@@ -437,6 +437,22 @@ export function Lettre(props) {
   return props.modele === "menthe" ? <LettreMenthe {...props} /> : <LettreClassique {...props} />;
 }
 
+/**
+ * La lettre telle qu'elle s'imprime (29 oct. 2026, Jules : « le PDF n'est pas comme le document ») : en lecture, avec
+ * le design gardé sur la lettre, pour la page d'impression que le navigateur du serveur ouvre.
+ */
+export function LettreImprimee({ d }) {
+  const ctx = useMemo(() => ({ mode: "lecture", choisi: null, sources: {}, styles: d?.lettre?.styles || {}, choisir: () => {}, survoler: () => {} }), [d]);
+  return (
+    <CtxLoi.Provider value={ctx}>
+      {/* `k-impression` : à l'impression, le reste de la page s'efface (index.css). */}
+      <div className="loi-impression k-impression loi-mode-lecture">
+        <Lettre d={d} modele={d?.lettre?.modele || "classique"} apercu onChamp={() => {}} onTexte={() => {}} />
+      </div>
+    </CtxLoi.Provider>
+  );
+}
+
 /** Le logo en tête de la lettre : le K de Klocka, ou « kp » et son trait pour K Partners. */
 function LogoMarque({ d }) {
   return d.cadre?.marque === "kp" ? <LogoKP className="loi-logo-kp" /> : <LogoKlocka className="loi-logo-k" />;

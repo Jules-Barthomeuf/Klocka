@@ -50,6 +50,7 @@ const ImpressionPresentation = lazy(() => import('@/pages/ImpressionPresentation
 const ImpressionAvis = lazy(() => import('@/pages/ImpressionAvis'));
 const DepotVendeur = lazy(() => import('@/pages/DepotVendeur'));
 const ImpressionTeaser = lazy(() => import('@/pages/ImpressionTeaser'));
+const ImpressionLoi = lazy(() => import('@/pages/ImpressionLoi'));
 const SuiviChat = lazy(() => import('@/pages/SuiviChat'));
 // Haka (17 oct. 2026) : la file À valider, et son Suivi.
 const AValider = lazy(() => import('@/pages/AValider'));
@@ -154,6 +155,7 @@ const PAGES_PUBLIQUES = {
   ImpressionAvis: <ImpressionAvis />,
   DepotVendeur: <DepotVendeur />,
   ImpressionTeaser: <ImpressionTeaser />,
+  ImpressionLoi: <ImpressionLoi />,
 };
 
 // Les pages déclarées à la main, hors de pages.config.

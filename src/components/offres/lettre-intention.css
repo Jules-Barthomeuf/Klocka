@@ -148,3 +148,13 @@
 .loi-zone { cursor: pointer; border-radius: 3px; transition: box-shadow 120ms; }
 .loi-zone:hover { box-shadow: 0 0 0 1px rgb(127 168 152 / 0.6); }
 .loi-kp .loi-zone:hover { box-shadow: 0 0 0 1px rgb(93 101 214 / 0.55); }
+
+/* La page d'impression (29 oct. 2026) : la lettre seule, en A4, sans ombre ; l'encart et les signatures ne se coupent pas. */
+.loi-impression { background: #ffffff; }
+.loi-impression .loi-papier { box-shadow: none; max-width: none; margin: 0; min-height: 297mm; }
+.loi-attention, .loi-signatures, .loi-objet, .loi-parties { break-inside: avoid; }
+.loi-h2, .loi-h3 { break-after: avoid; }
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { margin: 0; background: #ffffff; }
+}

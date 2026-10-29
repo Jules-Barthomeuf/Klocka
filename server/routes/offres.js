@@ -1,7 +1,7 @@
 // Les offres (lettres d'intention d'achat) : la page Offres les liste, les
 // ouvre, les retouche et les télécharge. Réservé à l'équipe.
 
-import { ok, wrap, currentUser } from '../contexte.js';
+import { ok, wrap, currentUser, PORT } from '../contexte.js';
 
 /** Monte les routes « offres » sur l'application. */
 export function monterOffres(app) {
@@ -83,10 +83,17 @@ export function monterOffres(app) {
 
   app.get('/api/offres/:id/fichier', wrap(async (req, res) => {
     if (!admin(req, res)) return;
-    const f = await (await O()).fichierDe(req.params.id, req.query.format === 'docx' ? 'docx' : 'pdf', { marque: req.query.marque || null });
+    const f = await (await O()).fichierDe(req.params.id, req.query.format === 'docx' ? 'docx' : 'pdf', { marque: req.query.marque || null, base: `http://127.0.0.1:${PORT}` });
     if (!f) return res.status(404).json({ error: 'LOI introuvable.' });
     res.setHeader('Content-Type', f.type);
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.nom)}`);
     res.send(f.contenu);
+  }));
+
+  // La page d'impression de la lettre (publique) : un jeton court, posé par le serveur pour son propre navigateur.
+  app.get('/api/loi-impression/:jeton', wrap(async (req, res) => {
+    const d = await (await O()).loiParJeton(req.params.jeton);
+    if (!d) return res.status(404).json({ error: 'Lien d’impression expiré.' });
+    ok(res, d);
   }));
 }

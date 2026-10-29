@@ -32,6 +32,7 @@ export const ADRESSES = {
   ImpressionAvis: "ImpressionAvis",
   DepotVendeur: "DepotVendeur",
   ImpressionTeaser: "ImpressionTeaser",
+  ImpressionLoi: "ImpressionLoi",
   ALX: "ALX",
   ALXAtelier: "ALXAtelier",
   ALXVilles: "ALXVilles",

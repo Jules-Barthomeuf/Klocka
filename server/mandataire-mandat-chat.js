@@ -149,6 +149,83 @@ export function commencerMandat({ bien = null } = {}, user, conv = null) {
   return { ok: true, mandat_id: m.id };
 }
 
+/**
+ * Pure : le questionnaire du mandat tiré de ce que le bien sait déjà (27 oct. 2026, Jules : « lorsqu'on passe au
+ * mandat ça doit déjà préparer le mandat automatiquement puis poser les questions ensuite »). L'avis de valeur donne
+ * l'adresse, le bien, le locataire et les honoraires présentés ; la fiche donne le vendeur et le prix d'accord.
+ * Rien d'inventé : ce qui n'est pas su reste à demander (le type de mandat, la durée, la charge des honoraires…).
+ */
+export function questionnaireDuBien({ estimation = null, proprietaire = null } = {}) {
+  const e = estimation || {};
+  const eq = e.questionnaire || {};
+  const avis = e.avis || {};
+  const p = proprietaire || {};
+  const murs = p.preparation?.murs || {};
+  const q = {};
+  const pose = (cle, v) => { if (v !== undefined && v !== null && v !== '') q[cle] = v; };
+  // Le vendeur : la société propriétaire des murs si on la connaît, sinon la personne de la fiche ou celle qui a demandé l'avis.
+  const societe = murs.proprietaire && (murs.forme || /\b(sci|sarl|sas|sasu|eurl|sa|snc)\b/i.test(murs.proprietaire)) ? murs.proprietaire : null;
+  if (societe) {
+    q.vendeur_genre = 'morale';
+    pose('vendeur_societe', societe);
+    pose('vendeur_forme', murs.forme);
+    pose('vendeur_representant', p.nom || eq.demandeur);
+  } else {
+    const nom = p.nom || murs.proprietaire || eq.demandeur;
+    if (nom) { q.vendeur_genre = 'physique'; q.vendeur_nom = String(nom).trim(); }
+  }
+  pose('vendeur_email', p.email || e.envoi?.a);
+  pose('vendeur_telephone', p.telephone);
+  // Le bien.
+  pose('bien_adresse', e.adresse || eq.adresse || [p.adresse, p.ville].filter(Boolean).join(', '));
+  const surface = Number(eq.surface_utile || eq.surface) || null;
+  const nature = avis.type_libelle || (eq.type_bien === 'murs_commerce' ? 'Murs commerciaux' : null);
+  if (nature) pose('bien_designation', `${nature}${surface ? ` d'environ ${surface} m²` : ''}${eq.activite_locataire ? `, loués à usage de ${String(eq.activite_locataire).toLowerCase()}` : ''}`);
+  pose('bien_surface', surface);
+  if (typeof eq.occupe === 'boolean') q.bien_occupe = eq.occupe;
+  pose('bien_locataire', eq.locataire || eq.activite_locataire);
+  // Le prix : celui dont on est convenu, sinon la valeur de l'avis.
+  pose('prix', Number(p.biens?.prix_accord || p.biens?.restitution?.prix || avis.chiffres?.valeur) || null);
+  const pct = Number(avis.chiffres?.honoraires_pct);
+  if (pct > 0) { q.honoraires = pct; q.honoraires_unite = '%'; }
+  return q;
+}
+
+/** Les champs repris, dits en clair pour le premier message. */
+function reprisDe(q) {
+  const mots = [];
+  if (nomMandant(q)) mots.push(`le vendeur (${nomMandant(q)})`);
+  if (q.bien_adresse) mots.push(`l'adresse (${q.bien_adresse})`);
+  if (q.bien_designation) mots.push('la désignation');
+  if (q.prix) mots.push(`le prix (${Number(q.prix).toLocaleString('fr-FR')} €)`);
+  if (q.honoraires) mots.push(`les honoraires de l'avis (${q.honoraires} %)`);
+  return mots;
+}
+
+/** Le mandat du bien, préparé d'office à l'ouverture de l'étape Mandat ; le même s'il existe déjà. */
+export function preparerMandat({ estimation_id }, user) {
+  const e = Records.get('EstimationMandataire', estimation_id);
+  if (!e || (e.mandataire_email !== moi(user) && user?.role !== 'admin')) return { ok: false, error: 'Avis de valeur introuvable.' };
+  const deja = Records.list(ENTITE).filter((m) => m.estimation_id === e.id).sort((a, b) => String(b.cree_le).localeCompare(String(a.cree_le)))[0];
+  if (deja) return { ok: true, mandat_id: deja.id, deja: true };
+  const p = e.proprietaire_id ? Records.get('ProprietaireMandataire', e.proprietaire_id) : null;
+  const q = questionnaireDuBien({ estimation: e, proprietaire: p });
+  const titre = [q.bien_designation?.split(/[,.]/)[0], q.bien_adresse].filter(Boolean).join(' · ').slice(0, 160) || e.bien || 'Mandat de vente';
+  const m = Records.create(ENTITE, {
+    mandataire_email: e.mandataire_email,
+    bien: titre,
+    vendeur: null, vendeur_contact: null, prix: null, honoraires: null, honoraires_charge: null, type: null, duree_mois: null,
+    questionnaire: q, prepare_depuis: reprisDe(q),
+    estimation_id: e.id, conversation_id: null,
+    statut: 'brouillon',
+    reference_mynotary: null, document: null, document_signe: null, numero_registre: null, mynotary_url: null,
+    ...(e.exemple ? { exemple: true } : {}),
+    cree_le: new Date().toISOString(),
+    historique: [{ le: new Date().toISOString(), par: user?.email || null, action: "mandat préparé avec l'avis de valeur et la fiche" }],
+  });
+  return { ok: true, mandat_id: m.id, cree: true };
+}
+
 export function noterMandat(reponses, user, conv = null) {
   const m = enCours(user, conv);
   if (!m) return { ok: false, error: "Aucun mandat en cours : commence-le d'abord (commencer_mandat)." };
@@ -175,6 +252,17 @@ export function noterMandat(reponses, user, conv = null) {
 export async function envoyerMandat(user, conv = null, { surEtape = null } = {}) {
   const m = enCours(user, conv);
   if (!m) return { ok: false, error: 'Aucun mandat en cours.' };
+  return envoyerCeMandat(m, user, { surEtape });
+}
+
+/** Le bouton « Envoyer le mandat » de l'aperçu (27 oct. 2026) : le même envoi, sans passer par le chat. */
+export async function envoyerMandatParId(id, user) {
+  const m = lire(id, user);
+  if (!m) return { ok: false, error: 'Mandat introuvable.' };
+  return envoyerCeMandat(m, user);
+}
+
+async function envoyerCeMandat(m, user, { surEtape = null } = {}) {
   // Le mandat d'exemple se remplit dans le chat, mais ne part pas chez MyNotary.
   if (m.exemple) return { ok: false, exemple: true, error: "C'est le mandat d'exemple : il montre comment ça marche, mais il ne part pas chez MyNotary. Dis-le en une ligne et propose de commencer un vrai mandat." };
   if (m.statut !== 'brouillon') return { ok: true, deja: true, mandat_id: m.id, statut: m.statut };
@@ -193,12 +281,14 @@ export async function envoyerMandat(user, conv = null, { surEtape = null } = {})
     duree_mois: q.duree_mois,
     statut: 'demande_envoyee',
     demande_envoyee_le: new Date().toISOString(),
-    historique: [...(m.historique || []), { le: new Date().toISOString(), par: user?.email || null, action: 'mandat complété dans le chat, envoyé à MyNotary' }],
+    historique: [...(m.historique || []), { le: new Date().toISOString(), par: user?.email || null, action: 'mandat complété dans le chat, envoyé à Klocka' }],
   });
+  const { etapeDuMandat } = await import('./mandataire-portes.js');
+  etapeDuMandat(Records.get(ENTITE, m.id), 'demande_envoyee');
 
   const { agentMyNotaryActif, lancerAgentMandat } = await import('./mynotary-agent.js');
   if (!agentMyNotaryActif()) {
-    return { ok: true, mandat_id: m.id, statut: 'demande_envoyee', en_file: true, note: "L'agent MyNotary n'est pas encore allumé : l'équipe Klocka saisit ce mandat sur MyNotary et le dépose ici. Dis-le en une ligne." };
+    return { ok: true, mandat_id: m.id, statut: 'demande_envoyee', en_file: true, note: "Le mandat est saisi sur MyNotary et envoyé en signature ; le mandat signé arrivera dans l'onglet Conversation, où le mandataire peut poser ses questions. Dis-le en une ligne, sans nommer Klocka." };
   }
   surEtape?.('Connexion à MyNotary');
   const r = await lancerAgentMandat(m.id, { surEtape });
@@ -235,22 +325,25 @@ const CONSIGNE = `Tu prépares, avec un mandataire du réseau K Partners, un MAN
 2. Puis TOUTES les questions restantes EN UN SEUL MESSAGE, en liste numérotée courte : le mandant (personne ou société : nom, adresse, contact ; pour une société, forme, SIREN, représentant), le bien (adresse, désignation, surface, occupé ou libre), le prix de vente, TVA ou non, mobilier ou non, le type de mandat, les honoraires (montant ou %, à la charge de qui), la durée. Ne demande pas ce que MyNotary remplit seul : la partie Klocka (société, carte T, garantie, assurance) est déjà dans le modèle.
 3. À chaque réponse : noter_mandat. S'il reste des manques, redemande-les en un message.
 4. Quand plus rien ne manque : résume le mandat en 3 lignes (mandant, bien et prix, honoraires et durée) et demande « Je l'envoie dans MyNotary ? ». À son accord seulement : envoyer_mynotary.
-5. Après l'envoi : une ligne. Si le PDF est revenu, dis qu'il s'ouvre et qu'on peut le compléter sur MyNotary pour l'envoyer au client. S'il est parti en file, dis que l'équipe Klocka le saisit.
+5. Après l'envoi : une ligne. Si le PDF est revenu, dis qu'il s'ouvre et qu'on peut le compléter sur MyNotary pour l'envoyer au client. S'il est parti en file, dis qu'il est saisi sur MyNotary et envoyé en signature, et que le mandat signé arrivera dans l'onglet Conversation (sans nommer Klocka).
 
 On n'invente rien. Prix en euros, honoraires tels que dits. Phrases courtes, vouvoiement, pas de jargon technique.`;
 
 /** Un tour du chat du Mandat. */
-export async function discuterMandat({ historique = [], texte, user, surEtape = null, piece = null, conversation_id = null }) {
+export async function discuterMandat({ historique = [], texte, user, surEtape = null, piece = null, pieces = null, conversation_id = null, sources = null, competence = null }) {
+  // Les outils de marché et les sources cochées (26 oct. 2026), comme le chat Haka du mandataire.
+  const marche = (await import('./mandataire.js')).marchePourChat({ sources, competence });
   const conv = conversation_id ? String(conversation_id) : null;
   if (conv) {
     // Le mandat commencé avant que la conversation ait son identifiant s'y rattache.
     const orphelin = enCours(user, null);
     if (orphelin && !orphelin.conversation_id && !Records.list(ENTITE).some((x) => x.conversation_id === conv)) Records.update(ENTITE, orphelin.id, { conversation_id: conv });
   }
-  if (piece) {
-    surEtape?.(piece.texte ? `Je lis le document : ${piece.nom}` : `${piece.nom} : illisible, je fais sans`);
-    texte = `${texte || 'Voici une pièce.'}\n\n(pièce jointe : ${piece.nom}${piece.texte ? `. Ce qu'on y lit : ${piece.texte.slice(0, 12000)}` : ', illisible'})`;
-  }
+  // Plusieurs pièces jointes depuis le 27 oct. 2026 : une ligne chacune.
+  const { lotDePieces, texteAvecPieces } = await import('./pieces-jointes.js');
+  const lot = lotDePieces({ piece, pieces });
+  for (const p of lot) surEtape?.(p.texte ? `Je lis le document : ${p.nom}` : `${p.nom} : illisible, je fais sans`);
+  texte = texteAvecPieces(texte, lot, 12000);
   const actuel = enCours(user, conv);
   const contexte = actuel
     ? `\n\nMandat en cours (${actuel.statut}) : ${JSON.stringify(actuel.questionnaire || {}).slice(0, 3000)}. Encore obligatoire : ${manquantsMandat(actuel.questionnaire || {}).join(', ') || 'rien'}.`
@@ -263,10 +356,11 @@ export async function discuterMandat({ historique = [], texte, user, surEtape = 
     .slice(-24)
     .map((m) => ({ role: m.role, content: m.contenu }));
   const { text } = await runAgent({ model: process.env.AK_MODELE?.trim() || null, effort: effortDuChat(), journal: { chat: 'mandataire-mandat', par: user?.email || null },
-    system: `${CONSIGNE}\n\nNous sommes le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' })}.${contexte}`,
+    system: `${CONSIGNE}\n\nNous sommes le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' })}.${contexte}${marche.cadre}`,
     messages,
-    tools: OUTILS,
+    tools: [...OUTILS, ...marche.tools],
     onTool: async ({ name, input = {} }) => {
+      if (marche.estMarche(name)) return marche.executer({ name, input }, user);
       try {
         if (name === 'commencer_mandat') {
           surEtape?.('Nouveau mandat de vente');
@@ -329,7 +423,10 @@ export async function conversationDuMandat(id, user) {
     {
       role: 'assistant',
       contenu: m.statut === 'brouillon'
-        ? (reste.length ? `On reprend le mandat. Il manque encore : ${reste.join(', ')}.` : 'Le mandat est complet. Je l’envoie dans MyNotary ?')
+        ? m.prepare_depuis && !m.conversation_id
+          // Le mandat préparé d'office : ce qui est repris, puis seulement ce qui manque.
+          ? `J'ai préparé le mandat avec ce qu'on sait déjà${m.prepare_depuis.length ? ` : ${m.prepare_depuis.join(', ')}` : ''}. Vérifiez-le à droite, tout se corrige.${reste.length ? `\n\nPour le finir, il me manque : ${reste.join(', ')}.` : '\n\nIl est complet : je l’envoie ?'}`
+          : (reste.length ? `On reprend le mandat. Il manque encore : ${reste.join(', ')}.` : 'Le mandat est complet. Je l’envoie ?')
         : `Mandat ${m.statut === 'demande_envoyee' ? 'envoyé : la saisie MyNotary est en cours' : m.statut === 'pret' ? 'prêt' : m.statut}. Une correction ? Dites-la ici.`,
       ...(m.document || m.mynotary_url ? { cartes: [{ titre: 'Mandat MyNotary', detail: 'Le PDF et le lien pour le compléter', etat: 'fait', lien: `mandat:${m.id}`, action: 'Ouvrir' }] } : {}),
     },

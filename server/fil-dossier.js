@@ -292,6 +292,11 @@ export async function ecrireMandataire(dossierId, user, { texte, pieces = [] }) 
   if (!d || bas(d.mandataire_email) !== bas(user?.email) && user?.role !== 'admin') return { ok: false, error: 'Dossier introuvable.' };
   const m = poserMessage(d.id, { auteur_email: user.email, cote: 'mandataire', texte, pieces });
   if (!m) return { ok: false, error: 'Message vide.' };
+  // Un bien envoyé à Klocka (28 oct. 2026, Jules) : il parle à l'équipe, n'importe qui répond ; chacun est prévenu.
+  if (d.equipe || d.envoye_klocka_le) {
+    for (const a of ANALYSTES) await notifier(a.email, `Message du mandataire · ${d.bien}`, String(texte || '').slice(0, 160), `/Conversations?dossier=${d.id}`);
+    return { ok: true, message: m };
+  }
   // Un dossier pas encore transféré n'a pas d'analyste : le premier message lui en donne un.
   if (!d.analyste_email) await attribuer(d.id);
   await verifierRelais(d.id);
@@ -309,6 +314,6 @@ export async function ecrireAnalyste(dossierId, user, { texte, pieces = [], inte
   if (!m) return { ok: false, error: 'Message vide.' };
   // Une note interne reste chez Klocka : le mandataire ne la voit ni n'en est prévenu.
   if (interne) return { ok: true, message: m };
-  await notifier(d.mandataire_email, `${nomAnalyste(user.email)} vous a écrit · ${d.bien}`, String(texte || '').slice(0, 160), `/DossierMandataire?dossier=${d.id}&conv=1`);
+  await notifier(d.mandataire_email, `${d.equipe || d.envoye_klocka_le ? 'Klocka' : nomAnalyste(user.email)} vous a écrit · ${d.bien}`, String(texte || '').slice(0, 160), `/DossierMandataire?dossier=${d.id}&conv=1`);
   return { ok: true, message: m };
 }

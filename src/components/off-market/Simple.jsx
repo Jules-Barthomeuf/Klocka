@@ -10,7 +10,7 @@ import CarteOffMarket from "./CarteOffMarket";
 import FacadeLocal from "./FacadeLocal";
 import { BlocZone, dessinAvecZone, useFileAJuger, useZone } from "./JugementZone";
 import { Case, Vide, bouton, boutonPlein, champ, dateCourte, euros, pl, req } from "./commun";
-import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
+import { FILTRES_SIMPLE, OPTIONS_ANCIENNETE, OPTIONS_CLASSE, OPTIONS_EMPLACEMENT, OPTIONS_LIEN, OPTIONS_PROPRIETAIRE, basculer, cleLien, compteDe, depuisAuMoins, estExploitant, nbFiltres, passeSimple } from "@/lib/off-market-simple";
 import Chargement from "@/components/ui/Chargement";
 import { accroche, budgetDe, exclusionsDe, pourClient, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
@@ -74,8 +74,8 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
   }, [ouvert]);
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[14px] transition-colors ${n ? "border-menthe bg-menthe/10 text-encre" : "border-bord-vif text-craie hover:text-encre"}`} style={n ? undefined : { background: "transparent" }}>
-        <SlidersHorizontal className="h-4 w-4" />Filtrer{n > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-menthe px-1.5 text-[11.5px] text-sur-menthe">{n}</span>}
+      <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} className={`inline-flex h-10 items-center gap-2 rounded-full border px-4 text-[14px] transition-colors ${n ? "border-transparent bg-pervenche/10 text-encre" : "border-bord-doux bg-rail text-craie hover:text-encre"}`}>
+        <SlidersHorizontal className="h-4 w-4" />Filtrer{n > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pervenche px-1.5 text-[11.5px] text-fond">{n}</span>}
       </button>
       {/* La fenêtre des filtres monte du bas et se pose au milieu de l'écran (Jules, 11 oct. 2026). */}
       <AnimatePresence>
@@ -86,6 +86,8 @@ export function MenuFiltres({ filtres, setFiltres, commerces, tous = commerces, 
         <div role="dialog" aria-label="Filtres" className="pointer-events-auto max-h-[85vh] w-[760px] max-w-full overflow-y-auto rounded-bloc border border-bord-doux bg-surface-pleine p-4 shadow-xl">
           <div className="grid gap-5 md:grid-cols-3">
             <div className="flex flex-col gap-5">
+              {/* La classe d'actif en tête (26 oct. 2026, Jules) : commerce, bureaux, entrepôt ; rien de coché = tout. */}
+              <SectionFiltre titre="Classe d'actif" choisis={filtres.classes || []} onChange={maj("classes")} options={OPTIONS_CLASSE.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => (c.classe || "commerce") === v) }))} />
               <SectionFiltre titre="Emplacement" multiple={false} choisis={[filtres.emplacement || "centre"]} onChange={(v) => setFiltres((f) => ({ ...f, emplacement: v[0] || "centre" }))} options={OPTIONS_EMPLACEMENT.map(([v, mot]) => ({ v, mot, n: v === "centre" ? compteDe(tous, (c) => c.centre !== false) : tous.length }))} />
               {zones.length > 0 && <SectionFiltre titre="Zone" choisis={filtres.zones} onChange={(v) => setFiltres((f) => ({ ...f, zones: v, emplacement: v.length ? "centre" : f.emplacement }))} options={zones.map((z) => ({ v: z.nom, mot: z.nom, n: compteDe(tous, (c) => c.zone === z.nom) }))} />}
               <SectionFiltre titre="Lien" choisis={filtres.liens} onChange={maj("liens")} options={OPTIONS_LIEN.map(([v, mot]) => ({ v, mot, n: compteDe(commerces, (c) => cleLien(c) === v) }))} />
@@ -505,7 +507,7 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         {/* La bascule de la page (Pour mes clients / Tous les commerces), en tête de la même ligne (24 oct. 2026). */}
         {bascule}
         <div className="relative">
-          <button type="button" onClick={() => setMenuVille((m) => !m)} aria-expanded={menuVille} className="inline-flex h-10 min-w-[240px] items-center justify-between gap-2 rounded-full border border-bord-vif bg-fond px-3.5 text-[14px] text-encre hover:border-menthe max-md:min-w-0">
+          <button type="button" onClick={() => setMenuVille((m) => !m)} aria-expanded={menuVille} className="inline-flex h-10 min-w-[240px] items-center justify-between gap-2 rounded-full border border-bord-doux bg-rail px-3.5 text-[14px] text-encre hover:border-menthe max-md:min-w-0">
             <span className="truncate">{territoire ? territoire.nom : "Choisir une ville"}</span>
             <span className="flex items-center gap-2 text-[12.5px] text-ardoise">{compte ? pl(compte.total, "commerce") : null}<ChevronDown className="h-4 w-4" /></span>
           </button>
@@ -518,16 +520,17 @@ export default function Simple({ territoires, territoire, onTerritoire, espace, 
         </div>
         <form onSubmit={chercherAdresse} className="relative h-10 w-[420px] max-w-full">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brume" />
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Une adresse précise : 63 rue de la République, Antibes" className={`${champ} !h-10 w-full pl-9 pr-24`} />
+          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Une adresse précise : 63 rue de la République, Antibes" className={`${champ} !h-10 w-full !rounded-full !border-bord-doux !bg-rail !text-[14px] focus:!border-menthe pl-9 pr-24`} />
           <button type="submit" disabled={!adresse.trim() || enCours} className="absolute right-1 top-1 inline-flex h-8 items-center rounded-full bg-encre px-3 text-[12.5px] text-fond disabled:opacity-50">{enCours ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Chercher"}</button>
         </form>
         <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={dansZone} tous={commerces} zones={compte?.zones || []} activites={activites} visibles={visibles.length}
           scoreZone={zone.actif ? { masquer: masquerFaibles, seuil: seuilFaible, points: zone.points, choisir: (k) => { setMasquerFaibles(k != null); if (k != null) setSeuilFaible(k); } } : null} />
         <span className="flex-1 max-md:hidden" />
-        {compte && (compte.a_faire > 0 || compte.en_cours > 0) && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-menthe px-3.5 text-[12.5px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Propriétaires : {compte.faits} sur {compte.total}</span>}
-        {compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
-        {compte?.google?.etat === "en_cours" && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bleu/60 px-3.5 text-[12.5px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
-        {compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-vif px-3.5 text-[12.5px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
+        {compte && (compte.a_faire > 0 || compte.en_cours > 0) && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Propriétaires : {compte.faits} sur {compte.total}</span>}
+        {/* Côté mandataire, plus de « Propriétaires lus pour n sur n » ni de « +n vus sur Google Maps » (25 oct. 2026, Jules). */}
+        {espace !== "mandataire" && compte && !compte.a_faire && !compte.en_cours && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-ardoise">Propriétaires lus pour {compte.faits} sur {compte.total}</span>}
+        {compte?.google?.etat === "en_cours" && <span className="inline-flex h-10 max-md:hidden items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre" title="Chaque famille de commerce est cherchée sur Google Maps dans la ville"><Loader2 className="h-3.5 w-3.5 animate-spin text-bleu" />Google Maps</span>}
+        {espace !== "mandataire" && compte?.google?.etat === "fini" && compte.depuis_google > 0 && <span className="inline-flex h-10 max-md:hidden items-center rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-ardoise" title={`${compte.google.lieux} vitrines vues sur Google Maps, ${compte.google.enrichis} rapprochées du registre`}>+{compte.depuis_google} vus sur Google Maps</span>}
         {menu}
       </div>
 

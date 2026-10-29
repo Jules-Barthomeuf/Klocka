@@ -28,6 +28,9 @@ export function jetonImpression(id, maintenant = Date.now()) {
 /** Pure : ce jeton d'impression vaut-il encore ? Le navigateur d'impression le porte pour lire les photos et la carte. */
 export const jetonValide = (jeton, maintenant = Date.now()) => { const v = JETONS.get(String(jeton || '')); return !!(v && v.expire >= maintenant); };
 
+/** Pure : ce que vise un jeton encore valable (l'avis de valeur le partage, 27 oct. 2026 : « avis:<id> »), ou null. */
+export const cibleDuJeton = (jeton, maintenant = Date.now()) => { const v = JETONS.get(String(jeton || '')); return v && v.expire >= maintenant ? v.id : null; };
+
 /** Ce que la page d'impression lit : le titre et les diapositives, si le jeton vaut encore. */
 export function lireParJeton(jeton, maintenant = Date.now()) {
   const v = JETONS.get(String(jeton || ''));

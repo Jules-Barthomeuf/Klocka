@@ -32,8 +32,8 @@ test("l'heure dite est celle de Paris, été comme hiver", () => {
 test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Sunday CRM", () => {
   const noms = OUTILS_MANDATAIRE.map((o) => o.name);
   assert.deepEqual(noms.sort(), [
-    'annuler_derniere', 'appel_sans_reponse', 'avis_de_marche', 'bail_estimation', 'corriger_mandat', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'mes_dossiers', 'mes_proprietaires',
-    'mes_rappels', 'noter_rdv', 'noter_relance', 'nouveau_contact', 'preparer_mail', 'ranger_piece', 'resultat_appel',
+    'annuler_derniere', 'appel_sans_reponse', 'avancer_bien', 'avis_de_marche', 'bail_estimation', 'compte_rendu_visite', 'corriger_mandat', 'corriger_preparation', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'mes_dossiers', 'mes_proprietaires',
+    'mes_rappels', 'modifier_fiche', 'noter_rdv', 'noter_relance', 'noter_restitution', 'noter_visite_acquereur', 'nouveau_contact', 'preparer_mail', 'raconter_visite_acquereur', 'ranger_piece', 'resultat_appel', 'visite_du_moment',
   ]);
 });
 
@@ -423,4 +423,15 @@ test('une estimation se rattache au propriétaire de la Prospection, le sien seu
   assert.equal(modifierEstimation(e.id, { proprietaire_id: p.id }, QUI).estimation.proprietaire_id, p.id);
   const sienne = creerProprietaire({ commerce: 'Ailleurs', ville: 'Nice' }, AUTRE).proprietaire;
   assert.equal(modifierEstimation(e.id, { proprietaire_id: sienne.id }, QUI).ok, false);
+});
+
+test("les outils de marché du mandataire, et les sources qu'il peut cocher (26 oct. 2026)", async () => {
+  const M = await import('./mandataire.js');
+  for (const [source, outils] of Object.entries(M.OUTILS_PAR_SOURCE)) {
+    assert.ok(outils.length, source);
+  }
+  assert.deepEqual(M.OUTILS_PAR_SOURCE.dvf, ['ventes_dvf']);
+  assert.ok(M.OUTILS_PAR_SOURCE.equimmox.includes('prix_murs'));
+  const r = await M.executerOutilMandataire({ name: 'donnees_commune', input: { commune: '' } }, { email: 'm@kpartners.fr', role: 'mandataire' });
+  assert.equal(r.ok, false, 'sans commune, un refus propre');
 });

@@ -159,3 +159,42 @@ test('la lettre se relie à sa conversation, sans remonter dans la liste', async
   assert.equal(l.conversation_id, 'conv-1');
   assert.equal(l.maj_le, avant);
 });
+
+test('la lettre vierge : le modèle à trous, rien de gardé ; le premier geste la crée', async () => {
+  const avant = Records.list(O.ENTITE).length;
+  const v = await O.lettreVierge();
+  assert.equal(v.lettre.id, null);
+  assert.equal(v.lettre.modele, 'classique');
+  assert.equal(Records.list(O.ENTITE).length, avant, 'rien de gardé');
+  const texte = v.blocs.map((b) => b.texte || '').join(' ');
+  assert.doesNotMatch(texte, /undefined/);
+  assert.match(v.blocs.find((b) => b.cle === 'offre-3').texte, /\[prix FAI TTC\]/);
+  // Les lignes des parties restent, vides, pour se remplir sur place.
+  assert.deepEqual(v.parties.acquereur.map(([k]) => k), ['acquereur_nom', 'acquereur_societe', 'acquereur_adresse']);
+  const r = await O.creerLettreVierge({ champs: { acquereur_nom: 'Jeanne Martin' }, user: JULES });
+  assert.equal(r.ok, true);
+  const d = await O.lireLettre(r.lettre.id);
+  assert.equal(d.lettre.modele, 'classique');
+  assert.equal(d.lettre.cree_par, JULES.email);
+  assert.match(d.blocs.find((b) => b.cle === 'offre-1').texte, /Jeanne Martin/);
+  assert.match(await O.contexteLettre(r.lettre.id), /partie vierge/);
+  assert.equal((await O.fichierDe(r.lettre.id, 'pdf')).contenu.slice(0, 5).toString(), '%PDF-');
+});
+
+test("l'étape Offre d'un dossier : la lettre vierge part du dossier et s'y rattache au premier geste", async () => {
+  Records.create('Deal', { deal_id: 'D-OFFRE', lots: [] });
+  const v = await O.lettreVierge({ deal_id: 'D-OFFRE' });
+  assert.equal(v.lettre.id, null);
+  assert.equal(v.lettre.deal_id, 'D-OFFRE');
+  assert.equal(O.derniereLettreDuDossier('D-OFFRE'), null);
+  const r = await O.creerLettreVierge({ champs: { prix: 150000 }, deal_id: 'D-OFFRE', user: JULES });
+  assert.equal(r.ok, true);
+  assert.equal(O.derniereLettreDuDossier('D-OFFRE').id, r.lettre.id);
+  assert.equal(r.lettre.origines.prix, 'main');
+  // Le mode Sources de l'Éditeur : d'où vient chaque champ.
+  assert.equal(v.sources_champs.prix.nature, 'a_remplir');
+  const d = await O.lireLettre(r.lettre.id);
+  assert.equal(d.sources_champs.prix.nature, 'main');
+  assert.match(d.sources_champs.prix.origine, /150[\s\u202f]000 €/);
+  assert.equal(d.sources_champs.validite.nature, 'modele');
+});

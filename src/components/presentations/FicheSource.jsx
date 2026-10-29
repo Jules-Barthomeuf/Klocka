@@ -14,6 +14,13 @@ const NATURES = {
   ia: { mot: "Estimation de l'IA", ton: "text-ambre" },
   a_remplir: { mot: "À compléter", ton: "text-alerte" },
   modele: { mot: "Texte du modèle", ton: "text-brume" },
+  // L'avis de valeur et son deck (26 oct. 2026).
+  equimmox: { mot: "Equimmox", ton: "text-menthe" },
+  saisie: { mot: "Dit par le mandataire", ton: "text-craie" },
+  // La lettre d'intention dans l'Éditeur (28 oct. 2026).
+  dossier: { mot: "Fiche du dossier", ton: "text-menthe" },
+  chat: { mot: "Dit dans le chat", ton: "text-craie" },
+  main: { mot: "Saisi à la main", ton: "text-craie" },
 };
 
 /**

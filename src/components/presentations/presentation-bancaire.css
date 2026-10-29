@@ -7,7 +7,8 @@
    Ces couleurs sont celles du dossier envoyé à la banque, pas de
    l'application : elles ne suivent pas le thème. */
 
-.pb {
+/* .pb-palette : le panneau Design de l'élément, hors du deck, montre les mêmes couleurs. */
+.pb, .pb-palette {
   --pb-sauge: #96c0b8;
   --pb-encre: #08130d;
   --pb-carte: #121312;
@@ -26,6 +27,17 @@
   --pb-etoile: #f5c542;
   --pb-etoile-eteinte: rgba(242, 243, 245, 0.18);
   --pb-glisse: 1.3s cubic-bezier(.7, 0, .2, 1);
+}
+
+/* La palette commune des éditeurs (components/editeur/Editeur.jsx, PALETTE_DOC), posée sur les couleurs du deck
+   (28 oct. 2026) : encre et gris y gardent leur couleur du deck ; accent et blanc s'enregistrent en sauge et ivoire. */
+.pb, .pb-palette {
+  --doc-encre: var(--pb-encre);
+  --doc-noir: var(--pb-noir);
+  --doc-gris: var(--pb-gris);
+  --doc-accent: var(--pb-sauge);
+  --doc-encart: var(--pb-carte);
+  --doc-blanc: var(--pb-ivoire);
 }
 
 /* La scène : le cadre y tient, centré ; en plein écran, sur fond noir. */

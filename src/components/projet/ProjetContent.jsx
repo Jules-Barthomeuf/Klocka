@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { adresseAChercher } from "@/lib/adresse-projet";
-import { EditionContext, ValeurEditable, ValeurForcee, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer, Bloc, nombreForce } from "./EditionEnPlace";
+import { EditionContext, ValeurEditable, ValeurForcee, TexteEditable, ChampsPersonnalises, useEdition, estMasque, BoutonMasquer, Bloc, nombreForce, COULEURS_DOC_PROJET } from "./EditionEnPlace";
 import { rendementGlobalNetDuProjet } from "@/components/simulator/CalculFinancier";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -125,7 +125,7 @@ function NotesBlock({ notes }) {
 // champs au clic, et le hero comme la synthèse financière sont masqués.
 // `editeurDocuments` et `onPhotos` (éditeur seulement) : l'ajout de pièces dans
 // l'onglet Documents, et le bouton Photos du hero ; le reste se modifie au clic.
-export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null }) {
+export default function ProjetContent({ project, isAdmin = false, showAsClient = true, isPublic = false, apercuOnglet = null, onOngletChange = null, sansBarreOnglets = false, modeEdition = false, onChamp = null, ongletsSupplementaires = [], ongletDemande = null, editeurDocuments = null, onPhotos = null, sources = null, onSource = null, elementChoisi = null, onElement = null }) {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   // Les adresses de photos qui ne répondent plus : un hébergeur disparu ne
@@ -279,8 +279,12 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       // Le mode Sources de l'éditeur (14 oct. 2026) : chaque chiffre dit d'où il vient au survol.
       sources: sources || null,
       surSource: onSource || null,
+      // Le design des éléments (28 oct. 2026) : gardé sur le projet, appliqué pour tous ; le clic en Éditeur ouvre le panneau.
+      styles: project?.styles || {},
+      onChoisir: modeEdition && onChamp ? onElement : null,
+      choisi: modeEdition ? elementChoisi : null,
     }),
-    [modeEdition, onChamp, project, sources, onSource]
+    [modeEdition, onChamp, project, sources, onSource, elementChoisi, onElement]
   );
 
   return (
@@ -291,7 +295,7 @@ export default function ProjetContent({ project, isAdmin = false, showAsClient =
       transition={{ duration: 0.4 }}
       // `overflow-x-clip` et non `hidden` : `hidden` crée un conteneur de
       // défilement qui neutralise le `sticky` du rail d'analyse.
-      className="projet-editorial k-sobre font-projet min-h-screen text-encre overflow-x-clip">
+      className="projet-editorial k-sobre font-projet min-h-screen text-encre overflow-x-clip" style={COULEURS_DOC_PROJET}>
 
       {/* Le carrousel en grand : toutes les photos, on avance à la main
           (flèches à l'écran ou du clavier), jamais tout seul. */}

@@ -105,6 +105,32 @@ export function drapeauxDe(c, { maintenantMs = Date.now() } = {}) {
 // Les codes NAF du commerce en pied d'immeuble (les préfixes de commerces.js, en codes complets) :
 // demandés à l'annuaire, pour ne pas recevoir les dix mille micro-entreprises du centre-ville.
 export const NAF_COMMERCE = ['47.11A', '47.11B', '47.11C', '47.11D', '47.11E', '47.11F', '47.19A', '47.19B', '47.21Z', '47.22Z', '47.23Z', '47.24Z', '47.25Z', '47.26Z', '47.29Z', '47.30Z', '47.41Z', '47.42Z', '47.43Z', '47.51Z', '47.52A', '47.52B', '47.53Z', '47.54Z', '47.59A', '47.59B', '47.61Z', '47.62Z', '47.63Z', '47.64Z', '47.65Z', '47.71Z', '47.72A', '47.72B', '47.73Z', '47.74Z', '47.75Z', '47.76Z', '47.77Z', '47.78A', '47.78B', '47.78C', '47.79Z', '56.10A', '56.10B', '56.10C', '56.21Z', '56.30Z', '10.71A', '10.71B', '10.71C', '10.71D', '10.13B', '10.52Z', '10.85Z', '96.01B', '96.02A', '96.02B', '96.04Z', '95.21Z', '95.23Z', '95.25Z', '95.29Z', '64.19Z', '66.22Z', '68.31Z', '79.11Z', '85.53Z', '93.13Z', '74.20Z'];
+// Les autres classes d'actif (26 oct. 2026, Jules : « on filtre la classe d'actif ») : les bureaux (les sociétés qui
+// occupent un plateau : conseil, informatique, avocats, experts-comptables, architectes, finance, assurances, agences) et
+// les entrepôts (logistique, messagerie, grossistes avec stock). Lus comme les commerces, par leurs codes NAF ; le
+// propriétaire des murs (cadastre des personnes morales) et les signaux marchent pareil.
+export const NAF_BUREAU = ['58.29A', '58.29B', '58.29C', '62.01Z', '62.02A', '62.02B', '62.03Z', '62.09Z', '63.11Z', '63.12Z', '64.19Z', '64.20Z', '64.30Z', '64.92Z', '64.99Z', '65.11Z', '65.12Z', '66.12Z', '66.19A', '66.19B', '66.21Z', '66.22Z', '66.29Z', '66.30Z', '68.31Z', '68.32A', '69.10Z', '69.20Z', '70.10Z', '70.21Z', '70.22Z', '71.11Z', '71.12A', '71.12B', '71.20A', '71.20B', '73.11Z', '73.12Z', '73.20Z', '74.10Z', '74.90A', '74.90B', '78.10Z', '78.20Z', '78.30Z', '82.11Z', '82.19Z', '82.20Z', '82.99Z'];
+export const NAF_ENTREPOT = ['49.41A', '49.41B', '49.42Z', '52.10A', '52.10B', '52.29A', '52.29B', '53.20Z', '46.31Z', '46.32A', '46.32B', '46.32C', '46.33Z', '46.34Z', '46.36Z', '46.37Z', '46.38A', '46.38B', '46.39A', '46.39B', '46.41Z', '46.42Z', '46.43Z', '46.44Z', '46.45Z', '46.46Z', '46.47Z', '46.48Z', '46.49Z', '46.51Z', '46.52Z', '46.61Z', '46.62Z', '46.63Z', '46.64Z', '46.65Z', '46.66Z', '46.69A', '46.69B', '46.69C', '46.71Z', '46.72Z', '46.73A', '46.73B', '46.74A', '46.74B', '46.75Z', '46.76Z', '46.77Z', '46.90Z'];
+export const CLASSES = { commerce: 'Commerce', bureau: 'Bureaux', entrepot: 'Entrepôt' };
+const LIBELLES_HORS_COMMERCE = {
+  '5829A': 'Éditeur de logiciels', '5829B': 'Éditeur de logiciels', '5829C': 'Éditeur de logiciels', '6201Z': 'Informatique', '6202A': 'Conseil informatique', '6202B': 'Conseil informatique', '6203Z': 'Informatique', '6209Z': 'Informatique',
+  '6311Z': 'Hébergement informatique', '6312Z': 'Portail internet', '6419Z': 'Banque', '6420Z': 'Holding', '6430Z': 'Fonds de placement', '6492Z': 'Crédit', '6499Z': 'Finance', '6511Z': 'Assurance', '6512Z': 'Assurance',
+  '6612Z': 'Courtage financier', '6619A': 'Services financiers', '6619B': 'Services financiers', '6621Z': 'Expertise en assurance', '6622Z': 'Courtage en assurance', '6629Z': 'Assurance', '6630Z': 'Gestion de fonds', '6831Z': 'Agence immobilière', '6832A': 'Administration de biens',
+  '6910Z': "Cabinet d'avocats", '6920Z': 'Expert-comptable', '7010Z': 'Siège social', '7021Z': 'Relations publiques', '7022Z': 'Conseil en entreprise', '7111Z': "Cabinet d'architectes", '7112A': 'Géomètre', '7112B': "Bureau d'études", '7120A': 'Contrôle technique', '7120B': 'Laboratoire d\'analyses',
+  '7311Z': 'Agence de publicité', '7312Z': 'Régie publicitaire', '7320Z': 'Études de marché', '7410Z': 'Design', '7490A': 'Conseil', '7490B': 'Conseil', '7810Z': 'Recrutement', '7820Z': 'Intérim', '7830Z': 'Ressources humaines', '8211Z': 'Services administratifs', '8219Z': 'Secrétariat', '8220Z': "Centre d'appels", '8299Z': 'Services aux entreprises',
+  ...Object.fromEntries(NAF_ENTREPOT.filter((c) => c.startsWith('46')).map((c) => [c.replace('.', ''), 'Grossiste'])),
+  '4941A': 'Transport routier', '4941B': 'Transport routier', '4942Z': 'Déménagement', '5210A': 'Entreposage frigorifique', '5210B': 'Entreposage', '5229A': 'Messagerie', '5229B': 'Affrètement', '5320Z': 'Messagerie',
+};
+const sansPoint = (code) => String(code || '').replace(/\./g, '').toUpperCase();
+/** Pure : la classe d'actif d'un code NAF (commerce de pied d'immeuble, bureau, entrepôt), ou null. */
+export function classeDeCode(code) {
+  const c = sansPoint(code);
+  if (!c) return null;
+  if (piedDImmeuble(c).oui) return 'commerce';
+  if (NAF_BUREAU.some((x) => sansPoint(x) === c)) return 'bureau';
+  if (NAF_ENTREPOT.some((x) => sansPoint(x) === c)) return 'entrepot';
+  return null;
+}
 const NEAR_POINT = 'https://recherche-entreprises.api.gouv.fr/near_point';
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -113,7 +139,7 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
  * NAF du commerce, pages lues quatre par quatre (l'annuaire tolère sept
  * appels par seconde). Rend les établissements à plat.
  */
-export async function etablissementsCommerce({ lat, lon, rayon_km = 2.5, codes = NAF_COMMERCE, lire = fetch, parallele = 6, maxPages = 400 } = {}) {
+async function lireCercle({ lat, lon, rayon_km, codes, lire, parallele, maxPages, decouper = false }) {
   const page = async (n) => {
     const params = new URLSearchParams({ lat: String(lat), long: String(lon), radius: String(rayon_km), activite_principale: codes.join(','), etat_administratif: 'A', per_page: '25', page: String(n) });
     // Trop d'appels (429), une erreur passagère (5xx) ou une page qui ne répond pas : trois essais, de plus en plus
@@ -136,6 +162,10 @@ export async function etablissementsCommerce({ lat, lon, rayon_km = 2.5, codes =
     throw new Error(derniere || "L'annuaire limite les appels : réessayez dans une minute.");
   };
   const premiere = await page(1);
+  // L'annuaire s'arrête à 10 000 résultats par recherche (26 oct. 2026 : Lyon les atteint pour chaque classe d'actif) :
+  // un cercle saturé qu'on va découper ne se lit pas en entier.
+  const sature = Number(premiere.total_results) >= 10000 || Number(premiere.total_pages) > maxPages;
+  if (sature && decouper) return { out: [], sature };
   const total = Math.min(Number(premiere.total_pages) || 1, maxPages);
   const pages = [premiere];
   for (let n = 2; n <= total; n += parallele) {
@@ -152,6 +182,44 @@ export async function etablissementsCommerce({ lat, lon, rayon_km = 2.5, codes =
     vus.add(x.siret);
     out.push(x);
   }
+  return { out, sature };
+}
+
+/** Pure : quatre cercles de rayon r/√2 centrés à ±r/2 qui couvrent le cercle de rayon r. */
+export function quartiers({ lat, lon, rayon_km }) {
+  const dLat = rayon_km / 2 / 111.32;
+  const dLon = rayon_km / 2 / (111.32 * Math.cos((lat * Math.PI) / 180));
+  const r = Math.round((rayon_km / Math.SQRT2) * 1000) / 1000;
+  return [[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([a, b]) => ({ lat: lat + a * dLat, lon: lon + b * dLon, rayon_km: r }));
+}
+
+const distanceKm = (a, b) => {
+  const rad = Math.PI / 180;
+  const x = (b.lon - a.lon) * rad * Math.cos(((a.lat + b.lat) / 2) * rad);
+  const y = (b.lat - a.lat) * rad;
+  return Math.sqrt(x * x + y * y) * 6371;
+};
+
+/**
+ * Les établissements actifs autour d'un point, pour une liste de codes NAF. Quand l'annuaire plafonne (10 000
+ * résultats), le cercle se découpe en quatre, jusqu'à trois fois : rien n'est perdu dans une grande ville. Les
+ * quartiers débordent du cercle de départ : ce qui tombe dehors est écarté.
+ */
+export async function etablissementsCommerce({ lat, lon, rayon_km = 2.5, codes = NAF_COMMERCE, lire = fetch, parallele = 6, maxPages = 400, profondeur = 3 } = {}) {
+  const centre = { lat, lon };
+  const vus = new Set();
+  const out = [];
+  const lireZone = async (zone, reste) => {
+    const { out: lus, sature } = await lireCercle({ ...zone, codes, lire, parallele, maxPages, decouper: reste > 0 });
+    if (sature && reste > 0) { for (const q of quartiers(zone)) await lireZone(q, reste - 1); return; }
+    for (const e of lus) {
+      if (vus.has(e.siret)) continue;
+      if (e.lat != null && e.lon != null && distanceKm(centre, e) > rayon_km) continue;
+      vus.add(e.siret);
+      out.push(e);
+    }
+  };
+  await lireZone({ lat, lon, rayon_km }, profondeur);
   return out;
 }
 
@@ -170,12 +238,19 @@ export async function lireVilleSimple(villeId, { journal = () => {}, forcer = fa
   const deja = Records.filter(COMMERCE, { ville_id: villeId });
   if (deja.length && !forcer && v.simple?.lu_le && Date.now() - Date.parse(v.simple.lu_le) < 30 * 86400000) { lancerZonesPuisGoogle(villeId); return { ok: true, n: deja.length, deja: true }; }
   const t0 = Date.now();
-  const etabs = await lister({ lat: v.centre.lat, lon: v.centre.lon, rayon_km: rayonDe(v) });
+  // Les commerces, puis les bureaux et les entrepôts (26 oct. 2026) : trois lectures, une par classe d'actif.
+  const lu = [];
+  for (const codes of [NAF_COMMERCE, NAF_BUREAU, NAF_ENTREPOT]) lu.push(...await lister({ lat: v.centre.lat, lon: v.centre.lon, rayon_km: rayonDe(v), codes }));
+  const etabs = lu;
   const parSiret = new Map(deja.map((c) => [c.siret, c]));
+  const vus = new Set();
   let n = 0;
   for (const e of etabs) {
-    if (!e.siret || !piedDImmeuble(e.ape)?.oui || !e.lat) continue;
-    const base = commerceDepuisEtablissement(e, villeId);
+    const classe = e.siret && e.lat ? classeDeCode(e.ape) : null;
+    if (!classe || vus.has(e.siret)) continue;
+    vus.add(e.siret);
+    // Un bureau ou un entrepôt n'a pas de mot dans la liste des commerces : son activité se dit ici.
+    const base = { ...commerceDepuisEtablissement(e, villeId), classe, ...(classe !== 'commerce' ? { activite: LIBELLES_HORS_COMMERCE[sansPoint(e.ape)] || e.activite } : {}) };
     const ancien = parSiret.get(e.siret);
     if (ancien) Records.update(COMMERCE, ancien.id, { ...base, etat_recherche: ancien.etat_recherche || 'a_faire' });
     else Records.create(COMMERCE, { ...base, etat_recherche: 'a_faire', cree_le: maintenant() });
@@ -249,8 +324,26 @@ export function densites(liste) {
 /** Pure : le seuil de densité d'une ville : la médiane de ses commerces, au moins 15. */
 export const seuilCentre = (valeurs) => { const t = [...valeurs].sort((a, b) => a - b); return Math.max(15, t.length ? t[Math.floor(t.length * 0.45)] : 15); };
 
-/** Pure : les commerces du centre-ville d'une liste (identifiants), avec leur densité. */
+// Le centre-ville d'une ville, gardé tant qu'elle n'est ni relue ni redécoupée (26 oct. 2026 : 4,7 s pour les 58 000
+// points de Lyon, à chaque ouverture de Mon secteur). Une douzaine de villes au plus.
+const centres = new Map();
+const cleCentre = (liste, ville) => `${liste.length}|${ville?.simple?.lu_le || ''}|${ville?.simple?.zones_le || ''}|${(ville?.simple?.zones || []).length}|${(ville?.rues || []).length}`;
+
+/** Les commerces du centre-ville d'une liste (identifiants), avec leur densité ; gardé par ville. */
 export function centreVille(liste, ville = null) {
+  if (!ville?.id || process.env.NODE_TEST_CONTEXT) return calculerCentre(liste, ville);
+  const cle = cleCentre(liste, ville);
+  const deja = centres.get(ville.id);
+  if (deja?.cle === cle) return deja.r;
+  const r = calculerCentre(liste, ville);
+  centres.delete(ville.id);
+  centres.set(ville.id, { cle, r });
+  if (centres.size > 12) centres.delete(centres.keys().next().value);
+  return r;
+}
+
+/** Pure : les commerces du centre-ville d'une liste (identifiants), avec leur densité. */
+export function calculerCentre(liste, ville = null) {
   const n = densites(liste);
   // Les zones commerçantes de la ville (zones.js) font foi quand on les a : un commerce y est, ou n'y est pas.
   const zones = ville?.simple?.zones || [];
@@ -276,7 +369,7 @@ export function centreVille(liste, ville = null) {
 /** Pure : la forme compacte d'un commerce, pour la carte et la liste. */
 export function compact(c, { centre = null, densite = null, zoneDe = null, moi = null } = {}) {
   return {
-    id: c.id, ville_id: c.ville_id || null, siret: c.siret, nom: nomLisible(c.exploitant?.nom || c.nom, { forme: c.exploitant?.forme }), enseigne: c.enseigne ? societeLisible(c.enseigne) : null, activite: c.activite, adresse: rueLisible(c.adresse), adresse_brute: c.adresse, lat: c.lat, lon: c.lon, actif: c.actif !== false,
+    id: c.id, ville_id: c.ville_id || null, siret: c.siret, classe: c.classe || classeDeCode(c.ape) || 'commerce', nom: nomLisible(c.exploitant?.nom || c.nom, { forme: c.exploitant?.forme }), enseigne: c.enseigne ? societeLisible(c.enseigne) : null, activite: c.activite, adresse: rueLisible(c.adresse), adresse_brute: c.adresse, lat: c.lat, lon: c.lon, actif: c.actif !== false,
     lien: c.lien || (c.etat_recherche === 'fait' ? 'inconnu' : null), etat: c.etat_recherche || 'a_faire',
     proprietaire: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null, drapeaux: (c.drapeaux || []).map((d) => d.cle), reponse: c.reponse?.choix || null,
     // La liste est celle de la personne connectée, dans son espace mandataire (12 oct. 2026).
@@ -516,7 +609,8 @@ export async function chercherAdresse(texte, { surEtape = () => {}, lister = eta
   const ids = [];
   for (const e of memes) {
     const base = { ...commerceDepuisEtablissement(e, ville?.id || null), adresse_exacte: true, lat: e.lat ?? a.lat, lon: e.lon ?? a.lon };
-    const deja = Records.list(COMMERCE).find((c) => c.siret === e.siret);
+    // Cherché par la base, pas en chargeant les 80 000 commerces à chaque établissement (502 du 27 oct. 2026 : mémoire).
+    const deja = e.siret ? Records.findBy(COMMERCE, 'siret', e.siret) : null;
     const c = deja ? Records.update(COMMERCE, deja.id, { ...base, etat_recherche: deja.etat_recherche }) : Records.create(COMMERCE, { ...base, etat_recherche: 'a_faire', cree_le: maintenant() });
     ids.push(c.id);
   }
@@ -631,6 +725,14 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     if (c.listes_mandataires?.[moi]) { deja.push({ id, enseigne: c.enseigne || c.nom, liste: c.listes_mandataires[moi].nom }); continue; }
     // Un commerce dont un autre mandataire a la fiche ne se prend pas (24 oct. 2026, la fiche appartient à qui a agi).
     if (Records.list('ProprietaireMandataire').some((p) => p.commerce_simple_id === id && p.mandataire_email !== moi)) { refuses.push(`${c.enseigne || c.nom} : déjà suivi par un autre mandataire.`); continue; }
+    // Ma fiche existe déjà, hors liste (née d'un geste sur la carte) : elle entre dans la liste, sans doublon (25 oct. 2026).
+    const mienne = Records.list('ProprietaireMandataire').find((p) => p.commerce_simple_id === id && p.mandataire_email === moi);
+    if (mienne) {
+      Records.update('ProprietaireMandataire', mienne.id, { liste_id: l.id });
+      Records.update(COMMERCE, id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: mienne.id, le: maintenant() } } });
+      ajoutes.push(id);
+      continue;
+    }
     const ex = c.exploitant || {};
     const pr = c.proprietaire || null;
     // Le numéro du commerce n'est celui du propriétaire que si l'exploitant possède les murs.
@@ -646,6 +748,28 @@ export async function envoyerVersListe(ids = [], { liste_id = null, nom = null, 
     ajoutes.push(id);
   }
   return { ok: true, liste: { id: l.id, nom: l.nom }, ajoutes: ajoutes.length, deja, refuses };
+}
+
+/**
+ * Change la fiche de liste (25 oct. 2026, Jules : « Dans la liste « Lyon » · changer ») : une liste existante du
+ * mandataire, ou une nouvelle par son nom. Le commerce suit.
+ */
+export function changerDeListe(ficheId, { liste_id = null, nom = null, user = null } = {}) {
+  const moi = moiDe(user);
+  const p = Records.get('ProprietaireMandataire', ficheId);
+  if (!p || p.mandataire_email !== moi) return { ok: false, error: 'Fiche introuvable.' };
+  let l = liste_id ? Records.get(LISTE_MANDATAIRE, liste_id) : null;
+  if (liste_id && (!l || l.mandataire_email !== moi)) return { ok: false, error: 'Liste introuvable.' };
+  if (!l) {
+    const propre = String(nom || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!propre) return { ok: false, error: 'Donnez un nom à la liste.' };
+    l = Records.list(LISTE_MANDATAIRE).find((x) => x.mandataire_email === moi && norm(x.nom) === norm(propre))
+      || Records.create(LISTE_MANDATAIRE, { mandataire_email: moi, nom: propre, source: 'Off-market', cree_le: maintenant() });
+  }
+  Records.update('ProprietaireMandataire', p.id, { liste_id: l.id });
+  const c = p.commerce_simple_id ? Records.get(COMMERCE, p.commerce_simple_id) : null;
+  if (c) Records.update(COMMERCE, c.id, { listes_mandataires: { ...(c.listes_mandataires || {}), [moi]: { id: l.id, nom: l.nom, fiche_id: p.id, le: maintenant() } } });
+  return { ok: true, liste: { id: l.id, nom: l.nom } };
 }
 
 // ---------------------------------------------------------------------------
@@ -694,7 +818,7 @@ export async function trouverCommerce(villeId, nom, { surEtape = () => {}, lire 
       for (const p of (j.places || []).filter((x) => x.location && (!x.businessStatus || x.businessStatus === 'OPERATIONAL') && norm(x.displayName?.text).includes(cherche.split(' ')[0])).slice(0, 3)) {
         const complete = String(p.formattedAddress || '');
         if (v.code_postal && !complete.includes(v.code_postal.slice(0, 2))) continue;
-        const deja = Records.list(COMMERCE).find((c) => c.place_id === p.id);
+        const deja = Records.findBy(COMMERCE, 'place_id', p.id);
         if (deja) { Records.update(COMMERCE, deja.id, { epingle: true }); crees.push(deja.id); continue; }
         const c = Records.create(COMMERCE, {
           ville_id: villeId, source: 'Google Maps', place_id: p.id, siret: null, siren: null, nom: p.displayName.text, enseigne: p.displayName.text, nom_google: p.displayName.text,

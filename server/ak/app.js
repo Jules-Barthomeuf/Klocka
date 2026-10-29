@@ -80,20 +80,27 @@ COMMENT TU PARLES ICI (cela prime sur le ton de ta consigne générale) :
 const IMAGES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_IMAGE = 5 * 1024 * 1024;
 const MAX_PDF = 20 * 1024 * 1024;
+// Plusieurs pièces (27 oct. 2026) : la requête entière a sa limite. Au-delà de 20 Mo joints, les suivantes gardent leur chemin.
+const MAX_LOT = 20 * 1024 * 1024;
 
 /** Les blocs natifs des pièces (image, document), et les pièces qu'ils couvrent. Lecture du disque injectable. */
 export function blocsNatifs(pieces = [], { taille = (c) => fs.statSync(c).size, lire = (c) => fs.readFileSync(c) } = {}) {
   const blocs = [];
   const lues = new Set();
+  let joint = 0;
   for (const p of pieces) {
     const type = String(p?.type || '').toLowerCase();
     try {
-      if (IMAGES.has(type) && taille(p.chemin) <= MAX_IMAGE) {
+      const t = IMAGES.has(type) || type === 'application/pdf' ? taille(p.chemin) : 0;
+      if (joint + t > MAX_LOT) continue;
+      if (IMAGES.has(type) && t <= MAX_IMAGE) {
         blocs.push({ type: 'image', source: { type: 'base64', media_type: type, data: lire(p.chemin).toString('base64') } });
         lues.add(p);
-      } else if (type === 'application/pdf' && taille(p.chemin) <= MAX_PDF) {
+        joint += t;
+      } else if (type === 'application/pdf' && t <= MAX_PDF) {
         blocs.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: lire(p.chemin).toString('base64') }, title: String(p.nom || 'document.pdf').slice(0, 200) });
         lues.add(p);
+        joint += t;
       }
     } catch { /* illisible : la pièce reste un chemin */ }
   }
@@ -242,6 +249,15 @@ export async function repondreApp({ texte, historique = [], user, surEtape = nul
       const etapes = { reception: 'Email', preanalyse: 'Pré-analyse', documents: 'Data Room', analyse: 'Analyse', plateforme: 'Plateforme', clients: 'Clients', offre: 'Offre', bancaire: 'Dossier bancaire' };
       const etape = etapes[contexte.etape] || null;
       cadrePage = `\n\nTU ES DANS UN DOSSIER OUVERT À DROITE : « ${titre} » (deal_id ${deal.deal_id}, statut ${deal.statut || 'analyse'}${etape ? `, étape ouverte : ${etape}` : ''}${lot?.evaluation?.verdict ? `, verdict ${lot.evaluation.verdict}` : ''}). Une question ou une correction sans autre précision porte sur CE dossier : etat_dossier avec ce deal_id pour lire ce qu'il contient, modifier_dossier avec ce deal_id pour corriger un fait (loyer, prix, surface, locataire, bail…), mails_du_dossier pour les échanges. L'écran se met à jour après ta réponse. Ne parle d'un autre dossier que si on te le nomme.`;
+      // L'étape Offre (28 oct. 2026, Jules) : la lettre d'intention du dossier est ouverte à droite, à remplir ou à corriger.
+      if (contexte.etape === 'offre') {
+        const O = await import('../offres.js');
+        const l = O.derniereLettreDuDossier(deal.deal_id);
+        const ctx = l ? await O.contexteLettre(l.id) : null;
+        cadrePage += ctx
+          ? `\nL'ÉTAPE OFFRE EST OUVERTE : la lettre d'intention de ce dossier est à droite.\n${ctx}\nUne correction ou une information (l'acquéreur, le vendeur, le prix, l'apport, « enlève la clause de substitution ») porte sur CETTE lettre : rediger_loi avec ce loi_id et seulement ce qui change (champs, ou textes par clé).`
+          : `\nL'ÉTAPE OFFRE EST OUVERTE : à droite, la lettre d'intention de ce dossier, encore vierge (le bien vient du dossier). Pour la rédiger : rediger_loi avec deal_id ${deal.deal_id} et ce qu'on t'a dit (l'acquéreur, le vendeur, le prix, l'apport) ; ce qui manque, demande-le en UNE ligne. Ne devine jamais un nom ou un prix.`;
+      }
     }
   }
   // La page Emailing : le chat y conçoit les séquences d'emails, avec l'équipe.

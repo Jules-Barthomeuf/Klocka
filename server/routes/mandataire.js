@@ -5,6 +5,11 @@
 
 import { ok, wrap, currentUser, upload } from '../contexte.js';
 
+// Les sources cochées arrivent en tableau (JSON) ou en texte (formulaire avec pièce jointe).
+// Ce que le mandataire regarde à droite (l'avis, le deck et sa page), en objet ou en texte JSON.
+const lireVue = (v) => { if (v && typeof v === 'object') return v; try { const x = JSON.parse(v || 'null'); return x && typeof x === 'object' ? x : null; } catch { return null; } };
+const lireSources = (v) => { if (Array.isArray(v)) return v; try { const x = JSON.parse(v || 'null'); return Array.isArray(x) ? x : null; } catch { return null; } };
+
 export function monterMandataire(app) {
   const mandataire = (req, res) => {
     const user = currentUser(req);
@@ -20,24 +25,30 @@ export function monterMandataire(app) {
   // le disque pour recevoir un 403 ensuite.
   const roleAvantDepot = (req, res, next) => (['mandataire', 'admin'].includes(currentUser(req)?.role) ? next() : res.status(403).json({ error: 'Réservé aux mandataires K Partners.' }));
 
-  app.post('/api/mandataire/chat', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+  app.post('/api/mandataire/chat', roleAvantDepot, upload.array('fichier', 10), wrap(async (req, res) => {
     const user = mandataire(req, res);
     if (!user) return;
     const texte = String(req.body?.texte || '').trim();
-    if (!texte && !req.file) return res.status(400).json({ error: 'Rien à traiter.' });
+    const fichiers = req.files || [];
+    if (!texte && !fichiers.length) return res.status(400).json({ error: 'Rien à traiter.' });
     // Une pièce jointe : rangée dans les dépôts, lue (PDF, photo, Word), puis
     // confiée à l'assistant. La lecture peut prendre du temps (OCR d'une photo
     // de bail) : en flux, elle se fait APRÈS l'ouverture du flux, sous sa
     // propre étape, au lieu de laisser l'écran muet.
-    const chargerPiece = async (etape = null) => {
-      if (!req.file) return null;
-      etape?.(`Lecture de la pièce jointe : ${req.file.originalname}`);
+    // Plusieurs pièces (27 oct. 2026, Jules) : chacune rangée et lue l'une après l'autre, sous sa propre étape.
+    const chargerPieces = async (etape = null) => {
+      if (!fichiers.length) return [];
       const fs = await import('fs');
       const { ingerer } = await import('../deal/ingest.js');
-      let lu = '';
-      try { lu = (await ingerer({ buffer: fs.readFileSync(req.file.path), filename: req.file.originalname, mimetype: req.file.mimetype })).texte || ''; } catch (e) { console.warn(`[mandataire] pièce illisible : ${e?.message || e}`); }
-      if (etape && lu) etape(`Document lu (${lu.length >= 2000 ? `${Math.round(lu.length / 1000)} k caractères` : `${lu.length} caractères`})`);
-      return { nom: req.file.originalname, url: `/uploads/${req.file.filename}`, chemin: req.file.path, mimetype: req.file.mimetype, texte: lu };
+      const lot = [];
+      for (const f of fichiers) {
+        etape?.(`Lecture de la pièce jointe : ${f.originalname}`);
+        let lu = '';
+        try { lu = (await ingerer({ buffer: fs.readFileSync(f.path), filename: f.originalname, mimetype: f.mimetype })).texte || ''; } catch (e) { console.warn(`[mandataire] pièce illisible : ${e?.message || e}`); }
+        if (etape && lu) etape(`Document lu (${lu.length >= 2000 ? `${Math.round(lu.length / 1000)} k caractères` : `${lu.length} caractères`})`);
+        lot.push({ nom: f.originalname, url: `/uploads/${f.filename}`, chemin: f.path, mimetype: f.mimetype, texte: lu });
+      }
+      return lot;
     };
     if (typeof req.body?.historique === 'string') { try { req.body.historique = JSON.parse(req.body.historique); } catch { req.body.historique = []; } }
     if (typeof req.body?.selection === 'string') { try { req.body.selection = JSON.parse(req.body.selection); } catch { req.body.selection = null; } }
@@ -49,16 +60,16 @@ export function monterMandataire(app) {
         const { ouvrirFlux } = await import('../flux.js');
         const flux = ouvrirFlux(res);
         try {
-          const piece = await chargerPiece(flux.etape);
+          const pieces = await chargerPieces(flux.etape);
           const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-            discuterEstimation({ historique: req.body?.historique, texte, user, piece, mode: req.body?.mode, conversation_id: req.body?.conversation_id || null, selection: req.body?.selection || null, surEtape: flux.etape }));
+            discuterEstimation({ historique: req.body?.historique, texte, user, pieces, mode: req.body?.mode, conversation_id: req.body?.conversation_id || null, selection: req.body?.selection || null, sources: lireSources(req.body?.sources), competence: req.body?.competence || null, vue: lireVue(req.body?.vue), surEtape: flux.etape }));
           flux.fin(resultat);
         } catch (e) { flux.erreur(e); }
         return;
       }
-      const piece = await chargerPiece();
+      const pieces = await chargerPieces();
       const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-        discuterEstimation({ historique: req.body?.historique, texte, user, piece, mode: req.body?.mode, conversation_id: req.body?.conversation_id || null, selection: req.body?.selection || null }));
+        discuterEstimation({ historique: req.body?.historique, texte, user, pieces, mode: req.body?.mode, conversation_id: req.body?.conversation_id || null, selection: req.body?.selection || null, sources: lireSources(req.body?.sources), competence: req.body?.competence || null, vue: lireVue(req.body?.vue) }));
       return ok(res, resultat);
     }
     // Le chat du Mandat : les questions du mandat de vente, puis MyNotary.
@@ -69,16 +80,16 @@ export function monterMandataire(app) {
         const { ouvrirFlux } = await import('../flux.js');
         const flux = ouvrirFlux(res);
         try {
-          const piece = await chargerPiece(flux.etape);
+          const pieces = await chargerPieces(flux.etape);
           const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-            discuterMandat({ historique: req.body?.historique, texte, user, piece, conversation_id: req.body?.conversation_id || null, surEtape: flux.etape }));
+            discuterMandat({ historique: req.body?.historique, texte, user, pieces, sources: lireSources(req.body?.sources), competence: req.body?.competence || null, conversation_id: req.body?.conversation_id || null, surEtape: flux.etape }));
           flux.fin(resultat);
         } catch (e) { flux.erreur(e); }
         return;
       }
-      const piece = await chargerPiece();
+      const pieces = await chargerPieces();
       const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-        discuterMandat({ historique: req.body?.historique, texte, user, piece, conversation_id: req.body?.conversation_id || null }));
+        discuterMandat({ historique: req.body?.historique, texte, user, pieces, sources: lireSources(req.body?.sources), competence: req.body?.competence || null, conversation_id: req.body?.conversation_id || null }));
       return ok(res, resultat);
     }
     // Le chat de la Prospection : même structure, autre moteur (Data Prospective).
@@ -109,9 +120,9 @@ export function monterMandataire(app) {
       const arret = new AbortController();
       res.on('close', () => { if (!res.writableEnded) { coupe = true; arret.abort(); } });
       try {
-        const piece = await chargerPiece(flux.etape);
+        const pieces = await chargerPieces(flux.etape);
         const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-          discuter({ historique: req.body?.historique, texte, user, piece, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, proprietaire_id: req.body?.proprietaire_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
+          discuter({ historique: req.body?.historique, texte, user, pieces, surEtape: flux.etape, surAction: flux.action, estAnnule: () => coupe, signal: arret.signal, surTexte: flux.texte, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, proprietaire_id: req.body?.proprietaire_id || null, dossier_vente_id: req.body?.dossier_vente_id || null, marche_id: req.body?.marche_id || null, dans_le_fil: req.body?.dans_le_fil === true || req.body?.dans_le_fil === '1', sortie: req.body?.sortie || null, sources: lireSources(req.body?.sources), competence: req.body?.competence || null })
         );
         flux.fin(resultat);
       } catch (e) {
@@ -119,9 +130,9 @@ export function monterMandataire(app) {
       }
       return;
     }
-    const piece = await chargerPiece();
+    const pieces = await chargerPieces();
     const { resultat } = await mesurer({ operation: 'mandataire', par: user.email }, () =>
-      discuter({ historique: req.body?.historique, texte, user, piece, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, proprietaire_id: req.body?.proprietaire_id || null, sortie: req.body?.sortie || null, competence: req.body?.competence || null })
+      discuter({ historique: req.body?.historique, texte, user, pieces, prospection_id: req.body?.prospection_id || null , dossier_id: req.body?.dossier_id || null, proprietaire_id: req.body?.proprietaire_id || null, dossier_vente_id: req.body?.dossier_vente_id || null, marche_id: req.body?.marche_id || null, dans_le_fil: req.body?.dans_le_fil === true || req.body?.dans_le_fil === '1', sortie: req.body?.sortie || null, sources: lireSources(req.body?.sources), competence: req.body?.competence || null })
     );
     ok(res, resultat);
   }));
@@ -137,6 +148,14 @@ export function monterMandataire(app) {
     const user = mandataire(req, res);
     if (!user) return;
     ok(res, await (await import('../mandataire-prospecter.js')).prospecter(user));
+  }));
+  // Tous les commerces du secteur, sans client (25 oct. 2026) : le client est un filtre de la même vue.
+  app.get('/api/mandataire/prospecter/tous', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await import('../mandataire-prospecter.js')).pointsDuSecteur(user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
   }));
   app.get('/api/mandataire/prospecter/clients/:id', wrap(async (req, res) => {
     const user = mandataire(req, res);
@@ -598,6 +617,22 @@ export function monterMandataire(app) {
     if (!r.ok) return res.status(404).json({ error: r.error });
     ok(res, r);
   }));
+  // Changer la fiche de liste (25 oct. 2026).
+  app.post('/api/mandataire/proprietaires/:id/liste', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = (await import('../off-market/simple.js')).changerDeListe(req.params.id, { liste_id: req.body?.liste_id || null, nom: req.body?.nom || null, user });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    ok(res, r);
+  }));
+  // L'aperçu d'un commerce sans fiche : la même fiche, rien n'est créé (25 oct. 2026).
+  app.get('/api/mandataire/commerces/:id/apercu', wrap(async (req, res) => {
+    const user = mandataire(req, res);
+    if (!user) return;
+    const r = await (await import('../fiche-mandataire.js')).ficheDeCommerce(req.params.id, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
   app.post('/api/mandataire/proprietaires/:id/dictee', roleAvantDepot, upload.single('audio'), wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const fs = await import('fs');
@@ -610,6 +645,91 @@ export function monterMandataire(app) {
   app.post('/api/mandataire/proprietaires/:id/etape', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendreFiche(res, (await FM()).validerEtape(req.params.id, String(req.body?.etape || ''), user));
+  }));
+  // Les cinq premières étapes d'un bien sur un écran (25 oct. 2026) : la conversation de la fiche, le prix d'accord.
+  app.post('/api/mandataire/proprietaires/:id/conversation', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await import('../bien-etapes.js')).lierConversation(req.params.id, req.body?.conversation_id || null, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/prix-accord', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await import('../bien-etapes.js')).noterPrixAccord(req.params.id, req.body?.prix ?? null, user));
+  }));
+  // La Pré-visite (26 oct. 2026) : la préparation refaite à la demande, le rendez-vous décalé ou annulé, les documents
+  // cochés et le mail qui demande les autres, la visite (ses réponses, ses photos).
+  const PR = () => import('../preparation-rdv.js');
+  app.post('/api/mandataire/proprietaires/:id/preparation', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const p = (await import('../db.js')).Records.get('ProprietaireMandataire', req.params.id);
+    if (!p || String(p.mandataire_email || '').toLowerCase() !== String(user.email || '').toLowerCase()) return res.status(404).json({ error: 'Fiche introuvable.' });
+    rendreFiche(res, await (await PR()).preparer(req.params.id, { user }));
+  }));
+  app.get('/api/mandataire/biens/preparation-legere', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, await (await PR()).preparationLegere({ adresse: req.query.adresse || null, ville: req.query.ville || null, activite: req.query.activite || null }, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/rdv/decaler', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, await (await PR()).decalerRdv(req.params.id, req.body?.quand, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/rdv/annuler', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, await (await PR()).annulerRdv(req.params.id, { motif: req.body?.motif || null }, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/preparation/documents', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await PR()).cocherDocuments(req.params.id, Array.isArray(req.body?.recus) ? req.body.recus : [], user));
+  }));
+  app.get('/api/mandataire/proprietaires/:id/preparation/mail', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await PR()).mailDesDocuments(req.params.id, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/visite', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await PR()).noterVisite(req.params.id, { reponses: req.body?.reponses || null }, user));
+  }));
+  app.post('/api/mandataire/proprietaires/:id/visite/photo', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    if (!req.file) return res.status(400).json({ error: 'Aucune photo reçue.' });
+    if (!/^image\//.test(req.file.mimetype || '')) return res.status(400).json({ error: 'Une photo, au format image.' });
+    rendreFiche(res, (await PR()).noterVisite(req.params.id, { photo: { url: `/uploads/${req.file.filename}`, quoi: req.body?.quoi || 'photo' } }, user));
+  }));
+  // La restitution de l'avis (27 oct. 2026) : le cas dicté, proposé puis confirmé d'un tap ; un statut, une relance datée.
+  const RA = () => import('../restitution-avis.js');
+  // Le Suivi d'un bien dont l'avis est parti (27 oct. 2026) : le bien, ce qu'il reste à faire, l'historique.
+  app.get('/api/mandataire/proprietaires/:id/suivi', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = (await RA()).suiviDuBien(req.params.id, user);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/mandataire/proprietaires/:id/restitution', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const b = req.body || {};
+    rendreFiche(res, (await RA()).appliquerRestitution(req.params.id, { cas: b.cas, prix: b.prix ?? null, date: b.date || null, motif: b.motif || null, note: b.note || null, relance_le: b.relance_le || null, relance_quoi: b.relance_quoi || null, canal: b.canal || null }, user));
+  }));
+  // L'envoi de l'avis : le mail préparé (par Haka ou par défaut), l'avis en PDF, puis « c'est envoyé ».
+  app.post('/api/mandataire/estimations/:id/envoi', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, await (await RA()).preparerEnvoi(req.params.id, { objet: req.body?.objet || null, texte: req.body?.texte || null }, user));
+  }));
+  app.get('/api/mandataire/estimations/:id/pdf', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { PORT } = await import('../contexte.js');
+    const r = await (await RA()).exporterAvisPdf(req.params.id, user, { base: `http://127.0.0.1:${PORT}` });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    res.set('Cache-Control', 'no-store');
+    res.download(r.fichier, r.nom);
+  }));
+  app.post('/api/mandataire/estimations/:id/envoye', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreFiche(res, (await RA()).marquerEnvoye(req.params.id, { a: req.body?.a || null, objet: req.body?.objet || null, texte: req.body?.texte || null }, user));
+  }));
+  // La page d'impression de l'avis (publique) : un jeton court, posé par le serveur pour son propre navigateur.
+  app.get('/api/avis-impression/:jeton', wrap(async (req, res) => {
+    const d = await (await RA()).avisParJeton(req.params.jeton);
+    if (!d) return res.status(404).json({ error: 'Lien d’impression expiré.' });
+    ok(res, d);
   }));
   app.post('/api/mandataire/proprietaires/:id/pause', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;

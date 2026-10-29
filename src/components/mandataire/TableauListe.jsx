@@ -2,11 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, ChevronDown, ExternalLink, Loader2, LocateFixed, Pencil, PhoneCall, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, LocateFixed, Pencil, Search, Trash2, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import PanneauAppelFiche from "@/components/mandataire/PanneauAppelFiche";
 import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { JL } from "@/design/jetons";
@@ -125,59 +124,26 @@ const COLONNES = [
   { cle: "dernier", titre: "Dernier échange", largeur: 260, lire: (p) => { const h = [...(p.historique || [])].reverse().find((x) => x.type !== "creation"); return h ? `${dateCourte(h.le)} · ${h.texte}` : ""; } },
 ];
 
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 /**
- * Qualifier un commerce en dix secondes : clic sur son nom, la vitrine
- * s'ouvre dans Street View (panorama interactif), avec les faits à côté —
- * emplacement, propriétaire, numéros — et le bouton d'appel.
+ * La fiche d'un commerce de la liste (25 oct. 2026, Jules : « la liste devient une file, la fiche fait le reste ») : la
+ * fiche commune, la même que sur la carte et dans « Mon secteur ». À l'ordinateur à droite, sur toute la hauteur ; au
+ * téléphone au milieu de l'écran. Plus de vitrine ni de boutons à part : appeler, c'est toucher le numéro de la fiche.
  */
-function PanneauCommerce({ p, libelles, onFermer, onSansReponse, onAppeler }) {
-  const c = p.cible || {};
-  const position = c.lat != null && c.lon != null ? `${c.lat},${c.lon}` : p.position ? `${p.position.lat},${p.position.lon}` : null;
-  const adresse = [p.adresse || c.adresse, p.ville].filter(Boolean).join(", ");
-  const tel = p.telephone || (c.proprietaire_occupant ? c.telephone : null) || null;
-  return (
-    // Une entrée et une sortie douces (25 oct. 2026, Jules : la croix referme comme elle ouvre).
-    <motion.div className="fixed inset-0 z-[70] flex justify-end bg-fond/60 backdrop-blur-sm" onClick={onFermer}
+function PanneauCommerce({ p, onFermer }) {
+  const large = typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+  // Dans le <body> (25 oct. 2026) : posé dans la page, il restait sous la cloche et la barre du haut, qui sont au-dessus du contenu.
+  return createPortal(
+    <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-fond/60 p-3 backdrop-blur-sm md:items-stretch md:justify-end md:p-0" onClick={onFermer}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
-      <motion.div className="flex h-full w-full max-w-[560px] flex-col overflow-y-auto border-l border-trait bg-surface-pleine" onClick={(e) => e.stopPropagation()}
-        initial={{ x: 28 }} animate={{ x: 0 }} exit={{ x: 28 }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}>
-        {/* La fiche commune, celle de la carte (25 oct. 2026, Jules), avec la vitrine et les gestes sous l'adresse. */}
-        <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || c.enseigne, adresse }} media={(
-          <>
-            <div className="relative mx-6 mt-4 h-[260px] flex-none overflow-hidden rounded-[12px] bg-fond max-md:mx-5 max-md:h-[200px]">
-              {position && MAPS_KEY ? (
-                <iframe
-                  src={`https://www.google.com/maps/embed/v1/streetview?key=${MAPS_KEY}&location=${position}&fov=85`}
-                  title={`Street View · ${p.commerce || c.enseigne || adresse}`}
-                  className="absolute inset-0 h-full w-full border-0"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              ) : (
-                <p className="m-0 grid h-full place-items-center text-[13.5px] text-brume">{MAPS_KEY ? "Pas de position pour ce commerce." : "Clé Google Maps absente."}</p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 px-6 pt-4 max-md:px-5">
-              {tel && (
-                <button type="button" onClick={() => onAppeler(p.id)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[12.5px] text-sur-menthe">
-                  <PhoneCall className="h-3.5 w-3.5" /> Appeler le propriétaire
-                </button>
-              )}
-              <button type="button" onClick={() => onSansReponse(p.id)}
-                className="inline-flex h-9 items-center rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}>
-                Sans réponse
-              </button>
-              <a href={`https://www.google.com/maps/search/${encodeURIComponent([p.commerce || c.enseigne, adresse].filter(Boolean).join(" "))}`} target="_blank" rel="noreferrer"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-trait px-3.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe">
-                <ExternalLink className="h-3.5 w-3.5" /> Google Maps
-              </a>
-            </div>
-          </>
-        )} />
+      <motion.div className="flex w-full flex-col overflow-hidden bg-surface-pleine md:h-full md:max-w-[480px] md:border-l md:border-trait max-md:max-h-[86dvh] max-md:max-w-[440px] max-md:rounded-[18px]" onClick={(e) => e.stopPropagation()}
+        initial={{ x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ x: 0, scale: 1 }} exit={{ x: large ? 28 : 0, scale: large ? 1 : 0.96 }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <FicheMandataire id={p.id} onFermer={onFermer} repli={{ commerce: p.commerce || p.cible?.enseigne, adresse: [p.adresse || p.cible?.adresse, p.ville].filter(Boolean).join(", ") }} />
+        </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
 
@@ -230,31 +196,37 @@ function Cellule({ p, col, onEnregistrer }) {
 // Les fiches dans Biens (rendez-vous fixé) et celles sans intérêt sortent des listes à prospecter (24 oct. 2026) ;
 // « Sorties » les retrouve.
 const SORTIES = ["rdv_pris", "mandat_signe", "pas_vendeur"];
+// Trois filtres, comptés (25 oct. 2026, Jules) : la file à contacter, ceux déjà contactés, et ceux qui sont sortis.
 const FILTRES = [
-  ["toutes", "À prospecter", (p) => !SORTIES.includes(p.statut)],
   ["a_appeler", "À contacter", (p) => ["a_appeler", "a_recontacter"].includes(p.statut)],
   ["en_cours", "Contacté", (p) => ["contacte", "en_discussion"].includes(p.statut)],
-  ["rdv", "Sorties (Biens, pas d'intérêt)", (p) => SORTIES.includes(p.statut)],
-  ["numero", "Avec un numéro", (p) => !!(p.telephone || p.telephone_commerce || p.cible?.telephone)],
-  ["inconnu", "Propriétaire inconnu", (p) => !(p.nom || "").trim() && !p.cible?.proprietaire],
+  ["rdv", "Sorties", (p) => SORTIES.includes(p.statut)],
 ];
+// Les colonnes de la file : le statut, le numéro, la prochaine action, le dernier échange. Le reste est dans la fiche.
+const VISIBLES = ["statut", "telephone", "prochaine", "dernier"];
+const COLONNES_FILE = VISIBLES.map((k) => COLONNES.find((c) => c.cle === k)).filter(Boolean).map((c) => (c.cle === "telephone" ? { ...c, titre: "Numéro", largeur: 170 } : c));
+// L'ordre de la file : les relances dues d'abord, puis les « à contacter », puis le reste ; à rang égal, la plus ancienne échéance.
+const echeance = (p) => Date.parse(p.prochaine_action_le || "") || Infinity;
+const rangFile = (p, maintenant) => (echeance(p) <= maintenant ? 0 : ["a_appeler", "a_recontacter"].includes(p.statut) ? 1 : 2);
 
 /**
  * La fiche d'un point de la carte (maquette de Jules, 24 oct. 2026) : la fiche commune (FicheMandataire). À l'ordinateur,
  * à droite de la carte sur toute la hauteur ; au téléphone, au milieu de l'écran.
  */
-function FichePoint({ fiche: p, onFermer }) {
-  const large = typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+// `centre` : la fiche au centre de l'écran, sur ordinateur comme au téléphone (le mode terrain, 25 oct. 2026, Jules).
+export function FichePoint({ fiche: p, onFermer, centre = false }) {
+  const large = !centre && typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
   return (
     <>
-      {/* Au téléphone, un voile derrière la fiche posée au milieu. */}
-      <motion.div className="absolute inset-0 z-10 bg-fond/40 md:hidden" onClick={onFermer} aria-hidden
+      {/* Au téléphone (ou au centre), un voile derrière la fiche posée au milieu. */}
+      <motion.div className={`absolute inset-0 z-10 bg-fond/40 ${centre ? "" : "md:hidden"}`} onClick={onFermer} aria-hidden
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }} />
       {/* Elle glisse en entrant et en sortant, doucement (24 oct. 2026) : de la droite à l'ordinateur, du centre au téléphone. */}
-      {/* Centrée au téléphone par un conteneur flex, pas par un décalage CSS : l'animation (transform) l'écraserait. */}
-      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-3 md:inset-y-0 md:left-auto md:right-0 md:block md:p-0">
+      {/* Centrée par un conteneur flex, pas par un décalage CSS : l'animation (transform) l'écraserait. */}
+      <div className={`pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-3 ${centre ? "" : "md:inset-y-0 md:left-auto md:right-0 md:block md:p-0"}`}>
       <motion.aside initial={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: large ? 28 : 0, scale: large ? 1 : 0.96 }}
-        transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }} className="pointer-events-auto flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] md:h-full md:w-[420px] md:border-l md:border-trait max-md:max-h-[82dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]">
+        transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
+        className={`pointer-events-auto flex flex-col overflow-hidden bg-surface-pleine shadow-[0_12px_40px_rgb(0_0_0/0.3)] ${centre ? "max-h-[82dvh] w-full max-w-[460px] rounded-[18px]" : "md:h-full md:w-[420px] md:border-l md:border-trait max-md:max-h-[82dvh] max-md:w-full max-md:max-w-[440px] max-md:rounded-[18px]"}`}>
         {/* Le défilement dans un bloc intérieur (25 oct. 2026, Jules : « à droite la card a les coins carrés ») : la barre de
             défilement d'un bloc arrondi n'est pas coupée par ses coins ; ici le cadre arrondi la coupe. */}
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -326,15 +298,14 @@ function CarteListeGrandEcran({ fiches, onFermer }) {
   );
 }
 
-export default function TableauListe({ fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onRenommer = null, onSupprimer = null, agent = false }) {
+export default function TableauListe({ fiches, libelles, listeId = null, carteDemandee = false, onCarteVue = null, reste = null, onRenommer = null, onSupprimer = null, agent = false, chiffres = null }) {
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
-  const [filtre, setFiltre] = useState("toutes");
+  const [filtre, setFiltre] = useState("a_appeler");
   const [retirer, setRetirer] = useState(false);
   // Les lignes cochées, pour agir en lot.
   const [coches, setCoches] = useState(() => new Set());
-  const [ouvert, setOuvert] = useState(null); // la fiche ouverte en panneau Street View
-  const [appelFiche, setAppelFiche] = useState(null); // la fiche dont on passe l'appel
+  const [ouvert, setOuvert] = useState(null); // la fiche ouverte, à droite
   const [grandEcran, setGrandEcran] = useState(false); // la carte des commerces de la liste, en plein écran
   // L'onglet « Carte » de la page (à droite de Listes) l'ouvre ; la demande est consommée aussitôt (24 oct. 2026).
   useEffect(() => {
@@ -369,18 +340,16 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
   const modifier = useMutation({ mutationFn: ({ id, champs }) => base44.request("PATCH", `${API}/proprietaires/${id}`, { body: champs }), onSuccess: rafraichir, onError: onErr });
   // Pas d'intérêt : la fiche sort des listes, une relance dans six mois (24 oct. 2026).
   const statut = useMutation({ mutationFn: ({ id, statut: s }) => base44.request("POST", `${API}/proprietaires/${id}/statut`, { body: { statut: s, ...(s === "pas_vendeur" ? { rappel_dans_jours: 180, note: "Pas d'intérêt" } : {}) } }), onSuccess: rafraichir, onError: onErr });
-  const sansReponse = useMutation({
-    mutationFn: (id) => base44.request("POST", `${API}/proprietaires/${id}/sans-reponse`),
-    onSuccess: (r) => { rafraichir(); toast.success(`${r.titre} · ${r.pour}`); },
-    onError: onErr,
-  });
   const supprimer = useMutation({ mutationFn: (id) => base44.request("DELETE", `${API}/proprietaires/${id}`), onSuccess: rafraichir, onError: onErr });
 
   const lignes = useMemo(() => {
     const t = q.trim().toLowerCase();
     const garde = (FILTRES.find(([k]) => k === filtre) || FILTRES[0])[2];
-    return (fiches || []).filter(garde).filter((p) => !t || `${p.commerce || ""} ${p.nom || ""} ${p.cible?.proprietaire || ""} ${p.cible?.societe?.nom || ""} ${p.adresse || p.cible?.adresse || ""} ${p.telephone || ""}`.toLowerCase().includes(t));
+    const maintenant = Date.now();
+    return (fiches || []).filter(garde).filter((p) => !t || `${p.commerce || ""} ${p.nom || ""} ${p.cible?.proprietaire || ""} ${p.cible?.societe?.nom || ""} ${p.adresse || p.cible?.adresse || ""} ${p.telephone || ""}`.toLowerCase().includes(t))
+      .sort((a, b) => rangFile(a, maintenant) - rangFile(b, maintenant) || echeance(a) - echeance(b));
   }, [fiches, q, filtre]);
+  const compte = (k) => (fiches || []).filter((FILTRES.find(([x]) => x === k) || FILTRES[0])[2]).length;
   // Les cases suivent la liste : une fiche partie n'est plus cochée.
   useEffect(() => { setCoches((c) => new Set([...c].filter((id) => (fiches || []).some((p) => p.id === id)))); }, [fiches]);
   const tout = lignes.length > 0 && lignes.every((p) => coches.has(p.id));
@@ -397,13 +366,16 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
         <div className="flex gap-1 rounded-full bg-rail-actif p-1 max-md:max-w-full max-md:overflow-x-auto max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
           {FILTRES.map(([k, mot]) => (
             <button key={k} type="button" onClick={() => setFiltre(k)}
-              className={`rounded-full px-3 py-1 text-[12.5px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
-              style={filtre === k ? undefined : { background: "transparent" }}>{mot}</button>
+              className={`rounded-full px-3 py-1 text-[13px] max-md:flex-none max-md:whitespace-nowrap max-md:py-1.5 ${filtre === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`}
+              style={filtre === k ? undefined : { background: "transparent" }}>{mot} <span className="tabular-nums text-brume">{compte(k)}</span></button>
           ))}
         </div>
         <span className="ml-auto text-[13px] text-ardoise max-md:ml-0">
           {recherche && (sansProprio > 0 || sansNumero > 0) ? (
             <span className="inline-flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" />{sansProprio > 0 ? `Propriétaires au cadastre : ${sansProprio} restant${sansProprio > 1 ? "s" : ""}` : `Numéros des propriétaires : ${sansNumero} restant${sansNumero > 1 ? "s" : ""}`}</span>
+          ) : chiffres ? (
+            // Les chiffres de la liste en une ligne (25 oct. 2026), à la place des quatre tuiles.
+            <span><span className="tabular-nums text-menthe">{chiffres.faits}</span> fait{chiffres.faits > 1 ? "s" : ""} sur <span className="tabular-nums text-encre">{chiffres.total}</span>{chiffres.rdv ? <> · <span className="tabular-nums text-encre">{chiffres.rdv}</span> RDV</> : null}</span>
           ) : `${lignes.length} commerce${lignes.length > 1 ? "s" : ""}${agent ? " · remplie par votre agent IA" : ""}`}
         </span>
         {onRenommer && (
@@ -413,9 +385,10 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
           </button>
         )}
         {onSupprimer && (
-          <button type="button" onClick={onSupprimer}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-alerte hover:border-alerte" style={{ background: "transparent" }}>
-            <Trash2 className="h-3.5 w-3.5" />Supprimer la liste
+          // L'icône seule (25 oct. 2026, Jules), le mot au survol et pour les lecteurs d'écran.
+          <button type="button" onClick={onSupprimer} aria-label="Supprimer la liste" title="Supprimer la liste"
+            className="grid h-8 w-8 place-items-center rounded-full border border-trait text-alerte hover:border-alerte" style={{ background: "transparent" }}>
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -435,7 +408,25 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
 
       {/* Pas de hauteur fixe : le tableau s'allonge avec ses lignes, la page défile.
           Seul le débord horizontal (colonnes sur un écran étroit) défile dans le cadre. */}
-      <div className="mt-4 overflow-x-auto rounded-[16px] border border-[color-mix(in_srgb,var(--k-bord-doux)_60%,transparent)] bg-rail">
+      {/* Au téléphone, plus de tableau (25 oct. 2026) : une ligne par commerce, le nom, la pastille du statut, la prochaine
+          action ; un toucher ouvre la fiche au milieu de l'écran. */}
+      <ul className="m-0 mt-4 list-none overflow-hidden rounded-[16px] border border-bord-doux bg-rail p-0 md:hidden">
+        {lignes.map((p) => (
+          <li key={p.id} className="border-b border-trait last:border-b-0">
+            <button type="button" onClick={() => setOuvert(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left" style={{ background: "transparent" }}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] text-encre">{p.commerce || p.cible?.enseigne || "Commerce"}</span>
+                <span className="block truncate text-[12.5px] text-ardoise">{[p.prochaine_action_le ? dateCourte(p.prochaine_action_le) : null, p.prochaine_action].filter(Boolean).join(" · ") || p.ville || ""}</span>
+              </span>
+              <span className={`inline-flex h-7 flex-none items-center gap-1.5 rounded-full px-2.5 text-[12px] ${TEINTES_STATUT[TON_STATUT[p.statut] || "neutre"]}`}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--point)" }} />{libelles[p.statut] || p.statut}
+              </span>
+            </button>
+          </li>
+        ))}
+        {!lignes.length && <li className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : filtre === "a_appeler" ? "Plus personne à contacter dans cette liste." : "Rien ici."}</li>}
+      </ul>
+      <div className="mt-4 overflow-x-auto rounded-[16px] border border-[color-mix(in_srgb,var(--k-bord-doux)_60%,transparent)] bg-rail max-md:hidden">
         {/* Bordures séparées, pas fusionnées (25 oct. 2026, Jules : « on voit du texte passer derrière ») : fusionnées, les traits
             appartiennent au tableau et ne suivent pas les colonnes figées, le texte qui défile se voyait au travers ; séparées,
             chaque cellule porte les siens, peints sur son fond opaque. */}
@@ -450,7 +441,7 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                 </button>
               </th>
               <th className="sticky left-[44px] z-30 min-w-[220px] max-md:min-w-[140px] border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-3.5 pl-2 pr-4 text-left text-[12.5px] font-normal text-encre">Commerce</th>
-              {COLONNES.map((c) => (
+              {COLONNES_FILE.map((c) => (
                 <th key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-4 py-3.5 text-left text-[12.5px] font-normal text-encre" style={{ minWidth: c.largeur }}>{c.titre}</th>
               ))}
             </tr>
@@ -462,7 +453,10 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
               const tel = p.telephone || (p.cible?.proprietaire_occupant ? p.cible?.telephone : null) || null;
               const enregistrer = (champs) => modifier.mutate({ id: p.id, champs });
               return (
-                <tr key={p.id} className={`group transition-colors ${coches.has(p.id) ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
+                // Toute la ligne ouvre la fiche (26 oct. 2026, Jules) ; les cases, le statut, le numéro et les cellules à
+                // modifier gardent leur geste.
+                <tr key={p.id} onClick={(e) => { if (!e.target.closest("a, button, input, select, textarea, label, [role=button]")) setOuvert(p.id); }}
+                  className={`group cursor-pointer transition-colors ${coches.has(p.id) ? "bg-menthe/[0.05]" : "hover:bg-relief/30"}`}>
                   <td className="sticky left-0 z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail px-0 py-4 align-middle" style={{ width: 44, minWidth: 44, maxWidth: 44 }}>
                     <button type="button" onClick={() => basculer(p.id)} aria-label={`Cocher ${p.commerce || p.cible?.enseigne || "la ligne"}`}
                       className="grid w-full place-items-center" style={{ background: "transparent" }}>
@@ -470,39 +464,19 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                     </button>
                   </td>
                   <td className="sticky left-[44px] z-10 border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] bg-rail py-4 pl-2 pr-4 align-middle">
-                    <button type="button" onClick={() => setOuvert(p.id)} title="Voir la vitrine (Street View)"
-                      className="block max-w-[220px] truncate border-0 p-0 text-left text-[13.5px] font-medium max-md:max-w-[124px] text-encre hover:text-menthe" style={{ background: "transparent" }}>
-                      {p.commerce || p.cible?.enseigne || "Commerce"}
+                    <button type="button" onClick={() => setOuvert(p.id)} title="Ouvrir la fiche"
+                      className="block max-w-[260px] border-0 p-0 text-left" style={{ background: "transparent" }}>
+                      <span className="block truncate text-[14px] text-encre hover:text-menthe">{p.commerce || p.cible?.enseigne || "Commerce"}</span>
+                      <span className="block truncate text-[12.5px] text-ardoise">{p.ville || p.cible?.ville || ""}</span>
                     </button>
                   </td>
-                  {COLONNES.map((c) => (
+                  {COLONNES_FILE.map((c) => (
                     <td key={c.cle} className="border-b border-r border-[color-mix(in_srgb,var(--k-bord-doux)_45%,transparent)] px-4 py-4 align-middle" style={{ minWidth: c.largeur, maxWidth: c.largeur + 80 }}>
-                      {c.cle === "appel" ? (
-                        <span className="inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
-                          {tel ? (
-                            <button type="button" onClick={() => setAppelFiche(p.id)} className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full bg-menthe px-3 text-[12.5px] text-sur-menthe"><PhoneCall className="h-3.5 w-3.5" />Appeler</button>
-                          ) : (p.telephone_commerce || p.cible?.telephone) ? (
-                            // Pas encore le numéro du propriétaire : le commerce est une porte
-                            // d'entrée (le locataire connaît souvent son bailleur).
-                            <button type="button" onClick={() => setAppelFiche(p.id)} title="Le numéro du propriétaire n'est pas encore trouvé : appeler le commerce pour remonter jusqu'à lui"
-                              className="inline-flex h-8 flex-none items-center gap-1.5 rounded-full border border-trait px-3 text-[12.5px] text-craie hover:border-menthe hover:text-menthe" style={{ background: "transparent" }}><PhoneCall className="h-3.5 w-3.5" />Via le commerce</button>
-                          ) : <span className="flex-none text-[12.5px] text-bord-vif">{p.cible?.proprietaire ? "pas de n° du proprio" : "proprio inconnu"}</span>}
-                          <button type="button" onClick={() => sansReponse.mutate(p.id)} disabled={sansReponse.isPending} title="Pas de réponse : poser la relance suivante"
-                            className="inline-flex h-8 flex-none items-center rounded-full border border-trait px-2.5 text-[12.5px] text-craie hover:border-menthe hover:text-menthe disabled:opacity-40" style={{ background: "transparent" }}>
-                            Sans rép.
-                          </button>
-                        </span>
-                      ) : c.cle === "investisseurs" ? (
-                        (p.investisseurs || []).length ? (
-                          <span className="flex flex-wrap gap-1">
-                            {p.investisseurs.map((x) => (
-                              <span key={x.reference} title={[x.pourquoi, x.budget].filter(Boolean).join(" · ")}
-                                className="inline-flex items-center rounded-full bg-menthe/[0.12] px-2.5 py-0.5 text-[12.5px] text-encre">
-                                {x.reference}{x.budget ? <span className="ml-1.5 text-ardoise">{x.budget}</span> : null}
-                              </span>
-                            ))}
-                          </span>
-                        ) : <span className="text-[12.5px] text-bord-vif">aucun pour l'instant</span>
+                      {c.cle === "telephone" ? (
+                        // Le numéro se touche pour appeler (25 oct. 2026) ; à défaut, celui du commerce, dit comme tel.
+                        tel ? <a href={`tel:${String(tel).replace(/[^\d+]/g, "")}`} className="whitespace-nowrap text-[13.5px] text-encre hover:text-menthe" style={{ fontVariantNumeric: "tabular-nums" }}>{tel}</a>
+                          : (p.telephone_commerce || p.cible?.telephone) ? <a href={`tel:${String(p.telephone_commerce || p.cible.telephone).replace(/[^\d+]/g, "")}`} className="whitespace-nowrap text-[13.5px] text-craie hover:text-encre" title="Le commerce, pas le propriétaire" style={{ fontVariantNumeric: "tabular-nums" }}>{p.telephone_commerce || p.cible.telephone} <span className="text-ardoise">(commerce)</span></a>
+                          : <span className="text-[12.5px] text-brume">À trouver</span>
                       ) : c.cle === "statut" ? (
                         <span className={`relative inline-flex h-8 items-center gap-2 rounded-full pl-3 pr-2 text-[13.5px] ${TEINTES_STATUT[TON_STATUT[p.statut] || "neutre"]}`}>
                           <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: "var(--point)" }} />
@@ -516,11 +490,6 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                               .map(([k, mot]) => <option key={k} value={k}>{mot}</option>)}
                           </select>
                         </span>
-                      ) : c.cle === "tel_commerce" && p.cible?.telephone && !p.telephone_commerce ? (
-                        <span className="whitespace-nowrap">
-                          <a href={`tel:${String(p.cible.telephone).replace(/[^\d+]/g, "")}`} className="text-[13.5px] text-craie hover:text-encre" style={{ fontVariantNumeric: "tabular-nums" }} title="Le commerce, pas le propriétaire">{p.cible.telephone}</a>
-                          <Sources textes={[p.cible?.source]} p={p} />
-                        </span>
                       ) : (
                         <Cellule p={p} col={c} onEnregistrer={enregistrer} />
                       )}
@@ -529,22 +498,15 @@ export default function TableauListe({ fiches, libelles, listeId = null, carteDe
                 </tr>
               );
             })}
-            {!lignes.length && <tr><td colSpan={COLONNES.length + 2} className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : "Cette liste est vide."}</td></tr>}
+            {!lignes.length && <tr><td colSpan={COLONNES_FILE.length + 2} className="px-6 py-10 text-center text-[13.5px] text-brume">{q ? "Rien ne correspond à la recherche." : filtre === "a_appeler" ? "Plus personne à contacter dans cette liste." : "Rien ici."}</td></tr>}
           </tbody>
         </table>
       </div>
-      {appelFiche && (fiches || []).some((p) => p.id === appelFiche) && (
-        <PanneauAppelFiche p={(fiches || []).find((p) => p.id === appelFiche)} onFermer={() => setAppelFiche(null)} onFait={rafraichir} />
-      )}
       <AnimatePresence>
         {ouvert && (fiches || []).some((p) => p.id === ouvert) && (
-          <PanneauCommerce key={ouvert} p={(fiches || []).find((p) => p.id === ouvert)} libelles={libelles} onFermer={() => setOuvert(null)}
-            onSansReponse={(id) => sansReponse.mutate(id)} onAppeler={(id) => { setOuvert(null); setAppelFiche(id); }} />
+          <PanneauCommerce key={ouvert} p={(fiches || []).find((p) => p.id === ouvert)} onFermer={() => setOuvert(null)} />
         )}
       </AnimatePresence>
-      <p className="m-0 mt-3 flex items-center gap-1.5 text-[12.5px] text-brume">
-        <ArrowRight className="h-3 w-3" />Le nom du commerce ouvre sa vitrine ; une cellule claire se modifie au clic ; « Sans rép. » pose la relance suivante (J+2 appel, J+5 mail, J+10 dernier appel).
-      </p>
       <AlertDialog open={retirer} onOpenChange={(o) => { if (!o) setRetirer(false); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
           <AlertDialogHeader>

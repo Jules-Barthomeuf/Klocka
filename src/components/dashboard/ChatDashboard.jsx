@@ -16,7 +16,7 @@ import { sourceDe } from "@/lib/sources";
 import { avis, poser, toast } from "@/components/ui/avis";
 import { ArrowLeftRight, ArrowRight, ArrowUp, Bell, Check, ChevronDown, ChevronLeft, Copy, FileSignature, FileText, History, Lightbulb, Loader2, Mail, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, Search, Send, SlidersHorizontal, Sparkles, Square, Trash2, User, X } from "lucide-react";
 import BoiteSaisie, { BoutonBarre } from "@/components/BoiteSaisie";
-import BordureEcoute from "@/components/BordureEcoute";
+import BarreEcoute, { useAuraPosee } from "@/components/haka/BarreEcoute";
 import { ListeRelances } from "./RelancesEnAttente";
 import { SuggestionsMail } from "@/components/preanalyse/gabaritsMail";
 import { telLisible } from "@/components/dashboard/CeQuiVousAttend";
@@ -123,7 +123,7 @@ const ESPACES = {
   sequence: { api: "/api/assistant", page: "emailing", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quelle séquence ? « Après notre webinaire du 12 oct. sur les murs commerciaux : amener les inscrits jusqu'à un appel découverte » " },
   // Les offres (équipe) : le chat d'AK, qui rédige et corrige les lettres
   // d'intention de la page Offres ; la lettre ouverte lui est donnée.
-  offre: { api: "/api/assistant", page: "offres", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Pour qui, sur quel bien ? « Fais l'offre d'Olivier Luccioni sur le dossier du 1 avenue Mirabeau, 200 000 €, apport 40 000 € »" },
+  offre: { api: "/api/assistant", page: "offres", modesAGauche: true, modes: [], commandes: [], fichier: true, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Pour qui, sur quel bien ? « Fais l'offre d'Olivier Luccioni sur le dossier du 1 avenue Mirabeau, 200 000 €, apport 40 000 € »" },
   // Les présentations bancaires (équipe, 12 oct. 2026) : le chat d'AK crée la
   // présentation d'un projet et retouche celle ouverte à droite.
   presentation: { api: "/api/assistant", page: "presentations", modesAGauche: true, modes: [], commandes: [], fichier: false, boiteEnvoi: false, avis: "dashboard", mailsTypes: false, placeholder: "Quel projet ? « Fais la présentation bancaire du projet de Dieppe, à l'attention du Crédit Agricole »" },
@@ -390,7 +390,7 @@ function HistoriqueConversations({ actuelle, onOuvrir, onNouvelle, api = "/api/a
 }
 
 // Un brouillon de mail à relire : rien ne part sans un clic humain.
-function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = false }) {
+function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = false, de = null }) {
   return (
     <div className="border border-menthe/40 rounded-xl bg-surface px-5 py-4">
       <div className="flex items-baseline justify-between gap-4 mb-3">
@@ -413,9 +413,9 @@ function Brouillon({ b, onChange, onEnvoyer, onFermer, enCours, messagerie = fal
         rows={Math.min(14, Math.max(6, b.corps.split("\n").length + 1))}
         className="w-full mt-3 bg-transparent border-0 outline-none resize-y text-[13.5px] leading-[1.65] text-encre"
       />
-      {!messagerie && <PiecesBrouillon b={b} onChange={onChange} />}
+      {!messagerie && !de && <PiecesBrouillon b={b} onChange={onChange} />}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <span className="text-[11px] text-brume">{messagerie ? "Relisez, puis envoyez-le de votre messagerie : Klocka n'envoie rien." : "Relisez : rien ne part sans vous."}</span>
+        <span className="text-[11px] text-brume">{messagerie ? "Relisez, puis envoyez-le de votre messagerie : Klocka n'envoie rien." : de ? `Relisez : il part de ${de}.` : "Relisez : rien ne part sans vous."}</span>
         {messagerie ? (
           <a
             href={`mailto:${encodeURIComponent(b.destinataire || "")}?subject=${encodeURIComponent(b.objet || "")}&body=${encodeURIComponent(b.corps || "")}`}
@@ -766,10 +766,13 @@ export function cartesDe(r) {
   // Les fichiers qu'AK a écrits dans son bac à sable (un Excel, un CSV, un graphique) : à télécharger d'un clic (13 oct. 2026).
   const ko = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
   const fichiers = (r?.fichiers || []).filter((f) => f?.url && f?.nom).map((f) => ({ titre: f.nom, detail: `Fichier préparé par AK${f.taille ? ` · ${ko(f.taille)}` : ""}`, etat: "fait", lien: `fichier:${f.url}`, action: "Télécharger" }));
-  return [...fichiers, ...taches, ...(r?.actions || [])
-    .filter((a) => !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
+  // Parlé d'un bien depuis le dashboard : l'échange est rangé dans le fil de ce bien (25 oct. 2026), une carte y mène.
+  const fil = r?.fil_bien ? [{ titre: `Rangé dans le fil de ${r.fil_bien.titre}`, detail: "Tout ce qui s'est dit sur ce bien", etat: "fait", lien: r.fil_bien.lien || null, action: r.fil_bien.lien ? "Ouvrir" : undefined }] : [];
+  return [...fil, ...fichiers, ...taches, ...(r?.actions || [])
+    // Une étape à confirmer n'est pas faite : elle n'a pas de carte, seulement son bouton « Confirmer » (25 oct. 2026).
+    .filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution" && a.type !== "confirmer_vente" && !["preparer_mail", "mail_agent", "mail_libre", "retoucher_brouillon"].includes(a.name) && (ACTIONS_FAITES[a.name] || a.titre))
     .map((a) => ({
-      titre: a.titre || ACTIONS_FAITES[a.name],
+      titre: a.titre || (a.name === "creer_drive_dossier" && a.resultat?.deja_cree ? "Dossier Drive complété" : ACTIONS_FAITES[a.name]),
       detail: a.pour || a.resultat?.message || a.resultat?.titre || null,
       etat: a.etat === "rate" ? "rate" : "fait",
       lien: a.lien || a.resultat?.url || (a.resultat?.deal_id ? `/Dossiers?deal_id=${a.resultat.deal_id}` : null),
@@ -1003,19 +1006,23 @@ function CartePiece({ piece }) {
 
 /** Le message de la personne : la carte de la pièce s'il y en a une, puis la phrase seule dans la bulle. */
 function MessageAvecPiece({ m }) {
-  const lue = m.piece || null;
-  const duTexte = lue ? null : pieceDuTexte(m.contenu);
-  const piece = lue || (duTexte ? { nom: duTexte.nom, genre: genreDeFichier(duTexte.nom), apercu: null } : null);
-  const texte = piece ? (lue ? pieceDuTexte(m.contenu)?.texte ?? "" : duTexte.texte) : m.contenu;
+  // Une pièce (m.piece, avant le 27 oct. 2026) ou plusieurs (m.pieces) ; un fil relu n'a que le texte, « a.pdf · b.jpg ».
+  const lues = m.pieces?.length ? m.pieces : m.piece ? [m.piece] : null;
+  const duTexte = pieceDuTexte(m.contenu);
+  const pieces = lues || (duTexte ? duTexte.nom.split(" · ").map((nom) => ({ nom, genre: genreDeFichier(nom), apercu: null })) : null);
+  const texte = pieces ? duTexte?.texte ?? "" : m.contenu;
   return (
     <>
-      {piece && <CartePiece piece={piece} />}
+      {pieces && <div className="flex max-w-[80%] flex-wrap justify-end gap-2">{pieces.map((p, i) => <CartePiece key={p.pid || i} piece={p} />)}</div>}
       {texte && <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-[6px] px-6 py-4 text-[16px] leading-[1.6] text-encre" style={{ background: J["barre"] }}>{texte}</div>}
     </>
   );
 }
 
-export default function ChatDashboard({ espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false }) {
+// `lueur` : une lumière fait lentement le tour du cadre de la saisie, pour qu'on la voie (la fiche d'un commerce, 25 oct. 2026, Jules).
+// Dans tous les chats depuis le 26 oct. 2026 (Jules : « dans le dashboard, dans admin, dans tous les chats ») : `lueur={false}` l'éteint.
+// `dansLeFil` : ce chat est la conversation du bien (Biens) ; sans lui, le serveur range l'échange dans le fil du bien.
+export default function ChatDashboard({ dansLeFil = false, lueur = true, espace = "admin", onRecherche = null, onConversation = null, onHistorique = null, onOuvrirResultats = null, prospectionId = null, embarque = false, onMode = null, onReponse = null, avisACote = false, selectionAvis = null, onEffacerSelection = null, barreApercu = false, onTravail = null, contexte = null, onConversationId = null, sansBarreHaut = false, filVide = null, lireEcran = null, retour = null, cible = null, compact = false , libelleAccueil = null, sansSkills = false, choixDossier = false, onDossier = null, placeholderAccueil = null, reglages = null, menusVersLeHaut = false, proprietaireId = null, contour = null, epure = false, sousSaisie = null, placeholderFil = null, dossierVenteId = null, marcheId = null }) {
   const E = ESPACES[espace] || ESPACES.admin;
   const qs = E.qs || "";
   const prospection = espace === "prospection";
@@ -1047,7 +1054,17 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const [brouillon, setBrouillon] = useState(null);
   const [suites, setSuites] = useState([]);
   const [fiche, setFiche] = useState(null); // compte rendu client extrait, à valider
-  const [fichier, setFichier] = useState(null);
+  // Les pièces jointes du message à venir (plusieurs depuis le 27 oct. 2026, Jules) : dix au plus, sans doublon.
+  const [jointes, setJointes] = useState([]);
+  const joindre = (liste) => {
+    const nouvelles = Array.from(liste || []);
+    if (!nouvelles.length) return;
+    setJointes((l) => {
+      const toutes = [...l, ...nouvelles.filter((f) => !l.some((x) => x.name === f.name && x.size === f.size))];
+      if (toutes.length > 10) toast.warning("Dix pièces au plus par message");
+      return toutes.slice(0, 10);
+    });
+  };
   const [glisse, setGlisse] = useState(false);
   const [enCoursTexte, setEnCoursTexte] = useState("");
   const finRef = useRef(null);
@@ -1109,7 +1126,10 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     setFil(c.messages || []);
     setConversationId(c.id || null);
     setTitreSauve(c.titre || null); setTitreEdite(null);
-    setSuites([]); setBrouillon(null); setFiche(null);
+    // Le dernier message attend un tap (« De ce que je sais… », 29 oct. 2026) : ses boutons reviennent avec le fil.
+    const dernier = (c.messages || []).at(-1);
+    setSuites(dernier?.role === "assistant" && Array.isArray(dernier.boutons) ? dernier.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal })) : []);
+    setBrouillon(null); setFiche(null);
     setHistoriqueOuvert(false);
     onHistorique?.(false);
   };
@@ -1129,19 +1149,31 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     // Une carte de compétence (Haka, 17 oct. 2026) remplit le champ ; la personne envoie.
     const composer = (e) => { const t = e?.detail?.texte; if (!t) return; setTexte(t); if (e.detail.competence) reglagesRef.current?.choisirCompetence?.(e.detail.competence, e.detail.eteintes || []); if (e.detail.sortie) reglagesRef.current?.setSortie?.(e.detail.sortie); if (choixDossier && e.detail.contexte?.deal_id) setDossierChoisi({ deal_id: e.detail.contexte.deal_id, titre: e.detail.contexte.titre || e.detail.contexte.deal_id }); setTimeout(() => { champRef.current?.focus(); champRef.current?.setSelectionRange?.(t.length, t.length); }, 30); };
     window.addEventListener("klocka:composer", composer);
-    return () => { window.removeEventListener("klocka:assistant", focaliser); window.removeEventListener("klocka:composer", composer); };
+    // Un mot de l'assistant posé par la page (l'avis envoyé, 27 oct. 2026) : il entre dans le fil, sans appel au modèle.
+    const dire = (e) => { const t = e?.detail?.texte; if (t) pousser({ role: "assistant", contenu: t }); };
+    window.addEventListener("klocka:dire", dire);
+    return () => { window.removeEventListener("klocka:assistant", focaliser); window.removeEventListener("klocka:composer", composer); window.removeEventListener("klocka:dire", dire); };
   }, [choixDossier]);
 
   const historique = () => fil.filter((m) => m.role === "user" || m.role === "assistant").slice(-12);
+  // Les sources cochées et la compétence choisie, pour les chats de l'avis et du mandat (26 oct. 2026).
+  const reglagesEnvoyes = () => ({
+    ...(reglagesRef.current?.sources?.length ? { sources: reglagesRef.current.sources } : {}),
+    ...(reglagesRef.current?.competence ? { competence: reglagesRef.current.competence.nom } : {}),
+    ...(reglagesRef.current?.vue ? { vue: reglagesRef.current.vue } : {}),
+  });
   const pousser = (m) => setFil((f) => [...f, m.le ? m : { ...m, le: new Date().toISOString() }]);
   // Une pièce jointe envoyée (19 oct. 2026, Jules) : le texte reste « 📎 nom — phrase » (titre, historique pour
   // Haka) ; l'écran montre la vignette du document au-dessus de la bulle, calculée juste après l'envoi.
-  const pousserPiece = (f, t) => {
-    const pid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    pousser({ role: "user", contenu: `📎 ${f.name}${t ? ` — ${t}` : ""}`, piece: { pid, nom: f.name, genre: genreDeFichier(f.name, f.type), apercu: null } });
-    apercuDuFichier(f).then((apercu) => {
-      if (apercu) setFil((l) => l.map((x) => (x.piece?.pid === pid ? { ...x, piece: { ...x.piece, apercu } } : x)));
-    });
+  // Plusieurs pièces (27 oct. 2026) : « 📎 a.pdf · b.jpg — phrase », une vignette chacune.
+  const pousserPiece = (liste, t) => {
+    const lot = liste.map((f) => ({ f, pid: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }));
+    pousser({ role: "user", contenu: `📎 ${liste.map((f) => f.name).join(" · ")}${t ? ` — ${t}` : ""}`, pieces: lot.map(({ f, pid }) => ({ pid, nom: f.name, genre: genreDeFichier(f.name, f.type), apercu: null })) });
+    for (const { f, pid } of lot) {
+      apercuDuFichier(f).then((apercu) => {
+        if (apercu) setFil((l) => l.map((x) => (x.pieces?.some((p) => p.pid === pid) ? { ...x, pieces: x.pieces.map((p) => (p.pid === pid ? { ...p, apercu } : p)) } : x)));
+      });
+    }
   };
 
   const rafraichir = () => {
@@ -1150,7 +1182,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       : prospection
       ? ["mandataire-prospections"]
       : mandataire
-      ? ["mandataire-jour", "mandataire-proprietaires", "mandataire-prospections"]
+      ? ["mandataire-jour", "mandataire-proprietaires", "mandataire-prospections", "m-dossier-vente", "m-teaser"]
       : ["assistant-propositions", "echeances", "relances-agents", "dossiers", "all-users", "projets-clients"]) {
       queryClient.invalidateQueries({ queryKey: Array.isArray(k) ? k : [k] });
     }
@@ -1183,7 +1215,46 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       toast.error(e?.message || "Annulation impossible");
     }
   };
-  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece").slice(0, 3).map((a) => ({
+  // Une étape de bien proposée par Haka se confirme d'un tap (25 oct. 2026, Jules) : rien n'est écrit avant.
+  const confirmerEtape = async (a) => {
+    try {
+      // La mise en vente proposée par Haka (27 oct. 2026) : elle se fait au tap.
+      if (a.type === "confirmer_vente") {
+        await base44.request("POST", `/api/mandataire/dossiers/${encodeURIComponent(a.dossier_id)}/vente`);
+        pousser({ role: "assistant", contenu: `C'est fait : ${a.titre} est en vente. La commercialisation s'ouvre : les visites, puis les offres, se suivent ici.` });
+        setSuites((l) => l.filter((x) => x.cle !== a.id));
+        ["m-dossiers", "m-marches", "m-dossier-vente"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+        return;
+      }
+      // La restitution de l'avis (27 oct. 2026) : le statut et la relance datée s'écrivent au tap.
+      if (a.type === "confirmer_restitution") {
+        const r = await base44.request("POST", `/api/mandataire/proprietaires/${encodeURIComponent(a.proprietaire_id)}/restitution`, { body: { cas: a.cas, prix: a.prix, date: a.date, motif: a.motif, relance_le: a.relance_le, relance_quoi: a.relance_quoi, canal: a.canal } });
+        const accord = r?.plan?.statut === "prix_accord";
+        pousser({ role: "assistant", contenu: accord
+          ? `C'est noté : ${a.mot} pour ${a.titre}, le prix est sur la fiche du bien. On passe au mandat.`
+          : `C'est noté : ${a.titre} passe en ${a.mot}. ${r?.plan?.relance ? `Prochaine action : ${r.plan.relance.quoi}, le ${new Date(r.plan.relance.le).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}.` : ""}`.trim() });
+        if (a.alerte) toast.warning(a.alerte);
+        setSuites((l) => l.filter((x) => x.cle !== a.id));
+        rafraichir();
+        // Le prix d'accord noté, le bien passe au Mandat (27 oct. 2026, Jules) : la page du bien ouvre l'étape.
+        if (accord) setTimeout(() => window.dispatchEvent(new CustomEvent("klocka:aller-etape", { detail: { proprietaire_id: a.proprietaire_id, etape: "mandat" } })), 1200);
+        return;
+      }
+      if (a.etape === "prix_accord" && a.prix) await base44.request("POST", `/api/mandataire/proprietaires/${encodeURIComponent(a.proprietaire_id)}/prix-accord`, { body: { prix: a.prix } });
+      else await base44.request("POST", `/api/mandataire/proprietaires/${encodeURIComponent(a.proprietaire_id)}/etape`, { body: { etape: a.etape } });
+      pousser({ role: "assistant", contenu: `C'est noté : ${a.titre} passe en ${a.mot}.` });
+      setSuites((l) => l.filter((x) => x.cle !== a.id));
+      rafraichir();
+    } catch (e) {
+      toast.error(e?.message || "Étape non enregistrée");
+    }
+  };
+  const suitesMandataire = (r) => (r.actions || []).filter((a) => a.type !== "monday" && a.type !== "piece").slice(0, 3).map((a) => (a.type === "confirmer_etape" || a.type === "confirmer_restitution" || a.type === "confirmer_vente" ? {
+    cle: a.id,
+    libelle: `Confirmer · ${a.mot}`,
+    principal: true,
+    faire: () => confirmerEtape(a),
+  } : {
     cle: a.id,
     libelle: (r.actions || []).length > 1 ? `Annuler · ${a.titre}` : "Annuler",
     faire: () => annulerAction(a),
@@ -1204,16 +1275,21 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       // Une pièce jointe du mandataire : envoyée avec le message, lue par le
       // serveur — en flux, pour que la lecture et chaque étape s'affichent au
       // moment où elles se font, au lieu d'un point qui clignote sans rien dire.
-      if (mandataire && piece) {
+      if (mandataire && piece?.length) {
         const form = new FormData();
-        form.append("fichier", piece);
+        for (const f of piece) form.append("fichier", f);
         form.append("texte", t || "");
         form.append("historique", JSON.stringify(historique()));
         if (prospectionId) form.append("prospection_id", prospectionId);
         if (proprietaireId) form.append("proprietaire_id", proprietaireId);
+        if (dossierVenteId) form.append("dossier_vente_id", dossierVenteId);
+        if (marcheId) form.append("marche_id", marcheId);
+        if (proprietaireId && dansLeFil) form.append("dans_le_fil", "1");
         if (espace === "mandataire" && reglagesRef.current?.sortie) form.append("sortie", reglagesRef.current.sortie);
         if (espace === "mandataire" && choixDossier && dossierChoisi) form.append("dossier_id", dossierChoisi.deal_id);
-        if (espace === "mandataire" && reglagesRef.current?.competence) form.append("competence", reglagesRef.current.competence.nom);
+        if (reglagesRef.current?.competence) form.append("competence", reglagesRef.current.competence.nom);
+        if (reglagesRef.current?.sources?.length) form.append("sources", JSON.stringify(reglagesRef.current.sources));
+        if (reglagesRef.current?.vue) form.append("vue", JSON.stringify(reglagesRef.current.vue));
         if (estimation && mode) form.append("mode", mode);
         if ((estimation || mandatEspace) && conversationId) form.append("conversation_id", conversationId);
         if (estimation && selectionAvis?.chemin) form.append("selection", JSON.stringify({ chemin: selectionAvis.chemin, texte: selectionAvis.texte || null }));
@@ -1228,13 +1304,13 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       }
       if (estimation) {
         setEnFlux(true);
-        const r = await base44.flux(`${E.api}/chat?flux=1&espace=estimation`, { body: { texte: t, historique: historique(), mode, conversation_id: conversationId, selection: selectionAvis?.chemin ? { chemin: selectionAvis.chemin, texte: selectionAvis.texte || null } : null }, signal: controleur.current.signal, surEtape });
+        const r = await base44.flux(`${E.api}/chat?flux=1&espace=estimation`, { body: { texte: t, historique: historique(), mode, conversation_id: conversationId, selection: selectionAvis?.chemin ? { chemin: selectionAvis.chemin, texte: selectionAvis.texte || null } : null, ...reglagesEnvoyes() }, signal: controleur.current.signal, surEtape });
         await vider();
         return r;
       }
       if (mandatEspace) {
         setEnFlux(true);
-        const r = await base44.flux(`${E.api}/chat?flux=1&espace=mandat`, { body: { texte: t, historique: historique(), conversation_id: conversationId }, signal: controleur.current.signal, surEtape });
+        const r = await base44.flux(`${E.api}/chat?flux=1&espace=mandat`, { body: { texte: t, historique: historique(), conversation_id: conversationId, ...reglagesEnvoyes() }, signal: controleur.current.signal, surEtape });
         await vider();
         return r;
       }
@@ -1254,9 +1330,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       setEnFlux(true);
       actionsVives.current = [];
       // Une pièce jointe avec une phrase (12 oct. 2026, « vérifie ma préz ») : AK reçoit les deux, au lieu d'en faire d'office un dossier.
-      if (!mandataire && piece) {
+      if (!mandataire && piece?.length) {
         const form = new FormData();
-        form.append("fichier", piece);
+        for (const f of piece) form.append("fichier", f);
         form.append("texte", t);
         form.append("historique", JSON.stringify(historique()));
         if (avecContexte) form.append("contexte", JSON.stringify(contexteEnvoye()));
@@ -1265,11 +1341,13 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         return r;
       }
       const r = mandataire
-        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}), ...(proprietaireId ? { proprietaire_id: proprietaireId } : {}),
+        ? await base44.flux(`${E.api}/chat?flux=1`, { body: { texte: t, historique: historique(), ...(prospectionId ? { prospection_id: prospectionId } : {}), ...(proprietaireId ? { proprietaire_id: proprietaireId, ...(dansLeFil ? { dans_le_fil: true } : {}) } : {}), ...(dossierVenteId ? { dossier_vente_id: dossierVenteId } : {}), ...(marcheId ? { marche_id: marcheId } : {}),
           // Haka du mandataire (19 oct. 2026) : « Répondre / Produire » et le dossier choisi partent avec le message.
           ...(espace === "mandataire" && reglagesRef.current?.sortie ? { sortie: reglagesRef.current.sortie } : {}),
           ...(espace === "mandataire" && choixDossier && dossierChoisi ? { dossier_id: dossierChoisi.deal_id } : {}),
-          ...(espace === "mandataire" && reglagesRef.current?.competence ? { competence: reglagesRef.current.competence.nom } : {}), ...(E.client ? { presentation_id: contexte?.presentation_id || null } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
+          ...(espace === "mandataire" && reglagesRef.current?.competence ? { competence: reglagesRef.current.competence.nom } : {}),
+          // Les sources cochées par le mandataire (26 oct. 2026) : Haka ne lit qu'elles.
+          ...(espace === "mandataire" && reglagesRef.current?.sources?.length ? { sources: reglagesRef.current.sources } : {}), ...(E.client ? { presentation_id: contexte?.presentation_id || null } : {}) }, signal: controleur.current.signal, surEtape, surTexte, surAction: (a) => actionsVives.current.push(a) })
         : await base44.flux("/api/assistant/boite?flux=1", { body: { texte: t, historique: historique(), type: pageEnvoi ? "assistant" : type, ...(avecContexte ? { contexte: contexteEnvoye() } : {}) }, signal: controleur.current.signal, surEtape, surTexte });
       // La réponse attend que la dernière étape se soit affichée.
       await vider();
@@ -1285,11 +1363,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           role: "assistant",
           contenu: r.texte || "(sans réponse)",
           etapes: vivesRef.current.length ? vivesRef.current : etapesRef.current,
-          ...(r.avis ? { cartes: [{ titre: "Avis de valeur", detail: r.avis.valeur ? `${Number(r.avis.valeur).toLocaleString("fr-FR")} € · fourchette ${Number(r.avis.bas).toLocaleString("fr-FR")} – ${Number(r.avis.haut).toLocaleString("fr-FR")} €` : "Valeur et champs manquants à compléter dans l'éditeur", etat: "fait", lien: `avis:${r.avis.estimation_id}`, action: "Ouvrir l'avis" }] } : {}),
+          ...(r.avis || r.envoi ? { cartes: [
+            ...(r.avis ? [{ titre: "Avis de valeur", detail: r.avis.valeur ? `${Number(r.avis.valeur).toLocaleString("fr-FR")} € · fourchette ${Number(r.avis.bas).toLocaleString("fr-FR")} – ${Number(r.avis.haut).toLocaleString("fr-FR")} €` : "Valeur et champs manquants à compléter dans l'éditeur", etat: "fait", lien: `avis:${r.avis.estimation_id}`, action: "Ouvrir l'avis" }] : []),
+            ...(r.envoi ? [{ titre: "Mail au propriétaire", detail: `${r.envoi.objet} · l'avis en PDF joint`, etat: "fait", lien: `envoi:${r.envoi.estimation_id}`, action: "Relire et envoyer" }] : []),
+          ] } : {}),
         });
         if (r.avis) onRecherche?.({ avis_id: r.avis.estimation_id });
+        if (r.envoi) window.dispatchEvent(new CustomEvent("klocka:envoyer-avis", { detail: { estimation_id: r.envoi.estimation_id } }));
         onReponse?.(r);
-        setSuites([]);
+        setSuites(suitesMandataire(r));
         return;
       }
       if (mandatEspace) {
@@ -1355,8 +1437,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         // Le client : la présentation à droite se relit si AK l'a retouchée.
         if (E.client) onReponse?.(r);
         pousser({ role: "assistant", contenu: r.texte || "(sans réponse)", ...extra });
-        if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "" });
-        setSuites(suitesMandataire(r));
+        if (r.brouillon) setBrouillon({ destinataire: r.brouillon.destinataire || "", objet: r.brouillon.objet || "", corps: r.brouillon.corps || "", dossier_vente: r.brouillon.dossier_vente || null });
+        // Les réponses en un tap que l'assistant propose (« Passer à l'estimation ? » Oui / Non, 27 oct. 2026).
+        setSuites([...suitesMandataire(r), ...(Array.isArray(r.boutons) ? r.boutons.map((b) => ({ cle: b.libelle, libelle: b.libelle, texte: b.texte, href: b.href || null, principal: !!b.principal })) : [])]);
         return;
       }
       if (r.type === "note") {
@@ -1412,7 +1495,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             role: "assistant",
             contenu: "Arrêté. Ce qui était déjà fait reste en place :",
             etapes: vivesRef.current,
-            cartes: actionsVives.current.map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", lien: a.lien || null })),
+            cartes: actionsVives.current.filter((a) => a.type !== "confirmer_etape" && a.type !== "confirmer_restitution").map((a) => ({ titre: a.titre, detail: a.pour || null, etat: a.etat === "rate" ? "rate" : "fait", lien: a.lien || null })),
           });
           setSuites(suitesMandataire({ actions: actionsVives.current }));
           actionsVives.current = [];
@@ -1446,16 +1529,20 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     },
     onSuccess: (r) => {
       rafraichir();
-      setFichier(null);
+      setJointes([]);
       pousser({ role: "assistant", contenu: "La fiche est lue : le dossier est créé.", etapes: etapesRef.current });
       pousser({ role: "bloc", type: "fiche", donnees: r });
     },
     onError: (e) => e?.name === "AbortError" ? null : pousser({ role: "assistant", contenu: `Analyse impossible : ${e?.message || "erreur"}` }),
   });
 
+  // Le mandataire envoie de sa propre boîte quand elle est connectée (28 oct. 2026, Jules) ; sinon sa messagerie.
+  const boiteMandataire = useQuery({ queryKey: ["m-boite"], queryFn: () => base44.request("GET", "/api/mandataire/boite"), enabled: mandataire, staleTime: 60_000 });
+  const saBoite = mandataire ? boiteMandataire.data?.boite?.email || null : null;
   const envoyerMail = useMutation({
-    mutationFn: () =>
-      base44.functions.invoke("sendMail", envoiDepuis(brouillon)),
+    mutationFn: () => (mandataire
+      ? base44.request("POST", "/api/mandataire/mail/envoyer", { body: { a: brouillon.destinataire, objet: brouillon.objet, corps: brouillon.corps, dossier_vente: brouillon.dossier_vente || null } }).then((r) => ({ success: true, ...r }))
+      : base44.functions.invoke("sendMail", envoiDepuis(brouillon))),
     onSuccess: (r) => {
       if (r?.success || r?.simulated) {
         toast.success(r?.simulated ? "Envoi simulé" : "Mail envoyé", { description: brouillon.destinataire });
@@ -1584,6 +1671,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     : String(lien).startsWith("datab:") ? onRecherche?.({ datab_jeton: String(lien).slice(6) })
     : String(lien).startsWith("avis:") ? onRecherche?.({ avis_id: String(lien).slice(5) })
     : String(lien).startsWith("mandat:") ? onRecherche?.({ mandat_id: String(lien).slice(7) })
+    // Le mail qui part avec l'avis (27 oct. 2026) : la page du bien ouvre sa fenêtre d'envoi.
+    : String(lien).startsWith("envoi:") ? window.dispatchEvent(new CustomEvent("klocka:envoyer-avis", { detail: { estimation_id: String(lien).slice(6) } }))
     : String(lien).startsWith("fichier:") ? telecharger(String(lien).slice(8))
     : ouvrirLienExterne(lien);
   // Un fichier d'AK : le navigateur le télécharge avec son nom (le serveur l'a rangé dans uploads/ak).
@@ -1613,7 +1702,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     if (ecoute || finalisation) { envoiFait.current = true; if (ecoute) arreter(); }
     // « Rappelle-moi demain de… » dit dans le fil (19 oct. 2026) : un rappel, comme en mode Rappel.
     const ditUnRappel = !mode && espace === "admin" && /^\s*(rappelle[- ]moi|(mets|pose)[- ](moi )?un rappel)\b/i.test(t);
-    if ((mode === "rappel" || ditUnRappel) && !fichier && !mandataire) {
+    if ((mode === "rappel" || ditUnRappel) && !jointes.length && !mandataire) {
       if (!t) return;
       annoncer("rappel");
       pousser({ role: "user", contenu: t });
@@ -1621,35 +1710,35 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
       envoiEnVol.current = true; rappeler.mutate(t);
       return;
     }
-    if (fichier && mandataire && !prospection) {
-      pousserPiece(fichier, t);
+    if (jointes.length && mandataire && !prospection) {
+      pousserPiece(jointes, t);
       setTexte("");
       setSuites([]);
-      setEnCoursTexte("Je lis la pièce…");
+      setEnCoursTexte(jointes.length > 1 ? "Je lis les pièces…" : "Je lis la pièce…");
       annoncer("piece");
-      const piece = fichier;
-      setFichier(null);
+      const piece = jointes;
+      setJointes([]);
       envoiEnVol.current = true; boite.mutate({ t, type: null, piece });
       return;
     }
     // Une pièce, avec ou sans phrase (1.8) : AK la lit et décide (fiche à analyser, préz à vérifier, pièce à ranger…).
-    if (fichier && !prospection) {
-      pousserPiece(fichier, t);
+    if (jointes.length && !prospection) {
+      pousserPiece(jointes, t);
       setTexte("");
       setSuites([]);
-      setEnCoursTexte("Je lis la pièce…");
+      setEnCoursTexte(jointes.length > 1 ? "Je lis les pièces…" : "Je lis la pièce…");
       annoncer("piece");
-      const piece = fichier;
-      setFichier(null);
+      const piece = jointes;
+      setJointes([]);
       envoiEnVol.current = true; boite.mutate({ t, type: null, piece });
       return;
     }
-    if (fichier) {
-      pousserPiece(fichier, t);
+    if (jointes.length) {
+      pousserPiece(jointes.slice(0, 1), t);
       setTexte("");
       setEnCoursTexte("Je lis la fiche et passe le bien à la grille…");
       annoncer("fiche");
-      envoiEnVol.current = true; analyser.mutate(fichier);
+      envoiEnVol.current = true; analyser.mutate(jointes[0]);
       return;
     }
     if (!t) return;
@@ -1667,6 +1756,15 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
     const premierDuFil = !fil.some((m) => m.role === "user");
     envoiEnVol.current = true; boite.mutate({ t: mode === "mail" && premierDuFil ? `Écris un mail : ${t}` : t, type: type || choisi?.type || null });
   };
+  // Un geste proposé par la page (le dossier de vente, 27 oct. 2026) part dans la conversation comme si on l'avait tapé.
+  const lancerRef = useRef(lancer);
+  lancerRef.current = lancer;
+  useEffect(() => {
+    const surLancer = (e) => { const t = e?.detail?.texte; if (t) lancerRef.current(t); };
+    window.addEventListener("klocka:lancer", surLancer);
+    return () => window.removeEventListener("klocka:lancer", surLancer);
+  }, []);
+
 
   // Le micro : la dictée remplit le champ, et part quand on se tait si la
   // phrase ressemble à une note d'appel ; sinon on relit.
@@ -1675,15 +1773,23 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const envoiFait = useRef(false);
   // Ce qui était déjà tapé au moment du clic reste en tête : la dictée s'y ajoute.
   const avantDictee = useRef("");
-  const { supporte, ecoute, demarrer, arreter, erreur, finalisation } = useDictee({
-    onTexte: (t) => { if (!envoiFait.current) setTexte([avantDictee.current, t].filter(Boolean).join(" ")); },
+  // Une dictée annulée (la croix du mode micro, Échap) : son texte ne revient pas.
+  const dicteeAnnulee = useRef(false);
+  const { supporte, ecoute, demarrer, arreter, erreur, finalisation, niveau } = useDictee({
+    onTexte: (t) => { if (!envoiFait.current && !dicteeAnnulee.current) setTexte([avantDictee.current, t].filter(Boolean).join(" ")); },
     onFin: (t) => {
+      if (dicteeAnnulee.current) return;
       if (envoiFait.current) { envoiFait.current = false; return; }
       // Une note d'appel dictée part seule (admin) ; le reste attend d'être relu.
       // Elle part sans étiquette (1.8) : AK reconnaît lui-même une note d'appel.
       if (!mandataire && /^(j'ai eu|eu au t|appel avec|note)/i.test((t || "").trim())) lancer([avantDictee.current, t].filter(Boolean).join(" "));
     },
   });
+
+  const cadreAura = useRef(null);
+  // La lumière de la dictée s'éteint dès l'envoi (ou l'arrêt), sans attendre la fin de la transcription.
+  const aura = lueur || (ecoute && !finalisation);
+  useAuraPosee(cadreAura, ecoute);
 
   const corriger = (cle, valeur, unite) => {
     const v = valeur.trim();
@@ -1693,8 +1799,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   const deposer = (e) => {
     e.preventDefault();
     setGlisse(false);
-    const f = e.dataTransfer?.files?.[0];
-    if (f) setFichier(f);
+    joindre(e.dataTransfer?.files);
   };
 
   const aDuContenu = fil.length > 0 || fiche || brouillon;
@@ -1705,10 +1810,43 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
   // Une note collée tient rarement sur une ligne : la pilule s'arrondit.
   const multiligne = texte.includes("\n") || texte.length > 90;
 
+  const annulerDictee = () => {
+    dicteeAnnulee.current = true;
+    arreter();
+    setTexte(avantDictee.current);
+    setTimeout(() => champRef.current?.focus(), 30);
+  };
+  const dicter = () => {
+    if (!supporte) { toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }); return; }
+    if (ecoute) { arreter(); return; }
+    dicteeAnnulee.current = false;
+    avantDictee.current = texte.trim();
+    demarrer();
+  };
+  // La page demande la dictée (26 oct. 2026, la Pré-visite : « Raconter la visite » ouvre Haka micro allumé).
+  const ecouteRef = useRef(ecoute);
+  ecouteRef.current = ecoute;
+  const dicterRef = useRef(dicter);
+  dicterRef.current = dicter;
+  useEffect(() => {
+    const ecouterDemande = () => { if (!ecouteRef.current) dicterRef.current(); };
+    window.addEventListener("klocka:dicter", ecouterDemande);
+    return () => window.removeEventListener("klocka:dicter", ecouterDemande);
+  }, []);
+
   const barre = (
-        <BordureEcoute actif={ecoute} radius="24px">
+        <>
+        {/* L'aura de la maquette de Jules (25 oct. 2026) : un halo flou qui tourne derrière la saisie, et un filet net sur
+            son bord, synchronisés (index.css, « k-aura »). Toujours pour le chat des fiches ; pour tous pendant la dictée,
+            où la lumière se pose sous le chat (l'horizon). Un message envoyé n'allume rien (25 oct. 2026, Jules). */}
+        <div ref={cadreAura} className={aura ? "relative isolate" : "contents"}>
+        {aura && <div className="k-aura-halo" aria-hidden />}
+        {aura && <div className="k-aura-horizon" aria-hidden />}
         <div
-          className={`rounded-[20px] border ${contour || "border-trait"} bg-barre px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
+          // Écrire se voit (26 oct. 2026, Jules : « on clique, on a rien ») : un clic n'importe où dans le cadre (hors boutons)
+          // met le curseur dans le champ, et le cadre s'éclaire tant qu'on écrit.
+          onMouseDown={(e) => { if (!e.target.closest("button, a, input, select, textarea, [role=menu], [role=listbox]")) { e.preventDefault(); champRef.current?.focus(); } }}
+          className={`${aura ? "k-aura-filet relative " : ""}k-saisie-chat cursor-text rounded-[20px] border ${contour || "border-trait"} bg-barre px-5 pb-3 pt-4 max-md:px-4 max-md:pt-4 ${choixDossier && !conversation ? "shadow-[0_18px_40px_rgb(0_0_0/0.18)]" : "shadow-[0_12px_32px_rgb(0_0_0/0.07)]"}`}
           style={glisse ? { boxShadow: `0 0 0 1px ${J["menthe"]}` } : undefined}
         >
           <textarea
@@ -1716,14 +1854,16 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             rows={Math.min(10, Math.max(choixDossier && !conversation ? 3 : 2, texte.split("\n").length))}
             value={texte}
             onChange={(e) => setTexte(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || fichier || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
-            placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? "Répondre ou ajouter une précision…" : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && (texte.trim() || jointes.length || reglages?.competence) && !enCours) { e.preventDefault(); lancer(); } }}
+            placeholder={ecoute ? "Je vous écoute…" : glisse ? (mandataire ? "Déposez la pièce ici." : "Déposez la fiche ici.") : conversation && fil.length ? placeholderFil || "Répondre ou ajouter une précision…" : modeCourant?.placeholder || placeholderAccueil || E.placeholder || "Collez votre note, ou posez une question…"}
             disabled={enCours}
             className="block w-full resize-none border-0 bg-transparent text-[15px] leading-[1.5] text-encre outline-none placeholder:text-brume disabled:opacity-50 max-md:text-[16px]"
           />
-          <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" className="hidden" onChange={(e) => { setFichier(e.target.files?.[0] || null); e.target.value = ""; }} />
+          <input ref={fichierRef} type="file" accept=".pdf,.doc,.docx,.rtf,image/*,.txt,.md,.csv,.eml" multiple className="hidden" onChange={(e) => { joindre(e.target.files); e.target.value = ""; }} />
 
-          <div className="mt-4 flex flex-wrap items-center gap-1.5">
+          {/* Pendant la dictée, la barre du mode micro : Annuler, l'onde, le minuteur, Envoyer. */}
+          {ecoute && <BarreEcoute niveau={niveau} cadre={cadreAura} onAnnuler={annulerDictee} onEnvoyer={() => lancer()} />}
+          <div className={`mt-4 flex flex-wrap items-center gap-1.5 max-md:flex-nowrap ${ecoute ? "hidden" : ""}`}>
             {E.fichier && <button
               type="button"
               onClick={() => fichierRef.current?.click()}
@@ -1734,14 +1874,14 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             >
               <Plus className="h-[18px] w-[18px]" strokeWidth={1.7} />
             </button>}
-            {/* La pièce jointe, dans la barre, à droite du « + ». */}
-            {fichier && (
-              <span className="inline-flex min-w-0 max-w-[260px] items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] text-craie" style={{ background: J["barre-relief"] }}>
+            {/* Les pièces jointes, dans la barre, à droite du « + » : une pastille chacune, retirable. */}
+            {jointes.map((f) => (
+              <span key={`${f.name}-${f.size}`} className="inline-flex min-w-0 max-w-[260px] items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] text-craie max-md:max-w-[160px]" style={{ background: J["barre-relief"] }}>
                 <Paperclip className="h-3.5 w-3.5 flex-none text-menthe" />
-                <span className="truncate">{fichier.name}</span>
-                <button onClick={() => setFichier(null)} className="flex-none text-brume hover:text-alerte" aria-label="Retirer la pièce jointe" title="Retirer" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
+                <span className="truncate">{f.name}</span>
+                <button onClick={() => setJointes((l) => l.filter((x) => x !== f))} className="flex-none text-brume hover:text-alerte" aria-label={`Retirer ${f.name}`} title="Retirer" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
               </span>
-            )}
+            ))}
             {choixDossier && <ChoixDossier valeur={dossierChoisi} onChoisir={setDossierChoisi} versLeHaut={conversation || menusVersLeHaut} mandataire={espace === "mandataire"} />}
             {reglages?.competence && (
               <span className="inline-flex h-8 min-w-0 max-w-[260px] items-center gap-1.5 rounded-full bg-menthe/10 pl-2.5 pr-1 text-[13px] text-encre">
@@ -1801,7 +1941,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
 
             <div className="ml-auto flex items-center gap-1.5">
               {/* Le mode : ce qu'on apporte. Sans mode, la boîte fait le tri. */}
-              {reglages && espace !== "mandataire" && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
+              {reglages?.onOuvrirSources && <BoutonSources sources={reglages.sources} ouvert={reglages.sourcesOuvert} onOuvrir={reglages.onOuvrirSources} />}
               {!epure && !E.modesAGauche && !reglages && (
               <div className="relative">
                 <button
@@ -1875,7 +2015,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
                 aria-pressed={ecoute}
                 aria-busy={finalisation}
                 disabled={enCours || finalisation}
-                onClick={() => (supporte ? (ecoute ? arreter() : (avantDictee.current = texte.trim(), demarrer())) : toast.error("La dictée n'est pas prise en charge par ce navigateur", { description: "Chrome ou Edge la proposent." }))}
+                onClick={dicter}
                 aria-label={finalisation ? "Texte dicté en cours d'écriture" : ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
                 title={finalisation ? "Texte dicté en cours d'écriture" : ecoute ? "Arrêter la dictée" : "Dicter : le texte s'écrit pendant que vous parlez, un clic pour arrêter"}
                 className={`grid h-8 w-8 flex-none place-items-center rounded-full transition-colors hover:bg-barre-relief ${finalisation ? "" : "disabled:opacity-40"}`}
@@ -1887,7 +2027,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
               <button
                 type="button"
                 onClick={() => (enCours ? controleur.current?.abort() : lancer())}
-                disabled={!enCours && !texte.trim() && !fichier && !reglages?.competence}
+                disabled={!enCours && !texte.trim() && !jointes.length && !reglages?.competence}
                 aria-label={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 title={enCours ? "Interrompre la requête en cours" : "Envoyer"}
                 className="grid h-9 w-9 flex-none place-items-center rounded-full bg-menthe text-sur-menthe transition-colors hover:bg-menthe-survol disabled:cursor-default"
@@ -1897,7 +2037,8 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             </div>
           </div>
         </div>
-        </BordureEcoute>
+        </div>
+        </>
   );
 
   const sousBarre = (erreur || (mode === "mail" && E.mailsTypes) || (prospection && mode === "client")) && (
@@ -1941,8 +2082,9 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         // Au téléphone, la hauteur vient de Layout (barre du haut, onglets, clavier) : index.css, .k-chat-hauteur.
-        // `sansBarreHaut` (atelier des newsletters, 9 oct. 2026) : la page pose sa propre barre au-dessus, le chat prend la hauteur qu'on lui laisse.
-        className={`k-chat-hauteur flex ${sansBarreHaut ? "h-full" : "h-[100dvh]"} flex-col`}
+        // `sansBarreHaut` (atelier des newsletters, 9 oct. 2026) : la page pose sa propre barre au-dessus, le chat prend la hauteur qu'on lui laisse,
+        // au téléphone aussi (la conversation d'une fiche, 25 oct. 2026).
+        className={`flex ${sansBarreHaut ? "h-full" : "k-chat-hauteur h-[100dvh]"} flex-col`}
         onDragOver={(e) => { if (!E.fichier) return; e.preventDefault(); setGlisse(true); }}
         onDragLeave={() => setGlisse(false)}
         onDrop={(e) => { if (E.fichier) deposer(e); }}
@@ -2025,7 +2167,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           {(fiche || brouillon || (suites.length > 0 && !travaille)) && (
             <div className={`space-y-4 ${compact ? "" : "pl-[3.25rem]"}`}>
               {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
-              {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />}
+              {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire && !saBoite} de={saBoite} />}
               {suites.length > 0 && !travaille && (
                 <div className="flex flex-wrap gap-2">
                   {suites.map((x) => <BoutonSuite key={x.cle || x.libelle} x={x} onClick={() => (x.faire ? x.faire() : x.externe ? window.open(x.externe, "_blank", "noopener") : x.href ? navigate(x.href) : lancer(x.texte))} />)}
@@ -2053,6 +2195,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
             </div>
           )}
           {barre}
+          {sousSaisie}
         </div>
         {fenetreEl}
       </motion.div>
@@ -2082,7 +2225,7 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           )}
           {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
           {brouillon && (
-            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />
+            <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire && !saBoite} de={saBoite} />
           )}
           {enCours && (
             <PenseeIA etat={/lis la fiche/i.test(enCoursTexte) ? "searching" : "working"} taille={64} texte={enCoursTexte} />
@@ -2121,13 +2264,16 @@ export default function ChatDashboard({ espace = "admin", onRecherche = null, on
           </button>
         </div>
         {barre}
+        {/* Sous la saisie, ce que la page y pose (les compétences et le « + » des sources, 26 oct. 2026), puis le choix des sources. */}
+        {sousSaisie}
+        {reglages?.panneau && <Depliant ouvert={!!reglages.sourcesOuvert}><div className="pb-1 pt-4">{reglages.panneau}</div></Depliant>}
 
         {/* Embarqué : le brouillon de mail et les gestes de suite s'affichent
             sous la barre — la notification ne montre que le texte. */}
         {embarque && (brouillon || fiche || suites.length > 0) && (
           <div className="mt-3 space-y-3">
             {fiche && <FicheClient champs={fiche} onChange={corriger} onValider={() => creer.mutate(fiche)} enCours={creer.isPending} />}
-            {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire} />}
+            {brouillon && <Brouillon b={brouillon} onChange={setBrouillon} onEnvoyer={() => envoyerMail.mutate()} onFermer={() => setBrouillon(null)} enCours={envoyerMail.isPending} messagerie={mandataire && !saBoite} de={saBoite} />}
             {suites.length > 0 && !travaille && (
               <div className="flex flex-wrap gap-2">
                 {suites.map((x) => <BoutonSuite key={x.cle || x.libelle} x={x} onClick={() => (x.faire ? x.faire() : x.externe ? window.open(x.externe, "_blank", "noopener") : x.href ? navigate(x.href) : lancer(x.texte))} />)}

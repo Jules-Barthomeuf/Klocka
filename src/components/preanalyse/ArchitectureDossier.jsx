@@ -11,6 +11,9 @@ import { FRISE, checklistDataRoom, etapeFrise } from "@/lib/dossiers-architectur
 import PanneauAValiderDossier from "@/components/haka/PanneauAValiderDossier";
 import { ZoneConversion } from "@/components/preanalyse/RoueConversion";
 import { toast } from "@/components/ui/avis";
+import Chargement from "@/components/ui/Chargement";
+import EditeurLoi from "@/components/offres/EditeurLoi";
+import { apercuAdmin } from "@/lib/vue";
 
 // Les pièces du dossier ouvert (17 oct. 2026, Jules) : la frise de huit
 // étapes, le verdict, l'action suivante, la colonne de droite (investisseurs
@@ -157,24 +160,34 @@ export function VueClients({ dossier }) {
   );
 }
 
-/** Étape 7 : les lettres d'intention d'achat sur ce dossier. */
+/**
+ * Étape 7 : la lettre d'intention du dossier, directement dans l'éditeur (28 oct. 2026, Jules) :
+ * la dernière lettre du dossier, ou le modèle vierge déjà rempli de ce que le dossier sait, le reste
+ * entre crochets. Tout s'y modifie ; le premier geste crée la lettre, le chat à gauche la remplit.
+ */
 export function VueOffre({ dossier, apercu = false }) {
   const lettres = useLettres(apercu ? null : dossier?.deal_id);
   const liste = lettres.data || [];
+  const [choisie, setChoisie] = useState(null);
+  const id = (liste.find((o) => o.id === choisie) || liste[0])?.id || null;
+  if (apercu || !dossier?.deal_id) return null;
+  if (lettres.isLoading) return <Chargement />;
+  // Plusieurs offres sur le dossier : on passe de l'une à l'autre, sous la barre.
+  const choix = liste.length > 1 ? (
+    <div className="flex flex-none flex-wrap gap-1.5 border-b border-trait px-5 py-2">
+      {liste.map((o) => (
+        <button key={o.id} type="button" onClick={() => setChoisie(o.id)} aria-pressed={o.id === id}
+          className={`rounded-full border px-3 py-1 text-[12.5px] transition-colors ${o.id === id ? "border-bord-vif bg-surface-pleine text-encre" : "border-trait text-ardoise hover:text-encre"}`} style={o.id === id ? undefined : { background: "transparent" }}>
+          {[o.acquereur || "Acquéreur à renseigner", argent(o.prix)].filter(Boolean).join(" · ")}
+        </button>
+      ))}
+    </div>
+  ) : null;
+  // Le canevas de l'Éditeur, à même la page et sur toute sa hauteur : le nom du dossier en haut à gauche (28 oct. 2026, Jules).
   return (
-    <div data-zone="listes" className={panneau}>
-      <h2 className="m-0 mb-3 text-[20px] font-normal text-encre">Offre</h2>
-      {liste.length ? (
-        <ul className="m-0 flex list-none flex-col gap-2 p-0">
-          {liste.map((o) => (
-            <li key={o.id} className="flex flex-wrap items-baseline justify-between gap-2 rounded-[12px] border border-trait px-4 py-3 text-[14px]">
-              <span className="text-encre">{o.acquereur || "Acquéreur à renseigner"}</span>
-              <span className="tabular-nums text-craie">{argent(o.prix) || "Prix à fixer"}</span>
-            </li>
-          ))}
-        </ul>
-      ) : <p className="m-0 text-[14px] leading-[1.6] text-ardoise">Aucune lettre d'intention sur ce dossier. Dites au chat quelle offre préparer, elle apparaîtra ici.</p>}
-      <Link to="/Offres" className="mt-4 inline-flex text-[13.5px] text-menthe underline-offset-4 hover:underline">Ouvrir les offres</Link>
+    <div data-zone="listes" className="h-[100dvh] min-h-0">
+      <EditeurLoi key={id || "vierge"} id={id} dealId={dossier.deal_id} titre={dossier.titre || dossier.nom || dossier.lots?.[0]?.synthese?.titre || "Offre"}
+        onCree={setChoisie} surFond entete={choix} marque={apercuAdmin() === "mandataire" ? "kp" : null} />
     </div>
   );
 }

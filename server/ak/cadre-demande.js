@@ -6,7 +6,7 @@
 const GESTES = {
   'geste:creer-projet': { nom: 'Créer un projet', consigne: "Crée le projet de la plateforme depuis le dossier dont elle parle (trouver_bien, puis creer_projet_depuis_dossier) et donne son lien. Sans dossier pour ce bien, dis-le et demande la fiche." },
   'geste:mail': { nom: 'Drafter un email', consigne: "Rédige le mail qu'elle demande : à un agent pour un dossier (mail_agent), sinon un mail libre (mail_libre). C'est un brouillon à relire : rien ne part sans son accord." },
-  'geste:drive': { nom: 'Créer un dossier Drive', consigne: "Crée le dossier Drive du bien dont elle parle (creer_drive_dossier, après trouver_bien) ; s'il existe déjà, donne son lien sans en créer un second." },
+  'geste:drive': { nom: 'Créer un dossier Drive', consigne: "Crée le dossier Drive du bien dont elle parle (creer_drive_dossier, après trouver_bien) ; s'il existe déjà, l'outil n'en crée pas un second et y dépose les pièces de la Data Room qui manquent : dis combien sont parties et combien y étaient déjà." },
 };
 
 const propre = (x) => String(x || '').replace(/[\n\r]+/g, ' ').trim().slice(0, 60);

@@ -136,7 +136,7 @@ function VueClient({ id, onFermer }) {
           <header className="flex flex-col"><div className="w-full">{chat}</div></header>
         </div>
         <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
-          <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">{editeur}</div>
+          <div className="h-full min-h-0 overflow-hidden border-l border-trait">{editeur}</div>
         </div>
         <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
           onPointerDown={tirer} onDoubleClick={remettre}

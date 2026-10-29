@@ -92,7 +92,8 @@ export function enregistrerConversation(user, { id = null, messages = [], espace
   if (c && (c.agent_name !== agentDe(espace) || c.metadata?.utilisateur !== proprietaire(user))) c = null;
   if (!c) {
     c = Conversations.create({ agent_name: agentDe(espace), metadata: { utilisateur: proprietaire(user), titre: titreDe(propres) } });
-    for (const vieille of miennes(user, espace).filter((x) => x.id !== c.id).slice(MAX_CONVERSATIONS - 1)) {
+    // Le fil d'un bien (metadata.bien) ne s'efface jamais avec les vieilles conversations (25 oct. 2026).
+    for (const vieille of miennes(user, espace).filter((x) => x.id !== c.id && !x.metadata?.bien).slice(MAX_CONVERSATIONS - 1)) {
       Conversations.delete(vieille.id);
     }
   }

@@ -69,6 +69,21 @@ export const GRILLES_EN_PLUS = {
 
 export const grilleDe = (id) => GRILLES[id] || GRILLES_EN_PLUS[id] || null;
 
+// Ce que l'onglet Bien attend des pièces (29 oct. 2026, Jules : « il doit se servir des pièces qu'on a importées pour
+// remplir le plus d'infos possibles »). Lu en même temps que la grille de la pièce, gardé avec ses valeurs, mais montré
+// seulement dans l'onglet Bien : les grilles de Jules ne changent pas.
+const BIEN_ADRESSE = { id: 'bien_adresse', libelle: 'Adresse du local et lots', format: 'Adresse complète, puis les lots s\'ils sont dits : « 12 rue Foch, 56100 Lorient · lots 3 et 12 ».' };
+const BIEN_SURFACE = { id: 'bien_surface', libelle: 'Surface du local', format: '« XX m² » en disant laquelle (Carrez, utile, louée), et par niveau si la pièce les distingue.', schema: { type: 'object', properties: { texte: { type: 'string' }, m2: { type: 'number', description: 'la surface totale du local en m²' } } } };
+export const CRITERES_BIEN = {
+  bail: [BIEN_ADRESSE, BIEN_SURFACE, { id: 'bien_bailleur', libelle: 'Bailleur', format: 'Le nom du bailleur, tel que le bail l\'écrit : « SCI DU PORT ».' }],
+  avenants: [{ id: 'bien_bailleur', libelle: 'Bailleur', format: 'Le nom du bailleur, s\'il est dit.' }],
+  taxe_fonciere: [{ id: 'bien_proprietaire', libelle: 'Propriétaire imposé', format: 'Le nom du ou des propriétaires sur l\'avis.' }],
+  diagnostics: [BIEN_ADRESSE, BIEN_SURFACE],
+  rcp: [{ id: 'bien_lots', libelle: 'Lots du local', format: 'Les numéros de lots du local et leurs tantièmes, s\'ils sont dits.' }],
+};
+/** Tout ce qu'une pièce lit : les critères de sa grille, puis ce que l'onglet Bien attend d'elle. */
+export const criteresLus = (type) => [...(grilleDe(TYPES.find((t) => t.id === type)?.grille)?.criteres || []), ...(CRITERES_BIEN[type] || [])];
+
 // --- Les emplacements : un par type de pièce, dans l'ordre où l'équipe les reçoit --------------
 export const TYPES = [
   { id: 'bail', titre: 'Bail', grille: 'bail', attendus: 1, categorie: CATEGORIE_PAR_TYPE.bail },
@@ -125,7 +140,7 @@ const decrireDonnees = (schema) =>
 export function consigneLecture({ type, nom, criteres, grille, contexte = null, aujourdHui = new Date().toISOString().slice(0, 10) }) {
   const t = TYPE[type];
   const lignes = criteres.map((c) => {
-    const donnees = decrireDonnees(grille.schema?.[c.id]);
+    const donnees = decrireDonnees(c.schema || grille.schema?.[c.id]);
     return `- ${c.id} (${c.libelle}) : format ${c.format}${donnees ? `\n  donnees : ${donnees}` : ''}`;
   });
   return [
@@ -326,8 +341,13 @@ export function lireDepots(dealId) {
   const docs = (brut.documents_espace || []).map((d) => ({ id: d.id, nom: d.nom, url: d.url, mime: d.mime || null, taille: d.taille || 0, ajoute_le: d.ajoute_le || null, ajoute_par: d.ajoute_par || null, type: typeDe(d), contexte: etat[d.id]?.contexte || null, nom_propose: etat[d.id]?.nom_propose || null, drive_url: d.drive_range_le ? d.drive_url || null : null, drive_range_le: d.drive_range_le || null, lecture: etat[d.id]?.extraction?.statut || null }));
   const zone = (t, perso = false) => ({ id: t.id, titre: t.titre, attendus: t.attendus || 0, perso, documents: docs.filter((d) => d.type === t.id) });
   const sansType = zone({ id: 'autre', titre: 'Sans type' });
+  const lisibles = new Set(TYPES.filter((t) => grilleDe(t.grille)).map((t) => t.id));
+  const aLireDocs = docs.filter((d) => lisibles.has(d.type));
   return {
     drive_folder_url: brut.drive_folder_url || null,
+    // Pour « Lancer l'analyse » : les pièces lisibles jamais lues, et celles déjà lues.
+    nouvelles: aLireDocs.filter((d) => !d.lecture || d.lecture === 'erreur').length,
+    deja_lues: aLireDocs.filter((d) => d.lecture && d.lecture !== 'erreur').length,
     emplacements: [
       ...TYPES.filter((t) => t.id !== 'autre').map((t) => zone(t)),
       ...perso.map((t) => zone(t, true)),
@@ -360,7 +380,8 @@ export async function lirePiece(dealId, docId, { uploadDir, user, seulement = nu
   const type = etatDoc.type;
   const grille = grilleDe(TYPE[type]?.grille);
   if (!grille) return { ok: false, error: "Cet emplacement ne se lit pas" };
-  const criteres = seulement ? grille.criteres.filter((c) => seulement.includes(c.id)) : grille.criteres;
+  const tous = criteresLus(type);
+  const criteres = seulement ? tous.filter((c) => seulement.includes(c.id)) : tous;
   if (!criteres.length) return { ok: false, error: 'Critère inconnu' };
   const { chargerPiece } = await import('./espace.js');
   const piece = chargerPiece(dealId, docId, uploadDir);
@@ -511,7 +532,7 @@ function lireGrille(gid, brut, docs, ctx) {
       id: c.id, cle, libelle: c.libelle, format: c.format, regle: c.regle,
       statut, valeur, sources, retenue: retenue?.document_id || null,
       a_choisir: !EMPILEES.has(gid) && differentes && !humain?.source && !['corrige', 'introuvable'].includes(humain?.statut),
-      relue, alerte, note: humain?.note || null,
+      relue, alerte, note: humain?.note || null, valeur_main: humain?.statut === 'corrige' ? humain.valeur : humain?.valeur_main || null,
       par: humain?.par || null, le: humain?.le || null, introuvable_par: humain?.statut === 'introuvable' ? humain.par : null,
     };
   });
@@ -612,8 +633,10 @@ export function lireAnalyse(dealId) {
  * introuvable, retenir une pièce plutôt qu'une autre, noter, ou réinitialiser (retour à la lecture).
  */
 export function deciderCase(dealId, grilleId, critereId, { action, valeur, source, note } = {}, user) {
+  // L'onglet Bien a ses propres lignes (« bien.surface », « bien.vendeur »…) : modifiables comme les grilles.
   const grille = grilleDe(grilleId);
-  if (!grille || !grille.criteres.some((c) => c.id === critereId)) return { ok: false, error: 'Case inconnue' };
+  const connue = grilleId === 'bien' ? /^[a-z_]{2,40}$/.test(String(critereId)) : !!grille?.criteres.some((c) => c.id === critereId);
+  if (!connue) return { ok: false, error: 'Case inconnue' };
   const cle = `${grilleId}.${critereId}`;
   const signe = { par: user?.email || null, le: new Date().toISOString() };
   let erreur = null;
@@ -623,7 +646,8 @@ export function deciderCase(dealId, grilleId, critereId, { action, valeur, sourc
       case 'verifier': {
         const v = String(valeur ?? '').trim();
         if (!v) { erreur = 'Rien à vérifier : la case est vide.'; return false; }
-        etat.cases[cle] = { ...avant, ...signe, statut: 'verifie', valeur: v.slice(0, 2000) };
+        // Valider une valeur saisie à la main la garde de côté, pour le tour suivant de l'état.
+        etat.cases[cle] = { ...avant, ...signe, statut: 'verifie', valeur: v.slice(0, 2000), valeur_main: avant.statut === 'corrige' ? avant.valeur : avant.valeur_main || null };
         return;
       }
       case 'corriger': {
@@ -644,10 +668,13 @@ export function deciderCase(dealId, grilleId, critereId, { action, valeur, sourc
         etat.cases[cle] = { ...avant, note: t || null, ...(Object.keys(avant).length ? {} : signe) };
         return;
       }
-      case 'reinitialiser':
-        if (avant.note) etat.cases[cle] = { note: avant.note, par: avant.par, le: avant.le };
+      case 'reinitialiser': {
+        // La valeur saisie à la main reste de côté : un clic de plus sur l'état la remet (29 oct. 2026, Jules).
+        const main = avant.statut === 'corrige' ? avant.valeur : avant.valeur_main || null;
+        if (avant.note || main) etat.cases[cle] = { note: avant.note || null, valeur_main: main, par: avant.par, le: avant.le };
         else delete etat.cases[cle];
         return;
+      }
       default:
         erreur = 'Geste inconnu';
         return false;
@@ -708,3 +735,37 @@ export async function poserQuestion(dealId, docId, question, { uploadDir, user, 
   });
   return { ok: true, ...entree };
 }
+
+// --- L'onglet Bien, nourri par les pièces ---------------------------------------------------------------------
+const CATEGORIE_BIEN = { bail: 'Bail commercial', avenants: 'Avenants', taxe_fonciere: 'Taxe foncière', kbis: 'Kbis', diagnostics: 'Diagnostics', rcp: 'Règlement de copropriété', quittances: 'Quittances', pv_ag: "PV d'AG copro" };
+
+/**
+ * Les pièces lues, mises au format des lignes de la matrice que l'onglet Bien sait lire (server/deal/bien-analyse.js) :
+ * une ligne par pièce, ses cellules adresse, surface, parties, taxe foncière, destination, procédures. Rien si
+ * aucune pièce n'a encore été lue.
+ */
+export function lignesBienDesPieces(brut) {
+  const docs = brut?.analyse_pieces?.docs || {};
+  const sortie = [];
+  for (const d of brut?.documents_espace || []) {
+    const x = docs[d.id];
+    if (!x?.type || !x.valeurs || x.extraction?.statut !== 'fait') continue;
+    const v = (id) => (x.valeurs[id]?.valeur ? x.valeurs[id] : null);
+    const cel = (c, texte = c?.valeur) => (c && texte ? { reponse: texte, page: c.page || null, citation: c.citation || null } : null);
+    const cellules = {};
+    const poser = (col, c) => { if (c) cellules[col] = c; };
+    poser('adresse', cel(v('bien_adresse')) || cel(v('local')));
+    const surf = v('bien_surface');
+    poser('surface', surf ? cel(surf, surf.donnees?.m2 ? `${surf.donnees.m2} m² · ${surf.valeur}` : surf.valeur) : null);
+    const parties = [v('bien_bailleur') && `Bailleur : ${v('bien_bailleur').valeur}`, v('bien_proprietaire') && `Propriétaire : ${v('bien_proprietaire').valeur}`, (x.type === 'bail' && v('parties')) && `Preneur : ${v('parties').donnees?.locataire || v('parties').valeur}`, x.type === 'kbis' && v('denomination') && `Preneur : ${v('denomination').valeur}${v('capital') ? `, capital ${v('capital').valeur}` : ''}`].filter(Boolean);
+    const sourceParties = v('bien_bailleur') || v('bien_proprietaire') || v('parties') || v('denomination');
+    poser('parties', parties.length ? cel(sourceParties, parties.join(' ; ')) : null);
+    poser('taxe_fonciere', cel(v('montant')));
+    poser('destination', cel(v('destination')));
+    poser('procedures', cel(v('procedure')));
+    poser('creation', cel(v('immatriculation')));
+    if (Object.keys(cellules).length) sortie.push({ document_id: d.id, document_nom: d.nom, document_url: d.url, categorie: CATEGORIE_BIEN[x.type] || d.categorie || '', cellules });
+  }
+  return sortie;
+}
+

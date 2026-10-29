@@ -123,7 +123,7 @@ const REFUS_DU_SERVICE = new Set(["service-not-allowed", "network", "language-no
 /**
  * @param {{ onTexte?: (texte: string, final: boolean) => void, onFin?: (texte: string) => void }} options
  *   `onTexte` reçoit tout le texte dicté depuis le clic, à chaque nouveauté.
- * @returns {{ supporte: boolean, ecoute: boolean, demarrer: () => void, arreter: () => void, erreur: string|null, transcription: boolean, finalisation: boolean }}
+ * @returns {{ supporte: boolean, ecoute: boolean, demarrer: () => void, arreter: () => void, erreur: string|null, transcription: boolean, finalisation: boolean, niveau: {current: number} }}
  */
 export function useDictee({ onTexte, onFin } = {}) {
   const [ecoute, setEcoute] = useState(false);
@@ -141,6 +141,9 @@ export function useDictee({ onTexte, onFin } = {}) {
   const rec = useRef(null);
   const flux = useRef(null); // { ctx, source, processeur, media, freq, tampons, depuisTranche, minuterie, file, arreter }
   const fini = useRef(false);
+  // Le niveau de la voix (0 à 1), pour l'onde du chat (25 oct. 2026) : mesuré sur le flux continu ; avec la
+  // reconnaissance du navigateur, une impulsion à chaque mot reçu (aucun second accès au micro).
+  const niveau = useRef(0);
 
   const fermerFlux = useCallback(() => {
     const f = flux.current;
@@ -193,6 +196,9 @@ export function useDictee({ onTexte, onFin } = {}) {
     flux.current = f;
     processeur.onaudioprocess = (e) => {
       const copie = new Float32Array(e.inputBuffer.getChannelData(0));
+      let somme = 0;
+      for (let i = 0; i < copie.length; i += 1) somme += copie[i] * copie[i];
+      niveau.current = Math.min(1, Math.sqrt(somme / copie.length) * 7);
       f.tampons.push(copie);
       f.depuisTranche.push(copie);
     };
@@ -259,6 +265,7 @@ export function useDictee({ onTexte, onFin } = {}) {
 
     r.onresult = (e) => {
       const { final, interim } = lireResultats(e.results);
+      niveau.current = Math.max(niveau.current, 0.55 + Math.random() * 0.45);
       session = final;
       enSuspens = interim;
       rappels.current.onTexte?.(joindre(acquis.current, final, interim), !interim);
@@ -327,5 +334,5 @@ export function useDictee({ onTexte, onFin } = {}) {
     flux.current?.arreter?.();
   }, []);
 
-  return { supporte: !!(Reconnaissance || (microDisponible() && Audio)), ecoute, demarrer, arreter, erreur, transcription, finalisation };
+  return { supporte: !!(Reconnaissance || (microDisponible() && Audio)), ecoute, demarrer, arreter, erreur, transcription, finalisation, niveau };
 }

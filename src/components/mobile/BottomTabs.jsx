@@ -24,7 +24,7 @@ export default function BottomTabs({ vue = "client", onMenu = null, menuOuvert =
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-fond/90 backdrop-blur-xl border-t border-trait"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-transparent backdrop-blur-xl border-t border-trait"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex items-center justify-around h-14">

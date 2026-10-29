@@ -138,7 +138,7 @@ export function BandeauExemples({ liste = [] }) {
   const [enCours, setEnCours] = useState(false);
   if (!liste.some((x) => x?.exemple)) return null;
   const retirer = async () => {
-    if (!window.confirm("Retirer toutes les fiches d'exemple (estimation, mandat, dossiers, mise en marché) ? Elles ne reviendront pas.")) return;
+    if (!window.confirm("Retirer toutes les fiches d'exemple (estimation, mandat, dossiers, commercialisation) ? Elles ne reviendront pas.")) return;
     setEnCours(true);
     try {
       await base44.request("POST", "/api/mandataire/exemples/retirer");

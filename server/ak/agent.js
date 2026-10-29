@@ -986,6 +986,8 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     if (String(message?.espace || '').startsWith('app:')) {
       // Depuis la page Offres, la lettre s'ouvre déjà à droite : pas de notification.
       if (message?.page === 'offres') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est ouverte à droite, éditable." };
+      // Depuis l'étape Offre d'un dossier, de même : elle s'affiche à droite (28 oct. 2026).
+      if (message?.page === 'dossiers') return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est ouverte à droite, dans l'étape Offre du dossier, éditable." };
       const { notifier } = await import('../notifications.js');
       notifier({ pour: user?.email, titre: 'Votre LOI est prête', texte: [champs.adresse_bien, champs.acquereur_nom].filter(Boolean).join(' · '), lien: lien(l.id), action: 'Relire', genre: 'tache', cle: `loi:${l.id}` });
       return { ok: true, nouvelle: true, loi_id: l.id, lien: lien(l.id), note: "La LOI est prête dans la page Offres, éditable, avec Word et PDF ; une notification « Relire » y mène. Dis-le en une ligne, sans recopier la lettre." };

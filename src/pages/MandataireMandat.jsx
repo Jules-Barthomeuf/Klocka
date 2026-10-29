@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
-import { BandeauExemples, BoutonFichier, LienFichier, PastilleExemple, euros, formDe } from "@/components/mandataire/kit";
+import { BandeauExemples, LienFichier, PastilleExemple, euros } from "@/components/mandataire/kit";
 import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import ApercuMandat, { FenetreMandatPret } from "@/components/mandataire/ApercuMandat";
@@ -20,7 +20,7 @@ import Chargement from "@/components/ui/Chargement";
 
 const API = "/api/mandataire/mandats";
 const CHAT = { api: "/api/mandataire", qs: "?espace=mandat" };
-const ETAPES = [["brouillon", "En préparation"], ["demande_envoyee", "Envoyé à MyNotary"], ["pret", "Prêt"], ["signe", "Signé"], ["enregistre", "Enregistré"]];
+const ETAPES = [["brouillon", "En préparation"], ["demande_envoyee", "Envoyé"], ["pret", "Prêt"], ["signe", "Signé"], ["enregistre", "Enregistré"]];
 
 export default function MandataireMandat() {
   const queryClient = useQueryClient();
@@ -42,9 +42,9 @@ export default function MandataireMandat() {
     queryClient.invalidateQueries({ queryKey: ["m-mandats"] });
     queryClient.invalidateQueries({ queryKey: ["m-apercu-mandat"] });
   };
-  const signe = useMutation({
-    mutationFn: ({ id, f }) => base44.request("POST", `${API}/${id}/signe`, { body: formDe(f), isForm: true }),
-    onSuccess: () => { rafraichir(); toast.success("Mandat signé reçu : Klocka l'inscrit au registre"); },
+  const suite = useMutation({
+    mutationFn: (id) => base44.request("POST", `${API}/${id}/suite`),
+    onSuccess: () => { rafraichir(); toast.success("Mandat signé : le bien passe à la Commercialisation"); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
@@ -175,7 +175,10 @@ export default function MandataireMandat() {
                                 <FileText className="h-3.5 w-3.5" /> Le mandat MyNotary
                               </button>
                             )}
-                            {m.statut === "pret" && <BoutonFichier principal mot="Déposer le mandat signé" onFichier={(f) => signe.mutate({ id: m.id, f })} enCours={signe.isPending} accept=".pdf,image/*" />}
+                            {m.statut === "pret" && (
+                              <button type="button" onClick={() => suite.mutate(m.id)} disabled={suite.isPending}
+                                className="rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50">Passer à l'étape suivante</button>
+                            )}
                             {m.document_signe && <LienFichier f={{ ...m.document_signe, nom: "Mandat signé" }} />}
                           </div>
                         )}

@@ -161,8 +161,50 @@
 .avis-poignee:active { cursor: grabbing; }
 .avis-poignee svg { width: 14px; height: 14px; }
 /* Le menu de mise en forme, hors du document : la même palette, pour ses pastilles. */
-.avis-styles { --sauge: #3f47b8; --sauge-fonce: #3f47b8; --encre: #0e0e10; --gris: #2b2d36; --ocre: #262a85; --kp: #5d65d6; --blanc: #ffffff; }
+.avis-styles { --sauge: #3f47b8; --sauge-fonce: #3f47b8; --encre: #0e0e10; --gris: #2b2d36; --ocre: #262a85; --kp: #5d65d6; --blanc: #ffffff; --nuit: #0e0e10; --ligne: #eef0ff; }
+/* Les couleurs du Design commun des éditeurs (PALETTE_DOC, 28 oct. 2026) posées sur les rôles de l'avis : le document
+   et les pastilles du panneau les lisent pareil, et l'avis Klocka les reprend par ses propres variables. */
+.avis, .avis-styles { --doc-encre: var(--encre); --doc-noir: var(--nuit); --doc-gris: var(--gris); --doc-accent: var(--sauge-fonce); --doc-encart: var(--ligne); --doc-blanc: var(--blanc); }
 .avis-zoom { transform-origin: top center; }
+
+/* L'avis Klocka (26 oct. 2026, Jules) : le premier modèle, d'avant la charte K Partners. Bandeau sauge, texte encre,
+   accents vert-de-gris, vigilance en ocre, Montserrat, le K de Klocka. */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap");
+.avis.avis-klocka {
+  --sauge: #8fb0a9;
+  --sauge-fonce: #5d8a82;
+  --encre: #1b1d1c;
+  --gris: #5f6462;
+  --gris-clair: #8a8f8d;
+  --ligne: #f1f5f4;
+  --trait: #d6e0dd;
+  --ocre: #c47a3a;
+  --kp: #6fc7b5;
+  --nuit: #1b1d1c;
+  --pervenche: #8fb0a9;
+  --panneau: #8fb0a9;
+  font-family: Montserrat, "Instrument Sans", system-ui, sans-serif;
+}
+.avis-klocka .avis-bande-num { font-weight: 800; color: var(--encre); }
+.avis-klocka .avis-bande-label { font-weight: 700; color: var(--encre); }
+.avis-klocka .avis-etiquette { font-weight: 700; letter-spacing: 0.18em; }
+.avis-klocka .avis-titre { letter-spacing: -0.01em; }
+.avis-klocka .avis-table td:last-child { font-weight: 600; }
+.avis-klocka .avis-grille tfoot td, .avis-klocka .avis-grille .fort { font-weight: 700; }
+.avis-klocka .avis-encadre { border-color: var(--sauge-fonce); background: none; border-radius: 4mm; }
+.avis-klocka .avis-formule { border-color: #222; border-radius: 0; }
+.avis-klocka .avis-formule .resultat, .avis-klocka .avis-alerte-rond { font-weight: 800; }
+.avis-klocka .avis-pastille { font-weight: 700; border-radius: 1.2mm; }
+.avis-klocka .avis-couverture h1 { font-weight: 800; line-height: 1.08; letter-spacing: -0.02em; }
+.avis-klocka .avis-couverture-bande { background: var(--sauge); color: var(--encre); }
+.avis-klocka .avis-couverture-bande .mot { color: var(--encre); opacity: 0.85; }
+.avis-klocka .avis-couverture-bande .val { font-weight: 700; color: var(--encre); }
+.avis-klocka .avis-portrait-couverture { border-radius: 1mm; }
+.avis-klocka .avis-curseur { background: var(--sauge); }
+.avis-klocka .avis-curseur span { background: #111; }
+.avis-klocka .avis-pied-trait { font-weight: 700; }
+.avis-logo-klocka { height: 15mm; width: auto; font-size: inherit; }
+.avis-pied-logo.avis-logo-klocka { height: 4.5mm; }
 
 @media print {
   .avis-zoom { zoom: 1 !important; }

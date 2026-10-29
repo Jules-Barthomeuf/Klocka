@@ -8,12 +8,12 @@ import { toast } from "@/components/ui/avis";
 
 const CLES = [["haka"], ["haka-compte"], ["haka-dossier"], ["notifications"], ["preanalyse-pipeline"]];
 
-export function useCompteHaka() {
-  return useQuery({ queryKey: ["haka-compte"], queryFn: () => base44.request("GET", "/api/haka/propositions/compte"), refetchInterval: 60_000, retry: false });
+export function useCompteHaka({ enabled = true } = {}) {
+  return useQuery({ queryKey: ["haka-compte"], queryFn: () => base44.request("GET", "/api/haka/propositions/compte"), enabled, refetchInterval: 60_000, retry: false });
 }
 
-export function usePropositions(vue) {
-  return useQuery({ queryKey: ["haka", vue], queryFn: () => base44.request("GET", `/api/haka/propositions?vue=${vue}`), refetchInterval: 60_000, retry: false });
+export function usePropositions(vue, { enabled = true } = {}) {
+  return useQuery({ queryKey: ["haka", vue], queryFn: () => base44.request("GET", `/api/haka/propositions?vue=${vue}`), enabled, refetchInterval: 60_000, retry: false });
 }
 
 export function usePropositionsDossier(dealId) {

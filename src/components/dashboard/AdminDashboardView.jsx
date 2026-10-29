@@ -53,6 +53,10 @@ function livrablesDe(r) {
 
 export default function AdminDashboardView() {
   const hakaActif = !!useCompteHaka().data?.actif;
+  useEffect(() => {
+    document.documentElement.classList.add("k-sans-ascenseur");
+    return () => document.documentElement.classList.remove("k-sans-ascenseur");
+  }, []);
   const large = useEcranLarge();
   const [conversation, setConversation] = useState(false);
   const [dossier, setDossier] = useState(null);

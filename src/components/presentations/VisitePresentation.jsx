@@ -12,7 +12,7 @@ export const visiteVue = () => { try { return localStorage.getItem(CLE_VISITE) =
 const noterVue = () => { try { localStorage.setItem(CLE_VISITE, "1"); } catch { /* navigation privée : elle reviendra */ } };
 
 const ETAPES = [
-  [PencilLine, "Édition", "Cliquez un texte, un chiffre ou une photo pour le modifier, directement sur la diapositive."],
+  [PencilLine, "Éditeur", "Cliquez un texte, un chiffre ou une photo pour le modifier, directement sur la diapositive."],
   [Eye, "Lecture", "Feuilletez la présentation comme à l'écran : flèches, sommaire, et ← → au clavier."],
   [Search, "Sources", "Vérifiez chaque chiffre en un coup d'œil : passez la souris dessus, sa source s'affiche."],
   [Maximize2, "Plein écran", "Présentez directement depuis l'application, sans rien télécharger."],

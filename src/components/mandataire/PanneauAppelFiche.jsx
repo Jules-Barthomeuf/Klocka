@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Loader from "@/components/ui/Loader";
 import { Check, Loader2, Mic, PhoneCall, PhoneOff, Square, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
@@ -125,7 +126,7 @@ export default function PanneauAppelFiche({ p, onFermer, onFait }) {
                   <button type="button" onClick={terminer} className="inline-flex items-center gap-2 rounded-full bg-menthe px-4 py-2 text-[13.5px] font-semibold text-sur-menthe"><Square className="h-4 w-4" />Terminer l'appel</button>
                 </div>
               )}
-              {etat === "analyse" && <p className="m-0 flex items-center gap-2 text-[13.5px] text-craie"><Loader2 className="h-4 w-4 animate-spin" />Je lis l'appel et mets la fiche à jour…</p>}
+              {etat === "analyse" && <Loader titre="Je lis l'appel et mets la fiche à jour…" />}
             </div>
           </>
         )}

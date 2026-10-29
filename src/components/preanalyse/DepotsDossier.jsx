@@ -127,7 +127,8 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
   const analyser = useMutation({
     mutationFn: () => base44.request("POST", url("analyser"), { body: {} }),
     onSuccess: (r) => {
-      toast.success(r.lancees ? `Lecture lancée : ${r.lancees} pièce${r.lancees > 1 ? "s" : ""}` : "Tout est déjà lu");
+      // Seules les pièces jamais lues partent à la lecture (29 oct. 2026, Jules) : les autres gardent leur analyse.
+      toast.success(r.lancees ? `Lecture lancée : ${r.lancees} nouvelle${r.lancees > 1 ? "s" : ""} pièce${r.lancees > 1 ? "s" : ""}${r.deja ? `, les ${r.deja} autres gardent leur analyse` : ""}` : r.completees ? "Les informations du Bien se complètent" : "Tout est déjà lu");
       onFait();
       onAnalyse?.();
     },
@@ -155,7 +156,8 @@ export function ActionsDataRoom({ dossier, onRefresh = null, onAnalyse = null })
       </button>
       <button type="button" onClick={() => analyser.mutate()} disabled={analyser.isPending}
         className={`inline-flex h-9 flex-none items-center gap-1.5 rounded-full px-4 text-[13px] disabled:opacity-60 ${rangee ? "bg-menthe text-sur-menthe hover:bg-menthe-survol" : bordee}`} style={rangee ? undefined : { background: "transparent" }}>
-        {analyser.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span className={`tabular-nums ${rangee ? "" : "text-ardoise"}`}>2</span>} Lancer l'analyse
+        {analyser.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span className={`tabular-nums ${rangee ? "" : "text-ardoise"}`}>2</span>}
+        {!data.nouvelles ? "Voir l'analyse" : data.deja_lues ? `Analyser ${data.nouvelles > 1 ? `les ${data.nouvelles} nouvelles pièces` : "la nouvelle pièce"}` : "Lancer l'analyse"}
       </button>
 
       <Dialog open={ouvert} onOpenChange={(o) => { if (!o && !ranger.isPending) setOuvert(false); }}>

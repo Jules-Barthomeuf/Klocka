@@ -685,3 +685,15 @@ async function exporterSeul(ville) {
     }
   }
 }
+
+// Pour l'estimation multicritères (server/equimmox-estimation.js, 26 oct. 2026) : le même navigateur, la même session,
+// la même file (une seule recherche Equimmox à la fois).
+export { aller as allerEquimmox, seConnecter as connecterEquimmox, nouveauContexte as contexteEquimmox, enFile as fileEquimmox, SESSION as SESSION_EQUIMMOX };
+/** Ferme le navigateur lancé ici (pas un navigateur distant), après une recherche. */
+export async function fermerNavigateurEquimmox() {
+  if (!CDP && navigateur) {
+    const n = navigateur;
+    navigateur = null;
+    await n.close().catch(() => {});
+  }
+}

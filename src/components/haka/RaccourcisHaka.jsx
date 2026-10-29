@@ -26,7 +26,7 @@ const GESTES = [
   { cle: "geste:drive", nom: "Créer un dossier Drive", icone: FolderOpen, outils: [] },
 ];
 const rang = (cle) => { const i = D_ABORD.indexOf(cle); return i < 0 ? D_ABORD.length : i; };
-const PILULE = "inline-flex h-9 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 text-[13.5px] text-encre transition-[border-color,transform] duration-300 hover:border-bord-vif";
+const PILULE = "inline-flex h-9 min-w-0 items-center gap-2 rounded-full border border-trait bg-surface-pleine px-3.5 text-[13.5px] max-md:h-11 max-md:w-11 max-md:justify-center max-md:px-0 text-encre transition-[border-color,transform] duration-300 hover:border-bord-vif";
 
 /** @param {{ choisie?: string|null, onChoisir: (c: object) => void, sourcesOuvert?: boolean, onSources?: () => void, nbSources?: number, className?: string }} props */
 export default function RaccourcisHaka({ choisie = null, onChoisir, sourcesOuvert = false, onSources = null, nbSources = 0, className = "" }) {
@@ -40,16 +40,16 @@ export default function RaccourcisHaka({ choisie = null, onChoisir, sourcesOuver
         const Icone = c.icone || ICONES[c.format] || Sparkles;
         const sel = choisie === c.cle;
         return (
-          <button key={c.cle} type="button" onClick={() => onChoisir(c)} aria-pressed={sel}
+          <button key={c.cle} type="button" onClick={() => onChoisir(c)} aria-pressed={sel} aria-label={c.nom} title={c.nom}
             className={`${PILULE} active:scale-[0.97] ${sel ? "border-menthe/60 bg-menthe/10" : ""}`}>
-            <Icone className={`h-3.5 w-3.5 ${sel ? "text-menthe" : "text-ardoise"}`} strokeWidth={1.8} />{c.nom}
+            <Icone className={`h-3.5 w-3.5 max-md:h-[18px] max-md:w-[18px] ${sel ? "text-menthe" : "text-ardoise"}`} strokeWidth={1.8} /><span className="truncate max-md:hidden">{c.nom}</span>
           </button>
         );
       })}
       {onSources && (
         <button type="button" onClick={onSources} aria-expanded={sourcesOuvert}
           aria-label={sourcesOuvert ? "Fermer le choix des sources" : "Choisir les sources"} title={sourcesOuvert ? "Fermer" : "Choisir les sources que Haka lira"}
-          className={`relative grid h-9 w-9 place-items-center rounded-full border transition-colors duration-300 ${sourcesOuvert || nbSources ? "border-menthe/60 text-menthe" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
+          className={`relative grid h-9 w-9 max-md:h-11 max-md:w-11 place-items-center rounded-full border transition-colors duration-300 ${sourcesOuvert || nbSources ? "border-menthe/60 text-menthe" : "border-trait bg-surface-pleine text-encre hover:border-bord-vif"}`}>
           <motion.span className="grid place-items-center" animate={{ rotate: sourcesOuvert ? 45 : 0 }} transition={{ type: "spring", stiffness: 380, damping: 26 }}><Plus className="h-4 w-4" /></motion.span>
           {!sourcesOuvert && nbSources > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-menthe px-1 text-[10px] text-sur-menthe">{nbSources}</span>}
         </button>

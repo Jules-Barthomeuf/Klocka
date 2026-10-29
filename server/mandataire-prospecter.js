@@ -57,7 +57,7 @@ export function pointsPourClient(commerces, d, { max = POINTS_MAX, centreDe = ()
     if (prix) n.prix += 1;
     // Le prix estimé n'est pas assez fiable pour écarter un mur (24 oct. 2026, Jules : « trop bas, surfaces douteuses ») :
     // il ne filtre plus, il range (ceux dans son budget d'abord) et il s'affiche comme indicatif.
-    const vu = { activite: c.activite, enseigne: c.enseigne, nom: c.exploitant?.nom || c.nom, nom_google: c.nom_google, chaine: !!c.chaine, centre: centreDe(c), prix: null };
+    const vu = { classe: c.classe || 'commerce', activite: c.activite, enseigne: c.enseigne, nom: c.exploitant?.nom || c.nom, nom_google: c.nom_google, chaine: !!c.chaine, centre: centreDe(c), prix: null };
     if (!pourClient(vu, d)) continue;
     n.criteres += 1;
     const max = Number(d?.budget_max) || 0, min = Number(d?.budget_min) || 0;
@@ -71,7 +71,7 @@ export function pointsPourClient(commerces, d, { max = POINTS_MAX, centreDe = ()
     // La forme des commerces de l'Off-market (`compact`), pour le même tableau et les mêmes filtres ; le prix est
     // celui qui compte pour ce client, le prix estimé reste à côté.
     .map(({ c, prix, force, dansBudget }) => ({
-      ...(compacter ? compacter(c) : { id: c.id, lat: c.lat, lon: c.lon, ville_id: c.ville_id, activite: c.activite || null, adresse: c.adresse || null, proprietaire: c.proprietaire.nom, nom: c.exploitant.nom, drapeaux: c.drapeaux.map((x) => x.cle) }),
+      ...(compacter ? compacter(c) : { id: c.id, lat: c.lat, lon: c.lon, ville_id: c.ville_id, classe: c.classe || 'commerce', activite: c.activite || null, adresse: c.adresse || null, proprietaire: c.proprietaire.nom, nom: c.exploitant.nom, drapeaux: c.drapeaux.map((x) => x.cle) }),
       titre: c.enseigne || c.exploitant?.nom || c.nom,
       exploitant: c.exploitant.nom,
       signaux: c.drapeaux.map((x) => texteDrapeau(x.texte)), force, prix, prix_estime: c.estimation?.prix || null, prix_a_verifier: !prix, dans_budget: dansBudget,
@@ -193,6 +193,74 @@ export async function prospecter(user) {
     secteur: { id: secteur.id, nom: secteur.nom, teinte: secteur.teinte || null, motif: secteur.motif ?? 0, polygones: E.anneauxSecteur(secteur) },
     villes: toutes,
     clients,
+  };
+}
+
+/**
+ * Pure : le point d'un commerce sans client en tête (« tous les commerces » du secteur, 25 oct. 2026, Jules) : la même
+ * forme que celle d'un point pour un client, sans budget ni critères (`dans_budget` vaut null), son prix estimé tel quel.
+ */
+export function pointDuSecteur(c, base, ville) {
+  const drapeaux = c.drapeaux || [];
+  return {
+    ...base,
+    titre: c.enseigne || c.exploitant?.nom || c.nom,
+    exploitant: c.exploitant?.nom || null,
+    signaux: drapeaux.map((x) => texteDrapeau(x.texte)), force: forceDe(drapeaux),
+    prix: c.estimation?.prix || null, prix_estime: c.estimation?.prix || null, prix_a_verifier: !c.estimation?.prix, dans_budget: null,
+    ville,
+  };
+}
+
+// Ce que l'écran lit d'un point de tout le secteur : la carte, les filtres, la recherche et le tableau. Le reste (adresse
+// brute, siret, textes des signaux…) vient avec la fiche, au clic.
+const CHAMPS_LEGERS = ['id', 'force', 'classe', 'lien', 'activite', 'drapeaux', 'proprietaire', 'proprietaire_type', 'depuis', 'chaine', 'liste', 'adresse', 'centre', 'zone', 'titre', 'nom', 'ville', 'prix', 'reponse', 'fiche'];
+/**
+ * Pure : un point de tout le secteur, allégé (26 oct. 2026 : 74 000 points, 62 Mo en entier). Les valeurs vides
+ * disparaissent, sauf `centre` à faux (le filtre d'emplacement le lit) ; la position est arrondie au mètre.
+ */
+export function leger(p) {
+  const out = { lat: Math.round(p.lat * 1e5) / 1e5, lon: Math.round(p.lon * 1e5) / 1e5 };
+  for (const k of CHAMPS_LEGERS) {
+    const v = p[k];
+    if (v == null || v === '' || (v === false && k !== 'centre') || (Array.isArray(v) && !v.length && k !== 'drapeaux')) continue;
+    if (k === 'classe' && v === 'commerce') continue;
+    if (k === 'nom' && v === p.titre) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Tous les commerces du secteur, sans client (25 oct. 2026, Jules : le client est un filtre, pas une vue) : ceux des
+ * villes choisies par Klocka, avec position, les plus forts signaux d'abord, puis ceux dont on connaît le propriétaire.
+ * Tous, sans plafond (26 oct. 2026, Jules : « voir tous les commerces de la ville, ne rien manquer ») : Lyon seul en a
+ * plus de 10 000, la carte les dessine sur un canevas. Ceux qu'un autre mandataire tient ne s'affichent pas.
+ */
+export async function pointsDuSecteur(user, { max = Infinity } = {}) {
+  const E = await import('./mandataire-espace.js');
+  const secteur = E.secteurDe(user);
+  if (!secteur) return { ok: false, error: 'Aucun secteur pour vous : Klocka vous en attribue un.' };
+  const { compact } = await import('./off-market/simple.js');
+  const { teneurs } = await import('./fiche-mandataire.js');
+  const moi = emailDe(user);
+  const tenus = teneurs(Records.list('ProprietaireMandataire'), moi);
+  const { fiches, toutes } = await villesDuMandataire(secteur);
+  const points = [];
+  let lus = 0;
+  for (const v of fiches) {
+    const { liste, zone } = await lireCommerces(v);
+    for (const c of liste) {
+      lus += 1;
+      const t = tenus.get(c.id);
+      if ((t && !t.a_moi) || c.lat == null || c.lon == null) continue;
+      points.push(leger({ ...pointDuSecteur(c, compact(c, { ...(zone || {}), moi }), v.nom), fiche: t ? { id: t.id, dans_biens: t.dans_biens, statut: t.statut } : null }));
+    }
+  }
+  points.sort((a, b) => b.force - a.force || Number(!!b.proprietaire) - Number(!!a.proprietaire) || String(a.titre || '').localeCompare(String(b.titre || ''), 'fr'));
+  return {
+    ok: true, villes: fiches.map((v) => v.nom), points: points.slice(0, max), total: points.length, prospecte_le: null,
+    compte: { commerces: lus }, pourquoi_vide: points.length ? null : (toutes.length ? 'Les commerces de votre secteur ne sont pas encore lus : ils arrivent en fond, revenez dans un moment.' : "Klocka n'a pas encore choisi les villes de votre secteur."),
   };
 }
 

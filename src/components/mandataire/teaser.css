@@ -1,0 +1,65 @@
+/* Le teaser K Partners (28 oct. 2026, maquette de Jules) : une page A4 dessinée en 794 × 1123 px. Photo en tête avec
+   le titre, fond pervenche, carte noire (chiffres, tableau, points forts), mention de confidentialité, barre noire en pied.
+   Couleurs de la charte, comme le deck et l'avis imprimé : elles ne suivent pas le thème de l'application. */
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&display=swap");
+
+@page { size: A4; margin: 0; }
+.tz-page {
+  --tz-pervenche: #a7abed; --tz-pervenche-fonce: #9599dd; --tz-indigo: #262a85; --tz-carte: #141418; --tz-tuile: #1e1e24;
+  --tz-filet: rgba(255, 255, 255, 0.09); --tz-gris: #9a9cab; --tz-pastille: #26262d;
+  /* La palette du panneau de mise en forme (celle de l'avis) : mêmes noms de rôle. */
+  --encre: #0e0e10; --sauge: #3f47b8; --sauge-fonce: #262a85; --kp: #a7abed; --ocre: #262a85; --gris: #9a9cab; --blanc: #ffffff;
+  /* Le Design commun des éditeurs (PALETTE_DOC, 28 oct. 2026) : les couleurs du teaser par rôle. */
+  --doc-encre: #0e0e10; --doc-noir: #141418; --doc-gris: #9a9cab; --doc-accent: #a7abed; --doc-encart: #26262d; --doc-blanc: #ffffff;
+  position: relative; width: 794px; height: 1123px; overflow: hidden; background: var(--tz-pervenche);
+  font-family: "Hanken Grotesk", system-ui, sans-serif; color: #0e0e10; -webkit-font-smoothing: antialiased;
+  print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+.tz-haut { position: relative; height: 400px; overflow: hidden; background: linear-gradient(160deg, #4a52c9 0%, #3f47b8 45%, #262a85 100%); color: #fff; }
+.tz-haut img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tz-voile { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(10, 10, 20, .35) 0%, rgba(10, 10, 20, .15) 35%, rgba(10, 10, 20, .55) 100%); }
+.tz-entete { position: absolute; left: 48px; right: 48px; top: 42px; display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; font-weight: 500; }
+.tz-filigrane { position: absolute; left: 0; right: 0; top: 150px; text-align: center; font-size: 200px; line-height: .8; font-weight: 300; letter-spacing: -.04em; color: rgba(255, 255, 255, .1); white-space: nowrap; }
+.tz-titres { position: absolute; left: 60px; right: 60px; bottom: 34px; text-align: center; }
+.tz-titre { margin: 0; font-size: 38px; line-height: 1.12; font-weight: 500; letter-spacing: -.02em; }
+.tz-sous { margin: 12px 0 0; font-size: 16px; line-height: 1.4; opacity: .95; }
+.tz-sans-photo { position: absolute; left: 48px; top: 70px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; opacity: .6; }
+.tz-carte { position: absolute; left: 48px; right: 48px; top: 468px; border-radius: 28px; background: var(--tz-carte); color: #fff; padding: 30px 30px 32px; box-shadow: 0 30px 60px rgba(20, 20, 60, .25); }
+.tz-tuiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.tz-tuile { border-radius: 16px; background: var(--tz-tuile); border: 1px solid var(--tz-filet); padding: 22px 12px 18px; text-align: center; }
+.tz-tuile > b { display: block; font-size: 26px; font-weight: 400; letter-spacing: -.01em; }
+.tz-tuile > span { display: block; margin-top: 10px; font-size: 13.5px; color: var(--tz-gris); }
+.tz-etoile b { color: var(--tz-pervenche); }
+.tz-rubrique { margin: 26px 0 12px; text-align: center; font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--tz-pervenche); font-weight: 500; }
+.tz-tableau { border: 1px solid var(--tz-filet); border-radius: 12px; overflow: hidden; }
+.tz-ligne { display: grid; grid-template-columns: 150px 1fr; font-size: 14.5px; }
+.tz-ligne + .tz-ligne { border-top: 1px solid var(--tz-filet); }
+.tz-ligne > span { padding: 11px 14px; color: var(--tz-gris); background: var(--tz-tuile); border-right: 1px solid var(--tz-filet); }
+.tz-ligne > b { padding: 11px 14px; font-weight: 400; }
+.tz-points { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.tz-point { display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; background: var(--tz-pastille); padding: 9px 16px; font-size: 13.5px; }
+.tz-point::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tz-pervenche); }
+.tz-afaire { color: #e6b86a; }
+.tz-confidentiel { position: absolute; left: 48px; right: 48px; bottom: 112px; margin: 0; font-size: 11.5px; line-height: 1.5; color: #1d1e2c; }
+.tz-pied { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; background: #0e0e10; color: #fff; display: flex; align-items: center; gap: 34px; padding: 0 48px; }
+.tz-pied .logo-kp { font-size: 30px; }
+.tz-pied-qui { flex: 1; font-size: 13px; line-height: 1.55; color: #d9dae3; }
+.tz-pied-qui b { color: #fff; font-weight: 500; }
+.tz-pied-classe { font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase; color: #d9dae3; }
+
+/* À l'écran, un texte se corrige d'un clic (28 oct. 2026) : un filet pointillé au survol, plein quand on écrit. */
+.tz-edit { cursor: text; border-radius: 4px; outline: 1px dashed transparent; outline-offset: 3px; transition: outline-color .15s; }
+.tz-edit:hover { outline-color: rgba(167, 171, 237, .7); }
+.tz-edit:focus { outline: 1.5px solid #a7abed; }
+.tz-photo-choix { position: absolute; right: 48px; top: 64px; z-index: 2; border-radius: 999px; background: rgba(14, 14, 16, .55); color: #fff; font-size: 12px; padding: 7px 14px; border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
+.tz-photo-choix:hover { background: rgba(14, 14, 16, .8); }
+.tz-choisi { outline: 1.5px solid #a7abed !important; outline-offset: 3px; border-radius: 4px; }
+.tz-photo-zone { position: absolute; inset: 0; z-index: 1; cursor: pointer; background: transparent; border: 0; }
+/* Les textes du haut restent cliquables au-dessus de la zone de la photo. */
+.tz-titres, .tz-entete { z-index: 2; }
+.tz-filigrane { pointer-events: none; }
+/* Le panneau de l'élément choisi, hors de la page : les mêmes couleurs, pour ses pastilles (comme .loi-palette). */
+.tz-palette {
+  --encre: #0e0e10; --sauge: #3f47b8; --sauge-fonce: #262a85; --kp: #a7abed; --ocre: #262a85; --gris: #9a9cab; --blanc: #ffffff;
+  --doc-encre: #0e0e10; --doc-noir: #141418; --doc-gris: #9a9cab; --doc-accent: #a7abed; --doc-encart: #26262d; --doc-blanc: #ffffff;
+}

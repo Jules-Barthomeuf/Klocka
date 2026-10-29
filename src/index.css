@@ -830,6 +830,55 @@ ol[data-sonner-toaster]:hover .k-avis-barre { animation-play-state: paused; }
 }
 @media (prefers-reduced-motion: reduce) { .agent-onglet::before { animation: none; } }
 
+/* L'aura du chat d'une fiche (25 oct. 2026, maquette de Jules « Haka, chat avec aura ») : un halo diffus qui tourne
+   derrière la saisie et un filet lumineux net sur son bord, synchronisés, 9 s le tour. Pervenche puis bleu, aux jetons.
+   Sans mouvement (préférence système) : ni halo ni filet. */
+@property --k-aura-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes k-aura-tourne { to { --k-aura-angle: 360deg; } }
+.k-aura-halo {
+  position: absolute; inset: -3px; z-index: -1; pointer-events: none;
+  border-radius: 23px;
+  background: conic-gradient(from var(--k-aura-angle), transparent 0%, transparent 55%, rgb(var(--k-pervenche-rgb) / 0.9) 80%, rgb(var(--k-bleu-rgb) / 0.8) 90%, transparent 100%);
+  filter: blur(18px); opacity: 0.75;
+  animation: k-aura-tourne var(--k-aura-tour, 9s) linear calc(var(--k-aura-phase, 0) * var(--k-aura-tour, 9s) * -1) infinite;
+}
+.k-aura-filet::before {
+  content: ""; position: absolute; inset: -1px; padding: 1px; border-radius: inherit; pointer-events: none;
+  background: conic-gradient(from var(--k-aura-angle), transparent 0%, transparent 60%, rgb(var(--k-pervenche-rgb)) 85%, #fff 92%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: k-aura-tourne var(--k-aura-tour, 9s) linear calc(var(--k-aura-phase, 0) * var(--k-aura-tour, 9s) * -1) infinite;
+}
+/* Le mode micro (25 oct. 2026, maquette « Rubans » de Jules) : pendant la dictée, la lumière ralentit et se pose sous le chat (useAuraPosee, BarreEcoute.jsx), où l'horizon respire avec la voix
+   (--k-niveau, 0 à 1). Elle repart ensuite d'où elle s'était arrêtée (--k-aura-phase). */
+.k-aura-posee .k-aura-halo, .k-aura-posee .k-aura-filet::before {
+  animation: none; --k-aura-angle: var(--k-aura-pose);
+  transition: --k-aura-angle 1s cubic-bezier(.2, .8, .25, 1), opacity .6s ease .75s;
+}
+.k-aura-posee .k-aura-halo { opacity: 0.12; }
+.k-aura-posee .k-aura-filet::before { opacity: 0.35; }
+.k-aura-horizon { position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+.k-aura-posee .k-aura-horizon { opacity: 1; transition: opacity .7s ease .55s; }
+.k-aura-horizon::after {
+  content: ""; position: absolute; left: 12%; right: 12%; bottom: -22px; height: 44px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--k-pervenche-rgb) / 0.9), rgb(var(--k-bleu-rgb) / 0.35) 60%, transparent);
+  filter: blur(22px);
+  transform: scaleX(calc(.7 + var(--k-niveau, 0) * .2)) scaleY(calc(.7 + var(--k-niveau, 0) * .4));
+  opacity: calc(.18 + var(--k-niveau, 0) * .25);
+}
+/* L'onde « Rubans » : trois courbes translucides. */
+.k-rubans path { fill: none; stroke-width: 1.5; stroke-linecap: round; mix-blend-mode: screen; }
+.k-rubans path:nth-child(1) { stroke: rgb(var(--k-pervenche-rgb)); opacity: .9; }
+.k-rubans path:nth-child(2) { stroke: rgb(var(--k-bleu-rgb)); opacity: .55; }
+.k-rubans path:nth-child(3) { stroke: rgb(var(--k-encre-rgb)); opacity: .35; }
+:root[data-theme="clair"] .k-rubans path { mix-blend-mode: normal; }
+@media (prefers-reduced-motion: reduce) {
+  .k-aura-halo, .k-aura-filet::before { animation: none; display: none; }
+  .k-aura-posee .k-aura-halo, .k-aura-posee .k-aura-filet::before { transition: none; }
+}
+
+
 /* Une page qui veut tout l'écran (l'estimation : le chat et l'avis côte à
    côte) pose cette classe sur <html> : la barre latérale s'efface, le
    contenu reprend sa largeur. Elle revient dès que la page retire la classe. */
@@ -842,6 +891,9 @@ html.k-sans-barre .k-contenu { margin-left: 0 !important; padding-left: 0 !impor
 html.k-sans-barre, html.k-sans-barre body { overflow: hidden; }
 /* Un dossier en mode IA garde la barre latérale mais ne défile pas : le chat et le dossier défilent chacun dans sa colonne. */
 html.k-sans-defilement, html.k-sans-defilement body { overflow: hidden; }
+/* L'accueil de Haka (25 oct. 2026, Jules : « enlève la barre de scroll ») : la page défile encore, sans barre visible. */
+html.k-sans-ascenseur, html.k-sans-ascenseur body { scrollbar-width: none; }
+html.k-sans-ascenseur::-webkit-scrollbar, html.k-sans-ascenseur body::-webkit-scrollbar { display: none; }
 
 /* La barre du haut des aperçus (avis de valeur, mandat) : noire en sombre ;
    en clair, la surface claire, sinon le texte gris du thème y serait illisible. */
@@ -865,6 +917,8 @@ html.k-sans-defilement, html.k-sans-defilement body { overflow: hidden; }
 :root .k-bien-ia .k-apercu-bien > div,
 :root .k-bien-ia .k-apercu-bien :is(.k-barre-apercu, .avis-editeur, .avis-panneau, .bg-fond) { background: transparent !important; }
 :root .k-bien-ia .k-apercu-bien > div { border-left-color: var(--k-trait); }
+/* Le mandat envoyé passe sous la barre « Mandat · Conversation » : il garde le même fond (27 oct. 2026, Jules). */
+:root .k-bien-ia .k-apercu-bien .k-apercu-mandat { background: transparent !important; border-left-color: var(--k-trait); }
 /* Une présentation ouverte : le fond choisi, uni ; ni halo, ni grain, ni points. */
 html.k-sobre body::after,
 html.k-sobre .k-halo,
@@ -1227,3 +1281,21 @@ html.k-sans-barre body { --k-barre-rgb: var(--k-barre-ecart-rgb); }
 .k-dossier-ia .k-actions-dossier { margin-right: -16px; }
 @media (max-width: 1023px) { .k-dossier-ia .k-actions-dossier { margin-right: 0; } }
 
+
+/* Le mode Sources de l'avis et du deck (26 oct. 2026) : chaque champ qui a une source se souligne en pointillé, celui
+   qu'on survole s'entoure. Hors édition, l'avis ne montre plus ses poignées. */
+.k-mode-sources [data-chemin] { cursor: help; text-decoration: underline dotted rgb(var(--k-pervenche-rgb) / 0.6); text-underline-offset: 3px; }
+.k-mode-sources .k-source-active { outline: 2px solid rgb(var(--k-pervenche-rgb)); outline-offset: 2px; border-radius: 3px; }
+.k-avis-lecture .avis-grip, .k-avis-lecture .avis-photo-bouton { display: none !important; }
+
+/* La saisie des chats (26 oct. 2026, Jules : « une barre blanche pour bien voir qu'on peut écrire ») : un curseur blanc
+   bien visible, et le cadre qui s'éclaire quand le champ a la main. */
+.k-saisie-chat textarea { caret-color: #ffffff; }
+:root[data-theme="clair"] .k-saisie-chat textarea { caret-color: rgb(var(--k-encre-rgb)); }
+.k-saisie-chat:focus-within { border-color: rgb(var(--k-encre-rgb) / 0.45) !important; box-shadow: 0 0 0 1px rgb(var(--k-encre-rgb) / 0.18), 0 12px 32px rgb(0 0 0 / 0.07); }
+
+/* Le violet de K Partners, pour son animation de chargement (28 oct. 2026). */
+:root { --kp-accent: #8b7cf6; --kp-accent-ombre: rgb(139 124 246 / 0.6); }
+/* Le K de Klocka dans l animation de chargement : le fut suit la couleur du texte du theme (blanc sur fond sombre). */
+.loader-logo-k .logo-klocka-noir { fill: currentColor; }
+.loader-logo-k .logo-klocka-menthe { fill: rgb(var(--k-menthe-rgb)); }

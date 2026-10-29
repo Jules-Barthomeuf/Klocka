@@ -24,7 +24,7 @@ export default function PlanDeTravail({ chat = null, conversation = false, histo
     <div>
       {/* Un message envoyé : le salut et les colonnes s'effacent, le chat
           devient le fil. L'arbre ne change pas, le chat garde son état. */}
-      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "min-h-[calc(100dvh-4.5rem)] justify-center pb-[10vh] max-md:min-h-0 max-md:justify-start max-md:pb-0" : "pt-[13vh]"}`}>
+      <header className={conversation ? "flex flex-col" : `relative flex flex-col items-center text-center max-md:pt-8 ${apresChat ? "min-h-[calc(100dvh-4.5rem)] justify-center pb-[10vh] max-md:min-h-[calc(100dvh-7rem)] max-md:justify-center max-md:pb-0" : "pt-[13vh]"}`}>
         {/* Plus de halo propre derrière le salut : le fond « Halo » commun
             (FondHalo, Layout) suffit, le même que sur Projets (18 oct. 2026, Jules). */}
         {!conversation && (

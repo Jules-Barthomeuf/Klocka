@@ -15,7 +15,8 @@ const PAS = 650;
  * fil ouvre le document en plein écran (portail, la page derrière ne défile
  * plus) ; « Fermer » ramène au chat. L'aperçu reçu garde sa propre barre.
  */
-export function DocumentTelephone({ libelle, children }) {
+// `enLigne` (26 oct. 2026) : la pastille posée dans la page (à côté de l'état de l'avis), pas flottante en haut du fil.
+export function DocumentTelephone({ libelle, children, enLigne = false, serre = false }) {
   const [ouvert, setOuvert] = useState(false);
   useEffect(() => {
     if (!ouvert) return undefined;
@@ -26,7 +27,7 @@ export function DocumentTelephone({ libelle, children }) {
   return (
     <>
       <button type="button" onClick={() => setOuvert(true)}
-        className="fixed left-1/2 top-[calc(var(--k-haut-mobile,3.5rem)+3.75rem)] z-30 inline-flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full border border-bord-vif bg-surface-pleine px-4 text-[13px] text-encre shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:hidden">
+        className={`${enLigne ? "flex-none" : "fixed left-1/2 top-[calc(var(--k-haut-mobile,3.5rem)+3.75rem)] z-30 -translate-x-1/2"} inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-vif bg-surface-pleine ${serre ? "px-3" : "px-4"} text-[13px] text-encre shadow-[0_18px_40px_rgb(0_0_0/0.18)] md:hidden`}>
         <FileText className="h-4 w-4 text-menthe" /> {libelle}
       </button>
       {ouvert && createPortal(

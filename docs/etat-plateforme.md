@@ -1,23 +1,20 @@
 # État de la plateforme
 
-Écrit le 25/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
+Écrit le 29/10/2026 par `npm run etat`, sur les 30 derniers jours. Ne le modifiez pas à la main : il est réécrit.
 
 Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant de proposer quoi que ce soit. Les écrans Suivi et Coûts IA disent la même chose, en plus détaillé.
 
 ## Qui travaille
 
-12 personnes, 2 705 pages ouvertes, 0 demandes à l'assistant, 91 actions exécutées.
+9 personnes, 2 871 pages ouvertes, 0 demandes à l'assistant, 92 actions exécutées.
 
 | Personne | Pages | IA | Actions | Vu le |
 | --- | ---: | ---: | ---: | --- |
-| jules.b@klocka.immo (équipe) | 2 399 | 0 | 46 | 25/10/2026 |
-| admin.stress@test.local (équipe) | 140 | 0 | 0 | 11/10/2026 |
-| test.mandataire@kpartners.fr | 101 | 0 | 0 | 10/10/2026 |
-| alexis.p@klocka.immo (équipe) | 38 | 0 | 0 | 28/09/2026 |
+| jules.b@klocka.immo (équipe) | 2 536 | 0 | 47 | 29/10/2026 |
+| admin.stress@test.local (équipe) | 159 | 0 | 0 | 27/10/2026 |
+| test.mandataire@kpartners.fr | 150 | 0 | 0 | 27/10/2026 |
 | test.mandataire2@kpartners.fr | 16 | 0 | 0 | 03/10/2026 |
-| admin@klocka.local (équipe) | 8 | 0 | 0 | 11/10/2026 |
-| maxime.p@klocka.immo | 2 | 0 | 0 | 25/09/2026 |
-| client.demo@klocka.local | 1 | 0 | 0 | 28/09/2026 |
+| admin@klocka.local (équipe) | 10 | 0 | 0 | 26/10/2026 |
 | sourcing@klocka.immo | 0 | 0 | 1 | — |
 | jules.b@klocka.immo (AK dans l'application) | 0 | 0 | 36 | — |
 | admin.stress@test.local (AK dans l'application) | 0 | 0 | 4 | — |
@@ -27,36 +24,36 @@ Ce fichier existe pour qu'une session de travail connaisse l'usage réel avant d
 
 L'ordre est celui de l'usage, pas celui du menu. Une page en tête mérite le soin qu'on donne à ce qui sert tous les jours ; une page absente de cette liste n'est pas ouverte.
 
-- **Dashboard** — 366 (14 %)
-- **Analyse** — 334 (12 %)
-- **Prospection** — 247 (9 %)
-- **Personnalisation** — 196 (7 %)
-- **AdminProjets** — 174 (6 %)
-- **MandataireProspection** — 152 (6 %)
+- **Dashboard** — 363 (13 %)
+- **MandataireBiens** — 346 (12 %)
+- **Analyse** — 337 (12 %)
+- **MandataireProspection** — 237 (8 %)
+- **Personnalisation** — 208 (7 %)
+- **Prospection** — 181 (6 %)
 - **Emailing** — 140 (5 %)
+- **AdminProjets** — 109 (4 %)
 - **MandataireEstimation** — 79 (3 %)
 - **MandataireDossier** — 76 (3 %)
-- **MandataireBiens** — 73 (3 %)
-- **Outils** — 71 (3 %)
-- **AdminPresentations** — 57 (2 %)
-- Le reste, sous 2 % : ProjetDetail, Cerveau, ALX, MandataireMandat, Monitoring, Home, AdminMandataires, OffMarket, ConversationsMandataires, AdminClients, Relances, MandataireOffMarket, SimulateurRentabilite, MandataireClients, MesPresentations, Offres, SuiviAppels, AdminUtilisateurs, FichesCommerciales, Semaine, ALXAtelier, KData, Agents, MesProjets, SimulateurPublic, AdminSuggestions, MonAssistant, KZoning, Validations, MandataireMarche, Vision, SuiviMandataires, SuiviAudience, MandataireProjets, ALXCible, Automatismes, CoutsIA, AdminEquipe, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, Comparateur, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, AdminModeleZone, VisionRetraite, QuizInvestisseur, Feedback, ImportProjets, Banque, MonCompte, KEstimation, AdminPortail, AdminRessources, AdminLeadMagnets
+- **Outils** — 71 (2 %)
+- **AdminPresentations** — 60 (2 %)
+- Le reste, sous 2 % : Cerveau, MandataireMandat, Offres, AdminMandataires, Home, Monitoring, OffMarket, ConversationsMandataires, Relances, MandataireClients, MandataireOffMarket, AdminClients, MesPresentations, SimulateurRentabilite, MandatsMandataires, SuiviAppels, ProjetDetail, AdminUtilisateurs, Semaine, ALXAtelier, MandataireProjets, Agents, KData, MesProjets, Validations, ALX, MandataireMarche, Vision, AdminModeles, SuiviMandataires, SuiviAudience, KZoning, SimulateurPublic, DepotVendeur, Automatismes, CoutsIA, AdminEquipe, AdminBanque, KProspective, SuiviReunion, SuiviTesteur, FeuilleDeRoute, KFoncier, SuiviChat, Ressources, Haka, SuiviHaka, AdminValidations, FichesCommerciales, AdminModeleZone, VisionRetraite, QuizInvestisseur, AdminSuggestions, Feedback
 
 ## Ce que l'IA coûte
 
-31,58 € sur la période, 1 311 appels, 8 067 k jetons. 42 % part en tâche de fond, sans que personne clique. 54 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
+33,54 € sur la période, 1 389 appels, 8 446 k jetons. 39 % part en tâche de fond, sans que personne clique. 54 % des jetons d'entrée sont servis par le cache, à un dixième du prix.
 
 | Geste | Prix courant | Volume | Total | Durée |
 | --- | ---: | ---: | ---: | ---: |
-| Non attribué (fond) | 0,01 € par appel | 623 | 11,17 € | — |
-| Trier ce qu’on colle dans la boîte | 0,07 € par dépôt | 86 | 10,13 € | 23 s |
-| Demander quelque chose à l'assistant (mandataire) | 0,01 € par demande | 107 | 2,53 € | 22 s |
+| Non attribué (fond) | 0,01 € par appel | 607 | 11,15 € | — |
+| Trier ce qu’on colle dans la boîte | 0,07 € par dépôt | 89 | 10,30 € | 23 s |
+| Demander quelque chose à l'assistant (mandataire) | 0,02 € par demande | 148 | 3,63 € | 24 s |
 | Faire le récap du matin | 0,17 € par récap | 14 | 2,38 € | 5 min |
 | Auditer une page avec l'agent testeur | 0,69 € par audit | 2 | 1,38 € | 8 min |
 | Retrouver l’annonce en ligne (fond) | 0,17 € par bien | 4 | 1,20 € | 1 min |
-| Lire une pièce du dossier | 0,05 € par document | 9 | 0,63 € | 44 s |
+| Lire une pièce rangée | 0,05 € par pièce | 20 | 1,14 € | 35 s |
+| Proposer le nom d'une pièce | 0,01 € par pièce | 7 | 0,22 € | 6 s |
+| Mettre en forme une grille | 0,0037 € par grille | 9 | 0,07 € | 4 s |
 | Extraire un document déposé | 0,05 € par document | 1 | 0,05 € | 33 s |
-| Mettre en forme une grille | 0,01 € par grille | 4 | 0,05 € | 6 s |
-| Analyser un appel de prospection | 0,01 € par appel | 3 | 0,04 € | 16 s |
 | Écrire un résumé de retour ou de passation | 0,03 € par résumé | 1 | 0,03 € | 21 s |
 | Trouver les zones commerçantes d'une ville | 0,0057 € par ville | 5 | 0,03 € | 6 s |
 
@@ -75,18 +72,18 @@ Déjà en place, à ne pas défaire : le cache des pièces · le texte du pdf pl
 
 ## AK, l'assistant dans le chat
 
-76 demandes, 10.99 € en tout soit 0.145 € la demande.
+79 demandes, 11.18 € en tout soit 0.141 € la demande.
 
-91 actions : 82 réussies, 3 questions posées (il manquait une information), 0 doublons évités, 6 vraiment ratées.
-Les ratées, à corriger : lire_presentation ×1 · loyers_equimmox ×1 · data_b ×1 · lancer_design ×1 · bloquer_rdv ×1 · modifier_dossier ×1.
+92 actions : 82 réussies, 3 questions posées (il manquait une information), 0 doublons évités, 7 vraiment ratées.
+Les ratées, à corriger : analyser_fiche ×1 · lire_presentation ×1 · loyers_equimmox ×1 · data_b ×1 · lancer_design ×1 · bloquer_rdv ×1 · modifier_dossier ×1.
 Repris par l'équipe : 1 correction (« non, pas ça »), 1 compliment, soit 1.3 % des demandes corrigées. C'est le chiffre à faire baisser.
 
 Ce qu'il a fait : modifier_presentation ×18 · data_b ×11 · donnees_commune ×10 · loyers_equimmox ×6 · modifier_dossier ×6 · rediger_loi ×5 · lire_presentation ×3 · rediger_newsletter ×3.
-Pour qui : Jules 82 · Admin 4 · Coralie 4 · Sourcing 1.
+Pour qui : Jules 83 · Admin 4 · Coralie 4 · Sourcing 1.
 
 ## Ce qu'il faut en retenir
 
-- L'écran de travail, c'est **Dashboard** : 14 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
+- L'écran de travail, c'est **Dashboard** : 13 % des pages ouvertes. Une régression y coûte plus cher qu'ailleurs.
 - Le geste le plus cher est « trier ce qu’on colle dans la boîte » à 0,07 € par dépôt : tout ce qui évite de le refaire vaut mieux qu'une optimisation de jetons.
-- 42 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
+- 39 % de la dépense part sans personne devant l'écran : la veille et les tâches de fond se règlent, elles ne se surveillent pas.
 

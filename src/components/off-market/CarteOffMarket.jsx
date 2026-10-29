@@ -58,7 +58,7 @@ export function plusProche(ecran, x, y, rayon = 10) {
 }
 
 /** La couche de points : un canevas dans le calque des superpositions, redessiné à chaque déplacement. */
-function creerCouche(g) {
+export function creerCouche(g) {
   class Couche extends g.OverlayView {
     constructor() {
       super();

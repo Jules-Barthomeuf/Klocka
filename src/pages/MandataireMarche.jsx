@@ -38,7 +38,7 @@ export default function MandataireMarche() {
 
   return (
     <div className="mx-auto max-w-[900px] px-5 pb-16 pt-6 md:px-8">
-      <EnTete titre="Mise en marché" sous="Vos biens validés : le dossier investisseur, la vidéo, ce que font les clients, les offres, jusqu'à l'acte."
+      <EnTete titre="Commercialisation" sous="Vos biens validés : le dossier investisseur, la vidéo, ce que font les clients, les offres, jusqu'à l'acte."
         action={<Bouton onClick={() => setGuide((v) => !v)}><Clapperboard className="h-4 w-4" /> Guide de tournage</Bouton>} />
 
       {guide && (
@@ -59,7 +59,7 @@ export default function MandataireMarche() {
       <BandeauExemples liste={marches} />
       <div className="mt-6 space-y-3">
         {isLoading && <Chargement taille="grand" />}
-        {!isLoading && !marches.length && <p className="m-0 text-[13.5px] text-brume">Aucun bien en mise en marché : ils arrivent ici quand un analyste donne le go à un dossier.</p>}
+        {!isLoading && !marches.length && <p className="m-0 text-[13.5px] text-brume">Aucun bien en commercialisation : ils arrivent ici quand un analyste donne le go à un dossier.</p>}
         {marches.map((m) => (
           <div key={m.id}>
             <Carte actif={ouvert === m.id} onClick={() => setOuvert(ouvert === m.id ? null : m.id)}>

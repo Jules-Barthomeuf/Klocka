@@ -367,8 +367,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
   // Depuis le 18 oct. 2026, la colonne ne porte que l'emplacement (Pré-analyse) et la Data Room (son étape).
   const colonneVide = !!dossier && !["preanalyse", "documents"].includes(vue) && !(dossier.dossier_mandataire_id && !apercu);
+  // L'Offre est un Éditeur (28 oct. 2026, Jules) : la lettre prend toute la largeur.
   // La Data Room n'est plus que ses zones de dépôt (29 oct. 2026, Jules) : rien à côté.
-  const pleineLargeur = !!dossier && ((vue === "analyse" && grilleAnalyse === "simulateur") || vue === "documents" || colonneVide);
+  const pleineLargeur = !!dossier && ((vue === "analyse" && grilleAnalyse === "simulateur") || vue === "offre" || vue === "documents" || colonneVide);
   // Haka (17 oct. 2026) : ce qui attend dans À valider pour ce dossier, en pastille dans la barre.
   const aValider = useAValiderDossier(dossier?.deal_id && !apercu ? dossier.deal_id : null);
   // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.
@@ -502,7 +503,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
     new Date(dossier.relance_prevue_le) <= new Date();
 
   return (
-    <div className={enCarte ? "space-y-5 px-6 pb-10" : "space-y-5"}>
+    // À l'étape Offre, l'Éditeur prend toute la hauteur : pas d'espace au-dessus de lui.
+    <div className={enCarte ? "space-y-5 px-6 pb-10" : dossier && vue === "offre" ? "" : "space-y-5"}>
       {apercu && (
         <div className="rounded-md border border-sky-500/25 bg-sky-500/[0.07] px-4 py-3 flex items-start gap-2 text-sm text-sky-200/90">
           <Eye className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -556,8 +558,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* En-tête du dossier : le nom, puis la frise des huit étapes. */}
       {dossier && (
         <>
+          {/* À l'étape Offre, la lettre seule : ni le nom du dossier, ni le choix du mode (28 oct. 2026, Jules). */}
           {/* Une seule ligne (29 oct. 2026, Jules) : « Tous les dossiers » à gauche, le nom au milieu, les gestes à droite. */}
-          {!enCarte && <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-md:grid-cols-[1fr_auto] max-md:gap-3">
+          {!enCarte && vue !== "offre" && <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-md:grid-cols-[1fr_auto] max-md:gap-3">
             <div className="min-w-0">
               {onRetour && (
                 <button type="button" onClick={onRetour} className="flex items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
@@ -601,7 +604,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           <MenuEtapes etape={etape} debloquee={debloquee} dossier={null} deblocageEnCours={deblocageEnCours} onEtape={setEtape} onPasser={passerVersEtape} abandonne={false} apercu={apercu} onAbandonner={() => {}} />
         </div>
       )}
-      {dossier && <div className="mb-6" />}
+      {dossier && vue !== "offre" && <div className="mb-6" />}
 
       {/* Le simulateur prend toute la largeur (17 oct. 2026, Jules) : la colonne de droite s'efface. */}
       {/* À côté du chat (écran scindé), la colonne de droite ne se met à côté qu'à partir de 1700 px ; avant, elle passe dessous. */}

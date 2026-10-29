@@ -59,16 +59,19 @@ export function lignesDeLaCloche({ propositions = [], dues = [], alertes = [] } 
 /** Pure : le nombre d'éléments qui attendent une action (une ligne groupée compte pour ses éléments). */
 export const compteurDeLaCloche = (lignes) => lignes.filter((l) => l.action).reduce((n, l) => n + (l.n || 1), 0);
 
-export default function Cloche({ className = "" }) {
+/** `mandataire` (25 oct. 2026, Jules : « le truc de notifications comme dans l'admin ») : la même cloche, ses seules notifications ; la file de Haka et « Ce qui vous attend » restent à l'équipe. */
+export default function Cloche({ className = "", mandataire = false }) {
   const [ouvert, setOuvert] = useState(false);
   const navigate = useNavigate();
   const user = useUser();
-  const actif = !!useCompteHaka().data?.actif;
-  const moi = usePropositions("moi");
+  const equipe = !mandataire;
+  const actif = !!useCompteHaka({ enabled: equipe }).data?.actif;
+  const moi = usePropositions("moi", { enabled: equipe });
   // Les fiches reçues dans une boîte commune (sourcing@) n'ont pas de propriétaire : elles sonnent aussi.
-  const commun = usePropositions("commun");
-  const alertes = useQuery({ queryKey: ["haka-alertes"], queryFn: () => base44.request("GET", "/api/haka/alertes"), refetchInterval: 120_000, retry: false });
-  const attend = useQuery({ queryKey: ["ce-qui-attend"], queryFn: () => base44.request("GET", "/api/assistant/attend"), refetchInterval: 60_000, staleTime: 30_000 });
+  const commun = usePropositions("commun", { enabled: equipe });
+  const alertes = useQuery({ queryKey: ["haka-alertes"], queryFn: () => base44.request("GET", "/api/haka/alertes"), enabled: equipe, refetchInterval: 120_000, retry: false });
+  const attend = useQuery({ queryKey: ["ce-qui-attend"], queryFn: () => base44.request("GET", "/api/assistant/attend"), enabled: equipe, refetchInterval: 60_000, staleTime: 30_000 });
+  const notifications = useQuery({ queryKey: ["notifications"], queryFn: () => base44.request("GET", "/api/notifications"), enabled: mandataire, refetchInterval: 30_000, staleTime: 15_000 });
   const lignes = useMemo(() => {
     const dues = (attend.data?.lignes || []).filter((l) => l.nouveau || (l.dans != null && l.dans <= 0));
     const fichesCommunes = (commun.data?.propositions || []).filter((p) => p.type === "preanalyser_fiche");
@@ -112,7 +115,9 @@ export default function Cloche({ className = "" }) {
     return [["Demain", aNeufHeures(demain)], ["Lundi", aNeufHeures(lundi)], ["Dans une semaine", aNeufHeures(semaine)]];
   };
   // Le compteur ne compte que ce qui reste : ni les lignes retirées ou remises à plus tard, ni les fiches tranchées.
-  const n = compteurDeLaCloche(lignes.filter((l) => !cachees.has(l.cle) && !decidees.has(l.fiche) && !decidees.has(l.cle)));
+  const n = mandataire
+    ? (notifications.data?.notifications || []).filter((x) => !x.lue && x.genre !== "question_haka").length
+    : compteurDeLaCloche(lignes.filter((l) => !cachees.has(l.cle) && !decidees.has(l.fiche) && !decidees.has(l.cle)));
   const trancher = (l, choix, extra = {}) => {
     setDecidees((s) => new Set([...s, l.fiche]));
     base44.request("POST", `/api/haka/propositions/${l.fiche}/valider`, { body: { choix, ...extra } })
@@ -157,11 +162,13 @@ export default function Cloche({ className = "" }) {
                 className="fixed right-4 top-[66px] z-[55] w-[440px] max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_24px_60px_rgb(0_0_0/0.28)]"
                 initial={{ opacity: 0, y: -8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>
                 <div className="flex items-center justify-between border-b border-trait px-5 py-3.5">
-                  <p className="m-0 text-[14px] text-encre">Ce qui t'attend</p>
+                  <p className="m-0 text-[14px] text-encre">{mandataire ? "Notifications" : "Ce qui t'attend"}</p>
                   <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-4 w-4" /></button>
                 </div>
                 <div className="max-h-[min(60vh,520px)] overflow-y-auto px-2 py-1.5">
-                  {!lignes.length ? (
+                  {mandataire ? (
+                    !n && !(notifications.data?.notifications || []).some((x) => x.genre !== "question_haka") && <p className="m-0 px-3 py-6 text-center text-[13.5px] text-brume">Aucune notification pour l'instant.</p>
+                  ) : !lignes.length ? (
                     <p className="m-0 px-3 py-6 text-center text-[13.5px] text-brume">Rien n'attend votre action pour l'instant.</p>
                   ) : lignes.filter((l) => !decidees.has(l.fiche) && !decidees.has(l.cle) && !cachees.has(l.cle)).map((l, i) => (
                     <motion.div key={l.cle} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}

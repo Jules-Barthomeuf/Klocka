@@ -29,6 +29,9 @@ export const ADRESSES = {
   // La page Semaine s'appelle Agenda depuis le 16 oct. 2026 (Jules) ; /Semaine y mène.
   Semaine: "Agenda",
   ImpressionPresentation: "ImpressionPresentation",
+  ImpressionAvis: "ImpressionAvis",
+  DepotVendeur: "DepotVendeur",
+  ImpressionTeaser: "ImpressionTeaser",
   ALX: "ALX",
   ALXAtelier: "ALXAtelier",
   ALXVilles: "ALXVilles",
@@ -48,6 +51,7 @@ export const ADRESSES = {
   Comparateur: "Comparateur",
   AdminClients: "Clients",
   AdminUtilisateurs: "Utilisateurs",
+  AdminModeles: "Modeles",
   Agents: "Agents",
   Offres: "Offres",
   Emailing: "Emailing",
@@ -68,6 +72,8 @@ export const ADRESSES = {
   MandataireOffMarket: "MandataireOffMarket",
   MandataireProjets: "ProjetsMandataire",
   ConversationsMandataires: "Conversations",
+  // Les mandats reçus des mandataires, côté Klocka (27 oct. 2026).
+  MandatsMandataires: "Mandats",
   Portail: "Portail",
   Portail2Fois: "PortailDeuxFois",
   AdminBrouillons: "Verification",

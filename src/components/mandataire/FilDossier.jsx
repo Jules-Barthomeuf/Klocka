@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft, Loader2, Paperclip, Send, Sparkles, X } from "lucide-react";
+import { ArrowRightLeft, Check, Loader2, Paperclip, Send, Sparkles, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { devinerPiece } from "@/lib/pieces-dossier";
@@ -11,15 +11,18 @@ import Chargement from "@/components/ui/Chargement";
 // relais) en lignes grises. Côté mandataire, un fichier glissé ici se range
 // dans la liste des pièces. Côté Klocka (`cote="analyste"`) : les notes
 // internes, le briefing en tête, « Me briefer » et « Transférer à… ».
+// Avec `api`, le même fil sert à un autre objet (le mandat, 27 oct. 2026) :
+// sans briefing, ni transfert, ni note interne.
 
 const heure = (d) => new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "max-h-[460px]", plein = false, pieces = null, onPiece = null }) {
+export default function FilDossier({ dossierId, api = null, titre = null, vide = null, cote = "mandataire", hauteur = "max-h-[460px]", plein = false, pieces = null, onPiece = null }) {
   const queryClient = useQueryClient();
   const klocka = cote === "analyste";
-  const base = klocka ? `/api/mandataire/admin/dossiers/${dossierId}` : `/api/mandataire/dossiers/${dossierId}`;
-  const cle = ["fil-dossier", dossierId, cote];
-  const { data, isLoading } = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${base}/fil`), enabled: !!dossierId, refetchInterval: 15_000 });
+  const gestesDossier = klocka && !api;
+  const base = api || (klocka ? `/api/mandataire/admin/dossiers/${dossierId}` : `/api/mandataire/dossiers/${dossierId}`);
+  const cle = ["fil-dossier", api || dossierId, cote];
+  const { data, isLoading } = useQuery({ queryKey: cle, queryFn: () => base44.request("GET", `${base}/fil`), enabled: !!(api || dossierId), refetchInterval: 15_000 });
   const [texte, setTexte] = useState("");
   const [piece, setPiece] = useState(null);
   const [rangement, setRangement] = useState(null);
@@ -30,13 +33,14 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
   const rafraichir = () => {
     queryClient.invalidateQueries({ queryKey: cle });
     queryClient.invalidateQueries({ queryKey: klocka ? ["k-conversations"] : ["m-dossiers"] });
+    if (api) queryClient.invalidateQueries({ queryKey: klocka ? ["k-mandats"] : ["m-mandats"] });
   };
   useEffect(() => { bas.current?.scrollIntoView({ block: "nearest" }); }, [data?.messages?.length]);
   // Lire la conversation la marque lue : la liste et la pastille du menu suivent.
   useEffect(() => {
-    if (data) queryClient.invalidateQueries({ queryKey: klocka ? ["k-conversations"] : ["m-dossiers"] });
-  }, [data?.messages?.length, dossierId]);
-  useEffect(() => { setTexte(""); setPiece(null); setRangement(null); setInterne(false); }, [dossierId]);
+    if (data) queryClient.invalidateQueries({ queryKey: api ? (klocka ? ["k-mandats"] : ["m-mandats"]) : klocka ? ["k-conversations"] : ["m-dossiers"] });
+  }, [data?.messages?.length, dossierId, api]);
+  useEffect(() => { setTexte(""); setPiece(null); setRangement(null); setInterne(false); }, [dossierId, api]);
 
   const rangeable = !klocka && Array.isArray(pieces) && pieces.length > 0 && !!onPiece;
   const choisir = (f) => {
@@ -61,7 +65,7 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
       const f = new FormData();
       f.append("texte", texte.trim());
       if (piece) f.append("fichier", piece);
-      if (klocka && interne) f.append("interne", "1");
+      if (gestesDossier && interne) f.append("interne", "1");
       return base44.request("POST", `${base}/fil`, { body: f, isForm: true });
     },
     onSuccess: () => { setTexte(""); setPiece(null); setRangement(null); rafraichir(); },
@@ -72,15 +76,19 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
     onSuccess: () => { rafraichir(); toast.success("Dossier transféré : le mandataire est prévenu"); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
+  const avancer = useMutation({
+    mutationFn: (corps) => base44.request("POST", `${base}/avancement`, { body: corps }),
+    onSuccess: rafraichir,
+    onError: (e) => toast.error(e?.message || "Non enregistré"),
+  });
   const briefer = useMutation({
     mutationFn: () => base44.request("POST", `${base}/briefing`),
     onSuccess: rafraichir,
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
-  if (isLoading) return <Chargement />;
-  if (!data) return null;
-  const messages = data.messages || [];
+  // Le cadre s'affiche tout de suite ; seuls les messages attendent (27 oct. 2026, Jules : « ça prend trop de temps »).
+  const messages = data?.messages || [];
   const dernierBriefing = klocka ? [...messages].reverse().find((m) => m.genre === "briefing") : null;
   const visibles = messages.filter((m) => m.genre !== "briefing");
   const peutEnvoyer = (texte.trim() || piece) && !envoyer.isPending;
@@ -93,10 +101,11 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
       onDrop={(e) => { e.preventDefault(); setSurvol(false); choisir(e.dataTransfer?.files?.[0]); }}>
       <div className="flex flex-none flex-wrap items-center justify-between gap-2 border-b border-trait px-4 py-3">
         <p className="m-0 text-[13.5px] text-encre">
-          {klocka ? "Conversation avec le mandataire" : "Votre analyste Klocka"}
-          {data.analyste && <span className="text-ardoise"> · {data.analyste.nom}{data.relais ? " (relais)" : ""}</span>}
+          {titre || (klocka ? "Conversation avec le mandataire" : "Votre analyste Klocka")}
+          {data?.analyste && <span className="text-ardoise"> · {data.analyste.nom}{data.relais ? " (relais)" : ""}</span>}
+          {data?.equipe && <span className="text-ardoise"> · {klocka ? "toute l'équipe peut répondre" : "l'équipe Klocka"}</span>}
         </p>
-        {klocka && (
+        {gestesDossier && (
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => briefer.mutate()} disabled={briefer.isPending}
               className="inline-flex items-center gap-1.5 rounded-full border border-bord-doux px-3 py-1 text-[12px] text-craie hover:text-encre" style={{ background: "transparent" }}>
@@ -107,12 +116,30 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
               <select value="" onChange={(e) => e.target.value && transferer.mutate(e.target.value)} disabled={transferer.isPending}
                 className="rounded-full border border-bord-doux bg-transparent px-2 py-1 text-[12px] text-craie outline-none max-md:text-[16px]">
                 <option value="">Transférer à…</option>
-                {(data.analystes || []).filter((a) => a.email !== data.analyste?.email).map((a) => <option key={a.email} value={a.email}>{a.nom}</option>)}
+                {(data?.analystes || []).filter((a) => a.email !== data.analyste?.email).map((a) => <option key={a.email} value={a.email}>{a.nom}</option>)}
               </select>
             </label>
           </div>
         )}
       </div>
+
+      {/* L'avancement chez Klocka (28 oct. 2026, Jules) : l'analyste le coche ici, le mandataire le lit. */}
+      {!api && data?.dossier?.envoye_klocka_le && (
+        <div className="flex flex-none flex-wrap items-center gap-1.5 border-b border-trait px-4 py-2.5">
+          {(data.etapes || []).map(([k, mot]) => {
+            const fait = !!data.dossier.avancement?.[k];
+            const classe = `inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[12.5px] ${fait ? "bg-menthe text-sur-menthe" : "border border-trait text-ardoise"}`;
+            return klocka ? (
+              <button key={k} type="button" aria-pressed={fait} disabled={avancer.isPending} onClick={() => avancer.mutate({ etape: k, fait: !fait })}
+                className={`${classe} ${fait ? "hover:bg-menthe-survol" : "hover:text-encre"}`} style={fait ? undefined : { background: "transparent" }}>
+                {fait && <Check className="h-3 w-3" />}{mot}
+              </button>
+            ) : (
+              <span key={k} className={classe}>{fait && <Check className="h-3 w-3" />}{mot}</span>
+            );
+          })}
+        </div>
+      )}
 
       {dernierBriefing && (
         <div className="flex-none border-b border-trait bg-menthe/[0.08] px-4 py-3">
@@ -122,14 +149,18 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
       )}
 
       <div className={`${plein ? "min-h-0 flex-1" : hauteur} space-y-3 overflow-y-auto px-4 py-4`}>
-        {!visibles.length && <p className="m-0 text-center text-[13px] text-brume">{klocka ? "Aucun message encore." : "Aucun message encore. Écrivez à votre analyste, ou glissez une pièce ici."}</p>}
+        {isLoading && <Chargement taille="petit" />}
+        {!isLoading && !visibles.length && <p className="m-0 text-center text-[13px] text-brume">{vide || (klocka ? "Aucun message encore." : "Aucun message encore. Écrivez à votre analyste, ou glissez une pièce ici.")}</p>}
         {visibles.map((m) => {
           if (m.cote === "systeme") return <p key={m.id} className="m-0 text-center text-[12.5px] leading-[1.5] text-brume">{m.texte} · {heure(m.le)}</p>;
           const moi = (klocka && m.cote === "analyste") || (!klocka && m.cote === "mandataire");
           const note = klocka && m.interne;
+          // La couleur suit l'auteur, pas celui qui lit : la même bulle a la même teinte chez Klocka et chez le
+          // mandataire (27 oct. 2026, Jules). Le mandataire en `barre`, Klocka en surface bordée ; la place (droite pour
+          // soi) suit, elle, celui qui lit.
           return (
             <div key={m.id} className={`flex ${moi ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-[14px] px-3.5 py-2.5 text-[14px] leading-[1.55] ${note ? "bg-ambre/10 text-encre" : moi ? "bg-barre text-encre" : "border border-trait bg-surface-pleine text-encre"}`}>
+              <div className={`max-w-[80%] rounded-[14px] px-3.5 py-2.5 text-[14px] leading-[1.55] ${note ? "bg-ambre/10 text-encre" : m.cote === "mandataire" ? "bg-barre text-encre" : "border border-trait bg-surface-pleine text-encre"}`}>
                 {(!moi || note) && <p className="m-0 mb-0.5 text-[12px] text-ardoise">{m.cote === "analyste" ? m.auteur : "Mandataire"}{note ? " · note interne, invisible du mandataire" : ""}</p>}
                 {m.texte && <p className="m-0 whitespace-pre-line">{m.texte}</p>}
                 {(m.pieces || []).map((p) => <a key={p.url} href={p.url} target="_blank" rel="noreferrer" className="mt-1 block text-[12.5px] text-menthe hover:underline">{p.nom}</a>)}
@@ -142,7 +173,7 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
       </div>
 
       <form className="flex-none border-t border-trait px-3 py-3" onSubmit={(e) => { e.preventDefault(); soumettre(); }}>
-        {klocka && (
+        {gestesDossier && (
           <div className="mb-2 flex gap-1 rounded-full bg-rail-actif p-1 text-[12px]" style={{ width: "fit-content" }}>
             {[[false, "Au mandataire"], [true, "Note interne"]].map(([v, mot]) => (
               <button key={mot} type="button" onClick={() => setInterne(v)} aria-pressed={interne === v}
@@ -178,7 +209,7 @@ export default function FilDossier({ dossierId, cote = "mandataire", hauteur = "
             <Paperclip className="h-4 w-4" />
           </button>
           <textarea value={texte} onChange={(e) => setTexte(e.target.value)} rows={1}
-            placeholder={klocka ? (interne ? "Note pour l'équipe Klocka…" : "Écrire au mandataire…") : "Écrire à votre analyste…"}
+            placeholder={klocka ? (interne ? "Note pour l'équipe Klocka…" : "Écrire au mandataire…") : api ? "Votre message…" : "Écrire à votre analyste…"}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); soumettre(); } }}
             className="max-h-32 min-w-0 flex-1 resize-none rounded-[12px] border border-trait bg-surface-pleine px-3.5 py-2 text-[14px] text-encre outline-none placeholder:text-brume focus:border-bord-vif max-md:text-[16px]" />
           <button type="submit" disabled={!peutEnvoyer} aria-label="Envoyer" title="Envoyer"

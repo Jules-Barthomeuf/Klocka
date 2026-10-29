@@ -48,3 +48,16 @@ test('bloc 4 : image et PDF partent tels quels, le reste garde son chemin', () =
   assert.equal(blocs[1].title, 'bail.pdf');
   assert.ok(lues.has(pieces[0]) && lues.has(pieces[1]) && !lues.has(pieces[2]) && !lues.has(pieces[3]));
 });
+
+test('plusieurs pièces : au-delà de 20 Mo joints, les suivantes gardent leur chemin', () => {
+  const Mo = 1024 * 1024;
+  const pieces = [
+    { nom: 'a.pdf', type: 'application/pdf', chemin: '/u/a.pdf' },
+    { nom: 'b.pdf', type: 'application/pdf', chemin: '/u/b.pdf' },
+    { nom: 'c.jpg', type: 'image/jpeg', chemin: '/u/c.jpg' },
+  ];
+  const tailles = { '/u/a.pdf': 12 * Mo, '/u/b.pdf': 12 * Mo, '/u/c.jpg': 2 * Mo };
+  const { blocs, lues } = blocsNatifs(pieces, { taille: (c) => tailles[c], lire: () => Buffer.from('abc') });
+  assert.deepEqual(blocs.map((b) => b.title || b.type), ['a.pdf', 'image']);
+  assert.ok(lues.has(pieces[0]) && !lues.has(pieces[1]) && lues.has(pieces[2]));
+});

@@ -149,8 +149,9 @@ export function chercherCibles(recherche) {
   const mots = norme(recherche).split(/\s+/).filter((m) => m.length > 1);
   if (!mots.length) return [];
   const villes = new Map(Records.list('Ville').map((v) => [v.id, v.nom]));
-  return Records.list('Cible')
-    .map((c) => ({ id: c.id, enseigne: c.enseigne || null, adresse: c.adresse, ville: villes.get(c.ville_id) || '', pile: c.pile, classe: c.classe ?? null, proprietaire: c.proprietaire?.choix?.nom || c.foncier?.choix?.nom || null }))
+  // Seulement les champs utiles, lus par la base (502 du 27 oct. 2026) : charger les 11 000 cibles entières pesait des centaines de Mo.
+  return Records.champs('Cible', ['enseigne', 'adresse', 'ville_id', 'pile', 'classe', 'proprietaire.choix.nom', 'foncier.choix.nom'])
+    .map((c) => ({ id: c.id, enseigne: c.enseigne || null, adresse: c.adresse, ville: villes.get(c.ville_id) || '', pile: c.pile, classe: c.classe ?? null, proprietaire: c['proprietaire.choix.nom'] || c['foncier.choix.nom'] || null }))
     .filter((c) => { const t = norme(`${c.enseigne} ${c.adresse} ${c.ville}`); return mots.every((m) => t.includes(m)); })
     .slice(0, 8);
 }

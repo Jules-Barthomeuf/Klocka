@@ -319,6 +319,8 @@ export async function matcheurInvestisseurs() {
         score,
         pourquoi: [typeOk ? `cherche ${d.type_commerce}` : null, zone ? `zone ${zone}` : null].filter(Boolean).join(' · '),
         budget: d.budget_min || d.budget_max ? [k(d.budget_min), k(d.budget_max)].filter(Boolean).join(' – ') : null,
+        // Le haut du budget, en euros : la préparation du rendez-vous en tire le prix au-delà duquel plus aucun client ne suit.
+        budget_max: Number(d.budget_max || d.budget_min) || null,
       });
     }
     return res.sort((a, b) => b.score - a.score).slice(0, 3).map(({ score, ...r }) => r);

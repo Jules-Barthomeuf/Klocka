@@ -295,7 +295,8 @@ export function Conversation({ c, cote, bord = true }) {
   const peutEnvoyer = (texte.trim() || piece) && !envoyer.isPending;
   const soumettre = () => { if (peutEnvoyer) envoyer.mutate(); };
   const meBriefer = () => (brief && !briefVisible ? setBriefVisible(true) : briefer.mutate());
-  const interlocuteur = klocka ? c.mandataire_nom : data?.analyste?.nom || c.analyste_nom || "Klocka";
+  // Un bien envoyé à l'équipe (28 oct. 2026) : le mandataire parle à « L'équipe Klocka », sans prénom.
+  const interlocuteur = klocka ? c.mandataire_nom : data?.equipe ? "L'équipe Klocka" : data?.analyste?.nom || c.analyste_nom || "Klocka";
 
   return (
     <section className={`relative flex min-w-0 flex-1 flex-col ${bord ? "border-r border-trait max-lg:border-r-0" : ""} max-lg:min-h-[620px]`}
@@ -307,7 +308,7 @@ export function Conversation({ c, cote, bord = true }) {
           <span className="grid h-9 w-9 place-items-center rounded-full bg-relief text-[13px] font-semibold text-craie">{initiales(interlocuteur)}</span>
           <span className="flex flex-col gap-0.5">
             <span className="text-[15px] font-medium text-encre">{interlocuteur}{!klocka && data?.relais ? " (relais)" : ""}</span>
-            <span className="text-[12px] text-ardoise">{klocka ? "Mandataire K Partners" : "Votre analyste Klocka"}</span>
+            <span className="text-[12px] text-ardoise">{klocka ? "Mandataire K Partners" : data?.equipe ? "N'importe quel membre vous répond" : "Votre analyste Klocka"}</span>
           </span>
         </div>
         {klocka && (
@@ -592,12 +593,16 @@ export function Resume({ c, cote, onDossier = null, onAnalyse = null }) {
   const klocka = cote === "klocka";
   const gestes = useGestes(c);
   const modifiable = !klocka && MODIFIABLES.includes(c.statut);
+  // Le fil (déjà lu par la conversation) dit si le bien est chez l'équipe et son avancement (28 oct. 2026).
+  const fil = useQuery({ queryKey: ["fil-dossier", c.id, klocka ? "analyste" : "mandataire"], queryFn: () => base44.request("GET", `${klocka ? "/api/mandataire/admin/dossiers" : "/api/mandataire/dossiers"}/${c.id}/fil`) }).data;
+  const equipe = !!fil?.equipe;
   return (
     <aside className="k-grid flex w-[360px] flex-none flex-col gap-[18px] overflow-y-auto px-6 py-[22px] max-md:px-4 max-lg:w-full max-lg:border-t max-lg:border-trait">
       <div className="flex flex-col gap-1.5">
         <p className="m-0 text-[22px] font-medium tracking-[-0.01em] text-encre">{c.bien}</p>
-        <p className="m-0 text-[13px] text-ardoise">{klocka ? `${c.mandataire_nom} · suivi par ${c.analyste_nom || "personne encore"}` : c.analyste_nom ? `Suivi par ${c.analyste_nom} chez Klocka` : c.adresse || "Pas encore d'analyste attitré"}</p>
+        <p className="m-0 text-[13px] text-ardoise">{equipe ? (klocka ? `${c.mandataire_nom} · toute l'équipe peut répondre` : "Chez Klocka · l'équipe vous répond") : klocka ? `${c.mandataire_nom} · suivi par ${c.analyste_nom || "personne encore"}` : c.analyste_nom ? `Suivi par ${c.analyste_nom} chez Klocka` : c.adresse || "Pas encore d'analyste attitré"}</p>
       </div>
+      {fil?.dossier?.envoye_klocka_le && <Avancement c={c} fil={fil} klocka={klocka} />}
       <div className="flex flex-wrap items-center gap-2.5">
         <PastilleStatut c={c} cote={cote} />
         {klocka && c.deal_id && !onAnalyse && <Link to={`/Analyse?deal_id=${c.deal_id}&vue=analyse`} className="inline-flex h-[34px] items-center rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre">Ouvrir l'analyse</Link>}
@@ -616,6 +621,39 @@ export function Resume({ c, cote, onDossier = null, onAnalyse = null }) {
       {modifiable && <Envoi c={c} gestes={gestes} />}
       {klocka && c.statut === "en_etude" && <DecisionMandataire dossierId={c.id} />}
     </aside>
+  );
+}
+
+/**
+ * L'avancement chez Klocka (28 oct. 2026, Jules) : Analyse, Présentation, Intéressé, Offre, Financement. L'équipe le coche
+ * ici, à côté de la conversation ; le mandataire le lit.
+ */
+function Avancement({ c, fil, klocka }) {
+  const queryClient = useQueryClient();
+  const cocher = useMutation({
+    mutationFn: (corps) => base44.request("POST", `/api/mandataire/admin/dossiers/${c.id}/avancement`, { body: corps }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["fil-dossier", c.id] }),
+    onError: (e) => toast.error(e?.message || "Non enregistré"),
+  });
+  return (
+    <div className="flex flex-col gap-2">
+      <p className={etiquette}>Avancement</p>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {(fil.etapes || []).map(([k, mot]) => {
+          const fait = fil.dossier.avancement?.[k];
+          const rond = <span className={`grid h-[18px] w-[18px] flex-none place-items-center rounded-full ${fait ? "bg-menthe text-sur-menthe" : "border border-bord-vif"}`}>{fait && <Check className="h-3 w-3" />}</span>;
+          const ligne = <>{rond}<span className={`flex-1 text-[14px] ${fait ? "text-encre" : "text-ardoise"}`}>{mot}</span>{fait && <span className="text-[12px] text-brume">{jour(fait.le)}</span>}</>;
+          return (
+            <li key={k} className="border-b border-trait last:border-b-0">
+              {klocka ? (
+                <button type="button" onClick={() => cocher.mutate({ etape: k, fait: !fait })} disabled={cocher.isPending} aria-pressed={!!fait}
+                  className="flex w-full items-center gap-3 py-2.5 text-left hover:opacity-90" style={{ background: "transparent" }}>{ligne}</button>
+              ) : <div className="flex items-center gap-3 py-2.5">{ligne}</div>}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

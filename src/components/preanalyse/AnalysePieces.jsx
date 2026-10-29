@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import Chargement from "@/components/ui/Chargement";
 import { RefreshCw, X } from "lucide-react";
+import { useAuthPeutEtre } from "@/lib/AuthContext";
 import { SourceSeule, Visionneuse } from "@/components/preanalyse/AnalyseDocuments";
 
 // L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se déposent dans la Data Room, une zone par
@@ -25,15 +26,73 @@ export function useAnalysePieces(dealId, { enabled = true } = {}) {
   });
 }
 
-function useGeste(dealId) {
+export function useGeste(dealId) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ chemin, corps, form }) =>
       base44.request("POST", `/api/preanalyse/dossiers/${dealId}/analyse-pieces/${chemin}`, form ? { body: form, isForm: true } : { body: corps || {} }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: cle(dealId) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: cle(dealId) }); queryClient.invalidateQueries({ queryKey: ["bien-analyse", dealId] }); },
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 }
+
+// --- Une case modifiable et son état à trois choix (29 oct. 2026, Jules : « tout dans le tableau doit être modifiable ;
+// l'état change en modifié par Nora ; il y en a trois, lue par l'IA, modifié par et OK »). Partagé par les grilles et
+// l'onglet Bien (TableauBienAnalyse.jsx).
+export const prenom = (email) => { const t = String(email || "").split("@")[0].split(/[._-]/)[0]; return t ? t[0].toUpperCase() + t.slice(1) : "l'équipe"; };
+
+/** La valeur d'une case : un clic l'ouvre en saisie ; Entrée enregistre, Maj+Entrée va à la ligne, Échap annule. */
+export function ValeurModifiable({ valeur, vide = "Non trouvé", onEnregistrer, occupe = false, apres = null }) {
+  const [texte, setTexte] = useState(null);
+  const enregistrer = () => { const t = (texte || "").trim(); setTexte(null); if (t && t !== String(valeur || "").trim()) onEnregistrer(t); };
+  if (texte != null) {
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <textarea autoFocus value={texte} onChange={(e) => setTexte(e.target.value)} onBlur={enregistrer} rows={Math.min(6, Math.max(2, texte.split("\n").length))}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enregistrer(); } if (e.key === "Escape") setTexte(null); }}
+          className="w-full resize-y rounded-[10px] border border-menthe bg-surface px-3 py-2 text-[14px] leading-[1.5] text-encre outline-none max-md:text-[16px]" />
+      </div>
+    );
+  }
+  return (
+    <div className="min-w-0">
+      <button type="button" disabled={occupe} onClick={(e) => { e.stopPropagation(); setTexte(valeur || ""); }} title="Cliquer pour modifier"
+        className="-mx-1.5 -my-1 block w-[calc(100%+12px)] rounded-[8px] px-1.5 py-1 text-left transition-colors hover:bg-encre/[0.05]" style={{ background: "transparent" }}>
+        {valeur ? <span className="block whitespace-pre-line text-[14.5px] leading-[1.5] text-encre">{valeur}</span> : <span className="text-[14.5px] text-ardoise">{vide}</span>}
+      </button>
+      {apres}
+    </div>
+  );
+}
+
+/**
+ * L'état d'une case : un clic le fait tourner, sans menu (29 oct. 2026, Jules) : Lu par l'IA, puis Modifié par, puis
+ * OK, puis Lu par l'IA. Toute la case prend la couleur : grise lue par l'IA, jaune modifiée, verte OK (jetons fixes
+ * `vert` et `jaune`, qui ne suivent pas l'accent choisi dans Compte). Une case sans valeur ne tourne pas.
+ * `defaut` : le mot et la teinte d'une case sans valeur (Non trouvé, Pièce absente).
+ */
+export const SUIVANT = { ia: "corrige", corrige: "verifie", verifie: "ia" };
+export function EtatTrois({ etat, par, valeur, defaut, onChoix, occupe = false }) {
+  const auth = useAuthPeutEtre();
+  const tourne = ["ia", "corrige", "verifie"].includes(etat) && !!valeur;
+  const [mot, classe] = etat === "corrige" ? [`Modifié par ${prenom(par || auth?.user?.email)}`, "bg-jaune/15 text-jaune"]
+    : etat === "verifie" ? ["OK", "bg-vert/15 text-vert"]
+    : etat === "ia" ? ["Lu par l'IA", "bg-rail-actif text-craie"]
+    : [defaut[0], String(defaut[1] || "").split(" ").filter((c) => !c.startsWith("bg-")).join(" ")];
+  const suivant = () => { if (tourne && !occupe) onChoix(SUIVANT[etat]); };
+  return (
+    <div role={tourne ? "button" : undefined} tabIndex={tourne ? 0 : undefined} aria-disabled={occupe || undefined}
+      title={tourne ? `Cliquer : ${{ corrige: "Modifié par", verifie: "OK", ia: "Lu par l'IA" }[SUIVANT[etat]]}` : undefined}
+      onClick={(e) => { e.stopPropagation(); suivant(); }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); suivant(); } }}
+      className={`select-none text-[13px] transition-colors max-lg:rounded-[10px] max-lg:px-3 max-lg:py-2 ${tourne ? "cursor-pointer hover:brightness-110" : ""} ${occupe ? "opacity-70" : ""} ${classe}`}>
+      {mot}
+    </div>
+  );
+}
+
+/** Le geste d'un choix d'état ou d'une saisie, en appel à la case. */
+export const corpsDuChoix = (id, valeur, valeurMain = null) => (id === "ia" ? { action: "reinitialiser" } : id === "corrige" ? { action: "corriger", valeur: valeurMain || valeur } : { action: "verifier", valeur });
 
 const date = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 const qui = (email) => (email ? email.split("@")[0] : "l'équipe");
@@ -58,6 +117,7 @@ const TYPE_COURT = { bail: "Bail", avenants: "Avenant", quittances: "Quittance",
 export function GrillesPieces({ dossier, onglet, apercu = false }) {
   const dealId = dossier?.deal_id;
   const { data, isLoading, isError } = useAnalysePieces(dealId, { enabled: !apercu });
+  const geste = useGeste(dealId);
   const [ouverte, setOuverte] = useState(null);
 
   if (apercu) return <p className="m-0 py-8 text-[13.5px] text-brume">Les grilles se lisent sur un vrai dossier.</p>;
@@ -85,6 +145,8 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
             <p className="m-0 text-[15px] text-encre">{g.titre}</p>
             {!g.pieces.length && <p className="m-0 text-[12.5px] text-brume">Aucune pièce : déposez-la dans la Data Room.</p>}
           </div>
+          {/* Tout le tableau a ses lignes (29 oct. 2026, Jules) : le cadre ferme à droite et en bas. */}
+          <div className="lg:border-b lg:border-r lg:border-trait">
           <div className={`grid ${COLONNES} ${CELLULES} border-t border-trait py-3 text-[13px] text-ardoise max-lg:hidden lg:[&>*]:py-3`}>
             <span>Ligne</span><span>Ce qu'on y lit</span><span>Source</span><span>État</span>
           </div>
@@ -92,16 +154,18 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
             const [mot, classe, puce] = ETAT[l.statut] || ETAT.introuvable;
             const choisie = ouverte?.case?.grille === g.id && ouverte?.case?.id === l.id;
             return (
-              <div key={l.id} role="button" tabIndex={0} onClick={() => ouvrirCase(g, l)} onKeyDown={(ev) => { if (ev.key === "Enter") ouvrirCase(g, l); }}
-                className={`grid ${COLONNES} ${CELLULES} cursor-pointer border-t border-trait py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.03] max-lg:grid-cols-1 max-lg:gap-y-1.5 ${choisie ? "bg-menthe/[0.06]" : ""}`}>
-                <p className="m-0 text-[14.5px] text-craie" title={l.regle}>{l.libelle}</p>
-                <div className="min-w-0">
-                  {l.valeur ? <p className="m-0 whitespace-pre-line text-[14.5px] leading-[1.5] text-encre">{l.valeur}</p> : <span className="text-[14.5px] text-ardoise">{l.statut === "manquant" ? "Pas encore de pièce" : l.statut === "lecture" ? "En cours de lecture" : l.statut === "non_lu" ? "Pièce pas encore lue : « Relire » la lit" : "Non trouvé dans les pièces"}</span>}
-                  {l.alerte && <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-ambre">{l.alerte.motif}</p>}
-                  {l.a_choisir && <p className="m-0 mt-0.5 text-[13px] text-ambre">Les pièces ne disent pas la même chose : choisissez celle à retenir.</p>}
-                  {l.relue && <p className="m-0 mt-0.5 text-[12.5px] text-ambre">La relecture lit autre chose : « {String(l.relue).slice(0, 80)} ».</p>}
-                  {l.note && <p className="m-0 mt-0.5 text-[12.5px] text-brume">Note : {l.note}</p>}
-                </div>
+              <div key={l.id}
+                className={`grid ${COLONNES} ${CELLULES} border-t border-trait py-3.5 transition-colors lg:[&>*]:py-3.5 hover:bg-encre/[0.02] max-lg:grid-cols-1 max-lg:gap-y-1.5 ${choisie ? "bg-menthe/[0.06]" : ""}`}>
+                {/* Le libellé ouvre la source ; la valeur se modifie ; l'état se choisit (29 oct. 2026, Jules). */}
+                <button type="button" onClick={() => ouvrirCase(g, l)} title={l.sources.length ? "Voir la source" : l.regle} className="m-0 text-left text-[14.5px] text-craie hover:text-encre" style={{ background: "transparent" }}>{l.libelle}</button>
+                <ValeurModifiable valeur={l.valeur} occupe={geste.isPending}
+                  vide={l.statut === "manquant" ? "Pas encore de pièce" : l.statut === "lecture" ? "En cours de lecture" : l.statut === "non_lu" ? "Pièce pas encore lue" : "Non trouvé dans les pièces"}
+                  onEnregistrer={(t) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: { action: "corriger", valeur: t } })}
+                  apres={<>
+                    {l.alerte && l.statut !== "corrige" && <p className="m-0 mt-0.5 text-[13px] leading-[1.45] text-ambre">{l.alerte.motif}</p>}
+                    {l.a_choisir && <p className="m-0 mt-0.5 text-[13px] text-ambre">Les pièces ne disent pas la même chose : choisissez celle à retenir.</p>}
+                    {l.relue && <p className="m-0 mt-0.5 text-[12.5px] text-ambre">La relecture lit autre chose : « {String(l.relue).slice(0, 80)} ».</p>}
+                  </>} />
                 <div className="flex flex-wrap content-start gap-1.5">
                   {l.sources.slice(0, 3).map((s) => (
                     <button key={s.document_id} type="button" onClick={(ev) => { ev.stopPropagation(); setOuverte({ seul: true, doc: { id: s.document_id, nom: s.document_nom, url: s.document_url, mime: s.mime }, page: s.page, citation: s.citation }); }} title={s.citation || undefined}
@@ -110,10 +174,12 @@ export function GrillesPieces({ dossier, onglet, apercu = false }) {
                     </button>
                   ))}
                 </div>
-                <div><span className={`text-[13px] ${puce ? `inline-flex h-7 items-center rounded-full px-3 ${classe}` : classe}`}>{mot}</span></div>
+                <EtatTrois etat={l.statut} par={l.par} valeur={l.valeur} defaut={[mot, classe, puce]} occupe={geste.isPending}
+                  onChoix={(id) => geste.mutate({ chemin: `cases/${g.id}/${l.id}`, corps: corpsDuChoix(id, l.valeur, l.valeur_main) })} />
               </div>
             );
           })}
+          </div>
         </section>
       ))}
       {ouverte && <PanneauPiece dealId={dealId} ouverte={ouverte} caseOuverte={caseOuverte} onChange={setOuverte} onFermer={() => setOuverte(null)} />}

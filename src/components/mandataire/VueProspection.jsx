@@ -263,7 +263,7 @@ export default function VueProspection({ id, retour = "Prospection", onRetour })
       </div>
 
       {/* Le chat, collé en bas de l'écran : ce qu'il fait s'annonce en notification. */}
-      <div className="sticky bottom-0 z-20 -mx-5 mt-4 px-5 pb-4 pt-3 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:-mx-8 md:px-8" style={{ background: `linear-gradient(to top, ${J["fond"]} 70%, transparent)` }}>
+      <div className="sticky bottom-0 z-20 -mx-5 mt-4 px-5 pb-4 pt-3 max-md:bottom-[var(--k-bas-mobile,0px)] md:-mx-8 md:px-8" style={{ background: `linear-gradient(to top, ${J["fond"]} 70%, transparent)` }}>
         <div className="mx-auto max-w-[760px]">
           <ChatDashboard espace="affinage" prospectionId={id} embarque />
         </div>

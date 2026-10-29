@@ -90,12 +90,16 @@ export function segments(texte) {
     .map((x) => (x.startsWith('**') && x.endsWith('**') ? { t: x.slice(2, -2), gras: true } : { t: x, gras: false }));
 }
 
-/** Les deux colonnes du haut : l'acquéreur, et le vendeur à qui la lettre s'adresse. Pure. */
-export function parties(brut) {
+/**
+ * Les deux colonnes du haut : l'acquéreur, et le vendeur à qui la lettre s'adresse. Pure.
+ * `vides` : les lignes sans valeur restent (vides), pour que l'éditeur les montre à remplir.
+ */
+export function parties(brut, { vides = false } = {}) {
   const c = completer(brut);
+  const garder = ([, v]) => vides || v;
   return {
-    acquereur: [['acquereur_nom', c.acquereur_nom], ['acquereur_societe', c.acquereur_societe], ['acquereur_adresse', c.acquereur_adresse]].filter(([, v]) => v),
-    vendeur: [['vendeur_societe', c.vendeur_societe], ['vendeur_representant', c.vendeur_representant ? `Représentée par ${c.vendeur_representant}` : null], ['vendeur_adresse', c.vendeur_adresse]].filter(([, v]) => v),
+    acquereur: [['acquereur_nom', c.acquereur_nom || ''], ['acquereur_societe', c.acquereur_societe || ''], ['acquereur_adresse', c.acquereur_adresse || '']].filter(garder),
+    vendeur: [['vendeur_societe', c.vendeur_societe || ''], ['vendeur_representant', c.vendeur_representant ? `Représentée par ${c.vendeur_representant}` : ''], ['vendeur_adresse', c.vendeur_adresse || '']].filter(garder),
   };
 }
 
@@ -103,19 +107,40 @@ export function parties(brut) {
 export function cadre(brut) {
   const c = completer(brut);
   const menthe = c.modele === 'menthe';
+  const kp = c.marque === 'kp';
   return {
+    marque: kp ? 'kp' : 'klocka',
     titre: `Lettre d'intention d'achat · ${c.adresse_bien || ''}`,
     // « 1 avenue Mirabeau, 06000 Nice » → « 1 avenue Mirabeau, Nice » : le titre du modèle menthe.
     adresse_courte: String(c.adresse_bien || '').replace(/\b\d{5}\s+/g, '').replace(/\s+,/g, ',').trim(),
     date: jour(c.date),
     lieu_date: `À ${c.lieu}, le ${jour(c.date)}`,
-    pied_gauche: menthe ? 'KLOCKA · 229 rue Saint-Honoré, 75001 Paris' : 'KLOCKA · Développeur de revenus immobiliers',
+    // K Partners et Klocka sont deux entreprises (28 oct. 2026, Jules) : la lettre K Partners ne nomme jamais Klocka.
+    pied_gauche: kp ? 'K Partners · Lettre d\'intention d\'achat'
+      : menthe ? 'KLOCKA · 229 rue Saint-Honoré, 75001 Paris' : 'KLOCKA · Développeur de revenus immobiliers',
     pied_droite: [c.acquereur_nom, c.acquereur_societe].filter(Boolean).join(' · '),
   };
 }
 
 /** Les deux modèles de lettre : « classique » (v2, 16/09/2026) et « menthe » (1c, bande menthe). */
 export const MODELES = ['classique', 'menthe'];
+
+/**
+ * Les deux marques (26 oct. 2026, Jules) : Klocka, et K Partners (charte d'octobre 2026). Le texte et la mise en
+ * page restent ceux du modèle ; la marque change les couleurs, le logo et le pied. KLOCKA reste le conseil nommé
+ * dans la lettre : c'est sa carte T qui porte l'opération, K Partners en est le réseau.
+ */
+export const MARQUES = ['klocka', 'kp'];
+
+/** Les couleurs de la lettre selon sa marque, en RVB (PDF) et en hexadécimal (Word). Pure. */
+export function couleursLoi(marque) {
+  return marque === 'kp'
+    // Charte K Partners : indigo sur clair, brume pour l'encart, nuit pour le texte fort, Hanken Grotesk.
+    ? { accent: [63, 71, 184], bande: [63, 71, 184], encart: [238, 240, 255], noir: [14, 14, 16], encre: [43, 45, 54], gris: [90, 93, 107], trait: [217, 219, 246],
+      hex: { accent: '3F47B8', bande: '3F47B8', encart: 'EEF0FF', noir: '0E0E10', gris: '5A5D6B', trait: 'D9DBF6' }, police: 'Hanken Grotesk', createur: 'K Partners' }
+    : { accent: [127, 168, 152], bande: [143, 178, 168], encart: [239, 243, 241], noir: [22, 22, 22], encre: [42, 42, 42], gris: [110, 110, 110], trait: [225, 225, 225],
+      hex: { accent: '7FA898', bande: '8FB2A8', encart: 'EFF3F1', noir: '161616', gris: '6E6E6E', trait: 'E6E6E6' }, police: 'Arial', createur: 'Klocka' };
+}
 
 /**
  * La lettre, bloc par bloc, sur le modèle « Lettre d'intention - 1 avenue
@@ -132,22 +157,33 @@ export function blocs(brut) {
   const g = (x) => (menthe ? `**${x}**` : x);
   const num = (classique, m) => (menthe ? m : classique);
   const bloc = (cle, type, texte, extra = {}) => ({ cle, type, texte: t[cle] ?? texte, retouche: t[cle] != null, ...extra });
+  // Une lettre partie vierge (la page Offres l'ouvre vide) : un champ pas encore dit se lit entre crochets, jamais « undefined ».
+  const trou = (x, libelle) => (x == null || x === '' ? `[${libelle}]` : x);
+  const montant = (n, libelle) => (n == null || n === '' ? `[${libelle}]` : `${euros(n)} (${enLettres(n)} euros)`);
+  const acquereur = trou(c.acquereur_nom, "nom de l'acquéreur");
+  const adresse = trou(c.adresse_bien, 'adresse du local');
   const occupe = c.locataire
     ? `, actuellement loué à l'enseigne ${c.locataire}${c.fin_bail ? ` via un bail commercial arrivant à échéance le ${g(jour(c.fin_bail))}` : ' via un bail commercial'}`
     : ', actuellement loué via un bail commercial';
   return [
     bloc('date', 'date', `À ${c.lieu}, le ${jour(c.date)}`),
-    bloc('objet', 'objet', `Objet : Lettre d'intention d'achat d'un local commercial situé au ${c.adresse_bien}`),
+    bloc('objet', 'objet', `Objet : Lettre d'intention d'achat d'un local commercial situé au ${adresse}`),
     bloc('h-conseil', 'h2', 'Identification du conseil', { num: num(null, '00') }),
-    bloc('conseil-1', 'p', "L'acquéreur est assisté dans cette opération par le cabinet **KLOCKA**, société par actions simplifiée (SAS) au capital social de 1 000 € (mille euros), dont le siège social est situé au 229 rue Saint-Honoré, 75001 Paris, immatriculée au R.C.S de Paris sous le numéro 932 230 394 et représentée par Paul de ZULUETA Y DE BESSON en qualité de Président."),
-    bloc('conseil-2', 'p', 'KLOCKA est titulaire de la carte professionnelle n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ». Son assurance RCP et sa garantie sont souscrites auprès de GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.'),
+    ...(c.marque === 'kp' ? [
+      // La lettre K Partners (28 oct. 2026, Jules) : le conseil est K Partners ; ses mentions légales restent celles de la carte.
+      bloc('conseil-1', 'p', "L'acquéreur est assisté dans cette opération par **K Partners**, réseau d'agents commerciaux en immobilier d'entreprise, au titre de la carte professionnelle mentionnée ci-dessous."),
+      bloc('conseil-2', 'p', 'Carte professionnelle n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ». Assurance RCP et garantie souscrites auprès de GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.'),
+    ] : [
+      bloc('conseil-1', 'p', "L'acquéreur est assisté dans cette opération par le cabinet **KLOCKA**, société par actions simplifiée (SAS) au capital social de 1 000 € (mille euros), dont le siège social est situé au 229 rue Saint-Honoré, 75001 Paris, immatriculée au R.C.S de Paris sous le numéro 932 230 394 et représentée par Paul de ZULUETA Y DE BESSON en qualité de Président."),
+      bloc('conseil-2', 'p', 'KLOCKA est titulaire de la carte professionnelle n° CPI75012024000000529 portant la mention « transactions sur immeubles et fonds de commerce ». Son assurance RCP et sa garantie sont souscrites auprès de GALIAN ASSURANCES, 89 rue La Boétie, 75008 Paris.'),
+    ]),
     bloc('h-offre', 'h2', "L'offre", { num: num('I.', '01') }),
-    bloc('offre-1', 'p', `Je soussigné, ${c.acquereur_nom}, ai l'honneur de vous proposer l'achat d'un local commercial situé au **${c.adresse_bien}**.`),
+    bloc('offre-1', 'p', `Je soussigné, ${acquereur}, ai l'honneur de vous proposer l'achat d'un local commercial situé au **${adresse}**.`),
     bloc('offre-2', 'p', `Il s'agit d'un local commercial${c.surface_m2 ? ` d'une surface totale d'environ ${g(`${String(c.surface_m2).replace('.', ',')} m²`)}` : ''}${occupe}.`),
-    bloc('offre-3', 'p', `Le prix de vente FAI TTC proposé est de **${euros(c.prix)} (${enLettres(c.prix)} euros)**. Les honoraires de notre conseil, KLOCKA, seront également à notre charge.`),
+    bloc('offre-3', 'p', `Le prix de vente FAI TTC proposé est de **${montant(c.prix, 'prix FAI TTC')}**. Les honoraires de notre conseil, ${c.marque === 'kp' ? 'K Partners' : 'KLOCKA'}, seront également à notre charge.`),
     bloc('h-conditions', 'h2', 'Conditions suspensives', { num: num('II.', '02') }),
     bloc('h-financement', 'h3', '1. Financement'),
-    bloc('financement', 'p', `Cette opération sera financée par un apport personnel de ${g(`${euros(c.apport)} (${enLettres(c.apport)} euros)`)} et au moyen d'un crédit bancaire d'une durée maximale de ${c.duree_ans} ans avec un taux cible de ${String(c.taux).replace('.', ',')}% (hors assurance).`),
+    bloc('financement', 'p', `Cette opération sera financée par un apport personnel de ${g(montant(c.apport, 'apport'))} et au moyen d'un crédit bancaire d'une durée maximale de ${c.duree_ans} ans avec un taux cible de ${String(c.taux).replace('.', ',')}% (hors assurance).`),
     bloc('h-exclusivite', 'h3', '2. Exclusivité et Due Diligence'),
     bloc('exclusivite', 'p', `Une période d'exclusivité permettant la Due Diligence à accorder à l'acquéreur. Cette période s'achèvera le **${jour(c.fin_exclusivite)}**, sous réserve que l'ensemble des documents de la dataroom soient communiqués de façon exhaustive d'ici le **${jour(c.limite_documents)}**. L'offre pourra être confirmée à l'issue de cette période si l'analyse des documents s'avère satisfaisante et conforme, par mes conseils, à l'exécution de l'acquisition.`),
     bloc('pieces', 'p', `Le vendeur s'engage à mettre à disposition les quittances de loyers sur les 3 dernières années ainsi que la situation de compte avec les dates de règlement${c.locataire ? `, le Kbis de la société ${c.locataire}` : ''}, les plans cotés des locaux concernés par la vente et l'ensemble des diagnostics réglementaires dans le cadre de cette vente.`),
@@ -159,7 +195,7 @@ export function blocs(brut) {
     bloc('substitution', 'p', 'Je me réserve la faculté de me substituer toute structure (personne morale) dans laquelle je suis partie prenante.'),
     bloc('validite', 'p', `La présente offre est valable jusqu'au **${jour(c.validite)}**.`),
     bloc('salutations', 'p', "Nous vous prions d'agréer, Monsieur, l'expression de nos salutations distinguées."),
-    { cle: 'signatures', type: 'signatures', gauche: [c.acquereur_nom, c.acquereur_societe].filter(Boolean), droite: [c.vendeur_societe, 'Bon pour accord'].filter(Boolean) },
+    { cle: 'signatures', type: 'signatures', gauche: [acquereur, c.acquereur_societe].filter(Boolean), droite: [trou(c.vendeur_societe, 'vendeur'), 'Bon pour accord'] },
   ];
 }
 
@@ -219,6 +255,26 @@ export function logoK(d, x, y, h) {
 }
 
 /**
+ * Le logo K Partners (charte d'octobre 2026) : « kp » en minuscules et son trait indigo posé sur la ligne de base,
+ * 0,37 × 0,10 em à 0,10 em des lettres. jsPDF n'a pas Hanken Grotesk : Helvetica, la plus proche des polices
+ * intégrées. `h` : la hauteur du corps, en mm ; (x, y) : le haut du logo.
+ */
+export function logoKP(d, x, y, h) {
+  const taille = h / 0.3528 / 0.72; // la hauteur des ascendantes ≈ 0,72 em
+  const base = y + h;
+  d.setFont('helvetica', 'normal'); d.setFontSize(taille); d.setTextColor(14, 14, 16);
+  d.text('kp', x, base, { charSpace: -0.06 * taille * 0.3528 });
+  const em = taille * 0.3528;
+  const l = d.getTextWidth('kp') - 0.06 * em;
+  d.setFillColor(63, 71, 184);
+  d.rect(x + l + 0.1 * em, base - 0.1 * em, 0.37 * em, 0.1 * em, 'F');
+  return l + 0.57 * em;
+}
+
+/** Le logo de la marque en tête du PDF. Rend la largeur prise, en mm. */
+const logoPdf = (d, c, x, y, h) => (c.marque === 'kp' ? logoKP(d, x, y, h * 0.72) : (logoK(d, x, y, h), h * 0.86));
+
+/**
  * La lettre en PDF, écrite par jsPDF : pas de navigateur, rien à installer
  * sur le serveur. A4, Helvetica, en-tête et pied sur chaque page, les deux
  * colonnes du haut, les titres numérotés, les cadres de signature. Rend le
@@ -230,15 +286,16 @@ export async function pdf(brut) {
   if (c.modele === 'menthe') return pdfMenthe(c, jsPDF);
   const d = new jsPDF({ unit: 'mm', format: 'a4' });
   const G = 18; const D = 192; const LARGEUR = D - G; const HAUT = 30; const BAS = 270;
-  const VERT = [127, 168, 152]; const ENCRE = [42, 42, 42]; const GRIS = [110, 110, 110];
+  const C = couleursLoi(c.marque);
+  const VERT = C.accent; const ENCRE = C.encre; const GRIS = C.gris; const NOIR = C.noir; const TRAIT = C.trait;
   const k = cadre(c);
   let y = HAUT;
   const police = (style = 'normal', taille = 10, couleur = ENCRE) => { d.setFont('helvetica', style); d.setFontSize(taille); d.setTextColor(...couleur); };
   const decor = () => {
-    logoK(d, G, 9.6, 5.8);
-    police('normal', 8.5, GRIS); d.text(d.splitTextToSize(k.titre, 120)[0], G + 8, 14);
+    const l = logoPdf(d, c, G, 9.6, 5.8);
+    police('normal', 8.5, GRIS); d.text(d.splitTextToSize(k.titre, 120)[0], G + Math.max(8, l + 3), 14);
     police('bold', 8.5, VERT); d.text(k.date, D, 14, { align: 'right' });
-    d.setDrawColor(225, 225, 225); d.line(0, 19, 210, 19); d.line(0, 283, 210, 283);
+    d.setDrawColor(...TRAIT); d.line(0, 19, 210, 19); d.line(0, 283, 210, 283);
     police('normal', 7.5, GRIS); d.text(k.pied_gauche, G, 289); d.text(k.pied_droite, D, 289, { align: 'right' });
   };
   decor();
@@ -276,15 +333,15 @@ export async function pdf(brut) {
   const finG = colonne(p.acquereur, G, 78);
   const xD = 112;
   const hD = 12 + p.vendeur.reduce((n, [, v]) => n + d.splitTextToSize(String(v), 70).length * 5.2, 0);
-  d.setFillColor(239, 243, 241); d.rect(xD - 4, y - 5, D - xD + 4, hD, 'F');
+  d.setFillColor(...C.encart); d.rect(xD - 4, y - 5, D - xD + 4, hD, 'F');
   police('normal', 7, GRIS); d.text("À L'ATTENTION DE", xD, y);
   const finD = colonne(p.vendeur, xD, 70);
   y = Math.max(finG, finD) + 6;
   for (const b of blocs(c)) {
     if (b.type === 'date') { police('normal', 10, GRIS); place(6); d.text(b.texte, D, y, { align: 'right' }); y += 10; }
     else if (b.type === 'objet') {
-      d.setDrawColor(225, 225, 225); d.line(G, y - 4, D, y - 4);
-      police('normal', 13, [20, 20, 20]);
+      d.setDrawColor(...TRAIT); d.line(G, y - 4, D, y - 4);
+      police('normal', 13, NOIR);
       for (const l of d.splitTextToSize(b.texte, LARGEUR)) { place(6.5); d.text(l, G, y + 2); y += 6.5; }
       d.line(G, y + 1, D, y + 1); y += 12;
     }
@@ -292,15 +349,15 @@ export async function pdf(brut) {
       y += 4; place(12);
       let x = G;
       if (b.num) { police('bold', 8, VERT); d.text(b.num, x, y); x += d.getTextWidth(b.num) + 3; }
-      police('normal', 14, b.num ? [20, 20, 20] : VERT); d.text(b.texte, x, y); y += 9;
+      police('normal', 14, b.num ? NOIR : VERT); d.text(b.texte, x, y); y += 9;
     }
-    else if (b.type === 'h3') { y += 1; place(6); police('bold', 10, [20, 20, 20]); d.text(b.texte, G, y); y += 6; }
+    else if (b.type === 'h3') { y += 1; place(6); police('bold', 10, NOIR); d.text(b.texte, G, y); y += 6; }
     else if (b.type === 'signatures') {
       y += 6; place(40);
       const box = (lignes, x, sous) => {
         let yy = y;
         for (const [i, l] of lignes.entries()) { police(i === 0 ? 'bold' : 'normal', 10, i === 0 ? ENCRE : GRIS); d.text(String(l), x, yy); yy += 5.2; }
-        d.setDrawColor(225, 225, 225); d.rect(x, yy + 1, 80, 26);
+        d.setDrawColor(...TRAIT); d.rect(x, yy + 1, 80, 26);
         police('normal', 6.5, VERT); d.text(sous, x + 3, yy + 24);
       };
       box(b.gauche, G, 'SIGNATURE'); box(b.droite, 112, 'DATE ET SIGNATURE');
@@ -320,12 +377,11 @@ export async function docx(brut) {
   const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, Header, Footer, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType } = await import('docx');
   const c = completer(brut);
   if (c.modele === 'menthe') return docxMenthe(c);
-  // Le K de Klocka en tête ; sans le fichier, la lettre sort quand même.
-  let logo = null;
-  try { logo = new ImageRun({ type: 'png', data: fs.readFileSync(new URL('../../public/logo-k-klocka.png', import.meta.url)), transformation: { width: 22, height: 22 } }); } catch { logo = null; }
+  const C = couleursLoi(c.marque);
   const k = cadre(c);
-  const VERT = '7FA898'; const GRIS = '6E6E6E';
-  const run = (texte, { gras = false, couleur = null, taille = 20, espace = null } = {}) => new TextRun({ text: String(texte), bold: gras, color: couleur || undefined, font: 'Arial', size: taille, ...(espace ? { characterSpacing: espace } : {}) });
+  const VERT = C.hex.accent; const GRIS = C.hex.gris;
+  const run = (texte, { gras = false, couleur = null, taille = 20, espace = null, fond = null } = {}) => new TextRun({ text: String(texte), bold: gras, color: couleur || undefined, font: C.police, size: taille, ...(espace ? { characterSpacing: espace } : {}), ...(fond ? { shading: { type: ShadingType.CLEAR, color: 'auto', fill: fond } } : {}) });
+  const logo = logoDocx(c, { ImageRun, run, largeur: 22, taille: 24 });
   const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120 } = {}) =>
     new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 320 } });
   const sansBord = { top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } };
@@ -336,7 +392,7 @@ export async function docx(brut) {
     margins: { top: 120, bottom: 120, left: 160, right: 160 },
     children: [para(run(label, { taille: 15, couleur: GRIS, espace: 40 }), { apres: 80 }), ...lignes.map(([, v], i) => para(run(v, { gras: i === 0, couleur: i === 2 ? GRIS : null }), { apres: 0 }))],
   });
-  const enfants = [new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: sansBord, rows: [new TableRow({ children: [cellule('ACQUÉREUR', p.acquereur), cellule("À L'ATTENTION DE", p.vendeur, 'EFF3F1')] })] })];
+  const enfants = [new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: sansBord, rows: [new TableRow({ children: [cellule('ACQUÉREUR', p.acquereur), cellule("À L'ATTENTION DE", p.vendeur, C.hex.encart)] })] })];
   for (const b of blocs(c)) {
     if (b.type === 'date') enfants.push(para(run(b.texte, { couleur: GRIS }), { align: AlignmentType.RIGHT, avant: 240, apres: 240 }));
     else if (b.type === 'objet') enfants.push(para(run(b.texte, { taille: 26 }), { avant: 120, apres: 360 }));
@@ -350,12 +406,12 @@ export async function docx(brut) {
     else enfants.push(para(segments(b.texte).map((s) => run(s.t, { gras: s.gras }))));
   }
   const doc = new Document({
-    creator: 'Klocka',
+    creator: C.createur,
     title: k.titre,
-    styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
+    styles: { default: { document: { run: { font: C.police, size: 20 } } } },
     sections: [{
       properties: { page: { margin: { top: 1300, bottom: 1200, left: 1020, right: 1020 } } },
-      headers: { default: new Header({ children: [para([logo || run('K', { gras: true, taille: 24 }), run('   '), run(k.titre, { couleur: GRIS, taille: 16 }), run(`      ${k.date}`, { gras: true, couleur: VERT, taille: 16 })])] }) },
+      headers: { default: new Header({ children: [para([...logo, run('   '), run(k.titre, { couleur: GRIS, taille: 16 }), run(`      ${k.date}`, { gras: true, couleur: VERT, taille: 16 })])] }) },
       footers: { default: new Footer({ children: [para([run(k.pied_gauche, { couleur: GRIS, taille: 14 }), run(`      ${k.pied_droite}`, { couleur: GRIS, taille: 14 })])] }) },
       children: enfants,
     }],
@@ -370,13 +426,22 @@ export async function docx(brut) {
 // lignes de signature, une bande menthe au pied de chaque page.
 // ---------------------------------------------------------------------------
 
-const MENTHE = [143, 178, 168];
+/**
+ * Le logo de la marque en tête du Word : le K de Klocka (l'image), ou « kp » et son trait pour K Partners (le
+ * trait : trois espaces fines sur fond indigo, posées sur la ligne de base). Rend des runs.
+ */
+function logoDocx(c, { ImageRun, run, largeur, taille }) {
+  if (c.marque === 'kp') return [run('kp', { taille, couleur: '0E0E10', espace: -Math.round(taille * 0.6) }), run(' ', { taille: Math.round(taille / 4) }), run('\u2002', { taille: Math.round(taille / 3), fond: '3F47B8' })];
+  // Le K de Klocka en tête ; sans le fichier, la lettre sort quand même.
+  try { return [new ImageRun({ type: 'png', data: fs.readFileSync(new URL('../../public/logo-k-klocka.png', import.meta.url)), transformation: { width: largeur, height: largeur } })]; } catch { return [run('K', { gras: true, taille })]; }
+}
 
 function pdfMenthe(c, jsPDF) {
   const d = new jsPDF({ unit: 'mm', format: 'a4' });
   const G = 18; const D = 192; const LARGEUR = D - G; const BAS = 268; const HAUT = 20;
   const XT = 45; const LT = D - XT; // la colonne du texte, à droite des numéros
-  const ENCRE = [42, 42, 42]; const NOIR = [22, 22, 22]; const GRIS = [110, 110, 110];
+  const C = couleursLoi(c.marque);
+  const MENTHE = C.bande; const ENCRE = C.encre; const NOIR = C.noir; const GRIS = C.gris;
   const k = cadre(c);
   let y;
   const police = (style = 'normal', taille = 10, couleur = ENCRE) => { d.setFont('helvetica', style); d.setFontSize(taille); d.setTextColor(...couleur); };
@@ -384,7 +449,7 @@ function pdfMenthe(c, jsPDF) {
     police('normal', 7.5, GRIS); d.text(k.pied_gauche, G, 280); d.text(k.pied_droite, D, 280, { align: 'right' });
     d.setFillColor(...MENTHE); d.rect(G, 283, LARGEUR, 4, 'F');
   };
-  const nouvellePage = () => { d.addPage(); pied(); y = HAUT; d.setDrawColor(230, 230, 230); d.line(G, y - 4, D, y - 4); y += 4; };
+  const nouvellePage = () => { d.addPage(); pied(); y = HAUT; d.setDrawColor(...C.trait); d.line(G, y - 4, D, y - 4); y += 4; };
   const place = (h) => { if (y + h > BAS) nouvellePage(); };
   const riche = (texte, { taille = 10, interligne = 5.4, apres = 3.2, x0 = XT, largeur = LT } = {}) => {
     const mots = segments(texte).flatMap((s) => s.t.replace(/[\u202f\u00a0]/g, '\uE000').split(/(\s+)/).filter((m) => m !== '').map((m) => ({ m: m.replace(/\uE000/g, ' '), gras: s.gras })));
@@ -406,8 +471,8 @@ function pdfMenthe(c, jsPDF) {
     y += apres;
   };
   pied();
-  // L'en-tête : le K de Klocka, la date, le filet noir.
-  logoK(d, G, 10, 11);
+  // L'en-tête : le logo de la marque, la date, le filet noir.
+  logoPdf(d, c, G, 10, 11);
   police('normal', 10, GRIS); d.text(k.lieu_date, D, 18, { align: 'right' });
   d.setDrawColor(...NOIR); d.setLineWidth(0.6); d.line(G, 25, D, 25); d.setLineWidth(0.2);
   // Les parties.
@@ -430,14 +495,14 @@ function pdfMenthe(c, jsPDF) {
   for (const b of blocsC) {
     if (b.type === 'h2') {
       place(24);
-      d.setDrawColor(230, 230, 230); d.line(G, y, D, y); y += 9;
+      d.setDrawColor(...C.trait); d.line(G, y, D, y); y += 9;
       police('normal', 26, MENTHE); d.text(b.num || '', G, y + 2);
       police('bold', 12, NOIR); d.text(b.texte, XT, y); y += 7;
     } else if (b.type === 'h3') {
       place(8); police('normal', 7.5, GRIS); d.text(String(b.texte).toUpperCase(), XT, y, { charSpace: 0.5 }); y += 5;
     } else if (b.type === 'signatures') {
       place(40);
-      d.setDrawColor(230, 230, 230); d.line(G, y, D, y); y += 10;
+      d.setDrawColor(...C.trait); d.line(G, y, D, y); y += 10;
       const sign = (lignes, x) => {
         let yy = y;
         for (const [i, l] of lignes.entries()) { police(i === 0 ? 'bold' : 'normal', 10, i === 0 ? NOIR : GRIS); d.text(String(l), x, yy); yy += 5.4; }
@@ -457,8 +522,9 @@ function pdfMenthe(c, jsPDF) {
 async function docxMenthe(c) {
   const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, Footer, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType } = await import('docx');
   const k = cadre(c);
-  const VERT = '8FB2A8'; const GRIS = '6E6E6E'; const NOIR = '161616';
-  const run = (texte, { gras = false, couleur = null, taille = 20, espace = null, maj = false } = {}) => new TextRun({ text: String(texte), bold: gras, color: couleur || undefined, font: 'Arial', size: taille, allCaps: maj, ...(espace ? { characterSpacing: espace } : {}) });
+  const C = couleursLoi(c.marque);
+  const VERT = C.hex.bande; const GRIS = C.hex.gris; const NOIR = C.hex.noir; const TRAIT = C.hex.trait;
+  const run = (texte, { gras = false, couleur = null, taille = 20, espace = null, maj = false, fond = null } = {}) => new TextRun({ text: String(texte), bold: gras, color: couleur || undefined, font: C.police, size: taille, allCaps: maj, ...(espace ? { characterSpacing: espace } : {}), ...(fond ? { shading: { type: ShadingType.CLEAR, color: 'auto', fill: fond } } : {}) });
   const para = (runs, { align = AlignmentType.LEFT, avant = 0, apres = 120, bas = null } = {}) =>
     new Paragraph({ children: Array.isArray(runs) ? runs : [runs], alignment: align, spacing: { before: avant, after: apres, line: 320 }, ...(bas ? { border: { bottom: bas } } : {}) });
   const aucun = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
@@ -466,12 +532,10 @@ async function docxMenthe(c) {
   const cellule = (enfants, largeur) => new TableCell({ width: { size: largeur, type: WidthType.PERCENTAGE }, borders: sansBord, children: enfants });
   const tableau = (cellules) => new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: { ...sansBord, insideHorizontal: aucun, insideVertical: aucun }, rows: [new TableRow({ children: cellules })] });
   const p = parties(c);
-  // Le K de Klocka en tête ; sans le fichier, la lettre sort quand même.
-  let logo = null;
-  try { logo = new ImageRun({ type: 'png', data: fs.readFileSync(new URL('../../public/logo-k-klocka.png', import.meta.url)), transformation: { width: 56, height: 56 } }); } catch { logo = null; }
+  const logo = logoDocx(c, { ImageRun, run, largeur: 56, taille: 52 });
   const enfants = [
     tableau([
-      cellule([para(logo || run('K', { gras: true, taille: 36, couleur: NOIR }), { apres: 0 })], 60),
+      cellule([para(logo, { apres: 0 })], 60),
       cellule([para(run(k.lieu_date, { couleur: GRIS }), { align: AlignmentType.RIGHT, avant: 120 })], 40),
     ]),
     para(run(''), { apres: 240, bas: { style: BorderStyle.SINGLE, size: 12, color: NOIR } }),
@@ -480,14 +544,14 @@ async function docxMenthe(c) {
       cellule([para(run("À l'attention de", { couleur: GRIS }), { apres: 0 }), ...p.vendeur.map(([, v], i) => para(run(v, { gras: i === 0, couleur: i === p.vendeur.length - 1 && i > 0 ? GRIS : null }), { apres: 0 }))], 50),
     ]),
     para(run("Lettre d'intention d'achat", { gras: true, taille: 40, couleur: NOIR }), { avant: 480, apres: 0 }),
-    para(run(k.adresse_courte, { gras: true, taille: 40, couleur: VERT }), { apres: 240, bas: { style: BorderStyle.SINGLE, size: 4, color: 'E6E6E6' } }),
+    para(run(k.adresse_courte, { gras: true, taille: 40, couleur: VERT }), { apres: 240, bas: { style: BorderStyle.SINGLE, size: 4, color: TRAIT } }),
   ];
   // Une section : le grand numéro à gauche, le titre et le texte à droite.
   let section = null;
   const fermer = () => {
     if (!section) return;
     enfants.push(tableau([cellule([para(run(section.num, { taille: 52, couleur: VERT }), { apres: 0 })], 14), cellule(section.contenu, 86)]));
-    enfants.push(para(run(''), { apres: 120, bas: { style: BorderStyle.SINGLE, size: 4, color: 'E6E6E6' } }));
+    enfants.push(para(run(''), { apres: 120, bas: { style: BorderStyle.SINGLE, size: 4, color: TRAIT } }));
     section = null;
   };
   for (const b of blocs(c)) {
@@ -505,9 +569,9 @@ async function docxMenthe(c) {
   }
   fermer();
   const doc = new Document({
-    creator: 'Klocka',
+    creator: C.createur,
     title: k.titre,
-    styles: { default: { document: { run: { font: 'Arial', size: 20 } } } },
+    styles: { default: { document: { run: { font: C.police, size: 20 } } } },
     sections: [{
       properties: { page: { margin: { top: 1000, bottom: 1300, left: 1020, right: 1020 } } },
       footers: { default: new Footer({ children: [

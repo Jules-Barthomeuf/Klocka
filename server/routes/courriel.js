@@ -17,11 +17,13 @@ function rattachementBoite(req, res, returnTo) {
   // Journalisé : quand une boîte ne s'enregistre pas, c'est ici qu'on voit si
   // la demande est seulement partie, et de qui.
   console.log(`[auth] rattachement d'une boîte demandé par ${user?.email || 'personne (non connecté)'} depuis host=${req.headers.host}`);
-  if (user?.role !== 'admin') {
+  // Un mandataire rattache sa propre boîte (28 oct. 2026, Jules) : Haka envoie de chez lui ce qu'il a validé, jamais
+  // d'une boîte de Klocka (les boîtes restent celles de leur propriétaire, `owner`).
+  if (!['admin', 'mandataire'].includes(user?.role)) {
     return authResultPage(res, {
       ok: false,
       title: 'Réservé à l\'équipe',
-      detail: "Seul un administrateur connecté peut rattacher une boîte Google à Klocka.",
+      detail: "Seul un compte Klocka ou K Partners connecté peut rattacher sa boîte Google.",
     });
   }
   const url = buildAuthUrl({ returnTo, req, boite: true });

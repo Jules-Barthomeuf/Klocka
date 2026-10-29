@@ -1,59 +1,21 @@
 import React from "react";
-import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Eye, EyeOff, Italic, Minus, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, X } from "lucide-react";
 import { NOMS, PARTIES, dansLOrdreDuModele, partiesDe } from "@/lib/presentation-modele";
-import { PALETTE, lire } from "./Deck";
+import { GroupePanneau, PanneauEditeur, ReglagesDesign } from "@/components/editeur/Editeur";
 
 // Autour du deck (refait le 12 oct. 2026, Jules : « comme dans l'estimation ») :
 //  - le panneau des diapositives, à droite, fermé par défaut, qu'on ouvre si
 //    on veut (aller, masquer, réordonner, éléments masqués) ;
-//  - le menu « Styles » de l'élément cliqué en édition, flottant en haut à
-//    droite de la scène, au dessin de celui de l'avis de valeur (bg-rail,
-//    14 px, ombre douce) ; la croix, Échap ou un clic dans le vide le ferment.
-// Une mise en forme se garde dans diapo.styles[chemin] ; le PPTX la lit.
+//  - le panneau de l'élément cliqué en Éditeur, à droite de la scène
+//    (28 oct. 2026 : le modèle de la page éditeur, Design commun à tous les
+//    éditeurs) ; la croix, Échap ou un clic dans le vide le ferment.
+// Une mise en forme se garde dans diapo.styles[chemin] ; le PPTX en lit la
+// taille (px), le gras, l'italique, l'alignement, la couleur et l'opacité.
 
 /** Ce qu'on appelle un chemin, en clair. */
 export function libelleChemin(chemin) {
   const mots = { heros: "Panneau", grand: "Grand chiffre", titre: "Titre", accroche: "Accroche", note: "Note", porteur: "Porteur", banque: "Banque", chapitre: "Chapitre", etape: "Étape", photo: "Photo", photos: "Photos", stats: "Chiffre", items: "Sommaire", chiffres: "Chiffre", atouts: "Atout", legende: "Légende", identite: "Identité", economie: "Économie", points: "Point", enseignes: "Enseigne", nom: "Nom", secteur: "Secteur", logo: "Logo", marche: "Marché", local: "Local", lignes: "Ligne", valeur: "Valeur", label: "Libellé", page: "Page", entetes: "En-tête", blocs: "Bloc", experiences: "Expériences", situation: "Situation", revenus: "Revenus", associes: "Associé", part: "Part", structure: "Structure", statut: "Statut", type: "Type", detient: "Détient", adresse: "Adresse", loue: "Loués à", telephone: "Téléphone", email: "E-mail", contact_titre: "Contact", cadre_marche: "Cadre", cadre_local: "Cadre", murs: "Murs", loyer: "Loyer", prix_m2: "Prix au m²", loyer_m2: "Loyer au m²", sous: "Sous-texte", objet: "Objet", age: "Âge", conclusion: "Conclusion", hypothese: "Hypothèse", detail: "Détail", titre_revente: "Titre", legende_photos: "Légende" };
   return chemin.split(".").map((m) => (/^\d+$/.test(m) ? `n° ${Number(m) + 1}` : mots[m] || m)).join(" › ");
-}
-
-const Groupe = ({ titre, children }) => (
-  <div className="mt-3 first:mt-0">
-    <p className="m-0 mb-1.5 text-[10.5px] uppercase tracking-[0.14em] text-brume">{titre}</p>
-    <div className="space-y-2">{children}</div>
-  </div>
-);
-
-/** Des pastilles de couleur : la palette du deck, et une couleur libre. */
-function Pastilles({ valeur, onChoisir }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 pb">
-      {PALETTE.map(([k, nom, css]) => (
-        <button key={k} type="button" onClick={() => onChoisir(valeur === k ? null : k)} title={nom} aria-label={nom} aria-pressed={valeur === k}
-          className={`h-5 w-5 flex-none rounded-full border ${valeur === k ? "border-menthe ring-2 ring-menthe/40" : "border-trait"}`} style={{ background: css }} />
-      ))}
-      <label className="relative grid h-5 w-5 flex-none cursor-pointer place-items-center rounded-full border border-trait text-[10px] text-ardoise" title="Autre couleur" style={{ background: /^#/.test(valeur || "") ? valeur : "transparent" }}>
-        {!/^#/.test(valeur || "") && "+"}
-        <input type="color" className="absolute inset-0 cursor-pointer opacity-0" aria-label="Autre couleur" onChange={(e) => onChoisir(e.target.value)} />
-      </label>
-    </div>
-  );
-}
-
-/** Retouche un style d'un élément : un patch fusionné, ou null pour revenir au modèle. */
-function retoucheur(dSel, chemin, onChange, onSelection) {
-  return (patch) => {
-    if (!dSel) return;
-    const styles = { ...(dSel.styles || {}) };
-    if (patch === null) delete styles[chemin];
-    else {
-      const suivant = { ...(styles[chemin] || {}), ...patch };
-      for (const k of Object.keys(suivant)) if (suivant[k] === null || suivant[k] === false || suivant[k] === undefined) delete suivant[k];
-      if (Object.keys(suivant).length) styles[chemin] = suivant; else delete styles[chemin];
-    }
-    onChange({ ...dSel, styles });
-    if (patch?.masque) onSelection(null);
-  };
 }
 
 /** Masque une partie entière d'une diapositive : diapo.styles[chemin].masque. */
@@ -74,80 +36,71 @@ export function afficherPartie(d, chemin) {
   return { ...d, styles };
 }
 
+// La taille d'un élément du deck se garde en pixels (le cadre fait 1280 px, le PPTX convertit à 0,75 pt le pixel) ;
+// le panneau Design parle en points, comme tous les éditeurs : 1 pt = 4/3 px, au centième près dans les deux sens.
+const versPt = (px) => (px ? Math.round(px * 0.75 * 100) / 100 : null);
+const versPx = (pt) => (pt ? Math.round((pt / 0.75) * 100) / 100 : null);
+// Deux couleurs du deck ont leur pastille dans la palette commune : on garde le nom du deck, que le PPTX lit.
+const DECK_VERS_DOC = { sauge: "accent", ivoire: "blanc" };
+const DOC_VERS_DECK = { accent: "sauge", blanc: "ivoire" };
+const traduire = (table, c) => (c ? table[c] || c : c);
+
+/** Pure : le style gardé (px, couleurs du deck) tel que le panneau Design le lit (pt, palette commune). */
+export function versDesign(st) {
+  if (!st) return {};
+  const v = { ...st };
+  if (v.taille) v.taille = versPt(v.taille);
+  if (v.couleur) v.couleur = traduire(DECK_VERS_DOC, v.couleur);
+  if (v.fond) v.fond = traduire(DECK_VERS_DOC, v.fond);
+  return v;
+}
+
+/** Pure : un style du panneau Design remis au format du deck ; null s'il ne reste rien. */
+export function depuisDesign(v) {
+  if (!v) return null;
+  const st = { ...v };
+  if (st.taille) st.taille = versPx(st.taille);
+  if (st.couleur) st.couleur = traduire(DOC_VERS_DECK, st.couleur);
+  if (st.fond) st.fond = traduire(DOC_VERS_DECK, st.fond);
+  for (const k of Object.keys(st)) if (st[k] === null || st[k] === undefined || st[k] === false) delete st[k];
+  return Object.keys(st).length ? st : null;
+}
+
 /**
- * Le menu « Styles » de l'élément choisi, flottant sur la scène.
+ * Le panneau de l'élément choisi, à droite de la scène (28 oct. 2026, le modèle de la page éditeur) :
+ * Design, commun à tous les éditeurs, puis ce qui est propre au deck (masquer la partie qui le contient).
  * @param {object|null} selection { diapo, chemin, taille }
  */
-export function StylesElement({ diapos, selection, onChange, onSelection }) {
+export function PanneauElement({ diapos, selection, onChange, onSelection }) {
   const dSel = selection ? diapos.find((x) => x.id === selection.diapo) : null;
   if (!dSel) return null;
-  const st = dSel.styles?.[selection.chemin] || {};
-  const poserStyle = retoucheur(dSel, selection.chemin, onChange, onSelection);
-  const taille = st.taille ?? selection?.taille ?? null;
-  const poserTaille = (t) => { if (t >= 8 && t <= 200) poserStyle({ taille: Math.round(t) }); };
+  const chemin = selection.chemin;
+  const st = dSel.styles?.[chemin] || {};
+  const onStyle = (v) => {
+    const styles = { ...(dSel.styles || {}) };
+    const suivant = depuisDesign(v);
+    if (suivant) styles[chemin] = suivant; else delete styles[chemin];
+    onChange({ ...dSel, styles });
+    // Masqué, l'élément quitte la diapositive : son panneau se ferme (il se réaffiche depuis « Masqué : », en bas).
+    if (suivant?.masque && !st.masque) onSelection(null);
+  };
+  const parties = partiesDe(dSel.type, chemin).filter(([c]) => c !== chemin).reverse();
   return (
-    <div className="absolute right-4 top-4 z-10 flex max-h-[calc(100%-2rem)] w-[272px] flex-col rounded-[14px] border border-trait bg-rail shadow-[0_18px_40px_rgb(0_0_0/0.22)] max-md:right-2 max-md:top-2" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Mise en forme de l'élément">
-      <div className="flex flex-none items-center gap-2 border-b border-trait py-1.5 pl-4 pr-1.5">
-        <span className="min-w-0 flex-1 truncate text-[12px] text-craie" title={libelleChemin(selection.chemin)}>{NOMS[dSel.id]} › {libelleChemin(selection.chemin)}</span>
-        <button type="button" onClick={() => onSelection(null)} aria-label="Fermer" title="Fermer (Échap)" className="grid h-7 w-7 flex-none place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-            {typeof lire(dSel, selection.chemin) === "string" || lire(dSel, selection.chemin) == null ? (
-              <Groupe titre="Texte">
-                <div className="flex items-center gap-1">
-                  <span className="w-[64px] flex-none text-[12px] text-ardoise">Taille</span>
-                  <button type="button" onClick={() => poserTaille((taille ?? 16) - 1)} aria-label="Plus petit" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Minus className="h-3.5 w-3.5" /></button>
-                  <input type="number" min="8" max="200" value={taille ?? ""} onChange={(e) => poserTaille(Number(e.target.value))} aria-label="Taille en pixels"
-                    className="h-7 w-14 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12.5px] tabular-nums text-encre outline-none focus:border-menthe max-md:text-[16px]" />
-                  <span className="text-[11.5px] text-brume">px</span>
-                  <button type="button" onClick={() => poserTaille((taille ?? 16) + 1)} aria-label="Plus grand" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Plus className="h-3.5 w-3.5" /></button>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-[64px] flex-none text-[12px] text-ardoise">Style</span>
-                  {[["gras", Bold, "Gras"], ["italique", Italic, "Italique"]].map(([k, Icone, titre]) => (
-                    <button key={k} type="button" onClick={() => poserStyle({ [k]: !st[k] })} aria-pressed={!!st[k]} title={titre} aria-label={titre}
-                      className={`grid h-7 w-7 place-items-center rounded-[8px] ${st[k] ? "bg-encre/[0.1] text-encre" : "text-ardoise hover:text-encre"}`} style={st[k] ? undefined : { background: "transparent" }}>
-                      <Icone className="h-3.5 w-3.5" />
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-[64px] flex-none text-[12px] text-ardoise">Aligner</span>
-                  {[["left", AlignLeft, "À gauche"], ["center", AlignCenter, "Centré"], ["right", AlignRight, "À droite"]].map(([v, Icone, titre]) => (
-                    <button key={v} type="button" onClick={() => poserStyle({ aligner: st.aligner === v ? null : v })} aria-pressed={st.aligner === v} title={titre} aria-label={titre}
-                      className={`grid h-7 w-7 place-items-center rounded-[8px] ${st.aligner === v ? "bg-encre/[0.1] text-encre" : "text-ardoise hover:text-encre"}`} style={st.aligner === v ? undefined : { background: "transparent" }}>
-                      <Icone className="h-3.5 w-3.5" />
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-start gap-1"><span className="w-[64px] flex-none pt-0.5 text-[12px] text-ardoise">Couleur</span><Pastilles valeur={st.couleur} onChoisir={(c) => poserStyle({ couleur: c })} /></div>
-              </Groupe>
-            ) : null}
-            <Groupe titre="Élément">
-              <div className="flex items-center gap-2">
-                <span className="w-[64px] flex-none text-[12px] text-ardoise">Opacité</span>
-                <input type="range" min="5" max="100" step="1" value={st.opacite ?? 100} onChange={(e) => poserStyle({ opacite: Number(e.target.value) === 100 ? null : Number(e.target.value) })} aria-label="Opacité" className="min-w-0 flex-1 accent-[var(--k-menthe)]" />
-                <span className="w-10 flex-none text-right text-[11.5px] tabular-nums text-brume">{st.opacite ?? 100} %</span>
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
-                <button type="button" onClick={() => poserStyle({ masque: true })} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                  <EyeOff className="h-3 w-3" /> Masquer l'élément
-                </button>
-                {/* Toute la partie qui le contient, cadre et libellés compris (13 oct. 2026, Jules). */}
-                {partiesDe(dSel.type, selection.chemin).filter(([c]) => c !== selection.chemin).reverse().map(([c, nom]) => (
-                  <button key={c} type="button" onClick={() => masquerPartie(dSel, c, onChange, onSelection)} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                    <EyeOff className="h-3 w-3" /> Masquer {nom ? nom.charAt(0).toLowerCase() + nom.slice(1) : libelleChemin(c).replace(/ › /g, " ").toLowerCase()}
-                  </button>
-                ))}
-                {Object.keys(st).length > 0 && (
-                  <button type="button" onClick={() => poserStyle(null)} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                    <RotateCcw className="h-3 w-3" /> Revenir au modèle
-                  </button>
-                )}
-              </div>
-            </Groupe>
-      </div>
-    </div>
+    <PanneauEditeur titre={libelleChemin(chemin)} sousTitre={NOMS[dSel.id] || dSel.id} onFermer={() => onSelection(null)}>
+      <GroupePanneau titre="Design">
+        <div className="pb-palette"><ReglagesDesign style={versDesign(st)} taille={versPt(selection.taille)} onStyle={onStyle} max={150} /></div>
+      </GroupePanneau>
+      {/* Toute la partie qui le contient, cadre et libellés compris (13 oct. 2026, Jules). */}
+      {parties.length > 0 && (
+        <GroupePanneau titre="Élément">
+          {parties.map(([c, nom]) => (
+            <button key={c} type="button" onClick={() => masquerPartie(dSel, c, onChange, onSelection)} className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+              <EyeOff className="h-3 w-3" /> Masquer {nom ? nom.charAt(0).toLowerCase() + nom.slice(1) : libelleChemin(c).replace(/ › /g, " ").toLowerCase()}
+            </button>
+          ))}
+        </GroupePanneau>
+      )}
+    </PanneauEditeur>
   );
 }
 
@@ -165,7 +118,7 @@ export default function PanneauDeck({ diapos, courante, onAller, onChange, onOrd
   };
   const masques = diapos.flatMap((d) => Object.entries(d.styles || {}).filter(([, x]) => x?.masque).map(([chemin]) => ({ d, chemin })));
   return (
-    <aside className="flex w-[280px] flex-none flex-col border-l border-trait bg-rail max-md:hidden">
+    <aside className="flex w-[280px] flex-none flex-col border-l border-trait max-md:hidden" style={{ background: "transparent" }}>
       <div className="flex h-11 flex-none items-center gap-2 border-b border-trait pl-4 pr-1.5">
         <span className="flex-1 text-[11px] uppercase tracking-[.14em] text-brume">Diapositives</span>
         <button type="button" onClick={onFermer} aria-label="Fermer le panneau" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3.5 w-3.5" /></button>

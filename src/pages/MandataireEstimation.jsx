@@ -290,7 +290,7 @@ const ETAPES_GENERATION = [
   "Mise en page de l'avis de valeur",
 ];
 
-export function ApercuAvis({ id, selection, onSelection, generation = false, onGenere = null, travail = null, sansStatut = false }) {
+export function ApercuAvis({ id, selection, onSelection, generation = false, onGenere = null, travail = null, sansStatut = false, onEnvoyer = null }) {
   // Après un message, l'avis s'efface le temps que le chat travaille : ses
   // étapes s'affichent à la place, au moins un instant, puis l'avis revient.
   const [maj, setMaj] = useState(false);
@@ -339,7 +339,7 @@ export function ApercuAvis({ id, selection, onSelection, generation = false, onG
     <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux bg-fond">
       <div className="min-h-0 flex-1 animate-in fade-in slide-in-from-bottom-3 duration-700">
         <EditeurAvis key={data.estimation.id} estimation={data.provisoire ? { ...data.estimation, avis: data.avis } : data.estimation}
-          provisoire={data.provisoire} integre onRetour={() => {}} onSelection={onSelection} selectionExterne={selection}
+          provisoire={data.provisoire} integre onRetour={() => {}} onEnvoyer={onEnvoyer} onSelection={onSelection} selectionExterne={selection}
           statut={data.provisoire && !sansStatut ? `${reste ? `${reste} information${reste > 1 ? "s" : ""} encore attendue${reste > 1 ? "s" : ""}` : "Prêt à rédiger"} · vos retouches sont gardées` : null} />
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { EyeOff } from "lucide-react";
+import { styleDesign } from "@/components/editeur/Editeur";
 
 // ---------------------------------------------------------------------------
 // Édition en place (éditeur admin) : un chiffre affiché devient un champ au
@@ -40,6 +41,46 @@ export function nombreForce(project, cle) {
 export function ValeurForcee({ cle, children, type = "number" }) {
   return <ValeurEditable champ={`valeurs_forcees.${cle}`} type={type} titre="Modifier (vide : valeur calculée)">{children}</ValeurEditable>;
 }
+
+// ---------------------------------------------------------------------------
+// Le design d'un élément (28 oct. 2026, Jules : le modèle de la page éditeur).
+// En Éditeur, un chiffre ou un texte cliqué ouvre aussi le panneau de droite,
+// avec Design. Le réglage se garde sur le projet (styles[nom du champ]) et
+// s'applique partout où la page le montre, au client aussi. Masqué, l'élément
+// disparaît pour le client et reste en pâle, en pointillé, dans l'Éditeur.
+// ---------------------------------------------------------------------------
+
+/** Les couleurs du projet pour la palette du Design (variables --doc-* de Editeur.jsx). */
+export const COULEURS_DOC_PROJET = {
+  "--doc-encre": "rgb(var(--k-encre-rgb))",
+  "--doc-noir": "rgb(0 0 0)",
+  "--doc-gris": "rgb(var(--k-ardoise-rgb))",
+  "--doc-accent": "rgb(var(--k-menthe-rgb))",
+  "--doc-encart": "rgb(var(--k-rail-rgb))",
+  "--doc-blanc": "rgb(255 255 255)",
+};
+
+/** Le style CSS d'un élément d'après le design gardé sur le projet. */
+export function styleElement(edition, nom) {
+  const st = edition?.styles?.[nom];
+  if (!st) return undefined;
+  if (st.masque && edition?.onChamp) {
+    return { ...styleDesign({ ...st, masque: false }), opacity: 0.35, outline: "1px dashed currentColor", outlineOffset: "2px" };
+  }
+  return styleDesign(st);
+}
+
+// Hors Éditeur, un élément réglé se pose dans une enveloppe qui porte son style.
+const habiller = (style, contenu, bloc = false) => {
+  if (!style) return contenu;
+  return bloc ? <div style={style}>{contenu}</div> : <span style={style}>{contenu}</span>;
+};
+
+// Le clic en Éditeur : le panneau de droite s'ouvre sur l'élément.
+const choisir = (edition, nom, genre, e) => {
+  const texte = (e?.currentTarget?.innerText || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  edition?.onChoisir?.({ cible: nom, genre, texte });
+};
 
 export function useEdition() {
   return React.useContext(EditionContext);
@@ -125,16 +166,19 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
   if (edition?.sources && champ) {
     const nom = nomDuChemin(champ);
     const s = edition.sources[nom];
-    if (!s) return children;
+    if (!s) return habiller(styleElement(edition, nom), children);
     return (
-      <span data-source={s.nature} data-champ={nom} onMouseEnter={(e) => edition.surSource?.({ champ: nom, source: s, el: e.currentTarget })}
+      <span data-source={s.nature} data-champ={nom} style={styleElement(edition, nom)} onMouseEnter={(e) => edition.surSource?.({ champ: nom, source: s, el: e.currentTarget })}
         className={`cursor-help rounded-[4px] outline outline-1 outline-offset-2 ${s.nature === "a_remplir" ? "outline-alerte/60" : s.nature === "calcul" ? "outline-bord-vif" : "outline-menthe/60"}`}>
         {children}
       </span>
     );
   }
 
-  if (!edition?.onChamp || !champ) return children;
+  if (!champ) return children;
+  const style = styleElement(edition, nomDuChemin(champ));
+  if (!edition?.onChamp) return habiller(style, children);
+  const choisi = edition.choisi === nomDuChemin(champ);
 
   // Le champ s'ouvre pré-rempli avec ce qui est affiché : la valeur brute du
   // projet quand elle existe, sinon le nombre lu dans le libellé formaté
@@ -178,10 +222,12 @@ export function ValeurEditable({ champ, children, type = "number", titre = null 
       aria-label={titre || `Modifier ${nomDuChemin(champ)}`} title={titre || "Modifier"}
       onClick={(e) => {
         e.stopPropagation();
+        choisir(edition, nomDuChemin(champ), "valeur", e);
         setBrouillon(valeurInitiale());
         setOuvert(true);
       }}
-      className="text-inherit font-inherit bg-transparent border-0 p-0 text-left cursor-text rounded-[3px] px-0.5 -mx-0.5 hover:bg-menthe/[0.18] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors"
+      style={style}
+      className={`text-inherit font-inherit border-0 p-0 text-left cursor-text rounded-[3px] px-0.5 -mx-0.5 hover:bg-menthe/[0.18] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors ${choisi ? "bg-menthe/[0.18]" : "bg-transparent"}`}
     >
       {children}
     </button>
@@ -195,7 +241,10 @@ export function TexteEditable({ champ, children, className = "", initial = "", m
   const [brouillon, setBrouillon] = useState("");
 
   if (estMasque(edition, champ)) return null;
-  if (!edition?.onChamp || !champ) return children;
+  if (!champ) return children;
+  const style = styleElement(edition, nomDuChemin(champ));
+  if (!edition?.onChamp) return habiller(style, children, true);
+  const choisi = edition.choisi === nomDuChemin(champ);
 
   if (ouvert) {
     return (
@@ -218,13 +267,16 @@ export function TexteEditable({ champ, children, className = "", initial = "", m
   return (
     <button
       type="button"
+      data-champ={nomDuChemin(champ)}
       aria-label={`Modifier ${nomDuChemin(champ)}`} title="Modifier"
       onClick={(e) => {
         e.stopPropagation();
+        choisir(edition, nomDuChemin(champ), "texte", e);
         setBrouillon(String(lireChemin(edition.valeurs, champ) || initial || ""));
         setOuvert(true);
       }}
-      className={`block w-full text-left text-inherit font-inherit bg-transparent border-0 p-0 cursor-text rounded-[3px] hover:bg-menthe/[0.10] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors ${className}`}
+      style={style}
+      className={`block w-full text-left text-inherit font-inherit border-0 p-0 cursor-text rounded-[3px] hover:bg-menthe/[0.10] hover:shadow-[inset_0_-1px_0_#96c0b8] transition-colors ${choisi ? "bg-menthe/[0.10]" : "bg-transparent"} ${className}`}
     >
       {children}
       {masquable && <span className="block text-right"><BoutonMasquer champ={champ} titre="Supprimer ce bloc" /></span>}

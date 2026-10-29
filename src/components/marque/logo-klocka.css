@@ -1,0 +1,4 @@
+/* Le K de Klocka : le fût et la barre fine en noir, le jambage arrondi en menthe. Couleurs du logo imprimé :
+   elles ne suivent pas le thème de l'application. */
+.logo-klocka-noir { fill: #000000; }
+.logo-klocka-menthe { fill: #72cdba; }

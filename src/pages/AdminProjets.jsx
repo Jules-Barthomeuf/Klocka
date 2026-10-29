@@ -38,6 +38,8 @@ import ProjectFormMarcheTab from "../components/admin/ProjectFormMarcheTab";
 import ProjectSimulatorPreview from "../components/admin/ProjectSimulatorPreview";
 import BoutonMonday from "@/components/BoutonMonday";
 import ProjetContent from "../components/projet/ProjetContent";
+import { COULEURS_DOC_PROJET } from "../components/projet/EditionEnPlace";
+import { BarreEditeur, GroupePanneau, ModesEditeur, PanneauEditeur, ReglagesDesign } from "@/components/editeur/Editeur";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import FicheSource from "@/components/presentations/FicheSource";
@@ -96,6 +98,8 @@ export default function AdminProjets() {
   // L'éditeur avec AK (14 oct. 2026, Jules) : le chat à gauche, le projet à droite, comme les présentations.
   // Trois modes : Édition (retouches au clic), Lecture (la page du client), Sources (d'où vient chaque chiffre).
   const [vueProjet, setVueProjet] = useState("edition");
+  // L'élément cliqué en Éditeur (28 oct. 2026) : le panneau de droite s'ouvre sur lui, avec Design.
+  const [elementChoisi, setElementChoisi] = useState(null);
   const [travailAK, setTravailAK] = useState({ enCours: false, etapes: [] });
   const [sourcesProjet, setSourcesProjet] = useState(null);
   const [survolSource, setSurvolSource] = useState(null);
@@ -537,6 +541,7 @@ export default function AdminProjets() {
       champs_personnalises: project.champs_personnalises || [],
       champs_masques: project.champs_masques || [],
       valeurs_forcees: project.valeurs_forcees || {},
+      styles: project.styles || {},
       bail_analyse: project.bail_analyse || {},
       profil_locataire: project.profil_locataire || "",
       detenu_depuis: project.detenu_depuis || "",
@@ -1219,6 +1224,7 @@ export default function AdminProjets() {
     return () => { vivant = false; };
   }, [vueProjet, editingProject?.id, enregistreLe]);
   useEffect(() => { setSurvolSource(null); }, [vueProjet, ongletPage, champsOuverts]);
+  useEffect(() => { setElementChoisi(null); }, [vueProjet, ongletPage, champsOuverts, editingProject?.id]);
   // Ce que l'écran montre au moment où l'on parle à AK (14 oct. 2026) : le texte de la page tel qu'affiché
   // (les calculs du simulateur et de la frise compris), le dernier élément cliqué, la saisie pas encore enregistrée.
   const designeEcran = useRef(null);
@@ -1390,67 +1396,80 @@ export default function AdminProjets() {
         : enregistreLe ? `Enregistré automatiquement à ${enregistreLe.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`
           : "Enregistré automatiquement";
     const ICONE = "grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30";
-    // L'en-tête de page du projet, comme celui d'un dossier (18 oct. 2026, maquette de Jules) : le lien retour, le grand
-    // titre et l'état d'enregistrement ; à droite les trois modes, Annuler, Rétablir, l'aperçu, Enregistrer et « … » ;
-    // dessous, les onglets soulignés. Il défile avec la page. Plus de croix : le lien retour la remplace.
     const changerOnglet = (o) => { setOngletPage(o); const f = FORM_PAR_ONGLET[o]; if (f) setActiveTab(f); };
-    const barreProjet = (
-      <div className="pb-2">
-        <div className="mb-4 flex items-center justify-between gap-3 md:pr-14">
-          <button type="button" onClick={goToProjectsList} className="flex flex-none items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Tous les projets
+    // Le modèle de la page éditeur (28 oct. 2026, Jules) : en écran scindé, la barre du haut du document est celle de
+    // tous les éditeurs (BarreEditeur) : le nom et l'état d'enregistrement, puis Éditeur / Lecture / Sources, puis
+    // Annuler, Rétablir, l'aperçu client, Enregistrer et « … ». Dessous, dans la page qui défile, le lien retour et
+    // les onglets soulignés.
+    const actionsProjet = (
+      <>
+        <button type="button" onClick={annulerDerniereModification} disabled={!historique.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className={ICONE} style={{ background: "transparent" }}><Annuler className="h-4 w-4" /></button>
+        <button type="button" onClick={refaireDerniereModification} disabled={!refaits.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className={ICONE} style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
+        <button type="button" onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")} aria-label="Ouvrir la page du client" title="Ouvrir la page telle que le client la verra" className={ICONE} style={{ background: "transparent" }}><Eye className="h-4 w-4" /></button>
+        <button type="button" onClick={enregistrerVersion} disabled={enregistrement} title="Enregistre maintenant et garde une version (l'éditeur enregistre aussi seul, en continu)"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-4 text-[13.5px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
+          {enregistrement && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Enregistrer
+        </button>
+        <div ref={zoneMenuProjet} className="relative">
+          <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Assigner, les champs, les versions"
+            className="grid h-9 w-9 place-items-center rounded-full border border-trait text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+            <MoreHorizontal className="h-4 w-4" />
           </button>
-        </div>
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[34px] font-normal leading-[1.05] tracking-[-0.02em] text-encre max-md:text-[24px]" style={{ textWrap: "pretty" }}>{formData.titre || "Projet"}</h1>
-            {statutAuto && <p className="m-0 mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-ardoise">{!modifieDepuis && <CheckCircle2 className="h-3.5 w-3.5" />}{statutAuto}</p>}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1" role="group" aria-label="Mode de la page">
-              {[["edition", "Édition"], ["lecture", "Lecture"], ["sources", "Sources"]].map(([k, mot]) => (
-                <button key={k} type="button" onClick={() => setVueProjet(k)} aria-pressed={vueProjet === k}
-                  title={k === "sources" ? "Passez la souris sur un chiffre : sa source s'affiche" : k === "lecture" ? "La page telle que le client la voit" : "Un clic sur un chiffre le modifie"}
-                  className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${vueProjet === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={vueProjet === k ? undefined : { background: "transparent" }}>{mot}</button>
+          {menuProjet && (
+            <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[230px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
+              {[
+                [UserPlus, "Assigner à un client", () => { setMenuProjet(false); setAssignerOuvert(true); }],
+                [PanelRight, champsOuverts ? "Masquer les champs" : "Voir tous les champs", () => { setMenuProjet(false); setChampsOuverts((x) => !x); }],
+                [History, "Historique des versions", ouvrirVersions],
+                ...(dossierLie ? [[FolderSearch, "Ouvrir le dossier", () => { setMenuProjet(false); navigate(`${createPageUrl("Analyse")}?deal_id=${dossierLie}`); }]] : []),
+              ].map(([Icone, mot, faire]) => (
+                <button key={mot} type="button" onClick={faire} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-encre hover:bg-encre/[0.04]" style={{ background: "transparent" }}>
+                  <Icone className="h-3.5 w-3.5 text-ardoise" />{mot}
+                </button>
               ))}
             </div>
-            <button type="button" onClick={annulerDerniereModification} disabled={!historique.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className={ICONE} style={{ background: "transparent" }}><Annuler className="h-4 w-4" /></button>
-            <button type="button" onClick={refaireDerniereModification} disabled={!refaits.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className={ICONE} style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
-            <button type="button" onClick={() => window.open(`${createPageUrl("ProjetDetail")}?id=${editingProject.id}`, "_blank")} aria-label="Ouvrir la page du client" title="Ouvrir la page telle que le client la verra" className={ICONE} style={{ background: "transparent" }}><Eye className="h-4 w-4" /></button>
-            <button type="button" onClick={enregistrerVersion} disabled={enregistrement} title="Enregistre maintenant et garde une version (l'éditeur enregistre aussi seul, en continu)"
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-60">
-              {enregistrement && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Enregistrer
-            </button>
-            <div ref={zoneMenuProjet} className="relative">
-              <button type="button" onClick={() => setMenuProjet((x) => !x)} aria-expanded={menuProjet} aria-label="Plus d'actions" title="Assigner, les champs, les versions"
-                className="grid h-10 w-10 place-items-center rounded-full border border-trait text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-              {menuProjet && (
-                <div className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[230px] rounded-[14px] border border-trait bg-surface-pleine py-1.5 shadow-[0_18px_40px_rgb(0_0_0/0.14)]">
-                  {[
-                    [UserPlus, "Assigner à un client", () => { setMenuProjet(false); setAssignerOuvert(true); }],
-                    [PanelRight, champsOuverts ? "Masquer les champs" : "Voir tous les champs", () => { setMenuProjet(false); setChampsOuverts((x) => !x); }],
-                    [History, "Historique des versions", ouvrirVersions],
-                    ...(dossierLie ? [[FolderSearch, "Ouvrir le dossier", () => { setMenuProjet(false); navigate(`${createPageUrl("Analyse")}?deal_id=${dossierLie}`); }]] : []),
-                  ].map(([Icone, mot, faire]) => (
-                    <button key={mot} type="button" onClick={faire} className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-encre hover:bg-encre/[0.04]" style={{ background: "transparent" }}>
-                      <Icone className="h-3.5 w-3.5 text-ardoise" />{mot}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-        <Onglets taille="page" className="mt-7" items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
+      </>
+    );
+    const barreHautProjet = (
+      <BarreEditeur titre={formData.titre || "Projet"} statut={statutAuto || ""} mode={vueProjet} onMode={setVueProjet} actions={actionsProjet} />
+    );
+    const barreProjet = (
+      <div className="pb-2">
+        {/* Le retour reste ici : la barre du chat n'apparaît qu'une fois la conversation lancée. */}
+        <button type="button" onClick={goToProjectsList} className="flex flex-none items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
+          <ArrowLeft className="h-3.5 w-3.5" /> Tous les projets
+        </button>
+        <Onglets taille="page" className="mt-5" items={[...ONGLETS_PAGE, { value: "simulateur", label: "Simulateur" }].map((o) => ({ cle: o.value, titre: o.label }))}
           valeur={ongletPage === "images" ? null : ongletPage} onChange={changerOnglet} />
       </div>
     );
+    // Le panneau de l'élément cliqué en Éditeur : son design, gardé sur le projet (styles[nom du champ]).
+    const surStyleElement = (cible, st) => {
+      const tous = { ...(formData.styles || editingProject?.styles || {}) };
+      if (st) tous[cible] = st; else delete tous[cible];
+      modifierChamp("styles", tous, true);
+    };
+    const tailleElement = (cible) => {
+      const el = typeof document !== "undefined" ? zoneApercu.current?.querySelector(`[data-champ="${CSS.escape(cible)}"]`) : null;
+      return el ? Math.round(parseFloat(getComputedStyle(el).fontSize) * 0.75 * 2) / 2 : null;
+    };
+    const panneauElement = vueProjet === "edition" && elementChoisi && !champsOuverts && !majAK && !telephone ? (
+      <PanneauEditeur key={elementChoisi.cible} titre={elementChoisi.texte || "Élément"}
+        sousTitre={elementChoisi.genre === "texte" ? "Texte de la page" : "Valeur de la page"} onFermer={() => setElementChoisi(null)}>
+        <p className="m-0 mb-4 text-[12.5px] leading-[1.5] text-ardoise">La valeur se modifie sur la page. Le design s'applique partout où la page la montre, pour le client aussi.</p>
+        <GroupePanneau titre="Design">
+          <div style={COULEURS_DOC_PROJET}>
+            <ReglagesDesign style={(formData.styles || {})[elementChoisi.cible]} taille={tailleElement(elementChoisi.cible)} onStyle={(st) => surStyleElement(elementChoisi.cible, st)} />
+          </div>
+        </GroupePanneau>
+      </PanneauEditeur>
+    ) : null;
     const editeur = (
       <div className={`${telephone || scindeProjet ? "h-full" : "h-screen"} flex flex-col text-encre overflow-hidden`}>
-        {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. En écran scindé, l'en-tête défile avec la page. */}
-        {scindeProjet ? null : (
+        {/* Le titre du projet, puis les actions : au-dessus des deux colonnes. En écran scindé, la barre des éditeurs. */}
+        {scindeProjet ? barreHautProjet : (
         <div className="flex-shrink-0 px-8 max-md:px-4 pt-6 max-md:pt-3 pb-4 max-md:pb-3 border-b border-trait">
           <div className="flex items-start gap-5 max-md:gap-3">
             <h1
@@ -1492,6 +1511,7 @@ export default function AdminProjets() {
             </button>}
 
             <div className="ml-auto flex items-center gap-2">
+              {editingProject?.id && <ModesEditeur mode={vueProjet} onMode={setVueProjet} />}
               <span className="text-[11px] max-lg:hidden" title="État de l'enregistrement">
                 {statutAuto
                   ? <span className="text-brume">{statutAuto}</span>
@@ -1538,9 +1558,11 @@ export default function AdminProjets() {
         {/* Deux colonnes : à gauche la page telle que le client la verra, à
             droite les champs. Les valeurs restent éditables au clic à gauche. */}
         <div className={`flex-1 min-h-0 grid ${champsOuverts ? "grid-cols-[minmax(0,1.6fr)_minmax(300px,0.9fr)] max-md:grid-rows-[minmax(0,1fr)]" : "grid-cols-1"} max-lg:grid-cols-1 max-lg:overflow-y-auto overscroll-contain`}>
-        <div ref={zoneApercu} onPointerDownCapture={noterDesigne} className={`relative min-h-0 ${champsOuverts ? "max-md:hidden" : ""}`}>
+        {/* Le document, puis à sa droite le panneau de l'élément choisi (mode Éditeur). */}
+        <div className={`flex min-h-0 min-w-0 ${champsOuverts ? "max-md:hidden" : ""}`}>
+        <div ref={zoneApercu} onPointerDownCapture={noterDesigne} className="relative min-h-0 min-w-0 flex-1">
         <div className="h-full min-h-0 overflow-y-auto max-lg:overflow-visible" onScroll={() => survolSource && setSurvolSource(null)}>
-          {scindeProjet && <div className="px-8 pt-8">{barreProjet}</div>}
+          {scindeProjet && <div className="px-8 pt-5">{barreProjet}</div>}
           {majAK ? (
             <MiseAJourDocument surtitre="Mise à jour du projet" titre={titreTravailAK(travailAK.etapes)} etapes={travailAK.etapes || []} enCours={travailAK.enCours} />
           ) : ongletPage === "images" ? (
@@ -1580,6 +1602,8 @@ export default function AdminProjets() {
               onChamp={vueProjet === "edition" ? modifierChamp : null}
               sources={vueProjet === "sources" ? sourcesProjet || {} : null}
               onSource={vueProjet === "sources" ? surSourceProjet : null}
+              elementChoisi={elementChoisi?.cible || null}
+              onElement={setElementChoisi}
               ongletsSupplementaires={[{ value: "simulateur", label: "Simulateur" }]}
               onPhotos={() => { setPhotosBrouillon([...(formData.photos || [])]); setPhotosOuvertes(true); }}
               editeurDocuments={!champsOuverts && vueProjet === "edition" && (
@@ -1600,6 +1624,8 @@ export default function AdminProjets() {
         {vueProjet === "sources" && survolSource?.source && survolSource.cadre && (
           <FicheSource source={survolSource.source} ancre={survolSource.ancre} cadre={survolSource.cadre} />
         )}
+        </div>
+        {panneauElement}
         </div>
 
         {/* Les photos, depuis le bouton du hero. */}
@@ -1653,7 +1679,7 @@ export default function AdminProjets() {
         </Dialog>
 
         {champsOuverts && <aside
-          className="k-sobre min-h-0 flex flex-col bg-rail border-l border-trait max-lg:border-l-0 max-lg:border-t max-lg:min-h-[60vh] max-md:min-h-0 max-md:border-t-0"
+          className="k-sobre min-h-0 flex flex-col border-l border-trait max-lg:border-l-0 max-lg:border-t max-lg:min-h-[60vh] max-md:min-h-0 max-md:border-t-0"
           onInput={() => setModifieDepuis(true)}
           onKeyDown={(e) => { if (e.key === "Enter" && e.target?.tagName !== "TEXTAREA" && e.target?.tagName !== "BUTTON") rafraichirApercu(formData); }}
         >

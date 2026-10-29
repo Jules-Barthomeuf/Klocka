@@ -56,11 +56,13 @@ import { monterAk } from './routes/ak.js';
 import { monterHaka } from './routes/haka.js';
 import { monterFiches } from './routes/fiches.js';
 import { monterOffres } from './routes/offres.js';
+import { monterModeles } from './routes/modeles.js';
 import { monterPresentations } from './routes/presentations.js';
 import { monterEmailing } from './routes/emailing.js';
 import { apiFermee, pagesFermees, estSuperAdmin, admins as adminsAcces, poserAcces, TOUJOURS_OUVERTES } from './acces-pages.js';
 import { monterProspection } from './routes/prospection.js';
 import { monterMandataire } from './routes/mandataire.js';
+import { monterVisites } from './routes/visites.js';
 import { monterClientsEquipe } from './routes/clients-equipe.js';
 import { monterMessagesAK } from './routes/messages-ak.js';
 import { monterCourbesClients } from './routes/clients-courbes.js';
@@ -1268,10 +1270,12 @@ monterAk(app);
 monterHaka(app);
 monterFiches(app);
 monterOffres(app);
+monterModeles(app);
 monterPresentations(app);
 monterEmailing(app);
 monterProspection(app);
 monterMandataire(app);
+monterVisites(app);
 monterClientsEquipe(app);
 monterMessagesAK(app);
 monterCourbesClients(app);
@@ -1296,6 +1300,10 @@ import('./mandataire-demandes-essai.js').then((m) => { const n = m.semerClientsE
 import('./villes-secteur.js').then((m) => m.planifier()).catch((e) => console.error('[villes du secteur] :', e.message));
 // Le matin des mandataires (24 oct. 2026) : une notification par jour ouvré, à 8 h, sur Render.
 import('./mandataire-matin.js').then((m) => m.planifier()).catch((e) => console.error('[matin] :', e.message));
+// La préparation des rendez-vous du lendemain, mise à jour et notifiée à 18 h (26 oct. 2026).
+import('./preparation-rdv.js').then((m) => m.planifier()).catch((e) => console.error('[preparation] :', e.message));
+import('./visites-acquereur.js').then((m) => m.planifier()).catch((e) => console.error('[visites] :', e.message));
+import('./dossier-vente.js').then((m) => m.planifier()).catch((e) => console.error('[dossier de vente] :', e.message));
 // Le Layer (15 oct. 2026) : la file de ses tâches repart au démarrage, et les sources restées en attente d'extraction avec elle.
 // Haka (17 oct. 2026) : ses tâches reprennent au démarrage ; un pas externe surpris en cours devient incertain, jamais rejoué.
 import('./haka/drapeaux.js').then(async (D) => { if (!D.FILE) return; await import('./haka/declencheurs.js'); (await import('./haka/competences/relances-matin.js')).planifier(); const r = await (await import('./haka/taches.js')).reprendre(); if (r.reprises || r.incertaines) console.log(`[haka] ${r.reprises} tâche(s) reprise(s), ${r.incertaines} incertaine(s)`); }).catch((e) => console.error('[haka] reprise :', e.message));

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CARTE, CIBLES_SOMMAIRE, HAUTEUR, LARGEUR, LIBELLES, TAILLES, estMasque } from "@/lib/presentation-modele";
+import { couleurDoc, styleDesign } from "@/components/editeur/Editeur";
 import "./presentation-bancaire.css";
 
 // Le deck de la présentation bancaire, sur le « Deck complet » de Jules
@@ -11,8 +12,8 @@ import "./presentation-bancaire.css";
 //  - lecture : les flèches, les repères et le sommaire naviguent ; les
 //    éléments arrivent en cascade, les photos dézooment, les barres poussent,
 //    le bloc des cartes s'incline avec la souris ;
-//  - édition : un clic sur un élément le sélectionne (le panneau de droite
-//    règle sa mise en forme), un texte se retape sur place, une liste
+//  - édition : un clic sur un élément le sélectionne (le panneau de droite,
+//    Design commun aux éditeurs, règle sa mise en forme), un texte se retape sur place, une liste
 //    s'allonge (+) ou se raccourcit (×), une photo se change au clic.
 // Le PPTX (server/presentation-projet.js, DESSINS) dessine les mêmes
 // diapositives, à plat, avec les mêmes mises en forme (diapo.styles).
@@ -54,17 +55,26 @@ export function poser(diapo, chemin, valeur) {
 
 // La palette du deck, par nom : l'écran et le PPTX (server) lisent les mêmes.
 export const PALETTE = [["ivoire", "Ivoire", "var(--pb-ivoire)"], ["sauge", "Sauge", "var(--pb-sauge)"], ["clair", "Clair", "var(--pb-clair)"], ["gris", "Gris", "var(--pb-gris)"], ["encre", "Encre", "var(--pb-encre)"]];
-const couleurCss = (c) => (!c ? undefined : /^#/.test(c) ? c : PALETTE.find(([k]) => k === c)?.[2]);
-/** La mise en forme d'un élément (diapo.styles[chemin]) en CSS. */
-export const styleCss = (st) => (st ? {
-  ...(st.taille ? { fontSize: st.taille } : {}),
-  ...(st.gras ? { fontWeight: 600 } : {}),
-  ...(st.italique ? { fontStyle: "italic" } : {}),
-  ...(st.couleur ? { color: couleurCss(st.couleur) } : {}),
-  ...(st.aligner ? { textAlign: st.aligner } : {}),
-  ...(st.opacite != null ? { opacity: st.opacite / 100 } : {}),
-  ...(st.masque ? { display: "none" } : {}),
-} : undefined);
+// Une couleur gardée : libre (« #… »), du deck (ivoire, sauge, clair, gris, encre), ou de la palette commune des
+// éditeurs (noir, accent, encart, blanc…), que la racine du deck pose sur ses propres couleurs (--doc-*).
+const couleurCss = (c) => (!c ? undefined : /^#/.test(c) ? c : PALETTE.find(([k]) => k === c)?.[2] || couleurDoc(c));
+/**
+ * La mise en forme d'un élément (diapo.styles[chemin]) en CSS. Les clés du panneau Design commun (police, souligné,
+ * majuscules, fond, interligne, espacement, marges) passent par styleDesign ; la taille reste en pixels (le cadre
+ * fait 1280 px), le gras à 600 et l'alignement sans changer l'affichage de l'élément, comme avant.
+ */
+export const styleCss = (st) => {
+  if (!st) return undefined;
+  const { taille, gras, couleur, fond, aligner, ...reste } = st;
+  return {
+    ...styleDesign(reste),
+    ...(taille ? { fontSize: taille } : {}),
+    ...(gras ? { fontWeight: 600 } : {}),
+    ...(couleur ? { color: couleurCss(couleur) } : {}),
+    ...(fond ? { backgroundColor: couleurCss(fond), padding: "0.15em 0.35em", borderRadius: "3px" } : {}),
+    ...(aligner ? { textAlign: aligner } : {}),
+  };
+};
 
 // Ce qu'une diapositive donne à ses éléments : ses données, la retouche, la
 // sélection et le mode.

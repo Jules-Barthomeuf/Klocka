@@ -7,7 +7,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { eurosEnLettres } from "@/lib/nombre-en-lettres";
 import AGENCE from "@/lib/agence-klocka.json";
-import { J } from "@/design/jetons";
+import { MODES_EDITEUR, ModesEditeur } from "@/components/editeur/Editeur";
 import "./mandat-mynotary.css";
 import LogoKP from "./LogoKP";
 
@@ -293,8 +293,20 @@ const ETAPES_GENERATION = [
   "Mise en page du mandat",
 ];
 
-export default function ApercuMandat({ id, onOuvrirPret, generation = false, onGenere = null }) {
+// Le modèle de la page éditeur (28 oct. 2026, Jules) : Éditeur (chaque valeur se clique) ou Lecture (rien ne bouge).
+// Pas de Sources : le mandat ne garde pas d'où vient chaque valeur.
+const MODES_MANDAT = MODES_EDITEUR.filter(([k]) => k !== "sources");
+
+/**
+ * `mode` (« edition » ou « lecture ») : la page qui affiche le mandat peut le tenir, et `onMode` le changer ; sans
+ * `mode`, l'aperçu tient le sien et montre la pilule Éditeur / Lecture dans sa barre (seul un brouillon se modifie).
+ * Aucune partie n'a de fond propre : le fond de la page passe dessous ; seules les pages du mandat restent claires.
+ */
+export default function ApercuMandat({ id, onOuvrirPret, generation = false, onGenere = null, mode: modeImpose = null, onMode = null }) {
   const queryClient = useQueryClient();
+  const [modeLocal, setModeLocal] = useState("edition");
+  const mode = modeImpose || modeLocal;
+  const changerMode = onMode || (modeImpose ? null : setModeLocal);
   const [enCours, setEnCours] = useState(false);
   const naviguer = async (sens) => {
     setEnCours(true);
@@ -316,6 +328,20 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
       toast.error(e?.message || "Le champ n'est pas enregistré");
     }
   };
+  // Complet, le mandat part chez Klocka d'un clic, sans passer par le chat (27 oct. 2026).
+  const [envoi, setEnvoi] = useState(false);
+  const envoyer = async () => {
+    setEnvoi(true);
+    try {
+      await base44.request("POST", `${API}/${id}/envoyer`);
+      ["m-apercu-mandat", "m-mandats"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+      toast.success("Mandat envoyé : le mandat signé arrivera dans la conversation");
+    } catch (e) {
+      toast.error(e?.message || "Le mandat n'est pas parti");
+    } finally {
+      setEnvoi(false);
+    }
+  };
   const { data, isLoading } = useQuery({
     queryKey: ["m-apercu-mandat", id],
     queryFn: () => base44.request("GET", `${API}/${id}/apercu`),
@@ -323,15 +349,15 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
   });
   if (generation) {
     return (
-      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
-        <div className="h-14 flex-none border-b border-trait k-barre-apercu" />
+      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux k-apercu-mandat" style={{ background: "transparent" }}>
+        <div className="h-14 flex-none border-b border-trait k-barre-apercu" style={{ background: "transparent" }} />
         <div className="min-h-0 flex-1"><GenerationDocument surtitre="Génération du mandat" titre="Le mandat de vente se prépare" etapes={ETAPES_GENERATION} pret={!!id && !!data} onFini={() => onGenere?.()} /></div>
       </div>
     );
   }
   if (!id || !data) {
     return (
-      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
+      <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux k-apercu-mandat" style={{ background: "transparent" }}>
         <div className="grid h-full place-items-center px-10 text-center">
           {id && isLoading ? <Loader2 className="h-5 w-5 animate-spin text-ardoise" /> : (
             <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">Le mandat se construit ici à mesure de vos réponses : le mandant, le bien, le prix, les honoraires, la durée. Quand tout est bon, il part dans MyNotary.</p>
@@ -347,22 +373,29 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
   const apres = brouillon && (m.questionnaire_futur || []).length > 0;
   const pret = m.document || m.mynotary_url;
   return (
-    <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux" style={{ background: J["barre"] }}>
-      <div className="flex h-14 flex-none items-center justify-between gap-3 border-b border-trait k-barre-apercu px-5 text-[12.5px] text-ardoise max-md:gap-2 max-md:px-3">
-        <span className="min-w-0 max-md:line-clamp-2">
+    <div className="flex h-[100dvh] min-h-0 min-w-0 flex-col overflow-hidden border-l border-bord-doux k-apercu-mandat" style={{ background: "transparent" }}>
+      <div className="flex h-14 flex-none items-center justify-between gap-3 border-b border-trait k-barre-apercu px-5 text-[12.5px] text-ardoise max-md:gap-2 max-md:px-3" style={{ background: "transparent" }}>
+        <span className="min-w-0 flex-1 max-md:line-clamp-2">
           {m.statut === "brouillon"
-            ? reste ? `${reste} information${reste > 1 ? "s" : ""} encore attendue${reste > 1 ? "s" : ""}` : "Complet : dites « c'est tout bon » dans le chat pour l'envoyer dans MyNotary"
-            : m.statut === "demande_envoyee" ? "Envoyé : saisie MyNotary en cours"
-            : m.statut === "pret" ? "Prêt dans MyNotary" : m.statut === "signe" ? "Signé" : m.statut === "enregistre" ? `Enregistré au registre${m.numero_registre ? ` n° ${m.numero_registre}` : ""}` : m.statut}
+            ? reste ? `${reste} information${reste > 1 ? "s" : ""} encore attendue${reste > 1 ? "s" : ""}` : "Complet : vérifiez-le, puis envoyez-le"
+            : m.statut === "demande_envoyee" ? "Envoyé : saisi sur MyNotary et envoyé en signature"
+            : m.statut === "pret" ? "Signé : il est dans la conversation" : m.statut === "signe" ? "Signé" : m.statut === "enregistre" ? `Enregistré au registre${m.numero_registre ? ` n° ${m.numero_registre}` : ""}` : m.statut}
         </span>
         {/* Revenir sur une réponse notée par le chat, ou la rétablir : tant que le mandat n'est pas parti. */}
+        {brouillon && changerMode && <ModesEditeur mode={mode} onMode={changerMode} modes={MODES_MANDAT} />}
         {brouillon && (
-          <span className="ml-auto flex items-center gap-0.5">
+          <span className="flex items-center gap-0.5">
             <button type="button" onClick={() => naviguer("annuler")} disabled={!avant || enCours} aria-label="Annuler" title="Revenir à la réponse d'avant"
               className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
             <button type="button" onClick={() => naviguer("retablir")} disabled={!apres || enCours} aria-label="Rétablir" title="Rétablir"
               className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
           </span>
+        )}
+        {brouillon && !reste && (
+          <button type="button" onClick={envoyer} disabled={envoi}
+            className="flex flex-none items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] text-sur-menthe transition-colors hover:bg-menthe-survol disabled:opacity-50">
+            {envoi && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Envoyer le mandat
+          </button>
         )}
         {pret && (
           <button onClick={() => onOuvrirPret?.(m.id)} className="flex items-center gap-1.5 rounded-full bg-menthe px-3.5 py-1.5 text-[12.5px] text-sur-menthe transition-colors hover:bg-menthe-survol">
@@ -371,7 +404,7 @@ export default function ApercuMandat({ id, onOuvrirPret, generation = false, onG
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-8 max-md:px-3 max-md:py-4">
-        <div className="animate-in fade-in slide-in-from-bottom-3 duration-700"><DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} onChamp={brouillon ? modifierChamp : null} /></div>
+        <div className="animate-in fade-in slide-in-from-bottom-3 duration-700"><DocumentMandat q={data.questionnaire || {}} numero={m.numero_registre} onChamp={brouillon && mode === "edition" ? modifierChamp : null} /></div>
       </div>
     </div>
   );
@@ -390,8 +423,8 @@ export function FenetreMandatPret({ mandat, onFermer }) {
           <X className="h-4 w-4" />
         </button>
         <p className="m-0 text-[12px] uppercase tracking-[.12em] text-menthe">MyNotary</p>
-        <h2 className="m-0 mt-1.5 text-[20px] font-normal leading-[1.3] text-encre">Le mandat est prêt</h2>
-        <p className="m-0 mt-2 text-[13.5px] leading-[1.6] text-ardoise">{mandat.bien}. Vérifiez le PDF, puis complétez-le sur MyNotary pour l'envoyer au client.</p>
+        <h2 className="m-0 mt-1.5 text-[20px] font-normal leading-[1.3] text-encre">Le mandat est signé</h2>
+        <p className="m-0 mt-2 text-[13.5px] leading-[1.6] text-ardoise">{mandat.bien}. Le mandat signé est arrivé : téléchargez-le, puis passez à l'étape suivante.</p>
         <div className="mt-6 flex flex-col gap-2.5">
           {mandat.document?.url ? (
             <a href={mandat.document.url} target="_blank" rel="noopener noreferrer"
@@ -401,13 +434,12 @@ export function FenetreMandatPret({ mandat, onFermer }) {
           ) : (
             <p className="m-0 rounded-full border border-trait px-4 py-3 text-center text-[13.5px] text-brume">PDF pas encore téléchargé</p>
           )}
-          {mandat.mynotary_url ? (
+          {/* Le lien MyNotary ne vient que de l'agent (dormant) : sans lui, rien à promettre (27 oct. 2026). */}
+          {mandat.mynotary_url && (
             <a href={mandat.mynotary_url} target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 rounded-full bg-menthe px-4 py-3 text-[14px] text-sur-menthe transition-colors hover:bg-menthe-survol">
               Compléter sur MyNotary <ExternalLink className="h-4 w-4" />
             </a>
-          ) : (
-            <p className="m-0 rounded-full bg-menthe/30 px-4 py-3 text-center text-[13.5px] text-ardoise">Lien MyNotary à venir</p>
           )}
         </div>
       </div>

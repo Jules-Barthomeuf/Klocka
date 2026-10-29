@@ -9,6 +9,9 @@ import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres"
 import ChatDashboard, { HistoriqueColonne } from "@/components/dashboard/ChatDashboard";
 import { Auteur, EnTeteListe, LigneDocument, Vignette } from "@/components/ui/liste-documents";
 import EditeurLoi from "@/components/offres/EditeurLoi";
+import { PoigneeEditeur, useLargeurChat } from "@/components/editeur/Editeur";
+import { apercuAdmin } from "@/lib/vue";
+import { PanneauSources } from "@/components/haka/ReglagesDemande";
 import Chargement from "@/components/ui/Chargement";
 
 // Offres — les lettres d'intention d'achat (LOI) de l'équipe. Comme
@@ -27,6 +30,16 @@ export default function Offres() {
   const [conversation, setConversation] = useState(false);
   const [historique, setHistorique] = useState(false);
   const [courante, setCourante] = useState(null);
+  // En vue mandataire, une lettre naît aux couleurs de K Partners (28 oct. 2026, Jules).
+  const marqueVue = apercuAdmin() === "mandataire" ? "kp" : null;
+  // Le modèle de la page éditeur (28 oct. 2026, Jules) : le chat a ses sources et « + » pour joindre, comme le dossier.
+  const [sourcesChat, setSourcesChat] = useState([]);
+  const [sourcesOuvert, setSourcesOuvert] = useState(false);
+  const reglagesChat = useMemo(() => ({
+    sources: sourcesChat, sortie: null, sourcesOuvert,
+    onOuvrirSources: () => setSourcesOuvert((o) => !o), competence: null, eteintes: [], choisirCompetence: () => {},
+    panneau: <PanneauSources sources={sourcesChat} onChange={setSourcesChat} />,
+  }), [sourcesChat, sourcesOuvert]);
   const [travail, setTravail] = useState({ enCours: false, etapes: [] });
   const [recherche, setRecherche] = useState("");
   const large = useEcranLarge();
@@ -104,34 +117,22 @@ export default function Offres() {
   }, []);
 
   const scinde = large && (conversation || !!courante);
+  // La mise en page d'un dossier ouvert (26 oct. 2026, Jules) : la barre de navigation reste, repliée en rail,
+  // le chat à gauche, la lettre à droite derrière un fin filet.
   useEffect(() => {
     if (!scinde) return undefined;
-    document.documentElement.classList.add("k-sans-barre");
+    document.documentElement.classList.add("k-sans-defilement", "k-sans-ak");
+    window.dispatchEvent(new CustomEvent("klocka:replier-barre", { detail: { replier: true } }));
     window.scrollTo(0, 0);
-    return () => document.documentElement.classList.remove("k-sans-barre");
+    return () => {
+      document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak");
+      window.dispatchEvent(new CustomEvent("klocka:replier-barre", { detail: { replier: false } }));
+    };
   }, [scinde]);
 
-  // La largeur du chat, comme dans Présentations (17 oct. 2026, Jules) : la poignée se tire, un double-clic la remet.
-  const CLE_LARGEUR = "klocka.offres.largeur-chat";
-  const LARGEUR_DEFAUT = 420;
-  const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
-  const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
-  const [tire, setTire] = useState(false);
-  const tirer = (e) => {
-    e.preventDefault();
-    setTire(true);
-    let derniere = largeurChat;
-    const bouger = (ev) => { derniere = borner(ev.clientX); setLargeurChat(derniere); };
-    const lacher = () => {
-      setTire(false);
-      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
-      window.removeEventListener("pointermove", bouger);
-      window.removeEventListener("pointerup", lacher);
-    };
-    window.addEventListener("pointermove", bouger);
-    window.addEventListener("pointerup", lacher);
-  };
-  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
+  // La largeur du chat et sa poignée : celles du modèle de la page éditeur (components/editeur/Editeur.jsx).
+  const poignee = useLargeurChat("klocka.offres.largeur-chat");
+  const { largeur: largeurChat, tire } = poignee;
 
   const supprimer = useMutation({
     mutationFn: (id) => base44.request("DELETE", `/api/offres/${id}`),
@@ -173,32 +174,33 @@ export default function Offres() {
   return (
     <div className="relative min-h-screen w-full max-w-full overflow-x-hidden text-encre">
       {/* Le chat garde sa place dans l'arbre d'un mode à l'autre, sinon il perdrait son fil. */}
-      <div className={scinde ? `relative grid h-[100dvh] overflow-hidden ${tire ? "select-none" : ""}` : ""} style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
-        <div className={scinde ? (conversation ? "h-[100dvh] min-h-0 min-w-0 overflow-hidden px-5" : "h-[100dvh] min-h-0 min-w-0 overflow-y-auto px-5 pb-8") : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
-          <div className={`mx-auto ${scinde ? "max-w-none" : conversation ? "max-w-[1100px]" : "max-w-[1400px]"}`}>
-            <header className={conversation ? "flex flex-col" : `flex flex-col items-center text-center ${scinde ? "pt-10" : "pt-[6vh] max-md:pt-4"}`}>
+      <div className={scinde ? `k-page-presentation k-dossier-ia relative grid h-[100dvh] overflow-hidden duration-500 ease-out animate-in fade-in-0 ${tire ? "select-none" : ""}` : ""} style={scinde ? { gridTemplateColumns: `${largeurChat}px minmax(0,1fr)` } : undefined}>
+        <div className={scinde ? "k-colonne-chat flex h-[100dvh] min-h-0 min-w-0 flex-col px-5" : conversation ? "px-5 md:px-8" : "px-5 py-6 md:px-10 md:py-9"}>
+          <div className={scinde ? "flex min-h-0 w-full flex-1 flex-col" : `mx-auto ${conversation ? "max-w-[1100px]" : "max-w-[1400px]"}`}>
+            <header className={scinde ? "flex min-h-0 flex-1 flex-col" : conversation ? "flex flex-col" : "flex flex-col items-center text-center pt-[6vh] max-md:pt-4"}>
+              {/* Scindée, la question au centre et le chat en bas, comme un dossier ouvert. */}
               {!conversation && (
-                <>
-                  <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: "clamp(22px, 2.1vw, 30px)" }}>Quelle offre préparez-vous ?</h1>
+                <div className={scinde ? "flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-y-auto py-6 text-center" : "flex flex-col items-center"}>
+                  <h1 className="m-0 font-normal leading-[1.15] tracking-[-0.02em] text-encre" style={{ fontSize: scinde ? "clamp(22px, 2.1vw, 28px)" : "clamp(22px, 2.1vw, 30px)" }}>Quelle offre préparez-vous ?</h1>
                   <p className="m-0 mt-2 max-w-[56ch] text-[14px] text-ardoise">Décrivez la situation : l'acquéreur, le bien ou son dossier, le vendeur, le prix et l'apport. Ce qui manque vous est demandé.</p>
-                </>
+                </div>
               )}
-              <div className={conversation ? "w-full" : `w-full ${scinde ? "mt-6" : "mt-8 max-w-[660px] max-md:mt-6"}`}>
-                <ChatDashboard espace="offre" libelleAccueil="Toutes les offres" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse}
+              <div className={scinde ? (conversation ? "min-h-0 w-full flex-1" : "w-full flex-none pb-5") : conversation ? "w-full" : "w-full mt-8 max-w-[660px] max-md:mt-6"}>
+                <ChatDashboard espace="offre" libelleAccueil="Toutes les offres" onConversation={surConversation} onHistorique={setHistorique} onReponse={surReponse} reglages={reglagesChat}
                   barreApercu={scinde && conversation} onTravail={setTravail} contexte={courante ? { loi_id: courante } : null} onConversationId={setConversationId} />
               </div>
             </header>
           </div>
-          {!conversation && (historique ? (
+          {!conversation && !scinde && (historique ? (
             <div className="mx-auto mt-[6vh] max-w-[1400px]"><HistoriqueColonne espace="admin" /></div>
           ) : liste)}
         </div>
-        {/* La lettre, un écran dans l'écran : une carte posée sur le fond, comme la présentation à côté du chat. */}
+        {/* La lettre à droite, sur le même fond, séparée du chat par la poignée (le modèle de la page éditeur). */}
         {scinde && (
-          <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
-            <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">
+          <div className="h-[100dvh] min-h-0 min-w-0">
+            <div className="h-full min-h-0 overflow-hidden">
             {courante ? (
-              <EditeurLoi key={courante} id={courante} travail={travail} onFermer={() => setCourante(null)} />
+              <EditeurLoi key={courante} id={courante} travail={travail} marque={marqueVue} surFond onFermer={() => setCourante(null)} />
             ) : (
               <div className="grid h-full place-items-center px-10 text-center">
                 <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">La lettre d'intention se rédige ici dès que le chat a l'acquéreur, le bien, le vendeur, le prix et l'apport. Elle se relit et se retouche sur place, puis part en Word ou en PDF.</p>
@@ -207,20 +209,14 @@ export default function Offres() {
             </div>
           </div>
         )}
-        {/* La poignée entre le chat et la lettre. */}
-        {scinde && (
-          <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
-            onPointerDown={tirer} onDoubleClick={remettre}
-            className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
-            <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
-          </div>
-        )}
+        {/* La poignée entre le chat et la lettre : un filet qu'on attrape. */}
+        {scinde && <PoigneeEditeur {...poignee} />}
       </div>
 
       {/* Au téléphone : la lettre par-dessus tout, on la ferme pour revenir au chat. */}
       {!large && courante && lettreTel && createPortal(
         <div className="fixed inset-0 z-[70]" style={{ background: "rgb(var(--k-fond-rgb))" }}>
-          <EditeurLoi key={courante} id={courante} travail={travail} onFermer={() => { if (conversation && window.matchMedia("(max-width: 767px)").matches) setLettreTel(false); else setCourante(null); }} />
+          <EditeurLoi key={courante} id={courante} travail={travail} marque={marqueVue} onFermer={() => { if (conversation && window.matchMedia("(max-width: 767px)").matches) setLettreTel(false); else setCourante(null); }} />
         </div>,
         document.body,
       )}

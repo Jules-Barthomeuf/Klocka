@@ -25,24 +25,24 @@ test('menu : tout peut aller dans un seul groupe, et une entrée nouvelle garde 
   assert.deepEqual(cles(r.autre), []);
 });
 
-test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration, Feedback seul dans Autre (19 oct.)", async () => {
+test("le menu de l'équipe (17 oct. 2026) : cinq pages, Relations, Administration ; Autre : Offres, Dossier bancaire, Feedback (26 oct.)", async () => {
   const { menuAdmin } = await import('../src/lib/menu.js');
   const { principal, autre } = menuAdmin();
-  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'À valider', 'Appels', 'Simulateur', 'Sunday CRM']);
+  assert.deepEqual(principal.filter((x) => !x.groupe).map((x) => x.label), ['Haka', 'Projets', 'Dossiers', 'Appels', 'Simulateur', 'Sunday CRM']);
   // Le CRM (27 oct. 2026) : une entrée externe, toujours là.
   assert.equal(principal.find((x) => x.cle === 'CRM')?.externe, true);
   assert.ok(menuAdmin(['CRM']).principal.some((x) => x.cle === 'CRM'));
-  // À valider (Haka) se masque quand Haka n'est pas allumé : le Layout passe la clé dans les masques.
-  assert.ok(!menuAdmin(['AValider']).principal.some((x) => x.cle === 'AValider'));
-  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Suivi']]]);
+  // À valider quitte le menu (26 oct. 2026, Jules) ; la cloche et les dossiers y mènent encore.
+  assert.ok(![...principal, ...autre].some((x) => x.cle === 'AValider'));
+  assert.deepEqual(principal.filter((x) => x.groupe).map((x) => [x.groupe, x.entrees.map((e) => e.label)]), [['Relations', ['Clients', 'Agents']], ['Administration', ['Intelligence', 'Utilisateurs', 'Automatismes', 'Modèles', 'Suivi']]]);
   const cles = autre.map((e) => e.cle);
   for (const hors of ['Semaine', 'Monitoring', 'Personnalisation', 'Dashboard', 'Agents']) assert.ok(!cles.includes(hors), hors);
-  assert.deepEqual(cles, ['AdminSuggestions'], 'Offres, Emailing, Présentations… ne sont plus dans le menu');
+  assert.deepEqual(cles, ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque'], 'Feedback en tête ; Offres, les Présentations bancaires et le Dossier bancaire reviennent (26 oct.) ; Emailing, Lead magnets… restent hors du menu');
   // Une page masquée disparaît ; un groupe vidé aussi.
-  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'Monitoring', 'Offres']);
+  const m = menuAdmin(['Cerveau', 'AdminUtilisateurs', 'Automatismes', 'AdminModeles', 'Monitoring', 'Offres']);
   assert.ok(!m.principal.some((x) => x.groupe === 'Administration'));
-  assert.ok(!m.autre.some((e) => e.cle === 'Offres'));
-  assert.deepEqual(menuAdmin(['AdminSuggestions']).autre, [], 'Feedback masqué : plus rien dans Autre');
+  // Autre ignore les masques (26 oct.) : d'anciens réglages de Paramètres cachaient Feedback, Offres et Présentations.
+  assert.deepEqual(menuAdmin(['AdminSuggestions', 'Offres', 'AdminPresentations', 'AdminBanque']).autre.map((e) => e.cle), ['AdminSuggestions', 'AdminPresentations', 'Offres', 'AdminBanque']);
 });
 
 test('un groupe est une entrée ; une page sait son groupe', async () => {

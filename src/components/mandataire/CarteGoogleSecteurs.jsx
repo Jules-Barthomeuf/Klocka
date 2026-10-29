@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { chargerGoogleMaps } from "@/components/kzoning/CarteGoogleZones";
+import { creerCouche } from "@/components/off-market/CarteOffMarket";
 import { JL } from "@/design/jetons";
 import jetons from "@/design/jetons.json";
 
 // La pervenche des jetons, littérale : Google dessine en SVG (le point « vous êtes ici », 24 oct. 2026).
 const PERVENCHE = jetons.accents.pervenche.sombre;
+// Au-delà, les marqueurs se dessinent sur un canevas, comme l'Off-market (26 oct. 2026 : tout le secteur, plus de 10 000
+// commerces à Lyon) : un marqueur Google par point ne tient pas.
+const SEUIL_CANEVAS = 300;
+const dessinMarqueur = (m) => ({ couleur: m.couleur || JL.menthe, opacite: 0.95, taille: 5 });
 
 // La carte des secteurs des mandataires : Google Maps, comme K-Zoning. Même
 // chargeur, même clé, le rendu de Google tel quel. Un secteur s'y dessine
@@ -99,11 +104,18 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
   const tracesVilles = useRef([]);
   const tracesMarqueurs = useRef([]);
   const tracesMoi = useRef([]);
+  const couche = useRef(null);
   const cadre = useRef(false);
   const [pret, setPret] = useState(false);
   // Les rappels changent à chaque rendu : les écouteurs Google lisent la dernière version.
   const rappels = useRef({ trace, onPoint, onSecteur, onVille, onMarqueur });
   rappels.current = { trace, onPoint, onSecteur, onVille, onMarqueur };
+  // Un clic sur la carte (ou sur le secteur) touche le point du canevas le plus proche, s'il y en a un à portée.
+  const toucherCouche = (e) => {
+    const m = couche.current?.points.length ? couche.current.sous(e.latLng) : null;
+    if (m) { rappels.current.onMarqueur?.(m.id); return true; }
+    return false;
+  };
 
   // La carte, une fois.
   useEffect(() => {
@@ -125,6 +137,12 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
         calque.current.setMap(carte.current);
         carte.current.addListener("click", (e) => {
           if (rappels.current.trace) rappels.current.onPoint?.([Number(e.latLng.lat().toFixed(5)), Number(e.latLng.lng().toFixed(5))]);
+          else toucherCouche(e);
+        });
+        // Sur le canevas, la main au survol d'un point.
+        carte.current.addListener("mousemove", (e) => {
+          if (rappels.current.trace || !couche.current?.points.length) return;
+          carte.current.setOptions({ draggableCursor: couche.current.sous(e.latLng) ? "pointer" : null });
         });
         setPret(true);
       })
@@ -162,7 +180,7 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
       // Un clic sur un secteur pendant un tracé pose un point, comme ailleurs.
       poly.addListener("click", (e) => {
         if (rappels.current.trace) rappels.current.onPoint?.([Number(e.latLng.lat().toFixed(5)), Number(e.latLng.lng().toFixed(5))]);
-        else rappels.current.onSecteur?.(s.id);
+        else if (!toucherCouche(e)) rappels.current.onSecteur?.(s.id);
       });
       return poly;
     });
@@ -215,7 +233,15 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
     const g = window.google?.maps;
     if (!g || !carte.current) return;
     for (const t of tracesMarqueurs.current) t.setMap(null);
-    tracesMarqueurs.current = marqueurs.filter((m) => m.lat != null && m.lon != null).map((m) => {
+    tracesMarqueurs.current = [];
+    const poses = marqueurs.filter((m) => m.lat != null && m.lon != null);
+    if (poses.length > SEUIL_CANEVAS) {
+      if (!couche.current) { couche.current = creerCouche(g); couche.current.setMap(carte.current); }
+      couche.current.poser(poses.map((m) => ({ ...m, plat: m.lat, plon: m.lon })), marqueurActif, null, dessinMarqueur);
+      return;
+    }
+    couche.current?.poser([], null, null, dessinMarqueur);
+    tracesMarqueurs.current = poses.map((m) => {
       const actif = m.id === marqueurActif;
       const mk = new g.Marker({
         map: carte.current, position: { lat: m.lat, lng: m.lon }, title: m.titre || "", zIndex: actif ? 90 : 80,
@@ -305,6 +331,7 @@ export default function CarteGoogleSecteurs({ secteurs = [], choisi = null, trac
       lot.current = [];
     }
     calque.current?.setMap(null);
+    couche.current?.setMap(null);
   }, []);
 
   if (!CLE) {

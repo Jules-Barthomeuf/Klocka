@@ -68,8 +68,11 @@ export default function BarreChat({
   return (
     <div className={`relative ${className}`} {...reste}>
       <BordureEcoute actif={!!voix?.ecoute} radius={multiligne ? "30px" : "9999px"}>
+      {/* L'aura des chats de Haka (26 oct. 2026, Jules : « dans tous les chats ») : le halo qui tourne et son filet (index.css). */}
+      <div className="relative isolate">
+      <div className="k-aura-halo" aria-hidden style={{ borderRadius: multiligne ? 33 : 9999 }} />
       <div
-        className={`flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
+        className={`k-aura-filet relative flex items-center gap-3 py-3 pl-5 pr-3 transition-colors ${multiligne ? "items-end rounded-[30px]" : "rounded-full"}`}
         style={{ ...OPAQUE, border: FILET }}
       >
         {menu && (
@@ -124,6 +127,7 @@ export default function BarreChat({
         >
           {enCours && onArreter ? <Square className="h-3.5 w-3.5" fill="currentColor" /> : <ArrowUp className="h-[17px] w-[17px]" strokeWidth={2} />}
         </button>
+      </div>
       </div>
       </BordureEcoute>
     </div>

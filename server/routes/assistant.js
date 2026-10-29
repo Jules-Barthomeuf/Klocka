@@ -237,15 +237,17 @@ export function monterAssistant(app) {
   // Les échéances : nos mails sans réponse, les promesses, les dossiers qui
   // dorment — les cartes du mode « Échéances » du chat du tableau de bord.
   // La boîte : un seul chat, ce qu'on y met est trié et fait.
-  app.post('/api/assistant/boite', upload.single('fichier'), wrap(async (req, res) => {
+  // Plusieurs pièces à la fois (27 oct. 2026, Jules) : jusqu'à dix, sous le même nom de champ.
+  app.post('/api/assistant/boite', upload.array('fichier', 10), wrap(async (req, res) => {
+    const fichiers = req.files || [];
     // Une pièce seule, sans message : AK regarde ce que c'est (1.8).
-    const texte = String(req.body?.texte || '').trim() || (req.file ? '(une pièce jointe, sans message)' : '');
+    const texte = String(req.body?.texte || '').trim() || (fichiers.length ? (fichiers.length > 1 ? '(des pièces jointes, sans message)' : '(une pièce jointe, sans message)') : '');
     if (!texte) return res.status(400).json({ error: 'Rien à traiter.' });
     const user = currentUser(req);
     // Une pièce jointe avec une phrase (12 oct. 2026, « vérifie ma préz ») : elle part à AK avec le message.
     if (typeof req.body?.historique === 'string') { try { req.body.historique = JSON.parse(req.body.historique); } catch { req.body.historique = []; } }
     if (typeof req.body?.contexte === 'string') { try { req.body.contexte = JSON.parse(req.body.contexte); } catch { req.body.contexte = null; } }
-    const pieces = req.file ? [{ nom: req.file.originalname, type: req.file.mimetype, chemin: req.file.path, url: `/uploads/${req.file.filename}` }] : [];
+    const pieces = fichiers.map((f) => ({ nom: f.originalname, type: f.mimetype, chemin: f.path, url: `/uploads/${f.filename}` }));
     const { traiterBoite } = await import('../assistant-boite.js');
     const { mesurer } = await import('../llm-couts.js');
     // `?flux=1` : chaque étape part au moment où elle se fait (une ligne JSON

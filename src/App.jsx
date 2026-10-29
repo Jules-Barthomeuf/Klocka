@@ -47,11 +47,16 @@ const SuiviAudience = lazy(() => import('@/pages/SuiviAudience'));
 const SuiviMandataires = lazy(() => import('@/pages/SuiviMandataires'));
 const SuiviTesteur = lazy(() => import('@/pages/SuiviTesteur'));
 const ImpressionPresentation = lazy(() => import('@/pages/ImpressionPresentation'));
+const ImpressionAvis = lazy(() => import('@/pages/ImpressionAvis'));
+const DepotVendeur = lazy(() => import('@/pages/DepotVendeur'));
+const ImpressionTeaser = lazy(() => import('@/pages/ImpressionTeaser'));
 const SuiviChat = lazy(() => import('@/pages/SuiviChat'));
 // Haka (17 oct. 2026) : la file À valider, et son Suivi.
 const AValider = lazy(() => import('@/pages/AValider'));
 const SuiviHaka = lazy(() => import('@/pages/SuiviHaka'));
 const Automatismes = lazy(() => import('@/pages/Automatismes'));
+// Modèles (26 oct. 2026) : les documents de Klocka et de K Partners, dans Administration.
+const AdminModeles = lazy(() => import('@/pages/AdminModeles'));
 const SuiviReunion = lazy(() => import('@/pages/SuiviReunion'));
 const Semaine = lazy(() => import('@/pages/Semaine'));
 const AdminModeleZone = lazy(() => import('@/pages/AdminModeleZone'));
@@ -146,10 +151,13 @@ const PAGES_PUBLIQUES = {
   OutilInvestisseur: <OutilInvestisseur />,
   // Ouverte par le navigateur du serveur pour tirer le PDF d'une présentation (12 oct. 2026).
   ImpressionPresentation: <ImpressionPresentation />,
+  ImpressionAvis: <ImpressionAvis />,
+  DepotVendeur: <DepotVendeur />,
+  ImpressionTeaser: <ImpressionTeaser />,
 };
 
 // Les pages déclarées à la main, hors de pages.config.
-const PAGES_MANUELLES = { Automatismes, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
+const PAGES_MANUELLES = { Automatismes, AdminModeles, AdminPortail, AdminBrouillons, AdminBanque, Banque, Analyse, Monitoring, CoutsIA, SuiviAppels, SuiviAudience, SuiviMandataires, SuiviTesteur, SuiviChat, AValider, SuiviHaka, SuiviReunion, Semaine, Alexis, AdminPresentations, AdminModeleZone };
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, checkAppState } = useAuth();

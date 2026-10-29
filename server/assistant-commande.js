@@ -163,7 +163,7 @@ export const OUTILS = [
   {
     name: 'creer_drive_dossier',
     description:
-      "Crée le dossier Google Drive d'un dossier et y classe les documents déjà déposés. Nécessite l'identifiant obtenu par chercher_dossier.",
+      "Crée le dossier Google Drive d'un dossier s'il n'existe pas, et y dépose toutes les pièces de sa Data Room qui n'y sont pas encore (celles déjà présentes sous le même nom sont sautées). Rend le nombre de pièces de la Data Room, celles déposées et celles déjà là. Nécessite l'identifiant obtenu par chercher_dossier.",
     input_schema: {
       type: 'object',
       properties: { deal_id: { type: 'string' } },
@@ -742,28 +742,29 @@ export async function executerOutil({ name, input }, user) {
   if (name === 'creer_drive_dossier') {
     const deal = Records.findBy('Deal', 'deal_id', input.deal_id);
     if (!deal) return { erreur: 'Dossier introuvable' };
-    if (deal.drive_folder_url) {
-      return { deja_cree: true, url: deal.drive_folder_url, titre: nomDossierDrive(deal) };
+    // Le dossier Drive, puis toutes les pièces de la Data Room qui n'y sont pas encore (27 oct. 2026, Jules : le chat
+    // rendait le lien d'un dossier existant sans rien y déposer). Une pièce déjà présente sous le même nom ne repart pas.
+    const existait = !!deal.drive_folder_url;
+    const { copierAuDrive } = await import('./deal/drive-data-room.js');
+    const r = await copierAuDrive(deal.deal_id, null, { uploadDir: UPLOAD_DIR, user });
+    const total = (deal.documents_espace || []).filter((d) => d.url).length;
+    const deja = Math.max(0, total - r.copies - (r.erreurs?.length || 0));
+    if (!r.folder_url) {
+      return { erreur: r.erreurs?.[0] || "Le dossier Drive n'a pas pu être créé.", pieces_data_room: total };
     }
-    // Le compte Drive est celui de l'utilisateur qui parle, pas un compte
-    // choisi au hasard : c'est son autorisation qui est engagée.
-    const { listAccounts } = await import('./email.js');
-    const compte = listAccounts(user?.email).find((c) => c.peut_drive)?.id;
-    if (!compte) {
-      return {
-        erreur:
-          "Aucun compte Google n'autorise le Drive. Connectez-en un depuis le dashboard, section Comptes Google.",
-      };
-    }
-    const { classerDansDrive } = await import('./google-drive.js');
-    const titre = nomDossierDrive(deal);
-    const fichiers = (deal.documents_espace || [])
-      .filter((d) => d.url)
-      .map((d) => ({ nom: d.nom, chemin: d.url }));
-    const r = await classerDansDrive(compte, titre, fichiers, UPLOAD_DIR);
-    Records.update('Deal', deal.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
-    // Le compte qui a servi : celui de la personne, ou un compte qui voit le Drive partagé quand le sien n'en est pas membre.
-    return { ok: true, cree: true, titre, url: r.folder_url, chemin: r.chemin, compte: r.compte || compte, ...(r.compte && r.compte !== compte ? { note: `classé avec le compte ${r.compte} : ${compte} n'est pas membre du Drive partagé` } : {}), fichiers_classes: r.envoyes.length, ...(r.erreurs?.length ? { fichiers_en_erreur: r.erreurs } : {}) };
+    return {
+      ok: true,
+      ...(existait ? { deja_cree: true } : { cree: true }),
+      titre: nomDossierDrive(deal),
+      // La ligne de la carte : ce qui est parti et ce qui y était.
+      message: `${nomDossierDrive(deal)} · ${r.copies} pièce${r.copies > 1 ? 's' : ''} déposée${r.copies > 1 ? 's' : ''}${deja ? `, ${deja} déjà là` : ''}${r.erreurs?.length ? `, ${r.erreurs.length} en échec` : ''}`,
+      url: r.folder_url,
+      ...(r.compte ? { compte: r.compte } : {}),
+      pieces_data_room: total,
+      fichiers_classes: r.copies,
+      deja_dans_le_drive: deja,
+      ...(r.erreurs?.length ? { fichiers_en_erreur: r.erreurs } : {}),
+    };
   }
 
   if (name === 'etat_dossier') {

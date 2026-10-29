@@ -29,6 +29,8 @@ export const ENTREES_ADMIN = [
   { cle: "AdminUtilisateurs", label: "Utilisateurs" },
   // Les automatismes de Haka (17 oct. 2026) : ce qu'il fait seul ; troisième onglet d'Administration.
   { cle: "Automatismes", label: "Automatismes" },
+  // Modèles (26 oct. 2026, Jules) : la lettre d'intention et l'avis de valeur, en Klocka et en K Partners.
+  { cle: "AdminModeles", label: "Modèles" },
 ];
 
 export const ENTREES_AUTRE = [
@@ -38,6 +40,8 @@ export const ENTREES_AUTRE = [
   { cle: "AdminPortail", label: "Portails" },
   { cle: "AdminEquipe", label: "Équipe" },
   { cle: "AdminMandataires", label: "Mandataires" },
+  // Les dossiers bancaires des clients (présentations aux banques), page d'admin (26 oct. 2026, Jules : de retour dans Autre).
+  { cle: "AdminBanque", label: "Dossier bancaire" },
   // Par défaut en bas de « Autre » ; déplaçable comme toutes les autres.
   { cle: "Personnalisation", label: "Paramètres" },
 ];
@@ -63,7 +67,7 @@ export const ENTREES_MANDATAIRE = [
   { cle: "MandataireEstimation", label: "Estimation" },
   { cle: "MandataireMandat", label: "Mandat" },
   { cle: "MandataireDossier", label: "Dossiers" },
-  { cle: "MandataireMarche", label: "Mise en marché" },
+  { cle: "MandataireMarche", label: "Commercialisation" },
   { cle: "MandataireOffMarket", label: "Off-market" },
   { cle: "MandataireProjets", label: "Projets" },
   { cle: "SimulateurRentabilite", label: "Simulateur" },
@@ -82,7 +86,7 @@ export const MENU_ADMIN = [
   { cle: "Dashboard", label: "Haka" },
   { cle: "AdminProjets", label: "Projets" },
   { cle: "Analyse", label: "Dossiers" },
-  { cle: "AValider", label: "À valider" },
+  // À valider quitte le menu (26 oct. 2026, Jules) : la page reste ouverte par la cloche et les dossiers.
   { cle: "Prospection", label: "Appels" },
   // Le Simulateur dans le menu de gauche (18 oct. 2026, Jules) : toujours là, même masqué dans d'anciennes préférences.
   { cle: "SimulateurRentabilite", label: "Simulateur", fixe: true },
@@ -91,7 +95,7 @@ export const MENU_ADMIN = [
   { groupe: "Relations", cle: "Relations", label: "Relations", entrees: [{ cle: "AdminClients", label: "Clients" }, { cle: "Agents", label: "Agents" }] },
   // Le CRM (27 oct. 2026, Jules) : Twenty, hébergé à part, s'ouvre dans un nouvel onglet ; il remplace Monday.
   { cle: "CRM", label: "Sunday CRM", externe: true, fixe: true },
-  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" },
+  { groupe: "Administration", cle: "Administration", label: "Administration", entrees: [{ cle: "Cerveau", label: "Intelligence" }, { cle: "AdminUtilisateurs", label: "Utilisateurs" }, { cle: "Automatismes", label: "Automatismes" }, { cle: "AdminModeles", label: "Modèles" },
     // Le Suivi quitte Paramètres pour Administration (18 oct. 2026, Jules) ; ses pages de détail gardent l'onglet.
     { cle: "Monitoring", label: "Suivi", aussi: ["SuiviHaka", "CoutsIA", "SuiviAppels", "SuiviAudience", "SuiviMandataires", "SuiviTesteur", "SuiviChat", "SuiviReunion"] }] },
 ];
@@ -141,7 +145,9 @@ const HORS_MENU_ADMIN = ["Semaine", "Personnalisation"];
  * Ce que « Autre » montre à l'équipe (19 oct. 2026, Jules : « masque Offres, Emailing, Présentations… laisse
  * juste Feedback »). Les autres pages restent là, par leur adresse et leurs accès ; elles ne sont plus dans le menu.
  */
-const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions"];
+// Offres et le Dossier bancaire y reviennent le 26 oct. 2026 (Jules), puis les Présentations bancaires (chat à gauche, diapositives à droite).
+// Feedback en tête, les Présentations et Offres dessous (26 oct. 2026, Jules).
+const AUTRE_VISIBLE_ADMIN = ["AdminSuggestions", "AdminPresentations", "Offres", "AdminBanque"];
 
 /**
  * Pure : le menu de l'équipe, ses groupes, et « Autre » (Feedback seulement).
@@ -155,7 +161,9 @@ export function menuAdmin(masques = []) {
     places.add(x.cle);
     return x;
   }).filter((x) => (x.groupe ? x.entrees.length : garde(x)));
-  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => AUTRE_VISIBLE_ADMIN.includes(e.cle) && !places.has(e.cle) && garde(e));
+  // Les entrées d'Autre ne se masquent plus (26 oct. 2026, Jules) : d'anciens masques de Paramètres les cachaient.
+  const autre = [...ENTREES_ADMIN, ...ENTREES_AUTRE].filter((e) => AUTRE_VISIBLE_ADMIN.includes(e.cle) && !places.has(e.cle))
+    .sort((x, y) => AUTRE_VISIBLE_ADMIN.indexOf(x.cle) - AUTRE_VISIBLE_ADMIN.indexOf(y.cle));
   return { principal, autre };
 }
 

@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Wrench,
   Workflow,
+  LayoutTemplate,
   LayoutGrid,
   Magnet,
   Building2,
@@ -42,7 +43,7 @@ import {
   ChevronLeft,
   ChevronDown,
   Globe,
-  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays } from "lucide-react";
+  Mic, Compass, Smartphone, Lock, Sun, Moon, Home, PhoneCall, Palette, Settings, Handshake, ShieldCheck, Folder, Phone, PanelLeft, MapPin, FileSignature, CircleUser, MessagesSquare, Mail, Radar, CalendarDays, Landmark } from "lucide-react";
 import RechercheRapide from "@/components/RechercheRapide";
 import ApercuTelephone, { estApercuTelephone } from "@/components/ApercuTelephone";
 import { MODULES_KDATA, PAGES_KDATA } from "@/lib/kdata-modules";
@@ -348,7 +349,9 @@ function LayoutContent({ children, currentPageName }) {
   }, []);
   useEffect(() => { setReplieParPage(false); }, [currentPageName]);
   const dansProjet = currentPageName === "AdminProjets" && (replieParPage || !!new URLSearchParams(location.search).get("id"));
-  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || dansDossier || dansProjet || prefs.barre === "repliee"); }, [prefs.barre, currentPageName, dansDossier, dansProjet]);
+  // Offres scindée (26 oct. 2026, Jules) le demande par le même événement, comme un dossier.
+  const replieOffre = currentPageName === "Offres" && replieParPage;
+  useEffect(() => { setSidebarCollapsed(PAGES_PLEINE_LARGEUR.includes(currentPageName) || dansDossier || dansProjet || replieOffre || prefs.barre === "repliee"); }, [prefs.barre, currentPageName, dansDossier, dansProjet, replieOffre]);
   // La recherche (⌘K) : projets et dossiers, de n'importe quelle page.
   const [rechercheOuverte, setRechercheOuverte] = useState(false);
   useEffect(() => {
@@ -528,7 +531,7 @@ function LayoutContent({ children, currentPageName }) {
     Semaine: { to: createPageUrl("Semaine"), icon: CalendarDays, actif: isActivePage("Semaine") },
     AdminProjets: { to: createPageUrl("AdminProjets"), icon: Building2, actif: isActivePage("AdminProjets") },
     AValider: { to: createPageUrl("AValider"), icon: ClipboardCheck, actif: isActivePage("AValider"), badge: hakaAValider || null, badgeColor: "bg-menthe text-sur-menthe" },
-    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
+    Analyse: { to: "/Dossiers", icon: Folder, actif: isActivePage("Analyse") || isActivePage("ConversationsMandataires") || isActivePage("MandatsMandataires"), badge: nonLusKlocka || null, badgeColor: "bg-menthe text-sur-menthe" },
     Prospection: { to: createPageUrl("Prospection"), icon: Phone, actif: isActivePage("Prospection") },
     OffMarket: { to: createPageUrl("OffMarket"), icon: Radar, actif: isActivePage("OffMarket") },
     Cerveau: { to: createPageUrl("Cerveau"), icon: Brain, actif: isActivePage("Cerveau"), badge: layerAValider || null, badgeColor: "bg-rail-actif text-craie" },
@@ -543,9 +546,12 @@ function LayoutContent({ children, currentPageName }) {
     CRM: { href: CRM_URL || null, icon: CRM_URL ? Globe : null, actif: false },
     AdminUtilisateurs: { to: createPageUrl("AdminUtilisateurs"), icon: Users, actif: isActivePage("AdminUtilisateurs") },
     Automatismes: { to: createPageUrl("Automatismes"), icon: Workflow, actif: isActivePage("Automatismes") },
+    // Modèles (26 oct. 2026) : les documents de Klocka et de K Partners, remplis avec un exemple.
+    AdminModeles: { to: createPageUrl("AdminModeles"), icon: LayoutTemplate, actif: isActivePage("AdminModeles") },
     Agents: { to: createPageUrl("Agents"), icon: Contact, actif: isActivePage("Agents") },
     // Offres : les lettres d'intention d'achat, rédigées au chat.
     Offres: { to: createPageUrl("Offres"), icon: FileSignature, actif: isActivePage("Offres") },
+    AdminBanque: { to: createPageUrl("AdminBanque"), icon: Landmark, actif: isActivePage("AdminBanque") },
     // Emailing : les séquences des leads et les mails de la plateforme (Resend).
     Emailing: { to: createPageUrl("Emailing"), icon: Mail, actif: isActivePage("Emailing") },
     AdminPresentations: { to: "/Presentations", icon: Presentation, actif: isActivePage("AdminPresentations") },
@@ -583,7 +589,7 @@ function LayoutContent({ children, currentPageName }) {
     // Les mandataires (18 oct. 2026, Jules) : la même structure, leur menu à eux.
     const menuEquipe = (vue === "admin" && !showClientView) || vue === "mandataire";
     const { principal: entrees, autre: autres } = vue === "mandataire" ? menuMandataire(prefs.menu_masques || [])
-      : menuEquipe ? menuAdmin([...(prefs.menu_masques || []), ...(hakaActif ? [] : ["AValider"])]) : repartir(
+      : menuEquipe ? menuAdmin(prefs.menu_masques || []) : repartir(
       vue === "mandataire" ? ENTREES_MANDATAIRE : showClientView ? ENTREES_CLIENT : ENTREES_ADMIN,
       showClientView ? [] : ENTREES_AUTRE,
       { ordre: prefs.menu_ordre, masques: prefs.menu_masques, menuAutre: prefs.menu_autre },
@@ -771,10 +777,12 @@ function LayoutContent({ children, currentPageName }) {
   const ongletsMobile = !hideNavbar && showClientView;
   const assistantVisible = vueAdmin && !hideNavbar && !modoKData && !["Dashboard", "Analyse"].includes(currentPageName);
   // Avec la barre du bas (client, mandataire), plus de barre du haut au téléphone (24 oct. 2026, Jules) : il ne reste que l'encoche.
-  const hautMobile = hideNavbar || (modoKData && enCadre) ? "0px" : ongletsMobile ? "env(safe-area-inset-top)" : "calc(3.5rem + env(safe-area-inset-top))";
+  // Le mandataire garde une bande de 3 rem sous l'encoche, sans barre : le logo kp à gauche, la cloche à droite (25 oct. 2026, Jules).
+  const hautMobile = hideNavbar || (modoKData && enCadre) ? "0px" : ongletsMobile ? (vue === "mandataire" ? "calc(3rem + env(safe-area-inset-top))" : "env(safe-area-inset-top)") : "calc(3.5rem + env(safe-area-inset-top))";
   const basMobile = hideNavbar || modoKData
     ? "0px"
-    : ongletsMobile
+    // Le mandataire n'a plus de barre du bas (27 oct. 2026, Jules) : le menu s'ouvre du hamburger, en haut à droite.
+    : ongletsMobile && vue !== "mandataire"
       ? "calc(3.5rem + env(safe-area-inset-bottom))"
       : assistantVisible && currentPageName !== "Note"
         ? "calc(4.5rem + env(safe-area-inset-bottom))"
@@ -851,7 +859,7 @@ function LayoutContent({ children, currentPageName }) {
       <main
         data-zone="fond"
         style={{ "--k-grid-marge": "0px" }}
-        className={`k-points k-contenu relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-hidden ${
+        className={`k-points k-contenu relative z-10 flex-1 min-w-0 max-w-full max-md:overflow-x-clip ${
           modoKData ? "" : !hideNavbar ? (sidebarCollapsed ? "md:pl-[64px] md:transition-[padding-left] md:duration-200" : "md:pl-[228px] md:transition-[padding-left] md:duration-200") : ""
         } ${
           modoKData
@@ -918,6 +926,25 @@ function LayoutContent({ children, currentPageName }) {
           <PopupFicheRecue />
         </>
       )}
+      {/* La cloche du mandataire, en haut à droite comme chez l'équipe, au téléphone aussi (25 oct. 2026, Jules). */}
+      {vue === "mandataire" && !hideNavbar && <Cloche mandataire className="fixed right-4 top-4 max-md:right-[60px] max-md:top-[calc(env(safe-area-inset-top)+0.3rem)]" />}
+      {/* Au téléphone, le hamburger à droite de la cloche ouvre le menu (27 oct. 2026, Jules : plus d'onglets en bas). */}
+      {vue === "mandataire" && !hideNavbar && (
+        <button type="button" onClick={() => setIsMobileMenuOpen((o) => !o)} aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={isMobileMenuOpen}
+          className="fixed right-3 top-[calc(env(safe-area-inset-top)+0.3rem)] z-40 grid h-[38px] w-[38px] place-items-center rounded-full text-encre md:hidden" style={{ background: "transparent" }}>
+          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      )}
+      {/* Au téléphone, le logo K Partners en haut à gauche, en face de la cloche (25 oct. 2026, Jules), sur une barre
+          comme celle du bas : fond transparent et flou, le logo et la cloche, rien d'autre. */}
+      {vue === "mandataire" && !hideNavbar && (
+        <div aria-hidden="true" className="fixed inset-x-0 top-0 z-[39] border-b border-trait bg-transparent backdrop-blur-xl md:hidden" style={{ height: "calc(3rem + env(safe-area-inset-top))" }} />
+      )}
+      {vue === "mandataire" && !hideNavbar && (
+        <Link to={createPageUrl("Dashboard")} title="K Partners" className="fixed left-4 top-[calc(env(safe-area-inset-top)+0.3rem)] z-40 flex h-[38px] items-center md:hidden">
+          <LogoKP fond="theme" className="text-[24px]" />
+        </Link>
+      )}
       {rappelOuvert && !hideNavbar && <RappelEntrant />}
       {/* « Klocka arrive sur vos téléphones » (12 oct. 2026) : le tuto d'installation, pour tout le monde, une fois. */}
       {!hideNavbar && <InstallerApp />}
@@ -925,7 +952,7 @@ function LayoutContent({ children, currentPageName }) {
       {vue === "mandataire" && !hideNavbar && <AccueilMandataire />}
 
       {/* Barre d'onglets mobile */}
-      {!hideNavbar && showClientView && <BottomTabs vue={vue} onMenu={() => setIsMobileMenuOpen((o) => !o)} menuOuvert={isMobileMenuOpen} />}
+      {!hideNavbar && showClientView && vue !== "mandataire" && <BottomTabs vue={vue} onMenu={() => setIsMobileMenuOpen((o) => !o)} menuOuvert={isMobileMenuOpen} />}
     </div>
   );
 }

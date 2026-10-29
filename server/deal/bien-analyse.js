@@ -129,7 +129,7 @@ export function lignesBien({ lot = {}, lignes = [], retenues = {} }) {
   ligne('locataire', 'Locataire', p || locFiche ? {
     valeur: p ? `${p.nom}${capital ? `, capital ${eur(nombre(capital))}` : ''}` : locFiche,
     sources: p ? [pastille(p.l, p.c)] : [FICHE],
-    statut: 'ok', note: 'Date de création : Kbis ou Pappers, pas encore branché.',
+    statut: 'ok', note: cellules('creation')[0] ? `Kbis : ${cellules('creation')[0].c.reponse}` : 'Date de création : Kbis ou Pappers, pas encore branché.',
   } : { valeur: 'Non trouvé', sources: [], statut: 'non_trouve', consultees: ['Kbis', 'Bail', 'Fiche'] });
 
   // Activité réelle : la destination du bail ; Pappers (code NAF) et Google Maps restent à brancher.
@@ -151,11 +151,28 @@ export function lignesBien({ lot = {}, lignes = [], retenues = {} }) {
   return out;
 }
 
-/** Les lignes du Bien d'un dossier. */
+/**
+ * Pure : la main de l'analyste sur une ligne du Bien (29 oct. 2026, Jules : « tout dans le tableau doit être
+ * modifiable »). Une valeur modifiée remplace celle du calcul, « OK » la valide ; ni l'une ni l'autre ne bouge quand
+ * les pièces sont relues. `etat` : 'ia' (calculé), 'corrige' (modifié par), 'verifie' (OK).
+ */
+export function avecLaMain(lignes, cases = {}) {
+  return lignes.map((l) => {
+    const h = cases[`bien.${l.id}`];
+    if (!h?.statut) return { ...l, etat: 'ia', note_analyste: h?.note || null, valeur_main: h?.valeur_main || null };
+    return { ...l, valeur_lue: l.valeur, valeur: h.valeur ?? l.valeur, valeur_main: h.statut === 'corrige' ? h.valeur : h.valeur_main || null, etat: h.statut === 'corrige' ? 'corrige' : h.statut === 'verifie' ? 'verifie' : 'ia', par: h.par || null, le: h.le || null };
+  });
+}
+
+/** Les lignes du Bien d'un dossier : les pièces de la Data Room d'abord, l'ancienne lecture (la matrice) à défaut. */
 export async function bienDu(dealId) {
   const d = Records.findBy('Deal', 'deal_id', dealId);
   if (!d) return null;
-  const { lireMatrice } = await import('./matrice.js');
-  const m = lireMatrice(dealId);
-  return { lignes: lignesBien({ lot: d.lots?.[0]?.lot || {}, lignes: (m?.lignes || []).filter((l) => !l.perime), retenues: d.valeurs_retenues || {} }) };
+  const { lignesBienDesPieces } = await import('./analyse-pieces.js');
+  let lignes = lignesBienDesPieces(d);
+  if (!lignes.length) {
+    const { lireMatrice } = await import('./matrice.js');
+    lignes = (lireMatrice(dealId)?.lignes || []).filter((l) => !l.perime);
+  }
+  return { lignes: avecLaMain(lignesBien({ lot: d.lots?.[0]?.lot || {}, lignes, retenues: d.valeurs_retenues || {} }), d.analyse_pieces?.cases || {}) };
 }

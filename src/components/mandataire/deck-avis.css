@@ -1,0 +1,92 @@
+/* Le deck de l'avis de valeur K Partners (26 oct. 2026, maquette de Jules) : dessiné en 1920 × 1080, mis à l'échelle
+   de la fenêtre, bandes noires autour. Fond pervenche, carte noire à droite, barre noire en bas. Couleurs de la charte,
+   comme le document imprimé : elles ne suivent pas le thème de l'application. */
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&display=swap");
+
+.dk-cadre-transparent { background: transparent !important; }
+.dk-cadre { position: relative; width: 100%; height: 100%; background: #0b0b0d; overflow: hidden; display: grid; place-items: center; touch-action: pan-y; }
+.dk-scene {
+  --dk-pervenche: #a7abed; --dk-pervenche-fonce: #9599dd; --dk-indigo: #262a85; --dk-indigo-vif: #3f47b8; --dk-carte: #141418;
+  --dk-tuile: #1e1e24; --dk-blanc: #ffffff; --dk-pervenche-pale: #cfd1f5; --dk-brume: #dfe1ff; --dk-texte-doux: #d9dae3;
+  --dk-panneau-valeur: radial-gradient(120% 100% at 50% 110%, #5b63d6 0%, #2a2f8f 45%, #14152a 100%); --dk-filet: rgba(255, 255, 255, 0.09); --dk-gris: #9a9cab; --dk-courbe: cubic-bezier(.7, 0, .2, 1);
+  position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: 0 0;
+  font-family: "Hanken Grotesk", system-ui, sans-serif; color: #0e0e10; background: var(--dk-pervenche); overflow: hidden;
+  -webkit-font-smoothing: antialiased; user-select: none;
+}
+.dk-relief { position: absolute; inset: 0 0 110px 0; transform-style: preserve-3d; transition: transform .5s ease-out; }
+
+/* Gauche : l'étiquette, le numéro en filigrane, le titre et la phrase. */
+.dk-etiquette { position: absolute; left: 84px; top: 86px; font-size: 22px; letter-spacing: .2em; text-transform: uppercase; color: #2b2d36; }
+.dk-filigranes { position: absolute; left: 50px; top: 120px; width: 800px; height: 480px; transition: transform .5s ease-out; }
+.dk-filigrane { position: absolute; left: 0; top: 0; font-size: 560px; line-height: .8; font-weight: 300; letter-spacing: -.04em; color: var(--dk-pervenche-fonce); opacity: 0; transition: opacity .6s ease; }
+.dk-filigrane-vu { opacity: 1; }
+.dk-gauche { position: absolute; left: 84px; bottom: 30px; width: 690px; transition: transform 1.3s var(--dk-courbe); }
+.dk-titre { margin: 0; font-size: 104px; line-height: 1.02; font-weight: 400; letter-spacing: -.03em; color: #0e0e10; }
+.dk-phrase { margin: 26px 0 0; font-size: 36px; line-height: 1.3; color: #2b2d36; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.dk-phrase em { font-style: normal; color: var(--dk-indigo); }
+.dk-gauche-infos { margin-top: 26px; font-size: 30px; color: #2b2d36; }
+.dk-gauche-duo { display: flex; gap: 70px; margin-top: 34px; }
+.dk-gauche-duo span { display: block; font-size: 20px; letter-spacing: .16em; text-transform: uppercase; color: #2b2d36; margin-bottom: 8px; }
+.dk-gauche-duo b { font-weight: 400; font-size: 28px; color: #0e0e10; }
+
+/* Droite : la piste des cartes, en profondeur. */
+.dk-piste { position: absolute; left: 806px; top: 62px; width: 1046px; height: 846px; perspective: 2400px; }
+.dk-carte {
+  position: absolute; inset: 0; border-radius: 44px; background: var(--dk-carte); color: #fff; padding: 64px 58px;
+  box-shadow: 0 40px 80px rgba(20, 20, 60, .28); transform-origin: 50% 50%;
+  transition: transform 1.3s var(--dk-courbe); backface-visibility: hidden; overflow: hidden;
+}
+.dk-carte-indigo { background: linear-gradient(160deg, #4a52c9 0%, #3f47b8 45%, #262a85 100%); }
+.dk-carte-logo { position: absolute; right: 58px; top: 50px; font-size: 54px; }
+
+/* La cascade : à l'arrivée, chaque élément monte et apparaît, 0,5 s après le début du glissement, puis toutes les 0,1 s. */
+.dk-c { opacity: 0; transform: translateY(30px); }
+.dk-actif .dk-c { animation: dk-monte .7s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(.5s + var(--i, 0) * .1s); }
+@keyframes dk-monte { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+
+/* Les briques des cartes. */
+.dk-lignes { margin: 0; }
+.dk-ligne { display: flex; justify-content: space-between; align-items: baseline; gap: 40px; padding: 18px 0; border-bottom: 1px solid var(--dk-filet); font-size: 28px; line-height: 1.3; }
+.dk-ligne:last-child { border-bottom: 0; }
+.dk-ligne dt { color: var(--dk-gris); flex: none; }
+.dk-ligne dd { margin: 0; text-align: right; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.dk-vide { color: #5d5f6c; font-style: italic; }
+.dk-alerte { color: #e9b45c; }
+.dk-tuiles { display: grid; gap: 22px; }
+.dk-tuile { background: var(--dk-tuile); border-radius: 26px; padding: 30px 32px; }
+.dk-tuile b { display: block; font-weight: 300; font-size: 64px; line-height: 1.05; letter-spacing: -.02em; }
+.dk-tuile span { display: block; margin-top: 10px; font-size: 26px; color: var(--dk-gris); }
+.dk-pervenche { color: var(--dk-pervenche); }
+.dk-pastilles { display: flex; flex-wrap: wrap; gap: 16px; }
+.dk-pastille { border: 2px solid var(--dk-pervenche); color: var(--dk-pervenche); border-radius: 999px; padding: 10px 24px; font-size: 26px; }
+.dk-sur { font-size: 22px; letter-spacing: .16em; text-transform: uppercase; color: var(--dk-gris); margin: 0 0 18px; }
+.dk-bandeau { border-radius: 30px; padding: 34px 40px; background: linear-gradient(120deg, #4a52c9 0%, #3f47b8 50%, #262a85 100%); color: #fff; }
+.dk-table { width: 100%; border-collapse: collapse; font-size: 28px; }
+.dk-table th { font-weight: 400; color: var(--dk-gris); text-align: right; padding: 16px 12px; border-bottom: 1px solid var(--dk-filet); }
+.dk-table td { text-align: right; padding: 16px 12px; border-bottom: 1px solid var(--dk-filet); }
+.dk-table th:first-child, .dk-table td:first-child { text-align: left; }
+.dk-table tr.dk-votre td { background: var(--dk-indigo); border-bottom: 0; }
+.dk-note { font-size: 22px; color: var(--dk-gris); }
+.dk-nowrap { white-space: nowrap; }
+
+/* La barre noire du bas. */
+.dk-barre { position: absolute; left: 0; right: 0; bottom: 0; height: 110px; background: #0e0e10; color: #fff; display: flex; align-items: center; padding: 0 84px; gap: 60px; }
+.dk-barre-logo { font-size: 46px; }
+.dk-barre-section { font-size: 26px; letter-spacing: .16em; text-transform: uppercase; width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dk-progression { position: relative; flex: 1; height: 40px; }
+.dk-progression-fond { position: absolute; left: 0; right: 0; top: 19px; height: 2px; background: rgba(255, 255, 255, .22); }
+.dk-progression-trait { position: absolute; left: 0; top: 19px; height: 2px; background: var(--dk-pervenche); transition: width 1.3s var(--dk-courbe); }
+.dk-repere { position: absolute; top: 12px; width: 16px; height: 16px; margin-left: -8px; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.dk-repere::after { content: ""; position: absolute; left: 7px; top: 0; width: 2px; height: 16px; background: rgba(255, 255, 255, .35); }
+.dk-point { position: absolute; top: 4px; width: 32px; height: 32px; margin-left: -16px; border-radius: 50%; background: var(--dk-pervenche); box-shadow: 0 0 0 8px rgba(167, 171, 237, .25); transition: left 1.3s var(--dk-courbe); pointer-events: none; }
+.dk-compteur { font-size: 30px; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.dk-fleches { display: flex; gap: 18px; }
+.dk-fleche { width: 72px; height: 72px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); background: transparent; color: #fff; display: grid; place-items: center; cursor: pointer; }
+.dk-fleche-suite { background: var(--dk-pervenche); border-color: var(--dk-pervenche); color: #0e0e10; }
+.dk-fleche:disabled { opacity: .35; cursor: default; }
+.dk-fleche svg { width: 30px; height: 30px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dk-carte, .dk-gauche, .dk-progression-trait, .dk-point { transition-duration: .01s !important; }
+  .dk-actif .dk-c { animation: none; opacity: 1; transform: none; }
+}

@@ -12,23 +12,23 @@
 //
 // En Prospection, deux statuts : À contacter, Contacté (et Pas d'intérêt pour
 // en sortir). Au rendez-vous fixé, la fiche passe dans Biens, sans copie :
-// Rendez-vous fixé, Visité, Estimation, Prix d'accord, Mandat, Analyse, Mise
-// en marché, Offres, Vente ; chaque étape validée s'écrit dans l'historique.
+// Visite, Avis de valeur, Mandat, Commercialisation, Offres, Vente (27 oct. 2026 : six étapes, plus d'Analyse)
+// (26 oct. 2026) ; chaque étape validée s'écrit dans l'historique.
 // Dans Biens, un refus du prix met la fiche En pause, avec une relance.
 
 import { Records } from './db.js';
+import { CAS_RESTITUTION, appliquerRestitution } from './restitution-avis.js';
 // Les étapes faites se comptent comme à l'écran (src/lib/biens-mandataire.js).
-import { etapesFaites as faitesDuBien } from '../src/lib/biens-mandataire.js';
+import { ETAPES_BIEN, etapesFaites as faitesDuBien, marqueurDe } from '../src/lib/biens-mandataire.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (u) => String(u?.email || '').toLowerCase();
 const PARIS = 'Europe/Paris';
 
 /** Les étapes d'un bien, dans l'ordre. */
-export const ETAPES_BIENS = [
-  ['rdv', 'Rendez-vous fixé'], ['visite', 'Visité'], ['estimation', 'Estimation'], ['prix_accord', "Prix d'accord"],
-  ['mandat', 'Mandat'], ['analyse', 'Analyse'], ['marche', 'Mise en marché'], ['offre', 'Offres'], ['vente', 'Vente'],
-];
+export const ETAPES_BIENS = ETAPES_BIEN.map((e) => [e.id, e.label]);
+// Les anciens mots (avant le 26 oct. 2026), encore dits par Haka ou la dictée : la visite faite, l'avis accepté.
+export const ALIAS_ETAPES = { visite: 'previsite', prix_accord: 'estimation', analyse: 'mandat' };
 const IDS = ETAPES_BIENS.map(([k]) => k);
 
 /** Une fiche est dans Biens dès le rendez-vous fixé. */
@@ -49,10 +49,11 @@ export function validerEtape(id, etape, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
   if (!dansBiens(p)) return { ok: false, error: "Cette fiche n'est pas encore dans Biens : il faut un rendez-vous fixé." };
-  const i = IDS.indexOf(etape);
+  const cle = ALIAS_ETAPES[etape] || etape;
+  const i = IDS.indexOf(cle);
   if (i < 0) return { ok: false, error: 'Étape inconnue.' };
   const mot = ETAPES_BIENS[i][1];
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), validee: etape, pause: null }, historique: ajouter(p, { type: 'etape', texte: `Étape validée : ${mot}` }) }) };
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), validee: marqueurDe(cle), pause: null }, historique: ajouter(p, { type: 'etape', texte: `Étape validée : ${mot}` }) }) };
 }
 
 /** Dans Biens, le propriétaire refuse le prix : En pause, une relance programmée et un nouvel argument. */
@@ -77,7 +78,7 @@ export async function mettreEnPause(id, { argument = null, dans_jours = 30 } = {
 export function reprendre(id, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
-  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), pause: null }, historique: ajouter(p, { type: 'pause', texte: 'Reprise' }) }) };
+  return { ok: true, proprietaire: Records.update('ProprietaireMandataire', p.id, { biens: { ...(p.biens || {}), pause: null, perdu: null }, historique: ajouter(p, { type: 'pause', texte: 'Reprise' }) }) };
 }
 
 const AGES_LONGS = { '70+': '70 ans et plus', '50-70': '50 à 70 ans', '-50': 'moins de 50 ans' };
@@ -138,6 +139,33 @@ export function detailsDe({ p = {}, commerce: cs = null, cible = null, signaux =
 export async function fiche(id, user) {
   const p = sienne(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
+  return composer(p);
+}
+
+/**
+ * L'aperçu d'un commerce sans fiche (25 oct. 2026, Jules : « exactement la fiche de la carte des listes ») : la même
+ * fiche, composée depuis le commerce seul, sans rien créer. Elle naît au premier geste (`ficheDuCommerce`). Refusée si un
+ * autre mandataire tient le commerce ; si c'est le mien, c'est sa vraie fiche.
+ */
+export async function ficheDeCommerce(commerceId, user) {
+  const c = Records.get('CommerceSimple', commerceId);
+  if (!c) return { ok: false, error: 'Commerce introuvable.' };
+  const deja = Records.list('ProprietaireMandataire').find((x) => x.commerce_simple_id === commerceId);
+  if (deja) return deja.mandataire_email === emailDe(user) ? composer(deja) : { ok: false, error: 'Ce commerce est déjà suivi par un autre mandataire.' };
+  const { nomLisible, societeLisible, rueLisible } = await import('./off-market/casse.js');
+  const ex = c.exploitant || {};
+  const telephone = String(c.lien || '').startsWith('exploitant') ? (c.contact?.telephone || c.telephone || null) : null;
+  const virtuelle = {
+    id: null, apercu: true, statut: null, commerce_simple_id: commerceId, mandataire_email: emailDe(user),
+    nom: c.proprietaire?.nom ? nomLisible(c.proprietaire.nom, { forme: c.proprietaire.forme }) : null,
+    commerce: c.enseigne ? societeLisible(c.enseigne) : nomLisible(ex.nom || c.nom, { forme: ex.forme }),
+    activite: c.activite || null, ville: c.ville || null, adresse: rueLisible(c.adresse), telephone,
+    telephone_source: telephone ? 'commerce (exploitant propriétaire)' : null, historique: [],
+  };
+  return composer(virtuelle);
+}
+
+async function composer(p) {
   const { ficheCourte, signauxDe } = await import('./mandataire-matin.js');
   const { drapeauxDe } = await import('./off-market/simple.js');
   const cs = p.commerce_simple_id ? Records.get('CommerceSimple', p.commerce_simple_id) : null;
@@ -161,13 +189,23 @@ export async function fiche(id, user) {
   return {
     ok: true,
     fiche: {
-      id: p.id, statut: p.statut, statut_mot: MOTS_PROSPECTION[p.statut] || p.statut, dans_biens: dansBiens(p),
+      id: p.id, apercu: !!p.apercu, statut: p.statut, statut_mot: p.apercu ? 'Pas encore de fiche' : MOTS_PROSPECTION[p.statut] || p.statut, dans_biens: dansBiens(p),
       commerce: p.commerce || cs?.enseigne || cible?.enseigne || null, activite: p.activite || cs?.activite || cible?.activite || null,
       adresse: [p.adresse || cs?.adresse || cible?.adresse, p.ville || cs?.ville || cible?.ville].filter(Boolean).join(', ') || null,
       // Les corrections du mandataire passent devant les registres (25 oct. 2026). Plus d'accroche (Jules).
       exploitant: { nom: cor.exploitant || courte.exploitant, depuis: cor.exploitant ? null : courte.depuis },
       murs: { proprietaire: cor.murs || courte.proprietaire, forme: cor.murs ? null : courte.forme, gerant: cor.gerant ? { nom: cor.gerant, age: null } : courte.gerant },
       corrections: cor,
+      // La classe d'actif (26 oct. 2026) : commerce, bureaux, entrepôt.
+      classe: cs?.classe || 'commerce',
+      // Les parties libres ajoutées à la fiche (26 oct. 2026).
+      sections: Array.isArray(p.sections) ? p.sections : [],
+      // La préparation du rendez-vous (26 oct. 2026) : prête en fond au rendez-vous fixé, mise à jour la veille à 18 h.
+      preparation: p.preparation || null,
+      // Où est le commerce, pour sa vitrine (Street View) en tête de fiche (25 oct. 2026).
+      position: cs?.lat != null && cs?.lon != null ? { lat: cs.lat, lon: cs.lon } : cible?.lat != null && cible?.lon != null ? { lat: cible.lat, lon: cible.lon } : null,
+      // La liste où vit la fiche (25 oct. 2026) : « Dans la liste « Lyon » · changer ».
+      liste: p.liste_id ? (({ id, nom }) => ({ id, nom }))(Records.get('ListeMandataire', p.liste_id) || { id: p.liste_id, nom: 'Liste' }) : null,
       details: detailsDe({ p, commerce: cs, cible, signaux }),
       signaux,
       contact: { telephone: p.telephone || null, telephone_source: p.telephone_source || null, email: p.email || null, a_confirmer: p.a_confirmer || {} },
@@ -200,7 +238,8 @@ export async function lireDictee(id, { texte = null, audio = null } = {}, user, 
     prompt:
       `Un mandataire immobilier raconte ce qui vient de se passer avec ${p.nom || 'le propriétaire'} des murs de ${p.commerce || 'ce commerce'}${p.ville ? ` à ${p.ville}` : ''}. ${enBiens ? 'Le bien est déjà en cours de vente (rendez-vous fixé).' : 'Le commerce est en prospection.'}\n\nCe qu'il dit :\n« ${dit.slice(0, 6000)} »\n\nNous sommes le ${aujourdhui}. Réponds en JSON :\n` +
       `- compris : en une ou deux phrases, ce que tu as compris (au mandataire, « vous »).\n` +
-      `- issue : ${enBiens ? "une étape franchie parmi visite (visite faite), prix_accord (le propriétaire accepte le prix), pause (il refuse le prix ou veut attendre), ou null" : "contacte (joint, rien de conclu ou à suivre), rdv (un rendez-vous est convenu), pas_interet (il ne vendra pas), ou null"}.\n` +
+      `- issue : ${enBiens ? "une étape franchie parmi visite (la visite est faite), prix_accord (le propriétaire accepte le prix de l'avis), pause (il refuse le prix ou veut attendre), ou null" : "contacte (joint, rien de conclu ou à suivre), rdv (un rendez-vous est convenu), pas_interet (il ne vendra pas), ou null"}.\n` +
+      (enBiens ? `- restitution : si le propriétaire réagit à l'avis de valeur envoyé, le cas parmi ${Object.keys(CAS_RESTITUTION).join(', ')} (accord_conseille : d'accord sur le prix conseillé ; accord_fourchette ou accord_au_dessus : d'accord à un autre prix ; reflechit ; sans_reponse ; consulte : famille, comptable ; attend : un document, une fin de bail, une succession ; trop_bas : refuse le prix ; concurrent : a signé ailleurs ; plus_vendeur ; injoignable ; bail_change : le bail change la valeur), sinon null. Avec restitution, issue vaut null.\n- restitution_prix : le prix convenu ou demandé, en euros, sinon null.\n- restitution_date : la date qu'il donne (AAAA-MM-JJ), sinon null.\n` : '') +
       `- rdv_quand : si un rendez-vous est convenu, sa date-heure AAAA-MM-JJTHH:MM (heure de Paris), sinon null.\n` +
       `- infos : les informations nouvelles sur le propriétaire ou le commerce, chacune { champ: "telephone" | "email" | "nom" | "remarque", valeur, a_confirmer } ; a_confirmer vaut true si elle vient d'un tiers (un voisin, l'exploitant, un employé) et non du propriétaire lui-même.\n` +
       `- tache : la prochaine chose à faire, { quoi: « Appeler M. Bernard », quand: AAAA-MM-JJ }, ou null.\n` +
@@ -211,6 +250,9 @@ export async function lireDictee(id, { texte = null, audio = null } = {}, user, 
         compris: { type: 'string' },
         issue: { type: ['string', 'null'] },
         rdv_quand: { type: ['string', 'null'] },
+        restitution: { type: ['string', 'null'] },
+        restitution_prix: { type: ['number', 'string', 'null'] },
+        restitution_date: { type: ['string', 'null'] },
         infos: { type: 'array', items: { type: 'object', properties: { champ: { type: 'string' }, valeur: { type: 'string' }, a_confirmer: { type: 'boolean' } }, required: ['champ', 'valeur'] } },
         tache: { type: ['object', 'null'], properties: { quoi: { type: 'string' }, quand: { type: ['string', 'null'] } } },
         note: { type: 'string' },
@@ -228,6 +270,7 @@ export async function lireDictee(id, { texte = null, audio = null } = {}, user, 
       compris: String(lu.compris || '').trim(),
       issue: issues.includes(lu.issue) ? lu.issue : null,
       rdv_quand: lu.rdv_quand || null,
+      restitution: enBiens && CAS_RESTITUTION[lu.restitution] ? { cas: lu.restitution, prix: lu.restitution_prix ?? null, date: lu.restitution_date || null, mot: CAS_RESTITUTION[lu.restitution].mot } : null,
       infos: (Array.isArray(lu.infos) ? lu.infos : []).filter((x) => champs.includes(x?.champ) && String(x?.valeur || '').trim()).map((x) => ({ champ: x.champ, valeur: String(x.valeur).trim().slice(0, 300), a_confirmer: !!x.a_confirmer })),
       tache: lu.tache?.quoi ? { quoi: String(lu.tache.quoi).slice(0, 200), quand: lu.tache.quand || null } : null,
       note: String(lu.note || '').trim() || dit.slice(0, 200),
@@ -275,7 +318,13 @@ export async function appliquerDictee(id, proposition = {}, user) {
   } else if (issue === 'visite' || issue === 'prix_accord') {
     const r = validerEtape(p.id, issue, user);
     if (!r.ok) return r;
-    faits.unshift(`Étape validée : ${issue === 'visite' ? 'Visité' : "Prix d'accord"}`);
+    faits.unshift(issue === 'visite' ? 'Visite faite' : "Avis accepté : le mandat peut se préparer");
+  } else if (proposition.restitution?.cas) {
+    // La restitution de l'avis (27 oct. 2026) : le statut, la relance datée et la ligne d'historique.
+    const r = appliquerRestitution(p.id, { ...proposition.restitution, note }, user);
+    if (!r.ok) return r;
+    faits.unshift(`${r.plan.mot} : prochaine action le ${new Date(r.plan.relance.le).toLocaleDateString('fr-FR', { timeZone: PARIS })}`);
+    if (r.plan.alerte) faits.push(r.plan.alerte);
   } else if (issue === 'pause') {
     const r = await mettreEnPause(p.id, {}, user);
     if (!r.ok) return r;

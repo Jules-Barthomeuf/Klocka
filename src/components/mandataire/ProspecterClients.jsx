@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Loader from "@/components/ui/Loader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronRight, ListPlus, Loader2, Radar, RefreshCw, Search, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ListPlus, Loader2, MapPin, Menu, Radar, RefreshCw, Search, X } from "lucide-react";
 import { Avatar } from "@/components/mandataire/AvatarClient";
 import { base44 } from "@/api/base44Client";
 import { JL } from "@/design/jetons";
@@ -9,10 +10,10 @@ import CarteGoogleSecteurs from "@/components/mandataire/CarteGoogleSecteurs";
 import FicheMandataire from "@/components/mandataire/FicheMandataire";
 import { toast } from "@/components/ui/avis";
 import { PastilleExemple } from "@/components/mandataire/kit";
-import { DRAPEAUX_COURTS, Fiche, FenetreListe, LIENS, MenuFiltres, REPONSES } from "@/components/off-market/Simple";
+import { DRAPEAUX_COURTS, FenetreListe, LIENS, MenuFiltres, REPONSES } from "@/components/off-market/Simple";
 import { Case, Vide, bouton, boutonPlein, champ, euros, pl } from "@/components/off-market/commun";
 import { FILTRES_SIMPLE, nbFiltres, passeSimple } from "@/lib/off-market-simple";
-import { budgetDe, exclusionsDe, pourquoiCible, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
+import { budgetDe, exclusionsDe, veutEmplacement1, veutEnseigneNationale } from "@/lib/clients-commerces";
 
 // Prospecter pour ses clients (24 oct. 2026, Jules) : à gauche, la carte de son
 // secteur, toujours délimité ; à droite, ses clients en carrousel, seulement
@@ -37,7 +38,10 @@ export default function ProspecterClients({ bascule = null }) {
   const enPreparation = (data?.villes || []).some((v) => v.preparation?.en_cours);
   const clients = useMemo(() => data?.clients || [], [data]);
   const [i, setI] = useState(0);
-  const [prospecte, setProspecte] = useState(null); // l'id du client dont les murs sont sur la carte
+  // Le client est un filtre de la même vue (25 oct. 2026, Jules) : on arrive sur tous les commerces du secteur, et les flèches
+  // de la carte passent à un client, dont les murs remplacent la liste. `tous` : aucun client choisi.
+  const [tous, setTous] = useState(true);
+  const [prospecte, setProspecte] = useState("tous"); // « tous », ou l'id du client dont les murs sont sur la carte
   const [ouvert, setOuvert] = useState(null); // le commerce dont la fiche est ouverte
   const [replie, setReplie] = useState(false); // la carte du client, repliée quand une fiche s'ouvre
   const [filtres, setFiltres] = useState(FILTRES_DEPART);
@@ -47,9 +51,10 @@ export default function ProspecterClients({ bascule = null }) {
   const [vusIci, setVusIci] = useState(() => ({}));
   const dejaLe = (c) => (c ? vusIci[c.id] || c.prospecte_le || null : null);
   useEffect(() => {
+    if (tous) { setProspecte("tous"); return; }
     if (!client) return;
     setProspecte(dejaLe(client) ? client.id : null);
-  }, [client?.id]);
+  }, [tous, client?.id]);
   // Passer d'un client à l'autre ne prospecte jamais (25 oct. 2026, Jules) : seul le bouton envoie `?prospecter=1` ; un
   // client déjà prospecté se réaffiche depuis le cache, sans attente ni rechargement visible.
   const qc = useQueryClient();
@@ -59,7 +64,7 @@ export default function ProspecterClients({ bascule = null }) {
     queryFn: () => {
       const noter = geste.current === prospecte;
       geste.current = null;
-      return base44.request("GET", `${API}/clients/${prospecte}${noter ? "?prospecter=1" : ""}`);
+      return base44.request("GET", prospecte === "tous" ? `${API}/tous` : `${API}/clients/${prospecte}${noter ? "?prospecter=1" : ""}`);
     },
     enabled: !!prospecte,
     staleTime: 5 * 60_000,
@@ -76,65 +81,72 @@ export default function ProspecterClients({ bascule = null }) {
   // Un point dont la fiche est dans Biens devient noir (24 oct. 2026).
   const marqueurs = useMemo(() => visibles.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, titre: [p.titre, p.fiche?.dans_biens ? "dans Biens" : null, p.signaux?.[0]].filter(Boolean).join(" · "), couleur: p.fiche?.dans_biens ? JL.fond : LIENS[p.lien]?.couleur || JL.menthe })), [visibles]);
   const secteurs = useMemo(() => (data?.secteur ? [{ ...data.secteur, teinte: data.secteur.teinte || JL.menthe }] : []), [data]);
-  const clientProspecte = clients.find((c) => c.id === prospecte) || null;
-  const aller = (k) => { setI((x) => (x + k + clients.length) % clients.length); setOuvert(null); setReplie(false); };
+  const clientProspecte = prospecte === "tous" ? null : clients.find((c) => c.id === prospecte) || null;
+  // Le choix du client se fait dans la liste déroulante de la carte (25 oct. 2026, Jules) : « tous les commerces » en
+  // premier, puis chaque client ; on saute directement à n'importe lequel.
+  const choisir = (k) => {
+    if (k == null) setTous(true); else { setTous(false); setI(k); }
+    setOuvert(null); setReplie(false);
+  };
+  const selecteur = { clients, tous, courant: Math.min(i, Math.max(0, clients.length - 1)), onChoisir: choisir, vus: clients.filter((c) => dejaLe(c)).map((c) => c.id) };
   // Une fiche ouverte replie la carte du client ; la fermer la rouvre.
   const ouvrir = (id) => { setOuvert(id); setReplie(!!id); };
   useEffect(() => { setFiltres(FILTRES_DEPART); }, [prospecte]);
 
   // Chargement, erreur, pas de secteur : la bascule reste, pour passer à « Tous les commerces ».
   const seul = (contenu) => <div className="flex flex-col gap-4"><div className="flex flex-wrap items-center gap-2">{bascule}</div>{contenu}</div>;
-  if (isLoading) return seul(<p className="m-0 mt-6 inline-flex items-center gap-2 text-[13.5px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin text-menthe" /> Votre secteur et vos clients…</p>);
+  if (isLoading) return seul(<Loader titre="Votre secteur et vos clients…" />);
   if (isError) return seul(<p className="m-0 mt-6 text-[13.5px] text-alerte">La prospection ne se charge pas. Rechargez la page.</p>);
-  if (!data?.secteur) return seul(<p className="m-0 mt-12 text-center text-[14px] text-brume">Aucun secteur pour vous encore : Klocka vous en attribue un, puis vos clients s'affichent ici.</p>);
+  if (!data?.secteur) return seul(<p className="m-0 mt-12 text-center text-[14px] text-brume">Aucun secteur pour vous encore : K Partners vous en attribue un, puis vos clients s'affichent ici.</p>);
 
   return (
     <div className="flex flex-col gap-4 pb-10">
+      {/* Deux colonnes dès le haut (25 oct. 2026, Jules) : à gauche la barre puis la carte, à droite la carte du client
+          dont le haut s'aligne sur la bascule « Pour mes clients / Tous les commerces ». Au téléphone, une seule colonne à la
+          largeur de l'écran (`minmax(0, 1fr)`, sinon la colonne implicite prend la largeur de son contenu et déborde). */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_520px]">
+      <div className="flex min-w-0 flex-col gap-4">
       {/* La barre du haut, comme « Tous les commerces » : la bascule, les filtres, où en sont les villes. */}
       <div className="flex flex-wrap items-center gap-2">
         {bascule}
         {prospecte && (
           <MenuFiltres filtres={filtres} setFiltres={setFiltres} commerces={murs} tous={murs} activites={activites} visibles={visibles.length} />
         )}
-        {prospecte && (
-          <span className="inline-flex h-10 items-center gap-2 rounded-full border border-menthe px-3.5 text-[12.5px] text-encre">
-            {attente ? <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" /> : <span className="h-2 w-2 rounded-full bg-menthe" />}
-            {attente ? "Les murs pour ce client…" : `${pl(visibles.length, "mur")} pour ${clientProspecte?.reference || "ce client"}`}
-            <button type="button" onClick={() => { setProspecte(null); ouvrir(null); }} aria-label="Retirer les murs" title="Retirer les murs"
-              className="grid h-5 w-5 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
-          </span>
-        )}
+        {/* Plus de pastille « n murs pour … » (25 oct. 2026, Jules) : le nombre est sur la carte du client et au-dessus du
+            tableau, le chargement sur « Mettre à jour », et changer de client remplace les murs. */}
         <span className="flex-1" />
         {/* La préparation de ses villes, en fond : les murs s'ajoutent en direct à mesure. */}
         {enPreparation && <Preparation villes={data.villes} />}
       </div>
 
-      {/* Au téléphone, une seule colonne à la largeur de l'écran (25 oct. 2026, Jules) : `minmax(0, 1fr)`, sinon la colonne
-          implicite prend la largeur de son contenu et la carte déborde. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_460px] xl:grid-cols-[minmax(0,1fr)_520px]">
         {/* À gauche : le secteur, et les murs du client prospecté. */}
-        <div className="relative h-[calc(100dvh-190px)] min-h-[560px] w-full min-w-0 overflow-hidden rounded-bloc border border-trait max-lg:h-[64dvh] max-lg:min-h-[380px]">
+        <div className="relative h-[62vh] min-h-[460px] w-full min-w-0 overflow-hidden rounded-bloc border border-trait max-md:h-[380px] max-md:min-h-0">
           <CarteGoogleSecteurs secteurs={secteurs} choisi={data.secteur.id} contourSeul={!!prospecte} margesChoisi={MARGES} marqueurs={marqueurs} marqueurActif={ouvert} onMarqueur={ouvrir} />
         </div>
+      </div>
 
-        {/* À droite : le client (replié quand une fiche est ouverte), puis la fiche du commerce. */}
-        <div className="flex h-[calc(100dvh-190px)] min-h-[560px] min-w-0 flex-col gap-3 max-lg:h-auto">
+        {/* À droite, du haut de la barre au bas de la carte, exactement (25 oct. 2026, Jules) : à partir de `lg`, la colonne
+            prend la hauteur de la rangée de la grille, celle de la colonne de gauche (barre + carte), et son contenu est posé
+            en absolu : il ne peut pas l'allonger. Dessous, une hauteur propre, le client puis la fiche l'un sous l'autre. */}
+        <div className="relative min-w-0 max-lg:h-[62vh] max-lg:min-h-[460px] max-md:h-auto">
+        <div className="flex min-w-0 flex-col gap-3 lg:absolute lg:inset-0 max-lg:h-full max-md:h-auto">
           {!(data.villes || []).length ? (
-            <p className="m-0 rounded-bloc border border-trait px-5 py-6 text-[13.5px] leading-[1.6] text-ardoise">Klocka n'a pas encore choisi les villes de votre secteur : vos clients s'afficheront ici dès qu'elles le seront.</p>
+            <p className="m-0 rounded-bloc border border-trait px-5 py-6 text-[13.5px] leading-[1.6] text-ardoise">K Partners n'a pas encore choisi les villes de votre secteur : vos clients s'afficheront ici dès qu'elles le seront.</p>
           ) : !clients.length ? (
-            <p className="m-0 rounded-bloc border border-trait px-5 py-6 text-[13.5px] leading-[1.6] text-ardoise">Aucun client ne cherche dans les villes de votre secteur pour l'instant ({data.villes.map((v) => v.nom).join(", ")}).</p>
+            <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} seule />
           ) : (
-            <CarteClient client={client} clients={clients} rang={clients.indexOf(client)} total={clients.length} onAller={aller} onChoisir={(k) => { setI(k); setOuvert(null); setReplie(false); }} actif={prospecte === client?.id}
+            tous ? <CarteTous n={points.data?.total ?? murs.length} villes={data.villes} charge={attente} selecteur={selecteur} replie={replie} onReplier={() => setReplie((r) => !r)} />
+            : <CarteClient client={client} selecteur={selecteur} actif={prospecte === client?.id}
               replie={replie} onReplier={() => setReplie((r) => !r)}
-              prospecteLe={dejaLe(client)} prospectes={clients.filter((c) => dejaLe(c)).map((c) => c.id)} charge={points.isFetching}
+              prospecteLe={dejaLe(client)} charge={points.isFetching}
               onProspecter={() => { geste.current = client.id; if (prospecte === client.id) points.refetch(); else qc.invalidateQueries({ queryKey: ["m-prospecter", "points", client.id] }); setProspecte(client.id); setVusIci((v) => ({ ...v, [client.id]: new Date().toISOString() })); ouvrir(null); }} />
           )}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-bloc border border-trait bg-surface max-lg:min-h-[320px]">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-bord-doux bg-rail max-lg:min-h-[320px]">
             {/* Fermer la fiche, ou changer de point, se fait en fondu (24 oct. 2026). */}
             <AnimatePresence mode="wait" initial={false}>
             {ouvert ? (
               <motion.div key={ouvert} className="min-h-0 flex-1 overflow-y-auto" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
-                <PointOuFiche point={murs.find((x) => x.id === ouvert)} id={ouvert} onFermer={() => ouvrir(null)} client={clientProspecte} pourquoi={pourquoiCible(murs.find((x) => x.id === ouvert), clientProspecte)} />
+                <PointOuFiche point={murs.find((x) => x.id === ouvert)} id={ouvert} onFermer={() => ouvrir(null)} />
               </motion.div>
             ) : (
               <motion.div key="vide" className="grid flex-1 place-items-center px-6 py-8 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: "easeInOut" }}>
@@ -147,6 +159,7 @@ export default function ProspecterClients({ bascule = null }) {
             )}
             </AnimatePresence>
           </div>
+        </div>
         </div>
       </div>
 
@@ -163,33 +176,10 @@ export default function ProspecterClients({ bascule = null }) {
  * du commerce, à personne) avec deux gestes qui font naître sa fiche : « Je l'appelle », « J'y suis passé ». Une fois
  * sa fiche créée, c'est elle qui s'ouvre (la sienne : aucun autre mandataire ne peut la prendre).
  */
-function PointOuFiche({ point, id, onFermer, client, pourquoi }) {
-  const qc = useQueryClient();
-  const [ficheId, setFicheId] = useState(point?.fiche?.id || null);
-  const [enCours, setEnCours] = useState(null);
-  useEffect(() => { setFicheId(point?.fiche?.id || null); }, [id, point?.fiche?.id]);
-  const naitre = async (statut) => {
-    setEnCours(statut);
-    try {
-      const r = await base44.request("POST", `/api/mandataire/commerces/${id}/fiche`, { body: { statut } });
-      setFicheId(r.proprietaire.id);
-      qc.invalidateQueries({ queryKey: ["m-prospecter", "points"] });
-      qc.invalidateQueries({ queryKey: ["m-listes"] });
-      if (statut === "a_appeler" && r.proprietaire.telephone) window.location.href = `tel:${String(r.proprietaire.telephone).replace(/[^\d+]/g, "")}`;
-    } catch (e) { toast.error(e?.message || "Impossible de créer la fiche"); }
-    setEnCours(null);
-  };
-  if (ficheId) return <FicheMandataire id={ficheId} onFermer={onFermer} />;
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-2 border-b border-trait px-5 py-3">
-        <span className="mr-auto text-[12.5px] text-ardoise">Vous agissez : la fiche est créée, à vous.</span>
-        <button type="button" onClick={() => naitre("a_appeler")} disabled={!!enCours} className={boutonPlein}>{enCours === "a_appeler" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}Je l'appelle</button>
-        <button type="button" onClick={() => naitre("contacte")} disabled={!!enCours} className={bouton}>{enCours === "contacte" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}J'y suis passé</button>
-      </div>
-      <Fiche id={id} onFermer={onFermer} client={client} pourquoi={pourquoi} />
-    </>
-  );
+function PointOuFiche({ id, onFermer, point }) {
+  // La fiche des listes, la même partout (25 oct. 2026, Jules) : celle de la carte d'une liste ; sans fiche encore, son
+  // aperçu, avec « Ajouter à ma liste » qui la fait naître.
+  return <FicheMandataire id={point?.fiche?.id || null} commerceId={id} onFermer={onFermer} />;
 }
 
 /** Où en est la préparation des villes (lecture, propriétaires, prix) : une pastille, le détail au survol. */
@@ -200,7 +190,7 @@ function Preparation({ villes }) {
   const reste = somme("proprietaires_a_faire");
   const detail = villes.map((v) => `${v.nom} : ${v.etat !== "lue" ? "lecture à venir" : `${v.preparation?.proprietaires_faits || 0} propriétaires cherchés sur ${v.preparation?.commerces || 0}, ${v.preparation?.avec_prix || 0} prix`}`).join("\n");
   return (
-    <span title={detail} className="inline-flex h-10 items-center gap-2 rounded-full border border-menthe/50 px-3.5 text-[12.5px] text-encre">
+    <span title={detail} className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux bg-rail px-4 text-[14px] text-encre">
       <Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />
       {aLire.length ? `Lecture de ${aLire.join(", ")}` : reste ? `Propriétaires : ${reste} à chercher` : "Prix en cours d'estimation"}
       <span className="text-ardoise">· les murs s'ajoutent en direct</span>
@@ -228,7 +218,7 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
   const tousCoches = libres.length > 0 && libres.every((c) => coches.has(c.id));
   const colonnes = [["commerce", "Commerce"], ["adresse", "Adresse"], ["nom", "Exploitant"], ["proprietaire", "Propriétaire des murs"], ["lien", "Lien"], ["signaux", "Raison de vendre"], ["prix", "Prix pour lui"], ["appel", "Appel"]];
   return (
-    <section className="overflow-hidden rounded-bloc border border-trait bg-surface">
+    <section className="overflow-hidden rounded-[18px] border border-bord-doux bg-rail">
       <div className="flex flex-wrap items-center gap-2 border-b border-trait px-4 py-3">
         <h3 className="m-0 mr-2 text-[16px] font-normal text-encre">{pl(tries.length, "mur")}{tries.length !== total ? <span className="text-ardoise"> sur {total}</span> : null}</h3>
         <div className="relative w-[280px] max-w-full">
@@ -261,7 +251,7 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
                 <td className="w-10 py-2.5 pl-4 pr-0" onClick={(e) => e.stopPropagation()}><Case oui={coches.has(c.id)} onBasculer={() => cocher(c)} label={c.liste ? `Déjà dans la liste « ${c.liste.nom} »` : "Choisir pour une liste"} className={c.liste ? "opacity-35" : ""} /></td>
                 <td className="px-4 py-2.5"><span className="flex items-center gap-2.5"><span className="inline-block h-2.5 w-2.5 flex-none rounded-full" style={{ background: LIENS[c.lien]?.couleur || JL.brume }} /><span className="min-w-0"><span className="block max-w-[240px] truncate text-[14px] text-encre">{c.titre}</span><span className="block max-w-[240px] truncate text-[12px] text-ardoise">{c.activite}</span></span></span></td>
                 <td className="max-w-[220px] px-4 py-2.5 text-[13px] text-craie"><span className="block truncate">{c.adresse}</span><span className="block truncate text-[12px] text-ardoise">{c.ville}</span></td>
-                <td className="max-w-[200px] truncate px-4 py-2.5 text-[13px] text-craie">{c.exploitant || c.nom}</td>
+                <td className="max-w-[200px] truncate px-4 py-2.5 text-[13px] text-craie">{c.exploitant || c.nom || c.titre}</td>
                 <td className="max-w-[220px] truncate px-4 py-2.5 text-[13px] text-encre">{c.proprietaire}</td>
                 <td className="whitespace-nowrap px-4 py-2.5 text-[13px] text-craie">{(LIENS[c.lien]?.mot || "").replace(" (probable)", "") || "…"}</td>
                 <td className="px-4 py-2.5"><span className="flex flex-wrap gap-1">{c.drapeaux.slice(0, 2).map((d) => <span key={d} className="whitespace-nowrap rounded-full bg-relief px-2 py-0.5 text-[11.5px] text-craie">{DRAPEAUX_COURTS[d] || d}</span>)}{c.drapeaux.length > 2 && <span className="text-[11.5px] text-brume">+{c.drapeaux.length - 2}</span>}</span></td>
@@ -280,8 +270,104 @@ function TableauMurs({ murs, total, filtres, setFiltres, ouvert, onOuvrir, charg
   );
 }
 
+/**
+ * Le choix du client, dans l'en-tête de la carte (25 oct. 2026, Jules) : le nom de ce qui est affiché (« Tous les
+ * commerces » ou un client) ouvre une liste, « Tous les commerces » d'abord puis les clients, et on saute directement à
+ * n'importe lequel. Un point menthe marque les clients déjà prospectés. Sans client, rien à choisir : un simple titre.
+ */
+function SelecteurClient({ selecteur, vue, seule = false }) {
+  const [ouvert, setOuvert] = useState(false);
+  const racine = useRef(null);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const dehors = (e) => { if (racine.current && !racine.current.contains(e.target)) setOuvert(false); };
+    const echap = (e) => { if (e.key === "Escape") setOuvert(false); };
+    document.addEventListener("pointerdown", dehors); document.addEventListener("keydown", echap);
+    return () => { document.removeEventListener("pointerdown", dehors); document.removeEventListener("keydown", echap); };
+  }, [ouvert]);
+  const { clients = [], tous = true, courant = 0, onChoisir = () => {}, vus = [] } = selecteur || {};
+  const client = vue === "client" ? clients[courant] : null;
+  const entete = (
+    <>
+      {client ? <Avatar d={client} taille="h-10 w-10" /> : <span className="grid h-10 w-10 flex-none place-items-center rounded-full border-2 border-encre text-encre"><MapPin className="h-5 w-5" strokeWidth={2} /></span>}
+      <span className="min-w-0 flex-1 text-left">
+        <span className="m-0 flex items-center text-[15px] text-encre"><span className="truncate">{client ? client.reference : "Tous les commerces"}</span>{client && <PastilleExemple x={client} />}</span>
+        {/* Sous le nom, ses critères seuls : ce qu'il cherche et son budget (25 oct. 2026, Jules). */}
+        <span className="m-0 block truncate text-[12.5px] text-ardoise">{client ? `${client.type_commerce || "Tout commerce"} · ${budgetDe(client)}` : "De votre secteur · tous les clients"}</span>
+      </span>
+    </>
+  );
+  if (seule || !clients.length) return <div className="flex min-w-0 flex-1 items-center gap-3">{entete}</div>;
+  return (
+    <div ref={racine} className="min-w-0 flex-1">
+      <button type="button" onClick={() => setOuvert((o) => !o)} aria-haspopup="listbox" aria-expanded={ouvert} aria-label="Choisir un client"
+        className="flex w-full min-w-0 items-center gap-3 rounded-[12px] text-left" style={{ background: "transparent" }}>
+        {entete}
+        <Menu className={`h-[18px] w-[18px] flex-none transition-colors ${ouvert ? "text-encre" : "text-ardoise"}`} aria-hidden />
+      </button>
+      <AnimatePresence>
+        {ouvert && (
+          <motion.ul role="listbox" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="absolute inset-x-2 top-[70px] z-30 m-0 max-h-[340px] list-none overflow-y-auto rounded-[14px] border border-bord-doux bg-surface-pleine p-1.5 shadow-[0_16px_40px_rgb(0_0_0/0.35)]">
+            <li role="option" aria-selected={tous}>
+              <button type="button" onClick={() => { setOuvert(false); onChoisir(null); }} className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left ${tous ? "bg-rail-actif" : "hover:bg-rail-actif"}`} style={tous ? undefined : { background: "transparent" }}>
+                <span className="grid h-8 w-8 flex-none place-items-center rounded-full border-2 border-encre text-encre"><MapPin className="h-4 w-4" strokeWidth={2} /></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-[14px] text-encre">Tous les commerces</span><span className="block truncate text-[12.5px] text-ardoise">De votre secteur · tous les clients</span></span>
+                {tous && <Check className="h-4 w-4 flex-none text-pervenche" />}
+              </button>
+            </li>
+            {clients.map((c, k) => {
+              const actif = !tous && k === courant;
+              return (
+                <li key={c.id} role="option" aria-selected={actif}>
+                  <button type="button" onClick={() => { setOuvert(false); onChoisir(k); }} className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left ${actif ? "bg-rail-actif" : "hover:bg-rail-actif"}`} style={actif ? undefined : { background: "transparent" }}>
+                    <Avatar d={c} taille="h-8 w-8" />
+                    <span className="min-w-0 flex-1"><span className="block truncate text-[14px] text-encre">{c.reference}</span><span className="block truncate text-[12.5px] text-ardoise">{c.type_commerce || "Tout commerce"} · {budgetDe(c)}</span></span>
+                    {vus.includes(c.id) && <span className="h-2 w-2 flex-none rounded-full bg-menthe" title="Déjà prospecté" />}
+                    {actif && <Check className="h-4 w-4 flex-none text-pervenche" />}
+                  </button>
+                </li>
+              );
+            })}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/**
+ * La carte « tous les commerces » (25 oct. 2026, Jules) : la même place et le même dessin que celle d'un client, sans
+ * client choisi. Les flèches passent aux clients (leurs murs filtrent la liste) ; sans client, elle est seule.
+ */
+function CarteTous({ n, villes = [], charge = false, selecteur = null, replie = false, onReplier = null, seule = false }) {
+  return (
+    <div className="relative z-20 flex-none rounded-[18px] border border-bord-doux bg-rail">
+      <div className={`flex items-center gap-3 px-4 py-3 transition-colors duration-500 ${replie ? "" : "border-b border-trait"}`}>
+        <SelecteurClient selecteur={selecteur} seule={seule} vue="tous" />
+        {onReplier && (
+          <button type="button" onClick={onReplier} aria-expanded={!replie} aria-label={replie ? "Déplier" : "Replier"} title={replie ? "Déplier" : "Replier"}
+            className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><ChevronDown className={`h-4 w-4 transition-transform duration-500 ease-in-out ${replie ? "" : "rotate-180"}`} /></button>
+        )}
+      </div>
+      <div className="grid transition-[grid-template-rows,opacity] duration-500 ease-in-out" style={{ gridTemplateRows: replie ? "0fr" : "1fr", opacity: replie ? 0 : 1 }} aria-hidden={replie}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-2.5 px-4 py-3.5">
+            <span className="flex flex-wrap gap-1.5">{villes.map((v) => <span key={v.id} className="rounded-full bg-menthe/15 px-2.5 py-0.5 text-[12.5px] text-menthe">{v.nom}</span>)}</span>
+            <span className="text-[13.5px]">
+              {charge ? <span className="inline-flex items-center gap-2 text-ardoise"><Loader2 className="h-3.5 w-3.5 animate-spin text-menthe" />Les commerces de votre secteur…</span>
+                : <><span className="tabular-nums text-menthe">{pl(n, "commerce")}</span> <span className="text-ardoise">dans votre secteur</span></>}
+            </span>
+            {!seule && selecteur?.clients.length > 0 && <span className="text-[12.5px] leading-[1.45] text-ardoise">Choisissez l'un de vos {selecteur.clients.length} clients ci-dessus : seuls ses murs restent sur la carte.</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** La carte d'un client : ce qu'il cherche, où dans le secteur, son budget, ses règles ; « Prospecter » en bas. */
-function CarteClient({ client, clients = [], rang, total, onAller, onChoisir = null, onProspecter, actif, replie = false, onReplier = null, prospecteLe = null, prospectes = [], charge = false }) {
+function CarteClient({ client, selecteur, onProspecter, actif, replie = false, onReplier = null, prospecteLe = null, charge = false }) {
   const rendement = client.rendement_min ? `${String(client.rendement_min).replace(".", ",")} % minimum` : "Non précisé";
   const regles = [
     veutEmplacement1(client) && { mot: "Emplacement n°1 seulement", ton: "bg-pervenche/15 text-pervenche" },
@@ -289,39 +375,12 @@ function CarteClient({ client, clients = [], rang, total, onAller, onChoisir = n
     ...exclusionsDe(client).map((f) => ({ mot: `Pas de ${f.mot}`, ton: "bg-ambre/15 text-ambre" })),
   ].filter(Boolean);
   return (
-    <div className="flex-none overflow-hidden rounded-[18px] border border-bord-doux bg-rail">
-      {/* Les petites têtes des clients (24 oct. 2026, Jules) : un clic passe au client. */}
-      {total > 1 && onChoisir && (
-        <div className="flex items-center gap-1.5 px-4 pt-3" role="tablist" aria-label="Vos clients">
-          {clients.slice(0, 9).map((c, i) => (
-            <button key={c.id} type="button" role="tab" aria-selected={i === rang} onClick={() => onChoisir(i)} title={`${c.reference} · ${c.type_commerce || "tout commerce"}`}
-              className={`flex-none rounded-full transition-all duration-500 ease-out ${i === rang ? "scale-110 ring-2 ring-menthe" : "opacity-60 hover:opacity-100"}`} style={{ background: "transparent" }}>
-              <span className="relative block">
-                <Avatar d={c} taille="h-8 w-8" />
-                {/* Déjà prospecté : un point menthe au coin de sa tête. */}
-                {prospectes.includes(c.id) && <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-rail bg-menthe" aria-hidden />}
-              </span>
-              <span className="sr-only">{c.reference}{prospectes.includes(c.id) ? ", déjà prospecté" : ""}</span>
-            </button>
-          ))}
-          {total > 9 && <span className="text-[11.5px] tabular-nums text-brume">+{total - 9}</span>}
-        </div>
-      )}
+    <div className="relative z-20 flex-none rounded-[18px] border border-bord-doux bg-rail">
       <div className={`flex items-center gap-3 px-4 py-3 transition-colors duration-500 ${replie ? "" : "border-b border-trait"}`}>
-        <Avatar d={client} taille="h-10 w-10" />
-        <div className="min-w-0 flex-1">
-          <p className="m-0 flex items-center truncate text-[15px] text-encre">{client.reference}<PastilleExemple x={client} /></p>
-          <p className="m-0 truncate text-[12.5px] text-ardoise">{replie ? `${client.type_commerce || "Tout commerce"} · ${budgetDe(client)}` : `${client.profil} · client ${rang + 1} sur ${total}`}</p>
-        </div>
+        <SelecteurClient selecteur={selecteur} vue="client" />
         {onReplier && (
           <button type="button" onClick={onReplier} aria-expanded={!replie} aria-label={replie ? "Déplier le client" : "Replier le client"} title={replie ? "Déplier" : "Replier"}
             className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><ChevronDown className={`h-4 w-4 transition-transform duration-500 ease-in-out ${replie ? "" : "rotate-180"}`} /></button>
-        )}
-        {total > 1 && (
-          <>
-            <button type="button" onClick={() => onAller(-1)} aria-label="Client précédent" title="Client précédent" className="grid h-8 w-8 place-items-center rounded-full border border-trait text-craie hover:text-encre" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => onAller(1)} aria-label="Client suivant" title="Client suivant" className="grid h-8 w-8 place-items-center rounded-full border border-trait text-craie hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
-          </>
         )}
       </div>
       {/* Le repli glisse, doucement (500 ms) : la hauteur passe de 0 à son contenu. */}

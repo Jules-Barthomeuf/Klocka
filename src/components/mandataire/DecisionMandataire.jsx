@@ -19,7 +19,7 @@ export default function DecisionMandataire({ dossierId }) {
   const statut = data?.dossier?.statut;
   if (!statut) return null;
   if (statut !== "en_etude") {
-    const mots = { go: "Go envoyé : mise en marché ouverte, projet créé.", no_go: "No-go envoyé.", complements: "Compléments demandés : en attente du mandataire.", documents_en_cours: "Pièces en cours de dépôt par le mandataire.", complet: "Dossier complet, pas encore envoyé par le mandataire." };
+    const mots = { go: "Go envoyé : commercialisation ouverte, projet créé.", no_go: "No-go envoyé.", complements: "Compléments demandés : en attente du mandataire.", documents_en_cours: "Pièces en cours de dépôt par le mandataire.", complet: "Dossier complet, pas encore envoyé par le mandataire." };
     return <p className="m-0 rounded-[12px] border border-trait px-3.5 py-2.5 text-[13px] text-craie">{mots[statut] || statut}</p>;
   }
   const PIECES = [["bail", "Bail commercial"], ["quittances", "Quittances"], ["kbis", "Kbis du locataire"], ["copropriete", "Copropriété, PV d'AG"], ["diagnostics", "Diagnostics"], ["taxe_fonciere", "Taxe foncière"]];

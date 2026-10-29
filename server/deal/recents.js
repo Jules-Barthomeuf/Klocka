@@ -25,7 +25,7 @@ export function recents({ limite = 5 } = {}) {
   const out = [];
   for (const r of lire()) {
     const d = Records.findBy('Deal', 'deal_id', r.deal_id);
-    if (!d || d.archived || d.test) continue;
+    if (!d || d.archived || d.test || d.cache_equipe) continue;
     out.push({ deal_id: r.deal_id, titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || r.deal_id, le: r.le, par: r.par });
     if (out.length >= limite) break;
   }
@@ -34,7 +34,7 @@ export function recents({ limite = 5 } = {}) {
     const vus = new Set(out.map((x) => x.deal_id));
     for (const d of Records.list('Deal', { sort: '-created_date', limit: 60 })) {
       if (out.length >= limite) break;
-      if (!d.deal_id || vus.has(d.deal_id) || d.archived || d.test) continue;
+      if (!d.deal_id || vus.has(d.deal_id) || d.archived || d.test || d.cache_equipe) continue;
       out.push({ deal_id: d.deal_id, titre: d.nom || d.lots?.[0]?.synthese?.titre || d.source?.nom_fichier || d.deal_id, le: d.created_date || d.cree_le || null, par: null, recent_plateforme: true });
     }
   }

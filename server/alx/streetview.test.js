@@ -10,6 +10,15 @@ test('deux noms désignent la même rue, sans le type de voie ni les articles', 
   assert.equal(memeRue("Rue de l'Église", 'Rue de l Eglise'), true);
   assert.equal(memeRue('Rue du Nord', 'Rue du Havre'), false);
   assert.equal(memeRue('', 'Rue du Nord'), false);
+  // Les écritures de la BAN et des fiches pour la même voie (27 oct. 2026).
+  assert.equal(memeRue('rue du Maréchal Foch', 'Rue maréchal Ferdinand Foch'), true);
+  assert.equal(memeRue('Av. Franklin Delano Roosevelt', 'Avenue Franklin D. Roosevelt'), true);
+  assert.equal(memeRue('AVENUE DE SAXE', 'Avenue Maréchal de Saxe'), true);
+  assert.equal(memeRue('rue Muids des Blés', 'Rue Muid des Bles'), true);
+  assert.equal(memeRue('rue St Agricol', 'Rue Saint-Agricol'), true);
+  assert.equal(memeRue('Rue du Nord', 'Rue du Nord Est'), false);
+  assert.equal(memeRue('rue Victor', 'Rue Victor Hugo'), false);
+  assert.equal(memeRue('rue Foch', 'Rue Joffre'), false);
 });
 
 test('le panorama de la bonne rue passe avant le plus proche', () => {
@@ -70,4 +79,6 @@ test('la rue d’un résultat doit être celle écrite dans l’adresse', () => 
   // « 1 rue du Nord, 59000 Lille » : la BAN proposait la rue du Havre, en 59000.
   assert.equal(rueCorrespond('rue du Nord', 'Rue du Havre'), false);
   assert.equal(rueCorrespond('rue du Nordet', 'Rue du Nord'), false);
+  assert.equal(rueCorrespond('rue du Maréchal Foch', 'Rue maréchal Ferdinand Foch'), true);
+  assert.equal(rueCorrespond('rue du Maréchal Foch Lorient', 'Rue maréchal Ferdinand Foch'), true);
 });

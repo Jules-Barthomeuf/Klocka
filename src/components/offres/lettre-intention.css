@@ -2,6 +2,7 @@
    « Lettre d'intention - 1 avenue Mirabeau v2 ». Comme l'avis de valeur et
    le mandat, elle a sa propre palette, figée : elle ne suit pas le thème. */
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&display=swap");
 
 .loi-papier {
   --loi-encre: #2a2a2a;
@@ -61,6 +62,14 @@
 .loi-editable { border-radius: 3px; outline: none; transition: background-color 120ms; cursor: text; }
 .loi-editable:hover { background: rgb(127 168 152 / 0.10); }
 .loi-editable:focus { background: rgb(127 168 152 / 0.16); box-shadow: 0 0 0 2px rgb(127 168 152 / 0.35); }
+/* L'Éditeur (28 oct. 2026) : l'élément choisi, dont le panneau est ouvert ; en Sources, ce qui a une source, et celui qu'on survole. */
+.loi-choisi { background: rgb(127 168 152 / 0.14); box-shadow: 0 0 0 2px rgb(127 168 152 / 0.55); border-radius: 3px; }
+.loi-source { border-radius: 3px; cursor: help; background: rgb(127 168 152 / 0.08); box-shadow: inset 0 -1px 0 rgb(127 168 152 / 0.7); transition: background-color 120ms; }
+.loi-source:hover { background: rgb(127 168 152 / 0.2); }
+.loi-kp .loi-choisi { background: rgb(93 101 214 / 0.12); box-shadow: 0 0 0 2px rgb(93 101 214 / 0.5); }
+.loi-kp .loi-source { background: rgb(93 101 214 / 0.07); box-shadow: inset 0 -1px 0 rgb(93 101 214 / 0.6); }
+/* Une ligne pas encore remplie (la lettre vierge) : ce qu'elle attend, en gris, jusqu'à ce qu'on y écrive. */
+.loi-editable[data-vide]:empty::before { content: attr(data-vide); color: #a3a3a3; font-weight: 400; pointer-events: none; }
 .loi-retouche { position: relative; }
 .loi-retouche::before {
   content: ""; position: absolute; left: -5mm; top: 0.45em; width: 5px; height: 5px; border-radius: 999px; background: var(--loi-vert);
@@ -88,13 +97,32 @@
 .loi-menthe .loi-pied { border-top: 0; height: auto; padding: 4mm 16mm 0; flex-wrap: wrap; }
 .loi-m-bande { height: 4mm; background: var(--loi-menthe); margin: 2mm 16mm 9mm; }
 
+/* K Partners (26 oct. 2026, Jules) : les mêmes modèles aux couleurs de la charte d'octobre 2026. Texte nuit,
+   accents indigo, encart brume, bande indigo, une seule famille (Hanken Grotesk). */
+.loi-kp {
+  --loi-encre: #2b2d36;
+  --loi-noir: #0e0e10;
+  --loi-gris: #5a5d6b;
+  --loi-trait: #d9dbf6;
+  --loi-vert: #3f47b8;
+  --loi-encart: #eef0ff;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+}
+.loi-kp.loi-menthe { --loi-menthe: #3f47b8; }
+.loi-kp .loi-parties .loi-nom, .loi-kp .loi-signatures .loi-nom, .loi-kp .loi-h3, .loi-kp .loi-p b, .loi-kp .loi-p strong, .loi-kp .loi-h2 .loi-num { font-weight: 600; }
+.loi-kp .loi-m-titre, .loi-kp .loi-m-adresse, .loi-kp .loi-m-section .loi-h2 { font-weight: 500; letter-spacing: -0.03em; }
+.loi-kp .loi-objet, .loi-kp .loi-h2 { letter-spacing: -0.02em; }
+.loi-kp.loi-menthe .loi-m-bande { background: linear-gradient(135deg, #4a52c9 0%, #3f47b8 55%, #262a85 100%); }
+.loi-kp .loi-editable:hover { background: rgb(93 101 214 / 0.1); }
+.loi-kp .loi-editable:focus { background: rgb(93 101 214 / 0.14); box-shadow: 0 0 0 2px rgb(93 101 214 / 0.35); }
+.loi-logo-kp { font-size: 6mm; margin-right: 3mm; flex: none; }
+.loi-m-tete .loi-logo-kp { font-size: 13mm; margin: 0; }
+
 /* Le choix du modèle : deux lettres réduites côte à côte, chacune modifiable. */
 .loi-apercu { zoom: 0.56; }
 
 /* Le K de Klocka, en tête des deux modèles. */
 .loi-logo-k { height: 6mm; width: auto; margin-right: 3mm; flex: none; display: block; }
-.loi-logo-k-noir { fill: #000000; }
-.loi-logo-k-menthe { fill: #72cdba; }
 
 /* Au téléphone : la lettre se resserre pour se lire sans zoomer, parties et
    signatures l'une sous l'autre (l'écran seulement, l'impression garde le modèle). */
@@ -112,3 +140,11 @@
   .loi-retouche::before { left: -3.5mm; }
   .loi-apercu { zoom: 0.8; }
 }
+
+/* Le design des éléments (panneau de l'Éditeur, 28 oct. 2026) : la palette du document, et les éléments fixes du modèle cliquables. */
+.loi-palette { --loi-encre: #2a2a2a; --loi-noir: #161616; --loi-gris: #6e6e6e; --loi-vert: #7fa898; --loi-encart: #eff3f1; }
+.loi-palette.loi-kp { --loi-encre: #2b2d36; --loi-noir: #0e0e10; --loi-gris: #5a5d6b; --loi-vert: #3f47b8; --loi-encart: #eef0ff; }
+.loi-papier, .loi-palette { --doc-encre: var(--loi-encre); --doc-noir: var(--loi-noir); --doc-gris: var(--loi-gris); --doc-accent: var(--loi-vert); --doc-encart: var(--loi-encart); --doc-blanc: #ffffff; }
+.loi-zone { cursor: pointer; border-radius: 3px; transition: box-shadow 120ms; }
+.loi-zone:hover { box-shadow: 0 0 0 1px rgb(127 168 152 / 0.6); }
+.loi-kp .loi-zone:hover { box-shadow: 0 0 0 1px rgb(93 101 214 / 0.55); }

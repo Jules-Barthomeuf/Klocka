@@ -73,3 +73,58 @@ test('un dossier de test ne va jamais dans le Drive, mais ses pièces prennent l
   assert.equal(r.renommees, 1);
   assert.equal(Records.findBy('Deal', 'deal_id', 'DR3').documents_espace[0].nom, 'Bail commercial - SARL RIMEL - 16.03.2026.pdf');
 });
+
+test("une pièce reçue après coup : seule elle est à lire ; une pièce lue sans les infos du Bien ne relit que celles-là", () => {
+  dossier('DR4', [{ id: 'b', nom: 'bail.pdf' }, { id: 'p', nom: 'pv.pdf' }, { id: 'q', nom: 'q.pdf' }]);
+  A.rangerPiece('DR4', 'b', 'bail', null, { lire: false });
+  A.rangerPiece('DR4', 'p', 'pv_ag', null, { lire: false });
+  A.rangerPiece('DR4', 'q', 'quittances', null, { lire: false });
+  const brut = Records.findBy('Deal', 'deal_id', 'DR4');
+  const etat = structuredClone(brut.analyse_pieces);
+  etat.docs.b.extraction = { statut: 'fait' };
+  etat.docs.b.valeurs = { type_bail: { valeur: '3/6/9' } };
+  etat.docs.q.extraction = { statut: 'fait' };
+  etat.docs.q.valeurs = { loyer_hc_ht: { valeur: '2 000 €' } };
+  Records.update('Deal', brut.id, { analyse_pieces: etat });
+  const a = D.aLire('DR4');
+  assert.deepEqual(a.nouvelles.map((x) => x.id), ['p'], 'le PV arrivé après : lui seul');
+  assert.deepEqual(a.completer.map((x) => [x.id, x.manque]), [['b', ['bien_adresse', 'bien_surface', 'bien_bailleur']]], 'les quittances n\'ont rien à donner au Bien');
+  assert.equal(A.lireDepots('DR4').nouvelles, 1);
+});
+
+test("l'onglet Bien se remplit avec les pièces lues ; une ligne modifiée par l'analyste reste la sienne", async () => {
+  dossier('DR5', [{ id: 'b', nom: 'bail.pdf' }, { id: 't', nom: 'tf.pdf' }]);
+  A.rangerPiece('DR5', 'b', 'bail', null, { lire: false });
+  A.rangerPiece('DR5', 't', 'taxe_fonciere', null, { lire: false });
+  await A.lirePiece('DR5', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { bien_surface: { valeur: '85 m² utiles', page: 2, donnees: { m2: 85 } }, bien_bailleur: { valeur: 'SCI DU PORT', page: 1 }, bien_adresse: { valeur: '12 rue Foch, 56100 Lorient', page: 1 }, parties: { valeur: 'SARL RIMEL', donnees: { locataire: 'SARL RIMEL' } } } }) });
+  await A.lirePiece('DR5', 't', { uploadDir, lire: async () => JSON.stringify({ criteres: { montant: { valeur: '2 140 €', page: 1 }, bien_proprietaire: { valeur: 'SCI DU PORT', page: 1 } } }) });
+  const { bienDu } = await import('./bien-analyse.js');
+  let b = (await bienDu('DR5')).lignes;
+  const l = (id) => b.find((x) => x.id === id);
+  assert.match(l('surface').valeur, /85/);
+  assert.equal(l('surface').sources[0].page, 2);
+  assert.match(l('vendeur').valeur, /SCI DU PORT/);
+  assert.equal(l('taxe_fonciere').valeur, '2 140 €');
+  assert.match(l('locataire').valeur, /SARL RIMEL/);
+  assert.equal(l('surface').etat, 'ia');
+  assert.equal(A.deciderCase('DR5', 'bien', 'surface', { action: 'corriger', valeur: '82 m² Carrez' }, { email: 'nora@klocka.immo' }).ok, true);
+  b = (await bienDu('DR5')).lignes;
+  assert.equal(l('surface').valeur, '82 m² Carrez');
+  assert.equal(l('surface').etat, 'corrige');
+  assert.equal(l('surface').par, 'nora@klocka.immo');
+  assert.match(l('surface').valeur_lue, /85/);
+});
+
+test("faire tourner l'état : la valeur saisie à la main reste de côté quand on repasse par « Lu par l'IA »", async () => {
+  dossier('DR6', [{ id: 'b', nom: 'bail.pdf' }]);
+  A.rangerPiece('DR6', 'b', 'bail', null, { lire: false });
+  await A.lirePiece('DR6', 'b', { uploadDir, lire: async () => JSON.stringify({ criteres: { depot: { valeur: '3 000 €' } } }) });
+  const ligne = () => A.lireAnalyse('DR6').grilles[0].lignes.find((x) => x.id === 'depot');
+  A.deciderCase('DR6', 'bail', 'depot', { action: 'corriger', valeur: '6 000 €' }, { email: 'nora@klocka.immo' });
+  A.deciderCase('DR6', 'bail', 'depot', { action: 'verifier', valeur: '6 000 €' }, null);
+  assert.equal(ligne().statut, 'verifie');
+  A.deciderCase('DR6', 'bail', 'depot', { action: 'reinitialiser' }, null);
+  assert.equal(ligne().statut, 'ia');
+  assert.equal(ligne().valeur, '3 000 €');
+  assert.equal(ligne().valeur_main, '6 000 €', 'gardée pour le clic suivant');
+});

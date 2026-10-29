@@ -42,9 +42,23 @@ export const veutEnseigneNationale = (d) => /enseignes?\s+nationa|grandes?\s+ens
  * Pure : ce commerce répond-il à la demande du client ? L'activité (un mot du commerce commence comme un mot cherché :
  * « coiffure » trouve « coiffeur »), puis le prix estimé face au budget, à 20 % près. Un prix inconnu ne l'écarte pas.
  */
+/**
+ * Pure : la classe d'actif que cherche un client, d'après le type de bien cherché (« bureaux », « plateau », « entrepôt »,
+ * « logistique »), sinon commerce. Pas d'après ses remarques : « retail park / enseigne nationale / entrepôt » y liste des
+ * possibilités, pas une classe.
+ */
+export function classeCherchee(d) {
+  const t = nz(d?.type_commerce || "");
+  if (/bureau|plateau|tertiaire/.test(t)) return "bureau";
+  if (/entrepot|logisti|stockage|local d activite|locaux d activite/.test(t)) return "entrepot";
+  return "commerce";
+}
+
 export function pourClient(c, d) {
   if (!d) return true;
-  const racines = racinesDuType(d.type_commerce);
+  // La classe d'actif d'abord (26 oct. 2026) : un client bureaux ne voit pas les boutiques, et inversement.
+  if ((c.classe || "commerce") !== classeCherchee(d)) return false;
+  const racines = classeCherchee(d) === "commerce" ? racinesDuType(d.type_commerce) : [];
   if (racines.length) {
     const mots = nz(`${c.activite || ""} ${c.enseigne || ""} ${c.nom || ""} ${c.nom_google || ""}`).split(/[^a-z]+/).filter(Boolean);
     if (!racines.some((r) => mots.some((m) => m.startsWith(r)))) return false;

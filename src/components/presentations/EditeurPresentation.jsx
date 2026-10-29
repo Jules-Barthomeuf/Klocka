@@ -6,7 +6,8 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { MiseAJourDocument } from "@/components/mandataire/GenerationDocument";
 import Deck, { poser } from "./Deck";
-import { StylesElement, afficherPartie, nomDePartie } from "./PanneauDeck";
+import { PanneauElement, afficherPartie, nomDePartie } from "./PanneauDeck";
+import { BarreEditeur } from "@/components/editeur/Editeur";
 import ApercuPdf from "./ApercuPdf";
 import FicheSource from "./FicheSource";
 import { ordreDuModele } from "@/lib/presentation-modele";
@@ -15,8 +16,9 @@ import QuestionClient from "./QuestionClient";
 import VisitePresentation, { visiteVue } from "./VisitePresentation";
 
 // La présentation bancaire ouverte, à droite du chat de la page Présentations
-// (12 oct. 2026) : un seul deck de seize diapositives, qu'on feuillette, et à
-// l'élément cliqué ouvre son menu « Styles ». Deux modes : édition (un clic
+// (12 oct. 2026) : un seul deck de seize diapositives, qu'on feuillette ; en
+// Éditeur, l'élément cliqué ouvre son panneau à droite de la scène (28 oct.
+// 2026, le modèle de la page éditeur). Trois modes : édition (un clic
 // sur un élément le choisit, le texte se retape sur place) et lecture
 // (navigation, cascade, 3D à la souris, plein écran). Le chat retouche la même
 // présentation. Annuler et rétablir reviennent sur chaque geste. Elle sort en
@@ -164,63 +166,54 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
   })() : null;
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-rail">
-      <div className="k-barre-apercu flex h-14 flex-none items-center gap-3 border-b border-trait px-5 md:pr-[120px] max-md:gap-2 max-md:px-3">
-        <div className="flex min-w-0 flex-1 items-baseline gap-3 max-md:flex-col max-md:gap-0">
-          <span className="truncate text-[14.5px] text-encre max-md:max-w-full">{data?.titre || "Présentation bancaire"}</span>
-          <span className="truncate text-[12.5px] text-ardoise max-md:max-w-full">{statut}</span>
-        </div>
-        {/* Édition ou lecture : la pilule, comme les onglets de la plateforme. */}
-        <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1">
-          {[["edition", "Édition"], ["lecture", "Lecture"], ["sources", "Sources"]].map(([k, mot]) => (
-            <button key={k} type="button" onClick={() => { setMode(k); if (k !== "edition") setSelection(null); }} aria-pressed={mode === k}
-              title={k === "sources" ? "Passez la souris sur un chiffre ou une ligne : sa source s'affiche" : undefined}
-              className={`rounded-full px-3 py-1 text-[12.5px] transition-colors ${mode === k ? "bg-surface-pleine text-encre" : "text-ardoise hover:text-encre"}`} style={mode === k ? undefined : { background: "transparent" }}>{mot}</button>
-          ))}
-        </div>
-        <div className="flex flex-none items-center gap-0.5 max-md:hidden">
-          <button type="button" onClick={annuler} disabled={!passe.current.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
-          <button type="button" onClick={retablir} disabled={!futur.current.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
-          <button type="button" onClick={pleinEcran} aria-label="Plein écran" title="Plein écran (lecture)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Maximize2 className="h-4 w-4" /></button>
-        </div>
-        <div className="flex flex-none items-center gap-1.5 max-md:gap-1">
-          {/* Côté client : l'explication des modes, et une question à l'équipe (dans son Feedback). */}
-          {client && (
-            <>
-              <button type="button" onClick={() => setVisite(true)} aria-label="Comment ça marche" title="Comment ça marche" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><CircleHelp className="h-4 w-4" /></button>
-              <button type="button" onClick={() => setQuestion(true)} disabled={!data}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
-                <CircleHelp className="h-3.5 w-3.5" />Une question
-              </button>
-              {/* Le PDF, à droite de « Une question » (16 oct. 2026, Jules) : le même que celui de l'équipe. */}
-              <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
+    // Pas de fond propre (28 oct. 2026, le modèle de la page éditeur) : celui de la page passe dessous.
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+      <BarreEditeur titre={data?.titre || "Présentation bancaire"} statut={statut} mode={mode}
+        onMode={(k) => { setMode(k); if (k !== "edition") setSelection(null); }}
+        actions={(
+          <>
+            <span className="flex flex-none items-center gap-0.5 max-md:hidden">
+              <button type="button" onClick={annuler} disabled={!passe.current.length} aria-label="Annuler" title="Annuler (⌘Z), une retouche d'AK comprise" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Undo2 className="h-4 w-4" /></button>
+              <button type="button" onClick={retablir} disabled={!futur.current.length} aria-label="Rétablir" title="Rétablir (⇧⌘Z)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre disabled:opacity-30" style={{ background: "transparent" }}><Redo2 className="h-4 w-4" /></button>
+              <button type="button" onClick={pleinEcran} aria-label="Plein écran" title="Plein écran (lecture)" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><Maximize2 className="h-4 w-4" /></button>
+            </span>
+            {/* Côté client : l'explication des modes, et une question à l'équipe (dans son Feedback). */}
+            {client && (
+              <>
+                <button type="button" onClick={() => setVisite(true)} aria-label="Comment ça marche" title="Comment ça marche" className="grid h-8 w-8 place-items-center rounded-full text-ardoise hover:text-encre" style={{ background: "transparent" }}><CircleHelp className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setQuestion(true)} disabled={!data}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
+                  <CircleHelp className="h-3.5 w-3.5" />Une question
+                </button>
+                {/* Le PDF, à droite de « Une question » (16 oct. 2026, Jules) : le même que celui de l'équipe. */}
+                <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
+                  <FileText className="h-3.5 w-3.5" />PDF
+                </button>
+              </>
+            )}
+            {/* L'équipe l'envoie à un ou plusieurs clients : elle apparaît dans leur page Présentations. */}
+            {!client && (
+              <button type="button" onClick={() => setEnvoi(true)} disabled={!data || data.ancienne} title={data?.envoye_a?.length ? `Envoyée à ${data.envoye_a.join(", ")}` : "Envoyer au client"}
                 className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
+                <Send className="h-3.5 w-3.5" /><span className="max-md:hidden">{data?.envoye_a?.length ? `Envoyée (${data.envoye_a.length})` : "Envoyer au client"}</span>
+              </button>
+            )}
+            {/* Le PDF, tiré du deck lui-même : l'aperçu, puis le téléchargement (12 oct. 2026 ; Google Slides retiré, il déformait tout). */}
+            {!client && (
+              <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
                 <FileText className="h-3.5 w-3.5" />PDF
               </button>
-            </>
-          )}
-          {/* L'équipe l'envoie à un ou plusieurs clients : elle apparaît dans leur page Présentations. */}
-          {!client && (
-            <button type="button" onClick={() => setEnvoi(true)} disabled={!data || data.ancienne} title={data?.envoye_a?.length ? `Envoyée à ${data.envoye_a.join(", ")}` : "Envoyer au client"}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-bord-doux px-3.5 text-[13px] text-craie hover:border-bord-vif hover:text-encre disabled:opacity-40 max-md:px-3" style={{ background: "transparent" }}>
-              <Send className="h-3.5 w-3.5" /><span className="max-md:hidden">{data?.envoye_a?.length ? `Envoyée (${data.envoye_a.length})` : "Envoyer au client"}</span>
-            </button>
-          )}
-          {/* Le PDF, tiré du deck lui-même : l'aperçu, puis le téléchargement (12 oct. 2026 ; Google Slides retiré, il déformait tout). */}
-          {!client && (
-            <button type="button" onClick={() => setPdf(true)} disabled={!data || data.ancienne}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-menthe px-3.5 text-[13px] text-sur-menthe hover:bg-menthe-survol disabled:opacity-40 max-md:px-3">
-              <FileText className="h-3.5 w-3.5" />PDF
-            </button>
-          )}
-          {onFermer && (
-            <button type="button" onClick={onFermer} aria-label="Fermer la présentation" title="Fermer"
-              className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:ml-0" style={{ background: "transparent" }}>
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
+            )}
+            {onFermer && (
+              <button type="button" onClick={onFermer} aria-label="Fermer la présentation" title="Fermer"
+                className="ml-1 grid h-9 w-9 flex-none place-items-center rounded-full text-ardoise hover:bg-relief hover:text-encre max-md:ml-0" style={{ background: "transparent" }}>
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </>
+        )} />
       <div className="flex min-h-0 flex-1">
         <div className="min-h-0 min-w-0 flex-1">
           {maj && data ? (
@@ -250,8 +243,6 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
                   relief={modeSources ? 0 : 6} sources={modeSources ? data.sources_champs || {} : null} onSource={surSource}
                   selection={selection} onSelection={setSelection} onChange={changer} onPhoto={(diapo, chemin) => setPhotoDe({ diapo, chemin })} sceneRef={scene} />
                 {modeSources && sourceSurvolee && <FicheSource source={sourceSurvolee} ancre={survol.ancre} cadre={survol.cadre} onEntrer={() => clearTimeout(attente.current)} />}
-                {/* L'élément cliqué : son menu « Styles » flotte en haut à droite, comme dans l'avis de valeur. */}
-                {edition && selection && <StylesElement diapos={diapos} selection={selection} onChange={changer} onSelection={setSelection} />}
                 {/* En édition, ce qui est masqué sur cette diapositive, pour le réafficher d'un clic. */}
                 {edition && (() => {
                   const d = diapos.find((x) => x.id === courantId);
@@ -273,6 +264,8 @@ export default function EditeurPresentation({ id, onFermer, travail = null, clie
             </div>
           )}
         </div>
+        {/* L'élément cliqué : son panneau à droite de la scène, Design d'abord, comme dans tous les éditeurs. */}
+        {edition && selection && data && !data.ancienne && !maj && <PanneauElement diapos={diapos} selection={selection} onChange={changer} onSelection={setSelection} />}
       </div>
       {pdf && data && <ApercuPdf id={id} titre={data.titre} onFermer={() => setPdf(false)} {...(client ? { api: "/api/client/presentations" } : {})} />}
       {envoi && data && <EnvoiClient id={id} titre={data.titre} onFermer={() => setEnvoi(false)} />}

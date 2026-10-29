@@ -11,7 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Records } from '../db.js';
-import { lireDepots, rangerPiece, enfiler, grilleDe, TYPES, pagesDuTexte } from './analyse-pieces.js';
+import { lireDepots, rangerPiece, enfiler, grilleDe, TYPES, pagesDuTexte, CRITERES_BIEN } from './analyse-pieces.js';
 import { nomDossierDrive } from './nom-drive.js';
 
 const dealDe = (dealId) => Records.findBy('Deal', 'deal_id', dealId) || null;
@@ -194,13 +194,30 @@ export async function rangerDansDrive(dealId, noms = {}, { uploadDir, user, driv
   return { ok: true, renommees, folder_url: fait.folder_url, ranges: Object.keys(fait.liens).length, erreurs: tous, ...lireDepots(dealId) };
 }
 
-/** Lance la lecture de chaque pièce pas encore lue (ou en échec), sur la grille de sa zone. */
-export function lancerAnalyse(dealId, { uploadDir, user } = {}) {
-  const r = piecesRangees(dealId, user);
-  if (!r) return { ok: false, error: 'Dossier introuvable' };
+/**
+ * Lance la lecture des seules pièces jamais lues (ou en échec), sur la grille de leur zone : une pièce reçue après
+ * coup (les PV d'AG arrivés une semaine plus tard) ne relance pas l'analyse des autres (29 oct. 2026, Jules). Une
+ * pièce déjà lue à qui manquent les informations du Bien ne relit que celles-là.
+ */
+export function aLire(dealId) {
+  const brut = dealDe(dealId);
+  const d = lireDepots(dealId);
+  if (!brut || !d) return null;
   const lisibles = new Set(TYPES.filter((t) => grilleDe(t.grille)).map((t) => t.id));
-  const etat = dealDe(dealId).analyse_pieces?.docs || {};
-  const lancees = r.pieces.filter((p) => lisibles.has(p.zone) && (!etat[p.id]?.extraction || etat[p.id].extraction.statut === 'erreur'));
-  for (const p of lancees) enfiler(dealId, p.id, { uploadDir, user });
-  return { ok: true, lancees: lancees.length, deja: r.pieces.filter((p) => lisibles.has(p.zone)).length - lancees.length };
+  const etat = brut.analyse_pieces?.docs || {};
+  const pieces = d.emplacements.filter((e) => lisibles.has(e.id)).flatMap((e) => e.documents.map((p) => ({ ...p, zone: e.id })));
+  const nouvelles = pieces.filter((p) => !etat[p.id]?.extraction || etat[p.id].extraction.statut === 'erreur');
+  const completer = pieces
+    .filter((p) => etat[p.id]?.extraction?.statut === 'fait')
+    .map((p) => ({ ...p, manque: (CRITERES_BIEN[p.zone] || []).map((c) => c.id).filter((id) => !(id in (etat[p.id].valeurs || {}))) }))
+    .filter((p) => p.manque.length);
+  return { pieces, nouvelles, completer, lues: pieces.length - nouvelles.length };
+}
+
+export function lancerAnalyse(dealId, { uploadDir, user } = {}) {
+  if (!piecesRangees(dealId, user)) return { ok: false, error: 'Dossier introuvable' };
+  const a = aLire(dealId);
+  for (const p of a.nouvelles) enfiler(dealId, p.id, { uploadDir, user });
+  for (const p of a.completer) enfiler(dealId, p.id, { uploadDir, user, seulement: p.manque });
+  return { ok: true, lancees: a.nouvelles.length, completees: a.completer.length, deja: a.lues };
 }

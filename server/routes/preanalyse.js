@@ -286,6 +286,10 @@ export function monterPreanalyse(app) {
     // pas l'analyse, et personne ne reste devant l'écran.
     const { enfiler } = await import('../deal/file-extraction.js');
     enfiler(req.params.dealId, [r.document.id], { uploadDir: UPLOAD_DIR, user });
+    // Et une copie dans le Drive du dossier, en tâche de fond (27 oct. 2026, Jules).
+    import('../deal/drive-data-room.js')
+      .then((m) => m.copierAuDrive(req.params.dealId, [r.document.id], { uploadDir: UPLOAD_DIR, user }))
+      .catch((e) => console.warn(`[drive-data-room] ${e?.message || e}`));
     ok(res, r.document);
   }));
 

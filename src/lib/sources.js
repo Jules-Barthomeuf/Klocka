@@ -46,6 +46,8 @@ export const SOURCES = {
   annonces: { nom: "Annonces", icone: Megaphone },
   google_maps: { nom: "Google Maps", icone: MapPinned },
   pappers: { nom: "Pappers", icone: Briefcase },
+  // Les chiffres d'une commune pour le mandataire (26 oct. 2026) : population, revenus, chômage.
+  insee: { nom: "INSEE", icone: BarChart3 },
 };
 
 /** La source d'une clé, avec un repli lisible pour une clé inconnue. */

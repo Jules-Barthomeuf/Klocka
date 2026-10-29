@@ -12,7 +12,7 @@
 // relance du propriétaire se préparent ; le mandataire les envoie lui-même.
 
 import { Records, Meta, CHEMIN_UPLOADS } from './db.js';
-import { semerExemples, exemplesParEtape, REFUS_EXEMPLE } from './mandataire-exemples.js';
+import { semerExemples, exemplesParEtape, exemplesLyon, REFUS_EXEMPLE } from './mandataire-exemples.js';
 
 const maintenant = () => new Date().toISOString();
 const emailDe = (user) => String(user?.email || '').toLowerCase();
@@ -31,6 +31,7 @@ const lister = (entite, user) => {
   if (!estAdmin(user)) semerExemples(user);
   // Un bien d'exemple par étape de Biens, aussi pour un admin qui a des exemples (25 oct. 2026, Jules).
   exemplesParEtape(user);
+  exemplesLyon(user);
   return Records.list(entite)
     .filter((x) => (estAdmin(user) ? !x.exemple || x.mandataire_email === emailDe(user) : x.mandataire_email === emailDe(user)))
     .sort((a, b) => String(b.cree_le || '').localeCompare(String(a.cree_le || '')));
@@ -260,7 +261,13 @@ export function demanderMandat(champs, user) {
     demande_envoyee_le: maintenant(),
     historique: [{ le: maintenant(), par: user?.email || null, action: 'demande envoyée' }],
   });
+  etapeDuMandat(m, 'demande_envoyee');
   return { ok: true, mandat: m };
+}
+
+/** L'étape écrite dans le fil du mandat, et celui qui doit agir prévenu (fil-mandat.js). */
+export function etapeDuMandat(mandat, statut) {
+  import('./fil-mandat.js').then((F) => F.surEtape(mandat, statut)).catch((e) => console.warn('[portes] fil du mandat :', e?.message || e));
 }
 
 /** Klocka dépose le mandat rédigé sur MyNotary : il est prêt à signer. */
@@ -269,7 +276,9 @@ export function deposerMandatPret(id, { document, reference_mynotary = null }, u
   const m = lireMandat(id, user);
   if (!m) return { ok: false, error: 'Mandat introuvable.' };
   if (!document?.url) return { ok: false, error: 'Joignez le mandat rédigé.' };
-  return passer('MandatMandataire', m, ['demande_envoyee', 'pret'], 'pret', user, 'mandat prêt', { document, reference_mynotary: reference_mynotary || m.reference_mynotary });
+  const r = passer('MandatMandataire', m, ['demande_envoyee', 'pret'], 'pret', user, 'mandat prêt', { document, reference_mynotary: reference_mynotary || m.reference_mynotary });
+  if (r.ok) etapeDuMandat(r.mandat, 'pret');
+  return r;
 }
 
 /** Le mandataire dépose le mandat signé : son dossier s'ouvre aussitôt. */
@@ -278,7 +287,27 @@ export function deposerMandatSigne(id, document, user) {
   if (!m) return { ok: false, error: 'Mandat introuvable.' };
   if (!document?.url) return { ok: false, error: 'Joignez le mandat signé.' };
   const r = passer('MandatMandataire', m, ['pret'], 'signe', user, 'signé', { document_signe: document });
-  if (r.ok) ouvrirDossierDuMandat(r.mandat, user).catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
+  if (r.ok) {
+    etapeDuMandat(r.mandat, 'signe');
+    ouvrirDossierDuMandat(r.mandat, user).catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
+  }
+  return r;
+}
+
+/**
+ * « Passer à l'étape suivante » (27 oct. 2026, Jules) : Klocka a joint le mandat signé dans la conversation ; le
+ * mandataire passe à la Commercialisation, et son dossier s'ouvre comme au dépôt d'un mandat signé.
+ */
+export function passerALaSuite(id, user) {
+  const m = lireMandat(id, user);
+  if (!m) return { ok: false, error: 'Mandat introuvable.' };
+  if (m.statut === 'signe' || m.statut === 'enregistre') return { ok: true, mandat: m, deja: true };
+  if (m.statut !== 'pret') return { ok: false, error: "Le mandat signé n'est pas encore arrivé dans la conversation." };
+  const r = passer('MandatMandataire', m, ['pret'], 'signe', user, 'étape suivante');
+  if (r.ok) {
+    etapeDuMandat(r.mandat, 'signe');
+    ouvrirDossierDuMandat(r.mandat, user).catch((e) => console.warn('[portes] dossier du mandat :', e?.message || e));
+  }
   return r;
 }
 
@@ -317,7 +346,9 @@ export function enregistrerMandat(id, user) {
   const dernier = Number(Meta.get(cle) || 0);
   const numero = numeroSuivant(annee, dernier);
   Meta.set(cle, String(dernier + 1));
-  return passer('MandatMandataire', m, ['signe'], 'enregistre', user, `inscrit au registre (${numero})`, { numero_registre: numero });
+  const r = passer('MandatMandataire', m, ['signe'], 'enregistre', user, `inscrit au registre (${numero})`, { numero_registre: numero });
+  if (r.ok) etapeDuMandat(r.mandat, 'enregistre');
+  return r;
 }
 
 /** Le registre : les mandats inscrits, dans l'ordre des numéros. */
@@ -349,6 +380,11 @@ export const PIECES = [
   { cle: 'copropriete', mot: 'Règlement de copropriété, PV d’AG', requise: false },
   { cle: 'diagnostics', mot: 'Diagnostics (DPE, amiante…)', requise: true },
   { cle: 'taxe_fonciere', mot: 'Dernière taxe foncière', requise: true },
+  // Le dossier de vente (27 oct. 2026) : ce qu'un acheteur demandera aussi, sans bloquer la mise en vente.
+  { cle: 'titre', mot: 'Titre de propriété', requise: false },
+  { cle: 'charges', mot: 'Dernier appel de charges', requise: false },
+  { cle: 'plans', mot: 'Plans et surfaces', requise: false },
+  { cle: 'autres', mot: 'Autres documents', requise: false },
 ];
 
 export const listerDossiers = (user) => lister('DossierMandataire', user);
@@ -406,17 +442,20 @@ export function ajouterPiece(id, categorie, fichier, user, { uploadDir = CHEMIN_
   if (!piecesDu(d).some((p) => p.cle === categorie)) return { ok: false, error: 'Catégorie inconnue.' };
   // Transféré avec une partie des pièces : les suivantes arrivent encore
   // pendant l'étude et vont tout droit dans l'espace documentaire de l'analyse.
-  const enEtude = d.statut === 'en_etude' && d.deal_id;
+  // Mis en vente (27 oct. 2026) : une pièce de plus rejoint encore le dossier d'analyse (et Drive), comme pendant l'étude.
+  const enEtude = (d.statut === 'en_etude' || (d.statut === 'go' && d.en_vente_le)) && d.deal_id;
   if (!enEtude && !['documents_en_cours', 'complet', 'complements'].includes(d.statut)) return { ok: false, error: 'Le dossier est décidé : les pièces ne se changent plus.' };
   const documents = { ...(d.documents || {}), [categorie]: [...((d.documents || {})[categorie] || []), { nom: fichier.filename, url: fichier.url, le: maintenant() }] };
   const complet = checklist({ ...d, documents }).complet;
-  const statut = enEtude ? 'en_etude' : d.statut === 'complements' ? 'complements' : complet ? 'complet' : 'documents_en_cours';
+  const statut = enEtude ? d.statut : d.statut === 'complements' ? 'complements' : complet ? 'complet' : 'documents_en_cours';
   const maj = Records.update('DossierMandataire', d.id, { documents, statut, historique: trace(d, `pièce reçue : ${fichier.filename}`, user) });
   const mot = piecesDu(d).find((p) => p.cle === categorie)?.mot || categorie;
   import('./fil-dossier.js').then((F) => F.evenement(d.id, `Pièce reçue : ${mot} (${fichier.filename}).`)).catch(() => {});
+  // Le dossier de vente (27 oct. 2026) : la pièce se lit tout de suite, pour les vérifications du mandataire.
+  if (!enEtude) import('./dossier-vente.js').then((V) => V.lirePieces(d.id, user, { uploadDir })).catch((e) => console.warn('[portes] lecture de la pièce :', e?.message || e));
   if (enEtude) {
     deposerSurDeal(d.id, d.deal_id, user, uploadDir).catch((e) => console.warn('[portes] pièce après transfert :', e?.message || e));
-    import('./notifications.js').then(({ notifier }) => notifier({ pour: d.analyste_email, titre: `Nouvelle pièce · ${d.bien}`, texte: `${mot} : ${fichier.filename}`, lien: `/Analyse?deal_id=${d.deal_id}`, action: 'Ouvrir', cle: `fil-piece:${d.id}` })).catch(() => {});
+    if (d.analyste_email) import('./notifications.js').then(({ notifier }) => notifier({ pour: d.analyste_email, titre: `Nouvelle pièce · ${d.bien}`, texte: `${mot} : ${fichier.filename}`, lien: `/Analyse?deal_id=${d.deal_id}`, action: 'Ouvrir', cle: `fil-piece:${d.id}` })).catch(() => {});
   }
   return { ok: true, dossier: maj };
 }
@@ -546,7 +585,8 @@ export function carteDu(d) {
 }
 
 /** Pure : un dossier a-t-il été transféré à Klocka ? */
-export const estTransfere = (d) => !!d.deal_id || ['en_etude', 'complements', 'go', 'no_go'].includes(d.statut);
+// Le dossier d'analyse où les pièces se lisent avant la mise en vente (`deal_lecture`) ne fait pas un transfert.
+export const estTransfere = (d) => (!!d.deal_id && !d.deal_lecture) || ['en_etude', 'complements', 'go', 'no_go'].includes(d.statut);
 
 /** Pure : la relance du propriétaire, prête à envoyer par le mandataire. */
 export function relanceProprietaire(dossier) {
@@ -568,7 +608,7 @@ export function relanceProprietaire(dossier) {
  * dossier d'analyse, se lisent, et se classent dans Drive. Au transfert, et
  * pour chaque pièce qui arrive pendant l'étude.
  */
-async function deposerSurDeal(id, dealId, user, uploadDir) {
+export async function deposerSurDeal(id, dealId, user, uploadDir, { drive = true } = {}) {
   const d = Records.get('DossierMandataire', id);
   if (!d) return;
   const deja = new Set(d.pieces_deposees || []);
@@ -604,11 +644,20 @@ async function deposerSurDeal(id, dealId, user, uploadDir) {
     if (!r.ok) console.warn('[dossier mandataire] lecture des pièces :', r.error);
   } catch (e) { console.warn('[dossier mandataire] lecture des pièces :', e?.message || e); }
   // Et dans Google Drive : le dossier du bien reçoit les nouvelles pièces,
-  // comme pour un deal de l'équipe. Un échec Drive ne bloque rien.
+  // comme pour un deal de l'équipe. Un échec Drive ne bloque rien. Avant la
+  // mise en vente (dossier de vente), rien ne part vers Drive ni Monday.
+  if (drive) await classerPiecesDansDrive(d.id, aDeposer, uploadDir);
+}
+
+/** Les pièces dans Google Drive (le dossier du bien), puis l'élément Monday complété. Un échec Drive ne bloque rien. */
+export async function classerPiecesDansDrive(id, pieces, uploadDir = CHEMIN_UPLOADS) {
+  const d = Records.get('DossierMandataire', id);
+  if (!d || !pieces?.length) return;
+  const path = await import('path');
   try {
     const { classerDansDrive } = await import('./google-drive.js');
     const compte = (process.env.AK_COMPTE || 'sourcing@klocka.immo').trim().toLowerCase();
-    const fichiers = aDeposer.map((f) => ({ nom: f.nom, chemin: path.basename(f.url), mime: /\.pdf$/i.test(f.nom || '') ? 'application/pdf' : undefined }));
+    const fichiers = pieces.map((f) => ({ nom: f.nom, chemin: path.basename(f.url), mime: /\.pdf$/i.test(f.nom || '') ? 'application/pdf' : undefined }));
     const r = await classerDansDrive(compte, `${d.bien}${d.proprietaire ? ` — ${d.proprietaire}` : ''} (K Partners)`, fichiers, uploadDir);
     Records.update('DossierMandataire', d.id, { drive_folder_id: r.folder_id, drive_folder_url: r.folder_url });
     await pousserDossierMonday(d.id);
@@ -669,8 +718,17 @@ export async function soumettreDossier(id, user, { uploadDir, analyste = null } 
     Records.update('DossierMandataire', d.id, { analyste_titulaire: choisi.email, analyste_email: choisi.email, analyste_choisi: true });
   }
 
+  // Une pièce en train de créer son dossier d'analyse (lecture) : on l'attend, il sert au transfert.
+  const naissance = (await import('./dossier-vente.js')).naissanceEnCours(d.id);
+  if (naissance) { await naissance.catch(() => {}); Object.assign(d, Records.get('DossierMandataire', d.id)); }
   let dealId = d.deal_id;
-  const premiere = !dealId;
+  // Un dossier d'analyse né pour la lecture des pièces devient celui du transfert : l'équipe le voit.
+  if (dealId && d.deal_lecture) {
+    const lu = Records.findBy('Deal', 'deal_id', dealId);
+    if (lu) Records.update('Deal', lu.id, { cache_equipe: false });
+    Records.update('DossierMandataire', d.id, { deal_lecture: false });
+  }
+  const premiere = !dealId || !!d.deal_lecture;
   if (!dealId) {
     // Le verrou se pose avant le premier await : un double clic ne crée pas deux Deals.
     if (d.soumission_en_cours && Date.now() - Date.parse(d.soumission_en_cours) < 60_000) {
@@ -719,7 +777,7 @@ export async function soumettreDossier(id, user, { uploadDir, analyste = null } 
  * l'estimation s'il y en a une, et du texte du bail. Le dossier d'analyse
  * passe ensuite directement à l'étape 3 (Analyse).
  */
-export async function preanalyserDossierMandataire(dossierId, dealId, user, { uploadDir = null } = {}) {
+export async function preanalyserDossierMandataire(dossierId, dealId, user, { uploadDir = null, sansAnalyste = false } = {}) {
   const d = Records.get('DossierMandataire', dossierId);
   if (!d) return null;
   const mandat = d.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
@@ -764,6 +822,7 @@ export async function preanalyserDossierMandataire(dossierId, dealId, user, { up
   }
   const verdict = resultat?.lots?.[0]?.evaluation?.verdict || null;
   await pousserDossierMonday(d.id, { creer: true });
+  if (sansAnalyste) return resultat;
   try {
     const F = await import('./fil-dossier.js');
     F.poserMessage(d.id, { cote: 'systeme', genre: 'note', interne: true, texte: `Pré-analyse faite${verdict ? ` : ${verdict}` : ''}. Le dossier est à l'étape Analyse.` });
@@ -807,45 +866,79 @@ export function deciderDossier(id, { decision, commentaire = null, pieces = [] }
   if (!commentaire && demandees.length) commentaire = `Il manque : ${demandees.map((x) => x.mot).join(', ')}.`;
   const r = passer('DossierMandataire', d, ['en_etude'], decision, user, decision === 'go' ? 'go' : decision === 'no_go' ? 'no-go' : 'compléments demandés', { commentaire: commentaire ? String(commentaire).trim() : null });
   // Au Go, le projet naît dans la plateforme : il apparaît dans « Mes projets ».
-  if (r.ok && decision === 'go' && d.deal_id) {
-    import('./deal/projet.js').then(async ({ creerProjetDepuisDeal, completerAvantProjet }) => {
-      try { await completerAvantProjet(d.deal_id, 0); } catch { /* le projet naît de ce qu'on a */ }
-      const p = creerProjetDepuisDeal(d.deal_id, 0, user);
-      const projetId = p.project?.id || p.project_id || null;
-      if (projetId) {
-        const mandat = d.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
-        const projet = Records.get('Project', projetId);
-        const photos = (d.photos || []).map((p) => p.url);
-        Records.update('Project', projetId, {
-          origine_mandataire: { dossier_id: d.id, bien: d.bien, mandat_numero: mandat?.numero_registre || null, mandataire_email: d.mandataire_email },
-          ...(photos.length && !(projet?.photos || []).length ? { photos } : {}),
-        });
-        Records.update('DossierMandataire', d.id, { projet_id: projetId });
-      }
-    }).catch((e) => console.warn('[portes] projet au go :', e?.message || e));
-  }
+  if (r.ok && decision === 'go' && d.deal_id) creerProjetDuDossier(d, user).catch((e) => console.warn('[portes] projet au go :', e?.message || e));
   if (r.ok) {
-    const mot = decision === 'go' ? 'Go : le bien part vers les investisseurs (Mise en marché), et le projet est créé.' : decision === 'no_go' ? 'No-go.' : 'Compléments demandés.';
+    const mot = decision === 'go' ? 'Go : le bien part vers les investisseurs (Commercialisation), et le projet est créé.' : decision === 'no_go' ? 'No-go.' : 'Compléments demandés.';
     import('./fil-dossier.js').then((F) => F.evenement(d.id, `${mot}${commentaire ? ` ${String(commentaire).trim()}` : ''}`)).catch(() => {});
   }
-  if (r.ok && decision === 'go' && !Records.list('MiseEnMarche').some((m) => m.dossier_id === d.id)) {
-    r.marche = Records.create('MiseEnMarche', {
-      mandataire_email: d.mandataire_email,
-      dossier_id: d.id,
-      deal_id: d.deal_id,
-      bien: d.bien,
-      statut: 'preparation',
-      livrables: { teaser: null, fiche_deal: null, data_room: null },
-      video: null,
-      activite: [],
-      offres: [],
-      suivi_acte: [],
-      commission: null,
-      cree_le: maintenant(),
-      preparation_le: maintenant(),
-      historique: [{ le: maintenant(), par: user?.email || null, action: 'go : mise en marché ouverte' }],
-    });
+  if (r.ok && decision === 'go') r.marche = ouvrirMarche(d, user, 'go : mise en marché ouverte');
+  return r;
+}
+
+/** Le projet né d'un dossier : la fiche du dossier d'analyse, les photos du mandataire, le numéro du mandat. */
+async function creerProjetDuDossier(d, user) {
+  const { creerProjetDepuisDeal, completerAvantProjet } = await import('./deal/projet.js');
+  try { await completerAvantProjet(d.deal_id, 0); } catch { /* le projet naît de ce qu'on a */ }
+  const p = creerProjetDepuisDeal(d.deal_id, 0, user);
+  const projetId = p.project?.id || p.project_id || null;
+  if (!projetId) return null;
+  const mandat = d.mandat_id ? Records.get('MandatMandataire', d.mandat_id) : null;
+  const projet = Records.get('Project', projetId);
+  const photos = (d.photos || []).map((x) => x.url);
+  Records.update('Project', projetId, {
+    origine_mandataire: { dossier_id: d.id, bien: d.bien, mandat_numero: mandat?.numero_registre || null, mandataire_email: d.mandataire_email },
+    ...(photos.length && !(projet?.photos || []).length ? { photos } : {}),
+  });
+  Records.update('DossierMandataire', d.id, { projet_id: projetId });
+  return projetId;
+}
+
+/** La mise en marché d'un dossier, une seule fois. */
+function ouvrirMarche(d, user, action) {
+  const deja = Records.list('MiseEnMarche').find((m) => m.dossier_id === d.id);
+  if (deja) return deja;
+  return Records.create('MiseEnMarche', {
+    mandataire_email: d.mandataire_email,
+    dossier_id: d.id,
+    deal_id: d.deal_id,
+    bien: d.bien,
+    statut: 'preparation',
+    livrables: { teaser: null, fiche_deal: null, data_room: null },
+    video: null,
+    activite: [],
+    offres: [],
+    suivi_acte: [],
+    commission: null,
+    cree_le: maintenant(),
+    preparation_le: maintenant(),
+    historique: [{ le: maintenant(), par: user?.email || null, action }],
+  });
+}
+
+/**
+ * « Mettre en vente » (27 oct. 2026, Jules : plus d'analyste) : le mandataire ouvre lui-même la commercialisation.
+ * Les vérifications sont faites avant (server/dossier-vente.js). Le dossier d'analyse sort de l'ombre (l'équipe le
+ * voit), la fiche du bien se compose, puis le projet naît ; Drive et Monday reçoivent le bien.
+ */
+export async function ouvrirLaVente(id, user, { uploadDir = CHEMIN_UPLOADS } = {}) {
+  const d = lireDossier(id, user);
+  if (!d) return { ok: false, error: 'Dossier introuvable.' };
+  if (d.exemple) return { ok: false, error: REFUS_EXEMPLE };
+  const r = passer('DossierMandataire', d, ['documents_en_cours', 'complet', 'complements', 'en_etude'], 'go', user, 'mis en vente par le mandataire', { en_vente_le: maintenant(), deal_lecture: false });
+  if (!r.ok) return r;
+  r.marche = ouvrirMarche(d, user, 'mis en vente par le mandataire');
+  const frais = Records.get('DossierMandataire', d.id);
+  if (frais.deal_id) {
+    const deal = Records.findBy('Deal', 'deal_id', frais.deal_id);
+    if (deal) Records.update('Deal', deal.id, { cache_equipe: false });
+    (async () => {
+      await deposerSurDeal(frais.id, frais.deal_id, user, uploadDir, { drive: false });
+      await classerPiecesDansDrive(frais.id, Object.values(frais.documents || {}).flat(), uploadDir);
+      await preanalyserDossierMandataire(frais.id, frais.deal_id, user, { uploadDir, sansAnalyste: true });
+      await creerProjetDuDossier(Records.get('DossierMandataire', frais.id), user);
+    })().catch((e) => console.warn('[portes] mise en vente :', e?.message || e));
   }
+  import('./fil-dossier.js').then((F) => F.evenement(d.id, 'Mis en vente : le bien part vers les investisseurs (Commercialisation).')).catch(() => {});
   return r;
 }
 
@@ -871,7 +964,7 @@ export function marcheVuParMandataire(m) {
 export function avancerMarche(id, statut, user, extra = {}) {
   if (!estAdmin(user)) return { ok: false, error: 'Réservé à Klocka.' };
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   const i = STATUTS_MARCHE.indexOf(m.statut);
   if (STATUTS_MARCHE.indexOf(statut) !== i + 1) return { ok: false, error: 'On avance d’une étape à la fois.' };
   if (statut === 'presente' && !m.publication_validee_le) return { ok: false, error: 'Le mandataire valide d’abord la publication du bien.' };
@@ -884,7 +977,7 @@ export function avancerMarche(id, statut, user, extra = {}) {
  */
 export function validerPublication(id, user) {
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (String(m.mandataire_email || '').toLowerCase() !== String(user?.email || '').toLowerCase()) return { ok: false, error: 'Seul le mandataire du bien valide sa publication.' };
   if (m.statut !== 'preparation') return { ok: false, error: 'Le bien est déjà présenté.' };
   if (m.publication_validee_le) return { ok: true, marche: m };
@@ -896,7 +989,7 @@ export function validerPublication(id, user) {
 export function poserLivrable(id, cle, lien, user) {
   if (!estAdmin(user)) return { ok: false, error: 'Réservé à Klocka.' };
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (!['teaser', 'fiche_deal', 'data_room'].includes(cle)) return { ok: false, error: 'Livrable inconnu.' };
   const livrables = { ...(m.livrables || {}), [cle]: lien ? String(lien).trim() : null };
   return { ok: true, marche: Records.update('MiseEnMarche', m.id, { livrables }) };
@@ -904,7 +997,7 @@ export function poserLivrable(id, cle, lien, user) {
 
 export function deposerVideo(id, fichier, user) {
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   return { ok: true, marche: Records.update('MiseEnMarche', m.id, { video: { nom: fichier.filename, url: fichier.url, le: maintenant() }, historique: trace(m, 'vidéo déposée', user) }) };
 }
 
@@ -914,7 +1007,7 @@ export const TYPES_ACTIVITE = { dossier_ouvert: 'Dossier ouvert', visite_demande
 export function noterActivite(id, { type, client_nom = null, note = null }, user) {
   if (!estAdmin(user)) return { ok: false, error: 'Réservé à Klocka.' };
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (!TYPES_ACTIVITE[type]) return { ok: false, error: 'Type inconnu.' };
   const activite = [...(m.activite || []), { le: maintenant(), type, note: note ? String(note).trim() : null, client_nom: client_nom || null }];
   return { ok: true, marche: Records.update('MiseEnMarche', m.id, { activite }) };
@@ -924,7 +1017,7 @@ export function noterActivite(id, { type, client_nom = null, note = null }, user
 export function poserOffre(id, { montant, conditions = null, argumentaire = null, client_nom = null, valider = false }, user) {
   if (!estAdmin(user)) return { ok: false, error: 'Réservé à Klocka.' };
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (!(Number(montant) > 0)) return { ok: false, error: 'Le montant de l’offre est nécessaire.' };
   // Une offre n'existe que sur un bien présenté : rien ne se transmet au
   // mandataire pour un bien encore en préparation, ni après le compromis.
@@ -946,7 +1039,7 @@ export function poserOffre(id, { montant, conditions = null, argumentaire = null
 export function validerOffre(id, offreId, argumentaire, user) {
   if (!estAdmin(user)) return { ok: false, error: 'Réservé à Klocka.' };
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (!String(argumentaire || '').trim()) return { ok: false, error: 'L’argumentaire accompagne l’offre transmise.' };
   if (!['presente', 'offre'].includes(m.statut)) return { ok: false, error: `Le bien est « ${m.statut} » : une offre se transmet une fois le bien présenté.` };
   if (!(m.offres || []).some((o) => o.id === offreId)) return { ok: false, error: 'Offre introuvable.' };
@@ -959,7 +1052,7 @@ export function validerOffre(id, offreId, argumentaire, user) {
 /** Le mandataire rapporte la réponse du vendeur. */
 export function repondreOffre(id, offreId, { reponse, note = null }, user) {
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (!['acceptee', 'refusee', 'contre_offre'].includes(reponse)) return { ok: false, error: 'Réponse inconnue.' };
   if (!(m.offres || []).some((o) => o.id === offreId && o.validee)) return { ok: false, error: 'Offre introuvable (ou pas encore transmise).' };
   const offres = (m.offres || []).map((o) => (o.id === offreId && o.validee ? { ...o, reponse, reponse_note: note ? String(note).trim() : null, reponse_le: maintenant() } : o));
@@ -969,7 +1062,7 @@ export function repondreOffre(id, offreId, { reponse, note = null }, user) {
 /** Le suivi jusqu'à l'acte : pièces manquantes, relances notaire. Chacun y écrit. */
 export function noterSuiviActe(id, texte, user) {
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   if (!String(texte || '').trim()) return { ok: false, error: 'Rien à noter.' };
   const suivi_acte = [...(m.suivi_acte || []), { le: maintenant(), par: user?.email || null, texte: String(texte).trim(), fait: false }];
   return { ok: true, marche: Records.update('MiseEnMarche', m.id, { suivi_acte }) };
@@ -977,7 +1070,7 @@ export function noterSuiviActe(id, texte, user) {
 
 export function basculerSuiviActe(id, index, user) {
   const m = lireMarche(id, user);
-  if (!m) return { ok: false, error: 'Mise en marché introuvable.' };
+  if (!m) return { ok: false, error: 'Commercialisation introuvable.' };
   const suivi_acte = (m.suivi_acte || []).map((s, i) => (i === Number(index) ? { ...s, fait: !s.fait } : s));
   return { ok: true, marche: Records.update('MiseEnMarche', m.id, { suivi_acte }) };
 }

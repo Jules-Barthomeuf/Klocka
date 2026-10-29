@@ -105,6 +105,8 @@ class ErreurHttp extends Error {
   };
 
   async function request(method, url, { body, isForm, signal, keepalive = false } = {}) {
+    // Un FormData part toujours en multipart, même sans `isForm` (27 oct. 2026 : le dépôt des pièces partait vide).
+    if (typeof FormData !== 'undefined' && body instanceof FormData) isForm = true;
     /** @type {Record<string, string>} */
     const headers = {};
     // Seul le jeton de fenêtre part en Authorization : le jeton hérité de

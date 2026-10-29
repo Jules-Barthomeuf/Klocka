@@ -13,6 +13,7 @@ import { depuisCourt } from "@/components/ui/liste-documents";
 import EditeurPresentation from "@/components/presentations/EditeurPresentation";
 import ApercuPdf from "@/components/presentations/ApercuPdf";
 import Chargement from "@/components/ui/Chargement";
+import { PoigneeEditeur, useLargeurChat } from "@/components/editeur/Editeur";
 
 // Présentations — les dossiers bancaires « Projet de Financement » (12 oct.
 // 2026). Comme Offres et le Mandat : le chat à gauche, la présentation à
@@ -108,35 +109,17 @@ export default function AdminPresentations() {
     return () => document.documentElement.classList.remove("k-sans-barre", "k-sobre");
   }, [scinde]);
 
-  // La largeur du chat (12 oct. 2026, Jules) : la poignée entre les deux se tire de gauche à droite ; un double-clic la remet.
+  // La largeur du chat (12 oct. 2026, Jules) : la poignée commune des éditeurs se tire ; un double-clic la remet.
   // Gardée dans ce navigateur, c'est un confort de la personne.
-  const CLE_LARGEUR = "klocka.presentations.largeur-chat";
-  const LARGEUR_DEFAUT = 420;
-  const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
-  const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
-  const [tire, setTire] = useState(false);
-  const tirer = (e) => {
-    e.preventDefault();
-    setTire(true);
-    let derniere = largeurChat;
-    const bouger = (ev) => { derniere = borner(ev.clientX); setLargeurChat(derniere); };
-    const lacher = () => {
-      setTire(false);
-      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
-      window.removeEventListener("pointermove", bouger);
-      window.removeEventListener("pointerup", lacher);
-    };
-    window.addEventListener("pointermove", bouger);
-    window.addEventListener("pointerup", lacher);
-  };
-  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
+  const poignee = useLargeurChat("klocka.presentations.largeur-chat");
+  const { largeur: largeurChat, tire } = poignee;
 
   // La liste (maquette de Jules, 12 oct. 2026) : Nom, Modifié, PDF, et les quatre dernières tant qu'on n'a pas tout affiché.
   const LIMITE = 4;
   const affichees = toutes ? presentations : presentations.slice(0, LIMITE);
   const liste = (
-    // Le fond de la barre de navigation (13 oct. 2026, Jules) : bg-rail suit la teinte choisie dans Compte.
-    <div className={`rounded-[14px] bg-rail px-5 pb-3 pt-5 max-md:px-3 ${scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[790px]"}`}>
+    // Sur le fond de la page, comme Offres (28 oct. 2026, le modèle de la page éditeur : aucune partie d'une autre couleur).
+    <div className={scinde ? "mt-8" : "mx-auto mt-[7vh] max-w-[790px]"}>
       <div className="flex items-center justify-between gap-3 pb-[14px]">
         <div className="flex items-baseline gap-[10px]">
           <h2 className="m-0 text-[19px] font-medium tracking-[-0.01em] text-encre">Vos présentations</h2>
@@ -169,9 +152,9 @@ export default function AdminPresentations() {
   const droite = courante ? (
     <EditeurPresentation key={courante} id={courante} travail={travail} onFermer={() => setCourante(null)} />
   ) : enConstruction ? (
-    <div className="h-full bg-fond"><MiseAJourDocument surtitre="Présentation bancaire" titre="La présentation se construit" etapes={travail.etapes?.length ? travail.etapes : ["Lecture du projet", "La ville et le quartier", "La carte et les enseignes", "Les seize diapositives"]} enCours /></div>
+    <div className="h-full"><MiseAJourDocument surtitre="Présentation bancaire" titre="La présentation se construit" etapes={travail.etapes?.length ? travail.etapes : ["Lecture du projet", "La ville et le quartier", "La carte et les enseignes", "Les seize diapositives"]} enCours /></div>
   ) : (
-    <div className="grid h-full place-items-center bg-fond px-10 text-center">
+    <div className="grid h-full place-items-center px-10 text-center">
       <p className="m-0 max-w-[44ch] text-[14px] leading-[1.6] text-ardoise">La présentation se construit ici dès que le chat a le projet. Tout s'y retouche sur place : un texte au clic, une photo au clic, une diapositive se masque ou se déplace. Elle part en PDF.</p>
     </div>
   );
@@ -200,20 +183,10 @@ export default function AdminPresentations() {
             <div className="mx-auto mt-[6vh] max-w-[1400px]"><HistoriqueColonne espace="admin" /></div>
           ) : liste)}
         </div>
-        {/* L'éditeur, un écran dans l'écran : une carte posée sur le fond, comme un aperçu à côté du chat. */}
-        {scinde && (
-          <div className="h-[100dvh] min-h-0 min-w-0 py-2 pr-2">
-            <div className="h-full min-h-0 overflow-hidden rounded-[14px] border border-bord-doux bg-rail">{droite}</div>
-          </div>
-        )}
+        {/* L'éditeur sur le fond de la page, comme le chat (28 oct. 2026, le modèle de la page éditeur) : plus de carte, la poignée sépare. */}
+        {scinde && <div className="h-[100dvh] min-h-0 min-w-0 overflow-hidden">{droite}</div>}
         {/* La poignée entre le chat et l'éditeur. */}
-        {scinde && (
-          <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
-            onPointerDown={tirer} onDoubleClick={remettre}
-            className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
-            <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
-          </div>
-        )}
+        {scinde && <PoigneeEditeur {...poignee} />}
       </div>
 
       {pdfDe && <ApercuPdf id={pdfDe.id} titre={pdfDe.titre} onFermer={() => setPdfDe(null)} />}

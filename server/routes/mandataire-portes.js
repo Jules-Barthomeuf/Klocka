@@ -55,6 +55,12 @@ export function monterMandatairePortes(app) {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).creerEstimation(req.body || {}, user));
   }));
+  // L'Avis de valeur ouvert depuis la visite (29 oct. 2026) : l'estimation du bien, avec ce que la visite dit, à confirmer.
+  app.post('/api/mandataire/proprietaires/:id/avis-visite', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { avisDepuisLaVisite } = await import('../mandataire-avis.js');
+    rendre(res, await avisDepuisLaVisite(req.params.id, vue(req, user)));
+  }));
   app.patch('/api/mandataire/estimations/:id', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).modifierEstimation(req.params.id, req.body || {}, user));
@@ -156,7 +162,8 @@ export function monterMandatairePortes(app) {
   // --- 2. Mandat ------------------------------------------------------------
   app.get('/api/mandataire/mandats', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
-    ok(res, { mandats: (await P()).listerMandats(vue(req, user)) });
+    const { nonLus } = await import('../fil-mandat.js');
+    ok(res, { mandats: (await P()).listerMandats(vue(req, user)).map((m) => ({ ...m, fil_non_lus: nonLus(m.id, user.email) })) });
   }));
   app.post('/api/mandataire/mandats', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
@@ -189,10 +196,19 @@ export function monterMandatairePortes(app) {
     const { apercuMandat } = await import('../mandataire-mandat-chat.js');
     rendre(res, apercuMandat(req.params.id, vue(req, user)));
   }));
+  app.post('/api/mandataire/mandats/:id/envoyer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { envoyerMandatParId } = await import('../mandataire-mandat-chat.js');
+    rendre(res, await envoyerMandatParId(req.params.id, vue(req, user)));
+  }));
   app.post('/api/mandataire/mandats/:id/conversation', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     const { conversationDuMandat } = await import('../mandataire-mandat-chat.js');
     rendre(res, await conversationDuMandat(req.params.id, vue(req, user)));
+  }));
+  app.post('/api/mandataire/mandats/:id/suite', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, (await P()).passerALaSuite(req.params.id, vue(req, user)));
   }));
   app.post('/api/mandataire/mandats/:id/signe', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
@@ -203,6 +219,54 @@ export function monterMandatairePortes(app) {
     const user = admin(req, res); if (!user) return;
     const f = await fichierDe(req); if (!f) return sansFichier(res);
     rendre(res, (await P()).deposerMandatPret(req.params.id, { document: { nom: f.filename, url: f.url }, reference_mynotary: req.body?.reference_mynotary || null }, user));
+  }));
+  // Les mandats côté Klocka, et le fil de chaque mandat avec son mandataire (27 oct. 2026, Jules).
+  const FM = () => import('../fil-mandat.js');
+  const pieceDe = (req) => (req.file ? [{ nom: req.file.originalname, url: `/uploads/${req.file.filename}` }] : []);
+  // `?lire=0` : le préchargement de l'écran, qui ne marque rien comme lu (le point reste jusqu'à l'ouverture).
+  const vueFilMandat = async (m, user, { lire = true } = {}) => {
+    const f = await FM();
+    const { nomAnalyste } = await F();
+    if (lire) f.marquerLu(m.id, user.email);
+    const resp = f.responsable(m);
+    return {
+      ok: true,
+      analyste: resp ? { email: resp, nom: nomAnalyste(resp) } : null,
+      messages: f.filDuMandat(m.id).map((x) => ({ ...x, auteur: x.cote === 'analyste' ? nomAnalyste(x.auteur_email) : x.cote === 'mandataire' ? 'Vous' : null })),
+    };
+  };
+  app.get('/api/mandataire/admin/mandats', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    const { apercuMandat } = await import('../mandataire-mandat-chat.js');
+    const mandats = (await FM()).mandatsPourKlocka(String(user.email || '').toLowerCase())
+      .map((m) => ({ ...m, questionnaire: apercuMandat(m.id, user).questionnaire || null }));
+    ok(res, { mandats, a_faire: mandats.filter((m) => m.a_faire).length, non_lus: mandats.reduce((n, m) => n + m.non_lus, 0) });
+  }));
+  app.get('/api/mandataire/admin/mandats/:id/fil', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    const { Records } = await import('../db.js');
+    const m = Records.get('MandatMandataire', req.params.id);
+    if (!m) return res.status(404).json({ error: 'Mandat introuvable.' });
+    ok(res, await vueFilMandat(m, user, { lire: req.query.lire !== '0' }));
+  }));
+  app.post('/api/mandataire/admin/mandats/:id/fil', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    const { Records } = await import('../db.js');
+    const m = Records.get('MandatMandataire', req.params.id);
+    if (!m) return res.status(404).json({ error: 'Mandat introuvable.' });
+    rendre(res, await (await FM()).ecrireKlocka(m, user, { texte: req.body?.texte, pieces: pieceDe(req) }));
+  }));
+  app.get('/api/mandataire/mandats/:id/fil', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const m = (await P()).lireMandat(req.params.id, vue(req, user));
+    if (!m) return res.status(404).json({ error: 'Mandat introuvable.' });
+    ok(res, await vueFilMandat(m, user, { lire: req.query.lire !== '0' }));
+  }));
+  app.post('/api/mandataire/mandats/:id/fil', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const m = (await P()).lireMandat(req.params.id, vue(req, user));
+    if (!m) return res.status(404).json({ error: 'Mandat introuvable.' });
+    rendre(res, await (await FM()).ecrireMandataire(m, { ...user, email: m.mandataire_email }, { texte: req.body?.texte, pieces: pieceDe(req) }));
   }));
   app.post('/api/mandataire/admin/mandats/:id/registre', wrap(async (req, res) => {
     const user = admin(req, res); if (!user) return;
@@ -256,6 +320,148 @@ export function monterMandatairePortes(app) {
     const f = await fichierDe(req); if (!f) return sansFichier(res);
     rendre(res, (await P()).ajouterPiece(req.params.id, req.params.categorie, f, user));
   }));
+  // --- Le dossier de vente (27 oct. 2026, Jules : plus d'analyste) ---------
+  const V = () => import('../dossier-vente.js');
+  app.get('/api/mandataire/dossiers/:id/vente', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    // La veille passe d'abord (sans appel au modèle) : le mail que Haka doit proposer est prêt dès l'arrivée.
+    const mod = await V();
+    const u = vue(req, user);
+    if ((await P()).lireDossier(req.params.id, u)) await mod.veilleDuDossier(req.params.id).catch(() => null);
+    rendre(res, await mod.vueDuDossier(req.params.id, u));
+  }));
+  // Le mail préparé par Haka part de la boîte du mandataire ; sans boîte, `sans_boite` et l'écran ouvre sa messagerie.
+  app.post('/api/mandataire/dossiers/:id/mail', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const r = await (await V()).envoyerMailVendeur(req.params.id, vue(req, user), req.body || {});
+    if (r.sans_boite) return ok(res, r);
+    rendre(res, r);
+  }));
+  // La boîte du mandataire, et l'envoi d'un brouillon du chat depuis elle (28 oct. 2026) : jamais d'une boîte de Klocka.
+  app.get('/api/mandataire/boite', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const b = await (await V()).boiteDuMandataire(user.email);
+    ok(res, { boite: b ? { email: b.email, nom: b.name } : null });
+  }));
+  app.post('/api/mandataire/mail/envoyer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { a, objet, corps, dossier_vente: dv } = req.body || {};
+    const mod = await V();
+    if (dv?.id) return rendre(res, await mod.envoyerMailVendeur(dv.id, vue(req, user), { a, objet, corps }));
+    if (!String(a || '').includes('@') || !String(objet || '').trim() || !String(corps || '').trim()) return res.status(400).json({ error: 'Destinataire, objet et texte sont requis.' });
+    const boite = await mod.boiteDuMandataire(user.email);
+    if (!boite) return res.status(400).json({ error: 'Aucune boîte connectée : connectez la vôtre dans le tableau de bord.' });
+    const { sendEmail } = await import('../email.js');
+    const r = await sendEmail({ from: boite.id, owner: user.email, to: a, subject: objet, body: corps, intention: 'mandataire_chat' });
+    if (!r?.success) return res.status(400).json({ error: r?.error || "Le mail n'est pas parti." });
+    ok(res, { ok: true, de: boite.email });
+  }));
+  app.post('/api/mandataire/dossiers/:id/mail/ecarter', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).ecarterMailVendeur(req.params.id, vue(req, user)));
+  }));
+  // Plusieurs pièces d'un coup : chacune se range d'après son nom ; celles que rien ne reconnaît reviennent, à classer.
+  app.post('/api/mandataire/dossiers/:id/pieces', roleAvantDepot, upload.array('fichiers', 20), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    if (!req.files?.length) return sansFichier(res);
+    const fs = await import('fs');
+    const { categorieDuNom } = await V();
+    const { ajouterPiece } = await P();
+    const rangees = [];
+    const aClasser = [];
+    for (const f of req.files) {
+      const categorie = categorieDuNom(f.originalname);
+      if (!categorie) { aClasser.push(f.originalname); try { fs.unlinkSync(f.path); } catch { /* déjà parti */ } continue; }
+      const r = ajouterPiece(req.params.id, categorie, { filename: f.originalname, mimetype: f.mimetype, url: `/uploads/${f.filename}` }, user);
+      if (!r.ok) return rendre(res, r);
+      rangees.push({ nom: f.originalname, categorie });
+    }
+    ok(res, { ok: true, rangees, a_classer: aClasser });
+  }));
+  app.post('/api/mandataire/dossiers/:id/points', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).deciderPoint(req.params.id, req.body?.cle, req.body?.decision || null, vue(req, user)));
+  }));
+  app.post('/api/mandataire/dossiers/:id/preference', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).noterPreference(req.params.id, req.body || {}, vue(req, user)));
+  }));
+  app.post('/api/mandataire/dossiers/:id/vente', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreMarche(res, user, await (await V()).mettreEnVente(req.params.id, vue(req, user), { uploadDir: UPLOAD_DIR }));
+  }));
+  app.post('/api/mandataire/dossiers/:id/depot', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await V()).lienDeDepot(req.params.id, vue(req, user)));
+  }));
+  // L'espace de dépôt du vendeur : public, ouvert par son jeton seul (hors de la garde /api/mandataire).
+  const nomRecu = (n) => { try { return Buffer.from(String(n || ''), 'latin1').toString('utf8'); } catch { return String(n || ''); } };
+  app.get('/api/depot-vendeur/:jeton', wrap(async (req, res) => {
+    const r = await (await V()).vueVendeur(req.params.jeton);
+    if (!r.ok) return res.status(404).json({ error: r.error });
+    ok(res, r);
+  }));
+  app.post('/api/depot-vendeur/:jeton', upload.array('fichiers', 20), wrap(async (req, res) => {
+    const fichiers = (req.files || []).map((f) => ({ nom: nomRecu(f.originalname), mimetype: f.mimetype, url: `/uploads/${f.filename}` }));
+    const r = await (await V()).deposerParLeVendeur(req.params.jeton, fichiers, { categorie: req.body?.categorie || null, uploadDir: UPLOAD_DIR });
+    if (!r.ok) {
+      const fs = await import('fs');
+      for (const f of req.files || []) { try { fs.unlinkSync(f.path); } catch { /* déjà parti */ } }
+      return res.status(400).json({ error: r.error });
+    }
+    ok(res, r);
+  }));
+  // --- Le teaser (28 oct. 2026, Jules) : composé par le code, corrigé par le mandataire, imprimé en A4 -------
+  const T = () => import('../teaser.js');
+  app.get('/api/mandataire/marches/:id/teaser', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const t = await T();
+    const r = await t.teaserDe(req.params.id, vue(req, user), { refaire: req.query.refaire === '1', classe: req.query.classe || null });
+    if (!r.ok) return rendre(res, r);
+    const m = (await P()).lireMarche(req.params.id, vue(req, user));
+    ok(res, { ...r, signataire: t.signataireDe(m.mandataire_email), classes: Object.fromEntries(Object.entries(t.CLASSES).map(([k, c]) => [k, c.libelle])) });
+  }));
+  app.patch('/api/mandataire/marches/:id/teaser', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await T()).modifierTeaser(req.params.id, vue(req, user), req.body || {}));
+  }));
+  // La photo du teaser, déposée d'un clic sur son emplacement (28 oct. 2026).
+  app.post('/api/mandataire/marches/:id/teaser/photo', roleAvantDepot, upload.single('fichier'), wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    if (!req.file) return sansFichier(res);
+    if (!/^image\//.test(req.file.mimetype || '')) return res.status(400).json({ error: 'Joignez une image (photo, JPEG, PNG).' });
+    rendre(res, await (await T()).modifierTeaser(req.params.id, vue(req, user), { photo: `/uploads/${req.file.filename}` }));
+  }));
+  app.post('/api/mandataire/marches/:id/teaser/valider', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendre(res, await (await T()).validerTeaser(req.params.id, vue(req, user), { annuler: req.body?.annuler === true }));
+  }));
+  app.get('/api/mandataire/marches/:id/teaser/pdf', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { PORT } = await import('../contexte.js');
+    const r = await (await T()).teaserPdf(req.params.id, vue(req, user), { base: `http://127.0.0.1:${PORT}` });
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    res.set('Cache-Control', 'no-store');
+    res.download(r.fichier, r.nom);
+  }));
+  app.get('/api/teaser-impression/:jeton', wrap(async (req, res) => {
+    const d = await (await T()).teaserParJeton(req.params.jeton);
+    if (!d) return res.status(404).json({ error: 'Lien d’impression expiré.' });
+    ok(res, d);
+  }));
+  // Le bien d'essai (29 oct. 2026, Jules) : des scénarios qui posent le bien à une étape, sans modèle ni envoi. Équipe seule.
+  app.get('/api/mandataire/essai', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    ok(res, { scenarios: (await import('../bien-essai.js')).SCENARIOS });
+  }));
+  app.post('/api/mandataire/essai/scenario', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    rendre(res, await (await import('../bien-essai.js')).appliquerScenario(String(req.body?.cle || ''), user));
+  }));
+  app.delete('/api/mandataire/essai', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    ok(res, { ok: true, effaces: (await import('../bien-essai.js')).effacerEssai(user) });
+  }));
   app.delete('/api/mandataire/dossiers/:id', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     // Un admin en Vue Mandataire supprime comme un mandataire : son dossier, pas encore transféré.
@@ -273,6 +479,12 @@ export function monterMandatairePortes(app) {
   app.delete('/api/mandataire/dossiers/:id/photos', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
     rendre(res, (await P()).retirerPhoto(req.params.id, String(req.query.url || ''), user));
+  }));
+  // L'étape Mandat d'un bien estimé : le mandat se prépare d'office avec l'avis et la fiche (27 oct. 2026, Jules).
+  app.post('/api/mandataire/mandats/preparer', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    const { preparerMandat } = await import('../mandataire-mandat-chat.js');
+    rendre(res, preparerMandat({ estimation_id: req.body?.estimation_id }, vue(req, user)));
   }));
   app.patch('/api/mandataire/mandats/:id/estimation', wrap(async (req, res) => {
     const user = mandataire(req, res); if (!user) return;
@@ -301,11 +513,15 @@ export function monterMandatairePortes(app) {
     f.marquerLu(d.id, user.email);
     return {
       ok: true,
-      dossier: { id: d.id, bien: d.bien, statut: d.statut, deal_id: d.deal_id || null },
-      analyste: d.analyste_email ? { email: d.analyste_email, nom: f.nomAnalyste(d.analyste_email) } : null,
+      dossier: { id: d.id, bien: d.bien, statut: d.statut, deal_id: d.deal_id || null, envoye_klocka_le: d.envoye_klocka_le || null, avancement: d.avancement || {} },
+      etapes: (await V()).ETAPES_KLOCKA,
+      // Un bien envoyé à Klocka parle à l'équipe, pas à un analyste (28 oct. 2026).
+      analyste: d.analyste_email && !(d.equipe || d.envoye_klocka_le) ? { email: d.analyste_email, nom: f.nomAnalyste(d.analyste_email) } : null,
+      equipe: !!(d.equipe || d.envoye_klocka_le),
       titulaire: d.analyste_titulaire ? { email: d.analyste_titulaire, nom: f.nomAnalyste(d.analyste_titulaire) } : null,
       relais: d.relais || null,
-      messages: f.filDe(d.id, { pourKlocka }).map((m) => ({ ...m, auteur: m.cote === 'analyste' ? f.nomAnalyste(m.auteur_email) : m.cote === 'mandataire' ? 'Vous' : null })),
+      // Envoyé à l'équipe (28 oct. 2026, Jules) : le mandataire lit « Klocka », sans le prénom de qui a répondu.
+      messages: f.filDe(d.id, { pourKlocka }).map((m) => ({ ...m, auteur: m.cote === 'analyste' ? ((d.equipe || d.envoye_klocka_le) && !pourKlocka ? 'Klocka' : f.nomAnalyste(m.auteur_email)) : m.cote === 'mandataire' ? 'Vous' : null })),
       ...(pourKlocka ? { analystes: f.ANALYSTES } : {}),
     };
   };
@@ -354,6 +570,15 @@ export function monterMandatairePortes(app) {
     const pieces = req.file ? [{ nom: req.file.originalname, url: `/uploads/${req.file.filename}` }] : [];
     const interne = /^(1|true|oui)$/i.test(String(req.body?.interne || ''));
     rendre(res, await (await F()).ecrireAnalyste(req.params.id, user, { texte: req.body?.texte, pieces, interne }));
+  }));
+  // L'avancement chez Klocka, coché par l'analyste dans la conversation (28 oct. 2026).
+  app.post('/api/mandataire/admin/dossiers/:id/avancement', wrap(async (req, res) => {
+    const user = admin(req, res); if (!user) return;
+    rendre(res, await (await V()).cocherAvancement(req.params.id, req.body?.etape, req.body?.fait !== false, user));
+  }));
+  app.post('/api/mandataire/marches/:id/voie', wrap(async (req, res) => {
+    const user = mandataire(req, res); if (!user) return;
+    rendreMarche(res, user, await (await V()).choisirVoie(req.params.id, req.body?.voie, vue(req, user)));
   }));
   // Les conversations avec les mandataires, côté Klocka : un dossier, une
   // conversation ; d'abord celles qui attendent une réponse.

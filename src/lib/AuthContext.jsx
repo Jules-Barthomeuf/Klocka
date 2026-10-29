@@ -180,3 +180,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+/** Sans erreur hors du fournisseur (un composant partagé, une page publique) : null, ou le contexte. */
+export const useAuthPeutEtre = () => useContext(AuthContext) || null;

@@ -48,12 +48,20 @@ export function FriseDossier({ vue, atteinte = 1, onAller, occupe = false, etape
  * avec une ombre. Le choix ouvert / fermé est gardé dans le navigateur.
  */
 // `telephone` : il sert aussi au téléphone, à la place de la frise, collé au bord (25 oct. 2026, Jules, pour les biens).
-export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onValider = null, telephone = false }) {
-  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem("klocka.dossier.etapes") === "ouvert"; } catch { return false; } });
-  const basculer = () => setOuvert((o) => { try { localStorage.setItem("klocka.dossier.etapes", o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
+// `intitule`, `numeros`, `memoire` : le même menu pour des onglets (la Prospection, 25 oct. 2026, Jules) : son titre, pas de
+// numéro dans les ronds, et sa propre mémoire ouvert / fermé et position.
+export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onValider = null, telephone = false, intitule = "Étapes", numeros = true, memoire = "klocka.dossier.etapes" }) {
+  const [petitEcran] = useState(() => telephone && typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  // Au téléphone, l'état ouvert / fermé est gardé à part, et fermé par défaut (26 oct. 2026).
+  const cleOuvert = petitEcran ? `${memoire}.tel` : memoire;
+  const [ouvert, setOuvert] = useState(() => { try { return localStorage.getItem(cleOuvert) === "ouvert"; } catch { return false; } });
+  const basculer = () => setOuvert((o) => { try { localStorage.setItem(cleOuvert, o ? "ferme" : "ouvert"); } catch { /* navigation privée */ } return !o; });
   const ici = Math.max(0, items.findIndex((o) => o.cle === valeur));
+  // Au téléphone, le menu part du haut de l'écran, sous le titre, et non du milieu (26 oct. 2026) : au milieu, il couvrait
+  // le bouton Envoyer du chat. Il se glisse plus bas s'il gêne ; sa position est gardée à part.
+  const cleY = petitEcran ? `${memoire}.y.tel` : `${memoire}.y`;
   // Tenir le haut et glisser : le menu monte ou descend le long du bord droit ; la position est gardée.
-  const [decalage, setDecalage] = useState(() => { try { return Number(localStorage.getItem("klocka.dossier.etapes.y")) || 0; } catch { return 0; } });
+  const [decalage, setDecalage] = useState(() => { try { return Number(localStorage.getItem(cleY)) || 0; } catch { return 0; } });
   const glisse = useRef(false);
   const attraper = (e) => {
     if (e.button !== 0) return;
@@ -66,21 +74,24 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
     };
     const lacher = () => {
       window.removeEventListener("pointermove", bouger); window.removeEventListener("pointerup", lacher);
-      setDecalage((d) => { try { localStorage.setItem("klocka.dossier.etapes.y", String(Math.round(d))); } catch { /* navigation privée */ } return d; });
+      setDecalage((d) => { try { localStorage.setItem(cleY, String(Math.round(d))); } catch { /* navigation privée */ } return d; });
     };
     window.addEventListener("pointermove", bouger); window.addEventListener("pointerup", lacher);
   };
   // Un clic qui suit un glissement n'ouvre ni ne ferme rien.
   const cliquer = () => { if (glisse.current) { glisse.current = false; return; } basculer(); };
+  // Au téléphone, le menu revient à droite comme sur ordinateur (27 oct. 2026, Jules : « un truc à droite qu'on ouvre ») ;
+  // il remplace le menu du fil d'Ariane. Fermé, une pastille étroite au bord droit, à mi-hauteur, qui se glisse.
   return (
-    <div className={`fixed top-1/2 z-40 ${telephone ? "right-4 max-md:right-2" : "right-4 max-md:hidden"}`} style={{ transform: `translateY(calc(-50% + ${decalage}px))` }}>
+    <div className={`fixed z-40 ${petitEcran ? "right-1.5 top-1/2" : telephone ? "right-4 top-1/2 max-md:right-2" : "right-4 top-1/2 max-md:hidden"}`}
+      style={{ transform: `translateY(calc(-50% + ${decalage}px))` }}>
       <AnimatePresence mode="wait" initial={false}>
         {ouvert ? (
           <motion.div key="ouvert" initial={{ opacity: 0, x: 16, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 16, scale: 0.98 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="w-[220px] overflow-hidden rounded-[18px] border border-bord-doux bg-rail shadow-[0_24px_60px_rgb(0_0_0/0.35)]">
             <div onPointerDown={attraper} title="Tenir et glisser pour déplacer" className="flex cursor-grab touch-none select-none items-center justify-between border-b border-trait px-4 py-2.5 active:cursor-grabbing">
-              <span className="text-[11px] uppercase tracking-[.16em] text-brume">Étapes · {ici + 1}/{items.length}</span>
-              <button type="button" onClick={cliquer} aria-label="Fermer le menu des étapes" title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
+              <span className="text-[11px] uppercase tracking-[.16em] text-brume">{intitule}{numeros ? ` · ${ici + 1}/${items.length}` : ""}</span>
+              <button type="button" onClick={cliquer} aria-label={`Fermer le menu : ${intitule}`} title="Fermer" className="grid h-7 w-7 place-items-center rounded-full text-ardoise transition-colors hover:text-encre" style={{ background: "transparent" }}><ChevronRight className="h-4 w-4" /></button>
             </div>
             <nav className="flex flex-col p-1.5">
               {items.map((o) => {
@@ -90,7 +101,7 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
                   <button type="button" onClick={() => onChange(o.cle)} disabled={occupe} aria-current={actif ? "step" : undefined}
                     className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-[10px] px-3 py-2 text-left text-[14px] transition-colors ${actif ? "bg-rail-actif text-encre" : o.faite ? "text-craie hover:bg-rail-actif hover:text-encre" : "text-brume hover:bg-rail-actif hover:text-craie"}`} style={actif ? undefined : { background: "transparent" }}>
                     <span className={`grid h-[20px] w-[20px] flex-none place-items-center rounded-full border text-[10.5px] tabular-nums transition-colors duration-300 ${o.faite ? "border-menthe bg-menthe text-sur-menthe" : actif ? "border-encre bg-encre text-fond" : "border-encre/[0.18] text-brume"}`}>
-                      {o.faite ? <Check className="h-3 w-3" /> : o.n}
+                      {o.faite ? <Check className="h-3 w-3" /> : numeros ? o.n : null}
                     </span>
                     <span className="min-w-0 truncate">{o.titre}</span>
                   </button>
@@ -108,8 +119,8 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
           </motion.div>
         ) : (
           <motion.div key="ferme" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }}
-            className="flex w-[44px] flex-col items-center gap-3 rounded-[16px] border border-bord-doux bg-rail py-3 shadow-[0_16px_40px_rgb(0_0_0/0.3)]">
-            <button type="button" onPointerDown={attraper} onClick={cliquer} aria-label="Ouvrir le menu des étapes" title="Cliquer pour ouvrir · tenir et glisser pour déplacer" className="grid h-6 w-6 cursor-grab touch-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre active:cursor-grabbing" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
+            className={`flex flex-col items-center rounded-[16px] border border-bord-doux bg-rail shadow-[0_16px_40px_rgb(0_0_0/0.3)] ${petitEcran ? "w-[40px] gap-1 py-2" : "w-[44px] gap-3 py-3"}`}>
+            <button type="button" onPointerDown={attraper} onClick={cliquer} aria-label={`Ouvrir le menu : ${intitule}`} title="Cliquer pour ouvrir · tenir et glisser pour déplacer" className="grid h-6 w-6 cursor-grab touch-none place-items-center rounded-full text-ardoise transition-colors hover:text-encre active:cursor-grabbing" style={{ background: "transparent" }}><ChevronLeft className="h-4 w-4" /></button>
             {items.map((o) => {
               const actif = valeur === o.cle;
               return (
@@ -120,10 +131,11 @@ export function MenuEtapesDroite({ items, valeur, onChange, occupe = false, onVa
                 </button>
               );
             })}
-            <span className="text-[11.5px] tabular-nums text-ardoise">{ici + 1}/{items.length}</span>
+            {numeros && <span className="text-[11.5px] tabular-nums text-ardoise">{ici + 1}/{items.length}</span>}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
+

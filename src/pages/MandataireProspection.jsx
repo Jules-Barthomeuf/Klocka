@@ -12,8 +12,9 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import { ResultatsProspective } from "@/components/mandataire/ProspecterDataB";
 import AgentIA from "@/components/mandataire/AgentIA";
-import OffMarket from "@/components/off-market/OffMarket";
 import ProspecterClients from "@/components/mandataire/ProspecterClients";
+import ModeTerrain from "@/components/mandataire/ModeTerrain";
+import { AnimatePresence } from "framer-motion";
 import KProspectiveDataB from "@/components/mandataire/KProspectiveDataB";
 import { J, JL, alpha } from "@/design/jetons";
 
@@ -44,8 +45,9 @@ export default function MandataireProspection() {
   const [onglet, setOnglet] = useState("prospecter");
   // Un appui sur « Carte » : la liste ouverte montre sa carte en grand, une fois (elle consomme la demande).
   const [carteListe, setCarteListe] = useState(false);
+  // Le mode terrain de Listes (25 oct. 2026, Jules) : la carte autour de soi. `?terrain=1` l'ouvre (raccourci du dashboard).
+  const [terrain, setTerrain] = useState(false);
   // Prospecter pour ses clients (24 oct. 2026, Jules) : le secteur et les clients d'abord ; tous les commerces d'une ville restent à un clic.
-  const [vueCommerces, setVueCommerces] = useState("clients");
   // ?vue= des anciens liens (l'ancienne page Off-market) : sans objet aujourd'hui, l'adresse l'oublie.
   useEffect(() => {
     if (!params.get("vue")) return;
@@ -64,7 +66,8 @@ export default function MandataireProspection() {
     if (o !== "listes" && !(o === "agent" && AGENT_IA_VISIBLE)) return;
     setOnglet(o);
     if (params.get("liste")) setListeDemandee(params.get("liste"));
-    setParams((p) => { const n = new URLSearchParams(p); n.delete("onglet"); n.delete("liste"); return n; }, { replace: true });
+    if (params.get("terrain") === "1") setTerrain(true);
+    setParams((p) => { const n = new URLSearchParams(p); n.delete("onglet"); n.delete("liste"); n.delete("terrain"); return n; }, { replace: true });
   }, [params, setParams]);
 
   const { data: secteurData } = useQuery({ queryKey: ["mandataire-secteur"], queryFn: () => base44.request("GET", `${API}/secteur`) });
@@ -91,72 +94,46 @@ export default function MandataireProspection() {
   // étiquettes), d'où l'on revient à la conversation.
   const ouvrirResultats = (id) => { setOnglet("prospecter"); setVueId(id); };
   const commerces = !vueId && !vueDataB && !conversation && onglet === "prospecter";
+  // La vue choisie dans la rangée : deux façons de chercher, puis les listes à appeler.
+  // Deux choix seulement (25 oct. 2026, Jules) : le client est un filtre de « Mon secteur », plus une vue à part.
+  // Terrain rejoint la rangée (25 oct. 2026, Jules : « intégrer Terrain dans Mon secteur et Listes, enlever Liste ») :
+  // c'est le mode terrain des listes, la carte en plein écran ; sa croix revient à Listes.
+  const vue = onglet === "listes" ? (terrain ? "terrain" : "listes") : "secteur";
+  const choisirVue = (k) => {
+    setVueDataB(null);
+    setOnglet(k === "secteur" ? "prospecter" : "listes");
+    setTerrain(k === "terrain");
+  };
+  const bascule = (
+    <div className="flex flex-none gap-0.5 rounded-full border border-bord-doux bg-rail p-1 max-md:self-start" role="tablist" aria-label="Prospection">
+      {[["secteur", "Mon secteur"], ["listes", "Listes"], ["terrain", "Terrain"]].map(([k, mot]) => (
+        <button key={k} type="button" role="tab" aria-selected={vue === k} onClick={() => choisirVue(k)}
+          className={`h-8 flex-none whitespace-nowrap rounded-full px-4 text-[14px] max-md:px-3 ${vue === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
+          style={vue === k ? undefined : { background: "transparent" }}>{mot}</button>
+      ))}
+    </div>
+  );
 
   return (
     // Les listes sont des tableaux : elles prennent toute la largeur de la page.
     <div className={`mx-auto px-5 md:px-8 ${vueId ? "max-w-[1440px]" : (!conversation && onglet === "listes") || commerces ? "max-w-none" : "max-w-[1100px]"} ${conversation && !vueId ? "" : "pb-14 pt-4"}`}>
       {vueId && <VueProspection key={vueId} id={vueId} retour={conversation ? "Conversation" : "Prospection"} onRetour={() => setVueId(null)} />}
 
-      {/* « Votre secteur » tout en haut de la page, au-dessus des onglets, à la place du nom du secteur (25 oct. 2026, Jules). */}
-      {commerces && vueCommerces === "clients" && (
-        <h1 className="m-0 pt-2 text-center text-[26px] font-medium tracking-[-0.01em] text-encre max-md:text-[22px]">Votre secteur</h1>
-      )}
-      {/* Prospecter (le chat) ou Listes (pour appeler) : les deux moitiés de la Prospection. */}
-      {!vueId && !conversation && (
-        // Au téléphone, les quatre onglets ne tiennent pas : le sélecteur défile de côté.
-        <div className="flex justify-center pt-2 max-md:-mx-5 max-md:justify-start max-md:overflow-x-auto max-md:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1 max-md:mx-auto">
-            {[["prospecter", "Prospecter"], ["agent", "Agent IA"], ["listes", "Listes"], ["kprospective", "K Prospective"]].filter(([k]) => (k !== "agent" || AGENT_IA_VISIBLE) && (k !== "kprospective" || K_PROSPECTIVE_VISIBLE)).map(([k, mot]) => {
-              const actif = onglet === k;
-              // L'agent se distingue : un liseré multicolore, léger, qui tourne doucement.
-              if (k === "agent") {
-                return (
-                  <button key={k} type="button" onClick={() => { setOnglet(k); setVueDataB(null); }} aria-pressed={actif}
-                    className={`agent-onglet relative whitespace-nowrap rounded-full px-4 py-1.5 text-[13.5px] transition-colors max-md:px-3 max-md:py-2 ${actif ? "text-encre" : "text-ardoise hover:text-encre"}`}
-                    // Jamais rempli : seul le liseré (dessiné en CSS, .agent-onglet) le
-                    // distingue ; sélectionné, son texte passe en blanc.
-                    style={{ background: "transparent" }}>
-                    {mot}
-                  </button>
-                );
-              }
-              return (
-                <button key={k} type="button" onClick={() => { setOnglet(k); setVueDataB(null); }} aria-pressed={actif}
-                  className={`whitespace-nowrap rounded-full border border-transparent px-4 py-1.5 text-[13.5px] transition-colors max-md:px-3 max-md:py-2 ${actif ? "bg-surface-pleine text-encre shadow-[0_1px_3px_rgb(0_0_0/0.08)]" : "text-ardoise hover:text-encre"}`}
-                  style={actif ? undefined : { background: "transparent" }}>
-                  {mot}
-                </button>
-              );
-            })}
-          </div>
-          {/* La carte de la liste (24 oct. 2026, Jules) : une icône seule, hors de la pilule, à sa droite et de sa hauteur ;
-              seulement sur Listes. Elle ouvre la carte de la liste ouverte. */}
-          {onglet === "listes" && (
-            <button type="button" onClick={() => setCarteListe(true)} aria-label="Voir la carte de la liste" title="Voir la carte de la liste"
-              className="ml-2 grid h-[42px] w-[42px] flex-none self-center place-items-center rounded-full bg-rail-actif text-craie transition-colors hover:text-encre max-md:h-11 max-md:w-11">
-              <IconeCarte className="h-[18px] w-[18px]" />
-            </button>
-          )}
-        </div>
-      )}
+      {/* Une seule rangée de deux choix (25 oct. 2026, Jules) : « Mon secteur · Listes », à gauche
+          de la ligne de « Filtrer » ; plus de pilule centrée Prospecter / Listes (toute la page sert à prospecter). Pas de titre au-dessus : le choix
+          sélectionné dit déjà où l'on est (25 oct. 2026, Jules : « est-ce que Votre secteur est nécessaire ? »). */}
       {commerces && (
         <div className="mt-4">
-          {/* La bascule va sur la ligne de « Filtrer », en tête (24 oct. 2026, Jules). */}
-          {(() => {
-            const bascule = (
-              <div className="flex flex-none gap-0.5 rounded-full bg-rail-actif p-1" role="tablist" aria-label="Prospecter">
-                {[["clients", "Pour mes clients"], ["tous", "Tous les commerces"]].map(([k, mot]) => (
-                  <button key={k} type="button" role="tab" aria-selected={vueCommerces === k} onClick={() => setVueCommerces(k)}
-                    className={`h-8 rounded-full px-4 text-[13.5px] ${vueCommerces === k ? "bg-relief text-encre" : "text-ardoise hover:text-craie"}`}
-                    style={vueCommerces === k ? undefined : { background: "transparent" }}>{mot}</button>
-                ))}
-              </div>
-            );
-            return vueCommerces === "clients" ? <ProspecterClients bascule={bascule} /> : <OffMarket espace="mandataire" entete={bascule} />;
-          })()}
+          <ProspecterClients bascule={bascule} />
         </div>
       )}
-      {!vueId && !conversation && onglet === "listes" && <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} carteDemandee={carteListe} onCarteVue={() => setCarteListe(false)} />}
+      {!vueId && !conversation && onglet === "listes" && (
+        <>
+          {/* La même rangée, et à droite l'outil de cette vue : la carte de la liste ouverte. */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">{bascule}</div>
+          <Listes demandee={listeDemandee} onDemandeVue={() => setListeDemandee(null)} carteDemandee={carteListe} onCarteVue={() => setCarteListe(false)} terrain={terrain} onFermerTerrain={() => setTerrain(false)} />
+        </>
+      )}
       {!vueId && !conversation && onglet === "agent" && AGENT_IA_VISIBLE && <AgentIA />}
       {/* K Prospective : le formulaire de Data Prospective. On remplit les
           champs, la prospective se lance dans Data-B (6 oct. 2026). */}
@@ -175,7 +152,7 @@ export default function MandataireProspection() {
               Quelle zone prospectez-vous ?
             </h1>
           )}
-          {!conversation && !secteur && <p className="m-0 mt-3 text-[13.5px] text-ardoise">Aucun secteur attribué : demandez à Klocka de le tracer.</p>}
+          {!conversation && !secteur && <p className="m-0 mt-3 text-[13.5px] text-ardoise">Aucun secteur attribué : demandez à K Partners de le tracer.</p>}
           <div className={conversation ? "w-full" : "mt-9 w-full max-w-[660px] max-md:mt-6"}>
             <ChatDashboard
               espace="prospection"
@@ -284,7 +261,7 @@ function SqueletteListes() {
   );
 }
 
-function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, onCarteVue = null }) {
+function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, onCarteVue = null, terrain = false, onFermerTerrain = null }) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["m-listes"], queryFn: () => base44.request("GET", `${API}/listes`) });
   const [choisie, setChoisie] = useState(demandee || lireDerniere());
@@ -308,9 +285,15 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
     onError: (e) => toast.error(e?.message || "Impossible"),
   });
 
+  // Le mode terrain : la carte en plein écran par-dessus la liste ; la croix revient à la liste.
+  const carteTerrain = <AnimatePresence>{terrain && <ModeTerrain key="terrain" listes={listes} libelles={data?.libelles || {}} onFermer={onFermerTerrain} />}</AnimatePresence>;
+  // Terrain s'ouvre aussi pendant le chargement : la carte se remplit quand les listes arrivent. Elle reste à la même
+  // place dans l'arbre d'un état à l'autre, sinon elle se refermerait et se rouvrirait à l'arrivée des listes.
+  return <>{carteTerrain}{corpsListes()}</>;
+  function corpsListes() {
   if (isLoading) return <SqueletteListes />;
   if (!l) {
-    return <p className="m-0 mt-10 text-center text-[14px] text-brume">Aucune liste encore. Lancez une prospection, cochez les commerces à garder, puis « Exporter vers une nouvelle liste ».</p>;
+    return <><p className="m-0 mt-10 text-center text-[14px] text-brume">Aucune liste encore. Lancez une prospection, cochez les commerces à garder, puis « Exporter vers une nouvelle liste ».</p></>;
   }
   return (
     <div className="mt-6 w-full pb-16">
@@ -344,8 +327,7 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
         <span aria-hidden className="min-w-3 flex-1" />
       </div>
       <div data-zone="listes" className="k-points relative rounded-b-md rounded-t-[12px] bg-rail px-5 pb-5 pt-4 max-md:px-3">
-        <ChiffresListe l={l} />
-        <TableauListe key={l.id} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
+        <TableauListe key={l.id} chiffres={{ total: l.total || 0, faits: (l.total || 0) - (l.a_appeler || 0), rdv: l.rdv || 0 }} fiches={l.fiches} libelles={data?.libelles || {}} listeId={l.id} reste={l.reste} carteDemandee={carteDemandee} onCarteVue={onCarteVue} onRenommer={() => renommer(l)} onSupprimer={() => setASupprimer(l)} agent={!!(l.suggeree || l.agent)} />
       </div>
       <AlertDialog open={!!aSupprimer} onOpenChange={(o) => { if (!o && !supprimer.isPending) setASupprimer(null); }}>
         <AlertDialogContent className="border-bord-vif bg-surface-pleine sm:rounded-bloc">
@@ -363,24 +345,6 @@ function Listes({ demandee = null, onDemandeVue = null, carteDemandee = false, o
       </AlertDialog>
     </div>
   );
+  }
 }
 
-/** Les chiffres de la liste ouverte, en blocs, comme ceux d'une ville de la Prospection de l'admin. */
-function ChiffresListe({ l }) {
-  const total = l.total || 0;
-  const pc = total ? Math.round(((total - (l.a_appeler || 0)) / total) * 100) : 0;
-  const bloc = "rounded-[16px] border border-trait bg-surface px-4 py-3";
-  const nombre = (n, ton = "text-encre") => <p className={`m-0 text-[24px] leading-none ${ton}`} style={{ fontVariantNumeric: "tabular-nums" }}>{n}</p>;
-  return (
-    <div className="mb-5 grid grid-cols-2 gap-2.5 md:grid-cols-4">
-      <div className={bloc}>{nombre(total)}<p className="m-0 mt-1.5 text-[12.5px] text-ardoise">propriétaire{total > 1 ? "s" : ""}</p></div>
-      <div className={bloc}>
-        {nombre(`${pc} %`, "text-menthe")}
-        <p className="m-0 mt-1.5 text-[12.5px] text-ardoise">fait</p>
-        <div className="mt-2 h-[5px] overflow-hidden rounded-full bg-encre/[0.10]"><div className="h-full rounded-full bg-menthe transition-[width] duration-500" style={{ width: `${pc}%` }} /></div>
-      </div>
-      <div className={bloc}>{nombre(l.rdv || 0)}<p className="m-0 mt-1.5 text-[12.5px] text-ardoise">RDV</p></div>
-      <div className={bloc}>{nombre(l.a_appeler || 0)}<p className="m-0 mt-1.5 text-[12.5px] text-ardoise">à appeler</p></div>
-    </div>
-  );
-}

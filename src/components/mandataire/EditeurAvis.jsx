@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, CaseUpper, Check, Download, Eye, EyeOff, GripVertical, History, ImagePlus, Italic, ListTree, Loader2, Maximize2, MessageSquareText, Minus, Move, Pencil, Plus, Redo2, RotateCcw, Send, Strikethrough, Underline, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Check, Download, Eye, EyeOff, GripVertical, History, ImagePlus, ListTree, Loader2, Maximize2, MessageSquareText, Move, Pencil, Plus, Redo2, Send, Undo2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/avis";
 import LogoKP from "./LogoKP";
+import LogoKlocka from "@/components/marque/LogoKlocka";
 import AGENCE from "@/lib/agence-klocka.json";
 import "./avis-valeur.css";
 import Chargement from "@/components/ui/Chargement";
+import { GroupePanneau, PALETTE_DOC, PanneauEditeur, ReglagesDesign, couleurDoc } from "@/components/editeur/Editeur";
 
 // L'éditeur de l'avis de valeur, comme un atelier de design : à gauche le
 // chat de retouche (« raccourcis la synthèse », « mets la photo plus grande »,
@@ -68,27 +70,34 @@ export function libelleChemin(chemin) {
 }
 
 // La sélection : l'élément que le mandataire a cliqué, que le chat désigne par « ça ».
+// La marque de l'avis (26 oct. 2026, Jules) : K Partners pour les mandataires, Klocka pour l'équipe. Même document,
+// d'autres couleurs et un autre logo ; la page Modèles de l'administration montre les deux.
+const MarqueAvis = createContext("kp");
 const Selection = createContext({ chemin: null, clePos: null, choisir: () => {}, styles: {}, positions: {} });
 // La page où l'on est : un même chemin (la valeur, le demandeur) peut
 // paraître sur deux pages, et chacune se déplace à part.
 const PageCtx = createContext("couverture");
+// Le mode de lecture de l'avis (26 oct. 2026, Jules : « Édition, Lecture, Sources comme dans les autres pages ») :
+// hors édition, plus rien ne se modifie ni ne se sélectionne ; en Sources, le survol d'un champ dit d'où il vient.
+export const ModeAvis = createContext("edition");
 const MM = 96 / 25.4;
 /** Un élément déplacé à la main (avis.positions[page:chemin], en millimètres) ou tourné : sa transformation. */
-const placementCss = (pos, st) => {
+export const placementCss = (pos, st) => {
   const parts = [pos && (pos.x || pos.y) ? `translate(${pos.x || 0}mm, ${pos.y || 0}mm)` : null, st?.rotation ? `rotate(${st.rotation}deg)` : null].filter(Boolean);
   return parts.length ? { transform: parts.join(" "), position: "relative", zIndex: 1 } : undefined;
 };
 
-// La mise en forme d'un élément (avis.styles[chemin]) : la palette du
-// document, une taille en points, gras, italique, souligné, alignement.
-const PALETTE = [["encre", "Encre", "var(--encre)"], ["sauge-fonce", "Sauge foncé", "var(--sauge-fonce)"], ["sauge", "Sauge", "var(--sauge)"], ["menthe", "Menthe", "var(--kp)"], ["ocre", "Ocre", "var(--ocre)"], ["gris", "Gris", "var(--gris)"], ["blanc", "Blanc", "var(--blanc)"]];
-const couleurCss = (c) => PALETTE.find((p) => p[0] === c)?.[2] || c;
+// La mise en forme d'un élément (avis.styles[chemin]) : le Design commun des éditeurs (28 oct. 2026), plus ce qui est
+// propre à l'avis (bloc, photo, position). Les couleurs : celles de PALETTE_DOC (variables --doc-* posées sur .avis et
+// .avis-styles) ; celles de l'ancienne palette de l'avis, déjà gardées dans des styles, s'affichent toujours.
+const ANCIENNE_PALETTE = [["encre", "var(--encre)"], ["sauge-fonce", "var(--sauge-fonce)"], ["sauge", "var(--sauge)"], ["menthe", "var(--kp)"], ["ocre", "var(--ocre)"], ["gris", "var(--gris)"], ["blanc", "var(--blanc)"]];
+const couleurCss = (c) => ANCIENNE_PALETTE.find((p) => p[0] === c)?.[1] || couleurDoc(c);
 const POLICES = { serif: 'Georgia, "Times New Roman", serif', sans: '"Hanken Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif', mono: '"Courier New", Courier, monospace' };
-const styleCss = (st) => (st ? {
+export const styleCss = (st) => (st ? {
   ...(st.taille ? { fontSize: `${st.taille}pt` } : {}),
   ...(POLICES[st.police] ? { fontFamily: POLICES[st.police] } : {}),
   ...(st.couleur ? { color: couleurCss(st.couleur) } : {}),
-  ...(st.surlignage || st.fond ? { backgroundColor: couleurCss(st.surlignage || st.fond) } : {}),
+  ...(st.fond || st.surlignage ? { backgroundColor: couleurCss(st.fond || st.surlignage) } : {}),
   ...(st.gras ? { fontWeight: 700 } : {}),
   ...(st.italique ? { fontStyle: "italic" } : {}),
   ...(st.souligne || st.barre ? { textDecoration: [st.souligne && "underline", st.barre && "line-through"].filter(Boolean).join(" ") } : {}),
@@ -102,9 +111,13 @@ const styleCss = (st) => (st ? {
   ...(st.marge != null ? { padding: `${st.marge}mm` } : {}),
   ...(st.largeur ? { width: `${st.largeur}%`, maxWidth: `${st.largeur}%` } : {}),
   ...(st.hauteur_mm ? { height: `${st.hauteur_mm}mm` } : {}),
+  ...(st.marge_haut != null ? { marginTop: `${st.marge_haut}mm` } : {}),
+  ...(st.marge_bas != null ? { marginBottom: `${st.marge_bas}mm` } : {}),
   ...(st.ombre ? { boxShadow: "0 2mm 6mm rgb(0 0 0 / 0.18)" } : {}),
   ...(st.masque ? { display: "none" } : {}),
 } : undefined);
+/** Le style d'un élément ; masqué, il reste visible en pâle et en pointillé dans l'Éditeur (jamais à l'impression). */
+export const styleVisible = (st, edition) => (st?.masque && edition ? { ...styleCss({ ...st, masque: false }), opacity: 0.3, outline: "1px dashed currentColor" } : styleCss(st));
 /** La taille en points d'un élément, mesurée à l'écran quel que soit le zoom : l'en-tête des pages fait 8 pt. */
 const taillePt = (el) => {
   const repere = el.closest(".avis")?.querySelector(".avis-entete");
@@ -129,11 +142,12 @@ function T({ v, chemin, onPose, as: Balise = "span", className = "", nombre = fa
   }, [affiche]);
   const aCompleter = /\[à compléter\]/.test(affiche);
   const choisi = sel.clePos ? sel.clePos === clePos : sel.chemin === chemin;
+  const edition = useContext(ModeAvis) === "edition";
   return (
-    <Balise ref={ref} data-edit="" data-chemin={chemin} contentEditable suppressContentEditableWarning spellCheck={false}
+    <Balise ref={ref} data-edit={edition ? "" : undefined} data-chemin={chemin} contentEditable={edition} suppressContentEditableWarning spellCheck={false}
       className={`${className} ${aCompleter ? "a-completer" : ""} ${choisi ? "avis-choisi" : ""}`}
-      style={{ ...styleCss(sel.styles?.[chemin]), ...placementCss(sel.positions?.[clePos], sel.styles?.[chemin]) }}
-      onFocus={() => sel.choisir({ chemin, clePos, el: ref.current, texte: ref.current?.textContent || "", taille: ref.current ? taillePt(ref.current) : null })}
+      style={{ ...styleVisible(sel.styles?.[chemin], edition), ...placementCss(sel.positions?.[clePos], sel.styles?.[chemin]) }}
+      onFocus={() => { if (edition) sel.choisir({ chemin, clePos, el: ref.current, texte: ref.current?.textContent || "", taille: ref.current ? taillePt(ref.current) : null }); }}
       onClick={(e) => e.stopPropagation()}
       onBlur={(e) => {
         const texte = e.currentTarget.textContent.trim();
@@ -155,10 +169,11 @@ function Bloc({ cle, nom = null, as: Balise = "div", className = "", style, chil
   const chemin = `bloc.${cle}`;
   const clePos = `${page}:${chemin}`;
   const choisi = sel.clePos === clePos;
+  const edition = useContext(ModeAvis) === "edition";
   return (
     <Balise ref={ref} data-bloc={cle} className={`avis-bloc ${className} ${choisi ? "avis-choisi" : ""}`}
-      style={{ ...style, ...styleCss(sel.styles?.[chemin]), ...placementCss(sel.positions?.[clePos], sel.styles?.[chemin]) }}
-      onClick={(e) => { e.stopPropagation(); sel.choisir({ chemin, clePos, el: ref.current, texte: nom || cle }); }}
+      style={{ ...style, ...styleVisible(sel.styles?.[chemin], edition), ...placementCss(sel.positions?.[clePos], sel.styles?.[chemin]) }}
+      onClick={edition ? (e) => { e.stopPropagation(); sel.choisir({ chemin, clePos, el: ref.current, texte: nom || cle }); } : undefined}
       {...reste}>
       {children}
     </Balise>
@@ -170,9 +185,12 @@ function L({ avis, k, defaut, onPose, as, className }) {
   return <T v={avis.libre?.[k] ?? defaut} chemin={`libre.${k}`} onPose={onPose} as={as} className={className} />;
 }
 
-/** Le logo K Partners de la charte (octobre 2026), le même partout. */
+/** Le logo de la marque : « kp » et son trait (charte d'octobre 2026), ou le K de Klocka. */
 function Logo() {
-  return <LogoKP className="avis-logo" />;
+  return useContext(MarqueAvis) === "klocka" ? <LogoKlocka className="avis-logo avis-logo-klocka" /> : <LogoKP className="avis-logo" />;
+}
+function LogoPied() {
+  return useContext(MarqueAvis) === "klocka" ? <LogoKlocka className="avis-pied-logo avis-logo-klocka" /> : <LogoKP className="avis-pied-logo" />;
 }
 
 function Page({ cle, num, avis, numero, children }) {
@@ -191,7 +209,7 @@ function Page({ cle, num, avis, numero, children }) {
         </div>
         <div className="avis-contenu"><PageCtx.Provider value={cle}>{children}</PageCtx.Provider></div>
         <div className="avis-pied">
-          <div className="avis-pied-trait"><LogoKP className="avis-pied-logo" /></div>
+          <div className="avis-pied-trait"><LogoPied /></div>
           <span className="avis-pied-texte">Page {numero} · Avis de valeur · {avis.type_libelle} · {avis.bien.rue}, {avis.bien.ville}</span>
         </div>
       </div>
@@ -263,7 +281,7 @@ export function sectionsDe(avis) {
   return ordre.filter((cle) => (cle !== "locatif" || avis.locatif) && !masquees.has(cle));
 }
 
-export function PagesAvis({ avis, onPose, estimationId, onAvis }) {
+export function PagesAvis({ avis, onPose, estimationId, onAvis, marque = "kp" }) {
   const s = avis.signataire || {};
   const c = avis.chiffres || {};
   const m = avis.methodes || {};
@@ -492,7 +510,8 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis }) {
   };
 
   return (
-    <div className="avis">
+    <MarqueAvis.Provider value={marque === "klocka" ? "klocka" : "kp"}>
+    <div className={`avis${marque === "klocka" ? " avis-klocka" : ""}`}>
       {/* Couverture */}
       <section className="avis-page avis-couverture" data-section="couverture" id="avis-page-couverture">
         <PageCtx.Provider value="couverture">
@@ -526,6 +545,17 @@ export function PagesAvis({ avis, onPose, estimationId, onAvis }) {
         <Page key={cle} cle={cle} num={num(cle)} avis={avis} numero={page(cle)}>{contenu[cle]}</Page>
       ))}
     </div>
+    </MarqueAvis.Provider>
+  );
+}
+
+/** Les pages de l'avis telles qu'elles s'impriment (27 oct. 2026, l'avis joint au mail) : en lecture, avec ses styles et ses positions. */
+export function PagesAvisImprimees({ avis, estimationId }) {
+  const contexte = useMemo(() => ({ chemin: null, clePos: null, choisir: () => {}, styles: avis?.styles || {}, positions: avis?.positions || {} }), [avis]);
+  return (
+    <ModeAvis.Provider value="lecture">
+      <Selection.Provider value={contexte}><PagesAvis avis={avis} onPose={() => {}} estimationId={estimationId} onAvis={() => {}} /></Selection.Provider>
+    </ModeAvis.Provider>
   );
 }
 
@@ -596,13 +626,13 @@ function Pastilles({ valeur, onChoisir, aucune = false }) {
     <div className="flex flex-wrap items-center gap-1.5">
       {aucune && (
         <button type="button" onClick={() => onChoisir(null)} title="Aucune" aria-label="Aucune" aria-pressed={!valeur}
-          className={`grid h-5 w-5 flex-none place-items-center rounded-full border text-[10px] text-ardoise ${!valeur ? "border-menthe ring-2 ring-menthe/40" : "border-trait"}`} style={{ background: "transparent" }}>×</button>
+          className={`grid h-6 w-6 flex-none place-items-center rounded-full border text-[11px] text-ardoise ${!valeur ? "border-menthe ring-2 ring-menthe/40" : "border-trait"}`} style={{ background: "transparent" }}>×</button>
       )}
-      {PALETTE.map(([k, nom, css]) => (
+      {PALETTE_DOC.map(([k, nom, css]) => (
         <button key={k} type="button" onClick={() => onChoisir(valeur === k ? null : k)} title={nom} aria-label={nom} aria-pressed={valeur === k}
-          className={`h-5 w-5 flex-none rounded-full border ${valeur === k ? "border-menthe ring-2 ring-menthe/40" : "border-trait"}`} style={{ background: css }} />
+          className={`h-6 w-6 flex-none rounded-full border ${valeur === k ? "border-menthe ring-2 ring-menthe/40" : "border-trait"}`} style={{ background: css }} />
       ))}
-      <label className="relative grid h-5 w-5 flex-none cursor-pointer place-items-center rounded-full border border-trait text-[10px] text-ardoise" title="Autre couleur" style={{ background: /^#/.test(valeur || "") ? valeur : "transparent" }}>
+      <label className="relative grid h-6 w-6 flex-none cursor-pointer place-items-center rounded-full border border-trait text-[11px] text-ardoise" title="Autre couleur" style={{ background: /^#/.test(valeur || "") ? valeur : "transparent" }}>
         {!/^#/.test(valeur || "") && "+"}
         <input type="color" className="absolute inset-0 cursor-pointer opacity-0" aria-label="Autre couleur" onChange={(e) => onChoisir(e.target.value)} />
       </label>
@@ -610,145 +640,94 @@ function Pastilles({ valeur, onChoisir, aucune = false }) {
   );
 }
 
-/** Un curseur avec sa valeur : interligne, opacité, arrondi… */
+/** Un curseur avec sa valeur : arrondi, marge, largeur… (mêmes mesures que le Design commun). */
 function Curseur({ libelle, valeur, defaut, min, max, pas, unite = "", onChoisir }) {
   const v = valeur ?? defaut;
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-[72px] flex-none text-[12px] text-ardoise">{libelle}</span>
-      <input type="range" min={min} max={max} step={pas} value={v} onChange={(e) => onChoisir(Number(e.target.value))} aria-label={libelle} className="min-w-0 flex-1 accent-[var(--k-menthe)]" />
+    <label className="flex items-center gap-2">
+      <span className="w-[76px] flex-none text-[12.5px] text-ardoise">{libelle}</span>
+      <input type="range" min={min} max={max} step={pas} value={v} onChange={(e) => onChoisir(Number(e.target.value))} className="min-w-0 flex-1 accent-[var(--k-menthe)]" />
       <span className="w-12 flex-none text-right text-[11.5px] tabular-nums text-brume">{Number(v).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}{unite}</span>
-    </div>
+    </label>
   );
 }
 
-const Groupe = ({ titre, children }) => (
-  <div className="mt-3 first:mt-0">
-    <p className="m-0 mb-1.5 text-[10.5px] uppercase tracking-[0.14em] text-brume">{titre}</p>
-    <div className="space-y-2">{children}</div>
-  </div>
-);
-
-/** Le menu de mise en forme de l'élément sélectionné : texte, bloc, position. */
-function Styles({ selection, avis, onStyle, onPosition, onFermer }) {
+/**
+ * Le panneau de l'élément choisi, à droite du document (le modèle de la page éditeur, 28 oct. 2026) : d'abord le
+ * Design commun (ReglagesDesign), puis ce qui est propre à l'avis (bloc ou photo, position). Partagé avec le teaser :
+ * `doc` n'y sert que par ses styles, ses positions et sa mise en page. `onStyle(chemin, style complet | null)` remplace
+ * le style de l'élément ; `onPosition(clePos, { x, y } | null)`. `palette` : la classe qui pose les couleurs du
+ * document (--doc-*) pour les pastilles ; `poignee` : l'élément se glisse aussi à la poignée de son cadre.
+ */
+export function PanneauStyles({ selection, doc, onStyle, onPosition, onFermer, palette = "avis-styles", poignee = true }) {
   const chemin = selection?.chemin;
   if (!chemin || chemin.startsWith("section.")) return null;
-  const st = avis.styles?.[chemin] || {};
+  const st = doc.styles?.[chemin] || {};
   const bloc = chemin.startsWith("bloc.");
   const photo = chemin.startsWith("bloc.photo.");
-  const pos = selection.clePos ? avis.positions?.[selection.clePos] : null;
-  const taille = st.taille ?? selection.taille ?? null;
-  const poser = (patch) => onStyle(chemin, patch);
-  const poserTaille = (t) => { if (t >= 5 && t <= 80) poser({ taille: Math.round(t * 2) / 2 }); };
-  const Bascule = ({ k, Icone, titre }) => (
-    <button type="button" onClick={() => poser({ [k]: !st[k] })} aria-pressed={!!st[k]} title={titre} aria-label={titre}
-      className={`grid h-7 w-7 place-items-center rounded-[8px] ${st[k] ? "bg-encre/[0.1] text-encre" : "text-ardoise hover:text-encre"}`} style={st[k] ? undefined : { background: "transparent" }}>
-      <Icone className="h-3.5 w-3.5" />
-    </button>
-  );
+  const pos = selection.clePos ? doc.positions?.[selection.clePos] : null;
+  const poser = (patch) => {
+    const suite = { ...st, ...patch };
+    for (const k of Object.keys(suite)) if (suite[k] === null || suite[k] === false || suite[k] === undefined) delete suite[k];
+    onStyle(chemin, Object.keys(suite).length ? suite : null);
+  };
   const Choix = ({ k, valeurs, defaut }) => (
     <div className="flex flex-wrap gap-1">
       {valeurs.map(([v, mot]) => {
         const actif = (st[k] ?? defaut) === v;
         return (
-          <button key={v} type="button" onClick={() => poser({ [k]: v === defaut ? null : v })} aria-pressed={actif}
-            className={`rounded-[8px] px-2 py-1 text-[12px] ${actif ? "bg-encre/[0.1] text-encre" : "text-ardoise hover:text-encre"}`} style={actif ? undefined : { background: "transparent" }}>{mot}</button>
+          <button key={String(v)} type="button" onClick={() => poser({ [k]: v === defaut ? null : v })} aria-pressed={actif}
+            className={`h-8 rounded-[8px] px-1.5 text-[12.5px] ${actif ? "bg-encre/[0.1] text-encre" : "text-ardoise hover:text-encre"}`} style={actif ? undefined : { background: "transparent" }}>{mot}</button>
         );
       })}
     </div>
   );
   return (
-    <div className="avis-styles avis-ecran absolute right-4 top-4 z-10 flex max-h-[calc(100%-2rem)] w-[272px] flex-col rounded-[14px] border border-trait bg-rail shadow-[0_18px_40px_rgb(0_0_0/0.22)] max-md:right-2 max-md:top-2" onClick={(e) => e.stopPropagation()}>
-      <div className="flex flex-none items-center gap-2 border-b border-trait px-3 py-2.5">
-        <p className="m-0 min-w-0 flex-1 truncate text-[12px] text-craie" title={libelleChemin(chemin)}>{libelleChemin(chemin)}</p>
-        <button type="button" onClick={onFermer} aria-label="Fermer" className="grid h-6 w-6 flex-none place-items-center rounded-full text-brume hover:text-encre" style={{ background: "transparent" }}><X className="h-3 w-3" /></button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-        <Groupe titre="Texte">
-          <div className="flex items-center gap-1">
-            <span className="w-[72px] flex-none text-[12px] text-ardoise">Taille</span>
-            <button type="button" onClick={() => poserTaille((taille ?? 10) - 1)} aria-label="Plus petit" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Minus className="h-3.5 w-3.5" /></button>
-            <input type="number" step="0.5" min="5" max="80" value={taille != null ? Math.round(taille * 2) / 2 : ""} onChange={(e) => poserTaille(Number(e.target.value))} aria-label="Taille en points"
-              className="h-7 w-14 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12.5px] tabular-nums text-encre outline-none focus:border-menthe max-md:text-[16px]" />
-            <span className="text-[11.5px] text-brume">pt</span>
-            <button type="button" onClick={() => poserTaille((taille ?? 10) + 1)} aria-label="Plus grand" className="grid h-7 w-7 place-items-center rounded-[8px] text-ardoise hover:text-encre" style={{ background: "transparent" }}><Plus className="h-3.5 w-3.5" /></button>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-[72px] flex-none text-[12px] text-ardoise">Police</span>
-            <Choix k="police" defaut="modele" valeurs={[["modele", "Modèle"], ["serif", "Serif"], ["sans", "Sans"], ["mono", "Mono"]]} />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-[72px] flex-none text-[12px] text-ardoise">Style</span>
-            <Bascule k="gras" Icone={Bold} titre="Gras" />
-            <Bascule k="italique" Icone={Italic} titre="Italique" />
-            <Bascule k="souligne" Icone={Underline} titre="Souligné" />
-            <Bascule k="barre" Icone={Strikethrough} titre="Barré" />
-            <Bascule k="majuscules" Icone={CaseUpper} titre="Majuscules" />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-[72px] flex-none text-[12px] text-ardoise">Aligner</span>
-            {[["left", AlignLeft, "À gauche"], ["center", AlignCenter, "Centré"], ["right", AlignRight, "À droite"]].map(([v, Icone, titre]) => (
-              <button key={v} type="button" onClick={() => poser({ aligner: st.aligner === v ? null : v })} aria-pressed={st.aligner === v} title={titre} aria-label={titre}
-                className={`grid h-7 w-7 place-items-center rounded-[8px] ${st.aligner === v ? "bg-encre/[0.1] text-encre" : "text-ardoise hover:text-encre"}`} style={st.aligner === v ? undefined : { background: "transparent" }}>
-                <Icone className="h-3.5 w-3.5" />
-              </button>
-            ))}
-          </div>
-          <div className="flex items-start gap-1"><span className="w-[72px] flex-none pt-0.5 text-[12px] text-ardoise">Couleur</span><Pastilles valeur={st.couleur} onChoisir={(c) => poser({ couleur: c })} /></div>
-          {!bloc && <div className="flex items-start gap-1"><span className="w-[72px] flex-none pt-0.5 text-[12px] text-ardoise">Surlignage</span><Pastilles valeur={st.surlignage} aucune onChoisir={(c) => poser({ surlignage: c })} /></div>}
-          <Curseur libelle="Interligne" valeur={st.interligne} defaut={1.5} min={0.8} max={2.4} pas={0.05} onChoisir={(v) => poser({ interligne: v })} />
-          <Curseur libelle="Espacement" valeur={st.espacement} defaut={0} min={-0.05} max={0.3} pas={0.01} unite=" em" onChoisir={(v) => poser({ espacement: v })} />
-          <Curseur libelle="Opacité" valeur={st.opacite} defaut={100} min={5} max={100} pas={1} unite=" %" onChoisir={(v) => poser({ opacite: v === 100 ? null : v })} />
-        </Groupe>
+    <div className={`${palette} avis-ecran flex h-full flex-none max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:z-20 max-md:bg-rail`}>
+      <PanneauEditeur titre={libelleChemin(chemin)} sousTitre={photo ? "Photo" : bloc ? "Bloc du modèle" : "Texte"} onFermer={onFermer}>
+        <GroupePanneau titre="Design">
+          <ReglagesDesign style={st} taille={selection.taille ?? null} onStyle={(suite) => onStyle(chemin, suite)} />
+        </GroupePanneau>
         {bloc && (
-          <Groupe titre={photo ? "Photo" : "Bloc"}>
-            <div className="flex items-start gap-1"><span className="w-[72px] flex-none pt-0.5 text-[12px] text-ardoise">Fond</span><Pastilles valeur={st.fond} aucune onChoisir={(c) => poser({ fond: c })} /></div>
+          <GroupePanneau titre={photo ? "Photo" : "Bloc"}>
             <div className="flex items-center gap-1">
-              <span className="w-[72px] flex-none text-[12px] text-ardoise">Bordure</span>
+              <span className="w-[76px] flex-none text-[12.5px] text-ardoise">Bordure</span>
               <Choix k="bordure" defaut="aucune" valeurs={[["aucune", "Aucune"], ["fine", "Fine"], ["epaisse", "Épaisse"]]} />
             </div>
-            {st.bordure && <div className="flex items-start gap-1"><span className="w-[72px] flex-none pt-0.5 text-[12px] text-ardoise">Trait</span><Pastilles valeur={st.bordure_couleur || "encre"} onChoisir={(c) => poser({ bordure_couleur: c })} /></div>}
+            {st.bordure && <div className="flex items-start gap-1"><span className="w-[76px] flex-none pt-1 text-[12.5px] text-ardoise">Trait</span><Pastilles valeur={st.bordure_couleur || "encre"} onChoisir={(c) => poser({ bordure_couleur: c })} /></div>}
             <Curseur libelle="Arrondi" valeur={st.arrondi} defaut={0} min={0} max={20} pas={0.5} unite=" mm" onChoisir={(v) => poser({ arrondi: v || null })} />
             <Curseur libelle="Marge int." valeur={st.marge} defaut={0} min={0} max={30} pas={0.5} unite=" mm" onChoisir={(v) => poser({ marge: v || null })} />
             <Curseur libelle="Largeur" valeur={st.largeur} defaut={100} min={10} max={100} pas={1} unite=" %" onChoisir={(v) => poser({ largeur: v === 100 ? null : v })} />
-            <Curseur libelle="Hauteur" valeur={st.hauteur_mm} defaut={photo ? (chemin.endsWith("couverture") ? 148 : avis.mise_en_page?.photo_emplacement_mm || 62) : 40} min={5} max={280} pas={1} unite=" mm" onChoisir={(v) => poser({ hauteur_mm: v })} />
+            <Curseur libelle="Hauteur" valeur={st.hauteur_mm} defaut={photo ? (chemin.endsWith("couverture") ? 148 : doc.mise_en_page?.photo_emplacement_mm || 62) : 40} min={5} max={280} pas={1} unite=" mm" onChoisir={(v) => poser({ hauteur_mm: v })} />
             <div className="flex items-center gap-1">
-              <span className="w-[72px] flex-none text-[12px] text-ardoise">Ombre</span>
+              <span className="w-[76px] flex-none text-[12.5px] text-ardoise">Ombre</span>
               <Choix k="ombre" defaut={false} valeurs={[[false, "Sans"], [true, "Avec"]]} />
             </div>
-          </Groupe>
+          </GroupePanneau>
         )}
-        <Groupe titre="Position">
+        <GroupePanneau titre="Position">
           <Curseur libelle="Rotation" valeur={st.rotation} defaut={0} min={-30} max={30} pas={1} unite="°" onChoisir={(v) => poser({ rotation: v || null })} />
-          <div className="flex items-center gap-2">
-            <span className="w-[72px] flex-none text-[12px] text-ardoise">Décalage</span>
-            {[["x", "→"], ["y", "↓"]].map(([k, fleche]) => (
-              <label key={k} className="flex items-center gap-1 text-[11.5px] text-brume">{fleche}
-                <input type="number" step="0.5" value={pos?.[k] ?? 0} aria-label={k === "x" ? "Décalage horizontal" : "Décalage vertical"}
-                  onChange={(e) => onPosition(selection.clePos, { x: pos?.x || 0, y: pos?.y || 0, [k]: Number(e.target.value) || 0 })}
-                  className="h-7 w-16 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12px] tabular-nums text-encre outline-none focus:border-menthe max-md:text-[16px]" />
-                mm
-              </label>
-            ))}
-          </div>
-          <p className="m-0 text-[11.5px] leading-[1.5] text-brume">Glissez la poignée du cadre, ou les flèches du clavier (⇧ : 5 mm).</p>
-        </Groupe>
-        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-trait pt-3">
-          <button type="button" onClick={() => poser({ masque: true })} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-            <EyeOff className="h-3 w-3" /> Masquer l'élément
-          </button>
-          {Object.keys(st).length > 0 && (
-            <button type="button" onClick={() => onStyle(chemin, null)} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
-              <RotateCcw className="h-3 w-3" /> Revenir au modèle
-            </button>
+          {selection.clePos && (
+            <div className="flex items-center gap-2">
+              <span className="w-[76px] flex-none text-[12.5px] text-ardoise">Décalage</span>
+              {[["x", "→"], ["y", "↓"]].map(([k, fleche]) => (
+                <label key={k} className="flex items-center gap-1 text-[11.5px] text-brume">{fleche}
+                  <input type="number" step="0.5" value={pos?.[k] ?? 0} aria-label={k === "x" ? "Décalage horizontal" : "Décalage vertical"}
+                    onChange={(e) => onPosition(selection.clePos, { x: pos?.x || 0, y: pos?.y || 0, [k]: Number(e.target.value) || 0 })}
+                    className="h-8 w-16 rounded-[8px] border border-trait bg-surface px-1.5 text-center text-[12.5px] tabular-nums text-encre outline-none focus:border-menthe max-md:text-[16px]" />
+                  mm
+                </label>
+              ))}
+            </div>
           )}
+          {poignee && <p className="m-0 text-[11.5px] leading-[1.5] text-brume">Glissez la poignée du cadre, ou les flèches du clavier (⇧ : 5 mm).</p>}
           {pos && (
-            <button type="button" onClick={() => onPosition(selection.clePos, null)} className="inline-flex items-center gap-1.5 text-[12px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
+            <button type="button" onClick={() => onPosition(selection.clePos, null)} className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ardoise hover:text-encre" style={{ background: "transparent" }}>
               <Move className="h-3 w-3" /> Remettre en place
             </button>
           )}
-        </div>
-      </div>
+        </GroupePanneau>
+      </PanneauEditeur>
     </div>
   );
 }
@@ -1018,7 +997,7 @@ function NomAvis({ estimation }) {
 
 const PAGE_PX = 794; // 210 mm à 96 dpi
 
-export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Estimations", integre = false, provisoire = false, onSelection = null, selectionExterne, statut = null }) {
+export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Estimations", integre = false, provisoire = false, onSelection = null, selectionExterne, statut = null, onEnvoyer = null }) {
   const [avis, setAvis] = useState(estimation.avis);
   const [etat, setEtat] = useState("enregistre"); // enregistre | modifie | envoi
   const [selection, setSelection] = useState(null);
@@ -1130,16 +1109,18 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
     setPositionsVives(null);
   };
   // La mise en forme d'un élément : null revient au modèle ; une clé à null ou false s'efface.
+  // Un élément masqué reste visible en pâle dans l'Éditeur : il garde sa sélection, pour être réaffiché.
   const onStyle = (chemin, patch) => {
+    if (patch === null) return ecrireStyle(chemin, null);
+    const suivant = { ...(avis.styles?.[chemin] || {}), ...patch };
+    for (const k of Object.keys(suivant)) if (suivant[k] === null || suivant[k] === false || suivant[k] === undefined) delete suivant[k];
+    ecrireStyle(chemin, Object.keys(suivant).length ? suivant : null);
+  };
+  // Le panneau donne le style entier de l'élément (le Design commun efface une clé au lieu de la mettre à null).
+  const ecrireStyle = (chemin, st) => {
     versionAvantLaMain();
-    if (patch?.masque) setSelection(null);
     const styles = { ...(avis.styles || {}) };
-    if (patch === null) delete styles[chemin];
-    else {
-      const suivant = { ...(styles[chemin] || {}), ...patch };
-      for (const k of Object.keys(suivant)) if (suivant[k] === null || suivant[k] === false || suivant[k] === undefined) delete suivant[k];
-      if (Object.keys(suivant).length) styles[chemin] = suivant; else delete styles[chemin];
-    }
+    if (st) styles[chemin] = st; else delete styles[chemin];
     appliquer({ ...avis, styles });
   };
   const annuler = () => {
@@ -1160,7 +1141,7 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
   };
   useEffect(() => {
     const clavier = (e) => {
-      if (document.activeElement?.isContentEditable) return;
+      if (document.activeElement?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "")) return;
       if (selection?.clePos && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
         e.preventDefault();
         const pas = e.shiftKey ? 5 : 1;
@@ -1189,7 +1170,11 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
     const largeur = toile.current?.clientWidth || 0;
     if (largeur) setZoom(Math.min(1, Math.max(0.35, (largeur - 48) / PAGE_PX)));
   };
-  useEffect(() => { ajuster(); }, [panneau]);
+  // Le panneau de l'élément choisi (mode Éditeur) prend sa place à droite de la toile : la page se réajuste.
+  const mode = useContext(ModeAvis);
+  const panneauStyles = mode === "edition" && !!selection?.chemin && !selection.chemin.startsWith("section.");
+  useEffect(() => { if (mode !== "edition") setSelection(null); }, [mode]);
+  useEffect(() => { ajuster(); }, [panneau, panneauStyles]);
   // Au téléphone, la page suit la largeur (rotation de l'écran comprise).
   useEffect(() => {
     const m = window.matchMedia("(max-width: 767px)");
@@ -1234,15 +1219,22 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
           {etat === "envoi" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : etat === "enregistre" ? <Check className="h-3.5 w-3.5 text-menthe" /> : null}
           {etat === "envoi" ? "Enregistrement…" : etat === "enregistre" ? "Enregistré" : "Modifications…"}
         </span>
+        {/* Télécharger aux couleurs de la barre de gauche, Envoyer à sa droite quand l'avis est prêt (27 oct. 2026, Jules). */}
         <button type="button" onClick={() => window.print()}
-          className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] font-medium text-sur-menthe hover:bg-menthe-survol">
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-trait bg-rail px-4 text-[13px] font-medium text-encre hover:bg-rail-actif">
           <Download className="h-4 w-4" /> <span className="max-md:hidden">Télécharger le</span> PDF
         </button>
+        {onEnvoyer && !provisoire && ["prete", "en_validation", "valide"].includes(estimation.statut) && (
+          <button type="button" onClick={() => onEnvoyer(estimation.id)}
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-menthe px-4 text-[13px] font-medium text-sur-menthe hover:bg-menthe-survol">
+            <Send className="h-4 w-4" /> Envoyer
+          </button>
+        )}
       </div>
 
       <div className="avis-atelier relative flex min-h-0 flex-1">
         {panneau && (
-          <aside className="avis-ecran avis-panneau flex w-[340px] flex-none flex-col border-r border-trait bg-rail max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:top-[52px] max-md:z-20 max-md:w-auto">
+          <aside className="avis-ecran avis-panneau flex w-[340px] flex-none flex-col border-r border-trait max-md:absolute max-md:bg-rail max-md:inset-x-0 max-md:bottom-0 max-md:top-[52px] max-md:z-20 max-md:w-auto">
             <div className="flex flex-none gap-1 border-b border-trait px-2 py-1.5">
               {[["retouches", "Retouches", MessageSquareText], ["plan", "Plan", ListTree], ["versions", "Versions", History]].filter(([k]) => !integre || k !== "retouches").map(([k, mot, Icone]) => (
                 <button key={k} type="button" onClick={() => setOnglet(k)} aria-pressed={onglet === k}
@@ -1258,7 +1250,6 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
             </div>
           </aside>
         )}
-        <Styles selection={selection} avis={avis} onStyle={onStyle} onPosition={onPosition} onFermer={() => setSelection(null)} />
         <div ref={toile} className="avis-toile relative min-w-0 flex-1 overflow-auto" onClick={() => setSelection(null)}>
           <p className="avis-ecran m-0 pt-4 text-center text-[12.5px] text-brume">Tout se modifie : cliquez un texte, un chiffre, une photo ou un tableau, puis glissez la poignée pour le déplacer. Un clic sur le bandeau d'une page la sélectionne pour le chat.</p>
           <CadreSelection selection={selection} toile={toile} zoom={zoom} positions={positions} onBrouillon={setPositionsVives} onFin={finirGlisser} />
@@ -1268,6 +1259,9 @@ export default function EditeurAvis({ estimation, onRetour, libelleRetour = "Est
             </Selection.Provider>
           </div>
         </div>
+        {panneauStyles && avis && (
+          <PanneauStyles key={selection.clePos || selection.chemin} selection={selection} doc={avis} onStyle={ecrireStyle} onPosition={onPosition} onFermer={() => setSelection(null)} />
+        )}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ const ETAPES = [
   {
     cle: "communes",
     titre: "Où cherche votre agent",
-    texte: "Votre agent IA parcourt votre secteur toute la journée pour trouver les propriétaires des murs. Il lit toujours les villes Klocka, celles où nos investisseurs achètent. Cochez en plus les communes de votre secteur que vous travaillez pour votre activité.",
+    texte: "Votre agent IA parcourt votre secteur toute la journée pour trouver les propriétaires des murs. Il lit toujours les villes prioritaires, celles où nos investisseurs achètent. Cochez en plus les communes de votre secteur que vous travaillez pour votre activité.",
   },
 ];
 

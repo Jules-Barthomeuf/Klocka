@@ -44,7 +44,8 @@ export function PastilleSource({ cle, choisie = false, eteinte = false, onClick,
 }
 
 /** Le panneau des sources : « Auto » d'abord, puis chaque source à cocher. */
-export function PanneauSources({ sources, onChange, className = "" }) {
+// `choix` : les sources proposées (celles du mandataire, 26 oct. 2026) ; par défaut, celles de l'équipe.
+export function PanneauSources({ sources, onChange, className = "", choix = SOURCES_CHOISISSABLES }) {
   const basculer = (cle) => onChange(sources.includes(cle) ? sources.filter((x) => x !== cle) : [...sources, cle]);
   const phrase = sources.length ? `Haka ne lira que ${sources.length > 1 ? `ces ${sources.length} sources` : "cette source"}.` : "Auto : Haka choisit lui-même où chercher. Cochez des sources pour l'en tenir là.";
   return (
@@ -53,7 +54,7 @@ export function PanneauSources({ sources, onChange, className = "" }) {
         <motion.p key={phrase} className="m-0 text-[13px] text-ardoise" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={FONDU}>{phrase}</motion.p>
       </AnimatePresence>
       <div className="flex flex-wrap justify-center gap-2">
-        {[{ cle: "auto" }, ...SOURCES_CHOISISSABLES.map((cle) => ({ cle }))].map(({ cle }, i) => (
+        {[{ cle: "auto" }, ...choix.map((cle) => ({ cle }))].map(({ cle }, i) => (
           <motion.div key={cle} initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ ...FONDU, delay: Math.min(i * 0.018, 0.3) }}>
             {cle === "auto"
               ? <PastilleSource cle="auto" libelle="Auto" icone={Sparkles} choisie={!sources.length} onClick={() => onChange([])} />
@@ -98,7 +99,7 @@ export function BoutonSources({ sources, onOuvrir, ouvert }) {
 export function BasculeSortie({ sortie, onChange }) {
   const choix = [["repondre", "Répondre", "Une réponse dans la conversation, avec ses sources"], ["produire", "Produire", "Un livrable dans l'écran de droite, qui finit dans À valider"]];
   return (
-    <div className="relative flex items-center gap-0.5 rounded-full bg-barre-relief p-0.5">
+    <div className="relative flex items-center gap-0.5 rounded-full bg-barre-relief p-0.5 max-md:hidden">
       {choix.map(([cle, mot, aide]) => (
         <button key={cle} type="button" onClick={() => onChange(cle)} aria-pressed={sortie === cle} title={aide}
           className={`relative rounded-full px-3 py-1 text-[13px] transition-colors duration-300 ${sortie === cle ? "text-encre" : "text-ardoise hover:text-encre"}`}

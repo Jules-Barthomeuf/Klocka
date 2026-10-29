@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { pageDeChemin } from './adresses';
+import { vueDe } from './vue';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { base44 } from '@/api/base44Client';
@@ -88,7 +89,9 @@ if (typeof window !== "undefined" && !window.__klockaBattement) {
 
 export default function NavigationTracker() {
     const location = useLocation();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+    // K Partners et Klocka sont deux entreprises (28 oct. 2026, Jules) : en vue mandataire, la fenêtre dit K Partners.
+    const marque = vueDe(user) === 'mandataire' ? 'K Partners' : 'Klocka';
     const { Pages, mainPage } = pagesConfig;
     const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 
@@ -104,8 +107,8 @@ export default function NavigationTracker() {
     useEffect(() => {
         const pageName = pageDeChemin(location.pathname) || mainPageKey;
         const title = PAGE_TITLES[pageName];
-        document.title = title ? `${title} — Klocka` : 'Klocka';
-    }, [location, mainPageKey]);
+        document.title = title ? `${title} — ${marque}` : marque;
+    }, [location, mainPageKey, marque]);
 
     // Log user activity when navigating to a page
     useEffect(() => {

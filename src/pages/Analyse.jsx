@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, Loader2, Plus, Clock, MoreHorizontal, Pencil, Archive, RotateCcw, Trash2, X, UserRound, Folder, Search, SlidersHorizontal, ChevronDown, MessagesSquare, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/avis";
 import WorkflowDeal from "@/components/preanalyse/WorkflowDeal";
+import { PoigneeEditeur, useLargeurChat } from "@/components/editeur/Editeur";
 import { useFermerAuClicAilleurs } from "@/components/preanalyse/GrilleCriteres";
 import { Conversation, Resume } from "@/components/conversations/EspaceConversations";
 import { PointNouveau } from "@/components/conversations/DossiersMandataire";
@@ -309,8 +310,9 @@ export default function Analyse() {
   // étapes gardent le dernier choix. Un clic sur le sélecteur vaut jusqu'au prochain changement d'étape.
   useEffect(() => {
     if (!dealId || !vueDossier) return;
+    // L'Offre est un Éditeur (28 oct. 2026, Jules) : toujours le chat à gauche.
     // L'Analyse s'ouvre en mode normal (29 oct. 2026, Jules) : les grilles et la pièce à droite prennent la page.
-    if (vueDossier === "preanalyse") setModeIABrut(true);
+    if (vueDossier === "preanalyse" || vueDossier === "offre") setModeIABrut(true);
     else if (vueDossier === "documents" || vueDossier === "analyse") setModeIABrut(false);
   }, [dealId, vueDossier]);
   // La Data Room n'a ni chat ni bascule (29 oct. 2026, Jules) : toujours en mode normal.
@@ -323,27 +325,11 @@ export default function Analyse() {
     </div>
   ) : null;
   const scinde = ecranLarge && !!dealId && !vueConversation && modeIA && vueDossier !== "documents";
-  // La largeur du chat, comme dans Présentations et Offres : la poignée se tire, un double-clic la remet.
-  const CLE_LARGEUR = "klocka.dossiers.largeur-chat";
-  const LARGEUR_DEFAUT = 420;
-  const borner = (l) => Math.round(Math.min(Math.max(l, 300), Math.max(320, (typeof window !== "undefined" ? window.innerWidth : 1600) - 560)));
-  const [largeurChat, setLargeurChat] = useState(() => { try { const v = Number(localStorage.getItem(CLE_LARGEUR)); return v ? borner(v) : LARGEUR_DEFAUT; } catch { return LARGEUR_DEFAUT; } });
-  const [tire, setTire] = useState(false);
-  const tirer = (e) => {
-    e.preventDefault();
-    setTire(true);
-    let derniere = largeurChat;
-    const bouger = (ev) => { derniere = borner(ev.clientX); setLargeurChat(derniere); };
-    const lacher = () => {
-      setTire(false);
-      try { localStorage.setItem(CLE_LARGEUR, String(derniere)); } catch { /* navigation privée */ }
-      window.removeEventListener("pointermove", bouger);
-      window.removeEventListener("pointerup", lacher);
-    };
-    window.addEventListener("pointermove", bouger);
-    window.addEventListener("pointerup", lacher);
-  };
-  const remettre = () => { setLargeurChat(LARGEUR_DEFAUT); try { localStorage.removeItem(CLE_LARGEUR); } catch { /* rien */ } };
+  // La largeur du chat, celle de l'Éditeur (components/editeur) : la ligne se tire, un double-clic la remet.
+  const poignee = useLargeurChat("klocka.dossiers.largeur-chat");
+  const { largeur: largeurChat, tire } = poignee;
+  // L'Offre est le canevas de l'Éditeur (28 oct. 2026, Jules) : la lettre et sa barre sur toute la hauteur, sans marges.
+  const enEditeur = scinde && vueDossier === "offre";
   useEffect(() => {
     if (!scinde) return undefined;
     const fin = setTimeout(() => { glisse.current = false; }, 900);
@@ -359,9 +345,9 @@ export default function Analyse() {
   // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
   const contenuDossier = (
     <div className={`mx-auto ${large ? "max-w-none" : "max-w-[1500px]"}`}>
-      {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin. */}
+      {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin. Dans l'Éditeur, la barre du document suffit. */}
       {/* Le dossier ouvert porte « Tous les dossiers » sur la ligne de son nom (29 oct. 2026, Jules) ; ici, seulement ailleurs. */}
-      <div className={`${dossierOuvertIci && !conversationDuDeal ? "hidden" : ""} mb-4 flex items-center justify-between gap-3 md:pr-14`}>
+      <div className={`${enEditeur || (dossierOuvertIci && !conversationDuDeal) ? "hidden" : ""} mb-4 flex items-center justify-between gap-3 md:pr-14`}>
         {!dossierOuvertIci ? (
         <button
           onClick={() => montrerDeal(null)}
@@ -398,6 +384,9 @@ export default function Analyse() {
         />
       ) : dossier?.deal_id === dealId ? (
         <>
+        {/* Tout le dossier, titre compris, sur une carte de la couleur de la barre de navigation (29 oct. 2026, Jules) ;
+            l'Éditeur de l'Offre garde sa page entière. */}
+        <div className={enEditeur ? "" : "rounded-[18px] border border-trait bg-rail p-6 max-md:p-4"}>
         <WorkflowDeal
           dossier={dossierVu}
           enCours={majLot.isPending}
@@ -408,6 +397,7 @@ export default function Analyse() {
           actionsBarre={choixMode}
           onRetour={() => montrerDeal(null)}
         />
+        </div>
         {enAttente > 0 && createPortal(
           <div role="status" className="k-entree fixed bottom-6 left-1/2 z-[45] flex -translate-x-1/2 items-center gap-3 rounded-full border border-bord-doux bg-surface-pleine py-2 pl-5 pr-2 shadow-[0_18px_40px_rgb(0_0_0/0.22)] max-md:bottom-4 max-md:w-[calc(100vw-2rem)] max-md:justify-between">
             <span className="text-[13.5px] text-craie">{enAttente} champ{enAttente > 1 ? "s" : ""} modifié{enAttente > 1 ? "s" : ""}</span>
@@ -446,21 +436,17 @@ export default function Analyse() {
             <ChatDashboard key={dealId} espace="dossier" onConversation={setChatOuvert} barreApercu={chatOuvert} reglages={reglagesChat}
               retour={{ libelle: "Tous les dossiers", onClick: () => montrerDeal(null) }}
               contexte={{ deal_id: dealId, etape: vueDossier }}
-              onReponse={() => { recharger(); rafraichirListes(); }} />
+              onReponse={() => { recharger(); rafraichirListes(); if (vueDossier === "offre") { queryClient.invalidateQueries({ queryKey: ["offres"] }); queryClient.invalidateQueries({ queryKey: ["offre"] }); } }} />
           </div>
         </motion.div>
         {/* Le dossier comme en mode normal, à droite, séparé du chat par une fine ligne : plus de carte posée sur la page (18 oct. 2026, Jules). */}
-        <motion.div className="h-[100dvh] min-h-0 min-w-0 overflow-y-auto border-l border-trait px-8 py-8"
+        <motion.div className={`h-[100dvh] min-h-0 min-w-0 ${enEditeur ? "overflow-hidden" : "overflow-y-auto px-8 py-8"}`}
           initial={glisse.current ? { x: -largeurChat } : { opacity: 0 }} animate={{ x: 0, opacity: 1 }}
           transition={{ duration: glisse.current ? 0.7 : 0.5, ease: [0.65, 0, 0.35, 1] }}>
           {contenuDossier}
         </motion.div>
-        {/* La poignée entre le chat et le dossier. */}
-        <div role="separator" aria-orientation="vertical" aria-label="Largeur du chat" title="Tirer pour élargir ou réduire le chat ; double-clic pour revenir"
-          onPointerDown={tirer} onDoubleClick={remettre}
-          className="group absolute inset-y-0 z-20 flex w-3 cursor-col-resize justify-center" style={{ left: largeurChat - 6 }}>
-          <span className={`my-auto h-10 w-[3px] rounded-full transition-colors ${tire ? "bg-menthe" : "bg-transparent group-hover:bg-bord-vif"}`} />
-        </div>
+        {/* La ligne entre le chat et le dossier, celle de l'Éditeur : on la tire pour régler la largeur. */}
+        <PoigneeEditeur {...poignee} />
       </div>
     );
   }
@@ -487,6 +473,7 @@ export default function Analyse() {
             {/* Le titre au centre, les onglets en pilule dessous, comme la Prospection. */}
             <header className="k-entree relative mb-8 flex flex-col items-center gap-6 text-center">
               <div className="flex flex-wrap items-center justify-end gap-2.5 self-end md:absolute md:right-14 md:top-0 md:self-auto">
+                <LienMandats />
                 <span className={`text-[14px] max-md:text-[13px] ${aRelancer ? "text-alerte" : "text-ardoise"}`}>{aRelancer} relance{aRelancer > 1 ? "s" : ""} en attente</span>
                 <button onClick={() => setCreationOuverte(true)}
                   className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] font-medium text-sur-menthe transition-colors hover:bg-menthe-survol">
@@ -639,6 +626,17 @@ function CarteCompacte({ d, qui, onOuvrir, menu, ecarte = false }) {
       {d.pourquoi && <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[12.5px] text-ambre">{d.a_relancer && <Clock className="h-3 w-3" />}{d.pourquoi}</p>}
       <span onClick={(e) => e.stopPropagation()}>{menu}</span>
     </article>
+  );
+}
+
+/** Les mandats reçus des mandataires (27 oct. 2026) : la page Mandats, avec ce qui attend Klocka. */
+function LienMandats() {
+  const { data } = useQuery({ queryKey: ["k-mandats"], queryFn: () => base44.request("GET", "/api/mandataire/admin/mandats"), refetchInterval: 60_000 });
+  const n = (data?.a_faire || 0);
+  return (
+    <Link to="/Mandats" className="inline-flex h-10 items-center gap-2 rounded-full border border-bord-doux px-4 text-[14px] text-craie transition-colors hover:border-bord-vif hover:text-encre max-md:text-[13px]">
+      Mandats{n > 0 && <span className="tabular-nums text-ambre">{n} à traiter</span>}<PointNouveau n={data?.non_lus || 0} />
+    </Link>
   );
 }
 

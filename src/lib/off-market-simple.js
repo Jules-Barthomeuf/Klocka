@@ -5,7 +5,9 @@
 export const estExploitant = (c) => c.lien === "exploitant_certain" || c.lien === "exploitant_probable";
 
 // Les filtres du mode Simple : cumulables, ils s'appliquent à la carte et au tableau.
-export const FILTRES_SIMPLE = Object.freeze({ texte: "", rue: "", emplacement: "centre", zones: [], liens: [], activites: [], drapeaux: [], proprietaires: [], anciennete: null, chaine: null, liste: null, exploitants: false, signal: false });
+export const FILTRES_SIMPLE = Object.freeze({ texte: "", rue: "", emplacement: "centre", zones: [], classes: [], liens: [], activites: [], drapeaux: [], proprietaires: [], anciennete: null, chaine: null, liste: null, exploitants: false, signal: false });
+// Les classes d'actif (26 oct. 2026, Jules : « on filtre la classe d'actif ») : un point est un commerce, des bureaux ou un entrepôt.
+export const OPTIONS_CLASSE = [["commerce", "Commerce"], ["bureau", "Bureaux"], ["entrepot", "Entrepôt"]];
 export const OPTIONS_LIEN = [["exploitant", "Exploitant propriétaire"], ["tiers", "Bailleur tiers"], ["inconnu", "Propriétaire inconnu"], ["en_cours", "Recherche en cours"]];
 export const OPTIONS_PROPRIETAIRE = [["sci", "SCI"], ["societe", "Société"], ["particulier", "Particulier"], ["inconnu", "Inconnu"]];
 export const OPTIONS_EMPLACEMENT = [["centre", "Zones commerçantes"], ["partout", "Toute la ville"]];
@@ -19,6 +21,7 @@ export const nbFiltres = (f) => f.liens.length + f.activites.length + f.drapeaux
 export function passeSimple(c, f) {
   if (f.exploitants && !estExploitant(c)) return false;
   if (f.signal && !c.drapeaux.length) return false;
+  if (f.classes?.length && !f.classes.includes(c.classe || "commerce")) return false;
   if (f.liens.length && !f.liens.includes(cleLien(c))) return false;
   if (f.activites.length && !f.activites.includes(c.activite)) return false;
   if (f.drapeaux.length && !f.drapeaux.some((d) => c.drapeaux.includes(d))) return false;

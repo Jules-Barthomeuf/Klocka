@@ -44,7 +44,7 @@ export default function AgentIA() {
   // Ouvrir une liste : l'onglet Listes s'ouvre dessus.
   const ouvrirListe = (id) => window.dispatchEvent(new CustomEvent("klocka:ouvrir-liste", { detail: { id } }));
   if (isLoading || !data) return <p className="m-0 mt-10 text-center text-[13.5px] text-brume">Lecture de l'agent…</p>;
-  if (!data.secteur) return <p className="m-0 mt-10 text-center text-[14px] text-brume">Aucun secteur attribué : l'agent n'a rien à parcourir. Demandez à Klocka de tracer votre secteur.</p>;
+  if (!data.secteur) return <p className="m-0 mt-10 text-center text-[14px] text-brume">Aucun secteur attribué : l'agent n'a rien à parcourir. Demandez à K Partners de tracer votre secteur.</p>;
 
   const j = data.aujourdhui || {};
   const cherche = data.cherche || { klocka: [], activite: [] };
@@ -67,7 +67,7 @@ export default function AgentIA() {
             </span>
           </div>
           <p className="m-0 mt-1.5 max-w-[70ch] text-[14px] leading-[1.55] text-ardoise">
-            Il parcourt {nb > 1 ? `vos ${nb} communes, les villes Klocka d'abord,` : nb ? "votre commune" : "votre secteur"} toute la journée : il lit les commerces, trouve qui possède les murs et le numéro du propriétaire, et vous propose ceux qui sont prêts à appeler.
+            Il parcourt {nb > 1 ? `vos ${nb} communes, les villes prioritaires d'abord,` : nb ? "votre commune" : "votre secteur"} toute la journée : il lit les commerces, trouve qui possède les murs et le numéro du propriétaire, et vous propose ceux qui sont prêts à appeler.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -95,10 +95,10 @@ export default function AgentIA() {
         ))}
       </div>
 
-      {/* Où il cherche : les villes Klocka d'abord, puis les communes cochées ; lues, ou à lire. */}
+      {/* Où il cherche : les villes prioritaires d'abord, puis les communes cochées ; lues, ou à lire. */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {[...cherche.klocka.map((c) => [c, true]), ...cherche.activite.map((c) => [c, false])].map(([c, k]) => (
-          <span key={c} title={k ? "Ville Klocka : toujours lue" : "Cochée pour votre activité"}
+          <span key={c} title={k ? "Ville prioritaire : toujours lue" : "Cochée pour votre activité"}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12.5px] ${k ? "bg-menthe/[0.14]" : "border border-trait"}`}>
             <MapPin className={`h-3 w-3 ${k ? "text-menthe" : "text-ardoise"}`} />
             <span className="text-encre">{c}</span>

@@ -547,9 +547,14 @@ export function modifierProprietaire(id, patch, user) {
   const p = proprietaireSien(id, user);
   if (!p) return { ok: false, error: 'Fiche introuvable.' };
   const champs = {};
-  for (const c of ['nom', 'telephone', 'email', 'commerce', 'remarque']) {
-    if (c in (patch || {})) champs[c] = patch[c] ? String(patch[c]).trim().slice(0, 200) : null;
+  // Toute la fiche se modifie (26 oct. 2026, Jules : « il faut qu'il puisse modifier toute la fiche ») : contact, commerce,
+  // adresse, activité, remarque, prochaine action.
+  for (const c of ['nom', 'telephone', 'email', 'commerce', 'remarque', 'adresse', 'ville', 'activite', 'prochaine_action']) {
+    if (c in (patch || {})) champs[c] = patch[c] ? String(patch[c]).trim().slice(0, c === 'remarque' ? 1000 : 200) : null;
   }
+  if ('prochaine_action_le' in (patch || {})) champs.prochaine_action_le = patch.prochaine_action_le && !Number.isNaN(Date.parse(patch.prochaine_action_le)) ? new Date(patch.prochaine_action_le).toISOString() : null;
+  // Les parties libres de la fiche : un titre, un texte (ajoutées, modifiées ou retirées par Haka).
+  if (Array.isArray(patch?.sections)) champs.sections = patch.sections.filter((x) => x && String(x.titre || '').trim()).slice(0, 12).map((x) => ({ titre: String(x.titre).trim().slice(0, 80), texte: String(x.texte || '').trim().slice(0, 2000) }));
   // Saisi à la main dans la fiche (25 oct. 2026, Jules) : la valeur fait foi, elle n'est plus « à confirmer ».
   const confirmes = ['telephone', 'email'].filter((c) => c in champs);
   if (confirmes.length) {
@@ -753,6 +758,8 @@ export function noterResultat(id, { statut, texte = null, rappel_dans_jours = nu
     prochaine_action_le: rappel?.echeance || null,
     historique: [...(p.historique || []), { le: new Date().toISOString(), type: 'statut', texte: texte || `Statut : ${LIBELLES_STATUT[statut]}` }],
   });
+  // Le rendez-vous fixé : Haka prépare le rendez-vous en fond (26 oct. 2026, la préparation, server/preparation-rdv.js).
+  if (statut === 'rdv_pris' && p.statut !== 'rdv_pris') import('./preparation-rdv.js').then((m) => m.lancerPreparation(p.id, user)).catch(() => {});
   import('./mandataire-monday.js').then((m) => m.synchroniserEnFond(p.id)).catch(() => {});
   return { ok: true, proprietaire: maj, rappel_id: rappel?.id || null };
 }

@@ -148,6 +148,28 @@ const normRue = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').
   .replace(/\b(rue|avenue|av|boulevard|bd|place|pl|quai|chemin|allee|impasse|cours|route|square|passage|du|de|des|la|le|les|l|d)\b/g, ' ')
   .replace(/[^a-z0-9]+/g, ' ').trim();
 
+// Les mots d'un nom de rue, pour comparer deux écritures de la même voie (27 oct. 2026, Jules : Street View ouvrait la
+// rue d'angle). La BAN et Google n'écrivent pas comme les fiches : « rue du Maréchal Foch » est « Rue maréchal
+// Ferdinand Foch », « Av. Franklin Delano Roosevelt » est « Avenue Franklin D. Roosevelt », « avenue de Saxe » est
+// « Avenue Maréchal de Saxe », « rue Muids des Blés » est « Rue Muid des Bles ». Abréviations dépliées, pluriel ôté.
+const ABREGES = { st: 'saint', ste: 'sainte', gal: 'general', gen: 'general', mal: 'marechal', mar: 'marechal', dr: 'docteur', pdt: 'president', pres: 'president' };
+const motsRue = (t) => normRue(t).split(' ').filter(Boolean).map((m) => ABREGES[m] || m).map((m) => (m.length > 3 ? m.replace(/[sx]$/, '') : m));
+const motEgal = (a, b) => a === b || (a.length === 1 && b.startsWith(a)) || (b.length === 1 && a.startsWith(b));
+
+/**
+ * Pure : deux suites de mots désignent-elles la même voie ? Le dernier mot (le nom qui la distingue) est le même, et
+ * les mots de la plus courte se retrouvent tous, dans l'ordre, dans la plus longue : un prénom ou un titre omis, une
+ * initiale, passent ; « rue du Nord » et « rue du Nord-Est », non.
+ */
+function memesMots(x, y) {
+  if (!x.length || !y.length) return false;
+  const [court, long] = x.length <= y.length ? [x, y] : [y, x];
+  if (!motEgal(court.at(-1), long.at(-1)) || !court.some((m) => m.length >= 3)) return false;
+  let i = 0;
+  for (const m of long) if (i < court.length && motEgal(court[i], m)) i += 1;
+  return i === court.length;
+}
+
 /**
  * Pure : la rue d'un résultat est-elle celle écrite dans l'adresse ? Tolère
  * la suite de l'adresse collée à la rue (« rue du Nord Lille »).
@@ -155,14 +177,19 @@ const normRue = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').
 export function rueCorrespond(ecrite, rue) {
   const x = normRue(ecrite);
   const y = normRue(rue);
-  return !!x && !!y && (x === y || x.startsWith(`${y} `));
+  if (!x || !y) return false;
+  if (x === y || x.startsWith(`${y} `)) return true;
+  const mx = motsRue(ecrite);
+  const my = motsRue(rue);
+  for (let k = mx.length; k >= 1; k -= 1) if (memesMots(mx.slice(0, k), my)) return true;
+  return false;
 }
 
 /** Pure : deux noms de rue désignent-ils la même voie ? */
 export function memeRue(a, b) {
   const x = normRue(a);
   const y = normRue(b);
-  return !!x && !!y && x === y;
+  return !!x && !!y && (x === y || memesMots(motsRue(a), motsRue(b)));
 }
 
 /**

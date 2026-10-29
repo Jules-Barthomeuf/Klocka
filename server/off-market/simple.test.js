@@ -38,12 +38,17 @@ test('les drapeaux : gérant 70+, fonds cédé, fermé, transmission, détention
 });
 
 test('la ville : les commerces en pied d\'immeuble, vite, puis la résolution avec de faux registres', async () => {
+  // Le cabinet de conseil est lu aussi, comme des bureaux (26 oct. 2026) ; le sans-position reste écarté ; un même
+  // SIRET rendu par les trois lectures (commerce, bureaux, entrepôts) ne fait qu'un point.
   const lister = async () => [etab(1), etab(2, { ape: '70.22Z' }), etab(3, { lat: null }), etab(4)];
   const r = await S.lireVilleSimple(ville.id, { lister });
-  assert.equal(r.n, 2, 'le cabinet de conseil et le sans-position sont écartés');
+  assert.equal(r.n, 3, 'deux commerces et des bureaux ; le sans-position est écarté');
   const liste = S.commercesDe(ville.id);
-  assert.equal(liste.length, 2);
+  assert.equal(liste.length, 3);
   assert.equal(liste[0].etat, 'a_faire');
+  const bureau = liste.find((c) => c.classe === 'bureau');
+  assert.equal(bureau.activite, 'Conseil en entreprise');
+  assert.equal(liste.filter((c) => c.classe === 'commerce').length, 2);
   assert.ok((await S.lireVilleSimple(ville.id, { lister })).deja, 'pas relue avant 30 jours');
   const etapes = [];
   const c = await S.resoudreCommerce(liste[0].id, {
@@ -353,4 +358,30 @@ test('une surface invraisemblable (5 m²) est écartée ; l\'emprise du bâtimen
   const c2 = Records.create(S.COMMERCE, { ville_id: 'z', siret: 'sv2', nom: 'Rien', activite: 'Bar', adresse: '5 Rue Thuret', lat: 43.6, lon: 7.2, etat_recherche: 'fait' });
   const r2 = await S.estimerPrix(c2.id, { batiment: async () => ({ surface_estimee: [3, 5], emprise_m2: 8, commerces_dans_le_batiment: 1 }), loyer: async () => ({ ok: true, resultat: { rue: { basse: 300, haute: 500 } } }) });
   assert.equal(r2.commerce.estimation.prix, null, 'mieux vaut pas de prix qu\'un prix faux');
+});
+
+test('l\'annuaire plafonne à 10 000 : le cercle se découpe en quartiers qui le couvrent, sans rien perdre ni déborder', async () => {
+  const c = { lat: 45.76, lon: 4.85, rayon_km: 4 };
+  const q = S.quartiers(c);
+  assert.equal(q.length, 4);
+  const km = (a, b) => Math.hypot((b.lon - a.lon) * 111.32 * Math.cos((a.lat * Math.PI) / 180), (b.lat - a.lat) * 111.32);
+  for (let t = 0; t < 360; t += 5) for (const f of [0, 0.5, 0.99]) {
+    const p = { lat: c.lat + (f * c.rayon_km * Math.sin((t * Math.PI) / 180)) / 111.32, lon: c.lon + (f * c.rayon_km * Math.cos((t * Math.PI) / 180)) / (111.32 * Math.cos((c.lat * Math.PI) / 180)) };
+    assert.ok(q.some((z) => km(z, p) <= z.rayon_km + 1e-6), `point à ${t}° non couvert`);
+  }
+  // Un faux annuaire : le grand cercle est saturé, chaque quartier rend un établissement à son centre, plus un hors du cercle.
+  let appels = 0;
+  const lire = async (url) => {
+    appels += 1;
+    const u = new URL(url);
+    const r = Number(u.searchParams.get('radius'));
+    const lat = Number(u.searchParams.get('lat')), lon = Number(u.searchParams.get('long'));
+    const unite = (siret, la, lo) => ({ siren: siret.slice(0, 9), nom_complet: 'X', etat_administratif: 'A', matching_etablissements: [{ siret, latitude: String(la), longitude: String(lo), etat_administratif: 'A', activite_principale: '62.01Z', adresse: '1 RUE X 69000 LYON' }] });
+    if (r === 4) return { ok: true, status: 200, json: async () => ({ total_results: 10000, total_pages: 400, results: [] }) };
+    const id = `${Math.round(lat * 1e4)}${Math.round(lon * 1e4)}`.padEnd(14, '0').slice(0, 14);
+    return { ok: true, status: 200, json: async () => ({ total_results: 2, total_pages: 1, results: [unite(id, lat, lon), unite(`9${id}`.slice(0, 14), lat + 1, lon)] }) };
+  };
+  const out = await S.etablissementsCommerce({ ...c, codes: ['62.01Z'], lire, maxPages: 400 });
+  assert.equal(appels, 1 + 4 * 1 + 0, 'une page par quartier, pas plus');
+  assert.equal(out.length, 4, 'un par quartier, ceux hors du cercle écartés');
 });

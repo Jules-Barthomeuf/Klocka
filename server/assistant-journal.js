@@ -160,6 +160,8 @@ export async function annuler(action) {
     const deal = Records.findBy('Deal', 'deal_id', action.deal_id);
     const dossierId = deal?.drive_folder_id;
     if (!dossierId) return { ok: false, message: 'Le dossier Drive est introuvable.' };
+    // Un dossier qui existait avant l'action n'est pas le sien : il ne part jamais à la corbeille.
+    if (action.resultat?.deja_cree) return { ok: false, message: "Le dossier Drive existait avant : il reste en place, avec les pièces ajoutées." };
 
     const compte = action.resultat?.compte;
     if (!compte) return { ok: false, message: "Le compte Google d'origine n'est pas connu." };

@@ -201,6 +201,13 @@ export async function uploaderFichier(token, { nom, buffer, mime, parentId }) {
   });
 }
 
+/** Dépose un fichier dans un dossier Drive déjà connu (son identifiant), sans le rechercher par nom. */
+export async function deposerDansDossier(compteEmail, dossierId, { nom, buffer, mime }) {
+  const account = await compteDriveEffectif(compteEmail);
+  const token = await accessTokenFor(account);
+  return uploaderFichier(token, { nom, buffer, mime, parentId: dossierId });
+}
+
 /**
  * Crée « Klocka Projets/<titre> » et y téléverse les fichiers donnés.
  * @param {string} compteEmail

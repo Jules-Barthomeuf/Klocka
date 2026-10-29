@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Loader from "@/components/ui/Loader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Lock } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -37,9 +38,9 @@ export default function CommunesAgent({ accueil = false, onValide = null, entete
       {pied && <div className="flex flex-none items-center justify-between gap-4 border-t border-trait px-7 py-4 max-md:px-5">{pied}</div>}
     </div>
   ) : corps);
-  if (isLoading) return cadre(<p className="m-0 flex items-center gap-2 py-4 text-[13.5px] text-ardoise"><Loader2 className="h-4 w-4 animate-spin" /> Je lis les communes de votre secteur…</p>);
+  if (isLoading) return cadre(<Loader titre="Je lis les communes de votre secteur…" />);
   if (error) return cadre(<p className="m-0 py-4 text-[13.5px] text-alerte">{error.message || "Les communes ne se lisent pas."}</p>);
-  if (!data?.secteur) return cadre(<p className="m-0 py-4 text-[13.5px] text-brume">Aucun secteur ne vous est attribué : Klocka trace le vôtre, puis vous choisirez ici vos communes.</p>);
+  if (!data?.secteur) return cadre(<p className="m-0 py-4 text-[13.5px] text-brume">Aucun secteur ne vous est attribué : K Partners trace le vôtre, puis vous choisirez ici vos communes.</p>);
   const s = cochees || new Set();
   const basculer = (c) => {
     const n = new Set(s);
@@ -60,18 +61,18 @@ export default function CommunesAgent({ accueil = false, onValide = null, entete
 
   return cadre(
     <div className="w-full">
-      <p className="m-0 text-[12px] uppercase tracking-[0.14em] text-brume">Villes Klocka · toujours lues</p>
+      <p className="m-0 text-[12px] uppercase tracking-[0.14em] text-brume">Villes prioritaires · toujours lues</p>
       {data.klocka.length ? (
         <div className="mt-2.5 flex flex-wrap gap-2">
           {data.klocka.map((c) => (
-            <span key={cle(c)} title="Ville où Klocka cherche pour ses investisseurs : l'agent la lit toujours en premier."
+            <span key={cle(c)} title="Ville où nos investisseurs cherchent : l'agent la lit toujours en premier."
               className="inline-flex items-center gap-1.5 rounded-full bg-menthe/[0.14] px-3 py-1.5 text-[13.5px] text-encre">
               <Lock className="h-3 w-3 text-menthe" />{c.nom}
             </span>
           ))}
         </div>
       ) : (
-        <p className="m-0 mt-2 text-[13.5px] text-ardoise">Votre secteur ne compte aucune ville Klocka : l'agent lit seulement les communes que vous cochez.</p>
+        <p className="m-0 mt-2 text-[13.5px] text-ardoise">Votre secteur ne compte aucune ville prioritaire : l'agent lit seulement les communes que vous cochez.</p>
       )}
 
       <p className="m-0 mt-6 text-[12px] uppercase tracking-[0.14em] text-brume">Pour votre activité · {s.size} cochée{s.size > 1 ? "s" : ""} sur {data.autres.length}</p>

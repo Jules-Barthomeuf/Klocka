@@ -396,7 +396,8 @@ export function listerDossiers(limit = 50) {
   // Les lettres d'intention par dossier : l'étape « Offre » de la frise (17 oct. 2026).
   const offresParDeal = {};
   for (const l of Records.list('LettreIntention')) if (l.deal_id) offresParDeal[l.deal_id] = (offresParDeal[l.deal_id] || 0) + 1;
-  return Records.list('Deal', { sort: '-created_date', limit }).map((d) => ({
+  // Un dossier de vente de mandataire pas encore mis en vente (`cache_equipe`) reste hors de la liste de l'équipe.
+  return Records.list('Deal', { sort: '-created_date', limit }).filter((d) => !d.cache_equipe).map((d) => ({
     nb_offres: offresParDeal[d.deal_id] || 0,
     id: d.id,
     deal_id: d.deal_id,

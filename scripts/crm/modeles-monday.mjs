@@ -3,7 +3,8 @@
 // chaque fiche. Un modèle, c'est un même objet envoyé à au moins deux personnes : on garde le texte le plus envoyé,
 // le prénom de la fiche remis en {prénom}. Les réponses (Re:, TR:) et les avis de non-remise sont écartés.
 // Les pièces jointes des modèles ne sont pas dans la timeline : à rajouter à la main à l'envoi.
-//   node scripts/crm/modeles-monday.mjs                    (lit les timelines des tableaux migrés, ~1 h)
+//   node scripts/crm/modeles-monday.mjs                    (lit les timelines des tableaux migrés, ~1 h ; reprend
+//                                                          après une coupure, effacer exports-prives/mails-monday.json* pour tout relire)
 //   node scripts/crm/modeles-monday.mjs --depuis mails.json (refait les modèles d'une lecture déjà faite)
 // Écrit exports-prives/mails-monday.json (les mails lus) et exports-prives/modeles-monday.json (les modèles).
 import 'dotenv/config';
@@ -23,14 +24,17 @@ async function lireTimelines() {
       try {
         return await M.requeteMonday(q);
       } catch (e) {
-        if (!/429|complexity|rate/i.test(e.message)) throw e;
+        if (!/429|complexity|rate|timeout|aborted|fetch failed|ECONNRESET|50\d/i.test(e.message)) throw e;
         await dodo(15000 * (i + 1));
       }
     }
     throw new Error('Monday refuse encore (429)');
   };
-  const mails = [];
+  // Reprise : les tableaux déjà lus (fichier écrit après chacun) ne sont pas relus.
+  const mails = fs.existsSync(SORTIE_MAILS) ? JSON.parse(fs.readFileSync(SORTIE_MAILS, 'utf8')) : [];
+  const lus = new Set(JSON.parse(fs.existsSync(`${SORTIE_MAILS}.lus`) ? fs.readFileSync(`${SORTIE_MAILS}.lus`, 'utf8') : '[]'));
   for (const { id } of tableaux) {
+    if (lus.has(id)) continue;
     let curseur = null;
     let nom = '';
     const items = [];
@@ -51,6 +55,8 @@ async function lireTimelines() {
     }
     console.log(`${nom.padEnd(28)} ${String(items.length).padStart(5)} fiches ${String(n).padStart(4)} mails`);
     fs.writeFileSync(SORTIE_MAILS, JSON.stringify(mails));
+    lus.add(id);
+    fs.writeFileSync(`${SORTIE_MAILS}.lus`, JSON.stringify([...lus]));
   }
   return mails;
 }
@@ -113,8 +119,11 @@ export function modelesDesMails(mails) {
       envois: g.fiches.size,
       source: `Monday (${[...g.tableaux].join(', ')}), envoyé par ${[...g.auteurs].join(', ') || '?'}, dernier envoi le ${g.dernier.slice(0, 10)}`,
     }))
-    .sort((a, b) => b.envois - a.envois);
+    .sort((a, b) => b.envois - a.envois)
+    // Un même texte sous deux objets (faute de frappe corrigée, relance renommée) : un seul modèle, le plus envoyé.
+    .filter((m, i, l) => l.findIndex((x) => texteNu(x.corps) === texteNu(m.corps)) === i);
 }
+const texteNu = (t) => t.replace(/\{prénom\}|[`\s,]/g, '').toLowerCase();
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
   const mails = depuis ? JSON.parse(fs.readFileSync(depuis, 'utf8')) : await lireTimelines();

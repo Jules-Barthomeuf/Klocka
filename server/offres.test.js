@@ -47,7 +47,7 @@ test("depuis l'application : la LOI est gardée, et « Votre LOI est prête » m
   assert.equal(O.listerLettres()[0].acquereur, 'Olivier LUCCIONI · FONCIERE ANGULARIS');
   const d = await O.lireLettre(id);
   assert.match(d.blocs.find((b) => b.cle === 'offre-3').texte, /\*\*200[\s\u202f]000 € \(deux cent mille euros\)\*\*/);
-  assert.equal(d.parties.attention[1][1], 'Représentée par Monsieur Jérôme ABECASSIS');
+  assert.equal(d.parties.attention[1][1], 'Monsieur Jérôme ABECASSIS');
   // Le vendeur n'est que dans la signature : « À l'attention de » ne le reprend pas.
   assert.equal(d.parties.attention[0][1], '');
   assert.ok(d.blocs.find((b) => b.type === 'signatures').droite.includes('PAX AVENUE'));

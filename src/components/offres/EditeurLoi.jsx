@@ -420,7 +420,7 @@ function ChoixModele({ d, enCours, onChoisir, onChamp, onTexte }) {
 // Ce qu'une ligne vide des parties invite à écrire (la lettre vierge, ou une lettre incomplète).
 const VIDES = {
   acquereur_nom: "Nom de l'acquéreur", acquereur_societe: "Sa société", acquereur_adresse: "Son adresse",
-  vendeur_societe: "Le vendeur (société ou nom)", attention_nom: "À l'attention de (nom)", attention_representant: "Représentée par…", attention_adresse: "Son adresse",
+  vendeur_societe: "Le vendeur (société ou nom)", attention_nom: "À l'attention de (nom)", attention_representant: "Représentant (texte libre)", attention_adresse: "Son adresse",
 };
 
 // Les noms au-dessus des signatures : chacun est un champ de la lettre.
@@ -461,7 +461,7 @@ function LettreMenthe({ d, onChamp, onTexte, apercu = false }) {
   const ligne = (cleChamp, v, i, liste) => (
     <Editable key={`${cleChamp}:${v}`} valeur={v} gras={false} lecture={apercu} vide={VIDES[cleChamp]} cible={`champ:${cleChamp}`}
       className={i === 0 ? "loi-nom" : i === liste.length - 1 && /adresse/.test(cleChamp) ? "loi-adresse" : ""}
-      onGarde={(t) => onChamp(cleChamp, cleChamp === "attention_representant" ? t.replace(/^représentée? par\s+/i, "") : t)} />
+      onGarde={(t) => onChamp(cleChamp, t)} />
   );
   return (
     <article className={`loi-papier loi-menthe${classeMarque(d)}`} aria-label="Lettre d'intention d'achat">
@@ -528,12 +528,11 @@ function Paragraphe({ b, onTexte, apercu, ...par }) {
 function LettreClassique({ d, onChamp, onTexte, apercu = false }) {
   const { parties, cadre, blocs } = d;
   const ligne = (cleChamp, v, i, liste) => {
-    const repr = cleChamp === "attention_representant";
     const nom = i === 0;
     const adresse = i === liste.length - 1 && /adresse/.test(cleChamp);
     return (
       <Editable key={`${cleChamp}:${v}`} valeur={v} gras={false} lecture={apercu} vide={VIDES[cleChamp]} cible={`champ:${cleChamp}`} className={nom ? "loi-nom" : adresse ? "loi-adresse" : ""}
-        onGarde={(t) => onChamp(cleChamp, repr ? t.replace(/^représentée? par\s+/i, "") : t)} />
+        onGarde={(t) => onChamp(cleChamp, t)} />
     );
   };
   return (

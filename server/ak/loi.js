@@ -101,7 +101,7 @@ export function parties(brut, { vides = false } = {}) {
     acquereur: [['acquereur_nom', c.acquereur_nom || ''], ['acquereur_societe', c.acquereur_societe || ''], ['acquereur_adresse', c.acquereur_adresse || '']].filter(garder),
     // « À l'attention de » est un destinataire à part (29 oct. 2026, Jules) : il ne reprend pas le vendeur du bas,
     // il reste vide tant qu'on n'y écrit rien. Le vendeur ne figure qu'au-dessus de sa signature.
-    attention: [['attention_nom', c.attention_nom || ''], ['attention_representant', c.attention_representant ? `Représentée par ${c.attention_representant}` : ''], ['attention_adresse', c.attention_adresse || '']].filter(garder),
+    attention: [['attention_nom', c.attention_nom || ''], ['attention_representant', c.attention_representant || ''], ['attention_adresse', c.attention_adresse || '']].filter(garder),
   };
 }
 

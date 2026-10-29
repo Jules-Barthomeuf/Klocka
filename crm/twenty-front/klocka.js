@@ -427,11 +427,40 @@
   }
 
   // --- 3. Un clic sur une adresse mail : la fenêtre d'envoi ---
+  // Comme celle de Monday (Jules, 29 oct.) : une carte en bas à droite, De / À / Objet en lignes, le texte, puis une
+  // barre d'outils (brouillon jeté, variables {}, Modèles de messages) et Envoyer.
   // Le mail ne part pas d'ici : la page crée un « Mail envoyé » (envoisMail) au nom de la personne connectée, Klocka
   // l'envoie depuis sa boîte Gmail (server/crm/mails.js) et marque Envoyé ou Erreur, que la fenêtre attend.
   // Les modèles sont ceux de l'objet « Modèles » (modelesMail) ; {prénom} et {nom} prennent le nom de la fiche.
   const ENVOI = 'klocka-envoi';
+  const VARIABLES = [['{prénom}', 'Prénom'], ['{nom}', 'Nom complet']];
+  const ICONES = {
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6l9-6"/>',
+    agrandir: '<path d="M16 4h4v4"/><path d="M14 10l6-6"/><path d="M8 20H4v-4"/><path d="M4 20l6-6"/>',
+    reduire: '<path d="M14 10h6"/><path d="M14 10V4"/><path d="M20 4l-6 6"/><path d="M10 14H4"/><path d="M10 14v6"/><path d="M4 20l6-6"/>',
+    fermer: '<path d="M18 6L6 18"/><path d="M6 6l12 12"/>',
+    corbeille: '<path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/>',
+    variables: '<path d="M7 4a2 2 0 0 0-2 2v3a2 3 0 0 1-2 3a2 3 0 0 1 2 3v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 3 0 0 0 2 3a2 3 0 0 0-2 3v3a2 2 0 0 1-2 2"/>',
+    modeles: '<path d="M8 4h8l4 4v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M15 4v4h4"/><path d="M10 12h6"/><path d="M10 16h4"/>',
+  };
   let modeles = null;
+  let moi = null;
+
+  function icone(nom, taille = 18) {
+    return `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONES[nom]}</svg>`;
+  }
+  function boutonIcone(nom, titre, action) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.title = titre;
+    b.setAttribute('aria-label', titre);
+    b.innerHTML = icone(nom);
+    b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:none;border-radius:6px;background:none;color:inherit;cursor:pointer;opacity:.8';
+    b.addEventListener('mouseenter', () => { b.style.background = 'rgba(127,127,127,.14)'; });
+    b.addEventListener('mouseleave', () => { b.style.background = 'none'; });
+    b.addEventListener('click', (e) => { e.stopPropagation(); action(b); });
+    return b;
+  }
 
   function ficheDuClic(cible) {
     const page = location.pathname.match(/^\/object\/([^/]+)\/([0-9a-f-]{36})/);
@@ -449,13 +478,71 @@
     return String(texte || '').replace(/\{pr[ée]nom\}/gi, prenom).replace(/\{nom\}|\{fiche\}/gi, String(nom || '').trim());
   };
 
-  function champ(libelle, element) {
-    const l = document.createElement('label');
-    l.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.9';
-    const t = document.createElement('span');
-    t.textContent = libelle;
-    t.style.cssText = 'opacity:.6';
-    l.append(t, element);
+  // Qui écrit : la personne connectée (sa boîte Gmail rattachée à Klocka enverra).
+  async function lireMoi() {
+    if (moi) return moi;
+    try {
+      const r = await fetch('/metadata', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: '{ currentUser { email firstName lastName workspaceMember { avatarUrl name { firstName lastName } } } }' }) });
+      const u = (await r.json())?.data?.currentUser;
+      if (u) moi = { email: u.email, nom: [u.workspaceMember?.name?.firstName || u.firstName, u.workspaceMember?.name?.lastName || u.lastName].filter(Boolean).join(' '), photo: u.workspaceMember?.avatarUrl || '' };
+    } catch {
+      /* la ligne De reste générique */
+    }
+    return moi;
+  }
+
+  // Une petite liste flottante au-dessus d'un bouton (variables, modèles).
+  function liste(ancre, panneau, elements, choisir, { recherche = false, vide = 'Rien ici' } = {}) {
+    panneau.querySelector('.klocka-liste')?.remove();
+    const { fond, texte } = couleurs();
+    const l = document.createElement('div');
+    l.className = 'klocka-liste';
+    const r = ancre.getBoundingClientRect();
+    const p = panneau.getBoundingClientRect();
+    l.style.cssText = `position:absolute;left:${Math.max(8, r.left - p.left)}px;bottom:${p.bottom - r.top + 6}px;width:300px;max-height:320px;display:flex;flex-direction:column;padding:4px;border-radius:8px;background:${fond};color:${texte};box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(127,127,127,.25);z-index:1`;
+    const corps = document.createElement('div');
+    corps.style.cssText = 'overflow:auto;display:flex;flex-direction:column';
+    let champ = null;
+    const dessiner = () => {
+      corps.replaceChildren();
+      const q = (champ?.value || '').toLowerCase();
+      const vus = elements.filter((x) => !q || `${x.titre} ${x.sous || ''}`.toLowerCase().includes(q));
+      if (!vus.length) {
+        const v = document.createElement('div');
+        v.textContent = vide;
+        v.style.cssText = 'padding:10px;font-size:12px;opacity:.6';
+        corps.appendChild(v);
+      }
+      for (const x of vus) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.style.cssText = `display:flex;flex-direction:column;gap:2px;text-align:left;padding:8px 10px;border:none;border-radius:4px;background:none;color:${texte};font:inherit;font-size:13px;cursor:pointer`;
+        const t = document.createElement('span');
+        t.textContent = x.titre;
+        b.appendChild(t);
+        if (x.sous) {
+          const s = document.createElement('span');
+          s.textContent = x.sous;
+          s.style.cssText = 'font-size:11px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+          b.appendChild(s);
+        }
+        b.addEventListener('mouseenter', () => { b.style.background = 'rgba(127,127,127,.12)'; });
+        b.addEventListener('mouseleave', () => { b.style.background = 'none'; });
+        b.addEventListener('click', (e) => { e.stopPropagation(); l.remove(); choisir(x); });
+        corps.appendChild(b);
+      }
+    };
+    if (recherche) {
+      champ = document.createElement('input');
+      champ.placeholder = 'Rechercher un modèle';
+      champ.style.cssText = 'margin:4px 4px 6px;padding:7px 9px;border:1px solid rgba(127,127,127,.3);border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:13px';
+      champ.addEventListener('input', dessiner);
+      l.appendChild(champ);
+    }
+    l.appendChild(corps);
+    dessiner();
+    panneau.appendChild(l);
+    champ?.focus();
     return l;
   }
 
@@ -468,83 +555,154 @@
     }
     const fiche = ficheDuClic(cible);
     const { fond, texte } = couleurs();
-    const bord = 'border:1px solid rgba(127,127,127,.3);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px;background:transparent;color:inherit';
+    const trait = 'border-bottom:1px solid rgba(127,127,127,.2)';
+    const nu = 'flex:1;min-width:0;border:none;outline:none;background:transparent;color:inherit;font:inherit;font-size:14px;padding:0';
     const p = document.createElement('div');
     p.id = ENVOI;
     p.dataset.clickOutsideId = HORS_TABLEAU;
-    p.style.cssText = `position:fixed;top:12px;right:12px;bottom:12px;width:min(460px,calc(100vw - 24px));z-index:2147483647;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:10px;background:${fond};color:${texte};box-shadow:0 12px 40px rgba(0,0,0,.22);border:1px solid rgba(127,127,127,.25);font-size:13px`;
+    let grand = false;
+    const placer = () => {
+      p.style.cssText = `position:fixed;z-index:2147483647;display:flex;flex-direction:column;border-radius:10px;overflow:visible;background:${fond};color:${texte};box-shadow:0 12px 40px rgba(0,0,0,.25);border:1px solid rgba(127,127,127,.25);font-size:14px;`
+        + (grand ? 'top:5vh;left:50%;transform:translateX(-50%);width:min(960px,calc(100vw - 32px));height:90vh' : 'right:16px;bottom:16px;width:min(720px,calc(100vw - 32px));height:min(620px,calc(100vh - 32px))');
+    };
+    placer();
     // Les raccourcis de Twenty ne doivent pas lire ce qu'on tape ici.
     for (const t of ['keydown', 'keyup', 'keypress']) p.addEventListener(t, (e) => { e.stopPropagation(); if (t === 'keydown' && e.key === 'Escape') p.remove(); });
+    p.addEventListener('click', (e) => { if (!e.target.closest('.klocka-liste')) p.querySelector('.klocka-liste')?.remove(); });
 
+    // En-tête : « E-mail », agrandir, fermer.
     const tete = document.createElement('div');
-    tete.style.cssText = 'display:flex;align-items:center;justify-content:space-between';
+    tete.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-radius:10px 10px 0 0;background:rgba(127,127,127,.07);${trait}`;
+    const pastille = document.createElement('span');
+    pastille.innerHTML = icone('mail', 16);
+    pastille.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:#5b8def;color:#fff';
     const titre = document.createElement('strong');
-    titre.textContent = 'Nouveau mail';
-    titre.style.fontSize = '14px';
-    tete.append(titre, bouton('✕', texte, () => p.remove()));
+    titre.textContent = 'E-mail';
+    titre.style.cssText = 'flex:1;font-size:14px';
+    const agrandir = boutonIcone('agrandir', 'Agrandir', () => { grand = !grand; placer(); agrandir.innerHTML = icone(grand ? 'reduire' : 'agrandir'); });
+    tete.append(pastille, titre, agrandir, boutonIcone('fermer', 'Fermer', () => p.remove()));
 
+    // Les lignes De, À, Objet.
+    const ligne = (libelle, contenu, apres = null) => {
+      const l = document.createElement('div');
+      l.style.cssText = `display:flex;align-items:center;gap:12px;margin:0 12px;padding:12px 4px;${trait}`;
+      if (libelle) {
+        const s = document.createElement('span');
+        s.textContent = libelle;
+        s.style.cssText = 'opacity:.6;min-width:20px';
+        l.appendChild(s);
+      }
+      l.appendChild(contenu);
+      if (apres) l.appendChild(apres);
+      return l;
+    };
+    const de = document.createElement('span');
+    de.style.cssText = 'display:flex;align-items:center;gap:8px;flex:1;min-width:0';
+    de.textContent = 'Votre boîte Gmail connectée à Klocka';
+    lireMoi().then((m) => {
+      if (!m) return;
+      de.replaceChildren();
+      const ph = document.createElement(m.photo ? 'img' : 'span');
+      ph.style.cssText = 'width:22px;height:22px;border-radius:50%;flex:none;object-fit:cover;display:inline-flex;align-items:center;justify-content:center;font-size:11px;background:rgba(127,127,127,.2)';
+      if (m.photo) ph.src = m.photo;
+      else ph.textContent = (m.nom || m.email)[0].toUpperCase();
+      const n = document.createElement('span');
+      n.textContent = m.nom || m.email;
+      const e = document.createElement('span');
+      e.textContent = `(${m.email})`;
+      e.style.opacity = '.6';
+      de.append(ph, n, e);
+    });
     const a = document.createElement('input');
     a.value = adresse;
-    a.style.cssText = bord;
-    const choix = document.createElement('select');
-    choix.style.cssText = bord;
-    choix.append(new Option('Sans modèle', ''));
+    a.style.cssText = nu;
     const objet = document.createElement('input');
-    objet.style.cssText = bord;
+    objet.placeholder = 'Objet';
+    objet.style.cssText = nu;
     const corps = document.createElement('textarea');
-    corps.style.cssText = `${bord};flex:1;min-height:200px;resize:none;line-height:1.45`;
-    const zoneCorps = champ('Texte', corps);
-    zoneCorps.style.flex = '1';
+    corps.style.cssText = `${nu};flex:1;resize:none;line-height:1.5;padding:14px 16px`;
+    corps.placeholder = 'Votre message';
+    let dernierChamp = corps;
+    for (const c of [objet, corps]) c.addEventListener('focus', () => { dernierChamp = c; });
+    const inserer = (v) => {
+      const c = dernierChamp;
+      const [d, f] = [c.selectionStart ?? c.value.length, c.selectionEnd ?? c.value.length];
+      c.value = c.value.slice(0, d) + v + c.value.slice(f);
+      c.focus();
+      c.setSelectionRange(d + v.length, d + v.length);
+      majEnvoyer();
+    };
+    const variablesObjet = boutonIcone('variables', 'Variables', (b) => liste(b, p, VARIABLES.map(([v, t]) => ({ titre: t, sous: v, v })), (x) => { dernierChamp = objet; inserer(x.v); }));
 
+    // La barre d'outils.
     const pied = document.createElement('div');
-    pied.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px';
-    const etatEnvoi = document.createElement('span');
-    etatEnvoi.style.cssText = 'font-size:12px;opacity:.7';
-    etatEnvoi.textContent = 'Part de votre boîte Gmail connectée à Klocka.';
-    const envoyer = bouton('Envoyer', texte, () => partir());
-    envoyer.style.cssText += ';font-weight:600;border:1px solid rgba(127,127,127,.35)';
-    pied.append(etatEnvoi, envoyer);
-
-    p.append(tete, champ('À', a), champ('Modèle', choix), champ('Objet', objet), zoneCorps, pied);
-    document.body.appendChild(p);
-    a.focus();
-
+    pied.style.cssText = 'display:flex;align-items:center;gap:4px;padding:10px 12px;border-top:1px solid rgba(127,127,127,.2)';
+    const separe = () => {
+      const s = document.createElement('span');
+      s.style.cssText = 'width:1px;height:22px;margin:0 6px;background:rgba(127,127,127,.3)';
+      return s;
+    };
+    let modeleChoisi = null;
     let nom = '';
+    const jeter = boutonIcone('corbeille', 'Supprimer le brouillon', () => {
+      if ((objet.value || corps.value) && !window.confirm('Supprimer ce brouillon ?')) return;
+      p.remove();
+    });
+    const variables = boutonIcone('variables', 'Variables', (b) => liste(b, p, VARIABLES.map(([v, t]) => ({ titre: t, sous: v, v })), (x) => inserer(x.v)));
+    const boutonModeles = boutonIcone('modeles', 'Modèles de messages', async (b) => {
+      try {
+        modeles ||= (await api('GET', '/modelesMail?limit=200&order_by=name[AscNullsLast]'))?.data?.modelesMail || [];
+      } catch {
+        modeles = [];
+      }
+      liste(b, p, modeles.map((m) => ({ titre: m.name || m.objet || 'Sans nom', sous: m.objet, m })), ({ m }) => {
+        if ((objet.value || corps.value) && !window.confirm('Remplacer l’objet et le texte par ce modèle ?')) return;
+        modeleChoisi = m;
+        objet.value = remplir(m.objet, nom);
+        corps.value = remplir(m.corps, nom);
+        majEnvoyer();
+      }, { recherche: true, vide: 'Aucun modèle : ajoutez-en dans Modèles' });
+    });
+    const etatEnvoi = document.createElement('span');
+    etatEnvoi.style.cssText = 'flex:1;text-align:right;font-size:12px;opacity:.7;padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const envoyer = document.createElement('button');
+    envoyer.type = 'button';
+    envoyer.textContent = 'Envoyer';
+    const majEnvoyer = () => {
+      const pret = !!(a.value.trim() && objet.value.trim()) && !parti;
+      envoyer.disabled = !pret;
+      envoyer.style.cssText = `font:inherit;font-size:14px;padding:7px 16px;border:none;border-radius:6px;cursor:${pret ? 'pointer' : 'default'};background:${pret ? '#0073ea' : 'rgba(127,127,127,.15)'};color:${pret ? '#fff' : 'rgba(127,127,127,.8)'}`;
+    };
+    for (const c of [a, objet, corps]) c.addEventListener('input', majEnvoyer);
+    envoyer.addEventListener('click', (e) => { e.stopPropagation(); partir(); });
+    pied.append(jeter, separe(), variables, boutonModeles, etatEnvoi, envoyer);
+
+    p.append(tete, ligne('De', de), ligne('À', a), ligne('', objet, variablesObjet), corps, pied);
+    document.body.appendChild(p);
+    let parti = false;
+    majEnvoyer();
+    (adresse ? objet : a).focus();
+
     if (fiche) {
       api('GET', `/${fiche.objet.namePlural}/${fiche.id}?depth=0`).then((r) => {
         const f = r?.data?.[fiche.objet.nameSingular] || Object.values(r?.data || {})[0] || {};
         nom = typeof f.name === 'string' ? f.name : [f.name?.firstName, f.name?.lastName].filter(Boolean).join(' ');
-        titre.textContent = nom ? `Mail à ${nom}` : 'Nouveau mail';
+        if (nom) titre.textContent = `E-mail à ${nom}`;
       }).catch(() => {});
     }
-    try {
-      modeles ||= (await api('GET', '/modelesMail?limit=200&order_by=name[AscNullsLast]'))?.data?.modelesMail || [];
-    } catch {
-      modeles = [];
-    }
-    for (const m of modeles) choix.append(new Option(m.name || m.objet || 'Sans nom', m.id));
-    choix.addEventListener('change', () => {
-      const m = modeles.find((x) => x.id === choix.value);
-      if (!m) return;
-      objet.value = remplir(m.objet, nom);
-      corps.value = remplir(m.corps, nom);
-    });
 
-    let parti = false;
     async function partir() {
-      if (parti) return;
-      if (!a.value.trim() || !objet.value.trim()) return annoncer('Il faut une adresse et un objet', true);
+      if (parti || envoyer.disabled) return;
       parti = true;
-      envoyer.disabled = true;
+      majEnvoyer();
       etatEnvoi.textContent = 'Envoi…';
-      const m = modeles.find((x) => x.id === choix.value);
       try {
         const r = await api('POST', '/envoisMail', {
           name: objet.value.trim().slice(0, 200),
           a: a.value.trim(),
           objet: objet.value.trim(),
           corps: corps.value,
-          modele: m?.name || null,
+          modele: modeleChoisi?.name || null,
           statut: 'A_ENVOYER',
           ficheObjet: fiche?.objet.nameSingular || null,
           ficheId: fiche?.id || null,
@@ -562,8 +720,9 @@
         throw new Error('pas de réponse de Klocka, voir Mails envoyés');
       } catch (e) {
         parti = false;
-        envoyer.disabled = false;
+        majEnvoyer();
         etatEnvoi.textContent = `Non envoyé : ${e.message}`;
+        etatEnvoi.title = e.message;
       }
     }
   }

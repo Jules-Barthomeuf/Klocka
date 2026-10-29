@@ -17,6 +17,7 @@ import * as M0 from '../monday.js';
 import * as T0 from '../twenty.js';
 import { enregistrementDe, valeurOption, optionsDe } from './correspondance.js';
 import { texteDe } from './monday-sur-twenty.js';
+import * as Mb from './membres.js';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 let schema = null;
@@ -114,11 +115,13 @@ export async function ficheDepuisMonday(o, id) {
   await ajouterOptions(o, parNom, voulu, el);
   if (!twenty?.id) {
     const r = await T.creer(o.namePlural, voulu);
+    await Mb.apresEcriture(o.nameSingular, r.id, voulu);
     return { cree: r.id };
   }
   const diff = difference(voulu, twenty, types);
   delete diff.mondayId;
   if (Object.keys(diff).length) await T.modifier(o.namePlural, twenty.id, diff);
+  await Mb.apresEcriture(o.nameSingular, twenty.id, diff);
   return { modifie: Object.keys(diff) };
 }
 
@@ -180,6 +183,19 @@ export function depuisTwenty(ev) {
     setTimeout(() => M.enFileCrm('note Twenty → Monday', () => noteVersMonday(ev.record || {})), DELAI_NOTE).unref?.();
     return { prevu: 'note' };
   }
+  // Un membre coché ou retiré d'un champ Personnes : le texte suit (et Monday en double). Un nouveau membre de l'espace :
+  // les fiches qui portent déjà son nom lui sont reliées.
+  const [objetEv, gesteEv] = nom.split('.');
+  const jonction = Mb.objetDeJonction(objetEv);
+  if (jonction && /^(created|deleted|destroyed)$/.test(gesteEv)) {
+    if (!ev.workspaceMemberId) return { ignore: 'écrit par Klocka' };
+    M.enFileCrm('membres → texte', () => membresVersTexte(jonction.o, jonction.p, ev.record?.ficheId));
+    return { prevu: 'membres' };
+  }
+  if (nom === 'workspaceMember.created') {
+    setTimeout(() => M.enFileCrm('nouveau membre', () => relierNouveauMembre()), 5000).unref?.();
+    return { prevu: 'nouveau membre' };
+  }
   if (!M.crmDouble()) return { ignore: 'CRM n’est pas en double' };
   const o = objetDuNom(nom.split('.')[0]);
   if (!o || !GESTES.test(nom)) return { ignore: 'objet non synchronisé' };
@@ -188,6 +204,35 @@ export function depuisTwenty(ev) {
   if (nom.endsWith('.updated') && ev.updatedFields?.length && !champs.length) return { ignore: '« Déplacer vers » seul' };
   M.enFileCrm('Twenty → Monday', () => ficheVersMonday(o, nom.split('.')[1], ev.record || {}, champs));
   return { prevu: nom };
+}
+
+/** Les membres d'une fiche ont changé dans Sunday CRM : le texte suit, puis la colonne Personnes de Monday (double). */
+export async function membresVersTexte(o, p, ficheId) {
+  if (!ficheId) return null;
+  const { texte, emails, fiche } = await Mb.texteDesMembres(o, p, ficheId);
+  if (M.crmDouble() && fiche?.mondayId && p.mondayColonne) {
+    const ids = [];
+    for (const email of emails) {
+      const u = await M.personneMonday({ email }).catch(() => null);
+      if (u?.id) ids.push({ id: Number(u.id), kind: 'person' });
+    }
+    await M.majElement(o.mondayTableau, fiche.mondayId, { [p.mondayColonne]: { personsAndTeams: ids } }, { sansCopie: true });
+  }
+  return { texte };
+}
+
+/** Quelqu'un vient de rejoindre Sunday CRM : chaque fiche qui porte déjà son nom lui est reliée. */
+export async function relierNouveauMembre() {
+  Mb.oublierMembres();
+  let n = 0;
+  for (const o of objets()) {
+    for (const p of Mb.champsPersonnes(o)) {
+      for (const r of await T.lister(o.namePlural, { champs: `id,${p.champ}` })) {
+        if (String(r[p.champ] || '').trim()) n += (await Mb.accorder(o, p, r.id, r[p.champ])).length ? 1 : 0;
+      }
+    }
+  }
+  return { fiches: n };
 }
 
 /** Une note de Sunday CRM sur une fiche migrée : commentaire Monday (sans recopie) et source du Layer. */

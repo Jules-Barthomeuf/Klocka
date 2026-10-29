@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { twentyConfigure, objetsTwenty, creerObjet, creerChamp, modifierChamp } from '../../server/twenty.js';
 import { optionsDe, valeurOption } from '../../server/crm/correspondance.js';
+import { champsPersonnes } from '../../server/crm/membres.js';
 
 if (!twentyConfigure()) {
   console.error('TWENTY_URL / TWENTY_API_KEY manquants dans .env');
@@ -77,7 +78,9 @@ for (const c of CHAMPS_JOURNAL) {
 // 3. Le webhook vers Klocka.
 const cible = `${KLOCKA}/api/crm/webhook`;
 // Créations et suppressions aussi : la synchronisation Twenty → Monday (server/crm/synchro.js, CRM=double) les suit.
-const operations = [...objets.flatMap((o) => [`${o.nameSingular}.created`, `${o.nameSingular}.updated`, `${o.nameSingular}.deleted`]), 'noteTarget.created'];
+const operations = [...objets.flatMap((o) => [`${o.nameSingular}.created`, `${o.nameSingular}.updated`, `${o.nameSingular}.deleted`]), 'noteTarget.created', 'workspaceMember.created',
+  // Les tables de jonction des champs Personnes (scripts/crm/personnes-twenty.mjs) : un membre coché ou retiré.
+  ...objets.flatMap((o) => champsPersonnes(o).flatMap((p) => [`${p.jonction.nameSingular}.created`, `${p.jonction.nameSingular}.deleted`]))];
 const { webhooks } = await gql('{ webhooks { id targetUrl operations } }');
 const existant = webhooks.find((w) => w.targetUrl === cible);
 if (!existant) {

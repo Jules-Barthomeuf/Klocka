@@ -14,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as T from '../twenty.js';
 import { valeurOption, telephone, optionsDe } from './correspondance.js';
+import { apresEcriture } from './membres.js';
 
 const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const lireJson = (f, defaut) => {
@@ -282,8 +283,10 @@ export async function lireFiche(itemId, { notes = 5 } = {}) {
 
 export async function creerElement(boardId, nom, colonnes = {}) {
   const o = objetDuTableau(boardId);
-  const r = await api.creer(o.namePlural, await valeursTwenty(o, colonnes, nom));
+  const valeurs = await valeursTwenty(o, colonnes, nom);
+  const r = await api.creer(o.namePlural, valeurs);
   objetDeId.set(String(r.id), o);
+  await apresEcriture(o.nameSingular, r.id, valeurs);
   return { id: String(r.id), name: r.name };
 }
 
@@ -292,6 +295,7 @@ export async function majElement(boardId, itemId, colonnes = {}) {
   if (!x) throw new Error(`Élément ${itemId} introuvable dans Twenty (not found)`);
   const valeurs = await valeursTwenty(x.o, colonnes);
   if (Object.keys(valeurs).length) await api.modifier(x.o.namePlural, x.id, valeurs);
+  await apresEcriture(x.o.nameSingular, x.id, valeurs);
   return { id: x.id };
 }
 
@@ -360,10 +364,12 @@ export async function copierCreation(boardId, mondayId, nom, colonnes = {}, { tw
   if (existant?.id) {
     await api.modifier(o.namePlural, existant.id, valeurs);
     objetDeId.set(String(existant.id), o);
+    await apresEcriture(o.nameSingular, existant.id, valeurs);
     return { id: String(existant.id), cree: false };
   }
   const r = await api.creer(o.namePlural, valeurs);
   objetDeId.set(String(r.id), o);
+  await apresEcriture(o.nameSingular, r.id, valeurs);
   return { id: String(r.id), cree: true };
 }
 
@@ -373,6 +379,7 @@ export async function copierMaj(boardId, itemId, colonnes = {}, nomSiAbsente = a
   if (x) {
     const valeurs = await valeursTwenty(x.o, colonnes);
     if (Object.keys(valeurs).length) await api.modifier(x.o.namePlural, x.id, valeurs);
+    await apresEcriture(x.o.nameSingular, x.id, valeurs);
     return { id: x.id, cree: false };
   }
   if (estIdTwenty(itemId)) return null;

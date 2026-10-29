@@ -15,7 +15,7 @@ process.env.MONDAY_TOKEN = '';
 const { Records } = await import('../db.js');
 const { carteAppel, raconterAppel } = await import('./appel.js');
 
-test('la carte dit tout ce qui a été rempli : agent, agence, téléphone, statut, prochaine action, envois, Monday', () => {
+test('la carte dit tout ce qui a été rempli : agent, agence, téléphone, statut, prochaine action, envois, Sunday CRM', () => {
   const a = { nom: 'Sophie Martin', agence: 'Immo Riviera', ville: 'Antibes', telephones: ['06 12 34 56 78'], emails: ['sophie@riviera.fr'], statut: 'en_discussion', prochaine: { quoi: 'rappeler pour le mandat', le: '2026-10-20' }, secteurs: ['Antibes', 'Cannes'] };
   const appel = { issue: 'a_des_murs', resume: 'Un mandat de murs à Antibes fin octobre.', propositions: [{ type: 'statut' }, { type: 'mail', objet: 'Vos murs à Antibes' }] };
   const c = carteAppel(a, appel, { faits: ['rappel le 20 oct.'] }, { ok: true, lien: 'https://klocka-company.monday.com/boards/1/pulses/2' });
@@ -28,9 +28,9 @@ test('la carte dit tout ce qui a été rempli : agent, agence, téléphone, stat
   assert.deepEqual(c.a_envoyer, ['Mail « Vos murs à Antibes »'], 'le mail attend, il ne part pas');
   assert.equal(c.monday.ok, true);
   // L'agence qui porte le nom de l'agent ne se répète pas ; Monday injoignable se dit.
-  const c2 = carteAppel({ ...a, agence: 'Sophie Martin' }, appel, {}, { ok: false, error: 'Monday non configuré' });
+  const c2 = carteAppel({ ...a, agence: 'Sophie Martin' }, appel, {}, { ok: false, error: 'Sunday CRM non configuré' });
   assert.equal(c2.agence, null);
-  assert.deepEqual(c2.monday, { ok: false, erreur: 'Monday non configuré' });
+  assert.deepEqual(c2.monday, { ok: false, erreur: 'Sunday CRM non configuré' });
 });
 
 test('un vocal vide, ou un agent inconnu : rien ne se note', async () => {

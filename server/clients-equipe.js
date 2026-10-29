@@ -179,7 +179,7 @@ const mondayParDefaut = async () => {
 
 async function ecrireMonday(d, l, apres, { par, source, maintenant, monday }) {
   const m = await (monday === undefined ? mondayParDefaut() : monday);
-  if (!m) return { etat: 'ignore', texte: "Monday n'est pas branché ici : rien n'y a été écrit." };
+  if (!m) return { etat: 'ignore', texte: "Sunday CRM n'est pas branché ici : rien n'y a été écrit." };
   const { COL } = await import('./clients-decouverte.js');
   const colonnes = colonnesMonday(apres, COL);
   try {
@@ -199,9 +199,9 @@ async function ecrireMonday(d, l, apres, { par, source, maintenant, monday }) {
       cree = !!id;
     }
     if (id) await m.commenter(id, noteMonday(l, { par, maintenant, source }));
-    return { etat: 'ok', id, cree, avant, colonnes: Object.keys(colonnes), texte: cree ? 'Fiche Monday créée, avec la note de l\'appel' : `${Object.keys(colonnes).length} colonne${Object.keys(colonnes).length > 1 ? 's' : ''} Monday mise${Object.keys(colonnes).length > 1 ? 's' : ''} à jour, note de l'appel ajoutée` };
+    return { etat: 'ok', id, cree, avant, colonnes: Object.keys(colonnes), texte: cree ? 'Fiche Sunday CRM créée, avec la note de l\'appel' : `${Object.keys(colonnes).length} colonne${Object.keys(colonnes).length > 1 ? 's' : ''} Sunday CRM mise${Object.keys(colonnes).length > 1 ? 's' : ''} à jour, note de l'appel ajoutée` };
   } catch (e) {
-    return { etat: 'echec', texte: `Monday a refusé : ${String(e?.message || e).slice(0, 160)}` };
+    return { etat: 'echec', texte: `Sunday CRM a refusé : ${String(e?.message || e).slice(0, 160)}` };
   }
 }
 
@@ -267,12 +267,12 @@ export async function annulerAppelClient(id, { user, monday = undefined } = {}) 
       const etiquettes = new Set([COL.objectif, COL.statut]);
       try {
         await m.maj(m.tableau, a.monday.id, Object.fromEntries(remis.map(([k, v]) => [k, etiquettes.has(k) ? { label: v } : /^numeric/.test(k) ? Number(String(v).replace(/[^\d.-]/g, '')) : v])), { labels: false });
-        mondayTexte = `${remis.length} colonne${remis.length > 1 ? 's' : ''} Monday remise${remis.length > 1 ? 's' : ''}`;
-      } catch (e) { mondayTexte = `Monday n'a pas pu être remis : ${String(e?.message || e).slice(0, 120)}`; }
+        mondayTexte = `${remis.length} colonne${remis.length > 1 ? 's' : ''} Sunday CRM remise${remis.length > 1 ? 's' : ''}`;
+      } catch (e) { mondayTexte = `Sunday CRM n'a pas pu être remis : ${String(e?.message || e).slice(0, 120)}`; }
     }
   }
-  if (restes) mondayTexte = [mondayTexte, `${restes} colonne${restes > 1 ? 's' : ''} vide${restes > 1 ? 's' : ''} avant l'appel, à vider à la main dans Monday`].filter(Boolean).join(' ; ');
-  if (a.monday?.cree) mondayTexte = [mondayTexte, 'la fiche Monday créée par cet appel reste'].filter(Boolean).join(' ; ');
+  if (restes) mondayTexte = [mondayTexte, `${restes} colonne${restes > 1 ? 's' : ''} vide${restes > 1 ? 's' : ''} avant l'appel, à vider à la main dans Sunday CRM`].filter(Boolean).join(' ; ');
+  if (a.monday?.cree) mondayTexte = [mondayTexte, 'la fiche Sunday CRM créée par cet appel reste'].filter(Boolean).join(' ; ');
   Records.update(APPELS, id, { annule_le: new Date().toISOString(), annule_par: user?.email || null });
   return { ok: true, monday: mondayTexte, client: d ? Records.get('DemandeClient', d.id) : null };
 }

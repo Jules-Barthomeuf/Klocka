@@ -74,7 +74,7 @@ const SCHEMA = {
   properties: {
     // Ce qui s'est passé, en une phrase libre (12 oct. 2026, analystes : « chaque appel est différent ») : c'est elle qu'on lit, la case n'est qu'en coulisse.
     ce_qui_s_est_passe: { type: 'string', description: "Une phrase courte et libre, au présent, qui dit ce qui s'est passé et la suite, sans case toute faite : « Le secrétariat transmet notre demande à la direction, rappeler jeudi », « Pas de commerce en ce moment, en rentre un dans un mois », « Veut un mail avant d'en parler ». Jamais « pas de bien » si on n'a pas parlé à quelqu'un qui le sait." },
-    resume: { type: 'string', description: "Deux à trois phrases, ce qui part dans Monday : ce que l'agent a dit et les informations clés (biens qu'il a ou n'a pas, mandats à venir et leur échéance, ce que chacun a promis, avec la date si dite). Sujet « L'agent », au présent. Jamais qui a appelé qui, ni l'issue, ni le nom de l'agence. Exemple : « L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines. Jules a promis de lui envoyer une présentation de notre activité. »" },
+    resume: { type: 'string', description: "Deux à trois phrases, ce qui part dans Sunday CRM : ce que l'agent a dit et les informations clés (biens qu'il a ou n'a pas, mandats à venir et leur échéance, ce que chacun a promis, avec la date si dite). Sujet « L'agent », au présent. Jamais qui a appelé qui, ni l'issue, ni le nom de l'agence. Exemple : « L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines. Jules a promis de lui envoyer une présentation de notre activité. »" },
     pourquoi_relance: { type: 'string', description: "Une ou deux phrases qui expliquent la suite et sa date, avec le contexte de l'appel (« Il n'avait pas de bien, mais il rentrera un commerce en mandat dans deux à trois semaines : on le rappelle à ce moment-là. ») ; vide si rien n'a été dit sur la suite" },
     issue: { type: 'string', enum: Object.keys(R.ISSUES) },
     issue_entendue: { type: 'string', enum: ['pas_de_reponse', 'pas_de_murs', 'a_des_murs', 'pas_interesse', 'autre'], description: "ce que la conversation dit, indépendamment de l'issue tapée" },
@@ -668,6 +668,6 @@ export function carteAppel(a, appel, v, monday = null) {
     a_envoyer: [mail ? `Mail « ${mail.objet} »` : null, sms ? 'SMS' : null].filter(Boolean),
     referent: a.referent || null,
     faits: v?.faits || [],
-    monday: monday?.ok ? { ok: true, lien: monday.lien } : { ok: false, erreur: monday?.error || 'Monday non joint' },
+    monday: monday?.ok ? { ok: true, lien: monday.lien } : { ok: false, erreur: monday?.error || 'Sunday CRM non joint' },
   };
 }

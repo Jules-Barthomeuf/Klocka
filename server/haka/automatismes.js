@@ -38,7 +38,7 @@ export function erreurLisible(texte) {
   if (/credit balance|crédit/i.test(t)) return 'Plus de crédits sur l\'API Anthropic';
   if (/equimmox/i.test(t)) return 'Equimmox ne répond pas';
   if (/gmail|google/i.test(t)) return 'Gmail ne répond pas';
-  if (/monday/i.test(t)) return 'Monday ne répond pas';
+  if (/monday/i.test(t)) return 'Sunday CRM ne répond pas';
   if (/dvf/i.test(t)) return 'DVF ne répond pas';
   if (/timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|fetch failed|503|502/i.test(t)) return 'Un service extérieur ne répond pas';
   if (/introuvable/i.test(t)) return t.slice(0, 120);

@@ -68,7 +68,7 @@ const TYPES_LECTURE = ['dossier', 'projet', 'presentation', 'loi', 'agent', 'age
 const OUTILS_AK = [
   {
     name: 'creer_dossier',
-    description: "Crée un dossier de préanalyse, et rien d'autre : pas de Monday, pas de CRM, pas de promesse. Ce qu'on sait du bien va dans l'aperçu ; tout est facultatif sauf le nom.",
+    description: "Crée un dossier de préanalyse, et rien d'autre : pas de Sunday CRM, pas de CRM, pas de promesse. Ce qu'on sait du bien va dans l'aperçu ; tout est facultatif sauf le nom.",
     input_schema: {
       type: 'object',
       properties: {
@@ -343,7 +343,7 @@ const OUTILS_AK = [
   // Ce que le tri d'avant AK faisait seul (12 oct. 2026, 1.8) : désormais AK choisit, avec ces trois outils.
   {
     name: 'note_d_appel',
-    description: "Une note dictée ou collée dans le chat après un appel avec un agent immobilier ou un contact (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi », « eu au tel l'agent de Dieppe, pas de nouvelles »). Met à jour sa fiche dans Monday (date, remarques, prochaine relance) et le dossier si un bien est décrit. Le texte de la note tel quel. Pour ce qu'un agent immobilier a dit, préférer noter_appel : le même chemin qu'un appel (fiche agent, Intelligence, actions à valider).",
+    description: "Une note dictée ou collée dans le chat après un appel avec un agent immobilier ou un contact (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi », « eu au tel l'agent de Dieppe, pas de nouvelles »). Met à jour sa fiche dans Sunday CRM (date, remarques, prochaine relance) et le dossier si un bien est décrit. Le texte de la note tel quel. Pour ce qu'un agent immobilier a dit, préférer noter_appel : le même chemin qu'un appel (fiche agent, Intelligence, actions à valider).",
     input_schema: { type: 'object', properties: { texte: { type: 'string', description: 'la note, telle qu’écrite ou dictée' } }, required: ['texte'] },
   },
   {
@@ -403,7 +403,7 @@ const OUTILS_AK = [
   },
   {
     name: 'creer_client_monday',
-    description: "Crée (ou complète) un client dans le tableau Clients de Monday : un investisseur qui cherche des murs. Nom ou mail obligatoire ; le reste si on te le donne. Rien d'autre que ce qu'on te dit.",
+    description: "Crée (ou complète) un client dans le tableau Clients de Sunday CRM : un investisseur qui cherche des murs. Nom ou mail obligatoire ; le reste si on te le donne. Rien d'autre que ce qu'on te dit.",
     input_schema: {
       type: 'object',
       properties: {
@@ -417,7 +417,7 @@ const OUTILS_AK = [
   },
   {
     name: 'lire_fiche_monday',
-    description: "Lit la fiche Monday d'une personne : client (tableau Clients), prospect (Prospects) ou agent (Agents). Rend chaque colonne remplie sous son titre (e-mail, téléphone, revenu, fonction, patrimoine, fonds propres, budget, localisation, statut…) et les dernières notes du fil. Par nom (même partiel, sans accents), par mail, ou par monday_id. Plusieurs fiches possibles : la liste revient, choisis d'après le contexte ou demande laquelle. Pour « qu'est-ce qu'on a sur Raphaël ? », pour remplir la diapo porteur ou la diapo de fin d'une présentation.",
+    description: "Lit la fiche Sunday CRM d'une personne : client (tableau Clients), prospect (Prospects) ou agent (Agents). Rend chaque colonne remplie sous son titre (e-mail, téléphone, revenu, fonction, patrimoine, fonds propres, budget, localisation, statut…) et les dernières notes du fil. Par nom (même partiel, sans accents), par mail, ou par monday_id. Plusieurs fiches possibles : la liste revient, choisis d'après le contexte ou demande laquelle. Pour « qu'est-ce qu'on a sur Raphaël ? », pour remplir la diapo porteur ou la diapo de fin d'une présentation.",
     input_schema: {
       type: 'object',
       properties: {
@@ -665,7 +665,7 @@ const OUTILS_AK = [
   },
   {
     name: 'noter_appel',
-    description: "Ce qu'un agent a dit, raconté à Haka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Monday, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
+    description: "Ce qu'un agent a dit, raconté à Haka : un appel qu'on a eu (« j'ai eu Rosario, pas de murs en ce moment, mandat à Cannes fin octobre ») ou un échange sans téléphone, par SMS, mail, de vive voix (« Martin d'ERA m'a écrit que le bail est renouvelé »). Même chemin qu'un rappel ou un appel rapide : l'agent est retrouvé au carnet, le récit est lu comme un appel, et l'écran de l'appel s'ouvre sur les actions à cocher (fiche agent, Sunday CRM, relance, Intelligence) ; rien ne part sans validation. Plusieurs agents correspondent : l'outil rend les candidats, demande lequel ; aucun : l'écran s'ouvre sur l'identification.",
     input_schema: {
       type: 'object',
       properties: {
@@ -924,7 +924,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     const r = await RP.raconter(input.recit, user);
     if (!r.ok) return r;
     if (id) { const i = await RP.identifier(r.rappel.id, { agent_id: id }, user); if (!i.ok) return i; }
-    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que Haka a compris et les actions à cocher (fiche agent, Monday, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
+    return { ok: true, echange_id: r.rappel.id, agent_identifie: !!id, ouvrir: lien(`/Dashboard?rappel=${r.rappel.id}`), note: id ? "L'échange est noté : l'écran s'ouvre sur ce que Haka a compris et les actions à cocher (fiche agent, Sunday CRM, relance) ; donne le lien en une ligne." : "L'échange est noté, mais l'agent n'est pas encore reconnu : l'écran s'ouvre sur l'identification ; donne le lien en une ligne." };
   }
   if (name === 'ajouter_prospect') {
     const P = await import('../prospection/index.js');
@@ -1198,7 +1198,7 @@ async function executerOutilBrut({ name, input }, user, { fond = () => {}, apres
     if (!mondayConfigure()) return { ok: false, error: 'Monday non configuré sur ce serveur (MONDAY_TOKEN).' };
     if (input.monday_id) {
       const f = await lireFiche(input.monday_id);
-      return f ? { ok: true, fiche: f } : { ok: false, error: `Aucune fiche Monday ${input.monday_id}.` };
+      return f ? { ok: true, fiche: f } : { ok: false, error: `Aucune fiche Sunday CRM ${input.monday_id}.` };
     }
     const norme = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
     const mots = norme(input.nom).split(' ').filter(Boolean);
@@ -1558,7 +1558,7 @@ const CADRE = `
 
 CE QUE TU ES SUR LA PLATEFORME KLOCKA (${APP_URL})
 
-Tu es un collègue de l'équipe, avec des outils qui agissent sur la plateforme : dossiers, projets, mails, Monday, Drive, agenda, données de marché, prospection. Toi, tu comprends la demande, tu choisis les outils, tu lis ce qu'ils rendent, tu vérifies et tu conclus. « Dossier » désigne un dossier de préanalyse (les documents reçus d'un agent) ; « projet » une fiche projet de la plateforme, créée à partir d'un dossier.
+Tu es un collègue de l'équipe, avec des outils qui agissent sur la plateforme : dossiers, projets, mails, Sunday CRM, Drive, agenda, données de marché, prospection. Toi, tu comprends la demande, tu choisis les outils, tu lis ce qu'ils rendent, tu vérifies et tu conclus. « Dossier » désigne un dossier de préanalyse (les documents reçus d'un agent) ; « projet » une fiche projet de la plateforme, créée à partir d'un dossier.
 
 COMMENT TU TRAVAILLES
 - Avant d'agir, comprends ce qu'on attend vraiment. Une demande en plusieurs étapes (« crée le projet, ajoute les photos et prépare la LOI ») se planifie, puis s'enchaîne outil après outil jusqu'au bout, sans t'arrêter après le premier ni redemander la permission à chaque étape.
@@ -1576,7 +1576,7 @@ DOSSIERS ET PROJETS
 - Une pièce jointe sans message : regarde ce que c'est (lire_piece). La fiche ou l'annonce d'un bien à vendre, c'est le cas le plus courant : analyser_fiche. Autre chose : dis en trois lignes ce que c'est et demande ce qu'il faut en faire.
 - Le compte rendu d'un appel de découverte avec un futur client (budget, apport, objectifs) : fiche_client_decouverte ; la fiche s'affiche sous ta réponse, dis-le en une ligne. « Qu'est-ce qui attend ? », « les relances », « ce qui n'a pas eu de réponse » : echeances.
 - Une pièce jointe (PDF) avec « crée ce dossier », « fais la pré-analyse », « mets ça sur la plateforme » : analyser_fiche avec le chemin donné, jamais creer_dossier à vide. Une fiche COLLÉE dans le message (un mémorandum, une annonce, des lignes de description du bien) avec la même demande : analyser_fiche avec texte_du_message. Une capture d'écran d'un mail ou d'une annonce avec « crée le dossier » : recopie ce que tu lis dans le paramètre texte d'analyser_fiche. Une pièce jointe pour un dossier déjà là (bail, PV, RCP…) : ajouter_document. Sans pièce jointe, dis que tu n'as rien reçu.
-- « Crée le projet pour X », « rentre le projet dans la plateforme » : chercher_dossier puis creer_projet_depuis_dossier ; les photos jointes au message vont d'elles-mêmes dans les images du projet (dis combien en une demi-phrase). « Mets cette photo sur le projet X » : chercher_projet puis ajouter_photos_projet. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Monday ou le CRM seulement si on te le demande.
+- « Crée le projet pour X », « rentre le projet dans la plateforme » : chercher_dossier puis creer_projet_depuis_dossier ; les photos jointes au message vont d'elles-mêmes dans les images du projet (dis combien en une demi-phrase). « Mets cette photo sur le projet X » : chercher_projet puis ajouter_photos_projet. Sans dossier, dis qu'il faut d'abord mettre le dossier sur la plateforme. « Crée un dossier X » : creer_dossier, et c'est tout ; Sunday CRM ou le CRM seulement si on te le demande.
 - Changer un chiffre d'un dossier (loyer, prix, surface, bail) : modifier_dossier, après trouver_bien pour le bon dossier.
 - « Où en est X ? » : etat_dossier ou etat_projet, puis une ligne : statut, ce qui manque, dernier événement. « Compare X et Y » : les deux états, puis trois lignes au plus, un critère par ligne (prix et renta, bail, emplacement), et lequel tu prends.
 - « C'est quoi ce truc ? » avec une pièce jointe : lire_piece puis trois lignes, sans créer de dossier. Une préz jointe (projet de financement, présentation bancaire) avec « vérifie », « relis », « c'est juste ? » : trouver_bien pour le projet (ou le dossier) dont elle parle, puis verifier_presentation, jamais analyser_fiche ; réponds par la synthèse, puis les écarts bloquants et à corriger, une ligne chacun (page, ce qui est écrit, ce qui est juste), puis les cases à remplir ; les conformes en une ligne à la fin.
@@ -1603,7 +1603,7 @@ LE MARCHÉ, DATA-B ET K-DATA
 - Les Outils (ex-K-Data) ne sont pas encore au point : ils ne partent que si la personne les nomme. « Fais l'analyse K-Data » ou « lance les Outils » : demande d'abord quels outils (outils_kdata donne la liste et leurs réglages), en une ligne courte avec les noms ; ne lance rien tant que la personne n'a pas choisi, sauf si ses préférences disent que tu peux lancer les Outils sans demander (alors K-Zoning, K-Expertise et Estimation). Puis lancer_kdata avec l'adresse du projet ou du dossier et le deal_id pour ranger dans le dossier.
 
 LA PROSPECTION ET L'OFF-MARKET (ALX)
-- Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Monday de l'agent à jour. Une ligne pour dire ce qui est fait.
+- Une note d'appel dictée ou collée dans le chat (« j'ai eu Marc de chez Foncia, il m'envoie le bail jeudi ») : note_d_appel avec la note telle quelle ; elle met la fiche Sunday CRM de l'agent à jour. Une ligne pour dire ce qui est fait.
 - « Mes appels », « qui j'appelle ? » : appels_du_jour, une ligne par agent (nom, numéro, pourquoi), dix au plus, et le lien de la page. Ce qu'un agent a dit, raconté (« j'ai eu Rosario, pas de murs, mandat fin octobre », ou un échange sans téléphone : « Martin m'a écrit que… ») : noter_appel avec le récit dans ses mots et le nom de l'agent ; c'est le même chemin qu'un rappel ou un appel rapide, l'écran de l'appel s'ouvre sur les actions ; donne le lien d'ouverture en une ligne. « Ajoute tel agent » : ajouter_prospect. Tu n'envoies jamais rien à un agent : tout se valide sur la page Prospection.
 - « Prospecte Cannes » : lancer_alx ; le code poste les points d'étape et le bilan. « Qui détient le plus de murs ? », « les SCI de la rue X » : alx_societes, une ligne par société (nom, murs, gérant, mail ou pas). « Montre-moi les messages », « le suivant », « celui de la SCI X » : alx_message, le message est posté par le code ; une retouche : alx_message avec objet et corps réécrits. Il part sur le « envoie » de la personne. Un appel au gérant raconté : alx_appel.
 
@@ -1616,7 +1616,7 @@ CE QUI NE SE FAIT JAMAIS
 - N'envoie rien toi-même à l'extérieur : les mails partent sur le « envoie » de la personne, la prospection se valide sur sa page.
 
 COMMENT TU RÉPONDS
-- Une action faite : UNE phrase, claire et posée. « C'est fait : le dossier est créé et il est dans Monday. » Pas d'identifiant, pas de numéro d'item Monday, pas de date « par défaut », pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves et les détails : uniquement si on te les demande ou s'ils changent la décision.
+- Une action faite : UNE phrase, claire et posée. « C'est fait : le dossier est créé et il est dans Sunday CRM. » Pas d'identifiant, pas de numéro d'item Sunday CRM, pas de date « par défaut », pas de « dis-moi si tu veux que… ». Le lien seulement si la personne en a besoin pour ouvrir un truc. Les réserves et les détails : uniquement si on te les demande ou s'ils changent la décision.
 - Une analyse, une comparaison, une relecture : aussi longue qu'il faut pour être juste, pas plus ; l'essentiel d'abord.
 - Tout le reste : une capture d'écran à commenter (design, ergonomie, une page de la plateforme, un site), une question de droit des baux, de financement, de code, ou n'importe quoi d'autre : réponds avec ton avis franc et argumenté, comme un collègue qu'on consulte. Sur une image, dis ce que tu vois, ce qui marche, ce qui cloche, et ce que tu changerais en premier.
 - Tu n'es pas un service client, tu es un collègue : courtois, direct, jamais de refus sec. Quand on t'en demande beaucoup d'un coup, tu fais tout, dans l'ordre, et tu le dis en une phrase.
@@ -1624,7 +1624,7 @@ COMMENT TU RÉPONDS
 CE QU'IL NE FAUT PAS ÉCRIRE (encombré, technique) :
 « Dossier Ben créé : /Analyse?deal_id=18bd… Comme l'autre : posé dans Monday (item 3236289125) + promesse de docs au 24/09/2026 par défaut. Pas d'agent ni de mail, dcp la veille ne rattachera rien automatiquement. Tu me files l'adresse/agent quand tu l'as et je complète. »
 CE QU'IL FAUT ÉCRIRE À LA PLACE :
-« C'est fait : le dossier Ben est créé et il est dans Monday. Il manque l'agent ; donne-moi son adresse mail quand tu l'as. »`;
+« C'est fait : le dossier Ben est créé et il est dans Sunday CRM. Il manque l'agent ; donne-moi son adresse mail quand tu l'as. »`;
 
 // Ce qui ne vaut que dans Google Chat.
 export const CADRE_GOOGLE_CHAT = `

@@ -50,7 +50,7 @@ export async function etatDesOutils() {
     try {
       clients_actifs = (await clientsActifs()).length;
     } catch (e) {
-      console.warn(`[alx] clients actifs illisibles (Monday) : ${e?.message || e}`);
+      console.warn(`[alx] clients actifs illisibles (Sunday CRM) : ${e?.message || e}`);
     }
   }
   return {

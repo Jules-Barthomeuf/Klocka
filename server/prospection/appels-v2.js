@@ -199,7 +199,7 @@ export const noterCorrection = (j) => Records.create('CorrectionAppel', j);
 
 /** Les raisons de code, quand une action n'est pas portée par le modèle (Monday, liste de diffusion, SMS…). */
 export const PARCE_QUE_REGLE = {
-  monday: () => 'Monday garde la trace de chaque appel abouti.',
+  monday: () => 'Sunday CRM garde la trace de chaque appel abouti.',
   diffusion: () => 'La liste de diffusion entretient la relation entre deux appels.',
   sms: () => 'Il a demandé un SMS plutôt qu\'un mail.',
   signaler_bien: () => 'Un bien a été évoqué : on le note pour le suivre quand la fiche arrive.',

@@ -23,7 +23,7 @@ test('les actions d’avant, notées « adresse (AK …) », restent à leur aut
   assert.ok(J.derniereAnnulable('coralie.g@klocka.immo'));
 });
 
-test('annuler un élément Monday sans identifiant le dit au lieu d’appeler Monday', async () => {
+test('annuler un élément Sunday CRM sans identifiant le dit au lieu d’appeler Sunday CRM', async () => {
   const a = Records.create('AssistantAction', { outil: 'creer_agent_monday', par: 'x@k.fr', annulable: true, annulee: false, resultat: { cree: true } });
   const r = await J.annuler(a);
   assert.equal(r.ok, false);

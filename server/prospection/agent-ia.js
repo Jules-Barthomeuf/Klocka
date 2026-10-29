@@ -657,11 +657,11 @@ export function reparerListe(listeId) {
 
 /** Les agences déjà en contact dans Monday sont marquées : on ne les rappelle pas comme des inconnues. */
 export async function verifierMonday(l) {
-  Records.update(LISTE, l.id, { etape: 'Monday : qui est déjà en contact' });
+  Records.update(LISTE, l.id, { etape: 'Sunday CRM : qui est déjà en contact' });
   const { marquerListe } = await import('./monday-connus.js');
   const r = await marquerListe(l.id);
-  if (!r.ok) { noter(l, `Monday non vérifié : ${r.error}`, 'alerte'); return r; }
-  noter(l, `Monday : ${r.connues} agence${r.connues > 1 ? 's' : ''} sur ${r.total} déjà en contact, marquée${r.connues > 1 ? 's' : ''} « Déjà en contact ».`, 'succes');
+  if (!r.ok) { noter(l, `Sunday CRM non vérifié : ${r.error}`, 'alerte'); return r; }
+  noter(l, `Sunday CRM : ${r.connues} agence${r.connues > 1 ? 's' : ''} sur ${r.total} déjà en contact, marquée${r.connues > 1 ? 's' : ''} « Déjà en contact ».`, 'succes');
   return r;
 }
 
@@ -686,7 +686,7 @@ export function lancer(villeBrute, user) {
     await parApollo(l).catch((e) => noter(l, `Apollo : ${e?.message || e}`, 'alerte'));
     await parAnnuaire(l).catch((e) => noter(l, `Annuaire : ${e?.message || e}`, 'alerte'));
     await parEquimmox(l).catch((e) => noter(l, `Equimmox : ${e?.message || e}`, 'alerte'));
-    await verifierMonday(l).catch((e) => noter(l, `Monday : ${e?.message || e}`, 'alerte'));
+    await verifierMonday(l).catch((e) => noter(l, `Sunday CRM : ${e?.message || e}`, 'alerte'));
     appliquerRegles(l.id);
     reparerListe(l.id);
     const fin = resumeListe(Records.get(LISTE, l.id));
@@ -980,7 +980,7 @@ export function completer(listeId, user) {
     if (agencesDe(l.id).some((a) => !a.fermee && !(a.agents || []).length)) {
       await parEquimmox(l).catch((e) => noter(l, `Equimmox : ${e?.message || e}`, 'alerte'));
     }
-    await verifierMonday(l).catch((e) => noter(l, `Monday : ${e?.message || e}`, 'alerte'));
+    await verifierMonday(l).catch((e) => noter(l, `Sunday CRM : ${e?.message || e}`, 'alerte'));
     appliquerRegles(l.id);
     reparerListe(l.id);
     const restent = agencesDe(l.id).filter((a) => !a.fermee && colonnesVides(a).length).length;

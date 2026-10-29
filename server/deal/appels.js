@@ -164,7 +164,7 @@ export async function traiterNoteAppel(texte, { user, surEtape = null } = {}) {
   const quiLu = [note.prenom, note.nom].filter(Boolean).join(' ');
   surEtape?.(quiLu ? `Contact reconnu : ${quiLu}${note.entreprise ? ` (${note.entreprise})` : ''}` : 'Contact non nommé dans la note');
   if (note.prochaine_relance) surEtape?.(`Relance lue : ${new Date(`${note.prochaine_relance}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`);
-  surEtape?.('Mise à jour de la fiche dans Monday');
+  surEtape?.('Mise à jour de la fiche dans Sunday CRM');
   const fait = [];
   const rates = [];
 
@@ -177,10 +177,10 @@ export async function traiterNoteAppel(texte, { user, surEtape = null } = {}) {
     });
     if (agent?.id) {
       fait.push(`${agent.cree ? 'fiche agent créée' : 'fiche agent mise à jour'} : ${agent.nom}`);
-      if (agent.entreprise_ignoree) rates.push(`Entreprise « ${agent.entreprise_ignoree} » inconnue du tableau : à choisir dans Monday`);
-    } else if (agent?.ignore) rates.push(`Monday : ${agent.raison}`);
+      if (agent.entreprise_ignoree) rates.push(`Entreprise « ${agent.entreprise_ignoree} » inconnue du tableau : à choisir dans Sunday CRM`);
+    } else if (agent?.ignore) rates.push(`Sunday CRM : ${agent.raison}`);
   } catch (e) {
-    rates.push(`Monday : ${e?.message || e}`);
+    rates.push(`Sunday CRM : ${e?.message || e}`);
   }
 
   // Le carnet de la plateforme aussi : la page Agents et la fiche de l'agent montrent l'appel.

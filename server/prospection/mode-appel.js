@@ -485,7 +485,7 @@ export function contactsDe(a, fiche = null, place = null) {
     out.push({ id: `c${out.length}`, nom: nom || 'Standard', source: x.source, fonction: x.fonction || null, telephone: x.telephone || null, standard: !!x.standard });
   };
   if (place === 0 && a.prioritaire?.nom) ajouter({ nom: a.prioritaire.nom, source: 'Contact donné', telephone: a.prioritaire.telephone });
-  if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Monday', telephone: a.monday_connu.telephone || null });
+  if (a.monday_connu?.nom) ajouter({ nom: a.monday_connu.nom, source: 'Contact Sunday CRM', telephone: a.monday_connu.telephone || null });
   // « Dernier interlocuteur » seulement si on lui a parlé (13 oct. 2026) : une fiche créée au premier appel porte le nom du gérant.
   if (fiche?.nom && fiche.dernier_contact_le && R.norm(fiche.nom) !== R.norm(a.nom)) ajouter({ nom: fiche.nom, source: 'Dernier interlocuteur', telephone: (fiche.telephones || []).find((t) => R.normTel(t) !== R.normTel(a.telephone)) || null });
   for (const g of (a.gerants || []).slice(0, 2)) ajouter({ nom: g.nom, source: 'Registre du commerce', fonction: g.qualite || null });
@@ -515,13 +515,13 @@ export function elementDeFile(a, { place, badge = null, fiche: f = null, ville =
       ...(f?.nom && f.dernier_contact_le && f.nom !== a.nom ? [`${f.nom} (dernier interlocuteur)`] : []),
       ...(a.gerants || []).slice(0, 2).map((g) => `${g.nom}${g.qualite ? `, ${String(g.qualite).toLowerCase()}` : ''}`),
       ...(a.agents || []).filter((x) => x.nom).slice(0, 3).map((x) => `${x.nom}${x.telephone ? ` · ${x.telephone}` : ''}`),
-      a.monday_connu?.nom ? `${a.monday_connu.nom} (dans Monday)` : null,
+      a.monday_connu?.nom ? `${a.monday_connu.nom} (dans Sunday CRM)` : null,
     ].filter(Boolean).filter((x, i, t) => t.indexOf(x) === i).slice(0, 5),
     statut: a.statut, pertinence: a.pertinence,
     historique: [
       ...derniers.map((x) => `${R.dateCourte(String(x.le).slice(0, 10))} · ${prenom(x.par)} · ${R.ISSUES[x.issue] || x.issue}${x.resume && !SANS_REPONSE.includes(x.issue) ? ` : ${x.resume}` : ''}`),
       ...(!derniers.length && f?.remarques ? [f.remarques] : []),
-      ...(!derniers.length && a.monday_connu ? [`Monday : ${[a.monday_connu.statut, a.monday_connu.date].filter(Boolean).join(', ')}`] : []),
+      ...(!derniers.length && a.monday_connu ? [`Sunday CRM : ${[a.monday_connu.statut, a.monday_connu.date].filter(Boolean).join(', ')}`] : []),
     ].slice(0, 3),
     site: a.site || null, maps_url: a.maps_url || null,
     lieu: [ville, a.adresse].filter(Boolean).join(' · '),
@@ -534,7 +534,7 @@ export function elementDeFile(a, { place, badge = null, fiche: f = null, ville =
     contacts: contactsDe(a, f, place),
     historique_detail: [
       ...derniers.map((x) => ({ quoi: R.ISSUES[x.issue] || x.issue, quand: R.dateCourte(String(x.le).slice(0, 10)), qui: prenom(x.par), resume: x.resume && !SANS_REPONSE.includes(x.issue) ? x.resume : null })),
-      ...(!derniers.length && a.monday_connu?.statut ? [{ quoi: a.monday_connu.statut, quand: a.monday_connu.date ? R.dateCourte(jourIso(a.monday_connu.date) || '') : null, qui: a.monday_connu.qui ? prenom(a.monday_connu.qui) : 'Monday', resume: null }] : []),
+      ...(!derniers.length && a.monday_connu?.statut ? [{ quoi: a.monday_connu.statut, quand: a.monday_connu.date ? R.dateCourte(jourIso(a.monday_connu.date) || '') : null, qui: a.monday_connu.qui ? prenom(a.monday_connu.qui) : 'Sunday CRM', resume: null }] : []),
     ].slice(0, 4),
     // Les notes de la fiche (secteurs, mandats annoncés, biens évoqués), pour le contexte d'une relance.
     notes_avant: f?.remarques ? String(f.remarques).slice(0, 600) : null,
@@ -629,8 +629,8 @@ export function recapSession(sessionId) {
     const agence = (x.agence_id && Records.get(AGENCE, x.agence_id)?.nom) || appel.agent || '';
     if (r.mail && ['echec'].includes(r.mail.etat)) echecs.push({ appel_id: appel.id, quoi: 'mail', agence, texte: `Mail non parti · ${agence}`, bouton: 'Renvoyer' });
     if (r.mail?.etat === 'brouillon') echecs.push({ appel_id: appel.id, quoi: 'brouillon', agence, texte: `Mail à envoyer depuis votre téléphone · ${agence}`, bouton: 'Ouvrir le brouillon', mailto: r.mail.mailto || null });
-    if (r.monday?.etat === 'doute') echecs.push({ appel_id: appel.id, quoi: 'monday_ligne', agence, texte: `Monday : quelle ligne pour ${agence} ?`, bouton: 'Choisir la ligne', candidates: r.monday.candidates || [] });
-    else if (ligneAVerifier(r.monday)) echecs.push({ appel_id: appel.id, quoi: 'monday', agence, texte: `Monday en attente · ${agence}${r.monday.erreur ? ` (${r.monday.erreur})` : ''}`, bouton: 'Réessayer' });
+    if (r.monday?.etat === 'doute') echecs.push({ appel_id: appel.id, quoi: 'monday_ligne', agence, texte: `Sunday CRM : quelle ligne pour ${agence} ?`, bouton: 'Choisir la ligne', candidates: r.monday.candidates || [] });
+    else if (ligneAVerifier(r.monday)) echecs.push({ appel_id: appel.id, quoi: 'monday', agence, texte: `Sunday CRM en attente · ${agence}${r.monday.erreur ? ` (${r.monday.erreur})` : ''}`, bouton: 'Réessayer' });
     if (ligneAVerifier(r.diffusion)) echecs.push({ appel_id: appel.id, quoi: 'diffusion', agence, texte: `Liste de diffusion · ${agence} : ${r.diffusion.texte}`, bouton: null });
   }
   const mondayEnAttente = recus.filter((r) => ligneAVerifier(r.monday)).length;
@@ -838,12 +838,12 @@ export async function noterIssue({ agence_id, agent_id, issue: issueDemandee, se
   // Les sans-réponse restent dans la plateforme : pas de ligne Monday.
   const releve = [['interlocuteur', 'l\'interlocuteur'], ['email', 'l\'email'], ['telephone', 'le numéro'], ['biens', 'les biens évoqués'], ['mandat', 'le mandat à venir'], ['date', 'la date dite']].filter(([k]) => compris.champs?.[k] && !compris.champs[k].appele).map(([, m]) => m);
   if (releve.length && !def.simple) etape(`Je relève ${releve.length > 1 ? `${releve.slice(0, -1).join(', ')} et ${releve.at(-1)}` : releve[0]}${notes ? ', notes comprises' : ''}`);
-  if (!def.simple && (!essai || ecrireEssai)) etape('Je cherche sa ligne dans Monday');
+  if (!def.simple && (!essai || ecrireEssai)) etape('Je cherche sa ligne dans Sunday CRM');
   // En essai, Monday n'est pas lu ni écrit, mais l'aperçu montre ce qui serait écrit sur une nouvelle ligne.
   const monday = def.simple || estCommerces(a) ? null : essai && !ecrireEssai ? { etat: 'info', texte: "Essai : rien n'est écrit dans Monday. Voici ce qui le serait, sur une nouvelle ligne", apercu: (await import('./monday-agents.js')).apercuSansMonday(d) } : await (await import('./monday-agents.js')).preparer(cibleMonday(d, a, f), d);
-  if (monday && (!essai || ecrireEssai)) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Monday : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Monday : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Monday' : 'Je prépare les champs pour Monday');
+  if (monday && (!essai || ecrireEssai)) etape(monday.etat === 'trouvee' ? 'Je prépare les champs pour Sunday CRM : sa ligne est retrouvée' : monday.etat === 'doute' ? 'Plusieurs lignes possibles dans Sunday CRM : je vous demanderai la bonne' : monday.etat === 'nouvelle' ? 'Je prépare une nouvelle ligne Sunday CRM' : 'Je prépare les champs pour Sunday CRM');
   // « Contact modifié » : un rappel d'un autre interlocuteur, ses cases remplacent celles de la ligne.
-  if (monday) actions.push({ id: 'monday', type: 'monday', titre: monday.contact_modifie ? 'Contact modifié' : 'Contact Monday', coche: true, toujours: true, ligne: monday });
+  if (monday) actions.push({ id: 'monday', type: 'monday', titre: monday.contact_modifie ? 'Contact modifié' : 'Contact Sunday CRM', coche: true, toujours: true, ligne: monday });
   // Le mail : le modèle de l'issue, variables remplies, rien de réécrit.
   const MO = await import('./modeles-appel.js');
   // Un mail demandé dans les notes (« envoyer un mail ») : le mail de présentation est proposé, quelle que soit l'issue (13 oct. 2026).
@@ -1067,7 +1067,7 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
     const d0 = donneesMonday({ appel, agence: ag, fiche: a, issue: issueTapee, user, relance: relanceDecochee ? null : a?.prochaine?.le || null, note, corrige, email: emailUtilise, diffusion: dansLaListe });
     const d1 = essai && appel.monday_essai ? marquerEssai(d0) : d0;
     const d = casesMonday && Object.keys(casesMonday).length ? { ...d1, forcees: casesMonday } : d1;
-    if (essai && !appel.monday_essai) monday = { etat: 'info', texte: `Essai : Monday n'est pas touché (on y aurait écrit « ${[d.agence, d.contact || 'contact sans nom', d.issue].join(' · ')} »)` };
+    if (essai && !appel.monday_essai) monday = { etat: 'info', texte: `Essai : Sunday CRM n'est pas touché (on y aurait écrit « ${[d.agence, d.contact || 'contact sans nom', d.issue].join(' · ')} »)` };
     else {
       // Monday ne retient plus la validation (12 oct. 2026, « Validation… » qui tournait) : au-delà de 15 s, on rend la main
       // avec « Monday : écriture en cours » ; l'écriture continue et pose son résultat sur le reçu quand elle finit.
@@ -1075,7 +1075,7 @@ async function validerUneFois({ appel_id, passe = null, choix = [], mail = null,
       const r = await Promise.race([ecrit, new Promise((ok) => setTimeout(() => ok(null), DELAI_MONDAY_MS).unref?.())]);
       if (r) { monday = r.monday; ecriture = r.ecriture; }
       else {
-        monday = { etat: 'attente', texte: 'Monday : écriture en cours, le reçu se met à jour' };
+        monday = { etat: 'attente', texte: 'Sunday CRM : écriture en cours, le reçu se met à jour' };
         ecrit.then((fin) => {
           const ap = Records.get(APPEL, appel_id);
           if (ap?.recu) Records.update(APPEL, appel_id, { recu: { ...ap.recu, monday: fin.monday }, annuler: { ...(ap.annuler || {}), ecriture: fin.ecriture } });
@@ -1187,10 +1187,10 @@ export async function ecrireMonday({ appel_id, cible, donnees, ligne_id = null, 
   const MA2 = await import('./monday-agents.js');
   let r;
   try {
-    if (!(await MA2.mondayAgentsBranche())) r = { etat: 'attente', texte: "Monday n'est pas branché ici : rien n'a été écrit", erreur: 'non branché' };
+    if (!(await MA2.mondayAgentsBranche())) r = { etat: 'attente', texte: "Sunday CRM n'est pas branché ici : rien n'a été écrit", erreur: 'non branché' };
     else r = await MA2.ecrire({ cible, donnees, ligne_id, item_cree });
   } catch (e) {
-    r = { etat: 'attente', texte: 'Monday en attente, nouvel essai en cours', erreur: String(e?.message || e).slice(0, 200) };
+    r = { etat: 'attente', texte: 'Sunday CRM en attente, nouvel essai en cours', erreur: String(e?.message || e).slice(0, 200) };
   }
   const deja = Records.list(ATTENTE).find((x) => x.appel_id === appel_id && !x.fait_le);
   if (r.etat === 'attente' && r.erreur !== 'non branché') {
@@ -1312,7 +1312,7 @@ export async function annulerValidation(appelId, user, { maintenantD = new Date(
   }
   for (const x of Records.list(ATTENTE).filter((y) => y.appel_id === appelId && !y.fait_le)) Records.update(ATTENTE, x.id, { fait_le: maintenant(), annule: true });
   if (an.ecriture?.item_id) {
-    try { await (await import('./monday-agents.js')).restaurer(an.ecriture); fait.push(an.ecriture.cree ? 'ligne Monday retirée' : 'Monday remis comme avant'); } catch (e) { return { ok: false, error: `Monday n'a pas pu être remis comme avant : ${e?.message || e}` }; }
+    try { await (await import('./monday-agents.js')).restaurer(an.ecriture); fait.push(an.ecriture.cree ? 'ligne Sunday CRM retirée' : 'Sunday CRM remis comme avant'); } catch (e) { return { ok: false, error: `Sunday CRM n'a pas pu être remis comme avant : ${e?.message || e}` }; }
   }
   if (an.fiche?.id) {
     const actuelle = Records.get('AgentImmo', an.fiche.id) || {};

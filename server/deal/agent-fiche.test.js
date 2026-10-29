@@ -52,8 +52,8 @@ test('une coordonnée absente du document est écartée', () => {
 
 test('la phrase dit ce qui a été fait, ou ce qui manque', () => {
   const agent = { nom: 'Jérôme Leviathan', email: 'j@azur.fr', telephone: null, agence: 'Agence Azur' };
-  assert.match(phraseAgent(agent, { etat: 'cree' }), /ajouté dans Monday/);
-  assert.match(phraseAgent(agent, { etat: 'existant' }), /déjà dans Monday/);
+  assert.match(phraseAgent(agent, { etat: 'cree' }), /ajouté dans Sunday CRM/);
+  assert.match(phraseAgent(agent, { etat: 'existant' }), /déjà dans Sunday CRM/);
   assert.match(phraseAgent(agent, { etat: 'erreur', raison: 'fetch failed' }), /n'a pas répondu/);
   assert.match(phraseAgent({ ...agent, email: null }, null), /sans adresse mail/);
   assert.match(phraseAgent(null, null), /Aucun agent/);
@@ -65,7 +65,7 @@ test("le dossier garde l'agent, et le tableau de bord réclame l'adresse qui man
   const d = Records.findBy('Deal', 'deal_id', 'd-agent');
   assert.equal(d.contact_agent_email, 'j@azur.fr');
   assert.equal(d.apercu.agent_nom, 'Jérôme Leviathan');
-  assert.equal(d.agent_rattache.etat, 'rattache', 'sans Monday configuré, rien à annoncer');
+  assert.equal(d.agent_rattache.etat, 'rattache', 'sans Sunday CRM configuré, rien à annoncer');
   assert.equal(d.suivi.at(-1).type, 'agent');
   assert.match(r.phrase, /rattaché au dossier/);
 

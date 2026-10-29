@@ -199,7 +199,7 @@ async function ranger(mail, deposes, user) {
     });
     if (!r?.ignore) monday = { id: r?.id, cree: r?.cree };
   } catch (e) {
-    erreurs.push(`Monday : ${e?.message || e}`);
+    erreurs.push(`Sunday CRM : ${e?.message || e}`);
     echec('monday', `Fiche « ${titreDeal} » non mise à jour`, e?.message || e);
   }
 
@@ -210,7 +210,7 @@ async function ranger(mail, deposes, user) {
         type: 'documents_recus',
         detail: [
           drive ? `${drive.classes} document(s) classé(s) dans ${drive.chemin}` : null,
-          monday ? (monday.cree ? 'fiche Monday créée' : 'fiche Monday mise à jour') : null,
+          monday ? (monday.cree ? 'fiche Sunday CRM créée' : 'fiche Sunday CRM mise à jour') : null,
         ]
           .filter(Boolean)
           .join(' · '),

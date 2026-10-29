@@ -43,14 +43,14 @@ test('un contact donné ne remet pas l\'agence en tête le jour même', () => {
   assert.notEqual(MA.placeDansLaFile(rappelee, 'moi@k.fr', { jour: '2026-10-14' }), 0, 'rappelée depuis : plus prioritaire');
 });
 
-test('la phrase libre d\'AK part en tête de la remarque Monday, avec un statut grossier', () => {
+test('la phrase libre d\'AK part en tête de la remarque Sunday CRM, avec un statut grossier', () => {
   const d = MA.donneesMonday({ appel: { le: '2026-10-12T10:00:00Z', passe: 'Le secrétariat transmet à la direction, rappeler jeudi', resume: 'L\'assistante prend le message.', compris: {} }, agence: { nom: 'Agence du Port' }, fiche: null, issue: 'a_rappeler', user: { email: 'maxime@klocka.immo' } });
   assert.match(d.remarque, /Le secrétariat transmet à la direction, rappeler jeudi\. L'assistante prend le message\./);
   assert.doesNotMatch(d.remarque, /Pas de bien/);
   assert.equal(d.statut, 'À rappeler');
 });
 
-test('Monday : une ligne « À préciser » prend le nom sûr et son prénom ; sans nom, la case Contact reste à remplir', async () => {
+test('Sunday CRM : une ligne « À préciser » prend le nom sûr et son prénom ; sans nom, la case Contact reste à remplir', async () => {
   const MON = await import('./monday-agents.js');
   const cols = { prenom: { id: 'p' }, ville: { id: 'v' } };
   const ligne = { id: '1', nom: 'À préciser · Agence du Port', ville: 'Lyon' };

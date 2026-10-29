@@ -477,7 +477,7 @@ export async function synchroniserDemandesMonday({ user = null } = {}) {
       Records.update('DemandeClient', deja.id, { ...champs, client_nom: c.nom || null, active: true });
       mises_a_jour += 1;
     } else {
-      Records.create('DemandeClient', { ...champs, client_nom: c.nom || null, source: 'monday', monday_id: String(c.id), visible: true, active: true, ouverte_le: new Date().toISOString(), cree_par: user?.email || 'import Monday' });
+      Records.create('DemandeClient', { ...champs, client_nom: c.nom || null, source: 'monday', monday_id: String(c.id), visible: true, active: true, ouverte_le: new Date().toISOString(), cree_par: user?.email || 'import Sunday CRM' });
       crees += 1;
     }
   }
@@ -506,7 +506,7 @@ export async function synchroniserSiVieux() {
     if (!mondayConfigure() || !TABLEAUX.investisseurs) return d;
     return await synchroniserDemandesMonday();
   } catch (e) {
-    console.warn(`[mandataire] import des demandes Monday impossible : ${e?.message || e}`);
+    console.warn(`[mandataire] import des demandes Sunday CRM impossible : ${e?.message || e}`);
     return d;
   }
 }

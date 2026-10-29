@@ -239,7 +239,7 @@ test("13 oct. : appeler associe l'agence à celui qui appelle ; un appel compte 
   assert.equal(r.simple, false, 'message laissé : les actions proposées, pas une validation d\'office');
 });
 
-test("13 oct. : sans nom, la case Contact de Monday prend le nom de l'agence, remplacé dès qu'un nom arrive", async () => {
+test("13 oct. : sans nom, la case Contact de Sunday CRM prend le nom de l'agence, remplacé dès qu'un nom arrive", async () => {
   const MO = await import('./monday-agents.js');
   const cols = MO.colonnesParTitre(MO.COLONNES_DU_TABLEAU);
   assert.equal(MO.valeursPour(null, cols, { agence: 'Riviera Commerce' }).valeurs.name, 'Riviera Commerce');
@@ -270,7 +270,7 @@ test("13 oct. : ses propres mails (Compte > Mails) passent devant ceux de l'équ
   assert.equal((await modele('presentation-cahier', { par: nora.email })).objet, 'Suite à notre échange – Murs commerciaux occupés');
 });
 
-test("13 oct. : « dernier interlocuteur » seulement si on lui a parlé ; les Remarques Monday sans lignes vides en tête", async () => {
+test("13 oct. : « dernier interlocuteur » seulement si on lui a parlé ; les Remarques Sunday CRM sans lignes vides en tête", async () => {
   const a = { nom: 'Riviera Commerce', telephone: '0493000000' };
   assert.equal(MA.contactsDe(a, { nom: 'Jean Gérant', telephones: [] }).some((c) => c.source === 'Dernier interlocuteur'), false);
   assert.equal(MA.contactsDe(a, { nom: 'Jean Gérant', telephones: [], dernier_contact_le: '2026-10-01' }).some((c) => c.source === 'Dernier interlocuteur'), true);

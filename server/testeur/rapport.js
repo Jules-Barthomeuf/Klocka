@@ -97,7 +97,7 @@ export async function lancerAudit({ id, user, page: pageNom, url, vue = 'admin',
   const sessions = [];
   try {
     const { resultat, consommation } = await mesurer({ operation: 'agent testeur', par: user?.email || null, sur: id }, async () => {
-      avancer('Le bac à sable démarre (copie de la base, mails et Monday coupés).', 'bac');
+      avancer('Le bac à sable démarre (copie de la base, mails et Sunday CRM coupés).', 'bac');
       bac = await ouvrirBacASable({ user, vue, id, journal });
       navigateur = await ouvrirNavigateur();
       const chemin = url.replace(/^https?:\/\/[^/]+/, '') || '/';

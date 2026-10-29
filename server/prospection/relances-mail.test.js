@@ -51,8 +51,8 @@ function fauxMonday() {
     items, panne: false, perdreEcritures: false, creations: 0, majs: 0, suppressions: 0,
     mondayConfigure: () => true,
     async colonnesDuTableau() { return COLONNES; },
-    async lireTableau() { if (f.panne) throw new Error('Monday a répondu 500'); return [...items.values()].map((x) => ({ id: x.id, nom: x.nom, colonnes: { ...x.colonnes } })); },
-    async lireElement(id) { if (f.panne) throw new Error('Monday a répondu 500'); const x = items.get(String(id)); return x ? { id: x.id, nom: x.nom, colonnes: { ...x.colonnes } } : null; },
+    async lireTableau() { if (f.panne) throw new Error('Sunday CRM a répondu 500'); return [...items.values()].map((x) => ({ id: x.id, nom: x.nom, colonnes: { ...x.colonnes } })); },
+    async lireElement(id) { if (f.panne) throw new Error('Sunday CRM a répondu 500'); const x = items.get(String(id)); return x ? { id: x.id, nom: x.nom, colonnes: { ...x.colonnes } } : null; },
     async personneMonday({ email }) { return ANALYSTES[email] || null; },
     appliquer(x, valeurs) {
       for (const [k, v] of Object.entries(valeurs)) {
@@ -63,7 +63,7 @@ function fauxMonday() {
       }
     },
     async creerElement(_t, nom, valeurs) {
-      if (f.panne) throw new Error('Monday a répondu 500');
+      if (f.panne) throw new Error('Sunday CRM a répondu 500');
       f.creations += 1;
       const x = { id: String(n++), nom, colonnes: Object.fromEntries(COLONNES.filter((c) => c.id !== 'name').map((c) => [c.id, ''])) };
       if (!f.perdreEcritures) f.appliquer(x, valeurs);
@@ -71,7 +71,7 @@ function fauxMonday() {
       return { id: x.id };
     },
     async majElement(_t, id, valeurs) {
-      if (f.panne) throw new Error('Monday a répondu 500');
+      if (f.panne) throw new Error('Sunday CRM a répondu 500');
       f.majs += 1;
       const x = items.get(String(id));
       if (x && !f.perdreEcritures) f.appliquer(x, valeurs);
@@ -113,7 +113,7 @@ test('un mois plus tard : le même jour, le dernier du mois au besoin, jamais un
   assert.equal(RM.unMoisPlusTard('2026-04-30'), '2026-06-01', '30 mai 2026 est un samedi : lundi 1er juin');
 });
 
-test("préparer, valider : le mail part, la relance passe d'un mois, Monday et le Suivi le voient", async () => {
+test("préparer, valider : le mail part, la relance passe d'un mois, Sunday CRM et le Suivi le voient", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux);
   const { f } = agentDu(auj);
   const sans = agentDu(auj, { email: null, nom: 'Paul Sansmail' });
@@ -141,7 +141,7 @@ test("préparer, valider : le mail part, la relance passe d'un mois, Monday et l
   assert.ok(contact && contact.etat === 'valide' && contact.canal === 'mail');
   assert.equal(v.recu.monday.etat, 'ok', v.recu.monday.erreur);
   const ligne = [...faux.items.values()].find((x) => x.colonnes.email === 'marc@agence-sud.fr');
-  assert.ok(ligne, 'la ligne Monday de l\'agent');
+  assert.ok(ligne, 'la ligne Sunday CRM de l\'agent');
   assert.equal(ligne.colonnes.relance, RM.unMoisPlusTard(auj));
   assert.match(ligne.colonnes.remarques, /Relance par mail/);
   assert.equal(RM.relancesMailAValider().length, 0);

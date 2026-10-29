@@ -14,12 +14,12 @@ import { Records } from './db.js';
 // Ce qu'on sait défaire, et comment. Une action absente d'ici est journalisée
 // mais non annulable — c'est un fait, pas un oubli.
 const REVERSIBLES = {
-  pousser_dossier_monday: "l'élément Monday créé sera supprimé",
-  pousser_projet_monday: "l'élément Monday créé sera supprimé",
+  pousser_dossier_monday: "l'élément Sunday CRM créé sera supprimé",
+  pousser_projet_monday: "l'élément Sunday CRM créé sera supprimé",
   creer_agent_monday: "la fiche agent créée sera supprimée",
   creer_drive_dossier: 'le dossier Drive créé partira à la corbeille',
   noter_engagement: "l'engagement noté sera effacé du registre",
-  creer_dossier: 'le dossier ouvert sera supprimé, avec sa fiche Monday et sa promesse',
+  creer_dossier: 'le dossier ouvert sera supprimé, avec sa fiche Sunday CRM et sa promesse',
 };
 
 /**
@@ -113,7 +113,7 @@ export async function annuler(action) {
   const id = action.resultat?.id;
 
   if (action.outil.startsWith('pousser_') || action.outil === 'creer_agent_monday') {
-    if (!id) return { ok: false, message: "L'élément Monday n'a pas été noté au moment de sa création : à supprimer à la main dans Monday." };
+    if (!id) return { ok: false, message: "L'élément Sunday CRM n'a pas été noté au moment de sa création : à supprimer à la main dans Sunday CRM." };
     const { supprimerElement } = await import('./monday.js');
     await supprimerElement(id);
     // Le dossier ou le projet ne doit plus pointer vers un élément disparu.
@@ -126,7 +126,7 @@ export async function annuler(action) {
       if (projet?.monday_item_id === String(id)) Records.update('Project', projet.id, { monday_item_id: null });
     }
     Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
-    return { ok: true, message: `Élément Monday supprimé (${action.resultat?.titre || id}).` };
+    return { ok: true, message: `Élément Sunday CRM supprimé (${action.resultat?.titre || id}).` };
   }
 
   if (action.outil === 'creer_dossier') {
@@ -139,13 +139,13 @@ export async function annuler(action) {
         const { supprimerElement } = await import('./monday.js');
         await supprimerElement(id);
       } catch (e) {
-        console.warn('[assistant] élément Monday non supprimé :', e?.message || e);
+        console.warn('[assistant] élément Sunday CRM non supprimé :', e?.message || e);
       }
     }
     for (const e of Records.filter('Engagement', { deal_id: deal.deal_id })) Records.delete('Engagement', e.id);
     Records.delete('Deal', deal.id);
     Records.update('AssistantAction', action.id, { annulee: true, annulee_le: new Date().toISOString() });
-    return { ok: true, message: `Dossier « ${deal.nom} » supprimé, avec sa fiche Monday et sa promesse.` };
+    return { ok: true, message: `Dossier « ${deal.nom} » supprimé, avec sa fiche Sunday CRM et sa promesse.` };
   }
 
   if (action.outil === 'noter_engagement') {

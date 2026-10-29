@@ -147,14 +147,14 @@ test("l'heure dite départage : « vous m'avez appelé à 10h » écarte l'appel
   assert.equal(flou[0].probable, false);
 });
 
-test('la remarque Monday : la date et ce que l\'agent a dit, ni qui a appelé ni l\'issue', async () => {
+test('la remarque Sunday CRM : la date et ce que l\'agent a dit, ni qui a appelé ni l\'issue', async () => {
   const { ligneDeRemarque } = await import('./monday-agents.js');
   assert.equal(ligneDeRemarque({ jour: '2026-10-08', analyste: 'Jules', issue: "Pas de bien pour l'instant", resume: "L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines." }),
     "08/10/2026 · L'agent a un bien vide actuellement et prévoit de prendre un mandat sur un commerce bien placé d'ici 2 à 3 semaines.");
   assert.equal(ligneDeRemarque({ jour: '2026-10-08', issue: 'Pas intéressé', ne_plus_appeler: true }), '08/10/2026 · Ne plus appeler · Pas intéressé');
 });
 
-test("rappel d'un autre interlocuteur : « Contact modifié », son nom, son numéro et son email remplacent ceux de la ligne Monday", async () => {
+test("rappel d'un autre interlocuteur : « Contact modifié », son nom, son numéro et son email remplacent ceux de la ligne Sunday CRM", async () => {
   const MO = await import('./monday-agents.js');
   const cols = MO.colonnesParTitre(MO.COLONNES_DU_TABLEAU);
   const ligne = { id: '1', nom: 'Sophie Martin', prenom: 'Sophie', telephone: '+33611111111', emails: ['sophie@valoris.fr'], entreprise: 'Valoris Real Estate' };

@@ -116,8 +116,8 @@ export function ceQuiAttend(user) {
     const age = (maintenant - Date.parse(a.le)) / 86400000;
     const qui = a.nom || a.email || 'L’agent';
     let titre = null;
-    if (a.etat === 'cree' && age <= 2) titre = `${qui} ajouté dans Monday (Agent immobilier)`;
-    else if (a.etat === 'erreur' && age <= 14 && d.contact_agent_email) titre = `${qui} pas encore dans Monday : Monday n'a pas répondu`;
+    if (a.etat === 'cree' && age <= 2) titre = `${qui} ajouté dans Sunday CRM (Agent immobilier)`;
+    else if (a.etat === 'erreur' && age <= 14 && d.contact_agent_email) titre = `${qui} pas encore dans Sunday CRM : Sunday CRM n'a pas répondu`;
     else if (['sans_email', 'introuvable'].includes(a.etat) && age <= 14 && !d.contact_agent_email) {
       titre = a.etat === 'sans_email' ? `${qui} : son adresse mail manque sur le dossier` : 'Agent introuvable dans la fiche : ajoutez son adresse';
     }

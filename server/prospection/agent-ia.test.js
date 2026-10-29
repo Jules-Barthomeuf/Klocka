@@ -93,7 +93,7 @@ test("que des agences immobilières (NAF 68.31Z) : syndics, promoteurs, SCI éca
   assert.ok(Records.get('AgenceProspect', syndic.id), 'toujours en base');
 });
 
-test('Monday : les valeurs du tableau « Prospection Agent Immo », et la note lue sans modèle', async () => {
+test('Sunday CRM : les valeurs du tableau « Prospection Agent Immo », et la note lue sans modèle', async () => {
   process.env.ANTHROPIC_API_KEY = '';
   const MC = await import('./monday-contacts.js');
   const c = { email: 'e', telephone: 't', agence: 'ag', ville: 'v', remarques: 'r', priorite: 'p', date: 'd', relance: 'rl', collaborateurs: 'col' };
@@ -104,7 +104,7 @@ test('Monday : les valeurs du tableau « Prospection Agent Immo », et la note l
   assert.deepEqual(v.rl, { date: '2026-10-12' });
   assert.deepEqual(v.col, { personsAndTeams: [{ id: 42, kind: 'person' }] });
   const sansMonday = await MC.versMonday([{ nom: 'X', telephone: '0600000000' }]);
-  assert.equal(sansMonday.ok, false, 'sans jeton Monday, rien ne part');
+  assert.equal(sansMonday.ok, false, 'sans jeton Sunday CRM, rien ne part');
 });
 
 test('05/10 · Google Maps : une agence de la commune, ouverte ; son site sans pistage', async () => {
@@ -162,7 +162,7 @@ test('05/10 · supprimer une ville : sa liste et ses lignes partent, le carnet r
   assert.equal(IA.supprimerListe(l.id).ok, false);
 });
 
-test('06/10 · Monday : une agence déjà en contact (téléphone, mail, domaine, nom ou un de ses agents) est marquée', async () => {
+test('06/10 · Sunday CRM : une agence déjà en contact (téléphone, mail, domaine, nom ou un de ses agents) est marquée', async () => {
   const MC = await import('./monday-connus.js');
   const lire = async () => [
     { tableau: 'Prospection Agent Immo', nom: 'Olivier Lamy', agence: 'Mâcon Centre Transactions', telephone: '03 85 40 12 18', email: 'olivier@mct-immo.fr', statut: 'À rappeler', date: '2026-10-01' },

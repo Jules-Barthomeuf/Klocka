@@ -57,8 +57,8 @@ function fauxMonday() {
     items, panne: false, perdreEcritures: false, creations: 0, majs: 0, suppressions: 0,
     mondayConfigure: () => true,
     async colonnesDuTableau() { return COLONNES; },
-    async lireTableau() { if (f.panne) throw new Error('Monday a répondu 500'); return [...items.values()].map((x) => ({ id: x.id, nom: x.nom, colonnes: { ...x.colonnes } })); },
-    async lireElement(id) { if (f.panne) throw new Error('Monday a répondu 500'); const x = items.get(String(id)); return x ? { id: x.id, nom: x.nom, colonnes: { ...x.colonnes } } : null; },
+    async lireTableau() { if (f.panne) throw new Error('Sunday CRM a répondu 500'); return [...items.values()].map((x) => ({ id: x.id, nom: x.nom, colonnes: { ...x.colonnes } })); },
+    async lireElement(id) { if (f.panne) throw new Error('Sunday CRM a répondu 500'); const x = items.get(String(id)); return x ? { id: x.id, nom: x.nom, colonnes: { ...x.colonnes } } : null; },
     async personneMonday({ email }) { return ANALYSTES[email] || null; },
     appliquer(x, valeurs) {
       for (const [k, v] of Object.entries(valeurs)) {
@@ -69,7 +69,7 @@ function fauxMonday() {
       }
     },
     async creerElement(_t, nom, valeurs) {
-      if (f.panne) throw new Error('Monday a répondu 500');
+      if (f.panne) throw new Error('Sunday CRM a répondu 500');
       f.creations += 1;
       const x = { id: String(n++), nom, colonnes: Object.fromEntries(COLONNES.filter((c) => c.id !== 'name').map((c) => [c.id, ''])) };
       if (!f.perdreEcritures) f.appliquer(x, valeurs);
@@ -77,7 +77,7 @@ function fauxMonday() {
       return { id: x.id };
     },
     async majElement(_t, id, valeurs) {
-      if (f.panne) throw new Error('Monday a répondu 500');
+      if (f.panne) throw new Error('Sunday CRM a répondu 500');
       f.majs += 1;
       const x = items.get(String(id));
       if (x && !f.perdreEcritures) f.appliquer(x, valeurs);
@@ -126,14 +126,14 @@ const ligneDe = (faux, ag) => [...faux.items.values()].find((x) => x.colonnes.ph
 
 // ---------------------------------------------------------------------------
 
-test("Pas de bien : nouvelle ligne Monday complète et relue, mail Présentation + cahier envoyé et retrouvé, liste de diffusion, relance J+30", async () => {
+test("Pas de bien : nouvelle ligne Sunday CRM complète et relue, mail Présentation + cahier envoyé et retrouvé, liste de diffusion, relance J+30", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); modeEnvoi = 'gmail'; avecBoite();
   const ag = agence();
   const { r, v } = await appeler(ag, 'pas_de_murs');
   assert.equal(r.appel.propositions.find((p) => p.id === 'monday').ligne.etat, 'nouvelle', "l'aperçu annonce un nouveau contact");
   assert.equal(v.recu.monday.etat, 'ok', v.recu.monday.erreur);
   const l = ligneDe(faux, ag);
-  assert.ok(l, 'la ligne existe dans Monday');
+  assert.ok(l, 'la ligne existe dans Sunday CRM');
   assert.equal(l.nom, MON.aPreciser(ag.nom), 'nom pas dit : « À préciser · agence », visible et renommable (12 oct. 2026)');
   assert.equal(l.colonnes.ville, 'Nice');
   assert.equal(l.colonnes.entreprise, ag.nom);
@@ -183,7 +183,7 @@ test("A un bien : la ligne existante est retrouvée par le téléphone et mise �
   assert.match(envoyes.at(-1).subject, /^Suite à notre échange – Dossier/);
 });
 
-test("Pas intéressé : Monday « Ne plus appeler », relance vidée, liste de diffusion Non, ni mail ni liste", async () => {
+test("Pas intéressé : Sunday CRM « Ne plus appeler », relance vidée, liste de diffusion Non, ni mail ni liste", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite();
   const ag = agence();
   const avant = envoyes.length;
@@ -199,7 +199,7 @@ test("Pas intéressé : Monday « Ne plus appeler », relance vidée, liste de d
   assert.equal(envoyes.length, avant);
 });
 
-test('Pas de réponse et répondeur : rien dans Monday, rien par mail, la relance seule', async () => {
+test('Pas de réponse et répondeur : rien dans Sunday CRM, rien par mail, la relance seule', async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux);
   for (const issue of ['pas_de_reponse', 'repondeur']) {
     const ag = agence();
@@ -211,7 +211,7 @@ test('Pas de réponse et répondeur : rien dans Monday, rien par mail, la relanc
   assert.equal(faux.items.size, 0);
 });
 
-test("Monday en panne : reçu orange, l'écriture attend ; Monday revenu, le nouvel essai la passe au vert, sans doublon", async () => {
+test("Sunday CRM en panne : reçu orange, l'écriture attend ; Sunday CRM revenu, le nouvel essai la passe au vert, sans doublon", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite();
   const ag = agence();
   faux.panne = true;
@@ -225,14 +225,14 @@ test("Monday en panne : reçu orange, l'écriture attend ; Monday revenu, le nou
   assert.equal([...faux.items.values()].filter((x) => R.normTel(x.colonnes.phone) === R.normTel(ag.telephone)).length, 1, 'une seule ligne');
 });
 
-test("Monday ne garde pas ce qu'on écrit : jamais de coche verte, l'écart est dit", async () => {
+test("Sunday CRM ne garde pas ce qu'on écrit : jamais de coche verte, l'écart est dit", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite();
   const ag = agence();
   faux.ajouter('Paul Durand', { phone: '+33' + R.normTel(ag.telephone), ville: 'Nice' });
   faux.perdreEcritures = true;
   const { v } = await appeler(ag, 'pas_de_murs');
   assert.equal(v.recu.monday.etat, 'attente');
-  assert.match(v.recu.monday.erreur, /Monday affiche/);
+  assert.match(v.recu.monday.erreur, /Sunday CRM affiche/);
   faux.perdreEcritures = false;
 });
 
@@ -288,7 +288,7 @@ test("Les mails : non vérifié (orange), échec puis renvoi, sans boîte (broui
   assert.ok(!x4.v.recu.mail || x4.v.recu.mail.etat === 'echec');
 });
 
-test("Annuler dans les dix secondes : Monday comme avant (ligne créée retirée, ligne existante restaurée), mail retenu, liste et fiche remises", async () => {
+test("Annuler dans les dix secondes : Sunday CRM comme avant (ligne créée retirée, ligne existante restaurée), mail retenu, liste et fiche remises", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite(); modeEnvoi = 'gmail';
   const a1 = agence();
   const x1 = await appeler(a1, 'pas_de_murs');
@@ -314,7 +314,7 @@ test("Annuler dans les dix secondes : Monday comme avant (ligne créée retirée
   assert.equal(v.recu.monday.etat, 'ok');
 });
 
-test('Double tap sur Valider : une seule ligne Monday, un seul mail', async () => {
+test('Double tap sur Valider : une seule ligne Sunday CRM, un seul mail', async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite(); modeEnvoi = 'gmail';
   const ag = agence();
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_de_murs', user: nora });
@@ -327,7 +327,7 @@ test('Double tap sur Valider : une seule ligne Monday, un seul mail', async () =
   assert.equal(envoyes.length, avant + 1, 'un seul mail');
 });
 
-test('Deux relances (un bien et un mandat annoncé) et la date changée à la main : la fiche et Monday suivent', async () => {
+test('Deux relances (un bien et un mandat annoncé) et la date changée à la main : la fiche et Sunday CRM suivent', async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite();
   const ag = agence();
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'a_des_murs', user: nora });
@@ -344,7 +344,7 @@ test('Deux relances (un bien et un mandat annoncé) et la date changée à la ma
   assert.equal(ligneDe(faux, ag).colonnes.relance, premiere);
 });
 
-test("Chaque case Monday se corrige à l'écran, et la relance décochée n'est pas écrite dans Monday (16 oct. 2026)", async () => {
+test("Chaque case Sunday CRM se corrige à l'écran, et la relance décochée n'est pas écrite dans Sunday CRM (16 oct. 2026)", async () => {
   const faux = fauxMonday(); MON.brancherPourTests(faux); avecBoite();
   const ag = agence({ nom: 'Agence Corrigée' });
   const r = await MA.noterIssue({ agence_id: ag.id, issue: 'pas_de_murs', user: nora });
@@ -363,7 +363,7 @@ test("Chaque case Monday se corrige à l'écran, et la relance décochée n'est 
   assert.equal(l.colonnes.statut, 'À rappeler');
   assert.match(l.colonnes.remarques, /Rappeler jeudi : il veut nos critères$/);
   assert.equal(l.colonnes.diffusion, 'Non');
-  assert.equal(l.colonnes.relance || '', '', 'relance décochée : rien dans Monday');
+  assert.equal(l.colonnes.relance || '', '', 'relance décochée : rien dans Sunday CRM');
   // Gardé sur l'appel, pour un nouvel essai.
   assert.equal(Records.get('AppelAgent', r.appel.id).monday_cases.Ville, 'Antibes');
   assert.equal(Records.get('AppelAgent', r.appel.id).relance_decochee, true);

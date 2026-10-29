@@ -251,10 +251,10 @@ async function executer(villeId, { user, rayon_km, limite_par_rue, rediger, rues
       const budgets = clients.map((c) => c.budget).filter(Boolean);
       noter(villeId, `${clients.length} client${clients.length > 1 ? 's' : ''} actif${clients.length > 1 ? 's' : ''} sur Monday${budgets.length ? `, budgets de ${Math.min(...budgets).toLocaleString('fr-FR')} à ${Math.max(...budgets).toLocaleString('fr-FR')} €` : ''}.`);
     } else {
-      noter(villeId, 'Monday non connecté : ALX cherche pour le mandat général, 200 000 à 1 000 000 €.');
+      noter(villeId, 'Sunday CRM non connecté : ALX cherche pour le mandat général, 200 000 à 1 000 000 €.');
     }
   } catch (e) {
-    noter(villeId, `Monday n'a pas répondu (${e.message}) : mandat général.`);
+    noter(villeId, `Sunday CRM n'a pas répondu (${e.message}) : mandat général.`);
   }
 
   // 2. Les rues.

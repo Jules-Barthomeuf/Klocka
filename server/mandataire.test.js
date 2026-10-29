@@ -29,7 +29,7 @@ test("l'heure dite est celle de Paris, été comme hiver", () => {
   assert.equal(heureDeParis('jeudi'), null);
 });
 
-test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Monday", () => {
+test("aucun outil du mandataire n'envoie, ne lit les dossiers ni ne touche Sunday CRM", () => {
   const noms = OUTILS_MANDATAIRE.map((o) => o.name);
   assert.deepEqual(noms.sort(), [
     'annuler_derniere', 'appel_sans_reponse', 'avis_de_marche', 'bail_estimation', 'corriger_mandat', 'demander_mandat', 'demandes_clients', 'lancer_estimation', 'mes_dossiers', 'mes_proprietaires',
@@ -221,7 +221,7 @@ test("agent : la raison d'appeler se dit en quelques mots", async () => {
   assert.equal(raisonDe({ proprietaire_occupant: true, emplacement: 2 }), 'rue commerçante · propriétaire exploitant');
 });
 
-test('Monday : le statut Klocka devient la colonne Mandat, la date ne bouge pas à la mise à jour', async () => {
+test('Sunday CRM : le statut Klocka devient la colonne Mandat, la date ne bouge pas à la mise à jour', async () => {
   const { colonnesProspect } = await import('./mandataire-monday.js');
   const base = { mandataire_email: 'a@b.fr', commerce: 'Cave', nom: 'M. X' };
   assert.equal(colonnesProspect({ ...base, statut: 'a_appeler' }).color_mm0ekshq.label, 'Non proposé');

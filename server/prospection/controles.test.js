@@ -38,13 +38,13 @@ test("la qualité d'AK : la part des appels validés sans correction, par semain
   assert.equal(q.corrections.issue, 2);
 });
 
-test("le contrôle de la nuit : agent suivi sans date, doublon et désaccord Monday, fiche sans agent ; le mail le dit", async () => {
+test("le contrôle de la nuit : agent suivi sans date, doublon et désaccord Sunday CRM, fiche sans agent ; le mail le dit", async () => {
   const f = Records.create('AgentImmo', { nom: 'Marc Sansdate', agence: 'Riviera', telephones: ['0611111111'], statut: 'a_rappeler' });
   Records.create('AppelAgent', { agent_id: f.id, etat: 'valide', le: '2026-10-08T09:00:00Z', valide_le: '2026-10-08T09:00:00Z', issue: 'pas_de_murs' });
-  const g = Records.create('AgentImmo', { nom: 'Sophie Monday', telephones: ['0622222222'], statut: 'pas_de_murs', prochaine: { le: '2026-11-08', quoi: 'point du mois' }, monday_ligne_id: '42' });
+  const g = Records.create('AgentImmo', { nom: 'Sophie Sunday CRM', telephones: ['0622222222'], statut: 'pas_de_murs', prochaine: { le: '2026-11-08', quoi: 'point du mois' }, monday_ligne_id: '42' });
   Records.create('AppelAgent', { agent_id: g.id, etat: 'valide', le: '2026-10-08T09:00:00Z', valide_le: '2026-10-08T09:00:00Z', issue: 'pas_de_murs' });
   const lireMonday = async () => [
-    { id: '42', nom: 'Sophie Monday', telephone: '06 22 22 22 22', relance: '2026-11-10' },
+    { id: '42', nom: 'Sophie Sunday CRM', telephone: '06 22 22 22 22', relance: '2026-11-10' },
     { id: '43', nom: 'Sophie bis', telephone: '0622222222', relance: '' },
     { id: '44', nom: 'Autre', telephone: '0633333333', relance: '' },
     // Le standard d'une agence : deux personnes, un numéro, pas un doublon.
@@ -59,9 +59,9 @@ test("le contrôle de la nuit : agent suivi sans date, doublon et désaccord Mon
   assert.equal(de('relance_pour_tous').n, 1);
   assert.match(de('relance_pour_tous').details[0], /Marc Sansdate/);
   assert.equal(de('monday_accord').n, 1);
-  assert.match(de('monday_accord').details[0], /08\/11 ici, 10\/11 dans Monday/);
+  assert.match(de('monday_accord').details[0], /08\/11 ici, 10\/11 dans Sunday CRM/);
   assert.equal(de('doublons_monday').n, 2);
-  assert.match(de('doublons_monday').details[0], /2 lignes \(Sophie Monday, Sophie bis\)/);
+  assert.match(de('doublons_monday').details[0], /2 lignes \(Sophie Sunday CRM, Sophie bis\)/);
   assert.match(de('doublons_monday').details[1], /Benoît TORDO, Benoit Tordo/);
   assert.equal(de('un_seul_endroit').ok, true);
   assert.equal(r.conforme, false);

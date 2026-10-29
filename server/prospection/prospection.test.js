@@ -226,7 +226,7 @@ test('le tableau de bord et le récapitulatif du vendredi', () => {
   assert.match(r, /En attente de décision : Rambuteau\./);
 });
 
-test('Monday : colonnes par titre', () => {
+test('Sunday CRM : colonnes par titre', () => {
   assert.equal(colonneParTitre([{ id: 'x', title: 'Prochaine relance', type: 'date' }], ['Prochaine relance'], 'date'), 'x');
 });
 

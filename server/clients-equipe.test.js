@@ -65,7 +65,7 @@ test('un client se retrouve par son adresse, sinon par son nom exact', () => {
   assert.equal(C.retrouverClient(clients, { nom: 'Marc' }), null);
 });
 
-test('un appel collé fait naître le client : fiche, Monday créé avec sa note, visible du réseau, sans son nom', async () => {
+test('un appel collé fait naître le client : fiche, Sunday CRM créé avec sa note, visible du réseau, sans son nom', async () => {
   const { fait, m } = faussMonday();
   const r = await C.noterAppelClient({
     contenu: 'Appel avec Hélène Martin : elle cherche une pharmacie à Nice, budget 600 k, apport 150 k.', source: 'colle', user: PAUL, monday: m, maintenant: MAINTENANT,
@@ -90,7 +90,7 @@ test('un appel collé fait naître le client : fiche, Monday créé avec sa note
   assert.match(vu, /pharmacie/);
 });
 
-test('un appel enregistré sur une fiche connue : Monday mis à jour, puis « Annuler » remet tout', async () => {
+test('un appel enregistré sur une fiche connue : Sunday CRM mis à jour, puis « Annuler » remet tout', async () => {
   const d0 = Records.create('DemandeClient', { client_nom: 'Paul Test', source: 'monday', monday_id: '42', budget: 400000, budget_min: 350000, budget_max: 450000, zones: ['Lyon'], visible: true, active: true });
   const { fait, m } = faussMonday({ [COL.budget]: '400000', [COL.lieu_recherche]: 'Lyon' });
   const r = await C.noterAppelClient({ client_id: d0.id, contenu: 'Transcription : finalement 600 000 euros, à Nice plutôt qu’à Lyon.', source: 'enregistre', duree_s: 300, user: PAUL, monday: m, maintenant: MAINTENANT,
@@ -112,7 +112,7 @@ test('un appel enregistré sur une fiche connue : Monday mis à jour, puis « An
   assert.equal((await C.annulerAppelClient(r.appel.id, { user: PAUL, monday: m })).ok, false, 'une seule fois');
 });
 
-test('un appel sans nom ni fiche ouverte ne crée rien ; Monday absent n’empêche rien', async () => {
+test('un appel sans nom ni fiche ouverte ne crée rien ; Sunday CRM absent n’empêche rien', async () => {
   const avant = Records.list('DemandeClient').length;
   const r = await C.noterAppelClient({ contenu: 'Un appel où personne ne dit son nom, assez long pour être lu.', user: PAUL, monday: null, lire: lecture({ resume: 'x' }) });
   assert.equal(r.ok, false);

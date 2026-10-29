@@ -69,13 +69,13 @@ export function echangesDe(agents, { appels = [], emails = [], recus = [], fiche
   for (const a of agents) {
     for (const j of a.journal || []) {
       // Les remarques reprises de Monday et les SMS ; « Fiche modifiée » n'est pas un échange.
-      if (j.type === 'source' && /^Monday\s*:/.test(j.texte || '')) liste.push({ genre: 'monday', le: j.le, par: minuscule(j.par) || null, titre: 'Remarque Monday', detail: court(String(j.texte).replace(/^Monday\s*:\s*/, '')), agent_id: a.id, avec: qui(a.id) });
+      if (j.type === 'source' && /^(Monday|Sunday CRM)\s*:/.test(j.texte || '')) liste.push({ genre: 'monday', le: j.le, par: minuscule(j.par) || null, titre: 'Remarque Sunday CRM', detail: court(String(j.texte).replace(/^(Monday|Sunday CRM)\s*:\s*/, '')), agent_id: a.id, avec: qui(a.id) });
       else if (j.type === 'sms') liste.push({ genre: 'sms', le: j.le, par: minuscule(j.par) || null, titre: 'SMS', detail: court(j.texte), agent_id: a.id, avec: qui(a.id) });
     }
   }
   for (const s of sources) {
     if (s.type !== 'evenement') continue;
-    liste.push({ genre: 'monday', le: s.date, par: null, titre: s.titre || 'Monday', detail: court(s.contenu), lien: s.lien_original || null });
+    liste.push({ genre: 'monday', le: s.date, par: null, titre: s.titre || 'Sunday CRM', detail: court(s.contenu), lien: s.lien_original || null });
   }
   return liste.sort(parDate);
 }

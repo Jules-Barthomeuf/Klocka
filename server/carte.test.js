@@ -8,7 +8,7 @@ import path from 'path';
 process.env.KLOCKA_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'klocka-carte-'));
 const { villeDeLAdresse, villePropre, pointMonday } = await import('./carte.js');
 
-test('la ville d\'une adresse, une ville saisie à la main, les coordonnées d\'une colonne Monday', () => {
+test('la ville d\'une adresse, une ville saisie à la main, les coordonnées d\'une colonne Sunday CRM', () => {
   assert.equal(villeDeLAdresse('10 Place Abel Surchamp, 33500 Libourne'), 'Libourne');
   assert.equal(villeDeLAdresse('300 Rue de Vaugirard, Paris, France'), 'Paris');
   assert.equal(villeDeLAdresse('2 Rue aux Toiles, Saint-Brieuc, 22000, France'), 'Saint-Brieuc');

@@ -25,7 +25,7 @@ test('un long résultat est tronqué', () => {
   assert.equal(enEchec({ ok: true }), false);
 });
 
-test('hors banc, rien n’est simulé ; au banc, Monday et Drive le sont', () => {
+test('hors banc, rien n’est simulé ; au banc, Sunday CRM et Drive le sont', () => {
   const avant = process.env.KLOCKA_BANC;
   delete process.env.KLOCKA_BANC;
   assert.equal(auBanc(), false);

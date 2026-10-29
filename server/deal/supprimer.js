@@ -93,7 +93,7 @@ export async function supprimerDossier(dealId, { user = null } = {}) {
     try {
       const { mondayConfigure, supprimerElement } = await import('../monday.js');
       if (mondayConfigure()) await supprimerElement(deal.monday_item_id);
-    } catch (e) { console.warn(`[suppression] Monday non nettoyé pour ${dealId} :`, e?.message || e); }
+    } catch (e) { console.warn(`[suppression] Sunday CRM non nettoyé pour ${dealId} :`, e?.message || e); }
   }
   const faits = Meta.get('prospection.monday.dossiers');
   if (faits?.[dealId]) { delete faits[dealId]; Meta.set('prospection.monday.dossiers', faits); }

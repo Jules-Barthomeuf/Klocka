@@ -33,8 +33,8 @@ const LIBELLES = {
   creer_dossier: (i) => `Ouverture du dossier${entre(i.nom || i.ville)}`,
   noter_engagement: (i) => `Promesse notée${entre(i.quoi)}`,
   tenir_engagement: () => 'Promesse cochée',
-  pousser_dossier_monday: () => 'Envoi du dossier dans Monday',
-  pousser_projet_monday: () => 'Envoi du projet dans Monday',
+  pousser_dossier_monday: () => 'Envoi du dossier dans Sunday CRM',
+  pousser_projet_monday: () => 'Envoi du projet dans Sunday CRM',
   creer_drive_dossier: () => 'Création du dossier Drive',
   // AK.
   analyser_fiche: () => 'Lecture de la fiche et passage à la grille',

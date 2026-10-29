@@ -11,7 +11,7 @@ test('le message de Jules, et seulement pour le crédit', () => {
   assert.equal(MESSAGE_SANS_CREDIT, "Désolé je n'ai plus de crédits ! :(");
   assert.equal(estSansCredit(new Error(BRUT)), true);
   assert.equal(messagePourLaPersonne(new Error(BRUT)), MESSAGE_SANS_CREDIT);
-  assert.equal(messagePourLaPersonne(new Error('Monday ne répond pas')), 'Monday ne répond pas');
+  assert.equal(messagePourLaPersonne(new Error('Sunday CRM ne répond pas')), 'Sunday CRM ne répond pas');
   assert.equal(estSansCredit(null), false);
 });
 

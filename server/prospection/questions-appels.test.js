@@ -88,7 +88,7 @@ test('mon Dashboard : mes questions, l\'écran de l\'appel, « plus tard », pui
   assert.equal(Q.repondre(q.id, { email: MAXIME }, []).ok, false);
   const r1 = Q.repondre(q.id, { email: MAXIME }, [{ id: q.questions[0].id, texte: 'Le client voulait jeudi.' }]);
   assert.equal(r1.question.etat, 'ouverte');
-  const r2 = Q.repondre(q.id, { email: MAXIME }, [{ id: q.questions[1].id, texte: 'Monday ne répondait pas.' }]);
+  const r2 = Q.repondre(q.id, { email: MAXIME }, [{ id: q.questions[1].id, texte: 'Sunday CRM ne répondait pas.' }]);
   assert.equal(r2.question.etat, 'repondue');
   assert.equal(Q.mesQuestions({ email: MAXIME }, { maintenant: new Date(T0.getTime() + 40 * 3600000) }).length, 0);
   // L'écran : à son analyste et à Jules, pas à un autre ; effacé, il se dit.
@@ -142,8 +142,8 @@ test('Jules : toutes les réponses, par motif, et la synthèse', async () => {
   assert.equal(r.par_motif.find((m) => m.motif === 'non_valide').appels, 1);
   assert.equal(r.seuil_validation_s, 120);
   assert.equal(r.synthese, null);
-  const s = await Q.synthetiser({ invoke: async (p) => { assert.match(p, /Monday ne répondait pas/); return { themes: [{ theme: 'Monday ne répond pas', fois: 1, exemples: ['Monday ne répondait pas.'] }], ameliorations: [{ quoi: 'Dire quand Monday est lent', pourquoi: 'Une réponse' }] }; }, maintenant: T0 });
-  assert.equal(s.synthese.themes[0].theme, 'Monday ne répond pas');
+  const s = await Q.synthetiser({ invoke: async (p) => { assert.match(p, /Sunday CRM ne répondait pas/); return { themes: [{ theme: 'Sunday CRM ne répond pas', fois: 1, exemples: ['Sunday CRM ne répondait pas.'] }], ameliorations: [{ quoi: 'Dire quand Sunday CRM est lent', pourquoi: 'Une réponse' }] }; }, maintenant: T0 });
+  assert.equal(s.synthese.themes[0].theme, 'Sunday CRM ne répond pas');
   assert.equal(Q.retours({ jours: 90, maintenant: T0 }).synthese.a_jour, true);
   Q.repondre(Records.list('QuestionAppel').find((x) => x.etat === 'ouverte').id, { email: MAXIME }, [{ id: Records.list('QuestionAppel').find((x) => x.etat === 'ouverte').questions[0].id, texte: 'Autre chose.' }], { estJules: true });
   assert.equal(Q.retours({ jours: 90, maintenant: T0 }).synthese.a_jour, false);

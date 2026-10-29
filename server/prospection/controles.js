@@ -65,8 +65,8 @@ export async function controler({ maintenantD = new Date(), lireMonday = null } 
     const M = await import('./monday-agents.js');
     if (lireMonday) lignesMonday = await lireMonday();
     else if (await M.mondayAgentsBranche()) lignesMonday = await M.lignes({ frais: true });
-    else raisonMonday = 'Monday n\'est pas branché ici';
-  } catch (e) { raisonMonday = `Monday n'a pas répondu (${String(e?.message || e).slice(0, 80)})`; }
+    else raisonMonday = 'Sunday CRM n\'est pas branché ici';
+  } catch (e) { raisonMonday = `Sunday CRM n'a pas répondu (${String(e?.message || e).slice(0, 80)})`; }
   if (lignesMonday) {
     const parLigne = new Map(lignesMonday.map((l) => [String(l.id), l]));
     const desaccords = [];
@@ -76,9 +76,9 @@ export async function controler({ maintenantD = new Date(), lireMonday = null } 
       if (!l) continue;
       const m = MA.jourIso(l.relance) || null;
       const p = f.prochaine?.le || null;
-      if (m !== p) desaccords.push(`${f.nom} : relance ${p ? R.dateCourte(p) : 'aucune'} ici, ${m ? R.dateCourte(m) : 'aucune'} dans Monday`);
+      if (m !== p) desaccords.push(`${f.nom} : relance ${p ? R.dateCourte(p) : 'aucune'} ici, ${m ? R.dateCourte(m) : 'aucune'} dans Sunday CRM`);
     }
-    regles.push(regle('monday_accord', 'Monday et la plateforme sont d\'accord', desaccords));
+    regles.push(regle('monday_accord', 'Sunday CRM et la plateforme sont d\'accord', desaccords));
     const parTel = new Map();
     for (const l of lignesMonday) {
       const t = R.normTel(l.telephone);
@@ -91,18 +91,18 @@ export async function controler({ maintenantD = new Date(), lireMonday = null } 
     const mots = (l) => new Set(R.norm(String(l.nom || l.entreprise || '').replace(/\u200b/g, '')).split(' ').filter((m) => m.length >= 3));
     const memePersonne = (t) => t.some((a, i) => t.slice(i + 1).some((b) => { const ma = mots(a); return [...mots(b)].some((m) => ma.has(m)); }));
     const doublons = [...parTel.entries()].filter(([, t]) => t.length > 1 && memePersonne(t)).map(([tel, t]) => `${R.telAffiche(tel)} : ${t.length} lignes (${t.map((l) => String(l.nom || l.entreprise || l.id).replace(/\u200b/g, '').trim() || 'sans nom').slice(0, 3).join(', ')})`);
-    regles.push(regle('doublons_monday', 'Pas de doublon dans Monday', doublons));
+    regles.push(regle('doublons_monday', 'Pas de doublon dans Sunday CRM', doublons));
   } else {
-    regles.push(regle('monday_accord', 'Monday et la plateforme sont d\'accord', [], { non_verifie: raisonMonday }));
-    regles.push(regle('doublons_monday', 'Pas de doublon dans Monday', [], { non_verifie: raisonMonday }));
+    regles.push(regle('monday_accord', 'Sunday CRM et la plateforme sont d\'accord', [], { non_verifie: raisonMonday }));
+    regles.push(regle('doublons_monday', 'Pas de doublon dans Sunday CRM', [], { non_verifie: raisonMonday }));
   }
 
   // 6. Aucune action en échec oubliée : aucun reçu resté orange ou rouge depuis plus d'une heure.
   const ilYaUneHeure = new Date(maintenantD.getTime() - HEURE).toISOString();
   const enSouffrance = [
-    ...Records.list('MondayAttente').filter((x) => !x.fait_le && String(x.created_date || x.dernier_essai_le || '') < ilYaUneHeure).map((x) => `Monday en attente depuis le ${R.dateCourte(R.jourDe(new Date(x.created_date || x.dernier_essai_le)))} : ${x.donnees?.agence || x.appel_id}`),
+    ...Records.list('MondayAttente').filter((x) => !x.fait_le && String(x.created_date || x.dernier_essai_le || '') < ilYaUneHeure).map((x) => `Sunday CRM en attente depuis le ${R.dateCourte(R.jourDe(new Date(x.created_date || x.dernier_essai_le)))} : ${x.donnees?.agence || x.appel_id}`),
     ...valides.filter((x) => x.recu && String(x.valide_le || x.le) < ilYaUneHeure && (['echec'].includes(x.recu.monday?.etat) || ['echec', 'brouillon'].includes(x.recu.mail?.etat)))
-      .map((x) => `${x.agent || 'Appel'} (${R.dateCourte(String(x.le).slice(0, 10))}) : ${x.recu.mail?.etat === 'brouillon' ? 'brouillon jamais ouvert' : x.recu.mail?.etat === 'echec' ? 'mail non parti' : 'Monday raté'}`),
+      .map((x) => `${x.agent || 'Appel'} (${R.dateCourte(String(x.le).slice(0, 10))}) : ${x.recu.mail?.etat === 'brouillon' ? 'brouillon jamais ouvert' : x.recu.mail?.etat === 'echec' ? 'mail non parti' : 'Sunday CRM raté'}`),
   ];
   regles.push(regle('echecs_oublies', 'Aucune action en échec oubliée', enSouffrance));
 

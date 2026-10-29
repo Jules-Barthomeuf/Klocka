@@ -644,7 +644,7 @@ export async function pousserDossierMonday(dossierId, { creer = false } = {}) {
     return await pousserBien(Records.findBy('Deal', 'deal_id', d.deal_id), { motif: `Dossier K Partners, apporté par ${d.mandataire_email}` });
   } catch (e) {
     const frais = Records.findBy('Deal', 'deal_id', d.deal_id);
-    Records.update('Deal', frais.id, { suivi: [...(frais.suivi || []), { le: maintenant(), par: null, type: 'monday_echec', detail: `Monday non mis à jour : ${e?.message || e}` }] });
+    Records.update('Deal', frais.id, { suivi: [...(frais.suivi || []), { le: maintenant(), par: null, type: 'monday_echec', detail: `Sunday CRM non mis à jour : ${e?.message || e}` }] });
     return { ok: false, error: e?.message || String(e) };
   }
 }

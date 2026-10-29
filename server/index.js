@@ -1482,7 +1482,7 @@ if (process.env.RENDER || process.env.EMAILING_AUTO === 'true') {
       const s = await M.tourEmailing();
       // Les newsletters d'abord : un mail prêt dont l'heure est venue devient une campagne, envoyée dans la foulée.
       // Les listes tirées de Monday se relisent une fois par jour, avant que les newsletters partent.
-      await (await import('./emailing/listes-monday.js')).tourMonday().catch((e) => console.warn('[emailing] listes Monday :', e?.message || e));
+      await (await import('./emailing/listes-monday.js')).tourMonday().catch((e) => console.warn('[emailing] listes Sunday CRM :', e?.message || e));
       const nl = await N.tourNewsletters();
       const c = await C.tourCampagnes();
       if (sorties || s?.envoyes || c?.envoyes || nl?.lances || nl?.alertes) console.log(`[emailing] ${nl?.lances || 0} mail(s) de newsletter lancé(s), ${nl?.alertes || 0} alerte(s), ${s?.envoyes || 0} email(s) de séquence, ${c?.envoyes || 0} de campagne, ${sorties} sortie(s) sur réponse`);
@@ -1556,7 +1556,7 @@ import('./prospection/agent-ia.js').then(({ reprendre }) => reprendre()).catch((
 // Le mode appel : une écriture Monday ratée reste orange sur le reçu et se
 // réessaie toute seule, chaque minute, jusqu'à ce que la ligne relue soit juste.
 setInterval(() => {
-  import('./prospection/mode-appel.js').then(({ reessayerAttentes }) => reessayerAttentes()).catch((e) => console.warn(`[mode appel] relance Monday : ${e?.message || e}`));
+  import('./prospection/mode-appel.js').then(({ reessayerAttentes }) => reessayerAttentes()).catch((e) => console.warn(`[mode appel] relance Sunday CRM : ${e?.message || e}`));
 }, 60_000).unref?.();
 
 // Lectures de marché restées incomplètes : on avait promis d'y revenir, un

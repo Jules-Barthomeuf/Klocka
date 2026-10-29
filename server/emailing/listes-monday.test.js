@@ -80,12 +80,12 @@ test('une relecture recalcule les listes, garde le statut et les listes à la ma
   assert.equal(v.statut, 'desinscrit');
   assert.ok(v.listes.includes(main.id), 'la liste faite à la main reste');
   assert.equal(dans('agents_sans_nouvelles', 'vieux@x.fr'), false, 'rappelé hier');
-  assert.equal(dans('agents', 'victor@ab-lille.fr'), false, 'sorti de Monday, sorti des listes Monday');
+  assert.equal(dans('agents', 'victor@ab-lille.fr'), false, 'sorti de Sunday CRM, sorti des listes Sunday CRM');
   assert.ok(Records.list(E.CONTACT).some((c) => c.email === 'victor@ab-lille.fr'), 'mais reste contact');
   assert.equal(Records.list(E.LISTE).filter((l) => l.monday === 'clients_pause').length, 0, 'supprimée, elle ne revient pas');
   assert.equal(Records.list(E.CONTACT).filter((c) => c.email === 'laurent@lifehomme.fr').length, 1);
 });
 
-test('le tour du jour ne relit pas Monday deux fois dans la journée', async () => {
+test('le tour du jour ne relit pas Sunday CRM deux fois dans la journée', async () => {
   assert.equal(await L.tourMonday({ quand: new Date(Date.parse(L.etat().le) + 3600000) }), null);
 });

@@ -135,7 +135,7 @@ export async function relancer(rapportId, index) {
     } else if (echec.operation === 'monday') {
       const { pousserBien } = await import('./deal/monday-sync.js');
       const r = await pousserBien(deal, { motif: 'Relance depuis le rapport de veille' });
-      if (r?.ignore) throw new Error(r.raison || 'Monday a ignoré la fiche');
+      if (r?.ignore) throw new Error(r.raison || 'Sunday CRM a ignoré la fiche');
       detail = r?.cree ? 'fiche créée' : 'fiche mise à jour';
     } else {
       throw new Error(`Opération inconnue : ${echec.operation}`);

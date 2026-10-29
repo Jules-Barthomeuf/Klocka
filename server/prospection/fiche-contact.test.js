@@ -12,7 +12,7 @@ const F = await import('./fiche-contact.js');
 
 const agence = Records.create('AgenceProspect', { nom: 'Agence Durand', ville: 'Antibes', agents: [{ email: 'marc@durand.fr' }] });
 const paul = Records.create('AgentImmo', { prenom: 'Paul', nom_famille: 'Durand', agence: 'Agence Durand', ville: 'Antibes', emails: ['paul@durand.fr'], referent: 'nora@klocka.immo', cree_le: '2026-09-01T08:00:00Z', source: 'Equimmox',
-  journal: [{ type: 'source', texte: 'Monday : Doit envoyer un dossier', le: '2026-09-02T08:00:00Z' }, { type: 'note', texte: 'Fiche modifiée : poste', le: '2026-09-03T08:00:00Z' }] });
+  journal: [{ type: 'source', texte: 'Sunday CRM : Doit envoyer un dossier', le: '2026-09-02T08:00:00Z' }, { type: 'note', texte: 'Fiche modifiée : poste', le: '2026-09-03T08:00:00Z' }] });
 const marc = Records.create('AgentImmo', { nom: 'Marc', emails: ['marc@durand.fr'], cree_le: '2026-09-05T08:00:00Z' });
 const appel = (o) => Records.create('AppelAgent', { agent_id: paul.id, etat: 'valide', ...o });
 appel({ le: '2026-09-10T09:00:00Z', par: 'nora@klocka.immo', issue: 'repondeur', duree_s: 20 });
@@ -26,7 +26,7 @@ Records.create('MailRecu', { de_email: 'paul@durand.fr', compte: 'nora@klocka.im
 
 const equipe = [{ email: 'nora@klocka.immo', nom: 'Nora' }, { email: 'jules.b@klocka.immo', nom: 'Jules' }];
 
-test('les échanges : appels réels, mails partis et reçus, fiches, remarques Monday ; pas les essais ni « Fiche modifiée »', () => {
+test('les échanges : appels réels, mails partis et reçus, fiches, remarques Sunday CRM ; pas les essais ni « Fiche modifiée »', () => {
   const fiches = [{ deal_id: 'd1', agent_email: 'paul@durand.fr', titre: 'Murs Antibes', etape: 'non', le: '2026-09-18T09:00:00Z', boite: 'nora@klocka.immo' }, { deal_id: 'd2', agent_email: 'paul@durand.fr', titre: 'Murs Juan', etape: 'oui', le: '2026-09-25T09:00:00Z' }, { deal_id: 'd3', agent_email: 'autre@x.fr', titre: 'Autre', etape: 'non' }];
   const e = F.echangesDe([paul], { appels: Records.list('AppelAgent'), emails: Records.list('EmailLog'), recus: Records.list('MailRecu'), fiches });
   assert.deepEqual(e.map((x) => x.genre), ['fiche', 'mail_recu', 'fiche', 'mail_envoye', 'appel', 'appel', 'monday']);

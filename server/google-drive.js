@@ -385,3 +385,65 @@ export async function telechargerFichier(compteEmail, fileId) {
   const buffer = Buffer.from(await resp.arrayBuffer());
   return { nom: meta.name, mime: meta.mimeType, buffer };
 }
+
+/**
+ * Le rangement d'une Data Room (29 oct. 2026, Jules : « créer le Google Drive avec les bons noms ») : le dossier
+ * du deal (connu, ou créé à son nom dans Projets), un sous-dossier par famille de pièces, chaque pièce sous son nom
+ * validé, et le Google Doc « Contexte du dossier » remplacé par sa version du jour. Une pièce dont le nom est déjà
+ * dans son sous-dossier ne repart pas en double.
+ * @param {string} compteEmail
+ * @param {{ titre: string, dossierId?: string|null, groupes: Array<{ sousDossier: string, fichiers: Array<{ id, nom, buffer, mime }> }>, contexte?: string|null }} options
+ * @returns {{ folder_id, folder_url, compte, liens: Record<string, { drive_file_id, drive_url, deja?: boolean }>, erreurs: string[] }}
+ */
+export async function rangerDataRoom(compteEmail, { titre, dossierId = null, groupes = [], contexte = null }) {
+  const account = await compteDriveEffectif(compteEmail);
+  const token = await accessTokenFor(account);
+  const { dossier: racine, driveId } = await assurerDossierProjets(token);
+  let dossier = null;
+  if (dossierId) {
+    try { dossier = await driveFetch(token, `${DRIVE_API}/files/${encodeURIComponent(dossierId)}?fields=id,name,webViewLink,trashed&supportsAllDrives=true`); } catch { dossier = null; }
+    if (dossier?.trashed) dossier = null;
+  }
+  if (!dossier) dossier = await assurerDossier(token, titre || 'Deal sans titre', racine.id, driveId);
+  const portee = driveId ? `&corpora=drive&driveId=${encodeURIComponent(driveId)}&includeItemsFromAllDrives=true&supportsAllDrives=true` : '';
+  const nomsDans = async (parentId) => {
+    const r = await driveFetch(token, `${DRIVE_API}/files?q=${encodeURIComponent(`'${q(parentId)}' in parents and trashed=false`)}&fields=files(id,name,webViewLink)&pageSize=200${portee}`);
+    return new Map((r.files || []).map((f) => [String(f.name).toLowerCase(), f]));
+  };
+  const liens = {};
+  const erreurs = [];
+  for (const g of groupes) {
+    if (!g.fichiers.length) continue;
+    let sous;
+    try { sous = await assurerDossier(token, g.sousDossier, dossier.id, driveId); } catch (e) { erreurs.push(`${g.sousDossier} : ${e?.message || e}`); continue; }
+    const presents = await nomsDans(sous.id).catch(() => new Map());
+    for (const f of g.fichiers) {
+      try {
+        const deja = presents.get(String(f.nom).toLowerCase());
+        if (deja) { liens[f.id] = { drive_file_id: deja.id, drive_url: deja.webViewLink || null, deja: true }; continue; }
+        const u = await uploaderFichier(token, { nom: f.nom, buffer: f.buffer, mime: f.mime, parentId: sous.id });
+        liens[f.id] = { drive_file_id: u.id, drive_url: u.webViewLink || null };
+      } catch (e) {
+        erreurs.push(`${f.nom} : ${e?.message || e}`);
+      }
+    }
+  }
+  if (contexte) {
+    try {
+      const NOM = 'Contexte du dossier';
+      const ancien = (await nomsDans(dossier.id)).get(NOM.toLowerCase());
+      if (ancien) await driveFetch(token, `${DRIVE_API}/files/${encodeURIComponent(ancien.id)}?supportsAllDrives=true`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) });
+      const boundary = `klocka${Date.now()}`;
+      const meta = JSON.stringify({ name: NOM, mimeType: 'application/vnd.google-apps.document', parents: [dossier.id] });
+      const corps = Buffer.concat([
+        Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n`),
+        Buffer.from(contexte, 'utf8'),
+        Buffer.from(`\r\n--${boundary}--`),
+      ]);
+      await driveFetch(token, `${DRIVE_UPLOAD}&fields=id`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: corps });
+    } catch (e) {
+      erreurs.push(`Contexte du dossier : ${e?.message || e}`);
+    }
+  }
+  return { folder_id: dossier.id, folder_url: dossier.webViewLink || `https://drive.google.com/drive/folders/${dossier.id}`, compte: account.email, liens, erreurs };
+}

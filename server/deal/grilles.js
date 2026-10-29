@@ -207,7 +207,7 @@ export async function formaterGrille(dealId, id, { user, force = false, cacheSeu
 }
 
 // --- Les warnings, décidés par le code -----------------------------------------------------
-function warnings(id, cid, x, ctx) {
+export function warnings(id, cid, x, ctx) {
   const w = (motif) => ({ statut: 'warning', motif });
   if (!x) return null;
   switch (`${id}.${cid}`) {

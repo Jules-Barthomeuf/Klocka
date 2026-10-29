@@ -15,6 +15,7 @@ import DecisionMandataire from "@/components/mandataire/DecisionMandataire";
 import { useUser } from "@/components/providers/UserProvider";
 import ChatDashboard from "@/components/dashboard/ChatDashboard";
 import PenseeIA from "@/components/PenseeIA";
+import Chargement from "@/components/ui/Chargement";
 import { FRISE, estEcarte, etapeFrise } from "@/lib/dossiers-architecture";
 import { ajouterAuBrouillon, champsEnAttente, dossierAvecBrouillon } from "@/lib/brouillon-fiche";
 
@@ -308,10 +309,12 @@ export default function Analyse() {
   // étapes gardent le dernier choix. Un clic sur le sélecteur vaut jusqu'au prochain changement d'étape.
   useEffect(() => {
     if (!dealId || !vueDossier) return;
-    if (vueDossier === "preanalyse" || vueDossier === "analyse") setModeIABrut(true);
-    else if (vueDossier === "documents") setModeIABrut(false);
+    // L'Analyse s'ouvre en mode normal (29 oct. 2026, Jules) : les grilles et la pièce à droite prennent la page.
+    if (vueDossier === "preanalyse") setModeIABrut(true);
+    else if (vueDossier === "documents" || vueDossier === "analyse") setModeIABrut(false);
   }, [dealId, vueDossier]);
-  const choixMode = ecranLarge ? (
+  // La Data Room n'a ni chat ni bascule (29 oct. 2026, Jules) : toujours en mode normal.
+  const choixMode = ecranLarge && vueDossier !== "documents" ? (
     <div className="flex flex-none gap-1 rounded-full bg-rail-actif p-1" role="group" aria-label="Mode d'affichage du dossier">
       {[[true, "Mode IA"], [false, "Normal"]].map(([v, mot]) => (
         <button key={mot} type="button" onClick={() => setModeIA(v)} aria-pressed={modeIA === v}
@@ -319,7 +322,7 @@ export default function Analyse() {
       ))}
     </div>
   ) : null;
-  const scinde = ecranLarge && !!dealId && !vueConversation && modeIA;
+  const scinde = ecranLarge && !!dealId && !vueConversation && modeIA && vueDossier !== "documents";
   // La largeur du chat, comme dans Présentations et Offres : la poignée se tire, un double-clic la remet.
   const CLE_LARGEUR = "klocka.dossiers.largeur-chat";
   const LARGEUR_DEFAUT = 420;
@@ -351,17 +354,22 @@ export default function Analyse() {
     return () => { clearTimeout(fin); document.documentElement.classList.remove("k-sans-defilement", "k-sans-ak"); };
   }, [scinde]);
 
+  // Le dossier s'affiche ici avec sa propre ligne de titre (le retour y est).
+  const dossierOuvertIci = !vueConversation && !(nouveau && !dealId) && dossier?.deal_id === dealId && !!dealId;
   // Le contenu d'un dossier ouvert : à droite du chat sur grand écran, seul au téléphone.
   const contenuDossier = (
     <div className={`mx-auto ${large ? "max-w-none" : "max-w-[1500px]"}`}>
       {/* md:pr-14 : la marge du bouton Rappel, fixé dans le coin. */}
-      <div className="mb-4 flex items-center justify-between gap-3 md:pr-14">
+      {/* Le dossier ouvert porte « Tous les dossiers » sur la ligne de son nom (29 oct. 2026, Jules) ; ici, seulement ailleurs. */}
+      <div className={`${dossierOuvertIci && !conversationDuDeal ? "hidden" : ""} mb-4 flex items-center justify-between gap-3 md:pr-14`}>
+        {!dossierOuvertIci ? (
         <button
           onClick={() => montrerDeal(null)}
           className="text-ardoise hover:text-encre text-xs flex flex-none items-center gap-1.5 transition-colors max-md:min-h-[36px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Tous les dossiers
         </button>
+        ) : <span />}
         {conversationDuDeal && (vueConversation ? (
           <button type="button" onClick={() => changerVue("analyse")}
             className="inline-flex h-10 items-center gap-2 rounded-full bg-menthe px-5 text-[14px] text-sur-menthe hover:bg-menthe-survol">
@@ -398,6 +406,7 @@ export default function Analyse() {
           onLargeur={setLarge}
           onVue={setVueDossier}
           actionsBarre={choixMode}
+          onRetour={() => montrerDeal(null)}
         />
         {enAttente > 0 && createPortal(
           <div role="status" className="k-entree fixed bottom-6 left-1/2 z-[45] flex -translate-x-1/2 items-center gap-3 rounded-full border border-bord-doux bg-surface-pleine py-2 pl-5 pr-2 shadow-[0_18px_40px_rgb(0_0_0/0.22)] max-md:bottom-4 max-md:w-[calc(100vw-2rem)] max-md:justify-between">
@@ -411,9 +420,9 @@ export default function Analyse() {
         )}
         </>
       ) : (
-        <div className="k-entree flex flex-col items-center gap-3 p-8 text-center" role="status">
-          <PenseeIA etat="searching" taille={48} />
-          <p className="k-scintille m-0 text-sm">Ouverture du dossier…</p>
+        // L'ouverture d'un dossier : l'animation Klocka, en grand au milieu (29 oct. 2026, Jules).
+        <div className="k-entree flex min-h-[60vh] items-center justify-center" role="status">
+          <Chargement taille="grand" titre="Ouverture du dossier" etats={["Les pièces et les grilles", "Les étapes du dossier", "J'affiche"]} />
         </div>
       )}
     </div>

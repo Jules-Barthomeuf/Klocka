@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { X as IconeFermer } from "lucide-react";
+import { X as IconeFermer, ArrowLeft } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -18,12 +18,13 @@ import {
 } from "@/components/preanalyse/DealResultat";
 import SectionDocumentsDeal from "@/components/preanalyse/SectionDocumentsDeal";
 import ChatDossier from "./ChatDossier";
-import DocumentsDossier from "./DocumentsDossier";
 import { GABARITS } from "./gabaritsMail";
 import PenseeIA from "@/components/PenseeIA";
 import { demanderNotifications, prevenir } from "@/lib/notifications";
 import GrilleCriteres, { prechargerGrilles } from "@/components/preanalyse/GrilleCriteres";
 import SyntheseAnalyse, { HistoriqueAnalyse, useSyntheseAnalyse } from "@/components/preanalyse/SyntheseAnalyse";
+import { GrillesPieces, useAnalysePieces } from "@/components/preanalyse/AnalysePieces";
+import DepotsDossier, { ActionsDataRoom } from "@/components/preanalyse/DepotsDossier";
 import TableauBienAnalyse from "@/components/preanalyse/TableauBienAnalyse";
 import SectionBien from "@/components/preanalyse/SectionBien";
 import ApercuProjetPlateforme from "@/components/preanalyse/ApercuProjetPlateforme";
@@ -43,15 +44,14 @@ import SimulateurDossier from "@/components/preanalyse/SimulateurDossier";
 // Le module d'analyse (spec du 17 oct. 2026) : Synthèse en tête, le Simulateur après le Marché (il consomme tous les
 // onglets précédents), l'Historique à la fin.
 const GRILLES_ANALYSE = [
+// L'analyse pièce par pièce (29 oct. 2026, Jules) : les pièces se rangent dans la Data Room, une zone par type ;
+// Bail, Quittances, Copropriété et Diagnostics lisent les grilles case par case (AnalysePieces.jsx), plus la matrice.
   { id: "synthese", titre: "Synthèse", grilles: null },
   { id: "bien", titre: "Bien", grilles: null },
-  { id: "bail", titre: "Bail", grilles: [{ id: "bail", titre: "Bail" }] },
-  { id: "quittances", titre: "Quittances", grilles: [{ id: "quittances", titre: "Quittances", sousTitre: "La situation actuelle, tirée des quittances." }] },
-  { id: "copropriete", titre: "Copropriété", grilles: [
-    { id: "pv_ag", titre: "PV d'AG", sousTitre: "Les procès-verbaux d'assemblée : travaux, résolutions, impayés." },
-    { id: "rcp", titre: "Règlement de copropriété", sousTitre: "Activités autorisées ou non, quote-part." },
-  ] },
-  { id: "diagnostics", titre: "Diagnostics", grilles: [{ id: "diagnostics", titre: "Diagnostics", sousTitre: "L'état du bien, diagnostic par diagnostic." }] },
+  { id: "bail", titre: "Bail", grilles: null, parPiece: true },
+  { id: "quittances", titre: "Quittances", grilles: null, parPiece: true },
+  { id: "copropriete", titre: "Copropriété", grilles: null, parPiece: true },
+  { id: "diagnostics", titre: "Diagnostics", grilles: null, parPiece: true },
   // Ce que disent les services extérieurs sur le loyer : le secteur pour la
   // fourchette de la rue, Equimmox pour les baux comparables autour.
   { id: "marche", titre: "Marché", grilles: null },
@@ -315,7 +315,7 @@ function etapeDebloquee(dossier) {
  *                  aucune action n'est exécutée (voir dossierDemo.js)
  */
 
-export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null }) {
+export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie, enCours, onRefresh, apercu = false, onLargeur = undefined, onVue = undefined, etroit = false, enCarte = false, onFermer = undefined, actionsBarre = null, onRetour = null }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Les onglets de l'analyse se chargent à l'ouverture du dossier, pas au clic : ni « Lecture… » ni attente (18 oct. 2026).
@@ -361,12 +361,14 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
   const [grilleAnalyse, setGrilleAnalyse] = useState(() => { try { return localStorage.getItem("klocka_grille_analyse") || "synthese"; } catch { return "synthese"; } });
   // Chaque onglet dit dans son titre combien de signalements y restent à traiter.
   const synthese = useSyntheseAnalyse(dossier?.deal_id, { enabled: !apercu });
-  const reste = (id) => synthese.data?.par_onglet?.[id] || 0;
+  const analysePieces = useAnalysePieces(dossier?.deal_id, { enabled: !apercu });
+  const reste = (id) => (GRILLES_ANALYSE.find((g) => g.id === id)?.parPiece ? analysePieces.data?.a_voir?.[id] || 0 : synthese.data?.par_onglet?.[id] || 0);
   useEffect(() => { try { localStorage.setItem("klocka_grille_analyse", grilleAnalyse); } catch { /* sans mémoire */ } }, [grilleAnalyse]);
   // Rien dans la colonne de droite (l'Analyse sans fil de mandataire) : ce qui est à gauche prend toute la largeur (17 oct. 2026, Jules).
   // Depuis le 18 oct. 2026, la colonne ne porte que l'emplacement (Pré-analyse) et la Data Room (son étape).
   const colonneVide = !!dossier && !["preanalyse", "documents"].includes(vue) && !(dossier.dossier_mandataire_id && !apercu);
-  const pleineLargeur = !!dossier && ((vue === "analyse" && grilleAnalyse === "simulateur") || colonneVide);
+  // La Data Room n'est plus que ses zones de dépôt (29 oct. 2026, Jules) : rien à côté.
+  const pleineLargeur = !!dossier && ((vue === "analyse" && grilleAnalyse === "simulateur") || vue === "documents" || colonneVide);
   // Haka (17 oct. 2026) : ce qui attend dans À valider pour ce dossier, en pastille dans la barre.
   const aValider = useAValiderDossier(dossier?.deal_id && !apercu ? dossier.deal_id : null);
   // La page entière s'élargit avec le simulateur (17 oct. 2026, Jules) : plus de plafond de largeur.
@@ -533,6 +535,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               {aValider.length} à valider
             </button>
           )}
+          {vue === "documents" && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => allerA("analyse")} />}
           {actionsBarre}
           {!apercu && <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
             onAbandonner={() => {
@@ -553,8 +556,16 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       {/* En-tête du dossier : le nom, puis la frise des huit étapes. */}
       {dossier && (
         <>
-          {!enCarte && <div className="flex flex-wrap items-center justify-between gap-4 max-md:gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+          {/* Une seule ligne (29 oct. 2026, Jules) : « Tous les dossiers » à gauche, le nom au milieu, les gestes à droite. */}
+          {!enCarte && <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 max-md:grid-cols-[1fr_auto] max-md:gap-3">
+            <div className="min-w-0">
+              {onRetour && (
+                <button type="button" onClick={onRetour} className="flex items-center gap-1.5 text-xs text-ardoise transition-colors hover:text-encre max-md:min-h-[36px]" style={{ background: "transparent" }}>
+                  <ArrowLeft className="h-3.5 w-3.5" /> Tous les dossiers
+                </button>
+              )}
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center justify-center gap-2.5 text-center max-md:col-span-2 max-md:row-start-2 max-md:justify-start max-md:text-left">
               <TitreDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />
               {aRelancer && (
                 <Badge className="bg-red-500/15 text-red-300 border-red-500/30 flex items-center gap-1 flex-shrink-0">
@@ -563,7 +574,9 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
               )}
             </div>
             {/* k-actions-dossier : en mode IA, le « … » se range sous la cloche (index.css), même taille, même colonne. */}
-            <div className="k-actions-dossier flex flex-none items-center gap-2">
+            <div className="k-actions-dossier flex flex-none flex-wrap items-center justify-end gap-2">
+            {/* La Data Room : ses deux gestes à gauche du « ⋯ » (29 oct. 2026, Jules). */}
+            {vue === "documents" && !apercu && <ActionsDataRoom dossier={dossier} onRefresh={onRefresh} onAnalyse={() => allerA("analyse")} />}
             {actionsBarre}
             {!apercu && (
               <MenuActionsDossier dossier={dossier} abandonne={abandonne} onSupprimer={supprimer}
@@ -597,11 +610,8 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
       <div className={dossier && !pleineLargeur ? `grid items-start gap-8 ${etroit ? "min-[1700px]:grid-cols-[minmax(0,1fr)_320px]" : "lg:grid-cols-[minmax(0,1fr)_340px]"}` : ""}>
       <div className="min-w-0 space-y-5">
       {/* Le chat du haut retiré de la pré-analyse et de l'analyse (16 oct. 2026, Jules) ; à l'étape Analyse, ses documents restent. */}
-      {dossier && vue === "documents" && (
-        <section data-zone="listes" className="k-points relative mb-6 rounded-[16px] border border-trait bg-rail px-4 py-3">
-          <DocumentsDossier dossier={dossier} coches={documentsCoches} onCocher={setDocumentsCoches} onRefresh={onRefresh} apercu={apercu} proposerDrive />
-        </section>
-      )}
+      {/* La Data Room : une zone de dépôt par type de pièce, rien d'autre (29 oct. 2026, Jules). */}
+      {dossier && vue === "documents" && <DepotsDossier dossier={dossier} apercu={apercu} onRefresh={onRefresh} />}
 
       {/* Contenu de l'étape courante */}
       <div key={dossier ? vue : etape} className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out space-y-5">
@@ -620,7 +630,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
           />
         )}
         {montre("analyse") && (
-          <div id="tables-analyse" className="space-y-5">
+          <div id="tables-analyse" className="space-y-5 pt-6">
             {/* Une partie par famille de pièces : on n'affiche qu'une grille à la fois. */}
             <Onglets
               items={[...GRILLES_ANALYSE.map((g) => ({ cle: g.id, titre: reste(g.id) ? <span className="inline-flex items-center gap-1.5">{g.titre}<span className="rounded-full bg-ambre/15 px-1.5 text-[11px] tabular-nums text-ambre">{reste(g.id)}</span></span> : g.titre })), ...ongletsKData, { cle: "historique", titre: "Historique" }]}
@@ -631,6 +641,7 @@ export default function WorkflowDeal({ dossier, onAnalyse = undefined, onSaisie,
             {analyseKData && <FenetreAnalyseKData analyse={analyseKData} onFermer={() => setAnalyseKData(null)} />}
             {/* Changer d'onglet : le contenu entre en fondu en montant un peu (18 oct. 2026). */}
             <motion.div key={grilleAnalyse} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="space-y-5">
+            {GRILLES_ANALYSE.find((g) => g.id === grilleAnalyse)?.parPiece && <GrillesPieces dossier={dossier} onglet={grilleAnalyse} apercu={apercu} />}
             {grilleAnalyse === "synthese" && <SyntheseAnalyse dossier={dossier} apercu={apercu} onOnglet={(id) => setGrilleAnalyse(id)} />}
             {/* L'onglet Bien (18 oct. 2026, maquette de Jules) : le tableau Ligne / Ce qu'on y lit / Sources / Statut, puis la fiche commerciale. */}
             {grilleAnalyse === "bien" && !apercu && <TableauBienAnalyse dealId={dossier?.deal_id} />}

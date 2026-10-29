@@ -43,6 +43,7 @@ import { lireArticle } from './lecture.js';
 import { journaliser, purgerAudit, lireAudit, resumeAudit } from './audit.js';
 import { RETOUR_POPUP, authResultPage, popupConnectePage } from './pages-oauth.js';
 import { monterPreanalyse } from './routes/preanalyse.js';
+import { monterAnalysePieces } from './routes/analyse-pieces.js';
 import { monterAssistant } from './routes/assistant.js';
 import { monterMarche } from './routes/marche.js';
 import { monterEntites } from './routes/entites.js';
@@ -1247,6 +1248,7 @@ app.get('/api/health', (req, res) => {
 // Présent uniquement après `npm run build` (le mode dev utilise Vite).
 // ---------------------------------------------------------------------------
 monterPreanalyse(app);
+monterAnalysePieces(app);
 
 monterAssistant(app);
 
@@ -1412,6 +1414,10 @@ import('./deal/file-extraction.js').then(({ reprendreEnAttente }) => {
   const n = reprendreEnAttente(UPLOAD_DIR);
   if (n) console.log(`  ▸ ${n} extraction(s) repris après redémarrage`);
 }).catch((e) => console.warn(`[démarrage] extractions en attente : ${e?.message || e}`));
+import('./deal/analyse-pieces.js').then(({ reprendreEnAttente }) => {
+  const n = reprendreEnAttente(UPLOAD_DIR);
+  if (n) console.log(`  ▸ ${n} lecture(s) de pièce reprise(s) après redémarrage`);
+}).catch((e) => console.warn(`[démarrage] lectures de pièces en attente : ${e?.message || e}`));
 
 // La base retient sa date de naissance : c'est elle qu'on lit dans /api/health
 // pour savoir si l'hébergeur l'a effacée.

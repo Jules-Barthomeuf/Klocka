@@ -9,6 +9,7 @@ import DonneesExtraites from "./DonneesExtraites";
 import LectureDossier from "./LectureDossier";
 import PenseeIA from "@/components/PenseeIA";
 import { J } from "@/design/jetons";
+import { fenetreDuPassage, motsDeLImage } from "@/lib/ocr-passage";
 
 // L'étape Analyse : un onglet Documents (la liste cochable) puis un onglet par
 // document extrait, chacun présentant ses données extraites. Chaque ligne
@@ -104,7 +105,170 @@ function TextePage({ dealId, documentId, page, citation }) {
   );
 }
 
-export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
+// La page du PDF elle-même, le passage cité surligné dessus (29 oct. 2026, Jules : « le document avec le passage bien
+// surligné »). pdf.js dessine la page et lit sa couche texte ; les morceaux de texte qui portent la citation reçoivent
+// un aplat ambre. La citation absente de la page dite est cherchée dans les autres. Un scan n'a pas de couche texte :
+// la page s'affiche, la citation reste au-dessus.
+async function pdfjs() {
+  const lib = await import("pdfjs-dist");
+  const { default: worker } = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+  lib.GlobalWorkerOptions.workerSrc = worker;
+  return lib;
+}
+
+async function texteDeLaPage(page) {
+  const contenu = await page.getTextContent();
+  let brut = "";
+  const itemDe = [];
+  contenu.items.forEach((it, i) => {
+    const morceau = `${it.str || ""}${it.hasEOL ? "\n" : " "}`;
+    for (let k = 0; k < morceau.length; k++) itemDe.push(i);
+    brut += morceau;
+  });
+  return { items: contenu.items, brut, itemDe };
+}
+
+export function PagePdfSurlignee({ url, page: pageDite = null, citation = null }) {
+  const cadre = useRef(null);
+  const toile = useRef(null);
+  const [etat, setEtat] = useState({ charge: true, erreur: null, page: pageDite || 1, total: 0, marques: [], trouve: null, largeur: 0, hauteur: 0 });
+  const [voulue, setVoulue] = useState(null);
+  useEffect(() => { setVoulue(null); }, [url, pageDite, citation]);
+  useEffect(() => {
+    let fini = false;
+    let doc = null;
+    (async () => {
+      try {
+        const lib = await pdfjs();
+        const donnees = new Uint8Array(await (await fetch(url)).arrayBuffer());
+        doc = await lib.getDocument({ data: donnees }).promise;
+        const total = doc.numPages;
+        // La page à montrer : celle choisie à la main, sinon celle où la citation se lit vraiment.
+        let numero = Math.min(Math.max(1, voulue || pageDite || 1), total);
+        let lu = null;
+        let passage = null;
+        if (citation && !voulue) {
+          const ordre = [numero, ...Array.from({ length: total }, (_, i) => i + 1).filter((n) => n !== numero)];
+          for (const n of ordre) {
+            const t = await texteDeLaPage(await doc.getPage(n));
+            const p = trouverPassage(t.brut, citation);
+            if (p) { numero = n; lu = t; passage = p; break; }
+            if (fini) return;
+          }
+        }
+        let page = await doc.getPage(numero);
+        if (!lu && citation) { lu = await texteDeLaPage(page); passage = trouverPassage(lu.brut, citation); }
+        const largeur = Math.max(280, (cadre.current?.clientWidth || 640) - 2);
+        const dpr = window.devicePixelRatio || 1;
+        const dessiner = async (p) => {
+          const v = p.getViewport({ scale: largeur / p.getViewport({ scale: 1 }).width });
+          const c = toile.current;
+          if (!c || fini) return null;
+          c.width = Math.floor(v.width * dpr);
+          c.height = Math.floor(v.height * dpr);
+          c.style.width = `${v.width}px`;
+          c.style.height = `${v.height}px`;
+          await p.render({ canvasContext: c.getContext("2d"), canvas: c, viewport: v, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined }).promise;
+          return v;
+        };
+        let vue = await dessiner(page);
+        if (!vue) return;
+        const marques = [];
+        if (passage && lu) {
+          const touches = new Set(lu.itemDe.slice(passage[0], passage[1]));
+          for (const i of touches) {
+            const it = lu.items[i];
+            if (!it?.str?.trim()) continue;
+            const tx = lib.Util.transform(vue.transform, it.transform);
+            const h = Math.hypot(tx[2], tx[3]);
+            marques.push({ left: tx[4], top: tx[5] - h, width: it.width * vue.scale, height: h * 1.15 });
+          }
+        }
+        // Un scan n'a pas de couche texte : la page s'affiche d'abord, puis l'OCR la lit et y cherche le passage.
+        const scan = !!citation && !marques.length && (lu?.brut || "").replace(/\s+/g, "").length < 40;
+        if (!fini) setEtat({ charge: false, ocr: scan, erreur: null, page: numero, total, marques, trouve: citation ? (scan ? null : marques.length > 0) : null, largeur: vue.width, hauteur: vue.height });
+        if (scan && !voulue) {
+          for (const n of [numero, numero + 1, numero - 1].filter((x) => x >= 1 && x <= total)) {
+            const p = await doc.getPage(n);
+            // L'OCR lit une image large d'environ 2 000 points : assez fin pour un bail scanné.
+            const vo = p.getViewport({ scale: 2000 / p.getViewport({ scale: 1 }).width });
+            const img = document.createElement("canvas");
+            img.width = Math.floor(vo.width);
+            img.height = Math.floor(vo.height);
+            await p.render({ canvasContext: img.getContext("2d"), canvas: img, viewport: vo }).promise;
+            if (fini) return;
+            const mots = await motsDeLImage(`${url}#${n}`, img);
+            if (fini) return;
+            const f = fenetreDuPassage(mots, citation);
+            if (!f) continue;
+            if (n !== numero) { page = p; vue = await dessiner(p); if (!vue) return; }
+            const k = vue.width / vo.width;
+            const trouvees = mots.slice(f[0], f[1] + 1).map((m) => ({ left: m.bbox.x0 * k, top: m.bbox.y0 * k - 1, width: (m.bbox.x1 - m.bbox.x0) * k, height: (m.bbox.y1 - m.bbox.y0) * k + 2 }));
+            setEtat({ charge: false, ocr: false, erreur: null, page: n, total, marques: trouvees, trouve: true, largeur: vue.width, hauteur: vue.height });
+            return;
+          }
+          if (!fini) setEtat((x) => ({ ...x, ocr: false, trouve: false }));
+        }
+      } catch (e) {
+        if (!fini) setEtat((x) => ({ ...x, charge: false, erreur: e?.message || "Le PDF ne s'affiche pas" }));
+      }
+    })();
+    return () => { fini = true; doc?.destroy?.(); };
+  }, [url, pageDite, citation, voulue]);
+  const premiere = useRef(null);
+  useEffect(() => { premiere.current?.scrollIntoView({ block: "center" }); }, [etat.marques]);
+
+  return (
+    <div ref={cadre} className="flex-1 overflow-y-auto bg-fond">
+      {/* Le passage se voit sur la page : plus de citation ni d'état écrits au-dessus (29 oct. 2026, Jules). Les flèches
+          seulement quand la pièce a plusieurs pages. */}
+      {etat.total > 1 && (
+        <div className="sticky top-0 z-10 flex items-center justify-start gap-1 px-3 py-3 text-[12px] text-ardoise">
+          <span className="rounded-full bg-surface-pleine/90 px-1 shadow-[0_6px_18px_rgb(0_0_0/0.18)]">
+            <button type="button" disabled={etat.page <= 1} onClick={() => setVoulue(etat.page - 1)} className="rounded-full px-2 py-0.5 hover:text-encre disabled:opacity-40" style={{ background: "transparent" }} aria-label="Page précédente">‹</button>
+            <span className="tabular-nums">{etat.page} / {etat.total}</span>
+            <button type="button" disabled={etat.page >= etat.total} onClick={() => setVoulue(etat.page + 1)} className="rounded-full px-2 py-0.5 hover:text-encre disabled:opacity-40" style={{ background: "transparent" }} aria-label="Page suivante">›</button>
+          </span>
+        </div>
+      )}
+      {etat.erreur ? (
+        <p className="m-0 px-4 py-6 text-center text-[12.5px] text-alerte">{etat.erreur}</p>
+      ) : (
+        <div className="relative mx-auto" style={{ width: etat.largeur || undefined, height: etat.hauteur || undefined }}>
+          <canvas ref={toile} className="block" />
+          {etat.marques.map((m, i) => (
+            <span key={i} ref={i === 0 ? premiere : undefined} className="pointer-events-none absolute rounded-[2px] bg-ambre/40 mix-blend-multiply ring-1 ring-ambre/60"
+              style={{ left: m.left, top: m.top, width: m.width, height: m.height }} />
+          ))}
+          {etat.charge && <div className="absolute inset-0 grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>}
+          {etat.ocr && <span className="absolute bottom-3 left-3 grid h-8 w-8 place-items-center rounded-full bg-surface-pleine/90 shadow-[0_6px_18px_rgb(0_0_0/0.18)]" title="Lecture du scan pour retrouver le passage"><Loader2 className="h-4 w-4 animate-spin text-ambre" /></span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Une source seule : la page du PDF et son passage surligné, sans barre ni citation ; le texte surligné pour le reste. */
+export function SourceSeule({ dealId, doc, page = null, citation = null }) {
+  const { data: local, isLoading, isError } = useQuery({
+    queryKey: ["fichier-source", doc.url],
+    queryFn: async () => {
+      const blob = await base44.fichier(doc.url);
+      return { url: URL.createObjectURL(blob), type: blob.type || null };
+    },
+    enabled: !!doc.url,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: false,
+  });
+  const estPdf = /pdf/i.test(local?.type || doc.mime || doc.url || "");
+  if (isLoading) return <div className="grid flex-1 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-brume" /></div>;
+  if (isError || !local) return <p className="m-0 px-6 py-10 text-center text-[12.5px] text-alerte">Le document n'a pas pu être ouvert.</p>;
+  if (estPdf) return <PagePdfSurlignee url={local.url} page={page} citation={citation} />;
+  return <div className="flex-1 overflow-y-auto"><TextePage dealId={dealId} documentId={doc.id} page={page} citation={citation} /></div>;
+}
+
+export function Visionneuse({ extraction, ligne, onFermer, dealId = null, hauteur = null }) {
   const page = ligne?.page || null;
   // Le document est rapporté par le client authentifié, puis affiché depuis la
   // mémoire du navigateur. Un <iframe src="/uploads/…"> n'emporte ni le jeton
@@ -130,11 +294,12 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
   // Le passage d'abord : le texte de la page avec la citation surlignée. Le
   // PDF reste à un clic, ouvert à la bonne page.
   const peutSurligner = !!(dealId && extraction.document_id && ligne?.citation);
-  const [vue, setVue] = useState(peutSurligner ? "passage" : "document");
-  useEffect(() => { setVue(peutSurligner ? "passage" : "document"); }, [peutSurligner, extraction.document_id, page, ligne?.citation]);
+  // Un PDF s'ouvre sur sa page, le passage surligné dessus ; « Texte » garde la page en texte brut.
+  const [vue, setVue] = useState("document");
+  useEffect(() => { setVue("document"); }, [extraction.document_id, page, ligne?.citation]);
 
   return (
-    <div className="bg-surface border border-trait rounded-md overflow-hidden flex flex-col h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static">
+    <div className={`bg-surface border border-trait rounded-md overflow-hidden flex flex-col ${hauteur || "h-[560px] lg:sticky lg:top-4 [.panneau-source_&]:h-[calc(100vh-32px)] max-md:[.panneau-source_&]:h-[calc(100dvh-32px)] [.panneau-source_&]:static"}`}>
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-bord flex-shrink-0">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-[12.5px] text-encre truncate">{extraction.document_nom}</p>
@@ -144,7 +309,7 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         </div>
         {peutSurligner && (
           <span className="inline-flex items-center rounded-full border border-bord-doux p-0.5 flex-shrink-0">
-            {[["passage", "Passage"], ["document", "Document"]].map(([id, mot]) => (
+            {[["document", "Document"], ["passage", "Texte"]].map(([id, mot]) => (
               <button key={id} onClick={() => setVue(id)} className={`px-2.5 py-0.5 rounded-full text-[11px] transition-colors ${vue === id ? "bg-menthe rounded-full text-sur-menthe font-semibold" : "text-ardoise hover:text-encre"}`}>{mot}</button>
             ))}
           </span>
@@ -164,14 +329,6 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
         </button>
       </div>
 
-      {/* La citation, en évidence : c'est elle qu'on est venu voir. */}
-      {ligne?.citation && (
-        <div className="px-4 py-3 border-b border-bord flex-shrink-0 bg-ambre/[0.07]">
-          <p className="m-0 text-[11px] tracking-[.18em] uppercase text-ambre">Passage cité{page ? ` · page ${page}` : ""}</p>
-          <p className="m-0 mt-1 text-[13.5px] leading-[1.6] text-encre border-l-2 border-ambre pl-3">{ligne.citation}</p>
-        </div>
-      )}
-
       {vue === "passage" && peutSurligner ? (
         <div className="flex-1 overflow-y-auto">
           <TextePage dealId={dealId} documentId={extraction.document_id} page={page} citation={ligne.citation} />
@@ -185,6 +342,8 @@ export function Visionneuse({ extraction, ligne, onFermer, dealId = null }) {
           <p className="m-0 text-[12.5px] text-alerte">Le document n'a pas pu être ouvert.</p>
           <p className="m-0 text-[12.5px] text-brume">Il a peut-être été supprimé du dossier, ou votre session a expiré.</p>
         </div>
+      ) : estPdf && local?.url ? (
+        <PagePdfSurlignee url={local.url} page={page} citation={ligne?.citation || null} />
       ) : affichable ? (
         <>
           <iframe

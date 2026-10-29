@@ -1,6 +1,7 @@
-// Klocka dans Twenty (28 oct. 2026, Jules) : deux ajouts à l'écran des tableaux, sans toucher au code de Twenty.
+// Klocka dans Twenty (28 oct. 2026, Jules) : trois ajouts à l'écran, sans toucher au code de Twenty.
 //   1. Les vues en onglets à droite du choix de vue (« All Clients | Clients signés | Clients en cours… »).
 //   2. Un bandeau juste au-dessus des lignes cochées : nombre de fiches, Déplacer, Dupliquer, Supprimer, croix.
+//   3. Un clic sur une adresse mail ouvre la fenêtre d’envoi, avec les modèles de Sunday CRM (29 oct.).
 // Chargé par la page d'accueil de Twenty (index.html de ce dossier, servi par le site statique et désigné par
 // FRONTEND_INDEX_URL). Les appels passent par l'API de Twenty avec le cookie de la personne connectée : mêmes droits
 // qu'elle. Déplacer remplit « Déplacer vers » (Klocka déplace par webhook, server/crm/deplacer.js).
@@ -425,8 +426,161 @@
     });
   }
 
+  // --- 3. Un clic sur une adresse mail : la fenêtre d'envoi ---
+  // Le mail ne part pas d'ici : la page crée un « Mail envoyé » (envoisMail) au nom de la personne connectée, Klocka
+  // l'envoie depuis sa boîte Gmail (server/crm/mails.js) et marque Envoyé ou Erreur, que la fenêtre attend.
+  // Les modèles sont ceux de l'objet « Modèles » (modelesMail) ; {prénom} et {nom} prennent le nom de la fiche.
+  const ENVOI = 'klocka-envoi';
+  let modeles = null;
+
+  function ficheDuClic(cible) {
+    const page = location.pathname.match(/^\/object\/([^/]+)\/([0-9a-f-]{36})/);
+    if (page) {
+      const o = (objets || []).find((x) => x.nameSingular === page[1]);
+      return o ? { objet: o, id: page[2] } : null;
+    }
+    const o = objetCourant();
+    const id = cible.closest('[data-selectable-id]')?.getAttribute('data-selectable-id');
+    return o && id ? { objet: o, id } : null;
+  }
+
+  const remplir = (texte, nom) => {
+    const prenom = String(nom || '').trim().split(/\s+/)[0] || '';
+    return String(texte || '').replace(/\{pr[ée]nom\}/gi, prenom).replace(/\{nom\}|\{fiche\}/gi, String(nom || '').trim());
+  };
+
+  function champ(libelle, element) {
+    const l = document.createElement('label');
+    l.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.9';
+    const t = document.createElement('span');
+    t.textContent = libelle;
+    t.style.cssText = 'opacity:.6';
+    l.append(t, element);
+    return l;
+  }
+
+  async function ouvrirEnvoi(adresse, cible) {
+    document.getElementById(ENVOI)?.remove();
+    try {
+      await charger();
+    } catch {
+      /* la fiche reste vide : l'envoi marche sans elle */
+    }
+    const fiche = ficheDuClic(cible);
+    const { fond, texte } = couleurs();
+    const bord = 'border:1px solid rgba(127,127,127,.3);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px;background:transparent;color:inherit';
+    const p = document.createElement('div');
+    p.id = ENVOI;
+    p.dataset.clickOutsideId = HORS_TABLEAU;
+    p.style.cssText = `position:fixed;top:12px;right:12px;bottom:12px;width:min(460px,calc(100vw - 24px));z-index:2147483647;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:10px;background:${fond};color:${texte};box-shadow:0 12px 40px rgba(0,0,0,.22);border:1px solid rgba(127,127,127,.25);font-size:13px`;
+    // Les raccourcis de Twenty ne doivent pas lire ce qu'on tape ici.
+    for (const t of ['keydown', 'keyup', 'keypress']) p.addEventListener(t, (e) => { e.stopPropagation(); if (t === 'keydown' && e.key === 'Escape') p.remove(); });
+
+    const tete = document.createElement('div');
+    tete.style.cssText = 'display:flex;align-items:center;justify-content:space-between';
+    const titre = document.createElement('strong');
+    titre.textContent = 'Nouveau mail';
+    titre.style.fontSize = '14px';
+    tete.append(titre, bouton('✕', texte, () => p.remove()));
+
+    const a = document.createElement('input');
+    a.value = adresse;
+    a.style.cssText = bord;
+    const choix = document.createElement('select');
+    choix.style.cssText = bord;
+    choix.append(new Option('Sans modèle', ''));
+    const objet = document.createElement('input');
+    objet.style.cssText = bord;
+    const corps = document.createElement('textarea');
+    corps.style.cssText = `${bord};flex:1;min-height:200px;resize:none;line-height:1.45`;
+    const zoneCorps = champ('Texte', corps);
+    zoneCorps.style.flex = '1';
+
+    const pied = document.createElement('div');
+    pied.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px';
+    const etatEnvoi = document.createElement('span');
+    etatEnvoi.style.cssText = 'font-size:12px;opacity:.7';
+    etatEnvoi.textContent = 'Part de votre boîte Gmail connectée à Klocka.';
+    const envoyer = bouton('Envoyer', texte, () => partir());
+    envoyer.style.cssText += ';font-weight:600;border:1px solid rgba(127,127,127,.35)';
+    pied.append(etatEnvoi, envoyer);
+
+    p.append(tete, champ('À', a), champ('Modèle', choix), champ('Objet', objet), zoneCorps, pied);
+    document.body.appendChild(p);
+    a.focus();
+
+    let nom = '';
+    if (fiche) {
+      api('GET', `/${fiche.objet.namePlural}/${fiche.id}?depth=0`).then((r) => {
+        const f = r?.data?.[fiche.objet.nameSingular] || Object.values(r?.data || {})[0] || {};
+        nom = typeof f.name === 'string' ? f.name : [f.name?.firstName, f.name?.lastName].filter(Boolean).join(' ');
+        titre.textContent = nom ? `Mail à ${nom}` : 'Nouveau mail';
+      }).catch(() => {});
+    }
+    try {
+      modeles ||= (await api('GET', '/modelesMail?limit=200&order_by=name[AscNullsLast]'))?.data?.modelesMail || [];
+    } catch {
+      modeles = [];
+    }
+    for (const m of modeles) choix.append(new Option(m.name || m.objet || 'Sans nom', m.id));
+    choix.addEventListener('change', () => {
+      const m = modeles.find((x) => x.id === choix.value);
+      if (!m) return;
+      objet.value = remplir(m.objet, nom);
+      corps.value = remplir(m.corps, nom);
+    });
+
+    let parti = false;
+    async function partir() {
+      if (parti) return;
+      if (!a.value.trim() || !objet.value.trim()) return annoncer('Il faut une adresse et un objet', true);
+      parti = true;
+      envoyer.disabled = true;
+      etatEnvoi.textContent = 'Envoi…';
+      const m = modeles.find((x) => x.id === choix.value);
+      try {
+        const r = await api('POST', '/envoisMail', {
+          name: objet.value.trim().slice(0, 200),
+          a: a.value.trim(),
+          objet: objet.value.trim(),
+          corps: corps.value,
+          modele: m?.name || null,
+          statut: 'A_ENVOYER',
+          ficheObjet: fiche?.objet.nameSingular || null,
+          ficheId: fiche?.id || null,
+        });
+        const id = r?.data?.createEnvoiMail?.id || Object.values(r?.data || {})[0]?.id;
+        for (let i = 0; i < 40 && id; i++) {
+          await new Promise((ok) => setTimeout(ok, 1500));
+          const e = (await api('GET', `/envoisMail/${id}?depth=0`))?.data?.envoiMail;
+          if (e?.statut === 'ENVOYE') {
+            p.remove();
+            return annoncer(`Mail envoyé depuis ${e.expediteur || 'votre boîte'}`);
+          }
+          if (e?.statut === 'ERREUR') throw new Error(e.erreur || 'envoi refusé');
+        }
+        throw new Error('pas de réponse de Klocka, voir Mails envoyés');
+      } catch (e) {
+        parti = false;
+        envoyer.disabled = false;
+        etatEnvoi.textContent = `Non envoyé : ${e.message}`;
+      }
+    }
+  }
+
+  // Avant Twenty (phase de capture sur window) : son propre clic ouvrirait la messagerie de l'ordinateur.
+  function surClicAdresse(e) {
+    const lien = e.target.closest?.('a[href^="mailto:"]');
+    if (!lien || e.button !== 0 || e.metaKey || e.ctrlKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const adresse = decodeURIComponent(lien.getAttribute('href').slice(7).split('?')[0]);
+    ouvrirEnvoi(adresse, lien);
+  }
+
   // Le script est dans <head> : on démarre une fois la page lue.
   function demarrer() {
+    window.addEventListener('click', surClicAdresse, true);
     new MutationObserver(passe).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-checked', 'data-selectable-id'] });
     window.addEventListener('scroll', passe, true);
     window.addEventListener('resize', passe);

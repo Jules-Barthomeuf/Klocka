@@ -90,7 +90,8 @@ export function monterMonday(app) {
     if (!D.signatureValide(req.body, req.get('x-twenty-webhook-timestamp'), req.get('x-twenty-webhook-signature'))) return res.status(403).json({ error: 'Signature refusée.' });
     const S = await import('../crm/synchro.js');
     const L = await import('../layer-sources.js');
-    ok(res, { deplacement: D.recevoirEvenement(req.body), synchro: S.depuisTwenty(req.body), layer: L.depuisTwenty(req.body) });
+    const Mails = await import('../crm/mails.js');
+    ok(res, { deplacement: D.recevoirEvenement(req.body), synchro: S.depuisTwenty(req.body), layer: L.depuisTwenty(req.body), mail: Mails.depuisTwenty(req.body) });
   }));
 
   // Monday : les webhooks des tableaux migrés (scripts/crm/synchro-monday.mjs), pour que Twenty suive ce que l'équipe
